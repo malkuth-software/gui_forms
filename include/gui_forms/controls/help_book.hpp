@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/help/help_page/help_page.hpp"
@@ -18,7 +19,7 @@ namespace gui_forms {
 
 // A PNG resource a help body may show (`![alt](name.png)`): its name in the
 // body, the registered image and its size in logical units.
-struct HelpBookImage final {
+struct GUI_FORMS_API HelpBookImage final {
     std::string name{};
     ImageId image{};
     Size size{};
@@ -28,7 +29,7 @@ struct HelpBookImage final {
 // page's stable ID; `bounds` the link's box in window coordinates, where a
 // popup anchors. A handler that acts sets `handled`; the viewer handles
 // topic and popup links itself and offers external ones to the application.
-struct HelpLinkActivation final {
+struct GUI_FORMS_API HelpLinkActivation final {
     std::string page{};
     HelpLinkKind kind{HelpLinkKind::external};
     std::string target{};
@@ -38,14 +39,14 @@ struct HelpLinkActivation final {
 };
 
 // A collapsible section was opened or closed.
-struct HelpSectionToggle final {
+struct GUI_FORMS_API HelpSectionToggle final {
     std::size_t section{};
     bool open{};
 };
 
 // The words the book shows for its callouts: a one-word label each. They are
 // the help system's own text, translated with the program's.
-struct HelpBookLabels final {
+struct GUI_FORMS_API HelpBookLabels final {
     GUI_FORMS_LOCALIZABLE(text) std::string note{"Note"};
     GUI_FORMS_LOCALIZABLE(text) std::string tip{"Tip"};
     GUI_FORMS_LOCALIZABLE(text) std::string caution{"Caution"};
@@ -67,7 +68,7 @@ struct HelpBookLabels final {
 // Keyboard: Tab and Shift+Tab move through the links and topic bars (past
 // the last, focus leaves the book), Enter and Space follow or toggle,
 // arrows, Page Up, Page Down, Home and End scroll.
-class HelpBook final : public ScrollableControl {
+class GUI_FORMS_API HelpBook final : public ScrollableControl {
 public:
     explicit HelpBook(StableId stable_id);
 
@@ -146,7 +147,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
 
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry paper;
         PartGeometry title;
@@ -157,11 +158,11 @@ public:
     [[nodiscard]] Parts parts() const;
     // One topic item: a collapsible section's bar and expander, or one
     // link's text.
-    struct TopicParts final {
+    struct GUI_FORMS_API TopicParts final {
         PartGeometry topic_bar;
         PartGeometry expander;
     };
-    struct LinkParts final {
+    struct GUI_FORMS_API LinkParts final {
         PartGeometry link_text;
     };
     [[nodiscard]] std::size_t realized_item_count() const override;

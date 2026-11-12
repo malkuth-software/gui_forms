@@ -21,6 +21,7 @@
 // panel. Off, a window holds no overlay and pays one relaxed atomic load a
 // damage record and a paint.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
@@ -75,7 +76,7 @@ using InvalidationClock = std::chrono::steady_clock;
 // One presented area: its bounds in window logical units, its cause, the
 // control that caused it where known (its stable id; empty otherwise), and
 // when it was presented.
-struct InvalidationOutline final {
+struct GUI_FORMS_API InvalidationOutline final {
     Rect bounds{};
     InvalidationCause cause{InvalidationCause::control};
     std::string source{};
@@ -85,7 +86,7 @@ struct InvalidationOutline final {
 // A cause's outline: its colour, its stroke width in logical units, its
 // dash and gap lengths in logical units (no dash: solid), and whether it is
 // drawn as two parallel lines.
-struct InvalidationOutlineStyle final {
+struct GUI_FORMS_API InvalidationOutlineStyle final {
     Color colour{};
     double width{};
     double dash{};
@@ -93,25 +94,25 @@ struct InvalidationOutlineStyle final {
     bool double_line{};
 };
 
-[[nodiscard]] InvalidationOutlineStyle invalidation_outline_style(InvalidationCause cause) noexcept;
+[[nodiscard]] GUI_FORMS_API InvalidationOutlineStyle invalidation_outline_style(InvalidationCause cause) noexcept;
 // The cause's name as the legend shows it: "control", "layout", "expose",
 // "scroll copy", "live surface", "external".
-[[nodiscard]] std::string_view invalidation_cause_name(InvalidationCause cause) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view invalidation_cause_name(InvalidationCause cause) noexcept;
 
 // Whether GUI_FORMS_DEBUG_INVALIDATION asks for the overlay: set, and
 // neither empty nor "0".
-[[nodiscard]] bool invalidation_overlay_requested_by_environment() noexcept;
+[[nodiscard]] GUI_FORMS_API bool invalidation_overlay_requested_by_environment() noexcept;
 // The process switch every window without a setting of its own follows; on
 // the first read it is the environment's request. Any thread.
-void set_invalidation_overlay_default(bool enabled) noexcept;
-[[nodiscard]] bool invalidation_overlay_default() noexcept;
+GUI_FORMS_API void set_invalidation_overlay_default(bool enabled) noexcept;
+[[nodiscard]] GUI_FORMS_API bool invalidation_overlay_default() noexcept;
 // Counts each change of the process switch, so a window notices one with a
 // single relaxed load. Any thread.
-[[nodiscard]] std::uint64_t invalidation_overlay_default_generation() noexcept;
+[[nodiscard]] GUI_FORMS_API std::uint64_t invalidation_overlay_default_generation() noexcept;
 
 // A frame's pixels the overlay composites onto: `height` rows of `width`
 // premultiplied BGRA pixels, `row_bytes` apart. Borrowed for the call.
-struct InvalidationOverlayTarget final {
+struct GUI_FORMS_API InvalidationOverlayTarget final {
     std::span<std::byte> pixels{};
     std::uint32_t width{};
     std::uint32_t height{};
@@ -119,7 +120,7 @@ struct InvalidationOverlayTarget final {
 };
 
 // A rectangle of whole device pixels: [left, right) by [top, bottom).
-struct DevicePixelRect final {
+struct GUI_FORMS_API DevicePixelRect final {
     std::int32_t left{};
     std::int32_t top{};
     std::int32_t right{};
@@ -133,7 +134,7 @@ struct DevicePixelRect final {
 
 // A window's live outlines. Owned by the window (SurfaceRoot), on its UI
 // thread; the host reads it there to composite.
-class InvalidationOverlay final {
+class GUI_FORMS_API InvalidationOverlay final {
 public:
     // Adds an outline presented at `at`; an empty or non-finite rectangle
     // adds none. The source is cut to maximum_invalidation_label bytes.

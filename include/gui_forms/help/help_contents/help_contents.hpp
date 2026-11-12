@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/help/help_records/help_records.hpp"
 
@@ -21,7 +22,7 @@ class SurfaceRoot;
 // contents falls back to the end of the top level.
 enum class HelpPlaceKind : std::uint8_t { after, under, top };
 
-class HelpPlace final {
+class GUI_FORMS_API HelpPlace final {
 public:
     // After `anchor` (a stable ID; checked when the program is compiled).
     [[nodiscard]] static HelpPlace after(StableIdLiteral anchor) {
@@ -62,7 +63,7 @@ private:
 // it is made and leaves it when destroyed, so a topic at namespace scope is
 // declared for the whole run. Declarations are made during static
 // initialization or on the UI thread, never concurrently.
-class HelpTopic final {
+class GUI_FORMS_API HelpTopic final {
 public:
     HelpTopic(StableId stable_id, std::string title, std::string body, HelpPlace place,
               std::string help_line = {}, std::string keywords = {});
@@ -97,7 +98,7 @@ private:
 
 // A topic's place in the contents, as the contents generator reads it: from
 // a HelpTopic or from a run-time declaration (HelpBookSystem::declare_topic).
-struct HelpTopicPlacement final {
+struct GUI_FORMS_API HelpTopicPlacement final {
     std::string stable_id{};
     HelpPlaceKind kind{HelpPlaceKind::top};
     std::string anchor{};
@@ -105,14 +106,14 @@ struct HelpTopicPlacement final {
 
 // Fills `placements` (cleared first) from every declared HelpTopic, in
 // declaration order.
-void collect_declared_topics(std::vector<HelpTopicPlacement>& placements);
+GUI_FORMS_API void collect_declared_topics(std::vector<HelpTopicPlacement>& placements);
 
 // Writes every declared HelpTopic's text into `layer` (the built-in layer):
 // title, body, help line and keywords.
-void put_declared_topics(HelpRecordLayer& layer);
+GUI_FORMS_API void put_declared_topics(HelpRecordLayer& layer);
 // The same, as language-file records (text, help, help-line, keywords), for
 // the template export.
-void put_declared_topics(LocaleLayer& layer);
+GUI_FORMS_API void put_declared_topics(LocaleLayer& layer);
 
 // What a node of the program's structure is, as the contents tree arranges
 // it: a window, a group that holds other controls (a panel, a group box, a
@@ -123,7 +124,7 @@ enum class HelpSkeletonKind : std::uint8_t { window, group, control };
 // enumerates it (depth first, children in order). `depth` is 0 for a
 // window. `name` is the control's accessible name or text, the title the
 // contents uses when no record gives one.
-struct HelpSkeletonNode final {
+struct GUI_FORMS_API HelpSkeletonNode final {
     std::string stable_id{};
     std::string name{};
     std::uint32_t depth{};
@@ -133,7 +134,7 @@ struct HelpSkeletonNode final {
 // Appends `window`'s structure to `nodes`: its root as the window, then
 // every control of its tree, depth first. Overlays and controls without a
 // stable ID path under the root are not part of the structure. UI thread.
-void append_help_skeleton(const SurfaceRoot& window, std::vector<HelpSkeletonNode>& nodes);
+GUI_FORMS_API void append_help_skeleton(const SurfaceRoot& window, std::vector<HelpSkeletonNode>& nodes);
 
 // Puts the help fields `window`'s controls hold in code (Control::help_line,
 // help and keywords; HelpProvider writes the first and last) into `layer`
@@ -141,14 +142,14 @@ void append_help_skeleton(const SurfaceRoot& window, std::vector<HelpSkeletonNod
 // fields, over what `layer` held for that ID. The same walk as
 // append_help_skeleton (an explicit stack, bounded by the window's own
 // nesting limit). UI thread.
-void append_control_help_fields(const SurfaceRoot& window, LocaleLayer& layer);
+GUI_FORMS_API void append_control_help_fields(const SurfaceRoot& window, LocaleLayer& layer);
 
 inline constexpr std::uint32_t help_no_parent = 0xFFFFFFFFU;
 
 // One page of the generated contents, in preorder. `parent` indexes the
 // tree's nodes (help_no_parent at the top level). Titles come from the
 // catalog in force, so they differ by language; the shape does not.
-struct HelpContentsNode final {
+struct GUI_FORMS_API HelpContentsNode final {
     std::string stable_id{};
     std::string title{};
     std::uint32_t parent{help_no_parent};
@@ -159,14 +160,14 @@ struct HelpContentsNode final {
 
 // A control with a help line but no help body: listed on the page of its
 // nearest ancestor that has one (`page` indexes the tree's nodes).
-struct HelpContentsLine final {
+struct GUI_FORMS_API HelpContentsLine final {
     std::uint32_t page{};
     std::string stable_id{};
     std::string title{};
     std::string help_line{};
 };
 
-struct HelpContentsTree final {
+struct GUI_FORMS_API HelpContentsTree final {
     std::vector<HelpContentsNode> nodes{};
     std::vector<HelpContentsLine> lines{};
 
@@ -182,7 +183,7 @@ struct HelpContentsTree final {
 // A placement whose record has no body is left out. Titles are the resolved
 // `text`, else the skeleton's name, else the ID's last segment. `tree` is
 // replaced.
-void build_help_contents(std::span<const HelpSkeletonNode> skeleton, std::span<const HelpTopicPlacement> topics,
+GUI_FORMS_API void build_help_contents(std::span<const HelpSkeletonNode> skeleton, std::span<const HelpTopicPlacement> topics,
                          const HelpCatalog& catalog, HelpContentsTree& tree);
 
 } // namespace gui_forms

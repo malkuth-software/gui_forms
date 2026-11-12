@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/controls/range_control.hpp"
 #include "gui_forms/controls/progress_bar_values.hpp"
@@ -16,7 +17,7 @@ namespace gui_forms {
 
 struct PresentationSettings;
 
-class ProgressBar : public RangeControl, public ProgressBarCapabilities<ProgressBar> {
+class GUI_FORMS_API ProgressBar : public RangeControl, public ProgressBarCapabilities<ProgressBar> {
 public:
     explicit ProgressBar(StableId stable_id);
 
@@ -65,13 +66,13 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry track;
         PartGeometry fill;
         PartGeometry activity;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool indeterminate{};
         bool enabled{};

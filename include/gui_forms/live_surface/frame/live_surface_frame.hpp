@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/live_surface/types/live_surface_types.hpp"
 
 #include <cstddef>
@@ -17,7 +18,7 @@ class LiveSurface;
 
 // Immutable read lease over one completely published frame. The producer can
 // continue rendering into another buffer while this lease is held.
-class LiveSurfaceFrame final {
+class GUI_FORMS_API LiveSurfaceFrame final {
 public:
     LiveSurfaceFrame() = default;
     ~LiveSurfaceFrame() = default;

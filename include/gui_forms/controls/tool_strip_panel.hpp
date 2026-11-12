@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/controls/tool_strip_panel_values.hpp"
 #include "gui_forms/controls/tool_strip_panel_capabilities.hpp"
@@ -20,7 +21,7 @@ namespace gui_forms {
 // rest, so a strip alone fills its row. A row is as thick as its thickest
 // strip, the panel as its rows together (none without strips). The panel
 // owns joined strips as its children, in row order.
-class ToolStripPanel final : public Control, public ToolStripPanelCapabilities<ToolStripPanel> {
+class GUI_FORMS_API ToolStripPanel final : public Control, public ToolStripPanelCapabilities<ToolStripPanel> {
 public:
     explicit ToolStripPanel(StableId stable_id, ToolStripPanelEdge initial_edge = ToolStripPanelEdge::top);
 
@@ -55,7 +56,7 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
     };

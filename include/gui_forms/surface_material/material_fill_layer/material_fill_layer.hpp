@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/surface_material/procedural_fill/procedural_fill.hpp"
 #include "gui_forms/types.hpp"
 
@@ -55,7 +56,7 @@ enum class MaterialLinearGeometry : std::uint8_t {
 
 // One renderer-neutral material layer with explicit coordinate, spread,
 // image sampling, scale, opacity, and nine-patch state.
-struct MaterialFillLayer final {
+struct GUI_FORMS_API MaterialFillLayer final {
     MaterialFillKind kind{MaterialFillKind::solid};
     MaterialCoordinateSpace coordinate_space{MaterialCoordinateSpace::normalized};
     MaterialLinearGeometry linear_geometry{MaterialLinearGeometry::endpoints};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
 
@@ -59,19 +60,19 @@ enum class VisualPaintOperation : std::uint8_t {
     stroke_rounded_rect_corners,
 };
 
-[[nodiscard]] const char* visual_paint_operation_name(
+[[nodiscard]] GUI_FORMS_API const char* visual_paint_operation_name(
     VisualPaintOperation operation) noexcept;
-[[nodiscard]] const char* paint_plane_name(PaintPlane plane) noexcept;
-[[nodiscard]] const char* font_role_name(FontRole role) noexcept;
-[[nodiscard]] const char* dock_style_name(DockStyle dock) noexcept;
-[[nodiscard]] const char* visual_status_name(
+[[nodiscard]] GUI_FORMS_API const char* paint_plane_name(PaintPlane plane) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* font_role_name(FontRole role) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* dock_style_name(DockStyle dock) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* visual_status_name(
     ControlVisualStatus status) noexcept;
 
 // One immutable, backend-neutral record from the last committed display chunk.
 // Text is redacted by default at capture time; byte length and the resolved
 // FontSpec remain available for visual diagnosis without copying application
 // content into ordinary diagnostic payloads.
-struct VisualPaintOperationSnapshot final {
+struct GUI_FORMS_API VisualPaintOperationSnapshot final {
     std::size_t command_index{};
     VisualPaintOperation operation{VisualPaintOperation::save};
     Point first{};
@@ -98,7 +99,7 @@ struct VisualPaintOperationSnapshot final {
     std::size_t element_count{};
 };
 
-struct VisualControlStateSnapshot final {
+struct GUI_FORMS_API VisualControlStateSnapshot final {
     bool visible{};
     bool layout_collapsed{};
     bool effectively_visible{};
@@ -116,7 +117,7 @@ struct VisualControlStateSnapshot final {
     ControlVisualStatus visual_status{ControlVisualStatus::normal};
 };
 
-struct VisualControlLayoutSnapshot final {
+struct GUI_FORMS_API VisualControlLayoutSnapshot final {
     Rect requested_bounds{};
     Rect arranged_bounds{};
     Rect absolute_bounds{};
@@ -139,7 +140,7 @@ struct VisualControlLayoutSnapshot final {
     LayoutTransactionState transaction{};
 };
 
-struct VisualControlInspection final {
+struct GUI_FORMS_API VisualControlInspection final {
     RuntimeId runtime_id{};
     std::string stable_id;
     std::optional<RuntimeId> parent_runtime_id;
@@ -161,7 +162,7 @@ struct VisualControlInspection final {
     std::vector<VisualPaintOperationSnapshot> display_operations;
 };
 
-struct VisualInspectionOptions final {
+struct GUI_FORMS_API VisualInspectionOptions final {
     static constexpr std::size_t maximum_allowed_controls = 1'000'000U;
     static constexpr std::size_t maximum_allowed_operations_per_control = 16'384U;
     std::size_t maximum_controls{16'384U};
@@ -171,7 +172,7 @@ struct VisualInspectionOptions final {
     bool include_resolved_text{true};
 };
 
-struct VisualInspectionSnapshot final {
+struct GUI_FORMS_API VisualInspectionSnapshot final {
     std::uint64_t content_revision{};
     std::uint64_t display_generation{};
     Size client_size{};

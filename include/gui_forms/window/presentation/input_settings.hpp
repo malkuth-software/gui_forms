@@ -2,6 +2,7 @@
 // The input settings a host reports (HostInputSettingsEvent) and the window
 // keeps in PresentationSettings. Kept apart so that the host protocol's
 // types can name them without the window's presentation types.
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 
 namespace gui_forms {
@@ -47,7 +48,7 @@ inline constexpr std::uint32_t maximum_hover_milliseconds = 10000U;
 //   MouseHover (SystemInformation.MouseHoverTime and MouseHoverSize).
 // - native_hover: the host reports hover itself (HostHoverEvent, Windows
 //   WM_MOUSEHOVER); the window's own hover timer then stays off.
-struct PointerSettings final {
+struct GUI_FORMS_API PointerSettings final {
     double drag_width{default_drag_size};
     double drag_height{default_drag_size};
     SettingOrigin drag_origin{SettingOrigin::default_value};
@@ -70,7 +71,7 @@ struct PointerSettings final {
 // Whether every value lies in its range (each rectangle side finite and
 // between 0 and maximum_pointer_distance, the hover time between 1 and
 // maximum_hover_milliseconds) and every origin is in its enum.
-[[nodiscard]] bool valid_pointer_settings(const PointerSettings& settings) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_pointer_settings(const PointerSettings& settings) noexcept;
 
 // The caret's blink phase GUI.Forms states where the host has none (the
 // Windows default, GetCaretBlinkTime), and the longest phase admitted.
@@ -84,7 +85,7 @@ inline constexpr std::uint32_t maximum_caret_blink_milliseconds = 10000U;
 // Sources: Windows GetCaretBlinkTime (INFINITE is 0), X11 XSettings
 // Net/CursorBlink and Net/CursorBlinkTime (a whole cycle, halved), macOS
 // the NSTextInsertionPointBlinkPeriodOn default where set.
-struct CaretSettings final {
+struct GUI_FORMS_API CaretSettings final {
     std::uint32_t blink_milliseconds{default_caret_blink_milliseconds};
     SettingOrigin origin{SettingOrigin::default_value};
 
@@ -95,6 +96,6 @@ struct CaretSettings final {
 
 // Whether the phase is at most maximum_caret_blink_milliseconds (0, never
 // blinking, included) and the origin is in its enum.
-[[nodiscard]] bool valid_caret_settings(const CaretSettings& settings) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_caret_settings(const CaretSettings& settings) noexcept;
 
 } // namespace gui_forms

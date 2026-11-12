@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/property_list.hpp"
 #include "gui_forms/inspection/property_editor_registry/property_editor_registry.hpp"
 #include "gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp"
@@ -12,7 +13,7 @@
 
 namespace gui_forms {
 
-class PropertyGrid final : public Panel, public PropertyGridCapabilities<PropertyGrid> {
+class GUI_FORMS_API PropertyGrid final : public Panel, public PropertyGridCapabilities<PropertyGrid> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit PropertyGrid(StableId stable_id);

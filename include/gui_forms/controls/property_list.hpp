@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 #include "gui_forms/controls/property_list_capabilities.hpp"
 
@@ -12,7 +13,7 @@
 
 namespace gui_forms {
 
-class PropertyList final : public Panel, public PropertyListCapabilities<PropertyList> {
+class GUI_FORMS_API PropertyList final : public Panel, public PropertyListCapabilities<PropertyList> {
 public:
     explicit PropertyList(StableId stable_id);
     ~PropertyList() override;
@@ -69,12 +70,12 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(
         std::size_t item) const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
     };
     [[nodiscard]] Parts parts() const;
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry group_header;
         PartGeometry group_expander;
         PartGeometry group_title;
@@ -85,7 +86,7 @@ public:
         PartGeometry validation;
         PartGeometry row_divider;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool open{};
         bool closed{};
         bool invalid{};
@@ -93,7 +94,7 @@ public:
         bool disabled{};
         bool group_header{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         std::size_t index{};
         std::string stable_id;
         ItemParts parts;

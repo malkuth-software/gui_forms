@@ -4,6 +4,7 @@
 // B.4): PlotView and its item children, PlotAxisItem, PlotSeriesItem and
 // PlotAnnotationItem.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/plot_types/plot_types.hpp"
 #include "gui_forms/types.hpp"
 
@@ -33,7 +34,7 @@ enum class PlotAxisDirection : std::uint8_t {
 enum class PlotAxisScale : std::uint8_t { linear, log10, symlog, time, category };
 
 // A point the pointer or the keyboard cursor picked (PlotView::point_picked).
-struct PlotPointPick final {
+struct GUI_FORMS_API PlotPointPick final {
     // The series' position among the plot's series items, and the element.
     std::size_t series{};
     std::size_t element{};
@@ -44,7 +45,7 @@ struct PlotPointPick final {
 // The plot's visible ranges after a gesture or a programmatic change
 // (PlotView::view_changed): the first x and y axes', as plain numbers so the
 // C ABI carries them as fields.
-struct PlotViewRanges final {
+struct GUI_FORMS_API PlotViewRanges final {
     double x_minimum{};
     double x_maximum{1.0};
     double y_minimum{};
@@ -54,7 +55,7 @@ struct PlotViewRanges final {
 // A query rectangle (Ctrl + right drag, owner ruling 3a) in the first
 // axes' data units (PlotView::selection_changed); `present` false when the
 // selection was cleared.
-struct PlotQuery final {
+struct GUI_FORMS_API PlotQuery final {
     bool present{};
     double x_minimum{};
     double x_maximum{};

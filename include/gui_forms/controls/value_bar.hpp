@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/range_control.hpp"
 #include "gui_forms/controls/value_bar_values.hpp"
 #include "gui_forms/controls/text_box.hpp"
@@ -21,7 +22,7 @@ class ValueBarScrub;
 // bar study, section 3.6): the ratio of the label's text over the track and
 // of its fill text over the fill, against `minimum` (4.5:1, 7:1 in high
 // contrast). A ratio of 0 was not measured (a face holding an image).
-struct ValueBarContrast final {
+struct GUI_FORMS_API ValueBarContrast final {
     double over_track{};
     double over_fill{};
     double minimum{};
@@ -73,7 +74,7 @@ struct ValueBarContrast final {
 // are painted twice, clipped: over the track in their own colour, over the
 // fill in the label part's fill-text-color (else the fill's selected text
 // colour), so the text stays readable where the fill crosses a glyph.
-class ValueBar final : public RangeControl, public ValueBarCapabilities<ValueBar> {
+class GUI_FORMS_API ValueBar final : public RangeControl, public ValueBarCapabilities<ValueBar> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit ValueBar(StableId stable_id);
@@ -142,7 +143,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     // The anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry track;
         PartGeometry fill;
@@ -156,7 +157,7 @@ public:
         PartGeometry validation;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool hot{};
         bool pressed{};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/scheduler.hpp"
@@ -22,7 +23,7 @@ namespace detail {
 class CutOffTextRevealer;
 } // namespace detail
 
-struct TreeViewItem final {
+struct GUI_FORMS_API TreeViewItem final {
     std::string stable_id;
     GUI_FORMS_LOCALIZABLE(text) std::string text;
     std::size_t depth{};
@@ -32,12 +33,12 @@ struct TreeViewItem final {
     std::string image_key;
 };
 
-struct TreeSelectionChange final {
+struct GUI_FORMS_API TreeSelectionChange final {
     std::string previous_id;
     std::string current_id;
 };
 
-struct TreeExpansionChange final {
+struct GUI_FORMS_API TreeExpansionChange final {
     std::string stable_id;
     bool expanded{};
 };
@@ -45,7 +46,7 @@ struct TreeExpansionChange final {
 // A retained, flat-model tree. Only visible rows are painted and published as
 // semantic children; item identity and expansion state remain stable while
 // descendants are unrealized.
-class TreeView final : public Panel, public TreeViewCapabilities<TreeView> {
+class GUI_FORMS_API TreeView final : public Panel, public TreeViewCapabilities<TreeView> {
 public:
     explicit TreeView(StableId stable_id);
     ~TreeView() override;
@@ -89,21 +90,21 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(
         std::size_t item) const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;
         PartGeometry content;
     };
     [[nodiscard]] Parts parts() const;
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry row;
         PartGeometry expander;
         PartGeometry icon;
         PartGeometry label;
         PartGeometry row_focus;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool selected{};
         bool hot{};
         bool current{};
@@ -111,7 +112,7 @@ public:
         bool closed{};
         bool disabled{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         std::size_t index{};
         std::string stable_id;
         ItemParts parts;

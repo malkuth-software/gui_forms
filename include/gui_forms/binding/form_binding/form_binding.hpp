@@ -22,6 +22,7 @@
 // way binding of a property that raises no change, or a disposed source
 // throws std::invalid_argument and leaves the control as it was.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
 #include "gui_forms/value.hpp"
@@ -57,11 +58,11 @@ template <>
 inline constexpr BindingValueKind form_value_kind<double> = BindingValueKind::number;
 
 // Binds `property` of `target` to `source`. See the header comment.
-void bind_form_value(Control& target, std::string_view property, Value<bool>& source,
+GUI_FORMS_API void bind_form_value(Control& target, std::string_view property, Value<bool>& source,
                      PropertyBindingDirection direction);
-void bind_form_value(Control& target, std::string_view property, Value<int>& source,
+GUI_FORMS_API void bind_form_value(Control& target, std::string_view property, Value<int>& source,
                      PropertyBindingDirection direction);
-void bind_form_value(Control& target, std::string_view property, Value<double>& source,
+GUI_FORMS_API void bind_form_value(Control& target, std::string_view property, Value<double>& source,
                      PropertyBindingDirection direction);
 
 // The generated code's spelling: `Kind` is the bound property's kind as
@@ -78,7 +79,7 @@ void bind_form_value(Control& target, std::string_view property, Value<T>& sourc
 
 // Binds `property` of `target` to the field `field` of `source`'s current
 // record. `trigger` matters only for a two-way binding.
-void bind_form_field(Control& target, std::string_view property, const std::shared_ptr<BindingSource>& source,
+GUI_FORMS_API void bind_form_field(Control& target, std::string_view property, const std::shared_ptr<BindingSource>& source,
                      std::string field, PropertyBindingDirection direction, FormUpdateTrigger trigger);
 
 } // namespace gui_forms

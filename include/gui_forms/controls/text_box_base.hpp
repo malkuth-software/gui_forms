@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/panel.hpp"
 
 namespace gui_forms {
@@ -17,7 +18,7 @@ namespace gui_forms {
 // edits through the TextBox it owns. A member moves up here when all three
 // have it, never by giving one of them a member it lacks. It declares no
 // virtual function of its own: nothing varies between the leaves through it.
-class TextBoxBase : public Panel {
+class GUI_FORMS_API TextBoxBase : public Panel {
 public:
     ~TextBoxBase() override;
 

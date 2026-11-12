@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/controls/modal_layer_capabilities.hpp"
@@ -12,7 +13,7 @@ namespace gui_forms {
 
 // The argument of ModalLayer::closing: the result the layer would close
 // with, and whether a handler refuses the closing.
-struct ModalLayerClosingEvent final {
+struct GUI_FORMS_API ModalLayerClosingEvent final {
     DialogResult result{DialogResult::none};
     bool cancel{false};
 };
@@ -42,7 +43,7 @@ struct ModalLayerClosingEvent final {
 // it opaque), and the content casts the overlay `shadow` (tool_tip family)
 // over the scrim. To assistive technology the layer is a modal dialog,
 // named by accessible_name.
-class ModalLayer final : public Control, public ModalLayerCapabilities<ModalLayer> {
+class GUI_FORMS_API ModalLayer final : public Control, public ModalLayerCapabilities<ModalLayer> {
 public:
     explicit ModalLayer(StableId stable_id);
     ~ModalLayer() override;
@@ -75,7 +76,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts). `scrim` covers
     // the client while content is shown; `shadow` lies under the content.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry scrim;
         PartGeometry shadow;

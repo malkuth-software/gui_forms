@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -27,13 +28,13 @@ enum class BundledFontSource : std::uint8_t {
 
 // The source's name in diagnostics: "none", "environment", "executable", "library_module",
 // "install_share" or "application_bundle".
-[[nodiscard]] std::string_view bundled_font_source_name(BundledFontSource source) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view bundled_font_source_name(BundledFontSource source) noexcept;
 
 // What the hosts' font lookups found in this process, for diagnostics and the windows' metrics
 // (MetricsSnapshot::bundled_font_lookups_without_source). A host looks once per application run
 // and once per window it opens. The first lookup that finds no source also writes one line to
 // stderr, the refusal bundled_font_refusal returns; later ones are only counted. Any thread.
-struct BundledFontDiagnostics final {
+struct GUI_FORMS_API BundledFontDiagnostics final {
     std::uint64_t lookups{};
     std::uint64_t lookups_without_source{};
     // The most recent lookup's answer; none before the first lookup.
@@ -47,18 +48,18 @@ struct BundledFontDiagnostics final {
     std::uint32_t fallback_faces_found{};
     std::uint32_t fallback_faces_expected{};
 };
-[[nodiscard]] BundledFontDiagnostics bundled_font_diagnostics() noexcept;
+[[nodiscard]] GUI_FORMS_API BundledFontDiagnostics bundled_font_diagnostics() noexcept;
 
 // The most recent lookup's refusal: which directories it tried and why text is missing, as one
 // line of UTF-8. Empty when that lookup found a source, or before the first lookup. A copy; any
 // thread.
-[[nodiscard]] std::string bundled_font_refusal();
+[[nodiscard]] GUI_FORMS_API std::string bundled_font_refusal();
 
 // The most recent lookup's note on absent fallback faces: which of them its directory lacks
 // and what that means for text, as one line of UTF-8. Empty when every fallback face is
 // present, when that lookup found no directory (bundled_font_refusal says why), or before the
 // first lookup. Only recorded, never written to stderr, since leaving the faces out is an
 // install's or a package's choice. A copy; any thread.
-[[nodiscard]] std::string bundled_font_notice();
+[[nodiscard]] GUI_FORMS_API std::string bundled_font_notice();
 
 } // namespace gui_forms

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host/windowing/host_windowing.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window/backdrop/backdrop_chain.hpp"
@@ -51,7 +52,7 @@ enum class NativePopupSurface : std::uint8_t {
     overlay,
 };
 
-struct NativePopupOptions final {
+struct GUI_FORMS_API NativePopupOptions final {
     // Declared per popup; there is no global rule (owner, 2026-11-04).
     HostPopupFocus focus{HostPopupFocus::passive};
     // The popup window's backdrop chain (Window::set_backdrop_chain): a blur
@@ -79,7 +80,7 @@ class Window;
 // disconnecting the token closes the popup, as does the death of the
 // control that opened it or the closing of its window by the host. UI
 // thread only.
-class NativePopupToken final {
+class GUI_FORMS_API NativePopupToken final {
 public:
     NativePopupToken() noexcept = default;
     ~NativePopupToken();

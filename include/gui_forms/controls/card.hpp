@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/card_values.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/card_capabilities.hpp"
@@ -13,7 +14,7 @@ namespace gui_forms {
 // General retained header/body/footer composition. Card owns each installed
 // section as an ordinary visual child and returns the detached predecessor on
 // replacement; it never hides demo-only layout or renderer code.
-class Card : public Panel, public CardCapabilities<Card> {
+class GUI_FORMS_API Card : public Panel, public CardCapabilities<Card> {
 public:
     explicit Card(StableId stable_id);
 
@@ -51,7 +52,7 @@ public:
                             std::string_view value) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 states, as dot members; Card's parts are Panel's.
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool hot{};
         bool pressed{};

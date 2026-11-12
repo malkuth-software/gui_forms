@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/connected_controls/types/connected_control_types.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
@@ -25,7 +26,7 @@ enum class ChoiceIndicatorStyle : std::uint8_t {
     toggle,
 };
 
-class ButtonBase : public Control, public ButtonBaseCapabilities<ButtonBase> {
+class GUI_FORMS_API ButtonBase : public Control, public ButtonBaseCapabilities<ButtonBase> {
 public:
     explicit ButtonBase(StableId stable_id, std::string initial_text = {});
     ~ButtonBase() override;
@@ -96,14 +97,14 @@ public:
                             std::string_view value) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry icon;
         PartGeometry label;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool hot{};
         bool pressed{};
@@ -124,7 +125,7 @@ protected:
     // published geometry share it. Rectangles are at rest: the pressed
     // content offset and a theme's visual offset are presentation and are
     // applied only when painting.
-    struct ContentLayout final {
+    struct GUI_FORMS_API ContentLayout final {
         // None when the button shows no text, or no image.
         std::optional<Rect> text{};
         std::optional<Rect> image{};
@@ -156,7 +157,7 @@ protected:
     // its label and icon parts are drawn in, and the authored text colour,
     // or none (owner decision T4-1: it stands while the button is enabled
     // and outside forced high contrast).
-    struct ButtonContentInk final {
+    struct GUI_FORMS_API ButtonContentInk final {
         ControlVisualRole family{ControlVisualRole::button};
         AnatomyStateSet states{};
         std::optional<Color> authored{};
@@ -170,7 +171,7 @@ protected:
                               bool command_alignment = false) const;
     // The colours a style override gives a themed button's face and text
     // (owner decision T4-1; hot states, option 1).
-    struct AuthoredButtonColours final {
+    struct GUI_FORMS_API AuthoredButtonColours final {
         Color face{};
         Color text{};
     };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/surface_material.hpp"
 #include "gui_forms/controls/material_panel_capabilities.hpp"
@@ -9,7 +10,7 @@
 namespace gui_forms {
 
 // General retained material container. It is deliberately content-agnostic.
-class MaterialPanel : public Panel, public MaterialPanelCapabilities<MaterialPanel> {
+class GUI_FORMS_API MaterialPanel : public Panel, public MaterialPanelCapabilities<MaterialPanel> {
 public:
     explicit MaterialPanel(StableId stable_id);
 

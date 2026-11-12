@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
@@ -17,7 +18,7 @@ class SplitterDrag;
 // coordinates. In splitter_moving, `split_position` is the target's proposed
 // extent, which a handler may change (it is clamped again to the limits); in
 // splitter_moved it is the extent the target took.
-struct SplitterMoveEvent final {
+struct GUI_FORMS_API SplitterMoveEvent final {
     Point pointer{};
     double split_position{};
 };
@@ -46,7 +47,7 @@ struct SplitterMoveEvent final {
 // commits, Escape cancels. The engine raises the typed drag interactions
 // (drag_started, drag_dropped, drag_ended; a splitter has no candidates, so
 // no drag_target_changed) after the splitter's own events.
-class Splitter final : public Control, public SplitterCapabilities<Splitter> {
+class GUI_FORMS_API Splitter final : public Control, public SplitterCapabilities<Splitter> {
 public:
     explicit Splitter(StableId stable_id);
     ~Splitter() override;
@@ -79,11 +80,11 @@ public:
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
 
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool hot{};
         bool pressed{};

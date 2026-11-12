@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/breadcrumb_trail_values.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/breadcrumb_trail_capabilities.hpp"
@@ -17,7 +18,7 @@ namespace gui_forms {
 // One retained location instrument. Logical segments are virtual semantic
 // children; the exact-path TextBox is the sole retained child and occupies the
 // same row only while editing.
-class BreadcrumbTrail final : public Panel, public BreadcrumbTrailCapabilities<BreadcrumbTrail> {
+class GUI_FORMS_API BreadcrumbTrail final : public Panel, public BreadcrumbTrailCapabilities<BreadcrumbTrail> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
 
@@ -84,24 +85,24 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(
         std::size_t item) const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;
     };
     [[nodiscard]] Parts parts() const;
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry segment;
         PartGeometry segment_label;
         PartGeometry segment_cap;
         PartGeometry segment_focus;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool hot{};
         bool current{};
         bool disabled{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         std::size_t index{};
         std::string stable_id;
         ItemParts parts;

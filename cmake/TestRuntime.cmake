@@ -16,11 +16,13 @@
 # Each program is still its own process with its own main, so the tests
 # stay independent. A program that links anything else (another library,
 # a host, Skia, a system library) keeps its static libraries, so that no
-# program holds two copies of a library's state. The runtime exports every
-# symbol (on MinGW --export-all-symbols; ELF and Mach-O export by default),
-# as the Application library does for its consumers, so the programs reach
-# internal functions as before. On Windows the runtime lands beside the
-# programs, which find it first.
+# program holds two copies of a library's state. The runtime exports what
+# the Application library exports: the declarations marked GUI_FORMS_API
+# (gui_forms/export/application_export.hpp; the archives are compiled with
+# hidden visibility, CP29 handoff section 2.2), and the headless host's
+# headers, which only the tests use, carry the same mark. A program that
+# reaches an unmarked internal function is listed below. On Windows the
+# runtime lands beside the programs, which find it first.
 #
 # GUI_FORMS_TEST_RUNTIME (default ON) turns it off: every program then links
 # its static libraries as before. It needs CMake 3.27 ($<COMPILE_ONLY>); an
@@ -33,11 +35,14 @@ option(GUI_FORMS_TEST_RUNTIME "Link the test programs that use only the toolkit'
 #   declaration (an inline static member) with the one the library's
 #   registry holds, and each image has its own copy;
 # - gui_forms_data_grid_view_cells_tests reads frames its probe records
-#   through state the runtime would hold a second copy of.
+#   through state the runtime would hold a second copy of;
+# - gui_forms_bounded_grapheme_tests calls the core's private Unicode
+#   segmentation (src/core/text/unicode), which the runtime does not export.
 # A program whose sources replace the global operator new or delete is left
 # out as well (_gui_forms_replaces_allocation): a replacement covers only the
 # image it is linked into, so the runtime's allocations would bypass it.
-set(GUI_FORMS_TEST_RUNTIME_EXCLUDED gui_forms_plot_primitives_tests gui_forms_data_grid_view_cells_tests)
+set(GUI_FORMS_TEST_RUNTIME_EXCLUDED gui_forms_plot_primitives_tests gui_forms_data_grid_view_cells_tests
+    gui_forms_bounded_grapheme_tests)
 
 # Whether a C++ source of `target` defines the global operator new or
 # delete; sets `result` to TRUE or FALSE.
@@ -136,9 +141,9 @@ function(gui_forms_link_tests_to_runtime)
         target_link_libraries(gui_forms_test_runtime PRIVATE
             "-Wl,--whole-archive" ${runtime_libraries} "-Wl,--no-whole-archive")
     endif()
-    if(MINGW)
-        target_link_options(gui_forms_test_runtime PRIVATE "-Wl,--export-all-symbols")
-    endif()
+    # The programs import the marked declarations (dllimport on Windows).
+    target_compile_definitions(gui_forms_test_runtime PRIVATE GUI_FORMS_API_BUILD=1
+                               INTERFACE GUI_FORMS_API_IMPORT=1)
     # A shared library the libraries link (the Threading library) stays a
     # library of its own, which the runtime does not re-export: the programs
     # link it themselves.

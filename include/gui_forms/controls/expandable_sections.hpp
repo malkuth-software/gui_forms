@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
@@ -11,14 +12,14 @@
 
 namespace gui_forms {
 
-struct SectionItem final {
+struct GUI_FORMS_API SectionItem final {
     int id{};
     GUI_FORMS_LOCALIZABLE(text) std::string label{};
     Control::Ptr content{};
     Value<bool>* expanded{}; // Borrowed; a missing model uses retained local state.
 };
 
-class ExpandableSections final : public Panel, public ExpandableSectionsCapabilities<ExpandableSections> {
+class GUI_FORMS_API ExpandableSections final : public Panel, public ExpandableSectionsCapabilities<ExpandableSections> {
 public:
     explicit ExpandableSections(StableId id);
     ~ExpandableSections() override;

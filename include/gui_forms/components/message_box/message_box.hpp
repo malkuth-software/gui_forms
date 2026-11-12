@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 
@@ -41,7 +42,7 @@ enum class MessageBoxOptions : std::uint32_t {
 // The arguments of Windows Forms' MessageBox.Show: the message, the caption
 // in the title bar, the buttons, the icon, the default button and the
 // options.
-struct MessageBoxRequest final {
+struct GUI_FORMS_API MessageBoxRequest final {
     std::string text{};
     std::string caption{};
     HostMessageButtons buttons{HostMessageButtons::ok};
@@ -54,20 +55,20 @@ struct MessageBoxRequest final {
 
 // A message box that closed: the button the user chose, as Windows Forms'
 // DialogResult (none for a Yes/No box the host closed without a choice).
-struct MessageBoxClosed final {
+struct GUI_FORMS_API MessageBoxClosed final {
     DialogResult result{DialogResult::none};
 };
 
 // A message box that was not shown: the host's refusal, never
 // HostServiceError::none.
-struct MessageBoxRefused final {
+struct GUI_FORMS_API MessageBoxRefused final {
     HostServiceError error{HostServiceError::unsupported};
 };
 
 // What show_message_box returns: either the box closed, with the chosen
 // button, or it was not shown, with the reason. Built only through
 // `closed` and `refused`.
-class MessageBoxResult final {
+class GUI_FORMS_API MessageBoxResult final {
 public:
     [[nodiscard]] static MessageBoxResult closed(DialogResult result) noexcept;
     // Throws std::invalid_argument for HostServiceError::none, which is not
@@ -119,6 +120,6 @@ private:
 // than HostServices::maximum_dialog_text_bytes, and for an unknown button
 // set, icon, default button or option; throws std::logic_error off the
 // window's UI thread.
-MessageBoxResult show_message_box(Window& owner, const MessageBoxRequest& request);
+GUI_FORMS_API MessageBoxResult show_message_box(Window& owner, const MessageBoxRequest& request);
 
 } // namespace gui_forms

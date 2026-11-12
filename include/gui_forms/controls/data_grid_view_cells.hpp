@@ -10,6 +10,7 @@
 // a content epoch agree with the headers drawn for it. The sub-surface's
 // DataGridViewCells control only paints the snapshot it was given.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
@@ -31,7 +32,7 @@ namespace gui_forms {
 class Painter;
 
 // A byte range of DataGridViewCellsSnapshot::text: [begin_byte, end_byte).
-struct DataGridViewCellsTextRange final {
+struct GUI_FORMS_API DataGridViewCellsTextRange final {
     std::size_t begin_byte{};
     std::size_t end_byte{};
 
@@ -42,7 +43,7 @@ struct DataGridViewCellsTextRange final {
 };
 
 // A range of DataGridViewCellsSnapshot::lines: `count` lines from `first`.
-struct DataGridViewCellsLineRange final {
+struct GUI_FORMS_API DataGridViewCellsLineRange final {
     std::size_t first{};
     std::size_t count{};
 };
@@ -52,7 +53,7 @@ struct DataGridViewCellsLineRange final {
 // grid's "cell" item parts, resolved on the UI thread with the application's
 // authored colours (PartGeometry::authored_background and
 // authored_foreground).
-struct DataGridViewCellsParts final {
+struct GUI_FORMS_API DataGridViewCellsParts final {
     PartGeometry cell{};
     PartGeometry selection{};
     PartGeometry content{};
@@ -77,7 +78,7 @@ struct DataGridViewCellsParts final {
 // thread (DataGridViewCellsTextProvider; decision 3(a), the virtual-mode
 // half): its row, an index of DataGridViewCellsSnapshot::provided_rows, and
 // its column. A provided cell arrives with an empty text range and no lines.
-struct DataGridViewCellsProvided final {
+struct GUI_FORMS_API DataGridViewCellsProvided final {
     bool provided{};
     std::size_t row{};
     std::size_t column{};
@@ -86,7 +87,7 @@ struct DataGridViewCellsProvided final {
 // One visible cell, resolved. Text and lines are ranges of the snapshot's
 // shared buffers, so a snapshot of any size makes three allocations, not
 // one per cell.
-struct DataGridViewCellsCell final {
+struct GUI_FORMS_API DataGridViewCellsCell final {
     DataGridViewCellsParts parts{};
     // The cell's active states (its anatomy's standard and custom states),
     // as the theme reads them; checked draws a check box's indicator.
@@ -123,7 +124,7 @@ struct DataGridViewCellsCell final {
 // control's own, DataGridViewCellsContent); its effective back and fore
 // colours (Control::ambient_back_color, ambient_fore_color) stand for its
 // authored ones.
-struct DataGridViewCellsLook final {
+struct GUI_FORMS_API DataGridViewCellsLook final {
     std::vector<std::string> classes{};
     std::string inline_style{};
     std::optional<Color> back_color{};
@@ -140,7 +141,7 @@ struct DataGridViewCellsLook final {
 // snapshot replaces an older one whole. Coordinates are the region's (the
 // grid's data area at the origin). Made and filled on the UI thread, then
 // moved to the sub-surface's thread inside a DataGridViewCellsUpdate.
-struct DataGridViewCellsSnapshot final {
+struct GUI_FORMS_API DataGridViewCellsSnapshot final {
     DataGridViewCellsLook look{};
     // The grid's well, placed so that only its ground lies in the region
     // (its border is the grid's chrome), with the grid's authored
@@ -163,22 +164,22 @@ struct DataGridViewCellsSnapshot final {
 // in `text`, each cell's lines in `lines`, each line in its cell's text,
 // and each provided cell's row in `provided_rows`, with no lines. The sub-surface checks a snapshot whole
 // before it takes it (house style 8: validate whole buffers up front).
-[[nodiscard]] bool data_grid_view_cells_snapshot_valid(const DataGridViewCellsSnapshot& snapshot) noexcept;
+[[nodiscard]] GUI_FORMS_API bool data_grid_view_cells_snapshot_valid(const DataGridViewCellsSnapshot& snapshot) noexcept;
 
 // Paints one resolved cell of `snapshot`, its parts in the grid's order,
 // cut to `data` (the region's data area), for `owner` (whose theme and
 // look select the parts). It is the cell painter both sides share: the
 // sub-surface's control and, once wired, the grid itself. The cell must be
 // one `data_grid_view_cells_snapshot_valid` accepted.
-void paint_data_grid_view_cell(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot,
+GUI_FORMS_API void paint_data_grid_view_cell(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot,
                                const DataGridViewCellsCell& cell, Rect data);
 // The same cell painted in two steps, for the grid's owner drawing, which
 // draws between them: the selection plate, then the other parts. Without
 // `default_content` the content parts (link, text, image, check box,
 // button) are the owner's and are left out; the drop-down, the error
 // glyph, the rules and the focus part are drawn either way.
-void paint_data_grid_view_cell_selection(Painter& painter, const Control& owner, const DataGridViewCellsCell& cell);
-void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot,
+GUI_FORMS_API void paint_data_grid_view_cell_selection(Painter& painter, const Control& owner, const DataGridViewCellsCell& cell);
+GUI_FORMS_API void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot,
                                      const DataGridViewCellsCell& cell, Rect data, bool default_content);
 
 // The sub-surface's root control, private to the library
@@ -189,7 +190,7 @@ class DataGridViewCells;
 // One cell a DataGridViewCellsTextProvider is asked for: its row's
 // identity, borrowed from the snapshot (valid through the call), and its
 // column.
-struct DataGridViewCellsTextRequest final {
+struct GUI_FORMS_API DataGridViewCellsTextRequest final {
     std::string_view row_id{};
     std::size_t column{};
 };
@@ -203,7 +204,7 @@ struct DataGridViewCellsTextRequest final {
 // cell_formatting for those cells; it still does for the cells semantics,
 // the editor and the application read through the grid. The provider is
 // released on the region's thread when its sub-surface stops.
-class DataGridViewCellsTextProvider {
+class GUI_FORMS_API DataGridViewCellsTextProvider {
 public:
     virtual ~DataGridViewCellsTextProvider();
     // Appends each requested cell's shown text to `text`, in request order,
@@ -216,7 +217,7 @@ public:
 };
 
 // One snapshot on its way to the sub-surface (SubSurfaceHost::redraw_all).
-class DataGridViewCellsUpdate final : public SubSurfaceContentUpdate {
+class GUI_FORMS_API DataGridViewCellsUpdate final : public SubSurfaceContentUpdate {
 public:
     explicit DataGridViewCellsUpdate(DataGridViewCellsSnapshot snapshot) : snapshot(std::move(snapshot)) {}
     DataGridViewCellsSnapshot snapshot;
@@ -227,7 +228,7 @@ public:
 // DataGridViewCellsUpdate, after its provider (when it has one) filled the
 // provided cells' text. Other updates are ignored. A look whose classes or
 // inline style the control refuses throws, and the sub-surface fails.
-class DataGridViewCellsContent final : public SubSurfaceContent {
+class GUI_FORMS_API DataGridViewCellsContent final : public SubSurfaceContent {
 public:
     explicit DataGridViewCellsContent(StableId stable_id) : stable_id_(std::move(stable_id)) {}
     // With a text provider, owned from here on and moved with the content

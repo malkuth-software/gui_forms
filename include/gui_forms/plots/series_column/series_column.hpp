@@ -23,6 +23,7 @@
 // through a SeriesRingChannel (series_ring_channel.hpp), never into a
 // column another thread reads.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/plot_types/plot_types.hpp"
 
 #include <algorithm>
@@ -103,7 +104,7 @@ enum class SeriesEditOutcome : std::uint8_t {
 };
 
 // The sequence numbers an edit touched, half open: [first, end).
-struct SeriesDirtyRange final {
+struct GUI_FORMS_API SeriesDirtyRange final {
     ElementSequence first{};
     ElementSequence end{};
 

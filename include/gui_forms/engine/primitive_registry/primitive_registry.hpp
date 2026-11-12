@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/engine/part_shape/part_shape.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
@@ -49,7 +50,7 @@ enum class PrimitiveParameterKind : std::uint8_t {
 // such as the bulge's amplitude during the ribbon's rise. A primitive's
 // preparation never reads it, so changing it never makes a preparation
 // stale (see PrimitivePreparation).
-struct PrimitiveParameterDeclaration final {
+struct GUI_FORMS_API PrimitiveParameterDeclaration final {
     std::string_view name;
     PrimitiveParameterKind kind{PrimitiveParameterKind::number};
     double minimum{};
@@ -66,7 +67,7 @@ struct PrimitiveParameterDeclaration final {
 // `preparation_per_device_pixel` for each device pixel of the part's box; it
 // runs once per part geometry, not once per frame. Budgets are checked
 // against these at load (E4).
-struct PrimitiveCost final {
+struct GUI_FORMS_API PrimitiveCost final {
     std::uint32_t per_device_pixel{};
     std::uint32_t fixed{};
     std::uint32_t preparation_per_device_pixel{};
@@ -74,7 +75,7 @@ struct PrimitiveCost final {
 
 // What a primitive is. Every span refers to static storage owned by the
 // primitive's translation unit.
-struct PrimitiveDescriptor final {
+struct GUI_FORMS_API PrimitiveDescriptor final {
     // Registered (snake_case) name, as theme documents write it.
     std::string_view name;
     // The engine version that introduced the primitive. A theme needing a
@@ -105,7 +106,7 @@ inline constexpr std::size_t maximum_prepared_values = 4;
 
 // One parameter's value. `number` is read for a number parameter and
 // `colour` for a colour parameter.
-struct PrimitiveParameterValue final {
+struct GUI_FORMS_API PrimitiveParameterValue final {
     PrimitiveParameterKind kind{PrimitiveParameterKind::number};
     double number{};
     Color colour{};
@@ -118,7 +119,7 @@ struct PrimitiveParameterValue final {
 
 // The values of one part's parameters: `count` live values, one per
 // declared parameter, in declaration order.
-struct PrimitiveParameterBlock final {
+struct GUI_FORMS_API PrimitiveParameterBlock final {
     std::array<PrimitiveParameterValue, maximum_primitive_parameters> values{};
     std::size_t count{};
 };
@@ -132,19 +133,19 @@ enum class ParameterDefect : std::uint8_t {
 };
 
 // The first defect found and the index of the parameter it concerns.
-struct ParameterValidation final {
+struct GUI_FORMS_API ParameterValidation final {
     ParameterDefect defect{ParameterDefect::none};
     std::size_t parameter{};
 };
 
 // The block of a descriptor's declared defaults.
-[[nodiscard]] PrimitiveParameterBlock default_parameters(const PrimitiveDescriptor& descriptor) noexcept;
+[[nodiscard]] GUI_FORMS_API PrimitiveParameterBlock default_parameters(const PrimitiveDescriptor& descriptor) noexcept;
 
 // Checks every value against its declaration.
-[[nodiscard]] ParameterValidation validate_parameters(const PrimitiveDescriptor& descriptor,
+[[nodiscard]] GUI_FORMS_API ParameterValidation validate_parameters(const PrimitiveDescriptor& descriptor,
                                                       const PrimitiveParameterBlock& block) noexcept;
 
-[[nodiscard]] std::optional<std::size_t> find_parameter(const PrimitiveDescriptor& descriptor,
+[[nodiscard]] GUI_FORMS_API std::optional<std::size_t> find_parameter(const PrimitiveDescriptor& descriptor,
                                                         std::string_view name) noexcept;
 
 enum class ParameterAssignment : std::uint8_t {
@@ -157,18 +158,18 @@ enum class ParameterAssignment : std::uint8_t {
 
 // Set one parameter of `block` by name. Anything but `assigned` leaves the
 // block unchanged.
-[[nodiscard]] ParameterAssignment set_number_parameter(PrimitiveParameterBlock& block,
+[[nodiscard]] GUI_FORMS_API ParameterAssignment set_number_parameter(PrimitiveParameterBlock& block,
                                                        const PrimitiveDescriptor& descriptor,
                                                        std::string_view name, double value) noexcept;
-[[nodiscard]] ParameterAssignment set_colour_parameter(PrimitiveParameterBlock& block,
+[[nodiscard]] GUI_FORMS_API ParameterAssignment set_colour_parameter(PrimitiveParameterBlock& block,
                                                        const PrimitiveDescriptor& descriptor,
                                                        std::string_view name, Color value) noexcept;
 // A choice by its name; an unknown choice is out_of_range.
-[[nodiscard]] ParameterAssignment set_choice_parameter(PrimitiveParameterBlock& block,
+[[nodiscard]] GUI_FORMS_API ParameterAssignment set_choice_parameter(PrimitiveParameterBlock& block,
                                                        const PrimitiveDescriptor& descriptor,
                                                        std::string_view name, std::string_view choice) noexcept;
 // The position of `choice` among a choice parameter's choices, or none.
-[[nodiscard]] std::optional<std::size_t> find_choice(const PrimitiveParameterDeclaration& declaration,
+[[nodiscard]] GUI_FORMS_API std::optional<std::size_t> find_choice(const PrimitiveParameterDeclaration& declaration,
                                                      std::string_view choice) noexcept;
 
 // The part a primitive draws: its size in logical units (the box the
@@ -216,7 +217,7 @@ inline constexpr std::size_t image_mask_variant_layer = maximum_image_variants -
 // paint: a bake whose pattern is not ready is lent none, and the fill draws
 // its ground; the pattern is generated in an idle frame and the parts that
 // drew the ground are repainted.
-struct ImageVariantRequest final {
+struct GUI_FORMS_API ImageVariantRequest final {
     std::size_t layer{};
     ImageId image{};
     std::uint32_t source_width{};
@@ -229,7 +230,7 @@ struct ImageVariantRequest final {
 };
 
 // The variants lent for one bake, by fill layer; null where none is lent.
-struct LentImageVariants final {
+struct GUI_FORMS_API LentImageVariants final {
     std::array<std::shared_ptr<const PartRaster>, maximum_image_variants> layers{};
 };
 
@@ -249,7 +250,7 @@ struct LentImageVariants final {
 // setting damages every part that sampled it, so the setting needs no
 // place in a cache key.
 
-struct PrimitiveTarget final {
+struct GUI_FORMS_API PrimitiveTarget final {
     Size logical_size{};
     DeviceScale scale{};
     AnatomyStateSet states{};
@@ -294,7 +295,7 @@ enum class SliceAxisOutcome : std::uint8_t {
 // One axis of a slice plan. For a sliced axis, the destination's first
 // `start` and last `end` device pixels are the reference's own; every
 // pixel between them is the reference's pixel `start`.
-struct SliceAxis final {
+struct GUI_FORMS_API SliceAxis final {
     SliceAxisOutcome outcome{SliceAxisOutcome::varies};
     std::uint32_t start{};
     std::uint32_t end{};
@@ -305,7 +306,7 @@ struct SliceAxis final {
 // whole and nothing is counted. Otherwise, when either axis is sliced, the
 // reference is the target at `reference_size` with `reference_extent`;
 // when neither is, the part is baked whole and counted as a fallback.
-struct PrimitiveSlicePlan final {
+struct GUI_FORMS_API PrimitiveSlicePlan final {
     bool slices{};
     SliceAxis across{};
     SliceAxis down{};
@@ -328,7 +329,7 @@ class EnginePrimitive;
 // primitive, size, scale, read states or non-animated parameters differ is
 // refused as stale; the caller prepares again. A preparation borrows
 // nothing: `primitive` is compared, never called through.
-struct PrimitivePreparation final {
+struct GUI_FORMS_API PrimitivePreparation final {
     // The primitive that derived the values; null until the first
     // successful prepare().
     const EnginePrimitive* primitive{};
@@ -382,7 +383,7 @@ enum class RasterOutcome : std::uint8_t {
 // motion, its centre rests at `rest` times the part's width. It follows the
 // part's presentational scale as a face does: baked at the scaled size at
 // rest, and stretched with the face while the scale moves.
-struct PointerOverlay final {
+struct GUI_FORMS_API PointerOverlay final {
     Size size{};
     double rest{};
 };
@@ -390,7 +391,7 @@ struct PointerOverlay final {
 // One kind of effect. A primitive is immutable and holds no per-part state:
 // one instance serves every part, on the UI thread. Per-part derived values
 // live in the caller's PrimitivePreparation.
-class EnginePrimitive {
+class GUI_FORMS_API EnginePrimitive {
 public:
     virtual ~EnginePrimitive() = default;
 
@@ -522,14 +523,14 @@ enum class RegistrationOutcome : std::uint8_t {
     choices_invalid,
 };
 
-[[nodiscard]] const char* registration_outcome_name(RegistrationOutcome outcome) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* registration_outcome_name(RegistrationOutcome outcome) noexcept;
 
 inline constexpr std::size_t maximum_registered_primitives = 64;
 
 // A fixed table of primitives, in registration order. It borrows each
 // primitive, which must outlive the registry; the first-party primitives
 // have static storage.
-class PrimitiveRegistry final {
+class GUI_FORMS_API PrimitiveRegistry final {
 public:
     // Checks the primitive's descriptor and adds it. Anything but
     // `registered` leaves the registry unchanged.
@@ -547,6 +548,6 @@ private:
 
 // The first-party primitives, registered once in a fixed order on first use.
 // The registry and its primitives live for the rest of the program.
-[[nodiscard]] const PrimitiveRegistry& builtin_primitive_registry();
+[[nodiscard]] GUI_FORMS_API const PrimitiveRegistry& builtin_primitive_registry();
 
 } // namespace gui_forms

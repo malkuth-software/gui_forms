@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/scheduler.hpp"
 
 #include <cstdint>
@@ -25,7 +26,7 @@ inline constexpr FrameInterval display_frame_interval = std::chrono::millisecond
 // The interval at which something travelling `device_pixels_per_second`
 // moves about one device pixel a tick, never shorter than `display_interval`.
 // A speed that is not positive and finite gets `display_interval`.
-[[nodiscard]] FrameInterval animation_interval_for_travel(
+[[nodiscard]] GUI_FORMS_API FrameInterval animation_interval_for_travel(
     double device_pixels_per_second,
     FrameInterval display_interval = display_frame_interval) noexcept;
 
@@ -43,7 +44,7 @@ inline constexpr FrameInterval display_frame_interval = std::chrono::millisecond
 // of its on_paint. The tick target is called on the window's UI thread; it
 // may call start or stop. The timer observes the control and never keeps it
 // alive; destroying the timer stops it.
-class AnimationTimer final {
+class GUI_FORMS_API AnimationTimer final {
 public:
     using Tick = std::function<AnimationTickResult(FrameTime)>;
 

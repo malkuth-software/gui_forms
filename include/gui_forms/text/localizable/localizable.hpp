@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <cstddef>
@@ -13,7 +14,7 @@ namespace gui_forms {
 // One string literal the GUI.Forms Clang plugin found passed to a localizable
 // property (a parameter or field marked GUI_FORMS_LOCALIZABLE). Each literal
 // is recorded once for each property and function it reaches.
-struct LocalizableLiteral final {
+struct GUI_FORMS_API LocalizableLiteral final {
     // The property the mark names: "text", "tool_tip", "title",
     // "placeholder", "accessible_name", "accessible_description", "header"
     // or "items".
@@ -45,11 +46,11 @@ struct LocalizableLiteral final {
 // in image order and, within an image, in link order. Images or translation
 // units compiled without the plugin contribute nothing; an image whose
 // tables are malformed contributes nothing.
-[[nodiscard]] std::vector<LocalizableLiteral> localizable_literals();
+[[nodiscard]] GUI_FORMS_API std::vector<LocalizableLiteral> localizable_literals();
 
 // Decodes the tables in one section's bytes, appending to `out`. Returns
 // false, leaving `out` as it was, when the bytes are not a sequence of
 // well-formed version 1 tables (zero padding between tables is allowed).
-[[nodiscard]] bool parse_localizable_tables(std::span<const std::byte> section, std::vector<LocalizableLiteral>& out);
+[[nodiscard]] GUI_FORMS_API bool parse_localizable_tables(std::span<const std::byte> section, std::vector<LocalizableLiteral>& out);
 
 } // namespace gui_forms

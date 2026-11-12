@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
 #include "gui_forms/binding/value/property_collection_value/property_collection_value.hpp"
@@ -21,7 +22,7 @@
 
 namespace gui_forms {
 
-struct PropertyEnumValue final {
+struct GUI_FORMS_API PropertyEnumValue final {
     std::string type_name;
     std::string name;
     std::int64_t value{};
@@ -45,7 +46,7 @@ using BindingValue = std::variant<std::monostate, bool, std::int64_t,
                                   ImageId, PropertyEnumValue,
                                   PropertyObjectValue, PropertyCollectionValue>;
 
-struct PropertyObjectMember final {
+struct GUI_FORMS_API PropertyObjectMember final {
     std::string name;
     std::string description;
     BindingValue value;
@@ -84,12 +85,12 @@ struct PropertyObjectMember final {
     }
 };
 
-struct PropertyObjectData final {
+struct GUI_FORMS_API PropertyObjectData final {
     std::string type_name;
     std::vector<PropertyObjectMember> members;
 };
 
-struct PropertyCollectionData final {
+struct GUI_FORMS_API PropertyCollectionData final {
     std::string item_type_name;
     BindingValueKind item_kind{BindingValueKind::text};
     std::vector<BindingValue> items;
@@ -100,27 +101,27 @@ inline constexpr std::size_t maximum_property_object_members = 256U;
 inline constexpr std::size_t maximum_property_collection_items = 4096U;
 inline constexpr std::size_t maximum_property_value_nodes = 8192U;
 
-[[nodiscard]] PropertyObjectValue make_property_object(
+[[nodiscard]] GUI_FORMS_API PropertyObjectValue make_property_object(
     std::string type_name, std::vector<PropertyObjectMember> members);
-[[nodiscard]] PropertyCollectionValue make_property_collection(
+[[nodiscard]] GUI_FORMS_API PropertyCollectionValue make_property_collection(
     std::string item_type_name, BindingValueKind item_kind,
     std::vector<BindingValue> items);
-[[nodiscard]] std::span<const BindingValue> property_collection_items(
+[[nodiscard]] GUI_FORMS_API std::span<const BindingValue> property_collection_items(
     const PropertyCollectionValue& value) noexcept;
-[[nodiscard]] bool valid_property_value_tree(const BindingValue& value) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_property_value_tree(const BindingValue& value) noexcept;
 
-[[nodiscard]] BindingValueKind binding_value_kind(
+[[nodiscard]] GUI_FORMS_API BindingValueKind binding_value_kind(
     const BindingValue& value) noexcept;
-[[nodiscard]] std::string binding_value_to_string(const BindingValue& value);
-[[nodiscard]] std::optional<bool> binding_value_to_bool(
+[[nodiscard]] GUI_FORMS_API std::string binding_value_to_string(const BindingValue& value);
+[[nodiscard]] GUI_FORMS_API std::optional<bool> binding_value_to_bool(
     const BindingValue& value) noexcept;
-[[nodiscard]] std::optional<std::int64_t> binding_value_to_signed(
+[[nodiscard]] GUI_FORMS_API std::optional<std::int64_t> binding_value_to_signed(
     const BindingValue& value) noexcept;
-[[nodiscard]] std::optional<std::uint64_t> binding_value_to_unsigned(
+[[nodiscard]] GUI_FORMS_API std::optional<std::uint64_t> binding_value_to_unsigned(
     const BindingValue& value) noexcept;
-[[nodiscard]] std::optional<double> binding_value_to_number(
+[[nodiscard]] GUI_FORMS_API std::optional<double> binding_value_to_number(
     const BindingValue& value) noexcept;
-[[nodiscard]] std::optional<BindingValue> convert_binding_value(
+[[nodiscard]] GUI_FORMS_API std::optional<BindingValue> convert_binding_value(
     const BindingValue& value, BindingValueKind target_kind);
 
 enum class PropertySerializationVisibility : std::uint8_t {
@@ -140,10 +141,10 @@ enum class PropertyValueOrigin : std::uint8_t {
     computed,
 };
 
-[[nodiscard]] std::string_view property_value_origin_name(
+[[nodiscard]] GUI_FORMS_API std::string_view property_value_origin_name(
     PropertyValueOrigin origin) noexcept;
 
-struct PropertyEnumChoice final {
+struct GUI_FORMS_API PropertyEnumChoice final {
     std::string name;
     std::int64_t value{};
     friend bool operator==(const PropertyEnumChoice& left,
@@ -153,7 +154,7 @@ struct PropertyEnumChoice final {
     }
 };
 
-struct PropertyEnumDescriptor final {
+struct GUI_FORMS_API PropertyEnumDescriptor final {
     std::string type_name;
     std::vector<PropertyEnumChoice> choices;
     bool flags{};
@@ -170,7 +171,7 @@ inline constexpr std::size_t maximum_property_enum_choices = 256U;
 inline constexpr std::size_t maximum_property_enum_text_bytes = 256U;
 inline constexpr std::size_t maximum_property_standard_values = 256U;
 
-[[nodiscard]] bool valid_property_enum_descriptor(
+[[nodiscard]] GUI_FORMS_API bool valid_property_enum_descriptor(
     const PropertyEnumDescriptor& descriptor) noexcept;
 
 // Which way a form binding of a property flows unless the document narrows
@@ -187,7 +188,7 @@ enum class PropertyBindingDirection : std::uint8_t {
 // Renderer- and language-neutral metadata for one retained property. This is
 // deliberately a value snapshot: inspection/DML/designer consumers never gain
 // access to a control's executable callbacks.
-struct PropertyDescriptor final {
+struct GUI_FORMS_API PropertyDescriptor final {
     PropertyDescriptor() = default;
     PropertyDescriptor(std::string authored_name, BindingValueKind value_kind,
                        std::string authored_category,
@@ -252,14 +253,14 @@ struct PropertyDescriptor final {
 // Descriptor-aware conversion is the property/DML seam. In particular, enum
 // names and flags require their declared finite choice set; the scalar helper
 // above intentionally has no authority to guess an enum type.
-[[nodiscard]] std::optional<BindingValue> convert_property_value(
+[[nodiscard]] GUI_FORMS_API std::optional<BindingValue> convert_property_value(
     const BindingValue& value, const PropertyDescriptor& descriptor);
 
 // A custom retained control registers these executable definitions once
 // during construction. Binding never uses C++ RTTI, native handles, or managed
 // reflection: name resolution yields explicit typed get/set/change behavior.
 // Public inspection receives only the PropertyDescriptor above.
-struct PropertyRegistration final {
+struct GUI_FORMS_API PropertyRegistration final {
     using Getter = std::function<BindingValue()>;
     using Setter = std::function<void(const BindingValue&)>;
     using ChangeConnector = std::function<SubscriptionToken(
@@ -298,7 +299,7 @@ struct PropertyRegistration final {
 using BindableProperty = PropertyRegistration;
 
 // Data members, service names and categories compare ignoring case.
-[[nodiscard]] std::string canonical_binding_name(std::string_view name);
+[[nodiscard]] GUI_FORMS_API std::string canonical_binding_name(std::string_view name);
 
 // Property names are registered names (gui_forms/schema): one stored
 // snake_case spelling, found by any of its three spellings through

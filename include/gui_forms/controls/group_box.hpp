@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/group_box_capabilities.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/event.hpp"
@@ -11,7 +12,7 @@
 
 namespace gui_forms {
 
-class GroupBox : public Panel, public GroupBoxCapabilities<GroupBox> {
+class GUI_FORMS_API GroupBox : public Panel, public GroupBoxCapabilities<GroupBox> {
 public:
     explicit GroupBox(StableId stable_id, std::string initial_text = {});
 
@@ -23,7 +24,7 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members: a face, the frame and the caption.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;

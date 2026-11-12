@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 #include "gui_forms/controls/color_value_editor_capabilities.hpp"
 
@@ -11,7 +12,7 @@
 
 namespace gui_forms {
 
-class ColorValueEditor final : public Panel, public ColorValueEditorCapabilities<ColorValueEditor> {
+class GUI_FORMS_API ColorValueEditor final : public Panel, public ColorValueEditorCapabilities<ColorValueEditor> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit ColorValueEditor(StableId stable_id, Color initial_value = {});
@@ -36,12 +37,12 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry swatch;
         PartGeometry field;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool pressed{};
         bool captured{};

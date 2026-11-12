@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/geometry/drawing_geometry.hpp"
 
 #include <cstdint>
@@ -7,7 +8,7 @@
 
 namespace gui_drawing {
 
-class Color final {
+class GUI_FORMS_API Color final {
 public:
     constexpr Color() noexcept = default;
 
@@ -77,7 +78,7 @@ private:
 // Explicit color-space values used by editors and image applications. sRGB
 // means IEC 61966-2-1 transfer/primaries with D65; XYZ values are normalized
 // so reference white Y is 1. Alpha is always straight and normalized.
-struct LinearSrgb final {
+struct GUI_FORMS_API LinearSrgb final {
     double red{};
     double green{};
     double blue{};
@@ -89,7 +90,7 @@ struct LinearSrgb final {
     }
 };
 
-struct XyzD65 final {
+struct GUI_FORMS_API XyzD65 final {
     double x{};
     double y{};
     double z{};
@@ -101,7 +102,7 @@ struct XyzD65 final {
     }
 };
 
-struct Oklab final {
+struct GUI_FORMS_API Oklab final {
     double lightness{};
     double a{};
     double b{};
@@ -113,7 +114,7 @@ struct Oklab final {
     }
 };
 
-struct Oklch final {
+struct GUI_FORMS_API Oklch final {
     double lightness{};
     double chroma{};
     double hue_degrees{};
@@ -127,47 +128,47 @@ struct Oklch final {
     }
 };
 
-struct SrgbConversion final {
+struct GUI_FORMS_API SrgbConversion final {
     Color color;
     LinearSrgb unclamped;
     bool in_gamut{};
     bool clipped{};
 };
 
-struct OklchGamutMapping final {
+struct GUI_FORMS_API OklchGamutMapping final {
     Oklch requested;
     Oklch mapped;
     SrgbConversion srgb;
 };
 
-[[nodiscard]] LinearSrgb srgb_to_linear(Color color);
+[[nodiscard]] GUI_FORMS_API LinearSrgb srgb_to_linear(Color color);
 // The WCAG 2 contrast ratio of two colours' sRGB channels, from 1 (equal) to
 // 21 (black and white). Alpha is ignored; an empty colour counts as black.
-[[nodiscard]] double contrast_ratio(Color first, Color second);
+[[nodiscard]] GUI_FORMS_API double contrast_ratio(Color first, Color second);
 // The contrast rule for text over a fill: of `light` and `dark`, the one
 // with the greater contrast ratio against `background` (dark on a tie).
-[[nodiscard]] Color contrasting_text_color(Color background, Color light, Color dark);
-[[nodiscard]] SrgbConversion linear_to_srgb(LinearSrgb color);
-[[nodiscard]] XyzD65 linear_srgb_to_xyz_d65(LinearSrgb color);
-[[nodiscard]] LinearSrgb xyz_d65_to_linear_srgb(XyzD65 color);
-[[nodiscard]] Oklab linear_srgb_to_oklab(LinearSrgb color);
-[[nodiscard]] LinearSrgb oklab_to_linear_srgb(Oklab color);
-[[nodiscard]] Oklab xyz_d65_to_oklab(XyzD65 color);
-[[nodiscard]] XyzD65 oklab_to_xyz_d65(Oklab color);
-[[nodiscard]] Oklch oklab_to_oklch(Oklab color);
-[[nodiscard]] Oklab oklch_to_oklab(Oklch color);
-[[nodiscard]] SrgbConversion oklch_to_srgb(Oklch color);
+[[nodiscard]] GUI_FORMS_API Color contrasting_text_color(Color background, Color light, Color dark);
+[[nodiscard]] GUI_FORMS_API SrgbConversion linear_to_srgb(LinearSrgb color);
+[[nodiscard]] GUI_FORMS_API XyzD65 linear_srgb_to_xyz_d65(LinearSrgb color);
+[[nodiscard]] GUI_FORMS_API LinearSrgb xyz_d65_to_linear_srgb(XyzD65 color);
+[[nodiscard]] GUI_FORMS_API Oklab linear_srgb_to_oklab(LinearSrgb color);
+[[nodiscard]] GUI_FORMS_API LinearSrgb oklab_to_linear_srgb(Oklab color);
+[[nodiscard]] GUI_FORMS_API Oklab xyz_d65_to_oklab(XyzD65 color);
+[[nodiscard]] GUI_FORMS_API XyzD65 oklab_to_xyz_d65(Oklab color);
+[[nodiscard]] GUI_FORMS_API Oklch oklab_to_oklch(Oklab color);
+[[nodiscard]] GUI_FORMS_API Oklab oklch_to_oklab(Oklch color);
+[[nodiscard]] GUI_FORMS_API SrgbConversion oklch_to_srgb(Oklch color);
 // Reduces OKLCH chroma only, preserving lightness, hue, and alpha. The mapped
 // value is deterministic to 24 binary-search iterations and reports both the
 // requested and committed colors so a dialog can disclose gamut mapping.
-[[nodiscard]] OklchGamutMapping map_oklch_to_srgb_gamut(Oklch color);
+[[nodiscard]] GUI_FORMS_API OklchGamutMapping map_oklch_to_srgb_gamut(Oklch color);
 
-struct SystemPalette final {
+struct GUI_FORMS_API SystemPalette final {
     Color control{Color::from_rgb(240, 240, 240)};
     Color control_light{Color::from_rgb(255, 255, 255)};
     Color control_text{Color::from_rgb(0, 0, 0)};
 };
 
-[[nodiscard]] const SystemPalette& default_system_palette() noexcept;
+[[nodiscard]] GUI_FORMS_API const SystemPalette& default_system_palette() noexcept;
 
 } // namespace gui_drawing

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -37,7 +38,7 @@ enum class ValueUnit : std::uint8_t {
 
 // One suffix a unit may be typed with: one typed `suffix` is `factor` base
 // units.
-struct UnitSuffix final {
+struct GUI_FORMS_API UnitSuffix final {
     std::string_view suffix{};
     double factor{1.0};
 };
@@ -47,7 +48,7 @@ struct UnitSuffix final {
 // names no unit at all), every suffix it accepts, and whether a space
 // separates the number from the shown suffix ("1.50 m", but "50%" and
 // "90°"). The views are static storage.
-struct UnitFormat final {
+struct GUI_FORMS_API UnitFormat final {
     ValueUnit unit{ValueUnit::none};
     UnitSuffix display{};
     std::span<const UnitSuffix> suffixes{};
@@ -55,7 +56,7 @@ struct UnitFormat final {
 };
 
 // The built-in format of `unit` (static storage; any thread may read it).
-[[nodiscard]] const UnitFormat& unit_format(ValueUnit unit) noexcept;
+[[nodiscard]] GUI_FORMS_API const UnitFormat& unit_format(ValueUnit unit) noexcept;
 
 // Why a typed value was refused (study 3.5). The editor stays open and the
 // bar's validation part shows the defect.
@@ -87,7 +88,7 @@ enum class ValueTextDefect : std::uint8_t {
     not_finite,
 };
 
-[[nodiscard]] std::string_view value_text_defect_name(ValueTextDefect defect) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view value_text_defect_name(ValueTextDefect defect) noexcept;
 
 // The bounds of typed text (study 3.5: bounded in length and steps).
 inline constexpr std::size_t maximum_value_text_bytes = 256U;

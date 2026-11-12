@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <chrono>
 #include <cstdint>
 
@@ -17,7 +18,7 @@ enum class ToastDismissReason : std::uint8_t {
 };
 
 // A window's toast closed: `id` is the one show_toast returned.
-struct ToastDismissal final {
+struct GUI_FORMS_API ToastDismissal final {
     std::uint64_t id{};
     ToastDismissReason reason{ToastDismissReason::hidden};
 };

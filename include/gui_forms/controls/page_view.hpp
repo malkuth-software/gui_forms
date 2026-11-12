@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/page_strip.hpp"
 #include "gui_forms/controls/page_view_values.hpp"
@@ -22,7 +23,7 @@ namespace gui_forms {
 // child of the page's panel while the page is in the view's set, so `take`
 // and `put` move a page's control between views with its state, and
 // removing the page releases it.
-class PageControlContent final : public PageContent {
+class GUI_FORMS_API PageControlContent final : public PageContent {
 public:
     // Throws std::invalid_argument for a null control.
     explicit PageControlContent(Control::Ptr control);
@@ -42,7 +43,7 @@ private:
 // selection after a close by most recent activation. The navigation preset is phase P8's.
 enum class PageViewPreset : std::uint8_t { strip, document };
 
-struct PageViewOptions final {
+struct GUI_FORMS_API PageViewOptions final {
     PageViewPreset preset{PageViewPreset::strip};
     // Pinned tabs (owner decision DK-31) are opt-in.
     bool pinning_enabled{false};
@@ -53,12 +54,12 @@ struct PageViewOptions final {
 // The set options a view's options give: pinning and capacity as stated, and
 // the preset's selection after a close (strip: neighbour; document: most
 // recent, owner decision DK-37).
-[[nodiscard]] PageSetOptions page_set_options(const PageViewOptions& options) noexcept;
+[[nodiscard]] GUI_FORMS_API PageSetOptions page_set_options(const PageViewOptions& options) noexcept;
 
 // A selected page has no content yet (owner decision DK-16). A handler
 // supplies it with `set_page_content` (or the set's `set_content`); a page
 // left without content shows an empty content area and is not asked again.
-struct PageContentRequest final {
+struct GUI_FORMS_API PageContentRequest final {
     PageId page{};
 };
 
@@ -91,7 +92,7 @@ struct PageContentRequest final {
 // from a click on a tab (the strip then takes focus itself); then the other
 // `selected_page_changed` handlers; then the strip's `page_invoked` when a
 // tab was chosen.
-class PageView : public Control, public PageViewCapabilities<PageView> {
+class GUI_FORMS_API PageView : public Control, public PageViewCapabilities<PageView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // The strip preset over a set made with `options`.
@@ -135,7 +136,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
 
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         // The child strip's bounds.
         PartGeometry strip;

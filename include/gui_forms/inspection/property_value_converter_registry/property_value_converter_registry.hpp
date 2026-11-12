@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 
 #include <functional>
@@ -11,7 +12,7 @@
 
 namespace gui_forms {
 
-struct PropertyConversionContext final {
+struct GUI_FORMS_API PropertyConversionContext final {
     std::string culture_name{"invariant"};
     std::string decimal_separator{"."};
     std::string group_separator{","};
@@ -29,7 +30,7 @@ struct PropertyConversionContext final {
     }
 };
 
-struct PropertyValueConverter final {
+struct GUI_FORMS_API PropertyValueConverter final {
     using Formatter = std::function<std::string(
         const BindingValue&, const PropertyDescriptor&)>;
     using Parser = std::function<std::optional<BindingValue>(
@@ -47,7 +48,7 @@ struct PropertyValueConverter final {
     ContextParser parse_with_context;
 };
 
-class PropertyValueConverterRegistry final {
+class GUI_FORMS_API PropertyValueConverterRegistry final {
 public:
     bool register_converter(std::string name, PropertyValueConverter converter);
     bool unregister_converter(std::string_view name);

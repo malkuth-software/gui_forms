@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/commands/gallery_command/gallery_command.hpp"
 #include "gui_forms/control.hpp"
@@ -30,7 +31,7 @@ enum class RibbonGalleryForm : std::uint8_t { in_ribbon, drop_down };
 
 // One category: its items show together under the caption in the drop-down
 // form.
-struct RibbonGalleryCategory final {
+struct GUI_FORMS_API RibbonGalleryCategory final {
     std::string stable_id{};
     std::string caption{};
 };
@@ -38,7 +39,7 @@ struct RibbonGalleryCategory final {
 // One item: an image with an optional label shown under it. `label` is also
 // the item's accessible name. `category` names a category's stable ID, or is
 // empty for an item shown before every category.
-struct RibbonGalleryItem final {
+struct GUI_FORMS_API RibbonGalleryItem final {
     std::string stable_id{};
     std::string label{};
     ImageId image{};
@@ -54,7 +55,7 @@ struct RibbonGalleryItem final {
 // selection follows the value of a GalleryCommand when one is set; a hover
 // of 300 ms, or keyboard focus resting on an item as long, asks the command
 // for a live preview, and leaving, Escape or closing the overlay cancels it.
-class RibbonGallery final : public Control, public RibbonGalleryCapabilities<RibbonGallery> {
+class GUI_FORMS_API RibbonGallery final : public Control, public RibbonGalleryCapabilities<RibbonGallery> {
 public:
     // How long the pointer or keyboard focus rests on an item before it is
     // previewed (owner decision RB-13, E1-1).
@@ -147,7 +148,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry well;
         PartGeometry item_viewport;
@@ -162,14 +163,14 @@ public:
     [[nodiscard]] Parts parts() const;
 
     // The "gallery_item" item system: one realized item per item in view.
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry item_face;
         PartGeometry item_selection;
         PartGeometry item_icon;
         PartGeometry item_label;
         PartGeometry item_focus;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool hot{};
         bool pressed{};
         bool selected{};
@@ -177,7 +178,7 @@ public:
         bool disabled{};
         bool focus_visible{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         std::size_t index{};
         std::string stable_id;
         ItemParts parts;
@@ -187,11 +188,11 @@ public:
 
     // The "gallery_category" item system: one realized item per caption in
     // view (drop-down form only).
-    struct CategoryParts final {
+    struct GUI_FORMS_API CategoryParts final {
         PartGeometry category_caption;
         PartGeometry category_divider;
     };
-    struct Category final {
+    struct GUI_FORMS_API Category final {
         std::size_t index{};
         std::string stable_id;
         CategoryParts parts;

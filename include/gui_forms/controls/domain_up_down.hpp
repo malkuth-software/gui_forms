@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/controls/text_items_capability.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
@@ -25,7 +26,7 @@ namespace gui_forms {
 // read-only field takes no text: a typed character selects the next item
 // that starts with it (ignoring ASCII case, wrapping past the end), and
 // otherwise the value changes only by stepping or set_selected_index.
-class DomainUpDown final : public UpDownBase,
+class GUI_FORMS_API DomainUpDown final : public UpDownBase,
                            public TextItemsCapability<DomainUpDown>,
                            public DomainUpDownCapabilities<DomainUpDown> {
 public:
@@ -66,7 +67,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;
@@ -76,7 +77,7 @@ public:
         PartGeometry up_glyph;
         PartGeometry down_glyph;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool pressed{};
         bool captured{};

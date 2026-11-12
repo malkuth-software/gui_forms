@@ -32,6 +32,7 @@
 //
 // All functions run on the strips' UI thread.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/menu_strip.hpp"
 #include "gui_forms/controls/tool_strip.hpp"
 
@@ -42,8 +43,8 @@ namespace gui_forms {
 // nothing applies, or when the result would be invalid (a repeated item
 // ID). Throws std::invalid_argument when `source` is `target`, and
 // std::bad_weak_ptr when `source` is not owned by a shared pointer.
-[[nodiscard]] bool merge_strips(ToolStrip& source, ToolStrip& target);
-[[nodiscard]] bool merge_strips(MenuStrip& source, MenuStrip& target);
+[[nodiscard]] GUI_FORMS_API bool merge_strips(ToolStrip& source, ToolStrip& target);
+[[nodiscard]] GUI_FORMS_API bool merge_strips(MenuStrip& source, MenuStrip& target);
 
 // Reverts every merge into `target`, newest first, restoring the sources
 // that still exist (items of a destroyed source are dropped from the
@@ -52,14 +53,14 @@ namespace gui_forms {
 // (items added since with a repeated ID), std::invalid_argument propagates,
 // the newer merges stay reverted, and that merge and the older ones stay in
 // place with their history.
-bool revert_merge(ToolStrip& target);
-bool revert_merge(MenuStrip& target);
+GUI_FORMS_API bool revert_merge(ToolStrip& target);
+GUI_FORMS_API bool revert_merge(MenuStrip& target);
 
 // Reverts the newest merge of `source` into `target`: the merges after it
 // are reverted first and then merged again, in their order, from the
 // sources that still exist. Returns whether `source` had merged into
 // `target`. Failures as revert_merge(target).
-bool revert_merge(ToolStrip& target, ToolStrip& source);
-bool revert_merge(MenuStrip& target, MenuStrip& source);
+GUI_FORMS_API bool revert_merge(ToolStrip& target, ToolStrip& source);
+GUI_FORMS_API bool revert_merge(MenuStrip& target, MenuStrip& source);
 
 } // namespace gui_forms

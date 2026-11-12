@@ -98,7 +98,7 @@ ENTRY = re.compile(r'\{\s*\.name\s*=\s*"([^"]+)",\s*\.payload\s*=\s*"([^"]*)",\s
                    r'\.mutable_payload\s*=\s*(true|false)\s*\}')
 APPEND = re.compile(r'void ([\w:]+)::append_interactions\(std::vector<InteractionDeclaration>& interactions\) '
                     r'(?:const )?\{(.*?)\n\}', re.S)
-CLASS = re.compile(r'^(?:class|struct) (\w+)(?: final)?\s*(?::\s*([^{;]*))?\{', re.M)
+CLASS = re.compile(r'^(?:class|struct) (?:GUI_FORMS_API )?(\w+)(?: final)?\s*(?::\s*([^{;]*))?\{', re.M)
 OPTIONAL = re.compile(r'^std::optional<(.+)>$')
 VECTOR = re.compile(r'^std::(?:vector|span)<(?:const )?(.+)>$')
 POINTER = re.compile(r'^(?:std::shared_ptr<(\w+)>|(\w+)\*)$')
@@ -191,11 +191,11 @@ def class_depth(name: str, base: dict[str, str]) -> int:
 
 
 def struct_body(text: str, name: str) -> str | None:
-    one_line: re.Match[str] | None = re.search(r'^struct ' + re.escape(name) + r'(?: final)? \{([^\n]*)\};$', text,
+    one_line: re.Match[str] | None = re.search(r'^struct (?:GUI_FORMS_API )?' + re.escape(name) + r'(?: final)? \{([^\n]*)\};$', text,
                                                re.M)
     if one_line is not None:
         return one_line.group(1)
-    match: re.Match[str] | None = re.search(r'^struct ' + re.escape(name) + r'(?: final)? \{(.*?)\n\};', text,
+    match: re.Match[str] | None = re.search(r'^struct (?:GUI_FORMS_API )?' + re.escape(name) + r'(?: final)? \{(.*?)\n\};', text,
                                             re.S | re.M)
     return None if match is None else match.group(1)
 

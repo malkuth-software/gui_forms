@@ -6,6 +6,7 @@
 // bubbles with rising steam. Each is a kind of progress bar
 // (parent_type = ProgressBar) drawing over the bar's interior, its part.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
@@ -27,7 +28,7 @@ enum class ProgressFillDirection : std::uint8_t { left_to_right, right_to_left, 
 // rulings of 2026-11-11), resolved by the bar from the fill part's stripe
 // properties (ControlStripePattern) before the frame runs. Lengths are
 // logical units in bar space: along the fill direction and across it.
-struct ProgressStripeView final {
+struct GUI_FORMS_API ProgressStripeView final {
     // The distance from one band to the next, along the fill direction.
     double pitch{16.0};
     // The pale band's width, a minority of the pitch: the fill colour
@@ -95,7 +96,7 @@ struct EffectView<ProgressBar> final {
 // at least the fill's length over maximum_stripes less the margin bands, so
 // run's bound (256 passes of about 110: a polygon 72, its points and the
 // pass's arithmetic) stays under the 40,000 budget.
-class ProgressStripes final {
+class GUI_FORMS_API ProgressStripes final {
 public:
     using parent_type = ProgressBar;
     static constexpr std::size_t maximum_stripes = 256U;
@@ -114,7 +115,7 @@ private:
 
 // A soft luminance band sweeping along the fill (ProgressBarVisualStyle::
 // pulse).
-class ProgressPulse final {
+class GUI_FORMS_API ProgressPulse final {
 public:
     using parent_type = ProgressBar;
     static constexpr EffectDeclaration declaration{
@@ -133,7 +134,7 @@ private:
 // The laser etch: phase bands over the fill, a glowing edge, and a burning
 // front with flickering lobes and short sparks (ProgressBarVisualStyle::
 // laser_etch).
-class ProgressLaser final {
+class GUI_FORMS_API ProgressLaser final {
 public:
     using parent_type = ProgressBar;
     static constexpr EffectDeclaration declaration{
@@ -151,7 +152,7 @@ private:
 
 // One woven stripe: warp (along the bar) or weft (across it), where it
 // lies, how wide, which colour and the fraction at which it weaves in.
-struct WovenStripe final {
+struct GUI_FORMS_API WovenStripe final {
     double offset{};
     double width{};
     double threshold{};
@@ -173,7 +174,7 @@ struct WovenStripe final {
 // 10, a sine 40, a fade 6, a stroke 6, the arithmetic and the pass's 2),
 // under the 6,000 budget; three layer passes cost 11,851. Setup, with the
 // ordering's three passes over 48, is bounded at 4,210, within its 8,000.
-class ProgressWovenStripes final {
+class GUI_FORMS_API ProgressWovenStripes final {
 public:
     using parent_type = ProgressBar;
     static constexpr std::size_t maximum_stripes = 48U;
@@ -195,7 +196,7 @@ private:
 };
 
 // One bubble rising in the fill, or one puff of steam rising above the bar.
-struct RisingBody final {
+struct GUI_FORMS_API RisingBody final {
     Point position{};
     double radius{};
     double speed{};
@@ -211,7 +212,7 @@ struct RisingBody final {
 // Bubbles rising in the filled length; each that reaches the top breaks
 // into a puff of steam rising into the top outset and fading. With pointer
 // input granted, a press in the fill releases a bubble there.
-class ProgressBubbles final {
+class GUI_FORMS_API ProgressBubbles final {
 public:
     using parent_type = ProgressBar;
     static constexpr std::size_t maximum_bubbles = 24U;
@@ -236,6 +237,6 @@ private:
 };
 
 // Adds the progress bar's effects to `registry`.
-void register_progress_bar_effects(EffectRegistry& registry);
+GUI_FORMS_API void register_progress_bar_effects(EffectRegistry& registry);
 
 } // namespace gui_forms

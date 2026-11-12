@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types.hpp"
 
 #include <cstddef>
@@ -31,14 +32,14 @@ enum class ImageAlpha : std::uint8_t {
 
 // What every resource reports, whatever its encoding. decoded_byte_count is
 // width * height * 4, the size of its 8-bit four-channel pixels.
-struct ImageMetadata final {
+struct GUI_FORMS_API ImageMetadata final {
     std::uint32_t width{};
     std::uint32_t height{};
     ImageAlpha alpha{ImageAlpha::straight};
     std::uint64_t decoded_byte_count{};
 };
 
-struct ImageRegistryLimits final {
+struct GUI_FORMS_API ImageRegistryLimits final {
     std::size_t maximum_encoded_bytes_per_image{32U * 1024U * 1024U};
     std::uint32_t maximum_width{4096};
     std::uint32_t maximum_height{4096};
@@ -61,11 +62,11 @@ enum class ImageResourceError : std::uint8_t {
     registry_decoded_limit_exceeded, stale_image_id, allocation_failed,
 };
 
-[[nodiscard]] std::string_view image_resource_error_name(
+[[nodiscard]] GUI_FORMS_API std::string_view image_resource_error_name(
     ImageResourceError error) noexcept;
 
 // PNG detail, reported only by validate_png.
-struct PngMetadata final {
+struct GUI_FORMS_API PngMetadata final {
     std::uint32_t width{};
     std::uint32_t height{};
     std::uint8_t bit_depth{};
@@ -75,7 +76,7 @@ struct PngMetadata final {
     std::uint64_t decoded_byte_count{};
 };
 
-struct PngValidationResult final {
+struct GUI_FORMS_API PngValidationResult final {
     ImageResourceError error{ImageResourceError::none};
     PngMetadata metadata{};
 
@@ -93,11 +94,11 @@ struct PngValidationResult final {
     }
 };
 
-[[nodiscard]] PngValidationResult validate_png(
+[[nodiscard]] GUI_FORMS_API PngValidationResult validate_png(
     std::span<const std::byte> encoded,
     const ImageRegistryLimits& limits = {}) noexcept;
 
-struct ImageLoadResult final {
+struct GUI_FORMS_API ImageLoadResult final {
     ImageId image{};
     ImageResourceError error{ImageResourceError::none};
 
@@ -121,7 +122,7 @@ struct ImageLoadResult final {
 // pixels differ from that state, and from every state inside the run, only
 // inside it. base_hash 0 means no run is open: a consumer resynchronizes the
 // whole image.
-struct ImagePatchRegion final {
+struct GUI_FORMS_API ImagePatchRegion final {
     // ImageId::value before the run's first patch.
     std::uint64_t base_image{};
     std::uint64_t base_hash{};
@@ -131,7 +132,7 @@ struct ImagePatchRegion final {
     std::uint32_t height{};
 };
 
-struct ImageResourceView final {
+struct GUI_FORMS_API ImageResourceView final {
     ImageId image{};
     ImageResourceEncoding encoding{ImageResourceEncoding::png};
     ImageMetadata metadata{};
@@ -146,7 +147,7 @@ struct ImageResourceView final {
     ImagePatchRegion patched{};
 };
 
-struct ImageRegistrySnapshot final {
+struct GUI_FORMS_API ImageRegistrySnapshot final {
     std::uint64_t revision{};
     std::uint64_t resource_count{};
     std::uint64_t encoded_bytes{};

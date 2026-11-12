@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/range_control.hpp"
 #include "gui_forms/controls/gauge_base_capabilities.hpp"
 
@@ -22,7 +23,7 @@ namespace gui_forms {
 // still shows). To assistive technology it is a meter
 // (a level indicator, a progress bar on hosts without one) with its value,
 // range and value text. LinearGauge and RadialGauge draw it.
-class GaugeBase : public RangeControl, public GaugeBaseCapabilities<GaugeBase> {
+class GUI_FORMS_API GaugeBase : public RangeControl, public GaugeBaseCapabilities<GaugeBase> {
 public:
     // Whether the value lies outside the alarm limits that are set.
     [[nodiscard]] bool in_alarm() const noexcept;

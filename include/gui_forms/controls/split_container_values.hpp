@@ -3,6 +3,7 @@
 // SplitContainer's value types, apart from the control so its capabilities
 // header can name them.
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 
 namespace gui_forms {
@@ -30,7 +31,7 @@ enum class SplitCollapseOrigin : std::uint8_t {
     automatic_accommodation,
 };
 
-struct SplitChangeEvent final {
+struct GUI_FORMS_API SplitChangeEvent final {
     double old_distance{};
     double new_distance{};
     SplitChangeReason reason{SplitChangeReason::programmatic};
@@ -55,7 +56,7 @@ enum class SplitSeamState : std::uint8_t {
     collapsed,
 };
 
-struct SplitSeamGeometry final {
+struct GUI_FORMS_API SplitSeamGeometry final {
     static constexpr double maximum_visible_thickness = 64.0;
     static constexpr double maximum_hit_extension = 128.0;
     static constexpr double maximum_hit_target = 256.0;

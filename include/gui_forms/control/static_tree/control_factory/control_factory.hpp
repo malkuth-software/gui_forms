@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 
 #include <functional>
@@ -15,7 +16,7 @@ namespace gui_forms {
 // no depth limit, so copying and destroying one walk it in explicit work
 // storage instead of recursing per level (HOUSE_STYLE section 1). Moving
 // moves the child list's storage.
-struct StaticNode {
+struct GUI_FORMS_API StaticNode {
     std::string type;
     std::string stable_id;
     Rect requested_bounds{};
@@ -38,7 +39,7 @@ struct StaticNode {
     ~StaticNode();
 };
 
-class ControlFactory {
+class GUI_FORMS_API ControlFactory {
 public:
     using Creator = std::function<Control::Ptr(StableId)>;
 
@@ -50,7 +51,7 @@ private:
     CreatorMap creators_;
 };
 
-[[nodiscard]] Control::Ptr build_static_tree(const StaticNode& node,
+[[nodiscard]] GUI_FORMS_API Control::Ptr build_static_tree(const StaticNode& node,
                                              const ControlFactory& factory);
 
 } // namespace gui_forms

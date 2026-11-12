@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/progress_ring_capabilities.hpp"
@@ -31,7 +32,7 @@ namespace gui_forms {
 // (src/controls/progress_ring/ring_dots.hpp), as ProgressBar's track and
 // fill, so the floor sheet's :family(progress) blocks style it. The custom
 // state `indeterminate` selects the turning ring.
-class ProgressRing final : public Control, public ProgressRingCapabilities<ProgressRing> {
+class GUI_FORMS_API ProgressRing final : public Control, public ProgressRingCapabilities<ProgressRing> {
 public:
     explicit ProgressRing(StableId stable_id);
 
@@ -59,7 +60,7 @@ public:
     // Stage T1 anatomy, as dot members (see Control::Parts). `track` is the
     // ring's square; `fill` the same square while determinate with a
     // positive fraction, `activity` while indeterminate.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry track;
         PartGeometry fill;

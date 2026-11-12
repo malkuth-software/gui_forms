@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
 
 #include <cstddef>
@@ -19,7 +20,7 @@ namespace gui_forms {
 // std::shared_ptr<const PartRaster>, with every recorded command that
 // composites it (Painter::draw_part_raster). Recorded commands keep it
 // alive until their display chunk is rebuilt or retired.
-class PartRaster final {
+class GUI_FORMS_API PartRaster final {
 public:
     // A transparent raster of `extent` for display scale `scale`, or null
     // when either side exceeds maximum_part_raster_side or the scale is not

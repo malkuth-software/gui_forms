@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/date_time_format_provider.hpp"
 #include "gui_forms/controls/date_time_value.hpp"
@@ -27,7 +28,7 @@ namespace gui_forms {
 //
 // Dates are civil days: the time of day of every date the calendar takes is
 // dropped, and every date it reports is at midnight.
-class MonthCalendar final : public Control, public MonthCalendarCapabilities<MonthCalendar> {
+class GUI_FORMS_API MonthCalendar final : public Control, public MonthCalendarCapabilities<MonthCalendar> {
 public:
     explicit MonthCalendar(StableId stable_id);
 
@@ -104,7 +105,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
     // Stage T1 anatomy, as dot members; the control's states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry previous_arrow;
@@ -117,23 +118,23 @@ public:
     [[nodiscard]] Parts parts() const;
     // Item part names are unique within the control, so each names its
     // system.
-    struct MonthParts final {
+    struct GUI_FORMS_API MonthParts final {
         PartGeometry month_title;
         PartGeometry weekday_rule;
     };
-    struct WeekdayParts final {
+    struct GUI_FORMS_API WeekdayParts final {
         PartGeometry weekday_label;
     };
-    struct WeekParts final {
+    struct GUI_FORMS_API WeekParts final {
         PartGeometry week_label;
     };
-    struct DayParts final {
+    struct GUI_FORMS_API DayParts final {
         PartGeometry day_face;
         PartGeometry day_text;
         PartGeometry day_marker;
         PartGeometry day_focus;
     };
-    struct DayStates final {
+    struct GUI_FORMS_API DayStates final {
         bool hot{};
         bool pressed{};
         bool selected{};
@@ -142,7 +143,7 @@ public:
         bool focus_visible{};
         bool bolded{};
     };
-    struct Day final {
+    struct GUI_FORMS_API Day final {
         DateTimeValue date{};
         std::string stable_id;
         DayParts parts;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/button_base.hpp"
 #include "gui_forms/controls/toggle_switch_capabilities.hpp"
 #include "gui_forms/engine/motion_value/motion_value.hpp"
@@ -33,7 +34,7 @@ namespace gui_forms {
 // within motion_duration_ceiling).
 inline constexpr FrameInterval toggle_switch_thumb_duration = std::chrono::milliseconds(150);
 
-class ToggleSwitch final : public ButtonBase, public ToggleSwitchCapabilities<ToggleSwitch> {
+class GUI_FORMS_API ToggleSwitch final : public ButtonBase, public ToggleSwitchCapabilities<ToggleSwitch> {
 public:
     explicit ToggleSwitch(StableId stable_id, std::string initial_text = {});
 
@@ -56,7 +57,7 @@ public:
     // rounded ground, `thumb` the knob at its start (off) or end (on),
     // `label` the text, `state` the state text (absent when empty) and
     // `focus` the cue around the whole control.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry track;
         PartGeometry thumb;

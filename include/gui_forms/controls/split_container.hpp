@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/controls/split_container_values.hpp"
 #include "gui_forms/controls/splitter_panel.hpp"
@@ -17,7 +18,7 @@ namespace gui_forms {
 
 class SplitContainerDrag;
 
-struct SplitSeamSnapshot final {
+struct GUI_FORMS_API SplitSeamSnapshot final {
     Orientation orientation{Orientation::vertical};
     SplitSeamGeometry geometry;
     SplitSeamState state{SplitSeamState::idle};
@@ -31,7 +32,7 @@ struct SplitSeamSnapshot final {
     bool transition_active{};
 };
 
-class SplitContainer final : public ContainerControl, public SplitContainerCapabilities<SplitContainer> {
+class GUI_FORMS_API SplitContainer final : public ContainerControl, public SplitContainerCapabilities<SplitContainer> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit SplitContainer(StableId stable_id);
@@ -92,13 +93,13 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry seam;
         PartGeometry grip;
     };
     [[nodiscard]] Parts parts() const;
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool pressed{};
         bool captured{};

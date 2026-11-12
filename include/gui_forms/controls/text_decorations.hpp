@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
@@ -45,7 +46,7 @@ enum class TextUnderline : std::uint8_t { none, single, squiggle };
 //   text's ink.
 // - background: a flat ground under the text, drawn under the selection
 //   band and left out in high contrast.
-struct TextDecorationStyle final {
+struct GUI_FORMS_API TextDecorationStyle final {
     std::optional<TextInkRole> ink{};
     std::optional<Color> foreground{};
     std::optional<std::uint16_t> weight{};
@@ -78,7 +79,7 @@ struct TextDecorationStyle final {
 // One decoration: a byte range of the text (UTF-8 offsets; a bound inside a
 // grapheme cluster applies from that cluster's next boundary) and its look.
 // `tag` belongs to the producer: a diagnostic's index, a token's kind.
-struct TextDecoration final {
+struct GUI_FORMS_API TextDecoration final {
     Utf8Range range{};
     TextDecorationStyle style{};
     std::uint32_t tag{};
@@ -91,7 +92,7 @@ struct TextDecoration final {
 
 // A producer's layer. Layers compose in ascending order: a later layer's
 // fields stand over an earlier one's where both set them.
-struct TextDecorationLayer final {
+struct GUI_FORMS_API TextDecorationLayer final {
     std::uint32_t value{};
 
     friend constexpr bool operator==(TextDecorationLayer left, TextDecorationLayer right) noexcept {
@@ -104,7 +105,7 @@ struct TextDecorationLayer final {
 };
 
 // One change of the text: removed_bytes at start replaced by inserted_bytes.
-struct TextChange final {
+struct GUI_FORMS_API TextChange final {
     Utf8Offset start{};
     std::size_t removed_bytes{};
     std::size_t inserted_bytes{};
@@ -119,12 +120,12 @@ struct TextChange final {
 // The smallest change turning `before` into `after`: the bytes between
 // their common prefix and their common suffix. Equal texts give an empty
 // change at the end. Reads both once; allocates nothing.
-[[nodiscard]] TextChange text_change_between(std::string_view before, std::string_view after) noexcept;
+[[nodiscard]] GUI_FORMS_API TextChange text_change_between(std::string_view before, std::string_view after) noexcept;
 
 // One run of uniformly styled text, as composition gives it: the fields
 // every covering decoration set, the later layer's (and within a layer the
 // later decoration's) standing. Undecorated text has an empty style.
-struct StyledTextRun final {
+struct GUI_FORMS_API StyledTextRun final {
     Utf8Range range{};
     TextDecorationStyle style{};
 
@@ -138,7 +139,7 @@ struct StyledTextRun final {
 // changed, whether any look changed at all, and whether a font changed
 // (the text must be laid out again) or only colours, lines and grounds (the
 // range's rows repaint).
-struct TextDecorationChange final {
+struct GUI_FORMS_API TextDecorationChange final {
     Utf8Range range{};
     bool changed{};
     bool layout{};
@@ -149,7 +150,7 @@ struct TextDecorationChange final {
 // layer may overlap. It knows nothing of the text: its owner checks ranges
 // against the text and tells it of each edit (shift_for_edit). One
 // execution context owns it.
-class TextDecorations final {
+class GUI_FORMS_API TextDecorations final {
 public:
     // Replaces `layer`'s decorations with a copy of `decorations`. A range
     // with end before start, or a weight outside 1 to 1000, throws

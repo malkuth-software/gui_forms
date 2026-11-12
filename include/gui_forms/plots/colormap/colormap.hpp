@@ -18,6 +18,7 @@
 // engine_power, and encodes by nearest search in it, so a colour is the
 // same bytes on every host.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/scale/scale.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
@@ -34,7 +35,7 @@ inline constexpr std::size_t maximum_colormap_stops = 16U;
 enum class ColormapKind : std::uint8_t { qualitative, continuous };
 enum class ColormapSpace : std::uint8_t { linear_srgb, srgb_encoded };
 
-struct ColormapStop final {
+struct GUI_FORMS_API ColormapStop final {
     double offset{};
     Color color{};
 
@@ -43,7 +44,7 @@ struct ColormapStop final {
     }
 };
 
-struct Colormap final {
+struct GUI_FORMS_API Colormap final {
     ColormapKind kind{ColormapKind::continuous};
     ColormapSpace space{ColormapSpace::linear_srgb};
     // `stop_count` of `stops` are live. A qualitative map ignores offsets.
@@ -67,18 +68,18 @@ struct Colormap final {
 // Whether `map` can sample: 1 to 16 stops (2 or more for a continuous map),
 // a continuous map's offsets finite, from 0 to 1 and non-decreasing,
 // starting at 0 and ending at 1.
-[[nodiscard]] bool valid_colormap(const Colormap& map) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_colormap(const Colormap& map) noexcept;
 
 // The colour at `position` in [0, 1] (clamped) of a continuous map, or of
 // stop floor(position) (wrapping) of a qualitative one; NaN gives the gap
 // colour. An invalid map gives the gap colour.
-[[nodiscard]] Color sample_colormap(const Colormap& map, double position) noexcept;
+[[nodiscard]] GUI_FORMS_API Color sample_colormap(const Colormap& map, double position) noexcept;
 
 // Colours for `values` through `scale` (its domain to positions 0..1: the
 // scale's device range is ignored and taken as [0, 1]) into `out`
 // (values.size() entries; nothing written and false when it is shorter or
 // the map or scale is invalid). Values outside the domain clamp.
-bool sample_colormap_span(const Colormap& map, const Scale& scale, std::span<const double> values,
+GUI_FORMS_API bool sample_colormap_span(const Colormap& map, const Scale& scale, std::span<const double> values,
                           std::span<Color> out) noexcept;
 
 enum class BuiltInColormap : std::uint8_t { viridis, magma, inferno, plasma, gui_forms_default };
@@ -86,14 +87,14 @@ enum class BuiltInColormap : std::uint8_t { viridis, magma, inferno, plasma, gui
 // The built-in maps. gui_forms_default is our own: a cool-to-warm
 // continuous map (deep blue, teal, sand, brick) interpolated in linear
 // sRGB.
-[[nodiscard]] const Colormap& built_in_colormap(BuiltInColormap which) noexcept;
+[[nodiscard]] GUI_FORMS_API const Colormap& built_in_colormap(BuiltInColormap which) noexcept;
 // The built-in named `name` ("viridis", "magma", "inferno", "plasma",
 // "default"), or null.
-[[nodiscard]] const Colormap* find_built_in_colormap(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API const Colormap* find_built_in_colormap(std::string_view name) noexcept;
 
 // sRGB transfer: an encoded byte's linear value in [0, 1], and the nearest
 // encoded byte of a linear value (clamped).
-[[nodiscard]] double srgb_to_linear(std::uint8_t encoded) noexcept;
-[[nodiscard]] std::uint8_t linear_to_srgb(double linear) noexcept;
+[[nodiscard]] GUI_FORMS_API double srgb_to_linear(std::uint8_t encoded) noexcept;
+[[nodiscard]] GUI_FORMS_API std::uint8_t linear_to_srgb(double linear) noexcept;
 
 } // namespace gui_forms::plots

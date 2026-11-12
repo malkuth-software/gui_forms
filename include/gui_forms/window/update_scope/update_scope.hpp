@@ -1,12 +1,14 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
+
 namespace gui_forms {
 
 class SurfaceRoot;
 
 // Move-only ownership token for one Window update-depth level. Closing the
 // token balances the transaction and may trigger the bounded retained flush.
-class UpdateScope final {
+class GUI_FORMS_API UpdateScope final {
 public:
     explicit UpdateScope(SurfaceRoot& root) noexcept : window_(&root) {}
     ~UpdateScope();

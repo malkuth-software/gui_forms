@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/brush/brush.hpp"
 
 namespace gui_drawing {
@@ -10,7 +11,7 @@ namespace gui_drawing {
 // 0 to position 1. The blend holds 2 through 4096 colours at ascending
 // positions from 0 to 1, as LinearGradientBrush::set_interpolation_colors
 // requires; the default is `first` to `second`.
-class ConicGradientBrush final : public Brush {
+class GUI_FORMS_API ConicGradientBrush final : public Brush {
 public:
     ConicGradientBrush(PointF center, double start_angle, Color first, Color second);
     void set_interpolation_colors(const ColorBlend& blend);

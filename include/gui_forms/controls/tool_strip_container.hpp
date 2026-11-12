@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/tool_strip_panel.hpp"
 #include "gui_forms/engine/motion_value/motion_value.hpp"
@@ -29,7 +30,7 @@ enum class ToolStripDragPhase : std::uint8_t { idle, armed, dragging, settling }
 // row `row` at `position` among its strips. `marker` is the insertion line
 // (between rows, or across a row between its strips), in the container's
 // coordinates.
-struct ToolStripDropTarget final {
+struct GUI_FORMS_API ToolStripDropTarget final {
     ToolStripPanelEdge edge{ToolStripPanelEdge::top};
     std::size_t row{};
     bool joins_row{};
@@ -46,7 +47,7 @@ struct ToolStripDropTarget final {
 // A strip that changed place, raised after the move (by a drag, move_strip
 // or move_strip_into_row): its edge, row and position in the row before,
 // and after (rows counted in the panel as it is after the move).
-struct ToolStripMove final {
+struct GUI_FORMS_API ToolStripMove final {
     std::string strip_id{};
     ToolStripPanelEdge from{ToolStripPanelEdge::top};
     std::size_t from_row{};
@@ -75,7 +76,7 @@ struct ToolStripMove final {
 // pointer capture is lost leaves the strip where it was. A StatusStrip has
 // no left or right target. An empty panel's band reaches a few units in
 // from its edge, so a strip can be dropped on it.
-class ToolStripContainer final : public Control, public ToolStripContainerCapabilities<ToolStripContainer> {
+class GUI_FORMS_API ToolStripContainer final : public Control, public ToolStripContainerCapabilities<ToolStripContainer> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit ToolStripContainer(StableId stable_id);
@@ -144,7 +145,7 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry top_panel;
         PartGeometry bottom_panel;

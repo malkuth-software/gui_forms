@@ -19,6 +19,7 @@
 // on the exception path only). A boundary that catches the exception reads
 // those frames with copy_failure_shadow_frames.
 
+#include "gui_forms/export/application_export.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -67,7 +68,7 @@ inline constexpr std::size_t shadow_stack_capacity = 64U;
 
 // One frame. Fields a kind does not use are zero and empty. The text arrays
 // hold subject_size and name_size bytes; the bytes past them are stale.
-struct ShadowFrame final {
+struct GUI_FORMS_API ShadowFrame final {
     ShadowFrameKind kind = ShadowFrameKind::library_call;
     std::uint32_t flags = 0U;
     std::uint32_t interface_id = 0U;
@@ -83,7 +84,7 @@ struct ShadowFrame final {
 // open now, recorded or not; the recorded frames are the outermost
 // min(depth, shadow_stack_capacity). pushed and dropped count every push,
 // and every push past the capacity, since the thread began.
-struct ShadowStackState final {
+struct GUI_FORMS_API ShadowStackState final {
     std::uint32_t depth = 0U;
     std::uint64_t pushed = 0U;
     std::uint64_t dropped = 0U;
@@ -93,7 +94,7 @@ struct ShadowStackState final {
 // it on every exit, an exception's included. Never throws or allocates.
 // Scopes nest strictly (they are not copied or moved), so the frame closed
 // is always the innermost.
-class ShadowFrameScope final {
+class GUI_FORMS_API ShadowFrameScope final {
 public:
     // A frame of kind with subject and name (each cut to its capacity).
     ShadowFrameScope(ShadowFrameKind kind, std::string_view subject, std::string_view name,
@@ -109,7 +110,7 @@ public:
 // leading elements of frames (at most frames.size()), and its state into
 // state. Returns the number of recorded frames, which may exceed the number
 // copied. Never throws or allocates.
-std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept;
+GUI_FORMS_API std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept;
 
 // As copy_shadow_frames, but for a boundary that has just caught an
 // exception: the frames open where the exception was thrown, the frames it
@@ -122,6 +123,6 @@ std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& 
 // frame, then another thrown from that frame or an outer one, shows the
 // first's deeper frames above the second's. The outer frames are the
 // second's either way.
-std::size_t copy_failure_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept;
+GUI_FORMS_API std::size_t copy_failure_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept;
 
 } // namespace gui_forms

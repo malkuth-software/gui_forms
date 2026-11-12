@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/event.hpp"
@@ -21,7 +22,7 @@ struct TaskDialogResult;
 // has. An empty caption gives "Unhandled exception"; empty details leave the
 // expander out. A `warning` report (Windows Forms' WarningException) shows the
 // warning icon and offers Continue only.
-struct ThreadExceptionReport final {
+struct GUI_FORMS_API ThreadExceptionReport final {
     std::string caption{};
     std::string message{};
     std::string details{};
@@ -31,7 +32,7 @@ struct ThreadExceptionReport final {
 // The report for a caught exception: the message of a std::exception, or
 // "An exception of unknown type was thrown." for anything else, with no
 // details. A null `error` gives an empty message.
-[[nodiscard]] ThreadExceptionReport describe_exception(const std::exception_ptr& error);
+[[nodiscard]] GUI_FORMS_API ThreadExceptionReport describe_exception(const std::exception_ptr& error);
 
 // The dialog an application shows for an exception it did not handle
 // (Windows Forms' ThreadExceptionDialog): an error icon, the message, the
@@ -46,7 +47,7 @@ struct ThreadExceptionReport final {
 // std::invalid_argument from the constructor. The dialog is used on the UI
 // thread of the window it is shown over. Disposing or destroying a shown
 // dialog closes it without raising closed.
-class ThreadExceptionDialog final : public Component {
+class GUI_FORMS_API ThreadExceptionDialog final : public Component {
 public:
     ThreadExceptionDialog(StableId stable_id, ThreadExceptionReport report);
     ~ThreadExceptionDialog() override;

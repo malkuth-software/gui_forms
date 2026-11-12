@@ -1,10 +1,11 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cmath>
 
 namespace gui_forms {
 
-struct Point {
+struct GUI_FORMS_API Point {
     double x{};
     double y{};
     friend constexpr bool operator==(const Point& left,
@@ -13,7 +14,7 @@ struct Point {
     }
 };
 
-struct Size {
+struct GUI_FORMS_API Size {
     double width{};
     double height{};
     friend constexpr bool operator==(const Size& left,
@@ -22,7 +23,7 @@ struct Size {
     }
 };
 
-struct Rect {
+struct GUI_FORMS_API Rect {
     double x{};
     double y{};
     double width{};
@@ -60,7 +61,7 @@ struct Rect {
     [[nodiscard]] static Rect united(Rect left, Rect right) noexcept;
 };
 
-struct Insets {
+struct GUI_FORMS_API Insets {
     double left{};
     double top{};
     double right{};

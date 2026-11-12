@@ -1,11 +1,12 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/controls/container_control_capabilities.hpp"
 
 namespace gui_forms {
 
-class ContainerControl : public ScrollableControl, public ContainerControlCapabilities<ContainerControl> {
+class GUI_FORMS_API ContainerControl : public ScrollableControl, public ContainerControlCapabilities<ContainerControl> {
 public:
     explicit ContainerControl(StableId stable_id);
 

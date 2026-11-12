@@ -1,12 +1,13 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 
 namespace gui_forms {
 
 // DK's own small split solver (DK decisions 5 and 18), which stage L may
 // adopt or replace. It divides one span between the two children of a split.
-struct DockSplitSizes final {
+struct GUI_FORMS_API DockSplitSizes final {
     double first{};
     double second{};
     // False when the span is smaller than the two minimums together; the
@@ -26,7 +27,7 @@ struct DockSplitSizes final {
 // child keeps its minimum. first + second equals span exactly. A span that is
 // negative or not finite gives two zero sizes; a ratio outside (0, 1) or not
 // finite is treated as 0.5.
-[[nodiscard]] DockSplitSizes solve_dock_split(double span, double ratio, double first_minimum,
+[[nodiscard]] GUI_FORMS_API DockSplitSizes solve_dock_split(double span, double ratio, double first_minimum,
                                               double second_minimum) noexcept;
 
 } // namespace gui_forms

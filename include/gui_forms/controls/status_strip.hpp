@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/tool_strip.hpp"
 
 namespace gui_forms {
@@ -10,7 +11,7 @@ namespace gui_forms {
 // grip is drawn and published but does not resize the window yet: a control
 // has no native window request (ApplicationWindowHandle::request_client_size
 // belongs to the application).
-class StatusStrip final : public ToolStrip {
+class GUI_FORMS_API StatusStrip final : public ToolStrip {
 public:
     explicit StatusStrip(StableId stable_id);
 
@@ -18,7 +19,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members; its states are Control's, and its
     // items are ToolStrip's "item" system.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry sizing_grip;

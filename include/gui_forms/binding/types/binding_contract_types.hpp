@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 
 #include <cstddef>
@@ -50,7 +51,7 @@ enum class BindingListChangeKind : std::uint8_t {
     item_moved,
 };
 
-struct BindingListChange final {
+struct GUI_FORMS_API BindingListChange final {
     BindingListChangeKind kind{BindingListChangeKind::reset};
     std::ptrdiff_t index{-1};
     std::string stable_id;
@@ -60,13 +61,13 @@ struct BindingListChange final {
     std::ptrdiff_t to_index{-1};
 };
 
-struct BindingConvertEvent final {
+struct GUI_FORMS_API BindingConvertEvent final {
     BindingValue value;
     BindingValueKind desired_kind{BindingValueKind::null};
     bool handled{};
 };
 
-struct BindingCompleteEvent final {
+struct GUI_FORMS_API BindingCompleteEvent final {
     Binding* binding{};
     BindingCompleteContext context{BindingCompleteContext::control_update};
     BindingCompleteState state{BindingCompleteState::success};
@@ -74,7 +75,7 @@ struct BindingCompleteEvent final {
     bool cancel{};
 };
 
-struct BindingOptions final {
+struct GUI_FORMS_API BindingOptions final {
     DataSourceUpdateMode data_source_update_mode{
         DataSourceUpdateMode::on_validation};
     ControlUpdateMode control_update_mode{
@@ -85,7 +86,7 @@ struct BindingOptions final {
     BindingValue data_source_null_value;
 };
 
-struct BindingSourceSnapshot final {
+struct GUI_FORMS_API BindingSourceSnapshot final {
     std::size_t count{};
     std::ptrdiff_t position{-1};
     std::string current_stable_id;
@@ -101,7 +102,7 @@ struct BindingSourceSnapshot final {
     bool raise_list_changed_events{true};
 };
 
-struct BindingSnapshot final {
+struct GUI_FORMS_API BindingSnapshot final {
     std::string property_name;
     std::string data_member;
     std::uint64_t control_reads{};
@@ -112,7 +113,7 @@ struct BindingSnapshot final {
     bool active{};
 };
 
-struct BindingContextChange final {
+struct GUI_FORMS_API BindingContextChange final {
     BindingSource* source{};
     bool added{};
 };

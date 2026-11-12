@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -12,7 +13,7 @@ class Window;
 
 namespace detail {
 class ScheduledFrameRequest;
-struct WindowLifetime final {
+struct GUI_FORMS_API WindowLifetime final {
     Window* window{};
 };
 }
@@ -25,7 +26,7 @@ inline constexpr std::size_t maximum_scheduled_frame_requests = 256;
 inline constexpr FrameInterval minimum_ui_timer_interval =
     std::chrono::milliseconds(1);
 
-struct FramePollResult final {
+struct GUI_FORMS_API FramePollResult final {
     std::uint64_t deadlines_fired{};
     std::uint64_t ui_timer_ticks{};
     // Frames of the window's motion clock: at most one per poll, however

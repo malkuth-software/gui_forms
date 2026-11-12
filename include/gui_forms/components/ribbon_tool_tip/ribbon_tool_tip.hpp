@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/event.hpp"
@@ -32,7 +33,7 @@ class Window;
 // is taken from the command's state when the tooltip opens, and the command's
 // enabled state says whether the target is disabled. A ToolStrip item with a
 // command supplies that command when `command` is empty.
-struct RibbonToolTipContent final {
+struct GUI_FORMS_API RibbonToolTipContent final {
     GUI_FORMS_LOCALIZABLE(tool_tip) std::string title{};
     GUI_FORMS_LOCALIZABLE(tool_tip) std::string description{};
     // Generated from the key binding: not translated text.
@@ -47,7 +48,7 @@ struct RibbonToolTipContent final {
 // describes, or is empty for a whole control. `content` is what it shows,
 // resolved from its command; `disabled_reason` is empty unless the target
 // was disabled.
-struct RibbonToolTipEvent final {
+struct GUI_FORMS_API RibbonToolTipEvent final {
     std::string target_stable_id{};
     std::string item_id{};
     RibbonToolTipContent content{};
@@ -57,7 +58,7 @@ struct RibbonToolTipEvent final {
 
 // F1 was pressed while a tooltip with a help topic showed. GUI.Forms opens
 // no help viewer: the application handles the topic.
-struct RibbonToolTipHelpRequest final {
+struct GUI_FORMS_API RibbonToolTipHelpRequest final {
     std::string target_stable_id{};
     std::string item_id{};
     std::string help_topic{};
@@ -75,7 +76,7 @@ struct RibbonToolTipHelpRequest final {
 // While a mapping exists, its window's plain presenter shows no tooltip for
 // what it describes: the control (with every part, for a control mapping)
 // or the item.
-class RibbonToolTip final : public Component, public RibbonToolTipCapabilities<RibbonToolTip> {
+class GUI_FORMS_API RibbonToolTip final : public Component, public RibbonToolTipCapabilities<RibbonToolTip> {
 public:
     explicit RibbonToolTip(Window& window);
     ~RibbonToolTip() override;

@@ -8,6 +8,7 @@
 // (plots::SeriesMarkPainter: the envelope decimation keeps any capacity to
 // about four points per device column). Read-only: no input, no focus.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/plots/mark_painters/mark_painters.hpp"
 #include "gui_forms/plots/series_column/series_column.hpp"
@@ -20,7 +21,7 @@
 
 namespace gui_forms {
 
-class Sparkline final : public Control, public SparklineCapabilities<Sparkline> {
+class GUI_FORMS_API Sparkline final : public Control, public SparklineCapabilities<Sparkline> {
 public:
     explicit Sparkline(StableId stable_id);
 
@@ -46,13 +47,13 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
 
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry plot;
         PartGeometry series;
         PartGeometry marker;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool enabled{};
         bool disabled{};

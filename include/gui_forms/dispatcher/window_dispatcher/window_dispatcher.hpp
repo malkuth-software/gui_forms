@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/dispatcher/operation/dispatch_operation.hpp"
 #include "gui_forms/dispatcher/types/dispatcher_types.hpp"
 
@@ -25,7 +26,7 @@ struct DispatcherState;
 // The window is gone when its dispatcher has stopped accepting work or its
 // teardown has begun. Work posted before that and still pending when it
 // happens is cancelled, as Window::shutdown_dispatcher always does.
-class WindowDispatcher final {
+class GUI_FORMS_API WindowDispatcher final {
 public:
     // An empty handle, bound to no window; posting through it throws
     // std::logic_error, as a programming error.

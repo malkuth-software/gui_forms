@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/empty_state_capabilities.hpp"
 
@@ -20,7 +21,7 @@ namespace gui_forms {
 // To assistive technology it is a group named by its title (or its
 // accessible name) and described by its description; the action stays
 // reachable inside it. It takes no focus or pointer input of its own.
-class EmptyState final : public Control, public EmptyStateCapabilities<EmptyState> {
+class GUI_FORMS_API EmptyState final : public Control, public EmptyStateCapabilities<EmptyState> {
 public:
     explicit EmptyState(StableId stable_id);
 
@@ -40,7 +41,7 @@ public:
     // Stage T1 anatomy, as dot members (see Control::Parts). `icon` is the
     // picture, `caption` the title, `label` the description and `content`
     // the action's slot; each is absent while it has nothing to show.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry icon;
         PartGeometry caption;

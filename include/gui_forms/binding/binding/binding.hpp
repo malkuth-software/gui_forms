@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/types/binding_contract_types.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/event.hpp"
@@ -14,7 +15,7 @@ class BindingSource;
 class Control;
 struct ControlValidationEvent;
 
-class Binding final : public Component,
+class GUI_FORMS_API Binding final : public Component,
                       public std::enable_shared_from_this<Binding> {
 public:
     Binding(Control& target, std::string property_name,

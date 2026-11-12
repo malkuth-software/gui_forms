@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/controls/notice_values.hpp"
@@ -19,7 +20,7 @@ class ButtonBase;
 // What a Toast says, fixed when it is made: its message, the text of its
 // action button (empty for none), its severity and whether it shows a
 // close mark.
-struct ToastContent final {
+struct GUI_FORMS_API ToastContent final {
     std::string message{};
     std::string action_text{};
     NoticeSeverity severity{NoticeSeverity::information};
@@ -42,7 +43,7 @@ struct ToastContent final {
 // To assistive technology a toast is a live region named by its message,
 // with the close action while closable; the action button is reachable
 // inside it.
-class Toast final : public Control {
+class GUI_FORMS_API Toast final : public Control {
 public:
     // The action button is made after construction (make_control calls
     // initialize_control_tree), since add_child needs a shared owner.
@@ -78,7 +79,7 @@ public:
     // `actuator` the action button's slot (absent without one) and `close`
     // the close mark (absent unless closable; hot and pressed as the
     // pointer is). The icon and the close mark take the glyph role.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry icon;

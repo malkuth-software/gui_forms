@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/control.hpp"
@@ -27,7 +28,7 @@ struct MenuStripMergeHistory;
 class StripMergeAccess;
 }
 
-struct MenuStripItemSpec final {
+struct GUI_FORMS_API MenuStripItemSpec final {
     std::string stable_id{};
     GUI_FORMS_LOCALIZABLE(text) std::string text{};
     std::vector<MenuItemSpec> items{};
@@ -40,7 +41,7 @@ struct MenuStripItemSpec final {
     std::optional<std::size_t> merge_index{};
 };
 
-struct MenuStripInvocation final {
+struct GUI_FORMS_API MenuStripInvocation final {
     std::string menu_strip_id{};
     std::string top_level_id{};
     MenuItemInvocation item{};
@@ -50,7 +51,7 @@ struct MenuStripInvocation final {
 // active menu is presented by ContextMenu as a separate window overlay root.
 // Pointer, keyboard, and semantic activation converge on the same shared
 // Command instances contained by MenuItemSpec.
-class MenuStrip final : public Control, public MenuStripCapabilities<MenuStrip> {
+class GUI_FORMS_API MenuStrip final : public Control, public MenuStripCapabilities<MenuStrip> {
 public:
     explicit MenuStrip(StableId stable_id);
     ~MenuStrip() override;
@@ -90,7 +91,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(
         std::size_t item) const override;
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry divider;
@@ -102,18 +103,18 @@ public:
         PartGeometry gutter;
     };
     [[nodiscard]] Parts parts() const;
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry menu_item;
         PartGeometry menu_label;
         PartGeometry menu_focus;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool hot{};
         bool open{};
         bool selected{};
         bool disabled{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         std::size_t index{};
         std::string stable_id;
         ItemParts parts;

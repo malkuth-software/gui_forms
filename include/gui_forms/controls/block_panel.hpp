@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/layout/block_flow_solver/block_flow_solver.hpp"
 #include "gui_forms/layout/positioning/positioning.hpp"
@@ -21,7 +22,7 @@ namespace gui_forms {
 // left and right (CSS 2.1 10.3.3; any other `auto` margin is zero). The
 // child's minimum_size and maximum_size bound its used size as its own min
 // and max sizes do.
-struct BlockFlowItemLayout final {
+struct GUI_FORMS_API BlockFlowItemLayout final {
     // `display: block` (the default) or an atomic inline box, CSS's
     // `inline-block`.
     BlockFlowLevel level{BlockFlowLevel::block};
@@ -56,7 +57,7 @@ struct BlockFlowItemLayout final {
 
 // The margins a nested BlockPanel's content shares with the block flow
 // that lays it out (CSS 2.1 8.3.1), its own margins excluded.
-struct BlockFlowSharedMargins final {
+struct GUI_FORMS_API BlockFlowSharedMargins final {
     // Collapsing through its top edge (empty with top padding).
     CollapsedMargin leading{};
     // Collapsing through its bottom edge (empty with bottom padding, or
@@ -78,7 +79,7 @@ struct BlockFlowSharedMargins final {
 // auto_scroll, is not a formatting-context root: its first and last
 // children's margins collapse with its own where no padding separates them,
 // as nested CSS blocks do. Every other BlockPanel is a root.
-class BlockPanel final : public ContainerControl, public BlockPanelCapabilities<BlockPanel> {
+class GUI_FORMS_API BlockPanel final : public ContainerControl, public BlockPanelCapabilities<BlockPanel> {
 public:
     explicit BlockPanel(StableId stable_id);
 

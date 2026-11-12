@@ -12,6 +12,7 @@
 // Spans are mapped into caller storage (Point arrays reserved at the
 // decimated maximum, about four per device column, by the caller).
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/axis/axis.hpp"
 #include "gui_forms/plots/scale/scale.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -35,7 +36,7 @@ class PlotTransform;
 
 struct PlotTransformResult;
 
-class PlotTransform final {
+class GUI_FORMS_API PlotTransform final {
 public:
     PlotTransform() noexcept = default;
     [[nodiscard]] static PlotTransformResult make(const Axis& x_axis, const Axis& y_axis, Rect plot,
@@ -73,7 +74,7 @@ private:
     double device_scale_{1.0};
 };
 
-struct PlotTransformResult final {
+struct GUI_FORMS_API PlotTransformResult final {
     PlotTransformCheck check{PlotTransformCheck::valid};
     PlotTransform transform{};
 };

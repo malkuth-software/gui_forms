@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
@@ -45,7 +46,7 @@ class TextBox;
 inline constexpr FrameInterval busy_sweep_period = std::chrono::milliseconds(1200);
 inline constexpr double busy_segment_share = 0.3;
 
-class SearchField final : public Control, public SearchFieldCapabilities<SearchField> {
+class GUI_FORMS_API SearchField final : public Control, public SearchFieldCapabilities<SearchField> {
 public:
     // The inner editor is made after construction (make_control calls
     // initialize_control_tree), since add_child needs a shared owner.
@@ -89,7 +90,7 @@ public:
     // and pressed as the pointer is), `activity` the busy strip (absent
     // unless busy) and `focus` the cue shown while the editor has the
     // keyboard focus.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry well;
         PartGeometry icon;

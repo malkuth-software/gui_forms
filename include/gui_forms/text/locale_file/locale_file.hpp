@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
 #include <array>
@@ -64,14 +65,14 @@ inline constexpr std::size_t locale_field_count = 11U;
 // "title", "placeholder", "header", "accessible-name",
 // "accessible-description", "help-line", "help" or "keywords". Static
 // storage.
-[[nodiscard]] std::string_view locale_field_name(LocaleField field) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view locale_field_name(LocaleField field) noexcept;
 // The field a locale XML name names, or nothing.
-[[nodiscard]] std::optional<LocaleField> find_locale_field(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API std::optional<LocaleField> find_locale_field(std::string_view name) noexcept;
 
 // The bounds on one file's fields. A value past its field's bound rejects
 // that field (LocaleRefusal::too_long), not the file; more records than
 // maximum_records refuse the file. Lengths are bytes of UTF-8.
-struct LocaleLimits final {
+struct GUI_FORMS_API LocaleLimits final {
     // Indexed by LocaleField, in its order.
     std::array<std::size_t, locale_field_count> maximum_field_bytes{
         4096U,        // text
@@ -93,11 +94,11 @@ struct LocaleLimits final {
 // B): 1 MiB, depth 256, 65,536 elements, 64 attributes, 256-byte names and
 // 64 KiB values. The reader enforces the depth while it parses, before any
 // walk of the tree, so every walk over a read file is bounded by it.
-[[nodiscard]] XmlLimits locale_xml_limits() noexcept;
+[[nodiscard]] GUI_FORMS_API XmlLimits locale_xml_limits() noexcept;
 
 // One text record as one layer gives it. An absent field lets a lower
 // layer's value show; a present field, even empty, hides it.
-struct LocaleRecord final {
+struct GUI_FORMS_API LocaleRecord final {
     std::string stable_id{};
     // Indexed by LocaleField.
     std::array<std::optional<std::string>, locale_field_count> fields{};
@@ -108,12 +109,12 @@ struct LocaleRecord final {
 };
 
 // The field of `record` named by `field`. The reference borrows `record`.
-[[nodiscard]] const std::optional<std::string>& locale_record_field(const LocaleRecord& record,
+[[nodiscard]] GUI_FORMS_API const std::optional<std::string>& locale_record_field(const LocaleRecord& record,
                                                                     LocaleField field) noexcept;
 const std::optional<std::string>& locale_record_field(const LocaleRecord&& record, LocaleField field) = delete;
-[[nodiscard]] std::optional<std::string>& locale_record_field(LocaleRecord& record, LocaleField field) noexcept;
+[[nodiscard]] GUI_FORMS_API std::optional<std::string>& locale_record_field(LocaleRecord& record, LocaleField field) noexcept;
 // Whether no field is present.
-[[nodiscard]] bool locale_record_empty(const LocaleRecord& record) noexcept;
+[[nodiscard]] GUI_FORMS_API bool locale_record_empty(const LocaleRecord& record) noexcept;
 
 // Why one field of one record was rejected. The record's other fields, and
 // the file's other records, are kept.
@@ -138,9 +139,9 @@ enum class LocaleRefusal : std::uint8_t {
     duplicate_record,
 };
 
-[[nodiscard]] std::string_view locale_refusal_name(LocaleRefusal refusal) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view locale_refusal_name(LocaleRefusal refusal) noexcept;
 
-struct LocaleRejection final {
+struct GUI_FORMS_API LocaleRejection final {
     std::string stable_id{};
     LocaleField field{LocaleField::text};
     LocaleRefusal reason{LocaleRefusal::invalid_text};
@@ -153,12 +154,12 @@ struct LocaleRejection final {
 // nothing when the value is acceptable. Display text only: no C0 controls
 // but tab and line feed, balanced bidirectional controls, a well-formed
 // keyword list for `keywords` and one grapheme for `access-key`.
-[[nodiscard]] std::optional<LocaleRefusal> check_locale_value(LocaleField field, std::string_view value,
+[[nodiscard]] GUI_FORMS_API std::optional<LocaleRefusal> check_locale_value(LocaleField field, std::string_view value,
                                                               const LocaleLimits& limits = {});
 
 // The records of one layer, sorted by stable ID with each ID once. Owns its
 // records. Not thread-safe; one owner mutates it.
-class LocaleLayer final {
+class GUI_FORMS_API LocaleLayer final {
 public:
     // The record with this ID, or null. The pointer borrows this layer and
     // is invalidated by any change to it; a temporary layer is refused.
@@ -203,7 +204,7 @@ private:
 enum class LocaleDirection : std::uint8_t { left_to_right, right_to_left };
 
 // The `<locale>` element's attributes.
-struct LocaleFileInfo final {
+struct GUI_FORMS_API LocaleFileInfo final {
     // `xml:lang`: a language tag, 2 to 8 letters then `-` and 1 to 8
     // letters or digits per subtag ("fr", "es-mx", "zh-hant-tw").
     std::string language{};
@@ -216,7 +217,7 @@ struct LocaleFileInfo final {
 };
 
 // Whether `tag` has the language tag shape LocaleFileInfo::language states.
-[[nodiscard]] bool valid_language_tag(std::string_view tag) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_language_tag(std::string_view tag) noexcept;
 
 // Why a whole locale file was refused; none when it was read (some fields
 // may still have been rejected).
@@ -239,12 +240,12 @@ enum class LocaleFileError : std::uint8_t {
     language_mismatch,
 };
 
-[[nodiscard]] std::string_view locale_file_error_name(LocaleFileError error) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view locale_file_error_name(LocaleFileError error) noexcept;
 
 // The most ignored-name diagnostics one read keeps.
 inline constexpr std::size_t locale_maximum_ignored_diagnostics = 256U;
 
-struct LocaleReadResult final {
+struct GUI_FORMS_API LocaleReadResult final {
     LocaleFileError error{LocaleFileError::none};
     XmlError xml_error{XmlError::none};
     XmlSourcePosition position{};
@@ -265,14 +266,14 @@ struct LocaleReadResult final {
 // and the trailing white space go, and the indentation every non-blank line
 // shares is removed, so a body indented to sit under its `<control>` reads
 // as written. `body` is replaced.
-void normalize_locale_help_body(std::string_view raw, std::string& body);
+GUI_FORMS_API void normalize_locale_help_body(std::string_view raw, std::string& body);
 
 // Reads a `locales-<tag>.xml` file. Expected faults never throw: a refused
 // file gives its error, rejected fields are listed and left out. The walk
 // over `<control>` elements recurses once per nesting level and is bounded
 // by xml_limits.maximum_depth, which the XML reader enforced before the
 // walk began.
-[[nodiscard]] LocaleReadResult read_locale(std::string_view utf8, const LocaleLimits& limits = {},
+[[nodiscard]] GUI_FORMS_API LocaleReadResult read_locale(std::string_view utf8, const LocaleLimits& limits = {},
                                            const XmlLimits& xml_limits = locale_xml_limits());
 
 // Writes `records` as a file read_locale accepts: `<control>` elements
@@ -281,7 +282,7 @@ void normalize_locale_help_body(std::string_view raw, std::string& body);
 // XmlError::depth_exceeded). A record whose `help` is present but empty
 // and has no `keywords` writes no `<help>`: an empty `<help>` element gives
 // no body when read.
-[[nodiscard]] XmlWriteResult write_locale(const LocaleLayer& records, const LocaleFileInfo& info,
+[[nodiscard]] GUI_FORMS_API XmlWriteResult write_locale(const LocaleLayer& records, const LocaleFileInfo& info,
                                           const XmlLimits& xml_limits = locale_xml_limits());
 
 // The layers of a program's text, lowest first.
@@ -300,7 +301,7 @@ enum class LocaleLayerKind : std::uint8_t {
 // One resolved field: its text and the layer it came from. `fallback` is
 // set when a translation is in force and the field came from the built-in
 // or program layer, so a page can mark it.
-struct LocaleResolvedField final {
+struct GUI_FORMS_API LocaleResolvedField final {
     std::string text{};
     std::optional<LocaleLayerKind> origin{};
     bool fallback{};
@@ -311,7 +312,7 @@ struct LocaleResolvedField final {
 // context (the UI thread); a refused load changes nothing. On an accepted
 // load the result's records are in the catalog and the result's own are
 // left empty; its info, rejections and ignored names stay.
-class LocaleCatalog final {
+class GUI_FORMS_API LocaleCatalog final {
 public:
     // `built_in_language` is the built-in file's language tag
     // (std::invalid_argument when it is not a tag).
@@ -371,10 +372,10 @@ private:
 // values and, when `language` is the translation's, its translations over
 // them, so a translator continues an existing translation. User overrides
 // are never exported. Fills `records` (cleared first).
-void locale_template_records(const LocaleCatalog& catalog, std::string_view language, LocaleLayer& records);
+GUI_FORMS_API void locale_template_records(const LocaleCatalog& catalog, std::string_view language, LocaleLayer& records);
 // locale_template_records written as a locale file for `language` (the
 // built-in language when empty).
-[[nodiscard]] XmlWriteResult export_locale_template(const LocaleCatalog& catalog, std::string_view language,
+[[nodiscard]] GUI_FORMS_API XmlWriteResult export_locale_template(const LocaleCatalog& catalog, std::string_view language,
                                                     const XmlLimits& xml_limits = locale_xml_limits());
 
 // The way back from outside the program (translation design 8): whether
@@ -382,7 +383,7 @@ void locale_template_records(const LocaleCatalog& catalog, std::string_view lang
 // `--gui-forms-locale builtin`), or the GUI_FORMS_LOCALE environment value
 // the caller read is "builtin". The caller then sets
 // LocaleCatalog::set_built_in_only.
-[[nodiscard]] bool locale_rescue_requested(std::span<const std::string_view> arguments,
+[[nodiscard]] GUI_FORMS_API bool locale_rescue_requested(std::span<const std::string_view> arguments,
                                            std::string_view environment_value) noexcept;
 
 } // namespace gui_forms

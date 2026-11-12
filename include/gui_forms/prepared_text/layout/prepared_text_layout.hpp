@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/prepared_text/types/prepared_text_types.hpp"
 
 #include <memory>
@@ -14,7 +15,7 @@ struct PreparedMaskStorage;
 struct PreparedTextAccess;
 }
 
-class EncodedFontLease final {
+class GUI_FORMS_API EncodedFontLease final {
 public:
     EncodedFontLease() = default;
     [[nodiscard]] bool empty() const noexcept;
@@ -25,7 +26,7 @@ private:
     std::shared_ptr<const detail::PreparedFontBank> storage_{};
 };
 
-class PrepareInput final {
+class GUI_FORMS_API PrepareInput final {
 public:
     PrepareInput();
     ~PrepareInput();
@@ -39,7 +40,7 @@ private:
     std::unique_ptr<detail::PreparedInputStorage> storage_{};
 };
 
-class PreparedTextLayout final {
+class GUI_FORMS_API PreparedTextLayout final {
 public:
     PreparedTextLayout();
     ~PreparedTextLayout();
@@ -63,7 +64,7 @@ private:
     std::shared_ptr<const detail::PreparedTextStorage> storage_{};
 };
 
-class GrayTextMask final {
+class GUI_FORMS_API GrayTextMask final {
 public:
     GrayTextMask();
     ~GrayTextMask();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
@@ -25,7 +26,7 @@ struct ListSelectionChange;
 // its family name, what the role is for, and whether it has italic faces.
 // Every face has regular (400) and bold (700) weights. The Noto faces are
 // fallbacks for scripts and emoji, not choices, and are not listed.
-struct BundledFontFace final {
+struct GUI_FORMS_API BundledFontFace final {
     FontRole role{FontRole::control};
     std::string_view family{};
     std::string_view use{};
@@ -33,10 +34,10 @@ struct BundledFontFace final {
 };
 
 // The bundled faces a FontDialog offers, in its list order.
-[[nodiscard]] std::span<const BundledFontFace> bundled_font_faces() noexcept;
+[[nodiscard]] GUI_FORMS_API std::span<const BundledFontFace> bundled_font_faces() noexcept;
 
 // How a FontDialog closed, and the font it holds then.
-struct FontDialogResult final {
+struct GUI_FORMS_API FontDialogResult final {
     DialogResult result{DialogResult::none};
     FontSpec font{};
 };
@@ -53,7 +54,7 @@ struct FontDialogResult final {
 // There is no modal loop: show() returns at once and closed reports the
 // result. OK takes the selection as font() and closes; Cancel closes and
 // keeps font(); Apply takes the selection as font() and raises apply.
-class FontDialog final : public Panel, public FontDialogCapabilities<FontDialog> {
+class GUI_FORMS_API FontDialog final : public Panel, public FontDialogCapabilities<FontDialog> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit FontDialog(StableId stable_id);
@@ -102,7 +103,7 @@ public:
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry title;

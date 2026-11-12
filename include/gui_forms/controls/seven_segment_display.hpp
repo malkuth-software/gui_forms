@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/seven_segment_display_capabilities.hpp"
 
@@ -16,7 +17,7 @@ namespace gui_forms {
 // (the top bar, bit 0) clockwise through f (the upper left, bit 5) to g
 // (the middle bar, bit 6); whether its decimal point is lit; and whether it
 // is a colon cell, which is half a digit wide and shows two dots instead.
-struct SevenSegmentCell final {
+struct GUI_FORMS_API SevenSegmentCell final {
     std::uint8_t segments{};
     bool point{};
     bool colon{};
@@ -30,7 +31,7 @@ struct SevenSegmentCell final {
 // hexadecimal letters and the other letters a seven-segment cell can form
 // (in whichever case it can), '-', '_', '=', the degree sign (U+00B0) and
 // space; zero for anything else.
-[[nodiscard]] std::uint8_t seven_segment_pattern(char32_t character) noexcept;
+[[nodiscard]] GUI_FORMS_API std::uint8_t seven_segment_pattern(char32_t character) noexcept;
 
 // A segmented numeric readout (W-5b; the instruments package): a row of
 // digit cells in which each character of `text` lights the bars of a
@@ -49,7 +50,7 @@ struct SevenSegmentCell final {
 // progress family, so a theme styles them with `seven-segment-display::
 // part(trace)` and `::part(graticule)`. The cells grow and shrink with the
 // control's height, and shrink further to fit its width.
-class SevenSegmentDisplay final : public Control, public SevenSegmentDisplayCapabilities<SevenSegmentDisplay> {
+class GUI_FORMS_API SevenSegmentDisplay final : public Control, public SevenSegmentDisplayCapabilities<SevenSegmentDisplay> {
 public:
     explicit SevenSegmentDisplay(StableId stable_id);
 
@@ -72,7 +73,7 @@ public:
     // Stage T1 anatomy, as dot members (see Control::Parts). `plot` is the
     // window, `trace` the box around the cells' lit bars and `graticule` the
     // box around the cells (present while ghost_segments is set).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry plot;
         PartGeometry trace;

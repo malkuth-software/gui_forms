@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/layout/grid_solver/grid_solver.hpp"
@@ -24,7 +25,7 @@ namespace gui_forms {
 // A child's placement in a grid: automatic (the item layout's lines, or
 // auto-placed), into a span by name, or at a cell (a span's anchor places
 // the child into that span's region). Exactly one form is in force.
-struct GridPlacement final {
+struct GUI_FORMS_API GridPlacement final {
     enum class Form : std::uint8_t { automatic, area, cell };
     Form form{Form::automatic};
     // form == area: the span's name.
@@ -85,7 +86,7 @@ struct GridCellCapability {
 // marks the sides that are `auto` instead. The child's minimum_size and
 // maximum_size bound its content contributions, and its used size where
 // its own minimum is a length or its own maximum a length or `none`.
-struct GridItemLayout final {
+struct GUI_FORMS_API GridItemLayout final {
     // grid-column-start / -end and grid-row-start / -end (`grid-area:
     // <name>` is the area's name on all four).
     GridItemStyle placement{};
@@ -125,7 +126,7 @@ struct GridItemLayout final {
 // phase L4): explicit and implicit tracks, line-based and automatic
 // placement, named areas, intrinsic and flexible track sizing, gaps and box
 // alignment, through the core grid solver.
-class GridPanel final : public ContainerControl,
+class GUI_FORMS_API GridPanel final : public ContainerControl,
                         public GridAreaCapability<GridPanel>,
                         public GridCellCapability<GridPanel>, public GridPanelCapabilities<GridPanel> {
 public:

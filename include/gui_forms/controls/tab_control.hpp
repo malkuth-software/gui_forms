@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/controls/tab_page.hpp"
 #include "gui_forms/controls/tab_control_values.hpp"
@@ -24,7 +25,7 @@ class PageStrip;
 struct ImageListChange;
 struct PageInvocation;
 
-struct TabSelectionChange final {
+struct GUI_FORMS_API TabSelectionChange final {
     std::optional<std::size_t> old_index;
     std::optional<std::size_t> new_index;
 };
@@ -41,7 +42,7 @@ enum class TabControlAction : std::uint8_t {
 // A page about to be left or chosen (Windows Forms'
 // TabControlCancelEventArgs): `page` at `index`. A handler sets `cancel` to
 // keep the selected page.
-struct TabControlCancelEvent final {
+struct GUI_FORMS_API TabControlCancelEvent final {
     std::shared_ptr<TabPage> page{};
     std::size_t index{};
     TabControlAction action{TabControlAction::selecting};
@@ -49,7 +50,7 @@ struct TabControlCancelEvent final {
 };
 
 // A page left or chosen (Windows Forms' TabControlEventArgs).
-struct TabControlEvent final {
+struct GUI_FORMS_API TabControlEvent final {
     std::shared_ptr<TabPage> page{};
     std::size_t index{};
     TabControlAction action{TabControlAction::selected};
@@ -62,7 +63,7 @@ struct TabControlEvent final {
 // list buttons) and keys serve the tabs. The strip is an internal child: it
 // takes no focus (the control keeps it, as one tab stop) and publishes no
 // semantics of its own (the control publishes its tabs as before).
-class TabControl final : public ContainerControl, public TabControlCapabilities<TabControl> {
+class GUI_FORMS_API TabControl final : public ContainerControl, public TabControlCapabilities<TabControl> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // The most pages a tab control holds: its strip's set's capacity.
@@ -120,7 +121,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(
         std::size_t item) const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry display;
@@ -128,17 +129,17 @@ public:
     [[nodiscard]] Parts parts() const;
     // A tab's parts, in the control's coordinates: the strip's tab, label,
     // focus, seam and icon parts of the same names (the strip paints them).
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry tab;
         PartGeometry tab_label;
         PartGeometry tab_focus;
         PartGeometry tab_seam;
         PartGeometry tab_icon;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool selected{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         std::size_t index{};
         std::string stable_id;
         ItemParts parts;

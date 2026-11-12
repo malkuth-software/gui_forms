@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types.hpp"
 
 #include <cstdint>
@@ -44,7 +45,7 @@ enum class WindowBandFullScreen : std::uint8_t {
 };
 
 // A window's band declaration (Window::declare_band).
-struct WindowBandOptions final {
+struct GUI_FORMS_API WindowBandOptions final {
     // The width asked for, in logical units, before it is snapped to whole
     // device pixels: 0 takes the theme's `band-width`, or one logical unit
     // where the theme declares none. Finite, from 0 to maximum_band_width.
@@ -77,7 +78,7 @@ enum class WindowBandState : std::uint8_t {
 // asks: a flashing band changes colour once every half second.
 inline constexpr unsigned maximum_band_flash_transitions = 2U;
 
-struct WindowBandAppearance final {
+struct GUI_FORMS_API WindowBandAppearance final {
     WindowBandState state{WindowBandState::rest};
     // The application's colours, each replacing the theme's while set.
     // Ignored under high contrast, where the band takes the high-contrast
@@ -93,16 +94,16 @@ struct WindowBandAppearance final {
 
 // Whether `options` is a declaration the window accepts: a finite width
 // from 0 to maximum_band_width and a known full-screen choice.
-[[nodiscard]] bool window_band_options_valid(const WindowBandOptions& options) noexcept;
+[[nodiscard]] GUI_FORMS_API bool window_band_options_valid(const WindowBandOptions& options) noexcept;
 // Whether `appearance` names a known state.
-[[nodiscard]] bool window_band_appearance_valid(const WindowBandAppearance& appearance) noexcept;
+[[nodiscard]] GUI_FORMS_API bool window_band_appearance_valid(const WindowBandAppearance& appearance) noexcept;
 
 // `width` logical units snapped to whole device pixels at `scale`: the
 // nearest whole number of device pixels, at least one, back in logical
 // units (study section 2.2), so content inside the band keeps landing on
 // the device grid. 0 for a width that is not positive and finite or a scale
 // that is not.
-[[nodiscard]] double snapped_band_width(double width, double scale) noexcept;
+[[nodiscard]] GUI_FORMS_API double snapped_band_width(double width, double scale) noexcept;
 
 // The corner shape a window asks its host for (owner, answer 4: facilitate
 // rounding everywhere, and let a developer opt out where the platform
@@ -127,7 +128,7 @@ enum class WindowCornerShape : std::uint8_t {
 // meaningful only for `rounded`. `complied` is false when the platform
 // could not do as asked (it rounds regardless, or cannot round), so the
 // band follows `shape`, not the preference.
-struct WindowCornerReport final {
+struct GUI_FORMS_API WindowCornerReport final {
     WindowCornerShape shape{WindowCornerShape::unknown};
     double radius{};
     bool complied{};
@@ -137,13 +138,13 @@ struct WindowCornerReport final {
     }
 };
 
-[[nodiscard]] const char* window_corner_preference_name(WindowCornerPreference preference) noexcept;
-[[nodiscard]] const char* window_corner_shape_name(WindowCornerShape shape) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* window_corner_preference_name(WindowCornerPreference preference) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* window_corner_shape_name(WindowCornerShape shape) noexcept;
 
 // A window's band as it stands (Window::band_snapshot): whether it is
 // declared and reserved, the reserved width (snapped, logical units), the
 // colours the strips draw now, and the corners it follows.
-struct WindowBandSnapshot final {
+struct GUI_FORMS_API WindowBandSnapshot final {
     bool declared{};
     // Declared and not hidden by full screen.
     bool reserved{};

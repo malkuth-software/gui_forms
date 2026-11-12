@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands/color_command/color_command.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
@@ -36,7 +37,7 @@ enum class RibbonPaletteEntryKind : std::uint8_t { automatic, palette, recent };
 // RibbonCommandKind::color_picker.
 //
 // Not yet: theme colour shades, a "More colours" dialog and live preview.
-class RibbonColorPicker final : public Control, public RibbonColorPickerCapabilities<RibbonColorPicker> {
+class GUI_FORMS_API RibbonColorPicker final : public Control, public RibbonColorPickerCapabilities<RibbonColorPicker> {
 public:
     // Development bounds, not measured capacity.
     static constexpr std::size_t maximum_palette = 60U;
@@ -80,7 +81,7 @@ public:
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
 
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry icon;
@@ -94,19 +95,19 @@ public:
 
     // The palette's entries, as its "palette_entry" item system: Automatic,
     // then the palette, then the recent colours.
-    struct PaletteEntryParts final {
+    struct GUI_FORMS_API PaletteEntryParts final {
         PartGeometry entry_face;
         PartGeometry entry_well;
         PartGeometry entry_sample;
         PartGeometry entry_label;
         PartGeometry entry_focus;
     };
-    struct PaletteEntryStates final {
+    struct GUI_FORMS_API PaletteEntryStates final {
         bool hot{};
         bool selected{};
         bool focus_visible{};
     };
-    struct PaletteEntry final {
+    struct GUI_FORMS_API PaletteEntry final {
         std::size_t index{};
         std::string stable_id;
         RibbonPaletteEntryKind kind{RibbonPaletteEntryKind::palette};

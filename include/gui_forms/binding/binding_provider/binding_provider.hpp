@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/binding_schema/binding_schema.hpp"
 
 #include <cstddef>
@@ -21,7 +22,7 @@ struct BindingLinkState;
 // IBindingListView.SupportsFiltering); one that does not is given an index
 // the source builds itself. inserts and removes admit the source's add,
 // insert and remove calls.
-struct BindingProviderCapabilities final {
+struct GUI_FORMS_API BindingProviderCapabilities final {
     bool sorts{};
     bool filters{};
     bool inserts{};
@@ -39,7 +40,7 @@ enum class BindingWriteStatus : std::uint8_t {
     unavailable,
 };
 
-struct BindingWriteResult final {
+struct GUI_FORMS_API BindingWriteResult final {
     BindingWriteStatus status{BindingWriteStatus::refused};
     std::string reason;
 
@@ -63,7 +64,7 @@ enum class BindingNotificationKind : std::uint8_t {
     changed,
 };
 
-struct BindingNotification final {
+struct GUI_FORMS_API BindingNotification final {
     BindingNotificationKind kind{BindingNotificationKind::reset};
     std::size_t row{};
     std::size_t count{};
@@ -82,7 +83,7 @@ struct BindingNotification final {
 // the queue at a safe point, never during a read, a layout or a paint. The
 // queue is bounded; past binding_maximum_posted_notifications it collapses
 // to one reset.
-class BindingProviderLink final {
+class GUI_FORMS_API BindingProviderLink final {
 public:
     static constexpr std::size_t binding_maximum_posted_notifications = 4096U;
 
@@ -114,7 +115,7 @@ private:
 //
 // The source owns its provider through a shared pointer for as long as it
 // uses it, and calls detach exactly once when it lets it go.
-class BindingProvider {
+class GUI_FORMS_API BindingProvider {
 public:
     virtual ~BindingProvider();
     BindingProvider(const BindingProvider&) = delete;

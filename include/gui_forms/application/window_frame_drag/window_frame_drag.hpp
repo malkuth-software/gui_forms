@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/event.hpp"
 
@@ -19,11 +20,11 @@ enum class WindowFrameDragMode : std::uint8_t {
     native_move_loop,
 };
 
-[[nodiscard]] const char* window_frame_drag_mode_name(WindowFrameDragMode mode) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* window_frame_drag_mode_name(WindowFrameDragMode mode) noexcept;
 
 // What a drag achieved, for the per-host measurement (notes:results/).
 // Timestamps are the caller's monotonic clock, in nanoseconds.
-struct WindowFrameDragStatistics final {
+struct GUI_FORMS_API WindowFrameDragStatistics final {
     std::uint64_t pointer_moves{};
     std::uint64_t frame_requests{};
     std::uint64_t refused_requests{};
@@ -52,7 +53,7 @@ struct WindowFrameDragStatistics final {
 //
 // Every member runs on the run's UI thread. The drag holds a weak handle and
 // a subscription to the run's frame reports; both end with the drag.
-class WindowFrameDrag final {
+class GUI_FORMS_API WindowFrameDrag final {
 public:
     WindowFrameDrag() noexcept = default;
     ~WindowFrameDrag();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/platform/windows_compatibility_paint_endpoint/windows_compatibility_paint_endpoint.hpp"
 #include "gui_forms/window.hpp"
@@ -16,7 +17,7 @@
 
 namespace gui_forms::host {
 
-struct WindowsHostOptions final {
+struct GUI_FORMS_API WindowsHostOptions final {
     std::string title{"GUI.Forms Application"};
     Size initial_size{1120.0, 680.0};
     // The smallest client size; a side of 0 (the default) sets no minimum
@@ -77,7 +78,7 @@ struct WindowsHostOptions final {
                        std::string_view host_json)> final_snapshot;
 };
 
-struct WindowsApplicationWindow final {
+struct GUI_FORMS_API WindowsApplicationWindow final {
     std::string stable_id;
     std::string owner_id;
     std::unique_ptr<Window> model;
@@ -97,7 +98,7 @@ struct WindowsApplicationWindow final {
 // returns.
 using WindowsOpenWindow = std::function<HostWindowAdmission(WindowsApplicationWindow)>;
 
-struct WindowsApplicationOptions final {
+struct GUI_FORMS_API WindowsApplicationOptions final {
     // Published once on the UI thread before the first window is created.
     // `windowing` lives until windowing_ended has been called.
     std::function<void(HostWindowing& windowing, WindowsOpenWindow open)> windowing_ready;
@@ -107,9 +108,9 @@ struct WindowsApplicationOptions final {
     std::function<void()> windowing_ended;
 };
 
-[[nodiscard]] HostCapabilities windows_capabilities();
-int run_windows(std::unique_ptr<Window> window, WindowsHostOptions options = {});
-int run_windows_application(std::vector<WindowsApplicationWindow> windows,
+[[nodiscard]] GUI_FORMS_API HostCapabilities windows_capabilities();
+GUI_FORMS_API int run_windows(std::unique_ptr<Window> window, WindowsHostOptions options = {});
+GUI_FORMS_API int run_windows_application(std::vector<WindowsApplicationWindow> windows,
                             WindowsApplicationOptions application = {});
 
 } // namespace gui_forms::host

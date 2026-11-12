@@ -1,12 +1,13 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/text_mask/lease/text_mask_lease.hpp"
 #include "gui_forms/prepared_text/service/prepared_text_service.hpp"
 
 namespace gui_forms {
 namespace detail { struct TextMaskServiceState; struct TextMaskSessionState; }
 
-class TextMaskSession final {
+class GUI_FORMS_API TextMaskSession final {
 public:
     ~TextMaskSession();
     TextMaskSession(const TextMaskSession&) = delete;
@@ -31,7 +32,7 @@ private:
     std::shared_ptr<detail::TextMaskSessionState> state_{};
 };
 
-class TextMaskService final {
+class GUI_FORMS_API TextMaskService final {
 public:
     TextMaskService();
     ~TextMaskService();

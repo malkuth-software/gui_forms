@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -19,7 +20,7 @@ namespace gui_forms {
 // pressed button cell are kept by it, so inserting, removing and sorting rows
 // never moves them onto other rows. It is also the row's semantic stable ID,
 // and a cell's is the row's, '.' and the column's name.
-struct DataGridViewRowId final {
+struct GUI_FORMS_API DataGridViewRowId final {
     std::string value{};
 
     friend bool operator==(const DataGridViewRowId& left, const DataGridViewRowId& right) {
@@ -32,7 +33,7 @@ struct DataGridViewRowId final {
 // 0 at the top. A position is not an identity: inserting, removing or sorting
 // rows changes which row holds it. row_id and row_position convert between
 // the two.
-struct DataGridViewRowPosition final {
+struct GUI_FORMS_API DataGridViewRowPosition final {
     std::size_t value{};
 
     friend constexpr bool operator==(DataGridViewRowPosition left, DataGridViewRowPosition right) noexcept {
@@ -52,7 +53,7 @@ struct DataGridViewRowPosition final {
 // Calls arrive on the grid's UI thread; the source may not mutate the grid
 // from inside one. IDs are not empty, valid UTF-8 and unique, as for
 // set_virtual_rows.
-class DataGridViewRowWindowSource {
+class GUI_FORMS_API DataGridViewRowWindowSource {
 public:
     virtual ~DataGridViewRowWindowSource();
     // The number of rows in the current order.
@@ -82,7 +83,7 @@ enum class DataGridViewRowOrderPolicy : std::uint8_t { automatic, edit, window }
 // edit_changes. The gaps between the pairs keep it from switching back and
 // forth. window_margin is how many rows past each end of the visible ones a
 // window holds.
-struct DataGridViewRowOrderThresholds final {
+struct GUI_FORMS_API DataGridViewRowOrderThresholds final {
     std::size_t window_rows{250000};
     std::size_t edit_rows{100000};
     std::size_t window_changes{20000};
@@ -109,7 +110,7 @@ enum class DataGridViewRowOrderSwitchReason : std::uint8_t {
     source,
 };
 
-struct DataGridViewRowOrderModeChange final {
+struct GUI_FORMS_API DataGridViewRowOrderModeChange final {
     DataGridViewRowOrderMode old_mode{DataGridViewRowOrderMode::edit};
     DataGridViewRowOrderMode new_mode{DataGridViewRowOrderMode::edit};
     DataGridViewRowOrderSwitchReason reason{DataGridViewRowOrderSwitchReason::row_count};
@@ -120,7 +121,7 @@ struct DataGridViewRowOrderModeChange final {
 
 // Counters of the order's work since it was made, for diagnostics and the
 // tests that measure each change's cost.
-struct DataGridViewRowOrderStatistics final {
+struct GUI_FORMS_API DataGridViewRowOrderStatistics final {
     // Rows reported inserted, removed or moved.
     std::uint64_t reported_changes{};
     // ID-index entries written (edit mode).
@@ -163,7 +164,7 @@ struct DataGridViewRowOrderStatistics final {
 // valid UTF-8, unique, and present when removed or moved) and throws
 // std::invalid_argument, changing nothing; in window mode the source is
 // trusted. Single UI thread.
-class DataGridViewRowOrder final {
+class GUI_FORMS_API DataGridViewRowOrder final {
 public:
     static constexpr std::size_t chunk_capacity = 256U;
 

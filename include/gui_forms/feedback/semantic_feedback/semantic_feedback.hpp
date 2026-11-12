@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/feedback/types/feedback_types.hpp"
@@ -15,7 +16,7 @@ namespace gui_forms {
 
 class Window;
 
-class SemanticFeedback final : public Component {
+class GUI_FORMS_API SemanticFeedback final : public Component {
 public:
     using Clock = std::function<std::uint64_t()>;
 

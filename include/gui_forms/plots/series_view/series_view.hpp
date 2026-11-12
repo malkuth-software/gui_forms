@@ -13,6 +13,7 @@
 // draws the series as empty and counts the refusal. Pins and release may
 // run on different threads.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/plot_types/plot_types.hpp"
 #include "gui_forms/plots/series_column/series_column.hpp"
 
@@ -99,7 +100,7 @@ struct ViewSamples final {
 
 // The lease's shared state, between the owner's SeriesLease and the
 // readers' handles.
-class SeriesLeaseState final {
+class GUI_FORMS_API SeriesLeaseState final {
 public:
     // Takes a pin: true when the lease is still held (the reader may read
     // until unpin()); false after release, with no pin taken.
@@ -122,7 +123,7 @@ private:
 };
 
 // The owner's side. Move-only; destroying a held lease releases it.
-class SeriesLease final {
+class GUI_FORMS_API SeriesLease final {
 public:
     // A held lease.
     SeriesLease();
@@ -168,7 +169,7 @@ private:
 
 // A pin held for one read of a borrowed series (one frame): `held()` is
 // false when the lease was released (read nothing). Unpins when destroyed.
-class SeriesPin final {
+class GUI_FORMS_API SeriesPin final {
 public:
     explicit SeriesPin(const std::shared_ptr<SeriesLeaseState>& lease) noexcept;
     ~SeriesPin();

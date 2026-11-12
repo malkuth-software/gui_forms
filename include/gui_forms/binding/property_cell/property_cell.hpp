@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 
 #include "gui_forms/binding/property_type/property_type.hpp"
@@ -16,8 +17,8 @@ namespace detail {
 // write that stores and every collection cell edit, so that a control's kept
 // layout made before a write is never read after it. Atomic: controls on
 // different root threads share it.
-[[nodiscard]] std::uint64_t property_write_epoch() noexcept;
-void advance_property_write_epoch() noexcept;
+[[nodiscard]] GUI_FORMS_API std::uint64_t property_write_epoch() noexcept;
+GUI_FORMS_API void advance_property_write_epoch() noexcept;
 } // namespace detail
 
 // A property's only storage, as the single member of its capability

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/controls/notice_values.hpp"
@@ -32,7 +33,7 @@ namespace gui_forms {
 // To assistive technology a banner is a live region named by its title (or
 // its accessible name) and described by its message, so a host announces
 // it when it appears or changes.
-class InfoBanner final : public Control, public InfoBannerCapabilities<InfoBanner> {
+class GUI_FORMS_API InfoBanner final : public Control, public InfoBannerCapabilities<InfoBanner> {
 public:
     explicit InfoBanner(StableId stable_id);
 
@@ -67,7 +68,7 @@ public:
     // an action). An empty title or message publishes no caption or label.
     // The icon and the actuator take the glyph role, the role that draws a
     // mark.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry keyline;

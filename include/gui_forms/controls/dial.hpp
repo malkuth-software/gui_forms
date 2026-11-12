@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/range_control.hpp"
 #include "gui_forms/controls/dial_capabilities.hpp"
 
@@ -29,7 +30,7 @@ namespace gui_forms {
 // `graticule`; the knob `thumb` (button family, round) with its `needle`
 // facing the value; and the focus cue on the knob. The theme sets the arcs'
 // thickness and the needle's width and shape (stroke-width, needle-shape).
-class Dial : public RangeControl, public DialCapabilities<Dial> {
+class GUI_FORMS_API Dial : public RangeControl, public DialCapabilities<Dial> {
 public:
     explicit Dial(StableId stable_id);
 
@@ -43,7 +44,7 @@ public:
     // publish the square their circle is inscribed in, the needle the
     // square inside the knob it turns in; `value_arc` is absent without
     // show_arc or at the minimum.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry track;
         PartGeometry value_arc;

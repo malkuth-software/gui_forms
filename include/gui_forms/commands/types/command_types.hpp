@@ -1,11 +1,12 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 #include <string>
 
 namespace gui_forms {
 
-struct CommandState final {
+struct GUI_FORMS_API CommandState final {
     std::string text;
     std::string description;
     std::string icon_id;
@@ -21,13 +22,13 @@ struct CommandState final {
     bool checkable{};
 };
 
-struct CommandInvocation final {
+struct GUI_FORMS_API CommandInvocation final {
     std::string command_id;
     std::string source_id;
     std::uint64_t sequence{};
 };
 
-struct CommandBindingOptions final {
+struct GUI_FORMS_API CommandBindingOptions final {
     bool synchronize_text{true};
     bool synchronize_visibility{true};
     bool synchronize_accessible_description{true};

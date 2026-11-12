@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/gauge_base.hpp"
 
 #include <span>
@@ -20,7 +21,7 @@ namespace gui_forms {
 // `trace` the filled reading in the selected state (invalid while in
 // alarm), `graticule` the band of scale marks and `caption` the value text,
 // all of the progress family but the caption (panel).
-class LinearGauge final : public GaugeBase {
+class GUI_FORMS_API LinearGauge final : public GaugeBase {
 public:
     explicit LinearGauge(StableId stable_id);
 
@@ -30,7 +31,7 @@ public:
     // Stage T1 anatomy, as dot members (see Control::Parts). `alarm_zone`
     // spans the alarm segments and is absent without alarm limits inside
     // the range; `caption` is absent while show_value is clear.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry plot;
         PartGeometry alarm_zone;

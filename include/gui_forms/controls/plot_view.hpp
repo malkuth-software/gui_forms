@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/plots/plot_view_model/plot_view_model.hpp"
@@ -79,7 +80,7 @@ struct PlotLiveColumns;
 // motion clock, 60 times a second while the plot has either.
 //
 // One UI thread; the live frame's state belongs to its sub-surface thread.
-class PlotView final : public Control, public PlotViewCapabilities<PlotView> {
+class GUI_FORMS_API PlotView final : public Control, public PlotViewCapabilities<PlotView> {
 public:
     explicit PlotView(StableId stable_id);
     ~PlotView() override;
@@ -151,7 +152,7 @@ public:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
 
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry title;
         PartGeometry plot;
@@ -161,7 +162,7 @@ public:
         PartGeometry crosshair;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool enabled{};
         bool disabled{};

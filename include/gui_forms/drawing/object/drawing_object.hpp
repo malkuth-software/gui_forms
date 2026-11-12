@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 #include <thread>
 
@@ -7,7 +8,7 @@ namespace gui_drawing {
 
 enum class ObjectState : std::uint8_t { alive, disposing, disposed };
 
-class DrawingObject {
+class GUI_FORMS_API DrawingObject {
 public:
     DrawingObject();
     virtual ~DrawingObject();

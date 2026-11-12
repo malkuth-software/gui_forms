@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/types/host_types.hpp"
@@ -41,7 +42,7 @@ enum class AutoCompleteSource : std::uint8_t {
 
 // The host source an AutoCompleteSource names, or none for a source the
 // control owns (none, custom_source, list_items).
-[[nodiscard]] std::optional<HostAutoCompleteSource> host_auto_complete_source(
+[[nodiscard]] GUI_FORMS_API std::optional<HostAutoCompleteSource> host_auto_complete_source(
     AutoCompleteSource source) noexcept;
 
 // The most candidates a suggestion list shows; later matches are dropped.
@@ -56,7 +57,7 @@ enum class TextMatchMode : std::uint8_t {
 // The part of a text that matched a pattern: `length` bytes from byte
 // `offset`, both on scalar boundaries of the text. A zero length is no
 // match. Suggestion and drop-down lists highlight it.
-struct TextMatchRange final {
+struct GUI_FORMS_API TextMatchRange final {
     std::size_t offset{};
     std::size_t length{};
 };
@@ -67,7 +68,7 @@ struct TextMatchRange final {
 // among them) compare exactly. Valid UTF-8 inputs therefore match at a scalar
 // boundary and the match is pattern.size() bytes long. An empty pattern
 // matches nothing.
-[[nodiscard]] std::optional<std::size_t> find_text_match(
+[[nodiscard]] GUI_FORMS_API std::optional<std::size_t> find_text_match(
     std::string_view candidate, std::string_view pattern, TextMatchMode mode,
     bool case_sensitive) noexcept;
 
@@ -77,7 +78,7 @@ struct TextMatchRange final {
 // collection through a std::shared_ptr: a new TextBox owns an empty one,
 // and assigning one collection to several controls shares it, so it lives
 // while any of them (or the program) holds it. Use it on the UI thread.
-class AutoCompleteStringCollection final {
+class GUI_FORMS_API AutoCompleteStringCollection final {
 public:
     AutoCompleteStringCollection() = default;
     AutoCompleteStringCollection(const AutoCompleteStringCollection&) = delete;

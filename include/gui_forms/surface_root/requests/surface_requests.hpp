@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
@@ -18,7 +19,7 @@ namespace gui_forms {
 // to its parent, which decides whether and where it shows.
 
 // One tooltip, its content as data.
-struct ToolTipRequest final {
+struct GUI_FORMS_API ToolTipRequest final {
     // Plain text, valid UTF-8, not empty.
     std::string text{};
     // The semantic description of what the tooltip is about, when it has one.
@@ -34,7 +35,7 @@ struct ToolTipRequest final {
 // One alert: a message the user acknowledges by choosing one of its
 // buttons, its content as data. The deciding window shows its alerts
 // modally, one at a time, in the order they were raised.
-struct AlertRequest final {
+struct GUI_FORMS_API AlertRequest final {
     // The message, not empty. It and the caption are valid UTF-8 without
     // NUL, of at most HostServices::maximum_dialog_text_bytes.
     std::string text{};
@@ -65,7 +66,7 @@ enum class SurfaceRequestResult : std::uint8_t {
 };
 
 // An answer to one request; `id` is the one the request API returned.
-struct SurfaceRequestOutcome final {
+struct GUI_FORMS_API SurfaceRequestOutcome final {
     std::uint64_t id{};
     SurfaceRequestResult result{SurfaceRequestResult::shown};
     // For a closed alert, the button chosen: cancel (or ok for an OK box)
@@ -77,7 +78,7 @@ struct SurfaceRequestOutcome final {
 // Where a request's answers go: posted through the requesting root's
 // dispatcher and called on its thread, in the order they were given. Held
 // weakly; a target released before an answer arrives receives nothing.
-class SurfaceRequestAnswer {
+class GUI_FORMS_API SurfaceRequestAnswer {
 public:
     virtual void request_answered(const SurfaceRequestOutcome& outcome) = 0;
 

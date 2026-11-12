@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
 #include <cstddef>
@@ -9,7 +10,7 @@
 
 namespace gui_forms {
 
-class DamageRegion {
+class GUI_FORMS_API DamageRegion {
 public:
     static constexpr std::size_t maximum_rectangles = 64;
 
@@ -35,6 +36,6 @@ private:
 // `clip` by `offset` (window coordinates): a rectangle's share inside the
 // clip moves with its pixels and is cut to the clip; its share outside the
 // clip stays where it was. The pixels the copy exposed are not included.
-[[nodiscard]] DamageRegion damage_after_scroll_copy(const DamageRegion& damage, Rect clip, Point offset);
+[[nodiscard]] GUI_FORMS_API DamageRegion damage_after_scroll_copy(const DamageRegion& damage, Rect clip, Point offset);
 
 } // namespace gui_forms

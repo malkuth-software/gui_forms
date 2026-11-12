@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 
 #include <cstddef>
@@ -21,7 +22,7 @@ namespace gui_forms {
 
 // A length and a percentage of the box CSS names for the property, summed:
 // `24px` is {24, 0}, `50%` is {0, 50}, `calc(100% - 24px)` is {-24, 100}.
-struct LengthPercentage final {
+struct GUI_FORMS_API LengthPercentage final {
     LogicalLength length{};
     // Percent, not a fraction: 50 means half.
     double percent{};
@@ -47,7 +48,7 @@ enum class SizeKind : std::uint8_t {
     content,
 };
 
-struct SizeValue final {
+struct GUI_FORMS_API SizeValue final {
     SizeKind kind{SizeKind::automatic};
     // Read for length_percentage and fit_content.
     LengthPercentage value{};
@@ -58,7 +59,7 @@ struct SizeValue final {
 };
 
 // A margin or an inset: `auto` or a length-percentage, which may be negative.
-struct AutoLengthPercentage final {
+struct GUI_FORMS_API AutoLengthPercentage final {
     bool automatic{};
     LengthPercentage value{};
 
@@ -108,7 +109,7 @@ enum class FlexDirection : std::uint8_t { row, row_reverse, column, column_rever
 enum class FlexWrap : std::uint8_t { nowrap, wrap, wrap_reverse };
 
 // Flex factors and grid fractions are unitless and never added to lengths.
-class FlexFactor final {
+class GUI_FORMS_API FlexFactor final {
 public:
     explicit constexpr FlexFactor(double value = 0.0) noexcept : value_(value) {}
     [[nodiscard]] constexpr double value() const noexcept { return value_; }
@@ -120,7 +121,7 @@ private:
     double value_{};
 };
 
-class FractionFactor final {
+class GUI_FORMS_API FractionFactor final {
 public:
     explicit constexpr FractionFactor(double value = 0.0) noexcept : value_(value) {}
     [[nodiscard]] constexpr double value() const noexcept { return value_; }
@@ -134,7 +135,7 @@ private:
 
 // CSS Box Alignment's six properties, shared by flex and grid containers
 // and their items.
-struct BoxAlignment final {
+struct GUI_FORMS_API BoxAlignment final {
     LayoutAlignment justify_content{LayoutAlignment::normal};
     LayoutAlignment align_content{LayoutAlignment::normal};
     LayoutAlignment justify_items{LayoutAlignment::normal};
@@ -150,7 +151,7 @@ struct BoxAlignment final {
     }
 };
 
-struct FlexContainerStyle final {
+struct GUI_FORMS_API FlexContainerStyle final {
     FlexDirection direction{FlexDirection::row};
     FlexWrap wrap{FlexWrap::nowrap};
 
@@ -160,7 +161,7 @@ struct FlexContainerStyle final {
     }
 };
 
-struct FlexItemStyle final {
+struct GUI_FORMS_API FlexItemStyle final {
     FlexFactor grow{0.0};
     FlexFactor shrink{1.0};
     SizeValue basis{};
@@ -176,7 +177,7 @@ struct FlexItemStyle final {
 // a maximum only), or a content keyword.
 enum class TrackBreadthKind : std::uint8_t { length_percentage, fraction, min_content, max_content, automatic };
 
-struct TrackBreadth final {
+struct GUI_FORMS_API TrackBreadth final {
     TrackBreadthKind kind{TrackBreadthKind::automatic};
     LengthPercentage length{};
     FractionFactor fraction{};
@@ -190,7 +191,7 @@ struct TrackBreadth final {
 // CSS's `minmax(auto, <n>fr)`), `minmax(minimum, maximum)`, or
 // `fit-content(<length-percentage>)`, whose limit is `fit_content_limit`
 // with minimum `auto` and maximum `max-content`.
-struct GridTrackSize final {
+struct GUI_FORMS_API GridTrackSize final {
     TrackBreadth minimum{};
     TrackBreadth maximum{};
     bool fit_content{};
@@ -213,7 +214,7 @@ inline constexpr std::size_t maximum_grid_tracks = 10'000U;
 // into `tracks` when read; the one `repeat(auto-fill | auto-fit, ...)` a list
 // may hold is kept apart, to be repeated against the container's size, and
 // is inserted before `tracks[auto_repeat_index]`.
-struct GridTrackList final {
+struct GUI_FORMS_API GridTrackList final {
     std::vector<GridTrackSize> tracks{};
     AutoRepeatKind auto_repeat{AutoRepeatKind::none};
     std::uint32_t auto_repeat_index{};
@@ -228,7 +229,7 @@ struct GridTrackList final {
 
 // One named area of grid-template-areas, as zero-based half-open line
 // ranges of the template's cells.
-struct GridNamedArea final {
+struct GUI_FORMS_API GridNamedArea final {
     std::string name{};
     std::uint32_t row_start{};
     std::uint32_t row_end{};
@@ -244,7 +245,7 @@ struct GridNamedArea final {
 
 // grid-template-areas: its dimensions in cells and its areas in the order
 // their first cells are written. Zero rows is `none`.
-struct GridTemplateAreas final {
+struct GUI_FORMS_API GridTemplateAreas final {
     std::uint32_t rows{};
     std::uint32_t columns{};
     std::vector<GridNamedArea> areas{};
@@ -256,7 +257,7 @@ struct GridTemplateAreas final {
 
 enum class GridAutoFlow : std::uint8_t { row, column, row_dense, column_dense };
 
-struct GridContainerStyle final {
+struct GUI_FORMS_API GridContainerStyle final {
     GridTrackList template_columns{};
     GridTrackList template_rows{};
     GridTemplateAreas template_areas{};
@@ -277,7 +278,7 @@ struct GridContainerStyle final {
 // the end, never zero), `span <n>`, or a named area's edge.
 enum class GridLineKind : std::uint8_t { automatic, line, span, area };
 
-struct GridLine final {
+struct GUI_FORMS_API GridLine final {
     GridLineKind kind{GridLineKind::automatic};
     std::int32_t number{};
     std::string area{};
@@ -287,7 +288,7 @@ struct GridLine final {
     }
 };
 
-struct GridItemStyle final {
+struct GUI_FORMS_API GridItemStyle final {
     GridLine column_start{};
     GridLine column_end{};
     GridLine row_start{};
@@ -302,7 +303,7 @@ struct GridItemStyle final {
 enum class TextAlignment : std::uint8_t { start, end, left, right, center };
 enum class InlineVerticalAlignment : std::uint8_t { baseline, middle, top, bottom };
 
-struct LayoutStyle final {
+struct GUI_FORMS_API LayoutStyle final {
     DisplayKind display{DisplayKind::inline_level};
     PositionKind position{PositionKind::static_position};
     BoxSides<AutoLengthPercentage> inset{

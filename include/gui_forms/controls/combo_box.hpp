@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/combo_box_values.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/text_box.hpp"
@@ -20,7 +21,7 @@
 
 namespace gui_forms {
 
-class ComboBox final : public ListControl, public TextItemsCapability<ComboBox>, public ComboBoxCapabilities<ComboBox> {
+class GUI_FORMS_API ComboBox final : public ListControl, public TextItemsCapability<ComboBox>, public ComboBoxCapabilities<ComboBox> {
 public:
     explicit ComboBox(StableId stable_id);
     ~ComboBox() override;
@@ -72,7 +73,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;
@@ -82,7 +83,7 @@ public:
         PartGeometry drop_down;
         PartGeometry disclosure;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool hot{};
         bool pressed{};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/controls/table_layout_panel_compat_values.hpp"
@@ -23,7 +24,7 @@ enum class TableSizeMode : std::uint8_t {
     auto_size,
 };
 
-struct TableLayoutStyle final {
+struct GUI_FORMS_API TableLayoutStyle final {
     TableSizeMode size_mode{TableSizeMode::auto_size};
     double size{};
     friend constexpr bool operator==(const TableLayoutStyle& left,
@@ -32,7 +33,7 @@ struct TableLayoutStyle final {
     }
 };
 
-struct TableLayoutCellPosition final {
+struct GUI_FORMS_API TableLayoutCellPosition final {
     std::size_t column{};
     std::size_t row{};
     friend constexpr bool operator==(
@@ -116,7 +117,7 @@ struct TableRowSpanCapability {
 // a right-to-left effective layout direction the layout is computed left
 // to right and mirrored about the panel, padding, margins and the
 // placement in cells included: the first column is at the right edge.
-class TableLayoutPanelCompat final : public ContainerControl,
+class GUI_FORMS_API TableLayoutPanelCompat final : public ContainerControl,
                                      public TableCellCapability<TableLayoutPanelCompat>,
                                      public TableColumnSpanCapability<TableLayoutPanelCompat>,
                                      public TableRowSpanCapability<TableLayoutPanelCompat>, public TableLayoutPanelCompatCapabilities<TableLayoutPanelCompat> {
@@ -181,7 +182,7 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members: the scrollable parts and the cell grid.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry cell_grid;
     };

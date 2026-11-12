@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/event.hpp"
@@ -22,7 +23,7 @@ namespace gui_forms {
 // (value_changed, then the Command executes); a commit is refused while the
 // Command is disabled. A committed colour joins the recent colours, most
 // recent first, which every picker bound to the command shows.
-class ColorCommand final : public Component {
+class GUI_FORMS_API ColorCommand final : public Component {
 public:
     static constexpr std::size_t maximum_recent_colors = 10U;
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
 #include "gui_forms/event.hpp"
@@ -20,13 +21,13 @@ namespace gui_forms {
 enum class DockNavigatorList : std::uint8_t { tools, documents };
 
 // One row: a panel and the title shown for it.
-struct DockNavigatorEntry final {
+struct GUI_FORMS_API DockNavigatorEntry final {
     DockPanelId panel{};
     std::string title{};
 };
 
 // The row the user chose, raised by `chosen`.
-struct DockNavigatorChoice final {
+struct GUI_FORMS_API DockNavigatorChoice final {
     DockPanelId panel{};
     DockNavigatorList list{DockNavigatorList::documents};
 };
@@ -49,7 +50,7 @@ struct DockNavigatorChoice final {
 //
 // Every part is painted through paint_part: rows in the menu_item family,
 // flat at rest with a plate when current or hot, on a panel face.
-class DockNavigator : public Control, public DockNavigatorCapabilities<DockNavigator> {
+class GUI_FORMS_API DockNavigator : public Control, public DockNavigatorCapabilities<DockNavigator> {
 public:
     explicit DockNavigator(StableId stable_id);
     ~DockNavigator() override;
@@ -100,7 +101,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry tool_heading;
@@ -109,15 +110,15 @@ public:
     };
     [[nodiscard]] Parts parts() const;
     // Item system entry: one row.
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry entry_face;
         PartGeometry entry_label;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool hot{};
         bool selected{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         DockNavigatorList list{DockNavigatorList::tools};
         std::size_t index{};
         DockPanelId panel{};

@@ -1,10 +1,11 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/scroll_bar.hpp"
 
 namespace gui_forms {
 
-class HScrollBar final : public ScrollBar {
+class GUI_FORMS_API HScrollBar final : public ScrollBar {
 public:
     explicit HScrollBar(StableId stable_id);
 

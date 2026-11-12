@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/button_base.hpp"
 #include "gui_forms/controls/radio_button_capabilities.hpp"
 
@@ -7,7 +8,7 @@
 
 namespace gui_forms {
 
-class RadioButton : public ButtonBase, public RadioButtonCapabilities<RadioButton> {
+class GUI_FORMS_API RadioButton : public ButtonBase, public RadioButtonCapabilities<RadioButton> {
 public:
     explicit RadioButton(StableId stable_id, std::string text = {});
 
@@ -21,7 +22,7 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry well;
         PartGeometry indicator;
@@ -29,7 +30,7 @@ public:
         PartGeometry label;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool hot{};
         bool pressed{};

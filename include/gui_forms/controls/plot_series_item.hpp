@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"
@@ -38,7 +39,7 @@ namespace gui_forms {
 // nothing, takes no input, no focus and no space, and publishes no semantic
 // node; the plot reads it, and its legend entry toggles `hidden`. All of it
 // on the plot's UI thread, except the channel's write lease.
-class PlotSeriesItem final : public Control, public PlotSeriesItemCapabilities<PlotSeriesItem> {
+class GUI_FORMS_API PlotSeriesItem final : public Control, public PlotSeriesItemCapabilities<PlotSeriesItem> {
 public:
     explicit PlotSeriesItem(StableId stable_id);
 

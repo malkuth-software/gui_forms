@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/controls/numeric_up_down_capabilities.hpp"
 
@@ -23,7 +24,7 @@ class NumericUpDownScrub;
 // click: the field is focused with its text selected. Once the field has
 // focus the pointer edits text as before. The begin_keyboard_drag rule
 // action scrubs from the keyboard in this mode.
-class NumericUpDown final : public UpDownBase, public NumericUpDownCapabilities<NumericUpDown> {
+class GUI_FORMS_API NumericUpDown final : public UpDownBase, public NumericUpDownCapabilities<NumericUpDown> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit NumericUpDown(StableId stable_id);
@@ -50,7 +51,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;
@@ -60,7 +61,7 @@ public:
         PartGeometry increment_glyph;
         PartGeometry decrement_glyph;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool pressed{};
         bool captured{};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/event.hpp"
@@ -16,7 +17,7 @@ class Window;
 // A preview a gallery asks the application to show (preview_requested) or to
 // withdraw (preview_cancelled): the gallery item's stable ID and the stable
 // ID of the gallery that asked.
-struct GalleryPreview final {
+struct GUI_FORMS_API GalleryPreview final {
     std::string item_id{};
     std::string source_id{};
 };
@@ -41,7 +42,7 @@ struct GalleryPreview final {
 // cancellation. A commit ends an outstanding preview without a cancellation
 // (the committed value replaces it); cancel_preview withdraws it. A preview
 // is never an undo step: the application shows it and restores on cancel.
-class GalleryCommand final : public Component {
+class GUI_FORMS_API GalleryCommand final : public Component {
 public:
     // Throws std::invalid_argument for a null command.
     explicit GalleryCommand(std::shared_ptr<Command> command);

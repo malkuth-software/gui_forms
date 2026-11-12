@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/event/delegate/delegate.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
@@ -102,7 +103,7 @@ inline constexpr std::uint32_t maximum_motion_steps = 32U;
 // One intermediate stop of a timed move (E9.6, multi-stop @keyframes): the
 // value passes `value` at `offset` of the move's duration, 0 < offset < 1.
 // Between stops the move is eased by its curve's easing.
-struct MotionStop final {
+struct GUI_FORMS_API MotionStop final {
     double offset{};
     double value{};
     // The value's em coefficient (T3 P8c): a theme's stop is `value` plus
@@ -120,7 +121,7 @@ inline constexpr std::size_t maximum_motion_stops = 4U;
 
 // How a value moves. Make it with the named factories, which keep the
 // fields that belong together consistent.
-struct MotionCurve final {
+struct GUI_FORMS_API MotionCurve final {
     MotionKind kind{MotionKind::timed};
     // timed: the duration. follow and decay: the time constant. spring: the
     // response time, 1/ω for the natural angular frequency ω. Clamped to
@@ -168,10 +169,10 @@ struct MotionCurve final {
 // later engine transitions. cubic_bezier and steps take their defaults
 // here: the linear curve and one step; motion_curve_easing reads a curve's
 // own.
-[[nodiscard]] double motion_easing(MotionEasing easing, double progress) noexcept;
+[[nodiscard]] GUI_FORMS_API double motion_easing(MotionEasing easing, double progress) noexcept;
 // The eased progress of a timed `curve` (its easing with its control points
 // or steps) for `progress` in [0, 1] (clamped).
-[[nodiscard]] double motion_curve_easing(const MotionCurve& curve, double progress) noexcept;
+[[nodiscard]] GUI_FORMS_API double motion_curve_easing(const MotionCurve& curve, double progress) noexcept;
 
 // Why a listener is told of a step.
 enum class MotionStepCause : std::uint8_t {
@@ -186,7 +187,7 @@ enum class MotionStepCause : std::uint8_t {
 
 // One step of a value, as its listener sees it. `value` is the value that
 // moved; it is valid for the call.
-struct MotionStep final {
+struct GUI_FORMS_API MotionStep final {
     MotionValue* value{};
     double previous{};
     double current{};
@@ -226,7 +227,7 @@ enum class MotionStart : std::uint8_t {
 // Which record of a clock a value holds while it moves: a slot and the
 // slot's generation when the record was made. A released record's handle is
 // stale and names nothing, even after its slot is reused.
-struct MotionRecordHandle final {
+struct GUI_FORMS_API MotionRecordHandle final {
     std::uint32_t slot{};
     std::uint32_t generation{};
 
@@ -252,7 +253,7 @@ struct MotionRecordHandle final {
 //
 // Every move starts from where the value stands at that moment, with its
 // velocity: a retarget mid-flight never jumps (design language §9.1).
-class MotionValue final {
+class GUI_FORMS_API MotionValue final {
 public:
     // A settled value at `initial`, owned by `owner`.
     MotionValue(Control& owner, MotionCurve curve, double initial = 0.0) noexcept;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/controls/dock_workspace_values.hpp"
@@ -26,7 +27,7 @@ class WorkspaceTransaction;
 // A factory's request: build the content of `panel` and store it in
 // `content`. Left null, the panel shows an empty area and the factory is
 // asked again the next time the panel is shown selected.
-struct DockPanelCreation final {
+struct GUI_FORMS_API DockPanelCreation final {
     DockPanelId panel{};
     Control::Ptr content{};
 };
@@ -39,12 +40,12 @@ struct DockPanelCreation final {
 // I6-1: Visual Studio's Window Layouts): the name the program shows and the
 // layout's XML as DockLayout::write_xml wrote it. The program keeps and
 // saves the list itself (decision DK-33: the framework never saves).
-struct DockNamedLayout final {
+struct GUI_FORMS_API DockNamedLayout final {
     std::string name{};
     std::string xml{};
 };
 
-struct DockPanelRegistration final {
+struct GUI_FORMS_API DockPanelRegistration final {
     DockPanelDescriptor descriptor{};
     std::string title{};
     Delegate<DockPanelCreation&> factory{};
@@ -63,7 +64,7 @@ enum class DockCloseCause : std::uint8_t { document, all_documents, other_docume
 // them, which ends the request with nothing closed, or `defer` to answer
 // later with DockWorkspace::answer_close (an asynchronous prompt). With
 // neither set, the request goes on.
-struct DockDocumentClosing final {
+struct GUI_FORMS_API DockDocumentClosing final {
     std::span<const DockPanelId> documents{};
     DockCloseCause cause{DockCloseCause::document};
     bool cancel{};
@@ -99,7 +100,7 @@ enum class DockActivationCause : std::uint8_t {
 // panel's activation changes only the first.
 enum class DockActivationTrack : std::uint8_t { panel, document };
 
-struct DockActivationChange final {
+struct GUI_FORMS_API DockActivationChange final {
     DockActivationTrack track{DockActivationTrack::panel};
     std::optional<DockPanelId> old_panel{};
     std::optional<DockPanelId> new_panel{};
@@ -164,7 +165,7 @@ struct DockActivationChange final {
 // so shortcuts such as Ctrl+S work from a floating tool window (F2-1).
 //
 // Execution: one UI thread, the run's; nothing is synchronized.
-class DockWorkspace final : public Component, public DockWorkspaceCapabilities<DockWorkspace> {
+class GUI_FORMS_API DockWorkspace final : public Component, public DockWorkspaceCapabilities<DockWorkspace> {
 public:
     explicit DockWorkspace(std::string stable_id);
     ~DockWorkspace() override;

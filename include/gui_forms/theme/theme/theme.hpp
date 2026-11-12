@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
@@ -32,7 +33,7 @@ inline constexpr std::size_t font_field_count = static_cast<std::size_t>(FontFie
 // (built_in where none did, the control's own value). `from_code` is set
 // where code set the font (set_font): inline code, which wins over every
 // theme field, so no level applies.
-struct ResolvedFont final {
+struct GUI_FORMS_API ResolvedFont final {
     FontSpec font{};
     std::array<CascadeLevel, font_field_count> levels{};
     std::array<bool, font_field_count> themed{};
@@ -48,7 +49,7 @@ struct ResolvedFont final {
 // (Theme::application_role, Control::theme_role_colours): its foreground,
 // its background for a pair (the foreground's plate for a single role),
 // the built-in role it falls back to and whether it is a pair.
-struct ThemeRoleColours final {
+struct GUI_FORMS_API ThemeRoleColours final {
     Color foreground{};
     Color background{};
     ColourRole fallback{ColourRole::ink_on_paper};
@@ -60,7 +61,7 @@ struct ThemeRoleColours final {
     }
 };
 
-class Theme final {
+class GUI_FORMS_API Theme final {
 public:
     // Validates `definition` and makes a theme holding its own copy, with
     // every family's high-contrast records derived from its ordinary ones.
@@ -218,11 +219,11 @@ private:
 
 // The Windows-familiar `windows-professional` theme's definition, a copy
 // each call.
-[[nodiscard]] ThemeDefinition windows_professional_theme_definition();
+[[nodiscard]] GUI_FORMS_API ThemeDefinition windows_professional_theme_definition();
 // The built-in default theme: GUI.Forms' own, `gui-forms`
 // (gui_forms_theme()), built once on the first call (thread-safe). It
 // seeds ApplicationResources, a SurfaceRoot without resources and the C
 // ABI's theme reset.
-[[nodiscard]] std::shared_ptr<const Theme> default_theme();
+[[nodiscard]] GUI_FORMS_API std::shared_ptr<const Theme> default_theme();
 
 } // namespace gui_forms

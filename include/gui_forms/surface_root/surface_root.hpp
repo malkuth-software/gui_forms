@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/window/update_scope/update_scope.hpp"
 
 #include "gui_forms/commands/command_route/command_route.hpp"
@@ -111,12 +112,12 @@ enum class MouseRuleEvent : std::uint8_t {
 
 namespace detail {
 struct ApplicationWindowState;
-void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept;
+GUI_FORMS_API void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept;
 
 // What a window offers the help requests no handler of its own took
 // (Window::request_help): each HelpProvider of the window is one, offered in
 // the order the providers were created. True when it handled the request.
-class WindowHelpFallback {
+class GUI_FORMS_API WindowHelpFallback {
 public:
     virtual bool offer_window_help(HelpRequestEvent& request) = 0;
 
@@ -125,7 +126,7 @@ protected:
 };
 }
 
-class OverlayToken final {
+class GUI_FORMS_API OverlayToken final {
 public:
     OverlayToken() = default;
     ~OverlayToken() { disconnect(); }
@@ -153,7 +154,7 @@ private:
     std::shared_ptr<detail::OverlayAttachment> attachment_;
 };
 
-struct KeyGesture final {
+struct GUI_FORMS_API KeyGesture final {
     std::uint32_t physical_key{};
     Modifier modifiers{Modifier::none};
     friend constexpr bool operator==(const KeyGesture& left,
@@ -170,7 +171,7 @@ struct KeyGesture final {
     }
 };
 
-struct AcceleratorOptions final {
+struct GUI_FORMS_API AcceleratorOptions final {
     // Application navigation gestures such as Alt+Left may preempt ordinary
     // editor word-navigation. Active overlay/focus scopes always retain first
     // refusal so menus and modal editors remain contained.
@@ -182,7 +183,7 @@ inline constexpr std::size_t maximum_deferred_inputs = 1024U;
 // Renderer-neutral lease-time input diagnostics. Pointer moves may compact,
 // but critical input is either retained in order or counted as capacity
 // rejected; no event silently enters application code while paint is active.
-struct DeferredInputSnapshot final {
+struct GUI_FORMS_API DeferredInputSnapshot final {
     std::size_t pending{};
     std::size_t capacity{maximum_deferred_inputs};
     std::uint64_t deferred{};
@@ -197,7 +198,7 @@ struct DeferredInputSnapshot final {
     bool draining{};
 };
 
-class AcceleratorToken final {
+class GUI_FORMS_API AcceleratorToken final {
 public:
     AcceleratorToken() = default;
     ~AcceleratorToken() { disconnect(); }
@@ -225,7 +226,7 @@ private:
     std::shared_ptr<detail::AcceleratorAttachment> attachment_;
 };
 
-struct PointerCaptureChange final {
+struct GUI_FORMS_API PointerCaptureChange final {
     bool captured{};
     RuntimeId control_id{};
     std::string stable_id;
@@ -235,27 +236,27 @@ struct PointerCaptureChange final {
 // Focus moved from one control to another (or to or from none) through
 // request_focus. `previous_id` and `current_id` are zero for none;
 // `stable_id` is the newly focused control's, or empty.
-struct FocusedControlChange final {
+struct GUI_FORMS_API FocusedControlChange final {
     RuntimeId previous_id{};
     RuntimeId current_id{};
     std::string stable_id;
 };
 
-struct ControlAvailabilityChange final {
+struct GUI_FORMS_API ControlAvailabilityChange final {
     RuntimeId control_id{};
     std::string stable_id;
     bool effectively_visible{};
     bool effectively_enabled{};
 };
 
-struct OverlayOptions final {
+struct GUI_FORMS_API OverlayOptions final {
     // Interactive menus and editors require an enabled owner. Passive
     // providers such as ToolTip may opt out while still requiring a live,
     // attached, effectively visible owner.
     bool require_enabled_owner{true};
 };
 
-struct FocusScopeId final {
+struct GUI_FORMS_API FocusScopeId final {
     std::uint64_t value{};
     [[nodiscard]] explicit constexpr operator bool() const noexcept {
         return value != 0;
@@ -272,7 +273,7 @@ struct FocusScopeId final {
 
 inline constexpr std::size_t maximum_focus_scope_depth = 32U;
 
-struct FocusScopeOptions final {
+struct GUI_FORMS_API FocusScopeOptions final {
     // Contained scopes reject attempts to move keyboard focus outside their
     // retained subtree while the scope is active.
     bool contain_focus{true};
@@ -288,7 +289,7 @@ enum class FocusScopeCloseReason : std::uint8_t {
     owner_unavailable,
 };
 
-struct FocusScopeChange final {
+struct GUI_FORMS_API FocusScopeChange final {
     FocusScopeId scope{};
     RuntimeId root_id{};
     std::string stable_id;
@@ -298,7 +299,7 @@ struct FocusScopeChange final {
     bool restored_focus{};
 };
 
-struct ValidationSnapshot final {
+struct GUI_FORMS_API ValidationSnapshot final {
     std::uint64_t attempts{};
     std::uint64_t succeeded{};
     std::uint64_t cancelled{};
@@ -308,7 +309,7 @@ struct ValidationSnapshot final {
     bool validating{};
 };
 
-struct DialogKeySnapshot final {
+struct GUI_FORMS_API DialogKeySnapshot final {
     std::uint64_t mnemonic_attempts{};
     std::uint64_t mnemonics_handled{};
     std::uint64_t accept_attempts{};
@@ -338,7 +339,7 @@ enum class ControlLookupError : std::uint8_t {
 // window with no override stores none: SurfaceRoot holds a null pointer
 // until the first, which allocates this record; clearing the last releases
 // it. A read is one branch: the field when set, else the owner's.
-struct WindowOverrides final {
+struct GUI_FORMS_API WindowOverrides final {
     // Presentation fields that win over the window's own settings.
     PresentationOverrides presentation{};
     // A theme for this window alone (immutable, shared by reference); null
@@ -357,7 +358,7 @@ struct WindowOverrides final {
 
 // What SurfaceRoot::control found: the one control with the ID, or why
 // there is none (then `control` is null).
-struct ControlLookup final {
+struct GUI_FORMS_API ControlLookup final {
     ControlLookupError error{ControlLookupError::none};
     Control::Ptr control{};
 
@@ -367,7 +368,7 @@ struct ControlLookup final {
     }
 };
 
-struct ControlSnapshot final {
+struct GUI_FORMS_API ControlSnapshot final {
     ImageId image{};
     Size logical_size{};
     double scale{};
@@ -377,7 +378,7 @@ struct ControlSnapshot final {
 
 // What Window::capture_window draws (owner request 2026-11-09, the product
 // ports: screenshots and tests).
-struct WindowCaptureOptions final {
+struct GUI_FORMS_API WindowCaptureOptions final {
     // The window's in-surface overlays (menus, drop-downs, tooltips and
     // other overlays opened in it), composited over its content as
     // presented. Off, the capture shows the content beneath them. Windows
@@ -390,7 +391,7 @@ struct WindowCaptureOptions final {
 
 // What Window::capture_control draws (owner request 2026-11-11, the theme
 // palette): one control and its descendants as the window lays them out.
-struct ControlCaptureOptions final {
+struct GUI_FORMS_API ControlCaptureOptions final {
     // Device pixels per logical unit; 0 takes the window's own scale.
     double scale{};
     // Logical units added around the control's bounds on every side, for
@@ -408,7 +409,7 @@ struct ControlCaptureOptions final {
 // it was drawn at and its pixels, `pixel_height` rows of `pixel_width`
 // premultiplied BGRA pixels, tightly packed (pixel_width * 4 bytes a row).
 // The capture owns its pixels.
-struct WindowCapture final {
+struct GUI_FORMS_API WindowCapture final {
     Size logical_size{};
     double scale{};
     std::uint32_t pixel_width{};
@@ -420,7 +421,7 @@ struct WindowCapture final {
 // straight), into `png`, replacing its contents; false, leaving it empty,
 // for a capture without pixels or whose pixels are fewer than its size
 // needs.
-[[nodiscard]] bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png);
+[[nodiscard]] GUI_FORMS_API bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png);
 
 // The root of one retained control tree and the thread that owns it (the
 // threaded sub-surfaces design, stage S1): the control table, the dirty
@@ -431,7 +432,7 @@ struct WindowCapture final {
 // live-surface composition, host key-map seeding, resize and scale); a
 // sub-surface (stage S2) is one whose output is a LiveSurface. The root is
 // bound to the thread that constructs it and never changes thread.
-class SurfaceRoot {
+class GUI_FORMS_API SurfaceRoot {
 public:
     SurfaceRoot(const SurfaceRoot&) = delete;
     SurfaceRoot& operator=(const SurfaceRoot&) = delete;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/window/update_scope/update_scope.hpp"
 
@@ -9,7 +10,7 @@
 
 namespace gui_forms {
 
-struct WorkspaceTransactionResult final {
+struct GUI_FORMS_API WorkspaceTransactionResult final {
     // The first refusal met while committing; the commit still carries out
     // every later step.
     HostServiceStatus status{};
@@ -42,7 +43,7 @@ struct WorkspaceTransactionResult final {
 // window destroyed through the transaction is destroyed only after its
 // scope closed, and the hosts release a model no earlier than the end of
 // the turn in which its window closed.
-class WorkspaceTransaction final {
+class GUI_FORMS_API WorkspaceTransaction final {
 public:
     explicit WorkspaceTransaction(ApplicationWindows windows);
     ~WorkspaceTransaction();

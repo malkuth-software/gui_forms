@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/date_time_format_provider.hpp"
 #include "gui_forms/controls/date_time_picker_values.hpp"
 #include "gui_forms/controls/panel.hpp"
@@ -16,7 +17,7 @@
 
 namespace gui_forms {
 
-class DateTimePicker final : public Panel, public DateTimePickerCapabilities<DateTimePicker> {
+class GUI_FORMS_API DateTimePicker final : public Panel, public DateTimePickerCapabilities<DateTimePicker> {
 public:
     // The picker's style property hides Panel::style(), as the method it
     // replaces did; without this the name is ambiguous between the bases.
@@ -49,7 +50,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;
@@ -61,7 +62,7 @@ public:
         PartGeometry well;
         PartGeometry indicator;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool pressed{};
         bool captured{};

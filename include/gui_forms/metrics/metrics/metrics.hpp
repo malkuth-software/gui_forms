@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/metrics/types/metrics_types.hpp"
 
 #include <atomic>
@@ -9,7 +10,7 @@
 
 namespace gui_forms {
 
-class Metrics {
+class GUI_FORMS_API Metrics {
 public:
     [[nodiscard]] MetricsSnapshot snapshot() const;
     void reset_activity() noexcept;

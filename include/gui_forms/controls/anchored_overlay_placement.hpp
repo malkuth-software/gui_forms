@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 
 #include <cstdint>
@@ -18,7 +19,7 @@ enum class OverlayVerticalPreference : std::uint8_t {
     above,
 };
 
-struct AnchoredOverlayPlacement final {
+struct GUI_FORMS_API AnchoredOverlayPlacement final {
     Size preferred_size{};
     OverlayHorizontalAlignment horizontal_alignment{
         OverlayHorizontalAlignment::near};
@@ -39,7 +40,7 @@ struct AnchoredOverlayPlacement final {
     }
 };
 
-struct AnchoredOverlayPlacementResult final {
+struct GUI_FORMS_API AnchoredOverlayPlacementResult final {
     Rect bounds{};
     bool placed_above{};
     bool width_clamped{};
@@ -49,7 +50,7 @@ struct AnchoredOverlayPlacementResult final {
 // Resolves an owner-relative overlay into logical window-client coordinates.
 // The result is deterministic, bounded to the client margin, and flips across
 // the anchor only when the preferred side cannot contain the requested height.
-[[nodiscard]] AnchoredOverlayPlacementResult resolve_anchored_overlay(
+[[nodiscard]] GUI_FORMS_API AnchoredOverlayPlacementResult resolve_anchored_overlay(
     Rect anchor_bounds, Size client_size,
     AnchoredOverlayPlacement placement);
 

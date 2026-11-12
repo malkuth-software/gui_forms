@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/gauge_base.hpp"
 
 #include <cstddef>
@@ -23,7 +24,7 @@ namespace gui_forms {
 // (selected; invalid in alarm); `graticule`, the scale marks; `needle`, the
 // pointer at the value; the caption is panel text. The theme sets the arcs'
 // thickness and the needle's width and shape (stroke-width, needle-shape).
-class RadialGauge final : public GaugeBase {
+class GUI_FORMS_API RadialGauge final : public GaugeBase {
 public:
     explicit RadialGauge(StableId stable_id);
 
@@ -34,7 +35,7 @@ public:
     // the needle publish the square their circle is inscribed in;
     // `alarm_arc` is absent without alarm limits, `value_arc` at the
     // minimum, and `caption` while show_value is clear.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry plot;
         PartGeometry track;

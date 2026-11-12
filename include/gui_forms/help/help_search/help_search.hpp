@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/help/helpbook_section/helpbook_section.hpp"
 
 #include <cstddef>
@@ -19,7 +20,7 @@ namespace gui_forms {
 // A query split into what must be found. Every word, the phrases' words
 // included, is a required term; `phrases` keep each phrase's words in
 // order for the consecutive check.
-struct HelpSearchQuery final {
+struct GUI_FORMS_API HelpSearchQuery final {
     std::vector<std::string> words{};
     std::vector<std::vector<std::string>> phrases{};
     // The last word was typed without a following space or quote: it
@@ -29,9 +30,9 @@ struct HelpSearchQuery final {
 
 // Fills `query` (replaced) from what the user typed: words, and phrases in
 // double quotes (an unclosed quote runs to the end).
-void parse_help_query(std::string_view text, HelpSearchQuery& query);
+GUI_FORMS_API void parse_help_query(std::string_view text, HelpSearchQuery& query);
 
-struct HelpSearchOptions final {
+struct GUI_FORMS_API HelpSearchOptions final {
     // Only titles are searched; phrases are checked against the title.
     bool titles_only{};
     // The most postings and phrase words one search visits before it stops
@@ -52,14 +53,14 @@ enum class HelpSearchStatus : std::uint8_t {
 
 // One record that holds every required term. Ranked by title hit, then
 // frequency (the required terms' counts, summed), then contents order.
-struct HelpSearchHit final {
+struct GUI_FORMS_API HelpSearchHit final {
     std::uint32_t record{};
     bool title_hit{};
     std::uint32_t frequency{};
 };
 
 // Searches `section`. `hits` is cleared first and its storage reused.
-[[nodiscard]] HelpSearchStatus search_help(const HelpBookSection& section, const HelpSearchQuery& query,
+[[nodiscard]] GUI_FORMS_API HelpSearchStatus search_help(const HelpBookSection& section, const HelpSearchQuery& query,
                                            const HelpSearchOptions& options, std::vector<HelpSearchHit>& hits);
 
 } // namespace gui_forms

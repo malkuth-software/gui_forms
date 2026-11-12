@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
@@ -27,7 +28,7 @@ namespace gui_forms {
 // a `selecting` handler cancelled. Whoever decides activation (a docking
 // workspace) listens to it; the strip attaches no meaning (owner decision
 // DK-37).
-struct PageInvocation final {
+struct GUI_FORMS_API PageInvocation final {
     PageId page{};
     PageSelectionCause cause{PageSelectionCause::pointer};
 };
@@ -44,7 +45,7 @@ enum class PageCloseCause : std::uint8_t { pointer, middle_button, keyboard, sem
 // cancelled), sets `handled`. A PageView whose close policy is
 // `remove_when_unhandled` removes the page after the handlers when none set
 // it; a docking owner only requests.
-struct PageCloseRequest final {
+struct GUI_FORMS_API PageCloseRequest final {
     PageId page{};
     PageCloseCause cause{PageCloseCause::semantic};
     bool handled{};
@@ -53,7 +54,7 @@ struct PageCloseRequest final {
 // A request to pin or unpin a page: a click on a pinned tab's pin glyph asks
 // to unpin it. When no handler sets `handled`, the strip applies it to the
 // set (PageSet::set_pinned).
-struct PagePinRequest final {
+struct GUI_FORMS_API PagePinRequest final {
     PageId page{};
     bool pinned{};
     bool handled{};
@@ -69,7 +70,7 @@ inline constexpr double page_drag_threshold = 4.0;
 // unless the owner has already taken it, and does nothing more with this
 // press; it never reorders. Unclaimed, the strip reorders live when
 // reordering is enabled. Both points are in window coordinates.
-struct PageDragStart final {
+struct GUI_FORMS_API PageDragStart final {
     PageId page{};
     Point press_point{};
     Point pointer{};
@@ -87,7 +88,7 @@ enum class PageContextMenuCause : std::uint8_t { pointer, keyboard };
 // tab on the content's side where reading starts (a tab scrolled out of view
 // is scrolled back first; one that cannot be shown anchors at the list
 // button, or the strip, the same way).
-struct PageContextMenuRequest final {
+struct GUI_FORMS_API PageContextMenuRequest final {
     PageId page{};
     Point anchor{};
     PageContextMenuCause cause{PageContextMenuCause::pointer};
@@ -96,7 +97,7 @@ struct PageContextMenuRequest final {
 
 // The second press of a double click landed on a tab's body (not its close
 // button or pin), after the press selected the page (PageView study I12).
-struct PageDoubleClick final {
+struct GUI_FORMS_API PageDoubleClick final {
     PageId page{};
 };
 
@@ -164,7 +165,7 @@ struct PageDoubleClick final {
 // pin glyph selects nothing; the request is raised on the release over the
 // same button. The strip handles the set's `pages_changed` and
 // `selected_page_changed` only to relayout and repaint.
-class PageStrip : public Control, public PageStripCapabilities<PageStrip> {
+class GUI_FORMS_API PageStrip : public Control, public PageStripCapabilities<PageStrip> {
 public:
     // Borrows `pages` (see the lifetime rule above).
     PageStrip(StableId stable_id, PageSet& pages);
@@ -275,7 +276,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         // The band behind the tabs.
         PartGeometry rail;
@@ -295,7 +296,7 @@ public:
     // Item part names start with tab: an item part may not repeat one of the
     // strip's own part names. The close button, the pin and the modified dot
     // share one slot after the label; at most one of them is present.
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry tab;
         PartGeometry tab_icon;
         PartGeometry tab_label;
@@ -311,7 +312,7 @@ public:
         PartGeometry tab_seam;
         PartGeometry tab_focus;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool hot{};
         bool pressed{};
         bool selected{};
@@ -324,7 +325,7 @@ public:
         bool pinned{};
         bool modified{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         // The page's position in the set.
         PagePosition position{};
         PageId page{};

@@ -1,12 +1,13 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/container_control.hpp"
 
 #include <cstdint>
 
 namespace gui_forms {
 
-class UserControl : public ContainerControl {
+class GUI_FORMS_API UserControl : public ContainerControl {
 public:
     explicit UserControl(StableId stable_id);
 

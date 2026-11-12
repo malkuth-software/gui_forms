@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/label_values.hpp"
 #include "gui_forms/event.hpp"
@@ -17,7 +18,7 @@
 
 namespace gui_forms {
 
-class Label : public Control, public LabelCapabilities<Label> {
+class GUI_FORMS_API Label : public Control, public LabelCapabilities<Label> {
 public:
     explicit Label(StableId stable_id, std::string initial_text = {});
 
@@ -37,7 +38,7 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry label;
     };
@@ -57,7 +58,7 @@ protected:
     // The lines of a label's text placed in its arranged bounds (stage T1):
     // each line's drawing origin (left edge, snapped baseline) and width, and
     // the block the lines fill. Paint and published geometry share it.
-    struct TextLayout final {
+    struct GUI_FORMS_API TextLayout final {
         std::vector<std::string> lines;
         std::vector<Point> origins;
         std::vector<double> widths;

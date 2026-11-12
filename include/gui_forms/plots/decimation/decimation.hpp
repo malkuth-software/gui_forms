@@ -35,6 +35,7 @@
 // Painter's stroke_polyline breaks there) and the pyramid declines a series
 // holding gaps (the caller falls back to the linear envelope).
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/plot_transform/plot_transform.hpp"
 #include "gui_forms/plots/series_column/series_column.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -87,7 +88,7 @@ struct ImplicitXSamples final {
 // -- cull ------------------------------------------------------------------------
 
 // Elements [first, end) of a monotone source.
-struct ElementRange final {
+struct GUI_FORMS_API ElementRange final {
     std::size_t first{};
     std::size_t end{};
 
@@ -129,7 +130,7 @@ template <typename Source>
 // -- envelope ----------------------------------------------------------------------
 
 // What a decimation pass did.
-struct DecimationStatistics final {
+struct GUI_FORMS_API DecimationStatistics final {
     std::size_t points_in{};
     std::size_t points_out{};
     // Runs of finite points separated by gaps.
@@ -180,7 +181,7 @@ enum class PyramidOutcome : std::uint8_t {
     declined_size,
 };
 
-class EnvelopePyramid final {
+class GUI_FORMS_API EnvelopePyramid final {
 public:
     // Reserves the levels for up to `capacity` elements (allocates once).
     void reserve(std::size_t capacity);
@@ -238,7 +239,7 @@ private:
 
 // A device pixel grid over a plot, reused between frames (decimation
 // stage 4). Caller-owned; reserve() allocates.
-class OccupancyGrid final {
+class GUI_FORMS_API OccupancyGrid final {
 public:
     void reserve(std::size_t columns, std::size_t rows);
     [[nodiscard]] std::size_t columns() const noexcept { return columns_; }
@@ -262,13 +263,13 @@ private:
 
 // Fixed bins over [minimum, maximum]: `count` bins of equal width,
 // right-open except the last, which is closed.
-struct BinSpec final {
+struct GUI_FORMS_API BinSpec final {
     double minimum{};
     double maximum{1.0};
     std::size_t count{10U};
 };
 
-struct BinTally final {
+struct GUI_FORMS_API BinTally final {
     std::uint64_t binned{};
     std::uint64_t gaps{};
     std::uint64_t below{};

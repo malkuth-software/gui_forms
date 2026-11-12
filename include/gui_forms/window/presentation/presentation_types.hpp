@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
 #include "gui_forms/window/presentation/input_settings.hpp"
@@ -23,7 +24,7 @@ class LiveSurface;
 // shown instead (`gui-forms` in that scheme). Colours the application set
 // on its controls are suspended while it holds (Control::
 // application_colours_suspended).
-struct ThemeFallback final {
+struct GUI_FORMS_API ThemeFallback final {
     std::string theme_id{};
     ColourScheme missing{ColourScheme::dark};
     std::string fallback_id{};
@@ -34,7 +35,7 @@ struct ThemeFallback final {
     }
 };
 
-struct PresentationSettings final {
+struct GUI_FORMS_API PresentationSettings final {
     double text_scale{1.0};
     bool high_contrast{};
     bool reduced_motion{};
@@ -93,14 +94,14 @@ struct PresentationSettings final {
 // maximum_double_click_milliseconds, pointer settings that are not
 // valid_pointer_settings, caret settings that are not valid_caret_settings,
 // or an origin or scheme outside its enum.
-void validate_presentation_settings(const PresentationSettings& settings);
+GUI_FORMS_API void validate_presentation_settings(const PresentationSettings& settings);
 
 // The presentation fields one window overrides (APP_WINDOW_RULES_DESIGN
 // A.2): each set field wins over the window's own settings, which come from
 // its application or its host; an unset field follows them. The
 // double-click interval, the pointer settings and the caret settings are
 // the host's alone and have no override.
-struct PresentationOverrides final {
+struct GUI_FORMS_API PresentationOverrides final {
     std::optional<double> text_scale{};
     std::optional<bool> high_contrast{};
     std::optional<bool> reduced_motion{};
@@ -126,13 +127,13 @@ struct PresentationOverrides final {
 };
 
 // `settings` with each field `overrides` sets replaced.
-[[nodiscard]] PresentationSettings overridden_presentation(PresentationSettings settings,
+[[nodiscard]] GUI_FORMS_API PresentationSettings overridden_presentation(PresentationSettings settings,
                                                            const PresentationOverrides& overrides) noexcept;
 
 // The screen area one presentation copied (stage DP): device pixels, the
 // rectangles they were copied in, and the time spent only copying them
 // (pixel conversion and the native copy, not painting).
-struct PresentedArea final {
+struct GUI_FORMS_API PresentedArea final {
     std::uint64_t device_pixels{};
     std::uint64_t rectangles{};
     std::uint64_t copy_nanoseconds{};
@@ -142,13 +143,13 @@ struct PresentedArea final {
 // it holds inside `clip` by `offset`, both in window coordinates and whole
 // device pixels, before painting the damage taken with it. Pixels moved from
 // outside the clip are never needed: the damage covers what the copy exposed.
-struct ScrollCopy final {
+struct GUI_FORMS_API ScrollCopy final {
     Rect clip{};
     Point offset{};
 };
 
 // Immutable host placement for the newest generation of one live surface.
-struct LiveSurfacePresentation final {
+struct GUI_FORMS_API LiveSurfacePresentation final {
     RuntimeId control{};
     std::shared_ptr<LiveSurface> surface;
     Rect destination{};
@@ -175,7 +176,7 @@ enum class PaintLeaseState : std::uint8_t {
     rendering_dirty,
 };
 
-struct PaintLeaseSnapshot final {
+struct GUI_FORMS_API PaintLeaseSnapshot final {
     PaintLeaseState state{PaintLeaseState::dirty_queued};
     std::uint64_t content_revision{1U};
     std::uint64_t rendered_revision{};
@@ -204,7 +205,7 @@ struct PaintLeaseSnapshot final {
 // the bounded rectangle set it paints, not their union.
 inline constexpr std::uint32_t paint_contract_version = 2U;
 
-struct PresentationExtensions final {
+struct GUI_FORMS_API PresentationExtensions final {
     // The host copies a bounded rectangle set to the screen, not its union.
     // Required since contract version 2, and reported for readers of
     // version 1.
@@ -227,7 +228,7 @@ struct PresentationExtensions final {
 };
 
 // What a host declares when it attaches a window.
-struct PresentationDeclaration final {
+struct GUI_FORMS_API PresentationDeclaration final {
     std::uint32_t contract_version{};
     PresentationExtensions extensions;
 };
@@ -235,7 +236,7 @@ struct PresentationDeclaration final {
 // The record a window publishes: the host's declaration and the live
 // paint-lease snapshot. A contract version of zero means no host has
 // declared one (a window that is not attached, or a test painter).
-struct PresentationAvailability final {
+struct GUI_FORMS_API PresentationAvailability final {
     std::uint32_t contract_version{};
     PresentationExtensions extensions;
     PaintLeaseSnapshot lease;
@@ -245,7 +246,7 @@ struct PresentationAvailability final {
 
 // Proof that one coherent retained transaction finished replaying into a
 // host-owned backing surface at a still-current surface epoch.
-struct PaintReceipt final {
+struct GUI_FORMS_API PaintReceipt final {
     std::uint64_t rendered_revision{};
     std::uint64_t surface_epoch{};
 

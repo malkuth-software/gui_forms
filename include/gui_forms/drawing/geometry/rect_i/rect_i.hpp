@@ -1,12 +1,13 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/geometry/point_i/point_i.hpp"
 
 #include <cstdint>
 
 namespace gui_drawing {
 
-struct RectI final {
+struct GUI_FORMS_API RectI final {
     std::int32_t x{};
     std::int32_t y{};
     std::int32_t width{};

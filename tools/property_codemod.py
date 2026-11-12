@@ -414,7 +414,7 @@ def matching(text, open_index, opening, closing):
 
 def class_body(text, declaring):
     """(open brace, closing brace) of the class definition."""
-    head = re.search(r"\bclass\s+%s\b(?:\s+final)?\s*(?::[^;{]*)?\{" % re.escape(declaring), text)
+    head = re.search(r"\bclass\s+(?:GUI_FORMS_API\s+)?%s\b(?:\s+final)?\s*(?::[^;{]*)?\{" % re.escape(declaring), text)
     if head is None:
         raise ValueError("no definition of class " + declaring)
     open_index = head.end() - 1

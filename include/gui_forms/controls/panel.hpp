@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/border_style.hpp"
 #include "gui_forms/controls/panel_capabilities.hpp"
 #include "gui_forms/controls/scrollable_control.hpp"
@@ -11,7 +12,7 @@
 
 namespace gui_forms {
 
-class Panel : public ScrollableControl, public PanelCapabilities<Panel> {
+class GUI_FORMS_API Panel : public ScrollableControl, public PanelCapabilities<Panel> {
 public:
     explicit Panel(StableId stable_id);
 
@@ -47,7 +48,7 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members: the scrollable parts, a face and an edge.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;

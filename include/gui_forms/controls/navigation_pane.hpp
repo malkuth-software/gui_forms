@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
@@ -25,7 +26,7 @@ namespace gui_forms {
 // `hidden_pages` the pages the user hid from the buttons, in page order.
 // `button_count` is the number of large buttons the user chose, which the
 // pane shows as far as its height allows.
-struct NavigationPaneState final {
+struct GUI_FORMS_API NavigationPaneState final {
     bool collapsed{};
     std::size_t button_count{};
     std::vector<PageId> hidden_pages{};
@@ -44,14 +45,14 @@ struct NavigationPaneState final {
 
 // What applying a saved state found: identities the pane's set does not hold
 // (a page the program no longer adds), which were skipped.
-struct NavigationPaneRestore final {
+struct GUI_FORMS_API NavigationPaneRestore final {
     std::size_t unknown_pages{};
 };
 
 // "Navigation pane options..." was chosen from the configure menu. The pane
 // has no options dialog of its own (owner decision DK-39, question P30); the
 // program shows its own.
-struct NavigationPaneOptionsRequest final {
+struct GUI_FORMS_API NavigationPaneOptionsRequest final {
     std::string pane_id{};
 };
 
@@ -83,7 +84,7 @@ enum class NavigationPaneItemKind : std::uint8_t { large_button, icon };
 // split pane whose value is the number of large buttons. Every part is
 // painted through paint_part; the buttons use the menu_item family until the
 // default theme (T4) draws Plan Paint's tab material (decision DK-42).
-class NavigationPane : public Control, public NavigationPaneCapabilities<NavigationPane> {
+class GUI_FORMS_API NavigationPane : public Control, public NavigationPaneCapabilities<NavigationPane> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
 
@@ -161,7 +162,7 @@ public:
     // Stage T1 anatomy, as dot members; its states are Control's. The overlay
     // parts are in the pane's coordinates although the overlay lies outside
     // it, and are present only while it is open.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry header;
         PartGeometry header_icon;
@@ -186,25 +187,25 @@ public:
     };
     [[nodiscard]] Parts parts() const;
     // Item system nav_page: a large button.
-    struct PageButtonParts final {
+    struct GUI_FORMS_API PageButtonParts final {
         PartGeometry nav_page_face;
         PartGeometry nav_page_icon;
         PartGeometry nav_page_label;
     };
     // Item system nav_overflow: an icon. A page without an image shows the
     // first character of its title in nav_overflow_label instead.
-    struct PageIconParts final {
+    struct GUI_FORMS_API PageIconParts final {
         PartGeometry nav_overflow_face;
         PartGeometry nav_overflow_icon;
         PartGeometry nav_overflow_label;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool hot{};
         bool pressed{};
         bool selected{};
         bool focus_visible{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         NavigationPaneItemKind kind{NavigationPaneItemKind::large_button};
         PagePosition position{};
         PageId page{};

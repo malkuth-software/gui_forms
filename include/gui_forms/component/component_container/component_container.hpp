@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component/component/component.hpp"
 
 #include <span>
@@ -7,7 +8,7 @@
 
 namespace gui_forms {
 
-class ComponentContainer final {
+class GUI_FORMS_API ComponentContainer final {
 public:
     ComponentContainer() = default;
     ~ComponentContainer();

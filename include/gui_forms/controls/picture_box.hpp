@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/controls/picture_box_values.hpp"
@@ -10,7 +11,7 @@
 
 namespace gui_forms {
 
-class PictureBox : public Panel, public PictureBoxCapabilities<PictureBox> {
+class GUI_FORMS_API PictureBox : public Panel, public PictureBoxCapabilities<PictureBox> {
 public:
     explicit PictureBox(StableId stable_id);
 
@@ -27,7 +28,7 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members: Panel's parts and the image.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry face;
         PartGeometry edge;

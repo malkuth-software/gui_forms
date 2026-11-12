@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "../capabilities/headless_capabilities.hpp"
 
 #include <array>
@@ -11,7 +12,7 @@
 
 namespace gui_forms::host {
 
-class HeadlessHostServices final : public HostServices {
+class GUI_FORMS_API HeadlessHostServices final : public HostServices {
 public:
     using DialogHandler = std::function<HostDialogResult(
         const HostDialogRequest&, HeadlessHostServices&)>;

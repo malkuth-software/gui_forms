@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/step_indicator_capabilities.hpp"
 
@@ -28,7 +29,7 @@ namespace gui_forms {
 // is a step's name, ordinary for the current step and secondary for the
 // others. To assistive technology it is a group whose value reads "Step 2
 // of 4: Details".
-class StepIndicator final : public Control, public StepIndicatorCapabilities<StepIndicator> {
+class GUI_FORMS_API StepIndicator final : public Control, public StepIndicatorCapabilities<StepIndicator> {
 public:
     explicit StepIndicator(StableId stable_id);
 
@@ -52,7 +53,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts): the chips and
     // connectors of every step, each part spanning all of its instances.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry chip;
         PartGeometry glyph;

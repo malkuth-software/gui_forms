@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/resources.hpp"
@@ -38,14 +39,14 @@ enum class ImageListChangeKind : std::uint8_t {
     reset,
 };
 
-struct ImageListChange final {
+struct GUI_FORMS_API ImageListChange final {
     ImageListChangeKind kind{ImageListChangeKind::reset};
     std::size_t index{};
     std::string key;
     std::uint64_t revision{};
 };
 
-struct ImageListResolution final {
+struct GUI_FORMS_API ImageListResolution final {
     ImageId image{};
     Size source_size{};
     ImageVisualState requested_state{ImageVisualState::normal};
@@ -62,7 +63,7 @@ struct ImageListResolution final {
 // ordered index lookup, ASCII-case-insensitive keys, generational Window resources,
 // density/state variants, atomic mutation, and deterministic disposal. PNG is
 // the only encoded import format admitted by the GUI.Forms resource boundary.
-class ImageList final : public Component {
+class GUI_FORMS_API ImageList final : public Component {
 public:
     explicit ImageList(Window& window, Size image_size = {16.0, 16.0});
     ~ImageList() override;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include <cstddef>
 #include <cstdint>
@@ -16,7 +17,7 @@ class ImageRegistry;
 // memory order, the one format of every surface and raster. The buffer
 // survives begin/end; callers may restore cached pixels before drawing damage.
 // A painter and pixel span are borrowed only for this object's lifetime.
-class PaintFramebuffer {
+class GUI_FORMS_API PaintFramebuffer {
 public:
     virtual ~PaintFramebuffer() = default;
     virtual bool begin(const ImageRegistry& images, Rect damage) = 0;

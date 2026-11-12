@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/image_list.hpp"
@@ -35,7 +36,7 @@ enum class TreeListSortOrder : std::uint8_t { none, ascending, descending };
 // the published anatomy and semantics. `width` is in logical units at text
 // scale 1. Column 0 is the tree column: it shows each node's `text` with the
 // indentation and the expander, and it always stays first.
-struct TreeListColumn final {
+struct GUI_FORMS_API TreeListColumn final {
     std::string stable_id{};
     GUI_FORMS_LOCALIZABLE(header) std::string text{};
     double width{120.0};
@@ -50,7 +51,7 @@ struct TreeListColumn final {
 // children are not loaded yet. `expanded` is ignored on a node that cannot
 // be expanded. `image_key` names an image in the image list; an empty or
 // unknown key shows none.
-struct TreeListNode final {
+struct GUI_FORMS_API TreeListNode final {
     std::string stable_id{};
     std::string text{};
     std::vector<std::string> cells{};
@@ -62,39 +63,39 @@ struct TreeListNode final {
 };
 
 // A change of the selected node, after it happened.
-struct TreeListSelectionChange final {
+struct GUI_FORMS_API TreeListSelectionChange final {
     std::optional<std::string> previous_id{};
     std::optional<std::string> current_id{};
 };
 
 // A node expanded or collapsed, by the user or the program.
-struct TreeListExpansionChange final {
+struct GUI_FORMS_API TreeListExpansionChange final {
     std::string node_id{};
     bool expanded{};
 };
 
 // A node activated by a double click, Enter, or the semantic press action.
-struct TreeListActivation final {
+struct GUI_FORMS_API TreeListActivation final {
     std::string node_id{};
 };
 
 // The sibling order after a header click, the semantic press on a header,
 // or set_sort().
-struct TreeListSortChange final {
+struct GUI_FORMS_API TreeListSortChange final {
     std::optional<std::size_t> column{};
     TreeListSortOrder order{TreeListSortOrder::none};
 };
 
 // A column's new width in logical units, after a divider drag ends or
 // set_column_width() changes it.
-struct TreeListColumnWidthChange final {
+struct GUI_FORMS_API TreeListColumnWidthChange final {
     std::size_t column{};
     double width{};
 };
 
 // A column moved to a new display position, by a header drag or
 // move_column(). Display position 0 always holds the tree column.
-struct TreeListColumnMove final {
+struct GUI_FORMS_API TreeListColumnMove final {
     std::size_t column{};
     std::size_t display_position{};
 };
@@ -102,7 +103,7 @@ struct TreeListColumnMove final {
 // A change of a virtual tree's rows (TreeListRowSource): the `removed` rows
 // at `first` were replaced by `inserted` rows. Expanding row r with k shown
 // descendants is {r + 1, 0, k}; collapsing it is {r + 1, k, 0}.
-struct TreeListRowSplice final {
+struct GUI_FORMS_API TreeListRowSplice final {
     std::size_t first{};
     std::size_t removed{};
     std::size_t inserted{};
@@ -121,7 +122,7 @@ struct TreeListRowSplice final {
 // row_count() is the old count - removed + inserted (otherwise the view
 // throws std::logic_error and keeps its old rows). The source outlives
 // nothing: the view holds it by shared_ptr until set_row_source replaces it.
-class TreeListRowSource {
+class GUI_FORMS_API TreeListRowSource {
 public:
     virtual ~TreeListRowSource() {}
     [[nodiscard]] virtual std::size_t row_count() const = 0;
@@ -184,7 +185,7 @@ class RowHeightIndex;
 // empty; sorting raises sort_changed and re-reads the rows (the source sorts
 // in its handler); ensure_visible and selected_id find rows through
 // find_row and do not expand ancestors.
-class TreeListView final : public Control, public TreeListViewCapabilities<TreeListView> {
+class GUI_FORMS_API TreeListView final : public Control, public TreeListViewCapabilities<TreeListView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // Development bounds, not measured capacity.
@@ -333,7 +334,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry well;
         PartGeometry header;
@@ -345,7 +346,7 @@ public:
     [[nodiscard]] Parts parts() const;
 
     // The "row" item system: one realized row. Its identity is the node's.
-    struct RowParts final {
+    struct GUI_FORMS_API RowParts final {
         PartGeometry row;
         PartGeometry row_face;
         PartGeometry expander;
@@ -353,7 +354,7 @@ public:
         PartGeometry text;
         PartGeometry row_focus;
     };
-    struct RowStates final {
+    struct GUI_FORMS_API RowStates final {
         bool selected{};
         bool hot{};
         bool current{};
@@ -362,7 +363,7 @@ public:
         bool disabled{};
         bool focus_visible{};
     };
-    struct Row final {
+    struct GUI_FORMS_API Row final {
         // The row's position among the rows, and the node's model index.
         std::size_t row{};
         std::size_t index{};
@@ -375,15 +376,15 @@ public:
 
     // The "cell" item system: one visible cell past the tree column. Its
     // identity is the node's ID, ".cell.", and the column's.
-    struct CellParts final {
+    struct GUI_FORMS_API CellParts final {
         PartGeometry cell;
         PartGeometry cell_text;
     };
-    struct CellStates final {
+    struct GUI_FORMS_API CellStates final {
         bool selected{};
         bool disabled{};
     };
-    struct Cell final {
+    struct GUI_FORMS_API Cell final {
         std::size_t row{};
         std::size_t column{};
         std::string stable_id;
@@ -395,14 +396,14 @@ public:
     // The "column" item system, named as ObjectView's and ListView's: one
     // visible column header. Its identity is the view's stable ID,
     // ".column.", and the column's ID.
-    struct ColumnParts final {
+    struct GUI_FORMS_API ColumnParts final {
         PartGeometry column_header;
         PartGeometry column_label;
         PartGeometry sort_glyph;
         PartGeometry column_divider;
         PartGeometry column_grip;
     };
-    struct ColumnStates final {
+    struct GUI_FORMS_API ColumnStates final {
         bool hot{};
         bool pressed{};
         bool captured{};
@@ -410,7 +411,7 @@ public:
         bool sorted_ascending{};
         bool sorted_descending{};
     };
-    struct Column final {
+    struct GUI_FORMS_API Column final {
         std::size_t index{};
         std::size_t display_position{};
         std::string stable_id;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/task_dialog_capabilities.hpp"
@@ -51,7 +52,7 @@ enum class TaskDialogStandardButton : std::uint8_t {
 // its standard name ("ok", "cancel", "try_again", ...), and a standard button
 // with empty text shows its standard text. A button whose `allow_close` is
 // false raises button_clicked and leaves the dialog open.
-struct TaskDialogButton final {
+struct GUI_FORMS_API TaskDialogButton final {
     std::string stable_id{};
     std::string text{};
     TaskDialogStandardButton standard{TaskDialogStandardButton::none};
@@ -60,7 +61,7 @@ struct TaskDialogButton final {
 };
 
 // One radio button; at most one of a page's radio buttons is checked.
-struct TaskDialogRadioButton final {
+struct GUI_FORMS_API TaskDialogRadioButton final {
     std::string stable_id{};
     std::string text{};
     bool checked{};
@@ -69,7 +70,7 @@ struct TaskDialogRadioButton final {
 
 // Expanded information, shown below the text while expanded. The expander
 // button shows one text or the other.
-struct TaskDialogExpander final {
+struct GUI_FORMS_API TaskDialogExpander final {
     std::string text{};
     std::string collapsed_button_text{"Show details"};
     std::string expanded_button_text{"Hide details"};
@@ -77,7 +78,7 @@ struct TaskDialogExpander final {
 };
 
 // A progress bar below the text: a value between the bounds, or a marquee.
-struct TaskDialogProgressBar final {
+struct GUI_FORMS_API TaskDialogProgressBar final {
     double minimum{};
     double maximum{100.0};
     double value{};
@@ -89,7 +90,7 @@ struct TaskDialogProgressBar final {
 // A page without buttons gets an OK button. `default_button` names the
 // button Enter clicks and that takes focus first; empty names the first.
 // With `allow_cancel`, Escape closes the dialog as its cancel button would.
-struct TaskDialogPage final {
+struct GUI_FORMS_API TaskDialogPage final {
     std::string caption{};
     std::string heading{};
     std::string text{};
@@ -110,7 +111,7 @@ struct TaskDialogPage final {
 
 // A click on a button, before the dialog closes. Setting `keep_open` keeps
 // the dialog open, as a button whose allow_close is false does.
-struct TaskDialogButtonClick final {
+struct GUI_FORMS_API TaskDialogButtonClick final {
     std::string button_id{};
     bool keep_open{};
 };
@@ -118,7 +119,7 @@ struct TaskDialogButtonClick final {
 // How a dialog closed: the button that closed it (the cancel button's ID, or
 // "cancel", for Escape and a dialog revoked by its window), and the state of
 // the verification check box and the radio buttons at that moment.
-struct TaskDialogResult final {
+struct GUI_FORMS_API TaskDialogResult final {
     std::string button_id{};
     bool verification_checked{};
     std::string radio_button_id{};
@@ -133,7 +134,7 @@ struct TaskDialogResult final {
 // in the dialog until it closes. GUI.Forms never runs a nested event loop, so
 // show() returns at once and the clicked button arrives through `closed` and
 // result(). set_page while shown navigates to another page.
-class TaskDialog final : public Control, public TaskDialogCapabilities<TaskDialog> {
+class GUI_FORMS_API TaskDialog final : public Control, public TaskDialogCapabilities<TaskDialog> {
 public:
     explicit TaskDialog(StableId stable_id);
     ~TaskDialog() override;
@@ -197,7 +198,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
 
     // Stage T1 anatomy, as dot members. Its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry edge;

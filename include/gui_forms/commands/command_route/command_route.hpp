@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands/types/command_types.hpp"
 #include "gui_forms/event/delegate/delegate.hpp"
 
@@ -50,7 +51,7 @@ enum class CommandRouteOutcome : std::uint8_t {
 
 // Where a routing ended. `stage` and `target_name` describe the handling
 // target, and are focused_route and empty unless the outcome is handled.
-struct CommandRouteResult final {
+struct GUI_FORMS_API CommandRouteResult final {
     CommandRouteOutcome outcome{CommandRouteOutcome::unhandled};
     CommandRouteStage stage{CommandRouteStage::focused_route};
     std::string target_name;
@@ -72,7 +73,7 @@ inline constexpr std::size_t maximum_command_route_depth = 8U;
 //
 // A target belongs to the UI thread of the windows that route to it and is
 // not synchronized.
-class CommandTarget final {
+class GUI_FORMS_API CommandTarget final {
 public:
     // `name` identifies the target in route results and diagnostics; it may
     // be empty.

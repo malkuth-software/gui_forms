@@ -1,10 +1,11 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/brush/brush.hpp"
 
 namespace gui_drawing {
 
-class LinearGradientBrush final : public Brush {
+class GUI_FORMS_API LinearGradientBrush final : public Brush {
 public:
     LinearGradientBrush(RectF bounds, Color first, Color second,
                         double angle = 0.0,

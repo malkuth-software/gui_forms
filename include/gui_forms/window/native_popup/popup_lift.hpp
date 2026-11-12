@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
@@ -39,7 +40,7 @@ enum class PopupLiftInput : std::uint8_t {
 // content out (detached again) and ends the forwarding; the destructor
 // releases. One lift per object; a second lift replaces the first. UI
 // thread only, on the owner window's thread.
-class PopupLift final {
+class GUI_FORMS_API PopupLift final {
 public:
     PopupLift() noexcept;
     ~PopupLift();
@@ -74,6 +75,6 @@ private:
 // above it when it would overrun the area's bottom, and moved and cut to stay
 // inside the area. None when the run has no Popup windows or cannot say the
 // work area; the caller then places the drop-down in its client. UI thread.
-[[nodiscard]] std::optional<Rect> drop_down_popup_face(Window& window, Rect anchor, Size size, double preferred_x);
+[[nodiscard]] GUI_FORMS_API std::optional<Rect> drop_down_popup_face(Window& window, Rect anchor, Size size, double preferred_x);
 
 } // namespace gui_forms

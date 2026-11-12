@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/type_tag/type_tag.hpp"
 
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -12,7 +13,7 @@ namespace gui_forms {
 // A layout length in logical units (device-independent pixels), the unit of
 // every retained bound. Device pixels appear only where paint snaps edges, so
 // a layout length is never added to a device-pixel quantity by accident.
-class LogicalLength final {
+class GUI_FORMS_API LogicalLength final {
 public:
     explicit constexpr LogicalLength(double value = 0.0) noexcept : value_(value) {}
     [[nodiscard]] constexpr double value() const noexcept { return value_; }
@@ -44,7 +45,7 @@ enum class AvailableExtentKind : std::uint8_t {
 // One axis of a layout constraint. `extent` is read only for `definite` and
 // `at_most`, and must then be finite and nonnegative; the content kinds
 // carry a zero extent.
-struct AvailableExtent final {
+struct GUI_FORMS_API AvailableExtent final {
     AvailableExtentKind kind{AvailableExtentKind::at_most};
     LogicalLength extent{};
 
@@ -56,7 +57,7 @@ struct AvailableExtent final {
 
 // A measure query on both axes. Control::measure_for_layout answers it and
 // caches the answer under exactly this value.
-struct LayoutConstraint final {
+struct GUI_FORMS_API LayoutConstraint final {
     AvailableExtent width{};
     AvailableExtent height{};
 
@@ -95,12 +96,12 @@ inline constexpr double practical_unbounded_extent = 1.0e9;
 
 // True when every extent the constraint reads is finite and nonnegative and
 // every content kind carries a zero extent.
-[[nodiscard]] bool valid_layout_constraint(const LayoutConstraint& constraint) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_layout_constraint(const LayoutConstraint& constraint) noexcept;
 
 // The `available` argument of Control::measure(Size) for a constraint: a
 // definite or at-most axis passes its extent, a content axis the practical
 // unbounded extent.
-[[nodiscard]] Size measure_available_size(const LayoutConstraint& constraint) noexcept;
+[[nodiscard]] GUI_FORMS_API Size measure_available_size(const LayoutConstraint& constraint) noexcept;
 
 // The inline direction a control lays its children and text out in (stage
 // L, PLAN section 4): Windows Forms' RightToLeft with Inherit, CSS

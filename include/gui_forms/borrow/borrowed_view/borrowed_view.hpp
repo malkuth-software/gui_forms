@@ -55,6 +55,7 @@
 #define GUI_FORMS_CHECKED_BORROWS 0
 #endif
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -95,7 +96,7 @@ enum class BorrowFault : std::uint8_t {
 // One lending storage's state, shared by the storage and every stamp, so a
 // stamp outlives the storage and can tell that it died. Written only on the
 // owner's thread.
-struct BorrowOwnerState final {
+struct GUI_FORMS_API BorrowOwnerState final {
     // Advanced by every structural change.
     std::uint64_t generation{};
     // Cleared by the storage's destructor.
@@ -106,7 +107,7 @@ struct BorrowOwnerState final {
 
 // What a view carries in the checked build. An empty stamp (no owner) is a
 // view of nothing: a default view, which every check accepts.
-struct BorrowStamp final {
+struct GUI_FORMS_API BorrowStamp final {
     std::shared_ptr<const BorrowOwnerState> owner{};
     std::uint64_t generation{};
     // The return address of the lending call (the accessor's caller).
@@ -117,7 +118,7 @@ struct BorrowStamp final {
 // Reports `fault` for the view stamped `stamp` (the fault, the creation
 // site, the owner's last change, the stack) and ends the process. Never
 // returns and never throws.
-[[noreturn]] void fail_borrow(const BorrowStamp& stamp, BorrowFault fault) noexcept;
+[[noreturn]] GUI_FORMS_API void fail_borrow(const BorrowStamp& stamp, BorrowFault fault) noexcept;
 
 // Checks that the view stamped `stamp` is still valid here; reports through
 // fail_borrow otherwise.
@@ -132,7 +133,7 @@ inline void require_current(const BorrowStamp& stamp) noexcept {
 // The owner-state of one lending storage (ruling 5: a shared record). The
 // record is made at the first loan, so storage that never lends allocates
 // nothing. A copy lends afresh; an assignment ends the views lent so far.
-class BorrowLender final {
+class GUI_FORMS_API BorrowLender final {
 public:
     BorrowLender() noexcept : state_() {}
     BorrowLender(const BorrowLender&) noexcept : state_() {}
@@ -354,7 +355,7 @@ using BorrowedMutableSpan = BasicBorrowedSpan<Element>;
 
 // A checked view of UTF-8 text: the pointer and length of the lender's
 // characters and the stamp.
-class BorrowedText final {
+class GUI_FORMS_API BorrowedText final {
 public:
     using iterator = detail::BorrowedIterator<const char>;
 

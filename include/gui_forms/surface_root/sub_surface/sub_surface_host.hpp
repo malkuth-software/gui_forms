@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
 
@@ -14,7 +15,7 @@ namespace gui_forms {
 
 // Counters of a host's side of its sub-surface's requests (design note
 // section 15). UI thread.
-struct SubSurfaceRequestStatistics final {
+struct GUI_FORMS_API SubSurfaceRequestStatistics final {
     std::uint64_t received{};
     // Answered shown by the window's tooltip presenter.
     std::uint64_t shown{};
@@ -34,7 +35,7 @@ struct SubSurfaceRequestStatistics final {
 // How a host's sub-surface thread ended (SubSurfaceHost::stopped): stopped
 // when the host stopped it (new content, leaving the window), failed when
 // the content threw or built no root, with what it threw.
-struct SubSurfaceStopped final {
+struct GUI_FORMS_API SubSurfaceStopped final {
     SubSurfaceState state{SubSurfaceState::stopped};
     std::string failure{};
 };
@@ -101,7 +102,7 @@ struct SubSurfaceStopped final {
 // but no text layout (Window::semantic_text_layout answers only for the
 // window's own controls), so hosts offer no text ranges inside a
 // sub-surface.
-class SubSurfaceHost final : public Control {
+class GUI_FORMS_API SubSurfaceHost final : public Control {
 public:
     explicit SubSurfaceHost(StableId stable_id);
     ~SubSurfaceHost() override;
@@ -198,12 +199,12 @@ public:
     // the composed sub-surface frame, present once the sub-surface has a
     // LiveSurface; the sub-surface's own controls are parts of its tree,
     // not of the host.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry content;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool enabled{};
         bool disabled{};

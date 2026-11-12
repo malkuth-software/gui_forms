@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 
 #include <cstddef>
@@ -23,7 +24,7 @@ namespace gui_forms {
 // spelling that folds to it finds the column. Kind null declares an untyped
 // column, which takes a value of any kind; every column takes the null
 // value. A read-only column is never written by the source.
-struct BindingColumn final {
+struct GUI_FORMS_API BindingColumn final {
     std::string name;
     BindingValueKind kind{BindingValueKind::null};
     bool read_only{};
@@ -48,7 +49,7 @@ inline constexpr std::size_t binding_maximum_error_bytes = 4096U;
 inline constexpr std::size_t binding_maximum_rows = std::size_t{1} << 31U;
 
 // A table's columns, declared once per provider.
-class BindingSchema final {
+class GUI_FORMS_API BindingSchema final {
 public:
     BindingSchema() = default;
     // Throws std::invalid_argument for an empty name, a name repeated under
@@ -81,7 +82,7 @@ private:
 // One row given whole to a provider (BindingTable, insert_row): its stable
 // ID (the StableId segment rule), its values in column order (fewer than the
 // schema's columns are padded with null), and whether it may be edited.
-struct BindingRow final {
+struct GUI_FORMS_API BindingRow final {
     std::string stable_id;
     std::vector<BindingValue> values;
     bool editable{true};
@@ -104,7 +105,7 @@ enum class BindingSortDirection : std::uint8_t {
 // One sort key: a column by name and its direction. Rows whose keys are all
 // equal keep their provider order (the owner's ruling, 2026-11-10: a stable
 // sort, a recorded divergence from List<T>.Sort).
-struct BindingSortKey final {
+struct GUI_FORMS_API BindingSortKey final {
     std::string column;
     BindingSortDirection direction{BindingSortDirection::ascending};
 
@@ -131,7 +132,7 @@ enum class BindingPredicateOperator : std::uint8_t {
     is_not_null,
 };
 
-struct BindingPredicate final {
+struct GUI_FORMS_API BindingPredicate final {
     std::string column;
     BindingPredicateOperator op{BindingPredicateOperator::equal};
     BindingValue operand;
@@ -144,7 +145,7 @@ struct BindingPredicate final {
 
 // A filter admits a row when every predicate holds; no predicates admit
 // every row.
-struct BindingFilter final {
+struct GUI_FORMS_API BindingFilter final {
     std::vector<BindingPredicate> all_of;
 
     [[nodiscard]] bool empty() const noexcept { return all_of.empty(); }
@@ -160,9 +161,9 @@ struct BindingFilter final {
 // ruling, 2026-11-10); false before true; values of different families
 // order by kind; other kinds (geometry, colours, fonts, images, objects,
 // collections) are equal to every value of their kind.
-[[nodiscard]] int compare_binding_keys(const BindingValue& left, const BindingValue& right) noexcept;
+[[nodiscard]] GUI_FORMS_API int compare_binding_keys(const BindingValue& left, const BindingValue& right) noexcept;
 
 // Whether value satisfies predicate.
-[[nodiscard]] bool binding_predicate_holds(const BindingPredicate& predicate, const BindingValue& value) noexcept;
+[[nodiscard]] GUI_FORMS_API bool binding_predicate_holds(const BindingPredicate& predicate, const BindingValue& value) noexcept;
 
 } // namespace gui_forms

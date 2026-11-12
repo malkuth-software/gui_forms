@@ -3,6 +3,7 @@
 // PageStrip's setting types, apart from the control so its capabilities
 // header can name them.
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 
 namespace gui_forms {
@@ -42,7 +43,7 @@ enum class PageCloseButtons : std::uint8_t { none, selected_and_hot, all };
 
 // Tab widths in logical units at text scale 1. 0 < minimum <= maximum <=
 // `maximum_width`, and 0 < fixed <= `maximum_width`.
-struct PageItemWidths final {
+struct GUI_FORMS_API PageItemWidths final {
     static constexpr double maximum_width = 1024.0;
 
     double minimum{40.0};

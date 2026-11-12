@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 #include "gui_forms/host/compositor/window_backdrop.hpp"
 #include "gui_forms/surface_material.hpp"
@@ -17,7 +18,7 @@
 
 namespace gui_forms {
 
-struct BasicControlStyle final {
+struct GUI_FORMS_API BasicControlStyle final {
     Color face{Color::rgba(229, 234, 239)};
     Color face_light{Color::rgba(247, 249, 251)};
     Color paper{Color::rgba(255, 255, 255)};
@@ -65,7 +66,7 @@ enum class ControlVisualStatus : std::uint8_t { normal, pending, invalid };
 
 // A control's interaction state as it asks for its visual context
 // (Control::visual_context, audit A13): named fields, all false by default.
-struct VisualInteraction final {
+struct GUI_FORMS_API VisualInteraction final {
     bool hovered{};
     bool pressed{};
     bool selected{};
@@ -73,7 +74,7 @@ struct VisualInteraction final {
     bool defaulted{};
 };
 
-struct ControlVisualContext final {
+struct GUI_FORMS_API ControlVisualContext final {
     ControlSurfaceState surface{ControlSurfaceState::normal};
     bool selected{};
     bool focused{};
@@ -98,7 +99,7 @@ struct ControlVisualContext final {
 // `color` under the glyphs. Data only in T2: the theme carries it, and the
 // text stage (M4/M9) draws it, with a first-party blur so that it is the
 // same on every host.
-struct ControlTextShadow final {
+struct GUI_FORMS_API ControlTextShadow final {
     Point offset{};
     double blur_radius{};
     Color color{Color::rgba(0, 0, 0, 0)};
@@ -119,7 +120,7 @@ struct ControlTextShadow final {
 // the fill as the theme paints it under translucent pale bands, a gloss
 // over opaque stripe colours, and still bands under reduced motion. A pitch
 // of 0 is `auto`.
-struct ControlStripePattern final {
+struct GUI_FORMS_API ControlStripePattern final {
     std::optional<double> pitch{};
     std::optional<double> ratio{};
     std::optional<double> angle_degrees{};
@@ -138,7 +139,7 @@ struct ControlStripePattern final {
     }
 };
 
-struct ControlPartMetrics final {
+struct GUI_FORMS_API ControlPartMetrics final {
     std::optional<double> block_size{};
     std::optional<double> minimum_inline_size{};
     std::optional<double> padding_inline{};
@@ -163,7 +164,7 @@ struct ControlPartMetrics final {
     }
 };
 
-struct ControlVisualRecipe final {
+struct GUI_FORMS_API ControlVisualRecipe final {
     SurfaceMaterial material;
     Color text{Color::rgba(27, 39, 51)};
     Color muted_text{Color::rgba(132, 143, 153)};
@@ -240,7 +241,7 @@ struct ControlVisualRecipe final {
 // borrows the theme, so it is not kept past the theme's use. `recipe()`
 // borrows from the value, so it is read from a named value and never from
 // a temporary.
-class ResolvedControlRecipe final {
+class GUI_FORMS_API ResolvedControlRecipe final {
 public:
     explicit ResolvedControlRecipe(const ControlVisualRecipe& floor) noexcept : floor_(&floor) {}
     ResolvedControlRecipe(const ControlVisualRecipe& floor, ControlVisualRecipe&& authored,
@@ -278,11 +279,11 @@ inline constexpr std::size_t control_visual_role_count =
     static_cast<std::size_t>(ControlVisualRole::count);
 // Registered (snake_case) name of a recipe family, as the schema's
 // vocabulary lists it; empty for `count`.
-[[nodiscard]] std::string_view control_visual_role_name(ControlVisualRole role) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view control_visual_role_name(ControlVisualRole role) noexcept;
 inline constexpr std::size_t control_surface_state_count =
     static_cast<std::size_t>(ControlSurfaceState::count);
 
-struct ControlStateRecipes final {
+struct GUI_FORMS_API ControlStateRecipes final {
     std::array<ControlVisualRecipe, control_surface_state_count> values;
     [[nodiscard]] static ControlStateRecipes from_parts(
         const ControlVisualRecipe* values, std::size_t value_count);
@@ -297,12 +298,12 @@ struct ControlStateRecipes final {
     }
 };
 
-[[nodiscard]] bool valid_control_visual_recipe(
+[[nodiscard]] GUI_FORMS_API bool valid_control_visual_recipe(
     const ControlVisualRecipe& value) noexcept;
-[[nodiscard]] bool valid_control_state_recipes(
+[[nodiscard]] GUI_FORMS_API bool valid_control_state_recipes(
     const ControlStateRecipes& value) noexcept;
 
-struct ControlRoleRecipes final {
+struct GUI_FORMS_API ControlRoleRecipes final {
     std::array<ControlVisualRecipe, control_surface_state_count> ordinary;
     std::array<ControlVisualRecipe, control_surface_state_count> selected;
     std::array<ControlVisualRecipe, control_surface_state_count> high_contrast;
@@ -343,7 +344,7 @@ struct ControlRoleRecipes final {
 // plain plate inside the pressed edge, and selected the state's plate inside
 // the selection line. Theme::create applies it to every family (`family`), so authored
 // high-contrast records are replaced.
-[[nodiscard]] ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes, ControlVisualRole family);
+[[nodiscard]] GUI_FORMS_API ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes, ControlVisualRole family);
 
 // The dark pass (stage T4 phase 5; design language 5.8 rule 3): `recipes`
 // with its dark and dark_selected records derived from its ordinary and
@@ -352,7 +353,7 @@ struct ControlRoleRecipes final {
 // paints (a face by its family: stock, well, chrome or accent; text, lines,
 // cues, highlights and shades by their own rules), so the light stays upper
 // left and inset stays inset.
-[[nodiscard]] ControlRoleRecipes derive_dark_recipes(ControlRoleRecipes recipes, ControlVisualRole family);
+[[nodiscard]] GUI_FORMS_API ControlRoleRecipes derive_dark_recipes(ControlRoleRecipes recipes, ControlVisualRole family);
 
 // The colour forced high contrast draws in place of one a theme declared
 // (T3 EC4, owner decision D3 of 2026-10-28), for a part in `state`,
@@ -368,7 +369,7 @@ struct ControlRoleRecipes final {
 //   `focus` and `selection-line` the hot edge, and the selection and
 //   on-accent pairs black on white, as a selected part.
 // The forced high-contrast pass that draws with it is T3 P9's (EC6).
-[[nodiscard]] Color high_contrast_colour(ColourOrigin origin, ColourPosition position, ControlSurfaceState state,
+[[nodiscard]] GUI_FORMS_API Color high_contrast_colour(ColourOrigin origin, ColourPosition position, ControlSurfaceState state,
                                          bool selected) noexcept;
 
 // The recipes of every control visual role, indexed by ControlVisualRole,
@@ -380,7 +381,7 @@ struct ControlRoleRecipes final {
 // default recipes, and a copy copies every recipe. Moving copies too (no
 // move operations are declared), so a moved-from table still holds its
 // recipes rather than none.
-class ControlRoleTable final {
+class GUI_FORMS_API ControlRoleTable final {
 public:
     using Families = std::array<ControlRoleRecipes, control_visual_role_count>;
 
@@ -415,7 +416,7 @@ private:
     std::unique_ptr<Families> families_;
 };
 
-struct ThemeSpacingTokens final {
+struct GUI_FORMS_API ThemeSpacingTokens final {
     double micro{2.0};
     double xsmall{4.0};
     double small{6.0};
@@ -431,7 +432,7 @@ struct ThemeSpacingTokens final {
                left.section == right.section;
     }
 };
-struct ThemeGeometryTokens final {
+struct GUI_FORMS_API ThemeGeometryTokens final {
     double compact_control_height{24.0};
     double control_height{30.0};
     double large_control_height{36.0};
@@ -461,7 +462,7 @@ struct ThemeGeometryTokens final {
                left.scroll_arrows == right.scroll_arrows;
     }
 };
-struct ThemeTypographyTokens final {
+struct GUI_FORMS_API ThemeTypographyTokens final {
     FontSpec control{FontRole::control, 12.0, 400, false, 0.24};
     FontSpec field{FontRole::content, 12.0, 400, false};
     FontSpec caption{FontRole::content, 10.0, 400, false};
@@ -476,7 +477,7 @@ struct ThemeTypographyTokens final {
                left.monospace == right.monospace;
     }
 };
-struct ThemeMotionTokens final {
+struct GUI_FORMS_API ThemeMotionTokens final {
     std::chrono::milliseconds quick{100};
     std::chrono::milliseconds standard{180};
     std::chrono::milliseconds emphasized{280};
@@ -489,7 +490,7 @@ struct ThemeMotionTokens final {
                left.busy_cycle == right.busy_cycle;
     }
 };
-struct ThemeStructureTokens final {
+struct GUI_FORMS_API ThemeStructureTokens final {
     ThemeSpacingTokens spacing;
     ThemeGeometryTokens geometry;
     ThemeTypographyTokens typography;
@@ -535,7 +536,7 @@ struct ThemeStructureTokens final {
 
 // One backplane base: the material a window's backplane is drawn from
 // while it is granted `backdrop` (ThemeWindowBackdrop).
-struct ThemeBackdropBase final {
+struct GUI_FORMS_API ThemeBackdropBase final {
     WindowBackdrop backdrop{WindowBackdrop::transparent};
     SurfaceMaterial material{};
 
@@ -548,7 +549,7 @@ struct ThemeBackdropBase final {
 // what a window showing the theme asks the compositor for, and the base its
 // backplane is drawn from over each backdrop the window may be granted
 // (notes:planning/stages/T5-compositor/PLAN.md §4.1).
-struct ThemeWindowBackdrop final {
+struct GUI_FORMS_API ThemeWindowBackdrop final {
     // The request a window makes while its application has made none
     // (Window::request_backdrop). Value-initialized: `opaque` alone, so a
     // theme that says nothing asks for nothing. Theme::create refuses a
@@ -586,7 +587,7 @@ enum class ThemeDarkVariant : std::uint8_t { none, derived, authored };
 // line (ControlRoleTable), so the definition itself is a small value, but
 // copying one still copies every recipe: pass it by reference, and let
 // Theme::create make the theme's own copy.
-struct ThemeDefinition final {
+struct GUI_FORMS_API ThemeDefinition final {
     std::string id{"windows-professional"};
     BasicControlStyle compatibility;
     ControlRoleTable roles;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/docking/dock_layout/dock_layout.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -31,7 +32,7 @@ inline constexpr std::size_t dock_drop_zone_count = 5;
 
 // The geometry, in logical units at text scale 1 (the look study's quiet
 // tiles, T2-4; its zone threshold and global bands).
-struct DockDropMetrics final {
+struct GUI_FORMS_API DockDropMetrics final {
     // A pane's zone is its nearest edge while the pointer lies within this
     // fraction of the pane from it, else the centre.
     static constexpr double side_band = 0.28;
@@ -58,7 +59,7 @@ struct DockDropMetrics final {
 // names its document area (`area`, `area_bounds`): a side the stack itself
 // refuses (a tool panel beside a document) docks beside the whole area,
 // as Visual Studio's outer guides do.
-struct DockDropPane final {
+struct GUI_FORMS_API DockDropPane final {
     DockNodeId node{};
     Rect bounds{};
     DockNodeId area{};
@@ -75,7 +76,7 @@ enum class DockDropEdges : std::uint8_t { global, none };
 // validated against the restrictions when the drag started) and the area
 // the subject would take (`highlight`, in the site's coordinates). For an
 // edge target, `zone` is the edge (never center) and `pane` is none.
-struct DockDropTarget final {
+struct GUI_FORMS_API DockDropTarget final {
     DockDropTargetKind kind{DockDropTargetKind::pane};
     DockNodeId pane{};
     DockDropZone zone{DockDropZone::center};
@@ -85,7 +86,7 @@ struct DockDropTarget final {
 
 // What the pointer is over: a window edge, or a pane's zone, or nothing in
 // particular inside the site (`over_site` without a pane), or outside it.
-struct DockDropHit final {
+struct GUI_FORMS_API DockDropHit final {
     bool over_site{false};
     bool edge{false};
     // The pane's index in the panes given, while over a pane.
@@ -96,26 +97,26 @@ struct DockDropHit final {
 // The cross over a pane, in DockDropZone order. Every tile lies inside the
 // pane; a pane too small for the smallest cross gets the tiles anyway,
 // clipped by the caller.
-[[nodiscard]] std::array<Rect, dock_drop_zone_count> dock_cross_tiles(Rect pane, double scale) noexcept;
+[[nodiscard]] GUI_FORMS_API std::array<Rect, dock_drop_zone_count> dock_cross_tiles(Rect pane, double scale) noexcept;
 // The edge tiles of the site, in DockDropZone order with the centre's slot
 // left empty.
-[[nodiscard]] std::array<Rect, dock_drop_zone_count> dock_edge_tiles(Rect site, double scale) noexcept;
+[[nodiscard]] GUI_FORMS_API std::array<Rect, dock_drop_zone_count> dock_edge_tiles(Rect site, double scale) noexcept;
 // The area a subject dropped on `zone` of `pane` would take; an edge's when
 // `edge` (a quarter of the site along that edge).
-[[nodiscard]] Rect dock_drop_highlight(Rect bounds, DockDropZone zone, bool edge) noexcept;
+[[nodiscard]] GUI_FORMS_API Rect dock_drop_highlight(Rect bounds, DockDropZone zone, bool edge) noexcept;
 // The zone of `pane` a point selects from its position alone.
-[[nodiscard]] DockDropZone dock_zone_at(Rect pane, Point point) noexcept;
+[[nodiscard]] GUI_FORMS_API DockDropZone dock_zone_at(Rect pane, Point point) noexcept;
 
 // What a point hovers: the site's edge tiles and bands first (unless
 // `edges` is none), then the pane containing it (a cross tile under the
 // point, else its zone).
-[[nodiscard]] DockDropHit hit_dock_drop(Point point, Rect site, std::span<const DockDropPane> panes,
+[[nodiscard]] GUI_FORMS_API DockDropHit hit_dock_drop(Point point, Rect site, std::span<const DockDropPane> panes,
                                         double scale, DockDropEdges edges = DockDropEdges::global) noexcept;
 
 // The edit a target makes for `subject`: dock_into a stack or the empty
 // document area for the centre, dock_beside a pane for a side, dock_at_edge
 // for an edge.
-[[nodiscard]] DockEdit dock_drop_edit(const DockSubject& subject, DockDropTargetKind kind, DockNodeId pane,
+[[nodiscard]] GUI_FORMS_API DockEdit dock_drop_edit(const DockSubject& subject, DockDropTargetKind kind, DockNodeId pane,
                                       DockDropZone zone);
 
 // Fills `out` (cleared first) with every target of a drag of `subject` over
@@ -126,13 +127,13 @@ struct DockDropHit final {
 // top, left, right, bottom. The centre of `own_stack` (where a dragged panel came from) is
 // left out: dropping a panel back into its own stack changes nothing. A side
 // a document stack refuses is tried beside its document area (DockDropPane).
-void plan_dock_drop_targets(const DockLayout& layout, const DockSubject& subject, DockNodeId own_stack,
+GUI_FORMS_API void plan_dock_drop_targets(const DockLayout& layout, const DockSubject& subject, DockNodeId own_stack,
                             Rect site, std::span<const DockDropPane> panes, std::vector<DockDropTarget>& out,
                             DockDropEdges edges = DockDropEdges::global);
 
 // The planned target a hit selects, as an index into `targets`, or none (a
 // refused zone, a gap inside the site, or outside it).
-[[nodiscard]] std::optional<std::size_t> find_dock_drop_target(std::span<const DockDropTarget> targets,
+[[nodiscard]] GUI_FORMS_API std::optional<std::size_t> find_dock_drop_target(std::span<const DockDropTarget> targets,
                                                                std::span<const DockDropPane> panes,
                                                                const DockDropHit& hit) noexcept;
 

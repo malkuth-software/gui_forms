@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 #include <string>
 
@@ -29,13 +30,13 @@ enum class HousekeepingExpectation : std::uint8_t {
 
 // What each expectation allows. Defaults are generous: they flag a stall,
 // not an ordinary busy frame.
-struct ExpectationThresholds final {
+struct GUI_FORMS_API ExpectationThresholds final {
     std::uint64_t late_wake_nanoseconds{100'000'000U};
     std::uint64_t paint_budget_nanoseconds{50'000'000U};
     std::uint64_t live_drain_skipped_frames{8U};
 };
 
-struct MetricsSnapshot {
+struct GUI_FORMS_API MetricsSnapshot {
     std::uint64_t control_count{};
     std::uint64_t stable_id_count{};
     std::uint64_t mutations{};

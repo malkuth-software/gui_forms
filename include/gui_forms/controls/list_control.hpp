@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/panel.hpp"
 
 namespace gui_forms {
@@ -17,7 +18,7 @@ namespace gui_forms {
 // selected_index property cell), so no common member exists to move up. The
 // items stay on each leaf, as in Windows Forms. It declares no virtual
 // function of its own: nothing varies between the leaves through it.
-class ListControl : public Panel {
+class GUI_FORMS_API ListControl : public Panel {
 public:
     ~ListControl() override;
 

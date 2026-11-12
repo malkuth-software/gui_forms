@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/detail/scalar_binding.hpp"
 
 #include "gui_forms/animation.hpp"
@@ -13,7 +14,7 @@
 
 namespace gui_forms {
 
-class RangeControl : public Control, public RangeControlCapabilities<RangeControl> {
+class GUI_FORMS_API RangeControl : public Control, public RangeControlCapabilities<RangeControl> {
 public:
     explicit RangeControl(StableId stable_id);
     void bind(Value<double>& model);
@@ -39,11 +40,11 @@ public:
     }
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool enabled{};
         bool disabled{};

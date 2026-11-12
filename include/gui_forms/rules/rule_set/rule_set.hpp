@@ -32,6 +32,7 @@
 // reads stale; a window's rules end with it. The rule set and its tokens are
 // used on the window's thread only.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/rules/rule/rule.hpp"
 
 #include <cstddef>
@@ -75,7 +76,7 @@ enum class RuleRefusal : std::uint8_t {
     limit_reached,
 };
 
-[[nodiscard]] std::string_view rule_refusal_name(RuleRefusal refusal) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view rule_refusal_name(RuleRefusal refusal) noexcept;
 
 // Where a rule is: armed (it fires), revoked (through its token), stale (a
 // component it names was disposed or destroyed, or its window has gone), or
@@ -89,7 +90,7 @@ enum class RuleTokenState : std::uint8_t {
 
 // A handle to one rule. It observes the rule and does not own it: dropping
 // the token leaves the rule armed. revoke() ends the rule early.
-class RuleToken final {
+class GUI_FORMS_API RuleToken final {
 public:
     RuleToken() = default;
 
@@ -109,7 +110,7 @@ private:
 
 // add()'s explicit result: the token of the armed rule, or the refusal (and
 // an empty token).
-struct RuleAddResult final {
+struct GUI_FORMS_API RuleAddResult final {
     RuleToken token{};
     RuleRefusal refusal{RuleRefusal::none};
 };
@@ -120,7 +121,7 @@ struct RuleAddResult final {
 //   fired: rules whose conditions held and whose actions ran.
 //   consumed: occurrences a consuming rule ended.
 //   refused: add() calls refused.
-struct RuleSetStatistics final {
+struct GUI_FORMS_API RuleSetStatistics final {
     std::uint64_t occurrences{};
     std::uint64_t evaluated{};
     std::uint64_t fired{};
@@ -131,7 +132,7 @@ struct RuleSetStatistics final {
 // A window's rules: armed by add(), evaluated as their triggers occur, in
 // the order added. Evaluation, input order and lifetime are described at
 // the top of rule_set.hpp.
-class RuleSet final {
+class GUI_FORMS_API RuleSet final {
 public:
     explicit RuleSet(SurfaceRoot& window);
     ~RuleSet();
@@ -230,6 +231,6 @@ RuleAddResult on(RuleSet& rules, const RuleTrigger& trigger, Context& context,
     return added;
 }
 
-RuleAddResult on(RuleSet& rules, const RuleTrigger& trigger, const RuleAction& built);
+GUI_FORMS_API RuleAddResult on(RuleSet& rules, const RuleTrigger& trigger, const RuleAction& built);
 
 } // namespace gui_forms

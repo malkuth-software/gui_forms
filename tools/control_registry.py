@@ -111,7 +111,7 @@ CPP_IDENTIFIER: re.Pattern[str] = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 # until instantiated).
 _DECLARATION: re.Pattern[str] = re.compile(
     r"^(?P<template>template\s*<[^\n]*>\s*\n)?"
-    r"(?:class|struct)\s+(?P<name>[A-Za-z_]\w*)\s*(?:final\s*)?"
+    r"(?:class|struct)\s+(?:GUI_FORMS_API\s+)?(?P<name>[A-Za-z_]\w*)\s*(?:final\s*)?"
     r"(?P<bases>:\s*[^{;]*?)?\s*\{",
     re.MULTILINE,
 )
@@ -325,7 +325,7 @@ def scan_public_control_types(include_root: Path = INCLUDE_ROOT, header_root: Pa
 
 
 def _type_declared_in(header_text: str, type_name: str) -> bool:
-    pattern: re.Pattern[str] = re.compile(r"\b(?:class|struct)\s+" + re.escape(type_name) + r"\b\s*(?:final\b)?\s*[:{]")
+    pattern: re.Pattern[str] = re.compile(r"\b(?:class|struct)\s+(?:GUI_FORMS_API\s+)?" + re.escape(type_name) + r"\b\s*(?:final\b)?\s*[:{]")
     return pattern.search(_strip_comments(header_text)) is not None
 
 

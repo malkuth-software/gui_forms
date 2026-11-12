@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 
 #include <array>
@@ -46,7 +47,7 @@ inline constexpr std::size_t maximum_expression_parameters = 32;
 
 // The position of an input in the inputs an expression is evaluated with.
 // Distinct from a parameter's position and from a state.
-struct ExpressionInputIndex final {
+struct GUI_FORMS_API ExpressionInputIndex final {
     std::uint8_t value{};
 
     friend constexpr bool operator==(ExpressionInputIndex left, ExpressionInputIndex right) noexcept {
@@ -85,7 +86,7 @@ static_assert(engine_input_count + maximum_published_values <= maximum_expressio
 
 // The position of a number parameter among a primitive's declared
 // parameters (PrimitiveDescriptor::parameters).
-struct ExpressionParameterIndex final {
+struct GUI_FORMS_API ExpressionParameterIndex final {
     std::uint8_t value{};
 
     friend constexpr bool operator==(ExpressionParameterIndex left, ExpressionParameterIndex right) noexcept {
@@ -136,15 +137,15 @@ inline constexpr std::size_t expression_operation_count = static_cast<std::size_
 
 // Registered (snake_case) name of an operation, for diagnostics and the
 // schema.
-[[nodiscard]] const char* expression_operation_name(ExpressionOperation operation) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* expression_operation_name(ExpressionOperation operation) noexcept;
 
 // How many operands an operation pops.
-[[nodiscard]] std::size_t expression_operand_count(ExpressionOperation operation) noexcept;
+[[nodiscard]] GUI_FORMS_API std::size_t expression_operand_count(ExpressionOperation operation) noexcept;
 
 // One instruction. Make it with the named factories, which keep the
 // operation and its operand together: `index` is read by input, state and
 // parameter, `constant` by constant.
-struct ExpressionInstruction final {
+struct GUI_FORMS_API ExpressionInstruction final {
     ExpressionOperation operation{ExpressionOperation::constant};
     std::uint8_t index{};
     double constant{};
@@ -188,7 +189,7 @@ struct ExpressionInstruction final {
 // What a program reads, found when it is compiled: bit i of `inputs` for
 // the input at position i, bit i of `parameters` for the parameter at
 // position i, and the standard states in `states`.
-struct ExpressionDependencies final {
+struct GUI_FORMS_API ExpressionDependencies final {
     std::uint64_t inputs{};
     std::uint32_t parameters{};
     AnatomyStateSet states{};
@@ -213,7 +214,7 @@ struct ExpressionDependencies final {
 // How many inputs and parameters the program may address: an index at or
 // beyond either count is refused when the program is compiled. Each is at
 // most its maximum_expression_* bound.
-struct ExpressionLimits final {
+struct GUI_FORMS_API ExpressionLimits final {
     std::size_t inputs{};
     std::size_t parameters{};
 };
@@ -239,7 +240,7 @@ enum class ExpressionDefect : std::uint8_t {
     unbalanced,
 };
 
-[[nodiscard]] const char* expression_defect_name(ExpressionDefect defect) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* expression_defect_name(ExpressionDefect defect) noexcept;
 
 // What an evaluation used: the program's value, or its fallback and why.
 enum class ExpressionFallback : std::uint8_t {
@@ -251,16 +252,16 @@ enum class ExpressionFallback : std::uint8_t {
     environment_too_short,
 };
 
-[[nodiscard]] const char* expression_fallback_name(ExpressionFallback fallback) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* expression_fallback_name(ExpressionFallback fallback) noexcept;
 
-struct ExpressionResult final {
+struct GUI_FORMS_API ExpressionResult final {
     double value{};
     ExpressionFallback fallback{ExpressionFallback::none};
 };
 
 // What one evaluation reads. Every view is borrowed for the call. `inputs`
 // and `parameters` must hold at least the program's limits.
-struct ExpressionEnvironment final {
+struct GUI_FORMS_API ExpressionEnvironment final {
     std::span<const double> inputs{};
     AnatomyStateSet states{};
     std::span<const double> parameters{};
@@ -269,7 +270,7 @@ struct ExpressionEnvironment final {
 // A compilation's outcome: the program when `defect` is none, otherwise the
 // defect and the position of the instruction it concerns (0 for a defect of
 // the whole program).
-struct ExpressionCompilation final {
+struct GUI_FORMS_API ExpressionCompilation final {
     ExpressionDefect defect{ExpressionDefect::none};
     std::size_t instruction{};
 };
@@ -277,7 +278,7 @@ struct ExpressionCompilation final {
 // A compiled program: immutable, a fixed-size value with no allocation, so
 // it can be copied into a rule table and evaluated from any number of parts
 // on the UI thread.
-class EngineExpression final {
+class GUI_FORMS_API EngineExpression final {
 public:
     // The program `1` with fallback 0, which reads nothing.
     EngineExpression() noexcept;
@@ -300,7 +301,7 @@ public:
     [[nodiscard]] const ExpressionDependencies& dependencies() const noexcept { return dependencies_; }
     [[nodiscard]] const ExpressionLimits& limits() const noexcept { return limits_; }
 
-    friend bool operator==(const EngineExpression& left, const EngineExpression& right) noexcept;
+    friend GUI_FORMS_API bool operator==(const EngineExpression& left, const EngineExpression& right) noexcept;
 
 private:
     std::array<ExpressionInstruction, maximum_expression_operations> instructions_{};

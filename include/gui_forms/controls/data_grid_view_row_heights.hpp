@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <span>
 #include <vector>
@@ -8,7 +9,7 @@ namespace gui_forms {
 
 // One row's own height, by its presentation position, for
 // DataGridViewRowHeights::reset.
-struct DataGridViewRowHeight final {
+struct GUI_FORMS_API DataGridViewRowHeight final {
     std::size_t position{};
     double height{};
 
@@ -34,7 +35,7 @@ struct DataGridViewRowHeight final {
 // half units, quarter units at a text scale) add exactly; others may drift
 // by rounding after many set_height calls, which reset clears. Single UI
 // thread.
-class DataGridViewRowHeights final {
+class GUI_FORMS_API DataGridViewRowHeights final {
 public:
     // `count` rows of `default_height`, none with its own.
     void reset(std::size_t count, double default_height);

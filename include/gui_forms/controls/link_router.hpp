@@ -51,6 +51,7 @@
 // Threads: a router is used on one thread, with a graph not mutated during
 // route().
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/node_graph.hpp"
 
 #include <array>
@@ -65,7 +66,7 @@ namespace gui_forms {
 
 enum class LinkRouteStyle : std::uint8_t { orthogonal, soft };
 
-struct LinkRouterOptions final {
+struct GUI_FORMS_API LinkRouterOptions final {
     LinkRouteStyle style{LinkRouteStyle::soft};
     // The clearance kept round every node, and each port stub's length.
     double obstacle_margin{12.0};
@@ -89,7 +90,7 @@ inline constexpr std::size_t maximum_route_grid_vertices = 1048576U;
 // style's flattened curve), as a range of LinkRouter::drawn. A fallback
 // route found no orthogonal path (a port inside another node's margin, or
 // the grid cap) and is the straight line between the stub ends.
-struct RoutedLink final {
+struct GUI_FORMS_API RoutedLink final {
     LinkId link{};
     PortSide from_side{PortSide::right};
     PortSide to_side{PortSide::left};
@@ -103,7 +104,7 @@ struct RoutedLink final {
     bool fallback{};
 };
 
-struct LinkRouteStatistics final {
+struct GUI_FORMS_API LinkRouteStatistics final {
     std::size_t routed{};
     std::size_t fallbacks{};
     std::size_t grid_columns{};
@@ -118,7 +119,7 @@ struct LinkRouteStatistics final {
     std::size_t storage_growths{};
 };
 
-class LinkRouter final {
+class GUI_FORMS_API LinkRouter final {
 public:
     // Reserves for a graph of `nodes` nodes and `links` links (the grid's
     // storage grows on first use as needed).
@@ -278,8 +279,8 @@ private:
 // Appends one line per route to `out`: the link's slot and generation, its
 // resolved edges, bend count, a fallback mark and its orthogonal points with
 // coordinates rounded to 1/64 (the drag trace's rounding), for golden traces.
-void append_link_route_trace(std::string& out, const LinkRouter& router);
+GUI_FORMS_API void append_link_route_trace(std::string& out, const LinkRouter& router);
 
-[[nodiscard]] std::string_view port_side_name(PortSide side) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view port_side_name(PortSide side) noexcept;
 
 } // namespace gui_forms

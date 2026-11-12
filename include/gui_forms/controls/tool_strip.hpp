@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
@@ -78,7 +79,7 @@ enum class ToolStripOverflow : std::uint8_t { as_needed, never };
 // shows it below the item; empty shows none. It reaches the item's semantic
 // node (SemanticNode::tool_tip), and a hosted item's control as that
 // control's tooltip text.
-struct ToolStripItemSpec final {
+struct GUI_FORMS_API ToolStripItemSpec final {
     std::string stable_id{};
     ToolStripItemKind kind{ToolStripItemKind::button};
     GUI_FORMS_LOCALIZABLE(text) std::string text{};
@@ -105,21 +106,21 @@ struct ToolStripItemSpec final {
 };
 
 // A click on an item, after any command it carries has executed.
-struct ToolStripItemClick final {
+struct GUI_FORMS_API ToolStripItemClick final {
     std::string strip_id{};
     std::string item_id{};
 };
 
 // The item the keyboard is on changed while the strip has focus: the strip
 // took focus, or an arrow key or a semantic focus action moved it.
-struct ToolStripItemFocus final {
+struct GUI_FORMS_API ToolStripItemFocus final {
     std::string strip_id{};
     std::string item_id{};
 };
 
 // A choice from a drop-down or split button's menu, or from the overflow
 // menu's copy of one.
-struct ToolStripDropDownInvocation final {
+struct GUI_FORMS_API ToolStripDropDownInvocation final {
     std::string strip_id{};
     std::string item_id{};
     MenuItemInvocation choice{};
@@ -132,7 +133,7 @@ struct ToolStripDropDownInvocation final {
 // move to an overflow menu opened from the overflow button at the strip's
 // end. A strip is laid out horizontally, or vertically (top to bottom) for
 // the left and right panels of a ToolStripContainer.
-class ToolStrip : public Control, public ToolStripCapabilities<ToolStrip> {
+class GUI_FORMS_API ToolStrip : public Control, public ToolStripCapabilities<ToolStrip> {
 public:
     explicit ToolStrip(StableId stable_id);
     ~ToolStrip() override;
@@ -203,7 +204,7 @@ public:
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry face;
         PartGeometry grip;
@@ -214,7 +215,7 @@ public:
     [[nodiscard]] Parts parts() const;
     // Item part names start with the word item (item_face): an item part may not repeat
     // one of the strip's own part names (face, focus).
-    struct ItemParts final {
+    struct GUI_FORMS_API ItemParts final {
         PartGeometry item_face;
         PartGeometry item_icon;
         PartGeometry item_label;
@@ -227,7 +228,7 @@ public:
         PartGeometry item_text_box;
         PartGeometry item_progress_bar;
     };
-    struct ItemStates final {
+    struct GUI_FORMS_API ItemStates final {
         bool hot{};
         bool pressed{};
         bool checked{};
@@ -235,7 +236,7 @@ public:
         bool disabled{};
         bool focus_visible{};
     };
-    struct Item final {
+    struct GUI_FORMS_API Item final {
         std::size_t index{};
         std::string stable_id;
         ItemParts parts;
@@ -248,11 +249,11 @@ public:
 protected:
     // For StatusStrip: a strip whose items never overflow, whose spring
     // labels share the free width, and which may show a sizing grip.
-    struct StatusLayout final {};
+    struct GUI_FORMS_API StatusLayout final {};
     ToolStrip(StableId stable_id, StatusLayout);
 
     // Where each item and the strip's own parts sit, from one layout pass.
-    struct Layout final {
+    struct GUI_FORMS_API Layout final {
         std::vector<Rect> items;       // per item; empty when hidden or overflowed
         std::vector<bool> overflowed;  // per item
         Rect grip{};

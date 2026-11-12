@@ -1,4 +1,5 @@
 #pragma once
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/prepared_text/layout/prepared_text_layout.hpp"
 
 namespace gui_forms {
@@ -10,6 +11,6 @@ namespace gui_forms {
 // access to output. Publication holds the authority lock: cancellation/desire
 // linearizes either before commit (stale) or after a successful commit. Success
 // does not promise that authority remains current after the call returns.
-[[nodiscard]] PreparedTextStatus rasterize_prepared_text(const PreparedTextLayout& layout,
+[[nodiscard]] GUI_FORMS_API PreparedTextStatus rasterize_prepared_text(const PreparedTextLayout& layout,
     LayoutAuthority expected, GrayTextMask& output);
 } // namespace gui_forms

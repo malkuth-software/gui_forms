@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/types.hpp"
@@ -40,7 +41,7 @@ enum class HelpNavigator : std::uint8_t {
     keyword_index,
 };
 
-struct HelpRequestEvent final {
+struct GUI_FORMS_API HelpRequestEvent final {
     std::string target_stable_id;
     Point position{};
     std::string help_namespace;
@@ -51,7 +52,7 @@ struct HelpRequestEvent final {
     bool handled{};
 };
 
-struct HelpProviderSnapshot final {
+struct GUI_FORMS_API HelpProviderSnapshot final {
     std::size_t mappings{};
     std::size_t effective_mappings{};
     std::uint64_t requests{};
@@ -72,7 +73,7 @@ struct HelpProviderSnapshot final {
 // button or F1, Window::request_help) that no window handler took, after the
 // window's earlier-created providers, with its namespace and the root's
 // mapping where it has one.
-class HelpProvider final : public Component, public HelpProviderCapabilities<HelpProvider> {
+class GUI_FORMS_API HelpProvider final : public Component, public HelpProviderCapabilities<HelpProvider> {
 public:
     explicit HelpProvider(Window& window);
     ~HelpProvider() override;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/host/services/host_services.hpp"
@@ -25,7 +26,7 @@ class Window;
 // HostServices::maximum_dialog_text_bytes; anything else throws
 // std::invalid_argument and changes nothing. The dialog is used on the UI
 // thread of the window it is shown over.
-class ColorDialog final : public Component, public ColorDialogCapabilities<ColorDialog> {
+class GUI_FORMS_API ColorDialog final : public Component, public ColorDialogCapabilities<ColorDialog> {
 public:
     ColorDialog();
     ~ColorDialog() override;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 
 #include <memory>
@@ -8,7 +9,7 @@ namespace gui_forms {
 
 class Window;
 
-class FrameRequestToken final {
+class GUI_FORMS_API FrameRequestToken final {
 public:
     FrameRequestToken() = default;
     ~FrameRequestToken();

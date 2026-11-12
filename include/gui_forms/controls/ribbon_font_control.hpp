@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands/font_command/font_command.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/combo_box.hpp"
@@ -24,7 +25,7 @@ namespace gui_forms {
 //
 // Not yet: typing a family or size that is not listed, and drawing each
 // family in its own face in the list.
-class RibbonFontControl final : public Control, public RibbonFontControlCapabilities<RibbonFontControl> {
+class GUI_FORMS_API RibbonFontControl final : public Control, public RibbonFontControlCapabilities<RibbonFontControl> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // Development bounds, not measured capacity.
@@ -66,7 +67,7 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
 
     // Stage T1 anatomy, as dot members; its states are Control's.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry family_field;
         PartGeometry size_field;
