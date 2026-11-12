@@ -4,15 +4,14 @@
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
+#include "gui_forms/drag/drag_tracker/drag_tracker.hpp"
 #include "gui_forms/controls/splitter_capabilities.hpp"
 
-#include <memory>
+#include <array>
 #include <optional>
 #include <span>
 
 namespace gui_forms {
-
-class SplitterDrag;
 
 // A move of a Splitter by the user. `pointer` is the pointer in the parent's
 // coordinates. In splitter_moving, `split_position` is the target's proposed
@@ -37,8 +36,8 @@ struct GUI_FORMS_API SplitterMoveEvent final {
 // one with no target, does nothing. The bar is painted by role (a face
 // plate) and takes no focus, as in Windows Forms.
 //
-// The drag runs on the window's drag engine (roadmap 2.1, the study's step
-// M1) as a projection along the axis: the press starts it at once, each move
+// The drag runs on the public drag client (DragTracker, a value drag along
+// the axis, over the window's drag engine; roadmap 2.1, the study's step M1): the press starts it at once, each move
 // previews the extent live (splitter_moving), the release commits it
 // (splitter_moved). Escape, a lost capture and the window's deactivation
 // cancel and put the target back at its extent before the drag, as Windows
@@ -98,9 +97,9 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
+    void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
 
 private:
-    friend class SplitterDrag;
 
     // The limits a split position is clamped to, for the current target.
     struct SplitLimits final {
@@ -116,6 +115,13 @@ private:
     void apply(Control& target, double extent);
     // Records the target and its extent before a drag; false without one.
     bool prepare_drag();
+    // The drag tracker's callbacks (splitter.cpp): the value plan, the live
+    // preview, the announcement and the commit or restore.
+    void plan_drag(DragPlan& plan);
+    void preview_drag(const DragTrackerFrame& frame);
+    void announce_drag(DragAnnouncementRequest& request);
+    void finish_drag(const DragTrackerFrame& frame);
+    [[nodiscard]] Point pointer_in_parent(Point window_point) const;
 
     bool hot_{};
     bool dragging_{};
@@ -124,12 +130,15 @@ private:
     // The target's extent when the drag started, and the target.
     double drag_start_extent_{};
     Control::WeakPtr drag_target_{};
-    // The drag engine's client for this splitter (splitter.cpp).
-    std::unique_ptr<SplitterDrag> drag_{};
     Event<SplitterMoveEvent&> splitter_moving_{};
     Event<const SplitterMoveEvent&> splitter_moved_{};
     // The typed drag interactions, raised by the drag engine.
     DragInteractionEvents drag_interactions_{};
+    // The announcement's text, valid while the tracker copies it.
+    std::array<char, 96> announcement_text_{};
+    // The drag client; it raises drag_interactions_ and borrows this
+    // splitter, which outlives it (members are destroyed first).
+    DragTracker drag_;
     // property_codemod begin Splitter (tools/property_families/splitter.json; generated, do not edit)
 private:
     friend struct SplitterMinSizeCapability<Splitter>;

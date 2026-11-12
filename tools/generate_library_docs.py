@@ -107,9 +107,10 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "with its content between sets.",
           ("pages",)),
     Group("input-and-semantics", "Input and semantics",
-          "Pointer, keyboard, text and drag event records, and the semantic tree "
-          "published to accessibility and automation.",
-          ("events", "semantics")),
+          "Pointer, keyboard, text and drag event records, the public drag "
+          "client, and the semantic tree published to accessibility and "
+          "automation.",
+          ("events", "drag", "semantics")),
     Group("data-binding", "Data binding",
           "Bindings between control properties and data sources, currency "
           "management and binding events.",

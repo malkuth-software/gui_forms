@@ -72,6 +72,7 @@
     _ZGVZN9gui_forms10DockNodeId*;
     _ZGVZN9gui_forms10DockSiteId*;
     _ZGVZN9gui_forms10DragLimits*;
+    _ZGVZN9gui_forms10DragTarget*;
     _ZGVZN9gui_forms10EffectCost*;
     _ZGVZN9gui_forms10EmptyState*;
     _ZGVZN9gui_forms10FlexFactor*;
@@ -138,6 +139,8 @@
     _ZGVZN9gui_forms11DockPanelId*;
     _ZGVZN9gui_forms11DockRefusal*;
     _ZGVZN9gui_forms11DockSubject*;
+    _ZGVZN9gui_forms11DragReorder*;
+    _ZGVZN9gui_forms11DragTracker*;
     _ZGVZN9gui_forms11EffectEntry*;
     _ZGVZN9gui_forms11EffectFrame*;
     _ZGVZN9gui_forms11EffectSetup*;
@@ -287,6 +290,7 @@
     _ZGVZN9gui_forms13DisposedError*;
     _ZGVZN9gui_forms13DockNavigator*;
     _ZGVZN9gui_forms13DockWorkspace*;
+    _ZGVZN9gui_forms13DragPlacement*;
     _ZGVZN9gui_forms13EffectAdvance*;
     _ZGVZN9gui_forms13EffectColours*;
     _ZGVZN9gui_forms13EffectPointer*;
@@ -367,6 +371,7 @@
     _ZGVZN9gui_forms14DateTimePicker*;
     _ZGVZN9gui_forms14DockDropTarget*;
     _ZGVZN9gui_forms14DockSplitSizes*;
+    _ZGVZN9gui_forms14DragAutoScroll*;
     _ZGVZN9gui_forms14DragBinaryData*;
     _ZGVZN9gui_forms14DrawingSurface*;
     _ZGVZN9gui_forms14DropDownButton*;
@@ -558,6 +563,7 @@
     _ZGVZN9gui_forms16DocumentRevision*;
     _ZGVZN9gui_forms16DocumentViewport*;
     _ZGVZN9gui_forms16DragFileListData*;
+    _ZGVZN9gui_forms16DragTrackerFrame*;
     _ZGVZN9gui_forms16EffectInputEvent*;
     _ZGVZN9gui_forms16EncodedFontLease*;
     _ZGVZN9gui_forms16EngineExpression*;
@@ -747,6 +753,7 @@
     _ZGVZN9gui_forms18DockNavigatorEntry*;
     _ZGVZN9gui_forms18DockRestoreOptions*;
     _ZGVZN9gui_forms18DocumentViewLimits*;
+    _ZGVZN9gui_forms18DragAutoScrollStep*;
     _ZGVZN9gui_forms18DragDispatchResult*;
     _ZGVZN9gui_forms18ExpandableSections*;
     _ZGVZN9gui_forms18FamiliarThemeBuild*;
@@ -930,6 +937,7 @@
     _ZGVZN9gui_forms20DockDefaultPlacement*;
     _ZGVZN9gui_forms20DockMonitorPlacement*;
     _ZGVZN9gui_forms20DockSiteRestrictions*;
+    _ZGVZN9gui_forms20DragTrackerCallbacks*;
     _ZGVZN9gui_forms20ExpressionInputIndex*;
     _ZGVZN9gui_forms20FocusedControlChange*;
     _ZGVZN9gui_forms20FontFallbackResolver*;
@@ -988,6 +996,7 @@
     _ZGVZN9gui_forms21DockTransactionResult*;
     _ZGVZN9gui_forms21DocumentRequestResult*;
     _ZGVZN9gui_forms21DragInteractionEvents*;
+    _ZGVZN9gui_forms21DragTrackerStatistics*;
     _ZGVZN9gui_forms21EffectLoadDiagnostics*;
     _ZGVZN9gui_forms21ErrorProviderSnapshot*;
     _ZGVZN9gui_forms21ExpectationThresholds*;
@@ -1092,6 +1101,7 @@
     _ZGVZN9gui_forms23DataGridViewCellsUpdate*;
     _ZGVZN9gui_forms23DataGridViewRowComparer*;
     _ZGVZN9gui_forms23DataGridViewRowPosition*;
+    _ZGVZN9gui_forms23DragAnnouncementRequest*;
     _ZGVZN9gui_forms23EffectColourDeclaration*;
     _ZGVZN9gui_forms23HostAutoCompleteRequest*;
     _ZGVZN9gui_forms23HostClipboardTextResult*;
@@ -1360,6 +1370,7 @@
     _ZGVZN9gui_forms8DockEdit*;
     _ZGVZN9gui_forms8DockNode*;
     _ZGVZN9gui_forms8DockSite*;
+    _ZGVZN9gui_forms8DragPlan*;
     _ZGVZN9gui_forms8FlexLine*;
     _ZGVZN9gui_forms8FontSpec*;
     _ZGVZN9gui_forms8GlyphRun*;
@@ -1385,6 +1396,8 @@
     _ZGVZN9gui_forms9BoxLength*;
     _ZGVZN9gui_forms9Component*;
     _ZGVZN9gui_forms9DragEvent*;
+    _ZGVZN9gui_forms9DragStart*;
+    _ZGVZN9gui_forms9DragValue*;
     _ZGVZN9gui_forms9FlexPanel*;
     _ZGVZN9gui_forms9GaugeBase*;
     _ZGVZN9gui_forms9GridLevel*;
@@ -1492,6 +1505,7 @@
     _ZGVZNK9gui_forms10DockNodeId*;
     _ZGVZNK9gui_forms10DockSiteId*;
     _ZGVZNK9gui_forms10DragLimits*;
+    _ZGVZNK9gui_forms10DragTarget*;
     _ZGVZNK9gui_forms10EffectCost*;
     _ZGVZNK9gui_forms10EmptyState*;
     _ZGVZNK9gui_forms10FlexFactor*;
@@ -1558,6 +1572,8 @@
     _ZGVZNK9gui_forms11DockPanelId*;
     _ZGVZNK9gui_forms11DockRefusal*;
     _ZGVZNK9gui_forms11DockSubject*;
+    _ZGVZNK9gui_forms11DragReorder*;
+    _ZGVZNK9gui_forms11DragTracker*;
     _ZGVZNK9gui_forms11EffectEntry*;
     _ZGVZNK9gui_forms11EffectFrame*;
     _ZGVZNK9gui_forms11EffectSetup*;
@@ -1707,6 +1723,7 @@
     _ZGVZNK9gui_forms13DisposedError*;
     _ZGVZNK9gui_forms13DockNavigator*;
     _ZGVZNK9gui_forms13DockWorkspace*;
+    _ZGVZNK9gui_forms13DragPlacement*;
     _ZGVZNK9gui_forms13EffectAdvance*;
     _ZGVZNK9gui_forms13EffectColours*;
     _ZGVZNK9gui_forms13EffectPointer*;
@@ -1787,6 +1804,7 @@
     _ZGVZNK9gui_forms14DateTimePicker*;
     _ZGVZNK9gui_forms14DockDropTarget*;
     _ZGVZNK9gui_forms14DockSplitSizes*;
+    _ZGVZNK9gui_forms14DragAutoScroll*;
     _ZGVZNK9gui_forms14DragBinaryData*;
     _ZGVZNK9gui_forms14DrawingSurface*;
     _ZGVZNK9gui_forms14DropDownButton*;
@@ -1978,6 +1996,7 @@
     _ZGVZNK9gui_forms16DocumentRevision*;
     _ZGVZNK9gui_forms16DocumentViewport*;
     _ZGVZNK9gui_forms16DragFileListData*;
+    _ZGVZNK9gui_forms16DragTrackerFrame*;
     _ZGVZNK9gui_forms16EffectInputEvent*;
     _ZGVZNK9gui_forms16EncodedFontLease*;
     _ZGVZNK9gui_forms16EngineExpression*;
@@ -2167,6 +2186,7 @@
     _ZGVZNK9gui_forms18DockNavigatorEntry*;
     _ZGVZNK9gui_forms18DockRestoreOptions*;
     _ZGVZNK9gui_forms18DocumentViewLimits*;
+    _ZGVZNK9gui_forms18DragAutoScrollStep*;
     _ZGVZNK9gui_forms18DragDispatchResult*;
     _ZGVZNK9gui_forms18ExpandableSections*;
     _ZGVZNK9gui_forms18FamiliarThemeBuild*;
@@ -2350,6 +2370,7 @@
     _ZGVZNK9gui_forms20DockDefaultPlacement*;
     _ZGVZNK9gui_forms20DockMonitorPlacement*;
     _ZGVZNK9gui_forms20DockSiteRestrictions*;
+    _ZGVZNK9gui_forms20DragTrackerCallbacks*;
     _ZGVZNK9gui_forms20ExpressionInputIndex*;
     _ZGVZNK9gui_forms20FocusedControlChange*;
     _ZGVZNK9gui_forms20FontFallbackResolver*;
@@ -2408,6 +2429,7 @@
     _ZGVZNK9gui_forms21DockTransactionResult*;
     _ZGVZNK9gui_forms21DocumentRequestResult*;
     _ZGVZNK9gui_forms21DragInteractionEvents*;
+    _ZGVZNK9gui_forms21DragTrackerStatistics*;
     _ZGVZNK9gui_forms21EffectLoadDiagnostics*;
     _ZGVZNK9gui_forms21ErrorProviderSnapshot*;
     _ZGVZNK9gui_forms21ExpectationThresholds*;
@@ -2512,6 +2534,7 @@
     _ZGVZNK9gui_forms23DataGridViewCellsUpdate*;
     _ZGVZNK9gui_forms23DataGridViewRowComparer*;
     _ZGVZNK9gui_forms23DataGridViewRowPosition*;
+    _ZGVZNK9gui_forms23DragAnnouncementRequest*;
     _ZGVZNK9gui_forms23EffectColourDeclaration*;
     _ZGVZNK9gui_forms23HostAutoCompleteRequest*;
     _ZGVZNK9gui_forms23HostClipboardTextResult*;
@@ -2780,6 +2803,7 @@
     _ZGVZNK9gui_forms8DockEdit*;
     _ZGVZNK9gui_forms8DockNode*;
     _ZGVZNK9gui_forms8DockSite*;
+    _ZGVZNK9gui_forms8DragPlan*;
     _ZGVZNK9gui_forms8FlexLine*;
     _ZGVZNK9gui_forms8FontSpec*;
     _ZGVZNK9gui_forms8GlyphRun*;
@@ -2805,6 +2829,8 @@
     _ZGVZNK9gui_forms9BoxLength*;
     _ZGVZNK9gui_forms9Component*;
     _ZGVZNK9gui_forms9DragEvent*;
+    _ZGVZNK9gui_forms9DragStart*;
+    _ZGVZNK9gui_forms9DragValue*;
     _ZGVZNK9gui_forms9FlexPanel*;
     _ZGVZNK9gui_forms9GaugeBase*;
     _ZGVZNK9gui_forms9GridLevel*;
@@ -2964,6 +2990,7 @@
     _ZN9gui_forms10DockNodeId*;
     _ZN9gui_forms10DockSiteId*;
     _ZN9gui_forms10DragLimits*;
+    _ZN9gui_forms10DragTarget*;
     _ZN9gui_forms10EffectCost*;
     _ZN9gui_forms10EmptyState*;
     _ZN9gui_forms10FlexFactor*;
@@ -3040,6 +3067,8 @@
     _ZN9gui_forms11DockPanelId*;
     _ZN9gui_forms11DockRefusal*;
     _ZN9gui_forms11DockSubject*;
+    _ZN9gui_forms11DragReorder*;
+    _ZN9gui_forms11DragTracker*;
     _ZN9gui_forms11EffectEntry*;
     _ZN9gui_forms11EffectFrame*;
     _ZN9gui_forms11EffectSetup*;
@@ -3223,6 +3252,7 @@
     _ZN9gui_forms13DisposedError*;
     _ZN9gui_forms13DockNavigator*;
     _ZN9gui_forms13DockWorkspace*;
+    _ZN9gui_forms13DragPlacement*;
     _ZN9gui_forms13EffectAdvance*;
     _ZN9gui_forms13EffectColours*;
     _ZN9gui_forms13EffectPointer*;
@@ -3319,6 +3349,7 @@
     _ZN9gui_forms14DateTimePicker*;
     _ZN9gui_forms14DockDropTarget*;
     _ZN9gui_forms14DockSplitSizes*;
+    _ZN9gui_forms14DragAutoScroll*;
     _ZN9gui_forms14DragBinaryData*;
     _ZN9gui_forms14DrawingSurface*;
     _ZN9gui_forms14DropDownButton*;
@@ -3592,6 +3623,7 @@
     _ZN9gui_forms16DocumentRevision*;
     _ZN9gui_forms16DocumentViewport*;
     _ZN9gui_forms16DragFileListData*;
+    _ZN9gui_forms16DragTrackerFrame*;
     _ZN9gui_forms16EffectInputEvent*;
     _ZN9gui_forms16EncodedFontLease*;
     _ZN9gui_forms16EngineExpression*;
@@ -3672,6 +3704,8 @@
     _ZN9gui_forms16dock_cross_tilesE*;
     _ZN9gui_forms16drag_effect_nameB*;
     _ZN9gui_forms16drag_effect_nameE*;
+    _ZN9gui_forms16drag_end_commitsB*;
+    _ZN9gui_forms16drag_end_commitsE*;
     _ZN9gui_forms16engine_logarithmB*;
     _ZN9gui_forms16engine_logarithmE*;
     _ZN9gui_forms16find_interactionB*;
@@ -3887,6 +3921,7 @@
     _ZN9gui_forms18DockNavigatorEntry*;
     _ZN9gui_forms18DockRestoreOptions*;
     _ZN9gui_forms18DocumentViewLimits*;
+    _ZN9gui_forms18DragAutoScrollStep*;
     _ZN9gui_forms18DragDispatchResult*;
     _ZN9gui_forms18ExpandableSections*;
     _ZN9gui_forms18FamiliarThemeBuild*;
@@ -4238,6 +4273,7 @@
     _ZN9gui_forms20DockDefaultPlacement*;
     _ZN9gui_forms20DockMonitorPlacement*;
     _ZN9gui_forms20DockSiteRestrictions*;
+    _ZN9gui_forms20DragTrackerCallbacks*;
     _ZN9gui_forms20ExpressionInputIndex*;
     _ZN9gui_forms20FocusedControlChange*;
     _ZN9gui_forms20FontFallbackResolver*;
@@ -4362,6 +4398,7 @@
     _ZN9gui_forms21DockTransactionResult*;
     _ZN9gui_forms21DocumentRequestResult*;
     _ZN9gui_forms21DragInteractionEvents*;
+    _ZN9gui_forms21DragTrackerStatistics*;
     _ZN9gui_forms21EffectLoadDiagnostics*;
     _ZN9gui_forms21ErrorProviderSnapshot*;
     _ZN9gui_forms21ExpectationThresholds*;
@@ -4602,6 +4639,7 @@
     _ZN9gui_forms23DataGridViewCellsUpdate*;
     _ZN9gui_forms23DataGridViewRowComparer*;
     _ZN9gui_forms23DataGridViewRowPosition*;
+    _ZN9gui_forms23DragAnnouncementRequest*;
     _ZN9gui_forms23EffectColourDeclaration*;
     _ZN9gui_forms23HostAutoCompleteRequest*;
     _ZN9gui_forms23HostClipboardTextResult*;
@@ -4807,6 +4845,8 @@
     _ZN9gui_forms25box_shadow_visual_outsetsE*;
     _ZN9gui_forms25connected_control_segmentB*;
     _ZN9gui_forms25connected_control_segmentE*;
+    _ZN9gui_forms25drag_auto_scroll_velocityB*;
+    _ZN9gui_forms25drag_auto_scroll_velocityE*;
     _ZN9gui_forms25encode_window_capture_pngB*;
     _ZN9gui_forms25encode_window_capture_pngE*;
     _ZN9gui_forms25estimate_text_layout_utf8B*;
@@ -5384,6 +5424,7 @@
     _ZN9gui_forms8DockEdit*;
     _ZN9gui_forms8DockNode*;
     _ZN9gui_forms8DockSite*;
+    _ZN9gui_forms8DragPlan*;
     _ZN9gui_forms8FlexLine*;
     _ZN9gui_forms8FontSpec*;
     _ZN9gui_forms8GlyphRun*;
@@ -5415,6 +5456,8 @@
     _ZN9gui_forms9BoxLength*;
     _ZN9gui_forms9Component*;
     _ZN9gui_forms9DragEvent*;
+    _ZN9gui_forms9DragStart*;
+    _ZN9gui_forms9DragValue*;
     _ZN9gui_forms9FlexPanel*;
     _ZN9gui_forms9GaugeBase*;
     _ZN9gui_forms9GridLevel*;
@@ -5580,6 +5623,7 @@
     _ZNK[RO]9gui_forms10DockNodeId*;
     _ZNK[RO]9gui_forms10DockSiteId*;
     _ZNK[RO]9gui_forms10DragLimits*;
+    _ZNK[RO]9gui_forms10DragTarget*;
     _ZNK[RO]9gui_forms10EffectCost*;
     _ZNK[RO]9gui_forms10EmptyState*;
     _ZNK[RO]9gui_forms10FlexFactor*;
@@ -5646,6 +5690,8 @@
     _ZNK[RO]9gui_forms11DockPanelId*;
     _ZNK[RO]9gui_forms11DockRefusal*;
     _ZNK[RO]9gui_forms11DockSubject*;
+    _ZNK[RO]9gui_forms11DragReorder*;
+    _ZNK[RO]9gui_forms11DragTracker*;
     _ZNK[RO]9gui_forms11EffectEntry*;
     _ZNK[RO]9gui_forms11EffectFrame*;
     _ZNK[RO]9gui_forms11EffectSetup*;
@@ -5795,6 +5841,7 @@
     _ZNK[RO]9gui_forms13DisposedError*;
     _ZNK[RO]9gui_forms13DockNavigator*;
     _ZNK[RO]9gui_forms13DockWorkspace*;
+    _ZNK[RO]9gui_forms13DragPlacement*;
     _ZNK[RO]9gui_forms13EffectAdvance*;
     _ZNK[RO]9gui_forms13EffectColours*;
     _ZNK[RO]9gui_forms13EffectPointer*;
@@ -5875,6 +5922,7 @@
     _ZNK[RO]9gui_forms14DateTimePicker*;
     _ZNK[RO]9gui_forms14DockDropTarget*;
     _ZNK[RO]9gui_forms14DockSplitSizes*;
+    _ZNK[RO]9gui_forms14DragAutoScroll*;
     _ZNK[RO]9gui_forms14DragBinaryData*;
     _ZNK[RO]9gui_forms14DrawingSurface*;
     _ZNK[RO]9gui_forms14DropDownButton*;
@@ -6066,6 +6114,7 @@
     _ZNK[RO]9gui_forms16DocumentRevision*;
     _ZNK[RO]9gui_forms16DocumentViewport*;
     _ZNK[RO]9gui_forms16DragFileListData*;
+    _ZNK[RO]9gui_forms16DragTrackerFrame*;
     _ZNK[RO]9gui_forms16EffectInputEvent*;
     _ZNK[RO]9gui_forms16EncodedFontLease*;
     _ZNK[RO]9gui_forms16EngineExpression*;
@@ -6255,6 +6304,7 @@
     _ZNK[RO]9gui_forms18DockNavigatorEntry*;
     _ZNK[RO]9gui_forms18DockRestoreOptions*;
     _ZNK[RO]9gui_forms18DocumentViewLimits*;
+    _ZNK[RO]9gui_forms18DragAutoScrollStep*;
     _ZNK[RO]9gui_forms18DragDispatchResult*;
     _ZNK[RO]9gui_forms18ExpandableSections*;
     _ZNK[RO]9gui_forms18FamiliarThemeBuild*;
@@ -6438,6 +6488,7 @@
     _ZNK[RO]9gui_forms20DockDefaultPlacement*;
     _ZNK[RO]9gui_forms20DockMonitorPlacement*;
     _ZNK[RO]9gui_forms20DockSiteRestrictions*;
+    _ZNK[RO]9gui_forms20DragTrackerCallbacks*;
     _ZNK[RO]9gui_forms20ExpressionInputIndex*;
     _ZNK[RO]9gui_forms20FocusedControlChange*;
     _ZNK[RO]9gui_forms20FontFallbackResolver*;
@@ -6496,6 +6547,7 @@
     _ZNK[RO]9gui_forms21DockTransactionResult*;
     _ZNK[RO]9gui_forms21DocumentRequestResult*;
     _ZNK[RO]9gui_forms21DragInteractionEvents*;
+    _ZNK[RO]9gui_forms21DragTrackerStatistics*;
     _ZNK[RO]9gui_forms21EffectLoadDiagnostics*;
     _ZNK[RO]9gui_forms21ErrorProviderSnapshot*;
     _ZNK[RO]9gui_forms21ExpectationThresholds*;
@@ -6600,6 +6652,7 @@
     _ZNK[RO]9gui_forms23DataGridViewCellsUpdate*;
     _ZNK[RO]9gui_forms23DataGridViewRowComparer*;
     _ZNK[RO]9gui_forms23DataGridViewRowPosition*;
+    _ZNK[RO]9gui_forms23DragAnnouncementRequest*;
     _ZNK[RO]9gui_forms23EffectColourDeclaration*;
     _ZNK[RO]9gui_forms23HostAutoCompleteRequest*;
     _ZNK[RO]9gui_forms23HostClipboardTextResult*;
@@ -6868,6 +6921,7 @@
     _ZNK[RO]9gui_forms8DockEdit*;
     _ZNK[RO]9gui_forms8DockNode*;
     _ZNK[RO]9gui_forms8DockSite*;
+    _ZNK[RO]9gui_forms8DragPlan*;
     _ZNK[RO]9gui_forms8FlexLine*;
     _ZNK[RO]9gui_forms8FontSpec*;
     _ZNK[RO]9gui_forms8GlyphRun*;
@@ -6893,6 +6947,8 @@
     _ZNK[RO]9gui_forms9BoxLength*;
     _ZNK[RO]9gui_forms9Component*;
     _ZNK[RO]9gui_forms9DragEvent*;
+    _ZNK[RO]9gui_forms9DragStart*;
+    _ZNK[RO]9gui_forms9DragValue*;
     _ZNK[RO]9gui_forms9FlexPanel*;
     _ZNK[RO]9gui_forms9GaugeBase*;
     _ZNK[RO]9gui_forms9GridLevel*;
@@ -7000,6 +7056,7 @@
     _ZN[KRO]9gui_forms10DockNodeId*;
     _ZN[KRO]9gui_forms10DockSiteId*;
     _ZN[KRO]9gui_forms10DragLimits*;
+    _ZN[KRO]9gui_forms10DragTarget*;
     _ZN[KRO]9gui_forms10EffectCost*;
     _ZN[KRO]9gui_forms10EmptyState*;
     _ZN[KRO]9gui_forms10FlexFactor*;
@@ -7066,6 +7123,8 @@
     _ZN[KRO]9gui_forms11DockPanelId*;
     _ZN[KRO]9gui_forms11DockRefusal*;
     _ZN[KRO]9gui_forms11DockSubject*;
+    _ZN[KRO]9gui_forms11DragReorder*;
+    _ZN[KRO]9gui_forms11DragTracker*;
     _ZN[KRO]9gui_forms11EffectEntry*;
     _ZN[KRO]9gui_forms11EffectFrame*;
     _ZN[KRO]9gui_forms11EffectSetup*;
@@ -7215,6 +7274,7 @@
     _ZN[KRO]9gui_forms13DisposedError*;
     _ZN[KRO]9gui_forms13DockNavigator*;
     _ZN[KRO]9gui_forms13DockWorkspace*;
+    _ZN[KRO]9gui_forms13DragPlacement*;
     _ZN[KRO]9gui_forms13EffectAdvance*;
     _ZN[KRO]9gui_forms13EffectColours*;
     _ZN[KRO]9gui_forms13EffectPointer*;
@@ -7295,6 +7355,7 @@
     _ZN[KRO]9gui_forms14DateTimePicker*;
     _ZN[KRO]9gui_forms14DockDropTarget*;
     _ZN[KRO]9gui_forms14DockSplitSizes*;
+    _ZN[KRO]9gui_forms14DragAutoScroll*;
     _ZN[KRO]9gui_forms14DragBinaryData*;
     _ZN[KRO]9gui_forms14DrawingSurface*;
     _ZN[KRO]9gui_forms14DropDownButton*;
@@ -7486,6 +7547,7 @@
     _ZN[KRO]9gui_forms16DocumentRevision*;
     _ZN[KRO]9gui_forms16DocumentViewport*;
     _ZN[KRO]9gui_forms16DragFileListData*;
+    _ZN[KRO]9gui_forms16DragTrackerFrame*;
     _ZN[KRO]9gui_forms16EffectInputEvent*;
     _ZN[KRO]9gui_forms16EncodedFontLease*;
     _ZN[KRO]9gui_forms16EngineExpression*;
@@ -7675,6 +7737,7 @@
     _ZN[KRO]9gui_forms18DockNavigatorEntry*;
     _ZN[KRO]9gui_forms18DockRestoreOptions*;
     _ZN[KRO]9gui_forms18DocumentViewLimits*;
+    _ZN[KRO]9gui_forms18DragAutoScrollStep*;
     _ZN[KRO]9gui_forms18DragDispatchResult*;
     _ZN[KRO]9gui_forms18ExpandableSections*;
     _ZN[KRO]9gui_forms18FamiliarThemeBuild*;
@@ -7858,6 +7921,7 @@
     _ZN[KRO]9gui_forms20DockDefaultPlacement*;
     _ZN[KRO]9gui_forms20DockMonitorPlacement*;
     _ZN[KRO]9gui_forms20DockSiteRestrictions*;
+    _ZN[KRO]9gui_forms20DragTrackerCallbacks*;
     _ZN[KRO]9gui_forms20ExpressionInputIndex*;
     _ZN[KRO]9gui_forms20FocusedControlChange*;
     _ZN[KRO]9gui_forms20FontFallbackResolver*;
@@ -7916,6 +7980,7 @@
     _ZN[KRO]9gui_forms21DockTransactionResult*;
     _ZN[KRO]9gui_forms21DocumentRequestResult*;
     _ZN[KRO]9gui_forms21DragInteractionEvents*;
+    _ZN[KRO]9gui_forms21DragTrackerStatistics*;
     _ZN[KRO]9gui_forms21EffectLoadDiagnostics*;
     _ZN[KRO]9gui_forms21ErrorProviderSnapshot*;
     _ZN[KRO]9gui_forms21ExpectationThresholds*;
@@ -8020,6 +8085,7 @@
     _ZN[KRO]9gui_forms23DataGridViewCellsUpdate*;
     _ZN[KRO]9gui_forms23DataGridViewRowComparer*;
     _ZN[KRO]9gui_forms23DataGridViewRowPosition*;
+    _ZN[KRO]9gui_forms23DragAnnouncementRequest*;
     _ZN[KRO]9gui_forms23EffectColourDeclaration*;
     _ZN[KRO]9gui_forms23HostAutoCompleteRequest*;
     _ZN[KRO]9gui_forms23HostClipboardTextResult*;
@@ -8288,6 +8354,7 @@
     _ZN[KRO]9gui_forms8DockEdit*;
     _ZN[KRO]9gui_forms8DockNode*;
     _ZN[KRO]9gui_forms8DockSite*;
+    _ZN[KRO]9gui_forms8DragPlan*;
     _ZN[KRO]9gui_forms8FlexLine*;
     _ZN[KRO]9gui_forms8FontSpec*;
     _ZN[KRO]9gui_forms8GlyphRun*;
@@ -8313,6 +8380,8 @@
     _ZN[KRO]9gui_forms9BoxLength*;
     _ZN[KRO]9gui_forms9Component*;
     _ZN[KRO]9gui_forms9DragEvent*;
+    _ZN[KRO]9gui_forms9DragStart*;
+    _ZN[KRO]9gui_forms9DragValue*;
     _ZN[KRO]9gui_forms9FlexPanel*;
     _ZN[KRO]9gui_forms9GaugeBase*;
     _ZN[KRO]9gui_forms9GridLevel*;
@@ -8420,6 +8489,7 @@
     _ZT[VIST]N9gui_forms10DockNodeId*E;
     _ZT[VIST]N9gui_forms10DockSiteId*E;
     _ZT[VIST]N9gui_forms10DragLimits*E;
+    _ZT[VIST]N9gui_forms10DragTarget*E;
     _ZT[VIST]N9gui_forms10EffectCost*E;
     _ZT[VIST]N9gui_forms10EmptyState*E;
     _ZT[VIST]N9gui_forms10FlexFactor*E;
@@ -8486,6 +8556,8 @@
     _ZT[VIST]N9gui_forms11DockPanelId*E;
     _ZT[VIST]N9gui_forms11DockRefusal*E;
     _ZT[VIST]N9gui_forms11DockSubject*E;
+    _ZT[VIST]N9gui_forms11DragReorder*E;
+    _ZT[VIST]N9gui_forms11DragTracker*E;
     _ZT[VIST]N9gui_forms11EffectEntry*E;
     _ZT[VIST]N9gui_forms11EffectFrame*E;
     _ZT[VIST]N9gui_forms11EffectSetup*E;
@@ -8635,6 +8707,7 @@
     _ZT[VIST]N9gui_forms13DisposedError*E;
     _ZT[VIST]N9gui_forms13DockNavigator*E;
     _ZT[VIST]N9gui_forms13DockWorkspace*E;
+    _ZT[VIST]N9gui_forms13DragPlacement*E;
     _ZT[VIST]N9gui_forms13EffectAdvance*E;
     _ZT[VIST]N9gui_forms13EffectColours*E;
     _ZT[VIST]N9gui_forms13EffectPointer*E;
@@ -8715,6 +8788,7 @@
     _ZT[VIST]N9gui_forms14DateTimePicker*E;
     _ZT[VIST]N9gui_forms14DockDropTarget*E;
     _ZT[VIST]N9gui_forms14DockSplitSizes*E;
+    _ZT[VIST]N9gui_forms14DragAutoScroll*E;
     _ZT[VIST]N9gui_forms14DragBinaryData*E;
     _ZT[VIST]N9gui_forms14DrawingSurface*E;
     _ZT[VIST]N9gui_forms14DropDownButton*E;
@@ -8906,6 +8980,7 @@
     _ZT[VIST]N9gui_forms16DocumentRevision*E;
     _ZT[VIST]N9gui_forms16DocumentViewport*E;
     _ZT[VIST]N9gui_forms16DragFileListData*E;
+    _ZT[VIST]N9gui_forms16DragTrackerFrame*E;
     _ZT[VIST]N9gui_forms16EffectInputEvent*E;
     _ZT[VIST]N9gui_forms16EncodedFontLease*E;
     _ZT[VIST]N9gui_forms16EngineExpression*E;
@@ -9095,6 +9170,7 @@
     _ZT[VIST]N9gui_forms18DockNavigatorEntry*E;
     _ZT[VIST]N9gui_forms18DockRestoreOptions*E;
     _ZT[VIST]N9gui_forms18DocumentViewLimits*E;
+    _ZT[VIST]N9gui_forms18DragAutoScrollStep*E;
     _ZT[VIST]N9gui_forms18DragDispatchResult*E;
     _ZT[VIST]N9gui_forms18ExpandableSections*E;
     _ZT[VIST]N9gui_forms18FamiliarThemeBuild*E;
@@ -9278,6 +9354,7 @@
     _ZT[VIST]N9gui_forms20DockDefaultPlacement*E;
     _ZT[VIST]N9gui_forms20DockMonitorPlacement*E;
     _ZT[VIST]N9gui_forms20DockSiteRestrictions*E;
+    _ZT[VIST]N9gui_forms20DragTrackerCallbacks*E;
     _ZT[VIST]N9gui_forms20ExpressionInputIndex*E;
     _ZT[VIST]N9gui_forms20FocusedControlChange*E;
     _ZT[VIST]N9gui_forms20FontFallbackResolver*E;
@@ -9336,6 +9413,7 @@
     _ZT[VIST]N9gui_forms21DockTransactionResult*E;
     _ZT[VIST]N9gui_forms21DocumentRequestResult*E;
     _ZT[VIST]N9gui_forms21DragInteractionEvents*E;
+    _ZT[VIST]N9gui_forms21DragTrackerStatistics*E;
     _ZT[VIST]N9gui_forms21EffectLoadDiagnostics*E;
     _ZT[VIST]N9gui_forms21ErrorProviderSnapshot*E;
     _ZT[VIST]N9gui_forms21ExpectationThresholds*E;
@@ -9440,6 +9518,7 @@
     _ZT[VIST]N9gui_forms23DataGridViewCellsUpdate*E;
     _ZT[VIST]N9gui_forms23DataGridViewRowComparer*E;
     _ZT[VIST]N9gui_forms23DataGridViewRowPosition*E;
+    _ZT[VIST]N9gui_forms23DragAnnouncementRequest*E;
     _ZT[VIST]N9gui_forms23EffectColourDeclaration*E;
     _ZT[VIST]N9gui_forms23HostAutoCompleteRequest*E;
     _ZT[VIST]N9gui_forms23HostClipboardTextResult*E;
@@ -9708,6 +9787,7 @@
     _ZT[VIST]N9gui_forms8DockEdit*E;
     _ZT[VIST]N9gui_forms8DockNode*E;
     _ZT[VIST]N9gui_forms8DockSite*E;
+    _ZT[VIST]N9gui_forms8DragPlan*E;
     _ZT[VIST]N9gui_forms8FlexLine*E;
     _ZT[VIST]N9gui_forms8FontSpec*E;
     _ZT[VIST]N9gui_forms8GlyphRun*E;
@@ -9733,6 +9813,8 @@
     _ZT[VIST]N9gui_forms9BoxLength*E;
     _ZT[VIST]N9gui_forms9Component*E;
     _ZT[VIST]N9gui_forms9DragEvent*E;
+    _ZT[VIST]N9gui_forms9DragStart*E;
+    _ZT[VIST]N9gui_forms9DragValue*E;
     _ZT[VIST]N9gui_forms9FlexPanel*E;
     _ZT[VIST]N9gui_forms9GaugeBase*E;
     _ZT[VIST]N9gui_forms9GridLevel*E;
@@ -9840,6 +9922,7 @@
     _ZT[hvc]*9gui_forms10DockNodeId*;
     _ZT[hvc]*9gui_forms10DockSiteId*;
     _ZT[hvc]*9gui_forms10DragLimits*;
+    _ZT[hvc]*9gui_forms10DragTarget*;
     _ZT[hvc]*9gui_forms10EffectCost*;
     _ZT[hvc]*9gui_forms10EmptyState*;
     _ZT[hvc]*9gui_forms10FlexFactor*;
@@ -9906,6 +9989,8 @@
     _ZT[hvc]*9gui_forms11DockPanelId*;
     _ZT[hvc]*9gui_forms11DockRefusal*;
     _ZT[hvc]*9gui_forms11DockSubject*;
+    _ZT[hvc]*9gui_forms11DragReorder*;
+    _ZT[hvc]*9gui_forms11DragTracker*;
     _ZT[hvc]*9gui_forms11EffectEntry*;
     _ZT[hvc]*9gui_forms11EffectFrame*;
     _ZT[hvc]*9gui_forms11EffectSetup*;
@@ -10055,6 +10140,7 @@
     _ZT[hvc]*9gui_forms13DisposedError*;
     _ZT[hvc]*9gui_forms13DockNavigator*;
     _ZT[hvc]*9gui_forms13DockWorkspace*;
+    _ZT[hvc]*9gui_forms13DragPlacement*;
     _ZT[hvc]*9gui_forms13EffectAdvance*;
     _ZT[hvc]*9gui_forms13EffectColours*;
     _ZT[hvc]*9gui_forms13EffectPointer*;
@@ -10135,6 +10221,7 @@
     _ZT[hvc]*9gui_forms14DateTimePicker*;
     _ZT[hvc]*9gui_forms14DockDropTarget*;
     _ZT[hvc]*9gui_forms14DockSplitSizes*;
+    _ZT[hvc]*9gui_forms14DragAutoScroll*;
     _ZT[hvc]*9gui_forms14DragBinaryData*;
     _ZT[hvc]*9gui_forms14DrawingSurface*;
     _ZT[hvc]*9gui_forms14DropDownButton*;
@@ -10326,6 +10413,7 @@
     _ZT[hvc]*9gui_forms16DocumentRevision*;
     _ZT[hvc]*9gui_forms16DocumentViewport*;
     _ZT[hvc]*9gui_forms16DragFileListData*;
+    _ZT[hvc]*9gui_forms16DragTrackerFrame*;
     _ZT[hvc]*9gui_forms16EffectInputEvent*;
     _ZT[hvc]*9gui_forms16EncodedFontLease*;
     _ZT[hvc]*9gui_forms16EngineExpression*;
@@ -10515,6 +10603,7 @@
     _ZT[hvc]*9gui_forms18DockNavigatorEntry*;
     _ZT[hvc]*9gui_forms18DockRestoreOptions*;
     _ZT[hvc]*9gui_forms18DocumentViewLimits*;
+    _ZT[hvc]*9gui_forms18DragAutoScrollStep*;
     _ZT[hvc]*9gui_forms18DragDispatchResult*;
     _ZT[hvc]*9gui_forms18ExpandableSections*;
     _ZT[hvc]*9gui_forms18FamiliarThemeBuild*;
@@ -10698,6 +10787,7 @@
     _ZT[hvc]*9gui_forms20DockDefaultPlacement*;
     _ZT[hvc]*9gui_forms20DockMonitorPlacement*;
     _ZT[hvc]*9gui_forms20DockSiteRestrictions*;
+    _ZT[hvc]*9gui_forms20DragTrackerCallbacks*;
     _ZT[hvc]*9gui_forms20ExpressionInputIndex*;
     _ZT[hvc]*9gui_forms20FocusedControlChange*;
     _ZT[hvc]*9gui_forms20FontFallbackResolver*;
@@ -10756,6 +10846,7 @@
     _ZT[hvc]*9gui_forms21DockTransactionResult*;
     _ZT[hvc]*9gui_forms21DocumentRequestResult*;
     _ZT[hvc]*9gui_forms21DragInteractionEvents*;
+    _ZT[hvc]*9gui_forms21DragTrackerStatistics*;
     _ZT[hvc]*9gui_forms21EffectLoadDiagnostics*;
     _ZT[hvc]*9gui_forms21ErrorProviderSnapshot*;
     _ZT[hvc]*9gui_forms21ExpectationThresholds*;
@@ -10860,6 +10951,7 @@
     _ZT[hvc]*9gui_forms23DataGridViewCellsUpdate*;
     _ZT[hvc]*9gui_forms23DataGridViewRowComparer*;
     _ZT[hvc]*9gui_forms23DataGridViewRowPosition*;
+    _ZT[hvc]*9gui_forms23DragAnnouncementRequest*;
     _ZT[hvc]*9gui_forms23EffectColourDeclaration*;
     _ZT[hvc]*9gui_forms23HostAutoCompleteRequest*;
     _ZT[hvc]*9gui_forms23HostClipboardTextResult*;
@@ -11128,6 +11220,7 @@
     _ZT[hvc]*9gui_forms8DockEdit*;
     _ZT[hvc]*9gui_forms8DockNode*;
     _ZT[hvc]*9gui_forms8DockSite*;
+    _ZT[hvc]*9gui_forms8DragPlan*;
     _ZT[hvc]*9gui_forms8FlexLine*;
     _ZT[hvc]*9gui_forms8FontSpec*;
     _ZT[hvc]*9gui_forms8GlyphRun*;
@@ -11153,6 +11246,8 @@
     _ZT[hvc]*9gui_forms9BoxLength*;
     _ZT[hvc]*9gui_forms9Component*;
     _ZT[hvc]*9gui_forms9DragEvent*;
+    _ZT[hvc]*9gui_forms9DragStart*;
+    _ZT[hvc]*9gui_forms9DragValue*;
     _ZT[hvc]*9gui_forms9FlexPanel*;
     _ZT[hvc]*9gui_forms9GaugeBase*;
     _ZT[hvc]*9gui_forms9GridLevel*;
@@ -11260,6 +11355,7 @@
     _ZZN9gui_forms10DockNodeId*;
     _ZZN9gui_forms10DockSiteId*;
     _ZZN9gui_forms10DragLimits*;
+    _ZZN9gui_forms10DragTarget*;
     _ZZN9gui_forms10EffectCost*;
     _ZZN9gui_forms10EmptyState*;
     _ZZN9gui_forms10FlexFactor*;
@@ -11326,6 +11422,8 @@
     _ZZN9gui_forms11DockPanelId*;
     _ZZN9gui_forms11DockRefusal*;
     _ZZN9gui_forms11DockSubject*;
+    _ZZN9gui_forms11DragReorder*;
+    _ZZN9gui_forms11DragTracker*;
     _ZZN9gui_forms11EffectEntry*;
     _ZZN9gui_forms11EffectFrame*;
     _ZZN9gui_forms11EffectSetup*;
@@ -11475,6 +11573,7 @@
     _ZZN9gui_forms13DisposedError*;
     _ZZN9gui_forms13DockNavigator*;
     _ZZN9gui_forms13DockWorkspace*;
+    _ZZN9gui_forms13DragPlacement*;
     _ZZN9gui_forms13EffectAdvance*;
     _ZZN9gui_forms13EffectColours*;
     _ZZN9gui_forms13EffectPointer*;
@@ -11555,6 +11654,7 @@
     _ZZN9gui_forms14DateTimePicker*;
     _ZZN9gui_forms14DockDropTarget*;
     _ZZN9gui_forms14DockSplitSizes*;
+    _ZZN9gui_forms14DragAutoScroll*;
     _ZZN9gui_forms14DragBinaryData*;
     _ZZN9gui_forms14DrawingSurface*;
     _ZZN9gui_forms14DropDownButton*;
@@ -11746,6 +11846,7 @@
     _ZZN9gui_forms16DocumentRevision*;
     _ZZN9gui_forms16DocumentViewport*;
     _ZZN9gui_forms16DragFileListData*;
+    _ZZN9gui_forms16DragTrackerFrame*;
     _ZZN9gui_forms16EffectInputEvent*;
     _ZZN9gui_forms16EncodedFontLease*;
     _ZZN9gui_forms16EngineExpression*;
@@ -11935,6 +12036,7 @@
     _ZZN9gui_forms18DockNavigatorEntry*;
     _ZZN9gui_forms18DockRestoreOptions*;
     _ZZN9gui_forms18DocumentViewLimits*;
+    _ZZN9gui_forms18DragAutoScrollStep*;
     _ZZN9gui_forms18DragDispatchResult*;
     _ZZN9gui_forms18ExpandableSections*;
     _ZZN9gui_forms18FamiliarThemeBuild*;
@@ -12118,6 +12220,7 @@
     _ZZN9gui_forms20DockDefaultPlacement*;
     _ZZN9gui_forms20DockMonitorPlacement*;
     _ZZN9gui_forms20DockSiteRestrictions*;
+    _ZZN9gui_forms20DragTrackerCallbacks*;
     _ZZN9gui_forms20ExpressionInputIndex*;
     _ZZN9gui_forms20FocusedControlChange*;
     _ZZN9gui_forms20FontFallbackResolver*;
@@ -12176,6 +12279,7 @@
     _ZZN9gui_forms21DockTransactionResult*;
     _ZZN9gui_forms21DocumentRequestResult*;
     _ZZN9gui_forms21DragInteractionEvents*;
+    _ZZN9gui_forms21DragTrackerStatistics*;
     _ZZN9gui_forms21EffectLoadDiagnostics*;
     _ZZN9gui_forms21ErrorProviderSnapshot*;
     _ZZN9gui_forms21ExpectationThresholds*;
@@ -12280,6 +12384,7 @@
     _ZZN9gui_forms23DataGridViewCellsUpdate*;
     _ZZN9gui_forms23DataGridViewRowComparer*;
     _ZZN9gui_forms23DataGridViewRowPosition*;
+    _ZZN9gui_forms23DragAnnouncementRequest*;
     _ZZN9gui_forms23EffectColourDeclaration*;
     _ZZN9gui_forms23HostAutoCompleteRequest*;
     _ZZN9gui_forms23HostClipboardTextResult*;
@@ -12548,6 +12653,7 @@
     _ZZN9gui_forms8DockEdit*;
     _ZZN9gui_forms8DockNode*;
     _ZZN9gui_forms8DockSite*;
+    _ZZN9gui_forms8DragPlan*;
     _ZZN9gui_forms8FlexLine*;
     _ZZN9gui_forms8FontSpec*;
     _ZZN9gui_forms8GlyphRun*;
@@ -12573,6 +12679,8 @@
     _ZZN9gui_forms9BoxLength*;
     _ZZN9gui_forms9Component*;
     _ZZN9gui_forms9DragEvent*;
+    _ZZN9gui_forms9DragStart*;
+    _ZZN9gui_forms9DragValue*;
     _ZZN9gui_forms9FlexPanel*;
     _ZZN9gui_forms9GaugeBase*;
     _ZZN9gui_forms9GridLevel*;
@@ -12680,6 +12788,7 @@
     _ZZNK9gui_forms10DockNodeId*;
     _ZZNK9gui_forms10DockSiteId*;
     _ZZNK9gui_forms10DragLimits*;
+    _ZZNK9gui_forms10DragTarget*;
     _ZZNK9gui_forms10EffectCost*;
     _ZZNK9gui_forms10EmptyState*;
     _ZZNK9gui_forms10FlexFactor*;
@@ -12746,6 +12855,8 @@
     _ZZNK9gui_forms11DockPanelId*;
     _ZZNK9gui_forms11DockRefusal*;
     _ZZNK9gui_forms11DockSubject*;
+    _ZZNK9gui_forms11DragReorder*;
+    _ZZNK9gui_forms11DragTracker*;
     _ZZNK9gui_forms11EffectEntry*;
     _ZZNK9gui_forms11EffectFrame*;
     _ZZNK9gui_forms11EffectSetup*;
@@ -12895,6 +13006,7 @@
     _ZZNK9gui_forms13DisposedError*;
     _ZZNK9gui_forms13DockNavigator*;
     _ZZNK9gui_forms13DockWorkspace*;
+    _ZZNK9gui_forms13DragPlacement*;
     _ZZNK9gui_forms13EffectAdvance*;
     _ZZNK9gui_forms13EffectColours*;
     _ZZNK9gui_forms13EffectPointer*;
@@ -12975,6 +13087,7 @@
     _ZZNK9gui_forms14DateTimePicker*;
     _ZZNK9gui_forms14DockDropTarget*;
     _ZZNK9gui_forms14DockSplitSizes*;
+    _ZZNK9gui_forms14DragAutoScroll*;
     _ZZNK9gui_forms14DragBinaryData*;
     _ZZNK9gui_forms14DrawingSurface*;
     _ZZNK9gui_forms14DropDownButton*;
@@ -13166,6 +13279,7 @@
     _ZZNK9gui_forms16DocumentRevision*;
     _ZZNK9gui_forms16DocumentViewport*;
     _ZZNK9gui_forms16DragFileListData*;
+    _ZZNK9gui_forms16DragTrackerFrame*;
     _ZZNK9gui_forms16EffectInputEvent*;
     _ZZNK9gui_forms16EncodedFontLease*;
     _ZZNK9gui_forms16EngineExpression*;
@@ -13355,6 +13469,7 @@
     _ZZNK9gui_forms18DockNavigatorEntry*;
     _ZZNK9gui_forms18DockRestoreOptions*;
     _ZZNK9gui_forms18DocumentViewLimits*;
+    _ZZNK9gui_forms18DragAutoScrollStep*;
     _ZZNK9gui_forms18DragDispatchResult*;
     _ZZNK9gui_forms18ExpandableSections*;
     _ZZNK9gui_forms18FamiliarThemeBuild*;
@@ -13538,6 +13653,7 @@
     _ZZNK9gui_forms20DockDefaultPlacement*;
     _ZZNK9gui_forms20DockMonitorPlacement*;
     _ZZNK9gui_forms20DockSiteRestrictions*;
+    _ZZNK9gui_forms20DragTrackerCallbacks*;
     _ZZNK9gui_forms20ExpressionInputIndex*;
     _ZZNK9gui_forms20FocusedControlChange*;
     _ZZNK9gui_forms20FontFallbackResolver*;
@@ -13596,6 +13712,7 @@
     _ZZNK9gui_forms21DockTransactionResult*;
     _ZZNK9gui_forms21DocumentRequestResult*;
     _ZZNK9gui_forms21DragInteractionEvents*;
+    _ZZNK9gui_forms21DragTrackerStatistics*;
     _ZZNK9gui_forms21EffectLoadDiagnostics*;
     _ZZNK9gui_forms21ErrorProviderSnapshot*;
     _ZZNK9gui_forms21ExpectationThresholds*;
@@ -13700,6 +13817,7 @@
     _ZZNK9gui_forms23DataGridViewCellsUpdate*;
     _ZZNK9gui_forms23DataGridViewRowComparer*;
     _ZZNK9gui_forms23DataGridViewRowPosition*;
+    _ZZNK9gui_forms23DragAnnouncementRequest*;
     _ZZNK9gui_forms23EffectColourDeclaration*;
     _ZZNK9gui_forms23HostAutoCompleteRequest*;
     _ZZNK9gui_forms23HostClipboardTextResult*;
@@ -13968,6 +14086,7 @@
     _ZZNK9gui_forms8DockEdit*;
     _ZZNK9gui_forms8DockNode*;
     _ZZNK9gui_forms8DockSite*;
+    _ZZNK9gui_forms8DragPlan*;
     _ZZNK9gui_forms8FlexLine*;
     _ZZNK9gui_forms8FontSpec*;
     _ZZNK9gui_forms8GlyphRun*;
@@ -13993,6 +14112,8 @@
     _ZZNK9gui_forms9BoxLength*;
     _ZZNK9gui_forms9Component*;
     _ZZNK9gui_forms9DragEvent*;
+    _ZZNK9gui_forms9DragStart*;
+    _ZZNK9gui_forms9DragValue*;
     _ZZNK9gui_forms9FlexPanel*;
     _ZZNK9gui_forms9GaugeBase*;
     _ZZNK9gui_forms9GridLevel*;
