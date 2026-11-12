@@ -154,6 +154,23 @@ enum class RightToLeft : std::uint8_t {
     return mirrored;
 }
 
+// `laid` as a control resolving `direction` places it: unchanged left to
+// right, horizontally_mirrored in `frame` right to left. For geometry laid
+// out left to right once and placed at output.
+[[nodiscard]] constexpr Rect directed_rect(Rect laid, Rect frame, LayoutDirection direction) noexcept {
+    if (direction != LayoutDirection::right_to_left) return laid;
+    const Rect placed = horizontally_mirrored(laid, frame);
+    return placed;
+}
+
+// The left-to-right x of a point at `x` in `frame` placed by `direction`:
+// directed_rect's inverse for hit testing (a mirror is its own inverse).
+[[nodiscard]] constexpr double directed_x(double x, Rect frame, LayoutDirection direction) noexcept {
+    if (direction != LayoutDirection::right_to_left) return x;
+    const double laid = frame.x + frame.width - (x - frame.x);
+    return laid;
+}
+
 namespace types {
 
 inline constexpr TypeTag<LayoutDirection> layout_direction{};

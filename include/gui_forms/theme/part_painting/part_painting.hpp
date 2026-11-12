@@ -75,6 +75,8 @@ enum class PartMark : std::uint8_t {
     information,
     warning,
     success,
+    // A right-to-left menu's submenu chevron (the mirror of chevron_right).
+    chevron_left,
     count,
 };
 

@@ -5,13 +5,17 @@
 // right_to_left_changed event's scope and order (a write, a removal and a
 // reparenting), the typed dirtiness a change marks, and directional
 // controls that follow the resolved value: the track bar, the horizontal
-// scroll bar, the combo box's drop button and the check box's well. The
+// scroll bar, the combo box's drop button, the check box's well, the radio
+// button's well, the switch's track, the group box's caption, the value
+// bar's fill, the split container's panels and the menu strip's items. The
 // barber pole's direction is tested with the other progress effects
 // (tests/effect_program_tests.cpp, progress_bar_follows_right_to_left).
 
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/window.hpp"
 
+#include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -46,6 +50,12 @@ struct DirectionRecorder final {
         (*log).push_back(std::move(entry));
     }
 };
+
+// Mirrored edges are computed as differences: equal within rounding.
+bool near(double left, double right) {
+    const bool close = std::fabs(left - right) < 1e-9;
+    return close;
+}
 
 std::shared_ptr<Panel> make_panel(const char* id) {
     std::shared_ptr<Panel> made = make_control<Panel>(StableId(std::string(id)));
@@ -261,6 +271,84 @@ void test_check_box_follows() {
     require((*check).parts().well.bounds.right() == 119.0, "right to left, the box is at the right");
 }
 
+void test_radio_button_follows() {
+    std::shared_ptr<RadioButton> radio = make_control<RadioButton>(StableId("rtl.radio"), "Choice");
+    (*radio).auto_size = false;
+    Hosted hosted = host(radio, {0.0, 0.0, 120.0, 20.0}, "rtl.radio.root");
+    const Rect forward = (*radio).parts().well.bounds;
+    set_root_direction(hosted, LayoutDirection::right_to_left);
+    const Rect mirrored = (*radio).parts().well.bounds;
+    require(forward.x < 60.0 && mirrored.x > 60.0 && near(forward.x + mirrored.right(), 120.0),
+            "right to left, the radio button's well is at the right, mirrored");
+}
+
+void test_toggle_switch_follows() {
+    std::shared_ptr<ToggleSwitch> toggle = make_control<ToggleSwitch>(StableId("rtl.toggle"), "Power");
+    (*toggle).auto_size = false;
+    Hosted hosted = host(toggle, {0.0, 0.0, 160.0, 24.0}, "rtl.toggle.root");
+    const Rect forward = (*toggle).parts().track.bounds;
+    set_root_direction(hosted, LayoutDirection::right_to_left);
+    const Rect mirrored = (*toggle).parts().track.bounds;
+    require(forward.x < 80.0 && mirrored.x > 80.0 && near(forward.x + mirrored.right(), 160.0),
+            "right to left, the switch's track is at the right, mirrored");
+}
+
+void test_group_box_follows() {
+    std::shared_ptr<GroupBox> group = make_control<GroupBox>(StableId("rtl.group"), "Options");
+    Hosted hosted = host(group, {0.0, 0.0, 200.0, 80.0}, "rtl.group.root");
+    const Rect forward = (*group).caption_bounds();
+    set_root_direction(hosted, LayoutDirection::right_to_left);
+    const Rect mirrored = (*group).caption_bounds();
+    require(forward.x == 9.0 && near(mirrored.right(), 191.0) && mirrored.width == forward.width,
+            "right to left, the group box's caption sits at the right of the frame");
+}
+
+void test_value_bar_follows() {
+    std::shared_ptr<ValueBar> bar = make_control<ValueBar>(StableId("rtl.value_bar"));
+    (*bar).set_range(0.0, 100.0);
+    (*bar).value = 25.0;
+    Hosted hosted = host(bar, {0.0, 0.0, 200.0, 24.0}, "rtl.value_bar.root");
+    require((*bar).fill_bounds().x == (*bar).track_bounds().x, "left to right, the fill grows from the left");
+    set_root_direction(hosted, LayoutDirection::right_to_left);
+    const Rect fill = (*bar).fill_bounds();
+    const Rect track = (*bar).track_bounds();
+    require(near(fill.right(), track.right()) && fill.width > 0.0 && fill.width < track.width,
+            "right to left, the value bar's fill grows from the right");
+}
+
+void test_split_container_follows() {
+    std::shared_ptr<SplitContainer> split = make_control<SplitContainer>(StableId("rtl.split"));
+    (*split).orientation = Orientation::vertical;
+    Hosted hosted = host(split, {0.0, 0.0, 240.0, 80.0}, "rtl.split.root");
+    const double first_forward = (*(*split).first_panel()).absolute_bounds().x;
+    const double second_forward = (*(*split).second_panel()).absolute_bounds().x;
+    require(first_forward < second_forward, "left to right, the first panel is at the left");
+    set_root_direction(hosted, LayoutDirection::right_to_left);
+    const double first_mirrored = (*(*split).first_panel()).absolute_bounds().x;
+    const double second_mirrored = (*(*split).second_panel()).absolute_bounds().x;
+    require(first_mirrored > second_mirrored, "right to left, the first panel is at the right");
+}
+
+void test_menu_strip_follows() {
+    std::shared_ptr<MenuStrip> menu = make_control<MenuStrip>(StableId("rtl.menu"));
+    std::vector<MenuStripItemSpec> items(2U);
+    items[0].stable_id = "rtl.menu.file";
+    items[0].text = "File";
+    items[1].stable_id = "rtl.menu.edit";
+    items[1].text = "Edit";
+    (*menu).set_items(std::move(items));
+    Hosted hosted = host(menu, {0.0, 0.0, 300.0, 24.0}, "rtl.menu.root");
+    // The item nodes carry each item's bounds in window coordinates.
+    const std::vector<SemanticNode> forward = (*menu).semantic_virtual_children();
+    require(forward.size() == 2U && forward[0].bounds.x == 0.0 && near(forward[1].bounds.x, forward[0].bounds.right()),
+            "left to right, the first menu is at the left and the second follows it");
+    set_root_direction(hosted, LayoutDirection::right_to_left);
+    const std::vector<SemanticNode> mirrored = (*menu).semantic_virtual_children();
+    require(mirrored.size() == 2U && near(mirrored[0].bounds.right(), 300.0) &&
+                near(mirrored[1].bounds.right(), mirrored[0].bounds.x),
+            "right to left, the first menu is at the right and the second follows it leftward");
+}
+
 } // namespace
 
 int main() {
@@ -272,6 +360,12 @@ int main() {
         test_scroll_bar_follows();
         test_combo_box_follows();
         test_check_box_follows();
+        test_radio_button_follows();
+        test_toggle_switch_follows();
+        test_group_box_follows();
+        test_value_bar_follows();
+        test_split_container_follows();
+        test_menu_strip_follows();
         std::cout << "right-to-left-tests: pass\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

@@ -824,6 +824,18 @@ Enumerations
 Functions, constants and aliases
 --------------------------------
 
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/button_content_types.hpp>``
+
+.. cpp:function:: constexpr ContentAlignment mirrored_content_alignment(ContentAlignment alignment) noexcept
+
+   ``alignment`` with left and right exchanged: how Windows Forms places a ContentAlignment in a control under RightToLeft. A value outside the enumeration is kept.
+
+.. cpp:function:: constexpr TextImageRelation mirrored_text_image_relation(TextImageRelation relation) noexcept
+
+   ``relation`` with before and after exchanged along the line: image before text puts the image at the right under RightToLeft. The vertical relations and overlay are kept.
+
 .. cpp:namespace:: gui_forms::types
 
 ``#include <gui_forms/controls/button_content_types.hpp>``

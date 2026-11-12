@@ -73,6 +73,10 @@ struct EffectView<ProgressBar> final {
     Rect interior{};
     Rect fill{};
     bool vertical{};
+    // A horizontal bar whose fill grows from the right (the bar's resolved
+    // Control::right_to_left): the pulse travels and the laser's front burns
+    // leftward. Always false for a vertical bar.
+    bool right_to_left{};
     ProgressBarAnimationAppearance appearance{};
     // The woven stripes' width; the marching stripes follow `stripes`.
     double stripe_width{7.0};

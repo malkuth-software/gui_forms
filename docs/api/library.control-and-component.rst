@@ -4258,6 +4258,14 @@ Functions, constants and aliases
 
    ``bounds`` mirrored about the vertical centre line of ``frame``, both in the same coordinates: how a directional control places a part laid out left to right when it resolves right to left (Control:: effective_layout_direction). Mirroring twice gives ``bounds`` back.
 
+.. cpp:function:: constexpr Rect directed_rect(Rect laid, Rect frame, LayoutDirection direction) noexcept
+
+   ``laid`` as a control resolving ``direction`` places it: unchanged left to right, horizontally_mirrored in ``frame`` right to left. For geometry laid out left to right once and placed at output.
+
+.. cpp:function:: constexpr double directed_x(double x, Rect frame, LayoutDirection direction) noexcept
+
+   The left-to-right x of a point at ``x`` in ``frame`` placed by ``direction``: directed_rect's inverse for hit testing (a mirror is its own inverse).
+
 .. cpp:var:: constexpr double practical_unbounded_extent
 
    The extent Control::measure(Size) and get_preferred_size(Size{}) already use for "unbounded", kept finite so retained state never holds an infinity. Value: ``1.0e9``.

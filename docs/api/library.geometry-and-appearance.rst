@@ -7178,6 +7178,8 @@ Enumerations
 
    .. cpp:enumerator:: success
 
+   .. cpp:enumerator:: chevron_left
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms

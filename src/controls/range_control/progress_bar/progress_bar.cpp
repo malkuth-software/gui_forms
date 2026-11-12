@@ -863,6 +863,7 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
     view.period_seconds = speed > 0.0 ? period / speed : period;
     const FillStripes stripes = fill_stripes();
     const bool right_to_left = effective_layout_direction() == LayoutDirection::right_to_left;
+    view.right_to_left = right_to_left && !view.vertical;
     view.stripes = stripe_view(stripes.pattern, stripes.corner_radius, interior, fill, view.vertical, right_to_left,
                                view.appearance.stripe_color, speed);
     const bool suppressed = window() != nullptr && (*window()).motion_clock().ambient_suppressed();

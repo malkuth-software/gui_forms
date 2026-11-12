@@ -512,14 +512,23 @@ ButtonBase::ContentLayout ButtonBase::layout_content(
     const bool has_text = text_size.width > 0.0 && text_size.height > 0.0;
     const bool has_image = image && image_size.width > 0.0 &&
                            image_size.height > 0.0;
-    const ContentAlignment group_alignment = command_alignment
+    // Under RightToLeft the alignments and the text-image order mirror, as
+    // Windows Forms places them.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    const ContentAlignment authored_alignment = command_alignment
         ? ContentAlignment::middle_left : text_alignment.read();
+    const ContentAlignment group_alignment =
+        mirrored ? mirrored_content_alignment(authored_alignment) : authored_alignment;
+    const ContentAlignment placed_image_alignment =
+        mirrored ? mirrored_content_alignment(image_alignment.read()) : image_alignment.read();
+    const TextImageRelation relation =
+        mirrored ? mirrored_text_image_relation(text_image_relation.read()) : text_image_relation.read();
     const double gap = has_text && has_image ? image_gap.read() : 0.0;
 
-    if (has_text && has_image && text_image_relation.read() != TextImageRelation::overlay) {
+    if (has_text && has_image && relation != TextImageRelation::overlay) {
         const bool horizontal =
-            text_image_relation.read() == TextImageRelation::image_before_text ||
-            text_image_relation.read() == TextImageRelation::text_before_image;
+            relation == TextImageRelation::image_before_text ||
+            relation == TextImageRelation::text_before_image;
         const Size group_size = horizontal
             ? Size{image_size.width + gap + text_size.width,
                    std::max(image_size.height, text_size.height)}
@@ -527,8 +536,7 @@ ButtonBase::ContentLayout ButtonBase::layout_content(
                    image_size.height + gap + text_size.height};
         const Rect group = aligned_text_block(content, group_size, group_alignment);
         if (horizontal) {
-            const bool image_first =
-                text_image_relation.read() == TextImageRelation::image_before_text;
+            const bool image_first = relation == TextImageRelation::image_before_text;
             const double image_x = image_first ? group.x
                                                : group.x + text_size.width + gap;
             const double text_x = image_first ? group.x + image_size.width + gap
@@ -540,8 +548,7 @@ ButtonBase::ContentLayout ButtonBase::layout_content(
                                group.y + (group.height - text_size.height) * 0.5,
                                text_size.width, text_size.height};
         } else {
-            const bool image_first =
-                text_image_relation.read() == TextImageRelation::image_above_text;
+            const bool image_first = relation == TextImageRelation::image_above_text;
             const double image_y = image_first ? group.y
                                                : group.y + text_size.height + gap;
             const double text_y = image_first ? group.y + image_size.height + gap
@@ -552,7 +559,7 @@ ButtonBase::ContentLayout ButtonBase::layout_content(
                                text_y, text_size.width, text_size.height};
         }
     } else {
-        if (has_image) layout.image = aligned_rect(content, image_size, image_alignment.read());
+        if (has_image) layout.image = aligned_rect(content, image_size, placed_image_alignment);
         if (has_text) layout.text = aligned_text_block(content, text_size, group_alignment);
     }
     return layout;
@@ -615,16 +622,21 @@ void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
         paint_part(painter, *this, icon);
     }
     if (layout.text.has_value() && !text_rect.empty()) {
+        // Each line within the block, aligned as layout_content placed the
+        // block (mirrored under RightToLeft).
+        const ContentAlignment authored_alignment = text_alignment.read();
+        const ContentAlignment line_alignment = effective_layout_direction() == LayoutDirection::right_to_left
+            ? mirrored_content_alignment(authored_alignment) : authored_alignment;
         for (std::size_t index = 0; index < lines.size(); ++index) {
             const Size measured = line_sizes[index];
             double x = text_rect.x;
-            if (text_alignment.read() == ContentAlignment::top_center ||
-                text_alignment.read() == ContentAlignment::middle_center ||
-                text_alignment.read() == ContentAlignment::bottom_center) {
+            if (line_alignment == ContentAlignment::top_center ||
+                line_alignment == ContentAlignment::middle_center ||
+                line_alignment == ContentAlignment::bottom_center) {
                 x += (text_rect.width - measured.width) * 0.5;
-            } else if (text_alignment.read() == ContentAlignment::top_right ||
-                       text_alignment.read() == ContentAlignment::middle_right ||
-                       text_alignment.read() == ContentAlignment::bottom_right) {
+            } else if (line_alignment == ContentAlignment::top_right ||
+                       line_alignment == ContentAlignment::middle_right ||
+                       line_alignment == ContentAlignment::bottom_right) {
                 x += text_rect.width - measured.width;
             }
             // The label part centres its line box on its bounds, so the

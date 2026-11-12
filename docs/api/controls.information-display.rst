@@ -4381,6 +4381,14 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/controls/label_values.hpp>``
+
+.. cpp:function:: constexpr HorizontalAlignment directed_alignment(HorizontalAlignment alignment, LayoutDirection direction) noexcept
+
+   The alignment a control resolving ``direction`` places: Windows Forms mirrors a horizontal alignment under RightToLeft, so ``near`` is the right edge and ``far`` the left in right to left (Control:: effective_layout_direction). A value outside the enumeration is kept.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/controls/notice_values.hpp>``
 
 .. cpp:function:: constexpr Color notice_severity_colour(NoticeSeverity severity) noexcept

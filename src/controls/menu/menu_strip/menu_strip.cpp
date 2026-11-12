@@ -15,6 +15,7 @@
 #include <array>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <stdexcept>
@@ -168,8 +169,12 @@ bool MenuStrip::open(const std::size_t index, const MenuOpenMode mode) {
     (*overlay_).set_items(std::move(menu));
     const std::vector<Rect> bounds = item_bounds();
     const Rect absolute = absolute_bounds();
+    // The drop-down hangs from the item's reading-start corner: its left
+    // edge, or its right edge right to left (the menu then hangs leftward).
+    const bool right_to_left = effective_layout_direction() == LayoutDirection::right_to_left;
+    const double anchor_x = right_to_left ? bounds[index].x + bounds[index].width : bounds[index].x;
     (*overlay_).show(shared_from_this(),
-                 {absolute.x + bounds[index].x,
+                 {absolute.x + anchor_x,
                   absolute.y + bounds[index].y + bounds[index].height - 1.0}, mode);
     switching_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
@@ -237,6 +242,14 @@ std::vector<Rect> MenuStrip::item_bounds() const {
             item_padding.read() * 2.0 * scale + text_width);
         result[index] = {x, 0.0, width, height};
         x += width;
+    }
+    // A right-to-left strip runs its items from the right edge (WinForms'
+    // MenuStrip under RightToLeft).
+    if (effective_layout_direction() == LayoutDirection::right_to_left) {
+        const Rect frame{0.0, 0.0, committed_arranged_bounds().width, height};
+        for (std::size_t index = 0; index < result.size(); ++index) {
+            if (items_[index].visible) result[index] = horizontally_mirrored(result[index], frame);
+        }
     }
     return result;
 }
@@ -406,8 +419,11 @@ void MenuStrip::on_key(KeyEvent& event) {
     if (!current) return;
     if (event.physical_key == PhysicalKey::left ||
         event.physical_key == PhysicalKey::right) {
+        // Toward the reading end moves on.
+        const std::uint32_t onward = effective_layout_direction() == LayoutDirection::right_to_left
+            ? PhysicalKey::left : PhysicalKey::right;
         const std::optional<std::size_t> next = next_enabled(*current,
-            event.physical_key == PhysicalKey::right ? 1 : -1);
+            event.physical_key == onward ? 1 : -1);
         if (next) {
             if (is_open()) static_cast<void>(open(*next));
             else set_hot(next);

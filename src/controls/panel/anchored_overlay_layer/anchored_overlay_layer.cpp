@@ -86,9 +86,19 @@ void AnchoredOverlayLayer::arrange(Rect final_bounds) {
         resolved_ = {};
         return;
     }
+    // Near is the anchor's start edge: its right under RightToLeft, so a
+    // drop-down list or calendar lines up with a right-to-left anchor's
+    // right edge (Windows Forms).
+    AnchoredOverlayPlacement directed = placement.read();
+    if ((*anchor).effective_layout_direction() == LayoutDirection::right_to_left) {
+        if (directed.horizontal_alignment == OverlayHorizontalAlignment::near) {
+            directed.horizontal_alignment = OverlayHorizontalAlignment::far;
+        } else if (directed.horizontal_alignment == OverlayHorizontalAlignment::far) {
+            directed.horizontal_alignment = OverlayHorizontalAlignment::near;
+        }
+    }
     resolved_ = resolve_anchored_overlay(
-        (*anchor).absolute_bounds(), {layer_bounds.width, layer_bounds.height},
-        placement.read());
+        (*anchor).absolute_bounds(), {layer_bounds.width, layer_bounds.height}, directed);
     set_child_layout(content_, resolved_.bounds);
 }
 

@@ -736,6 +736,17 @@ ScrollableControl::AxisGeometry ScrollableControl::axis_geometry(
     geometry.thumb = horizontal
         ? Rect{start, geometry.track.y, end - start, geometry.track.height}
         : Rect{geometry.track.x, start, geometry.track.width, end - start};
+    // Under RightToLeft the content is mirrored (offset 0 shows its right
+    // end), so the horizontal bar runs right to left with it: the first
+    // button at the right and the thumb measured from the right end. The
+    // bar keeps its place below the viewport, and the vertical bar keeps
+    // the right edge (see the right-to-left note in scrollable_control.hpp).
+    if (horizontal && effective_layout_direction() == LayoutDirection::right_to_left) {
+        geometry.first_button = horizontally_mirrored(geometry.first_button, geometry.bar);
+        geometry.last_button = horizontally_mirrored(geometry.last_button, geometry.bar);
+        geometry.track = horizontally_mirrored(geometry.track, geometry.bar);
+        geometry.thumb = horizontally_mirrored(geometry.thumb, geometry.bar);
+    }
     return geometry;
 }
 
@@ -746,9 +757,10 @@ ScrollableControl::ScrollPart ScrollableControl::part_at(
         if (horizontal.first_button.contains(local)) return ScrollPart::horizontal_first;
         if (horizontal.last_button.contains(local)) return ScrollPart::horizontal_last;
         if (horizontal.thumb.contains(local)) return ScrollPart::horizontal_thumb;
-        return local.x < horizontal.thumb.x
-            ? ScrollPart::horizontal_track_before
-            : ScrollPart::horizontal_track_after;
+        // Before the thumb is toward offset 0: its right under RightToLeft.
+        const bool left_of_thumb = local.x < horizontal.thumb.x;
+        const bool before = left_of_thumb != (effective_layout_direction() == LayoutDirection::right_to_left);
+        return before ? ScrollPart::horizontal_track_before : ScrollPart::horizontal_track_after;
     }
     const AxisGeometry vertical = axis_geometry(ScrollOrientation::vertical);
     if (vertical.bar.contains(local)) {
@@ -780,9 +792,12 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
             ? geometry.thumb.width : geometry.thumb.height;
         const double travel = std::max(0.0, track_extent - thumb_extent);
         if (event.action == PointerAction::move && travel > 0.0) {
+            // A right-to-left horizontal thumb runs from the right end.
+            const double horizontal_movement = effective_layout_direction() == LayoutDirection::right_to_left
+                ? dragging_origin_.x - local.x : local.x - dragging_origin_.x;
             const double movement = *dragging_orientation_ ==
                     ScrollOrientation::horizontal
-                ? local.x - dragging_origin_.x
+                ? horizontal_movement
                 : local.y - dragging_origin_.y;
             const double next = dragging_start_value_ + movement *
                 maximum_offset(*dragging_orientation_) / travel;
@@ -1097,6 +1112,7 @@ void ScrollableControl::paint_axis(Painter& painter,
     parts.decrement = geometry.first_button;
     parts.increment = geometry.last_button;
     parts.thumb = geometry.thumb;
+    parts.mirrored = horizontal && effective_layout_direction() == LayoutDirection::right_to_left;
     // The bar takes only the disabled state from its control (a scrollable
     // control's own states describe its content); the press and hover are
     // its own parts'.

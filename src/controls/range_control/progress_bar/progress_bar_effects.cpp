@@ -141,7 +141,12 @@ void ProgressPulse::run(const EffectView<ProgressBar>& parent, const EffectFrame
     const double phase = frame.still ? parent.still_phase : phase_;
     const double extent = fill.width * parent.appearance.pulse_extent;
     const double band = extent > 8.0 ? extent : 8.0;
-    const Rect pulse{fill.x - band + (fill.width + band) * phase, fill.y, band, fill.height};
+    // Travelling toward the leading edge: from the left, or from the right
+    // on a right-to-left bar (the gradient is symmetric, so only its place
+    // moves).
+    const double travelled = (fill.width + band) * phase;
+    const double pulse_x = parent.right_to_left ? fill.x + fill.width - travelled : fill.x - band + travelled;
+    const Rect pulse{pulse_x, fill.y, band, fill.height};
     const Color color = parent.appearance.luminance_color;
     const Color third = with_alpha(color, color.alpha / 3U);
     EffectGradient gradient{};
@@ -193,7 +198,15 @@ void ProgressLaser::run(const EffectView<ProgressBar>& parent, const EffectFrame
     edge_stops.stops[2] = GradientStop{0.86, edge};
     edge_stops.stops[3] = GradientStop{1.0, spark};
     edge_stops.count = 4U;
-    if (!parent.vertical) {
+    // The front is the fill's leading edge: its right end, or its left end
+    // on a right-to-left bar, where everything past it points leftward.
+    const double front_x = parent.right_to_left ? fill.x : fill.x + fill.width;
+    const double outward = parent.right_to_left ? -1.0 : 1.0;
+    if (!parent.vertical && parent.right_to_left) {
+        const Rect edge_rect{fill.x, fill.y, edge_extent, fill.height};
+        canvas.fill_linear_gradient(edge_rect, {edge_rect.x + edge_rect.width, edge_rect.y},
+                                    {edge_rect.x, edge_rect.y}, edge_stops, false);
+    } else if (!parent.vertical) {
         const Rect edge_rect{fill.x + fill.width - edge_extent, fill.y, edge_extent, fill.height};
         canvas.fill_linear_gradient(edge_rect, {edge_rect.x, edge_rect.y},
                                     {edge_rect.x + edge_rect.width, edge_rect.y}, edge_stops, false);
@@ -217,7 +230,7 @@ void ProgressLaser::run(const EffectView<ProgressBar>& parent, const EffectFrame
     Point center{};
     Size radii{};
     if (!parent.vertical) {
-        center = Point{fill.x + fill.width, fill.y + fill.height * 0.5};
+        center = Point{front_x, fill.y + fill.height * 0.5};
         radii = Size{effect_clamp(edge_extent * 0.72, 4.0, 10.0),
                      fill.height * 0.68 > 3.0 ? fill.height * 0.68 : 3.0};
     } else {
@@ -243,7 +256,7 @@ void ProgressLaser::run(const EffectView<ProgressBar>& parent, const EffectFrame
         Point lobe{};
         Size lobe_radii{};
         if (!parent.vertical) {
-            lobe = Point{fill.x + fill.width + 0.6 + heat * 1.4, fill.y + fill.height * lane + wave * 1.1};
+            lobe = Point{front_x + outward * (0.6 + heat * 1.4), fill.y + fill.height * lane + wave * 1.1};
             lobe_radii = Size{2.4 + heat * 2.2, 1.8 + (1.0 - heat) * 2.0};
         } else {
             lobe = Point{fill.x + fill.width * lane + wave * 1.1, fill.y - 0.6 - heat * 1.4};
@@ -267,8 +280,8 @@ void ProgressLaser::run(const EffectView<ProgressBar>& parent, const EffectFrame
         const double spark_width = spark_width_base + spark_width_step * static_cast<double>(index % 3U);
         if (!parent.vertical) {
             const double y = fill.y + fill.height * lane;
-            const double edge_x = fill.x + fill.width;
-            canvas.stroke_line({edge_x - 0.35, y}, {edge_x + spark_length, y + wave * 0.8}, spark, spark_width);
+            canvas.stroke_line({front_x - outward * 0.35, y}, {front_x + outward * spark_length, y + wave * 0.8}, spark,
+                               spark_width);
         } else {
             const double x = fill.x + fill.width * lane;
             const double edge_y = fill.y;

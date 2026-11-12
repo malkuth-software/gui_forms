@@ -211,6 +211,11 @@ private:
     [[nodiscard]] Rect effective_viewport_rectangle() const noexcept;
     [[nodiscard]] Size content_extent();
     [[nodiscard]] double maximum_offset(ScrollOrientation orientation) const noexcept;
+    // Right to left (Control::right_to_left) the horizontal bar's buttons,
+    // track and thumb mirror within the bar, as the content does. Both bars
+    // keep their places: the vertical bar stays at the right edge, not at
+    // the left as Windows Forms puts it, because the viewport's origin is
+    // zero throughout the scroll strips, corner and copy-scroll damage.
     [[nodiscard]] AxisGeometry axis_geometry(ScrollOrientation orientation) const noexcept;
     // The axis's bar with its thumb placed for `value` (the position, or a
     // glide's target). The thumb's ends lie on whole device pixels, so its
