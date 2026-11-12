@@ -6,6 +6,9 @@
 
 #include "../abi_class_bridge.hpp"
 
+// The field forms of the raisers' arguments (append_field and read_field).
+#include "../../events/abi_event_catalog.hpp"
+
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/combo_box.hpp"
@@ -33,6 +36,36 @@ gf_status GF_CALL base_control_on_right_to_left_changed(gf_object self, gf_event
 gf_status GF_CALL base_control_on_tab_index_changed(gf_object self, gf_event* event) noexcept;
 gf_status GF_CALL base_control_on_tab_stop_changed(gf_object self, gf_event* event) noexcept;
 gf_status GF_CALL base_control_on_visible_changed(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_change_ui_cues(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_click(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_double_click(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_drag_drop(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_drag_enter(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_drag_leave(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_drag_over(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_enter(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_got_focus(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_help_requested(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_key_down(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_key_press(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_key_up(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_layout(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_leave(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_lost_focus(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_mouse_capture_changed(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_mouse_click(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_mouse_double_click(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_mouse_down(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_mouse_enter(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_mouse_hover(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_mouse_leave(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_mouse_move(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_mouse_up(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_mouse_wheel(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_paint_background(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_preview_key_down(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_validated(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_validating(gf_object self, gf_event* event) noexcept;
 gf_status GF_CALL base_masked_text_box_on_mask_changed(gf_object self, gf_event* event) noexcept;
 gf_status GF_CALL base_picture_box_on_size_mode_changed(gf_object self, gf_event* event) noexcept;
 gf_status GF_CALL base_combo_box_on_drop_down_style_changed(gf_object self, gf_event* event) noexcept;
@@ -217,14 +250,344 @@ protected:
         }
     }
 
+    void on_change_ui_cues(bool visible) override {
+        const HookKey hook{GF_CLASS_CONTROL, 13U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<false>(
+                                 *this, entry, hook, "change_ui_cues", &base_control_on_change_ui_cues, std::as_const(visible));
+        if (!entered) {
+            Base::on_change_ui_cues(visible);
+        }
+    }
+
+    void on_click() override {
+        const HookKey hook{GF_CLASS_CONTROL, 14U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).enter_class_hook(*this, entry, hook, "click",
+                                                &base_control_on_click);
+        if (!entered) {
+            Base::on_click();
+        }
+    }
+
+    void on_double_click() override {
+        const HookKey hook{GF_CLASS_CONTROL, 15U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).enter_class_hook(*this, entry, hook, "double_click",
+                                                &base_control_on_double_click);
+        if (!entered) {
+            Base::on_double_click();
+        }
+    }
+
+    void on_drag_drop(DragEvent& event) override {
+        const HookKey hook{GF_CLASS_CONTROL, 16U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<false>(
+                                 *this, entry, hook, "drag_drop", &base_control_on_drag_drop, event);
+        if (!entered) {
+            Base::on_drag_drop(event);
+        }
+    }
+
+    void on_drag_enter(DragEvent& event) override {
+        const HookKey hook{GF_CLASS_CONTROL, 17U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<false>(
+                                 *this, entry, hook, "drag_enter", &base_control_on_drag_enter, event);
+        if (!entered) {
+            Base::on_drag_enter(event);
+        }
+    }
+
+    void on_drag_leave(DragEvent& event) override {
+        const HookKey hook{GF_CLASS_CONTROL, 18U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<false>(
+                                 *this, entry, hook, "drag_leave", &base_control_on_drag_leave, event);
+        if (!entered) {
+            Base::on_drag_leave(event);
+        }
+    }
+
+    void on_drag_over(DragEvent& event) override {
+        const HookKey hook{GF_CLASS_CONTROL, 19U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<false>(
+                                 *this, entry, hook, "drag_over", &base_control_on_drag_over, event);
+        if (!entered) {
+            Base::on_drag_over(event);
+        }
+    }
+
+    void on_enter() override {
+        const HookKey hook{GF_CLASS_CONTROL, 20U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).enter_class_hook(*this, entry, hook, "enter",
+                                                &base_control_on_enter);
+        if (!entered) {
+            Base::on_enter();
+        }
+    }
+
+    void on_got_focus() override {
+        const HookKey hook{GF_CLASS_CONTROL, 21U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).enter_class_hook(*this, entry, hook, "got_focus",
+                                                &base_control_on_got_focus);
+        if (!entered) {
+            Base::on_got_focus();
+        }
+    }
+
+    void on_help_requested(HelpRequestEvent& request) override {
+        const HookKey hook{GF_CLASS_CONTROL, 22U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "help_requested", &base_control_on_help_requested, request);
+        if (!entered) {
+            Base::on_help_requested(request);
+        }
+    }
+
+    void on_key_down(KeyEventArgs& arguments) override {
+        const HookKey hook{GF_CLASS_CONTROL, 23U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "key_down", &base_control_on_key_down, arguments);
+        if (!entered) {
+            Base::on_key_down(arguments);
+        }
+    }
+
+    void on_key_press(KeyPressEventArgs& arguments) override {
+        const HookKey hook{GF_CLASS_CONTROL, 24U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "key_press", &base_control_on_key_press, arguments);
+        if (!entered) {
+            Base::on_key_press(arguments);
+        }
+    }
+
+    void on_key_up(KeyEventArgs& arguments) override {
+        const HookKey hook{GF_CLASS_CONTROL, 25U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "key_up", &base_control_on_key_up, arguments);
+        if (!entered) {
+            Base::on_key_up(arguments);
+        }
+    }
+
+    void on_layout() override {
+        const HookKey hook{GF_CLASS_CONTROL, 26U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).enter_class_hook(*this, entry, hook, "layout",
+                                                &base_control_on_layout);
+        if (!entered) {
+            Base::on_layout();
+        }
+    }
+
+    void on_leave() override {
+        const HookKey hook{GF_CLASS_CONTROL, 27U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).enter_class_hook(*this, entry, hook, "leave",
+                                                &base_control_on_leave);
+        if (!entered) {
+            Base::on_leave();
+        }
+    }
+
+    void on_lost_focus() override {
+        const HookKey hook{GF_CLASS_CONTROL, 28U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).enter_class_hook(*this, entry, hook, "lost_focus",
+                                                &base_control_on_lost_focus);
+        if (!entered) {
+            Base::on_lost_focus();
+        }
+    }
+
+    void on_mouse_capture_changed() override {
+        const HookKey hook{GF_CLASS_CONTROL, 29U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).enter_class_hook(*this, entry, hook, "mouse_capture_changed",
+                                                &base_control_on_mouse_capture_changed);
+        if (!entered) {
+            Base::on_mouse_capture_changed();
+        }
+    }
+
+    void on_mouse_click(const MouseEventArgs& arguments) override {
+        const HookKey hook{GF_CLASS_CONTROL, 30U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "mouse_click", &base_control_on_mouse_click, arguments);
+        if (!entered) {
+            Base::on_mouse_click(arguments);
+        }
+    }
+
+    void on_mouse_double_click(const MouseEventArgs& arguments) override {
+        const HookKey hook{GF_CLASS_CONTROL, 31U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "mouse_double_click", &base_control_on_mouse_double_click, arguments);
+        if (!entered) {
+            Base::on_mouse_double_click(arguments);
+        }
+    }
+
+    void on_mouse_down(const MouseEventArgs& arguments) override {
+        const HookKey hook{GF_CLASS_CONTROL, 32U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "mouse_down", &base_control_on_mouse_down, arguments);
+        if (!entered) {
+            Base::on_mouse_down(arguments);
+        }
+    }
+
+    void on_mouse_enter() override {
+        const HookKey hook{GF_CLASS_CONTROL, 33U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).enter_class_hook(*this, entry, hook, "mouse_enter",
+                                                &base_control_on_mouse_enter);
+        if (!entered) {
+            Base::on_mouse_enter();
+        }
+    }
+
+    void on_mouse_hover() override {
+        const HookKey hook{GF_CLASS_CONTROL, 34U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).enter_class_hook(*this, entry, hook, "mouse_hover",
+                                                &base_control_on_mouse_hover);
+        if (!entered) {
+            Base::on_mouse_hover();
+        }
+    }
+
+    void on_mouse_leave() override {
+        const HookKey hook{GF_CLASS_CONTROL, 35U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).enter_class_hook(*this, entry, hook, "mouse_leave",
+                                                &base_control_on_mouse_leave);
+        if (!entered) {
+            Base::on_mouse_leave();
+        }
+    }
+
+    void on_mouse_move(const MouseEventArgs& arguments) override {
+        const HookKey hook{GF_CLASS_CONTROL, 36U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "mouse_move", &base_control_on_mouse_move, arguments);
+        if (!entered) {
+            Base::on_mouse_move(arguments);
+        }
+    }
+
+    void on_mouse_up(const MouseEventArgs& arguments) override {
+        const HookKey hook{GF_CLASS_CONTROL, 37U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "mouse_up", &base_control_on_mouse_up, arguments);
+        if (!entered) {
+            Base::on_mouse_up(arguments);
+        }
+    }
+
+    void on_mouse_wheel(const MouseEventArgs& arguments) override {
+        const HookKey hook{GF_CLASS_CONTROL, 38U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "mouse_wheel", &base_control_on_mouse_wheel, arguments);
+        if (!entered) {
+            Base::on_mouse_wheel(arguments);
+        }
+    }
+
+    void on_paint_background(PaintEventArgs& arguments) override {
+        const HookKey hook{GF_CLASS_CONTROL, 39U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<false>(
+                                 *this, entry, hook, "paint_background", &base_control_on_paint_background, arguments);
+        if (!entered) {
+            Base::on_paint_background(arguments);
+        }
+    }
+
+    void on_preview_key_down(PreviewKeyDownEventArgs& arguments) override {
+        const HookKey hook{GF_CLASS_CONTROL, 40U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "preview_key_down", &base_control_on_preview_key_down, arguments);
+        if (!entered) {
+            Base::on_preview_key_down(arguments);
+        }
+    }
+
+    void on_validated() override {
+        const HookKey hook{GF_CLASS_CONTROL, 41U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).enter_class_hook(*this, entry, hook, "validated",
+                                                &base_control_on_validated);
+        if (!entered) {
+            Base::on_validated();
+        }
+    }
+
+    void on_validating(ControlValidationEvent& event) override {
+        const HookKey hook{GF_CLASS_CONTROL, 42U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "validating", &base_control_on_validating, event);
+        if (!entered) {
+            Base::on_validating(event);
+        }
+    }
+
     // Runs the raiser below this layer for one of Control's hooks; another
     // class's hook goes to the layers further in.
-    [[nodiscard]] bool run_layer_base(HookKey hook) {
+    [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {
         if (hook.class_id != GF_CLASS_CONTROL) {
-            const bool inner = Base::run_layer_base(hook);
+            const HookRun inner = Base::run_layer_base(hook, arguments);
             return inner;
         }
-        bool ran = true;
+        HookRun run = HookRun::ran;
         switch (hook.entry) {
         case 0U:
             Base::on_auto_size_changed();
@@ -265,11 +628,175 @@ protected:
         case 12U:
             Base::on_visible_changed();
             break;
-        default:
-            ran = false;
+        case 13U: {
+            const bool* given = static_cast<const bool*>(arguments.constant_value);
+            bool made{};
+            const bool& used = given != nullptr ? *given : made;
+            Base::on_change_ui_cues(used);
             break;
         }
-        return ran;
+        case 14U:
+            Base::on_click();
+            break;
+        case 15U:
+            Base::on_double_click();
+            break;
+        case 16U: {
+            DragEvent* given = static_cast<DragEvent*>(arguments.value);
+            DragEvent made{};
+            DragEvent& used = given != nullptr ? *given : made;
+            Base::on_drag_drop(used);
+            break;
+        }
+        case 17U: {
+            DragEvent* given = static_cast<DragEvent*>(arguments.value);
+            DragEvent made{};
+            DragEvent& used = given != nullptr ? *given : made;
+            Base::on_drag_enter(used);
+            break;
+        }
+        case 18U: {
+            DragEvent* given = static_cast<DragEvent*>(arguments.value);
+            DragEvent made{};
+            DragEvent& used = given != nullptr ? *given : made;
+            Base::on_drag_leave(used);
+            break;
+        }
+        case 19U: {
+            DragEvent* given = static_cast<DragEvent*>(arguments.value);
+            DragEvent made{};
+            DragEvent& used = given != nullptr ? *given : made;
+            Base::on_drag_over(used);
+            break;
+        }
+        case 20U:
+            Base::on_enter();
+            break;
+        case 21U:
+            Base::on_got_focus();
+            break;
+        case 22U: {
+            HelpRequestEvent* given = static_cast<HelpRequestEvent*>(arguments.value);
+            HelpRequestEvent made{};
+            HelpRequestEvent& used = given != nullptr ? *given : made;
+            Base::on_help_requested(used);
+            break;
+        }
+        case 23U: {
+            KeyEventArgs* given = static_cast<KeyEventArgs*>(arguments.value);
+            KeyEventArgs made{};
+            KeyEventArgs& used = given != nullptr ? *given : made;
+            Base::on_key_down(used);
+            break;
+        }
+        case 24U: {
+            KeyPressEventArgs* given = static_cast<KeyPressEventArgs*>(arguments.value);
+            KeyPressEventArgs made{};
+            KeyPressEventArgs& used = given != nullptr ? *given : made;
+            Base::on_key_press(used);
+            break;
+        }
+        case 25U: {
+            KeyEventArgs* given = static_cast<KeyEventArgs*>(arguments.value);
+            KeyEventArgs made{};
+            KeyEventArgs& used = given != nullptr ? *given : made;
+            Base::on_key_up(used);
+            break;
+        }
+        case 26U:
+            Base::on_layout();
+            break;
+        case 27U:
+            Base::on_leave();
+            break;
+        case 28U:
+            Base::on_lost_focus();
+            break;
+        case 29U:
+            Base::on_mouse_capture_changed();
+            break;
+        case 30U: {
+            const MouseEventArgs* given = static_cast<const MouseEventArgs*>(arguments.constant_value);
+            MouseEventArgs made{};
+            const MouseEventArgs& used = given != nullptr ? *given : made;
+            Base::on_mouse_click(used);
+            break;
+        }
+        case 31U: {
+            const MouseEventArgs* given = static_cast<const MouseEventArgs*>(arguments.constant_value);
+            MouseEventArgs made{};
+            const MouseEventArgs& used = given != nullptr ? *given : made;
+            Base::on_mouse_double_click(used);
+            break;
+        }
+        case 32U: {
+            const MouseEventArgs* given = static_cast<const MouseEventArgs*>(arguments.constant_value);
+            MouseEventArgs made{};
+            const MouseEventArgs& used = given != nullptr ? *given : made;
+            Base::on_mouse_down(used);
+            break;
+        }
+        case 33U:
+            Base::on_mouse_enter();
+            break;
+        case 34U:
+            Base::on_mouse_hover();
+            break;
+        case 35U:
+            Base::on_mouse_leave();
+            break;
+        case 36U: {
+            const MouseEventArgs* given = static_cast<const MouseEventArgs*>(arguments.constant_value);
+            MouseEventArgs made{};
+            const MouseEventArgs& used = given != nullptr ? *given : made;
+            Base::on_mouse_move(used);
+            break;
+        }
+        case 37U: {
+            const MouseEventArgs* given = static_cast<const MouseEventArgs*>(arguments.constant_value);
+            MouseEventArgs made{};
+            const MouseEventArgs& used = given != nullptr ? *given : made;
+            Base::on_mouse_up(used);
+            break;
+        }
+        case 38U: {
+            const MouseEventArgs* given = static_cast<const MouseEventArgs*>(arguments.constant_value);
+            MouseEventArgs made{};
+            const MouseEventArgs& used = given != nullptr ? *given : made;
+            Base::on_mouse_wheel(used);
+            break;
+        }
+        case 39U: {
+            PaintEventArgs* given = static_cast<PaintEventArgs*>(arguments.value);
+            if (given == nullptr) {
+                run = HookRun::needs_arguments;
+                break;
+            }
+            Base::on_paint_background(*given);
+            break;
+        }
+        case 40U: {
+            PreviewKeyDownEventArgs* given = static_cast<PreviewKeyDownEventArgs*>(arguments.value);
+            PreviewKeyDownEventArgs made{};
+            PreviewKeyDownEventArgs& used = given != nullptr ? *given : made;
+            Base::on_preview_key_down(used);
+            break;
+        }
+        case 41U:
+            Base::on_validated();
+            break;
+        case 42U: {
+            ControlValidationEvent* given = static_cast<ControlValidationEvent*>(arguments.value);
+            ControlValidationEvent made{};
+            ControlValidationEvent& used = given != nullptr ? *given : made;
+            Base::on_validating(used);
+            break;
+        }
+        default:
+            run = HookRun::no_segment;
+            break;
+        }
+        return run;
     }
 };
 
@@ -293,21 +820,21 @@ protected:
 
     // Runs the raiser below this layer for one of MaskedTextBox's hooks; another
     // class's hook goes to the layers further in.
-    [[nodiscard]] bool run_layer_base(HookKey hook) {
+    [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {
         if (hook.class_id != GF_CLASS_MASKED_TEXT_BOX) {
-            const bool inner = Base::run_layer_base(hook);
+            const HookRun inner = Base::run_layer_base(hook, arguments);
             return inner;
         }
-        bool ran = true;
+        HookRun run = HookRun::ran;
         switch (hook.entry) {
         case 0U:
             Base::on_mask_changed();
             break;
         default:
-            ran = false;
+            run = HookRun::no_segment;
             break;
         }
-        return ran;
+        return run;
     }
 };
 
@@ -331,21 +858,21 @@ protected:
 
     // Runs the raiser below this layer for one of PictureBox's hooks; another
     // class's hook goes to the layers further in.
-    [[nodiscard]] bool run_layer_base(HookKey hook) {
+    [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {
         if (hook.class_id != GF_CLASS_PICTURE_BOX) {
-            const bool inner = Base::run_layer_base(hook);
+            const HookRun inner = Base::run_layer_base(hook, arguments);
             return inner;
         }
-        bool ran = true;
+        HookRun run = HookRun::ran;
         switch (hook.entry) {
         case 0U:
             Base::on_size_mode_changed();
             break;
         default:
-            ran = false;
+            run = HookRun::no_segment;
             break;
         }
-        return ran;
+        return run;
     }
 };
 
@@ -369,21 +896,21 @@ protected:
 
     // Runs the raiser below this layer for one of ComboBox's hooks; another
     // class's hook goes to the layers further in.
-    [[nodiscard]] bool run_layer_base(HookKey hook) {
+    [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {
         if (hook.class_id != GF_CLASS_COMBO_BOX) {
-            const bool inner = Base::run_layer_base(hook);
+            const HookRun inner = Base::run_layer_base(hook, arguments);
             return inner;
         }
-        bool ran = true;
+        HookRun run = HookRun::ran;
         switch (hook.entry) {
         case 0U:
             Base::on_drop_down_style_changed();
             break;
         default:
-            ran = false;
+            run = HookRun::no_segment;
             break;
         }
-        return ran;
+        return run;
     }
 };
 
@@ -638,12 +1165,12 @@ protected:
 
     // Runs the raiser below this layer for one of DataGridView's hooks; another
     // class's hook goes to the layers further in.
-    [[nodiscard]] bool run_layer_base(HookKey hook) {
+    [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {
         if (hook.class_id != GF_CLASS_DATA_GRID_VIEW) {
-            const bool inner = Base::run_layer_base(hook);
+            const HookRun inner = Base::run_layer_base(hook, arguments);
             return inner;
         }
-        bool ran = true;
+        HookRun run = HookRun::ran;
         switch (hook.entry) {
         case 0U:
             Base::on_allow_user_to_delete_rows_changed();
@@ -712,10 +1239,10 @@ protected:
             Base::on_rows_default_cell_style_changed();
             break;
         default:
-            ran = false;
+            run = HookRun::no_segment;
             break;
         }
-        return ran;
+        return run;
     }
 };
 
@@ -761,12 +1288,12 @@ protected:
 
     // Runs the raiser below this layer for one of CheckBox's hooks; another
     // class's hook goes to the layers further in.
-    [[nodiscard]] bool run_layer_base(HookKey hook) {
+    [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {
         if (hook.class_id != GF_CLASS_CHECK_BOX) {
-            const bool inner = Base::run_layer_base(hook);
+            const HookRun inner = Base::run_layer_base(hook, arguments);
             return inner;
         }
-        bool ran = true;
+        HookRun run = HookRun::ran;
         switch (hook.entry) {
         case 0U:
             Base::on_appearance_changed();
@@ -778,10 +1305,10 @@ protected:
             Base::on_check_state_changed();
             break;
         default:
-            ran = false;
+            run = HookRun::no_segment;
             break;
         }
-        return ran;
+        return run;
     }
 };
 
@@ -805,21 +1332,21 @@ protected:
 
     // Runs the raiser below this layer for one of RadioButton's hooks; another
     // class's hook goes to the layers further in.
-    [[nodiscard]] bool run_layer_base(HookKey hook) {
+    [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {
         if (hook.class_id != GF_CLASS_RADIO_BUTTON) {
-            const bool inner = Base::run_layer_base(hook);
+            const HookRun inner = Base::run_layer_base(hook, arguments);
             return inner;
         }
-        bool ran = true;
+        HookRun run = HookRun::ran;
         switch (hook.entry) {
         case 0U:
             Base::on_checked_changed();
             break;
         default:
-            ran = false;
+            run = HookRun::no_segment;
             break;
         }
-        return ran;
+        return run;
     }
 };
 
@@ -843,21 +1370,21 @@ protected:
 
     // Runs the raiser below this layer for one of RangeControl's hooks; another
     // class's hook goes to the layers further in.
-    [[nodiscard]] bool run_layer_base(HookKey hook) {
+    [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {
         if (hook.class_id != GF_CLASS_RANGE_CONTROL) {
-            const bool inner = Base::run_layer_base(hook);
+            const HookRun inner = Base::run_layer_base(hook, arguments);
             return inner;
         }
-        bool ran = true;
+        HookRun run = HookRun::ran;
         switch (hook.entry) {
         case 0U:
             Base::on_value_changed();
             break;
         default:
-            ran = false;
+            run = HookRun::no_segment;
             break;
         }
-        return ran;
+        return run;
     }
 };
 
@@ -881,21 +1408,21 @@ protected:
 
     // Runs the raiser below this layer for one of NumericUpDown's hooks; another
     // class's hook goes to the layers further in.
-    [[nodiscard]] bool run_layer_base(HookKey hook) {
+    [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {
         if (hook.class_id != GF_CLASS_NUMERIC_UP_DOWN) {
-            const bool inner = Base::run_layer_base(hook);
+            const HookRun inner = Base::run_layer_base(hook, arguments);
             return inner;
         }
-        bool ran = true;
+        HookRun run = HookRun::ran;
         switch (hook.entry) {
         case 0U:
             Base::on_value_changed();
             break;
         default:
-            ran = false;
+            run = HookRun::no_segment;
             break;
         }
-        return ran;
+        return run;
     }
 };
 
@@ -930,12 +1457,12 @@ protected:
 
     // Runs the raiser below this layer for one of DateTimePicker's hooks; another
     // class's hook goes to the layers further in.
-    [[nodiscard]] bool run_layer_base(HookKey hook) {
+    [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {
         if (hook.class_id != GF_CLASS_DATE_TIME_PICKER) {
-            const bool inner = Base::run_layer_base(hook);
+            const HookRun inner = Base::run_layer_base(hook, arguments);
             return inner;
         }
-        bool ran = true;
+        HookRun run = HookRun::ran;
         switch (hook.entry) {
         case 0U:
             Base::on_format_changed();
@@ -944,10 +1471,10 @@ protected:
             Base::on_value_changed();
             break;
         default:
-            ran = false;
+            run = HookRun::no_segment;
             break;
         }
-        return ran;
+        return run;
     }
 };
 

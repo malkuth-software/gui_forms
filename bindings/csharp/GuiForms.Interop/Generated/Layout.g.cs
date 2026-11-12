@@ -1272,7 +1272,7 @@ public static unsafe class Layout
         {
             gf_control_hooks value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_control_hooks size", sizeof(gf_control_hooks), 112);
+            failures += expect(output, "gf_control_hooks size", sizeof(gf_control_hooks), 352);
             failures += expect(output, "gf_control_hooks.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_control_hooks.class_id offset", (long)((byte*)&value.class_id - start), 4);
             failures += expect(output, "gf_control_hooks.on_auto_size_changed offset", (long)((byte*)&value.on_auto_size_changed - start), 8);
@@ -1288,6 +1288,36 @@ public static unsafe class Layout
             failures += expect(output, "gf_control_hooks.on_tab_index_changed offset", (long)((byte*)&value.on_tab_index_changed - start), 88);
             failures += expect(output, "gf_control_hooks.on_tab_stop_changed offset", (long)((byte*)&value.on_tab_stop_changed - start), 96);
             failures += expect(output, "gf_control_hooks.on_visible_changed offset", (long)((byte*)&value.on_visible_changed - start), 104);
+            failures += expect(output, "gf_control_hooks.on_change_ui_cues offset", (long)((byte*)&value.on_change_ui_cues - start), 112);
+            failures += expect(output, "gf_control_hooks.on_click offset", (long)((byte*)&value.on_click - start), 120);
+            failures += expect(output, "gf_control_hooks.on_double_click offset", (long)((byte*)&value.on_double_click - start), 128);
+            failures += expect(output, "gf_control_hooks.on_drag_drop offset", (long)((byte*)&value.on_drag_drop - start), 136);
+            failures += expect(output, "gf_control_hooks.on_drag_enter offset", (long)((byte*)&value.on_drag_enter - start), 144);
+            failures += expect(output, "gf_control_hooks.on_drag_leave offset", (long)((byte*)&value.on_drag_leave - start), 152);
+            failures += expect(output, "gf_control_hooks.on_drag_over offset", (long)((byte*)&value.on_drag_over - start), 160);
+            failures += expect(output, "gf_control_hooks.on_enter offset", (long)((byte*)&value.on_enter - start), 168);
+            failures += expect(output, "gf_control_hooks.on_got_focus offset", (long)((byte*)&value.on_got_focus - start), 176);
+            failures += expect(output, "gf_control_hooks.on_help_requested offset", (long)((byte*)&value.on_help_requested - start), 184);
+            failures += expect(output, "gf_control_hooks.on_key_down offset", (long)((byte*)&value.on_key_down - start), 192);
+            failures += expect(output, "gf_control_hooks.on_key_press offset", (long)((byte*)&value.on_key_press - start), 200);
+            failures += expect(output, "gf_control_hooks.on_key_up offset", (long)((byte*)&value.on_key_up - start), 208);
+            failures += expect(output, "gf_control_hooks.on_layout offset", (long)((byte*)&value.on_layout - start), 216);
+            failures += expect(output, "gf_control_hooks.on_leave offset", (long)((byte*)&value.on_leave - start), 224);
+            failures += expect(output, "gf_control_hooks.on_lost_focus offset", (long)((byte*)&value.on_lost_focus - start), 232);
+            failures += expect(output, "gf_control_hooks.on_mouse_capture_changed offset", (long)((byte*)&value.on_mouse_capture_changed - start), 240);
+            failures += expect(output, "gf_control_hooks.on_mouse_click offset", (long)((byte*)&value.on_mouse_click - start), 248);
+            failures += expect(output, "gf_control_hooks.on_mouse_double_click offset", (long)((byte*)&value.on_mouse_double_click - start), 256);
+            failures += expect(output, "gf_control_hooks.on_mouse_down offset", (long)((byte*)&value.on_mouse_down - start), 264);
+            failures += expect(output, "gf_control_hooks.on_mouse_enter offset", (long)((byte*)&value.on_mouse_enter - start), 272);
+            failures += expect(output, "gf_control_hooks.on_mouse_hover offset", (long)((byte*)&value.on_mouse_hover - start), 280);
+            failures += expect(output, "gf_control_hooks.on_mouse_leave offset", (long)((byte*)&value.on_mouse_leave - start), 288);
+            failures += expect(output, "gf_control_hooks.on_mouse_move offset", (long)((byte*)&value.on_mouse_move - start), 296);
+            failures += expect(output, "gf_control_hooks.on_mouse_up offset", (long)((byte*)&value.on_mouse_up - start), 304);
+            failures += expect(output, "gf_control_hooks.on_mouse_wheel offset", (long)((byte*)&value.on_mouse_wheel - start), 312);
+            failures += expect(output, "gf_control_hooks.on_paint_background offset", (long)((byte*)&value.on_paint_background - start), 320);
+            failures += expect(output, "gf_control_hooks.on_preview_key_down offset", (long)((byte*)&value.on_preview_key_down - start), 328);
+            failures += expect(output, "gf_control_hooks.on_validated offset", (long)((byte*)&value.on_validated - start), 336);
+            failures += expect(output, "gf_control_hooks.on_validating offset", (long)((byte*)&value.on_validating - start), 344);
         }
         {
             gf_masked_text_box_hooks value = default;

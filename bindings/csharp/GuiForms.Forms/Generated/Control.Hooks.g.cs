@@ -353,6 +353,786 @@ public partial class Control : Component
         }
     }
 
+    /// <summary>Control::on_change_ui_cues: where change_ui_cues happens; base raises no event yet. Windows Forms'
+    /// Control.OnChangeUICues. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 13u)]
+    protected virtual void OnChangeUICues(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_change_ui_cues, "change_ui_cues"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnChangeUICuesEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_change_ui_cues, self, native, base_raiser);
+            target.OnChangeUICues(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_click: where click happens; base raises click. Windows Forms'
+    /// Control.OnClick. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 14u)]
+    protected virtual void OnClick(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_click, "click"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnClickEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_click, self, native, base_raiser);
+            target.OnClick(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_double_click: where double_click happens; base raises double_click. Windows Forms'
+    /// Control.OnDoubleClick. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 15u)]
+    protected virtual void OnDoubleClick(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_double_click, "double_click"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnDoubleClickEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_double_click, self, native, base_raiser);
+            target.OnDoubleClick(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_drag_drop: where drag_drop happens; base raises no event yet. Windows Forms'
+    /// Control.OnDragDrop. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 16u)]
+    protected virtual void OnDragDrop(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_drag_drop, "drag_drop"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnDragDropEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_drag_drop, self, native, base_raiser);
+            target.OnDragDrop(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_drag_enter: where drag_enter happens; base raises no event yet. Windows Forms'
+    /// Control.OnDragEnter. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 17u)]
+    protected virtual void OnDragEnter(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_drag_enter, "drag_enter"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnDragEnterEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_drag_enter, self, native, base_raiser);
+            target.OnDragEnter(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_drag_leave: where drag_leave happens; base raises no event yet. Windows Forms'
+    /// Control.OnDragLeave. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 18u)]
+    protected virtual void OnDragLeave(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_drag_leave, "drag_leave"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnDragLeaveEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_drag_leave, self, native, base_raiser);
+            target.OnDragLeave(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_drag_over: where drag_over happens; base raises no event yet. Windows Forms'
+    /// Control.OnDragOver. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 19u)]
+    protected virtual void OnDragOver(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_drag_over, "drag_over"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnDragOverEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_drag_over, self, native, base_raiser);
+            target.OnDragOver(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_enter: where enter happens; base raises no event yet. Windows Forms'
+    /// Control.OnEnter. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 20u)]
+    protected virtual void OnEnter(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_enter, "enter"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnEnterEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_enter, self, native, base_raiser);
+            target.OnEnter(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_got_focus: where got_focus happens; base raises focus_observed. Windows Forms'
+    /// Control.OnGotFocus. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 21u)]
+    protected virtual void OnGotFocus(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_got_focus, "got_focus"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnGotFocusEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_got_focus, self, native, base_raiser);
+            target.OnGotFocus(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_help_requested: where help_requested happens; base raises help_requested; the event's fields are its HelpRequestEvent, writable. Windows Forms'
+    /// Control.OnHelpRequested. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 22u)]
+    protected virtual void OnHelpRequested(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_help_requested, "help_requested"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnHelpRequestedEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_help_requested, self, native, base_raiser);
+            target.OnHelpRequested(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_key_down: where key_down happens; base raises key_down; the event's fields are its KeyEventArgs, writable. Windows Forms'
+    /// Control.OnKeyDown. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 23u)]
+    protected virtual void OnKeyDown(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_key_down, "key_down"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnKeyDownEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_key_down, self, native, base_raiser);
+            target.OnKeyDown(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_key_press: where key_press happens; base raises key_press; the event's fields are its KeyPressEventArgs, writable. Windows Forms'
+    /// Control.OnKeyPress. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 24u)]
+    protected virtual void OnKeyPress(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_key_press, "key_press"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnKeyPressEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_key_press, self, native, base_raiser);
+            target.OnKeyPress(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_key_up: where key_up happens; base raises key_up; the event's fields are its KeyEventArgs, writable. Windows Forms'
+    /// Control.OnKeyUp. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 25u)]
+    protected virtual void OnKeyUp(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_key_up, "key_up"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnKeyUpEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_key_up, self, native, base_raiser);
+            target.OnKeyUp(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_layout: where layout happens; base raises no event yet. Windows Forms'
+    /// Control.OnLayout. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 26u)]
+    protected virtual void OnLayout(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_layout, "layout"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnLayoutEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_layout, self, native, base_raiser);
+            target.OnLayout(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_leave: where leave happens; base raises no event yet. Windows Forms'
+    /// Control.OnLeave. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 27u)]
+    protected virtual void OnLeave(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_leave, "leave"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnLeaveEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_leave, self, native, base_raiser);
+            target.OnLeave(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_lost_focus: where lost_focus happens; base raises focus_observed. Windows Forms'
+    /// Control.OnLostFocus. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 28u)]
+    protected virtual void OnLostFocus(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_lost_focus, "lost_focus"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnLostFocusEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_lost_focus, self, native, base_raiser);
+            target.OnLostFocus(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_mouse_capture_changed: where mouse_capture_changed happens; base raises mouse_capture_changed. Windows Forms'
+    /// Control.OnMouseCaptureChanged. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 29u)]
+    protected virtual void OnMouseCaptureChanged(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_mouse_capture_changed, "mouse_capture_changed"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnMouseCaptureChangedEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_capture_changed, self, native, base_raiser);
+            target.OnMouseCaptureChanged(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_mouse_click: where mouse_click happens; base raises mouse_click; the event's fields are its MouseEventArgs. Windows Forms'
+    /// Control.OnMouseClick. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 30u)]
+    protected virtual void OnMouseClick(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_mouse_click, "mouse_click"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnMouseClickEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_click, self, native, base_raiser);
+            target.OnMouseClick(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_mouse_double_click: where mouse_double_click happens; base raises mouse_double_click; the event's fields are its MouseEventArgs. Windows Forms'
+    /// Control.OnMouseDoubleClick. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 31u)]
+    protected virtual void OnMouseDoubleClick(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_mouse_double_click, "mouse_double_click"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnMouseDoubleClickEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_double_click, self, native, base_raiser);
+            target.OnMouseDoubleClick(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_mouse_down: where mouse_down happens; base raises mouse_down; the event's fields are its MouseEventArgs. Windows Forms'
+    /// Control.OnMouseDown. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 32u)]
+    protected virtual void OnMouseDown(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_mouse_down, "mouse_down"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnMouseDownEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_down, self, native, base_raiser);
+            target.OnMouseDown(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_mouse_enter: where mouse_enter happens; base raises mouse_enter. Windows Forms'
+    /// Control.OnMouseEnter. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 33u)]
+    protected virtual void OnMouseEnter(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_mouse_enter, "mouse_enter"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnMouseEnterEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_enter, self, native, base_raiser);
+            target.OnMouseEnter(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_mouse_hover: where mouse_hover happens; base raises mouse_hover. Windows Forms'
+    /// Control.OnMouseHover. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 34u)]
+    protected virtual void OnMouseHover(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_mouse_hover, "mouse_hover"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnMouseHoverEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_hover, self, native, base_raiser);
+            target.OnMouseHover(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_mouse_leave: where mouse_leave happens; base raises mouse_leave. Windows Forms'
+    /// Control.OnMouseLeave. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 35u)]
+    protected virtual void OnMouseLeave(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_mouse_leave, "mouse_leave"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnMouseLeaveEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_leave, self, native, base_raiser);
+            target.OnMouseLeave(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_mouse_move: where mouse_move happens; base raises mouse_move; the event's fields are its MouseEventArgs. Windows Forms'
+    /// Control.OnMouseMove. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 36u)]
+    protected virtual void OnMouseMove(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_mouse_move, "mouse_move"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnMouseMoveEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_move, self, native, base_raiser);
+            target.OnMouseMove(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_mouse_up: where mouse_up happens; base raises mouse_up; the event's fields are its MouseEventArgs. Windows Forms'
+    /// Control.OnMouseUp. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 37u)]
+    protected virtual void OnMouseUp(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_mouse_up, "mouse_up"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnMouseUpEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_up, self, native, base_raiser);
+            target.OnMouseUp(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_mouse_wheel: where mouse_wheel happens; base raises mouse_wheel; the event's fields are its MouseEventArgs. Windows Forms'
+    /// Control.OnMouseWheel. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 38u)]
+    protected virtual void OnMouseWheel(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_mouse_wheel, "mouse_wheel"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnMouseWheelEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_mouse_wheel, self, native, base_raiser);
+            target.OnMouseWheel(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_paint_background: where paint_background happens; base raises no event yet. Windows Forms'
+    /// Control.OnPaintBackground. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 39u)]
+    protected virtual void OnPaintBackground(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_paint_background, "paint_background"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnPaintBackgroundEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_paint_background, self, native, base_raiser);
+            target.OnPaintBackground(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_preview_key_down: where preview_key_down happens; base raises preview_key_down; the event's fields are its PreviewKeyDownEventArgs, writable. Windows Forms'
+    /// Control.OnPreviewKeyDown. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 40u)]
+    protected virtual void OnPreviewKeyDown(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_preview_key_down, "preview_key_down"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnPreviewKeyDownEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_preview_key_down, self, native, base_raiser);
+            target.OnPreviewKeyDown(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_validated: where validated happens; base raises validated. Windows Forms'
+    /// Control.OnValidated. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 41u)]
+    protected virtual void OnValidated(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_validated, "validated"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnValidatedEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_validated, self, native, base_raiser);
+            target.OnValidated(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
+    /// <summary>Control::on_validating: where validating happens; base raises validating; the event's fields are its ControlValidationEvent, writable. Windows Forms'
+    /// Control.OnValidating. Call the base to run the subscribers.</summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 42u)]
+    protected virtual void OnValidating(EventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_validating, "validating"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnValidatingEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_validating, self, native, base_raiser);
+            target.OnValidating(EventArgs.Empty);
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
     /// <summary>Fills gf_control_hooks: an entry for each hook in overridden.</summary>
     internal static unsafe void fill_control_segment(gf_control_hooks* segment, HookSet overridden)
     {
@@ -409,6 +1189,126 @@ public partial class Control : Component
         if (overridden.contains(HookKeys.control_on_visible_changed))
         {
             (*segment).on_visible_changed = &OnVisibleChangedEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_change_ui_cues))
+        {
+            (*segment).on_change_ui_cues = &OnChangeUICuesEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_click))
+        {
+            (*segment).on_click = &OnClickEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_double_click))
+        {
+            (*segment).on_double_click = &OnDoubleClickEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_drag_drop))
+        {
+            (*segment).on_drag_drop = &OnDragDropEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_drag_enter))
+        {
+            (*segment).on_drag_enter = &OnDragEnterEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_drag_leave))
+        {
+            (*segment).on_drag_leave = &OnDragLeaveEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_drag_over))
+        {
+            (*segment).on_drag_over = &OnDragOverEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_enter))
+        {
+            (*segment).on_enter = &OnEnterEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_got_focus))
+        {
+            (*segment).on_got_focus = &OnGotFocusEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_help_requested))
+        {
+            (*segment).on_help_requested = &OnHelpRequestedEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_key_down))
+        {
+            (*segment).on_key_down = &OnKeyDownEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_key_press))
+        {
+            (*segment).on_key_press = &OnKeyPressEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_key_up))
+        {
+            (*segment).on_key_up = &OnKeyUpEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_layout))
+        {
+            (*segment).on_layout = &OnLayoutEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_leave))
+        {
+            (*segment).on_leave = &OnLeaveEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_lost_focus))
+        {
+            (*segment).on_lost_focus = &OnLostFocusEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_mouse_capture_changed))
+        {
+            (*segment).on_mouse_capture_changed = &OnMouseCaptureChangedEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_mouse_click))
+        {
+            (*segment).on_mouse_click = &OnMouseClickEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_mouse_double_click))
+        {
+            (*segment).on_mouse_double_click = &OnMouseDoubleClickEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_mouse_down))
+        {
+            (*segment).on_mouse_down = &OnMouseDownEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_mouse_enter))
+        {
+            (*segment).on_mouse_enter = &OnMouseEnterEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_mouse_hover))
+        {
+            (*segment).on_mouse_hover = &OnMouseHoverEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_mouse_leave))
+        {
+            (*segment).on_mouse_leave = &OnMouseLeaveEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_mouse_move))
+        {
+            (*segment).on_mouse_move = &OnMouseMoveEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_mouse_up))
+        {
+            (*segment).on_mouse_up = &OnMouseUpEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_mouse_wheel))
+        {
+            (*segment).on_mouse_wheel = &OnMouseWheelEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_paint_background))
+        {
+            (*segment).on_paint_background = &OnPaintBackgroundEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_preview_key_down))
+        {
+            (*segment).on_preview_key_down = &OnPreviewKeyDownEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_validated))
+        {
+            (*segment).on_validated = &OnValidatedEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_validating))
+        {
+            (*segment).on_validating = &OnValidatingEntry;
         }
     }
 }

@@ -150,6 +150,40 @@ gf_hook_entry ClassBridge::class_hook_entry(HookKey hook) const noexcept {
 
 bool ClassBridge::enter_class_hook(Control& control, gf_hook_entry entry, HookKey hook, std::string_view property,
                                    gf_base_raiser base) {
+    const HookArguments none{};
+    const HookFieldOperations no_fields{};
+    const bool entered = enter_class_frame(control, entry, hook, property, base, none, no_fields);
+    return entered;
+}
+
+namespace {
+
+// The event's own members, which publishing its fields leaves alone.
+void name_event(gf_event& event, gf_object self, std::string_view name) noexcept {
+    event.struct_size = static_cast<std::uint32_t>(sizeof(gf_event));
+    event.sender = self;
+    event.name.data = name.data();
+    event.name.size = name.size();
+}
+
+// Publishes the frame's argument as its event's fields again, as the raiser
+// below left it: the records the entry read before base are released (and,
+// in the checked build, poisoned), and the event points at new ones.
+void republish_frame(HookFrame& frame) {
+    EventFields& fields = *frame.fields;
+    fields.release();
+    static_cast<void>(fields.claim());
+    (*frame.operations.publish)(fields, frame.arguments);
+    const gf_object self = (*frame.published_event).sender;
+    fields.publish(*frame.published_event, true);
+    name_event(*frame.published_event, self, frame.name);
+}
+
+} // namespace
+
+bool ClassBridge::enter_class_frame(Control& control, gf_hook_entry entry, HookKey hook, std::string_view name,
+                                    gf_base_raiser base, const HookArguments& arguments,
+                                    const HookFieldOperations& operations) {
     if (!control.is_alive()) {
         return false;
     }
@@ -157,20 +191,45 @@ bool ClassBridge::enter_class_hook(Control& control, gf_hook_entry entry, HookKe
     // the entry and the raise below it are done.
     const std::shared_ptr<Control> keep_alive = control.weak_from_this().lock();
     const gf_object self = registry().identity_of(&control);
+    // The argument's fields, only for a raiser that has them: a raise
+    // without fields allocates nothing.
+    std::optional<EventFields> fields;
     gf_event event{};
-    event.struct_size = static_cast<std::uint32_t>(sizeof(gf_event));
-    event.sender = self;
-    event.name.data = property.data();
-    event.name.size = property.size();
+    const bool with_fields = operations.publish != nullptr;
+    if (with_fields) {
+        fields.emplace();
+        static_cast<void>((*fields).claim());
+        try {
+            (*operations.publish)(*fields, arguments);
+            (*fields).publish(event, true);
+        } catch (...) {
+            // Out of memory building the fields: the raiser runs as if the
+            // table had no entry for it.
+            (*fields).release();
+            return false;
+        }
+    }
+    name_event(event, self, name);
     HookFrame frame{};
     frame.bridge = this;
     frame.hook = hook;
     frame.event = &event;
     frame.previous = top_frame;
+    frame.arguments = arguments;
+    frame.fields = with_fields ? &(*fields) : nullptr;
+    frame.published_event = &event;
+    frame.operations = operations;
+    frame.name = name;
     top_frame = &frame;
     // A C function: it does not throw (the C# entries catch everything).
     entry(instance_, self, &event, base);
     top_frame = frame.previous;
+    if (with_fields) {
+        // What the entry wrote after base reaches the argument.
+        (*fields).end_publication();
+        (*operations.absorb)(*fields, arguments);
+        (*fields).release();
+    }
     if (frame.failure) {
         const std::exception_ptr failure = std::move(frame.failure);
         std::rethrow_exception(failure);
@@ -191,8 +250,17 @@ gf_status run_class_base(gf_object self, gf_event* event, HookKey hook) noexcept
                 return fail(GF_STATUS_STALE_HANDLE, base_slot, "the object was disposed");
             }
             try {
-                const bool framed_ran = framed.run_class_layer_base(hook);
-                static_cast<void>(framed_ran);
+                // What the entry wrote before base reaches the argument the
+                // raiser below receives; afterwards the event shows the
+                // argument as the subscribers left it.
+                if ((*frame).fields != nullptr) {
+                    (*(*frame).operations.absorb)(*(*frame).fields, (*frame).arguments);
+                }
+                const HookRun framed_run = framed.run_class_layer_base(hook, (*frame).arguments);
+                static_cast<void>(framed_run);
+                if ((*frame).fields != nullptr) {
+                    republish_frame(*frame);
+                }
             } catch (...) {
                 // Rethrown once the entry returns (enter_hook); the first
                 // failure of the frame wins.
@@ -216,9 +284,14 @@ gf_status run_class_base(gf_object self, gf_event* event, HookKey hook) noexcept
         if (!(*bridge).bridged_control().is_alive()) {
             return fail(GF_STATUS_STALE_HANDLE, base_slot, "the object was disposed");
         }
-        const bool ran = (*bridge).run_class_layer_base(hook);
-        if (!ran) {
+        const HookArguments outside{};
+        const HookRun run = (*bridge).run_class_layer_base(hook, outside);
+        if (run == HookRun::no_segment) {
             return fail(GF_STATUS_WRONG_HANDLE_KIND, base_slot, "the object's class has no such segment");
+        }
+        if (run == HookRun::needs_arguments) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, base_slot,
+                        "this raiser's argument is lent only by a raise in progress; call base from its entry");
         }
         return GF_STATUS_OK;
     } catch (...) {

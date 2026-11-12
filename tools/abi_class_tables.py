@@ -12,11 +12,17 @@ Inputs:
 
 - ``manifests/members.json``: a hook row with a ``raiser`` field
   (``{"cpp": "Class::on_x_changed", "interaction": "x_changed" or null}``) is an
-  entry; a row without one is not yet;
+  entry; a row without one is not yet. A property raiser (P-8) has no
+  ``kind``; an interaction raiser (``Control::on_click``, ``on_key_down``) has
+  ``"kind": "interaction"``;
 - the public headers (``tools/api_docs_parse.py``): the class hierarchy, and the
-  raiser's declaration, which must be a protected ``virtual void on_x()``;
+  raiser's declaration: a property raiser is a protected ``virtual void
+  on_x_changed()``, an interaction raiser a protected ``virtual void on_x()``
+  with no parameter or one (``KeyEventArgs& arguments``, ``const
+  MouseEventArgs& arguments``, ``bool visible``);
 - ``src/``: the raiser's body, which says which interaction its base emits
-  (``publish_change(x_changed_, ...)``);
+  (``publish_change(x_changed_, ...)``, or ``x_.emit(...)`` /
+  ``(*record_).x.emit(...)``);
 - ``manifests/control-schema.json``: the types, their properties and interactions;
 - the event catalogue (``tools/abi_event_catalog.py``'s declarations): the
   interaction is declared by the raiser's class or a base;
@@ -75,6 +81,11 @@ FIRST_MINOR: str = "1.3"
 # A segment begins with struct_size and class_id; each entry is one pointer.
 SEGMENT_HEADER_BYTES: int = 8
 POINTER_BYTES: int = 8
+# Parameter types a default value cannot stand for: base called outside an
+# entry (a C# OnX called directly) refuses these raisers.
+NEEDS_RAISE_ARGUMENTS: frozenset[str] = frozenset({"PaintEventArgs"})
+# Words the C# hook names spell in capitals (OnChangeUICues).
+CSHARP_ACRONYMS: dict[str, str] = {"ui": "UI"}
 # The ABI types the outputs name.
 ABI_TYPES: tuple[str, ...] = ("gf_object", "gf_event", "gf_status", "gf_utf8_view", "gf_value")
 
@@ -94,17 +105,51 @@ class TableError(Exception):
 # The model.
 
 @dataclass
+class Parameter:
+    """An interaction raiser's one parameter, as its declaration spells it."""
+    type_name: str
+    constant: bool
+    reference: bool
+    name: str
+
+    @property
+    def declared(self) -> str:
+        """The parameter as the override declares it."""
+        prefix: str = "const " if self.constant else ""
+        suffix: str = "&" if self.reference else ""
+        return f"{prefix}{self.type_name}{suffix} {self.name}"
+
+    @property
+    def lent_constant(self) -> bool:
+        """Whether the raise lends it read-only: a const reference or a value."""
+        return self.constant or not self.reference
+
+
+@dataclass
 class Raiser:
     cpp_class: str
     method: str
+    # The property a property raiser reports; empty for an interaction raiser.
     property: str
     interaction: str | None
+    kind: str = "property"
+    parameter: Parameter | None = None
     winforms: list[str] = field(default_factory=list)
 
     @property
     def hook_name(self) -> str:
         """The C# virtual: on_visible_changed is OnVisibleChanged."""
-        return "".join(part.capitalize() for part in self.method.split("_"))
+        return "".join(CSHARP_ACRONYMS.get(part, part.capitalize()) for part in self.method.split("_"))
+
+    @property
+    def event_name(self) -> str:
+        """The name the entry's event carries: the property, or the raiser's event (on_key_down's key_down)."""
+        return self.property if self.kind == "property" else self.method[len("on_"):]
+
+    @property
+    def has_fields(self) -> bool:
+        """Whether the entry's event carries the argument's fields (its event's payload form)."""
+        return self.parameter is not None and self.interaction is not None
 
 
 @dataclass
@@ -187,11 +232,15 @@ def method_record(name: str, method: str) -> api_docs_parse.Method | None:
 
 
 RAISER_BODY: re.Pattern[str] = re.compile(r"publish_change\(\s*(\w+)_\s*,")
+# An interaction raiser's base: `validating_.emit(event)` or
+# `(*mouse_events_).mouse_down.emit(arguments)`.
+EMIT_BODY: re.Pattern[str] = re.compile(r"(\w+?)_?\.emit\(")
+PARAMETER: re.Pattern[str] = re.compile(r"(const\s+)?(\w+)\s*(&)?\s*(\w+)")
 
 
 def emitted_interaction(cpp_class: str, method: str) -> str | None:
     """The interaction the raiser's base emits, read from its definition in src/."""
-    pattern: re.Pattern[str] = re.compile(r"void " + cpp_class + "::" + method + r"\(\)\s*\{([^{}]*)\}")
+    pattern: re.Pattern[str] = re.compile(r"void " + cpp_class + "::" + method + r"\([^)]*\)\s*\{([^{}]*)\}")
     path: Path
     for path in sorted((ROOT / "src").rglob("*.cpp")):
         text: str = path.read_text(encoding="utf-8")
@@ -199,8 +248,27 @@ def emitted_interaction(cpp_class: str, method: str) -> str | None:
         if found is None:
             continue
         emitted: re.Match[str] | None = RAISER_BODY.search(found.group(1))
+        if emitted is None:
+            emitted = EMIT_BODY.search(found.group(1))
         return emitted.group(1) if emitted is not None else None
     raise TableError(f"{cpp_class}::{method}: no definition in src/")
+
+
+def read_parameter(qualified: str, signature: str, method: str) -> Parameter | None:
+    """An interaction raiser's parameter, from `virtual void on_x(...)`; None for none."""
+    match: re.Match[str] | None = re.fullmatch(r"virtual void " + method + r"\((.*)\)", signature)
+    if match is None:
+        raise TableError(f"{qualified}: a raiser is a protected `virtual void {method}(...)`, the header has "
+                         f"`{signature}`")
+    text: str = match.group(1).strip()
+    if not text:
+        return None
+    if "," in text:
+        raise TableError(f"{qualified}: an interaction raiser takes at most one parameter")
+    found: re.Match[str] | None = PARAMETER.fullmatch(text)
+    if found is None:
+        raise TableError(f"{qualified}: cannot read the parameter `{text}`")
+    return Parameter(found.group(2), found.group(1) is not None, found.group(3) is not None, found.group(4))
 
 
 def read_raisers(members: dict, classes: dict[str, ClassInfo]) -> dict[str, Raiser]:
@@ -224,19 +292,31 @@ def read_raisers(members: dict, classes: dict[str, ClassInfo]) -> dict[str, Rais
             declared: api_docs_parse.Method | None = method_record(cpp_class, method)
             if declared is None:
                 raise TableError(f"{qualified}: the manifest names a raiser the header lacks")
-            if declared.access != "protected" or declared.signature != f"virtual void {method}()":
-                raise TableError(f"{qualified}: a raiser is a protected `virtual void {method}()`, "
-                                 f"the header has {declared.access} `{declared.signature}`")
-            match: re.Match[str] | None = re.fullmatch(r"on_(\w+)_changed", method)
-            if match is None:
-                raise TableError(f"{qualified}: only property raisers (on_<property>_changed) have entries yet")
+            kind: str = str(raiser.get("kind", "property"))
+            property_name: str = ""
+            parameter: Parameter | None = None
+            if kind == "property":
+                if declared.access != "protected" or declared.signature != f"virtual void {method}()":
+                    raise TableError(f"{qualified}: a raiser is a protected `virtual void {method}()`, "
+                                     f"the header has {declared.access} `{declared.signature}`")
+                match: re.Match[str] | None = re.fullmatch(r"on_(\w+)_changed", method)
+                if match is None:
+                    raise TableError(f"{qualified}: a property raiser is on_<property>_changed")
+                property_name = match.group(1)
+            elif kind == "interaction":
+                if declared.access != "protected" or not method.startswith("on_"):
+                    raise TableError(f"{qualified}: an interaction raiser is a protected `virtual void on_x(...)`, "
+                                     f"the header has {declared.access} `{declared.signature}`")
+                parameter = read_parameter(qualified, declared.signature, method)
+            else:
+                raise TableError(f"{qualified}: kind is \"interaction\" or absent (a property raiser), not {kind!r}")
             interaction: str | None = emitted_interaction(cpp_class, method)
             if raiser.get("interaction") != interaction:
                 raise TableError(f"{qualified}: the manifest says interaction {raiser.get('interaction')!r}, "
                                  f"its definition emits {interaction!r}")
             known: Raiser | None = found.get(qualified)
             if known is None:
-                known = Raiser(cpp_class, method, match.group(1), interaction)
+                known = Raiser(cpp_class, method, property_name, interaction, kind, parameter)
                 found[qualified] = known
             known.winforms.append(f"{entry.get('winforms')}.{str(row.get('winforms')).rpartition('.')[2]}")
     return found
@@ -478,7 +558,14 @@ def reachable_segments(model: Model) -> set[str]:
 
 def raiser_text(raiser: Raiser) -> str:
     emits: str = f"base raises {raiser.interaction}" if raiser.interaction else "base raises no event yet"
-    return f"after a changed write of {raiser.property}; {emits}"
+    if raiser.kind == "property":
+        return f"after a changed write of {raiser.property}; {emits}"
+    lent: str = ""
+    if raiser.has_fields and raiser.parameter is not None:
+        lent = f"; the event's fields are its {raiser.parameter.type_name}"
+        if not raiser.parameter.lent_constant:
+            lent += ", writable"
+    return f"where {raiser.event_name} happens; {emits}{lent}"
 
 
 # ---------------------------------------------------------------------------
@@ -523,6 +610,19 @@ HEADER_PREAMBLE: str = """/*
  * GF_STATUS_STALE_HANDLE and runs nothing, base from another thread
  * GF_STATUS_WRONG_THREAD. A property raiser's event is named after the
  * property, carries no payload and no fields, and its cancel is ignored.
+ *
+ * An interaction raiser's event (Control's on_click, on_key_down and the
+ * rest) is named after its event (click, key_down). Where the raiser has an
+ * argument with a field form, the event carries it as fields, named as
+ * GF_TABLE_EVENTS names that event's fields, and writable for an argument
+ * the raiser may change (a KeyEventArgs's handled). What the entry writes
+ * before base is what the subscribers see; after base returns the event
+ * carries the argument as the subscribers left it (read its fields again:
+ * the records read before base are no longer valid), and what the entry
+ * writes then is what the control sees. A base function called outside an
+ * entry gives the raiser a default argument, except for a raiser whose
+ * argument only a raise in progress can lend (on_paint_background's
+ * painter): that gives GF_STATUS_INVALID_ARGUMENT and runs nothing.
  */
 """
 
@@ -637,6 +737,8 @@ def render_segments(model: Model) -> str:
                         "// One bridge layer per segment: Base is the stock class, or a layer over it.",
                         "// Included only by abi_class_registry.cpp.",
                         "", "#pragma once", "", '#include "../abi_class_bridge.hpp"', ""]
+    lines += ['// The field forms of the raisers\' arguments (append_field and read_field).',
+              '#include "../../events/abi_event_catalog.hpp"', ""]
     headers: list[str] = sorted({model.classes[name].header[len("include/"):] for name in model.raisers})
     header: str = ""
     for header in headers:
@@ -661,41 +763,89 @@ def render_segments(model: Model) -> str:
                   "",
                   "protected:"]
         for raiser in raisers:
-            index: int = entry_index(model, raiser)
-            lines += [f"    void {raiser.method}() override {{",
-                      f"        const HookKey hook{{{constant(model, name)}, {index}U}};",
-                      "        const gf_hook_entry entry = (*this).class_hook_entry(hook);",
-                      "        const bool entered = entry != nullptr &&",
-                      f'                             (*this).enter_class_hook(*this, entry, hook, "{raiser.property}",',
-                      f"                                                &base_{snake}_{raiser.method});",
-                      "        if (!entered) {",
-                      f"            Base::{raiser.method}();",
-                      "        }",
-                      "    }",
-                      ""]
+            lines += layer_override(model, name, raiser)
         lines += [f"    // Runs the raiser below this layer for one of {name}'s hooks; another",
                   "    // class's hook goes to the layers further in.",
-                  "    [[nodiscard]] bool run_layer_base(HookKey hook) {",
+                  "    [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {",
                   f"        if (hook.class_id != {constant(model, name)}) {{",
-                  "            const bool inner = Base::run_layer_base(hook);",
+                  "            const HookRun inner = Base::run_layer_base(hook, arguments);",
                   "            return inner;",
                   "        }",
-                  "        bool ran = true;",
+                  "        HookRun run = HookRun::ran;",
                   "        switch (hook.entry) {"]
         for raiser in raisers:
-            lines += [f"        case {entry_index(model, raiser)}U:",
-                      f"            Base::{raiser.method}();",
-                      "            break;"]
+            lines += layer_base_case(model, raiser)
         lines += ["        default:",
-                  "            ran = false;",
+                  "            run = HookRun::no_segment;",
                   "            break;",
                   "        }",
-                  "        return ran;",
+                  "        return run;",
                   "    }",
                   "};",
                   ""]
     lines += ["} // namespace gui_forms::abi1", ""]
     return "\n".join(lines)
+
+
+def layer_override(model: Model, name: str, raiser: Raiser) -> list[str]:
+    """One layer's override of a raiser: the entry where the table has one, else the raiser below."""
+    snake: str = model.classes[name].snake
+    index: int = entry_index(model, raiser)
+    parameter: Parameter | None = raiser.parameter
+    declared: str = parameter.declared if parameter is not None else ""
+    passed: str = parameter.name if parameter is not None else ""
+    lines: list[str] = [f"    void {raiser.method}({declared}) override {{",
+                        f"        const HookKey hook{{{constant(model, name)}, {index}U}};",
+                        "        const gf_hook_entry entry = (*this).class_hook_entry(hook);"]
+    if parameter is None:
+        lines += ["        const bool entered = entry != nullptr &&",
+                  f'                             (*this).enter_class_hook(*this, entry, hook, "{raiser.event_name}",',
+                  f"                                                &base_{snake}_{raiser.method});"]
+    else:
+        # A value parameter is lent read-only: the raiser below receives the
+        # value the raise was given.
+        lent: str = f"std::as_const({parameter.name})" if not parameter.reference else parameter.name
+        fields: str = "true" if raiser.has_fields else "false"
+        lines += ["        const bool entered = entry != nullptr &&",
+                  f"                             (*this).template enter_class_hook_with<{fields}>(",
+                  f'                                 *this, entry, hook, "{raiser.event_name}", '
+                  f"&base_{snake}_{raiser.method}, {lent});"]
+    lines += ["        if (!entered) {",
+              f"            Base::{raiser.method}({passed});",
+              "        }",
+              "    }",
+              ""]
+    return lines
+
+
+def layer_base_case(model: Model, raiser: Raiser) -> list[str]:
+    """run_layer_base's case for a raiser: the raise's argument, or a default one outside an entry."""
+    index: int = entry_index(model, raiser)
+    parameter: Parameter | None = raiser.parameter
+    if parameter is None:
+        return [f"        case {index}U:",
+                f"            Base::{raiser.method}();",
+                "            break;"]
+    constant_text: str = "const " if parameter.lent_constant else ""
+    member: str = "constant_value" if parameter.lent_constant else "value"
+    lines: list[str] = [f"        case {index}U: {{",
+                        f"            {constant_text}{parameter.type_name}* given = "
+                        f"static_cast<{constant_text}{parameter.type_name}*>(arguments.{member});"]
+    if parameter.type_name in NEEDS_RAISE_ARGUMENTS:
+        lines += ["            if (given == nullptr) {",
+                  "                run = HookRun::needs_arguments;",
+                  "                break;",
+                  "            }",
+                  f"            Base::{raiser.method}(*given);"]
+    else:
+        lines += [f"            {parameter.type_name} made{{}};",
+                  f"            {parameter.type_name}& used = given != nullptr ? *given : made;"
+                  if not parameter.lent_constant else
+                  f"            const {parameter.type_name}& used = given != nullptr ? *given : made;",
+                  f"            Base::{raiser.method}(used);"]
+    lines += ["            break;",
+              "        }"]
+    return lines
 
 
 def layers_of(model: Model, name: str) -> str:
@@ -813,7 +963,7 @@ def cs_class(model: Model, name: str) -> str:
                   f"    [Hook(Constants.{constant(model, name)}, {entry_index(model, raiser)}u)]",
                   f"    protected virtual void {raiser.hook_name}(EventArgs e)",
                   "    {",
-                  f'        Hooks.call_base(this, {key}, "{raiser.property}"u8);',
+                  f'        Hooks.call_base(this, {key}, "{raiser.event_name}"u8);',
                   "    }",
                   "",
                   "    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]",
@@ -1001,6 +1151,10 @@ def test_cases(model: Model) -> tuple[list[Case], list[str]]:
                 break
         raiser: Raiser
         for raiser in raisers:
+            if raiser.kind != "property":
+                # An interaction raiser: the kit drives no input, so its case
+                # is a direct base call (direct_cases).
+                continue
             label: str = f"{raiser.cpp_class}::{raiser.method}"
             if holder is None:
                 skipped.append(f"{label}: no derivable class reaches {segment} yet")
@@ -1017,6 +1171,43 @@ def test_cases(model: Model) -> tuple[list[Case], list[str]]:
                 continue
             cases.append(Case(holder, segment, raiser, str(described["kind"]), pair[0], pair[1]))
     return cases, skipped
+
+
+@dataclass
+class DirectCase:
+    """An interaction raiser's case: its base called directly on an object made from a table."""
+    table_class: str
+    segment: str
+    raiser: Raiser
+
+    @property
+    def refused(self) -> bool:
+        """Whether base outside an entry refuses (an argument only a raise can lend)."""
+        parameter: Parameter | None = self.raiser.parameter
+        return parameter is not None and parameter.type_name in NEEDS_RAISE_ARGUMENTS
+
+
+def direct_cases(model: Model) -> list[DirectCase]:
+    """One case per interaction raiser, on the first class table in ledger order that classes.create makes."""
+    cases: list[DirectCase] = []
+    refused: set[str] = not_made_from_stable_id()
+    segment: str = ""
+    raisers: list[Raiser] = []
+    for segment, raisers in model.raisers.items():
+        holder: str | None = None
+        name: str = ""
+        candidates: list[str] = [segment] + model.creatable if segment in model.creatable else list(model.creatable)
+        for name in candidates:
+            if name not in refused and segment in table_segments(model, name):
+                holder = name
+                break
+        if holder is None:
+            continue
+        raiser: Raiser
+        for raiser in raisers:
+            if raiser.kind == "interaction":
+                cases.append(DirectCase(holder, segment, raiser))
+    return cases
 
 
 C_TEST_PREAMBLE: str = """/* Kit part: the class tables (GF_TABLE_CLASSES, since 1.3), per entry the
@@ -1193,6 +1384,58 @@ static void* class_call_off_thread(void* argument) {
     (*call).status = (*call).raiser((*call).object, &event);
     return NULL;
 }
+
+/* An interaction raiser, which the kit cannot raise by input: its base,
+ * called directly on an object made from table (which has no entries), runs
+ * no entry and the subscribers of its event (interaction, or NULL for a
+ * raiser with no event yet), or refuses with expected. */
+static void class_run_direct(gf_kit* kit, const gf_class_header* table, const char* label, gf_class_id segment,
+                             uint32_t entry, const char* interaction, const char* event_name, gf_status expected) {
+    char name[160];
+    gf_base_raiser raiser = NULL;
+    snprintf(name, sizeof(name), "%s: base_raiser", label);
+    gf_kit_status(kit, (*kit).classes.base_raiser(segment, entry, &raiser), GF_STATUS_OK, name);
+    if (raiser == NULL) {
+        return;
+    }
+    class_trace trace;
+    memset(&trace, 0, sizeof(trace));
+    trace.kit = kit;
+    gf_object object = 0u;
+    snprintf(name, sizeof(name), "%s: create", label);
+    gf_kit_status(kit, (*kit).classes.create(table, gf_kit_text("kit.classes.direct-case"), &trace, &object),
+                  GF_STATUS_OK, name);
+    if (object == 0u) {
+        return;
+    }
+    gf_subscription subscription = 0u;
+    if (interaction != NULL) {
+        const gf_callback callback = gf_kit_callback(&class_subscriber, NULL, &trace);
+        snprintf(name, sizeof(name), "%s: subscribe %s", label, interaction);
+        gf_kit_status(kit, (*kit).events.subscribe(object, gf_kit_text(interaction), &callback, &subscription),
+                      GF_STATUS_OK, name);
+    }
+    gf_event event;
+    memset(&event, 0, sizeof(event));
+    event.struct_size = (uint32_t)sizeof(event);
+    event.sender = object;
+    event.name = gf_kit_text(event_name);
+    snprintf(name, sizeof(name), "%s: a direct base", label);
+    gf_kit_status(kit, raiser(object, &event), expected, name);
+    const char* marks = expected == GF_STATUS_OK && interaction != NULL ? "S" : "";
+    snprintf(name, sizeof(name), "%s: a direct base runs %s and no entry (got %s)", label,
+             marks[0] != '\\0' ? "the subscribers" : "no subscriber", trace.marks);
+    gf_kit_check(kit, trace.entries == 0u && strcmp(trace.marks, marks) == 0, name);
+    if (subscription != 0u) {
+        (void)(*kit).events.disconnect(subscription);
+    }
+    snprintf(name, sizeof(name), "%s: release", label);
+    gf_kit_status(kit, (*kit).objects.release(object), GF_STATUS_OK, name);
+    uint64_t invoked = 0u;
+    (void)(*kit).dispatch.run_pending(&invoked);
+    snprintf(name, sizeof(name), "%s: release(instance) once", label);
+    gf_kit_check(kit, trace.releases == 1u, name);
+}
 """
 
 
@@ -1351,10 +1594,33 @@ def c_refusals(model: Model, cases: list[Case]) -> list[str]:
     return lines
 
 
+def c_direct_case(model: Model, case: DirectCase, index: int) -> list[str]:
+    raiser: Raiser = case.raiser
+    segments: list[str] = table_segments(model, case.table_class)
+    label: str = f"{case.table_class} {raiser.cpp_class}::{raiser.method}"
+    interaction: str = f'"{raiser.interaction}"' if raiser.interaction else "NULL"
+    expected: str = "GF_STATUS_INVALID_ARGUMENT" if case.refused else "GF_STATUS_OK"
+    return [f"/* {label}: a direct base. */",
+            f"static void class_direct_{index}(gf_kit* kit) {{",
+            f"    {table_type(model, case.table_class)} table;",
+            "    memset(&table, 0, sizeof(table));",
+            "    table.header.struct_size = (uint32_t)sizeof(gf_class_header);",
+            "    table.header.abi_minor = GF_ABI_MINOR;",
+            f"    table.header.class_id = {constant(model, case.table_class)};",
+            f"    table.header.segment_count = {len(segments)}u;",
+            "    table.header.release = &class_release;",
+            f'    class_run_direct(kit, &table.header, "{label}", {constant(model, case.segment)}, '
+            f'{entry_index(model, raiser)}u, {interaction}, "{raiser.event_name}",',
+            f"                     {expected});",
+            "}",
+            ""]
+
+
 def render_c_test(model: Model) -> str:
     cases: list[Case] = []
     skipped: list[str] = []
     cases, skipped = test_cases(model)
+    directs: list[DirectCase] = direct_cases(model)
     lines: list[str] = [GENERATED_C, C_TEST_PREAMBLE]
     if skipped:
         lines.append("/* Entries with no case yet:")
@@ -1367,10 +1633,15 @@ def render_c_test(model: Model) -> str:
     index: int = 0
     for index, case in enumerate(cases):
         lines += c_case(model, case, index)
+    direct: DirectCase
+    for index, direct in enumerate(directs):
+        lines += c_direct_case(model, direct, index)
     lines += c_refusals(model, cases)
     lines.append("void gf_kit_classes(gf_kit* kit) {")
     for index in range(len(cases)):
         lines.append(f"    class_case_{index}(kit);")
+    for index in range(len(directs)):
+        lines.append(f"    class_direct_{index}(kit);")
     lines.append("    class_refusals(kit);")
     lines.append("}")
     lines.append("")
@@ -1422,8 +1693,68 @@ def csharp_value(case: Case, second: bool) -> list[str]:
     return lines
 
 
+def csharp_direct_class(case: DirectCase, index: int) -> list[str]:
+    raiser: Raiser = case.raiser
+    return [f"/// <summary>{case.table_class} overriding {raiser.hook_name}, raised by a direct call.</summary>",
+            f"internal sealed class Direct{index} : {case.table_class}",
+            "{",
+            "    private readonly HookLog log;",
+            "",
+            f"    public Direct{index}(HookLog log)",
+            f'        : base("kit.forms.direct-{index}")',
+            "    {",
+            "        this.log = log;",
+            "    }",
+            "",
+            f"    protected override void {raiser.hook_name}(EventArgs e)",
+            "    {",
+            "        log.marks.Add('B');",
+            "        if (log.mode == OverrideMode.suppress)",
+            "        {",
+            "            return;",
+            "        }",
+            f"        base.{raiser.hook_name}(e);",
+            "        log.marks.Add('A');",
+            "    }",
+            "",
+            "    /// <summary>The hook called directly, as Windows Forms allows.</summary>",
+            "    public void raise_directly()",
+            "    {",
+            f"        {raiser.hook_name}(EventArgs.Empty);",
+            "    }",
+            "}",
+            ""]
+
+
+def csharp_direct_run(case: DirectCase, index: int) -> list[str]:
+    raiser: Raiser = case.raiser
+    expected: str = "BSA" if raiser.interaction else "BA"
+    lines: list[str] = [f"    private static void run_direct{index}(Action<bool, string> check)",
+                        "    {",
+                        f'        string label = "{case.table_class}.{raiser.hook_name}";',
+                        "        foreach (OverrideMode mode in new[] { OverrideMode.around, OverrideMode.suppress })",
+                        "        {",
+                        "            HookLog log = new HookLog();",
+                        f"            using Direct{index} control = new Direct{index}(log);"]
+    if raiser.interaction:
+        lines.append(f'            using SubscriptionScope scope = SubscriptionScope.subscribe(control, '
+                     f'"{raiser.interaction}", log);')
+    lines += ["            log.mode = mode;",
+              "            control.raise_directly();",
+              f'            string expected = mode == OverrideMode.around ? "{expected}" : "B";',
+              '            check(log.text == expected, label + " called directly, " + mode + ": order " + expected + '
+              '", got " + log.text);',
+              "        }",
+              "    }",
+              ""]
+    return lines
+
+
 def render_csharp_test(model: Model) -> str:
     cases: list[Case] = test_cases(model)[0]
+    # An interaction raiser whose base refuses outside a raise has no direct case.
+    directs: list[DirectCase] = [case for case in direct_cases(model)
+                                 if not case.refused and case.segment in reachable_segments(model)]
     lines: list[str] = [GENERATED_CS, CSHARP_TEST_PREAMBLE]
     index: int = 0
     case: Case
@@ -1458,6 +1789,9 @@ def render_csharp_test(model: Model) -> str:
                   "    }",
                   "}",
                   ""]
+    direct: DirectCase
+    for index, direct in enumerate(directs):
+        lines += csharp_direct_class(direct, index)
     if cases:
         lines += ["/// <summary>A subclass that overrides nothing: its table carries no entry.</summary>",
                   f"internal sealed class PlainCase : {cases[0].table_class}",
@@ -1474,6 +1808,8 @@ def render_csharp_test(model: Model) -> str:
               "    {"]
     for index in range(len(cases)):
         lines.append(f"        run_case{index}(check);")
+    for index in range(len(directs)):
+        lines.append(f"        run_direct{index}(check);")
     if cases:
         first: Case = cases[0]
         key: str = f"HookKeys.{model.classes[first.segment].snake}_{first.raiser.method}"
@@ -1524,6 +1860,8 @@ def render_csharp_test(model: Model) -> str:
                   "        }",
                   "    }",
                   ""]
+    for index, direct in enumerate(directs):
+        lines += csharp_direct_run(direct, index)
     lines += ["}", ""]
     return "\n".join(lines)
 

@@ -3483,9 +3483,9 @@ bool Control::perform_validation(Control* destination, bool bulk) {
     require_mutable();
     if (!causes_validation.read()) return true;
     ControlValidationEvent event{this, destination, bulk, false};
-    validating_.emit(event);
+    on_validating(event);
     if (!is_alive() || event.cancel) return !event.cancel;
-    validated_.emit();
+    on_validated();
     return true;
 }
 
@@ -4530,6 +4530,125 @@ void Control::on_context_menu_requested(ContextMenuRequest& request) {
     static_cast<void>(request);
 }
 
+// The interaction raisers' bases: each raises its event, where the event
+// has subscribers (the mouse and key records exist only once something
+// subscribed). tools/abi_class_tables.py reads the emitted event from these
+// bodies, so each stays one statement without braces.
+void Control::on_mouse_down(const MouseEventArgs& arguments) {
+    if (mouse_events_) (*mouse_events_).mouse_down.emit(arguments);
+}
+
+void Control::on_mouse_up(const MouseEventArgs& arguments) {
+    if (mouse_events_) (*mouse_events_).mouse_up.emit(arguments);
+}
+
+void Control::on_mouse_move(const MouseEventArgs& arguments) {
+    if (mouse_events_) (*mouse_events_).mouse_move.emit(arguments);
+}
+
+void Control::on_mouse_wheel(const MouseEventArgs& arguments) {
+    if (mouse_events_) (*mouse_events_).mouse_wheel.emit(arguments);
+}
+
+void Control::on_mouse_enter() {
+    if (mouse_events_) (*mouse_events_).mouse_enter.emit();
+}
+
+void Control::on_mouse_hover() {
+    if (mouse_events_) (*mouse_events_).mouse_hover.emit();
+}
+
+void Control::on_mouse_leave() {
+    if (mouse_events_) (*mouse_events_).mouse_leave.emit();
+}
+
+void Control::on_mouse_capture_changed() {
+    if (mouse_events_) (*mouse_events_).mouse_capture_changed.emit();
+}
+
+void Control::on_click() {
+    if (mouse_events_) (*mouse_events_).click.emit();
+}
+
+void Control::on_double_click() {
+    if (mouse_events_) (*mouse_events_).double_click.emit();
+}
+
+void Control::on_mouse_click(const MouseEventArgs& arguments) {
+    if (mouse_events_) (*mouse_events_).mouse_click.emit(arguments);
+}
+
+void Control::on_mouse_double_click(const MouseEventArgs& arguments) {
+    if (mouse_events_) (*mouse_events_).mouse_double_click.emit(arguments);
+}
+
+void Control::on_preview_key_down(PreviewKeyDownEventArgs& arguments) {
+    if (key_events_) (*key_events_).preview_key_down.emit(arguments);
+}
+
+void Control::on_key_down(KeyEventArgs& arguments) {
+    if (key_events_) (*key_events_).key_down.emit(arguments);
+}
+
+void Control::on_key_press(KeyPressEventArgs& arguments) {
+    if (key_events_) (*key_events_).key_press.emit(arguments);
+}
+
+void Control::on_key_up(KeyEventArgs& arguments) {
+    if (key_events_) (*key_events_).key_up.emit(arguments);
+}
+
+void Control::on_enter() {}
+
+void Control::on_got_focus() {
+    focus_observed_.emit(true);
+}
+
+void Control::on_lost_focus() {
+    focus_observed_.emit(false);
+}
+
+void Control::on_leave() {}
+
+void Control::on_validating(ControlValidationEvent& event) {
+    validating_.emit(event);
+}
+
+void Control::on_validated() {
+    validated_.emit();
+}
+
+void Control::on_help_requested(HelpRequestEvent& request) {
+    help_requested_.emit(request);
+}
+
+void Control::on_drag_enter(DragEvent& event) {
+    static_cast<void>(event);
+}
+
+void Control::on_drag_over(DragEvent& event) {
+    static_cast<void>(event);
+}
+
+void Control::on_drag_drop(DragEvent& event) {
+    static_cast<void>(event);
+}
+
+void Control::on_drag_leave(DragEvent& event) {
+    static_cast<void>(event);
+}
+
+void Control::on_layout() {}
+
+void Control::on_paint_background(PaintEventArgs& arguments) {
+    paint_back_color(arguments.painter, arguments.local_damage);
+    paint_authored_surface(arguments.painter, arguments.local_damage);
+}
+
+void Control::on_change_ui_cues(bool visible) {
+    static_cast<void>(visible);
+}
+
 Dirty Control::focus_invalidation() const noexcept {
     return invalidation::focus;
 }
@@ -4917,14 +5036,14 @@ void Control::disconnect_control_events() noexcept {
     help_requested_.disconnect_all();
     if (mouse_events_) {
         MouseEvents& mouse = *mouse_events_;
-        mouse.down.disconnect_all();
-        mouse.up.disconnect_all();
-        mouse.move.disconnect_all();
-        mouse.wheel.disconnect_all();
-        mouse.enter.disconnect_all();
-        mouse.hover.disconnect_all();
-        mouse.leave.disconnect_all();
-        mouse.capture_changed.disconnect_all();
+        mouse.mouse_down.disconnect_all();
+        mouse.mouse_up.disconnect_all();
+        mouse.mouse_move.disconnect_all();
+        mouse.mouse_wheel.disconnect_all();
+        mouse.mouse_enter.disconnect_all();
+        mouse.mouse_hover.disconnect_all();
+        mouse.mouse_leave.disconnect_all();
+        mouse.mouse_capture_changed.disconnect_all();
         mouse.click.disconnect_all();
         mouse.mouse_click.disconnect_all();
         mouse.double_click.disconnect_all();

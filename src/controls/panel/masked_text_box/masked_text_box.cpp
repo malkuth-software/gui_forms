@@ -72,7 +72,7 @@ void MaskedTextBox::initialize_control_tree() {
         std::static_pointer_cast<MaskedTextBox>(shared_from_this());
     editor_change_ = (*editor_).text_changed().subscribe(*this, EditorChangeCallback{weak});
     validating_ = validating().subscribe(
-        *this, Delegate<ControlValidationEvent&>::bind<MaskedTextBox, &MaskedTextBox::on_validating>(*this));
+        *this, Delegate<ControlValidationEvent&>::bind<MaskedTextBox, &MaskedTextBox::check_mask_on_validating>(*this));
 }
 
 // -- the edit filter -----------------------------------------------------------
@@ -524,7 +524,7 @@ bool MaskedTextBox::validate_text() {
     return validation.valid;
 }
 
-void MaskedTextBox::on_validating(ControlValidationEvent& event) {
+void MaskedTextBox::check_mask_on_validating(ControlValidationEvent& event) {
     const MaskValidation validation = run_validation();
     if (!validation.valid && validation.cancel) event.cancel = true;
 }

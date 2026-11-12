@@ -289,6 +289,186 @@
           "name": "on_visible_changed",
           "raiser": "Control::on_visible_changed",
           "since": "1.3"
+        },
+        {
+          "index": 13,
+          "name": "on_change_ui_cues",
+          "raiser": "Control::on_change_ui_cues",
+          "since": "1.3"
+        },
+        {
+          "index": 14,
+          "name": "on_click",
+          "raiser": "Control::on_click",
+          "since": "1.3"
+        },
+        {
+          "index": 15,
+          "name": "on_double_click",
+          "raiser": "Control::on_double_click",
+          "since": "1.3"
+        },
+        {
+          "index": 16,
+          "name": "on_drag_drop",
+          "raiser": "Control::on_drag_drop",
+          "since": "1.3"
+        },
+        {
+          "index": 17,
+          "name": "on_drag_enter",
+          "raiser": "Control::on_drag_enter",
+          "since": "1.3"
+        },
+        {
+          "index": 18,
+          "name": "on_drag_leave",
+          "raiser": "Control::on_drag_leave",
+          "since": "1.3"
+        },
+        {
+          "index": 19,
+          "name": "on_drag_over",
+          "raiser": "Control::on_drag_over",
+          "since": "1.3"
+        },
+        {
+          "index": 20,
+          "name": "on_enter",
+          "raiser": "Control::on_enter",
+          "since": "1.3"
+        },
+        {
+          "index": 21,
+          "name": "on_got_focus",
+          "raiser": "Control::on_got_focus",
+          "since": "1.3"
+        },
+        {
+          "index": 22,
+          "name": "on_help_requested",
+          "raiser": "Control::on_help_requested",
+          "since": "1.3"
+        },
+        {
+          "index": 23,
+          "name": "on_key_down",
+          "raiser": "Control::on_key_down",
+          "since": "1.3"
+        },
+        {
+          "index": 24,
+          "name": "on_key_press",
+          "raiser": "Control::on_key_press",
+          "since": "1.3"
+        },
+        {
+          "index": 25,
+          "name": "on_key_up",
+          "raiser": "Control::on_key_up",
+          "since": "1.3"
+        },
+        {
+          "index": 26,
+          "name": "on_layout",
+          "raiser": "Control::on_layout",
+          "since": "1.3"
+        },
+        {
+          "index": 27,
+          "name": "on_leave",
+          "raiser": "Control::on_leave",
+          "since": "1.3"
+        },
+        {
+          "index": 28,
+          "name": "on_lost_focus",
+          "raiser": "Control::on_lost_focus",
+          "since": "1.3"
+        },
+        {
+          "index": 29,
+          "name": "on_mouse_capture_changed",
+          "raiser": "Control::on_mouse_capture_changed",
+          "since": "1.3"
+        },
+        {
+          "index": 30,
+          "name": "on_mouse_click",
+          "raiser": "Control::on_mouse_click",
+          "since": "1.3"
+        },
+        {
+          "index": 31,
+          "name": "on_mouse_double_click",
+          "raiser": "Control::on_mouse_double_click",
+          "since": "1.3"
+        },
+        {
+          "index": 32,
+          "name": "on_mouse_down",
+          "raiser": "Control::on_mouse_down",
+          "since": "1.3"
+        },
+        {
+          "index": 33,
+          "name": "on_mouse_enter",
+          "raiser": "Control::on_mouse_enter",
+          "since": "1.3"
+        },
+        {
+          "index": 34,
+          "name": "on_mouse_hover",
+          "raiser": "Control::on_mouse_hover",
+          "since": "1.3"
+        },
+        {
+          "index": 35,
+          "name": "on_mouse_leave",
+          "raiser": "Control::on_mouse_leave",
+          "since": "1.3"
+        },
+        {
+          "index": 36,
+          "name": "on_mouse_move",
+          "raiser": "Control::on_mouse_move",
+          "since": "1.3"
+        },
+        {
+          "index": 37,
+          "name": "on_mouse_up",
+          "raiser": "Control::on_mouse_up",
+          "since": "1.3"
+        },
+        {
+          "index": 38,
+          "name": "on_mouse_wheel",
+          "raiser": "Control::on_mouse_wheel",
+          "since": "1.3"
+        },
+        {
+          "index": 39,
+          "name": "on_paint_background",
+          "raiser": "Control::on_paint_background",
+          "since": "1.3"
+        },
+        {
+          "index": 40,
+          "name": "on_preview_key_down",
+          "raiser": "Control::on_preview_key_down",
+          "since": "1.3"
+        },
+        {
+          "index": 41,
+          "name": "on_validated",
+          "raiser": "Control::on_validated",
+          "since": "1.3"
+        },
+        {
+          "index": 42,
+          "name": "on_validating",
+          "raiser": "Control::on_validating",
+          "since": "1.3"
         }
       ]
     },

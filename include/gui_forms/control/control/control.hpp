@@ -172,6 +172,15 @@ struct GUI_FORMS_API OwnerDecorationRecipe final {
     }
 };
 
+// What Control::on_paint_background receives (Windows Forms'
+// PaintEventArgs for OnPaintBackground): the painter the window records the
+// control into and the local area being painted. Both are borrowed for the
+// call; the painter is valid only until the raiser returns.
+struct GUI_FORMS_API PaintEventArgs final {
+    Painter& painter;
+    Rect local_damage{};
+};
+
 enum class AutoValidate : std::int8_t {
     inherit = -1,
     disable = 0,
@@ -854,14 +863,14 @@ public:
     // pointer; MouseCaptureChanged is raised on the control losing the
     // capture. The events are kept in a record made by the first accessor
     // called, so a control nobody listens to stores none.
-    [[nodiscard]] Event<const MouseEventArgs&>& mouse_down() { return mouse_events().down; }
-    [[nodiscard]] Event<const MouseEventArgs&>& mouse_up() { return mouse_events().up; }
-    [[nodiscard]] Event<const MouseEventArgs&>& mouse_move() { return mouse_events().move; }
-    [[nodiscard]] Event<const MouseEventArgs&>& mouse_wheel() { return mouse_events().wheel; }
-    [[nodiscard]] Event<>& mouse_enter() { return mouse_events().enter; }
-    [[nodiscard]] Event<>& mouse_hover() { return mouse_events().hover; }
-    [[nodiscard]] Event<>& mouse_leave() { return mouse_events().leave; }
-    [[nodiscard]] Event<>& mouse_capture_changed() { return mouse_events().capture_changed; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_down() { return mouse_events().mouse_down; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_up() { return mouse_events().mouse_up; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_move() { return mouse_events().mouse_move; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_wheel() { return mouse_events().mouse_wheel; }
+    [[nodiscard]] Event<>& mouse_enter() { return mouse_events().mouse_enter; }
+    [[nodiscard]] Event<>& mouse_hover() { return mouse_events().mouse_hover; }
+    [[nodiscard]] Event<>& mouse_leave() { return mouse_events().mouse_leave; }
+    [[nodiscard]] Event<>& mouse_capture_changed() { return mouse_events().mouse_capture_changed; }
     [[nodiscard]] Event<>& click() { return mouse_events().click; }
     [[nodiscard]] Event<const MouseEventArgs&>& mouse_click() { return mouse_events().mouse_click; }
     [[nodiscard]] Event<>& double_click() { return mouse_events().double_click; }
@@ -1250,6 +1259,93 @@ protected:
     virtual void on_right_to_left_changed();
     virtual void on_tab_index_changed();
     virtual void on_tab_stop_changed();
+
+    // The interaction raisers (Windows Forms' OnClick, OnMouseDown, OnKeyDown
+    // and the rest; projects:desks/coordinator/ON_HOOKS_PLAN.md, step 4). The
+    // window calls each one on the UI thread where it raised the event
+    // before the raisers existed, so subscribers see the order the event
+    // headers state (mouse_events.hpp, key_events.hpp). The base raises the
+    // event; an override places its code before or after the base call, and
+    // one that does not call the base keeps the event from its subscribers.
+    // A raiser is called whether or not anything subscribes; MouseHover is
+    // the exception: the window arms its hover timer only for a control
+    // whose MouseHover has a subscriber or a rule, so on_mouse_hover runs
+    // only then. Overriding one changes nothing for the window's rules,
+    // which run before it (a rule that consumes MouseDown keeps the raiser
+    // from running) and never for the internal dispatch virtuals
+    // (on_pointer, on_key and their preview and bubble routes), which run
+    // as before.
+    //
+    // The mouse: on_mouse_down after the press's route, on_mouse_move and
+    // on_mouse_wheel after their routes, and on the release over the
+    // control the same button pressed on_click and on_mouse_click (or
+    // on_double_click and on_mouse_double_click), then on_mouse_up.
+    // on_mouse_enter and on_mouse_leave follow the pointer, after
+    // on_pointer has seen the crossing; on_mouse_capture_changed runs on
+    // the control losing the capture.
+    virtual void on_mouse_down(const MouseEventArgs& arguments);
+    virtual void on_mouse_up(const MouseEventArgs& arguments);
+    virtual void on_mouse_move(const MouseEventArgs& arguments);
+    virtual void on_mouse_wheel(const MouseEventArgs& arguments);
+    virtual void on_mouse_enter();
+    virtual void on_mouse_hover();
+    virtual void on_mouse_leave();
+    virtual void on_mouse_capture_changed();
+    virtual void on_click();
+    virtual void on_double_click();
+    virtual void on_mouse_click(const MouseEventArgs& arguments);
+    virtual void on_mouse_double_click(const MouseEventArgs& arguments);
+    // The keys, on the focused control. on_preview_key_down runs first for
+    // a key down; setting is_input_key keeps the key from dialog
+    // processing. on_key_down and on_key_up run after the window's own
+    // key_down and key_up and the internal preview route, before on_key:
+    // setting handled (or suppress_key_press) ends the key there, so an
+    // override that sets it before calling the base keeps the key from the
+    // subscribers and from the control's own key handling, as returning
+    // without calling the base keeps it from the subscribers. on_key_press
+    // runs for the committed text a key produced, after the window's
+    // key_press. A released_by_deactivation key_up also runs on_key_up.
+    virtual void on_preview_key_down(PreviewKeyDownEventArgs& arguments);
+    virtual void on_key_down(KeyEventArgs& arguments);
+    virtual void on_key_press(KeyPressEventArgs& arguments);
+    virtual void on_key_up(KeyEventArgs& arguments);
+    // Focus. When the control gains focus: on_enter, on_focus_changed(true),
+    // then on_got_focus, whose base raises focus_observed(true). When it
+    // loses focus: on_focus_changed(false), on_lost_focus (whose base
+    // raises focus_observed(false)), then on_leave. Validation
+    // (on_validating, on_validated) runs before the change, from
+    // perform_validation. on_enter and on_leave run on the focused control
+    // only: a container whose subtree gains or loses focus is not told yet,
+    // and they raise no event yet.
+    virtual void on_enter();
+    virtual void on_got_focus();
+    virtual void on_lost_focus();
+    virtual void on_leave();
+    virtual void on_validating(ControlValidationEvent& event);
+    virtual void on_validated();
+    // HelpProvider's request for this control (F1 or the help button),
+    // before the provider's own help_requested.
+    virtual void on_help_requested(HelpRequestEvent& request);
+    // A drag over a control that allows drops, by its action, after
+    // on_drag has seen it at the target phase. They raise no event yet;
+    // an override may set accepted_effect and handled as on_drag does.
+    virtual void on_drag_enter(DragEvent& event);
+    virtual void on_drag_over(DragEvent& event);
+    virtual void on_drag_drop(DragEvent& event);
+    virtual void on_drag_leave(DragEvent& event);
+    // Runs in the window's layout pass right after arrange placed the
+    // control and its children, under the same rules as arrange. It raises
+    // no event yet.
+    virtual void on_layout();
+    // Paints the control's background, before its owned decorations and
+    // on_paint: the base paints the back colour and the authored surface.
+    // An override that does not call the base leaves the background
+    // unpainted. No event.
+    virtual void on_paint_background(PaintEventArgs& arguments);
+    // The window's focus cue appeared (visible) or went away, on the
+    // focused control after on_focus_cue_changed (Windows Forms'
+    // OnChangeUICues). It raises no event yet.
+    virtual void on_change_ui_cues(bool visible);
 
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     // Stops the application colours an ancestor authored (back_color and
@@ -1925,14 +2021,14 @@ private:
     // The WinForms mouse events (mouse_down and the rest), made on first
     // access; null while nobody has asked for one.
     struct MouseEvents final {
-        Event<const MouseEventArgs&> down;
-        Event<const MouseEventArgs&> up;
-        Event<const MouseEventArgs&> move;
-        Event<const MouseEventArgs&> wheel;
-        Event<> enter;
-        Event<> hover;
-        Event<> leave;
-        Event<> capture_changed;
+        Event<const MouseEventArgs&> mouse_down;
+        Event<const MouseEventArgs&> mouse_up;
+        Event<const MouseEventArgs&> mouse_move;
+        Event<const MouseEventArgs&> mouse_wheel;
+        Event<> mouse_enter;
+        Event<> mouse_hover;
+        Event<> mouse_leave;
+        Event<> mouse_capture_changed;
         Event<> click;
         Event<const MouseEventArgs&> mouse_click;
         Event<> double_click;

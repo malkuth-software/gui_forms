@@ -290,7 +290,7 @@ bool HelpProvider::request_help(const std::shared_ptr<Control>& target,
         std::move(text.help_line), std::move(text.keywords), (*entry).navigator,
         keyboard_initiated, false};
     ++request_count_;
-    (*target).help_requested_.emit(request);
+    (*target).on_help_requested(request);
     if (!request.handled) help_requested_.emit(request);
     if (request.handled) ++handled_request_count_;
     return request.handled;
