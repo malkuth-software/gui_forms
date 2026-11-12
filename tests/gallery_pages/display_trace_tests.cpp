@@ -598,6 +598,11 @@ struct PageDigest final {
 // the marching stripes as filled bands inside the fill's rim, anchored to
 // the track start. Recorded again: ranges-and-progress, in both tables.
 //
+// cp29 I3 (RightToLeft): values-and-spinners' property grid shows the
+// RightToLeft row under Appearance where LayoutDirection stood under Layout
+// (the same number of rows, so no control count moved). Recorded again:
+// values-and-spinners, in both tables.
+//
 // cp29 I1 (F2, F9): each catalog card's caption names its control's header,
 // now include/gui_forms/controls/<name>.hpp (caption text and clip width
 // only); the seven lab and demo controls are not installed, so their cards
@@ -629,7 +634,7 @@ constexpr std::array<PageDigest, 39> expected_digests{{
     {"states-and-diagnostics", 0x19f9cde672d20ad0ULL},
     {"text-and-input", 0xa7c31b1feca4d0c3ULL},
     {"collections-and-overlays", 0xa16bd2a26faeecfcULL},
-    {"values-and-spinners", 0x888b59839043aee7ULL},
+    {"values-and-spinners", 0xd55cf8c841fa03b8ULL},
     {"images-and-drawing", 0x18f89b3c46b0ee23ULL},
     {"tabs-and-pages", 0x1055973ebe8b2bccULL},
     {"checked-collections", 0xaaf612e4629388b9ULL},
@@ -684,7 +689,7 @@ constexpr std::array<PageDigest, 39> professional_digests{{
     {"states-and-diagnostics", 0x0000000000000000ULL},
     {"text-and-input", 0xb5bfb532603d7db2ULL},
     {"collections-and-overlays", 0xda3cf4006b54caf3ULL},
-    {"values-and-spinners", 0x705d76300be96b02ULL},
+    {"values-and-spinners", 0x58df13278afe6713ULL},
     {"images-and-drawing", 0x85bbf928ff86b1e3ULL},
     {"tabs-and-pages", 0x3024fb4e7c3c740dULL},
     {"checked-collections", 0x4867ae0afd3a0d34ULL},
