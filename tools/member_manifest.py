@@ -48,6 +48,7 @@ import argparse
 import csv
 import json
 import re
+import subprocess
 import sys
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -698,7 +699,7 @@ class TestIndex:
             r"\b([a-z_]\w*)\s*\([^()]*\)\s*(?:const\s*)?(?:noexcept\s*)?override\b")
         if not root.is_dir():
             return TestIndex(calls, mentions)
-        for path in sorted(root.rglob("*")):
+        for path in tracked_files(root):
             if path.suffix not in (".cpp", ".hpp", ".mm") or not path.is_file():
                 continue
             relative: str = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.as_posix()
@@ -835,15 +836,48 @@ def kind_of(our: OurType, name: str) -> str:
     return "method"
 
 
-def manual_rows(previous: Mapping) -> dict[tuple[str, str, str, str], dict]:
-    """Rows of the committed manifest whose basis a person set, by entry and member."""
+def tracked_files(root: Path) -> list[Path]:
+    """The files under root that git tracks, sorted; every file when git cannot say.
+
+    Untracked files (build outputs, scratch tests) must not change the
+    evidence, so a checkout and CI scan the same set.
+    """
+    try:
+        listed: subprocess.CompletedProcess[bytes] = subprocess.run(
+            ["git", "-C", str(ROOT), "ls-files", "-z", "--", str(root)],
+            capture_output=True, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        return sorted(path for path in root.rglob("*"))
+    names: list[str] = [name for name in listed.stdout.decode("utf-8").split("\0") if name]
+    return sorted(ROOT / name for name in names)
+
+
+def kept_rows(previous: Mapping, refresh_evidence: bool) -> dict[tuple[str, str, str, str], dict]:
+    """Rows of the committed manifest whose status generation keeps, by entry and member.
+
+    Rows whose basis a person set are always kept. With refresh_evidence false,
+    rows seeded from test evidence (basis test or none) are kept too while
+    their evidence file still exists, so a test added or edited elsewhere does
+    not make the committed manifest stale; `members` refreshes them.
+    """
     kept: dict[tuple[str, str, str, str], dict] = {}
     for entry in previous.get("controls", []):
         key_type: str = entry.get("type") or ("winforms:" + entry.get("winforms", ""))
         for row in entry.get("members", []):
-            if row.get("basis") in MANUAL_BASES:
+            basis: str | None = row.get("basis")
+            keep: bool = basis in MANUAL_BASES
+            if not refresh_evidence and basis == "none":
+                keep = True
+            if not refresh_evidence and basis == "test" and (ROOT / str(row.get("evidence", ""))).is_file():
+                keep = True
+            if keep:
                 kept[(key_type, row.get("kind", ""), row.get("winforms") or "", row.get("gui_forms") or "")] = row
     return kept
+
+
+def manual_rows(previous: Mapping) -> dict[tuple[str, str, str, str], dict]:
+    """Rows of the committed manifest whose basis a person set, by entry and member."""
+    return kept_rows(previous, True)
 
 
 def previous_raisers(previous: Mapping) -> dict[tuple[str, str, str, str], dict]:
@@ -887,8 +921,8 @@ def previous_winforms(previous: Mapping) -> dict[str, list[WinFormsMember]]:
 
 
 def build_manifest(model: Model, winforms: Mapping[str, list[WinFormsMember]], previous: Mapping,
-                   provenance: Mapping) -> dict:
-    kept: dict[tuple[str, str, str, str], dict] = manual_rows(previous)
+                   provenance: Mapping, refresh_evidence: bool = True) -> dict:
+    kept: dict[tuple[str, str, str, str], dict] = kept_rows(previous, refresh_evidence)
     raisers: dict[tuple[str, str, str, str], dict] = previous_raisers(previous)
     controls: list[dict] = []
     covered: set[str] = set()

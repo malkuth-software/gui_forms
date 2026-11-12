@@ -23,8 +23,11 @@ class CommittedManifestTests(unittest.TestCase):
         self.assertEqual(problems, [], "\n".join(problems[:40]))
 
     def test_generate_without_catalogue_reproduces_committed_manifest(self) -> None:
+        # As CI runs it: no notes catalogue, the Windows Forms rows copied in,
+        # and the committed test evidence kept while its files exist, so only
+        # a registry, schema or header change can make the manifest stale.
         regenerated: dict = mm.build_manifest(self.model, mm.previous_winforms(self.manifest), self.manifest,
-                                              self.manifest["sources"])
+                                              self.manifest["sources"], refresh_evidence=False)
         self.assertEqual(mm.dump_manifest(regenerated), mm.MANIFEST_PATH.read_text(encoding="utf-8"),
                          "manifests/members.json is stale; run `python3 tools/control_registry.py members`")
 
@@ -45,6 +48,21 @@ class CommittedManifestTests(unittest.TestCase):
         multiline: list[dict] = [row for row in tab_control["members"] if row.get("winforms") == "Multiline"]
         self.assertEqual([row["status"] for row in multiline], ["deferred"])
         self.assertEqual(multiline[0]["basis"], "w-brief")
+
+
+class EvidenceTests(unittest.TestCase):
+    def test_kept_rows_keep_test_evidence_only_when_asked(self) -> None:
+        manifest: dict = mm.load_manifest()
+        automatic: int = sum(1 for entry in manifest["controls"] for row in entry["members"]
+                             if row.get("basis") in ("test", "none"))
+        self.assertGreater(automatic, 0)
+        self.assertGreaterEqual(len(mm.kept_rows(manifest, False)), automatic)
+        self.assertTrue(all(row.get("basis") in mm.MANUAL_BASES for row in mm.kept_rows(manifest, True).values()))
+
+    def test_evidence_scan_reads_tracked_files_only(self) -> None:
+        files: list[Path] = mm.tracked_files(mm.TESTS_ROOT)
+        self.assertTrue(files)
+        self.assertEqual(files, sorted(files))
 
 
 class ValidatorTests(unittest.TestCase):

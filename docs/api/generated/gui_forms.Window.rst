@@ -589,7 +589,7 @@ gui_forms::Window
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Form``. Members declared here and by the counterpart: 218 supported, 10 deferred, 10 excluded, 134 unclassified; 232 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Form``. Members declared here and by the counterpart: 220 supported, 10 deferred, 10 excluded, 132 unclassified; 232 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1747,7 +1747,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 218 support
    * - method
      - GUI.Forms-only
      - ``measure_text_extent_utf8``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``metrics``
@@ -2055,7 +2055,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 218 support
    * - method
      - GUI.Forms-only
      - ``update_bgra32_premultiplied``
-     - unclassified (untested)
+     - supported
    * - method
      - ``ContainerControl.ValidateChildren``
      - ``validate_children``
