@@ -27,7 +27,7 @@
       "reviewed": false,
       "summary": "Validates finite ordered bounds, constrains the current value, and refreshes editor and semantics atomically."
     },
-    "gui_forms::NumericUpDown::editor|std::shared_ptr<TextBox> () const noexcept": {
+    "gui_forms::UpDownBase::editor|std::shared_ptr<TextBox> () const noexcept": {
       "reviewed": false,
       "summary": "Returns the owned TextBox for composition-aware inspection and focus routing."
     },
