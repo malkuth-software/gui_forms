@@ -20,7 +20,7 @@
 
 namespace gui_forms {
 
-class ComboBox final : public Panel, public TextItemsCapability<ComboBox>, public ComboBoxCapabilities<ComboBox> {
+class ComboBox final : public ListControl, public TextItemsCapability<ComboBox>, public ComboBoxCapabilities<ComboBox> {
 public:
     explicit ComboBox(StableId stable_id);
     ~ComboBox() override;

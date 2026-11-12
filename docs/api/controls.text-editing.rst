@@ -21,6 +21,8 @@ Text entry.
      - A text box that takes input through a mask.
    * - :cpp:class:`RichTextBox <gui_forms::RichTextBox>`
      - A rich text field whose document is markdown, shown styled as it is edited.
+   * - :cpp:class:`TextBoxBase <gui_forms::TextBoxBase>`
+     - The shared base of the text-editing controls.
    * - :cpp:class:`AutoCompleteStringCollection <gui_forms::AutoCompleteStringCollection>`
      - An ordered list of completion candidates for a text box or combo box.
    * - :cpp:class:`MaskedTextProvider <gui_forms::MaskedTextProvider>`
@@ -34,6 +36,7 @@ Text entry.
    generated/gui_forms.SearchField
    generated/gui_forms.MaskedTextBox
    generated/gui_forms.RichTextBox
+   generated/gui_forms.TextBoxBase
    generated/gui_forms.AutoCompleteStringCollection
    generated/gui_forms.MaskedTextProvider
 

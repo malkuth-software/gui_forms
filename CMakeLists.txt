@@ -992,6 +992,7 @@ add_library(gui_forms_controls STATIC
     src/controls/drawing_surface/drawing_surface.cpp
     src/controls/metrics_view/metrics_view.cpp
     src/controls/specimen/stock_specimens/stock_specimens.cpp
+    src/controls/panel/text_box_base/text_box_base.cpp
     src/controls/panel/text_box/text_box.cpp
     src/controls/panel/text_editing/text_editing_engine.cpp
     src/controls/panel/rich_text_box/rich_text_box.cpp
@@ -1003,11 +1004,13 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/text_box/text_box_decorations.cpp
     src/controls/panel/text_box/text_decorations/text_decorations.cpp
     src/controls/panel/text_box/auto_complete/auto_complete.cpp
+    src/controls/panel/list_control/list_control.cpp
     src/controls/panel/list_box/list_box.cpp
     src/controls/panel/list_box/checked_list_box/checked_list_box.cpp
     src/controls/panel/combo_box/drop_down_layer.cpp
     src/controls/panel/combo_box/combo_box.cpp
     src/controls/panel/up_down/spin_buttons.cpp
+    src/controls/panel/up_down/up_down_base.cpp
     src/controls/panel/domain_up_down/domain_up_down.cpp
     src/controls/panel/token_box/token_box.cpp
     src/controls/search_field/search_field.cpp

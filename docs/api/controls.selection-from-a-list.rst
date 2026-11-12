@@ -33,6 +33,8 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
      - A location bar that shows the path to the current place as clickable segments.
    * - :cpp:class:`LookupComboBox <gui_forms::LookupComboBox>`
      - Multi-column lookup: a drop-down field choosing a row by key and showing one of its cells, with a headed list of every column filtered by typing.
+   * - :cpp:class:`ListControl <gui_forms::ListControl>`
+     - The shared base of the list controls.
 
 .. toctree::
    :hidden:
@@ -48,6 +50,7 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
    generated/gui_forms.ChoiceGroup
    generated/gui_forms.BreadcrumbTrail
    generated/gui_forms.LookupComboBox
+   generated/gui_forms.ListControl
 
 Related types
 -------------

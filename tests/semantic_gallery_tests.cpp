@@ -73,7 +73,7 @@ constexpr std::string_view off_tree_page = "off-tree-controls";
 
 // Registry entries that are not controls (nonvisual components and the
 // LiveSurface service type), as the anatomy coverage test lists them.
-constexpr std::array<std::string_view, 30> nonvisual_entries{
+constexpr std::array<std::string_view, 33> nonvisual_entries{
     "command", "gallery_command", "font_command", "color_command", "context_menu",
     "tool_tip", "ribbon_tool_tip", "timer", "background_worker", "notify_icon",
     "thread_exception_dialog", "image_list", "error_provider", "help_provider", "semantic_feedback", "binding",
@@ -83,9 +83,12 @@ constexpr std::array<std::string_view, 30> nonvisual_entries{
     "folder_browser_dialog",
     // A PlotView's item children, which it paints as its own parts; the
     // About box and the help system, components shown through their
-    // dialog and viewer; and GaugeBase, the gauges' abstract base.
+    // dialog and viewer; and the abstract bases: GaugeBase, the gauges',
+    // and TextBoxBase, ListControl and UpDownBase, the text, list and
+    // up-down controls'.
     "plot_axis_item", "plot_series_item", "plot_annotation_item",
     "about_dialog", "help_book_system", "gauge_base",
+    "text_box_base", "list_control", "up_down_base",
 };
 
 // Registry controls that publish no node of their own: presentational

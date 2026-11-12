@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/masked_text_provider.hpp"
 #include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/controls/masked_text_box_capabilities.hpp"
 
@@ -42,7 +43,7 @@ struct MaskValidation final {
 // provider: input that does not fit is refused and reported by
 // mask_input_rejected, and the caret passes over literals. An empty mask
 // takes any text, as a plain TextBox.
-class MaskedTextBox final : public Panel, public MaskedTextBoxCapabilities<MaskedTextBox> {
+class MaskedTextBox final : public TextBoxBase, public MaskedTextBoxCapabilities<MaskedTextBox> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit MaskedTextBox(StableId stable_id, std::string initial_mask = {});

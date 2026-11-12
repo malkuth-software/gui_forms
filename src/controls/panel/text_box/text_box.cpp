@@ -103,7 +103,7 @@ bool TextBox::EditingHost::editing_password_protected() const {
 // -- TextBox -------------------------------------------------------------------
 
 TextBox::TextBox(StableId stable_id, std::string initial_text)
-    : Panel(std::move(stable_id)),
+    : TextBoxBase(std::move(stable_id)),
       editing_host_(std::make_unique<EditingHost>(*this)),
       editing_(std::make_unique<detail::TextEditingEngine>(*editing_host_, initial_text)) {
     set_paint_plane(PaintPlane::control);

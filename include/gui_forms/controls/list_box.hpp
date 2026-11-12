@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/controls/list_box_values.hpp"
-#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/list_control.hpp"
 #include "gui_forms/controls/text_items_capability.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/controls/list_box_capabilities.hpp"
@@ -22,7 +22,7 @@ struct ListSelectionChange final {
     std::optional<std::size_t> active_index;
 };
 
-class ListBox : public Panel, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox> {
+class ListBox : public ListControl, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox> {
 public:
     explicit ListBox(StableId stable_id);
 

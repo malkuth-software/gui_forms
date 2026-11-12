@@ -47,9 +47,6 @@ hexadecimal : default ``false``
 button_width : default ``18``
     The width of the spin buttons, from 12 to 64; a width outside that range,
     or one that is not finite, throws `std::out_of_range`.
-editor
-    The `TextBox` that shows and edits the number. Use it to set the font or
-    to move focus to the field.
 
 Events
 ------

@@ -111,7 +111,7 @@ private:
 // -- RichTextBox --------------------------------------------------------------
 
 RichTextBox::RichTextBox(StableId stable_id, std::string_view markdown)
-    : Panel(std::move(stable_id)), editing_host_(std::make_unique<EditingHost>(*this)) {
+    : TextBoxBase(std::move(stable_id)), editing_host_(std::make_unique<EditingHost>(*this)) {
     require_source(markdown);
     editing_ = std::make_unique<detail::TextEditingEngine>(*editing_host_, markdown);
     (*editing_).set_maximum_bytes(maximum_bytes);

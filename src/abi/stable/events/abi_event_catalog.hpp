@@ -5327,15 +5327,6 @@ inline SubscriptionToken connect_list_box_selection_changed(Component& source, c
     return token;
 }
 
-inline SubscriptionToken connect_object_view_selection_changed(Component& source, const EventSink& sink) {
-    ObjectView* typed = dynamic_cast<ObjectView*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_rich_text_box_selection_changed(Component& source, const EventSink& sink) {
     RichTextBox* typed = dynamic_cast<RichTextBox*>(&source);
     if (typed == nullptr) {
@@ -5347,6 +5338,15 @@ inline SubscriptionToken connect_rich_text_box_selection_changed(Component& sour
 
 inline SubscriptionToken connect_text_box_selection_changed(Component& source, const EventSink& sink) {
     TextBox* typed = dynamic_cast<TextBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_object_view_selection_changed(Component& source, const EventSink& sink) {
+    ObjectView* typed = dynamic_cast<ObjectView*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5525,15 +5525,6 @@ inline SubscriptionToken connect_combo_box_text_changed(Component& source, const
     return token;
 }
 
-inline SubscriptionToken connect_group_box_text_changed(Component& source, const EventSink& sink) {
-    GroupBox* typed = dynamic_cast<GroupBox*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).text_changed(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_masked_text_box_text_changed(Component& source, const EventSink& sink) {
     MaskedTextBox* typed = dynamic_cast<MaskedTextBox*>(&source);
     if (typed == nullptr) {
@@ -5554,6 +5545,15 @@ inline SubscriptionToken connect_rich_text_box_text_changed(Component& source, c
 
 inline SubscriptionToken connect_text_box_text_changed(Component& source, const EventSink& sink) {
     TextBox* typed = dynamic_cast<TextBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).text_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_group_box_text_changed(Component& source, const EventSink& sink) {
+    GroupBox* typed = dynamic_cast<GroupBox*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5727,6 +5727,15 @@ inline SubscriptionToken connect_control_validating(Component& source, const Eve
     return token;
 }
 
+inline SubscriptionToken connect_numeric_up_down_value_changed(Component& source, const EventSink& sink) {
+    NumericUpDown* typed = dynamic_cast<NumericUpDown*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).value_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_color_value_editor_value_changed(Component& source, const EventSink& sink) {
     ColorValueEditor* typed = dynamic_cast<ColorValueEditor*>(&source);
     if (typed == nullptr) {
@@ -5747,15 +5756,6 @@ inline SubscriptionToken connect_date_time_picker_value_changed(Component& sourc
 
 inline SubscriptionToken connect_flags_value_editor_value_changed(Component& source, const EventSink& sink) {
     FlagsValueEditor* typed = dynamic_cast<FlagsValueEditor*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).value_changed(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_numeric_up_down_value_changed(Component& source, const EventSink& sink) {
-    NumericUpDown* typed = dynamic_cast<NumericUpDown*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -6157,9 +6157,9 @@ inline constexpr std::array<EventConnector, 328> event_connectors{{
     {"selected_token_changed", "TokenBox", &connect_token_box_selected_token_changed},
     {"selecting", "TabControl", &connect_tab_control_selecting},
     {"selection_changed", "ListBox", &connect_list_box_selection_changed},
-    {"selection_changed", "ObjectView", &connect_object_view_selection_changed},
     {"selection_changed", "RichTextBox", &connect_rich_text_box_selection_changed},
     {"selection_changed", "TextBox", &connect_text_box_selection_changed},
+    {"selection_changed", "ObjectView", &connect_object_view_selection_changed},
     {"selection_changed", "TreeView", &connect_tree_view_selection_changed},
     {"selection_changed", "DataGridView", &connect_data_grid_view_selection_changed},
     {"selection_changed", "ListView", &connect_list_view_selection_changed},
@@ -6179,10 +6179,10 @@ inline constexpr std::array<EventConnector, 328> event_connectors{{
     {"stopped", "SubSurfaceHost", &connect_sub_surface_host_stopped},
     {"strip_moved", "ToolStripContainer", &connect_tool_strip_container_strip_moved},
     {"text_changed", "ComboBox", &connect_combo_box_text_changed},
-    {"text_changed", "GroupBox", &connect_group_box_text_changed},
     {"text_changed", "MaskedTextBox", &connect_masked_text_box_text_changed},
     {"text_changed", "RichTextBox", &connect_rich_text_box_text_changed},
     {"text_changed", "TextBox", &connect_text_box_text_changed},
+    {"text_changed", "GroupBox", &connect_group_box_text_changed},
     {"text_changed", "ButtonBase", &connect_button_base_text_changed},
     {"text_changed", "Label", &connect_label_text_changed},
     {"text_changed", "SearchField", &connect_search_field_text_changed},
@@ -6201,10 +6201,10 @@ inline constexpr std::array<EventConnector, 328> event_connectors{{
     {"user_deleting_row", "DataGridView", &connect_data_grid_view_user_deleting_row},
     {"validated", "Control", &connect_control_validated},
     {"validating", "Control", &connect_control_validating},
+    {"value_changed", "NumericUpDown", &connect_numeric_up_down_value_changed},
     {"value_changed", "ColorValueEditor", &connect_color_value_editor_value_changed},
     {"value_changed", "DateTimePicker", &connect_date_time_picker_value_changed},
     {"value_changed", "FlagsValueEditor", &connect_flags_value_editor_value_changed},
-    {"value_changed", "NumericUpDown", &connect_numeric_up_down_value_changed},
     {"value_changed", "PropertyList", &connect_property_list_value_changed},
     {"value_changed", "RangeControl", &connect_range_control_value_changed},
     {"value_changed", "RibbonColorPicker", &connect_ribbon_color_picker_value_changed},

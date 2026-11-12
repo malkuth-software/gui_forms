@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/controls/numeric_up_down_capabilities.hpp"
 
 #include <cstdint>
@@ -23,7 +23,7 @@ class NumericUpDownScrub;
 // click: the field is focused with its text selected. Once the field has
 // focus the pointer edits text as before. The begin_keyboard_drag rule
 // action scrubs from the keyboard in this mode.
-class NumericUpDown final : public Panel, public NumericUpDownCapabilities<NumericUpDown> {
+class NumericUpDown final : public UpDownBase, public NumericUpDownCapabilities<NumericUpDown> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit NumericUpDown(StableId stable_id);
@@ -32,9 +32,6 @@ public:
 
     // Sets both bounds; they must be finite and ordered (std::invalid_argument).
     void set_range(double lowest, double highest);
-    [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
-    // Focus on the field goes to its edit part (null without one).
-    [[nodiscard]] Ptr focus_target() const override { return editor_; }
     [[nodiscard]] Event<double>& value_changed() noexcept { return value_changed_; }
 
     void arrange(Rect final_bounds) override;
@@ -100,10 +97,6 @@ private:
     // Moves value into [minimum, maximum] when a bound has passed it.
     void clamp_value();
 
-    std::shared_ptr<TextBox> editor_;
-    Control::Ptr spinner_;
-    SubscriptionToken editor_change_;
-    SubscriptionToken spinner_step_;
     bool synchronizing_{};
     // Set while the editor's own text is committed to value, so the write
     // leaves the text as the user typed it.

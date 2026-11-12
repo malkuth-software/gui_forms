@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/controls/text_items_capability.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/controls/domain_up_down_capabilities.hpp"
@@ -25,7 +25,7 @@ namespace gui_forms {
 // read-only field takes no text: a typed character selects the next item
 // that starts with it (ignoring ASCII case, wrapping past the end), and
 // otherwise the value changes only by stepping or set_selected_index.
-class DomainUpDown final : public Panel,
+class DomainUpDown final : public UpDownBase,
                            public TextItemsCapability<DomainUpDown>,
                            public DomainUpDownCapabilities<DomainUpDown> {
 public:
@@ -50,9 +50,6 @@ public:
     void up_button();
     void down_button();
 
-    [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
-    // Focus on the field goes to its edit part (null without one).
-    [[nodiscard]] Ptr focus_target() const override { return editor_; }
     // Raised after the selection changes, with the new selection.
     [[nodiscard]] Event<std::optional<std::size_t>>& selected_index_changed() noexcept {
         return selected_index_changed_;
@@ -126,10 +123,6 @@ private:
     void sort_items();
     [[nodiscard]] std::optional<std::size_t> matching_index(std::string_view candidate) const;
 
-    std::shared_ptr<TextBox> editor_;
-    Control::Ptr spinner_;
-    SubscriptionToken editor_change_;
-    SubscriptionToken spinner_step_;
     std::optional<std::size_t> selected_index_{};
     bool synchronizing_{};
     Event<std::optional<std::size_t>> selected_index_changed_;

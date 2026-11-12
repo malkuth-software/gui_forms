@@ -7,7 +7,7 @@ gui_forms::MaskedTextBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: MaskedTextBox final : public Panel, public MaskedTextBoxCapabilities<MaskedTextBox>
+.. cpp:class:: MaskedTextBox final : public TextBoxBase, public MaskedTextBoxCapabilities<MaskedTextBox>
 
    ``#include <gui_forms/controls/masked_text_box.hpp>``
 

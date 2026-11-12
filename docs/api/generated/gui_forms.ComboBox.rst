@@ -7,7 +7,7 @@ gui_forms::ComboBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ComboBox final : public Panel, public TextItemsCapability<ComboBox>, public ComboBoxCapabilities<ComboBox>
+.. cpp:class:: ComboBox final : public ListControl, public TextItemsCapability<ComboBox>, public ComboBoxCapabilities<ComboBox>
 
    ``#include <gui_forms/controls/combo_box.hpp>``
 

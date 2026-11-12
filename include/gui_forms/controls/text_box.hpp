@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
 #include "gui_forms/controls/auto_complete.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/scheduler.hpp"
@@ -97,7 +97,7 @@ struct TextBoxAutoCompleteSession;
 class TextEditingEngine;
 } // namespace detail
 
-class TextBox final : public Panel, public TextBoxCapabilities<TextBox> {
+class TextBox final : public TextBoxBase, public TextBoxCapabilities<TextBox> {
 public:
     explicit TextBox(StableId stable_id, std::string initial_text = {});
     ~TextBox() override;
