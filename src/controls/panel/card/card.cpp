@@ -278,7 +278,7 @@ void Card::on_mouse_up(MouseEventArgs& arguments) {
     if (interactive.read() && arguments.button == PointerButton::primary) {
         pressed_ = false;
         invalidate(Dirty::paint);
-        arguments.handled = true;
+        // Not handled: a handled MouseUp cancels Click and activation (input-order rule 3).
     }
     Control::on_mouse_up(arguments);
 }

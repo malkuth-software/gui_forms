@@ -144,6 +144,42 @@
       "reason": "The seam drag runs on the drag engine, as the Splitter's does, and the engine's cancels never leave a model changed (before the engine a lost capture kept the dragged distance). The keyboard drag is the engine's accessibility rule.",
       "source": "coordinator",
       "date": "2026-11-08"
+    },
+    {
+      "control": "Control",
+      "member": "mouse_up, click, mouse_click (order)",
+      "winforms": "A release over the pressed control raises Click and MouseClick, then MouseUp last.",
+      "gui_forms": "Physical events come first: MouseUp, then Click and MouseClick (or DoubleClick and MouseDoubleClick), on the pressed control only. At MouseUp the button is up and the capture released; MouseCaptureChanged comes last.",
+      "reason": "The owner's input order (ADR-003 amendment): physical events first in causal order and derived events after the completing physical event, with state already updated, for fewer ordering bugs (rules 1, 2 and 4).",
+      "source": "owner",
+      "date": "2026-11-12"
+    },
+    {
+      "control": "Control",
+      "member": "mouse_up (handled)",
+      "winforms": "MouseEventArgs has no Handled; nothing a MouseUp handler does cancels Click.",
+      "gui_forms": "A MouseUp left handled cancels Click, MouseClick, DoubleClick, MouseDoubleClick and the activation.",
+      "reason": "The owner's input order, rule 3.",
+      "source": "owner",
+      "date": "2026-11-12"
+    },
+    {
+      "control": "Control",
+      "member": "key_down (handled)",
+      "winforms": "Handled on KeyDown does not stop KeyPress; only SuppressKeyPress does.",
+      "gui_forms": "A KeyDown left handled, by the window or the control, cancels the KeyPress and the key's text, as suppress_key_press does; an input method's commit while a composition is open is kept.",
+      "reason": "The owner's input order, rule 3.",
+      "source": "owner",
+      "date": "2026-11-12"
+    },
+    {
+      "control": "Control",
+      "member": "click, mouse_click (broken sequence)",
+      "winforms": "Click and MouseClick are raised whatever an earlier handler did, unless the control was destroyed.",
+      "gui_forms": "When a handler disposes the control, opens a modal window or a modal layer or menu, or the capture is lost before the release, the sequence's remaining derived events (Click, MouseClick, the activation) are dropped.",
+      "reason": "The owner's input order, rule 5.",
+      "source": "owner",
+      "date": "2026-11-12"
     }
   ]
 }

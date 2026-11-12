@@ -43,6 +43,7 @@ SOURCES: Path = ROOT / 'src'
 OUTPUT: Path = ROOT / 'src' / 'abi' / 'stable' / 'events' / 'abi_event_catalog.hpp'
 FIELDS_OUTPUT: Path = ROOT / 'src' / 'abi' / 'stable' / 'schema' / 'abi_interaction_fields.hpp'
 FIELDS_MANIFEST: Path = ROOT / 'manifests' / 'abi' / 'interaction_fields.json'
+ORDER_MANIFEST: Path = ROOT / 'manifests' / 'abi' / 'interaction_order.json'
 
 # The gf_value kind each hand-written field carries, as the schema spells
 # kinds (abi_event_fields.hpp's append_field overloads).
@@ -585,6 +586,71 @@ def render_manifest(mapped: dict[str, str]) -> str:
     return '\n'.join(lines)
 
 
+# The input order per interaction sequence (the owner's six rules, ADR-003
+# amendment 2026-11-12). Each step names a declared interaction as
+# Owner.name and its kind: physical (rule 1, causal order), repeated
+# (physical, zero or more times) or derived (rule 2: after the completing
+# physical event, on the same target only) or deferred (the capture's end,
+# raised last whatever happened to the sequence). cancelled_by names the handled
+# event that cancels the derived steps (rule 3); every sequence's derived
+# steps are dropped when a handler disposes the control, opens a modal or
+# the capture is lost (rule 5). State is already updated at the completing
+# physical event (rule 4).
+ORDER_SEQUENCES: list[tuple[str, list[tuple[str, str]], str, str]] = [
+    ('click', [('Control.pointer_preview_observed', 'physical'), ('Control.mouse_down', 'physical'),
+               ('Control.mouse_move', 'repeated'), ('Control.mouse_up', 'physical'),
+               ('Control.click', 'derived'), ('Control.mouse_click', 'derived'),
+               ('Control.mouse_capture_changed', 'deferred')],
+     'Control.mouse_up',
+     'a primary click then runs on_activate; mouse_capture_changed ends a primary press'),
+    ('double_click', [('Control.pointer_preview_observed', 'physical'), ('Control.mouse_down', 'physical'),
+                      ('Control.mouse_move', 'repeated'), ('Control.mouse_up', 'physical'),
+                      ('Control.double_click', 'derived'), ('Control.mouse_double_click', 'derived'),
+                      ('Control.mouse_capture_changed', 'deferred')],
+     'Control.mouse_up',
+     'the second press of a double-click (after a click sequence): no click, mouse_click or on_activate'),
+    ('key', [('Control.preview_key_down', 'physical'), ('Window.key_down', 'physical'),
+             ('Control.key_down', 'physical'), ('Window.key_press', 'derived'),
+             ('Control.key_press', 'derived'), ('Window.key_up', 'physical'), ('Control.key_up', 'physical')],
+     'Control.key_down',
+     'a key_down handled by the window or the control cancels key_press and the text, except an IME commit'),
+    ('keyboard_activation', [('Control.preview_key_down', 'physical'), ('Control.key_down', 'physical'),
+                             ('Control.key_up', 'physical')],
+     'Control.key_down',
+     'Space or Enter on a button: the activation (its Click) follows key_up, with no mouse events'),
+]
+
+
+def render_order(catalog: Catalog) -> str:
+    declared: set[str] = {f'{declaration.owner}.{declaration.name}' for declaration in catalog.declarations}
+    lines: list[str] = ['{', '  "format": 1,', '  "rules": "ADR-003 amendment 2026-11-12",', '  "sequences": {']
+    index: int
+    name: str
+    steps: list[tuple[str, str]]
+    cancelled_by: str
+    note: str
+    for index, (name, steps, cancelled_by, note) in enumerate(ORDER_SEQUENCES):
+        missing: list[str] = [event for event, kind in steps if event not in declared]
+        if cancelled_by not in declared:
+            missing.append(cancelled_by)
+        if missing:
+            raise SystemExit(f'abi_event_catalog: the order of {name} names undeclared interactions: '
+                             f'{", ".join(missing)}')
+        rendered: list[str] = [f'{{"event": "{event}", "kind": "{kind}"}}' for event, kind in steps]
+        separator: str = ',' if index + 1 < len(ORDER_SEQUENCES) else ''
+        lines.append(f'    "{name}": {{')
+        lines.append('      "steps": [')
+        lines.extend(f'        {entry}{"," if position + 1 < len(rendered) else ""}'
+                     for position, entry in enumerate(rendered))
+        lines.append('      ],')
+        lines.append(f'      "cancelled_by_handled": "{cancelled_by}",')
+        lines.append('      "dropped_when": ["control disposed", "modal opened", "capture lost"],')
+        lines.append(f'      "note": "{note}"')
+        lines.append(f'    }}{separator}')
+    lines.extend(['  }', '}', ''])
+    return '\n'.join(lines)
+
+
 def main(argv: list[str]) -> int:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--check', action='store_true', help='fail when the committed file is stale')
@@ -594,7 +660,8 @@ def main(argv: list[str]) -> int:
     text: str = render(catalog)
     mapped: dict[str, str] = payload_map(catalog)
     outputs: list[tuple[Path, str]] = [(args.out, text), (FIELDS_OUTPUT, render_fields(mapped)),
-                                       (FIELDS_MANIFEST, render_manifest(mapped))]
+                                       (FIELDS_MANIFEST, render_manifest(mapped)),
+                                       (ORDER_MANIFEST, render_order(catalog))]
     path: Path
     content: str
     if args.check:

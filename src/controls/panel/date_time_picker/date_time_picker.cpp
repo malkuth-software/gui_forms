@@ -315,7 +315,7 @@ void DateTimePicker::on_mouse_up(MouseEventArgs& arguments) {
         const HitPart released = part_at(arguments.window_position);
         if (released == pressed_part_) activation_part_ = pressed_part_;
         pressed_part_ = HitPart::none;
-        arguments.handled = true;
+        // Not handled: a handled MouseUp cancels Click and activation (input-order rule 3).
         invalidate(Dirty::paint);
     }
     Control::on_mouse_up(arguments);

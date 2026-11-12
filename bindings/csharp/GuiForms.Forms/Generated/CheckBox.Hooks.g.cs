@@ -25,7 +25,8 @@ public partial class CheckBox : ButtonBase
     }
 
     /// <summary>CheckBox::on_appearance_changed: after a changed write of appearance; base raises no event yet. Windows Forms'
-    /// CheckBox.OnAppearanceChanged. Call the base to run the subscribers.</summary>
+    /// CheckBox.OnAppearanceChanged. Call the base to run the subscribers.
+    /// </summary>
     [Hook(Constants.GF_CLASS_CHECK_BOX, 0u)]
     protected virtual void OnAppearanceChanged(EventArgs e)
     {
@@ -51,7 +52,8 @@ public partial class CheckBox : ButtonBase
     }
 
     /// <summary>CheckBox::on_checked_changed: after a changed write of checked; base raises checked_changed. Windows Forms'
-    /// CheckBox.OnCheckedChanged. Call the base to run the subscribers.</summary>
+    /// CheckBox.OnCheckedChanged. Call the base to run the subscribers.
+    /// </summary>
     [Hook(Constants.GF_CLASS_CHECK_BOX, 1u)]
     protected virtual void OnCheckedChanged(EventArgs e)
     {
@@ -77,7 +79,8 @@ public partial class CheckBox : ButtonBase
     }
 
     /// <summary>CheckBox::on_check_state_changed: after a changed write of check_state; base raises check_state_changed. Windows Forms'
-    /// CheckBox.OnCheckStateChanged. Call the base to run the subscribers.</summary>
+    /// CheckBox.OnCheckStateChanged. Call the base to run the subscribers.
+    /// </summary>
     [Hook(Constants.GF_CLASS_CHECK_BOX, 2u)]
     protected virtual void OnCheckStateChanged(EventArgs e)
     {

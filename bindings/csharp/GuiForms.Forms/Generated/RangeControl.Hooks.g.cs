@@ -25,7 +25,8 @@ public partial class RangeControl : Control
     }
 
     /// <summary>RangeControl::on_value_changed: after a changed write of value; base raises value_changed. Windows Forms'
-    /// ScrollBar.OnValueChanged, TrackBar.OnValueChanged. Call the base to run the subscribers.</summary>
+    /// ScrollBar.OnValueChanged, TrackBar.OnValueChanged. Call the base to run the subscribers.
+    /// </summary>
     [Hook(Constants.GF_CLASS_RANGE_CONTROL, 0u)]
     protected virtual void OnValueChanged(EventArgs e)
     {

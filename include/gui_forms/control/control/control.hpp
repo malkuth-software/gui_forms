@@ -1283,11 +1283,21 @@ protected:
     // before the subscribers, and a rule that consumes one keeps it from
     // them only. After the route of a release over the control the same
     // button pressed: on_click and on_mouse_click (or on_double_click and
-    // on_mouse_double_click), whose rules the window offers first. So
-    // on_mouse_up comes before on_click, where Windows Forms raises
-    // MouseUp last. on_mouse_enter and on_mouse_leave follow the pointer
-    // (the window's hover tracking, not the route); on_mouse_capture_changed
-    // runs on the control losing the capture, after the release's on_click.
+    // on_mouse_double_click), whose rules the window offers first. The
+    // owner's input order (ADR-003 amendment, 2026-11-12) differs from
+    // Windows Forms, which raises MouseUp last: physical events come first
+    // (rule 1), so on_mouse_up comes before on_click; the derived events
+    // follow on the same target only (rule 2); a MouseUp left handled
+    // cancels on_click, on_mouse_click and on_activate (rule 3), so a
+    // control that activates on its click leaves its own release
+    // unhandled; at on_mouse_up the button is up and the capture released
+    // (rule 4); and when a handler disposes the control, opens a modal
+    // window or layer, or the capture is lost, the sequence's remaining
+    // derived events are dropped (rule 5). The second press of a
+    // double-click raises on_double_click and on_mouse_double_click only.
+    // on_mouse_enter and on_mouse_leave follow the pointer (the window's
+    // hover tracking, not the route); on_mouse_capture_changed runs on the
+    // control losing the capture, after the release's on_click.
     virtual void on_mouse_down(MouseEventArgs& arguments);
     virtual void on_mouse_up(MouseEventArgs& arguments);
     virtual void on_mouse_move(MouseEventArgs& arguments);
@@ -1309,7 +1319,9 @@ protected:
     // base call, and only when handled is still clear, so a subscriber that
     // sets handled keeps the key from the control as well as from the
     // bubble route. on_key_press runs for the committed text a key
-    // produced, after the window's key_press. A key_up the window raises
+    // produced, after the window's key_press; a key_down left handled
+    // cancels it and the text, as suppress_key_press does (input order
+    // rule 3), except for an IME's commit while a composition is open. A key_up the window raises
     // because it lost activation (released_by_deactivation) also runs
     // on_key_up; a control's handling skips it.
     virtual void on_preview_key_down(PreviewKeyDownEventArgs& arguments);

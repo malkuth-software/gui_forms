@@ -586,6 +586,33 @@ def reachable_segments(model: Model) -> set[str]:
     return reached
 
 
+# Where the owner's input order (ADR-003 amendment, 2026-11-12) differs from
+# Windows Forms, the C# hook says so: physical events first, derived events
+# after them on the same target, handled cancelling the derived events, and
+# a broken sequence dropping them.
+INPUT_ORDER_NOTES: dict[str, str] = {
+    "on_mouse_up": ("Unlike Windows Forms, MouseUp comes before Click and MouseClick, with the button up and the "
+                    "capture released; setting e.handled cancels Click, MouseClick and the activation."),
+    "on_click": ("Unlike Windows Forms, Click follows MouseUp; it is dropped when MouseUp was handled, and the "
+                 "rest of the sequence is dropped when a handler disposes the control, opens a modal or the "
+                 "capture is lost."),
+    "on_mouse_click": ("Unlike Windows Forms, MouseClick follows MouseUp and Click; it is dropped when MouseUp was "
+                       "handled or the sequence broke (the control disposed, a modal opened, the capture lost)."),
+    "on_double_click": ("Unlike Windows Forms, DoubleClick follows the second MouseUp; that press raises no Click, "
+                        "and a handled MouseUp or a broken sequence drops it."),
+    "on_mouse_double_click": ("Unlike Windows Forms, MouseDoubleClick follows the second MouseUp and DoubleClick; "
+                              "a handled MouseUp or a broken sequence drops it."),
+    "on_key_down": ("Setting e.handled cancels the key's KeyPress and text, as SuppressKeyPress does in Windows "
+                    "Forms, except an IME's commit."),
+}
+
+
+def input_order_note(raiser: Raiser) -> list[str]:
+    """The C# summary line on the input order, for the hooks it concerns."""
+    note: str | None = INPUT_ORDER_NOTES.get(raiser.method) if raiser.kind != "property" else None
+    return [f"    /// {note}"] if note else []
+
+
 def raiser_text(raiser: Raiser) -> str:
     emits: str = f"base raises {raiser.interaction}" if raiser.interaction else "base raises no event yet"
     if raiser.kind == "property":
@@ -989,7 +1016,9 @@ def cs_class(model: Model, name: str) -> str:
         key: str = f"HookKeys.{model.classes[name].snake}_{raiser.method}"
         lines += ["",
                   f"    /// <summary>{raiser.cpp_class}::{raiser.method}: {raiser_text(raiser)}. Windows Forms'",
-                  f"    /// {', '.join(sorted(set(raiser.winforms)))}. Call the base to run the subscribers.</summary>",
+                  f"    /// {', '.join(sorted(set(raiser.winforms)))}. Call the base to run the subscribers."]
+        lines += input_order_note(raiser)
+        lines += ["    /// </summary>",
                   f"    [Hook(Constants.{constant(model, name)}, {entry_index(model, raiser)}u)]",
                   f"    protected virtual void {raiser.hook_name}({managed_arguments(raiser)} e)",
                   "    {",
