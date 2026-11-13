@@ -994,6 +994,15 @@ GF_LAYOUT_ASSERT(offsetof(gf_date_time_picker_hooks, struct_size) == 0, "gf_date
 GF_LAYOUT_ASSERT(offsetof(gf_date_time_picker_hooks, class_id) == 4, "gf_date_time_picker_hooks.class_id offset");
 GF_LAYOUT_ASSERT(offsetof(gf_date_time_picker_hooks, on_format_changed) == 8, "gf_date_time_picker_hooks.on_format_changed offset");
 GF_LAYOUT_ASSERT(offsetof(gf_date_time_picker_hooks, on_value_changed) == 16, "gf_date_time_picker_hooks.on_value_changed offset");
+GF_LAYOUT_ASSERT(sizeof(gf_node_canvas_hooks) == 56, "gf_node_canvas_hooks size");
+GF_LAYOUT_ASSERT(offsetof(gf_node_canvas_hooks, struct_size) == 0, "gf_node_canvas_hooks.struct_size offset");
+GF_LAYOUT_ASSERT(offsetof(gf_node_canvas_hooks, class_id) == 4, "gf_node_canvas_hooks.class_id offset");
+GF_LAYOUT_ASSERT(offsetof(gf_node_canvas_hooks, on_edit_ended) == 8, "gf_node_canvas_hooks.on_edit_ended offset");
+GF_LAYOUT_ASSERT(offsetof(gf_node_canvas_hooks, on_graph_edited) == 16, "gf_node_canvas_hooks.on_graph_edited offset");
+GF_LAYOUT_ASSERT(offsetof(gf_node_canvas_hooks, on_link_connected) == 24, "gf_node_canvas_hooks.on_link_connected offset");
+GF_LAYOUT_ASSERT(offsetof(gf_node_canvas_hooks, on_palette_requested) == 32, "gf_node_canvas_hooks.on_palette_requested offset");
+GF_LAYOUT_ASSERT(offsetof(gf_node_canvas_hooks, on_selection_changed) == 40, "gf_node_canvas_hooks.on_selection_changed offset");
+GF_LAYOUT_ASSERT(offsetof(gf_node_canvas_hooks, on_view_changed) == 48, "gf_node_canvas_hooks.on_view_changed offset");
 GF_LAYOUT_ASSERT(sizeof(gf_button_base_class) == 32, "gf_button_base_class size");
 GF_LAYOUT_ASSERT(offsetof(gf_button_base_class, header) == 0, "gf_button_base_class.header offset");
 GF_LAYOUT_ASSERT(offsetof(gf_button_base_class, control) == 24, "gf_button_base_class.control offset");
@@ -1103,6 +1112,10 @@ GF_LAYOUT_ASSERT(offsetof(gf_list_control_class, control) == 24, "gf_list_contro
 GF_LAYOUT_ASSERT(sizeof(gf_up_down_base_class) == 32, "gf_up_down_base_class size");
 GF_LAYOUT_ASSERT(offsetof(gf_up_down_base_class, header) == 0, "gf_up_down_base_class.header offset");
 GF_LAYOUT_ASSERT(offsetof(gf_up_down_base_class, control) == 24, "gf_up_down_base_class.control offset");
+GF_LAYOUT_ASSERT(sizeof(gf_node_canvas_class) == 40, "gf_node_canvas_class size");
+GF_LAYOUT_ASSERT(offsetof(gf_node_canvas_class, header) == 0, "gf_node_canvas_class.header offset");
+GF_LAYOUT_ASSERT(offsetof(gf_node_canvas_class, control) == 24, "gf_node_canvas_class.control offset");
+GF_LAYOUT_ASSERT(offsetof(gf_node_canvas_class, node_canvas) == 32, "gf_node_canvas_class.node_canvas offset");
 GF_LAYOUT_ASSERT(sizeof(gf_classes_table) == 24, "gf_classes_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_classes_table, struct_size) == 0, "gf_classes_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_classes_table, abi_minor) == 4, "gf_classes_table.abi_minor offset");
