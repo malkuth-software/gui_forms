@@ -992,6 +992,7 @@ private:
     [[nodiscard]] CommandParts command_parts(const Layout& placed, CommandAddress address) const;
     [[nodiscard]] Parts control_parts(const Layout& placed) const;
     [[nodiscard]] AnatomyStateSet tab_states(std::size_t tab) const;
+    [[nodiscard]] static AnatomyStateSet hover_layer_states(AnatomyStateSet states) noexcept;
     [[nodiscard]] AnatomyStateSet command_states(CommandAddress address) const;
     [[nodiscard]] AnatomyStateSet group_button_states(std::size_t group) const;
     [[nodiscard]] bool group_collapsed(const Layout& placed, std::size_t group) const noexcept;

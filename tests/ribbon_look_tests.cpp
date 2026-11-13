@@ -27,6 +27,7 @@
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
@@ -507,6 +508,93 @@ void test_default_theme_row() {
             "every tab's shadow falls off beyond its tapered edge");
 }
 
+// Plan Paint's tool tab (finding 2 on its 7c9c931 build): a tab in one
+// application mode with an authored width of 142, relabelled through
+// set_tabs and selected through the selected_tab property, with no class
+// and no variant, is a selected ribbon tab like any other. The theme gives
+// it the folder taper in the selected state, and it paints as the selected
+// folder (its keyline, its label in the selected ink), never under the
+// menu-item family's selection plate (#CFE2FA): its hover layer takes only
+// the states a hover reads, so the plate cannot arrive through the layer's
+// built-in fallback. In the default theme and in Plan Paint's sheet
+// (the tab row of themes/plan-paint/plan-paint.theme.css at f517790).
+constexpr Color selection_plate = Color::rgba(0xcf, 0xe2, 0xfa);
+
+std::vector<RibbonTabSpec> tool_tabs(std::string_view tool_label) {
+    std::vector<RibbonTabSpec> tabs = two_tabs();
+    tabs[0].width = 61.0;
+    tabs[1].width = 63.0;
+    RibbonTabSpec tool{.stable_id = "tool-tab", .text = std::string(tool_label)};
+    tool.modes = 1U;
+    tool.width = 142.0;
+    RibbonGroupSpec settings{.stable_id = "tool-settings", .caption = "Tool settings"};
+    settings.commands.push_back(
+        {.stable_id = "tool-size", .command = std::make_shared<Command>("tool-size", "Size")});
+    tool.groups.push_back(std::move(settings));
+    tabs.push_back(std::move(tool));
+    return tabs;
+}
+
+void check_selected_tool_tab(const std::shared_ptr<const Theme>& theme, std::string_view where) {
+    const std::string name(where);
+    std::shared_ptr<Ribbon> ribbon = ribbon_with(tool_tabs("Tool"));
+    (*ribbon).set_theme_override(theme);
+    (*ribbon).application_modes = 1U;
+    Window window(ribbon, {700.0, 200.0});
+    window.perform_layout();
+    (*ribbon).set_tabs(tool_tabs("Pencil"));
+    (*ribbon).selected_tab = std::optional<std::size_t>{2U};
+    window.perform_layout();
+    require((*ribbon).selected_tab.read() == std::optional<std::size_t>{2U}, name + ": the tool tab is selected");
+    AnatomyStateSet selected;
+    selected.insert(AnatomyState::selected);
+    const ResolvedControlRecipe resolved = (*ribbon).effective_theme().resolve(
+        *ribbon, ControlVisualRole::menu_item, part_visual_context(*ribbon, selected), selected, "tab");
+    require(resolved.recipe().part_metrics.taper > 0.0, name + ": the selected tool tab takes the folder taper");
+    const std::vector<Ribbon::Tab> realized = (*ribbon).realized_tabs();
+    require(realized.size() == 3U && near(realized[2].parts.tab.bounds.width, 142.0),
+            name + ": the tool tab keeps its authored width");
+    LookPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 700.0, 200.0}));
+    const std::optional<std::size_t> label = painter.text_index("Pencil");
+    require(label && painter.text_colours[*label] == selected_ink, name + ": the relabelled tab's label is selected");
+    require(painter.lines_in(keyline) >= 3U, name + ": every tab, the selected tool tab too, draws its folder edge");
+    require(!painter.filled_rgb(selection_plate), name + ": no selection plate covers the selected tool tab");
+}
+
+void test_selected_tool_tab() {
+    check_selected_tool_tab(gui_forms_theme(), "default theme");
+    const std::shared_ptr<const Theme> plan_paint = theme_from_sheet(
+        "ribbon::part(tab-rail) { background-color: #9bb5d8; height: 27px; }\n"
+        "ribbon::part(tab) {\n"
+        "  background-color: #9bb6da;\n"
+        "  background-image: linear-gradient(to bottom, rgba(34, 70, 116, 0.15) 0%, rgba(0, 0, 0, 0) 72%);\n"
+        "  border: 0 solid transparent;\n"
+        "  border-top-left-radius: 4px;\n"
+        "  border-top-right-radius: 4px;\n"
+        "  border-bottom-left-radius: 0;\n"
+        "  border-bottom-right-radius: 0;\n"
+        "  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.49);\n"
+        "  gap: -4px;\n"
+        "  margin-top: 3px;\n"
+        "  taper: 4px #496c9f;\n"
+        "  edge-shadow: 9px rgba(24, 56, 97, 0.45);\n"
+        "}\n"
+        "ribbon::part(tab):hover { background-color: #acc6e7; }\n"
+        "ribbon::part(tab):state(selected) {\n"
+        "  background-color: #e8f2ff;\n"
+        "  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.57) 0%, rgba(0, 0, 0, 0) 72%);\n"
+        "  box-shadow: inset 0 1px 0 #ffffff;\n"
+        "  margin-top: 0;\n"
+        "  margin-bottom: -2px;\n"
+        "}\n"
+        "ribbon::part(tab):disabled { background-color: #b9c4d2; }\n"
+        "ribbon::part(tab-label):state(selected) { color: #173f79; font-weight: bold; font-size: 1.08em; }\n"
+        "ribbon::part(command-plane) { height: 88px; }\n",
+        "Plan Paint's current tab row compiles cleanly");
+    check_selected_tool_tab(plan_paint, "Plan Paint's sheet");
+}
+
 // The folders stack (owner, 2026-11-09): in the default theme each tab
 // overlaps the next by its five-unit taper, never File; the selected tab
 // lies over both neighbours and takes the pointer there, and otherwise the
@@ -647,6 +735,7 @@ int main() {
     test_contextual_tint();
     test_dark_tab_ink();
     test_default_theme_row();
+    test_selected_tool_tab();
     test_overlapping_tabs();
     test_backstage_column();
     if (failures != 0) {

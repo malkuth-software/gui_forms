@@ -1280,6 +1280,15 @@ AnatomyStateSet Ribbon::tab_states(std::size_t tab) const {
     return states;
 }
 
+// The states a tab's hover layer is painted in (paint_tab): the tab's hot
+// and disabled states only.
+AnatomyStateSet Ribbon::hover_layer_states(AnatomyStateSet states) noexcept {
+    AnatomyStateSet result;
+    if (states.contains(AnatomyState::hot)) result.insert(AnatomyState::hot);
+    if (states.contains(AnatomyState::disabled)) result.insert(AnatomyState::disabled);
+    return result;
+}
+
 AnatomyStateSet Ribbon::command_states(CommandAddress address) const {
     AnatomyStateSet states;
     const RibbonCommandSpec* const spec = selected_command(address);
@@ -1463,12 +1472,21 @@ void Ribbon::paint_tab(Painter& painter, PartPaint& part, const Layout& placed, 
     part.profile.reset();
     part.accent.reset();
     // The hover layer: the soft dither rising over the face while the tab
-    // is hot, within the body (short of the taper and its shadow).
+    // is hot, within the body (short of the taper and its shadow). It takes
+    // only the states a hover reads (hot, disabled): wherever the engine
+    // does not draw the rise (a refused primitive, no raster made), the
+    // built-in recipe of the menu-item family draws the layer, and in the
+    // tab's selected or focused states that recipe is the selection plate
+    // (#CFE2FA in a 1-unit #6384B2 border), which then covered the selected
+    // tab's face (Plan Paint finding 2 on 7c9c931: the selected tool tab
+    // drawn as a bordered box). At rest the family recipe is clear.
     const double taper = shaped ? std::clamp(metrics.taper * effective_text_scale(), 0.0, parts.tab_hover.bounds.width) : 0.0;
     const Rect hover = parts.tab_hover.bounds;
     part.bounds = {hover.x, hover.y, hover.width - taper, hover.height};
+    part.states = hover_layer_states(states);
     part.key = PartKey{"tab_hover", id, {}};
     paint_part(painter, *this, part);
+    part.states = states;
     const std::string label = parse_mnemonic_text(tabs_[tab].text).display_text;
     part.role = PartRole::label;
     part.bounds = parts.tab_label.bounds;
