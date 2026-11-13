@@ -10,6 +10,7 @@
 #include "gui_forms/window.hpp"
 #include "../../display/chunk/display_chunk.hpp"
 #include "control_tree_walk.hpp"
+#include "../active_border/control_active_border.hpp"
 #include "../../surface_root/access/surface_mouse_rule_access.hpp"
 #include "../../surface_root/access/surface_tree_access.hpp"
 #include "../../theme/theme_compiler/control_inline_style.hpp"
@@ -4473,6 +4474,16 @@ Insets Control::effective_visual_outsets() const noexcept {
         result.top = std::max(result.top, surface.top);
         result.right = std::max(result.right, surface.right);
         result.bottom = std::max(result.bottom, surface.bottom);
+    }
+    if (active_border_) {
+        // The border's reach, at the width high contrast may widen it to.
+        ActiveBorder widest = (*active_border_).border;
+        widest.width = std::max(widest.width, minimum_high_contrast_active_border_width);
+        const double reach = active_border_reach(widest);
+        result.left = std::max(result.left, reach);
+        result.top = std::max(result.top, reach);
+        result.right = std::max(result.right, reach);
+        result.bottom = std::max(result.bottom, reach);
     }
     const Rect owner{0.0, 0.0, arranged_bounds_.width, arranged_bounds_.height};
     for (const OwnerDecorationRecipe& decoration : owned_decorations_) {

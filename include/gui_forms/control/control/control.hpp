@@ -6,6 +6,7 @@
 #include "gui_forms/anatomy.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/component.hpp"
+#include "gui_forms/control/active_border/active_border.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/binding_types.hpp"
 #include "gui_forms/binding/property_table/property_table.hpp"
@@ -646,6 +647,20 @@ public:
     void set_owned_decorations(const OwnerDecorationRecipe* decorations,
                                std::size_t decoration_count);
     void clear_owned_decorations();
+    // The control border (active_border.hpp; the active border study's
+    // phase 2): set, validated first (an invalid border throws
+    // std::invalid_argument and changes nothing), or cleared with
+    // std::nullopt. It paints after the control's content and its owned
+    // decorations, and its reach (active_border_reach) widens the visual
+    // outsets. A change repaints the control; a moving border repaints on
+    // a paint-gated timer (ADR-016) only while its pose moves, and its
+    // motion restarts lit whenever the timer starts. UI thread.
+    void set_active_border(std::optional<ActiveBorder> border);
+    [[nodiscard]] std::optional<ActiveBorder> active_border() const;
+    // The pose the border last painted with (resolve_active_border), empty
+    // before its first paint or with no border; and whether its timer runs.
+    [[nodiscard]] std::optional<ActiveBorderPose> active_border_pose() const noexcept;
+    [[nodiscard]] bool active_border_animating() const noexcept;
     [[nodiscard]] ControlVisualStatus visual_status() const noexcept {
         return visual_status_;
     }
@@ -1836,6 +1851,16 @@ private:
     void paint_back_color(Painter& painter, Rect bounds) const;
     void paint_owned_decorations(Painter& painter, Rect bounds,
                                  OwnerDecorationLayer layer) const;
+    // The control border's state (control.cpp), allocated while a border
+    // is set, and its timer's target, which observes the control.
+    struct ActiveBorderState;
+    struct ActiveBorderTick;
+    // Paints the border after the control's content, resolving its pose
+    // and starting or stopping its timer. Called by the window's paint.
+    void paint_active_border(Painter& painter);
+    // One timer tick: the border's time moves to `now` and the control
+    // repaints. False when there is no border.
+    bool on_active_border_tick(FrameTime now);
     [[nodiscard]] Insets effective_visual_outsets() const noexcept;
     void validate_authored_surface_material_images(
         const SurfaceMaterial& material) const;
@@ -2103,6 +2128,7 @@ private:
     mutable bool clear_face_warned_{};
     bool font_from_code_{};
     std::vector<OwnerDecorationRecipe> owned_decorations_;
+    std::unique_ptr<ActiveBorderState> active_border_{};
     ControlVisualStatus visual_status_{ControlVisualStatus::normal};
     // set_specimen_states: empty unless a palette or test shows states.
     AnatomyStateSet specimen_states_{};

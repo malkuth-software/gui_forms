@@ -42,6 +42,14 @@ Related types
      - The description assistive technology announces.
    * - :cpp:class:`AccessibleNameCapability <gui_forms::AccessibleNameCapability>`
      - The name assistive technology announces.
+   * - :cpp:class:`ActiveBorder <gui_forms::ActiveBorder>`
+     - What the program asks for.
+   * - :cpp:class:`ActiveBorderConditions <gui_forms::ActiveBorderConditions>`
+     - What the window is like when the border paints.
+   * - :cpp:class:`ActiveBorderPath <gui_forms::ActiveBorderPath>`
+     - The rectangle the stroke's centre line follows around a box of ``size``, and the radius it uses there (the corner radius grown by the distance from the box to the centre line, not below 0).
+   * - :cpp:class:`ActiveBorderPose <gui_forms::ActiveBorderPose>`
+     - What the border paints after the limiter: the colours, the motion and its frequency (0 when steady), and the width.
    * - :cpp:class:`AlignSelfCapability <gui_forms::AlignSelfCapability>`
      - Where the control sits across its layout region's block axis (CSS align-self).
    * - :cpp:class:`AllowDropCapability <gui_forms::AllowDropCapability>`
@@ -404,6 +412,88 @@ Related types
    .. cpp:function:: static void assign(AccessibleNameCapability& capability, std::string incoming)
 
    .. cpp:member:: PropertyCell<std::string, AccessibleNameCapability<Declaring>> accessible_name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ActiveBorder final
+
+   ``#include <gui_forms/control/active_border/active_border.hpp>``
+
+   What the program asks for. Lengths are logical units. ``colour`` empty is the theme's accent; ``alternate`` empty is the lit colour fully transparent, so a flash blinks the border off. ``offset`` is the gap between the control's box and the stroke's inner edge: negative draws inside the box. ``frequency`` is in cycles a second, for flashing and cycling only.
+
+   .. cpp:member:: std::optional<Color> colour
+
+   .. cpp:member:: std::optional<Color> alternate
+
+   .. cpp:member:: double width
+
+      Default: ``{2.0}``.
+
+   .. cpp:member:: double offset
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double corner_radius
+
+   .. cpp:member:: ActiveBorderMotion motion
+
+      Default: ``{ActiveBorderMotion::steady}``.
+
+   .. cpp:member:: double frequency
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ActiveBorderConditions final
+
+   ``#include <gui_forms/control/active_border/active_border.hpp>``
+
+   What the window is like when the border paints.
+
+   .. cpp:member:: Color theme_colour
+
+      The theme's accent and the high-contrast stroke colour.
+
+   .. cpp:member:: Color high_contrast_colour
+
+   .. cpp:member:: bool rest
+
+      Reduced motion, ambient motion off or an occluded window.
+
+   .. cpp:member:: bool high_contrast
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ActiveBorderPath final
+
+   ``#include <gui_forms/control/active_border/active_border.hpp>``
+
+   The rectangle the stroke's centre line follows around a box of ``size``, and the radius it uses there (the corner radius grown by the distance from the box to the centre line, not below 0).
+
+   .. cpp:member:: Rect rect
+
+   .. cpp:member:: double radius
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ActiveBorderPose final
+
+   ``#include <gui_forms/control/active_border/active_border.hpp>``
+
+   What the border paints after the limiter: the colours, the motion and its frequency (0 when steady), and the width.
+
+   .. cpp:member:: Color lit
+
+   .. cpp:member:: Color alternate
+
+   .. cpp:member:: ActiveBorderMotion motion
+
+      Default: ``{ActiveBorderMotion::steady}``.
+
+   .. cpp:member:: double frequency
+
+   .. cpp:member:: double width
 
 .. cpp:namespace:: gui_forms
 
@@ -3007,6 +3097,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ActiveBorderMotion
+
+   ``#include <gui_forms/control/active_border/active_border.hpp>``
+
+   .. cpp:enumerator:: steady
+
+   .. cpp:enumerator:: flashing
+
+   .. cpp:enumerator:: cycling
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: AnatomyDefect
 
    ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
@@ -4033,6 +4135,60 @@ Functions, constants and aliases
 .. cpp:function:: inline std::string_view unchecked_view(std::string_view view) noexcept
 
 .. cpp:function:: template <typename Target> inline Target* unchecked_view(Target* pointer) noexcept
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/control/active_border/active_border.hpp>``
+
+.. cpp:function:: bool active_border_valid(const ActiveBorder& border) noexcept
+
+   Whether ``border`` may be set: width finite in (0, maximum_active_border_width], offset finite within plus or minus maximum_active_border_offset, radius finite in [0, maximum_active_border_radius], frequency finite and not negative, and the motion one of the enumerators. A frequency above the limit is valid: the limiter lowers it.
+
+.. cpp:function:: bool active_border_saturated_red(Color colour) noexcept
+
+   Whether ``colour`` is a saturated red for the flash rule: its red channel is at least 0.8 of the sum of its channels and the colour is not transparent.
+
+.. cpp:function:: ActiveBorderPose resolve_active_border(const ActiveBorder& border, const ActiveBorderConditions& conditions) noexcept
+
+   The border's pose under ``conditions``, by the rules in this header's comment. A valid ``border`` is assumed; a frequency that is not above 0 makes the border steady.
+
+.. cpp:function:: Color active_border_colour_at(const ActiveBorderPose& pose, double seconds) noexcept
+
+   The colour ``pose`` shows ``seconds`` after its motion started (a negative or non-finite time is time 0): flashing is lit in the first half of each cycle, cycling mixes the channels by 0.5 - 0.5 cos(2 pi frequency t).
+
+.. cpp:function:: FrameInterval active_border_interval(const ActiveBorderPose& pose) noexcept
+
+   How often a moving pose must repaint: half a cycle for flashing, the cycling frame rate for cycling; zero when steady.
+
+.. cpp:function:: double active_border_reach(const ActiveBorder& border) noexcept
+
+   How far a border reaches outside the control's box on every side: the offset plus the width, not below 0.
+
+.. cpp:function:: ActiveBorderPath active_border_path(const ActiveBorder& border, Size size) noexcept
+
+.. cpp:var:: constexpr double maximum_active_border_width
+
+   The bounds a border's numbers must keep (active_border_valid). Value: ``8.0``.
+
+.. cpp:var:: constexpr double maximum_active_border_offset
+
+   Value: ``8.0``.
+
+.. cpp:var:: constexpr double maximum_active_border_radius
+
+   Value: ``64.0``.
+
+.. cpp:var:: constexpr double maximum_active_border_frequency
+
+   Cycles a second: one cycle is two luminance transitions, so 1.5 is three transitions a second. Value: ``1.5``.
+
+.. cpp:var:: constexpr double minimum_high_contrast_active_border_width
+
+   Value: ``2.0``.
+
+.. cpp:var:: constexpr double active_border_cycling_frames_per_second
+
+   A cycling border repaints at this rate; a flashing one only at its transitions. Value: ``30.0``.
 
 .. cpp:namespace:: gui_forms
 

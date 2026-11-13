@@ -4150,6 +4150,8 @@ bool SurfaceRoot::keeps_pixels_on_resize(const Control& control) const noexcept 
     if (!(control.effective_visual_outsets() == Insets{})) return false;
     if (!(control.last_painted_visual_outsets_ == Insets{})) return false;
     if (!control.owned_decorations_.empty()) return false;
+    // A border around the box moves with its size, inside the box too.
+    if (control.active_border_) return false;
     const bool surface_invariant = !control.authored_surface_material_ ||
                                    surface_material_size_invariant(*control.authored_surface_material_);
     return surface_invariant;
@@ -5265,6 +5267,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
             (*control).paint_owned_decorations(
                 recorder, logical_bounds,
                 OwnerDecorationLayer::after_content);
+            (*control).paint_active_border(recorder);
             if (transient) {
                 // Shown by this capture alone; the generation is not
                 // advanced, as the capture's own recording does not.

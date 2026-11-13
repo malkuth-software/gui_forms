@@ -665,6 +665,8 @@ add_library(gui_forms_core STATIC
     src/core/timer/timer/timer.cpp
     src/core/background_worker/background_worker.cpp
     src/core/control/content_region/content_region.cpp
+    src/core/control/active_border/active_border.cpp
+    src/core/control/active_border/control_active_border.cpp
     src/core/control/control/control.cpp
     src/core/control/stable_id/stable_id.cpp
     src/core/control/static_tree/control_factory/control_factory.cpp
@@ -4816,6 +4818,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_value_bar_tests tests/value_bar_tests.cpp)
     target_link_libraries(gui_forms_value_bar_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_value_bar_tests COMMAND gui_forms_value_bar_tests)
+    add_executable(gui_forms_active_border_tests tests/active_border_tests.cpp)
+    target_link_libraries(gui_forms_active_border_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_active_border_tests COMMAND gui_forms_active_border_tests)
 
     add_executable(gui_forms_layout_contract_tests
         tests/layout_contract_tests.cpp
