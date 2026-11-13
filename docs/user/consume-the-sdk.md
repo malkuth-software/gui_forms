@@ -49,6 +49,8 @@ and is built against the installed SDK by CI on every platform.
 | `Drawing` | `GUIForms::Drawing` | static | Renderer-free geometry, colour, paths, raster storage and command recording. |
 | `Application` | `GUIForms::Application` | shared | The native host for your platform. Already contains `Core`, `Controls` and `Drawing`. |
 | `Audio` | `GUIForms::Audio` | static | PCM clips, Ogg decoding and a device backend. Links `Threading` only. |
+| `CAbi` | `GUIForms::CAbi` | shared | The C ABI (`gui_forms/c/gf_abi.h`), for C, C# and other languages. Links `Application`, so a process has one engine whether it uses C++, the C ABI or both. |
+| `CAbiConformance` | `GUIForms::CAbiConformance` | static | The C ABI conformance kit ([Running the C ABI conformance kit](c-abi-conformance-kit)). |
 
 Two consumer shapes follow from the table:
 
@@ -56,7 +58,12 @@ Two consumer shapes follow from the table:
   `GUIForms::Controls` or `GUIForms::Core`. They construct and mutate a
   `Window` model but never open a native window.
 - **Applications** link `GUIForms::Application` and nothing else from the
-  retained set.
+  retained set. A program that also calls the C ABI links `GUIForms::CAbi`
+  beside it.
+
+[Install](install.md#package-components) lists the optional components
+(`TextMasks`, `AudioLoopTransport`, `FreeType`, `HarfBuzz`, `GalleryModel`)
+and the build options that provide them.
 
 ## The one linking rule
 
@@ -153,6 +160,27 @@ in a post-build step; copy that pattern rather than listing DLL names.
 interface, so it is in that list. In the SDK the state library sits in the
 same `lib/` as GUI.Forms' libraries (they find it through their
 `@loader_path` or `$ORIGIN` rpath), or in `bin/` on Windows.
+
+## What the shared libraries export
+
+`Application` and `Threading` export only the declarations their public
+headers mark with the library's export macro (`GUI_FORMS_API`). On Windows the
+mark is `dllexport`; on macOS and Linux each library links with an export
+list generated from the marks (`cmake/exports/<library>.exports` and
+`.map`, written by `tools/export_annotations.py`). A class's mark covers its
+members, its vtable and its type information. A declaration without the mark,
+such as anything in a `detail` namespace or a private header, is not exported,
+and a program that names it fails to link against the shared library even
+though its header compiles. The C ABI library exports only the functions its
+allowlist names (`share/GUIForms/abi/gf_abi_exports.txt`).
+
+## Checked builds
+
+An SDK built with checked borrowed views (`GUI_FORMS_CHECKED_BORROWS`, the
+sanitizer tree) passes that definition to its consumers, so their code compiles
+in the mode of the SDK they link; a library of your own that a consumer links
+must be compiled the same way. See
+[Checked borrowed views](install.md#checked-borrowed-views).
 
 ## Fonts
 

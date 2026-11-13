@@ -57,11 +57,16 @@ export CC=clang CXX=clang++ OBJCXX=clang++
 
 ## Configure, build, install
 
-Run all commands from the repository root. Configuring fetches the stx
-checkout pinned in `stx.lock`, which holds the CPU renderer and every
-third-party source; pass `-DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<path>` to
-use a local stx checkout at that commit instead. Use the configure command for
-your platform.
+Run all commands from the repository root. Everything GUI.Forms takes from
+the stx repository (the CPU renderer, the stx libraries and every third-party
+source) is linked as one built package (`cmake/Stx.cmake`). Configuring fetches
+the stx commit pinned in `stx.lock` and builds that package in the build tree,
+once; a later configure reuses it while its inputs are unchanged. Pass
+`-DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<path>` to build from a local stx
+checkout instead, or `-DGUI_FORMS_STX_PREFIX=<dir>` to link a package that is
+already built (the configure stops unless it was built from `stx.lock`'s commit
+with this configuration's choices). Use the configure command for your
+platform.
 
 macOS (with `GUI_FORMS_LLVM_RUNTIME` set as above):
 
@@ -115,11 +120,24 @@ consumer built with different settings is not binary compatible.
 | `include/gui_forms/` | Public portable headers |
 | `${CMAKE_INSTALL_LIBDIR}/` (usually `lib/`) | `GUIForms::Core`, `Controls`, `Drawing` (static), `GUIForms::Threading` (shared), `GUIForms::Application` (shared, when a native host is enabled), `GUIForms::Audio` (static, when enabled); Windows runtime DLLs go in `bin/` |
 | `${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms/` | `GUIFormsConfig.cmake` and exported target files |
+| C ABI files, when a native host is enabled | `include/gui_forms/c/gf_abi.h` (with the other headers), the shared library (`libgui_forms_abi.1.dylib`, `libgui_forms_abi.so.1`, or `gui_forms_abi1.dll` with its import libraries), `lib/pkgconfig/gui_forms_abi.pc`, and `share/GUIForms/abi/` (the audited manifest `gf_abi.json` and the export allowlist) |
 | `share/GUIForms/fonts/` | The bundled faces' licences and attribution (the faces themselves are compiled into the library), installed with a native host; exported as `GUIForms_FONT_DIR`. The Noto fallback faces' OFL texts are the separate `fallback_fonts` component, present when `GUI_FORMS_INSTALL_FALLBACK_FONTS` was ON (the default; `GUIForms_FALLBACK_FONTS` says which) |
 | `share/licenses/` | Third-party notices |
 
 Nothing from Skia, AppKit, Win32 or X11 appears in the installed headers;
 those remain private adapters inside the `Application` library.
+
+### Checked borrowed views
+
+A build configured with `GUI_FORMS_CHECKED_BORROWS=ON` (the sanitizer tree:
+`tools/ci_build.py --sanitize` sets it) checks every borrowed view against its
+owner ([Retained tree](retained-tree.md#borrowed-views)). The borrowed types
+differ between the two modes, so a consumer is built the same way as the SDK
+it links: an installed checked SDK adds `GUI_FORMS_CHECKED_BORROWS=1` to the
+compile definitions of its `Core`, `Controls` and `Application` targets, and `GUIForms_CHECKED_BORROWS`
+says which mode the prefix holds. A checked consumer linked against an ordinary
+library fails at link time, naming `gui_forms_checked_borrows_v1`, instead of
+misbehaving at run time.
 
 ### Package components
 
@@ -135,6 +153,9 @@ message saying which build provides it.
 | `TextMasks` | `GUIForms::TextMasks` | `GUI_FORMS_BUILD_TEXT_MASKS` with a native host (`build_sdk.py --features all`) |
 | `AudioLoopTransport` | `GUIForms::AudioLoopTransport` | `GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT` with audio (`build_sdk.py --features all`) |
 | `FreeType`, `HarfBuzz` | `GUIForms::FreeType`, `GUIForms::HarfBuzz` | `GUI_FORMS_INSTALL_TEXT_STACK` with the text engine (`build_sdk.py --features all`) |
+| `CAbi` | `GUIForms::CAbi` | A native host is enabled: the C ABI library, which links `Application` |
+| `CAbiConformance` | `GUIForms::CAbiConformance` | With `CAbi`: the C ABI conformance kit ([Running the C ABI conformance kit](c-abi-conformance-kit)) |
+| `GalleryModel`, `Lab`, `DemoControls` | `GUIForms::GalleryModel`, `::Lab`, `::DemoControls` | `GUI_FORMS_INSTALL_GALLERY_MODEL` with `GUI_FORMS_INSTALL_LAB` (`build_sdk.py --features all`): the Gallery's model, for a project that builds the Gallery program from an installed SDK |
 
 `TextMasks` is an interface on `Application`, which already contains the
 text-mask service. Link it beside `Application`, never beside `Core`; see
@@ -227,9 +248,11 @@ as in [Verify the installation](#verify-the-installation).
 `all`
 : The default set, plus every optional component a product may link:
   `TextMasks` (`GUI_FORMS_BUILD_TEXT_MASKS`), `AudioLoopTransport`
-  (`GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT`), and `FreeType` and `HarfBuzz`
-  (`GUI_FORMS_INSTALL_TEXT_STACK`). One such install serves every
-  product; template_harness's lockstep build uses it.
+  (`GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT`), `FreeType` and `HarfBuzz`
+  (`GUI_FORMS_INSTALL_TEXT_STACK`), and `GalleryModel` with `Lab` and
+  `DemoControls` (`GUI_FORMS_INSTALL_GALLERY_MODEL`,
+  `GUI_FORMS_INSTALL_LAB`). One such install serves every product;
+  template_harness's lockstep build uses it.
 
 The prepared-text service (`GUI_FORMS_BUILD_PREPARED_TEXT`) is in neither
 set. It cannot be installed, and it changes `Application`'s declarations for
