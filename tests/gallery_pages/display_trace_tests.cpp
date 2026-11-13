@@ -679,7 +679,7 @@ constexpr std::array<PageDigest, 40> expected_digests{{
     {"instruments", 0x30732d07f2641626ULL},
     {"guided-tasks", 0xf3d50a7e052d1576ULL},
     {"help-book", 0x1bb6e9e902ef8337ULL},
-    {"industrial-surfaces", 0x3aeaa9cfe85c777bULL},
+    {"industrial-surfaces", 0xc0c3a4fb58df15beULL},
     {"controls-inspection", 0xd511a97f0cd2d37dULL},
 }};
 
@@ -735,7 +735,7 @@ constexpr std::array<PageDigest, 40> professional_digests{{
     {"instruments", 0x5419a28494f7e1e8ULL},
     {"guided-tasks", 0x62d8931183b32235ULL},
     {"help-book", 0xa6fa99b19f9dd24fULL},
-    {"industrial-surfaces", 0x32068cbc39942dc7ULL},
+    {"industrial-surfaces", 0xd899312ac95e90ceULL},
     {"controls-inspection", 0xf4d594104f75599cULL},
 }};
 

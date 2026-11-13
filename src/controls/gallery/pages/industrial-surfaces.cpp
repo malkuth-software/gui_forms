@@ -67,6 +67,15 @@ std::filesystem::path light_plane_directory() {
     return std::filesystem::path(GUI_FORMS_LIGHT_PLANE_DIR);
 }
 
+// The directory as the status line names it: a chosen one by its path, the
+// source tree's by its place in the tree, so that the page draws the same
+// text in every checkout (the display trace records it).
+std::string light_plane_directory_name() {
+    const char* const chosen = std::getenv("GUI_FORMS_LIGHT_PLANES");
+    if (chosen != nullptr && *chosen != '\0') return std::string(chosen);
+    return std::string("assets/light_planes");
+}
+
 // Whether the bake `name` is present in `directory`; whether it reads is
 // the lamp's to find (a defective bake shows the theme's lens).
 bool bake_present(const std::filesystem::path& directory, const std::string& name) noexcept {
@@ -171,7 +180,7 @@ void IndustrialSurfacesPage::place_lamps() {
     }
     std::string text{};
     if (missing == lamp_choices.size()) {
-        text = "No light-plane bakes in " + directory.string() +
+        text = "No light-plane bakes in " + light_plane_directory_name() +
                ": the lamps show the theme's lens; the integrator bakes them with the study's baker (lamps <dir> 240 "
                "dialog; lamps <dir> 112 indicator).";
     } else if (missing != 0U) {
