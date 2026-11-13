@@ -138,6 +138,19 @@ struct CanvasResolver final {
     ThemeItem item{};
 };
 
+// A part's colours in forced high contrast, over `canvas`, in place: its
+// area in the state's plate, its lines in the state's edge and its halo in
+// the focus colour, all read from the derived record (`recipe`), with no
+// texture. The pass leaves the rules' canvas colours and texture unset;
+// dashes, corners, widths, grid spacing and flow are geometry and are kept.
+void apply_high_contrast_paint(const ControlVisualRecipe& recipe, ControlCanvasPaint& canvas) noexcept {
+    const SurfaceMaterial& material = recipe.material;
+    if (!material.fills.empty()) canvas.fill = material.fills.front().color;
+    if (material.border.has_value()) canvas.stroke = (*material.border).color;
+    canvas.halo = recipe.focus_ring;
+    canvas.texture.reset();
+}
+
 [[nodiscard]] CanvasPartPaint resolve_canvas_part(const CanvasResolver& resolver, const CanvasPartQuery& query) {
     const ResolvedControlRecipe resolved =
         resolver.theme.resolve(resolver.canvas, query.role, query.context, query.states, query.part,
@@ -147,6 +160,7 @@ struct CanvasResolver final {
     result.canvas = recipe.canvas;
     result.text = recipe.text;
     result.focus = recipe.focus_ring;
+    if (query.context.high_contrast) apply_high_contrast_paint(recipe, result.canvas);
     return result;
 }
 

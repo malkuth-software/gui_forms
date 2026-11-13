@@ -1956,6 +1956,12 @@ public:
         // position; built_in where `fields` holds null. An authored colour
         // (PartPaint::authored_foreground) stands under the important ones.
         std::array<CascadeLevel, recipe_field_count> levels{};
+        // Whether each winning declaration's rule names a part (a
+        // `::part(...)` rule, not a role or family rule), by the same
+        // position; false where `fields` holds null. A field two consumers
+        // share (stroke_width: a dial's arc and a canvas part's line) is a
+        // canvas width only from a part rule.
+        std::array<bool, recipe_field_count> on_named_part{};
         bool authored{};
     };
 

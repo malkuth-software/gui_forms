@@ -317,13 +317,45 @@ WindowCapture captured(OffscreenAttachment& attached, const SampleWindow& sample
 // most three layers.
 constexpr std::size_t maximum_settle_frames = 16U;
 
-// A capture with its procedural patterns and finish tiles made: the first
-// paint queues them and draws their grounds or nothing (E10, cp31), the
-// idle frames make them, and the second capture shows them. Damage is taken first, since an idle
-// frame waits while a paint is pending. Bounded by maximum_settle_frames.
+// A painter that draws nothing. A window paint through it records the
+// window's display chunks and consumes its paint dirt, as a host's frame
+// does; a capture does not (it marks what it rebuilt dirty again, for the
+// screen), and an idle frame waits while any paint is pending.
+class DiscardingPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+};
+
+// A capture with its procedural patterns and finish tiles made: a frame
+// painted in the request's scheme and contrast queues them and draws
+// their grounds or nothing (E10, cp31), each idle frame makes some, the
+// frame after it repaints what waited, and the capture then shows them.
+// The window holds the request's presentation throughout: the capture's
+// own scope would restore the window's scheme after its paint, and a
+// scheme change shows another theme, which empties the queues
+// (EnginePartTable::invalidate_rasters). Bounded by maximum_settle_frames;
+// the window's presentation overrides are restored after the capture.
 WindowCapture settled(OffscreenAttachment& attached, const SampleWindow& sample, const CaptureRequest& request) {
-    static_cast<void>(captured(attached, sample, request));
     Window& window = *sample.window;
+    PresentationOverrides kept{};
+    const PresentationOverrides* const current = window.presentation_overrides();
+    if (current != nullptr) kept = *current;
+    PresentationOverrides held = kept;
+    held.colour_scheme = request.scheme;
+    held.high_contrast = request.high_contrast;
+    window.set_presentation_overrides(held);
+    window.perform_layout();
+    const Rect whole{0.0, 0.0, window.client_size().width, window.client_size().height};
+    DiscardingPainter discarded{};
+    static_cast<void>(window.paint(discarded, whole));
     FrameTime now = FrameClock::now();
     std::size_t frame = 0U;
     while (frame < maximum_settle_frames &&
@@ -331,11 +363,18 @@ WindowCapture settled(OffscreenAttachment& attached, const SampleWindow& sample,
         static_cast<void>(window.take_damage());
         now += std::chrono::milliseconds(16);
         static_cast<void>(window.poll_frame_schedule(now));
+        static_cast<void>(window.paint(discarded, whole));
         frame = frame + 1U;
     }
-    require(!window.engine_parts().patterns_waiting() && !window.engine_parts().finish_tiles_waiting(),
-            "the texture's patterns and finish tiles are made in idle frames");
+    const bool patterns = window.engine_parts().patterns_waiting();
+    const bool tiles = window.engine_parts().finish_tiles_waiting();
+    if (patterns || tiles) {
+        std::cerr << "  settle: " << frame << " frames, patterns waiting " << patterns << ", finish tiles waiting "
+                  << tiles << ", motion armed " << window.motion_clock().armed() << '\n';
+    }
+    require(!patterns && !tiles, "the texture's patterns and finish tiles are made in idle frames");
     const WindowCapture shown = captured(attached, sample, request);
+    window.set_presentation_overrides(kept);
     return shown;
 }
 
