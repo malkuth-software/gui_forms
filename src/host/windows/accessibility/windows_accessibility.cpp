@@ -87,6 +87,9 @@ LONG msaa_role(SemanticRole role) noexcept {
     case SemanticRole::progress_bar: return ROLE_SYSTEM_PROGRESSBAR;
     case SemanticRole::image: return ROLE_SYSTEM_GRAPHIC;
     case SemanticRole::figure: return ROLE_SYSTEM_CHART;
+    case SemanticRole::document: return ROLE_SYSTEM_DOCUMENT;
+    // MSAA has no heading role: static text, its fallback.
+    case SemanticRole::heading: return ROLE_SYSTEM_STATICTEXT;
     case SemanticRole::tab_group: return ROLE_SYSTEM_PAGETABLIST;
     case SemanticRole::tab: return ROLE_SYSTEM_PAGETAB;
     // A split container is a pane holding two panes.

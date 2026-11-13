@@ -119,7 +119,8 @@ public:
     def test_the_vocabulary_lists_the_specialised_roles(self) -> None:
         # W-4: the switch and search roles, appended after meter.
         vocabulary = cs.load_schema()["vocabulary"]
-        self.assertEqual(vocabulary["semantic_roles"][-4:], ["meter", "toggle_switch", "search_box", "figure"])
+        self.assertEqual(vocabulary["semantic_roles"][-6:],
+                         ["meter", "toggle_switch", "search_box", "figure", "document", "heading"])
 
     def test_the_vocabulary_lists_the_docking_atoms(self) -> None:
         schema = cs.load_schema()

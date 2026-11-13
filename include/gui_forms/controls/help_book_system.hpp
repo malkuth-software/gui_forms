@@ -115,8 +115,9 @@ struct GUI_FORMS_API HelpBookSystemSnapshot final {
 //
 // - F1 shows the focused control's page, walking up to the window's page
 //   and then home when the control has none (resolve);
-// - Shift+F1 enters What's This mode: the next click shows the clicked
-//   control's help in a paper popup, Escape leaves the mode;
+// - Shift+F1 enters What's This mode: the pointer becomes the help cursor
+//   (CursorKind::help), the next click shows the clicked control's help in
+//   a paper popup, Escape leaves the mode;
 // - a window card (show_card): the control's help line and "More..." to
 //   its page;
 // - the ribbon's "?" and RibbonToolTip's F1 (on_ribbon_help);

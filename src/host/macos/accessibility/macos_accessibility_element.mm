@@ -56,6 +56,10 @@ NSString* native_accessibility_role(SemanticRole role) {
     // the description.
     case SemanticRole::image:
     case SemanticRole::figure: return NSAccessibilityImageRole;
+    // AppKit has no public document or heading role: a document is a group
+    // and a heading static text, their fallbacks' roles.
+    case SemanticRole::document: return NSAccessibilityGroupRole;
+    case SemanticRole::heading: return NSAccessibilityStaticTextRole;
     case SemanticRole::tab_group: return NSAccessibilityTabGroupRole;
     case SemanticRole::tab: return NSAccessibilityRadioButtonRole;
     case SemanticRole::split_pane: return NSAccessibilitySplitGroupRole;

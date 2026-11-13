@@ -23,12 +23,15 @@
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/help/help_records/help_records.hpp"
 #include "gui_forms/help/helpbook_section/helpbook_section.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
+#include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <optional>
@@ -127,6 +130,21 @@ void paper_pane() {
     (*program.root).add_child(book);
     require((*book).show_record(*section, "app"), "the book shows a record");
     (*program.window).perform_layout();
+    require((*book).semantic_descriptor().role == SemanticRole::document, "the book is a document");
+    const std::vector<SemanticNode> nodes = (*book).semantic_virtual_children();
+    std::size_t headings = 0U;
+    bool collapsed_heading = false;
+    for (const SemanticNode& node : nodes) {
+        if (node.role != SemanticRole::heading) continue;
+        ++headings;
+        const bool expandable = std::find(node.actions.begin(), node.actions.end(), SemanticAction::expand) !=
+                                node.actions.end();
+        if (expandable && node.level.has_value() && !has_semantic_state(node.states, SemanticState::expanded)) {
+            collapsed_heading = true;
+        }
+    }
+    require(headings >= 1U && collapsed_heading,
+            "headings are heading nodes with a level; the closed section's heading can expand");
     require((*book).page().title == "Sketch" && (*book).page().sections.size() == 1U,
             "the page has its title and one collapsible section");
     require(!(*book).section_open(0U), "the section starts closed");
@@ -247,6 +265,9 @@ void system_routes() {
     require((*program.window).dispatch_key({KeyAction::down, PhysicalKey::f1, Modifier::shift}) &&
                 help.help_mode_active(),
             "Shift+F1 enters What's This");
+    const Control::Ptr over = (*program.window).hit_test(Point{30.0, 60.0});
+    require(over != nullptr && (*over).effective_cursor() == CursorKind::help,
+            "the pointer over the window is the help cursor while What's This waits");
     PointerEvent press{};
     press.action = PointerAction::down;
     press.button = PointerButton::primary;

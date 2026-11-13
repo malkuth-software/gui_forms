@@ -1629,6 +1629,7 @@ typedef uint32_t gf_pointer_cursor;
 #define GF_POINTER_CURSOR_FORBIDDEN 7u
 #define GF_POINTER_CURSOR_RESIZE_DIAGONAL_DOWN 8u
 #define GF_POINTER_CURSOR_RESIZE_DIAGONAL_UP 9u
+#define GF_POINTER_CURSOR_HELP 10u
 
 /* gf_dialog_kind: which dialog a gf_dialog_request asks for. */
 typedef uint32_t gf_dialog_kind;

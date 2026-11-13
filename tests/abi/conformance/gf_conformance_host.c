@@ -87,7 +87,7 @@ void gf_kit_host(gf_kit* kit) {
 
 void gf_kit_host_running(gf_kit* kit) {
     gf_kit_status(kit, (*kit).host.set_cursor(GF_POINTER_CURSOR_ARROW), GF_STATUS_OK, "set the cursor in a run");
-    gf_kit_status(kit, (*kit).host.set_cursor(GF_POINTER_CURSOR_RESIZE_DIAGONAL_UP + 1u), GF_STATUS_INVALID_ARGUMENT,
+    gf_kit_status(kit, (*kit).host.set_cursor(GF_POINTER_CURSOR_HELP + 1u), GF_STATUS_INVALID_ARGUMENT,
                   "an unknown cursor is refused");
     /* The clipboard is read, never written: its state is the desktop's. */
     uint64_t required = 0u;

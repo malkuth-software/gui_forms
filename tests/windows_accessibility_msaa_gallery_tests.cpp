@@ -236,6 +236,8 @@ LONG expected_role(SemanticRole role) noexcept {
     case SemanticRole::progress_bar: return ROLE_SYSTEM_PROGRESSBAR;
     case SemanticRole::image: return ROLE_SYSTEM_GRAPHIC;
     case SemanticRole::figure: return ROLE_SYSTEM_CHART;
+    case SemanticRole::document: return ROLE_SYSTEM_DOCUMENT;
+    case SemanticRole::heading: return ROLE_SYSTEM_STATICTEXT;
     case SemanticRole::tab_group: return ROLE_SYSTEM_PAGETABLIST;
     case SemanticRole::tab: return ROLE_SYSTEM_PAGETAB;
     case SemanticRole::split_pane: return ROLE_SYSTEM_PANE;

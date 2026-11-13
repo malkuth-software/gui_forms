@@ -89,6 +89,9 @@ enum class CursorKind : std::uint8_t {
     forbidden,
     resize_diagonal_down,
     resize_diagonal_up,
+    // An arrow with a question mark: the pointer while What's This (Shift+F1)
+    // waits for a click. A host without one shows the arrow.
+    help,
 };
 
 namespace types {

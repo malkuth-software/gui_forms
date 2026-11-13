@@ -77,6 +77,8 @@ unsigned font_cursor_shape(CursorKind cursor) noexcept {
     return XC_watch;
   case CursorKind::forbidden:
     return XC_X_cursor;
+  case CursorKind::help:
+    return XC_question_arrow;
   }
   // A kind outside the enumeration shows the arrow.
   return XC_left_ptr;

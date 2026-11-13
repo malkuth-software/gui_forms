@@ -1122,6 +1122,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_POINTER_CURSOR_HELP",
+      "value": 10,
+      "type": "uint32"
+    },
+    {
       "name": "GF_DIALOG_KIND_MESSAGE",
       "value": 0,
       "type": "uint32"

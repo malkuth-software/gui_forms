@@ -227,6 +227,7 @@ public static class Constants
     public const uint GF_POINTER_CURSOR_FORBIDDEN = 7u;
     public const uint GF_POINTER_CURSOR_RESIZE_DIAGONAL_DOWN = 8u;
     public const uint GF_POINTER_CURSOR_RESIZE_DIAGONAL_UP = 9u;
+    public const uint GF_POINTER_CURSOR_HELP = 10u;
     public const uint GF_DIALOG_KIND_MESSAGE = 0u;
     public const uint GF_DIALOG_KIND_OPEN_FILE = 1u;
     public const uint GF_DIALOG_KIND_SAVE_FILE = 2u;

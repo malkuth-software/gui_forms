@@ -1138,9 +1138,9 @@ void HelpBook::on_focus_changed(bool focused) {
 
 SemanticDescriptor HelpBook::semantic_descriptor() const {
     SemanticDescriptor descriptor;
-    // There is no document role: the book is a pane named by its title,
-    // whose children are its headings (static text with a level) and links.
-    descriptor.role = SemanticRole::pane;
+    // A document (GAPS H3) named by its title, whose children are its
+    // headings (with their level), images and links.
+    descriptor.role = SemanticRole::document;
     descriptor.name = accessible_name.read().empty() ? page_.title : accessible_name.read();
     descriptor.description = accessible_description.read();
     descriptor.exposed = true;
@@ -1156,15 +1156,18 @@ std::vector<SemanticNode> HelpBook::semantic_virtual_children() const {
         if (block.kind == HelpPageBlockKind::heading) {
             SemanticNode heading{};
             heading.stable_id = prefix + ".heading-" + std::to_string(laid_block.block);
-            heading.role = laid_block.section.has_value() ? SemanticRole::button : SemanticRole::static_text;
+            // A collapsible section's heading is still a heading; it takes
+            // expand or collapse and reports expanded while open.
+            heading.role = SemanticRole::heading;
             for (std::size_t run = 0U; run < block.run_count; ++run) heading.name.append(page_.runs[block.first_run + run].text);
             heading.level = block.level;
             heading.bounds = Rect{laid_block.bounds.x + offset.x, laid_block.bounds.y + offset.y,
                                   laid_block.bounds.width, laid_block.bounds.height};
             heading.states = SemanticState::enabled | SemanticState::visible;
             if (laid_block.section.has_value()) {
-                heading.actions.push_back(section_open(*laid_block.section) ? SemanticAction::collapse
-                                                                            : SemanticAction::expand);
+                const bool open = section_open(*laid_block.section);
+                if (open) heading.states = heading.states | SemanticState::expanded;
+                heading.actions.push_back(open ? SemanticAction::collapse : SemanticAction::expand);
             }
             children.push_back(std::move(heading));
         }

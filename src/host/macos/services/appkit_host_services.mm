@@ -211,6 +211,8 @@ NSCursor* native_cursor(CursorKind cursor) {
     case CursorKind::resize_vertical: return [NSCursor resizeUpDownCursor];
     case CursorKind::wait: return [NSCursor arrowCursor];
     case CursorKind::forbidden: return [NSCursor operationNotAllowedCursor];
+    // AppKit has no public help cursor; the arrow stands in.
+    case CursorKind::help: return [NSCursor arrowCursor];
     case CursorKind::resize_diagonal_down:
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= 150000
         if (@available(macOS 15.0, *)) {

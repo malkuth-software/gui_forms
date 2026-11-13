@@ -192,6 +192,7 @@ const char* cursor_kind_name(CursorKind cursor) noexcept {
     case CursorKind::forbidden: return "forbidden";
     case CursorKind::resize_diagonal_down: return "resize_diagonal_down";
     case CursorKind::resize_diagonal_up: return "resize_diagonal_up";
+    case CursorKind::help: return "help";
     }
     return "unknown";
 }

@@ -7380,6 +7380,8 @@ Enumerations
 
    .. cpp:enumerator:: resize_diagonal_up
 
+   .. cpp:enumerator:: help
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: DockShapeRegion

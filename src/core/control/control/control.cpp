@@ -314,7 +314,7 @@ std::shared_ptr<const PropertyEnumDescriptor> cursor_kind_property_enum() {
             "cursor_kind",
             {{"inherit", 0}, {"arrow", 1}, {"text", 2}, {"hand", 3}, {"crosshair", 4},
              {"resize_horizontal", 5}, {"resize_vertical", 6}, {"wait", 7}, {"forbidden", 8},
-             {"resize_diagonal_down", 9}, {"resize_diagonal_up", 10}},
+             {"resize_diagonal_down", 9}, {"resize_diagonal_up", 10}, {"help", 11}},
             false});
     return value;
 }

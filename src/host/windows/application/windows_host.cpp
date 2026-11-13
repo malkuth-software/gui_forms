@@ -699,6 +699,7 @@ LPCWSTR native_cursor_identifier(CursorKind cursor) noexcept {
     case CursorKind::forbidden: return IDC_NO;
     case CursorKind::resize_diagonal_down: return IDC_SIZENWSE;
     case CursorKind::resize_diagonal_up: return IDC_SIZENESW;
+    case CursorKind::help: return IDC_HELP;
     case CursorKind::arrow: return IDC_ARROW;
     }
     return IDC_ARROW;

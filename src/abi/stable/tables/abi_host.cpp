@@ -248,8 +248,9 @@ constexpr std::array<CursorKind, 10> cursor_kinds{
     CursorKind::forbidden,
     CursorKind::resize_diagonal_down,
     CursorKind::resize_diagonal_up,
+    CursorKind::help,
 };
-static_assert(cursor_kinds.size() == GF_POINTER_CURSOR_RESIZE_DIAGONAL_UP + 1U);
+static_assert(cursor_kinds.size() == GF_POINTER_CURSOR_HELP + 1U);
 
 gf_status GF_CALL host_set_cursor(gf_pointer_cursor cursor) noexcept {
     try {

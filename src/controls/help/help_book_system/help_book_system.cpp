@@ -24,12 +24,14 @@ struct HelpBookWindowState final {
 
 // What Shift+F1 lays over the window: an input layer the size of the client
 // that takes the next click (the control under it gets its help) or Escape
-// (the mode ends). It paints nothing.
+// (the mode ends). It paints nothing; over it the pointer is the help cursor
+// (GAPS H3), an arrow with a question mark where the host has one.
 class HelpPickLayer final : public Control {
 public:
     HelpPickLayer(StableId stable_id, HelpBookSystem& system, Window& window)
         : Control(std::move(stable_id)), system_(&system), window_(&window) {
         focusable = true;
+        cursor = CursorKind::help;
     }
 
     void on_mouse_down(MouseEventArgs& arguments) override {

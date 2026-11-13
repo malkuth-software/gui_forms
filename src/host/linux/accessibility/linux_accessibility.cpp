@@ -235,6 +235,8 @@ AtkRole native_role(SemanticRole role) {
     case SemanticRole::static_text: return ATK_ROLE_LABEL;
     case SemanticRole::image: return ATK_ROLE_IMAGE;
     case SemanticRole::figure: return ATK_ROLE_CHART;
+    case SemanticRole::document: return ATK_ROLE_DOCUMENT_FRAME;
+    case SemanticRole::heading: return ATK_ROLE_HEADING;
     case SemanticRole::tab: return ATK_ROLE_PAGE_TAB;
     case SemanticRole::tab_group: return ATK_ROLE_PAGE_TAB_LIST;
     case SemanticRole::menu_bar: return ATK_ROLE_MENU_BAR;
