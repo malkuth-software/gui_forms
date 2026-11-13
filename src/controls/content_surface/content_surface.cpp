@@ -4,7 +4,9 @@
 #include "../../core/content/channel/content_channel.hpp"
 #include "../../core/surface_root/access/surface_schedule_access.hpp"
 
+#include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <limits>
@@ -35,6 +37,8 @@ namespace {
 constexpr Color content_veil_color = Color::rgba(0U, 0U, 0U, 96U);
 constexpr Color content_caption_color = Color::rgba(255U, 255U, 255U, 255U);
 constexpr double content_caption_inset = 8.0;
+// How often a running program is checked while the watchdog is off.
+constexpr FrameInterval content_worker_check_period = std::chrono::milliseconds(100);
 
 // The events ContentSurface adds to those of Control, in declaration order.
 constexpr std::array<InteractionDeclaration, 1> content_surface_interactions{{
@@ -109,6 +113,9 @@ ContentSurface::ContentSurface(StableId stable_id)
 
 ContentSurface::~ContentSurface() {
     watchdog_timer_.disconnect();
+    // A bounded wait, then abandonment: destruction never joins a hung
+    // program.
+    stop_worker(false);
     if (channel_) detail::revoke_content_channel(*channel_);
 }
 
@@ -121,6 +128,9 @@ ContentFrameSink ContentSurface::open_content(bool opaque) {
     require_mutable();
     // Made before anything changes, so a failure leaves the old channel.
     const ContentRequest current = request();
+    // A running program is stopped (bounded) before its channel goes.
+    stop_worker(false);
+    failure_.clear();
     std::shared_ptr<detail::ContentChannel> fresh = detail::make_content_channel(current.size, opaque);
     if (!fresh) throw std::bad_alloc();
     if (channel_) detail::revoke_content_channel(*channel_);
@@ -144,6 +154,8 @@ ContentFrameSink ContentSurface::open_content(bool opaque) {
 }
 
 void ContentSurface::close_content() {
+    stop_worker(false);
+    failure_.clear();
     watchdog_timer_.disconnect();
     watchdog_.stop();
     if (channel_) detail::revoke_content_channel(*channel_);
@@ -152,6 +164,117 @@ void ContentSurface::close_content() {
     register_presentation();
     set_status(ContentSurfaceStatus::disconnected);
     invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void ContentSurface::start_program(std::unique_ptr<ContentProgram> program, bool opaque) {
+    require_mutable();
+    if (!program) throw std::invalid_argument("ContentSurface::start_program needs a program");
+    ContentFrameSink sink = open_content(opaque);
+    try {
+        worker_ = std::make_unique<ContentWorker>(std::move(program), std::move(sink));
+    } catch (...) {
+        close_content();
+        throw;
+    }
+    // The checks now also reap the program.
+    schedule_watchdog();
+}
+
+void ContentSurface::terminate() {
+    require_mutable();
+    if (!channel_) return;
+    if (status_ == ContentSurfaceStatus::ended || status_ == ContentSurfaceStatus::abandoned ||
+        status_ == ContentSurfaceStatus::failed || status_ == ContentSurfaceStatus::terminating) {
+        return;
+    }
+    detail::request_content_stop(*channel_);
+    watchdog_.stop();
+    if (!worker_) {
+        // The consumer's own threads: the surface cannot see them end, so it
+        // stops reading the channel now.
+        detail::revoke_content_channel(*channel_);
+        set_status(ContentSurfaceStatus::ended);
+        return;
+    }
+    if ((*worker_).done()) {
+        reap_worker(true);
+        return;
+    }
+    termination_deadline_ = FrameClock::now() + termination_grace_;
+    set_status(ContentSurfaceStatus::terminating);
+    schedule_watchdog();
+}
+
+void ContentSurface::set_termination_grace(std::chrono::milliseconds grace) {
+    require_mutable();
+    termination_grace_ = std::clamp(grace, std::chrono::milliseconds(0), maximum_content_termination_grace);
+}
+
+void ContentSurface::check_worker(FrameTime now) {
+    if (!worker_) return;
+    if ((*worker_).done()) {
+        reap_worker(true);
+        return;
+    }
+    if (status_ == ContentSurfaceStatus::terminating && now >= termination_deadline_) {
+        // The grace passed: abandon without waiting (revokes the channel and
+        // detaches the thread).
+        (*worker_).abandon();
+        worker_.reset();
+        watchdog_timer_.disconnect();
+        set_status(ContentSurfaceStatus::abandoned);
+    }
+}
+
+void ContentSurface::reap_worker(bool publish) {
+    if (!worker_) return;
+    static_cast<void>((*worker_).join_if_done());
+    const ContentWorkerState outcome = (*worker_).state();
+    if (outcome == ContentWorkerState::failed) failure_ = (*worker_).failure();
+    worker_.reset();
+    watchdog_timer_.disconnect();
+    watchdog_.stop();
+    // The program is done: its channel refuses everything from now on, and
+    // its last frame stays on screen.
+    if (channel_) detail::revoke_content_channel(*channel_);
+    ContentSurfaceStatus next = ContentSurfaceStatus::ended;
+    if (outcome == ContentWorkerState::failed) next = ContentSurfaceStatus::failed;
+    if (outcome == ContentWorkerState::abandoned) next = ContentSurfaceStatus::abandoned;
+    if (publish) {
+        set_status(next);
+    } else {
+        status_ = next;
+    }
+}
+
+void ContentSurface::stop_worker(bool publish) noexcept {
+    if (!worker_) return;
+    const ContentWorkerState outcome = (*worker_).stop(termination_grace_);
+    if (outcome == ContentWorkerState::failed) {
+        try {
+            failure_ = (*worker_).failure();
+        } catch (...) {
+            failure_.clear();
+        }
+    }
+    worker_.reset();
+    watchdog_timer_.disconnect();
+    watchdog_.stop();
+    if (channel_) detail::revoke_content_channel(*channel_);
+    ContentSurfaceStatus next = ContentSurfaceStatus::ended;
+    if (outcome == ContentWorkerState::failed) next = ContentSurfaceStatus::failed;
+    if (outcome == ContentWorkerState::abandoned) next = ContentSurfaceStatus::abandoned;
+    // A surface leaving its window or being destroyed raises nothing: its
+    // status is recorded for whoever reads it next.
+    if (publish) {
+        try {
+            set_status(next);
+        } catch (...) {
+            status_ = next;
+        }
+    } else {
+        status_ = next;
+    }
 }
 
 void ContentSurface::set_stale_interval(FrameInterval interval) {
@@ -171,6 +294,9 @@ void ContentSurface::set_stale_interval(FrameInterval interval) {
 }
 
 void ContentSurface::check_watchdog(FrameTime now) {
+    // A program that finished is reaped, and one whose termination's grace
+    // passed is abandoned, before the watchdog looks.
+    check_worker(now);
     if (!channel_) return;
     detail::ContentChannel& channel = *channel_;
     // Only a connected, unterminated channel is watched.
@@ -204,6 +330,7 @@ void ContentSurface::watchdog_tick(FrameTime now) {
     last_check_ = now;
     checked_once_ = true;
     if (gap && channel_) {
+        check_worker(now);
         const std::uint64_t activity = (*channel_).activity.load(std::memory_order_acquire);
         watchdog_.start(now, activity);
         return;
@@ -260,6 +387,8 @@ void ContentSurface::take_notices() {
     }
     const bool framed = (*channel_).frames_published.load(std::memory_order_relaxed) != 0U;
     if (status_ == ContentSurfaceStatus::waiting && framed) set_status(ContentSurfaceStatus::live);
+    // A program's end posts a notice too.
+    check_worker(FrameClock::now());
     invalidate(Dirty::paint);
 }
 
@@ -273,8 +402,12 @@ void ContentSurface::set_status(ContentSurfaceStatus status) {
 void ContentSurface::schedule_watchdog() {
     watchdog_timer_.disconnect();
     Window* const window = attached_window();
-    if (window == nullptr || !channel_ || !watchdog_.enabled()) return;
-    const FrameInterval period = watchdog_.check_period();
+    if (window == nullptr || !channel_) return;
+    // A running program is checked (reaped, or abandoned after its grace)
+    // even when the watchdog is off.
+    const bool watching = watchdog_.enabled() && watchdog_.watching();
+    if (!watching && !worker_) return;
+    const FrameInterval period = watching ? watchdog_.check_period() : content_worker_check_period;
     const FrameTime now = FrameClock::now();
     const std::shared_ptr<ContentSurface> self = std::static_pointer_cast<ContentSurface>(shared_from_this());
     const WatchdogTick tick{std::weak_ptr<ContentSurface>(self)};
@@ -400,6 +533,9 @@ void ContentSurface::on_attached_to_window() {
 
 void ContentSurface::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
     watchdog_timer_.disconnect();
+    // Window close and application shutdown detach the surface: a running
+    // program gets the bounded wait, then is abandoned.
+    stop_worker(false);
     if (channel_) detail::set_content_listener(*channel_, WindowDispatcher{}, std::weak_ptr<detail::ContentChannelListener>{});
     Control::on_detaching_from_window(former_window);
 }

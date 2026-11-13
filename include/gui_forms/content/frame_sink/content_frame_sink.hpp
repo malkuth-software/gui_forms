@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <stop_token>
 
 namespace gui_forms {
 
@@ -67,6 +68,13 @@ public:
                                                   std::chrono::milliseconds timeout) const;
 
     [[nodiscard]] bool revoked() const noexcept;
+    // The cooperative stop of the content's operation: fires when the
+    // surface asks the content to stop (ContentSurface::terminate, its
+    // destruction, a ContentWorker's stop). Content polls it or waits on it;
+    // GUI.Forms never stops a thread any other way. An empty sink's token
+    // never fires.
+    [[nodiscard]] std::stop_token stop_token() const noexcept;
+    [[nodiscard]] bool stop_requested() const noexcept;
     [[nodiscard]] ContentSurfaceStatistics statistics() const noexcept;
     [[nodiscard]] explicit operator bool() const noexcept { return channel_ != nullptr; }
 

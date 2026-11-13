@@ -36,6 +36,8 @@ Types
      - ColorBlend owns equal-length color and monotonic position vectors validated by consuming brushes.
    * - :cpp:class:`ConicGradientBrush <gui_drawing::ConicGradientBrush>`
      - A conic (sweep) gradient (piece C9, a hue wheel): the colour at a point is the blend's colour at its angle about ``center``, measured clockwise (y down) from ``start_angle`` degrees (0 along +x), one full turn from position 0 to position 1.
+   * - :cpp:class:`ContentContext <gui_forms::ContentContext>`
+     - What a content program sees on its own thread: the sink it publishes through and the stop it should honour.
    * - :cpp:class:`ContentFrame <gui_forms::ContentFrame>`
      - One finished frame, described by the consumer for one publish call (ContentFrameSink::publish).
    * - :cpp:class:`ContentFrameSink <gui_forms::ContentFrameSink>`
@@ -44,6 +46,8 @@ Types
      - A rectangle of a frame in whole device pixels: x and y are the top-left pixel, width and height the extent.
    * - :cpp:class:`ContentPixelSize <gui_forms::ContentPixelSize>`
      - A device size in whole pixels.
+   * - :cpp:class:`ContentProgram <gui_forms::ContentProgram>`
+     - A consumer's content operation, run on a thread GUI.Forms starts for it (ContentWorker).
    * - :cpp:class:`ContentRequest <gui_forms::ContentRequest>`
      - What the surface asks of its content: the device size it shows at and the display scale, under a generation that grows with every change.
    * - :cpp:class:`ContentSemantics <gui_forms::ContentSemantics>`
@@ -52,6 +56,8 @@ Types
      - Counters of one content channel, written by the consumer's threads and the interface thread, read by anyone.
    * - :cpp:class:`ContentWatchdog <gui_forms::ContentWatchdog>`
      - The missed-frame watchdog of a content surface (owner decisions 2026-11-13, "What this asks of GUI.Forms", item 1).
+   * - :cpp:class:`ContentWorker <gui_forms::ContentWorker>`
+     - Owns one thread running one ContentProgram with one sink.
    * - :cpp:class:`CornerRadii <gui_drawing::CornerRadii>`
      - A rounded rectangle's corner radii: top-left, top-right, bottom-right, bottom-left.
    * - :cpp:class:`DrawingCommand <gui_drawing::DrawingCommand>`
@@ -581,6 +587,37 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: ContentContext final
+
+   ``#include <gui_forms/content/operation/content_operation.hpp>``
+
+   What a content program sees on its own thread: the sink it publishes through and the stop it should honour. Valid for the duration of ContentProgram::run, on that thread only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit ContentContext(ContentFrameSink sink) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const ContentFrameSink& sink() const noexcept
+
+   .. cpp:function:: std::stop_token stop_token() const noexcept
+
+      Fires when the surface asks the program to stop (terminate, close, leaving the window, the surface's destruction).
+
+   .. cpp:function:: bool stop_requested() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: ContentRequest wait_for_request(std::uint64_t seen_generation, std::chrono::milliseconds timeout) const
+
+      ContentFrameSink::wait_for_request: also returns at once when a stop is requested.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ContentFrame final
 
    ``#include <gui_forms/content/types/content_types.hpp>``
@@ -630,6 +667,12 @@ Types
       The newest request (device size, scale and generation); a zero size before the surface has been arranged in a window.
 
    .. cpp:function:: bool revoked() const noexcept
+
+   .. cpp:function:: std::stop_token stop_token() const noexcept
+
+      The cooperative stop of the content's operation: fires when the surface asks the content to stop (ContentSurface::terminate, its destruction, a ContentWorker's stop). Content polls it or waits on it; GUI.Forms never stops a thread any other way. An empty sink's token never fires.
+
+   .. cpp:function:: bool stop_requested() const noexcept
 
    .. cpp:function:: ContentSurfaceStatistics statistics() const noexcept
 
@@ -689,6 +732,19 @@ Types
    .. cpp:member:: std::uint32_t width
 
    .. cpp:member:: std::uint32_t height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ContentProgram
+
+   ``#include <gui_forms/content/operation/content_operation.hpp>``
+
+   A consumer's content operation, run on a thread GUI.Forms starts for it (ContentWorker). run returns when the content is done or a stop was requested; an exception it throws ends the operation as failed, with the exception's text. The object is destroyed on the worker's thread after run returns, so its destructor may release what run made there.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void run(ContentContext& context) = 0
 
 .. cpp:namespace:: gui_forms
 
@@ -804,6 +860,53 @@ Types
    .. cpp:function:: ContentWatchdogVerdict observe(FrameTime now, std::uint64_t activity) noexcept
 
       One check. Activity that moved since the last observation restarts the interval (and recovers stale content); otherwise content is stale once ``now`` is more than the interval past the last movement. A time earlier than the last observation is treated as equal to it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ContentWorker final
+
+   ``#include <gui_forms/content/operation/content_operation.hpp>``
+
+   Owns one thread running one ContentProgram with one sink. Made, used and destroyed by one thread (the interface thread for a surface); the program runs on the worker's thread and shares nothing with its owner but the channel and the worker's completion state, both synchronized.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ContentWorker(std::unique_ptr<ContentProgram> program, ContentFrameSink sink)
+
+      Starts the thread. Null program or an empty sink is std::invalid_argument; a thread the system refuses is std::system_error, and the program is released then.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool done() const noexcept
+
+      Whether the program's thread has ended (finished or failed). Never blocks.
+
+   .. cpp:function:: ContentWorkerState state() const noexcept
+
+   .. cpp:function:: std::string failure() const
+
+      What run threw, for state failed; empty otherwise.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void request_stop() noexcept
+
+      Asks the program to stop (its context's stop token fires) and returns at once. Idempotent.
+
+   .. cpp:function:: bool join_if_done() noexcept
+
+      Joins a thread that is done, without waiting for one that is not. Returns whether it joined (or had already).
+
+   .. cpp:function:: void abandon() noexcept
+
+      Abandons at once, without waiting: revokes the channel and detaches the thread. Nothing for a thread already done (it is joined instead).
+
+   .. cpp:function:: ContentWorkerState stop(std::chrono::milliseconds grace) noexcept
+
+      request_stop, then waits at most ``grace`` (capped at maximum_content_termination_grace) for the thread to end: joins it and reports finished or failed, or abandons it and reports abandoned. The only blocking member, and its wait is bounded. Idempotent: a later call reports the same state.
 
 .. cpp:namespace:: gui_drawing
 
@@ -2974,6 +3077,20 @@ Enumerations
 
    .. cpp:enumerator:: recovered
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ContentWorkerState
+
+   ``#include <gui_forms/content/operation/content_operation.hpp>``
+
+   .. cpp:enumerator:: running
+
+   .. cpp:enumerator:: finished
+
+   .. cpp:enumerator:: failed
+
+   .. cpp:enumerator:: abandoned
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:enum-class:: DashStyle
@@ -3370,6 +3487,24 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/content/operation/content_operation.hpp>``
+
+.. cpp:function:: std::string_view content_worker_state_name(ContentWorkerState state) noexcept
+
+.. cpp:function:: std::uint64_t abandoned_content_workers() noexcept
+
+   The threads abandoned in this process that have not yet finished: a diagnostic for shutdown reports. Any thread may read it.
+
+.. cpp:var:: constexpr std::chrono::milliseconds default_content_termination_grace
+
+   The default bounded wait of a termination: 250 milliseconds. Value: ``{250}``.
+
+.. cpp:var:: constexpr std::chrono::milliseconds maximum_content_termination_grace
+
+   The longest bounded wait accepted: 10 seconds (longer ones are lowered). Value: ``{10000}``.
 
 .. cpp:namespace:: gui_forms
 

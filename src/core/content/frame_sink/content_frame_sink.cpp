@@ -59,6 +59,18 @@ bool ContentFrameSink::revoked() const noexcept {
     return result;
 }
 
+std::stop_token ContentFrameSink::stop_token() const noexcept {
+    if (!channel_) return std::stop_token{};
+    std::stop_token token = (*channel_).stop.get_token();
+    return token;
+}
+
+bool ContentFrameSink::stop_requested() const noexcept {
+    if (!channel_) return false;
+    const bool result = (*channel_).stop.stop_requested();
+    return result;
+}
+
 ContentSurfaceStatistics ContentFrameSink::statistics() const noexcept {
     if (!channel_) return ContentSurfaceStatistics{};
     const ContentSurfaceStatistics result = detail::content_channel_statistics(*channel_);

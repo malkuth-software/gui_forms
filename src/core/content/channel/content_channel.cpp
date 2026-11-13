@@ -176,6 +176,10 @@ void record_content_heartbeat(ContentChannel& channel) noexcept {
     channel.activity.fetch_add(1U, std::memory_order_release);
 }
 
+void notify_content_listener(ContentChannel& channel) {
+    post_content_notice(channel);
+}
+
 ContentSemanticsResult publish_content_semantics(ContentChannel& channel, ContentSemantics semantics) {
     if (channel.revoked.load(std::memory_order_acquire)) {
         channel.after_revocation.fetch_add(1U, std::memory_order_relaxed);

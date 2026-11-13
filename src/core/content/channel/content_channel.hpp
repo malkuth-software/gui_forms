@@ -86,6 +86,9 @@ struct ContentChannel final {
 // thread.
 [[nodiscard]] ContentPublishResult publish_content_frame(ContentChannel& channel, const ContentFrame& frame);
 void record_content_heartbeat(ContentChannel& channel) noexcept;
+// Posts one notice to the channel's listener unless one is pending (a
+// worker's end, the first frame, new semantic text). Any thread.
+void notify_content_listener(ContentChannel& channel);
 [[nodiscard]] ContentSemanticsResult publish_content_semantics(ContentChannel& channel, ContentSemantics semantics);
 
 // Interface thread: revokes the channel (every later call reports revoked)

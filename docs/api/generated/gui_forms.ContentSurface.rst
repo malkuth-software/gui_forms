@@ -35,6 +35,16 @@ gui_forms::ContentSurface
 
       **content_open** : ``bool``, read-only
 
+      **program_running** : ``bool``, read-only
+         Whether a program the surface started has not yet been reaped.
+
+      **termination_grace** : ``std::chrono::milliseconds``
+         The bounded wait of a termination, close, replacement or departure from
+         the window: 250 milliseconds by default, at most 10 seconds.
+
+      **failure** : ``std::string``, read-only
+         What a program the surface ran threw, while the status is ``failed``.
+
       **status** : ``ContentSurfaceStatus``, read-only
          Where the content is in its life (:cpp:enum:`ContentSurfaceStatus <gui_forms::ContentSurfaceStatus>`):
          ``disconnected`` without content, ``waiting`` before the first frame, ``live``,
@@ -87,7 +97,11 @@ gui_forms::ContentSurface
       * - :cpp:func:`open_content <gui_forms::ContentSurface::open_content>`
         - ``open_content(opaque)`` opens a new channel and returns its sink, revoking any earlier one.
       * - :cpp:func:`close_content <gui_forms::ContentSurface::close_content>`
-        - Revokes the channel and clears the region.
+        - Revokes the channel and clears the region, stopping a running program first with the bounded wait.
+      * - :cpp:func:`start_program <gui_forms::ContentSurface::start_program>`
+        - ``start_program(program, opaque)`` opens a channel and runs a :cpp:class:`ContentProgram <gui_forms::ContentProgram>` on a thread of its own (:cpp:class:`ContentWorker <gui_forms::ContentWorker>`).
+      * - :cpp:func:`terminate <gui_forms::ContentSurface::terminate>`
+        - Asks the content to stop through its sink's stop token and returns at once.
       * - :cpp:func:`check_watchdog <gui_forms::ContentSurface::check_watchdog>`
         - ``check_watchdog(now)`` runs one watchdog check, as the surface's own timer does.
       * - :cpp:func:`status_caption <gui_forms::ContentSurface::status_caption>`
@@ -110,6 +124,13 @@ gui_forms::ContentSurface
    four bytes a pixel, the span holds less than the frame describes (every
    product is checked for overflow first), the format is unknown or the damage
    lies outside the frame. ``ContentFrameSink::publish`` returns the reason.
+
+   Window close and application shutdown never join a hung content thread:
+   the surface leaving its window, or being destroyed, stops a running program
+   with the bounded wait and then abandons it. An abandoned thread keeps
+   running until its code returns or the process exits, holding only the
+   program and the channel; content that cannot be trusted to stop belongs in a
+   hosted process.
 
    Content that publishes only when something changes calls ``heartbeat()`` from
    its loop so the watchdog knows it is alive. The surface also publishes the
@@ -143,6 +164,23 @@ gui_forms::ContentSurface
    .. rubric:: Properties
 
    .. cpp:function:: bool content_open() const noexcept
+
+   .. cpp:function:: bool program_running() const noexcept
+
+      Whether a program the surface started has not yet been reaped.
+
+   .. cpp:function:: std::chrono::milliseconds termination_grace() const noexcept
+
+      The bounded wait of a termination, close, replacement or departure from
+      the window: 250 milliseconds by default, at most 10 seconds.
+
+   .. cpp:function:: void set_termination_grace(std::chrono::milliseconds grace)
+
+      Sets :cpp:func:`termination_grace <gui_forms::ContentSurface::termination_grace>`; see the property's description above.
+
+   .. cpp:function:: const std::string& failure() const noexcept
+
+      What a program the surface ran threw, while the status is ``failed``.
 
    .. cpp:function:: ContentSurfaceStatus status() const noexcept
 
@@ -209,7 +247,20 @@ gui_forms::ContentSurface
 
    .. cpp:function:: void close_content()
 
-      Revokes the channel and clears the region.
+      Revokes the channel and clears the region, stopping a running program
+      first with the bounded wait.
+
+   .. cpp:function:: void start_program(std::unique_ptr<ContentProgram> program, bool opaque)
+
+      ``start_program(program, opaque)`` opens a channel and runs a
+      :cpp:class:`ContentProgram <gui_forms::ContentProgram>` on a thread of its own (:cpp:class:`ContentWorker <gui_forms::ContentWorker>`).
+
+   .. cpp:function:: void terminate()
+
+      Asks the content to stop through its sink's stop token and returns at
+      once. A program that has not finished when the termination grace passes
+      is abandoned at the next check: its channel is revoked and its thread
+      detached. Content on the consumer's own threads is revoked at once.
 
    .. cpp:function:: void check_watchdog(FrameTime now)
 

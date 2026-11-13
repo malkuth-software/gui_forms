@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/content/frame_sink/content_frame_sink.hpp"
+#include "gui_forms/content/operation/content_operation.hpp"
 #include "gui_forms/content/types/content_types.hpp"
 #include "gui_forms/content/watchdog/content_watchdog.hpp"
 #include "gui_forms/control.hpp"
@@ -9,6 +10,7 @@
 #include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -46,6 +48,17 @@ struct ContentChannel;
 // content stale), and by a notice the sink posts through the window's
 // dispatcher for the first frame and for new semantic text.
 //
+// Termination (content/operation/content_operation.hpp): terminate asks the
+// content to stop through its sink's stop token and never waits. A program
+// the surface runs (start_program) that has not finished when the
+// termination's grace passes is abandoned at the next check: its channel is
+// revoked and its thread detached, and the last good frame stays, veiled.
+// Content on the consumer's own threads is revoked at once (the surface
+// cannot see those threads end). The surface's own close, replacement and
+// destruction, and its leaving the window (window close, application
+// shutdown), stop a running program with a bounded wait of the grace, then
+// abandon it: they never join a hung content thread.
+//
 // Accessibility: the consumer's pixels carry no text. It supplies the
 // surface's semantic text (ContentSemantics) through the sink from its own
 // thread, or through set_content_semantics on the UI thread; the surface
@@ -65,8 +78,31 @@ public:
     [[nodiscard]] ContentFrameSink open_content(bool opaque);
     // Revokes the channel and clears the region. Status becomes
     // disconnected. Idempotent.
+    // Stops a running program first (bounded, as the class comment says).
     void close_content();
     [[nodiscard]] bool content_open() const noexcept { return channel_ != nullptr; }
+
+    // Opens a new channel (open_content) and runs `program` on a thread of
+    // its own (ContentWorker) with its sink. A running program is stopped
+    // first. Null program is std::invalid_argument; a thread the system
+    // refuses is std::system_error (the channel is closed again).
+    void start_program(std::unique_ptr<ContentProgram> program, bool opaque);
+    // Whether a program the surface started has not yet been reaped
+    // (finished, failed or abandoned).
+    [[nodiscard]] bool program_running() const noexcept { return worker_ != nullptr; }
+    // Asks the content to stop and returns at once (the class comment).
+    // Status becomes terminating while a program runs, ended once it
+    // finished (failed if it threw), abandoned when the grace passed first;
+    // content on the consumer's own threads becomes ended at once. Nothing
+    // without content, or after it ended.
+    void terminate();
+    // The bounded wait of a termination, close, replacement or departure
+    // (default_content_termination_grace; capped at
+    // maximum_content_termination_grace).
+    void set_termination_grace(std::chrono::milliseconds grace);
+    [[nodiscard]] std::chrono::milliseconds termination_grace() const noexcept { return termination_grace_; }
+    // What the program threw, for status failed; empty otherwise.
+    [[nodiscard]] const std::string& failure() const noexcept { return failure_; }
 
     [[nodiscard]] ContentSurfaceStatus status() const noexcept { return status_; }
     // Raised on the UI thread when status() changes, with the new status.
@@ -77,8 +113,10 @@ public:
     // minimum_content_stale_interval is raised to it). Restarts the interval.
     void set_stale_interval(FrameInterval interval);
     [[nodiscard]] FrameInterval stale_interval() const noexcept { return watchdog_.interval(); }
-    // One watchdog check at `now`: what the surface's timer does each period.
-    // Hosts and tests may call it; it does nothing without open content.
+    // One check at `now`: what the surface's timer does each period. Reaps a
+    // program that finished, abandons one whose termination's grace passed,
+    // then observes the watchdog. Hosts and tests may call it; it does
+    // nothing without open content.
     void check_watchdog(FrameTime now);
 
     // The text the veil shows for a status (stale, abandoned and failed have
@@ -153,6 +191,16 @@ private:
     // the interval allow.
     void schedule_watchdog();
     void watchdog_tick(FrameTime now);
+    // Reaps a program that finished, and abandons one whose termination's
+    // grace passed at `now`.
+    void check_worker(FrameTime now);
+    // A finished program's outcome: joins its thread, revokes the channel
+    // and sets ended or failed (published only when `publish`).
+    void reap_worker(bool publish);
+    // Stops a running program with the bounded wait (the class comment) and
+    // records its outcome without raising status_changed when `publish` is
+    // false (the surface is leaving its window or being destroyed).
+    void stop_worker(bool publish) noexcept;
     // Sends the region's device size and the window scale.
     void update_request();
     // Registers the surface (or, without one, an empty placeholder) with the
@@ -173,6 +221,11 @@ private:
     FrameTime last_check_{};
     bool checked_once_{};
     ContentSurfaceStatus status_{ContentSurfaceStatus::disconnected};
+    std::unique_ptr<ContentWorker> worker_{};
+    std::chrono::milliseconds termination_grace_{default_content_termination_grace};
+    // When a termination in progress abandons the program.
+    FrameTime termination_deadline_{};
+    std::string failure_{};
     ContentSemantics semantics_{};
     std::uint64_t semantics_generation_{};
     // Indexed by ContentSurfaceStatus.

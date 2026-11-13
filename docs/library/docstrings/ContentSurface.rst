@@ -38,6 +38,13 @@ statistics
 request
     The device size and scale the surface shows at, as the content sees it
     through `ContentFrameSink::request`.
+termination_grace
+    The bounded wait of a termination, close, replacement or departure from
+    the window: 250 milliseconds by default, at most 10 seconds.
+failure
+    What a program the surface ran threw, while the status is `failed`.
+program_running
+    Whether a program the surface started has not yet been reaped.
 
 Events
 ------
@@ -50,7 +57,16 @@ open_content
     `open_content(opaque)` opens a new channel and returns its sink, revoking
     any earlier one. The status becomes `waiting`.
 close_content
-    Revokes the channel and clears the region.
+    Revokes the channel and clears the region, stopping a running program
+    first with the bounded wait.
+start_program
+    `start_program(program, opaque)` opens a channel and runs a
+    `ContentProgram` on a thread of its own (`ContentWorker`).
+terminate
+    Asks the content to stop through its sink's stop token and returns at
+    once. A program that has not finished when the termination grace passes
+    is abandoned at the next check: its channel is revoked and its thread
+    detached. Content on the consumer's own threads is revoked at once.
 check_watchdog
     `check_watchdog(now)` runs one watchdog check, as the surface's own timer
     does.
@@ -70,6 +86,13 @@ axis is zero or above 16384, the pixels exceed 256 MiB, a row is shorter than
 four bytes a pixel, the span holds less than the frame describes (every
 product is checked for overflow first), the format is unknown or the damage
 lies outside the frame. `ContentFrameSink::publish` returns the reason.
+
+Window close and application shutdown never join a hung content thread:
+the surface leaving its window, or being destroyed, stops a running program
+with the bounded wait and then abandons it. An abandoned thread keeps
+running until its code returns or the process exits, holding only the
+program and the channel; content that cannot be trusted to stop belongs in a
+hosted process.
 
 Content that publishes only when something changes calls `heartbeat()` from
 its loop so the watchdog knows it is alive. The surface also publishes the
