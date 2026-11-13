@@ -1,6 +1,7 @@
 #include "gui_forms/controls/content_surface.hpp"
 
 #include "gui_forms/events/key_events/key_events.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/window.hpp"
 #include "../../core/content/channel/content_channel.hpp"
@@ -34,10 +35,8 @@ namespace {
     return index;
 }
 
-// The veil over a stale or ended frame: black at three eighths, so the frame
-// stays legible under it, and the caption in white over it.
-constexpr Color content_veil_color = Color::rgba(0U, 0U, 0U, 96U);
-constexpr Color content_caption_color = Color::rgba(255U, 255U, 255U, 255U);
+// The caption's inset from the region's top left corner. Its colours, and
+// the veil's, are the theme's (the interrupted state's rules).
 constexpr double content_caption_inset = 8.0;
 // How often a running program is checked while the watchdog is off.
 constexpr FrameInterval content_worker_check_period = std::chrono::milliseconds(100);
@@ -47,27 +46,30 @@ constexpr std::array<InteractionDeclaration, 1> content_surface_interactions{{
     {.name = "status_changed", .payload = "ContentSurfaceStatus", .mutable_payload = false},
 }};
 
-constexpr std::array<PartField<ContentSurface::Parts>, 4> content_surface_part_fields{{
+constexpr std::array<PartField<ContentSurface::Parts>, 5> content_surface_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
      .member = &ContentSurface::Parts::region},
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::image, .composed_from = {}},
      .member = &ContentSurface::Parts::content},
-    {.declaration = {.name = "veil", .role = PartRole::fill, .composed_from = {}},
+    {.declaration = {.name = "veil", .role = PartRole::scrim, .composed_from = {}},
      .member = &ContentSurface::Parts::veil},
+    {.declaration = {.name = "caption", .role = PartRole::caption, .composed_from = {}},
+     .member = &ContentSurface::Parts::caption},
     {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
      .member = &ContentSurface::Parts::focus},
 }};
 
-constexpr std::array<StateField<ContentSurface::States>, 5> content_surface_state_fields{{
+constexpr std::array<StateField<ContentSurface::States>, 6> content_surface_state_fields{{
     {.state = AnatomyState::normal, .member = &ContentSurface::States::normal},
     {.state = AnatomyState::enabled, .member = &ContentSurface::States::enabled},
     {.state = AnatomyState::disabled, .member = &ContentSurface::States::disabled},
     {.state = AnatomyState::focused, .member = &ContentSurface::States::focused},
     {.state = AnatomyState::focus_visible, .member = &ContentSurface::States::focus_visible},
+    {.state = AnatomyState::interrupted, .member = &ContentSurface::States::interrupted},
 }};
 
-constexpr std::array<PartDeclaration, 4> content_surface_parts = part_declarations(content_surface_part_fields);
-constexpr std::array<AnatomyState, 5> content_surface_states = state_declarations(content_surface_state_fields);
+constexpr std::array<PartDeclaration, 5> content_surface_parts = part_declarations(content_surface_part_fields);
+constexpr std::array<AnatomyState, 6> content_surface_states = state_declarations(content_surface_state_fields);
 
 constexpr ControlAnatomy content_surface_anatomy{
     .control_id = "content_surface",
@@ -547,14 +549,48 @@ void ContentSurface::arrange(Rect final_bounds) {
 
 void ContentSurface::on_paint(Painter& painter, Rect) {
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width, committed_arranged_bounds().height};
-    if (surface_) painter.draw_live_surface(surface_, bounds, 1.0);
+    const AnatomyStateSet states = anatomy_states();
+    if (surface_) {
+        PartPaint frame{};
+        frame.role = PartRole::image;
+        frame.family = ControlVisualRole::panel;
+        frame.bounds = bounds;
+        frame.states = states;
+        frame.live_surface = surface_;
+        paint_part(painter, *this, frame);
+    }
     if (!veiled()) return;
-    painter.fill_rect(bounds, content_veil_color);
+    PartPaint veil{};
+    veil.role = PartRole::scrim;
+    veil.family = ControlVisualRole::panel;
+    veil.bounds = bounds;
+    veil.states = states;
+    paint_part(painter, *this, veil);
     const std::string& caption = status_caption(status_);
     if (caption.empty()) return;
-    const FontSpec font{};
-    const Point origin{content_caption_inset, content_caption_inset + font.size};
-    painter.draw_text_utf8(origin, caption, font, content_caption_color);
+    PartPaint label{};
+    label.role = PartRole::caption;
+    label.family = ControlVisualRole::panel;
+    label.font = effective_font(FontSpec{});
+    label.bounds = caption_bounds(label.font);
+    label.states = states;
+    label.text = lend_paint_text(caption);
+    label.alignment = PartTextAlignment::start;
+    paint_part(painter, *this, label);
+}
+
+Rect ContentSurface::caption_bounds(const FontSpec& font) const noexcept {
+    const Rect bounds = client_rectangle();
+    const double width = std::max(0.0, bounds.width - 2.0 * content_caption_inset);
+    const double height = std::min(std::max(0.0, bounds.height - content_caption_inset), font.size * 1.5);
+    const Rect result{content_caption_inset, content_caption_inset, width, height};
+    return result;
+}
+
+AnatomyStateSet ContentSurface::anatomy_states() const {
+    AnatomyStateSet states = Control::anatomy_states();
+    if (veiled()) states.insert(AnatomyState::interrupted);
+    return states;
 }
 
 const ControlAnatomy& ContentSurface::anatomy() const noexcept {
@@ -587,6 +623,9 @@ void ContentSurface::publish_part_geometry(std::span<PartGeometry> geometry) con
     record.region = PartGeometry::from_bounds(bounds);
     if (surface_) record.content = PartGeometry::from_bounds(bounds);
     if (veiled()) record.veil = PartGeometry::from_bounds(bounds);
+    if (veiled() && !status_caption(status_).empty()) {
+        record.caption = PartGeometry::from_bounds(caption_bounds(effective_font(FontSpec{})));
+    }
     record.focus = PartGeometry::from_bounds(bounds);
     write_parts(anatomy(), content_surface_part_fields, record, geometry);
 }

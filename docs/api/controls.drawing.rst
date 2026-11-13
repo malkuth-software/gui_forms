@@ -211,13 +211,15 @@ Related types
 
    ``#include <gui_forms/controls/content_surface.hpp>``
 
-   Stage T1 anatomy, as dot members. ``content`` is the composed frame, present while there is a surface; ``veil`` covers the region while the status is stale, abandoned or failed.
+   Stage T1 anatomy, as dot members. ``content`` is the composed frame, present while there is a surface; ``veil`` covers the region and ``caption`` holds the status caption while the status is stale, abandoned or failed, which is the ``interrupted`` state.
 
    .. cpp:member:: PartGeometry region
 
    .. cpp:member:: PartGeometry content
 
    .. cpp:member:: PartGeometry veil
+
+   .. cpp:member:: PartGeometry caption
 
    .. cpp:member:: PartGeometry focus
 
@@ -236,6 +238,8 @@ Related types
    .. cpp:member:: bool focused
 
    .. cpp:member:: bool focus_visible
+
+   .. cpp:member:: bool interrupted
 
 .. cpp:namespace:: gui_forms
 

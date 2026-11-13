@@ -5939,6 +5939,15 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
         target_link_libraries(gui_forms_indicator_lamp_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_indicator_lamp_tests COMMAND gui_forms_indicator_lamp_tests)
+        # ContentSurface's frame, veil and caption in pixels (cp32 census
+        # return): default theme and forced high contrast.
+        add_executable(gui_forms_content_surface_raster_tests tests/content_surface_raster_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_content_surface_raster_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_content_surface_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_content_surface_raster_tests COMMAND gui_forms_content_surface_raster_tests)
         add_executable(gui_forms_danger_key_tests tests/danger_key_tests.cpp
             src/runtime/offscreen/offscreen_raster_create.cpp
             $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)

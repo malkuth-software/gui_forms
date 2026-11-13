@@ -289,6 +289,17 @@ indicator-lamp::part(lens):state(error) {
   background: radial-gradient(circle at 40% 35%, #ffc0c0, #e00000 55%, #800000);
   border: 1px solid #400000;
 }
+/* A content surface whose frame is not current (ContentSurface: stale,
+   abandoned or failed, the interrupted state) keeps its last frame under a
+   veil of black at three eighths, legible beneath it, with the status
+   caption in white over it. High contrast covers the frame in its plate
+   and writes the caption in its text colour instead. */
+content-surface::part(veil):state(interrupted) {
+  scrim-color: rgb(0 0 0 / 38%);
+}
+content-surface::part(caption):state(interrupted) {
+  color: #ffffff;
+}
 )css";
 
 constexpr std::string_view modern_flat_sheet = R"css(/* modern-flat: a flat modern look (stage T4, phase 7; M076: boundaries,
@@ -502,6 +513,17 @@ indicator-lamp::part(lens):state(error) {
   background: #c42b1c;
   border: 1px solid #921f14;
   box-shadow: inset 0 0 2px #ffd7d2;
+}
+/* A content surface whose frame is not current (ContentSurface: stale,
+   abandoned or failed, the interrupted state) keeps its last frame under a
+   veil of black at three eighths, legible beneath it, with the status
+   caption in white over it. High contrast covers the frame in its plate
+   and writes the caption in its text colour instead. */
+content-surface::part(veil):state(interrupted) {
+  scrim-color: rgb(0 0 0 / 38%);
+}
+content-surface::part(caption):state(interrupted) {
+  color: #ffffff;
 }
 )css";
 
@@ -826,6 +848,17 @@ indicator-lamp::part(lens):state(error) {
   border: 1px solid #6a140a;
   box-shadow: inset 0 0 2px #ffe0d6b0;
 }
+/* A content surface whose frame is not current (ContentSurface: stale,
+   abandoned or failed, the interrupted state) keeps its last frame under a
+   veil of black at three eighths, legible beneath it, with the status
+   caption in white over it. High contrast covers the frame in its plate
+   and writes the caption in its text colour instead. */
+content-surface::part(veil):state(interrupted) {
+  scrim-color: rgb(0 0 0 / 38%);
+}
+content-surface::part(caption):state(interrupted) {
+  color: #ffffff;
+}
 )css";
 
 constexpr std::string_view windows7_style_sheet = R"css(/* windows7-style: an Aero-like look (stage T4, phase 7), following 7.css
@@ -1137,6 +1170,17 @@ indicator-lamp::part(lens):state(error) {
   border: 1px solid #70140b;
   box-shadow: inset 0 0 3px #fff0eac0;
 }
+/* A content surface whose frame is not current (ContentSurface: stale,
+   abandoned or failed, the interrupted state) keeps its last frame under a
+   veil of black at three eighths, legible beneath it, with the status
+   caption in white over it. High contrast covers the frame in its plate
+   and writes the caption in its text colour instead. */
+content-surface::part(veil):state(interrupted) {
+  scrim-color: rgb(0 0 0 / 38%);
+}
+content-surface::part(caption):state(interrupted) {
+  color: #ffffff;
+}
 )css";
 
 constexpr std::string_view macos_style_parts_sheet = R"css(/* macos-style: parts (AppKit). The system face
@@ -1252,6 +1296,17 @@ indicator-lamp::part(lens):state(on) {
 indicator-lamp::part(lens):state(error) {
   background: radial-gradient(circle at 40% 35%, #ffd4d1, #ff5f57 55%, #c9302a);
   border: 1px solid #b72a24;
+}
+/* A content surface whose frame is not current (ContentSurface: stale,
+   abandoned or failed, the interrupted state) keeps its last frame under a
+   veil of black at three eighths, legible beneath it, with the status
+   caption in white over it. High contrast covers the frame in its plate
+   and writes the caption in its text colour instead. */
+content-surface::part(veil):state(interrupted) {
+  scrim-color: rgb(0 0 0 / 38%);
+}
+content-surface::part(caption):state(interrupted) {
+  color: #ffffff;
 }
 )css";
 

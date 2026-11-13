@@ -4915,6 +4915,10 @@ Types
 
       The baked light planes the part is composited from (PartLightPlanes), or none. Such a part is drawn as the bake's light, room · R + Σ colour · power · L_i toned (engine_light::composite_light_planes), stretched over ``bounds`` at the window's scale, in place of its recipe and of any primitive a rule would choose: the bake carries the part's whole look, its body included. The composite is transparent where the bake's coverage is 0, so its light never reaches past the part; a part with a corner radius is clipped to that shape as well. The recipe draws the part instead in forced high contrast, where the role's colours stand, and when no raster of the part's size can be made (ornament gives way first).
 
+   .. cpp:member:: std::shared_ptr<LiveSurface> live_surface
+
+      A content surface's newest frame (the consumer's picture of a ContentSurface or ContentTextEditor), or none. Only the image role reads it: the frame is composed into ``bounds`` exactly as given (Painter::draw_live_surface), in ordinary and high-contrast presentation alike and disabled or not, as a content colour is (GIVEN E2-1); no rule or primitive restyles it. Shared for the call.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: PartProfile final

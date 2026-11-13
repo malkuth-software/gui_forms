@@ -92,7 +92,7 @@ constexpr std::array<InteractionDeclaration, 4> content_text_editor_interactions
 }};
 
 constexpr std::array<PartField<ContentTextEditor::Parts>, 4> content_text_editor_extra_part_fields{{
-    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+    {.declaration = {.name = "content", .role = PartRole::image, .composed_from = {}},
      .member = &ContentTextEditor::Parts::content},
     {.declaration = {.name = "caret", .role = PartRole::caret, .composed_from = {}},
      .member = &ContentTextEditor::Parts::caret},
@@ -680,9 +680,19 @@ void ContentTextEditor::arrange(Rect final_bounds) {
 void ContentTextEditor::on_paint(Painter& painter, Rect local_damage) {
     static_cast<void>(local_damage);
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width, committed_arranged_bounds().height};
-    if (surface_) painter.draw_live_surface(surface_, bounds, 1.0);
-    if (!draws_selection_ || !layout_current()) return;
     const AnatomyStateSet states = anatomy_states();
+    if (surface_) {
+        // The consumer's frame: an image part carrying the surface, drawn as
+        // given in every presentation (PartPaint::live_surface).
+        PartPaint frame{};
+        frame.role = PartRole::image;
+        frame.family = ControlVisualRole::editor;
+        frame.bounds = bounds;
+        frame.states = states;
+        frame.live_surface = surface_;
+        paint_part(painter, *this, frame);
+    }
+    if (!draws_selection_ || !layout_current()) return;
     const std::vector<Rect> highlight = selection_rectangles();
     for (const Rect& box : highlight) {
         PartPaint plate;

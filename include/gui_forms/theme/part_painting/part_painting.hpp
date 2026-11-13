@@ -17,6 +17,7 @@
 namespace gui_forms {
 
 class Control;
+class LiveSurface;
 class Painter;
 
 // The by-role paint path (owner ruling, 2026-10-14: the atom vocabulary is the
@@ -341,6 +342,13 @@ struct GUI_FORMS_API PartPaint final {
     // role's colours stand, and when no raster of the part's size can be
     // made (ornament gives way first).
     std::optional<PartLightPlanes> light_planes{};
+    // A content surface's newest frame (the consumer's picture of a
+    // ContentSurface or ContentTextEditor), or none. Only the image role
+    // reads it: the frame is composed into `bounds` exactly as given
+    // (Painter::draw_live_surface), in ordinary and high-contrast
+    // presentation alike and disabled or not, as a content colour is
+    // (GIVEN E2-1); no rule or primitive restyles it. Shared for the call.
+    std::shared_ptr<LiveSurface> live_surface{};
 };
 
 // The theme context a part's states select: hot, pressed or captured,

@@ -298,7 +298,7 @@ gui_forms::ContentSurface
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-      Composes the newest frame into the region (Painter::draw_live_surface), and the veil and caption while the status asks for them.
+      Paints the newest frame as the content part (an image part carrying the surface, PartPaint::live_surface: drawn as given in every presentation), and while the status asks for them the veil (a scrim part) and the caption (a caption part), both in the interrupted state so that the theme styles them (the default and familiar sheets darken the frame and write the caption in white; high contrast covers it in its plate and text colours).
 
    .. cpp:function:: void on_text_input(TextInputEvent& event) override
 
@@ -309,6 +309,10 @@ gui_forms::ContentSurface
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
       A figure named by the semantic text's name (the accessible name, else "Content", without one), whose value is its text; busy while stale or terminating.
+
+   .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+      The control's states, with ``interrupted`` while the veil is drawn.
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 

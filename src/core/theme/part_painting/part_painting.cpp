@@ -1334,6 +1334,22 @@ void draw_light_plane_raster(Painter& painter, const PartPaint& part, const std:
     painter.restore();
 }
 
+// A content surface's frame (PartPaint::live_surface): content, composed
+// into the part's bounds as given, once or under each of `clips`.
+void paint_live_surface_part(Painter& painter, const PartPaint& part, const std::span<const Rect> clips) {
+    if (!paintable(part.bounds)) return;
+    if (clips.empty()) {
+        painter.draw_live_surface(part.live_surface, part.bounds, 1.0);
+        return;
+    }
+    for (const Rect clip : clips) {
+        painter.save();
+        painter.clip_rect(clip);
+        painter.draw_live_surface(part.live_surface, part.bounds, 1.0);
+        painter.restore();
+    }
+}
+
 // A part with light planes (PartPaint::light_planes): composited by its
 // control's kept raster over the part's bounds at the window's scale, and
 // drawn once, or under each of `clips`. False, drawing nothing, where the
@@ -1382,6 +1398,12 @@ void paint_part_clipped(Painter& painter, const Control& control, const PartPain
     // A bake carries the part's whole look; where it cannot be shown the
     // part goes on to its recipe.
     if (part.light_planes && paint_light_plane_part(painter, control, part, clips)) return;
+    // A content surface's frame is content: no theme, rule or high-contrast
+    // recipe draws it.
+    if (part.live_surface && part.role == PartRole::image) {
+        paint_live_surface_part(painter, part, clips);
+        return;
+    }
     // Drawn in GUI.Forms' own theme in place of the application's (T4
     // theme variants): colours chosen against the other theme are not
     // applied, the part's own included.

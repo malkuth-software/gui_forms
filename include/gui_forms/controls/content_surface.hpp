@@ -175,8 +175,13 @@ public:
     // Arranges as any control, then sends the region's device size and the
     // window scale to the content when either changed.
     void arrange(Rect final_bounds) override;
-    // Composes the newest frame into the region (Painter::draw_live_surface),
-    // and the veil and caption while the status asks for them.
+    // Paints the newest frame as the content part (an image part carrying
+    // the surface, PartPaint::live_surface: drawn as given in every
+    // presentation), and while the status asks for them the veil (a scrim
+    // part) and the caption (a caption part), both in the interrupted state
+    // so that the theme styles them (the default and familiar sheets darken
+    // the frame and write the caption in white; high contrast covers it in
+    // its plate and text colours).
     void on_paint(Painter& painter, Rect local_damage) override;
     // Forwards text (an input method's composition included) to hosted
     // content when nothing handled it (the class comment).
@@ -188,12 +193,14 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
 
     // Stage T1 anatomy, as dot members. `content` is the composed frame,
-    // present while there is a surface; `veil` covers the region while the
-    // status is stale, abandoned or failed.
+    // present while there is a surface; `veil` covers the region and
+    // `caption` holds the status caption while the status is stale,
+    // abandoned or failed, which is the `interrupted` state.
     struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry content;
         PartGeometry veil;
+        PartGeometry caption;
         PartGeometry focus;
     };
     struct GUI_FORMS_API States final {
@@ -202,9 +209,12 @@ public:
         bool disabled{};
         bool focused{};
         bool focus_visible{};
+        bool interrupted{};
     };
     [[nodiscard]] Parts parts() const;
     [[nodiscard]] States states() const;
+    // The control's states, with `interrupted` while the veil is drawn.
+    [[nodiscard]] AnatomyStateSet anatomy_states() const override;
 
 protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
@@ -256,6 +266,9 @@ private:
     void forward_key(KeyEventArgs& arguments, KeyAction action);
     // Whether the veil is drawn for the current status.
     [[nodiscard]] bool veiled() const noexcept;
+    // Where the status caption is written in `font`: inset from the top
+    // left corner, one line high, as wide as the region allows.
+    [[nodiscard]] Rect caption_bounds(const FontSpec& font) const noexcept;
 
     std::shared_ptr<detail::ContentChannel> channel_{};
     std::shared_ptr<LiveSurface> surface_{};
