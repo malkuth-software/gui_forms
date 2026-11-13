@@ -49,8 +49,9 @@ struct GUI_FORMS_API ColorPickerHsv final {
 // hue_track, alpha_track, swatch) are wells carrying their content colours
 // (PartPaint::content_color; design language 8.5, owner decision W-7), which
 // the default and familiar themes' content rules draw as gradients over a
-// checkerboard, the same in every theme; a theme without those rules draws
-// plain wells, and so does forced high contrast.
+// checkerboard, the same in every theme and, framed by high contrast's
+// edge, in forced high contrast; a theme without those rules draws plain
+// wells.
 //
 // Threads: the UI thread.
 class GUI_FORMS_API ColorPicker final : public Control, public ColorPickerCapabilities<ColorPicker> {

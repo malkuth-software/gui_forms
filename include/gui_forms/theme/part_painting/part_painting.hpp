@@ -284,9 +284,13 @@ struct GUI_FORMS_API PartPaint final {
     // field, spectrum and alpha ramp are gradient rules over the colour
     // they show (the ColorPicker parts in the default and familiar themes'
     // content rules). The dark variant's rule does not darken such a
-    // part's material. Without the theme engine (no window, or a theme
-    // whose rules write no material for the part), and in forced high
-    // contrast, the part draws its recipe and the colour is not shown.
+    // part's material. In forced high contrast (owner ruling, W-7: content
+    // is data, not chrome) the part keeps those fills inside high
+    // contrast's material: its border (or, without one, a 1-unit border in
+    // high contrast's text colour) frames them, and its shadows and glows
+    // are dropped. Without the theme engine (no window, or a theme whose
+    // rules write no fills for the part), the part draws its recipe and the
+    // colour is not shown.
     std::optional<Color> content_color{};
     // The colours an application authored for this part (design language
     // 8.5; owner decision T4-1), or none, such as a DataGridView cell

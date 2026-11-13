@@ -867,6 +867,57 @@ double text_role_em(const Control& control, TextRole role) noexcept {
     return em;
 }
 
+namespace {
+
+// Forced high contrast and a part showing a content colour (design
+// language 8.5, owner decision W-7; ruling 9 of claude/cp32-demonstrator-
+// gaps): content is data, not chrome, so the part keeps its real colours
+// and high contrast frames them. `framed` holds the material high contrast
+// would draw for the part; its fills are replaced by the fills the part's
+// rules author over its ordinary (not high-contrast) recipe, with CSS
+// currentcolor naming the content colour, and its shadows and glows are
+// dropped. Its border is kept, so the frame is high contrast's edge; a
+// material without one takes a 1-unit border in high contrast's text
+// colour, so the colours stay apart from what surrounds them. False,
+// leaving `framed` unchanged, for a part without a content colour or
+// whose rules author no fills (then there is no content to show).
+bool show_content_in_high_contrast(const Control& control, const PartPaint& part,
+                                   const CompiledThemeRules::Resolution& resolution, std::uint64_t rules_serial,
+                                   UnkeptAssemblies& unkept, SurfaceMaterial& framed) {
+    if (!part.content_color || !resolution.materials_authored) return false;
+    const bool fills = resolution.materials[static_cast<std::size_t>(MaterialField::fills)] != nullptr ||
+                       resolution.materials[static_cast<std::size_t>(MaterialField::background_colour)] != nullptr;
+    if (!fills) return false;
+    const ControlVisualContext context = part_visual_context(control, part.states);
+    ControlVisualContext ordinary = context;
+    ordinary.high_contrast = false;
+    const Theme& theme = control.effective_theme();
+    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const ResolvedControlRecipe recipe =
+        theme.resolve(control, part.family, ordinary, part.states, part_name, part.control_type);
+    MaterialAssemblyContext relative{};
+    if (material_fields_read_em(resolution.materials)) {
+        relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
+    }
+    relative.current_colour = *part.content_color;
+    const SurfaceMaterial& content = unkept_assembly(unkept, rules_serial, recipe.recipe().material, part.bounds,
+                                                     relative, resolution, std::nullopt);
+    framed.fills = content.fills;
+    framed.shadows.clear();
+    framed.glows.clear();
+    if (!framed.border) {
+        const ResolvedControlRecipe contrast =
+            theme.resolve(control, part.family, context, part.states, part_name, part.control_type);
+        MaterialBorder frame{};
+        frame.color = contrast.recipe().text;
+        frame.width = 1.0;
+        framed.border = frame;
+    }
+    return true;
+}
+
+} // namespace
+
 ThemeEngine::ThemeEngine() : ThemeEngine(ThemeRuleSheet{}) {}
 
 ThemeEngine::ThemeEngine(const ThemeRuleSheet& sheet) : ThemeEngine(sheet, ThemeRuleSet::program) {}
@@ -1401,7 +1452,23 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
     SurfaceRoot* const window = run.window;
     if (!resolution.materials_authored || window == nullptr) return nullptr;
     const ControlVisualContext context = part_visual_context(control, part.states);
-    if (context.high_contrast) return nullptr;
+    if (context.high_contrast) {
+        // High contrast keeps the built-in recipe's own records, except
+        // that a content part shows its colours (W-7, ruling 9).
+        if (!part.content_color) return nullptr;
+        const Theme& contrast_theme = control.effective_theme();
+        const std::string_view contrast_part = part.key ? (*part.key).part : std::string_view{};
+        const ResolvedControlRecipe contrast =
+            contrast_theme.resolve(control, part.family, context, part.states, contrast_part, part.control_type);
+        SurfaceMaterial& framed = detail::SurfaceEngineAccess::paint_material(*window);
+        framed = contrast.recipe().material;
+        UnkeptAssemblies contrast_unkept{detail::SurfaceEngineAccess::unkept_assemblies(*window),
+                                         detail::SurfaceEngineAccess::unkept_next(*window), (*window).metrics()};
+        if (!show_content_in_high_contrast(control, part, resolution, rules_.serial(), contrast_unkept, framed)) {
+            return nullptr;
+        }
+        return &framed;
+    }
     const Theme& theme = control.effective_theme();
     // A part showing a content colour (W-7) draws its gradients as written:
     // the dark variant's rule does not darken data.
@@ -1567,6 +1634,12 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
             assemble_material(recipe.material, forced.fields, Size{part.bounds.width, part.bounds.height}, relative,
                               *run.unkept_material);
             (*window).metrics().record_engine_material_assembly();
+            // A content part shows its colours inside high contrast's frame
+            // (W-7, ruling 9).
+            UnkeptAssemblies contrast_unkept{detail::SurfaceEngineAccess::unkept_assemblies(*window),
+                                             detail::SurfaceEngineAccess::unkept_next(*window), (*window).metrics()};
+            static_cast<void>(show_content_in_high_contrast(control, part, resolution, rules_.serial(),
+                                                            contrast_unkept, *run.unkept_material));
             request.target.material = run.unkept_material;
         } else if (resolution.materials_authored && context.dark && derives_dark(control.effective_theme()) &&
                    !part.content_color) {

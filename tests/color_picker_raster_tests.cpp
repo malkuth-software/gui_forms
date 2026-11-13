@@ -7,7 +7,8 @@
 // through the offscreen raster: the field runs white to the hue across and
 // to black down and follows a new hue, the spectrum runs red to cyan at its
 // middle, an opaque swatch shows the value and a transparent one the
-// checkerboard.
+// checkerboard. In forced high contrast (ruling 9) the content keeps its
+// colours inside high contrast's frame.
 
 #include "../src/core/theme/theme_compiler/content_parts_sheet.hpp"
 
@@ -71,9 +72,10 @@ bool low(std::uint8_t channel) {
     return result;
 }
 
-std::optional<WindowCapture> capture(OffscreenAttachment& attached) {
+std::optional<WindowCapture> capture(OffscreenAttachment& attached, bool high_contrast = false) {
     OffscreenCaptureOptions options{};
     options.scale = 1.0;
+    options.high_contrast = high_contrast;
     std::optional<WindowCapture> picture = attached.capture_window(options);
     return picture;
 }
@@ -168,6 +170,24 @@ void test_content_parts() {
     }
     require(grey, "a transparent swatch shows grey");
     require(checkered, "a transparent swatch shows the checkerboard's two squares");
+
+    // Forced high contrast: content is data, not chrome (W-7, ruling 9).
+    (*picker).value = Color::rgba(255, 0, 0);
+    std::optional<WindowCapture> contrast = capture(attached, true);
+    require(contrast.has_value(), "the high-contrast picker is captured");
+    if (!contrast) return;
+    const Pixel contrast_corner = pixel_at(*contrast, field.x + field.width - 3.0, field.y + 2.0);
+    require(high(contrast_corner.red) && low(contrast_corner.green) && low(contrast_corner.blue),
+            "in high contrast the field keeps the hue's pure colour");
+    const Pixel contrast_middle = pixel_at(*contrast, hue.x + hue.width * 0.5, hue.y + hue.height * 0.5);
+    require(low(contrast_middle.red) && high(contrast_middle.green) && high(contrast_middle.blue),
+            "in high contrast the spectrum keeps its colours");
+    const Pixel contrast_swatch = pixel_at(*contrast, swatch.x + swatch.width * 0.5, swatch.y + swatch.height * 0.5);
+    require(high(contrast_swatch.red) && low(contrast_swatch.green) && low(contrast_swatch.blue),
+            "in high contrast the swatch shows the value");
+    const Pixel frame = pixel_at(*contrast, field.x + field.width - 3.0, field.y);
+    require(!(high(frame.red) && low(frame.green) && low(frame.blue)),
+            "in high contrast the field is framed by high contrast's edge, not its content");
 
 }
 
