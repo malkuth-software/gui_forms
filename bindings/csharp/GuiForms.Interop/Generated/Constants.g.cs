@@ -529,4 +529,5 @@ public static class Constants
     public const uint GF_CLASS_DATA_GRID_VIEW = 38u;
     public const uint GF_CLASS_NUMERIC_UP_DOWN = 39u;
     public const uint GF_CLASS_DATE_TIME_PICKER = 40u;
+    public const uint GF_CLASS_NODE_CANVAS = 41u;
 }

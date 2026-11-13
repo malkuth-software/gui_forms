@@ -1513,6 +1513,20 @@ public unsafe struct gf_date_time_picker_hooks
     public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_value_changed;
 }
 
+/// <summary>gf_node_canvas_hooks (segment, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_node_canvas_hooks
+{
+    public uint struct_size;
+    public gf_class_id class_id;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_edit_ended;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_graph_edited;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_link_connected;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_palette_requested;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_selection_changed;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_view_changed;
+}
+
 /// <summary>gf_button_base_class (class, 32 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_button_base_class
@@ -1785,6 +1799,15 @@ public unsafe struct gf_up_down_base_class
 {
     public gf_class_header header;
     public gf_control_hooks* control;
+}
+
+/// <summary>gf_node_canvas_class (class, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_node_canvas_class
+{
+    public gf_class_header header;
+    public gf_control_hooks* control;
+    public gf_node_canvas_hooks* node_canvas;
 }
 
 /// <summary>gf_classes_table (table, 24 bytes).</summary>

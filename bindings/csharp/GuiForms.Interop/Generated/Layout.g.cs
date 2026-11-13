@@ -1416,6 +1416,19 @@ public static unsafe class Layout
             failures += expect(output, "gf_date_time_picker_hooks.on_value_changed offset", (long)((byte*)&value.on_value_changed - start), 16);
         }
         {
+            gf_node_canvas_hooks value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_node_canvas_hooks size", sizeof(gf_node_canvas_hooks), 56);
+            failures += expect(output, "gf_node_canvas_hooks.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_node_canvas_hooks.class_id offset", (long)((byte*)&value.class_id - start), 4);
+            failures += expect(output, "gf_node_canvas_hooks.on_edit_ended offset", (long)((byte*)&value.on_edit_ended - start), 8);
+            failures += expect(output, "gf_node_canvas_hooks.on_graph_edited offset", (long)((byte*)&value.on_graph_edited - start), 16);
+            failures += expect(output, "gf_node_canvas_hooks.on_link_connected offset", (long)((byte*)&value.on_link_connected - start), 24);
+            failures += expect(output, "gf_node_canvas_hooks.on_palette_requested offset", (long)((byte*)&value.on_palette_requested - start), 32);
+            failures += expect(output, "gf_node_canvas_hooks.on_selection_changed offset", (long)((byte*)&value.on_selection_changed - start), 40);
+            failures += expect(output, "gf_node_canvas_hooks.on_view_changed offset", (long)((byte*)&value.on_view_changed - start), 48);
+        }
+        {
             gf_button_base_class value = default;
             byte* start = (byte*)&value;
             failures += expect(output, "gf_button_base_class size", sizeof(gf_button_base_class), 32);
@@ -1655,6 +1668,14 @@ public static unsafe class Layout
             failures += expect(output, "gf_up_down_base_class size", sizeof(gf_up_down_base_class), 32);
             failures += expect(output, "gf_up_down_base_class.header offset", (long)((byte*)&value.header - start), 0);
             failures += expect(output, "gf_up_down_base_class.control offset", (long)((byte*)&value.control - start), 24);
+        }
+        {
+            gf_node_canvas_class value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_node_canvas_class size", sizeof(gf_node_canvas_class), 40);
+            failures += expect(output, "gf_node_canvas_class.header offset", (long)((byte*)&value.header - start), 0);
+            failures += expect(output, "gf_node_canvas_class.control offset", (long)((byte*)&value.control - start), 24);
+            failures += expect(output, "gf_node_canvas_class.node_canvas offset", (long)((byte*)&value.node_canvas - start), 32);
         }
         {
             gf_classes_table value = default;

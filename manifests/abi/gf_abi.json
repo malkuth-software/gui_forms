@@ -2630,6 +2630,11 @@
       "name": "GF_CLASS_DATE_TIME_PICKER",
       "value": 40,
       "type": "uint32"
+    },
+    {
+      "name": "GF_CLASS_NODE_CANVAS",
+      "value": 41,
+      "type": "uint32"
     }
   ],
   "scalars": [
@@ -13717,6 +13722,62 @@
       ]
     },
     {
+      "name": "gf_node_canvas_hooks",
+      "kind": "segment",
+      "size": 56,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "class_id",
+          "type": "gf_class_id",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "on_edit_ended",
+          "type": "gf_hook_entry",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "on_graph_edited",
+          "type": "gf_hook_entry",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "on_link_connected",
+          "type": "gf_hook_entry",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "on_palette_requested",
+          "type": "gf_hook_entry",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "on_selection_changed",
+          "type": "gf_hook_entry",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "on_view_changed",
+          "type": "gf_hook_entry",
+          "offset": 48,
+          "size": 8
+        }
+      ]
+    },
+    {
       "name": "gf_button_base_class",
       "kind": "class",
       "size": 32,
@@ -14432,6 +14493,32 @@
           "name": "control",
           "type": "const gf_control_hooks*",
           "offset": 24,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_node_canvas_class",
+      "kind": "class",
+      "size": 40,
+      "align": 8,
+      "fields": [
+        {
+          "name": "header",
+          "type": "gf_class_header",
+          "offset": 0,
+          "size": 24
+        },
+        {
+          "name": "control",
+          "type": "const gf_control_hooks*",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "node_canvas",
+          "type": "const gf_node_canvas_hooks*",
+          "offset": 32,
           "size": 8
         }
       ]
