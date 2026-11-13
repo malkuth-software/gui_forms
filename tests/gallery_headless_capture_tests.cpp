@@ -2,7 +2,7 @@
 // `--page <id> --capture <path.png> --headless`): the parsed options, a page
 // staged and captured offscreen into a PNG of the requested size and scale
 // with no host window, and the refusals (no --capture: exit 2; an unwritable
-// path: exit 1, saved false).
+// path: exit 1, saved false), and the help-book page's captures (GAPS H5).
 
 #include "demo/gallery.hpp"
 #include "demo/gallery_headless_capture.hpp"
@@ -110,6 +110,40 @@ void test_capture() {
     std::filesystem::remove(png, ignored);
 }
 
+// GAPS H5: the help-book page captures, in both schemes at scales 1 and 2,
+// written where tools/capture_help_book.sh writes the committed previews
+// (here a temporary directory). Each is a PNG of the requested size.
+void test_help_book_captures() {
+    const std::filesystem::path directory = std::filesystem::temp_directory_path() / "gui_forms_gallery_headless";
+    std::error_code ignored{};
+    std::filesystem::create_directories(directory, ignored);
+    const std::array<std::string_view, 2> schemes{"light", "dark"};
+    const std::array<std::string_view, 2> scales{"1", "2"};
+    for (const std::string_view scheme : schemes) {
+        for (const std::string_view scale : scales) {
+            const std::string name = "help-book-" + std::string(scheme) + "-" + std::string(scale) + "x.png";
+            const std::filesystem::path png = directory / name;
+            std::filesystem::remove(png, ignored);
+            std::vector<std::string> arguments{"gallery",  "--page",  "help-book",          "--capture",
+                                               png.string(), "--headless", "--size", "900x620",
+                                               "--scale",  std::string(scale), "--scheme", std::string(scheme)};
+            const std::optional<demo::ProgramOptions> options = parsed(arguments);
+            require(options.has_value(), "the help-book options parse");
+            if (!options) continue;
+            std::unique_ptr<Window> window = gallery::make_gallery();
+            require(gallery::apply_gallery_staging(*options, *window), "the help-book page is staged");
+            const int code = gallery::run_headless_gallery_capture(*options, *window, GUI_FORMS_TEST_FONT_DIR);
+            require(code == 0, "the help-book capture saves");
+            const std::vector<unsigned char> header = leading_bytes(png, 24U);
+            const std::uint32_t factor = scale == "2" ? 2U : 1U;
+            require(header.size() == 24U && big_endian_word(header, 16U) == 900U * factor &&
+                        big_endian_word(header, 20U) == 620U * factor,
+                    "the help-book capture has the requested size and scale");
+            std::filesystem::remove(png, ignored);
+        }
+    }
+}
+
 void test_refusals() {
     std::vector<std::string> no_path{"gallery", "--headless"};
     const std::optional<demo::ProgramOptions> without = parsed(no_path);
@@ -136,6 +170,7 @@ void test_refusals() {
 int main() {
     test_options();
     test_capture();
+    test_help_book_captures();
     test_refusals();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
