@@ -83,7 +83,7 @@ double-click is not an activation. A press whose count is higher than 2 (a
 triple click on macOS or Linux) is also a double-click's press.
 
 At `MouseUp` the button is already up and the capture released. A
-`MouseUp` override that sets `suppress_click` (C# `OnMouseUp` setting
+`MouseUp` handler or `on_mouse_up` override that sets `suppress_click` (C# `OnMouseUp` setting
 `e.suppress_click`) cancels the clicks and the activation; `handled` only
 ends the route. When a handler disposes the control, opens a modal window,
 layer or menu, or the capture is lost before the release, the rest of the

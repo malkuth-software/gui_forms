@@ -92,7 +92,7 @@ file, the line and the column. A refused document generates nothing.
 | E999 `not_yet_built` | a form reserved for a later phase, such as `convert <name>` |
 
 E808 is retired. E811 and E819 belong to loading a document at run time,
-which is not public in 0.5.
+which is not public.
 
 ## The window is the form
 
@@ -203,7 +203,7 @@ data. The program sets them on the members too.
 ## Rules
 
 A window keeps its [rules](rules) in `window.rules()`. Form documents hold no
-rules in 0.5, so the program adds them after it makes the window, beside the
+rules, so the program adds them after it makes the window, beside the
 handlers:
 
 ```cpp

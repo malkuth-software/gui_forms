@@ -19,8 +19,10 @@ sheets it imports (imported sheets first, as in CSS) and returns either a
 The sheets compile onto a built-in theme, whose recipes stand wherever they
 set nothing: `ThemeCompileOptions::base`, which defaults to
 `default_theme_base`, GUI.Forms' own theme `gui-forms`; or
-`ThemeBase::windows_professional`, whose recipes stand alone, with no sheet
-and no dark variant. Onto GUI.Forms' own theme (`gui-forms`), its
+`ThemeBase::windows_professional`, the stock Windows-familiar theme
+`windows-professional`, whose floor recipes (light and an authored dark) and
+parts sheet (`windows-professional/parts.css` in diagnostics) come first in
+the cascade, so the package's sheets override them. Onto GUI.Forms' own theme (`gui-forms`), its
 light sheet comes first in the cascade, so the package's rules override it
 and may read its colour roles, and its dark variant is derived by rule: the
 package's colours are written in light terms and darken by the same rule in
@@ -67,7 +69,7 @@ there is one, and one detail argument.
 The theme in effect for a control is its own override
 (`Control::set_theme_override`), else its window's, else the program's
 (`ApplicationResources::set_theme`), else the built-in default theme
-(GUI.Forms' own from 0.5).
+(GUI.Forms' own, `gui-forms`).
 
 Every compiled rule keeps where it was written (`ThemeRule::provenance`):
 its layer (`ThemeLayer`: built-in, library pack, project theme, user
@@ -418,8 +420,9 @@ its root control's classes and stable ID, becomes the window's backdrop chain
 another theme, when its presentation settings (scheme, contrast, motion)
 change and when its scale changes; changing the root's classes later takes
 effect at the next of these. An application that sets its own chain keeps
-it. `popup` rules are compiled and held: they apply once native popup
-windows exist.
+it. `popup` rules are compiled and held but not yet applied to native popup
+windows; a program gives a Popup window its backdrop chain through
+`NativePopupOptions::backdrop`.
 
 The window outer band, a thin strip along the edges of a top-level window's
 client area that the program declares with `Window::declare_band`, takes its
