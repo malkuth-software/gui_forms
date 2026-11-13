@@ -9,7 +9,7 @@ advertised protocol surface; some native integrations are not advertised yet.
 
 ## The host protocol
 
-`HostCapabilities` carries `protocol_version` (currently 12; one row per version in
+`HostCapabilities` carries `protocol_version` (currently 13; one row per version in
 `host_protocol_revisions`), a `platform`
 string, a bit set of `HostCapability` flags and the host's keyboard-command
 defaults (`key_map`, below). `Application::capabilities()`
@@ -224,8 +224,8 @@ time and position against `Net/DoubleClickTime` and `Net/DoubleClickDistance`
 (2 pixels when the desktop offers none). Controls raise the WinForms event
 set (`MouseDown`, `Click`, `MouseClick`, `DoubleClick`, `MouseDoubleClick`,
 `MouseUp`, `MouseEnter`, `MouseHover`, `MouseLeave`, `MouseMove`,
-`MouseWheel`, `MouseCaptureChanged`, `ContextMenuRequested`) in WinForms'
-order, under `ControlStyles::standard_click` and `standard_double_click`; a
+`MouseWheel`, `MouseCaptureChanged`, `ContextMenuRequested`) in the
+owner's input order, which raises `MouseUp` before `Click`, under `ControlStyles::standard_click` and `standard_double_click`; a
 button raises no double-click.
 
 The first click on an inactive window both activates it and acts on the
@@ -251,7 +251,7 @@ What the native hosts do not yet deliver, so a WinForms port should not
 expect it (audit N62): the extra mouse buttons (X1 and X2, Windows
 `WM_XBUTTON*`, macOS buttons 3 and up, X11 buttons 8 and 9) are dropped,
 since `PointerButton` names only the primary, secondary and middle buttons
-and adding back and forward is an ABI change left for the seal; touch and
+and adding back and forward is an ABI change not yet made; touch and
 pen input arrive only as the platform's mouse emulation (no `WM_POINTER*`,
 `WM_TOUCH`, macOS touch events or XInput2 touch); horizontal wheel scrolling
 is delivered by every native host (Windows `WM_MOUSEHWHEEL`, macOS

@@ -194,4 +194,4 @@ These parts stay in C++:
 - **Your own control types.** Name them in documents with
   `gui_forms_add_form(... TYPES ...)`.
 - **A window built at run time from data.** Only build-time generation is
-  public in 0.5.
+  public.
