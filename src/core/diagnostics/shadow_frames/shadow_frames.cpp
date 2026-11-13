@@ -19,7 +19,7 @@
 namespace gui_forms {
 namespace detail {
 
-stxlib::TextView frame_text(const std::string_view text) noexcept {
+stxlib::TextView well_formed_text(const std::string_view text) noexcept {
     if (text.empty()) {
         const stxlib::TextView none{};
         return none;
@@ -118,8 +118,8 @@ std::uint32_t enter_frame(const ShadowFrameKind kind, const std::string_view sub
                           const std::uint64_t sequence) noexcept {
     const stxlib::ShadowFrameText frame{
         .kind = static_cast<stxlib::u32>(kind),
-        .subject = detail::frame_text(subject),
-        .name = detail::frame_text(name),
+        .subject = detail::well_formed_text(subject),
+        .name = detail::well_formed_text(name),
         .first = first,
         .second = second,
         .sequence = sequence,

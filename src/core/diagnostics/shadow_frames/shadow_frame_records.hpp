@@ -23,10 +23,10 @@ namespace gui_forms::detail {
 // and function index (the library pushes only 32-bit values there).
 [[nodiscard]] ShadowFrame frame_of_record(const stxlib::ShadowFrameRecord& record) noexcept;
 
-// text as STXlib frame text: all of it when it is well-formed UTF-8, else
-// its well-formed prefix (the bytes before the first ill-formed one). The
-// view borrows text; STXlib copies it at the push.
-[[nodiscard]] stxlib::TextView frame_text(std::string_view text) noexcept;
+// text as STXlib text (frame texts, the fail-fast report's lines): all of
+// it when it is well-formed UTF-8, else its well-formed prefix (the bytes
+// before the first ill-formed one). The view borrows text.
+[[nodiscard]] stxlib::TextView well_formed_text(std::string_view text) noexcept;
 
 // What copy_record_frames read: the frames the record holds (which may
 // exceed the number copied) and the depth at the capture, recorded or not.

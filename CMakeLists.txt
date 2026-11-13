@@ -756,10 +756,12 @@ endif()
 if(UNIX)
     target_link_libraries(gui_forms_core PRIVATE ${CMAKE_DL_LIBS})
 endif()
-# The shadow frames and failure snapshots are STXlib's gates and frames
-# (src/core/diagnostics/shadow_frames, src/core/failure); their state is
-# stxlib_state's, shared by every module that links the core.
-target_link_libraries(gui_forms_core PRIVATE stxlib::boundary INTERFACE stxlib::state)
+# The shadow frames, failure snapshots and the fail-fast boundary are
+# STXlib's gates and frames (src/core/diagnostics/shadow_frames,
+# src/core/failure); their state is stxlib_state's, shared by every module
+# that links the core. PUBLIC: the hosts' native entries include
+# src/core/failure/fail_fast.hpp, whose call_failing_fast is a gate.
+target_link_libraries(gui_forms_core PUBLIC stxlib::boundary stxlib::state)
 if(WIN32)
     target_compile_definitions(gui_forms_core PUBLIC _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     target_link_libraries(gui_forms_core PUBLIC winpthread)
@@ -5295,7 +5297,9 @@ if(GUI_FORMS_BUILD_TESTS)
             "direct|test.direct|injected direct failure"
             "ui_timer|scheduler.ui_timer|injected timer failure"
             "motion_listener|motion_clock.listener|injected listener failure"
-            "host_dispatch|host_session.dispatch|injected event failure")
+            "host_dispatch|host_session.dispatch|injected event failure"
+            "long_message|test.long|L+END"
+            "invariant|test.invariant|an invariant broke")
         string(REPLACE "|" ";" _gui_fail_fast_fields "${_gui_fail_fast_case}")
         list(GET _gui_fail_fast_fields 0 _gui_fail_fast_mode)
         list(GET _gui_fail_fast_fields 1 _gui_fail_fast_site)
@@ -5308,11 +5312,12 @@ if(GUI_FORMS_BUILD_TESTS)
                          "-DEXPECTED=GUI.Forms: fatal exception at ${_gui_fail_fast_site}: ${_gui_fail_fast_text}"
                          -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
     endforeach()
-    # The report prints the failure snapshot's shadow frames: the event frame
-    # the target threw in, closed by unwinding before the boundary caught it.
+    # The report prints the failure snapshot's shadow frames: the gate's own
+    # frame (kind 7, named by the site) and the event frame the target threw
+    # in, closed by unwinding before the gate caught it.
     add_test(NAME gui_forms_fail_fast_shadow_frames
              COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_fail_fast_tests> -DMODE=shadow_frames
-                     "-DEXPECTED=GUI.Forms: shadow frames \\(1 open, 1 recorded\\):[^#]*#0 kind 3 fail-fast.frame click 0"
+                     "-DEXPECTED=GUI.Forms: shadow frames \\(2 open, 2 recorded\\):[^#]*#0 kind 7  test.frames 0[^#]*#1 kind 3 fail-fast.frame click 0"
                      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
 
     # Borrowed views (borrow sanitizer): `plain` uses fresh views and passes
