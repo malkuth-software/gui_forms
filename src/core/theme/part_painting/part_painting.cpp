@@ -725,7 +725,36 @@ Color material_face_colour(const SurfaceMaterial& material, bool top) noexcept {
 // one per three units of arc length (2 to 128), and a thick stroke's joints
 // are closed with round dots of its width (a translucent colour is
 // therefore slightly deeper at the joints).
-void paint_arc(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe) {
+// One circular arc about `centre` stroked `width` wide in chords of about
+// three units, with round joins when the stroke is wider than two.
+void stroke_circle_arc(Painter& painter, Point centre, double radius, double start, double sweep, Color colour,
+                       double width) {
+    const double length = std::abs(sweep) * radius;
+    const double wanted = std::ceil(length / 3.0);
+    const std::size_t segments = static_cast<std::size_t>(std::clamp(wanted, 2.0, 128.0));
+    const double step = sweep / static_cast<double>(segments);
+    const bool joined = width > 2.0;
+    Point from = point_at_angle(centre, radius, start);
+    for (std::size_t index = 1U; index <= segments; ++index) {
+        const double angle = start + step * static_cast<double>(index);
+        const Point to = point_at_angle(centre, radius, angle);
+        painter.draw_line(from, to, colour, width);
+        if (joined && index < segments) fill_round_dot(painter, to, width, colour);
+        from = to;
+    }
+}
+
+// An arc band: a selected arc (a gauge's reading) in the material's face
+// colour, else in the border's colour (else the glyph's).
+//
+// Forced high contrast (GAPS T1, a design choice): every colour there is
+// white on black, so the reading and the track would share one colour. The
+// track (an arc neither selected nor invalid) is drawn as the band's
+// outline instead, one-unit arcs along both edges joined at the ends, while
+// the reading stays a solid band; the difference is shape, not colour. An
+// alarm range (invalid) keeps its solid band in the invalid edge colour.
+void paint_arc(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe,
+               ControlVisualContext context) {
     if (!part.arc) return;
     const double width = recipe.stroke_width;
     const double start = (*part.arc).start;
@@ -734,25 +763,32 @@ void paint_arc(Painter& painter, const PartPaint& part, const ControlVisualRecip
     const InscribedCircle circle = inscribed_circle(part.bounds);
     const double radius = circle.radius - width * 0.5;
     if (radius <= 0.0) return;
+    const bool selected = part.states.contains(AnatomyState::selected);
     Color colour = recipe.glyph;
-    if (part.states.contains(AnatomyState::selected)) {
+    if (selected) {
         colour = material_face_colour(recipe.material, false);
     } else if (recipe.material.border) {
         colour = (*recipe.material.border).color;
     }
-    const double length = std::abs(sweep) * radius;
-    const double wanted = std::ceil(length / 3.0);
-    const std::size_t segments = static_cast<std::size_t>(std::clamp(wanted, 2.0, 128.0));
-    const double step = sweep / static_cast<double>(segments);
-    const bool joined = width > 2.0;
-    Point from = point_at_angle(circle.centre, radius, start);
-    for (std::size_t index = 1U; index <= segments; ++index) {
-        const double angle = start + step * static_cast<double>(index);
-        const Point to = point_at_angle(circle.centre, radius, angle);
-        painter.draw_line(from, to, colour, width);
-        if (joined && index < segments) fill_round_dot(painter, to, width, colour);
-        from = to;
+    const bool invalid = context.surface == ControlSurfaceState::invalid ||
+                         part.states.contains(AnatomyState::invalid);
+    const bool outlined = context.high_contrast && !selected && !invalid && width > 2.0;
+    if (!outlined) {
+        stroke_circle_arc(painter, circle.centre, radius, start, sweep, colour, width);
+        return;
     }
+    constexpr double outline_width = 1.0;
+    const double half = (width - outline_width) * 0.5;
+    const double outer = radius + half;
+    const double inner = radius - half;
+    stroke_circle_arc(painter, circle.centre, outer, start, sweep, colour, outline_width);
+    if (inner > 0.0) stroke_circle_arc(painter, circle.centre, inner, start, sweep, colour, outline_width);
+    const double end = start + sweep;
+    const double inner_reach = std::max(0.0, inner);
+    painter.draw_line(point_at_angle(circle.centre, inner_reach, start), point_at_angle(circle.centre, outer, start),
+                      colour, outline_width);
+    painter.draw_line(point_at_angle(circle.centre, inner_reach, end), point_at_angle(circle.centre, outer, end),
+                      colour, outline_width);
 }
 
 // A needle: from the inscribed circle's centre out to the circle at the
@@ -1622,7 +1658,7 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
         paint_rule(painter, part.bounds, recipe);
         return;
     case PartRole::arc:
-        paint_arc(painter, part, recipe);
+        paint_arc(painter, part, recipe, context);
         return;
     case PartRole::needle:
         paint_needle(painter, part, recipe);

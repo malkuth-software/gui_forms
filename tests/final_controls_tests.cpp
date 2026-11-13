@@ -32,9 +32,11 @@
 #include "gui_forms/rules/rule/rule.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/delegate.hpp"
@@ -672,6 +674,57 @@ void test_dial_parts_in_the_stock_themes() {
             "windows-professional draws thin arcs, a line needle and a light scrim");
 }
 
+// GAPS T1: in forced high contrast the track is the band's outline (one-unit
+// strokes) and the reading a solid band, so the two differ in shape where
+// they share a colour.
+class LinePainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double width) override { widths.push_back(width); }
+
+    std::vector<double> widths;
+};
+
+void test_high_contrast_gauge_arcs() {
+    const std::shared_ptr<const Theme> house = gui_forms_theme();
+    ControlVisualContext contrast{};
+    contrast.high_contrast = true;
+    const ControlVisualRecipe& forced = (*house).resolve(ControlVisualRole::progress, contrast);
+    PartPaint track{.role = PartRole::arc, .bounds = Rect{0.0, 0.0, 120.0, 120.0},
+                    .family = ControlVisualRole::progress};
+    track.arc = PartArc{-2.0, 4.0};
+    LinePainter outlined;
+    paint_part_from_recipe(outlined, track, forced, contrast);
+    bool hairlines = !outlined.widths.empty();
+    for (const double width : outlined.widths) {
+        if (!near(width, 1.0)) hairlines = false;
+    }
+    require(hairlines, "high contrast draws the track as one-unit outline strokes");
+    PartPaint reading = track;
+    reading.states.insert(AnatomyState::selected);
+    LinePainter solid;
+    paint_part_from_recipe(solid, reading, forced, contrast);
+    require(!solid.widths.empty() && near(solid.widths.front(), forced.stroke_width) && forced.stroke_width > 1.0,
+            "the reading stays a solid band");
+    PartPaint alarm = track;
+    alarm.states.insert(AnatomyState::invalid);
+    LinePainter warned;
+    paint_part_from_recipe(warned, alarm, forced, contrast);
+    require(!warned.widths.empty() && near(warned.widths.front(), forced.stroke_width),
+            "an alarm range keeps its solid band");
+    ControlVisualContext resting{};
+    const ControlVisualRecipe& ordinary = (*house).resolve(ControlVisualRole::progress, resting);
+    LinePainter plain;
+    paint_part_from_recipe(plain, track, ordinary, resting);
+    require(!plain.widths.empty() && near(plain.widths.front(), ordinary.stroke_width),
+            "outside high contrast the track is a solid band");
+}
+
 int main() {
     test_seven_segment_patterns();
     test_seven_segment_in_window();
@@ -685,6 +738,7 @@ int main() {
     test_lookup_combo_box();
     test_about_dialog();
     test_dial_parts_in_the_stock_themes();
+    test_high_contrast_gauge_arcs();
     std::cout << "final control tests passed\n";
     return EXIT_SUCCESS;
 }
