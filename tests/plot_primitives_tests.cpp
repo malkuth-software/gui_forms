@@ -774,6 +774,56 @@ void test_view_model_locks_keys_and_follow() {
     require(live.x_following(0U) && live.follow_tail(30.0), "End resumes following");
 }
 
+// The flame graph demonstrator's F1: gestures in an x-axis zone move x
+// alone, and gesture axes confine every input change to one orientation.
+void test_view_model_single_axis() {
+    const PlotZone x_zone{PlotZoneKind::x_axis, 0U};
+    PlotViewModel panned = make_view_model();
+    static_cast<void>(panned.pointer_pressed(Point{100.0, 50.0}, PlotPointerButton::primary, PlotModifiers{}, x_zone));
+    static_cast<void>(panned.pointer_moved(Point{120.0, 30.0}));
+    static_cast<void>(panned.pointer_released(Point{120.0, 30.0}));
+    require(panned.x_axes()[0].range == (PlotRange{-10.0, 90.0}) && panned.y_axes()[0].range == (PlotRange{0.0, 10.0}),
+            "a primary drag in the x-axis zone pans x alone");
+    PlotViewModel zoomed = make_view_model();
+    static_cast<void>(zoomed.wheel(Point{50.0, 90.0}, 1.0, x_zone));
+    const PlotRange x = zoomed.x_axes()[0].range;
+    require(zoomed.y_axes()[0].range == (PlotRange{0.0, 10.0}), "the wheel in the x-axis zone keeps y");
+    require(std::fabs((25.0 - x.minimum) / x.extent() - 0.25) < 1e-9 && std::fabs(x.extent() - 100.0 / 1.1) < 1e-9,
+            "the wheel in the x-axis zone zooms x about the pointer");
+
+    PlotViewModel only = make_view_model();
+    only.set_gesture_axes(PlotGestureAxes::x_only);
+    require(only.gesture_axes() == PlotGestureAxes::x_only, "the gesture axes are kept");
+    const PlotZone plot{PlotZoneKind::plot, 0U};
+    static_cast<void>(only.pointer_pressed(Point{100.0, 50.0}, PlotPointerButton::primary, PlotModifiers{}, plot));
+    static_cast<void>(only.pointer_moved(Point{120.0, 40.0}));
+    static_cast<void>(only.pointer_released(Point{120.0, 40.0}));
+    require(only.x_axes()[0].range == (PlotRange{-10.0, 90.0}) && only.y_axes()[0].range == (PlotRange{0.0, 10.0}),
+            "x_only: a drag in the plot pans x alone");
+    static_cast<void>(only.wheel(Point{100.0, 50.0}, 1.0, PlotZone{PlotZoneKind::y_axis, 0U}));
+    require(only.y_axes()[0].range == (PlotRange{0.0, 10.0}), "x_only: the wheel on the y axis changes nothing");
+    const PlotDataBounds none{};
+    static_cast<void>(only.key(PlotKey::up, PlotModifiers{}, none));
+    require(only.y_axes()[0].range == (PlotRange{0.0, 10.0}), "x_only: Up changes nothing");
+    PlotViewModel boxed = make_view_model();
+    boxed.set_gesture_axes(PlotGestureAxes::x_only);
+    static_cast<void>(boxed.pointer_pressed(Point{50.0, 25.0}, PlotPointerButton::secondary, PlotModifiers{}, plot));
+    static_cast<void>(boxed.pointer_moved(Point{150.0, 75.0}));
+    static_cast<void>(boxed.pointer_released(Point{150.0, 75.0}));
+    require(boxed.x_axes()[0].range == (PlotRange{25.0, 75.0}) && boxed.y_axes()[0].range == (PlotRange{0.0, 10.0}),
+            "x_only: a box zoom takes the box's horizontal extent");
+    PlotDataBounds bounds{};
+    bounds.x[0] = PlotRange{0.0, 50.0};
+    bounds.y[0] = PlotRange{-1.0, 1.0};
+    static_cast<void>(boxed.fit(bounds));
+    require(boxed.y_axes()[0].range == (PlotRange{0.0, 10.0}), "x_only: a fit keeps y");
+    require(boxed.set_y_range(0U, PlotRange{2.0, 4.0}), "x_only: a program still sets y");
+    PlotViewModel vertical = make_view_model();
+    vertical.set_gesture_axes(PlotGestureAxes::y_only);
+    static_cast<void>(vertical.key(PlotKey::right, PlotModifiers{}, none));
+    require(vertical.x_axes()[0].range == (PlotRange{0.0, 100.0}), "y_only: Right changes nothing");
+}
+
 // -- legend and annotations -----------------------------------------------------------------------
 
 void test_legend_and_annotations() {
@@ -1052,6 +1102,7 @@ int main() {
         test_colormaps();
         test_view_model_gestures();
         test_view_model_locks_keys_and_follow();
+        test_view_model_single_axis();
         test_legend_and_annotations();
         test_signal_programs();
         test_signal_verification();

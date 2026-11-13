@@ -25,6 +25,18 @@
 // that end; with both locked it is refused. A follow-tail axis re-anchors
 // on the newest data (follow_tail) until the user pans or zooms it, then
 // stops following until a fit or End.
+//
+// Zones: a pointer gesture in the plot zone moves every axis the gesture
+// axes admit; one in an axis zone (PlotZone{x_axis, i} or {y_axis, i})
+// moves that axis alone: a primary drag pans axis i by the drag's travel
+// along it and the wheel zooms axis i about the pointer's coordinate along
+// it, every other axis kept (the flame graph demonstrator's F1).
+//
+// Gesture axes (set_gesture_axes): x_only or y_only confines every input
+// change (pointer gestures in any zone, box zoom, the keys and fit) to that
+// orientation; the other orientation's axes keep their ranges and only
+// set_x_range or set_y_range moves them. A box zoom then takes the box's
+// extent along the admitted orientation. The query selection is unchanged.
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/axis/axis.hpp"
@@ -57,6 +69,9 @@ struct GUI_FORMS_API PlotZone final {
 };
 
 enum class BoxZoomBinding : std::uint8_t { secondary_drag, control_primary_drag };
+
+// Which orientations input may move (see Gesture axes above).
+enum class PlotGestureAxes : std::uint8_t { both, x_only, y_only };
 
 enum class PlotKey : std::uint8_t { left, right, up, down, zoom_in, zoom_out, home, end };
 
@@ -110,6 +125,9 @@ public:
     void set_axes(std::span<const Axis> x_axes, std::span<const Axis> y_axes) noexcept;
     void set_plot(Rect plot) noexcept { plot_ = plot; }
     void set_box_zoom_binding(BoxZoomBinding binding) noexcept { binding_ = binding; }
+    // An unknown value is taken as both.
+    void set_gesture_axes(PlotGestureAxes axes) noexcept;
+    [[nodiscard]] PlotGestureAxes gesture_axes() const noexcept { return gesture_axes_; }
 
     [[nodiscard]] std::span<const Axis> x_axes() const noexcept;
     [[nodiscard]] std::span<const Axis> y_axes() const noexcept;
@@ -171,6 +189,10 @@ private:
     std::array<bool, maximum_axes_per_orientation> x_following_{};
     Rect plot_{};
     BoxZoomBinding binding_{BoxZoomBinding::secondary_drag};
+    PlotGestureAxes gesture_axes_{PlotGestureAxes::both};
+    // Whether input may move the x (or y) axes under gesture_axes_.
+    [[nodiscard]] bool x_admitted() const noexcept { return gesture_axes_ != PlotGestureAxes::y_only; }
+    [[nodiscard]] bool y_admitted() const noexcept { return gesture_axes_ != PlotGestureAxes::x_only; }
     PlotGesture gesture_{PlotGesture::none};
     PlotZone gesture_zone_{};
     Point gesture_start_{};
