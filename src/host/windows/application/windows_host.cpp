@@ -4186,6 +4186,10 @@ HostCapabilities windows_capabilities() {
             // Windows follows the PC keyboard convention (Ctrl+F4 closes a
             // document).
             pc_key_map()};
+    // DWM rounds or squares a window's corners (apply_windows_corners;
+    // square before build 22000, and for a maximized, snapped or
+    // full-screen window).
+    capabilities.window_corner_shapes = WindowCornerShapes{true, true};
     // locale: not yet reported (read_windows_locale is the hand-back's
     // interface and gives nothing until GetLocaleInfoEx is read).
     const std::optional<HostLocale> locale = read_windows_locale();

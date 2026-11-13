@@ -578,6 +578,64 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status declare_band(gf_object window, const gf_window_band_options* options) const noexcept {
+        if (table_.struct_size < 104u || table_.declare_band == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.declare_band(window, options);
+        return called;
+    }
+
+    [[nodiscard]] gf_status undeclare_band(gf_object window) const noexcept {
+        if (table_.struct_size < 112u || table_.undeclare_band == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.undeclare_band(window);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_band_appearance(gf_object window,
+                                                const gf_window_band_appearance* appearance) const noexcept {
+        if (table_.struct_size < 120u || table_.set_band_appearance == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_band_appearance(window, appearance);
+        return called;
+    }
+
+    [[nodiscard]] gf_status band_report(gf_object window, gf_window_band_report* report) const noexcept {
+        if (table_.struct_size < 128u || table_.band_report == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.band_report(window, report);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_corner_preference(gf_object window,
+                                                  gf_window_corner_preference preference) const noexcept {
+        if (table_.struct_size < 136u || table_.set_corner_preference == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_corner_preference(window, preference);
+        return called;
+    }
+
+    [[nodiscard]] gf_status content_rect(gf_object window, gf_logical_rect* rect) const noexcept {
+        if (table_.struct_size < 144u || table_.content_rect == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.content_rect(window, rect);
+        return called;
+    }
+
+    [[nodiscard]] gf_status shaping(gf_object window, gf_window_shaping* report) const noexcept {
+        if (table_.struct_size < 152u || table_.shaping == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.shaping(window, report);
+        return called;
+    }
+
 private:
     gf_windows_table table_;
 };

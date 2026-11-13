@@ -56,6 +56,7 @@ threading
 lifecycle
 hosts-and-capabilities
 content-surfaces
+window-band
 transparency
 audio
 localizable-literals

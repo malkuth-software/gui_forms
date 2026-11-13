@@ -94,12 +94,15 @@ constexpr std::array<CapabilityBit, 36> capability_bits{{
     {HostCapability::hosted_content, GF_HOST_CAPABILITY_HOSTED_CONTENT},
 }};
 
-// The corner shapes a host with window_corners may give: square on request
-// and rounded by default (Windows 11). A window's corners at a moment
+// The corner shapes a host with window_corners may report, as the host
+// lists them (HostCapabilities::window_corner_shapes): square and rounded
+// on Windows 11, square alone on macOS. A window's corners at a moment
 // follow its state (Window::band_snapshot().corners).
-gf_window_corner_shape abi_window_corner_shapes(HostCapability available) noexcept {
-    if (!has_capability(available, HostCapability::window_corners)) return 0U;
-    const gf_window_corner_shape shapes = GF_WINDOW_CORNER_SHAPE_SQUARE | GF_WINDOW_CORNER_SHAPE_ROUNDED;
+gf_window_corner_shape abi_window_corner_shapes(const HostCapabilities& report) noexcept {
+    if (!report.supports(HostCapability::window_corners)) return 0U;
+    gf_window_corner_shape shapes = 0U;
+    if (report.window_corner_shapes.square) shapes = shapes | GF_WINDOW_CORNER_SHAPE_SQUARE;
+    if (report.window_corner_shapes.rounded) shapes = shapes | GF_WINDOW_CORNER_SHAPE_ROUNDED;
     return shapes;
 }
 
@@ -206,7 +209,7 @@ gf_status GF_CALL host_capabilities(gf_host_capabilities* record) noexcept {
         complete.protocol_version = report.protocol_version;
         complete.available = abi_capabilities(report.available);
         complete.transient_surfaces = abi_transient_surfaces(report.available);
-        complete.window_corner_shapes = abi_window_corner_shapes(report.available);
+        complete.window_corner_shapes = abi_window_corner_shapes(report);
         complete.window_band_maximum_width = static_cast<std::uint32_t>(maximum_band_width);
 #if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
         // A capability of this library, not of the host: its Windows build

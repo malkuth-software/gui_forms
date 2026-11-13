@@ -82,9 +82,11 @@ enum class HostCapability : std::uint64_t {
     // The window's corner shape requested and reported
     // (HostServices::apply_window_corners; owner, 2026-11-08: the window
     // outer band follows the host's corners only where the host reports
-    // them). Windows 11 DWM corner preference today; macOS and X11 report
-    // nothing and the band draws square. Additive flag; no protocol version
-    // change.
+    // them). Windows 11 shapes them (DWM corner preference); macOS only
+    // reports them (square in full screen and borderless, unknown in a
+    // titled window); X11 reports nothing and the band draws square. The
+    // shapes a host may report are HostCapabilities::window_corner_shapes.
+    // Additive flag; no protocol version change.
     window_corners = 1ULL << 34U,
     // The host reports the native window's state (HostWindowStateEvent:
     // full screen, and the changes that can reshape its corners, such as

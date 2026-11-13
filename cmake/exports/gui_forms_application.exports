@@ -619,6 +619,7 @@ __ZGVZN9gui_forms15VirtualRowIndex*
 __ZGVZN9gui_forms15VirtualRowPaint*
 __ZGVZN9gui_forms15VirtualRowRange*
 __ZGVZN9gui_forms15VirtualRowsView*
+__ZGVZN9gui_forms15WindowBandEdges*
 __ZGVZN9gui_forms15WindowChromeHit*
 __ZGVZN9gui_forms15WindowFrameDrag*
 __ZGVZN9gui_forms15WindowOverrides*
@@ -841,6 +842,7 @@ __ZGVZN9gui_forms17VirtualRowMeasure*
 __ZGVZN9gui_forms17VirtualRowsColumn*
 __ZGVZN9gui_forms17VisualInteraction*
 __ZGVZN9gui_forms17WindowBandOptions*
+__ZGVZN9gui_forms17WindowBandTexture*
 __ZGVZN9gui_forms17XmlSourcePosition*
 __ZGVZN9gui_forms18AbsoluteAxisResult*
 __ZGVZN9gui_forms18AcceleratorOptions*
@@ -951,6 +953,7 @@ __ZGVZN9gui_forms18ValidationSnapshot*
 __ZGVZN9gui_forms18WindowBandSnapshot*
 __ZGVZN9gui_forms18WindowChromeFields*
 __ZGVZN9gui_forms18WindowCornerReport*
+__ZGVZN9gui_forms18WindowCornerShapes*
 __ZGVZN9gui_forms19BackdropDeclaration*
 __ZGVZN9gui_forms19BindingConvertEvent*
 __ZGVZN9gui_forms19BindingNotification*
@@ -1047,6 +1050,7 @@ __ZGVZN9gui_forms19TreeExpansionChange*
 __ZGVZN9gui_forms19TreeSelectionChange*
 __ZGVZN9gui_forms19VirtualRowSelection*
 __ZGVZN9gui_forms19WindowBackdropGrant*
+__ZGVZN9gui_forms19WindowShapingReport*
 __ZGVZN9gui_forms20AllocationStatistics*
 __ZGVZN9gui_forms20AnchoredOverlayLayer*
 __ZGVZN9gui_forms20ApplicationResources*
@@ -2215,6 +2219,7 @@ __ZGVZNK9gui_forms15VirtualRowIndex*
 __ZGVZNK9gui_forms15VirtualRowPaint*
 __ZGVZNK9gui_forms15VirtualRowRange*
 __ZGVZNK9gui_forms15VirtualRowsView*
+__ZGVZNK9gui_forms15WindowBandEdges*
 __ZGVZNK9gui_forms15WindowChromeHit*
 __ZGVZNK9gui_forms15WindowFrameDrag*
 __ZGVZNK9gui_forms15WindowOverrides*
@@ -2437,6 +2442,7 @@ __ZGVZNK9gui_forms17VirtualRowMeasure*
 __ZGVZNK9gui_forms17VirtualRowsColumn*
 __ZGVZNK9gui_forms17VisualInteraction*
 __ZGVZNK9gui_forms17WindowBandOptions*
+__ZGVZNK9gui_forms17WindowBandTexture*
 __ZGVZNK9gui_forms17XmlSourcePosition*
 __ZGVZNK9gui_forms18AbsoluteAxisResult*
 __ZGVZNK9gui_forms18AcceleratorOptions*
@@ -2547,6 +2553,7 @@ __ZGVZNK9gui_forms18ValidationSnapshot*
 __ZGVZNK9gui_forms18WindowBandSnapshot*
 __ZGVZNK9gui_forms18WindowChromeFields*
 __ZGVZNK9gui_forms18WindowCornerReport*
+__ZGVZNK9gui_forms18WindowCornerShapes*
 __ZGVZNK9gui_forms19BackdropDeclaration*
 __ZGVZNK9gui_forms19BindingConvertEvent*
 __ZGVZNK9gui_forms19BindingNotification*
@@ -2643,6 +2650,7 @@ __ZGVZNK9gui_forms19TreeExpansionChange*
 __ZGVZNK9gui_forms19TreeSelectionChange*
 __ZGVZNK9gui_forms19VirtualRowSelection*
 __ZGVZNK9gui_forms19WindowBackdropGrant*
+__ZGVZNK9gui_forms19WindowShapingReport*
 __ZGVZNK9gui_forms20AllocationStatistics*
 __ZGVZNK9gui_forms20AnchoredOverlayLayer*
 __ZGVZNK9gui_forms20ApplicationResources*
@@ -3999,6 +4007,7 @@ __ZN9gui_forms15VirtualRowIndex*
 __ZN9gui_forms15VirtualRowPaint*
 __ZN9gui_forms15VirtualRowRange*
 __ZN9gui_forms15VirtualRowsView*
+__ZN9gui_forms15WindowBandEdges*
 __ZN9gui_forms15WindowChromeHit*
 __ZN9gui_forms15WindowFrameDrag*
 __ZN9gui_forms15WindowOverrides*
@@ -4341,6 +4350,7 @@ __ZN9gui_forms17VirtualRowMeasure*
 __ZN9gui_forms17VirtualRowsColumn*
 __ZN9gui_forms17VisualInteraction*
 __ZN9gui_forms17WindowBandOptions*
+__ZN9gui_forms17WindowBandTexture*
 __ZN9gui_forms17XmlSourcePosition*
 __ZN9gui_forms17assemble_materialB*
 __ZN9gui_forms17assemble_materialE*
@@ -4527,6 +4537,7 @@ __ZN9gui_forms18ValidationSnapshot*
 __ZN9gui_forms18WindowBandSnapshot*
 __ZN9gui_forms18WindowChromeFields*
 __ZN9gui_forms18WindowCornerReport*
+__ZN9gui_forms18WindowCornerShapes*
 __ZN9gui_forms18active_border_pathB*
 __ZN9gui_forms18active_border_pathE*
 __ZN9gui_forms18anatomy_state_nameB*
@@ -4729,6 +4740,7 @@ __ZN9gui_forms19TreeExpansionChange*
 __ZN9gui_forms19TreeSelectionChange*
 __ZN9gui_forms19VirtualRowSelection*
 __ZN9gui_forms19WindowBackdropGrant*
+__ZN9gui_forms19WindowShapingReport*
 __ZN9gui_forms19active_border_reachB*
 __ZN9gui_forms19active_border_reachE*
 __ZN9gui_forms19active_border_validB*
@@ -5597,6 +5609,8 @@ __ZN9gui_forms25valid_property_value_treeB*
 __ZN9gui_forms25valid_property_value_treeE*
 __ZN9gui_forms25window_band_options_validB*
 __ZN9gui_forms25window_band_options_validE*
+__ZN9gui_forms25window_band_texture_validB*
+__ZN9gui_forms25window_band_texture_validE*
 __ZN9gui_forms26CommandOverflowGroupResult*
 __ZN9gui_forms26DataGridViewCellMouseEvent*
 __ZN9gui_forms26DataGridViewCellsLineRange*
@@ -6943,6 +6957,7 @@ __ZNK[RO]9gui_forms15VirtualRowIndex*
 __ZNK[RO]9gui_forms15VirtualRowPaint*
 __ZNK[RO]9gui_forms15VirtualRowRange*
 __ZNK[RO]9gui_forms15VirtualRowsView*
+__ZNK[RO]9gui_forms15WindowBandEdges*
 __ZNK[RO]9gui_forms15WindowChromeHit*
 __ZNK[RO]9gui_forms15WindowFrameDrag*
 __ZNK[RO]9gui_forms15WindowOverrides*
@@ -7165,6 +7180,7 @@ __ZNK[RO]9gui_forms17VirtualRowMeasure*
 __ZNK[RO]9gui_forms17VirtualRowsColumn*
 __ZNK[RO]9gui_forms17VisualInteraction*
 __ZNK[RO]9gui_forms17WindowBandOptions*
+__ZNK[RO]9gui_forms17WindowBandTexture*
 __ZNK[RO]9gui_forms17XmlSourcePosition*
 __ZNK[RO]9gui_forms18AbsoluteAxisResult*
 __ZNK[RO]9gui_forms18AcceleratorOptions*
@@ -7275,6 +7291,7 @@ __ZNK[RO]9gui_forms18ValidationSnapshot*
 __ZNK[RO]9gui_forms18WindowBandSnapshot*
 __ZNK[RO]9gui_forms18WindowChromeFields*
 __ZNK[RO]9gui_forms18WindowCornerReport*
+__ZNK[RO]9gui_forms18WindowCornerShapes*
 __ZNK[RO]9gui_forms19BackdropDeclaration*
 __ZNK[RO]9gui_forms19BindingConvertEvent*
 __ZNK[RO]9gui_forms19BindingNotification*
@@ -7371,6 +7388,7 @@ __ZNK[RO]9gui_forms19TreeExpansionChange*
 __ZNK[RO]9gui_forms19TreeSelectionChange*
 __ZNK[RO]9gui_forms19VirtualRowSelection*
 __ZNK[RO]9gui_forms19WindowBackdropGrant*
+__ZNK[RO]9gui_forms19WindowShapingReport*
 __ZNK[RO]9gui_forms20AllocationStatistics*
 __ZNK[RO]9gui_forms20AnchoredOverlayLayer*
 __ZNK[RO]9gui_forms20ApplicationResources*
@@ -8539,6 +8557,7 @@ __ZN[KRO]9gui_forms15VirtualRowIndex*
 __ZN[KRO]9gui_forms15VirtualRowPaint*
 __ZN[KRO]9gui_forms15VirtualRowRange*
 __ZN[KRO]9gui_forms15VirtualRowsView*
+__ZN[KRO]9gui_forms15WindowBandEdges*
 __ZN[KRO]9gui_forms15WindowChromeHit*
 __ZN[KRO]9gui_forms15WindowFrameDrag*
 __ZN[KRO]9gui_forms15WindowOverrides*
@@ -8761,6 +8780,7 @@ __ZN[KRO]9gui_forms17VirtualRowMeasure*
 __ZN[KRO]9gui_forms17VirtualRowsColumn*
 __ZN[KRO]9gui_forms17VisualInteraction*
 __ZN[KRO]9gui_forms17WindowBandOptions*
+__ZN[KRO]9gui_forms17WindowBandTexture*
 __ZN[KRO]9gui_forms17XmlSourcePosition*
 __ZN[KRO]9gui_forms18AbsoluteAxisResult*
 __ZN[KRO]9gui_forms18AcceleratorOptions*
@@ -8871,6 +8891,7 @@ __ZN[KRO]9gui_forms18ValidationSnapshot*
 __ZN[KRO]9gui_forms18WindowBandSnapshot*
 __ZN[KRO]9gui_forms18WindowChromeFields*
 __ZN[KRO]9gui_forms18WindowCornerReport*
+__ZN[KRO]9gui_forms18WindowCornerShapes*
 __ZN[KRO]9gui_forms19BackdropDeclaration*
 __ZN[KRO]9gui_forms19BindingConvertEvent*
 __ZN[KRO]9gui_forms19BindingNotification*
@@ -8967,6 +8988,7 @@ __ZN[KRO]9gui_forms19TreeExpansionChange*
 __ZN[KRO]9gui_forms19TreeSelectionChange*
 __ZN[KRO]9gui_forms19VirtualRowSelection*
 __ZN[KRO]9gui_forms19WindowBackdropGrant*
+__ZN[KRO]9gui_forms19WindowShapingReport*
 __ZN[KRO]9gui_forms20AllocationStatistics*
 __ZN[KRO]9gui_forms20AnchoredOverlayLayer*
 __ZN[KRO]9gui_forms20ApplicationResources*
@@ -10135,6 +10157,7 @@ __ZT[VIST]N9gui_forms15VirtualRowIndex*E
 __ZT[VIST]N9gui_forms15VirtualRowPaint*E
 __ZT[VIST]N9gui_forms15VirtualRowRange*E
 __ZT[VIST]N9gui_forms15VirtualRowsView*E
+__ZT[VIST]N9gui_forms15WindowBandEdges*E
 __ZT[VIST]N9gui_forms15WindowChromeHit*E
 __ZT[VIST]N9gui_forms15WindowFrameDrag*E
 __ZT[VIST]N9gui_forms15WindowOverrides*E
@@ -10357,6 +10380,7 @@ __ZT[VIST]N9gui_forms17VirtualRowMeasure*E
 __ZT[VIST]N9gui_forms17VirtualRowsColumn*E
 __ZT[VIST]N9gui_forms17VisualInteraction*E
 __ZT[VIST]N9gui_forms17WindowBandOptions*E
+__ZT[VIST]N9gui_forms17WindowBandTexture*E
 __ZT[VIST]N9gui_forms17XmlSourcePosition*E
 __ZT[VIST]N9gui_forms18AbsoluteAxisResult*E
 __ZT[VIST]N9gui_forms18AcceleratorOptions*E
@@ -10467,6 +10491,7 @@ __ZT[VIST]N9gui_forms18ValidationSnapshot*E
 __ZT[VIST]N9gui_forms18WindowBandSnapshot*E
 __ZT[VIST]N9gui_forms18WindowChromeFields*E
 __ZT[VIST]N9gui_forms18WindowCornerReport*E
+__ZT[VIST]N9gui_forms18WindowCornerShapes*E
 __ZT[VIST]N9gui_forms19BackdropDeclaration*E
 __ZT[VIST]N9gui_forms19BindingConvertEvent*E
 __ZT[VIST]N9gui_forms19BindingNotification*E
@@ -10563,6 +10588,7 @@ __ZT[VIST]N9gui_forms19TreeExpansionChange*E
 __ZT[VIST]N9gui_forms19TreeSelectionChange*E
 __ZT[VIST]N9gui_forms19VirtualRowSelection*E
 __ZT[VIST]N9gui_forms19WindowBackdropGrant*E
+__ZT[VIST]N9gui_forms19WindowShapingReport*E
 __ZT[VIST]N9gui_forms20AllocationStatistics*E
 __ZT[VIST]N9gui_forms20AnchoredOverlayLayer*E
 __ZT[VIST]N9gui_forms20ApplicationResources*E
@@ -11731,6 +11757,7 @@ __ZT[hvc]*9gui_forms15VirtualRowIndex*
 __ZT[hvc]*9gui_forms15VirtualRowPaint*
 __ZT[hvc]*9gui_forms15VirtualRowRange*
 __ZT[hvc]*9gui_forms15VirtualRowsView*
+__ZT[hvc]*9gui_forms15WindowBandEdges*
 __ZT[hvc]*9gui_forms15WindowChromeHit*
 __ZT[hvc]*9gui_forms15WindowFrameDrag*
 __ZT[hvc]*9gui_forms15WindowOverrides*
@@ -11953,6 +11980,7 @@ __ZT[hvc]*9gui_forms17VirtualRowMeasure*
 __ZT[hvc]*9gui_forms17VirtualRowsColumn*
 __ZT[hvc]*9gui_forms17VisualInteraction*
 __ZT[hvc]*9gui_forms17WindowBandOptions*
+__ZT[hvc]*9gui_forms17WindowBandTexture*
 __ZT[hvc]*9gui_forms17XmlSourcePosition*
 __ZT[hvc]*9gui_forms18AbsoluteAxisResult*
 __ZT[hvc]*9gui_forms18AcceleratorOptions*
@@ -12063,6 +12091,7 @@ __ZT[hvc]*9gui_forms18ValidationSnapshot*
 __ZT[hvc]*9gui_forms18WindowBandSnapshot*
 __ZT[hvc]*9gui_forms18WindowChromeFields*
 __ZT[hvc]*9gui_forms18WindowCornerReport*
+__ZT[hvc]*9gui_forms18WindowCornerShapes*
 __ZT[hvc]*9gui_forms19BackdropDeclaration*
 __ZT[hvc]*9gui_forms19BindingConvertEvent*
 __ZT[hvc]*9gui_forms19BindingNotification*
@@ -12159,6 +12188,7 @@ __ZT[hvc]*9gui_forms19TreeExpansionChange*
 __ZT[hvc]*9gui_forms19TreeSelectionChange*
 __ZT[hvc]*9gui_forms19VirtualRowSelection*
 __ZT[hvc]*9gui_forms19WindowBackdropGrant*
+__ZT[hvc]*9gui_forms19WindowShapingReport*
 __ZT[hvc]*9gui_forms20AllocationStatistics*
 __ZT[hvc]*9gui_forms20AnchoredOverlayLayer*
 __ZT[hvc]*9gui_forms20ApplicationResources*
@@ -13327,6 +13357,7 @@ __ZZN9gui_forms15VirtualRowIndex*
 __ZZN9gui_forms15VirtualRowPaint*
 __ZZN9gui_forms15VirtualRowRange*
 __ZZN9gui_forms15VirtualRowsView*
+__ZZN9gui_forms15WindowBandEdges*
 __ZZN9gui_forms15WindowChromeHit*
 __ZZN9gui_forms15WindowFrameDrag*
 __ZZN9gui_forms15WindowOverrides*
@@ -13549,6 +13580,7 @@ __ZZN9gui_forms17VirtualRowMeasure*
 __ZZN9gui_forms17VirtualRowsColumn*
 __ZZN9gui_forms17VisualInteraction*
 __ZZN9gui_forms17WindowBandOptions*
+__ZZN9gui_forms17WindowBandTexture*
 __ZZN9gui_forms17XmlSourcePosition*
 __ZZN9gui_forms18AbsoluteAxisResult*
 __ZZN9gui_forms18AcceleratorOptions*
@@ -13659,6 +13691,7 @@ __ZZN9gui_forms18ValidationSnapshot*
 __ZZN9gui_forms18WindowBandSnapshot*
 __ZZN9gui_forms18WindowChromeFields*
 __ZZN9gui_forms18WindowCornerReport*
+__ZZN9gui_forms18WindowCornerShapes*
 __ZZN9gui_forms19BackdropDeclaration*
 __ZZN9gui_forms19BindingConvertEvent*
 __ZZN9gui_forms19BindingNotification*
@@ -13755,6 +13788,7 @@ __ZZN9gui_forms19TreeExpansionChange*
 __ZZN9gui_forms19TreeSelectionChange*
 __ZZN9gui_forms19VirtualRowSelection*
 __ZZN9gui_forms19WindowBackdropGrant*
+__ZZN9gui_forms19WindowShapingReport*
 __ZZN9gui_forms20AllocationStatistics*
 __ZZN9gui_forms20AnchoredOverlayLayer*
 __ZZN9gui_forms20ApplicationResources*
@@ -14923,6 +14957,7 @@ __ZZNK9gui_forms15VirtualRowIndex*
 __ZZNK9gui_forms15VirtualRowPaint*
 __ZZNK9gui_forms15VirtualRowRange*
 __ZZNK9gui_forms15VirtualRowsView*
+__ZZNK9gui_forms15WindowBandEdges*
 __ZZNK9gui_forms15WindowChromeHit*
 __ZZNK9gui_forms15WindowFrameDrag*
 __ZZNK9gui_forms15WindowOverrides*
@@ -15145,6 +15180,7 @@ __ZZNK9gui_forms17VirtualRowMeasure*
 __ZZNK9gui_forms17VirtualRowsColumn*
 __ZZNK9gui_forms17VisualInteraction*
 __ZZNK9gui_forms17WindowBandOptions*
+__ZZNK9gui_forms17WindowBandTexture*
 __ZZNK9gui_forms17XmlSourcePosition*
 __ZZNK9gui_forms18AbsoluteAxisResult*
 __ZZNK9gui_forms18AcceleratorOptions*
@@ -15255,6 +15291,7 @@ __ZZNK9gui_forms18ValidationSnapshot*
 __ZZNK9gui_forms18WindowBandSnapshot*
 __ZZNK9gui_forms18WindowChromeFields*
 __ZZNK9gui_forms18WindowCornerReport*
+__ZZNK9gui_forms18WindowCornerShapes*
 __ZZNK9gui_forms19BackdropDeclaration*
 __ZZNK9gui_forms19BindingConvertEvent*
 __ZZNK9gui_forms19BindingNotification*
@@ -15351,6 +15388,7 @@ __ZZNK9gui_forms19TreeExpansionChange*
 __ZZNK9gui_forms19TreeSelectionChange*
 __ZZNK9gui_forms19VirtualRowSelection*
 __ZZNK9gui_forms19WindowBackdropGrant*
+__ZZNK9gui_forms19WindowShapingReport*
 __ZZNK9gui_forms20AllocationStatistics*
 __ZZNK9gui_forms20AnchoredOverlayLayer*
 __ZZNK9gui_forms20ApplicationResources*

@@ -621,6 +621,7 @@
     _ZGVZN9gui_forms15VirtualRowPaint*;
     _ZGVZN9gui_forms15VirtualRowRange*;
     _ZGVZN9gui_forms15VirtualRowsView*;
+    _ZGVZN9gui_forms15WindowBandEdges*;
     _ZGVZN9gui_forms15WindowChromeHit*;
     _ZGVZN9gui_forms15WindowFrameDrag*;
     _ZGVZN9gui_forms15WindowOverrides*;
@@ -843,6 +844,7 @@
     _ZGVZN9gui_forms17VirtualRowsColumn*;
     _ZGVZN9gui_forms17VisualInteraction*;
     _ZGVZN9gui_forms17WindowBandOptions*;
+    _ZGVZN9gui_forms17WindowBandTexture*;
     _ZGVZN9gui_forms17XmlSourcePosition*;
     _ZGVZN9gui_forms18AbsoluteAxisResult*;
     _ZGVZN9gui_forms18AcceleratorOptions*;
@@ -953,6 +955,7 @@
     _ZGVZN9gui_forms18WindowBandSnapshot*;
     _ZGVZN9gui_forms18WindowChromeFields*;
     _ZGVZN9gui_forms18WindowCornerReport*;
+    _ZGVZN9gui_forms18WindowCornerShapes*;
     _ZGVZN9gui_forms19BackdropDeclaration*;
     _ZGVZN9gui_forms19BindingConvertEvent*;
     _ZGVZN9gui_forms19BindingNotification*;
@@ -1049,6 +1052,7 @@
     _ZGVZN9gui_forms19TreeSelectionChange*;
     _ZGVZN9gui_forms19VirtualRowSelection*;
     _ZGVZN9gui_forms19WindowBackdropGrant*;
+    _ZGVZN9gui_forms19WindowShapingReport*;
     _ZGVZN9gui_forms20AllocationStatistics*;
     _ZGVZN9gui_forms20AnchoredOverlayLayer*;
     _ZGVZN9gui_forms20ApplicationResources*;
@@ -2217,6 +2221,7 @@
     _ZGVZNK9gui_forms15VirtualRowPaint*;
     _ZGVZNK9gui_forms15VirtualRowRange*;
     _ZGVZNK9gui_forms15VirtualRowsView*;
+    _ZGVZNK9gui_forms15WindowBandEdges*;
     _ZGVZNK9gui_forms15WindowChromeHit*;
     _ZGVZNK9gui_forms15WindowFrameDrag*;
     _ZGVZNK9gui_forms15WindowOverrides*;
@@ -2439,6 +2444,7 @@
     _ZGVZNK9gui_forms17VirtualRowsColumn*;
     _ZGVZNK9gui_forms17VisualInteraction*;
     _ZGVZNK9gui_forms17WindowBandOptions*;
+    _ZGVZNK9gui_forms17WindowBandTexture*;
     _ZGVZNK9gui_forms17XmlSourcePosition*;
     _ZGVZNK9gui_forms18AbsoluteAxisResult*;
     _ZGVZNK9gui_forms18AcceleratorOptions*;
@@ -2549,6 +2555,7 @@
     _ZGVZNK9gui_forms18WindowBandSnapshot*;
     _ZGVZNK9gui_forms18WindowChromeFields*;
     _ZGVZNK9gui_forms18WindowCornerReport*;
+    _ZGVZNK9gui_forms18WindowCornerShapes*;
     _ZGVZNK9gui_forms19BackdropDeclaration*;
     _ZGVZNK9gui_forms19BindingConvertEvent*;
     _ZGVZNK9gui_forms19BindingNotification*;
@@ -2645,6 +2652,7 @@
     _ZGVZNK9gui_forms19TreeSelectionChange*;
     _ZGVZNK9gui_forms19VirtualRowSelection*;
     _ZGVZNK9gui_forms19WindowBackdropGrant*;
+    _ZGVZNK9gui_forms19WindowShapingReport*;
     _ZGVZNK9gui_forms20AllocationStatistics*;
     _ZGVZNK9gui_forms20AnchoredOverlayLayer*;
     _ZGVZNK9gui_forms20ApplicationResources*;
@@ -4001,6 +4009,7 @@
     _ZN9gui_forms15VirtualRowPaint*;
     _ZN9gui_forms15VirtualRowRange*;
     _ZN9gui_forms15VirtualRowsView*;
+    _ZN9gui_forms15WindowBandEdges*;
     _ZN9gui_forms15WindowChromeHit*;
     _ZN9gui_forms15WindowFrameDrag*;
     _ZN9gui_forms15WindowOverrides*;
@@ -4343,6 +4352,7 @@
     _ZN9gui_forms17VirtualRowsColumn*;
     _ZN9gui_forms17VisualInteraction*;
     _ZN9gui_forms17WindowBandOptions*;
+    _ZN9gui_forms17WindowBandTexture*;
     _ZN9gui_forms17XmlSourcePosition*;
     _ZN9gui_forms17assemble_materialB*;
     _ZN9gui_forms17assemble_materialE*;
@@ -4529,6 +4539,7 @@
     _ZN9gui_forms18WindowBandSnapshot*;
     _ZN9gui_forms18WindowChromeFields*;
     _ZN9gui_forms18WindowCornerReport*;
+    _ZN9gui_forms18WindowCornerShapes*;
     _ZN9gui_forms18active_border_pathB*;
     _ZN9gui_forms18active_border_pathE*;
     _ZN9gui_forms18anatomy_state_nameB*;
@@ -4731,6 +4742,7 @@
     _ZN9gui_forms19TreeSelectionChange*;
     _ZN9gui_forms19VirtualRowSelection*;
     _ZN9gui_forms19WindowBackdropGrant*;
+    _ZN9gui_forms19WindowShapingReport*;
     _ZN9gui_forms19active_border_reachB*;
     _ZN9gui_forms19active_border_reachE*;
     _ZN9gui_forms19active_border_validB*;
@@ -5599,6 +5611,8 @@
     _ZN9gui_forms25valid_property_value_treeE*;
     _ZN9gui_forms25window_band_options_validB*;
     _ZN9gui_forms25window_band_options_validE*;
+    _ZN9gui_forms25window_band_texture_validB*;
+    _ZN9gui_forms25window_band_texture_validE*;
     _ZN9gui_forms26CommandOverflowGroupResult*;
     _ZN9gui_forms26DataGridViewCellMouseEvent*;
     _ZN9gui_forms26DataGridViewCellsLineRange*;
@@ -6945,6 +6959,7 @@
     _ZNK[RO]9gui_forms15VirtualRowPaint*;
     _ZNK[RO]9gui_forms15VirtualRowRange*;
     _ZNK[RO]9gui_forms15VirtualRowsView*;
+    _ZNK[RO]9gui_forms15WindowBandEdges*;
     _ZNK[RO]9gui_forms15WindowChromeHit*;
     _ZNK[RO]9gui_forms15WindowFrameDrag*;
     _ZNK[RO]9gui_forms15WindowOverrides*;
@@ -7167,6 +7182,7 @@
     _ZNK[RO]9gui_forms17VirtualRowsColumn*;
     _ZNK[RO]9gui_forms17VisualInteraction*;
     _ZNK[RO]9gui_forms17WindowBandOptions*;
+    _ZNK[RO]9gui_forms17WindowBandTexture*;
     _ZNK[RO]9gui_forms17XmlSourcePosition*;
     _ZNK[RO]9gui_forms18AbsoluteAxisResult*;
     _ZNK[RO]9gui_forms18AcceleratorOptions*;
@@ -7277,6 +7293,7 @@
     _ZNK[RO]9gui_forms18WindowBandSnapshot*;
     _ZNK[RO]9gui_forms18WindowChromeFields*;
     _ZNK[RO]9gui_forms18WindowCornerReport*;
+    _ZNK[RO]9gui_forms18WindowCornerShapes*;
     _ZNK[RO]9gui_forms19BackdropDeclaration*;
     _ZNK[RO]9gui_forms19BindingConvertEvent*;
     _ZNK[RO]9gui_forms19BindingNotification*;
@@ -7373,6 +7390,7 @@
     _ZNK[RO]9gui_forms19TreeSelectionChange*;
     _ZNK[RO]9gui_forms19VirtualRowSelection*;
     _ZNK[RO]9gui_forms19WindowBackdropGrant*;
+    _ZNK[RO]9gui_forms19WindowShapingReport*;
     _ZNK[RO]9gui_forms20AllocationStatistics*;
     _ZNK[RO]9gui_forms20AnchoredOverlayLayer*;
     _ZNK[RO]9gui_forms20ApplicationResources*;
@@ -8541,6 +8559,7 @@
     _ZN[KRO]9gui_forms15VirtualRowPaint*;
     _ZN[KRO]9gui_forms15VirtualRowRange*;
     _ZN[KRO]9gui_forms15VirtualRowsView*;
+    _ZN[KRO]9gui_forms15WindowBandEdges*;
     _ZN[KRO]9gui_forms15WindowChromeHit*;
     _ZN[KRO]9gui_forms15WindowFrameDrag*;
     _ZN[KRO]9gui_forms15WindowOverrides*;
@@ -8763,6 +8782,7 @@
     _ZN[KRO]9gui_forms17VirtualRowsColumn*;
     _ZN[KRO]9gui_forms17VisualInteraction*;
     _ZN[KRO]9gui_forms17WindowBandOptions*;
+    _ZN[KRO]9gui_forms17WindowBandTexture*;
     _ZN[KRO]9gui_forms17XmlSourcePosition*;
     _ZN[KRO]9gui_forms18AbsoluteAxisResult*;
     _ZN[KRO]9gui_forms18AcceleratorOptions*;
@@ -8873,6 +8893,7 @@
     _ZN[KRO]9gui_forms18WindowBandSnapshot*;
     _ZN[KRO]9gui_forms18WindowChromeFields*;
     _ZN[KRO]9gui_forms18WindowCornerReport*;
+    _ZN[KRO]9gui_forms18WindowCornerShapes*;
     _ZN[KRO]9gui_forms19BackdropDeclaration*;
     _ZN[KRO]9gui_forms19BindingConvertEvent*;
     _ZN[KRO]9gui_forms19BindingNotification*;
@@ -8969,6 +8990,7 @@
     _ZN[KRO]9gui_forms19TreeSelectionChange*;
     _ZN[KRO]9gui_forms19VirtualRowSelection*;
     _ZN[KRO]9gui_forms19WindowBackdropGrant*;
+    _ZN[KRO]9gui_forms19WindowShapingReport*;
     _ZN[KRO]9gui_forms20AllocationStatistics*;
     _ZN[KRO]9gui_forms20AnchoredOverlayLayer*;
     _ZN[KRO]9gui_forms20ApplicationResources*;
@@ -10137,6 +10159,7 @@
     _ZT[VIST]N9gui_forms15VirtualRowPaint*E;
     _ZT[VIST]N9gui_forms15VirtualRowRange*E;
     _ZT[VIST]N9gui_forms15VirtualRowsView*E;
+    _ZT[VIST]N9gui_forms15WindowBandEdges*E;
     _ZT[VIST]N9gui_forms15WindowChromeHit*E;
     _ZT[VIST]N9gui_forms15WindowFrameDrag*E;
     _ZT[VIST]N9gui_forms15WindowOverrides*E;
@@ -10359,6 +10382,7 @@
     _ZT[VIST]N9gui_forms17VirtualRowsColumn*E;
     _ZT[VIST]N9gui_forms17VisualInteraction*E;
     _ZT[VIST]N9gui_forms17WindowBandOptions*E;
+    _ZT[VIST]N9gui_forms17WindowBandTexture*E;
     _ZT[VIST]N9gui_forms17XmlSourcePosition*E;
     _ZT[VIST]N9gui_forms18AbsoluteAxisResult*E;
     _ZT[VIST]N9gui_forms18AcceleratorOptions*E;
@@ -10469,6 +10493,7 @@
     _ZT[VIST]N9gui_forms18WindowBandSnapshot*E;
     _ZT[VIST]N9gui_forms18WindowChromeFields*E;
     _ZT[VIST]N9gui_forms18WindowCornerReport*E;
+    _ZT[VIST]N9gui_forms18WindowCornerShapes*E;
     _ZT[VIST]N9gui_forms19BackdropDeclaration*E;
     _ZT[VIST]N9gui_forms19BindingConvertEvent*E;
     _ZT[VIST]N9gui_forms19BindingNotification*E;
@@ -10565,6 +10590,7 @@
     _ZT[VIST]N9gui_forms19TreeSelectionChange*E;
     _ZT[VIST]N9gui_forms19VirtualRowSelection*E;
     _ZT[VIST]N9gui_forms19WindowBackdropGrant*E;
+    _ZT[VIST]N9gui_forms19WindowShapingReport*E;
     _ZT[VIST]N9gui_forms20AllocationStatistics*E;
     _ZT[VIST]N9gui_forms20AnchoredOverlayLayer*E;
     _ZT[VIST]N9gui_forms20ApplicationResources*E;
@@ -11733,6 +11759,7 @@
     _ZT[hvc]*9gui_forms15VirtualRowPaint*;
     _ZT[hvc]*9gui_forms15VirtualRowRange*;
     _ZT[hvc]*9gui_forms15VirtualRowsView*;
+    _ZT[hvc]*9gui_forms15WindowBandEdges*;
     _ZT[hvc]*9gui_forms15WindowChromeHit*;
     _ZT[hvc]*9gui_forms15WindowFrameDrag*;
     _ZT[hvc]*9gui_forms15WindowOverrides*;
@@ -11955,6 +11982,7 @@
     _ZT[hvc]*9gui_forms17VirtualRowsColumn*;
     _ZT[hvc]*9gui_forms17VisualInteraction*;
     _ZT[hvc]*9gui_forms17WindowBandOptions*;
+    _ZT[hvc]*9gui_forms17WindowBandTexture*;
     _ZT[hvc]*9gui_forms17XmlSourcePosition*;
     _ZT[hvc]*9gui_forms18AbsoluteAxisResult*;
     _ZT[hvc]*9gui_forms18AcceleratorOptions*;
@@ -12065,6 +12093,7 @@
     _ZT[hvc]*9gui_forms18WindowBandSnapshot*;
     _ZT[hvc]*9gui_forms18WindowChromeFields*;
     _ZT[hvc]*9gui_forms18WindowCornerReport*;
+    _ZT[hvc]*9gui_forms18WindowCornerShapes*;
     _ZT[hvc]*9gui_forms19BackdropDeclaration*;
     _ZT[hvc]*9gui_forms19BindingConvertEvent*;
     _ZT[hvc]*9gui_forms19BindingNotification*;
@@ -12161,6 +12190,7 @@
     _ZT[hvc]*9gui_forms19TreeSelectionChange*;
     _ZT[hvc]*9gui_forms19VirtualRowSelection*;
     _ZT[hvc]*9gui_forms19WindowBackdropGrant*;
+    _ZT[hvc]*9gui_forms19WindowShapingReport*;
     _ZT[hvc]*9gui_forms20AllocationStatistics*;
     _ZT[hvc]*9gui_forms20AnchoredOverlayLayer*;
     _ZT[hvc]*9gui_forms20ApplicationResources*;
@@ -13329,6 +13359,7 @@
     _ZZN9gui_forms15VirtualRowPaint*;
     _ZZN9gui_forms15VirtualRowRange*;
     _ZZN9gui_forms15VirtualRowsView*;
+    _ZZN9gui_forms15WindowBandEdges*;
     _ZZN9gui_forms15WindowChromeHit*;
     _ZZN9gui_forms15WindowFrameDrag*;
     _ZZN9gui_forms15WindowOverrides*;
@@ -13551,6 +13582,7 @@
     _ZZN9gui_forms17VirtualRowsColumn*;
     _ZZN9gui_forms17VisualInteraction*;
     _ZZN9gui_forms17WindowBandOptions*;
+    _ZZN9gui_forms17WindowBandTexture*;
     _ZZN9gui_forms17XmlSourcePosition*;
     _ZZN9gui_forms18AbsoluteAxisResult*;
     _ZZN9gui_forms18AcceleratorOptions*;
@@ -13661,6 +13693,7 @@
     _ZZN9gui_forms18WindowBandSnapshot*;
     _ZZN9gui_forms18WindowChromeFields*;
     _ZZN9gui_forms18WindowCornerReport*;
+    _ZZN9gui_forms18WindowCornerShapes*;
     _ZZN9gui_forms19BackdropDeclaration*;
     _ZZN9gui_forms19BindingConvertEvent*;
     _ZZN9gui_forms19BindingNotification*;
@@ -13757,6 +13790,7 @@
     _ZZN9gui_forms19TreeSelectionChange*;
     _ZZN9gui_forms19VirtualRowSelection*;
     _ZZN9gui_forms19WindowBackdropGrant*;
+    _ZZN9gui_forms19WindowShapingReport*;
     _ZZN9gui_forms20AllocationStatistics*;
     _ZZN9gui_forms20AnchoredOverlayLayer*;
     _ZZN9gui_forms20ApplicationResources*;
@@ -14925,6 +14959,7 @@
     _ZZNK9gui_forms15VirtualRowPaint*;
     _ZZNK9gui_forms15VirtualRowRange*;
     _ZZNK9gui_forms15VirtualRowsView*;
+    _ZZNK9gui_forms15WindowBandEdges*;
     _ZZNK9gui_forms15WindowChromeHit*;
     _ZZNK9gui_forms15WindowFrameDrag*;
     _ZZNK9gui_forms15WindowOverrides*;
@@ -15147,6 +15182,7 @@
     _ZZNK9gui_forms17VirtualRowsColumn*;
     _ZZNK9gui_forms17VisualInteraction*;
     _ZZNK9gui_forms17WindowBandOptions*;
+    _ZZNK9gui_forms17WindowBandTexture*;
     _ZZNK9gui_forms17XmlSourcePosition*;
     _ZZNK9gui_forms18AbsoluteAxisResult*;
     _ZZNK9gui_forms18AcceleratorOptions*;
@@ -15257,6 +15293,7 @@
     _ZZNK9gui_forms18WindowBandSnapshot*;
     _ZZNK9gui_forms18WindowChromeFields*;
     _ZZNK9gui_forms18WindowCornerReport*;
+    _ZZNK9gui_forms18WindowCornerShapes*;
     _ZZNK9gui_forms19BackdropDeclaration*;
     _ZZNK9gui_forms19BindingConvertEvent*;
     _ZZNK9gui_forms19BindingNotification*;
@@ -15353,6 +15390,7 @@
     _ZZNK9gui_forms19TreeSelectionChange*;
     _ZZNK9gui_forms19VirtualRowSelection*;
     _ZZNK9gui_forms19WindowBackdropGrant*;
+    _ZZNK9gui_forms19WindowShapingReport*;
     _ZZNK9gui_forms20AllocationStatistics*;
     _ZZNK9gui_forms20AnchoredOverlayLayer*;
     _ZZNK9gui_forms20ApplicationResources*;

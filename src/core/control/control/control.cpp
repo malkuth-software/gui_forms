@@ -489,6 +489,73 @@ void Control::set_back_color_property_value(const BindingValue& value) {
     back_color = std::get<Color>(value);
 }
 
+std::shared_ptr<const PropertyEnumDescriptor> Control::active_border_motion_property_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+        PropertyEnumDescriptor{"active_border_motion", {{"steady", 0}, {"flashing", 1}, {"cycling", 2}}, false});
+    return value;
+}
+
+BindingValue Control::active_border_property_value(RegisteredProperty property) const {
+    const std::optional<ActiveBorder> current = active_border();
+    const ActiveBorder border = current.value_or(ActiveBorder{});
+    switch (property) {
+    case RegisteredProperty::active_border: return BindingValue{current.has_value()};
+    case RegisteredProperty::active_border_color:
+        if (!border.colour) return BindingValue{};
+        return BindingValue{*border.colour};
+    case RegisteredProperty::active_border_alternate_color:
+        if (!border.alternate) return BindingValue{};
+        return BindingValue{*border.alternate};
+    case RegisteredProperty::active_border_width: return BindingValue{border.width};
+    case RegisteredProperty::active_border_offset: return BindingValue{border.offset};
+    case RegisteredProperty::active_border_corner_radius: return BindingValue{border.corner_radius};
+    case RegisteredProperty::active_border_motion:
+        return current_enum_property_value(active_border_motion_property_enum(),
+                                           static_cast<std::int64_t>(border.motion));
+    case RegisteredProperty::active_border_frequency: return BindingValue{border.frequency};
+    default: break;
+    }
+    throw std::logic_error("GUI.Forms property is not a control border property");
+}
+
+void Control::set_active_border_property_value(RegisteredProperty property, const BindingValue& value) {
+    if (property == RegisteredProperty::active_border) {
+        const bool shown = std::get<bool>(value);
+        if (!shown) {
+            set_active_border(std::nullopt);
+            return;
+        }
+        set_active_border(active_border().value_or(ActiveBorder{}));
+        return;
+    }
+    ActiveBorder border = active_border().value_or(ActiveBorder{});
+    const bool cleared = std::holds_alternative<std::monostate>(value);
+    switch (property) {
+    case RegisteredProperty::active_border_color:
+        border.colour = cleared ? std::optional<Color>{} : std::optional<Color>{std::get<Color>(value)};
+        break;
+    case RegisteredProperty::active_border_alternate_color:
+        border.alternate = cleared ? std::optional<Color>{} : std::optional<Color>{std::get<Color>(value)};
+        break;
+    case RegisteredProperty::active_border_width: border.width = std::get<double>(value); break;
+    case RegisteredProperty::active_border_offset: border.offset = std::get<double>(value); break;
+    case RegisteredProperty::active_border_corner_radius: border.corner_radius = std::get<double>(value); break;
+    case RegisteredProperty::active_border_motion: {
+        const std::int64_t chosen = std::get<PropertyEnumValue>(value).value;
+        if (chosen < 0 || chosen > static_cast<std::int64_t>(ActiveBorderMotion::cycling)) {
+            throw std::invalid_argument("GUI.Forms active border motion is not steady, flashing or cycling");
+        }
+        border.motion = static_cast<ActiveBorderMotion>(chosen);
+        break;
+    }
+    case RegisteredProperty::active_border_frequency: border.frequency = std::get<double>(value); break;
+    default: throw std::logic_error("GUI.Forms property is not a control border property");
+    }
+    // set_active_border validates the whole border before it changes
+    // anything.
+    set_active_border(border);
+}
+
 BindingValue Control::fore_color_property_value() const {
     if (!fore_color.read()) {
         return BindingValue{};
@@ -1038,6 +1105,104 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         bounds.bindable = false;
         return bounds;
     }
+    case RegisteredProperty::active_border: {
+        PropertyDescriptor active_border;
+        active_border.name = "active_border";
+        active_border.kind = BindingValueKind::boolean;
+        active_border.category = "Appearance";
+        active_border.description =
+            "Whether the control carries a border (the control border): presentation only, outside its box by "
+            "default, never laid out or hit.";
+        active_border.default_value = BindingValue{false};
+        active_border.invalidation_effects = Dirty::paint;
+        active_border.bindable = false;
+        return active_border;
+    }
+    case RegisteredProperty::active_border_color: {
+        PropertyDescriptor colour;
+        colour.name = "active_border_color";
+        colour.kind = BindingValueKind::color;
+        colour.category = "Appearance";
+        colour.description = "The border's lit colour; null takes the theme's accent. Writing it shows the border.";
+        colour.invalidation_effects = Dirty::paint;
+        colour.nullable = true;
+        colour.bindable = false;
+        return colour;
+    }
+    case RegisteredProperty::active_border_alternate_color: {
+        PropertyDescriptor alternate;
+        alternate.name = "active_border_alternate_color";
+        alternate.kind = BindingValueKind::color;
+        alternate.category = "Appearance";
+        alternate.description =
+            "The colour a flash or cycle moves to; null is the lit colour made transparent. Writing it shows the "
+            "border.";
+        alternate.invalidation_effects = Dirty::paint;
+        alternate.nullable = true;
+        alternate.bindable = false;
+        return alternate;
+    }
+    case RegisteredProperty::active_border_width: {
+        PropertyDescriptor width;
+        width.name = "active_border_width";
+        width.kind = BindingValueKind::number;
+        width.category = "Appearance";
+        width.description = "The border's width in logical units, above 0 and at most 8. Writing it shows the border.";
+        width.default_value = BindingValue{ActiveBorder{}.width};
+        width.invalidation_effects = Dirty::paint;
+        width.bindable = false;
+        return width;
+    }
+    case RegisteredProperty::active_border_offset: {
+        PropertyDescriptor offset;
+        offset.name = "active_border_offset";
+        offset.kind = BindingValueKind::number;
+        offset.category = "Appearance";
+        offset.description =
+            "The gap between the box and the border's inner edge, within 8 either way (negative draws inside). "
+            "Writing it shows the border.";
+        offset.default_value = BindingValue{ActiveBorder{}.offset};
+        offset.invalidation_effects = Dirty::paint;
+        offset.bindable = false;
+        return offset;
+    }
+    case RegisteredProperty::active_border_corner_radius: {
+        PropertyDescriptor radius;
+        radius.name = "active_border_corner_radius";
+        radius.kind = BindingValueKind::number;
+        radius.category = "Appearance";
+        radius.description = "The box's corner radius the border follows, 0 to 64. Writing it shows the border.";
+        radius.default_value = BindingValue{ActiveBorder{}.corner_radius};
+        radius.invalidation_effects = Dirty::paint;
+        radius.bindable = false;
+        return radius;
+    }
+    case RegisteredProperty::active_border_motion: {
+        PropertyDescriptor motion;
+        motion.name = "active_border_motion";
+        motion.kind = BindingValueKind::enumeration;
+        motion.category = "Appearance";
+        motion.description =
+            "Steady, flashing or cycling, under the engine's limiter (at most 1.5 cycles a second, no red flash, "
+            "still under reduced motion). Writing it shows the border.";
+        motion.default_value = BindingValue{PropertyEnumValue{"active_border_motion", "steady", 0}};
+        motion.invalidation_effects = Dirty::paint;
+        motion.enumeration = active_border_motion_property_enum();
+        motion.bindable = false;
+        return motion;
+    }
+    case RegisteredProperty::active_border_frequency: {
+        PropertyDescriptor frequency;
+        frequency.name = "active_border_frequency";
+        frequency.kind = BindingValueKind::number;
+        frequency.category = "Appearance";
+        frequency.description =
+            "Cycles a second of a flash or cycle, at least 0; the limiter lowers it. Writing it shows the border.";
+        frequency.default_value = BindingValue{ActiveBorder{}.frequency};
+        frequency.invalidation_effects = Dirty::paint;
+        frequency.bindable = false;
+        return frequency;
+    }
     case RegisteredProperty::auto_scroll_offset: {
         PropertyDescriptor auto_scroll_offset;
         auto_scroll_offset.name = "auto_scroll_offset";
@@ -1063,16 +1228,18 @@ const PropertyDescriptor& Control::describe_registered() {
                                    Property == RegisteredProperty::auto_size ||
                                    Property == RegisteredProperty::causes_validation ||
                                    Property == RegisteredProperty::tool_tip_text;
-    // Every table property but these four is a capability cell of its name
-    // whose setter (RegisteredPropertySetter) is the cell's assignment; these
-    // six are not: bounds and auto_scroll_offset are structural slots, and four
-    // convert through a named setter (presentation values and the cursor).
+    // Every table property but these is a capability cell of its name whose
+    // setter (RegisteredPropertySetter) is the cell's assignment: bounds and
+    // auto_scroll_offset are structural slots, four convert through a named
+    // setter (presentation values and the cursor), and the control border's
+    // go through set_active_border.
     constexpr bool assignable = Property != RegisteredProperty::bounds &&
                                 Property != RegisteredProperty::auto_scroll_offset &&
                                 Property != RegisteredProperty::cursor &&
                                 Property != RegisteredProperty::classes &&
                                 Property != RegisteredProperty::back_color &&
-                                Property != RegisteredProperty::fore_color;
+                                Property != RegisteredProperty::fore_color &&
+                                !active_border_property(Property);
     static const PropertyDescriptor descriptor = property_table_descriptor(
         assignable_descriptor(registered_descriptor(Property), assignable),
         PropertyOperations{true, true, resettable, raises_change});
@@ -1128,6 +1295,32 @@ PropertyValueOrigin name_origin(const Component& owner) {
 }
 
 } // namespace
+
+template <Control::RegisteredProperty Property>
+bool Control::active_border_serialized(const Component& owner) {
+    const Control& control = static_cast<const Control&>(owner);
+    const std::optional<ActiveBorder> border = control.active_border();
+    if (!border) return false;
+    const ActiveBorder defaults{};
+    if constexpr (Property == RegisteredProperty::active_border) {
+        return true;
+    } else if constexpr (Property == RegisteredProperty::active_border_color) {
+        return (*border).colour != defaults.colour;
+    } else if constexpr (Property == RegisteredProperty::active_border_alternate_color) {
+        return (*border).alternate != defaults.alternate;
+    } else if constexpr (Property == RegisteredProperty::active_border_width) {
+        return (*border).width != defaults.width;
+    } else if constexpr (Property == RegisteredProperty::active_border_offset) {
+        return (*border).offset != defaults.offset;
+    } else if constexpr (Property == RegisteredProperty::active_border_corner_radius) {
+        return (*border).corner_radius != defaults.corner_radius;
+    } else if constexpr (Property == RegisteredProperty::active_border_motion) {
+        return (*border).motion != defaults.motion;
+    } else {
+        static_assert(Property == RegisteredProperty::active_border_frequency);
+        return (*border).frequency != defaults.frequency;
+    }
+}
 
 const std::array<PropertyEntry, Control::control_property_count>& Control::control_property_entries() noexcept {
     static constexpr std::array<PropertyEntry, control_property_count> entries{{
@@ -1199,6 +1392,30 @@ const std::array<PropertyEntry, Control::control_property_count>& Control::contr
          &write_registered<RegisteredProperty::help>, nullptr, nullptr, nullptr, nullptr},
         {"keywords", &describe_registered<RegisteredProperty::keywords>, &read_registered<RegisteredProperty::keywords>,
          &write_registered<RegisteredProperty::keywords>, nullptr, nullptr, nullptr, nullptr},
+        {"active_border", &describe_registered<RegisteredProperty::active_border>,
+         &read_registered<RegisteredProperty::active_border>, &write_registered<RegisteredProperty::active_border>,
+         nullptr, &active_border_serialized<RegisteredProperty::active_border>, nullptr, nullptr},
+        {"active_border_color", &describe_registered<RegisteredProperty::active_border_color>,
+         &read_registered<RegisteredProperty::active_border_color>, &write_registered<RegisteredProperty::active_border_color>, nullptr,
+         &active_border_serialized<RegisteredProperty::active_border_color>, nullptr, nullptr},
+        {"active_border_alternate_color", &describe_registered<RegisteredProperty::active_border_alternate_color>,
+         &read_registered<RegisteredProperty::active_border_alternate_color>, &write_registered<RegisteredProperty::active_border_alternate_color>, nullptr,
+         &active_border_serialized<RegisteredProperty::active_border_alternate_color>, nullptr, nullptr},
+        {"active_border_width", &describe_registered<RegisteredProperty::active_border_width>,
+         &read_registered<RegisteredProperty::active_border_width>, &write_registered<RegisteredProperty::active_border_width>, nullptr,
+         &active_border_serialized<RegisteredProperty::active_border_width>, nullptr, nullptr},
+        {"active_border_offset", &describe_registered<RegisteredProperty::active_border_offset>,
+         &read_registered<RegisteredProperty::active_border_offset>, &write_registered<RegisteredProperty::active_border_offset>, nullptr,
+         &active_border_serialized<RegisteredProperty::active_border_offset>, nullptr, nullptr},
+        {"active_border_corner_radius", &describe_registered<RegisteredProperty::active_border_corner_radius>,
+         &read_registered<RegisteredProperty::active_border_corner_radius>, &write_registered<RegisteredProperty::active_border_corner_radius>, nullptr,
+         &active_border_serialized<RegisteredProperty::active_border_corner_radius>, nullptr, nullptr},
+        {"active_border_motion", &describe_registered<RegisteredProperty::active_border_motion>,
+         &read_registered<RegisteredProperty::active_border_motion>, &write_registered<RegisteredProperty::active_border_motion>, nullptr,
+         &active_border_serialized<RegisteredProperty::active_border_motion>, nullptr, nullptr},
+        {"active_border_frequency", &describe_registered<RegisteredProperty::active_border_frequency>,
+         &read_registered<RegisteredProperty::active_border_frequency>, &write_registered<RegisteredProperty::active_border_frequency>, nullptr,
+         &active_border_serialized<RegisteredProperty::active_border_frequency>, nullptr, nullptr},
     }};
     static_assert(property_names_distinct(entries), "Control's property table names a property twice");
     return entries;

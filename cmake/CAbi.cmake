@@ -203,6 +203,7 @@ add_library(gui_forms_abi_conformance_kit STATIC
     tests/abi/conformance/gf_conformance_bindings.c
     tests/abi/conformance/gf_conformance_callbacks.c
     tests/abi/conformance/gf_conformance_classes.c
+    tests/abi/conformance/gf_conformance_band.c
     tests/abi/conformance/gf_conformance_content.c
     tests/abi/conformance/gf_conformance_create.c
     tests/abi/conformance/gf_conformance_custom.c

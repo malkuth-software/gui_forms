@@ -280,8 +280,10 @@ void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool wid
     if (base_band) {
         // The outer band moves with the edges too, its rounded corners
         // reaching in by their radius.
-        double reach = std::max(*base_band, band_.reserved);
-        if (band_.reserved > 0.0 && band_.corners.shape == WindowCornerShape::rounded) {
+        const Insets& band = band_.reserved;
+        const double widest = std::max(std::max(band.left, band.top), std::max(band.right, band.bottom));
+        double reach = std::max(*base_band, widest);
+        if (widest > 0.0 && band_.corners.shape == WindowCornerShape::rounded) {
             reach = std::max(reach, band_.corners.radius);
         }
         const DamageCauseScope cause(*this, InvalidationCause::layout, root_.get());
@@ -299,10 +301,11 @@ Rect SurfaceRoot::root_slot() const noexcept {
     // The outer band lies along the client area's edges; the chrome insets
     // are measured inside it.
     const Insets& insets = chrome_insets_;
-    const double band = band_.reserved;
-    const double width = client_size_.width - insets.left - insets.right - 2.0 * band;
-    const double height = client_size_.height - insets.top - insets.bottom - 2.0 * band;
-    const Rect slot{band + insets.left, band + insets.top, width > 0.0 ? width : 0.0, height > 0.0 ? height : 0.0};
+    const Insets& band = band_.reserved;
+    const double width = client_size_.width - insets.left - insets.right - band.left - band.right;
+    const double height = client_size_.height - insets.top - insets.bottom - band.top - band.bottom;
+    const Rect slot{band.left + insets.left, band.top + insets.top, width > 0.0 ? width : 0.0,
+                    height > 0.0 ? height : 0.0};
     return slot;
 }
 

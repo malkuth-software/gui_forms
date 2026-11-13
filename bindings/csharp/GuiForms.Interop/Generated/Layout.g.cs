@@ -272,9 +272,66 @@ public static unsafe class Layout
             failures += expect(output, "gf_owned_window_options.closed offset", (long)((byte*)&value.closed - start), 64);
         }
         {
+            gf_window_band_options value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_window_band_options size", sizeof(gf_window_band_options), 56);
+            failures += expect(output, "gf_window_band_options.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_window_band_options.flags offset", (long)((byte*)&value.flags - start), 4);
+            failures += expect(output, "gf_window_band_options.full_screen offset", (long)((byte*)&value.full_screen - start), 8);
+            failures += expect(output, "gf_window_band_options.reserved offset", (long)((byte*)&value.reserved - start), 12);
+            failures += expect(output, "gf_window_band_options.width offset", (long)((byte*)&value.width - start), 16);
+            failures += expect(output, "gf_window_band_options.edges offset", (long)((byte*)&value.edges - start), 24);
+        }
+        {
+            gf_window_band_appearance value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_window_band_appearance size", sizeof(gf_window_band_appearance), 80);
+            failures += expect(output, "gf_window_band_appearance.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_window_band_appearance.state offset", (long)((byte*)&value.state - start), 4);
+            failures += expect(output, "gf_window_band_appearance.flags offset", (long)((byte*)&value.flags - start), 8);
+            failures += expect(output, "gf_window_band_appearance.lit_role offset", (long)((byte*)&value.lit_role - start), 12);
+            failures += expect(output, "gf_window_band_appearance.rest_colour offset", (long)((byte*)&value.rest_colour - start), 16);
+            failures += expect(output, "gf_window_band_appearance.lit_colour offset", (long)((byte*)&value.lit_colour - start), 20);
+            failures += expect(output, "gf_window_band_appearance.frequency offset", (long)((byte*)&value.frequency - start), 24);
+            failures += expect(output, "gf_window_band_appearance.texture offset", (long)((byte*)&value.texture - start), 32);
+            failures += expect(output, "gf_window_band_appearance.texture_kind offset", (long)((byte*)&value.texture_kind - start), 36);
+            failures += expect(output, "gf_window_band_appearance.texture_seed offset", (long)((byte*)&value.texture_seed - start), 40);
+            failures += expect(output, "gf_window_band_appearance.texture_primary offset", (long)((byte*)&value.texture_primary - start), 44);
+            failures += expect(output, "gf_window_band_appearance.texture_secondary offset", (long)((byte*)&value.texture_secondary - start), 48);
+            failures += expect(output, "gf_window_band_appearance.reserved offset", (long)((byte*)&value.reserved - start), 52);
+            failures += expect(output, "gf_window_band_appearance.texture_tile offset", (long)((byte*)&value.texture_tile - start), 56);
+            failures += expect(output, "gf_window_band_appearance.texture_strength offset", (long)((byte*)&value.texture_strength - start), 64);
+            failures += expect(output, "gf_window_band_appearance.texture_opacity offset", (long)((byte*)&value.texture_opacity - start), 72);
+        }
+        {
+            gf_window_band_report value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_window_band_report size", sizeof(gf_window_band_report), 72);
+            failures += expect(output, "gf_window_band_report.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_window_band_report.status offset", (long)((byte*)&value.status - start), 4);
+            failures += expect(output, "gf_window_band_report.edges offset", (long)((byte*)&value.edges - start), 8);
+            failures += expect(output, "gf_window_band_report.drawn_colour offset", (long)((byte*)&value.drawn_colour - start), 40);
+            failures += expect(output, "gf_window_band_report.full_screen offset", (long)((byte*)&value.full_screen - start), 44);
+            failures += expect(output, "gf_window_band_report.frequency offset", (long)((byte*)&value.frequency - start), 48);
+            failures += expect(output, "gf_window_band_report.flash_changes offset", (long)((byte*)&value.flash_changes - start), 56);
+            failures += expect(output, "gf_window_band_report.cycle_frames offset", (long)((byte*)&value.cycle_frames - start), 64);
+        }
+        {
+            gf_window_shaping value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_window_shaping size", sizeof(gf_window_shaping), 32);
+            failures += expect(output, "gf_window_shaping.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_window_shaping.flags offset", (long)((byte*)&value.flags - start), 4);
+            failures += expect(output, "gf_window_shaping.preference offset", (long)((byte*)&value.preference - start), 8);
+            failures += expect(output, "gf_window_shaping.corner_shapes offset", (long)((byte*)&value.corner_shapes - start), 12);
+            failures += expect(output, "gf_window_shaping.corner_shape offset", (long)((byte*)&value.corner_shape - start), 16);
+            failures += expect(output, "gf_window_shaping.reserved offset", (long)((byte*)&value.reserved - start), 20);
+            failures += expect(output, "gf_window_shaping.corner_radius offset", (long)((byte*)&value.corner_radius - start), 24);
+        }
+        {
             gf_windows_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 96);
+            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 152);
             failures += expect(output, "gf_windows_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_windows_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_windows_table.run offset", (long)((byte*)&value.run - start), 8);
@@ -288,6 +345,13 @@ public static unsafe class Layout
             failures += expect(output, "gf_windows_table.show_owned offset", (long)((byte*)&value.show_owned - start), 72);
             failures += expect(output, "gf_windows_table.window_properties offset", (long)((byte*)&value.window_properties - start), 80);
             failures += expect(output, "gf_windows_table.focused_control offset", (long)((byte*)&value.focused_control - start), 88);
+            failures += expect(output, "gf_windows_table.declare_band offset", (long)((byte*)&value.declare_band - start), 96);
+            failures += expect(output, "gf_windows_table.undeclare_band offset", (long)((byte*)&value.undeclare_band - start), 104);
+            failures += expect(output, "gf_windows_table.set_band_appearance offset", (long)((byte*)&value.set_band_appearance - start), 112);
+            failures += expect(output, "gf_windows_table.band_report offset", (long)((byte*)&value.band_report - start), 120);
+            failures += expect(output, "gf_windows_table.set_corner_preference offset", (long)((byte*)&value.set_corner_preference - start), 128);
+            failures += expect(output, "gf_windows_table.content_rect offset", (long)((byte*)&value.content_rect - start), 136);
+            failures += expect(output, "gf_windows_table.shaping offset", (long)((byte*)&value.shaping - start), 144);
         }
         {
             gf_schema_type value = default;

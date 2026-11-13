@@ -58,9 +58,15 @@ HostCapabilities macos_capabilities() {
                 HostCapability::compositor_notifications |
                 HostCapability::presentation_preferences |
                 HostCapability::transient_surfaces |
+                // Corners are reported, never shaped: AppKit has no public
+                // corner API, so the report is square in full screen and for
+                // a borderless window, and unknown otherwise
+                // (apply_window_corners_impl in appkit_host_services.mm).
+                HostCapability::window_corners |
                 HostCapability::window_state_reports |
                 HostCapability::hosted_content,
             macos_key_map()};
+    capabilities.window_corner_shapes = WindowCornerShapes{true, false};
     // locale: the user's locale and calendar from CoreFoundation, the
     // formats chosen in System Settings included (read_macos_locale).
     const std::optional<HostLocale> locale = read_macos_locale();

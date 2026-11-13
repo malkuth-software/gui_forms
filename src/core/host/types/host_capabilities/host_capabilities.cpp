@@ -97,7 +97,9 @@ std::string HostCapabilities::to_json() const {
         append_chord(output, binding.secondary, binding.primary.empty());
         output << ']';
     }
-    output << "},\"locale\":" << host_locale_json(locale) << '}';
+    output << "},\"locale\":" << host_locale_json(locale);
+    output << ",\"window_corner_shapes\":{\"square\":" << (window_corner_shapes.square ? "true" : "false")
+           << ",\"rounded\":" << (window_corner_shapes.rounded ? "true" : "false") << "}}";
     return output.str();
 }
 

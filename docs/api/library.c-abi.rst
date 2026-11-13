@@ -382,6 +382,14 @@ Types
      - gf_utf8_view (C ABI 1) borrows size bytes of UTF-8 text, not terminated; the callee copies what it keeps.
    * - :cpp:class:`gf_value <gf_value>`
      -  
+   * - :cpp:class:`gf_window_band_appearance <gf_window_band_appearance>`
+     -  
+   * - :cpp:class:`gf_window_band_options <gf_window_band_options>`
+     -  
+   * - :cpp:class:`gf_window_band_report <gf_window_band_report>`
+     -  
+   * - :cpp:class:`gf_window_shaping <gf_window_shaping>`
+     -  
    * - :cpp:class:`gf_windows_paint_endpoint_table <gf_windows_paint_endpoint_table>`
      -  
    * - :cpp:class:`gf_windows_table <gf_windows_table>`
@@ -4742,6 +4750,104 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_window_band_appearance
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_window_band_state state
+
+   .. cpp:member:: gf_window_band_appearance_flags flags
+
+   .. cpp:member:: gf_window_band_role lit_role
+
+   .. cpp:member:: uint32_t rest_colour
+
+   .. cpp:member:: uint32_t lit_colour
+
+   .. cpp:member:: double frequency
+
+   .. cpp:member:: gf_window_band_texture texture
+
+   .. cpp:member:: uint32_t texture_kind
+
+   .. cpp:member:: uint32_t texture_seed
+
+   .. cpp:member:: uint32_t texture_primary
+
+   .. cpp:member:: uint32_t texture_secondary
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: double texture_tile
+
+   .. cpp:member:: double texture_strength
+
+   .. cpp:member:: double texture_opacity
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_window_band_options
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_window_band_flags flags
+
+   .. cpp:member:: gf_window_band_full_screen full_screen
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: gf_logical_insets edges
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_window_band_report
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_window_band_status status
+
+   .. cpp:member:: gf_logical_insets edges
+
+   .. cpp:member:: uint32_t drawn_colour
+
+   .. cpp:member:: gf_window_band_full_screen full_screen
+
+   .. cpp:member:: double frequency
+
+   .. cpp:member:: uint64_t flash_changes
+
+   .. cpp:member:: uint64_t cycle_frames
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_window_shaping
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_window_shaping_flags flags
+
+   .. cpp:member:: gf_window_corner_preference preference
+
+   .. cpp:member:: uint32_t corner_shapes
+
+   .. cpp:member:: uint32_t corner_shape
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: double corner_radius
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_windows_paint_endpoint_table
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -4807,6 +4913,20 @@ Types
    .. cpp:member:: gf_status (*window_properties)(gf_object window, gf_window_property_flags* supported, gf_window_property_flags* applied)
 
    .. cpp:member:: gf_status (*focused_control)(gf_object window_or_root, gf_object* control)
+
+   .. cpp:member:: gf_status (*declare_band)(gf_object window, const gf_window_band_options* options)
+
+   .. cpp:member:: gf_status (*undeclare_band)(gf_object window)
+
+   .. cpp:member:: gf_status (*set_band_appearance)(gf_object window, const gf_window_band_appearance* appearance)
+
+   .. cpp:member:: gf_status (*band_report)(gf_object window, gf_window_band_report* report)
+
+   .. cpp:member:: gf_status (*set_corner_preference)(gf_object window, gf_window_corner_preference preference)
+
+   .. cpp:member:: gf_status (*content_rect)(gf_object window, gf_logical_rect* rect)
+
+   .. cpp:member:: gf_status (*shaping)(gf_object window, gf_window_shaping* report)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5571,3 +5691,17 @@ Types
    .. cpp:function:: gf_status window_properties(gf_object window, gf_window_property_flags* supported, gf_window_property_flags* applied) const noexcept
 
    .. cpp:function:: gf_status focused_control(gf_object window_or_root, gf_object* control) const noexcept
+
+   .. cpp:function:: gf_status declare_band(gf_object window, const gf_window_band_options* options) const noexcept
+
+   .. cpp:function:: gf_status undeclare_band(gf_object window) const noexcept
+
+   .. cpp:function:: gf_status band_report(gf_object window, gf_window_band_report* report) const noexcept
+
+   .. cpp:function:: gf_status content_rect(gf_object window, gf_logical_rect* rect) const noexcept
+
+   .. cpp:function:: gf_status shaping(gf_object window, gf_window_shaping* report) const noexcept
+
+   .. cpp:function:: gf_status set_band_appearance(gf_object window, const gf_window_band_appearance* appearance) const noexcept
+
+   .. cpp:function:: gf_status set_corner_preference(gf_object window, gf_window_corner_preference preference) const noexcept

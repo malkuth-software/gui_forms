@@ -4,8 +4,11 @@
 // ambient motion off, high contrast); the colour over time; the stroke's
 // path and reach; and a control carrying one in a headless window: it
 // paints after the content in its own colour, a moving pose runs its timer
-// and a resting one does not, and clearing it ends both.
+// and a resting one does not, and clearing it ends both. The border is
+// also eight registered properties (cp33): active_border and its fields,
+// read and written by name through the property table.
 
+#include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/control/active_border/active_border.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
@@ -24,6 +27,7 @@
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -280,6 +284,71 @@ void control_carries_a_border() {
             "clearing the border ends it");
 }
 
+// The control border through the property table: each field reads the
+// border's (or the default border's), writing one shows the border with
+// that field, active_border false clears it, the colours are nullable, an
+// invalid value is refused whole, and the border serializes only when
+// shown, each field only when it differs from the default.
+void border_properties() {
+    std::shared_ptr<Panel> card = make_control<Panel>(StableId("props.card"));
+    const char* const names[] = {"active_border",        "active_border_color",         "active_border_alternate_color",
+                                 "active_border_width",  "active_border_offset",        "active_border_corner_radius",
+                                 "active_border_motion", "active_border_frequency"};
+    for (const char* name : names) {
+        const std::optional<PropertyDescriptor> descriptor = (*card).property_descriptor(name);
+        require(descriptor.has_value() && (*descriptor).category == "Appearance" && !(*descriptor).bindable,
+                "each border property is registered, in Appearance, not bindable");
+        require(!(*card).should_serialize_property(name), "nothing serializes without a border");
+    }
+    require((*(*card).property_descriptor("active_border_color")).nullable, "the lit colour is nullable");
+    const std::optional<PropertyDescriptor> motion = (*card).property_descriptor("active_border_motion");
+    require((*motion).kind == BindingValueKind::enumeration && (*motion).enumeration != nullptr &&
+                (*(*motion).enumeration).choices.size() == 3U,
+            "the motion is an enumeration of steady, flashing and cycling");
+
+    require((*card).property_value("active_border") == BindingValue{false}, "no border at first");
+    require((*card).property_value("active_border_width") == BindingValue{2.0}, "a field reads the default border's");
+    require((*card).property_value("active_border_color") == BindingValue{}, "no colour reads null");
+
+    (*card).set_property_value("active_border_width", BindingValue{3.0});
+    require((*card).active_border().has_value() && near((*(*card).active_border()).width, 3.0),
+            "writing a field shows the border with that field");
+    require((*card).property_value("active_border") == BindingValue{true}, "and active_border reads true");
+    require((*card).should_serialize_property("active_border") &&
+                (*card).should_serialize_property("active_border_width") &&
+                !(*card).should_serialize_property("active_border_offset"),
+            "shown, the border and its changed fields serialize");
+
+    const Color teal = Color::rgba(0, 128, 128);
+    (*card).set_property_value("active_border_color", BindingValue{teal});
+    (*card).set_property_value("active_border_motion",
+                               BindingValue{PropertyEnumValue{"active_border_motion", "cycling", 2}});
+    (*card).set_property_value("active_border_frequency", BindingValue{0.5});
+    const ActiveBorder written = *(*card).active_border();
+    require(written.colour == teal && written.motion == ActiveBorderMotion::cycling && near(written.frequency, 0.5) &&
+                near(written.width, 3.0),
+            "each write keeps the other fields");
+    require((*card).property_value("active_border_color") == BindingValue{teal}, "the colour reads back");
+    const std::optional<BindingValue> read_motion = (*card).property_value("active_border_motion");
+    require(read_motion && std::get<PropertyEnumValue>(*read_motion).name == "cycling", "the motion reads back");
+    (*card).set_property_value("active_border_color", BindingValue{});
+    require(!(*(*card).active_border()).colour.has_value(), "null clears the colour to the theme's");
+
+    bool refused = false;
+    try {
+        (*card).set_property_value("active_border_width", BindingValue{20.0});
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && near((*(*card).active_border()).width, 3.0), "a width past 8 is refused, nothing changed");
+
+    (*card).set_property_value("active_border", BindingValue{false});
+    require(!(*card).active_border().has_value(), "active_border false clears the border");
+    (*card).set_property_value("active_border", BindingValue{true});
+    require((*card).active_border() == std::optional<ActiveBorder>{ActiveBorder{}},
+            "active_border true shows the default border");
+}
+
 } // namespace
 
 int main() {
@@ -288,7 +357,8 @@ int main() {
     colour_over_time();
     path_and_reach();
     control_carries_a_border();
+    border_properties();
     std::cout << "active border: validation, the flash limiter and rest poses, colour over time, path and reach, "
-                 "and a control carrying one passed\n";
+                 "a control carrying one, and its properties passed\n";
     return EXIT_SUCCESS;
 }

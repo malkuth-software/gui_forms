@@ -499,6 +499,40 @@ protected:
         return applied;
     }
 
+    // The window's corners, reported and never shaped (the active border
+    // study, section 3): AppKit has no public API to round or square a
+    // window, and none that reports the radius it uses. What is known is
+    // reported: a full-screen window and a borderless one have square
+    // corners. A titled window's are rounded by a radius that differs by
+    // release and style, so they are reported unknown and the band draws
+    // square inside them. `complied` says whether the window is as asked:
+    // `system` always, `square` where the corners are square, `round` never
+    // (a rounded titled window is not known to be rounded by a radius the
+    // band could follow).
+    gui_forms::HostWindowCornersResult apply_window_corners_impl(
+        gui_forms::WindowCornerPreference preference) override {
+        gui_forms::HostWindowCornersResult result{};
+        NSView* const view = backdrop_view_;
+        NSWindow* const window = view == nil ? nil : view.window;
+        const bool asked_system = preference == gui_forms::WindowCornerPreference::system;
+        const bool asked_square = preference == gui_forms::WindowCornerPreference::square;
+        if (window == nil) {
+            result.report.complied = asked_system;
+            return result;
+        }
+        const NSWindowStyleMask mask = [window styleMask];
+        const bool full_screen = (mask & NSWindowStyleMaskFullScreen) != 0;
+        const bool borderless = (mask & NSWindowStyleMaskTitled) == 0;
+        if (full_screen || borderless) {
+            result.report.shape = gui_forms::WindowCornerShape::square;
+            result.report.complied = asked_system || asked_square;
+        } else {
+            result.report.shape = gui_forms::WindowCornerShape::unknown;
+            result.report.complied = asked_system;
+        }
+        return result;
+    }
+
     // Window's chrome properties on this window. macOS has no per-window
     // icon (the Dock shows the application's) and no taskbar button, so
     // Icon and ShowInTaskbar are unsupported. A tool window frame is the

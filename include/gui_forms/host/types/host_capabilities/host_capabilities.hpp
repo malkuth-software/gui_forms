@@ -4,6 +4,7 @@
 #include "gui_forms/events/key_commands/key_commands.hpp"
 #include "gui_forms/host/types/host_capability/host_capability.hpp"
 #include "gui_forms/host/types/host_locale/host_locale.hpp"
+#include "gui_forms/window/band/window_band.hpp"
 
 #include <array>
 #include <cstddef>
@@ -66,6 +67,10 @@ struct GUI_FORMS_API HostCapabilities final {
     // HostSession of an application seeds the application's locale with it
     // (ApplicationResources::locale) unless the program set one.
     HostLocale locale{portable_host_locale()};
+    // The corner shapes the host may report with HostCapability::
+    // window_corners (WindowShapingReport): host data, so a host that only
+    // ever reports square corners (macOS) does not claim rounded ones.
+    WindowCornerShapes window_corner_shapes{};
 
     [[nodiscard]] bool supports(HostCapability capability) const noexcept {
         return has_capability(available, capability);

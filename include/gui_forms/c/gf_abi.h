@@ -898,6 +898,193 @@ typedef uint32_t gf_window_property_flags;
 #define GF_WINDOW_PROPERTY_SHOW_IN_TASKBAR 1024u
 #define GF_WINDOW_PROPERTY_MINIMUM_SIZE 2048u
 
+/* The window outer band (since 1.3; the owner's approval of 2026-11-13):
+ * a thin strip a window reserves along the edges of its client area,
+ * drawn above everything the window draws and hitting nothing. Declaring
+ * it reserves its widths at once and lays the window out again; nothing
+ * the band shows afterwards (lit, flashing, cycling, a colour, a texture)
+ * lays anything out: only its strips repaint. Undeclaring it, a scale
+ * change and full screen with GF_WINDOW_BAND_FULL_SCREEN_HIDES are the
+ * other changes that lay the window out again. Widths are logical units,
+ * snapped per edge to whole device pixels (at least one), and at most
+ * gf_host_capabilities.window_band_maximum_width. The content rectangle is
+ * the client area less the reserved band (windows.content_rect).
+ *
+ * gf_window_band_full_screen: whether a declared band keeps its
+ * reservation while the window is full screen (where the host reports it,
+ * GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS). */
+typedef uint32_t gf_window_band_full_screen;
+#define GF_WINDOW_BAND_FULL_SCREEN_STAYS 0u
+#define GF_WINDOW_BAND_FULL_SCREEN_HIDES 1u
+
+/* gf_window_band_flags: how gf_window_band_options gives its widths.
+ * PER_EDGE: edges gives each side's width (0 reserves nothing there) and
+ * width is ignored; without it width is every side's (0 takes the theme's
+ * band width, else one logical unit). */
+typedef uint32_t gf_window_band_flags;
+#define GF_WINDOW_BAND_PER_EDGE 1u
+
+/* A band declaration (windows.declare_band). An input record: struct_size
+ * at least its 1.3 size, 56; reserved is zero. */
+typedef struct gf_window_band_options {
+    uint32_t struct_size;
+    gf_window_band_flags flags;
+    gf_window_band_full_screen full_screen;
+    uint32_t reserved;
+    double width;
+    gf_logical_insets edges;
+} gf_window_band_options;
+
+/* gf_window_band_state: what the band shows. REST draws the rest colour
+ * (transparent unless set, so a resting band is reserved space showing the
+ * window's base or the texture); LIT the lit colour; FLASHING alternates
+ * them; CYCLING blends between them along a cosine, starting lit. The
+ * library's limiter holds every flash and cycle to at most 1 cycle a
+ * second, never flashes a saturated red, and rests the band lit under
+ * reduced motion, with ambient motion off and in an occluded window. High
+ * contrast draws the high-contrast focus colour, solid, untextured. */
+typedef uint32_t gf_window_band_state;
+#define GF_WINDOW_BAND_STATE_REST 0u
+#define GF_WINDOW_BAND_STATE_LIT 1u
+#define GF_WINDOW_BAND_STATE_FLASHING 2u
+#define GF_WINDOW_BAND_STATE_CYCLING 3u
+
+/* gf_window_band_role: the theme colour the band lights in when no lit
+ * colour is given. THEME is the theme's band lit colour, else the focus
+ * ring's; the others are the theme's colours of those names. */
+typedef uint32_t gf_window_band_role;
+#define GF_WINDOW_BAND_ROLE_THEME 0u
+#define GF_WINDOW_BAND_ROLE_FOCUS 1u
+#define GF_WINDOW_BAND_ROLE_ACCENT 2u
+#define GF_WINDOW_BAND_ROLE_ACCENT_LIGHT 3u
+#define GF_WINDOW_BAND_ROLE_TEXT 4u
+#define GF_WINDOW_BAND_ROLE_BORDER 5u
+
+/* gf_window_band_appearance_flags: which colours gf_window_band_appearance
+ * gives; a colour not given is the theme's. */
+typedef uint32_t gf_window_band_appearance_flags;
+#define GF_WINDOW_BAND_REST_COLOUR 1u
+#define GF_WINDOW_BAND_LIT_COLOUR 2u
+
+/* gf_window_band_texture: a texture under the band's colour, one surface
+ * per strip. NONE draws none. PROCEDURAL: texture_kind is a
+ * GF_PROCEDURAL_PATTERN_*, texture_seed its seed, texture_primary and
+ * texture_secondary its ground and figure colours, texture_tile its tile
+ * (2 to 256 logical units) and texture_strength its strength (0 to 1).
+ * FINISH: texture_kind is a GF_FINISH_* (not the glint), texture_seed its
+ * seed (as int32), texture_primary its paint and texture_secondary its
+ * second colour (dust or weft), texture_tile its grain (0.5 to 4) and
+ * texture_strength its relief (0 to 4); its light and sheen are the
+ * library's defaults. texture_opacity is 0 to 1. */
+typedef uint32_t gf_window_band_texture;
+#define GF_WINDOW_BAND_TEXTURE_NONE 0u
+#define GF_WINDOW_BAND_TEXTURE_PROCEDURAL 1u
+#define GF_WINDOW_BAND_TEXTURE_FINISH 2u
+#define GF_PROCEDURAL_PATTERN_FELT 0u
+#define GF_PROCEDURAL_PATTERN_WOOD_GRAIN 1u
+#define GF_PROCEDURAL_PATTERN_PAPER_FIBRE 2u
+#define GF_PROCEDURAL_PATTERN_PINSTRIPE 3u
+#define GF_PROCEDURAL_PATTERN_BRUSHED_METAL 4u
+#define GF_PROCEDURAL_PATTERN_FRESCO 5u
+#define GF_PROCEDURAL_PATTERN_CHECKER 6u
+#define GF_FINISH_DUSTY_MATTE 0u
+#define GF_FINISH_ORANGE_PEEL 1u
+#define GF_FINISH_HAMMERTONE 2u
+#define GF_FINISH_WRINKLE 3u
+#define GF_FINISH_BEAD_BLAST 4u
+#define GF_FINISH_SAND_CAST 5u
+#define GF_FINISH_FLAT 6u
+#define GF_FINISH_CLOTH_WEAVE 7u
+
+/* The band's appearance (windows.set_band_appearance). An input record:
+ * struct_size at least its 1.3 size, 80; reserved is zero. Colours are
+ * 0xRRGGBBAA. frequency is in cycles a second (finite, not negative; 0
+ * holds the band lit), lowered to the limiter's 1. */
+typedef struct gf_window_band_appearance {
+    uint32_t struct_size;
+    gf_window_band_state state;
+    gf_window_band_appearance_flags flags;
+    gf_window_band_role lit_role;
+    uint32_t rest_colour;
+    uint32_t lit_colour;
+    double frequency;
+    gf_window_band_texture texture;
+    uint32_t texture_kind;
+    uint32_t texture_seed;
+    uint32_t texture_primary;
+    uint32_t texture_secondary;
+    uint32_t reserved;
+    double texture_tile;
+    double texture_strength;
+    double texture_opacity;
+} gf_window_band_appearance;
+
+/* gf_window_band_status: the band as it stands (gf_window_band_report).
+ * DECLARED; RESERVED (declared, not hidden by full screen, some edge
+ * wider than 0); FLASHING and CYCLING (a motion runs now, after the
+ * limiter); TEXTURED (the strips draw a texture now). */
+typedef uint32_t gf_window_band_status;
+#define GF_WINDOW_BAND_DECLARED 1u
+#define GF_WINDOW_BAND_RESERVED 2u
+#define GF_WINDOW_BAND_FLASHING 4u
+#define GF_WINDOW_BAND_CYCLING 8u
+#define GF_WINDOW_BAND_TEXTURED 16u
+
+/* The band's report (windows.band_report). An output record: struct_size
+ * at least its 1.3 size, 72. edges are the reserved widths after snapping;
+ * drawn_colour is the colour the strips draw now; frequency is the running
+ * motion's after the limiter (0 when none runs); flash_changes and
+ * cycle_frames count the strip repaints of each motion since the window was
+ * made. */
+typedef struct gf_window_band_report {
+    uint32_t struct_size;
+    gf_window_band_status status;
+    gf_logical_insets edges;
+    uint32_t drawn_colour;
+    gf_window_band_full_screen full_screen;
+    double frequency;
+    uint64_t flash_changes;
+    uint64_t cycle_frames;
+} gf_window_band_report;
+
+/* gf_window_corner_preference (since 1.3): the corners a window asks its
+ * host for. SYSTEM keeps the platform's; SQUARE and ROUND ask, and the
+ * host reports what it did (gf_window_shaping). */
+typedef uint32_t gf_window_corner_preference;
+#define GF_WINDOW_CORNER_PREFERENCE_SYSTEM 0u
+#define GF_WINDOW_CORNER_PREFERENCE_SQUARE 1u
+#define GF_WINDOW_CORNER_PREFERENCE_ROUND 2u
+
+/* gf_window_shaping_flags (since 1.3): what a window's host lets it rely
+ * on. HOST_ATTACHED: a host shows the window (the other host bits are zero
+ * without it). CORNERS_REPORTED: GF_HOST_CAPABILITY_WINDOW_CORNERS.
+ * STATE_REPORTED: GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS. NATIVE_BORDER:
+ * the host draws the band's colour itself outside the client area (no
+ * host yet). FULL_SCREEN: the host reported the window full screen.
+ * COMPLIED: the corners are as the preference asked. */
+typedef uint32_t gf_window_shaping_flags;
+#define GF_WINDOW_SHAPING_HOST_ATTACHED 1u
+#define GF_WINDOW_SHAPING_CORNERS_REPORTED 2u
+#define GF_WINDOW_SHAPING_STATE_REPORTED 4u
+#define GF_WINDOW_SHAPING_NATIVE_BORDER 8u
+#define GF_WINDOW_SHAPING_FULL_SCREEN 16u
+#define GF_WINDOW_SHAPING_COMPLIED 32u
+
+/* A window's shaping report (windows.shaping). An output record:
+ * struct_size at least its 1.3 size, 32. corner_shapes is the set of
+ * gf_window_corner_shape bits the host may report; corner_shape is the
+ * one bit of the window's corners now, 0 when unknown (the band then draws
+ * square); corner_radius is in logical units, for ROUNDED only. */
+typedef struct gf_window_shaping {
+    uint32_t struct_size;
+    gf_window_shaping_flags flags;
+    gf_window_corner_preference preference;
+    uint32_t corner_shapes;
+    uint32_t corner_shape;
+    uint32_t reserved;
+    double corner_radius;
+} gf_window_shaping;
+
 /*
  * GF_TABLE_WINDOWS: one window at a time, on the platform's host.
  *
@@ -1045,6 +1232,42 @@ typedef struct gf_windows_table {
      * GF_STATUS_DISPOSED for a window that has been disposed or whose run
      * has ended. */
     gf_status (GF_CALL* focused_control)(gf_object window_or_root, gf_object* control);
+    /* The window outer band and shaping (since 1.3). Each takes window, a
+     * window from create (before or during its run), or a control in a
+     * window, which names that window. UI thread. GF_STATUS_WRONG_HANDLE_KIND
+     * for another object; GF_STATUS_INVALID_STATE for a control not in a
+     * window; GF_STATUS_DISPOSED once the window is gone. The band's state
+     * is the window's, given only to whoever holds the window or one of its
+     * controls; nothing a control draws can reach it.
+     *
+     * declare_band reserves the band (or re-declares it, laying out again
+     * only when a reserved width changes). GF_STATUS_INVALID_ARGUMENT for a
+     * null or short record, a width that is not finite from 0 to
+     * window_band_maximum_width, an unknown full-screen choice or nonzero
+     * reserved, changing nothing. */
+    gf_status (GF_CALL* declare_band)(gf_object window, const gf_window_band_options* options);
+    /* Removes the band and its reservation (the window is laid out again);
+     * nothing for a window without one. */
+    gf_status (GF_CALL* undeclare_band)(gf_object window);
+    /* What the band shows: its strips repaint, nothing is laid out. Kept
+     * while no band is declared. GF_STATUS_INVALID_ARGUMENT, changing
+     * nothing, for a null or short record, an unknown state, role or
+     * texture, a frequency that is not finite or below 0, a texture out of
+     * range, or nonzero reserved. */
+    gf_status (GF_CALL* set_band_appearance)(gf_object window, const gf_window_band_appearance* appearance);
+    /* The band as it stands. GF_STATUS_INVALID_ARGUMENT for a null or short
+     * record. */
+    gf_status (GF_CALL* band_report)(gf_object window, gf_window_band_report* report);
+    /* The corners the window asks its host for, sent at once while a host
+     * shows it and when one does. GF_STATUS_INVALID_ARGUMENT for a value
+     * outside gf_window_corner_preference, changing nothing. */
+    gf_status (GF_CALL* set_corner_preference)(gf_object window, gf_window_corner_preference preference);
+    /* The content rectangle in client coordinates: the client area less the
+     * reserved band. GF_STATUS_INVALID_ARGUMENT for a null output. */
+    gf_status (GF_CALL* content_rect)(gf_object window, gf_logical_rect* rect);
+    /* What the window's host lets its shaping rely on, and its corners now.
+     * GF_STATUS_INVALID_ARGUMENT for a null or short record. */
+    gf_status (GF_CALL* shaping)(gf_object window, gf_window_shaping* report);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in
@@ -1565,7 +1788,9 @@ typedef uint64_t gf_host_capability;
  * window outer band follows the report (a rounded band where the host
  * rounds). Which shapes it may give is
  * gf_host_capabilities.window_corner_shapes. Without it a window's corners
- * are square to the band. Windows 11 (DWM) today. */
+ * are square to the band. Windows 11 (DWM) shapes and reports them; macOS
+ * only reports them, square in full screen and for a borderless window and
+ * unknown otherwise (since 1.3; its window_corner_shapes is SQUARE). */
 #define GF_HOST_CAPABILITY_WINDOW_CORNERS 17179869184ull
 /* Since 1.1: the host reports the native window's state: full screen, and
  * the maximize, snap and restore changes that can reshape its corners. A

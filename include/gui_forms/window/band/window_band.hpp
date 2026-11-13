@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/surface_material/finish_fill/finish_fill.hpp"
+#include "gui_forms/surface_material/procedural_fill/procedural_fill.hpp"
 #include "gui_forms/types.hpp"
 
 #include <cstdint>
@@ -11,8 +13,8 @@
 // strip owned by a top-level window along the edges of its client area,
 // drawn above every paint plane (overlays included) and hitting nothing.
 //
-// Reservation is static: declaring the band reserves its width on every
-// side, the root is measured against the client size less the band (and
+// Reservation is static: declaring the band reserves its width on each
+// side (one width on every side, or one per edge), the root is measured against the client size less the band (and
 // the chrome insets) and arranged inside it, and nothing the band then
 // does (lighting, flashing, a colour change) touches layout; each repaints
 // the four strips only. Undeclaring it, a theme or high-contrast change of
@@ -44,16 +46,38 @@ enum class WindowBandFullScreen : std::uint8_t {
     hides,
 };
 
+// One width per edge, in logical units, before each is snapped to whole
+// device pixels (WindowBandOptions::edges). An edge of 0 reserves nothing
+// on that side.
+struct GUI_FORMS_API WindowBandEdges final {
+    double left{};
+    double top{};
+    double right{};
+    double bottom{};
+
+    friend bool operator==(const WindowBandEdges& left, const WindowBandEdges& right) noexcept {
+        return left.left == right.left && left.top == right.top && left.right == right.right &&
+               left.bottom == right.bottom;
+    }
+};
+
 // A window's band declaration (Window::declare_band).
 struct GUI_FORMS_API WindowBandOptions final {
-    // The width asked for, in logical units, before it is snapped to whole
-    // device pixels: 0 takes the theme's `band-width`, or one logical unit
-    // where the theme declares none. Finite, from 0 to maximum_band_width.
+    // The width asked for on every side, in logical units, before it is
+    // snapped to whole device pixels: 0 takes the theme's `band-width`, or
+    // one logical unit where the theme declares none. Finite, from 0 to
+    // maximum_band_width. Not read while `edges` is set.
     double width{};
     WindowBandFullScreen full_screen{WindowBandFullScreen::stays};
+    // Per-edge widths (the owner's approval of 2026-11-13: per-edge widths
+    // in logical units). When set, each edge takes its own width, finite
+    // from 0 to maximum_band_width, and the theme's `band-width` is not
+    // read; under high contrast each edge that has a width is widened to
+    // the palette's focus width, and an edge of 0 stays empty.
+    std::optional<WindowBandEdges> edges{};
 
     friend bool operator==(const WindowBandOptions& left, const WindowBandOptions& right) noexcept {
-        return left.width == right.width && left.full_screen == right.full_screen;
+        return left.width == right.width && left.full_screen == right.full_screen && left.edges == right.edges;
     }
 };
 
@@ -67,16 +91,67 @@ inline constexpr double maximum_band_width = 32.0;
 // the lit colour; `flashing` alternates the two at most
 // maximum_band_flash_transitions times a second, and rests lit under
 // reduced motion, with ambient motion off, or while the window is occluded.
+// `cycling` blends between the rest and lit colours along a cosine,
+// starting lit, repainting the strips at band_cycling_frames_per_second,
+// and rests lit under the same conditions.
 enum class WindowBandState : std::uint8_t {
     rest,
     lit,
     flashing,
+    cycling,
 };
 
 // The flash limiter (study section 5, WCAG 2.3.1): at most this many
 // luminance transitions a second, whatever the theme or the application
 // asks: a flashing band changes colour once every half second.
 inline constexpr unsigned maximum_band_flash_transitions = 2U;
+// The same limit in cycles a second (one cycle is two transitions), for
+// flashing and cycling alike: a higher `frequency` is lowered to it.
+inline constexpr double maximum_band_frequency = 1.0;
+// A cycling band repaints its strips at this rate; a flashing one only at
+// its transitions.
+inline constexpr double band_cycling_frames_per_second = 30.0;
+
+// Which theme colour the band lights in when the application gives no lit
+// colour (owner approval of 2026-11-13: "colour or role"). `theme` is the
+// theme's `band-lit-color`, else the window's focus-ring colour; the others
+// are the theme's basic colours of those names.
+enum class WindowBandColourRole : std::uint8_t {
+    theme,
+    focus,
+    accent,
+    accent_light,
+    text,
+    border,
+};
+
+// What a band texture draws (WindowBandTexture).
+enum class WindowBandTextureSource : std::uint8_t {
+    procedural,
+    finish,
+};
+
+// A texture under the band's colour (owner answer 6: textures are the
+// window band's alone). Each strip is its own surface (the top and bottom
+// strips run the full width, the side strips lie between them), so a bake
+// stays the size of a strip, never the window's; it is drawn beneath the
+// band's colour: a resting band with the default transparent rest
+// colour shows the texture alone, and a lit colour composites over it.
+// `procedural` reads `procedural` (tile from minimum_procedural_tile to
+// maximum_procedural_tile, strength in [0, 1]); `finish` reads `finish`,
+// any kind but the glint (whose cost the bake budget refuses over a
+// window). `opacity` in [0, 1]. Under high contrast no texture is drawn.
+struct GUI_FORMS_API WindowBandTexture final {
+    WindowBandTextureSource source{WindowBandTextureSource::procedural};
+    ProceduralFill procedural{};
+    FinishFill finish{};
+    double opacity{1.0};
+
+    friend bool operator==(const WindowBandTexture& left, const WindowBandTexture& right) noexcept {
+        return left.source == right.source && left.procedural == right.procedural && left.finish == right.finish &&
+               left.opacity == right.opacity;
+    }
+};
 
 struct GUI_FORMS_API WindowBandAppearance final {
     WindowBandState state{WindowBandState::rest};
@@ -85,18 +160,29 @@ struct GUI_FORMS_API WindowBandAppearance final {
     // palette.
     std::optional<Color> rest_colour{};
     std::optional<Color> lit_colour{};
+    // The theme colour the band lights in while lit_colour is empty.
+    WindowBandColourRole lit_role{WindowBandColourRole::theme};
+    // Cycles a second of a flash or a cycle, lowered to
+    // maximum_band_frequency; 0 holds the band lit. Finite, not negative.
+    double frequency{maximum_band_frequency};
+    std::optional<WindowBandTexture> texture{};
 
     friend bool operator==(const WindowBandAppearance& left, const WindowBandAppearance& right) noexcept {
         return left.state == right.state && left.rest_colour == right.rest_colour &&
-               left.lit_colour == right.lit_colour;
+               left.lit_colour == right.lit_colour && left.lit_role == right.lit_role &&
+               left.frequency == right.frequency && left.texture == right.texture;
     }
 };
 
-// Whether `options` is a declaration the window accepts: a finite width
-// from 0 to maximum_band_width and a known full-screen choice.
+// Whether `options` is a declaration the window accepts: finite widths
+// from 0 to maximum_band_width (the uniform one, or each edge's) and a
+// known full-screen choice.
 [[nodiscard]] GUI_FORMS_API bool window_band_options_valid(const WindowBandOptions& options) noexcept;
-// Whether `appearance` names a known state.
+// Whether `appearance` names a known state and role, a finite frequency
+// that is not negative, and a texture window_band_texture_valid accepts.
 [[nodiscard]] GUI_FORMS_API bool window_band_appearance_valid(const WindowBandAppearance& appearance) noexcept;
+// Whether `texture` may be drawn in the band, by WindowBandTexture's rules.
+[[nodiscard]] GUI_FORMS_API bool window_band_texture_valid(const WindowBandTexture& texture) noexcept;
 
 // `width` logical units snapped to whole device pixels at `scale`: the
 // nearest whole number of device pixels, at least one, back in logical
@@ -138,27 +224,85 @@ struct GUI_FORMS_API WindowCornerReport final {
     }
 };
 
+// The corner shapes a host may report (HostCapabilities::
+// window_corner_shapes): Windows 11 rounds or squares, macOS reports square
+// corners where they are (full screen, a borderless window) and nothing
+// otherwise, X11 reports none.
+struct GUI_FORMS_API WindowCornerShapes final {
+    bool square{};
+    bool rounded{};
+
+    friend bool operator==(const WindowCornerShapes& left, const WindowCornerShapes& right) noexcept {
+        return left.square == right.square && left.rounded == right.rounded;
+    }
+};
+
 [[nodiscard]] GUI_FORMS_API const char* window_corner_preference_name(WindowCornerPreference preference) noexcept;
 [[nodiscard]] GUI_FORMS_API const char* window_corner_shape_name(WindowCornerShape shape) noexcept;
 
 // A window's band as it stands (Window::band_snapshot): whether it is
-// declared and reserved, the reserved width (snapped, logical units), the
+// declared and reserved, the reserved widths (snapped, logical units), the
 // colours the strips draw now, and the corners it follows.
 struct GUI_FORMS_API WindowBandSnapshot final {
     bool declared{};
-    // Declared and not hidden by full screen.
+    // Declared, not hidden by full screen, and wider than 0 on some edge.
     bool reserved{};
+    // The widest reserved edge; `edges` holds each.
     double width{};
+    Insets edges{};
     WindowBandOptions options{};
     WindowBandAppearance appearance{};
     // The colour the strips draw now (the flash phase included).
     Color drawn{Color::rgba(0, 0, 0, 0)};
     // Whether a flash is running now (not stilled).
     bool flashing{};
+    // Whether a cycle is running now (not stilled).
+    bool cycling{};
+    // The frequency a flash or cycle runs at after the limiter, in cycles
+    // a second; 0 when neither runs.
+    double frequency{};
+    // Whether the strips draw a texture now.
+    bool textured{};
     WindowCornerReport corners{};
     // The flash phase changes the strips have been damaged for, counted
     // from the window's creation.
     std::uint64_t flash_changes{};
+    // The cycle frames the strips have been damaged for, counted from the
+    // window's creation.
+    std::uint64_t cycle_frames{};
+};
+
+// What a window's shaping can rely on (Window::shaping_report; the owner's
+// approval of 2026-11-13: the host capability reported). Every field is
+// what the attached host says, never assumed:
+// - `corners_reported`: the host shapes and reports the window's corners
+//   (HostCapability::window_corners); without it the band draws square.
+// - `square_corners` and `rounded_corners`: the shapes the host may report
+//   (HostCapabilities::window_corner_shapes), whatever is asked.
+// - `state_reported`: the host reports full screen and the changes that
+//   may reshape corners (HostCapability::window_state_reports); without it
+//   a band declared to hide in full screen never hides.
+// - `native_border`: the host can draw the band's colour itself outside the
+//   client area. No host can yet; the Windows 11 contract is written for
+//   its host (docs/user/window-band.md).
+struct GUI_FORMS_API WindowShapingReport final {
+    bool host_attached{};
+    bool corners_reported{};
+    bool square_corners{};
+    bool rounded_corners{};
+    bool state_reported{};
+    bool native_border{};
+    bool full_screen{};
+    WindowCornerPreference preference{WindowCornerPreference::system};
+    WindowCornerReport corners{};
+
+    friend bool operator==(const WindowShapingReport& left, const WindowShapingReport& right) noexcept {
+        return left.host_attached == right.host_attached && left.corners_reported == right.corners_reported &&
+               left.square_corners == right.square_corners && left.rounded_corners == right.rounded_corners &&
+               left.state_reported == right.state_reported && left.native_border == right.native_border &&
+               left.full_screen == right.full_screen && left.preference == right.preference &&
+               left.corners == right.corners;
+    }
 };
 
 } // namespace gui_forms

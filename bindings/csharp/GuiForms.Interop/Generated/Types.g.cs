@@ -287,7 +287,68 @@ public unsafe struct gf_owned_window_options
     public gf_callback* closed;
 }
 
-/// <summary>gf_windows_table (table, 96 bytes).</summary>
+/// <summary>gf_window_band_options (extensible, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_window_band_options
+{
+    public uint struct_size;
+    public gf_window_band_flags flags;
+    public gf_window_band_full_screen full_screen;
+    public uint reserved;
+    public double width;
+    public gf_logical_insets edges;
+}
+
+/// <summary>gf_window_band_appearance (extensible, 80 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_window_band_appearance
+{
+    public uint struct_size;
+    public gf_window_band_state state;
+    public gf_window_band_appearance_flags flags;
+    public gf_window_band_role lit_role;
+    public uint rest_colour;
+    public uint lit_colour;
+    public double frequency;
+    public gf_window_band_texture texture;
+    public uint texture_kind;
+    public uint texture_seed;
+    public uint texture_primary;
+    public uint texture_secondary;
+    public uint reserved;
+    public double texture_tile;
+    public double texture_strength;
+    public double texture_opacity;
+}
+
+/// <summary>gf_window_band_report (extensible, 72 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_window_band_report
+{
+    public uint struct_size;
+    public gf_window_band_status status;
+    public gf_logical_insets edges;
+    public uint drawn_colour;
+    public gf_window_band_full_screen full_screen;
+    public double frequency;
+    public ulong flash_changes;
+    public ulong cycle_frames;
+}
+
+/// <summary>gf_window_shaping (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_window_shaping
+{
+    public uint struct_size;
+    public gf_window_shaping_flags flags;
+    public gf_window_corner_preference preference;
+    public uint corner_shapes;
+    public uint corner_shape;
+    public uint reserved;
+    public double corner_radius;
+}
+
+/// <summary>gf_windows_table (table, 152 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_table
 {
@@ -304,6 +365,13 @@ public unsafe struct gf_windows_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_owned_window_options*, gf_status> show_owned;
     public delegate* unmanaged[Cdecl]<gf_object, gf_window_property_flags*, gf_window_property_flags*, gf_status> window_properties;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object*, gf_status> focused_control;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_band_options*, gf_status> declare_band;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> undeclare_band;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_band_appearance*, gf_status> set_band_appearance;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_band_report*, gf_status> band_report;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_corner_preference, gf_status> set_corner_preference;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, gf_status> content_rect;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_shaping*, gf_status> shaping;
 }
 
 /// <summary>gf_schema_type (extensible, 88 bytes).</summary>

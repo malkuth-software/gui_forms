@@ -715,6 +715,10 @@ Related types
 
       The platform's locale (exhibit gap E11): what the host read when it reports HostCapability::locale, else the portable default. The first HostSession of an application seeds the application's locale with it (ApplicationResources::locale) unless the program set one. Default: ``{portable_host_locale()}``.
 
+   .. cpp:member:: WindowCornerShapes window_corner_shapes
+
+      The corner shapes the host may report with HostCapability:: window_corners (WindowShapingReport): host data, so a host that only ever reports square corners (macOS) does not claim rounded ones.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: HostClipboardFilesResult final

@@ -2357,10 +2357,10 @@ private:
         bool declared{};
         WindowBandOptions options{};
         WindowBandAppearance appearance{};
-        // The width reserved on every side (snapped, logical units): 0
+        // The width reserved on each side (snapped, logical units): all 0
         // while undeclared or hidden in full screen. root_slot and
         // content_rect read it; only refresh_band changes it.
-        double reserved{};
+        Insets reserved{};
         // The colours resolved by the last refresh, and the one the strips
         // draw now.
         Color rest{Color::rgba(0, 0, 0, 0)};
@@ -2371,8 +2371,19 @@ private:
         bool flashing{};
         bool lit_phase{true};
         std::uint64_t flash_changes{};
-        // The one-shot wake of the next phase change, armed only while a
-        // flash runs.
+        // Whether a cycle runs now, when it started (lit), and the frames
+        // it has damaged the strips for.
+        bool cycling{};
+        FrameTime cycle_start{};
+        std::uint64_t cycle_frames{};
+        // The limited frequency of the running flash or cycle (cycles a
+        // second); 0 when neither runs.
+        double frequency{};
+        // Whether the strips draw appearance.texture (declared, reserved
+        // and not high contrast).
+        bool textured{};
+        // The one-shot wake of the next phase change or cycle frame, armed
+        // only while a flash or a cycle runs.
         FrameRequestToken flash_wake{};
         // Reported by the host (Window::report_full_screen).
         bool full_screen{};
@@ -2902,17 +2913,18 @@ private:
     // and disconnects it otherwise. Root thread; does nothing on a root
     // with no Window.
     void refresh_band();
-    // Damages the four strips of a band `width` wide along the client
+    // Damages the four strips of a band `widths` wide along the client
     // area's edges, in the overlay plane (the band is drawn after it), and
     // asks for a paint.
-    void damage_band_strips(double width);
+    void damage_band_strips(Insets widths);
     // Whether `position` (client coordinates) lies in the reserved band.
     [[nodiscard]] bool band_contains(Point position) const noexcept;
     // Draws the band over every plane, clipped to each painted rectangle
     // (paint_rectangles' last step).
     void paint_band(detail::RecordingPainter& candidate, std::span<const Rect> painted);
-    // The flash wake: the phase changes, the strips are damaged, and the
-    // next wake is armed while the flash still runs.
+    // The motion wake: a flash changes phase, or a cycle moves a frame;
+    // the strips are damaged, and the next wake is armed while the motion
+    // still runs.
     void band_flash_due(FrameTime now);
     // The flash wake's target (window_band.cpp).
     struct BandFlashWake;

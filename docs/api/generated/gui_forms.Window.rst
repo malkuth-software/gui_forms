@@ -94,6 +94,9 @@ gui_forms::Window
 
       **band_snapshot** : ``WindowBandSnapshot``, read-only
 
+      **shaping_report** : ``WindowShapingReport``, read-only
+         What the attached host lets the band rely on (WindowShapingReport): its corner and state reports, the corner shapes it may give, and the window's preference, corners and full-screen state now. Without a host, host_attached is false and only the window's own fields are filled. UI thread.
+
       **corner_preference** : ``WindowCornerPreference``
 
       **presentation_availability** : ``PresentationAvailability``, read-only
@@ -414,6 +417,10 @@ gui_forms::Window
 
    .. cpp:function:: WindowBandSnapshot band_snapshot() const noexcept
 
+   .. cpp:function:: WindowShapingReport shaping_report() const
+
+      What the attached host lets the band rely on (WindowShapingReport): its corner and state reports, the corner shapes it may give, and the window's preference, corners and full-screen state now. Without a host, host_attached is false and only the window's own fields are filled. UI thread.
+
    .. cpp:function:: WindowCornerPreference corner_preference() const noexcept
 
    .. cpp:function:: void set_corner_preference(WindowCornerPreference preference)
@@ -495,7 +502,7 @@ gui_forms::Window
 
    .. cpp:function:: void declare_band(const WindowBandOptions& options)
 
-      The window outer band (owner, 2026-11-08; gui_forms/window/band/ window_band.hpp). declare_band reserves the band on every side at once: the root is measured against the client size less the band and arranged inside it, and the window is laid out again. Declaring again lays it out only when the reserved width changes. std::invalid_argument for options window_band_options_valid refuses, changing nothing. UI thread.
+      The window outer band (owner, 2026-11-08; gui_forms/window/band/ window_band.hpp). declare_band reserves the band on each side (one width, or one per edge) at once: the root is measured against the client size less the band and arranged inside it, and the window is laid out again. Declaring again lays it out only when the reserved width changes. std::invalid_argument for options window_band_options_valid refuses, changing nothing. UI thread.
 
    .. cpp:function:: void undeclare_band()
 

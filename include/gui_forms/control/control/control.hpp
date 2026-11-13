@@ -981,7 +981,7 @@ public:
     void adopt_property_link(std::unique_ptr<PropertyLink> link);
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 33U;
+    static constexpr std::size_t control_property_count = 41U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -2263,7 +2263,45 @@ private:
         fore_color,
         focusable,
         right_to_left,
+        // The control border (active_border.hpp) as properties (the owner's
+        // approval of 2026-11-13, roadmap row 3.1).
+        active_border,
+        active_border_color,
+        active_border_alternate_color,
+        active_border_width,
+        active_border_offset,
+        active_border_corner_radius,
+        active_border_motion,
+        active_border_frequency,
     };
+
+    // The control border's properties (RegisteredProperty::active_border
+    // to active_border_frequency) over set_active_border, which validates:
+    // `active_border` is whether the control has a border (true sets the
+    // current one, or the default border); each other property reads the
+    // border's field (the default border's while there is none), and
+    // writing it sets the border with that field changed, so writing any
+    // border field shows the border. A value active_border_valid refuses
+    // throws std::invalid_argument and changes nothing. The colours are
+    // nullable: null is the theme's accent for the colour and the lit
+    // colour made transparent for the alternate.
+    [[nodiscard]] static constexpr bool active_border_property(RegisteredProperty property) noexcept {
+        return property == RegisteredProperty::active_border || property == RegisteredProperty::active_border_color ||
+               property == RegisteredProperty::active_border_alternate_color ||
+               property == RegisteredProperty::active_border_width ||
+               property == RegisteredProperty::active_border_offset ||
+               property == RegisteredProperty::active_border_corner_radius ||
+               property == RegisteredProperty::active_border_motion ||
+               property == RegisteredProperty::active_border_frequency;
+    }
+    [[nodiscard]] BindingValue active_border_property_value(RegisteredProperty property) const;
+    void set_active_border_property_value(RegisteredProperty property, const BindingValue& value);
+    [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor> active_border_motion_property_enum();
+    // The table's serialized predicate for a border property: while the
+    // control has a border, `active_border` serializes, and each field when
+    // it differs from the default border's.
+    template <RegisteredProperty Property>
+    [[nodiscard]] static bool active_border_serialized(const Component& owner);
 
     // Control's table operations over the adapters below (study section
     // 14): one entry per migrated property, built by
@@ -2372,6 +2410,8 @@ private:
                 return (*control).fore_color_property_value();
             } else if constexpr (Property == RegisteredProperty::right_to_left) {
                 return (*control).right_to_left_property_value();
+            } else if constexpr (Control::active_border_property(Property)) {
+                return (*control).active_border_property_value(Property);
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);
@@ -2492,6 +2532,8 @@ private:
                 (*control).set_fore_color_property_value(value);
             } else if constexpr (Property == RegisteredProperty::right_to_left) {
                 (*control).set_right_to_left_property_value(value);
+            } else if constexpr (Control::active_border_property(Property)) {
+                (*control).set_active_border_property_value(Property, value);
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);

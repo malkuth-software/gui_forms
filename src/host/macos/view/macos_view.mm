@@ -598,8 +598,9 @@ void link_view_categories() noexcept {
 
 // Reports the native window's full-screen state (HostWindowStateEvent;
 // owner, 2026-11-08: the window outer band) after attach and when AppKit
-// enters or leaves full screen. macOS reports no corners (no
-// window_corners), so the session's corner request changes nothing here.
+// enters or leaves full screen. The session then asks for the corners
+// again, which macOS reports square in full screen and unknown in a titled
+// window (apply_window_corners_impl).
 // A refused report is tried again on the next change.
 - (void)notifyWindowState {
     if (_hostAttached == NO || self.window == nil) return;

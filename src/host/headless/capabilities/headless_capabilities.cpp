@@ -5,7 +5,7 @@
 namespace gui_forms::host {
 
 HostCapabilities headless_capabilities() {
-    return {HostCapabilities::current_protocol_version,
+    HostCapabilities capabilities{HostCapabilities::current_protocol_version,
             "headless-reference",
             HostCapability::lifecycle |
                 HostCapability::scale_notifications |
@@ -51,5 +51,8 @@ HostCapabilities headless_capabilities() {
                 ,
             // The reference host reports the PC convention.
             pc_key_map()};
+    // The simulated platform may report either corner shape.
+    capabilities.window_corner_shapes = WindowCornerShapes{true, true};
+    return capabilities;
 }
 } // namespace gui_forms::host

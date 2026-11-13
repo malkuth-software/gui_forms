@@ -665,6 +665,38 @@
     {
       "name": "auto_scroll_offset",
       "reason": "an instance registration (ScrollableControl, G9)"
+    },
+    {
+      "name": "active_border",
+      "reason": "the control border's presence (a table entry over set_active_border, not a cell: the border is one validated record, and a cell per field would change Control's layout and the class tables)"
+    },
+    {
+      "name": "active_border_color",
+      "reason": "a field of the control border, read and written through set_active_border, which validates the whole border (writing it shows the border)"
+    },
+    {
+      "name": "active_border_alternate_color",
+      "reason": "a field of the control border, read and written through set_active_border, which validates the whole border (writing it shows the border)"
+    },
+    {
+      "name": "active_border_width",
+      "reason": "a field of the control border, read and written through set_active_border, which validates the whole border (writing it shows the border)"
+    },
+    {
+      "name": "active_border_offset",
+      "reason": "a field of the control border, read and written through set_active_border, which validates the whole border (writing it shows the border)"
+    },
+    {
+      "name": "active_border_corner_radius",
+      "reason": "a field of the control border, read and written through set_active_border, which validates the whole border (writing it shows the border)"
+    },
+    {
+      "name": "active_border_motion",
+      "reason": "a field of the control border, read and written through set_active_border, which validates the whole border (writing it shows the border)"
+    },
+    {
+      "name": "active_border_frequency",
+      "reason": "a field of the control border, read and written through set_active_border, which validates the whole border (writing it shows the border)"
     }
   ]
 }
