@@ -2,7 +2,7 @@
 
 This tutorial builds a small program from nothing: a window where you type a
 note, press **Add** (or Ctrl+Enter), and see it appear in a list. On the way
-it uses every part of the GUI.Forms 0.5 approach:
+it uses every part of the approach sealed in GUI.Forms 0.5:
 
 1. a **CMake project** that consumes the installed SDK;
 2. a **form document** (`.form`) that says which controls exist;
@@ -28,7 +28,7 @@ notes/
 
 You need an installed GUI.Forms SDK and the toolchain it was built with
 (LLVM 22, through the SDK's `cmake/llvm22.cmake`). Build and install it from
-source as the [Install](https://gui-forms.readthedocs.io/user/install.html)
+source as the [Install](https://gui-forms.readthedocs.io/en/latest/user/install.html)
 page describes; the result is a prefix such as `/path/to/sdk` holding
 `include/gui_forms/`, the libraries, `lib/cmake/GUIForms/` and
 `share/GUIForms/fonts/` (the font licences). Keep the path of `cmake/llvm22.cmake`: every
@@ -81,7 +81,7 @@ add_custom_command(TARGET notes POST_BUILD
   its sheet, or when a stable-ID selector names nothing in the listed forms.
 - GUI.Forms draws only its bundled fonts, never the system's. They are
   compiled into the library; ship only their licences
-  ([Consume the SDK](https://gui-forms.readthedocs.io/user/consume-the-sdk.html#fonts)).
+  ([Consume the SDK](https://gui-forms.readthedocs.io/en/latest/user/consume-the-sdk.html#fonts)).
 
 ## 3. The form document
 
@@ -122,7 +122,7 @@ A document that is wrong is refused at build time with a code, the file, the
 line and the column: an unknown type or property, a repeated stable ID, a
 colour or font (E813: those belong in the theme), or an `on-...:` handler
 (E816: behaviour belongs in program code). See
-[Forms](https://gui-forms.readthedocs.io/user/forms.html).
+[Forms](https://gui-forms.readthedocs.io/en/latest/user/forms.html).
 
 ## 4. The model
 
@@ -185,8 +185,8 @@ themes/notes/notes.theme.css` prints it. Change the sheet, change the hash.
 - The package compiles onto a **base**: GUI.Forms' own theme in this
   tutorial. Its dark variant is derived from your light colours.
 
-See [Themes](https://gui-forms.readthedocs.io/user/themes.html) and
-[The theme language](https://gui-forms.readthedocs.io/user/theme-language.html).
+See [Themes](https://gui-forms.readthedocs.io/en/latest/user/themes.html) and
+[The theme language](https://gui-forms.readthedocs.io/en/latest/user/theme-language.html).
 
 ## 6. The program
 
@@ -366,14 +366,14 @@ Keys reach the window's rules through `window.dispatch_key`, and
 
 ## Where to go next
 
-- [The application and its windows](https://gui-forms.readthedocs.io/user/application-and-windows.html):
+- [The application and its windows](https://gui-forms.readthedocs.io/en/latest/user/application-and-windows.html):
   several windows, settings changed during a run, presentation overrides.
-- [Properties](https://gui-forms.readthedocs.io/user/properties.html):
+- [Properties](https://gui-forms.readthedocs.io/en/latest/user/properties.html):
   views, collections, child properties such as a grid's `(*table).area[*c]`,
   and `as_type` conversions.
-- [Rules](https://gui-forms.readthedocs.io/user/rules.html): the whole
+- [Rules](https://gui-forms.readthedocs.io/en/latest/user/rules.html): the whole
   vocabulary, consume and lifetime.
-- [Overlays, Popups and Splash](https://gui-forms.readthedocs.io/user/overlays-popups-and-splash.html):
+- [Overlays, Popups and Splash](https://gui-forms.readthedocs.io/en/latest/user/overlays-popups-and-splash.html):
   menus, dialogs, tooltips and the splashscreen.
 - The repository's `examples/reference/` builds the same shape against the
   installed SDK in CI; `collection_gallery` is the complete reference

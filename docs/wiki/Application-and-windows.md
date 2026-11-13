@@ -42,4 +42,4 @@ const gf::ApplicationResult result = application.run(std::move(window));
 Popups and Splash windows open from their owner; see
 [Overlays, Popups and Splash](Overlays-Popups-and-Splash).
 
-Full page: [The application and its windows](https://gui-forms.readthedocs.io/user/application-and-windows.html).
+Full page: [The application and its windows](https://gui-forms.readthedocs.io/en/latest/user/application-and-windows.html).

@@ -44,4 +44,4 @@ gui_forms_add_form(my_app forms/settings.form CLASS SettingsWindow NAMESPACE my_
 
 Every defect is reported at build time with its code, file, line and column
 (E801 to E818, E999). Full page, with the refusal table:
-[Forms](https://gui-forms.readthedocs.io/user/forms.html).
+[Forms](https://gui-forms.readthedocs.io/en/latest/user/forms.html).

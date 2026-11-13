@@ -35,4 +35,4 @@ functions are operations (`perform_click()`), structure (`add_child`),
 records with identities (`set_items` of menus and strips) and writes that
 return a result.
 
-Full page: [Properties](https://gui-forms.readthedocs.io/user/properties.html).
+Full page: [Properties](https://gui-forms.readthedocs.io/en/latest/user/properties.html).
