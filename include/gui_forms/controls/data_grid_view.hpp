@@ -745,15 +745,27 @@ public:
     bool set_current_cell(std::optional<DataGridViewCellAddress> cell);
     [[nodiscard]] bool is_cell_selected(DataGridViewRowPosition row, std::size_t column) const;
     [[nodiscard]] bool is_row_selected(DataGridViewRowPosition row) const;
-    // In full-row mode a cell's selection is its row's. Throws
-    // std::out_of_range for a cell past the rows or columns.
+    // In full-row mode a cell's selection is its row's, in full-column mode
+    // its column's. Throws std::out_of_range for a cell past the rows or
+    // columns.
     void set_cell_selected(DataGridViewRowPosition row, std::size_t column, bool selected);
+    // Throws std::logic_error in full-column mode, where rows are not
+    // selected (as Windows Forms refuses Row.Selected there).
     void set_row_selected(DataGridViewRowPosition row, bool selected);
+    // Whether a whole column is selected (Windows Forms' Column.Selected):
+    // in full-column mode, or by a header click under column_header_select.
+    // Setting it throws std::logic_error in the other modes and
+    // std::out_of_range for an unknown column.
+    [[nodiscard]] bool is_column_selected(std::size_t column) const;
+    void set_column_selected(std::size_t column, bool selected);
+    // The selected columns' indices in order (Windows Forms' SelectedColumns).
+    [[nodiscard]] std::vector<std::size_t> selected_columns() const;
     // The selected cells at their rows' present positions, by row then
-    // column; in full-row mode every cell of every selected row.
+    // column; in full-row mode every cell of every selected row, and every
+    // cell of every selected column.
     [[nodiscard]] std::vector<DataGridViewCellAddress> selected_cells() const;
     // The selected rows' present positions in order: full-row selections, or
-    // in cell mode the rows whose every cell is selected.
+    // in the other modes the rows whose every cell is selected.
     [[nodiscard]] std::vector<DataGridViewRowPosition> selected_rows() const;
     void clear_selection();
     // Selects every cell (or row); allowed only with multi_select.
@@ -1478,6 +1490,15 @@ private:
     void erase_selected_cell(std::string_view row_id, std::size_t column);
     void insert_selected_row(const std::string& row_id);
     void erase_selected_row(std::string_view row_id);
+    [[nodiscard]] bool column_in_selection(std::size_t column) const;
+    void insert_selected_column(std::size_t column);
+    void erase_selected_column(std::size_t column);
+    // Whether a column header click selects its column (full_column_select
+    // and column_header_select) instead of sorting.
+    [[nodiscard]] bool header_selects_column() const noexcept;
+    // A column header's click under those modes: selects the column alone,
+    // or toggles it with `toggle` under multi_select.
+    void select_column_from_header(std::size_t column, bool toggle);
     void select_range(DataGridViewCellAddress from, DataGridViewCellAddress to);
     bool move_current(DataGridViewCellAddress target, SelectionGesture gesture);
     // A row header's click: makes `row` current in the current column and,
@@ -1652,6 +1673,10 @@ private:
     // Cell-mode selections by row ID; a row with no selected cell has no
     // entry.
     SelectedCells selected_cells_{};
+    // Whole columns selected (full_column_select, or a header click under
+    // column_header_select), by column index, sorted and unique; cleared
+    // with the rest of the selection, so every column change clears it.
+    SelectedColumns selected_columns_{};
     // Full-row selections by row ID.
     RowIdSet selected_rows_{};
     // Visited link cells by row ID, as selected_cells_ keeps cells: sorted

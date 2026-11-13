@@ -205,8 +205,21 @@ enum class DataGridViewClipboardCopyMode : std::uint8_t {
     enable_always_include_header_text,
 };
 
-// Whether a click or arrow key selects one cell or the whole row.
-enum class DataGridViewSelectionMode : std::uint8_t { cell_select, full_row_select };
+// What a click or arrow key selects (Windows Forms' DataGridViewSelectionMode):
+// - cell_select: cells; a row header click selects its row's cells;
+// - full_row_select: whole rows;
+// - full_column_select: whole columns; a column header click selects its
+//   column instead of sorting;
+// - row_header_select: as cell_select, named as Windows Forms names it;
+// - column_header_select: cells; a column header click selects its column
+//   instead of sorting.
+enum class DataGridViewSelectionMode : std::uint8_t {
+    cell_select,
+    full_row_select,
+    full_column_select,
+    row_header_select,
+    column_header_select,
+};
 
 // Where the rows come from. Unbound rows are records the grid owns; virtual
 // rows are counted by the grid and their values asked of a provider as they

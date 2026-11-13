@@ -3710,6 +3710,70 @@ void frozen_columns_and_rows() {
     require((*grid).first_displayed_row() == row_at(2U), "unfreezing keeps the scroll position");
 }
 
+struct SelectRowInColumnMode final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_row_selected(row_at(0U), true); }
+};
+struct SelectColumnInRowMode final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_column_selected(0U, true); }
+};
+
+// Windows Forms' FullColumnSelect, RowHeaderSelect and ColumnHeaderSelect.
+void column_selection_modes() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.column.select");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require(window.request_focus(grid), "the grid takes focus");
+    (*grid).selection_mode = DataGridViewSelectionMode::full_column_select;
+    require((*grid).set_current_cell(cell_at(1U, 2U)), "a cell becomes current");
+    require((*grid).is_column_selected(2U) && (*grid).is_cell_selected(row_at(0U), 2U) &&
+                (*grid).is_cell_selected(row_at(2U), 2U) && !(*grid).is_cell_selected(row_at(1U), 0U),
+            "full column selection selects the current cell's column");
+    require((*grid).selected_columns() == std::vector<std::size_t>{2U} && (*grid).selected_cells().size() == 3U &&
+                (*grid).selected_rows().empty(),
+            "the selected column's cells are the selection");
+    require(throws<std::logic_error>(SelectRowInColumnMode{grid.get()}), "rows are not selected in full column mode");
+    (*grid).set_cell_selected(row_at(0U), 0U, true);
+    require((*grid).selected_columns() == std::vector<std::size_t>{0U, 2U}, "a cell's selection is its column's");
+
+    // A header click selects the column instead of sorting.
+    std::vector<std::size_t> header_clicks;
+    SubscriptionToken header_token = (*grid).column_header_click().subscribe(RecordIndex{&header_clicks});
+    const std::vector<DataGridView::Column> headers = (*grid).realized_columns();
+    click(window, centre(*grid, headers[0].parts.column_label.bounds));
+    require(header_clicks.size() == 1U && (*grid).selected_columns() == std::vector<std::size_t>{0U} &&
+                !(*grid).sorted_column(),
+            "a column header click selects its column alone and does not sort");
+    click(window, centre(*grid, headers[1].parts.column_label.bounds), Modifier::control);
+    require((*grid).selected_columns() == std::vector<std::size_t>{0U, 1U}, "Control+click adds a column");
+    const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
+    const SemanticNode* selected_header = find_node(nodes, "grid.column.select.column.name");
+    require(selected_header != nullptr && has_semantic_state((*selected_header).states, SemanticState::selected),
+            "a selected column's header publishes selected");
+    (*grid).select_all();
+    require((*grid).selected_columns().size() == 4U && (*grid).selected_rows().size() == 3U,
+            "select_all selects every column, and so every row");
+
+    (*grid).selection_mode = DataGridViewSelectionMode::column_header_select;
+    require((*grid).selected_columns().empty() && (*grid).selected_cells().size() == 1U,
+            "changing the mode selects the current cell alone");
+    click(window, centre(*grid, headers[0].parts.column_label.bounds));
+    require((*grid).is_column_selected(0U) && (*grid).is_cell_selected(row_at(2U), 0U) && !(*grid).sorted_column(),
+            "column header selection: a header click selects the column");
+    require((*grid).set_current_cell(cell_at(2U, 3U)) && (*grid).selected_columns().empty() &&
+                (*grid).is_cell_selected(row_at(2U), 3U) && !(*grid).is_cell_selected(row_at(1U), 3U),
+            "a cell click selects the cell alone");
+
+    (*grid).selection_mode = DataGridViewSelectionMode::row_header_select;
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    click(window, centre(*grid, rows[1].parts.row_header.bounds));
+    require((*grid).is_row_selected(row_at(1U)) && !(*grid).is_row_selected(row_at(0U)),
+            "row header selection: a row header click selects the row");
+    require(throws<std::logic_error>(SelectColumnInRowMode{grid.get()}),
+            "columns are not selected outside the column modes");
+}
+
 int main() {
     columns_and_rows();
     layout_and_parts();
@@ -3757,6 +3821,7 @@ int main() {
     bound_identity_follows_list_changes();
     clicks_tool_tips_and_hit_tests();
     frozen_columns_and_rows();
+    column_selection_modes();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";

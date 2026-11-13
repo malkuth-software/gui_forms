@@ -2188,10 +2188,50 @@ void DataGridView::erase_selected_row(std::string_view row_id) {
 }
 
 void DataGridView::clear_selection_state() noexcept {
-    if (selected_cells_.empty() && selected_rows_.empty()) return;
+    if (selected_cells_.empty() && selected_rows_.empty() && selected_columns_.empty()) return;
     selected_cells_.clear();
     selected_rows_.clear();
+    selected_columns_.clear();
     ++selection_revision_;
+}
+
+bool DataGridView::column_in_selection(std::size_t column) const {
+    const bool result = std::binary_search(selected_columns_.begin(), selected_columns_.end(), column);
+    return result;
+}
+
+void DataGridView::insert_selected_column(std::size_t column) {
+    const SelectedColumns::iterator place = std::lower_bound(selected_columns_.begin(), selected_columns_.end(), column);
+    if (place != selected_columns_.end() && *place == column) return;
+    selected_columns_.insert(place, column);
+    ++selection_revision_;
+}
+
+void DataGridView::erase_selected_column(std::size_t column) {
+    const SelectedColumns::iterator place = std::lower_bound(selected_columns_.begin(), selected_columns_.end(), column);
+    if (place == selected_columns_.end() || *place != column) return;
+    selected_columns_.erase(place);
+    ++selection_revision_;
+}
+
+bool DataGridView::header_selects_column() const noexcept {
+    const DataGridViewSelectionMode mode = selection_mode.read();
+    const bool result =
+        mode == DataGridViewSelectionMode::full_column_select || mode == DataGridViewSelectionMode::column_header_select;
+    return result;
+}
+
+void DataGridView::select_column_from_header(std::size_t column, bool toggle) {
+    if (column >= columns_.size()) return;
+    const std::uint64_t before = selection_revision_;
+    if (toggle && multi_select.read()) {
+        if (column_in_selection(column)) erase_selected_column(column);
+        else insert_selected_column(column);
+    } else {
+        clear_selection_state();
+        insert_selected_column(column);
+    }
+    publish_selection(before);
 }
 
 void DataGridView::publish_selection(std::uint64_t before) {
@@ -2205,6 +2245,7 @@ void DataGridView::publish_selection(std::uint64_t before) {
 void DataGridView::select_range(DataGridViewCellAddress from, DataGridViewCellAddress to) {
     const std::size_t first_row = std::min(from.row.value, to.row.value);
     const std::size_t last_row = std::max(from.row.value, to.row.value);
+    const bool full_column = selection_mode.read() == DataGridViewSelectionMode::full_column_select;
     if (selection_mode.read() == DataGridViewSelectionMode::full_row_select) {
         for (std::size_t position = first_row; position <= last_row; ++position) {
             insert_selected_row(row_id_text(DataGridViewRowPosition{position}));
@@ -2220,6 +2261,12 @@ void DataGridView::select_range(DataGridViewCellAddress from, DataGridViewCellAd
     const std::size_t to_display = std::min(shown_indices_[to.column], last_shown);
     const std::size_t first_display = std::min(from_display, to_display);
     const std::size_t last_display = std::max(from_display, to_display);
+    if (full_column) {
+        for (std::size_t display = first_display; display <= last_display; ++display) {
+            insert_selected_column(shown_order_[display]);
+        }
+        return;
+    }
     for (std::size_t position = first_row; position <= last_row; ++position) {
         const std::string row_id = row_id_text(DataGridViewRowPosition{position});
         for (std::size_t display = first_display; display <= last_display; ++display) {
@@ -2233,6 +2280,8 @@ void DataGridView::select_current_alone() {
     if (!current_) return;
     if (selection_mode.read() == DataGridViewSelectionMode::full_row_select) {
         insert_selected_row((*current_).row_id);
+    } else if (selection_mode.read() == DataGridViewSelectionMode::full_column_select) {
+        insert_selected_column((*current_).column);
     } else {
         insert_selected_cell((*current_).row_id, (*current_).column);
     }
@@ -2348,6 +2397,9 @@ bool DataGridView::move_current(DataGridViewCellAddress target, SelectionGesture
         if (full_row) {
             if (row_in_selection(target_key.row_id)) erase_selected_row(target_key.row_id);
             else insert_selected_row(target_key.row_id);
+        } else if (selection_mode.read() == DataGridViewSelectionMode::full_column_select) {
+            if (column_in_selection(target_key.column)) erase_selected_column(target_key.column);
+            else insert_selected_column(target_key.column);
         } else {
             if (cell_in_selection(target_key.row_id, target_key.column)) {
                 erase_selected_cell(target_key.row_id, target_key.column);
@@ -2392,7 +2444,7 @@ void DataGridView::prepare_write(const decltype(multi_select)&, bool&) {
 void DataGridView::written(const decltype(multi_select)&) {
     if (!multi_select.read()) {
         const std::uint64_t before = selection_revision_;
-        const std::size_t selected = selected_cell_count() + selected_rows_.size();
+        const std::size_t selected = selected_cell_count() + selected_rows_.size() + selected_columns_.size();
         if (selected > 1U) select_current_alone();
         publish_selection(before);
         if (!is_alive()) return;
@@ -2432,16 +2484,21 @@ bool DataGridView::set_current_cell(std::optional<DataGridViewCellAddress> cell)
 
 bool DataGridView::is_cell_selected(DataGridViewRowPosition row, std::size_t column) const {
     if (row.value >= row_count()) return false;
+    const DataGridViewSelectionMode mode = selection_mode.read();
+    if (mode == DataGridViewSelectionMode::full_column_select) return column_in_selection(column);
     const std::string row_id = row_id_text(row);
-    if (selection_mode.read() == DataGridViewSelectionMode::full_row_select) return row_in_selection(row_id);
+    if (mode == DataGridViewSelectionMode::full_row_select) return row_in_selection(row_id);
+    if (mode == DataGridViewSelectionMode::column_header_select && column_in_selection(column)) return true;
     return cell_in_selection(row_id, column);
 }
 
 bool DataGridView::is_row_selected(DataGridViewRowPosition row) const {
     if (row.value >= row_count()) return false;
+    if (columns_.empty() && selection_mode.read() != DataGridViewSelectionMode::full_row_select) return false;
+    // Every column selected selects every row.
+    if (!columns_.empty() && selected_columns_.size() == columns_.size()) return true;
     const std::string row_id = row_id_text(row);
     if (selection_mode.read() == DataGridViewSelectionMode::full_row_select) return row_in_selection(row_id);
-    if (columns_.empty()) return false;
     // A row's entry holds unique column indices below the column count.
     const SelectedCells::const_iterator found = selected_cells_.find(row_id);
     const bool result = found != selected_cells_.end() && (*found).second.size() == columns_.size();
@@ -2455,6 +2512,10 @@ void DataGridView::set_cell_selected(DataGridViewRowPosition row, std::size_t co
         set_row_selected(row, selected);
         return;
     }
+    if (selection_mode.read() == DataGridViewSelectionMode::full_column_select) {
+        set_column_selected(column, selected);
+        return;
+    }
     const std::uint64_t before = selection_revision_;
     if (selected && !multi_select.read()) clear_selection_state();
     const std::string row_id = row_id_text(row);
@@ -2466,6 +2527,9 @@ void DataGridView::set_cell_selected(DataGridViewRowPosition row, std::size_t co
 void DataGridView::set_row_selected(DataGridViewRowPosition row, bool selected) {
     require_mutable();
     if (row.value >= row_count()) throw std::out_of_range("DataGridView row is past the end");
+    if (selection_mode.read() == DataGridViewSelectionMode::full_column_select) {
+        throw std::logic_error("DataGridView rows are not selected in full column selection");
+    }
     const std::uint64_t before = selection_revision_;
     if (selected && !multi_select.read()) clear_selection_state();
     const std::string row_id = row_id_text(row);
@@ -2480,17 +2544,49 @@ void DataGridView::set_row_selected(DataGridViewRowPosition row, bool selected) 
     publish_selection(before);
 }
 
+bool DataGridView::is_column_selected(std::size_t column) const {
+    if (column >= columns_.size()) return false;
+    return column_in_selection(column);
+}
+
+void DataGridView::set_column_selected(std::size_t column, bool selected) {
+    require_mutable();
+    if (column >= columns_.size()) throw std::out_of_range("DataGridView column is past the end");
+    if (!header_selects_column()) {
+        throw std::logic_error("DataGridView columns are selected only in full column or column header selection");
+    }
+    const std::uint64_t before = selection_revision_;
+    if (selected && !multi_select.read()) clear_selection_state();
+    if (selected) insert_selected_column(column);
+    else erase_selected_column(column);
+    publish_selection(before);
+}
+
+std::vector<std::size_t> DataGridView::selected_columns() const {
+    std::vector<std::size_t> result(selected_columns_.begin(), selected_columns_.end());
+    return result;
+}
+
 std::vector<DataGridViewCellAddress> DataGridView::selected_cells() const {
     std::vector<DataGridViewCellAddress> cells{};
-    if (selection_mode.read() == DataGridViewSelectionMode::cell_select) {
-        cells.reserve(selected_cell_count());
+    const DataGridViewSelectionMode mode = selection_mode.read();
+    if (mode != DataGridViewSelectionMode::full_row_select) {
+        // Selected cells, and every cell of a selected column.
+        const std::size_t count = row_count();
+        cells.reserve(selected_cell_count() + selected_columns_.size() * count);
         for (const SelectedCells::value_type& entry : selected_cells_) {
             const std::optional<std::size_t> position = find_row(entry.first);
             if (!position) continue;
             const DataGridViewRowPosition row{*position};
             for (const std::size_t column : entry.second) cells.push_back({row, column});
         }
+        for (std::size_t position = 0U; position < count && !selected_columns_.empty(); ++position) {
+            const DataGridViewRowPosition row{position};
+            for (const std::size_t column : selected_columns_) cells.push_back({row, column});
+        }
         std::sort(cells.begin(), cells.end(), CellAddressOrder{});
+        const std::vector<DataGridViewCellAddress>::iterator repeated = std::unique(cells.begin(), cells.end());
+        cells.erase(repeated, cells.end());
         return cells;
     }
     const std::vector<DataGridViewRowPosition> rows = selected_rows();
@@ -2509,6 +2605,11 @@ std::vector<DataGridViewRowPosition> DataGridView::selected_rows() const {
             const std::optional<std::size_t> position = find_row(row_id);
             if (position) rows.push_back(DataGridViewRowPosition{*position});
         }
+    } else if (!columns_.empty() && selected_columns_.size() == columns_.size()) {
+        // Every column selected selects every row.
+        const std::size_t count = row_count();
+        rows.reserve(count);
+        for (std::size_t position = 0U; position < count; ++position) rows.push_back(DataGridViewRowPosition{position});
     } else if (!columns_.empty()) {
         for (const SelectedCells::value_type& entry : selected_cells_) {
             if (entry.second.size() != columns_.size()) continue;
@@ -3766,7 +3867,14 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             const bool on_header = hit.zone == HitZone::column_header || hit.zone == HitZone::column_divider;
             if (on_header && hit.column == pressed) {
                 column_header_click_.emit(pressed);
-                sort_from_header(pressed);
+                if (!is_alive() || pressed >= columns_.size()) return;
+                // The column selection modes select the column instead of
+                // sorting (Windows Forms refuses automatic sorting there).
+                if (header_selects_column()) {
+                    select_column_from_header(pressed, has_modifier(event.modifiers, Modifier::control));
+                } else {
+                    sort_from_header(pressed);
+                }
             }
             event.handled = true;
             return;
@@ -4203,7 +4311,11 @@ bool DataGridView::click_row_header(DataGridViewRowPosition row, SelectionGestur
     if (shown_order_.empty()) return false;
     const std::size_t column = current_ ? (*current_).column : shown_order_.front();
     if (!move_current({row, column}, gesture)) return false;
-    if (selection_mode.read() == DataGridViewSelectionMode::cell_select && gesture == SelectionGesture::replace) {
+    const DataGridViewSelectionMode mode = selection_mode.read();
+    const bool cell_mode = mode == DataGridViewSelectionMode::cell_select ||
+                           mode == DataGridViewSelectionMode::row_header_select ||
+                           mode == DataGridViewSelectionMode::column_header_select;
+    if (cell_mode && gesture == SelectionGesture::replace) {
         const std::uint64_t before = selection_revision_;
         select_range({row, shown_order_.front()}, {row, shown_order_.back()});
         publish_selection(before);
@@ -4264,6 +4376,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             node.bounds = {absolute.x + placed.column_header.bounds.x, absolute.y + placed.column_header.bounds.y,
                            placed.column_header.bounds.width, placed.column_header.bounds.height};
             node.states = SemanticState::visible | SemanticState::enabled;
+            if (column_in_selection(column)) node.states |= SemanticState::selected;
             node.actions = {SemanticAction::press};
             nodes.push_back(std::move(node));
         }
@@ -4396,7 +4509,12 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
         if (!column || action != SemanticAction::press) return false;
         const std::size_t pressed = *column;
         column_header_click_.emit(pressed);
-        sort_from_header(pressed);
+        if (!is_alive() || pressed >= columns_.size()) return true;
+        if (header_selects_column()) {
+            select_column_from_header(pressed, false);
+        } else {
+            sort_from_header(pressed);
+        }
         return true;
     }
     const std::string header_prefix = row_header_prefix();
@@ -4475,7 +4593,13 @@ namespace {
 std::shared_ptr<const PropertyEnumDescriptor> data_grid_view_selection_mode_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
         std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
-            "data_grid_view_selection_mode", {{"cell_select", 0}, {"full_row_select", 1}}, false});
+            "data_grid_view_selection_mode",
+            {{"cell_select", 0},
+             {"full_row_select", 1},
+             {"full_column_select", 2},
+             {"row_header_select", 3},
+             {"column_header_select", 4}},
+            false});
     return value;
 }
 

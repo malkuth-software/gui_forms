@@ -3412,7 +3412,7 @@ typedef struct gf_data_grid_table {
      * receives 0, changing nothing, when the edit or the row's validation
      * refuses. A cell in a hidden column gives GF_STATUS_INVALID_STATE.
      * The grid's own settings are schema properties (properties.set and
-     * get): read_only, selection_mode (cell_select or full_row_select),
+     * get): read_only, selection_mode (a data_grid_view_selection_mode choice),
      * multi_select and allow_user_to_add_rows. */
     gf_status (GF_CALL* set_current_cell)(gf_object grid, gf_utf8_view row_id, uint64_t column, uint32_t* moved);
     /* The selected rows' positions in order (full-row selections, or in
