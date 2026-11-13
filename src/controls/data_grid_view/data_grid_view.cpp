@@ -15,6 +15,9 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 
 #include <algorithm>
+#include <variant>
+#include <span>
+#include <cstdio>
 #include <array>
 #include <charconv>
 #include <cmath>
@@ -530,6 +533,28 @@ std::string DataGridView::shown_text(DataGridViewRowPosition row, std::size_t co
         const ImageId* const image = std::get_if<ImageId>(&value);
         const bool holds_image = image != nullptr && (*image).value != 0U;
         std::string text = holds_image ? definition.image_description : std::string{};
+        return text;
+    }
+    if (definition.kind == DataGridViewColumnKind::sparkline) {
+        // The newest finite number of the collection, as assistive
+        // technology reads it; empty without one.
+        const BindingValue value = stored_value(row, column);
+        const PropertyCollectionValue* const collection = std::get_if<PropertyCollectionValue>(&value);
+        std::string text{};
+        if (collection == nullptr) return text;
+        const std::span<const BindingValue> items = property_collection_items(*collection);
+        for (std::size_t remaining = items.size(); remaining > 0U; --remaining) {
+            const double* const number = std::get_if<double>(&items[remaining - 1U]);
+            if (number == nullptr || !std::isfinite(*number)) continue;
+            std::array<char, 32> buffer{};
+            const int written = std::snprintf(buffer.data(), buffer.size(), "%g", *number);
+            if (written > 0) {
+                const std::size_t length =
+                    std::min<std::size_t>(static_cast<std::size_t>(written), buffer.size() - 1U);
+                text.assign(buffer.data(), length);
+            }
+            break;
+        }
         return text;
     }
     if (formatted.empty() && definition.kind == DataGridViewColumnKind::button) return definition.button_text;

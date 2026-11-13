@@ -16,7 +16,14 @@ namespace gui_forms {
 // The kind of cell a column shows (Windows Forms' DataGridViewTextBoxColumn,
 // DataGridViewCheckBoxColumn, DataGridViewComboBoxColumn,
 // DataGridViewButtonColumn, DataGridViewImageColumn and
-// DataGridViewLinkColumn).
+// DataGridViewLinkColumn), and a sparkline column (GUI.Forms only; the D3
+// demonstrator's I5): its cell value is a collection of numbers
+// (make_property_collection, item kind number), oldest first, drawn as
+// paint_sparkline draws them, newest at the right, scaled to the cell's own
+// finite extent. A non-numeric item or NaN is a gap. A sparkline cell is
+// read-only and not sorted automatically; its text, which assistive
+// technology reads, is the newest finite value. The C ABI does not take
+// this kind yet.
 enum class DataGridViewColumnKind : std::uint8_t {
     text,
     check_box,
@@ -24,6 +31,7 @@ enum class DataGridViewColumnKind : std::uint8_t {
     button,
     image,
     link,
+    sparkline,
 };
 
 // How an image cell places its image (Windows Forms'

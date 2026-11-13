@@ -5,11 +5,14 @@
 
 #include "../text_block/line_wrapping.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <stdexcept>
@@ -26,6 +29,8 @@ constexpr double scroll_bar_thickness = 17.0;
 constexpr double cell_padding = 4.0;
 constexpr double check_box_size = 13.0;
 constexpr double check_mark_inset = 3.0;
+// A sparkline cell's line: the accent Sparkline draws with.
+constexpr AccentIndex sparkline_accent{5U};
 constexpr double drop_down_width = 17.0;
 constexpr double glyph_size = 7.0;
 constexpr double button_inset = 2.0;
@@ -1633,8 +1638,51 @@ bool DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std
         default_content = raise_item_content_paint(draw_item_content_, request);
         if (!is_alive() || structure_revision_ != revision) return false;
     }
-    paint_data_grid_view_cell_parts(painter, *this, paint_scratch_, resolved, layout.data, default_content);
+    // A sparkline cell draws its series in place of its text.
+    const bool sparkline = columns_[column].kind == DataGridViewColumnKind::sparkline;
+    paint_data_grid_view_cell_parts(painter, *this, paint_scratch_, resolved, layout.data,
+                                    default_content && !sparkline);
+    if (default_content && sparkline && !resolved.editing_text) {
+        paint_sparkline_cell(painter, row, column, Rect::intersection(resolved.content_box, layout.data), layout);
+    }
     return true;
+}
+
+void DataGridView::gather_sparkline_values(DataGridViewRowPosition row, std::size_t column) {
+    sparkline_values_.clear();
+    const BindingValue value = stored_value(row, column);
+    const PropertyCollectionValue* const collection = std::get_if<PropertyCollectionValue>(&value);
+    if (collection == nullptr) return;
+    const std::span<const BindingValue> items = property_collection_items(*collection);
+    sparkline_values_.reserve(items.size());
+    for (std::size_t index = 0U; index < items.size(); ++index) {
+        const BindingValue& item = items[index];
+        double number = std::numeric_limits<double>::quiet_NaN();
+        if (const double* const real = std::get_if<double>(&item)) {
+            number = *real;
+        } else if (const std::int64_t* const signed_number = std::get_if<std::int64_t>(&item)) {
+            number = static_cast<double>(*signed_number);
+        } else if (const std::uint64_t* const unsigned_number = std::get_if<std::uint64_t>(&item)) {
+            number = static_cast<double>(*unsigned_number);
+        }
+        // An infinity is a gap too: paint_sparkline takes finite values or NaN.
+        if (std::isinf(number)) number = std::numeric_limits<double>::quiet_NaN();
+        sparkline_values_.push_back(number);
+    }
+}
+
+void DataGridView::paint_sparkline_cell(Painter& painter, DataGridViewRowPosition row, std::size_t column,
+                                        Rect content, const GridLayout& layout) {
+    gather_sparkline_values(row, column);
+    if (sparkline_values_.empty() || content.width <= 0.0 || content.height <= 0.0) return;
+    if (sparkline_workspaces_.size() < columns_.size()) sparkline_workspaces_.resize(columns_.size());
+    SparklineStyle style{};
+    style.line = effective_theme().accent(sparkline_accent);
+    style.line.alpha = 255U;
+    plots::SeriesSpans<double> values{};
+    values.first = std::span<const double>(sparkline_values_);
+    const std::size_t slots = std::max<std::size_t>(2U, sparkline_values_.size());
+    paint_sparkline(painter, content, values, slots, layout.scale, style, sparkline_workspaces_[column]);
 }
 
 void DataGridView::paint_column_header(Painter& painter, std::size_t column, const GridLayout& layout) const {

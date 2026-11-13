@@ -5644,6 +5644,8 @@ Enumerations
 
    .. cpp:enumerator:: link
 
+   .. cpp:enumerator:: sparkline
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: DataGridViewColumnSortMode
