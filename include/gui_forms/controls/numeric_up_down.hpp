@@ -167,11 +167,10 @@ public:
 
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event. The class is final: a hook is virtual only
-    // where the C ABI's class tables name it as a raiser (sealed ahead of
-    // the class becoming derivable). Only the properties with a Windows
-    // Forms On<Property>Changed have one.
-    virtual void on_value_changed();
+    // raises the change event (the class is final: nothing overrides it in
+    // C++). Only the properties with a Windows Forms On<Property>Changed
+    // have one.
+    void on_value_changed();
 
 private:
     friend struct NumericUpDownValueCapability<NumericUpDown>;

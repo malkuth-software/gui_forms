@@ -535,11 +535,17 @@ def header_members(record: TypeRecord) -> tuple[set[str], set[str], set[str], bo
     methods: set[str] = {method.name for method in shape.methods}
     # The extension surface: public virtuals, and protected virtuals a
     # subclass overrides (the on_<property>_changed raisers of P-8 among
-    # them, Windows Forms' protected On* hooks' counterparts).
+    # them, Windows Forms' protected On* hooks' counterparts). A final
+    # class's on_<property>_changed raisers are plain members (nothing
+    # derives from it; C and C# reach them through the class tables), and
+    # count as the same surface.
+    final: bool = re.search(r"\bfinal\b", record.declaration) is not None
     for method in shape.extension:
         if rst.is_override(method):
             continue
-        if method.access == "public" or re.search(r"\bvirtual\b", method.signature):
+        plain_raiser: bool = (final and method.access == "protected" and
+                              re.fullmatch(r"on_\w+_changed", method.name) is not None)
+        if method.access == "public" or re.search(r"\bvirtual\b", method.signature) or plain_raiser:
             methods.add(method.name)
     return properties, events, methods, bool(shape.constructors)
 

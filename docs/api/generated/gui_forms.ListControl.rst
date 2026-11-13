@@ -216,8 +216,8 @@ Counterpart: ``ListControl``. Members declared here and by the counterpart: 2 su
      - unclassified (hook)
    * - method
      - ``OnSelectedIndexChanged``
-     - none
-     - unclassified (hook)
+     - on ``ComboBox``
+     - unclassified (carried)
    * - method
      - ``OnSelectedValueChanged``
      - none

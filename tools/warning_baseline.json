@@ -3,7 +3,6 @@
  "hosts": {
   "windows": {
    "demo/lab_controls/src": 20,
-   "include/gui_forms/controls": 27,
    "lab/src": 13,
    "src/controls/backstage_view": 8,
    "src/controls/badge": 4,

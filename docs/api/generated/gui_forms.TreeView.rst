@@ -458,11 +458,11 @@ gui_forms::TreeView
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event. The class is final: a hook is virtual only where the C ABI's class tables name it as a raiser (sealed ahead of the class becoming derivable). Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TreeView``. Members declared here and by the counterpart: 13 supported, 0 deferred, 2 excluded, 72 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TreeView``. Members declared here and by the counterpart: 13 supported, 0 deferred, 2 excluded, 73 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -817,6 +817,10 @@ Counterpart: ``TreeView``. Members declared here and by the counterpart: 13 supp
      - GUI.Forms-only
      - ``expanded``
      - supported
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``set_expanded``

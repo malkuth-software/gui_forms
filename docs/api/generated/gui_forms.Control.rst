@@ -3391,7 +3391,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 239 supp
      - supported
    * - method
      - ``OnFontChanged``
-     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``Label``, ``ListBox``, ``CheckedListBox``, ``CheckBox``, ``RadioButton``, ``GroupBox``
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``TextBox``, ``RichTextBox``, ``Label``, ``ListBox``, ``CheckedListBox``, ``ComboBox``, ``TreeView``, ``ObjectView``, ``ListView``, ``DataGridView``, ``CheckBox``, ``RadioButton``, ``DateTimePicker``, ``MonthCalendar``, ``GroupBox``
      - unclassified (carried)
    * - method
      - ``OnForeColorChanged``
@@ -3607,7 +3607,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 239 supp
      - unclassified (untested)
    * - method
      - ``OnTextChanged``
-     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``Label``, ``CheckBox``, ``RadioButton``, ``GroupBox``
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``TextBox``, ``RichTextBox``, ``Label``, ``ComboBox``, ``CheckBox``, ``RadioButton``, ``DomainUpDown``, ``GroupBox``
      - unclassified (carried)
    * - method
      - ``OnValidated``

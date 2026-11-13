@@ -493,7 +493,7 @@ gui_forms::RichTextBox
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event. The class is final: a hook is virtual only where the C ABI's class tables name it as a raiser (sealed ahead of the class becoming derivable). Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:function:: void on_read_only_changed()
 
@@ -517,7 +517,7 @@ gui_forms::RichTextBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 25 supported, 0 deferred, 2 excluded, 52 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 26 supported, 0 deferred, 2 excluded, 55 unclassified; 20 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -804,6 +804,22 @@ Counterpart: ``RichTextBox``. Members declared here and by the counterpart: 25 s
      - GUI.Forms-only
      - ``insert_link``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_accepts_tab_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_read_only_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnTextChanged``
+     - ``on_text_changed``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``replace_selection``

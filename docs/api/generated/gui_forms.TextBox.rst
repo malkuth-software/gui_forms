@@ -775,7 +775,7 @@ gui_forms::TextBox
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event. The class is final: a hook is virtual only where the C ABI's class tables name it as a raiser (sealed ahead of the class becoming derivable). Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:function:: void on_read_only_changed()
 
@@ -807,7 +807,7 @@ gui_forms::TextBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TextBox``. Members declared here and by the counterpart: 22 supported, 0 deferred, 0 excluded, 24 unclassified; 28 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TextBox``. Members declared here and by the counterpart: 23 supported, 0 deferred, 0 excluded, 28 unclassified; 31 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -958,6 +958,26 @@ Counterpart: ``TextBox``. Members declared here and by the counterpart: 22 suppo
      - GUI.Forms-only
      - ``delete_selection``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_accepts_tab_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_multiline_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_read_only_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnTextChanged``
+     - ``on_text_changed``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``redo``

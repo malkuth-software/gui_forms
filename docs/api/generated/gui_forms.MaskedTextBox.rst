@@ -401,11 +401,11 @@ gui_forms::MaskedTextBox
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_mask_changed()
+   .. cpp:function:: void on_mask_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event. The class is final: a hook is virtual only where the C ABI's class tables name it as a raiser (sealed ahead of the class becoming derivable). Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:function:: void on_read_only_changed()
 
@@ -417,7 +417,7 @@ gui_forms::MaskedTextBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 37 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 38 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -631,6 +631,10 @@ Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 16
    * - method
      - GUI.Forms-only
      - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_read_only_changed``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

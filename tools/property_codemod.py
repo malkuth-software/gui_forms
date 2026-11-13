@@ -787,32 +787,11 @@ def add_include(text, include):
 
 # The declaring class's header ---------------------------------------------
 
-MEMBERS_MANIFEST = pathlib.Path(__file__).resolve().parent.parent / "manifests" / "members.json"
-
-
-def abi_raisers():
-    """Every 'Class::on_x_changed' the C ABI's class tables name as a raiser
-    (manifests/members.json, read by tools/abi_class_tables.py). Their
-    segments are sealed ahead of the class becoming derivable, so they stay
-    `virtual` even in a final class. Empty when the manifest is absent (the
-    fixtures)."""
-    if not MEMBERS_MANIFEST.exists():
-        return set()
-    members = json.loads(MEMBERS_MANIFEST.read_text(encoding="utf-8"))
-    found = set()
-    for entry in members.get("controls", []):
-        for row in entry.get("members", []):
-            raiser = row.get("raiser")
-            if isinstance(raiser, dict) and isinstance(raiser.get("cpp"), str):
-                found.add(raiser["cpp"])
-    return found
-
-
 def header_block(config, final_class=False):
-    """The generated block. In a final class an on_<property>_changed hook
-    is a plain member (nothing can override it, and `virtual` there is
-    -Wunnecessary-virtual-specifier), unless the C ABI's class tables name
-    it as a raiser (abi_raisers)."""
+    """The generated block. In a final class the on_<property>_changed
+    hooks are plain members: nothing can override them in C++ (`virtual`
+    there is -Wunnecessary-virtual-specifier), and the C ABI's class tables
+    reach a final class's raisers without a vtable (tools/abi_class_tables.py)."""
     declaring = config["declaring"]
     family = config["family"]
     base = config.get("base", "Control")
@@ -829,20 +808,16 @@ def header_block(config, final_class=False):
                   "    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;",
                   ""]
     virtuals = []
-    sealed = abi_raisers() if final_class else set()
+    specifier = "" if final_class else "virtual "
     for prop in config["properties"]:
         if prop.get("on_changed"):
-            hook = f"on_{prop['name']}_changed"
-            plain = final_class and f"{declaring}::{hook}" not in sealed
-            specifier = "" if plain else "virtual "
-            virtuals.append(f"    {specifier}void {hook}();")
+            virtuals.append(f"    {specifier}void on_{prop['name']}_changed();")
     if virtuals and final_class:
         lines += ["protected:",
                   "    // on_<property>_changed runs after a changed write's store and touch and",
-                  "    // raises the change event. The class is final: a hook is virtual only",
-                  "    // where the C ABI's class tables name it as a raiser (sealed ahead of",
-                  "    // the class becoming derivable). Only the properties with a Windows",
-                  "    // Forms On<Property>Changed have one.",
+                  "    // raises the change event (the class is final: nothing overrides it in",
+                  "    // C++). Only the properties with a Windows Forms On<Property>Changed",
+                  "    // have one.",
                   *virtuals, ""]
     elif virtuals:
         lines += ["protected:",

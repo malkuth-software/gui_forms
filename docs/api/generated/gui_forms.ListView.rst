@@ -851,7 +851,7 @@ gui_forms::ListView
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event. The class is final: a hook is virtual only where the C ABI's class tables name it as a raiser (sealed ahead of the class becoming derivable). Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
@@ -887,7 +887,7 @@ gui_forms::ListView
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supported, 0 deferred, 2 excluded, 97 unclassified; 38 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supported, 0 deferred, 2 excluded, 98 unclassified; 38 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1454,6 +1454,10 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - GUI.Forms-only
      - ``item_index_at``
      - supported
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``refresh_virtual_items``
