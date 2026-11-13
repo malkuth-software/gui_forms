@@ -139,6 +139,9 @@ bool DataGridView::send_cells_snapshot(const GridLayout& layout, const Parts& gr
             snapshot.cells.push_back(cell);
         }
     }
+    // The rows' overlay parts, in the region's coordinates.
+    if (!gather_row_overlays(layout, offset)) return false;
+    snapshot.overlays.assign(row_overlays_.begin(), row_overlays_.end());
     static_cast<void>((*cells_host_).redraw_all(std::make_unique<DataGridViewCellsUpdate>(std::move(snapshot))));
     return true;
 }

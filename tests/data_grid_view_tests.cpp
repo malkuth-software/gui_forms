@@ -3988,6 +3988,94 @@ struct ScrollToFrozenColumn final {
     void operator()() const { (*grid).set_first_displayed_scrolling_column(0U); }
 };
 
+// Answers row_pre_paint: the first row is handled, the second paints no
+// content, the third paints its background in a given colour.
+struct AnswerRowPrePaint final {
+    std::vector<DataGridViewRowPrePaintEvent>* seen{};
+    Color background{};
+    void operator()(DataGridViewRowPrePaintEvent& event) const {
+        (*seen).push_back(event);
+        if (event.row == row_at(0U)) event.handled = true;
+        if (event.row == row_at(1U)) event.parts.content = false;
+        if (event.row == row_at(2U)) event.background = background;
+    }
+};
+
+// Answers row_post_paint with one check glyph over the first row.
+struct AnswerRowPostPaint final {
+    std::vector<DataGridViewRowPostPaintEvent>* seen{};
+    void operator()(DataGridViewRowPostPaintEvent& event) const {
+        (*seen).push_back(event);
+        if (event.row != row_at(0U)) return;
+        const Rect glyph{event.bounds.x + 2.0, event.bounds.y + 2.0, 10.0, 10.0};
+        event.overlays.push_back(DataGridViewRowOverlayPart{glyph, PartRole::glyph, PartMark::check, std::nullopt});
+    }
+};
+
+// Records the text written and the colours filled.
+class RowPaintPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color color) override { fills.push_back(color); }
+    void fill_rounded_rect(Rect, double, Color color) override { fills.push_back(color); }
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view text, FontSpec, Color) override { texts.emplace_back(text); }
+    void draw_image(ImageId, Rect, double) override {}
+
+    std::vector<Color> fills;
+    std::vector<std::string> texts;
+};
+
+bool contains_text(const std::vector<std::string>& texts, std::string_view wanted) {
+    for (const std::string& text : texts) {
+        if (text == wanted) return true;
+    }
+    return false;
+}
+
+// Windows Forms' RowPrePaint and RowPostPaint, as part hooks: the pre-paint
+// answer changes which of a row's parts paint, the post-paint answer asks
+// for overlay parts painted over the row.
+void row_paint_hooks() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.row.paint");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).set_current_cell(cell_at(1U, 0U)), "a cell becomes current");
+    window.perform_layout();
+    const Color background{30, 160, 90, 255};
+    std::vector<DataGridViewRowPrePaintEvent> pre;
+    std::vector<DataGridViewRowPostPaintEvent> post;
+    SubscriptionToken pre_token = (*grid).row_pre_paint().subscribe(AnswerRowPrePaint{&pre, background});
+    SubscriptionToken post_token = (*grid).row_post_paint().subscribe(AnswerRowPostPaint{&post});
+    RowPaintPainter painter;
+    (*grid).on_paint(painter, (*grid).client_rectangle());
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    require(pre.size() == rows.size() && post.size() == rows.size(), "each shown row raises both hooks once");
+    require(pre[0].row == row_at(0U) && pre[0].row_id == id("alpha") && pre[1].row == row_at(1U) &&
+                pre[1].current && !pre[0].current,
+            "the hooks are raised in row order and name the current row");
+    require(pre[0].bounds.y == rows[0].parts.row_header.bounds.y &&
+                pre[0].bounds.height == rows[0].parts.row_header.bounds.height &&
+                pre[0].bounds.x <= rows[0].parts.row_header.bounds.x,
+            "a row's paint bounds cover its header and its height");
+    require(post[0].row == row_at(0U) && post[0].bounds.y == pre[0].bounds.y, "post-paint names the same rows");
+    require(!contains_text(painter.texts, "Alpha"), "a handled row paints none of its own parts");
+    require(!contains_text(painter.texts, "Bravo"), "a row without content paints no cell text");
+    require(contains_text(painter.texts, "Charlie"), "the other rows paint their content");
+    require(contains_colour(painter.fills, background), "a row's answered background is painted");
+    pre_token.disconnect();
+    post_token.disconnect();
+    RowPaintPainter plain;
+    (*grid).on_paint(plain, (*grid).client_rectangle());
+    require(contains_text(plain.texts, "Alpha") && contains_text(plain.texts, "Bravo") &&
+                !contains_colour(plain.fills, background),
+            "with no handlers every row paints as before");
+}
+
 // Windows Forms' AutoGenerateColumns.
 void auto_generated_columns() {
     std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.generated"));
@@ -4095,6 +4183,7 @@ int main() {
     editing_control_showing();
     auto_generated_columns();
     first_displayed_scrolling_column();
+    row_paint_hooks();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";

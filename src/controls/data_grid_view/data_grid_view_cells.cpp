@@ -67,6 +67,17 @@ void paint_data_grid_view_cell(Painter& painter, const Control& owner, const Dat
     paint_data_grid_view_cell_parts(painter, owner, snapshot, cell, data, true);
 }
 
+void paint_data_grid_view_row_overlay(Painter& painter, const Control& owner, const DataGridViewRowOverlayPart& overlay) {
+    if (overlay.bounds.empty()) return;
+    PartPaint part;
+    part.family = ControlVisualRole::editor;
+    part.role = overlay.role;
+    part.mark = overlay.mark;
+    part.bounds = overlay.bounds;
+    part.authored_background = overlay.background;
+    paint_part(painter, owner, part);
+}
+
 void paint_data_grid_view_cell_selection(Painter& painter, const Control& owner, const DataGridViewCellsCell& cell) {
     if (!cell.parts.cell.present) return;
     // The selection plate: transparent at rest in the selection recipe.
@@ -279,6 +290,10 @@ void DataGridViewCells::on_paint(Painter& painter, Rect) {
         painter.clip_rect(cut);
         paint_data_grid_view_cell(painter, *this, snapshot_, cell, cut);
         painter.restore();
+    }
+    // The rows' overlay parts, over every cell.
+    for (const DataGridViewRowOverlayPart& overlay : snapshot_.overlays) {
+        paint_data_grid_view_row_overlay(painter, *this, overlay);
     }
     painter.restore();
 }

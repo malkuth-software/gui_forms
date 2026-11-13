@@ -6,6 +6,7 @@
 
 #include "abi_event_fields.hpp"
 
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/background_worker/background_worker.hpp"
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_context/binding_context.hpp"
@@ -52,6 +53,7 @@
 #include "gui_forms/controls/content_surface.hpp"
 #include "gui_forms/controls/content_text_editor.hpp"
 #include "gui_forms/controls/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view_cells.hpp"
 #include "gui_forms/controls/data_grid_view_row_order.hpp"
 #include "gui_forms/controls/data_grid_view_types.hpp"
 #include "gui_forms/controls/date_time_picker.hpp"
@@ -154,6 +156,7 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
@@ -820,6 +823,107 @@ struct EnumerationChoices<PageSelectionCause> {
 };
 
 template <>
+struct EnumerationChoices<PartMark> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 29> choices{{
+        {"none", static_cast<std::int64_t>(PartMark::none)},
+        {"check", static_cast<std::int64_t>(PartMark::check)},
+        {"indeterminate", static_cast<std::int64_t>(PartMark::indeterminate)},
+        {"radio_dot", static_cast<std::int64_t>(PartMark::radio_dot)},
+        {"toggle_knob", static_cast<std::int64_t>(PartMark::toggle_knob)},
+        {"arrow_up", static_cast<std::int64_t>(PartMark::arrow_up)},
+        {"arrow_down", static_cast<std::int64_t>(PartMark::arrow_down)},
+        {"arrow_left", static_cast<std::int64_t>(PartMark::arrow_left)},
+        {"arrow_right", static_cast<std::int64_t>(PartMark::arrow_right)},
+        {"chevron_down", static_cast<std::int64_t>(PartMark::chevron_down)},
+        {"chevron_right", static_cast<std::int64_t>(PartMark::chevron_right)},
+        {"close", static_cast<std::int64_t>(PartMark::close)},
+        {"grip_dots", static_cast<std::int64_t>(PartMark::grip_dots)},
+        {"dialog_launcher", static_cast<std::int64_t>(PartMark::dialog_launcher)},
+        {"more", static_cast<std::int64_t>(PartMark::more)},
+        {"overflow", static_cast<std::int64_t>(PartMark::overflow)},
+        {"customize", static_cast<std::int64_t>(PartMark::customize)},
+        {"pin", static_cast<std::int64_t>(PartMark::pin)},
+        {"dock_shape", static_cast<std::int64_t>(PartMark::dock_shape)},
+        {"underline", static_cast<std::int64_t>(PartMark::underline)},
+        {"pencil", static_cast<std::int64_t>(PartMark::pencil)},
+        {"asterisk", static_cast<std::int64_t>(PartMark::asterisk)},
+        {"error", static_cast<std::int64_t>(PartMark::error)},
+        {"search", static_cast<std::int64_t>(PartMark::search)},
+        {"information", static_cast<std::int64_t>(PartMark::information)},
+        {"warning", static_cast<std::int64_t>(PartMark::warning)},
+        {"success", static_cast<std::int64_t>(PartMark::success)},
+        {"chevron_left", static_cast<std::int64_t>(PartMark::chevron_left)},
+        {"count", static_cast<std::int64_t>(PartMark::count)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<PartRole> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 58> choices{{
+        {"region", static_cast<std::int64_t>(PartRole::region)},
+        {"shadow", static_cast<std::int64_t>(PartRole::shadow)},
+        {"face", static_cast<std::int64_t>(PartRole::face)},
+        {"edge", static_cast<std::int64_t>(PartRole::edge)},
+        {"keyline", static_cast<std::int64_t>(PartRole::keyline)},
+        {"perimeter", static_cast<std::int64_t>(PartRole::perimeter)},
+        {"sheen", static_cast<std::int64_t>(PartRole::sheen)},
+        {"seam", static_cast<std::int64_t>(PartRole::seam)},
+        {"divider", static_cast<std::int64_t>(PartRole::divider)},
+        {"caption", static_cast<std::int64_t>(PartRole::caption)},
+        {"cap", static_cast<std::int64_t>(PartRole::cap)},
+        {"well", static_cast<std::int64_t>(PartRole::well)},
+        {"track", static_cast<std::int64_t>(PartRole::track)},
+        {"fill", static_cast<std::int64_t>(PartRole::fill)},
+        {"thumb", static_cast<std::int64_t>(PartRole::thumb)},
+        {"actuator", static_cast<std::int64_t>(PartRole::actuator)},
+        {"indicator", static_cast<std::int64_t>(PartRole::indicator)},
+        {"activity", static_cast<std::int64_t>(PartRole::activity)},
+        {"glyph", static_cast<std::int64_t>(PartRole::glyph)},
+        {"icon", static_cast<std::int64_t>(PartRole::icon)},
+        {"label", static_cast<std::int64_t>(PartRole::label)},
+        {"content", static_cast<std::int64_t>(PartRole::content)},
+        {"caret", static_cast<std::int64_t>(PartRole::caret)},
+        {"disclosure", static_cast<std::int64_t>(PartRole::disclosure)},
+        {"grip", static_cast<std::int64_t>(PartRole::grip)},
+        {"chip", static_cast<std::int64_t>(PartRole::chip)},
+        {"focus", static_cast<std::int64_t>(PartRole::focus)},
+        {"preselect", static_cast<std::int64_t>(PartRole::preselect)},
+        {"selection", static_cast<std::int64_t>(PartRole::selection)},
+        {"validation", static_cast<std::int64_t>(PartRole::validation)},
+        {"drop", static_cast<std::int64_t>(PartRole::drop)},
+        {"image", static_cast<std::int64_t>(PartRole::image)},
+        {"plot", static_cast<std::int64_t>(PartRole::plot)},
+        {"graticule", static_cast<std::int64_t>(PartRole::graticule)},
+        {"trace", static_cast<std::int64_t>(PartRole::trace)},
+        {"axis", static_cast<std::int64_t>(PartRole::axis)},
+        {"tick", static_cast<std::int64_t>(PartRole::tick)},
+        {"tick_label", static_cast<std::int64_t>(PartRole::tick_label)},
+        {"grid_major", static_cast<std::int64_t>(PartRole::grid_major)},
+        {"grid_minor", static_cast<std::int64_t>(PartRole::grid_minor)},
+        {"legend", static_cast<std::int64_t>(PartRole::legend)},
+        {"legend_entry", static_cast<std::int64_t>(PartRole::legend_entry)},
+        {"marker", static_cast<std::int64_t>(PartRole::marker)},
+        {"crosshair", static_cast<std::int64_t>(PartRole::crosshair)},
+        {"annotation", static_cast<std::int64_t>(PartRole::annotation)},
+        {"color_scale", static_cast<std::int64_t>(PartRole::color_scale)},
+        {"series", static_cast<std::int64_t>(PartRole::series)},
+        {"arc", static_cast<std::int64_t>(PartRole::arc)},
+        {"needle", static_cast<std::int64_t>(PartRole::needle)},
+        {"beak", static_cast<std::int64_t>(PartRole::beak)},
+        {"scrim", static_cast<std::int64_t>(PartRole::scrim)},
+        {"node", static_cast<std::int64_t>(PartRole::node)},
+        {"header", static_cast<std::int64_t>(PartRole::header)},
+        {"port", static_cast<std::int64_t>(PartRole::port)},
+        {"link", static_cast<std::int64_t>(PartRole::link)},
+        {"lamp", static_cast<std::int64_t>(PartRole::lamp)},
+        {"marquee", static_cast<std::int64_t>(PartRole::marquee)},
+        {"count", static_cast<std::int64_t>(PartRole::count)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<PointerAction> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 6> choices{{
@@ -1109,8 +1213,15 @@ void append_field(EventFields& fields, std::string_view name, const DataGridView
 void append_field(EventFields& fields, std::string_view name, const DataGridViewRowId& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewRowId& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewRowOrderModeChange& value);
+void append_field(EventFields& fields, std::string_view name, const DataGridViewRowOverlayPart& value);
+void append_field(EventFields& fields, std::string_view name, const DataGridViewRowPaintParts& value);
+void read_field(EventFields& fields, std::string_view name, DataGridViewRowPaintParts& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewRowPosition& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewRowPosition& value);
+void append_field(EventFields& fields, std::string_view name, const DataGridViewRowPostPaintEvent& value);
+void read_field(EventFields& fields, std::string_view name, DataGridViewRowPostPaintEvent& value);
+void append_field(EventFields& fields, std::string_view name, const DataGridViewRowPrePaintEvent& value);
+void read_field(EventFields& fields, std::string_view name, DataGridViewRowPrePaintEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewRowValuesEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewRowValuesEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewSortCompareEvent& value);
@@ -1758,6 +1869,37 @@ inline void append_field(EventFields& fields, std::string_view name, const DataG
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const DataGridViewRowOverlayPart& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "bounds", value.bounds);
+    append_field(fields, "role", value.role);
+    append_field(fields, "mark", value.mark);
+    append_field(fields, "background", value.background);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const DataGridViewRowPaintParts& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "background", value.background);
+    append_field(fields, "content", value.content);
+    append_field(fields, "selection", value.selection);
+    append_field(fields, "focus", value.focus);
+    append_field(fields, "error_glyph", value.error_glyph);
+    append_field(fields, "row_header", value.row_header);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, DataGridViewRowPaintParts& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "background", value.background);
+    read_field(fields, "content", value.content);
+    read_field(fields, "selection", value.selection);
+    read_field(fields, "focus", value.focus);
+    read_field(fields, "error_glyph", value.error_glyph);
+    read_field(fields, "row_header", value.row_header);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const DataGridViewRowPosition& value) {
     // An identity: the field is its one value.
     append_field(fields, name, value.value);
@@ -1765,6 +1907,54 @@ inline void append_field(EventFields& fields, std::string_view name, const DataG
 
 inline void read_field(EventFields& fields, std::string_view name, DataGridViewRowPosition& value) {
     read_field(fields, name, value.value);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const DataGridViewRowPostPaintEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "row_id", value.row_id);
+    append_field(fields, "row", value.row);
+    append_field(fields, "bounds", value.bounds);
+    append_field(fields, "selected", value.selected);
+    append_field(fields, "current", value.current);
+    append_field(fields, "overlays", value.overlays);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, DataGridViewRowPostPaintEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "row_id", value.row_id);
+    read_field(fields, "row", value.row);
+    read_field(fields, "bounds", value.bounds);
+    read_field(fields, "selected", value.selected);
+    read_field(fields, "current", value.current);
+    read_field(fields, "overlays", value.overlays);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const DataGridViewRowPrePaintEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "row_id", value.row_id);
+    append_field(fields, "row", value.row);
+    append_field(fields, "bounds", value.bounds);
+    append_field(fields, "selected", value.selected);
+    append_field(fields, "current", value.current);
+    append_field(fields, "parts", value.parts);
+    append_field(fields, "background", value.background);
+    append_field(fields, "handled", value.handled);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, DataGridViewRowPrePaintEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "row_id", value.row_id);
+    read_field(fields, "row", value.row);
+    read_field(fields, "bounds", value.bounds);
+    read_field(fields, "selected", value.selected);
+    read_field(fields, "current", value.current);
+    read_field(fields, "parts", value.parts);
+    read_field(fields, "background", value.background);
+    read_field(fields, "handled", value.handled);
+    fields.leave(prefix);
 }
 
 inline void append_field(EventFields& fields, std::string_view name, const DataGridViewRowValuesEvent& value) {
@@ -5670,6 +5860,24 @@ inline SubscriptionToken connect_data_grid_view_row_order_mode_changed(Component
     return token;
 }
 
+inline SubscriptionToken connect_data_grid_view_row_post_paint(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).row_post_paint(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_row_pre_paint(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).row_pre_paint(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_data_grid_view_row_validated(Component& source, const EventSink& sink) {
     DataGridView* typed = dynamic_cast<DataGridView*>(&source);
     if (typed == nullptr) {
@@ -6485,7 +6693,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 351> event_connectors{{
+inline constexpr std::array<EventConnector, 353> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6751,6 +6959,8 @@ inline constexpr std::array<EventConnector, 351> event_connectors{{
     {"row_height_changed", "DataGridView", &connect_data_grid_view_row_height_changed},
     {"row_leave", "DataGridView", &connect_data_grid_view_row_leave},
     {"row_order_mode_changed", "DataGridView", &connect_data_grid_view_row_order_mode_changed},
+    {"row_post_paint", "DataGridView", &connect_data_grid_view_row_post_paint},
+    {"row_pre_paint", "DataGridView", &connect_data_grid_view_row_pre_paint},
     {"row_validated", "DataGridView", &connect_data_grid_view_row_validated},
     {"row_validating", "DataGridView", &connect_data_grid_view_row_validating},
     {"run_worker_completed", "BackgroundWorker", &connect_background_worker_run_worker_completed},

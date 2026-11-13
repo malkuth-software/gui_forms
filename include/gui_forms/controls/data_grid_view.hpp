@@ -308,6 +308,51 @@ struct GUI_FORMS_API DataGridViewHitTestInfo final {
     std::optional<std::size_t> column{};
 };
 
+// Which parts of a row the grid paints (Windows Forms' DataGridViewPaintParts,
+// as a row_pre_paint handler leaves them): the cells' backgrounds (their
+// authored colours), their content (text, check boxes, buttons, images,
+// links, drop-down buttons), the selection highlight, the current cell's
+// focus cue, the error glyphs, and the row header.
+struct GUI_FORMS_API DataGridViewRowPaintParts final {
+    bool background{true};
+    bool content{true};
+    bool selection{true};
+    bool focus{true};
+    bool error_glyph{true};
+    bool row_header{true};
+};
+
+// Raised once per shown row before a paint draws it (Windows Forms'
+// RowPrePaint, as a part hook: the handler gets no painter). `bounds` is
+// the row's header and cells in the grid's coordinates; `selected` and
+// `current` say whether the row is selected or holds the current cell. A
+// handler may turn parts off, give the row's cells an authored background,
+// or set `handled` to have the grid paint none of the row (rules included).
+// Raised from paint; handlers may not change the grid.
+struct GUI_FORMS_API DataGridViewRowPrePaintEvent final {
+    DataGridViewRowId row_id{};
+    DataGridViewRowPosition row{};
+    Rect bounds{};
+    bool selected{};
+    bool current{};
+    DataGridViewRowPaintParts parts{};
+    std::optional<Color> background{};
+    bool handled{};
+};
+
+// Raised once per shown row after a paint drew the rows (Windows Forms'
+// RowPostPaint, as a part hook): a handler appends parts for the grid to
+// paint over the row's cells through the theme engine, cut to the data
+// area. Raised from paint; handlers may not change the grid.
+struct GUI_FORMS_API DataGridViewRowPostPaintEvent final {
+    DataGridViewRowId row_id{};
+    DataGridViewRowPosition row{};
+    Rect bounds{};
+    bool selected{};
+    bool current{};
+    std::vector<DataGridViewRowOverlayPart> overlays{};
+};
+
 // The control an edit shows: the hosted text editor (editing_control) or
 // the combo box cell's choice list.
 enum class DataGridViewEditingControlKind : std::uint8_t { text_box, choice_list };
@@ -907,6 +952,9 @@ public:
     // Raised after a pointer press on a row header, or its semantic press,
     // made the row current (Windows Forms' RowHeaderMouseClick).
     [[nodiscard]] Event<const DataGridViewRowEvent&>& row_header_click() noexcept { return row_header_click_; }
+    // See DataGridViewRowPrePaintEvent and DataGridViewRowPostPaintEvent.
+    [[nodiscard]] Event<DataGridViewRowPrePaintEvent&>& row_pre_paint() noexcept { return row_pre_paint_; }
+    [[nodiscard]] Event<DataGridViewRowPostPaintEvent&>& row_post_paint() noexcept { return row_post_paint_; }
     // See DataGridViewEditingControlShowingEvent.
     [[nodiscard]] Event<const DataGridViewEditingControlShowingEvent&>& editing_control_showing() noexcept {
         return editing_control_showing_;
@@ -1343,6 +1391,16 @@ private:
     // Raises the cell_mouse_* events for a pointer event before the grid
     // acts on it; false when a handler disposed of the grid.
     [[nodiscard]] bool raise_cell_mouse(const PointerEvent& event, Point local);
+    // The row hooks of one paint: raises row_pre_paint for every shown row
+    // (false when a handler changed the grid's structure or disposed of
+    // it), finds a row's answer, applies it to a resolved cell, and raises
+    // row_post_paint, gathering the overlays offset by `offset` into
+    // row_overlays_ (false likewise).
+    [[nodiscard]] bool prepare_row_paints(const GridLayout& layout);
+    [[nodiscard]] const DataGridViewRowPrePaintEvent* row_paint_of(DataGridViewRowPosition row) const noexcept;
+    void apply_row_paint(const DataGridViewRowPrePaintEvent& answer, DataGridViewCellsCell& cell) const;
+    [[nodiscard]] bool gather_row_overlays(const GridLayout& layout, Point offset);
+    [[nodiscard]] Rect row_paint_bounds(DataGridViewRowPosition row, const GridLayout& layout) const;
     // A check box cell's state: checked or not, or none (indeterminate) for
     // an empty value in a three-state column.
     [[nodiscard]] std::optional<bool> check_state(DataGridViewRowPosition row, std::size_t column) const;
@@ -1922,6 +1980,13 @@ private:
     Event<const DataGridViewCellEvent&> cell_double_click_{};
     Event<const DataGridViewRowEvent&> row_header_click_{};
     Event<const DataGridViewEditingControlShowingEvent&> editing_control_showing_{};
+    Event<DataGridViewRowPrePaintEvent&> row_pre_paint_{};
+    Event<DataGridViewRowPostPaintEvent&> row_post_paint_{};
+    // The shown rows' row_pre_paint answers for the paint in progress, in
+    // row_span order (reused; prepare_row_paints refills it), and the rows'
+    // overlay parts (reused likewise).
+    std::vector<DataGridViewRowPrePaintEvent> row_paints_{};
+    std::vector<DataGridViewRowOverlayPart> row_overlays_{};
     Event<const DataGridViewCellMouseEvent&> cell_mouse_enter_{};
     Event<const DataGridViewCellMouseEvent&> cell_mouse_leave_{};
     Event<const DataGridViewCellMouseEvent&> cell_mouse_move_{};

@@ -1613,6 +1613,9 @@ DataGridView::HitResult DataGridView::hit_test(Point local) const {
 // -- paint ---------------------------------------------------------------------
 
 void DataGridView::paint_row(Painter& painter, DataGridViewRowPosition row, const GridLayout& layout) const {
+    // A row_pre_paint handler may keep the row header from being painted.
+    const DataGridViewRowPrePaintEvent* const answer = row_paint_of(row);
+    if (answer != nullptr && ((*answer).handled || !(*answer).parts.row_header)) return;
     const RowParts parts = row_parts(row, layout);
     const AnatomyStateSet states = row_states(row);
     const DataGridViewCellStyle style = inherited_row_header_style();
@@ -1739,6 +1742,107 @@ bool DataGridView::resolve_cell(DataGridViewRowPosition row, std::size_t column,
             out.image = PartGeometry::from_bounds(moved_rect((*image).bounds, offset));
             resolved.image = (*image).image;
             resolved.image_clip = moved_rect(inside, offset);
+        }
+    }
+    // The row's row_pre_paint answer, when a paint is drawing it.
+    const DataGridViewRowPrePaintEvent* const answer = row_paint_of(row);
+    if (answer != nullptr) apply_row_paint(*answer, resolved);
+    return true;
+}
+
+// -- row paint hooks -----------------------------------------------------------
+
+Rect DataGridView::row_paint_bounds(DataGridViewRowPosition row, const GridLayout& layout) const {
+    const double top = layout.data.y + row_offset(row.value, layout);
+    const double height = row_heights().height(row.value) * layout.scale;
+    const bool header = !layout.row_header_band.empty();
+    const double left = header ? std::min(layout.row_header_band.x, layout.data.x) : layout.data.x;
+    const double width = layout.data.width + (header ? layout.row_header_band.width : 0.0);
+    const Rect bounds{left, top, width, height};
+    return bounds;
+}
+
+bool DataGridView::prepare_row_paints(const GridLayout& layout) {
+    row_paints_.clear();
+    const IndexSpan rows = row_span(layout);
+    const std::uint64_t revision = structure_revision_;
+    const std::optional<std::size_t> current = current_position();
+    row_paints_.reserve(rows.count());
+    for (std::size_t position = rows.start(); position < rows.end; position = rows.next(position)) {
+        const DataGridViewRowPosition row{position};
+        DataGridViewRowPrePaintEvent answer{};
+        answer.row_id.value = row_id_text(row);
+        answer.row = row;
+        answer.bounds = row_paint_bounds(row, layout);
+        answer.selected = is_row_selected(row);
+        answer.current = current && *current == position;
+        row_pre_paint_.emit(answer);
+        if (!is_alive() || structure_revision_ != revision) return false;
+        // The answer is found by the row it was asked for.
+        answer.row = row;
+        row_paints_.push_back(std::move(answer));
+    }
+    return true;
+}
+
+const DataGridViewRowPrePaintEvent* DataGridView::row_paint_of(DataGridViewRowPosition row) const noexcept {
+    for (const DataGridViewRowPrePaintEvent& answer : row_paints_) {
+        if (answer.row == row) return &answer;
+    }
+    return nullptr;
+}
+
+void DataGridView::apply_row_paint(const DataGridViewRowPrePaintEvent& answer, DataGridViewCellsCell& cell) const {
+    DataGridViewCellsParts& parts = cell.parts;
+    if (answer.handled) {
+        // Nothing of the row is painted: an absent cell part paints nothing.
+        parts.cell = PartGeometry{};
+        return;
+    }
+    if (!answer.parts.content) {
+        parts.content = PartGeometry{};
+        parts.image = PartGeometry{};
+        parts.link = PartGeometry{};
+        parts.link_underline = PartGeometry{};
+        parts.check_well = PartGeometry{};
+        parts.check_indicator = PartGeometry{};
+        parts.button_face = PartGeometry{};
+        parts.button_label = PartGeometry{};
+        parts.drop_down = PartGeometry{};
+        parts.drop_down_glyph = PartGeometry{};
+    }
+    if (!answer.parts.selection) cell.states.erase(AnatomyState::selected);
+    if (!answer.parts.background) {
+        parts.selection.authored_background.reset();
+    } else if (answer.background) {
+        parts.selection.authored_background = *answer.background;
+    }
+    if (!answer.parts.focus) {
+        parts.focus = PartGeometry{};
+        cell.states.erase(AnatomyState::focus_visible);
+    }
+    if (!answer.parts.error_glyph) parts.error = PartGeometry{};
+}
+
+bool DataGridView::gather_row_overlays(const GridLayout& layout, Point offset) {
+    row_overlays_.clear();
+    const std::uint64_t revision = structure_revision_;
+    const Rect data{layout.data.x + offset.x, layout.data.y + offset.y, layout.data.width, layout.data.height};
+    for (std::size_t index = 0U; index < row_paints_.size(); ++index) {
+        const DataGridViewRowPrePaintEvent& answer = row_paints_[index];
+        DataGridViewRowPostPaintEvent post{answer.row_id, answer.row, answer.bounds, answer.selected, answer.current, {}};
+        row_post_paint_.emit(post);
+        if (!is_alive() || structure_revision_ != revision) return false;
+        for (const DataGridViewRowOverlayPart& overlay : post.overlays) {
+            const Rect given = overlay.bounds;
+            if (!std::isfinite(given.x) || !std::isfinite(given.y) || !std::isfinite(given.width) ||
+                !std::isfinite(given.height)) {
+                continue;
+            }
+            DataGridViewRowOverlayPart placed = overlay;
+            placed.bounds = Rect::intersection(Rect{given.x + offset.x, given.y + offset.y, given.width, given.height}, data);
+            if (placed.bounds.empty()) continue;
+            row_overlays_.push_back(placed);
         }
     }
     return true;
@@ -1871,6 +1975,9 @@ void DataGridView::on_paint(Painter& painter, Rect) {
     surface.authored_background.reset();
     const IndexSpan rows = row_span(layout);
     const IndexSpan displays = display_span(layout);
+    // The rows' pre-paint hooks, before any row is drawn; a handler that
+    // changed the grid invalidated it, and the next paint draws it whole.
+    if (!prepare_row_paints(layout)) return;
     if (grid.well.authored_background && rows.count() != 0U && displays.count() != 0U) {
         // Under the cells the well keeps the theme's ground, as Windows
         // Forms' cells keep their own back colour over BackgroundColor: the
@@ -1915,6 +2022,14 @@ void DataGridView::on_paint(Painter& painter, Rect) {
         // A handler changed the grid: the change invalidated it, and the
         // next paint draws it whole.
         if (!unchanged) return;
+        // The rows' overlay parts, over every cell.
+        if (!gather_row_overlays(layout, Point{})) return;
+        painter.save();
+        painter.clip_rect(layout.data);
+        for (const DataGridViewRowOverlayPart& overlay : row_overlays_) {
+            paint_data_grid_view_row_overlay(painter, *this, overlay);
+        }
+        painter.restore();
     }
     surface.family = ControlVisualRole::panel;
     surface.role = PartRole::face;
@@ -2310,7 +2425,7 @@ std::vector<DataGridView::Column> DataGridView::realized_columns() const {
 namespace {
 
 // The events DataGridView adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 47> data_grid_view_interactions{{
+constexpr std::array<InteractionDeclaration, 49> data_grid_view_interactions{{
     {.name = "draw_item_content", .payload = "ItemContentPaint", .mutable_payload = true},
     {.name = "selection_changed", .payload = "", .mutable_payload = false},
     {.name = "current_cell_changed", .payload = "std::optional<DataGridViewCellAddress>", .mutable_payload = false},
@@ -2323,6 +2438,8 @@ constexpr std::array<InteractionDeclaration, 47> data_grid_view_interactions{{
     {.name = "cell_double_click", .payload = "DataGridViewCellEvent", .mutable_payload = false},
     {.name = "row_header_click", .payload = "DataGridViewRowEvent", .mutable_payload = false},
     {.name = "editing_control_showing", .payload = "DataGridViewEditingControlShowingEvent", .mutable_payload = false},
+    {.name = "row_pre_paint", .payload = "DataGridViewRowPrePaintEvent", .mutable_payload = true},
+    {.name = "row_post_paint", .payload = "DataGridViewRowPostPaintEvent", .mutable_payload = true},
     {.name = "cell_mouse_enter", .payload = "DataGridViewCellMouseEvent", .mutable_payload = false},
     {.name = "cell_mouse_leave", .payload = "DataGridViewCellMouseEvent", .mutable_payload = false},
     {.name = "cell_mouse_move", .payload = "DataGridViewCellMouseEvent", .mutable_payload = false},
