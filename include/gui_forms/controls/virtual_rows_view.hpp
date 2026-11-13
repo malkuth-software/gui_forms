@@ -5,6 +5,8 @@
 #include "gui_forms/controls/list_box_values.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/theme/owner_draw/owner_draw.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -124,6 +126,50 @@ struct GUI_FORMS_API VirtualRowsCallbacks final {
     Delegate<VirtualRowMeasure&> measure{};
     Delegate<VirtualRowPaint&> paint{};
     Delegate<VirtualRowDescription&> describe{};
+};
+
+// Columns (the flame graph demonstrator's F4). A view with columns shows a
+// header strip of them above the rows; the rows stay the application's to
+// measure and draw, and each column says where its cells are
+// (VirtualRowsView::column_cell). The view never sorts: the rows are the
+// application's, and a column's sort state only chooses the indicator it
+// shows.
+enum class VirtualRowsSort : std::uint8_t { none, ascending, descending };
+
+// One column. `id` names it in events and semantics (non-empty, unique in
+// the view); `header` is its header's text (valid UTF-8). `width` is in
+// logical units, at least `minimum_width` (finite, non-negative).
+// `alignment` places the header text (and is the application's for its
+// cells). A sortable column raises header_clicked when its header is
+// clicked; a resizable one's divider drags its width; a reorderable one's
+// header drags to another place. `draw_mode` owner_draw raises
+// cell_content_paint for each of the column's painted cells (the content-
+// only owner drawing of owner decision W-Q6, as DataGridView's columns);
+// normal leaves the cells to the row paint target.
+struct GUI_FORMS_API VirtualRowsColumn final {
+    std::string id{};
+    std::string header{};
+    double width{100.0};
+    double minimum_width{16.0};
+    PartTextAlignment alignment{PartTextAlignment::start};
+    bool sortable{true};
+    bool resizable{true};
+    bool reorderable{true};
+    ItemDrawMode draw_mode{ItemDrawMode::normal};
+};
+
+// A click on a sortable column's header (header_clicked): the column's
+// position and the modifiers held.
+struct GUI_FORMS_API VirtualRowsHeaderClick final {
+    std::size_t column{};
+    Modifier modifiers{Modifier::none};
+};
+
+// A column moved (column_moved), after it moved: its position before and
+// after.
+struct GUI_FORMS_API VirtualRowsColumnMove final {
+    std::size_t from{};
+    std::size_t to{};
 };
 
 // A change of the selection, after it happened: the current row before and
@@ -279,6 +325,30 @@ struct GUI_FORMS_API VirtualRowsStatistics final {
 // Right to left (layout_direction or right_to_left), the scroll bar is at
 // the left edge and the paint context reports mirrored rows.
 //
+// Columns (set_columns; none by default, and then the view is as before).
+// The header strip, column_header_height tall, sits above the viewport and
+// lays the columns out from the reading start (the left, or the right
+// right to left) in order, each its width; columns past the viewport's
+// width are clipped (there is no horizontal scrolling). Each header shows
+// its text, the sort indicator for the sort column (arrow up ascending,
+// down descending) at its reading end, and a divider at its reading end.
+// Pointer, primary button: a press within column_grip_half_width of a
+// resizable column's divider drags its width (never below its minimum)
+// and raises column_resized at the release; a press elsewhere on a header
+// and a release without moving column_drag_threshold raises header_clicked
+// for a sortable column; moving that far drags a reorderable column, and
+// the release moves it to the place under the pointer (column_moved). The
+// header is not a tab stop (ListView's convention); its cells are semantic
+// column headers (after the rows, before the live region) named by their
+// text, with the sort state as their value and press raising
+// header_clicked, and realized items of the "column_header" item system
+// (after the rows). cell_content_paint is raised during paint, after a
+// row's paint target and before its focus cue, for each owner-drawn
+// column's cell, clipped to it (raise_item_content_paint): index is the
+// row, column the column's position, content the cell, text and font the
+// row's foreground and the view's font. Handlers run under the same guard
+// as the row targets.
+//
 // One thread. The view owns its index and its scroll bar; the callbacks are
 // borrowed (see VirtualRowsCallbacks).
 class GUI_FORMS_API VirtualRowsView final : public Control {
@@ -424,6 +494,48 @@ public:
     [[nodiscard]] Event<VirtualRowIndex>& row_activated() noexcept { return row_activated_; }
     [[nodiscard]] Event<const VirtualRowScroll&>& scrolled() noexcept { return scrolled_; }
 
+    // -- columns (see the class comment) -------------------------------------
+    static constexpr std::size_t maximum_columns = 256U;
+    static constexpr double column_header_height = 24.0;
+    static constexpr double column_grip_half_width = 3.0;
+    static constexpr double column_drag_threshold = 4.0;
+    // Replaces the columns (none: no header) and clears the sort. Throws
+    // std::invalid_argument, changing nothing, for more than
+    // maximum_columns, an empty or repeated id, header text that is not
+    // valid UTF-8, or a width or minimum that is not finite, negative, or a
+    // width below its minimum; std::logic_error while a target runs.
+    void set_columns(std::span<const VirtualRowsColumn> columns);
+    [[nodiscard]] std::span<const VirtualRowsColumn> columns() const& noexcept { return columns_; }
+    std::span<const VirtualRowsColumn> columns() const&& = delete;
+    // Sets a column's width and raises column_resized when it changed.
+    // Throws std::out_of_range for a column past the end and
+    // std::invalid_argument for a width that is not finite or below the
+    // column's minimum, changing nothing.
+    void set_column_width(std::size_t column, double width);
+    // Moves the column at `from` to position `to` (the others keep their
+    // order) and raises column_moved when it moved; the sort column follows
+    // its column. Throws std::out_of_range for either past the end.
+    void move_column(std::size_t from, std::size_t to);
+    // The sort indicator: `column` sorted in `direction` (none, or column
+    // none, clears it). Throws std::out_of_range for a column past the end.
+    void set_sort(std::optional<std::size_t> column, VirtualRowsSort direction);
+    [[nodiscard]] std::optional<std::size_t> sort_column() const noexcept { return sort_column_; }
+    [[nodiscard]] VirtualRowsSort sort_direction() const noexcept { return sort_direction_; }
+    // The header strip in local coordinates; empty without columns or
+    // before the first layout.
+    [[nodiscard]] Rect column_header_bounds() const noexcept { return header_; }
+    // The column's cell in `row` (a row rectangle, row_bounds): the
+    // column's horizontal extent over the row's vertical one, mirrored
+    // right to left; it may reach past the viewport. Throws
+    // std::out_of_range for a column past the end.
+    [[nodiscard]] Rect column_cell(std::size_t column, Rect row) const;
+    // The column whose extent holds the local x of `local_point`, or none.
+    [[nodiscard]] std::optional<std::size_t> column_at(Point local_point) const noexcept;
+    [[nodiscard]] Event<const VirtualRowsHeaderClick&>& header_clicked() noexcept { return header_clicked_; }
+    [[nodiscard]] Event<std::size_t>& column_resized() noexcept { return column_resized_; }
+    [[nodiscard]] Event<const VirtualRowsColumnMove&>& column_moved() noexcept { return column_moved_; }
+    [[nodiscard]] Event<ItemContentPaint&>& cell_content_paint() noexcept { return cell_content_paint_; }
+
     // -- Control ------------------------------------------------------------
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
@@ -445,6 +557,7 @@ public:
         PartGeometry well;
         PartGeometry vertical_scroll_bar;
         PartGeometry focus;
+        PartGeometry column_headers;
     };
     struct GUI_FORMS_API States final {
         bool normal{};
@@ -466,12 +579,26 @@ public:
         bool disabled{};
         bool focus_visible{};
     };
+    // One column header's parts and states (the "column_header" item
+    // system); selected is the sort column.
+    struct GUI_FORMS_API ColumnHeaderParts final {
+        PartGeometry column_header;
+        PartGeometry column_label;
+        PartGeometry sort_glyph;
+        PartGeometry column_divider;
+    };
+    struct GUI_FORMS_API ColumnHeaderStates final {
+        bool hot{};
+        bool pressed{};
+        bool selected{};
+    };
     [[nodiscard]] Parts parts() const;
     [[nodiscard]] States states() const;
 
 protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override;
+    [[nodiscard]] ItemSystemIndex publish_realized_item_system(std::size_t item) const override;
     // The mouse raisers hand the target phase to handle_pointer and the
     // key raiser an unhandled key to handle_key; then the base raises.
     void on_mouse_down(MouseEventArgs& arguments) override;
@@ -575,6 +702,33 @@ private:
     void row_identity(std::size_t row, std::string& identity) const;
     void compose_announcement();
 
+    // Columns (virtual_rows_columns.cpp). The header's gesture in progress:
+    // none, a press on a header (a click until it moves
+    // column_drag_threshold), a reorder drag, or a divider drag.
+    enum class HeaderGesture : std::uint8_t { none, pressed, reordering, resizing };
+    // Lays the columns out from the reading start: column_starts_[i] is
+    // column i's distance from it. Called after any change of the columns.
+    void place_columns();
+    // A column's extent in local coordinates (x and width; mirrored).
+    [[nodiscard]] Rect column_extent(std::size_t column) const noexcept;
+    [[nodiscard]] AnatomyStateSet column_states(std::size_t column) const noexcept;
+    [[nodiscard]] ColumnHeaderParts column_header_parts(std::size_t column) const;
+    void paint_column_headers(Painter& painter) const;
+    // Raises cell_content_paint for the owner-drawn columns' cells of `row`.
+    void paint_owner_cells(Painter& painter, std::size_t row, Rect bounds, AnatomyStateSet states, Color foreground);
+    // The header's pointer: a press, a move and a release in local
+    // coordinates; each returns whether the header took the event.
+    bool header_press(Point local, Modifier modifiers);
+    bool header_move(Point local);
+    bool header_release(Point local);
+    // The resizable column whose divider is within the grip of `local`.
+    [[nodiscard]] std::optional<std::size_t> divider_at(Point local) const noexcept;
+    // The position a reorder drag released at `local` moves its column to.
+    [[nodiscard]] std::size_t reorder_target(Point local) const noexcept;
+    void column_identity(std::size_t column, std::string& identity) const;
+    [[nodiscard]] std::optional<std::size_t> column_of_child_id(std::string_view stable_id) const noexcept;
+    void append_column_semantics(std::vector<SemanticNode>& children) const;
+
     std::unique_ptr<RowHeightIndex> heights_;
     std::shared_ptr<VScrollBar> vertical_bar_{};
     SubscriptionToken vertical_scrolled_{};
@@ -637,9 +791,27 @@ private:
     std::size_t pending_appended_{};
     std::string announcement_{};
 
+    // The columns, their starts from the reading start (place_columns), the
+    // header strip (local), the sort, the header's hot column and gesture.
+    std::vector<VirtualRowsColumn> columns_{};
+    std::vector<double> column_starts_{};
+    Rect header_{};
+    std::optional<std::size_t> sort_column_{};
+    VirtualRowsSort sort_direction_{VirtualRowsSort::none};
+    std::optional<std::size_t> hot_column_{};
+    HeaderGesture header_gesture_{HeaderGesture::none};
+    std::size_t gesture_column_{};
+    Point gesture_start_{};
+    double gesture_width_{};
+    Modifier gesture_modifiers_{Modifier::none};
+
     Event<const VirtualRowSelection&> selection_changed_{};
     Event<VirtualRowIndex> row_activated_{};
     Event<const VirtualRowScroll&> scrolled_{};
+    Event<const VirtualRowsHeaderClick&> header_clicked_{};
+    Event<std::size_t> column_resized_{};
+    Event<const VirtualRowsColumnMove&> column_moved_{};
+    Event<ItemContentPaint&> cell_content_paint_{};
 };
 
 } // namespace gui_forms

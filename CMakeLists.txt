@@ -997,6 +997,7 @@ add_library(gui_forms_controls STATIC
     src/controls/collections/expandable_sections.cpp
     src/controls/collections/row_height_index.cpp
     src/controls/virtual_rows_view/virtual_rows_view.cpp
+    src/controls/virtual_rows_view/virtual_rows_columns.cpp
     src/controls/collections/choice_group.cpp
     src/controls/collections/command_bar.cpp
     src/controls/commands/command/command.cpp

@@ -7,7 +7,8 @@
 // and per paint (counted, not timed), the keyboard, accessibility, right to
 // left, refusals, following the tail, the coalesced announcement of
 // appended rows, the measured-row budget, extended selection, the scrolled
-// event and row invalidation. Heights are whole numbers so every sum is exact.
+// event, row invalidation and the column model (F4: layout, gestures,
+// right to left, owner-drawn cells and header semantics). Heights are whole numbers so every sum is exact.
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
@@ -958,6 +959,329 @@ void row_invalidation() {
     rows.shift = 0.0;
 }
 
+// -- columns (F4) -----------------------------------------------------------------------
+
+struct RecordHeaderClick final {
+    std::vector<std::size_t>* seen{};
+    void operator()(const VirtualRowsHeaderClick& click) const { (*seen).push_back(click.column); }
+};
+
+struct RecordColumnIndex final {
+    std::vector<std::size_t>* seen{};
+    void operator()(std::size_t column) const { (*seen).push_back(column); }
+};
+
+struct RecordColumnMove final {
+    std::vector<VirtualRowsColumnMove>* seen{};
+    void operator()(const VirtualRowsColumnMove& change) const { (*seen).push_back(change); }
+};
+
+struct SeenCell final {
+    std::size_t row{};
+    std::size_t column{};
+    std::string stable_id;
+    Rect content{};
+};
+
+struct RecordCells final {
+    std::vector<SeenCell>* seen{};
+    void operator()(ItemContentPaint& item) const {
+        SeenCell cell{};
+        cell.row = item.index;
+        cell.column = item.column;
+        cell.stable_id.assign(item.stable_id);
+        cell.content = item.content;
+        (*seen).push_back(cell);
+    }
+};
+
+VirtualRowsColumn column_of(std::string_view id, std::string_view header, double width) {
+    VirtualRowsColumn column{};
+    column.id.assign(id);
+    column.header.assign(header);
+    column.width = width;
+    return column;
+}
+
+// Three columns: a (100), b (80) and c (60, not sortable).
+std::vector<VirtualRowsColumn> three_columns() {
+    std::vector<VirtualRowsColumn> columns{};
+    columns.push_back(column_of("a", "Name", 100.0));
+    columns.push_back(column_of("b", "Self", 80.0));
+    columns.push_back(column_of("c", "Total", 60.0));
+    columns[2].sortable = false;
+    return columns;
+}
+
+bool refuses_columns(VirtualRowsView& view, const std::vector<VirtualRowsColumn>& columns) {
+    try {
+        view.set_columns(columns);
+    } catch (const std::invalid_argument&) {
+        return view.columns().empty();
+    }
+    return false;
+}
+
+std::vector<std::string_view> column_ids(const VirtualRowsView& view) {
+    std::vector<std::string_view> ids{};
+    for (const VirtualRowsColumn& column : view.columns()) ids.push_back(column.id);
+    return ids;
+}
+
+void column_model() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
+    Window window(view, {400.0, 300.0});
+    window.perform_layout();
+    require((*view).column_header_bounds().empty() && (*view).viewport_bounds().y == 0.0 &&
+                !(*view).parts().column_headers.present,
+            "without columns there is no header strip and the viewport is as before");
+    const std::size_t rows_only = (*view).realized_item_count();
+
+    std::vector<VirtualRowsColumn> bad = three_columns();
+    bad[1].id.clear();
+    require(refuses_columns(*view, bad), "an empty column id is refused and nothing changes");
+    bad = three_columns();
+    bad[2].id = "a";
+    require(refuses_columns(*view, bad), "a repeated column id is refused");
+    bad = three_columns();
+    bad[0].width = 10.0;
+    require(refuses_columns(*view, bad), "a width below the column's minimum is refused");
+    bad = three_columns();
+    bad[0].width = std::numeric_limits<double>::quiet_NaN();
+    require(refuses_columns(*view, bad), "a non-finite width is refused");
+    bad = three_columns();
+    bad[0].header = "\xFF";
+    require(refuses_columns(*view, bad), "a header that is not UTF-8 is refused");
+    bool too_many = false;
+    try {
+        std::vector<VirtualRowsColumn> many(VirtualRowsView::maximum_columns + 1U, column_of("x", "", 20.0));
+        (*view).set_columns(many);
+    } catch (const std::invalid_argument&) {
+        too_many = (*view).columns().empty();
+    }
+    require(too_many, "more than maximum_columns columns are refused");
+
+    (*view).set_columns(three_columns());
+    window.perform_layout();
+    const Rect header = (*view).column_header_bounds();
+    require(header.x == 0.0 && header.y == 0.0 && header.width == 383.0 &&
+                header.height == VirtualRowsView::column_header_height,
+            "the header strip spans the viewport's width at its top");
+    require((*view).viewport_bounds().y == 24.0 && (*view).row_bounds(VirtualRowIndex{0U}).y == 24.0 &&
+                (*view).parts().column_headers.present,
+            "the rows start below the header strip");
+    const Rect row = (*view).row_bounds(VirtualRowIndex{0U});
+    const Rect cell = (*view).column_cell(1U, row);
+    require(cell.x == 100.0 && cell.width == 80.0 && cell.y == row.y && cell.height == row.height,
+            "a cell is its column's extent across the row");
+    require((*view).column_at({150.0, 10.0}) == std::optional<std::size_t>(1U) &&
+                !(*view).column_at({300.0, 10.0}).has_value(),
+            "column_at finds the column under a point, and none past the last");
+
+    std::vector<std::size_t> resized;
+    SubscriptionToken resize_token = (*view).column_resized().subscribe(RecordColumnIndex{&resized});
+    (*view).set_column_width(0U, 120.0);
+    require(resized == std::vector<std::size_t>({0U}) && (*view).column_cell(1U, row).x == 120.0,
+            "set_column_width moves the later columns and raises column_resized");
+    bool narrow = false;
+    try {
+        (*view).set_column_width(0U, 5.0);
+    } catch (const std::invalid_argument&) {
+        narrow = (*view).columns()[0].width == 120.0;
+    }
+    require(narrow, "a width below the minimum is refused and nothing changes");
+
+    std::vector<VirtualRowsColumnMove> moves;
+    SubscriptionToken move_token = (*view).column_moved().subscribe(RecordColumnMove{&moves});
+    (*view).set_sort(2U, VirtualRowsSort::ascending);
+    (*view).move_column(2U, 0U);
+    require(column_ids(*view) == std::vector<std::string_view>({"c", "a", "b"}) && moves.size() == 1U &&
+                moves[0].from == 2U && moves[0].to == 0U,
+            "move_column reorders and raises column_moved");
+    require((*view).sort_column() == std::optional<std::size_t>(0U) &&
+                (*view).sort_direction() == VirtualRowsSort::ascending,
+            "the sort column follows its column");
+    (*view).move_column(0U, 2U);
+    require((*view).sort_column() == std::optional<std::size_t>(2U), "and follows it back");
+    (*view).move_column(0U, 1U);
+    require(column_ids(*view) == std::vector<std::string_view>({"b", "a", "c"}) &&
+                (*view).sort_column() == std::optional<std::size_t>(2U),
+            "a move that does not cross the sort column leaves it in place");
+
+    window.perform_layout();
+    const std::size_t items = (*view).realized_item_count();
+    require(items == rows_only + 3U && (*view).realized_item_stable_id(rows_only) == "rows.column-b" &&
+                (*view).realized_item_stable_id(rows_only + 2U) == "rows.column-c",
+            "the column headers are realized items after the rows");
+    require((*view).realized_item_anatomy_states(rows_only + 2U).contains(AnatomyState::selected) &&
+                !(*view).realized_item_anatomy_states(rows_only).contains(AnatomyState::selected),
+            "the sort column's header is selected, so its sort indicator shows");
+    (*view).set_sort(2U, VirtualRowsSort::none);
+    require(!(*view).sort_column().has_value(), "a sort with no direction clears the sort");
+    (*view).set_sort(1U, VirtualRowsSort::descending);
+    (*view).set_columns(three_columns());
+    require(!(*view).sort_column().has_value() && column_ids(*view) == std::vector<std::string_view>({"a", "b", "c"}),
+            "new columns clear the sort");
+    RecordingPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 400.0, 300.0}));
+    (*view).set_columns({});
+    window.perform_layout();
+    require((*view).column_header_bounds().empty() && (*view).viewport_bounds().y == 0.0 &&
+                (*view).realized_item_count() == rows_only,
+            "removing the columns gives the viewport back");
+    static_cast<void>(resize_token);
+    static_cast<void>(move_token);
+}
+
+void column_pointer() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
+    Window window(view, {400.0, 300.0});
+    (*view).set_columns(three_columns());
+    window.perform_layout();
+    std::vector<std::size_t> clicks;
+    std::vector<std::size_t> resized;
+    std::vector<VirtualRowsColumnMove> moves;
+    SubscriptionToken click_token = (*view).header_clicked().subscribe(RecordHeaderClick{&clicks});
+    SubscriptionToken resize_token = (*view).column_resized().subscribe(RecordColumnIndex{&resized});
+    SubscriptionToken move_token = (*view).column_moved().subscribe(RecordColumnMove{&moves});
+
+    press_at(window, {140.0, 12.0}, Modifier::none);
+    release_at(window, {141.0, 12.0});
+    require(clicks == std::vector<std::size_t>({1U}) && !(*view).selected_row().has_value(),
+            "a click on a sortable header raises header_clicked and selects no row");
+    press_at(window, {210.0, 12.0}, Modifier::none);
+    release_at(window, {210.0, 12.0});
+    require(clicks.size() == 1U, "a click on a column that is not sortable raises nothing");
+
+    press_at(window, {101.0, 12.0}, Modifier::none);
+    move_to(window, {120.0, 12.0});
+    require((*view).columns()[0].width == 119.0 && resized.empty(),
+            "a divider drag resizes live, announcing nothing until the release");
+    move_to(window, {-50.0, 12.0});
+    require((*view).columns()[0].width == (*view).columns()[0].minimum_width, "the drag stops at the minimum");
+    move_to(window, {131.0, 12.0});
+    release_at(window, {131.0, 12.0});
+    require((*view).columns()[0].width == 130.0 && resized == std::vector<std::size_t>({0U}) && clicks.size() == 1U,
+            "the release raises column_resized once, and no click");
+
+    press_at(window, {150.0, 12.0}, Modifier::none);
+    move_to(window, {148.0, 12.0});
+    require(moves.empty(), "a move under the threshold is still a click");
+    move_to(window, {20.0, 12.0});
+    release_at(window, {20.0, 12.0});
+    require(moves.size() == 1U && moves[0].from == 1U && moves[0].to == 0U &&
+                column_ids(*view) == std::vector<std::string_view>({"b", "a", "c"}) && clicks.size() == 1U,
+            "a reorder drag moves the column to the place under the release, and is no click");
+
+    std::vector<VirtualRowsColumn> fixed = three_columns();
+    fixed[0].reorderable = false;
+    fixed[0].resizable = false;
+    (*view).set_columns(fixed);
+    window.perform_layout();
+    press_at(window, {100.0, 12.0}, Modifier::none);
+    move_to(window, {140.0, 12.0});
+    release_at(window, {140.0, 12.0});
+    require((*view).columns()[0].width == 100.0, "a column that is not resizable has no divider grip");
+    press_at(window, {50.0, 12.0}, Modifier::none);
+    move_to(window, {150.0, 12.0});
+    release_at(window, {150.0, 12.0});
+    require(column_ids(*view) == std::vector<std::string_view>({"a", "b", "c"}) && moves.size() == 1U,
+            "a column that is not reorderable stays in place");
+    static_cast<void>(click_token);
+    static_cast<void>(resize_token);
+    static_cast<void>(move_token);
+}
+
+void column_right_to_left() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
+    (*view).layout_direction = LayoutDirection::right_to_left;
+    Window window(view, {400.0, 300.0});
+    (*view).set_columns(three_columns());
+    window.perform_layout();
+    const Rect row = (*view).row_bounds(VirtualRowIndex{0U});
+    require((*view).column_header_bounds().x == 17.0 && (*view).column_cell(0U, row).x == 300.0 &&
+                (*view).column_cell(1U, row).x == 220.0,
+            "right to left the columns run from the right edge");
+    require((*view).column_at({350.0, 10.0}) == std::optional<std::size_t>(0U), "column_at is mirrored too");
+    // The first column's divider is at its left edge: dragging it left
+    // widens the column.
+    press_at(window, {300.0, 12.0}, Modifier::none);
+    move_to(window, {280.0, 12.0});
+    release_at(window, {280.0, 12.0});
+    require((*view).columns()[0].width == 120.0, "right to left a divider drag towards the reading end widens");
+}
+
+void column_owner_draw() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
+    Window window(view, {400.0, 300.0});
+    std::vector<VirtualRowsColumn> columns = three_columns();
+    columns[1].draw_mode = ItemDrawMode::owner_draw;
+    (*view).set_columns(columns);
+    window.perform_layout();
+    std::vector<SeenCell> cells;
+    SubscriptionToken token = (*view).cell_content_paint().subscribe(RecordCells{&cells});
+    RecordingPainter painter;
+    const std::size_t painted_before = rows.painted;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 400.0, 300.0}));
+    const std::size_t painted = rows.painted - painted_before;
+    require(painted > 0U && cells.size() == painted, "each painted row raises one cell for the owner-drawn column");
+    bool ordered = true;
+    for (std::size_t index = 0U; index < cells.size(); ++index) {
+        const std::size_t expected = (*view).first_visible_row().value + index;
+        const Rect row = (*view).row_bounds(VirtualRowIndex{expected});
+        const Rect shown = Rect::intersection(row, (*view).viewport_bounds());
+        const bool right = cells[index].row == expected && cells[index].column == 1U &&
+                           cells[index].stable_id == "rows.row-" + std::to_string(expected) &&
+                           cells[index].content.x == 100.0 && cells[index].content.width == 80.0 &&
+                           cells[index].content.y == shown.y && cells[index].content.height == shown.height;
+        if (!right) ordered = false;
+    }
+    require(ordered, "the cells come in row order, clipped to the cell and the viewport");
+    static_cast<void>(token);
+}
+
+void column_semantics() {
+    SyntheticRows rows;
+    std::shared_ptr<VirtualRowsView> view = make_view(rows, 1'000U);
+    Window window(view, {400.0, 300.0});
+    (*view).set_columns(three_columns());
+    (*view).set_sort(1U, VirtualRowsSort::descending);
+    window.perform_layout();
+    const std::vector<SemanticNode> children = (*view).semantic_virtual_children();
+    std::vector<const SemanticNode*> headers{};
+    for (const SemanticNode& node : children) {
+        if (node.role == SemanticRole::column_header) headers.push_back(&node);
+    }
+    require(headers.size() == 3U && children.back().role == SemanticRole::live_region,
+            "each column is a header child, before the live region");
+    const SemanticNode& name = *headers[0];
+    const SemanticNode& self = *headers[1];
+    const SemanticNode& total = *headers[2];
+    require(name.stable_id == "rows.column-a" && name.name == "Name" &&
+                name.column_index == std::optional<std::size_t>(1U) && name.value.empty() &&
+                name.bounds.x == 0.0 && name.bounds.width == 100.0 && name.bounds.height == 24.0,
+            "a header is named by its column, placed by its index and bounds");
+    require(self.value == "descending" && total.actions.empty() && self.actions.size() == 1U &&
+                self.actions[0] == SemanticAction::press,
+            "the sort column says its direction; only sortable headers can be pressed");
+    std::vector<std::size_t> clicks;
+    SubscriptionToken token = (*view).header_clicked().subscribe(RecordHeaderClick{&clicks});
+    require((*view).on_semantic_child_action("rows.column-a", SemanticAction::press, {}) &&
+                clicks == std::vector<std::size_t>({0U}),
+            "the press action clicks the header");
+    require(!(*view).on_semantic_child_action("rows.column-c", SemanticAction::press, {}) &&
+                !(*view).on_semantic_child_action("rows.column-a", SemanticAction::select, {}) &&
+                !(*view).on_semantic_child_action("rows.column-z", SemanticAction::press, {}) &&
+                !(*view).on_semantic_child_action("rows.column-", SemanticAction::press, {}) &&
+                clicks.size() == 1U,
+            "unsortable, unsupported and unknown header actions are refused");
+    static_cast<void>(token);
+}
+
 } // namespace
 
 int main() {
@@ -976,7 +1300,12 @@ int main() {
     extended_selection();
     scrolled_event();
     row_invalidation();
+    column_model();
+    column_pointer();
+    column_right_to_left();
+    column_owner_draw();
+    column_semantics();
     std::cout << "VirtualRowsView: refinement invariants, anchor stability, scrolling to an index, a million rows "
-                 "with bounded work, keyboard, accessibility, right to left, refusals, the themed background, follow tail, append announcements, the measured-row budget, extended selection, scrolled and row invalidation passed\n";
+                 "with bounded work, keyboard, accessibility, right to left, refusals, the themed background, follow tail, append announcements, the measured-row budget, extended selection, scrolled, row invalidation and columns passed\n";
     return 0;
 }

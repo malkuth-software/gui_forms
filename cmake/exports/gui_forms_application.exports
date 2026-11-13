@@ -797,6 +797,7 @@ __ZGVZN9gui_forms17ToolStripItemSpec*
 __ZGVZN9gui_forms17TreeListRowSource*
 __ZGVZN9gui_forms17TreeListRowSplice*
 __ZGVZN9gui_forms17VirtualRowMeasure*
+__ZGVZN9gui_forms17VirtualRowsColumn*
 __ZGVZN9gui_forms17VisualInteraction*
 __ZGVZN9gui_forms17WindowBandOptions*
 __ZGVZN9gui_forms17XmlSourcePosition*
@@ -1136,6 +1137,7 @@ __ZGVZN9gui_forms21ThemeTypographyTokens*
 __ZGVZN9gui_forms21ThreadExceptionDialog*
 __ZGVZN9gui_forms21ThreadExceptionReport*
 __ZGVZN9gui_forms21VirtualRowDescription*
+__ZGVZN9gui_forms21VirtualRowsColumnMove*
 __ZGVZN9gui_forms21VirtualRowsStatistics*
 __ZGVZN9gui_forms21WindowBackdropRequest*
 __ZGVZN9gui_forms22ApplicationModalResult*
@@ -1183,6 +1185,7 @@ __ZGVZN9gui_forms22SpatialIndexStatistics*
 __ZGVZN9gui_forms22TableLayoutPanelCompat*
 __ZGVZN9gui_forms22TextMaskBudgetSnapshot*
 __ZGVZN9gui_forms22ThemeCompileDiagnostic*
+__ZGVZN9gui_forms22VirtualRowsHeaderClick*
 __ZGVZN9gui_forms23ApplicationCreateResult*
 __ZGVZN9gui_forms23ApplicationWindowHandle*
 __ZGVZN9gui_forms23BackdropChainResolution*
@@ -2328,6 +2331,7 @@ __ZGVZNK9gui_forms17ToolStripItemSpec*
 __ZGVZNK9gui_forms17TreeListRowSource*
 __ZGVZNK9gui_forms17TreeListRowSplice*
 __ZGVZNK9gui_forms17VirtualRowMeasure*
+__ZGVZNK9gui_forms17VirtualRowsColumn*
 __ZGVZNK9gui_forms17VisualInteraction*
 __ZGVZNK9gui_forms17WindowBandOptions*
 __ZGVZNK9gui_forms17XmlSourcePosition*
@@ -2667,6 +2671,7 @@ __ZGVZNK9gui_forms21ThemeTypographyTokens*
 __ZGVZNK9gui_forms21ThreadExceptionDialog*
 __ZGVZNK9gui_forms21ThreadExceptionReport*
 __ZGVZNK9gui_forms21VirtualRowDescription*
+__ZGVZNK9gui_forms21VirtualRowsColumnMove*
 __ZGVZNK9gui_forms21VirtualRowsStatistics*
 __ZGVZNK9gui_forms21WindowBackdropRequest*
 __ZGVZNK9gui_forms22ApplicationModalResult*
@@ -2714,6 +2719,7 @@ __ZGVZNK9gui_forms22SpatialIndexStatistics*
 __ZGVZNK9gui_forms22TableLayoutPanelCompat*
 __ZGVZNK9gui_forms22TextMaskBudgetSnapshot*
 __ZGVZNK9gui_forms22ThemeCompileDiagnostic*
+__ZGVZNK9gui_forms22VirtualRowsHeaderClick*
 __ZGVZNK9gui_forms23ApplicationCreateResult*
 __ZGVZNK9gui_forms23ApplicationWindowHandle*
 __ZGVZNK9gui_forms23BackdropChainResolution*
@@ -4151,6 +4157,7 @@ __ZN9gui_forms17ToolStripItemSpec*
 __ZN9gui_forms17TreeListRowSource*
 __ZN9gui_forms17TreeListRowSplice*
 __ZN9gui_forms17VirtualRowMeasure*
+__ZN9gui_forms17VirtualRowsColumn*
 __ZN9gui_forms17VisualInteraction*
 __ZN9gui_forms17WindowBandOptions*
 __ZN9gui_forms17XmlSourcePosition*
@@ -4812,6 +4819,7 @@ __ZN9gui_forms21ThemeTypographyTokens*
 __ZN9gui_forms21ThreadExceptionDialog*
 __ZN9gui_forms21ThreadExceptionReport*
 __ZN9gui_forms21VirtualRowDescription*
+__ZN9gui_forms21VirtualRowsColumnMove*
 __ZN9gui_forms21VirtualRowsStatistics*
 __ZN9gui_forms21WindowBackdropRequest*
 __ZN9gui_forms21allocation_statisticsB*
@@ -4933,6 +4941,7 @@ __ZN9gui_forms22SpatialIndexStatistics*
 __ZN9gui_forms22TableLayoutPanelCompat*
 __ZN9gui_forms22TextMaskBudgetSnapshot*
 __ZN9gui_forms22ThemeCompileDiagnostic*
+__ZN9gui_forms22VirtualRowsHeaderClick*
 __ZN9gui_forms22band_declaration_validB*
 __ZN9gui_forms22band_declaration_validE*
 __ZN9gui_forms22canonical_binding_nameB*
@@ -6776,6 +6785,7 @@ __ZNK[RO]9gui_forms17ToolStripItemSpec*
 __ZNK[RO]9gui_forms17TreeListRowSource*
 __ZNK[RO]9gui_forms17TreeListRowSplice*
 __ZNK[RO]9gui_forms17VirtualRowMeasure*
+__ZNK[RO]9gui_forms17VirtualRowsColumn*
 __ZNK[RO]9gui_forms17VisualInteraction*
 __ZNK[RO]9gui_forms17WindowBandOptions*
 __ZNK[RO]9gui_forms17XmlSourcePosition*
@@ -7115,6 +7125,7 @@ __ZNK[RO]9gui_forms21ThemeTypographyTokens*
 __ZNK[RO]9gui_forms21ThreadExceptionDialog*
 __ZNK[RO]9gui_forms21ThreadExceptionReport*
 __ZNK[RO]9gui_forms21VirtualRowDescription*
+__ZNK[RO]9gui_forms21VirtualRowsColumnMove*
 __ZNK[RO]9gui_forms21VirtualRowsStatistics*
 __ZNK[RO]9gui_forms21WindowBackdropRequest*
 __ZNK[RO]9gui_forms22ApplicationModalResult*
@@ -7162,6 +7173,7 @@ __ZNK[RO]9gui_forms22SpatialIndexStatistics*
 __ZNK[RO]9gui_forms22TableLayoutPanelCompat*
 __ZNK[RO]9gui_forms22TextMaskBudgetSnapshot*
 __ZNK[RO]9gui_forms22ThemeCompileDiagnostic*
+__ZNK[RO]9gui_forms22VirtualRowsHeaderClick*
 __ZNK[RO]9gui_forms23ApplicationCreateResult*
 __ZNK[RO]9gui_forms23ApplicationWindowHandle*
 __ZNK[RO]9gui_forms23BackdropChainResolution*
@@ -8307,6 +8319,7 @@ __ZN[KRO]9gui_forms17ToolStripItemSpec*
 __ZN[KRO]9gui_forms17TreeListRowSource*
 __ZN[KRO]9gui_forms17TreeListRowSplice*
 __ZN[KRO]9gui_forms17VirtualRowMeasure*
+__ZN[KRO]9gui_forms17VirtualRowsColumn*
 __ZN[KRO]9gui_forms17VisualInteraction*
 __ZN[KRO]9gui_forms17WindowBandOptions*
 __ZN[KRO]9gui_forms17XmlSourcePosition*
@@ -8646,6 +8659,7 @@ __ZN[KRO]9gui_forms21ThemeTypographyTokens*
 __ZN[KRO]9gui_forms21ThreadExceptionDialog*
 __ZN[KRO]9gui_forms21ThreadExceptionReport*
 __ZN[KRO]9gui_forms21VirtualRowDescription*
+__ZN[KRO]9gui_forms21VirtualRowsColumnMove*
 __ZN[KRO]9gui_forms21VirtualRowsStatistics*
 __ZN[KRO]9gui_forms21WindowBackdropRequest*
 __ZN[KRO]9gui_forms22ApplicationModalResult*
@@ -8693,6 +8707,7 @@ __ZN[KRO]9gui_forms22SpatialIndexStatistics*
 __ZN[KRO]9gui_forms22TableLayoutPanelCompat*
 __ZN[KRO]9gui_forms22TextMaskBudgetSnapshot*
 __ZN[KRO]9gui_forms22ThemeCompileDiagnostic*
+__ZN[KRO]9gui_forms22VirtualRowsHeaderClick*
 __ZN[KRO]9gui_forms23ApplicationCreateResult*
 __ZN[KRO]9gui_forms23ApplicationWindowHandle*
 __ZN[KRO]9gui_forms23BackdropChainResolution*
@@ -9838,6 +9853,7 @@ __ZT[VIST]N9gui_forms17ToolStripItemSpec*E
 __ZT[VIST]N9gui_forms17TreeListRowSource*E
 __ZT[VIST]N9gui_forms17TreeListRowSplice*E
 __ZT[VIST]N9gui_forms17VirtualRowMeasure*E
+__ZT[VIST]N9gui_forms17VirtualRowsColumn*E
 __ZT[VIST]N9gui_forms17VisualInteraction*E
 __ZT[VIST]N9gui_forms17WindowBandOptions*E
 __ZT[VIST]N9gui_forms17XmlSourcePosition*E
@@ -10177,6 +10193,7 @@ __ZT[VIST]N9gui_forms21ThemeTypographyTokens*E
 __ZT[VIST]N9gui_forms21ThreadExceptionDialog*E
 __ZT[VIST]N9gui_forms21ThreadExceptionReport*E
 __ZT[VIST]N9gui_forms21VirtualRowDescription*E
+__ZT[VIST]N9gui_forms21VirtualRowsColumnMove*E
 __ZT[VIST]N9gui_forms21VirtualRowsStatistics*E
 __ZT[VIST]N9gui_forms21WindowBackdropRequest*E
 __ZT[VIST]N9gui_forms22ApplicationModalResult*E
@@ -10224,6 +10241,7 @@ __ZT[VIST]N9gui_forms22SpatialIndexStatistics*E
 __ZT[VIST]N9gui_forms22TableLayoutPanelCompat*E
 __ZT[VIST]N9gui_forms22TextMaskBudgetSnapshot*E
 __ZT[VIST]N9gui_forms22ThemeCompileDiagnostic*E
+__ZT[VIST]N9gui_forms22VirtualRowsHeaderClick*E
 __ZT[VIST]N9gui_forms23ApplicationCreateResult*E
 __ZT[VIST]N9gui_forms23ApplicationWindowHandle*E
 __ZT[VIST]N9gui_forms23BackdropChainResolution*E
@@ -11369,6 +11387,7 @@ __ZT[hvc]*9gui_forms17ToolStripItemSpec*
 __ZT[hvc]*9gui_forms17TreeListRowSource*
 __ZT[hvc]*9gui_forms17TreeListRowSplice*
 __ZT[hvc]*9gui_forms17VirtualRowMeasure*
+__ZT[hvc]*9gui_forms17VirtualRowsColumn*
 __ZT[hvc]*9gui_forms17VisualInteraction*
 __ZT[hvc]*9gui_forms17WindowBandOptions*
 __ZT[hvc]*9gui_forms17XmlSourcePosition*
@@ -11708,6 +11727,7 @@ __ZT[hvc]*9gui_forms21ThemeTypographyTokens*
 __ZT[hvc]*9gui_forms21ThreadExceptionDialog*
 __ZT[hvc]*9gui_forms21ThreadExceptionReport*
 __ZT[hvc]*9gui_forms21VirtualRowDescription*
+__ZT[hvc]*9gui_forms21VirtualRowsColumnMove*
 __ZT[hvc]*9gui_forms21VirtualRowsStatistics*
 __ZT[hvc]*9gui_forms21WindowBackdropRequest*
 __ZT[hvc]*9gui_forms22ApplicationModalResult*
@@ -11755,6 +11775,7 @@ __ZT[hvc]*9gui_forms22SpatialIndexStatistics*
 __ZT[hvc]*9gui_forms22TableLayoutPanelCompat*
 __ZT[hvc]*9gui_forms22TextMaskBudgetSnapshot*
 __ZT[hvc]*9gui_forms22ThemeCompileDiagnostic*
+__ZT[hvc]*9gui_forms22VirtualRowsHeaderClick*
 __ZT[hvc]*9gui_forms23ApplicationCreateResult*
 __ZT[hvc]*9gui_forms23ApplicationWindowHandle*
 __ZT[hvc]*9gui_forms23BackdropChainResolution*
@@ -12900,6 +12921,7 @@ __ZZN9gui_forms17ToolStripItemSpec*
 __ZZN9gui_forms17TreeListRowSource*
 __ZZN9gui_forms17TreeListRowSplice*
 __ZZN9gui_forms17VirtualRowMeasure*
+__ZZN9gui_forms17VirtualRowsColumn*
 __ZZN9gui_forms17VisualInteraction*
 __ZZN9gui_forms17WindowBandOptions*
 __ZZN9gui_forms17XmlSourcePosition*
@@ -13239,6 +13261,7 @@ __ZZN9gui_forms21ThemeTypographyTokens*
 __ZZN9gui_forms21ThreadExceptionDialog*
 __ZZN9gui_forms21ThreadExceptionReport*
 __ZZN9gui_forms21VirtualRowDescription*
+__ZZN9gui_forms21VirtualRowsColumnMove*
 __ZZN9gui_forms21VirtualRowsStatistics*
 __ZZN9gui_forms21WindowBackdropRequest*
 __ZZN9gui_forms22ApplicationModalResult*
@@ -13286,6 +13309,7 @@ __ZZN9gui_forms22SpatialIndexStatistics*
 __ZZN9gui_forms22TableLayoutPanelCompat*
 __ZZN9gui_forms22TextMaskBudgetSnapshot*
 __ZZN9gui_forms22ThemeCompileDiagnostic*
+__ZZN9gui_forms22VirtualRowsHeaderClick*
 __ZZN9gui_forms23ApplicationCreateResult*
 __ZZN9gui_forms23ApplicationWindowHandle*
 __ZZN9gui_forms23BackdropChainResolution*
@@ -14431,6 +14455,7 @@ __ZZNK9gui_forms17ToolStripItemSpec*
 __ZZNK9gui_forms17TreeListRowSource*
 __ZZNK9gui_forms17TreeListRowSplice*
 __ZZNK9gui_forms17VirtualRowMeasure*
+__ZZNK9gui_forms17VirtualRowsColumn*
 __ZZNK9gui_forms17VisualInteraction*
 __ZZNK9gui_forms17WindowBandOptions*
 __ZZNK9gui_forms17XmlSourcePosition*
@@ -14770,6 +14795,7 @@ __ZZNK9gui_forms21ThemeTypographyTokens*
 __ZZNK9gui_forms21ThreadExceptionDialog*
 __ZZNK9gui_forms21ThreadExceptionReport*
 __ZZNK9gui_forms21VirtualRowDescription*
+__ZZNK9gui_forms21VirtualRowsColumnMove*
 __ZZNK9gui_forms21VirtualRowsStatistics*
 __ZZNK9gui_forms21WindowBackdropRequest*
 __ZZNK9gui_forms22ApplicationModalResult*
@@ -14817,6 +14843,7 @@ __ZZNK9gui_forms22SpatialIndexStatistics*
 __ZZNK9gui_forms22TableLayoutPanelCompat*
 __ZZNK9gui_forms22TextMaskBudgetSnapshot*
 __ZZNK9gui_forms22ThemeCompileDiagnostic*
+__ZZNK9gui_forms22VirtualRowsHeaderClick*
 __ZZNK9gui_forms23ApplicationCreateResult*
 __ZZNK9gui_forms23ApplicationWindowHandle*
 __ZZNK9gui_forms23BackdropChainResolution*

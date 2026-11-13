@@ -799,6 +799,7 @@
     _ZGVZN9gui_forms17TreeListRowSource*;
     _ZGVZN9gui_forms17TreeListRowSplice*;
     _ZGVZN9gui_forms17VirtualRowMeasure*;
+    _ZGVZN9gui_forms17VirtualRowsColumn*;
     _ZGVZN9gui_forms17VisualInteraction*;
     _ZGVZN9gui_forms17WindowBandOptions*;
     _ZGVZN9gui_forms17XmlSourcePosition*;
@@ -1138,6 +1139,7 @@
     _ZGVZN9gui_forms21ThreadExceptionDialog*;
     _ZGVZN9gui_forms21ThreadExceptionReport*;
     _ZGVZN9gui_forms21VirtualRowDescription*;
+    _ZGVZN9gui_forms21VirtualRowsColumnMove*;
     _ZGVZN9gui_forms21VirtualRowsStatistics*;
     _ZGVZN9gui_forms21WindowBackdropRequest*;
     _ZGVZN9gui_forms22ApplicationModalResult*;
@@ -1185,6 +1187,7 @@
     _ZGVZN9gui_forms22TableLayoutPanelCompat*;
     _ZGVZN9gui_forms22TextMaskBudgetSnapshot*;
     _ZGVZN9gui_forms22ThemeCompileDiagnostic*;
+    _ZGVZN9gui_forms22VirtualRowsHeaderClick*;
     _ZGVZN9gui_forms23ApplicationCreateResult*;
     _ZGVZN9gui_forms23ApplicationWindowHandle*;
     _ZGVZN9gui_forms23BackdropChainResolution*;
@@ -2330,6 +2333,7 @@
     _ZGVZNK9gui_forms17TreeListRowSource*;
     _ZGVZNK9gui_forms17TreeListRowSplice*;
     _ZGVZNK9gui_forms17VirtualRowMeasure*;
+    _ZGVZNK9gui_forms17VirtualRowsColumn*;
     _ZGVZNK9gui_forms17VisualInteraction*;
     _ZGVZNK9gui_forms17WindowBandOptions*;
     _ZGVZNK9gui_forms17XmlSourcePosition*;
@@ -2669,6 +2673,7 @@
     _ZGVZNK9gui_forms21ThreadExceptionDialog*;
     _ZGVZNK9gui_forms21ThreadExceptionReport*;
     _ZGVZNK9gui_forms21VirtualRowDescription*;
+    _ZGVZNK9gui_forms21VirtualRowsColumnMove*;
     _ZGVZNK9gui_forms21VirtualRowsStatistics*;
     _ZGVZNK9gui_forms21WindowBackdropRequest*;
     _ZGVZNK9gui_forms22ApplicationModalResult*;
@@ -2716,6 +2721,7 @@
     _ZGVZNK9gui_forms22TableLayoutPanelCompat*;
     _ZGVZNK9gui_forms22TextMaskBudgetSnapshot*;
     _ZGVZNK9gui_forms22ThemeCompileDiagnostic*;
+    _ZGVZNK9gui_forms22VirtualRowsHeaderClick*;
     _ZGVZNK9gui_forms23ApplicationCreateResult*;
     _ZGVZNK9gui_forms23ApplicationWindowHandle*;
     _ZGVZNK9gui_forms23BackdropChainResolution*;
@@ -4153,6 +4159,7 @@
     _ZN9gui_forms17TreeListRowSource*;
     _ZN9gui_forms17TreeListRowSplice*;
     _ZN9gui_forms17VirtualRowMeasure*;
+    _ZN9gui_forms17VirtualRowsColumn*;
     _ZN9gui_forms17VisualInteraction*;
     _ZN9gui_forms17WindowBandOptions*;
     _ZN9gui_forms17XmlSourcePosition*;
@@ -4814,6 +4821,7 @@
     _ZN9gui_forms21ThreadExceptionDialog*;
     _ZN9gui_forms21ThreadExceptionReport*;
     _ZN9gui_forms21VirtualRowDescription*;
+    _ZN9gui_forms21VirtualRowsColumnMove*;
     _ZN9gui_forms21VirtualRowsStatistics*;
     _ZN9gui_forms21WindowBackdropRequest*;
     _ZN9gui_forms21allocation_statisticsB*;
@@ -4935,6 +4943,7 @@
     _ZN9gui_forms22TableLayoutPanelCompat*;
     _ZN9gui_forms22TextMaskBudgetSnapshot*;
     _ZN9gui_forms22ThemeCompileDiagnostic*;
+    _ZN9gui_forms22VirtualRowsHeaderClick*;
     _ZN9gui_forms22band_declaration_validB*;
     _ZN9gui_forms22band_declaration_validE*;
     _ZN9gui_forms22canonical_binding_nameB*;
@@ -6778,6 +6787,7 @@
     _ZNK[RO]9gui_forms17TreeListRowSource*;
     _ZNK[RO]9gui_forms17TreeListRowSplice*;
     _ZNK[RO]9gui_forms17VirtualRowMeasure*;
+    _ZNK[RO]9gui_forms17VirtualRowsColumn*;
     _ZNK[RO]9gui_forms17VisualInteraction*;
     _ZNK[RO]9gui_forms17WindowBandOptions*;
     _ZNK[RO]9gui_forms17XmlSourcePosition*;
@@ -7117,6 +7127,7 @@
     _ZNK[RO]9gui_forms21ThreadExceptionDialog*;
     _ZNK[RO]9gui_forms21ThreadExceptionReport*;
     _ZNK[RO]9gui_forms21VirtualRowDescription*;
+    _ZNK[RO]9gui_forms21VirtualRowsColumnMove*;
     _ZNK[RO]9gui_forms21VirtualRowsStatistics*;
     _ZNK[RO]9gui_forms21WindowBackdropRequest*;
     _ZNK[RO]9gui_forms22ApplicationModalResult*;
@@ -7164,6 +7175,7 @@
     _ZNK[RO]9gui_forms22TableLayoutPanelCompat*;
     _ZNK[RO]9gui_forms22TextMaskBudgetSnapshot*;
     _ZNK[RO]9gui_forms22ThemeCompileDiagnostic*;
+    _ZNK[RO]9gui_forms22VirtualRowsHeaderClick*;
     _ZNK[RO]9gui_forms23ApplicationCreateResult*;
     _ZNK[RO]9gui_forms23ApplicationWindowHandle*;
     _ZNK[RO]9gui_forms23BackdropChainResolution*;
@@ -8309,6 +8321,7 @@
     _ZN[KRO]9gui_forms17TreeListRowSource*;
     _ZN[KRO]9gui_forms17TreeListRowSplice*;
     _ZN[KRO]9gui_forms17VirtualRowMeasure*;
+    _ZN[KRO]9gui_forms17VirtualRowsColumn*;
     _ZN[KRO]9gui_forms17VisualInteraction*;
     _ZN[KRO]9gui_forms17WindowBandOptions*;
     _ZN[KRO]9gui_forms17XmlSourcePosition*;
@@ -8648,6 +8661,7 @@
     _ZN[KRO]9gui_forms21ThreadExceptionDialog*;
     _ZN[KRO]9gui_forms21ThreadExceptionReport*;
     _ZN[KRO]9gui_forms21VirtualRowDescription*;
+    _ZN[KRO]9gui_forms21VirtualRowsColumnMove*;
     _ZN[KRO]9gui_forms21VirtualRowsStatistics*;
     _ZN[KRO]9gui_forms21WindowBackdropRequest*;
     _ZN[KRO]9gui_forms22ApplicationModalResult*;
@@ -8695,6 +8709,7 @@
     _ZN[KRO]9gui_forms22TableLayoutPanelCompat*;
     _ZN[KRO]9gui_forms22TextMaskBudgetSnapshot*;
     _ZN[KRO]9gui_forms22ThemeCompileDiagnostic*;
+    _ZN[KRO]9gui_forms22VirtualRowsHeaderClick*;
     _ZN[KRO]9gui_forms23ApplicationCreateResult*;
     _ZN[KRO]9gui_forms23ApplicationWindowHandle*;
     _ZN[KRO]9gui_forms23BackdropChainResolution*;
@@ -9840,6 +9855,7 @@
     _ZT[VIST]N9gui_forms17TreeListRowSource*E;
     _ZT[VIST]N9gui_forms17TreeListRowSplice*E;
     _ZT[VIST]N9gui_forms17VirtualRowMeasure*E;
+    _ZT[VIST]N9gui_forms17VirtualRowsColumn*E;
     _ZT[VIST]N9gui_forms17VisualInteraction*E;
     _ZT[VIST]N9gui_forms17WindowBandOptions*E;
     _ZT[VIST]N9gui_forms17XmlSourcePosition*E;
@@ -10179,6 +10195,7 @@
     _ZT[VIST]N9gui_forms21ThreadExceptionDialog*E;
     _ZT[VIST]N9gui_forms21ThreadExceptionReport*E;
     _ZT[VIST]N9gui_forms21VirtualRowDescription*E;
+    _ZT[VIST]N9gui_forms21VirtualRowsColumnMove*E;
     _ZT[VIST]N9gui_forms21VirtualRowsStatistics*E;
     _ZT[VIST]N9gui_forms21WindowBackdropRequest*E;
     _ZT[VIST]N9gui_forms22ApplicationModalResult*E;
@@ -10226,6 +10243,7 @@
     _ZT[VIST]N9gui_forms22TableLayoutPanelCompat*E;
     _ZT[VIST]N9gui_forms22TextMaskBudgetSnapshot*E;
     _ZT[VIST]N9gui_forms22ThemeCompileDiagnostic*E;
+    _ZT[VIST]N9gui_forms22VirtualRowsHeaderClick*E;
     _ZT[VIST]N9gui_forms23ApplicationCreateResult*E;
     _ZT[VIST]N9gui_forms23ApplicationWindowHandle*E;
     _ZT[VIST]N9gui_forms23BackdropChainResolution*E;
@@ -11371,6 +11389,7 @@
     _ZT[hvc]*9gui_forms17TreeListRowSource*;
     _ZT[hvc]*9gui_forms17TreeListRowSplice*;
     _ZT[hvc]*9gui_forms17VirtualRowMeasure*;
+    _ZT[hvc]*9gui_forms17VirtualRowsColumn*;
     _ZT[hvc]*9gui_forms17VisualInteraction*;
     _ZT[hvc]*9gui_forms17WindowBandOptions*;
     _ZT[hvc]*9gui_forms17XmlSourcePosition*;
@@ -11710,6 +11729,7 @@
     _ZT[hvc]*9gui_forms21ThreadExceptionDialog*;
     _ZT[hvc]*9gui_forms21ThreadExceptionReport*;
     _ZT[hvc]*9gui_forms21VirtualRowDescription*;
+    _ZT[hvc]*9gui_forms21VirtualRowsColumnMove*;
     _ZT[hvc]*9gui_forms21VirtualRowsStatistics*;
     _ZT[hvc]*9gui_forms21WindowBackdropRequest*;
     _ZT[hvc]*9gui_forms22ApplicationModalResult*;
@@ -11757,6 +11777,7 @@
     _ZT[hvc]*9gui_forms22TableLayoutPanelCompat*;
     _ZT[hvc]*9gui_forms22TextMaskBudgetSnapshot*;
     _ZT[hvc]*9gui_forms22ThemeCompileDiagnostic*;
+    _ZT[hvc]*9gui_forms22VirtualRowsHeaderClick*;
     _ZT[hvc]*9gui_forms23ApplicationCreateResult*;
     _ZT[hvc]*9gui_forms23ApplicationWindowHandle*;
     _ZT[hvc]*9gui_forms23BackdropChainResolution*;
@@ -12902,6 +12923,7 @@
     _ZZN9gui_forms17TreeListRowSource*;
     _ZZN9gui_forms17TreeListRowSplice*;
     _ZZN9gui_forms17VirtualRowMeasure*;
+    _ZZN9gui_forms17VirtualRowsColumn*;
     _ZZN9gui_forms17VisualInteraction*;
     _ZZN9gui_forms17WindowBandOptions*;
     _ZZN9gui_forms17XmlSourcePosition*;
@@ -13241,6 +13263,7 @@
     _ZZN9gui_forms21ThreadExceptionDialog*;
     _ZZN9gui_forms21ThreadExceptionReport*;
     _ZZN9gui_forms21VirtualRowDescription*;
+    _ZZN9gui_forms21VirtualRowsColumnMove*;
     _ZZN9gui_forms21VirtualRowsStatistics*;
     _ZZN9gui_forms21WindowBackdropRequest*;
     _ZZN9gui_forms22ApplicationModalResult*;
@@ -13288,6 +13311,7 @@
     _ZZN9gui_forms22TableLayoutPanelCompat*;
     _ZZN9gui_forms22TextMaskBudgetSnapshot*;
     _ZZN9gui_forms22ThemeCompileDiagnostic*;
+    _ZZN9gui_forms22VirtualRowsHeaderClick*;
     _ZZN9gui_forms23ApplicationCreateResult*;
     _ZZN9gui_forms23ApplicationWindowHandle*;
     _ZZN9gui_forms23BackdropChainResolution*;
@@ -14433,6 +14457,7 @@
     _ZZNK9gui_forms17TreeListRowSource*;
     _ZZNK9gui_forms17TreeListRowSplice*;
     _ZZNK9gui_forms17VirtualRowMeasure*;
+    _ZZNK9gui_forms17VirtualRowsColumn*;
     _ZZNK9gui_forms17VisualInteraction*;
     _ZZNK9gui_forms17WindowBandOptions*;
     _ZZNK9gui_forms17XmlSourcePosition*;
@@ -14772,6 +14797,7 @@
     _ZZNK9gui_forms21ThreadExceptionDialog*;
     _ZZNK9gui_forms21ThreadExceptionReport*;
     _ZZNK9gui_forms21VirtualRowDescription*;
+    _ZZNK9gui_forms21VirtualRowsColumnMove*;
     _ZZNK9gui_forms21VirtualRowsStatistics*;
     _ZZNK9gui_forms21WindowBackdropRequest*;
     _ZZNK9gui_forms22ApplicationModalResult*;
@@ -14819,6 +14845,7 @@
     _ZZNK9gui_forms22TableLayoutPanelCompat*;
     _ZZNK9gui_forms22TextMaskBudgetSnapshot*;
     _ZZNK9gui_forms22ThemeCompileDiagnostic*;
+    _ZZNK9gui_forms22VirtualRowsHeaderClick*;
     _ZZNK9gui_forms23ApplicationCreateResult*;
     _ZZNK9gui_forms23ApplicationWindowHandle*;
     _ZZNK9gui_forms23BackdropChainResolution*;
