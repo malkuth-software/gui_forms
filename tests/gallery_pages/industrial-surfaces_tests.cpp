@@ -31,9 +31,9 @@ void test_industrial_surfaces(gui_forms::Window& window) {
     const std::shared_ptr<Label> bakes = std::dynamic_pointer_cast<Label>(window.find("gallery.industrial.bakes"));
     require(bakes != nullptr && !(*bakes).text.read().empty(), "the lamps' status line says what is shown");
     const std::shared_ptr<IndicatorLamp> ok_lamp =
-        std::dynamic_pointer_cast<IndicatorLamp>(window.find("gallery.industrial.lamp.dialog_ok"));
+        std::dynamic_pointer_cast<IndicatorLamp>(window.find("gallery.industrial.lamp.dialog-ok"));
     const std::shared_ptr<IndicatorLamp> clear_lamp =
-        std::dynamic_pointer_cast<IndicatorLamp>(window.find("gallery.industrial.lamp.indicator_clear"));
+        std::dynamic_pointer_cast<IndicatorLamp>(window.find("gallery.industrial.lamp.indicator-clear"));
     require(ok_lamp != nullptr && clear_lamp != nullptr, "the page places its lamps as indicator lamps");
     if (ok_lamp == nullptr || clear_lamp == nullptr) return;
     require((*ok_lamp).light_planes.read() == "dialog_ok_up" && (*clear_lamp).light_planes.read() == "indicator_clear_up",

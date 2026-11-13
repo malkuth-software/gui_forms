@@ -10,6 +10,7 @@
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <filesystem>
@@ -157,7 +158,9 @@ void IndustrialSurfacesPage::place_lamps() {
     for (const LampChoice& choice : lamp_choices) {
         const std::string bake = std::string(choice.stem) + "_up";
         if (!bake_present(directory, bake)) ++missing;
-        const std::string id = "gallery.industrial.lamp." + std::string(choice.stem);
+        // A stable ID joins its words by '-', so the stem's '_' becomes '-'.
+        std::string id = "gallery.industrial.lamp." + std::string(choice.stem);
+        std::replace(id.begin(), id.end(), '_', '-');
         std::shared_ptr<IndicatorLamp> lamp = make_control<IndicatorLamp>(StableId(id));
         (*lamp).accessible_name = std::string(choice.accessible_name);
         (*lamp).light_planes = bake;
