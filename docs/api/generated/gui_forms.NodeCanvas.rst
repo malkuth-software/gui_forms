@@ -664,7 +664,7 @@ gui_forms::NodeCanvas
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 53 supported, 0 deferred, 0 excluded, 16 unclassified; 69 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 55 supported, 0 deferred, 0 excluded, 14 unclassified; 69 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -818,7 +818,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 53 s
    * - method
      - GUI.Forms-only
      - ``clear_selection``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``connect_ports``
@@ -914,7 +914,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 53 s
    * - method
      - GUI.Forms-only
      - ``select_all``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``select_in_rect``
