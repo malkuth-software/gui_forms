@@ -1093,8 +1093,8 @@ public:
         std::unique_ptr<TextFamily>& entry = family_entry(name);
         if (!entry) entry = std::make_unique<TextFamily>();
         TextFamily& family = *entry;
-        const gui_forms::FontFamilyRecord* const record = gui_forms::font_family_named(name);
-        if (record != nullptr) family.id = (*record).id;
+        const gui_forms::FontFamilyRecord* const registered = gui_forms::font_family_named(name);
+        if (registered != nullptr) family.id = (*registered).id;
         family.faces[slot] = std::move(record);
         family.rasterizer.reset();
         family.engine = std::make_unique<text::HarfBuzzFontEngine>();
