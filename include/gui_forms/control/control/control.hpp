@@ -275,6 +275,10 @@ struct GUI_FORMS_API MnemonicText final {
 [[nodiscard]] GUI_FORMS_API std::string mnemonic_access_key(std::string_view text);
 [[nodiscard]] GUI_FORMS_API bool is_mnemonic(char32_t character,
                                std::string_view text) noexcept;
+// Whether `text` marks no mnemonic and its first displayed scalar matches
+// `character` (the same folding as is_mnemonic): a menu's first-letter jump
+// for items without a mnemonic, as Windows menus and ToolStripDropDown do.
+[[nodiscard]] GUI_FORMS_API bool is_first_letter(char32_t character, std::string_view text) noexcept;
 
 // Where a control's plain tooltip (Control::tool_tip_text) shows. Its
 // window's one presenter reads it; a control type chooses it once, in its

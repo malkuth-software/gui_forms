@@ -799,6 +799,77 @@ void test_menu_plain_letter_mnemonics() {
             "a plain letter must act while the menu panel itself has the focus");
 }
 
+// The first-letter jump: when no mnemonic matches, items without a mnemonic
+// whose text starts with the letter are taken as mnemonics are (one
+// activates, several take the focus in turn); a mnemonic always wins, and
+// an item with a mnemonic never answers its first letter.
+void test_menu_first_letter_jumps() {
+    require(is_first_letter(U'o', "Open") && is_first_letter(U'O', "open") && !is_first_letter(U'p', "Open") &&
+                !is_first_letter(U'o', "&Open") && !is_first_letter(U'x', "E&xit") &&
+                !is_first_letter(U'&', "&&Co") && !is_first_letter(U'a', "") &&
+                is_first_letter(U's', "Save&&Close"),
+            "is_first_letter matches the first displayed letter of a text without a mnemonic");
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("first.root"));
+    std::shared_ptr<gui_forms::Button> owner = make_control<Button>(StableId("first.owner"), "Owner");
+    (*owner).set_requested_bounds({20.0, 20.0, 90.0, 28.0});
+    (*root).add_child(owner);
+    Window window(root, {360.0, 320.0});
+    window.perform_layout();
+
+    std::shared_ptr<gui_forms::Command> open = std::make_shared<Command>("open", "Open");
+    std::shared_ptr<gui_forms::Command> options = std::make_shared<Command>("options", "Options");
+    std::shared_ptr<gui_forms::Command> save = std::make_shared<Command>("save", "Save");
+    std::shared_ptr<gui_forms::Command> print = std::make_shared<Command>("print", "Print");
+    std::shared_ptr<gui_forms::Command> edit = std::make_shared<Command>("edit", "Edit");
+    std::shared_ptr<gui_forms::Command> exit = std::make_shared<Command>("exit", "Exit");
+    (*print).set_enabled(false);
+    std::string trace;
+    SubscriptionToken open_invoked = (*open).invoked().subscribe(RecordCommandId(trace));
+    SubscriptionToken options_invoked = (*options).invoked().subscribe(RecordCommandId(trace));
+    SubscriptionToken save_invoked = (*save).invoked().subscribe(RecordCommandId(trace));
+    SubscriptionToken edit_invoked = (*edit).invoked().subscribe(RecordCommandId(trace));
+    SubscriptionToken exit_invoked = (*exit).invoked().subscribe(RecordCommandId(trace));
+    ContextMenu menu("first.menu");
+    menu.set_items({
+        {"open", MenuItemKind::command, open, "Open"},
+        {"options", MenuItemKind::command, options, "Options"},
+        {"save", MenuItemKind::command, save, "Save"},
+        {"print", MenuItemKind::command, print, "Print"},
+        {"edit", MenuItemKind::command, edit, "Edit"},
+        {"exit", MenuItemKind::command, exit, "E&xit"},
+    });
+
+    TextInputEvent typed_s{"s"};
+    menu.show(owner, {20.0, 50.0});
+    require(window.dispatch_text(typed_s) && trace == "save" && !menu.is_open(),
+            "one first-letter match activates its item and closes the menu");
+
+    trace.clear();
+    menu.show(owner, {20.0, 50.0});
+    TextInputEvent typed_o{"o"};
+    require(window.dispatch_text(typed_o), "a shared first letter is handled");
+    Control::Ptr focused = window.focused_control();
+    require(focused && (*focused).semantic_descriptor().name == "Open" && menu.is_open() && trace.empty(),
+            "a shared first letter moves the focus to the first match without activating");
+    require(window.dispatch_text(typed_o), "the shared first letter again");
+    focused = window.focused_control();
+    require(focused && (*focused).semantic_descriptor().name == "Options" && trace.empty(),
+            "the shared first letter moves to the following match");
+
+    TextInputEvent typed_p{"p"};
+    require(!window.dispatch_text(typed_p) && menu.is_open() && trace.empty(),
+            "a disabled item's first letter matches nothing");
+    TextInputEvent typed_e{"e"};
+    require(window.dispatch_text(typed_e) && trace == "edit" && !menu.is_open(),
+            "an item with a mnemonic does not answer its first letter: Edit is the only E");
+
+    trace.clear();
+    menu.show(owner, {20.0, 50.0});
+    TextInputEvent typed_x{"x"};
+    require(window.dispatch_text(typed_x) && trace == "exit" && !menu.is_open(),
+            "a mnemonic still activates its item");
+}
+
 class MenuFontMetrics final : public TextMetricsProvider {
 public:
     [[nodiscard]] ResolvedTextLayout resolve_text_layout_utf8(
@@ -938,6 +1009,7 @@ int main() {
         test_menu_strip_retained_switching_commands_and_semantics();
         test_menu_mnemonics_strip_markers_and_overlay_activation();
         test_menu_plain_letter_mnemonics();
+        test_menu_first_letter_jumps();
         test_menu_font_controls_geometry_paint_and_hit_testing();
         test_menu_strip_declares_the_drop_down_gutter();
         test_menu_row_insets_follow_the_text_scale();

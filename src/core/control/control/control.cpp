@@ -614,6 +614,29 @@ bool is_mnemonic(char32_t character, std::string_view text) noexcept {
     return false;
 }
 
+bool is_first_letter(char32_t character, std::string_view text) noexcept {
+    if (character == U'&' || text.empty()) return false;
+    std::optional<char32_t> first{};
+    for (std::size_t offset = 0U; offset < text.size();) {
+        if (text[offset] == '&') {
+            if (offset + 1U < text.size() && text[offset + 1U] == '&') {
+                if (!first) first = U'&';
+                offset += 2U;
+                continue;
+            }
+            // A marked mnemonic: the text answers its mnemonic instead.
+            if (offset + 1U < text.size()) return false;
+            ++offset;
+            continue;
+        }
+        const Utf8ScalarDecode decoded = decode_utf8_scalar(text, Utf8Offset(offset));
+        if (!first) first = decoded.scalar;
+        offset += std::max<std::size_t>(decoded.length, 1U);
+    }
+    const bool matches = first.has_value() && fold_mnemonic(*first) == fold_mnemonic(character);
+    return matches;
+}
+
 void append_semantic_description(SemanticDescriptor& descriptor,
                                  std::string_view prefix,
                                  std::string_view value) {

@@ -1306,8 +1306,10 @@ struct ContextMenu::Impl final {
 
     // A typed character in the panel at depth. One enabled item whose
     // mnemonic matches is activated (a submenu opens); several take the
-    // focus in turn, starting after the focused row. Returns false when no
-    // item matches.
+    // focus in turn, starting after the focused row. When no mnemonic
+    // matches, the items without a mnemonic whose text starts with the
+    // character are taken the same way (the first-letter jump of Windows
+    // menus and ToolStripDropDown). Returns false when nothing matches.
     bool type_mnemonic(std::size_t depth, std::optional<std::size_t> focused,
                        char32_t character) {
         if (depth >= panels.size() || !panels[depth].items) return false;
@@ -1319,6 +1321,15 @@ struct ContextMenu::Impl final {
             if (item.kind != MenuItemKind::separator && snapshot_enabled(item) &&
                 is_mnemonic(character, item.text)) {
                 matches.push_back(index);
+            }
+        }
+        if (matches.empty()) {
+            for (std::size_t index = 0U; index < count; ++index) {
+                const MenuSnapshot& item = (*state.items)[index];
+                if (item.kind != MenuItemKind::separator && snapshot_enabled(item) &&
+                    is_first_letter(character, item.text)) {
+                    matches.push_back(index);
+                }
             }
         }
         if (matches.empty()) return false;
