@@ -140,7 +140,8 @@ struct GUI_FORMS_API OffscreenCaptureOptions final {
     std::optional<ColourScheme> colour_scheme{};
     // Forced high contrast; none keeps the window's.
     std::optional<bool> high_contrast{};
-    // capture_window: the window's in-surface overlays.
+    // capture_window: the window's in-surface overlays; capture_control:
+    // those the control or a descendant owns (ControlCaptureOptions).
     bool include_overlays{true};
     // capture_control: logical units around the control (ControlCaptureOptions::margin).
     double margin{};

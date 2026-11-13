@@ -131,12 +131,15 @@ void SurfaceRoot::set_framebuffer_painter(Painter* const painter) {
     backplane_framebuffer_scale_ = 0.0;
 }
 
-SurfaceRoot::CapturePaintLease::CapturePaintLease(SurfaceRoot& root) noexcept : root_(root) {
+SurfaceRoot::CapturePaintLease::CapturePaintLease(SurfaceRoot& root, const double capture_scale) noexcept
+    : root_(root) {
     root_.in_paint_ = true;
+    root_.transient_recording_scale_ = capture_scale != root_.scale_ ? capture_scale : 0.0;
 }
 
 SurfaceRoot::CapturePaintLease::~CapturePaintLease() {
     root_.in_paint_ = false;
+    root_.transient_recording_scale_ = 0.0;
     // Fills an image atlas deferred during the capture, then the input
     // deferred during it, as paint's end does (neither throws).
     if (root_.resources_) (*root_.resources_).apply_deferred_image_fills();
@@ -160,7 +163,7 @@ std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr&
     // the subtree's own coordinates, its materials baked at the snapshot's
     // scale.
     // Painting from here to the return, as paint is for its pass.
-    const CapturePaintLease painting(*this);
+    const CapturePaintLease painting(*this, scale);
     detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;
@@ -175,19 +178,26 @@ std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr&
         paint_recursive(control, parent_origin_of(*control), candidate, bounds, plane, visited_nodes, painted_controls, consumed_invalidations,
                         chunks_rebuilt, chunks_reused, commands_replayed);
     }
+    // The overlays the subtree owns, over it (gathered before any paints:
+    // a paint callback may close one, which the liveness check skips).
+    std::vector<Control::Ptr> owned_overlays;
+    gather_owned_overlays(*control, owned_overlays);
+    for (const Control::Ptr& overlay : owned_overlays) {
+        if (!(*overlay).is_alive() || (*overlay).surface_root_ != this) continue;
+        for (std::size_t index = 0; index < paint_plane_count; ++index) {
+            const PaintPlane plane = static_cast<PaintPlane>(index);
+            paint_recursive(overlay, parent_origin_of(*overlay), candidate, bounds, plane, visited_nodes,
+                            painted_controls, consumed_invalidations, chunks_rebuilt, chunks_reused,
+                            commands_replayed);
+        }
+    }
     candidate.restore();
     const Rect local{0.0, 0.0, logical.width, logical.height};
     const std::shared_ptr<const detail::DisplayChunk> recorded =
         candidate.finish(display_generation_, PaintPlane::control, local);
     // Rebuilt chunks consumed their paint dirt without reaching the screen:
-    // damage over the area at the window's own scale, as capture_window.
-    if (consumed_invalidations > 0U) {
-        if (scale == scale_) {
-            add_damage_all_planes(bounds);
-        } else if ((*control).is_alive()) {
-            mark_subtree_dirty(*control, Dirty::paint);
-        }
-    }
+    // damage over the area, as capture_window.
+    if (consumed_invalidations > 0U) add_damage_all_planes(bounds);
     // Replay into the offscreen raster.
     if (!(*framebuffer).begin(image_resources(), local)) return std::nullopt;
     static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
@@ -233,7 +243,7 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
     const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
     if (!framebuffer) return std::nullopt;
     // Painting from here to the return, as paint is for its pass.
-    const CapturePaintLease painting(*this);
+    const CapturePaintLease painting(*this, scale);
     detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;
@@ -275,23 +285,11 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
     const std::shared_ptr<const detail::DisplayChunk> recorded =
         candidate.finish(display_generation_, PaintPlane::control, window_bounds);
     // Rebuilt chunks consumed their paint dirt without reaching the screen.
-    // Recorded at the window's own scale, they are what the next paint
-    // would record, so the screen only owes their presentation: damage,
-    // which take_damage hands to the host and a paint discharges. Recorded
-    // at another scale they are not, and their controls are marked to be
-    // recorded again (a capture through OffscreenAttachment restores the
-    // window's scale and settings afterwards, which marks them anyway).
-    if (consumed_invalidations > 0U) {
-        if (scale == scale_) {
-            add_damage_all_planes(window_bounds);
-        } else {
-            if ((*root_).is_alive()) mark_subtree_dirty(*root_, Dirty::paint);
-            for (const Control::Ptr& overlay : overlay_roots) {
-                if (!overlay || !(*overlay).is_alive()) continue;
-                mark_subtree_dirty(*overlay, Dirty::paint);
-            }
-        }
-    }
+    // They are what the next paint would record (a capture at another scale
+    // records transiently and consumes none), so the screen owes only their
+    // presentation: damage, which take_damage hands to the host and a paint
+    // discharges.
+    if (consumed_invalidations > 0U) add_damage_all_planes(window_bounds);
     if (!(*framebuffer).begin(image_resources(), window_bounds)) return std::nullopt;
     static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
     (*framebuffer).end();
@@ -329,7 +327,7 @@ std::optional<WindowCapture> SurfaceRoot::capture_control(const Control::Ptr& co
     const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
     if (!framebuffer) return std::nullopt;
     // Painting from here to the return, as paint is for its pass.
-    const CapturePaintLease painting(*this);
+    const CapturePaintLease painting(*this, scale);
     detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;
@@ -353,19 +351,25 @@ std::optional<WindowCapture> SurfaceRoot::capture_control(const Control::Ptr& co
         paint_recursive(control, parent_origin_of(*control), candidate, area, plane, visited_nodes, painted_controls,
                         consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
     }
+    // The overlays the subtree owns, over it (exhibit gap E3).
+    std::vector<Control::Ptr> owned_overlays;
+    if (options.include_overlays) gather_owned_overlays(*control, owned_overlays);
+    for (const Control::Ptr& overlay : owned_overlays) {
+        if (!(*overlay).is_alive() || (*overlay).surface_root_ != this) continue;
+        for (std::size_t index = 0; index < paint_plane_count; ++index) {
+            const PaintPlane plane = static_cast<PaintPlane>(index);
+            paint_recursive(overlay, parent_origin_of(*overlay), candidate, area, plane, visited_nodes,
+                            painted_controls, consumed_invalidations, chunks_rebuilt, chunks_reused,
+                            commands_replayed);
+        }
+    }
     candidate.restore();
     const Rect local{0.0, 0.0, logical.width, logical.height};
     const std::shared_ptr<const detail::DisplayChunk> recorded =
         candidate.finish(display_generation_, PaintPlane::control, local);
     // Rebuilt chunks consumed their paint dirt without reaching the screen:
-    // damage over the area at the window's own scale, as capture_window.
-    if (consumed_invalidations > 0U) {
-        if (scale == scale_) {
-            add_damage_all_planes(area);
-        } else if ((*control).is_alive()) {
-            mark_subtree_dirty(*control, Dirty::paint);
-        }
-    }
+    // damage over the area, as capture_window.
+    if (consumed_invalidations > 0U) add_damage_all_planes(area);
     if (!(*framebuffer).begin(image_resources(), local)) return std::nullopt;
     static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
     (*framebuffer).end();
@@ -376,6 +380,25 @@ std::optional<WindowCapture> SurfaceRoot::capture_control(const Control::Ptr& co
     capture.pixel_width = (*framebuffer).width();
     capture.pixel_height = (*framebuffer).height();
     return capture;
+}
+
+void SurfaceRoot::gather_owned_overlays(const Control& subtree, std::vector<Control::Ptr>& roots) const {
+    roots.clear();
+    for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
+        const Control::Ptr owner = (*overlay).owner();
+        const Control::Ptr root = (*overlay).overlay();
+        if (!owner || !root) continue;
+        // The owner's ancestor chain, bounded by maximum_control_tree_depth
+        // (the tree refuses deeper attachments).
+        bool inside = false;
+        for (const Control* current = owner.get(); current != nullptr; current = (*current).parent_link_) {
+            if (current == &subtree) {
+                inside = true;
+                break;
+            }
+        }
+        if (inside) roots.push_back(root);
+    }
 }
 
 bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png) {

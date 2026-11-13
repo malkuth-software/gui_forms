@@ -1108,6 +1108,34 @@ void test_fixed_label_measurement_does_not_resolve_unused_text() {
             "content-derived label width must still resolve text");
 }
 
+// Exhibit gap E12: a hint label given a width and no height, placed by its
+// parent's layout, wraps into as many lines as its text needs and is laid
+// out that tall, beside a one-line label of the same font.
+void test_label_wraps_at_its_width_in_layout() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("hint"));
+    const std::shared_ptr<Label> hint =
+        make_control<Label>(StableId("hint.wrapped"), "Open the inlet valve before starting the pump");
+    (*hint).set_requested_bounds({20.0, 10.0, 120.0, 0.0});
+    (*hint).text_wrapping = TextWrapping::word;
+    const std::shared_ptr<Label> single = make_control<Label>(StableId("hint.single"), "Open");
+    (*single).set_requested_bounds({20.0, 120.0, 120.0, 0.0});
+    (*root).add_child(hint);
+    (*root).add_child(single);
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{300.0, 200.0});
+    Window& window = *held_window;
+    window.perform_layout();
+    RecordingPainter painter{};
+    window.paint(painter, {0.0, 0.0, 300.0, 200.0});
+    const Rect wrapped = (*hint).arranged_bounds();
+    const Rect one_line = (*single).arranged_bounds();
+    std::size_t hint_lines = 0U;
+    for (const std::string& text : painter.texts) {
+        if (text != "Open") hint_lines = hint_lines + 1U;
+    }
+    require(wrapped.width == 120.0 && hint_lines >= 2U, "the hint wraps at its own width");
+    require(wrapped.height > one_line.height * 1.5, "and is laid out as tall as its lines");
+}
+
 void test_label_multiline_wrapping_and_alignment() {
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("label.multiline"),
                                      "Retained labels wrap words\nand preserve breaks");
@@ -2149,6 +2177,7 @@ int main() {
         test_fixed_label_text_is_paint_only();
         test_fixed_label_measurement_does_not_resolve_unused_text();
         test_label_multiline_wrapping_and_alignment();
+        test_label_wraps_at_its_width_in_layout();
         test_label_wrapping_reuses_widths_only_within_the_current_call();
         test_label_wrapping_reuses_live_text_without_retaining_paragraph_storage();
         test_label_line_limit_bounds_hidden_wrapping_work();

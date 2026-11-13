@@ -5192,15 +5192,23 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
 
     if ((*control).paint_plane_ == plane && !paint_intersection.empty()) {
         const Rect logical_bounds{0.0, 0.0, bounds.width, bounds.height};
-        const bool invalidated = has_dirty((*control).dirty_, Dirty::paint);
-        const bool rebuild = invalidated || !(*control).display_chunk_ ||
+        // A capture at another scale records afresh at its scale, into
+        // transient_chunk, and leaves the control's retained chunk and dirt
+        // alone (transient_recording_scale_).
+        const bool transient = transient_recording_scale_ > 0.0;
+        std::shared_ptr<const detail::DisplayChunk> transient_chunk{};
+        const bool invalidated = !transient && has_dirty((*control).dirty_, Dirty::paint);
+        const bool rebuild = transient || invalidated || !(*control).display_chunk_ ||
                              (*(*control).display_chunk_).plane() != plane ||
                              (*(*control).display_chunk_).logical_bounds() != logical_bounds;
         if (rebuild) {
-            if (paint_checkpointing_) paint_checkpoints_.push_back({control, (*control).display_chunk_});
-            (*control).clear_dirty(Dirty::paint);
-            detail::RecordingPainter recorder(text_metrics_provider_, DeviceScale{scale()});
-            recorder.inherit_caches((*control).display_chunk_);
+            if (!transient) {
+                if (paint_checkpointing_) paint_checkpoints_.push_back({control, (*control).display_chunk_});
+                (*control).clear_dirty(Dirty::paint);
+            }
+            const double recording_scale = transient ? transient_recording_scale_ : scale();
+            detail::RecordingPainter recorder(text_metrics_provider_, DeviceScale{recording_scale});
+            if (!transient) recorder.inherit_caches((*control).display_chunk_);
             recorder.refuse_stale_images(image_resources());
             // Declared after the recorder it names, so it is destroyed
             // first and the mark never outlives it.
@@ -5234,21 +5242,28 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
             (*control).paint_owned_decorations(
                 recorder, logical_bounds,
                 OwnerDecorationLayer::after_content);
-            const bool had_chunk = (*control).display_chunk_ != nullptr;
-            (*control).display_chunk_ = recorder.finish(++display_generation_, plane,
-                                                      logical_bounds);
-            note_display_chunk_change(*control, had_chunk);
+            if (transient) {
+                // Shown by this capture alone; the generation is not
+                // advanced, as the capture's own recording does not.
+                transient_chunk = recorder.finish(display_generation_, plane, logical_bounds);
+            } else {
+                const bool had_chunk = (*control).display_chunk_ != nullptr;
+                (*control).display_chunk_ = recorder.finish(++display_generation_, plane,
+                                                          logical_bounds);
+                note_display_chunk_change(*control, had_chunk);
+                ++chunks_rebuilt;
+                consumed_invalidations += invalidated ? 1U : 0U;
+            }
             if (recorder.group_refusals() > 0U) metrics_.record_paint_group_refusals(recorder.group_refusals());
             if (recorder.stale_image_draws() > 0U) {
                 metrics_.record_stale_image_refusals("draw", recorder.first_stale_image().value,
                                                      recorder.stale_image_draws());
             }
-            ++chunks_rebuilt;
-            consumed_invalidations += invalidated ? 1U : 0U;
         } else {
             ++chunks_reused;
         }
 
+        const detail::DisplayChunk& shown = transient ? *transient_chunk : *(*control).display_chunk_;
         painter.save();
         painter.translate({bounds.x, bounds.y});
         const Rect local_damage{paint_intersection.x - bounds.x,
@@ -5256,10 +5271,9 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                                 paint_intersection.width,
                                 paint_intersection.height};
         painter.clip_rect(local_damage);
-        commands_replayed +=
-        detail::replay_display_chunk(*(*control).display_chunk_, painter);
+        commands_replayed += detail::replay_display_chunk(shown, painter);
         painter.restore();
-        (*control).last_painted_visual_outsets_ = current_outsets;
+        if (!transient) (*control).last_painted_visual_outsets_ = current_outsets;
         ++painted_controls;
     }
 

@@ -259,6 +259,15 @@ At 10,000 children:
 : Absolute placement by `requested_bounds`, plus Dock and Anchor.
   - Dock consumes children in reverse z-order, backmost first, so that the
     topmost child receives the remaining fill area.
+  - The order in which children were added differs from Windows Forms
+    (exhibit gap E6): `add_child` places the new child on top of its
+    siblings, where Windows Forms' `Controls.Add` places it at the back. Both
+    dock backmost first, so in add order GUI.Forms docks the first child
+    added first and Windows Forms the last. Code ported from a Windows Forms
+    designer file, which adds its controls in that reversed order, keeps its
+    docking when it adds them in the opposite order, inserts each with
+    `insert_child(child, child_count())` (at the back), or calls
+    `send_to_back()` after each add.
   - Paint stays back-to-front, and hit testing front-to-back.
   - Both inherit retained scrolling from `ScrollableControl`.
 

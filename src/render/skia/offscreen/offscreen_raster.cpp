@@ -183,6 +183,7 @@ std::optional<WindowCapture> OffscreenAttachment::capture_control(const Control:
     request.scale = options.scale;
     request.margin = options.margin;
     request.include_backplane = options.include_backplane;
+    request.include_overlays = options.include_overlays;
     std::optional<WindowCapture> capture = window_.capture_control(control, request);
     return capture;
 }

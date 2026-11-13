@@ -408,6 +408,11 @@ struct GUI_FORMS_API ControlCaptureOptions final {
     // window shows there; off, what the subtree does not paint stays
     // transparent, as snapshot_control leaves it.
     bool include_backplane{true};
+    // The in-surface overlays owned by the control or a descendant (an
+    // ErrorProvider's icons, an open drop-down or tooltip), composited over
+    // the subtree within the area, as capture_window composites every
+    // overlay. Off, only the subtree is drawn.
+    bool include_overlays{true};
 };
 
 // A window's picture (Window::capture_window): its logical size, the scale
@@ -590,15 +595,20 @@ public:
     // order, into an offscreen framebuffer of the host's own CPU raster at
     // `scale` device pixels per logical unit, and the pixels are registered
     // as one of this window's images (its application's, where it shares
-    // ApplicationResources; premultiplied BGRA). Areas the subtree
-    // does not paint stay transparent; the window's backplane is not drawn.
+    // ApplicationResources; premultiplied BGRA). The in-surface overlays a
+    // control of the subtree owns (an ErrorProvider's icons, an open
+    // drop-down; exhibit gap E3) are drawn over it, clipped to its bounds.
+    // Areas the subtree does not paint stay transparent; the window's
+    // backplane is not drawn.
     // None, changing nothing, while no framebuffer painter is installed (a
     // headless window, a host whose fonts are not ready), during a paint,
     // for a control of another window or not shown, for a scale outside
     // (0, 8], or when the framebuffer or the image registry refuses.
     // Cost: one replay of the subtree into ceil(width * scale) by
     // ceil(height * scale) pixels and one copy of them into the registry;
-    // chunks the replay had to rebuild are marked for the next real paint.
+    // chunks the replay had to rebuild damage the window for its next paint;
+    // at another scale than the window's every control is recorded afresh
+    // at `scale` (exhibit gap E2) and the retained chunks are untouched.
     // The image lives until release_control_snapshot or the window's end.
     // The window is painting while it records and replays, as
     // capture_window says.
@@ -618,8 +628,9 @@ public:
     // for an empty window, for a scale outside (0, 8], or when the
     // framebuffer refuses. Cost: one replay of the window into
     // ceil(width * scale) by ceil(height * scale) pixels and one copy of
-    // them; chunks the replay had to rebuild are marked for the next real
-    // paint. While it records and replays, the window is painting, as in
+    // them; chunks the replay had to rebuild damage the window for its next
+    // paint, and at another scale every control is recorded afresh at it,
+    // as snapshot_control says. While it records and replays, the window is painting, as in
     // paint: an ImageAtlas fill made by a paint callback is deferred and
     // written when the capture ends (so the capture shows the slot's old
     // pixels and the next paint or capture the new ones), and input
@@ -632,16 +643,18 @@ public:
     // the subtree over the control's bounds grown by `options.margin` and
     // clipped to the window, replayed into an offscreen framebuffer of the
     // window's CPU raster, as capture_window does; the capture owns its
-    // pixels (no image is registered, unlike snapshot_control). Siblings,
-    // ancestors' own paint and overlays are not drawn. `logical_size` is
+    // pixels (no image is registered, unlike snapshot_control). The
+    // in-surface overlays a control of the subtree owns are drawn over it
+    // unless `options` leaves them out (exhibit gap E3); siblings,
+    // ancestors' own paint and other overlays are not drawn. `logical_size` is
     // the area's size. None, changing nothing, while no framebuffer
     // painter is installed (a headless window without an
     // OffscreenAttachment, a host whose fonts are not ready), during a
     // paint, for a control of another window or not shown, for an empty
     // area, for a scale outside (0, 8] or a refused margin, or when the
     // framebuffer refuses. Cost: one replay of the subtree into the area's
-    // device pixels and one copy of them; chunks the replay had to rebuild
-    // are marked for the next real paint. The window is painting while it
+    // device pixels and one copy of them; rebuilt chunks and other scales
+    // as snapshot_control says. The window is painting while it
     // records and replays, as capture_window says. On the UI thread
     // (std::logic_error elsewhere).
     [[nodiscard]] std::optional<WindowCapture> capture_control(const Control::Ptr& control,
@@ -816,6 +829,18 @@ public:
     // gives, what is dropped and how the tint is drawn; nullopt without a
     // chain.
     [[nodiscard]] std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept;
+    // The window's backplane as the theme shown would draw it now, for the
+    // window's activation, colour scheme and contrast (exhibit gap E4):
+    // backplane_material() is the material (backplane_base: the window
+    // recipe's, the theme's base for a non-opaque grant, or a backdrop
+    // chain's tint; no fill when a declared content surface draws
+    // everything over a clear grant); backplane_colour() is its one colour
+    // (a solid fill's colour, a gradient's first stop, a procedural fill's
+    // ground, a finish's paint, else the layer's colour; transparent with no
+    // fill), what a consumer compositing a snapshot taken without the
+    // backplane lays under it. A copy; UI thread.
+    [[nodiscard]] SurfaceMaterial backplane_material() const;
+    [[nodiscard]] Color backplane_colour() const;
     // Non-owning portable service seam, installed for the lifetime of a
     // HostSession. Renderer-free and headless windows may legitimately return
     // null when no host is attached.
@@ -2751,10 +2776,11 @@ private:
     // it for its pass. Begun only while in_paint_ is false. Its end clears
     // in_paint_, writes the image atlas fills deferred meanwhile and
     // schedules the input deferred meanwhile, as paint's end does; it never
-    // throws.
+    // throws. A capture at another scale than the window's sets
+    // transient_recording_scale_ to it for the lease (exhibit gap E2).
     class CapturePaintLease final {
     public:
-        explicit CapturePaintLease(SurfaceRoot& root) noexcept;
+        CapturePaintLease(SurfaceRoot& root, double capture_scale) noexcept;
         ~CapturePaintLease();
         CapturePaintLease(const CapturePaintLease&) = delete;
         CapturePaintLease& operator=(const CapturePaintLease&) = delete;
@@ -2762,6 +2788,19 @@ private:
     private:
         SurfaceRoot& root_;
     };
+    // Zero, except while a capture at another scale than the window's
+    // records (CapturePaintLease): paint_recursive then records every
+    // control it reaches afresh at this scale into a chunk the capture alone
+    // replays, so part rasters and text are drawn at the capture's scale,
+    // and leaves the retained chunks, the paint dirt and the cache counts as
+    // they were (exhibit gap E2; before, a capture replayed chunks recorded
+    // at the window's scale).
+    double transient_recording_scale_{};
+    // The roots of the in-surface overlays whose owner is `subtree` or one
+    // of its descendants, in the window's overlay order, into `roots`
+    // (cleared first): what snapshot_control and capture_control draw over
+    // the subtree (exhibit gap E3).
+    void gather_owned_overlays(const Control& subtree, std::vector<Control::Ptr>& roots) const;
     // Paint-pass scratch, reused by every pass so that a frame allocates
     // nothing once they have grown to the window's size (paint_rectangles
     // is not reentrant: in_paint_ guards both). paint_checkpoints_ holds,

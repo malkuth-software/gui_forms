@@ -18,7 +18,11 @@
 //   next; the same for a slot drawn and filled during Window::capture_window,
 //   which paints as a paint does.
 // - a capture at the window's scale leaves no paint dirt, only damage; at
-//   another scale it marks what it rebuilt to be recorded again.
+//   another scale it records transiently;
+// - exhibit gaps E1-E4: ancestor captures draw a GroupBox and a
+//   DateTimePicker as their own do, captures record at their own scale,
+//   subtree captures draw the overlays their controls own (ErrorProvider),
+//   and the backplane colour is public.
 
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/capture/offscreen_raster/offscreen_raster.hpp"
@@ -28,7 +32,11 @@
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/check_box_values.hpp"
+#include "gui_forms/controls/date_time_picker.hpp"
+#include "gui_forms/controls/group_box.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/components/error_provider/error_provider.hpp"
 #include "gui_forms/controls/stock_specimens.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
@@ -566,7 +574,163 @@ void capture_settles_paint() {
     require(second.has_value(), "the capture at twice the scale completes");
     window.perform_layout();
     require(has_dirty((*button).dirty(), Dirty::paint),
-            "a capture at another scale marks the button to be recorded again");
+            "a capture at another scale records transiently and leaves the button's dirt for the next paint");
+}
+
+// How many pixels of `part` (premultiplied BGRA) differ by more than two
+// steps in a channel from `whole` at (left, top) in device pixels, among
+// the pixels `part` covers opaquely; `covered` counts those.
+struct PixelComparison final {
+    std::size_t covered{};
+    std::size_t differing{};
+};
+
+PixelComparison compare_within(const WindowCapture& part, const WindowCapture& whole, std::uint32_t left,
+                               std::uint32_t top) {
+    PixelComparison result{};
+    for (std::uint32_t y = 0U; y < part.pixel_height; ++y) {
+        for (std::uint32_t x = 0U; x < part.pixel_width; ++x) {
+            if (left + x >= whole.pixel_width || top + y >= whole.pixel_height) continue;
+            const std::array<std::uint8_t, 4> own = captured_pixel(part, x, y);
+            if (own[3] != 255U) continue;
+            result.covered = result.covered + 1U;
+            if (!near_pixel(captured_pixel(whole, left + x, top + y), own)) result.differing = result.differing + 1U;
+        }
+    }
+    return result;
+}
+
+// Exhibit gaps E1 and E2: a capture of an ancestor draws a GroupBox and a
+// DateTimePicker as their own captures do, at the window's scale and at
+// another, where every control is recorded afresh at the capture's scale
+// and the retained chunks are untouched.
+void ancestor_captures_draw_every_descendant() {
+    const std::unique_ptr<OffscreenRaster> raster = made_raster();
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("claim"));
+    const std::shared_ptr<GroupBox> group = make_control<GroupBox>(StableId("claim.group"), "Claimant");
+    (*group).set_requested_bounds({10.0, 10.0, 180.0, 70.0});
+    const std::shared_ptr<DateTimePicker> date = make_control<DateTimePicker>(StableId("claim.date"));
+    (*date).set_requested_bounds({10.0, 90.0, 180.0, 26.0});
+    (*root).add_child(group);
+    (*root).add_child(date);
+    Window window(root, {220.0, 130.0});
+    window.set_active(true);
+    OffscreenAttachment attached(*raster, window);
+    window.perform_layout();
+    const std::array<double, 2> scales{1.0, 2.0};
+    for (const double scale : scales) {
+        ControlCaptureOptions options{};
+        options.scale = scale;
+        options.include_backplane = false;
+        const std::optional<std::uint64_t> generation_before =
+            (*group).display_chunk_info().has_value() ? std::optional<std::uint64_t>((*(*group).display_chunk_info()).generation)
+                                                      : std::nullopt;
+        const std::optional<WindowCapture> whole = window.capture_control(root, options);
+        const std::optional<WindowCapture> framed = window.capture_control(group, options);
+        const std::optional<WindowCapture> picker = window.capture_control(date, options);
+        require(whole.has_value() && framed.has_value() && picker.has_value(), "the three captures complete");
+        if (!whole || !framed || !picker) return;
+        const std::uint32_t at = static_cast<std::uint32_t>(10.0 * scale);
+        const PixelComparison group_in_root = compare_within(*framed, *whole, at, at);
+        const PixelComparison date_in_root =
+            compare_within(*picker, *whole, at, static_cast<std::uint32_t>(90.0 * scale));
+        require(group_in_root.covered > 0U && group_in_root.differing == 0U,
+                "the ancestor's capture draws the GroupBox as its own capture does (E1)");
+        require(date_in_root.covered > 0U && date_in_root.differing == 0U,
+                "the ancestor's capture draws the DateTimePicker as its own capture does (E1)");
+        if (scale != window.scale() && generation_before.has_value()) {
+            const std::optional<DisplayChunkInfo> after = (*group).display_chunk_info();
+            require(after.has_value() && (*after).generation == *generation_before,
+                    "a capture at another scale leaves the retained chunk as it was (E2)");
+        }
+    }
+}
+
+// Exhibit gap E2: a direct capture at twice the window's scale records at
+// that scale, so it matches a capture of the window laid out at it, within
+// a stated tolerance (text positions may round differently between the two
+// layouts): at most 2 % of the covered pixels differ.
+void capture_records_at_its_scale() {
+    const std::unique_ptr<OffscreenRaster> raster = made_raster();
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("scaled"));
+    const std::shared_ptr<Button> button = make_control<Button>(StableId("scaled.button"), "Scaled");
+    (*button).set_requested_bounds({10.0, 10.0, 100.0, 30.0});
+    (*root).add_child(button);
+    Window window(root, {140.0, 60.0});
+    window.set_active(true);
+    OffscreenAttachment attached(*raster, window);
+    window.perform_layout();
+    ControlCaptureOptions direct{};
+    direct.scale = 2.0;
+    direct.include_backplane = false;
+    const std::optional<WindowCapture> transient = window.capture_control(button, direct);
+    OffscreenCaptureOptions laid_out{};
+    laid_out.scale = 2.0;
+    laid_out.include_backplane = false;
+    const std::optional<WindowCapture> relaid = attached.capture_control(button, laid_out);
+    require(transient.has_value() && relaid.has_value() && (*transient).pixel_width == (*relaid).pixel_width &&
+                (*transient).pixel_height == (*relaid).pixel_height,
+            "both captures complete at the same size");
+    if (!transient || !relaid) return;
+    const PixelComparison compared = compare_within(*relaid, *transient, 0U, 0U);
+    require(compared.covered > 0U && compared.differing * 50U <= compared.covered,
+            "a capture at twice the scale draws as the window laid out at it");
+}
+
+// Exhibit gap E3: a capture of a subtree draws the ErrorProvider icons its
+// controls own, unless include_overlays leaves them out.
+void subtree_captures_draw_owned_overlays() {
+    const std::unique_ptr<OffscreenRaster> raster = made_raster();
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("form"));
+    const std::shared_ptr<Panel> section = make_control<Panel>(StableId("form.section"));
+    (*section).set_requested_bounds({0.0, 0.0, 320.0, 80.0});
+    const std::shared_ptr<TextBox> port = make_control<TextBox>(StableId("form.section.port"), "99999");
+    (*port).set_requested_bounds({20.0, 20.0, 200.0, 28.0});
+    (*section).add_child(port);
+    (*root).add_child(section);
+    Window window(root, {320.0, 120.0});
+    window.set_active(true);
+    OffscreenAttachment attached(*raster, window);
+    PresentationSettings still = window.presentation_settings();
+    still.reduced_motion = true;
+    window.set_presentation_settings(still);
+    ErrorProvider errors(window);
+    errors.set_error(port, "The port must be between 1 and 65535.");
+    window.perform_layout();
+    ControlCaptureOptions with{};
+    with.include_backplane = false;
+    ControlCaptureOptions without = with;
+    without.include_overlays = false;
+    const std::optional<WindowCapture> shown = window.capture_control(section, with);
+    const std::optional<WindowCapture> bare = window.capture_control(section, without);
+    require(shown.has_value() && bare.has_value() && (*shown).bgra != (*bare).bgra,
+            "a subtree capture draws the error icon its text box owns (E3)");
+    errors.set_error(port, "");
+}
+
+// Exhibit gap E4: the backplane's colour, public, is what a capture with
+// the backplane draws where no control paints.
+void backplane_colour_is_public() {
+    const std::unique_ptr<OffscreenRaster> raster = made_raster();
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("plane"));
+    const std::shared_ptr<Button> button = make_control<Button>(StableId("plane.button"), "Plane");
+    (*button).set_requested_bounds({20.0, 20.0, 80.0, 28.0});
+    (*root).add_child(button);
+    Window window(root, {140.0, 70.0});
+    window.set_active(true);
+    OffscreenAttachment attached(*raster, window);
+    window.perform_layout();
+    const Color colour = window.backplane_colour();
+    require(colour.alpha == 255U && !window.backplane_material().fills.empty(),
+            "the default theme's backplane is opaque");
+    ControlCaptureOptions options{};
+    options.margin = 6.0;
+    const std::optional<WindowCapture> capture = window.capture_control(button, options);
+    require(capture.has_value(), "the button is captured with the backplane");
+    if (!capture) return;
+    const std::array<std::uint8_t, 4> expected{colour.blue, colour.green, colour.red, colour.alpha};
+    require(near_pixel(captured_pixel(*capture, 1U, 1U), expected),
+            "the margin shows the backplane colour the window reports");
 }
 
 int main() {
@@ -578,6 +742,10 @@ int main() {
     atlas_deferred_fill_capture();
     atlas_first_draw_after_deferred_fill();
     capture_settles_paint();
+    ancestor_captures_draw_every_descendant();
+    capture_records_at_its_scale();
+    subtree_captures_draw_owned_overlays();
+    backplane_colour_is_public();
     std::cout << "Offscreen capture: raster refusals, the attachment, control captures, specimen states, the "
                  "stock catalogue and atlas deferred-fill frames and captures passed\n";
     return EXIT_SUCCESS;

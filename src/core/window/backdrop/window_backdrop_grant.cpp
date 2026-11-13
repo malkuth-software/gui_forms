@@ -191,6 +191,39 @@ SurfaceMaterial SurfaceRoot::backplane_base(const ControlVisualContext& context)
     return recipe;
 }
 
+SurfaceMaterial SurfaceRoot::backplane_material() const {
+    ControlVisualContext context;
+    context.surface = active_ ? ControlSurfaceState::normal : ControlSurfaceState::deactivated;
+    context.high_contrast = presentation_settings_.high_contrast;
+    context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
+    SurfaceMaterial material = backplane_base(context);
+    return material;
+}
+
+Color SurfaceRoot::backplane_colour() const {
+    const SurfaceMaterial material = backplane_material();
+    if (material.fills.empty()) return Color::rgba(0, 0, 0, 0);
+    const MaterialFillLayer& fill = material.fills.front();
+    switch (fill.kind) {
+    case MaterialFillKind::solid:
+        return fill.color;
+    case MaterialFillKind::linear_gradient:
+    case MaterialFillKind::radial_gradient:
+    case MaterialFillKind::conic_gradient:
+        if (fill.stops.empty()) return fill.color;
+        return fill.stops.front().color;
+    case MaterialFillKind::image:
+        // An image has no one colour: the layer's colour.
+        return fill.color;
+    case MaterialFillKind::procedural:
+        return fill.procedural.ground;
+    case MaterialFillKind::finish:
+        return fill.finish.paint;
+    }
+    // A kind outside the enumeration: the layer's colour.
+    return fill.color;
+}
+
 std::optional<BackdropChainResolution> SurfaceRoot::backdrop_chain_resolution() const noexcept {
     if (!backdrop_chain_.has_value()) return std::nullopt;
     const BackdropChainResolution resolution =

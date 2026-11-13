@@ -156,6 +156,21 @@ void test_formats_provider_and_transactional_validation() {
     }
     require(rejected && picker.formatted_value() == "5 Thermidor 2026",
             "invalid provider text must be rejected before changing picker state");
+
+    // The named cultures (exhibit gap E11): en-GB's patterns, found by name.
+    const std::optional<DateTimeFormatProvider> british = DateTimeFormatProvider::for_culture("EN-gb");
+    require(british.has_value() && *british == DateTimeFormatProvider::english_united_kingdom(),
+            "en-GB is found by name, ignoring case");
+    require(!DateTimeFormatProvider::for_culture("fr-FR").has_value() &&
+                DateTimeFormatProvider::for_culture("en-US") == DateTimeFormatProvider::english_united_states(),
+            "a culture GUI.Forms does not carry is none; en-US is the default");
+    picker.format_provider = DateTimeFormatProvider::english_united_kingdom();
+    picker.format = DateTimePickerFormat::long_date;
+    require(picker.formatted_value() == "Wednesday 5 August 2026", "en-GB long date: day before month");
+    picker.format = DateTimePickerFormat::short_date;
+    require(picker.formatted_value() == "05/08/2026", "en-GB short date: dd/MM/yyyy");
+    picker.format = DateTimePickerFormat::time;
+    require(picker.formatted_value() == "14:07", "en-GB time: twenty-four hours");
 }
 
 void test_range_events_checkbox_and_spinner() {
