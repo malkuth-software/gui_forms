@@ -86,6 +86,7 @@ __ZGVZN9gui_forms10FlexMargin*
 __ZGVZN9gui_forms10FontChoice*
 __ZGVZN9gui_forms10FontDialog*
 __ZGVZN9gui_forms10FontFaceId*
+__ZGVZN9gui_forms10FormLayout*
 __ZGVZN9gui_forms10GridMargin*
 __ZGVZN9gui_forms10HScrollBar*
 __ZGVZN9gui_forms10HelpTarget*
@@ -1613,6 +1614,7 @@ __ZGVZNK9gui_forms10FlexMargin*
 __ZGVZNK9gui_forms10FontChoice*
 __ZGVZNK9gui_forms10FontDialog*
 __ZGVZNK9gui_forms10FontFaceId*
+__ZGVZNK9gui_forms10FormLayout*
 __ZGVZNK9gui_forms10GridMargin*
 __ZGVZNK9gui_forms10HScrollBar*
 __ZGVZNK9gui_forms10HelpTarget*
@@ -3192,6 +3194,7 @@ __ZN9gui_forms10FlexMargin*
 __ZN9gui_forms10FontChoice*
 __ZN9gui_forms10FontDialog*
 __ZN9gui_forms10FontFaceId*
+__ZN9gui_forms10FormLayout*
 __ZN9gui_forms10GridMargin*
 __ZN9gui_forms10HScrollBar*
 __ZN9gui_forms10HelpTarget*
@@ -6045,6 +6048,7 @@ __ZNK[RO]9gui_forms10FlexMargin*
 __ZNK[RO]9gui_forms10FontChoice*
 __ZNK[RO]9gui_forms10FontDialog*
 __ZNK[RO]9gui_forms10FontFaceId*
+__ZNK[RO]9gui_forms10FormLayout*
 __ZNK[RO]9gui_forms10GridMargin*
 __ZNK[RO]9gui_forms10HScrollBar*
 __ZNK[RO]9gui_forms10HelpTarget*
@@ -7572,6 +7576,7 @@ __ZN[KRO]9gui_forms10FlexMargin*
 __ZN[KRO]9gui_forms10FontChoice*
 __ZN[KRO]9gui_forms10FontDialog*
 __ZN[KRO]9gui_forms10FontFaceId*
+__ZN[KRO]9gui_forms10FormLayout*
 __ZN[KRO]9gui_forms10GridMargin*
 __ZN[KRO]9gui_forms10HScrollBar*
 __ZN[KRO]9gui_forms10HelpTarget*
@@ -9099,6 +9104,7 @@ __ZT[VIST]N9gui_forms10FlexMargin*E
 __ZT[VIST]N9gui_forms10FontChoice*E
 __ZT[VIST]N9gui_forms10FontDialog*E
 __ZT[VIST]N9gui_forms10FontFaceId*E
+__ZT[VIST]N9gui_forms10FormLayout*E
 __ZT[VIST]N9gui_forms10GridMargin*E
 __ZT[VIST]N9gui_forms10HScrollBar*E
 __ZT[VIST]N9gui_forms10HelpTarget*E
@@ -10626,6 +10632,7 @@ __ZT[hvc]*9gui_forms10FlexMargin*
 __ZT[hvc]*9gui_forms10FontChoice*
 __ZT[hvc]*9gui_forms10FontDialog*
 __ZT[hvc]*9gui_forms10FontFaceId*
+__ZT[hvc]*9gui_forms10FormLayout*
 __ZT[hvc]*9gui_forms10GridMargin*
 __ZT[hvc]*9gui_forms10HScrollBar*
 __ZT[hvc]*9gui_forms10HelpTarget*
@@ -12153,6 +12160,7 @@ __ZZN9gui_forms10FlexMargin*
 __ZZN9gui_forms10FontChoice*
 __ZZN9gui_forms10FontDialog*
 __ZZN9gui_forms10FontFaceId*
+__ZZN9gui_forms10FormLayout*
 __ZZN9gui_forms10GridMargin*
 __ZZN9gui_forms10HScrollBar*
 __ZZN9gui_forms10HelpTarget*
@@ -13680,6 +13688,7 @@ __ZZNK9gui_forms10FlexMargin*
 __ZZNK9gui_forms10FontChoice*
 __ZZNK9gui_forms10FontDialog*
 __ZZNK9gui_forms10FontFaceId*
+__ZZNK9gui_forms10FormLayout*
 __ZZNK9gui_forms10GridMargin*
 __ZZNK9gui_forms10HScrollBar*
 __ZZNK9gui_forms10HelpTarget*

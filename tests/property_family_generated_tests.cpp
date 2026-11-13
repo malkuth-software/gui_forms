@@ -32,6 +32,7 @@
 #include "gui_forms/controls/flex_panel.hpp"
 #include "gui_forms/controls/flow_layout_panel_compat.hpp"
 #include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/form_layout.hpp"
 #include "gui_forms/controls/grid_panel.hpp"
 #include "gui_forms/controls/group_box.hpp"
 #include "gui_forms/controls/indicator_lamp.hpp"
@@ -1128,6 +1129,42 @@ void test_font_dialog_properties() {
         const std::string sample = std::string{"Sample"};
         (*control).preview_text = sample;
         expect((*control).preview_text.read() == sample, "FontDialog.preview_text: a write stores");
+    }
+}
+
+void test_form_layout_properties() {
+    std::shared_ptr<FormLayout> control = make_control<FormLayout>(StableId("generated.formlayout"));
+    {
+        const double sample = 120.0;
+        (*control).caption_width = sample;
+        expect((*control).caption_width.read() == sample, "FormLayout.caption_width: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("caption_width");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "FormLayout.caption_width: the table reads the cell");
+    }
+    {
+        const HorizontalAlignment sample = HorizontalAlignment::far;
+        (*control).caption_alignment = sample;
+        expect((*control).caption_alignment.read() == sample, "FormLayout.caption_alignment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("caption_alignment");
+        expect(by_name && *by_name == PropertyValueTraits<HorizontalAlignment>::to_binding(sample),
+               "FormLayout.caption_alignment: the table reads the cell");
+    }
+    {
+        const double sample = 10.0;
+        (*control).row_spacing = sample;
+        expect((*control).row_spacing.read() == sample, "FormLayout.row_spacing: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("row_spacing");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "FormLayout.row_spacing: the table reads the cell");
+    }
+    {
+        const double sample = 12.0;
+        (*control).column_spacing = sample;
+        expect((*control).column_spacing.read() == sample, "FormLayout.column_spacing: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("column_spacing");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "FormLayout.column_spacing: the table reads the cell");
     }
 }
 
@@ -3285,6 +3322,7 @@ int main() {
     test_flex_panel_properties();
     test_flow_layout_panel_compat_properties();
     test_font_dialog_properties();
+    test_form_layout_properties();
     test_grid_panel_properties();
     test_group_box_properties();
     test_indicator_lamp_properties();

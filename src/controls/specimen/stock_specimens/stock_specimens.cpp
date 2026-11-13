@@ -1025,6 +1025,20 @@ StockSpecimenInstance make_scaled_panel(const StockSpecimen& specimen, StableId 
     return instance;
 }
 
+StockSpecimenInstance make_form_layout(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<FormLayout> control = make_control<FormLayout>(id);
+    const std::shared_ptr<TextBox> name = make_control<TextBox>(child_id(id, ".name"));
+    set_sample_text(*name, "Harbour Quay");
+    static_cast<void>((*control).add_row("Display name", name, 26.0));
+    const std::shared_ptr<TextBox> town = make_control<TextBox>(child_id(id, ".town"));
+    set_sample_text(*town, "Portsmouth");
+    static_cast<void>((*control).add_row("Town", town, 26.0));
+    const std::shared_ptr<CheckBox> listed = make_control<CheckBox>(child_id(id, ".listed"), "Listed");
+    static_cast<void>((*control).add_row("Visibility", listed, 24.0));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
 StockSpecimenInstance make_card(const StockSpecimen&, StableId id) {
     const std::shared_ptr<Card> control = make_control<Card>(id);
     static_cast<void>((*control).set_header(make_control<Label>(child_id(id, ".header"), "Harbour Quay")));

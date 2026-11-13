@@ -75,6 +75,7 @@
     {"table_layout_panel_compat", "Layout", Size{280.0, 180.0}, "Table layout panel compat", &make_table_layout_panel, nullptr, ""},
     {"responsive_track_panel", "Layout", Size{280.0, 180.0}, "Responsive track panel", &make_responsive_track_panel, nullptr, ""},
     {"scaled_panel", "Layout", Size{280.0, 180.0}, "Scaled panel", &make_scaled_panel, nullptr, ""},
+    {"form_layout", "Layout", Size{300.0, 120.0}, "Form layout", &make_form_layout, nullptr, ""},
     {"split_container", "Layout", Size{280.0, 180.0}, "Split container", &make_split_container, nullptr, ""},
     {"splitter_panel", "Layout", Size{280.0, 180.0}, "Splitter panel", &make_splitter_panel, nullptr, ""},
     {"splitter", "Layout", Size{280.0, 120.0}, "Splitter", &make_splitter, nullptr, ""},

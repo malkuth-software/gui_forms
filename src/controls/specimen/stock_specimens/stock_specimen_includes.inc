@@ -75,6 +75,7 @@
 #include "gui_forms/controls/table_layout_panel_compat.hpp"
 #include "gui_forms/controls/responsive_track_panel.hpp"
 #include "gui_forms/controls/scaled_panel.hpp"
+#include "gui_forms/controls/form_layout.hpp"
 #include "gui_forms/controls/split_container.hpp"
 #include "gui_forms/controls/splitter_panel.hpp"
 #include "gui_forms/controls/splitter.hpp"

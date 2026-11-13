@@ -323,8 +323,6 @@ Related types
      - A heatmap (P2): ``values`` row-major, rows × columns, row 0 at the top of the data rectangle [area_x] × [area_y], coloured through a built-in colormap over ``domain`` (the finite values' extent unless set).
    * - :cpp:class:`PlotHistogramSeries <gui_forms::PlotHistogramSeries>`
      - A histogram (P2): ``samples`` counted into ``bins`` fixed bins over their finite extent (or a set range), drawn as bars in the series colour.
-   * - :cpp:class:`PlotLinkGroup <gui_forms::PlotLinkGroup>`
-     - PlotLinkGroup: PlotViews whose first x axes, first y axes or both share one range (linked subplots, a plot and its overview; the plot demonstrator's gap P7).
    * - :cpp:class:`PlotPalette <gui_forms::PlotPalette>`
      - The colours PlotView draws with, resolved from a control's effective theme as PlotView resolves its own (the plot demonstrator's gap P5), so a custom plot kind follows set_theme_override like the stock plots.
    * - :cpp:class:`PlotPointPick <gui_forms::PlotPointPick>`
@@ -2832,49 +2830,6 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: PlotLinkGroup final : public Component
-
-   ``#include <gui_forms/controls/plot_view_links.hpp>``
-
-   PlotLinkGroup: PlotViews whose first x axes, first y axes or both share one range (linked subplots, a plot and its overview; the plot demonstrator's gap P7). The ranges live in two plots::AxisLink objects, read by x_link and y_link. A member's view_changed (a gesture, a key, set_x_range, set_y_range or fit_view on it) writes the links; the group then sets the changed range on every other member, in joining order. Those set_x_range and set_y_range calls raise each member's view_changed as usual: the group ignores them (an echo, counted), so the change goes round once and the member that moved is never set again. Ranges a member refuses (an inadmissible range for its scale) are left; that member keeps its own. Members are observed, not owned: the group holds weak pointers, and a member that has died is skipped. The group's subscriptions end with the group (dispose or destruction) or with the member's events. One UI thread: the members' and the group's.
-
-
-   .. rubric:: Construction
-
-   .. cpp:function:: PlotLinkGroup(PlotLinkAxes axes, plots::PlotRange x, plots::PlotRange y)
-
-      The links start at ``x`` and ``y`` (each must be valid); the first member to join takes them.
-
-
-   .. rubric:: Properties
-
-   .. cpp:function:: PlotLinkAxes axes() const noexcept
-
-   .. cpp:function:: void set_axes(PlotLinkAxes axes)
-
-      Which axes are linked from now on. Linking an axis that was not makes every member take that link's range.
-
-   .. cpp:function:: const plots::AxisLink& x_link() const noexcept
-
-   .. cpp:function:: const plots::AxisLink& y_link() const noexcept
-
-   .. cpp:function:: std::size_t member_count() const noexcept
-
-   .. cpp:function:: std::uint64_t propagations() const noexcept
-
-      Ranges the group set on members, and member view changes it ignored as echoes of its own sets (diagnostics and tests).
-
-   .. cpp:function:: std::uint64_t echoes() const noexcept
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: void add(const std::shared_ptr<PlotView>& plot)
-
-      Joins ``plot``, which takes the linked ranges now. Throws std::invalid_argument for a null plot or one already joined, adding nothing.
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: PlotPalette final
 
    ``#include <gui_forms/controls/plot_view_palette.hpp>``
@@ -4681,18 +4636,6 @@ Enumerations
    .. cpp:enumerator:: vertical_line
 
    .. cpp:enumerator:: horizontal_line
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:enum-class:: PlotLinkAxes
-
-   ``#include <gui_forms/controls/plot_view_links.hpp>``
-
-   .. cpp:enumerator:: x
-
-   .. cpp:enumerator:: y
-
-   .. cpp:enumerator:: both
 
 .. cpp:namespace:: gui_forms
 

@@ -322,6 +322,13 @@ Component::Ptr create_type<ThreadExceptionDialog>(StableId stable_id) {
 }
 
 template <>
+void describe_type<PlotLinkGroup>(SchemaSample& sample) {
+    const plots::PlotRange unit{0.0, 1.0};
+    const std::shared_ptr<PlotLinkGroup> group = std::make_shared<PlotLinkGroup>(PlotLinkAxes::x, unit, unit);
+    record_component(*group, sample);
+}
+
+template <>
 void describe_type<Timer>(SchemaSample& sample) {
     describe_window_component<Timer>(sample);
 }

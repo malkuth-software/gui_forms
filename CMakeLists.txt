@@ -1068,6 +1068,7 @@ add_library(gui_forms_controls STATIC
     src/controls/scrollable_control/container_control/container_control.cpp
     src/controls/scrollable_control/container_control/user_control/user_control.cpp
     src/controls/panel/scaled_panel/scaled_panel.cpp
+    src/controls/panel/form_layout/form_layout.cpp
     src/controls/panel/group_box/scaled_group_box/scaled_group_box.cpp
     src/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.cpp
     src/controls/scrollable_control/container_control/flex_panel/flex_panel.cpp
@@ -4649,6 +4650,14 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_block_panel_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_block_panel_tests
              COMMAND gui_forms_block_panel_tests)
+
+    # The ImGui-class demonstrator's I9: FormLayout's labelled rows.
+    add_executable(gui_forms_form_layout_tests
+        tests/form_layout_tests.cpp
+    )
+    target_link_libraries(gui_forms_form_layout_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_form_layout_tests
+             COMMAND gui_forms_form_layout_tests)
 
     # Stage L, phase L8a: TextBlock, the CSS text leaf, and the baselines
     # the containers align it by.

@@ -27,6 +27,8 @@ Flow, table, split, master/detail, responsive and scaled layout containers.
      - For Windows Forms migration: Windows Forms' TableLayoutPanel, arranging its children in a grid of sized rows and columns.
    * - :cpp:class:`ResponsiveTrackPanel <gui_forms::ResponsiveTrackPanel>`
      - A container that divides one axis into tracks which shrink, grow and collapse in an order you set.
+   * - :cpp:class:`FormLayout <gui_forms::FormLayout>`
+     - Panel of labelled rows: a caption column sized to the widest caption (or a fixed width) beside a column of controls, with captions naming their controls.
    * - :cpp:class:`ScaledPanel <gui_forms::ScaledPanel>`
      - A panel that places its children in a fixed design space and scales them with the panel.
    * - :cpp:class:`SplitContainer <gui_forms::SplitContainer>`
@@ -51,6 +53,7 @@ Flow, table, split, master/detail, responsive and scaled layout containers.
    generated/gui_forms.FlowLayoutPanelCompat
    generated/gui_forms.TableLayoutPanelCompat
    generated/gui_forms.ResponsiveTrackPanel
+   generated/gui_forms.FormLayout
    generated/gui_forms.ScaledPanel
    generated/gui_forms.SplitContainer
    generated/gui_forms.SplitterPanel
@@ -167,6 +170,16 @@ Related types
      - Every FlowLayoutPanelCompat capability, in the order the declaring class takes them.
    * - :cpp:class:`FlowLayoutWrapContentsCapability <gui_forms::FlowLayoutWrapContentsCapability>`
      - Whether a child that does not fit the rest of the line starts a new one.
+   * - :cpp:class:`FormLayoutCapabilities <gui_forms::FormLayoutCapabilities>`
+     - Every FormLayout capability, in the order the declaring class takes them.
+   * - :cpp:class:`FormLayoutCaptionAlignmentCapability <gui_forms::FormLayoutCaptionAlignmentCapability>`
+     - Where each caption sits in the caption column: at its start (near, the default), centre or end (far, beside the control).
+   * - :cpp:class:`FormLayoutCaptionWidthCapability <gui_forms::FormLayoutCaptionWidthCapability>`
+     - The caption column's width in logical units, or 0 for the widest caption's; finite and 0 to 4096 (std::invalid_argument otherwise).
+   * - :cpp:class:`FormLayoutColumnSpacingCapability <gui_forms::FormLayoutColumnSpacingCapability>`
+     - The space between the caption column and the controls in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+   * - :cpp:class:`FormLayoutRowSpacingCapability <gui_forms::FormLayoutRowSpacingCapability>`
+     - The space between rows in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
    * - :cpp:class:`GridAreaCapability <gui_forms::GridAreaCapability>`
      - The two views of a grid child's placement (child properties, study 10.9): writing either replaces the other.
    * - :cpp:class:`GridCellCapability <gui_forms::GridCellCapability>`
@@ -1306,6 +1319,101 @@ Related types
    .. cpp:member:: PropertyCell<bool, FlowLayoutWrapContentsCapability<Declaring>> wrap_contents
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FormLayoutCapabilities : public FormLayoutCaptionWidthCapability<Declaring>, public FormLayoutCaptionAlignmentCapability<Declaring>, public FormLayoutRowSpacingCapability<Declaring>, public FormLayoutColumnSpacingCapability<Declaring>
+
+   ``#include <gui_forms/controls/form_layout_capabilities.hpp>``
+
+   Every FormLayout capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double caption_width
+
+      The caption column's width in logical units, or 0 for the widest caption's; finite and 0 to 4096 (std::invalid_argument otherwise).
+
+   .. cpp:member:: HorizontalAlignment caption_alignment
+
+      Where each caption sits in the caption column: at its start (near, the default), centre or end (far, beside the control).
+
+   .. cpp:member:: double row_spacing
+
+      The space between rows in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+
+   .. cpp:member:: double column_spacing
+
+      The space between the caption column and the controls in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FormLayoutCaptionAlignmentCapability
+
+   ``#include <gui_forms/controls/form_layout_capabilities.hpp>``
+
+   Where each caption sits in the caption column: at its start (near, the default), centre or end (far, beside the control).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FormLayoutCaptionAlignmentCapability& capability, HorizontalAlignment incoming)
+
+   .. cpp:member:: PropertyCell<HorizontalAlignment, FormLayoutCaptionAlignmentCapability<Declaring>> caption_alignment
+
+      Default: ``{HorizontalAlignment::near}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FormLayoutCaptionWidthCapability
+
+   ``#include <gui_forms/controls/form_layout_capabilities.hpp>``
+
+   The caption column's width in logical units, or 0 for the widest caption's; finite and 0 to 4096 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FormLayoutCaptionWidthCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, FormLayoutCaptionWidthCapability<Declaring>> caption_width
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FormLayoutColumnSpacingCapability
+
+   ``#include <gui_forms/controls/form_layout_capabilities.hpp>``
+
+   The space between the caption column and the controls in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FormLayoutColumnSpacingCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, FormLayoutColumnSpacingCapability<Declaring>> column_spacing
+
+      Default: ``{8.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> FormLayoutRowSpacingCapability
+
+   ``#include <gui_forms/controls/form_layout_capabilities.hpp>``
+
+   The space between rows in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FormLayoutRowSpacingCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, FormLayoutRowSpacingCapability<Declaring>> row_spacing
+
+      Default: ``{6.0}``.
 
 .. cpp:namespace:: gui_forms
 

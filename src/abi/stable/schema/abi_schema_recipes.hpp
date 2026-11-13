@@ -45,6 +45,7 @@
 #include "gui_forms/controls/dock_site.hpp"
 #include "gui_forms/controls/dock_workspace.hpp"
 #include "gui_forms/controls/page_strip.hpp"
+#include "gui_forms/controls/plot_view_links.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/toast.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
@@ -166,6 +167,8 @@ template <> void describe_type<HelpProvider>(SchemaSample& sample);
 template <> void describe_type<ImageList>(SchemaSample& sample);
 template <> void describe_type<NotifyIcon>(SchemaSample& sample);
 template <> void describe_type<OpenFileDialog>(SchemaSample& sample);
+// A link group over the x axis with the unit ranges; it has no members.
+template <> void describe_type<PlotLinkGroup>(SchemaSample& sample);
 template <> void describe_type<RibbonToolTip>(SchemaSample& sample);
 template <> void describe_type<SaveFileDialog>(SchemaSample& sample);
 template <> void describe_type<SemanticFeedback>(SchemaSample& sample);
