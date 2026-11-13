@@ -3054,6 +3054,10 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
     material_lowering_.keep_gradients = em_token.has_value() || names_current_colour(value_);
     lower_material_value(property, value_, node.content.first.value, input_.images, material_lowering_);
     if (material_lowering_.outcome != MaterialLoweringOutcome::lowered) return report_material_problem();
+    for (MaterialLoweringProblem& warning : material_lowering_.warnings) {
+        report(warning.code, warning.token, std::move(warning.detail));
+    }
+    material_lowering_.warnings.clear();
     const bool reads_current = material_lowering_.read_current_colour;
     if ((em_token || reads_current) &&
         !lower_relative(property, node.content.first.value, em_token, reads_current)) {

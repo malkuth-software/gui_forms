@@ -1,7 +1,13 @@
 #include "prepared_text_test_support.hpp"
 #include "../src/core/text/prepared/prepared_storage.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 
 #include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <memory>
+#include <string_view>
+#include <vector>
 #include <iostream>
 #include <limits>
 
@@ -334,6 +340,52 @@ void test_cross_service_authority(const std::span<const std::byte> bytes) {
     status = (*first_session).adopt_ready(first_next, first_layout);
     require(status == PreparedTextStatus::success, "correct authority still adopts ready result");
 }
+// F2 (planning/GAPS.md): a font bank carries family faces, and prepared text whose key names
+// the family shapes with them, so its advance is the family's, not the role's. A face that
+// is a role's and a family's at once, and an unknown family, are refused.
+void test_family_faces(const std::filesystem::path& directory, const std::span<const std::byte> carlito) {
+    const std::filesystem::path path = directory / "Selawik-Regular.ttf";
+    std::ifstream input(path, std::ios::binary | std::ios::ate);
+    require(static_cast<bool>(input), "family font opens");
+    const std::streamsize length = input.tellg();
+    require(length > 0 && length <= 4 * 1024 * 1024, "family font size");
+    std::vector<std::byte> selawik(static_cast<std::size_t>(length));
+    input.seekg(0);
+    input.read(reinterpret_cast<char*>(selawik.data()), length);
+    require(static_cast<bool>(input), "family font read");
+
+    PreparedTextService service{};
+    const std::array<PreparedFontSource, 1> both{{
+        {.encoded = selawik, .role = FontRole::content, .family = selawik_font_family}}};
+    EncodedFontLease refused{};
+    PreparedTextStatus status = service.create_font_bank(both, refused);
+    require(status == PreparedTextStatus::invalid_input && refused.empty(), "a face is a role's or a family's");
+    const std::array<PreparedFontSource, 1> unknown{{{.encoded = selawik, .family = FontFamilyId{200U}}}};
+    status = service.create_font_bank(unknown, refused);
+    require(status == PreparedTextStatus::invalid_input && refused.empty(), "an unknown family is refused");
+
+    const std::array<PreparedFontSource, 2> sources{{
+        {.encoded = carlito, .role = FontRole::content},
+        {.encoded = selawik, .family = selawik_font_family}}};
+    EncodedFontLease bank{};
+    status = service.create_font_bank(sources, bank);
+    require(status == PreparedTextStatus::success, "a bank with a family face");
+    std::unique_ptr<PreparedTextSession> session{};
+    status = service.open_session(bank, nullptr, session);
+    require(status == PreparedTextStatus::success, "family bank session");
+    const std::string_view text = "Hamburgefonstiv";
+    const PreparedTextKey role_key = make_key(service, bank, text);
+    PreparedTextKey family_key = role_key;
+    family_key.font.family = selawik_font_family;
+    PreparedTextLayout role_layout{};
+    prepare(service, *session, role_key, text, role_layout);
+    const double role_advance = role_layout.metrics().advance_dip;
+    PreparedTextLayout family_layout{};
+    prepare(service, *session, family_key, text, family_layout);
+    const double family_advance = family_layout.metrics().advance_dip;
+    require(role_advance > 0.0 && family_advance > 0.0 && family_advance != role_advance,
+            "text naming the family is shaped with the family's face");
+}
 } // namespace
 
 int main(const int argc, char** const argv) {
@@ -349,6 +401,7 @@ int main(const int argc, char** const argv) {
         test_font_byte_budget(bytes);
         test_mapping(bytes);
         test_cross_service_authority(bytes);
+        test_family_faces(std::filesystem::path(argv[1]), bytes);
         std::cout << "prepared service checks passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

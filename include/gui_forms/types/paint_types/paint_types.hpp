@@ -97,15 +97,30 @@ inline constexpr TypeTag<CursorKind> cursor_kind{};
 
 } // namespace types
 
-// A bundled font family a theme names in place of a role's faces
-// (theme-language `font-family: Selawik`). Zero is none: the role's own faces.
-// Only families bundled with the library have numbers (the table in
-// src/core/resources/fonts/bundled_font_families.hpp); a host font never has
-// one, so a family can never reach a font the application did not ship.
-struct GUI_FORMS_API BundledFontFamily {
-    std::uint8_t value{};
-    friend constexpr bool operator==(const BundledFontFamily& left,
-                                     const BundledFontFamily& right) noexcept {
+// A font family in the family registry
+// (gui_forms/typography/font_families/font_families.hpp; owner decisions of
+// 2026-11-13). Zero is none: the role's own faces. Values 1 to 255 are the
+// families bundled with the library, fixed for every release; values from
+// 256 are reserved for verified registered families, which 1.0 does not
+// admit. A host font never has a number, so a family can never reach a font
+// the application did not ship.
+struct GUI_FORMS_API FontFamilyId {
+    std::uint16_t value{};
+    friend constexpr bool operator==(const FontFamilyId& left,
+                                     const FontFamilyId& right) noexcept {
+        return left.value == right.value;
+    }
+};
+
+// A registered family stack: an ordered list of families drawn after a
+// font's own family and before its role's faces (a theme's
+// `font-family: A, B`). Zero is none. The process's stack registry numbers
+// stacks in registration order, so a number names the same list for the
+// life of the process and is not stable across processes.
+struct GUI_FORMS_API FontFamilyStackId {
+    std::uint16_t value{};
+    friend constexpr bool operator==(const FontFamilyStackId& left,
+                                     const FontFamilyStackId& right) noexcept {
         return left.value == right.value;
     }
 };
@@ -119,17 +134,18 @@ struct GUI_FORMS_API FontSpec {
     // This is a layout input: painters and measurement must apply the same
     // value. Zero preserves the typeface's native spacing.
     double letter_spacing{};
-    // A named bundled family whose faces draw before the role's. The role
-    // still chooses the faces for characters the family does not cover, and
-    // a family whose faces could not be loaded leaves the role's faces in
-    // charge.
-    BundledFontFamily family{};
+    // The family whose faces draw first, the face nearest the weight and
+    // slant (no synthesis), then the stack's families in order, then the
+    // role's faces, which still draw what no family covers. A family whose
+    // faces could not be loaded is passed over.
+    FontFamilyId family{};
+    FontFamilyStackId stack{};
     friend constexpr bool operator==(const FontSpec& left,
                                      const FontSpec& right) noexcept {
         return left.role == right.role && left.size == right.size &&
                left.weight == right.weight && left.italic == right.italic &&
                left.letter_spacing == right.letter_spacing &&
-               left.family == right.family;
+               left.family == right.family && left.stack == right.stack;
     }
 };
 

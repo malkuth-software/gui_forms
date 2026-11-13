@@ -7,7 +7,7 @@
 
 #include "../src/core/resources/fonts/bundled_font_set.hpp"
 #include "gui_forms/metrics/metrics/metrics.hpp"
-#include "../src/core/resources/fonts/bundled_font_families.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 #if defined(_WIN32)
 #include "../src/host/windows/fonts/sealed_pages_windows.hpp"
 #else
@@ -271,13 +271,24 @@ bool construction_is_validated() {
     return passed;
 }
 
+// The faces of the registry's families that are not a role's (Selawik): the faces a host
+// registers as family faces.
+std::vector<gui_forms::FontFamilyFace> own_family_faces() {
+    std::vector<gui_forms::FontFamilyFace> faces{};
+    for (const gui_forms::FontFamilyRecord& record : gui_forms::bundled_font_families) {
+        if (record.role) continue;
+        faces.insert(faces.end(), record.faces.begin(), record.faces.end());
+    }
+    return faces;
+}
+
 // Every face a host registers is in the manifest, once, as a role or fallback face or as a
-// face of a numbered family a theme may name; every manifest face is one of them; and exactly
+// face of a family with faces of its own; every manifest face is one of them; and exactly
 // the seven primaries a window cannot do without are required.
 bool face_uses_match_the_manifest() {
     const std::span<const BundledFaceRecord> manifest = gui_forms::detail::bundled_face_manifest();
     const std::span<const gui_forms::detail::BundledFaceUse> uses = gui_forms::detail::bundled_face_uses();
-    const std::span<const gui_forms::detail::BundledFamilyFace> family_faces(gui_forms::detail::bundled_family_faces);
+    const std::vector<gui_forms::FontFamilyFace> family_faces = own_family_faces();
     if (!require(uses.size() + family_faces.size() == manifest.size(),
                  "the face uses and family faces differ from the manifest in length"))
         return false;
@@ -286,16 +297,10 @@ bool face_uses_match_the_manifest() {
         for (const gui_forms::detail::BundledFaceUse& use : uses) {
             if (use.file_name == record.file_name) ++registered;
         }
-        for (const gui_forms::detail::BundledFamilyFace& family_face : family_faces) {
+        for (const gui_forms::FontFamilyFace& family_face : family_faces) {
             if (family_face.file_name == record.file_name) ++registered;
         }
         if (!require(registered == 1U, "a manifest face is not registered exactly once")) return false;
-    }
-    for (const gui_forms::detail::BundledFamilyFace& family_face : family_faces) {
-        if (!require(family_face.family.value != 0U &&
-                         gui_forms::detail::valid_bundled_family(family_face.family),
-                     "a family face names no numbered family"))
-            return false;
     }
     std::size_t required = 0;
     for (std::size_t index = 0; index < uses.size(); ++index) {
@@ -315,26 +320,147 @@ bool face_uses_match_the_manifest() {
     return passed;
 }
 
-// Theme family names (font-family): a role's face name stands for the role, Selawik is a
-// numbered family, names match without regard to ASCII case, and a font that is not bundled
-// with every program (a host font, or a drawing-only face such as Arimo) has no name here.
+// The family registry (owner decisions of 2026-11-13): each family has its fixed number and
+// at least one face; a role's family lists exactly the faces registered for that role, with
+// their weights and slants; numbers are unique and within the bundled range.
+bool registry_matches_the_face_uses() {
+    const std::span<const gui_forms::detail::BundledFaceUse> uses = gui_forms::detail::bundled_face_uses();
+    for (std::size_t index = 0U; index < gui_forms::bundled_font_families.size(); ++index) {
+        const gui_forms::FontFamilyRecord& record = gui_forms::bundled_font_families[index];
+        if (!require(record.id.value != 0U && record.id.value <= gui_forms::maximum_bundled_font_family &&
+                         !record.faces.empty(),
+                     "a family has no number in the bundled range or no face"))
+            return false;
+        for (std::size_t earlier = 0U; earlier < index; ++earlier) {
+            if (!require(!(gui_forms::bundled_font_families[earlier].id == record.id), "two families share a number"))
+                return false;
+        }
+        if (!require(gui_forms::font_family_record(record.id) == &record, "a number does not find its family"))
+            return false;
+        if (!record.role) continue;
+        std::size_t role_faces = 0U;
+        for (const gui_forms::detail::BundledFaceUse& use : uses) {
+            if (!use.role || *use.role != *record.role) continue;
+            ++role_faces;
+            bool listed = false;
+            for (const gui_forms::FontFamilyFace& face : record.faces) {
+                if (face.file_name == use.file_name && face.weight == use.weight && face.italic == use.italic) {
+                    listed = true;
+                }
+            }
+            if (!require(listed, "a role face is missing from its family")) return false;
+        }
+        if (!require(role_faces == record.faces.size(), "a role family lists a face the role does not register"))
+            return false;
+        if (!require(gui_forms::role_font_family(*record.role) == record.id, "a role does not find its family"))
+            return false;
+    }
+    const bool fixed = require(gui_forms::selawik_font_family.value == 1U &&
+                                   gui_forms::portsmouth_rapids_font_family.value == 2U &&
+                                   gui_forms::carlito_font_family.value == 3U &&
+                                   gui_forms::cousine_font_family.value == 4U,
+                               "a fixed family number changed");
+    return fixed;
+}
+
+// Family names: every family by its own name, without regard to ASCII case; a font that is
+// not bundled with every program (a host font, or a drawing-only face such as Arimo) has no
+// name here; an unlisted number is not valid; a substitution's face file finds its family.
 bool family_names_resolve_bundled_faces_only() {
-    const gui_forms::detail::BundledFamilyName* const selawik = gui_forms::detail::bundled_family_named("selawik");
-    if (!require(selawik != nullptr && !(*selawik).role && (*selawik).family == gui_forms::detail::selawik_family,
-                 "Selawik is not a numbered family"))
+    const gui_forms::FontFamilyRecord* const selawik = gui_forms::font_family_named("selawik");
+    if (!require(selawik != nullptr && !(*selawik).role && (*selawik).id == gui_forms::selawik_font_family,
+                 "Selawik is not a family with faces of its own"))
         return false;
-    const gui_forms::detail::BundledFamilyName* const rapids =
-        gui_forms::detail::bundled_family_named("PORTSMOUTH RAPIDS");
-    if (!require(rapids != nullptr && (*rapids).role == gui_forms::FontRole::control && (*rapids).family.value == 0U,
-                 "Portsmouth Rapids does not stand for the control role"))
+    const gui_forms::FontFamilyRecord* const rapids = gui_forms::font_family_named("PORTSMOUTH RAPIDS");
+    if (!require(rapids != nullptr && (*rapids).role == gui_forms::FontRole::control &&
+                     (*rapids).id == gui_forms::portsmouth_rapids_font_family,
+                 "Portsmouth Rapids is not the control role's family"))
         return false;
     const char* const unknown[] = {"Arial", "Segoe UI", "Arimo", "Tinos", "Selawik Semibold", "", "Selawik "};
     for (const char* const name : unknown) {
-        if (!require(gui_forms::detail::bundled_family_named(name) == nullptr, "a name outside the bundle resolved"))
+        if (!require(gui_forms::font_family_named(name) == nullptr, "a name outside the bundle resolved"))
             return false;
     }
-    const bool passed = require(!gui_forms::detail::valid_bundled_family(gui_forms::BundledFontFamily{200U}),
-                                "an unlisted family number is valid");
+    const gui_forms::FontFamilyRecord* const semibold = gui_forms::font_family_with_face("Selawik-Semibold.ttf");
+    if (!require(semibold == selawik, "a face file does not find its family")) return false;
+    if (!require(gui_forms::font_family_with_face("Arimo-Regular.ttf") == nullptr, "an unbundled face has a family"))
+        return false;
+    const bool passed = require(!gui_forms::valid_font_family(gui_forms::FontFamilyId{200U}) &&
+                                    gui_forms::valid_font_family(gui_forms::FontFamilyId{}),
+                                "an unlisted family number is valid, or zero is not");
+    return passed;
+}
+
+// Faces within a family by nearest weight and slant, never synthesized (stage F decision 7):
+// the slant first, then the weight distance, an equal distance to the lighter face at 500 or
+// less and to the heavier above.
+bool nearest_faces_are_chosen() {
+    const gui_forms::FontFamilyRecord& selawik = *gui_forms::font_family_record(gui_forms::selawik_font_family);
+    const gui_forms::FontFamilyRecord& carlito = *gui_forms::font_family_record(gui_forms::carlito_font_family);
+    struct Case final {
+        const gui_forms::FontFamilyRecord* family{};
+        std::uint16_t weight{};
+        bool italic{};
+        std::string_view expected{};
+    };
+    const Case cases[] = {
+        {&selawik, 400U, false, "Selawik-Regular.ttf"},
+        {&selawik, 600U, false, "Selawik-Semibold.ttf"},
+        {&selawik, 650U, false, "Selawik-Bold.ttf"},
+        {&selawik, 500U, false, "Selawik-Regular.ttf"},
+        {&selawik, 900U, false, "Selawik-Bold.ttf"},
+        {&selawik, 100U, false, "Selawik-Regular.ttf"},
+        {&selawik, 700U, true, "Selawik-Bold.ttf"},
+        {&carlito, 400U, true, "Carlito-Italic.ttf"},
+        {&carlito, 700U, true, "Carlito-BoldItalic.ttf"},
+        {&carlito, 550U, false, "Carlito-Bold.ttf"},
+        {&carlito, 449U, false, "Carlito-Regular.ttf"},
+    };
+    for (const Case& entry : cases) {
+        const std::size_t index = gui_forms::nearest_font_family_face(*entry.family, entry.weight, entry.italic);
+        if (!require((*entry.family).faces[index].file_name == entry.expected, "the nearest face is not chosen"))
+            return false;
+    }
+    return true;
+}
+
+// Family stacks: a list registers once and keeps its number; a refused list is zero; a font's
+// order is its family, then the stack's families not already listed.
+bool family_stacks_register_and_order() {
+    const std::array<gui_forms::FontFamilyId, 2> pair{gui_forms::selawik_font_family, gui_forms::cousine_font_family};
+    const gui_forms::FontFamilyStackId first = gui_forms::register_font_family_stack(pair);
+    const gui_forms::FontFamilyStackId again = gui_forms::register_font_family_stack(pair);
+    if (!require(first.value != 0U && first == again, "a stack does not keep its number")) return false;
+    const gui_forms::FontFamilyStack read = gui_forms::font_family_stack(first);
+    if (!require(read.count == 2U && read.families[0] == gui_forms::selawik_font_family &&
+                     read.families[1] == gui_forms::cousine_font_family,
+                 "a stack does not read back its families"))
+        return false;
+    const std::array<gui_forms::FontFamilyId, 2> repeated{gui_forms::selawik_font_family,
+                                                          gui_forms::selawik_font_family};
+    const std::array<gui_forms::FontFamilyId, 1> unknown{gui_forms::FontFamilyId{200U}};
+    const std::array<gui_forms::FontFamilyId, 5> long_list{gui_forms::selawik_font_family,
+                                                           gui_forms::portsmouth_rapids_font_family,
+                                                           gui_forms::carlito_font_family,
+                                                           gui_forms::cousine_font_family, gui_forms::FontFamilyId{}};
+    if (!require(gui_forms::register_font_family_stack(repeated).value == 0U &&
+                     gui_forms::register_font_family_stack(unknown).value == 0U &&
+                     gui_forms::register_font_family_stack(long_list).value == 0U &&
+                     gui_forms::register_font_family_stack({}).value == 0U,
+                 "a refused stack has a number"))
+        return false;
+    if (!require(gui_forms::font_family_stack(gui_forms::FontFamilyStackId{60000U}).count == 0U &&
+                     !gui_forms::valid_font_family_stack(gui_forms::FontFamilyStackId{60000U}) &&
+                     gui_forms::valid_font_family_stack(first),
+                 "an unnumbered stack reads as one"))
+        return false;
+    gui_forms::FontSpec font{};
+    font.family = gui_forms::cousine_font_family;
+    font.stack = first;
+    const gui_forms::FontFamilyOrder order = gui_forms::font_family_order(font);
+    const bool passed = require(order.count == 2U && order.families[0] == gui_forms::cousine_font_family &&
+                                    order.families[1] == gui_forms::selawik_font_family,
+                                "the order is not the family, then the stack without repeats");
     return passed;
 }
 
@@ -499,7 +625,10 @@ int main(int argument_count, char** arguments) {
     passed = refusals_name_their_cause() && passed;
     passed = construction_is_validated() && passed;
     passed = face_uses_match_the_manifest() && passed;
+    passed = registry_matches_the_face_uses() && passed;
     passed = family_names_resolve_bundled_faces_only() && passed;
+    passed = nearest_faces_are_chosen() && passed;
+    passed = family_stacks_register_and_order() && passed;
     passed = shared_set_is_shared() && passed;
     passed = font_directory_lookup() && passed;
     if (!passed) return 1;

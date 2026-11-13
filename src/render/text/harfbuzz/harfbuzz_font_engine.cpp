@@ -3,6 +3,7 @@
 #include "reusable_shape_workspace.hpp"
 #include "../../../core/text/unicode/unicode_grapheme.hpp"
 #include "../../../core/types/restrict/restrict.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -414,9 +415,10 @@ public:
         // not be opened and covers nothing.
         std::span<const gui_forms::detail::CodepointRange> coverage{};
         LazyFaceLoader loader{};
-        // The numbered bundled family (FontSpec::family) this face belongs to, or zero for a
-        // role or fallback face. A family face serves only text that names its family.
-        std::uint8_t named_family{};
+        // The family (FontSpec::family or a stack's) this face is registered for, or zero for
+        // a role or fallback face. A family face serves only text whose family order lists its
+        // family. A role face's family is its role's (family_of).
+        FontFamilyId named_family{};
         // A fallback face's glyph ink extents at shaping sizes (append_run).
         GlyphInkCache ink_cache{};
 
@@ -445,11 +447,29 @@ public:
         Face& operator=(Face&&) = delete;
     };
 
+    // The family a face belongs to: its registered family, its role's family, or zero for a
+    // fallback face.
+    [[nodiscard]] static FontFamilyId family_of(const Face& face) noexcept {
+        if (face.named_family.value != 0U) return face.named_family;
+        if (face.role) return role_font_family(*face.role);
+        return FontFamilyId{};
+    }
+
+    // Candidate order: the families of the font's order first (font_family_order: its family,
+    // then its stack's), in that order; then the role's faces, the content faces and the
+    // fallback faces. Within a tier the face nearest the weight and slant comes first
+    // (font_face_nearer); a stable sort keeps registration order among equals.
     struct FacePreference final {
         FontSpec font{};
+        FontFamilyOrder order{};
+
+        explicit FacePreference(const FontSpec& requested) noexcept
+            : font(requested), order(font_family_order(requested)) {}
 
         [[nodiscard]] int tier(const Face& face) const noexcept {
-            if (face.named_family != 0U && face.named_family == font.family.value) return -1;
+            const std::optional<std::size_t> position = font_family_position(order, family_of(face));
+            if (position) return static_cast<int>(*position) - static_cast<int>(order.families.size());
+            if (face.named_family.value != 0U) return 3;
             if (face.role && *face.role == font.role) return 0;
             if (face.role && *face.role == FontRole::content) return 1;
             return 2;
@@ -463,16 +483,9 @@ public:
                 const bool preferred = left_tier < right_tier;
                 return preferred;
             }
-            const int left_italic = (*left).italic == font.italic ? 0 : 1;
-            const int right_italic = (*right).italic == font.italic ? 0 : 1;
-            if (left_italic != right_italic) {
-                const bool preferred = left_italic < right_italic;
-                return preferred;
-            }
-            const int left_distance = std::abs(static_cast<int>((*left).weight) - font.weight);
-            const int right_distance = std::abs(static_cast<int>((*right).weight) - font.weight);
-            const bool preferred = left_distance < right_distance;
-            return preferred;
+            const bool nearer = font_face_nearer((*left).weight, (*left).italic, (*right).weight, (*right).italic,
+                                                 font.weight, font.italic);
+            return nearer;
         }
     };
 
@@ -483,31 +496,35 @@ public:
     // This engine's GlyphSource::engine.
     std::uint64_t identity{next_engine_identity()};
 
+    // Whether `face` takes part in shaping text in `font`, whose family order is `order`. A
+    // family face takes part only when the order lists its family, and only once it is open,
+    // so the front candidate always has a face; one that cannot be loaded leaves the next
+    // family or the role's faces in charge. A role face takes part for its own role, as the
+    // house text fallback (the content faces serve the control and monospace roles too: this
+    // keeps Portsmouth the preferred control voice without turning punctuation, arrows or
+    // localized text it does not own into missing-glyph boxes), or when the order lists its
+    // role's family. Fallback faces (CJK, emoji) always take part, in the last tier.
+    [[nodiscard]] bool admits(Face& face, const FontSpec& font, const FontFamilyOrder& order) {
+        if (face.named_family.value != 0U) {
+            if (!font_family_position(order, face.named_family)) return false;
+            if (face.face == nullptr && (!face.loader || !open_lazy(face))) return false;
+            return true;
+        }
+        if (!face.role) return true;
+        if (*face.role == font.role) return true;
+        if (font.role != FontRole::content && *face.role == FontRole::content) return true;
+        const bool listed = font_family_position(order, role_font_family(*face.role)).has_value();
+        return listed;
+    }
+
     [[nodiscard]] std::vector<Face*> candidates(FontSpec font) {
         std::vector<Face*> result{};
         result.reserve(faces.size());
+        const FacePreference preference{font};
         for (Face& face : faces) {
-            // A family face takes part only when the font names its family, and only once it
-            // is open, so the front candidate always has a face; one that cannot be loaded
-            // leaves the role's faces in charge.
-            if (face.named_family != 0U) {
-                if (face.named_family != font.family.value) continue;
-                if (face.face == nullptr && (!face.loader || !open_lazy(face))) continue;
-                result.push_back(&face);
-                continue;
-            }
-            // The body face is the house text fallback for control and
-            // monospace roles. This keeps Portsmouth as the preferred control
-            // voice without turning punctuation, arrows, or localized text
-            // it does not own into missing-glyph boxes. Global CJK/emoji faces
-            // remain the last tier.
-            if (!face.role || *face.role == font.role ||
-                (font.role != FontRole::content &&
-                 *face.role == FontRole::content)) {
-                result.push_back(&face);
-            }
+            if (admits(face, font, preference.order)) result.push_back(&face);
         }
-        std::stable_sort(result.begin(), result.end(), FacePreference{font});
+        std::stable_sort(result.begin(), result.end(), preference);
         return result;
     }
 
@@ -520,16 +537,7 @@ public:
         std::size_t count = 0U;
         const FacePreference preference{font};
         for (Face& face : faces) {
-            bool candidate = false;
-            if (face.named_family != 0U) {
-                if (face.named_family != font.family.value) continue;
-                if (face.face == nullptr && (!face.loader || !open_lazy(face))) continue;
-                candidate = true;
-            } else {
-                candidate = !face.role || *face.role == font.role ||
-                            (font.role != FontRole::content && *face.role == FontRole::content);
-            }
-            if (!candidate) continue;
+            if (!admits(face, font, preference.order)) continue;
             if (count == output.size()) throw std::length_error("Face candidate capacity exceeded");
             std::size_t position = count;
             while (position != 0U && preference(&face, output[position - 1U])) {
@@ -644,14 +652,31 @@ public:
     }
 
     [[nodiscard]] std::optional<FontFaceId> register_lazy_family_face(
-        BundledFontFamily family, std::uint16_t weight, bool italic, LazyFaceLoader load) {
+        FontFamilyId family, std::uint16_t weight, bool italic, LazyFaceLoader load) {
         if (bounded_face_limit != 0) return std::nullopt;
-        if (family.value == 0U || !load || faces.size() >= maximum_faces) return std::nullopt;
+        if (family.value == 0U || !valid_font_family(family) || !load || faces.size() >= maximum_faces) {
+            return std::nullopt;
+        }
         const FontFaceId id{next_face_id++};
         Face& face = faces.emplace_back(id, std::nullopt, weight, italic, false, std::string{},
                                         std::shared_ptr<const void>{}, nullptr);
         face.loader = std::move(load);
-        face.named_family = family.value;
+        face.named_family = family;
+        return id;
+    }
+
+    // An open face of `family`, admitted by bounded engines too (prepared text's font banks).
+    [[nodiscard]] std::optional<FontFaceId> register_family_face(
+        FontFamilyId family, std::uint16_t weight, bool italic, std::span<const std::byte> bytes,
+        std::shared_ptr<const void> owned, std::uint32_t face_index) {
+        if (family.value == 0U || !valid_font_family(family)) return std::nullopt;
+        const std::optional<FontFaceId> id =
+            register_face(std::nullopt, weight, italic, bytes, std::move(owned), face_index);
+        if (!id) return id;
+        // Nothing below throws: the face register_face appended becomes a family face.
+        Face& face = faces.back();
+        face.fallback = false;
+        face.named_family = family;
         return id;
     }
 
@@ -916,20 +941,17 @@ public:
         std::size_t count = 0U;
         const FacePreference preference{font};
         for (Face& face : faces) {
-            // Bounded (prepared) engines shape with the role's faces only; family faces are
-            // never registered with them.
-            if (face.named_family != 0U) continue;
-            if (!face.role || *face.role == font.role ||
-                (font.role != FontRole::content && *face.role == FontRole::content)) {
-                if (count == candidates.size()) throw std::length_error("Face candidate capacity exceeded");
-                std::size_t position = count;
-                while (position != 0U && preference(&face, candidates[position - 1U])) {
-                    candidates[position] = candidates[position - 1U];
-                    --position;
-                }
-                candidates[position] = &face;
-                ++count;
+            // Bounded (prepared) engines hold open faces only, family faces among them
+            // (register_family_face), so admission opens nothing here.
+            if (!admits(face, font, preference.order)) continue;
+            if (count == candidates.size()) throw std::length_error("Face candidate capacity exceeded");
+            std::size_t position = count;
+            while (position != 0U && preference(&face, candidates[position - 1U])) {
+                candidates[position] = candidates[position - 1U];
+                --position;
             }
+            candidates[position] = &face;
+            ++count;
         }
         return count;
     }
@@ -1109,9 +1131,17 @@ std::optional<FontFaceId> HarfBuzzFontEngine::register_lazy_fallback_typeface(
 }
 
 std::optional<FontFaceId> HarfBuzzFontEngine::register_lazy_family_typeface(
-    BundledFontFamily family, std::uint16_t weight, bool italic, LazyFaceLoader load) {
+    FontFamilyId family, std::uint16_t weight, bool italic, LazyFaceLoader load) {
     const std::optional<FontFaceId> id =
         (*impl_).register_lazy_family_face(family, weight, italic, std::move(load));
+    return id;
+}
+
+std::optional<FontFaceId> HarfBuzzFontEngine::register_owned_family_typeface(
+    FontFamilyId family, std::uint16_t weight, bool italic, std::span<const std::byte> encoded,
+    std::shared_ptr<const void> owner, std::uint32_t face_index) {
+    const std::optional<FontFaceId> id =
+        (*impl_).register_family_face(family, weight, italic, encoded, std::move(owner), face_index);
     return id;
 }
 
@@ -1592,15 +1622,23 @@ PrimaryLineMetrics sized_line_metrics(FT_Face face, FontFaceId id, const FontSpe
 
 std::optional<PrimaryLineMetrics> HarfBuzzFontEngine::primary_line_metrics(const FontSpec font) {
     if (!valid_font_spec(font)) throw std::invalid_argument("Invalid primary line font");
-    // A named family's exact face first, opened if it has not been; otherwise the role's.
-    if (font.family.value != 0U) {
+    // The first family of the font's order with an openable face: its face nearest the weight
+    // and slant (stage F decision 7), opened if it has not been. Otherwise the role's exact face.
+    const FontFamilyOrder order = font_family_order(font);
+    for (std::size_t index = 0U; index < order.count; ++index) {
+        Impl::Face* nearest = nullptr;
         for (Impl::Face& face : (*impl_).faces) {
-            if (face.named_family != font.family.value || face.weight != font.weight ||
-                face.italic != font.italic) continue;
+            if (!(Impl::family_of(face) == order.families[index])) continue;
             if (face.face == nullptr && (!face.loader || !(*impl_).open_lazy(face))) continue;
-            const PrimaryLineMetrics result = sized_line_metrics(face.face, face.id, font);
-            return result;
+            if (nearest == nullptr ||
+                font_face_nearer(face.weight, face.italic, (*nearest).weight, (*nearest).italic, font.weight,
+                                 font.italic)) {
+                nearest = &face;
+            }
         }
+        if (nearest == nullptr) continue;
+        const PrimaryLineMetrics result = sized_line_metrics((*nearest).face, (*nearest).id, font);
+        return result;
     }
     for (Impl::Face& face : (*impl_).faces) {
         if (!face.role || *face.role != font.role || face.weight != font.weight || face.italic != font.italic) continue;
@@ -1715,6 +1753,7 @@ ResolvedTextLayout HarfBuzzFontEngine::resolve(std::string_view utf8,
         return result;
     }
     result.primary_family = (*candidates.front()).family;
+    const FontFamilyOrder order = font_family_order(font);
     const ShapedText shaped = shape(utf8, font);
     result.logical_size = {shaped.width, shaped.height};
     result.ascent = shaped.ascent;
@@ -1740,8 +1779,7 @@ ResolvedTextLayout HarfBuzzFontEngine::resolve(std::string_view utf8,
             }
         }
         if (resolved == nullptr) continue;
-        const bool family_face =
-            (*resolved).named_family != 0U && (*resolved).named_family == font.family.value;
+        const bool family_face = font_family_position(order, Impl::family_of(*resolved)).has_value();
         result.runs.push_back({
             run.source_range.start.value(),
             run.source_range.end.value() - run.source_range.start.value(),

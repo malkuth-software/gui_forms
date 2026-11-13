@@ -66,10 +66,26 @@ static void fonts(gf_kit* kit) {
     gf_kit_status(kit, (*kit).fonts.family_name(family, name, sizeof(name), &required), GF_STATUS_OK,
                   "the id names its family");
     gf_kit_check(kit, required == 7u && memcmp(name, "Selawik", 7u) == 0, "the family's name round-trips");
+    /* Since 1.3 a role's face has an id, and a Windows Forms name resolves
+     * through the substitution table to a bundled family. */
+    uint32_t carlito = 0u;
+    gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("Carlito"), &carlito), GF_STATUS_OK,
+                  "a role's face has an id");
+    gf_kit_check(kit, carlito != 0u && carlito != family, "a role's face has its own id");
+    gf_kit_status(kit, (*kit).fonts.family_name(carlito, name, sizeof(name), &required), GF_STATUS_OK,
+                  "the role's id names its family");
+    gf_kit_check(kit, required == 7u && memcmp(name, "Carlito", 7u) == 0, "the role family's name round-trips");
+    uint32_t substituted = 0u;
+    gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("segoe ui"), &substituted), GF_STATUS_OK,
+                  "a substituted name resolves");
+    gf_kit_check(kit, substituted == family, "Segoe UI resolves to Selawik");
+    gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("Segoe UI Semibold"), &substituted), GF_STATUS_OK,
+                  "a substitution's face finds its family");
+    gf_kit_check(kit, substituted == family, "Segoe UI Semibold resolves to Selawik");
     uint32_t untouched = 77u;
-    gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("Carlito"), &untouched), GF_STATUS_NOT_FOUND,
-                  "a role's face has no id");
     gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("Arial"), &untouched), GF_STATUS_NOT_FOUND,
+                  "a name mapped to a face that is not bundled is unmapped");
+    gf_kit_status(kit, (*kit).fonts.family_id(gf_kit_text("Comic Sans MS"), &untouched), GF_STATUS_NOT_FOUND,
                   "a host font has no id");
     gf_kit_check(kit, untouched == 77u, "a refused lookup leaves its output");
     gf_kit_status(kit, (*kit).fonts.family_name(0u, name, sizeof(name), &required), GF_STATUS_NOT_FOUND,
@@ -88,6 +104,10 @@ static void fonts(gf_kit* kit) {
     bad.font.reserved = 200u;
     gf_kit_status(kit, (*kit).properties.set(label, gf_kit_text("font"), &bad), GF_STATUS_INVALID_ARGUMENT,
                   "an unknown family id is refused");
+    bad = font;
+    bad.font.reserved = family | (0xFFFFu << 16);
+    gf_kit_status(kit, (*kit).properties.set(label, gf_kit_text("font"), &bad), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown family stack is refused");
     gf_kit_status(kit, (*kit).objects.release(label), GF_STATUS_OK, "release the font label");
 }
 

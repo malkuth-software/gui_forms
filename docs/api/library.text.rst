@@ -59,6 +59,14 @@ Related types
      - FontFallbackRequest supplies the primary and attempted faces, missing scalar cluster, language, and script without ownership transfer.
    * - :cpp:class:`FontFallbackResolver <gui_forms::FontFallbackResolver>`
      - FontFallbackResolver is the policy boundary that selects bounded coverage for a missing scalar cluster without consulting the host implicitly.
+   * - :cpp:class:`FontFamilyFace <gui_forms::FontFamilyFace>`
+     - One face of a family: its file in the bundled font directory, its weight (1 to 1000) and slant.
+   * - :cpp:class:`FontFamilyOrder <gui_forms::FontFamilyOrder>`
+     - The families a font draws before its role, in order: its family, then its stack's families not already listed.
+   * - :cpp:class:`FontFamilyRecord <gui_forms::FontFamilyRecord>`
+     -  
+   * - :cpp:class:`FontFamilyStack <gui_forms::FontFamilyStack>`
+     - A stack's families in order; ``count`` of ``families`` are live, the rest zero.
    * - :cpp:class:`FontVerticalMetrics <gui_forms::FontVerticalMetrics>`
      - A face's vertical design metrics at a size, in logical pixels: its ascender, descender (positive below the baseline) and line gap from the face's tables, scaled by size over units per em and not rounded.
    * - :cpp:class:`GlyphId <gui_forms::GlyphId>`
@@ -138,7 +146,7 @@ Related types
    * - :cpp:class:`PositionedGlyph <gui_forms::PositionedGlyph>`
      - One glyph as the engine placed it: its id in its run's face, the byte offset of the first byte of its cluster (in the text the offsets of its run index), and its pen position in logical pixels from the run sequence's origin on the baseline (x right, y down), offsets and letter spacing included.
    * - :cpp:class:`PreparedFontSource <gui_forms::PreparedFontSource>`
-     -  
+     - One face of a font bank: a role's face (``role``), a face of a registered family (``family``, a FontFamilyId the family registry has; text whose family order lists the family draws it first, its face nearest the weight and slant), or a fallback face (neither).
    * - :cpp:class:`PreparedParagraphProof <gui_forms::PreparedParagraphProof>`
      - Producer certifies real paragraph boundaries under the complete D1 token.
    * - :cpp:class:`PreparedSourceEndpoint <gui_forms::PreparedSourceEndpoint>`
@@ -533,6 +541,70 @@ Related types
    .. cpp:function:: virtual std::optional<FontFallbackMatch> resolve(const FontFallbackRequest& request) = 0
 
       Returns an admitted face and coverage count, or no fallback.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FontFamilyFace final
+
+   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+   One face of a family: its file in the bundled font directory, its weight (1 to 1000) and slant.
+
+   .. cpp:member:: std::string_view file_name
+
+   .. cpp:member:: std::uint16_t weight
+
+      Default: ``{400}``.
+
+   .. cpp:member:: bool italic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FontFamilyOrder final
+
+   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+   The families a font draws before its role, in order: its family, then its stack's families not already listed. Unknown families are left out.
+
+   .. cpp:member:: std::array<FontFamilyId, 1U + maximum_font_stack_families> families
+
+   .. cpp:member:: std::size_t count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FontFamilyRecord final
+
+   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+   .. cpp:member:: FontFamilyId id
+
+   .. cpp:member:: std::string_view name
+
+      The family's name as its faces report it; matched without regard to ASCII case.
+
+   .. cpp:member:: FontFamilyKind kind
+
+      Default: ``{FontFamilyKind::bundled}``.
+
+   .. cpp:member:: std::optional<FontRole> role
+
+      The role whose faces are this family's, or none for a family whose faces are registered as its own.
+
+   .. cpp:member:: std::span<const FontFamilyFace> faces
+
+      The faces, at least one.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FontFamilyStack final
+
+   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+   A stack's families in order; ``count`` of ``families`` are live, the rest zero.
+
+   .. cpp:member:: std::array<FontFamilyId, maximum_font_stack_families> families
+
+   .. cpp:member:: std::size_t count
 
 .. cpp:namespace:: gui_forms
 
@@ -1501,6 +1573,8 @@ Related types
 
    ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
 
+   One face of a font bank: a role's face (``role``), a face of a registered family (``family``, a FontFamilyId the family registry has; text whose family order lists the family draws it first, its face nearest the weight and slant), or a fallback face (neither). A face is never both a role's and a family's.
+
    .. cpp:member:: std::span<const std::byte> encoded
 
    .. cpp:member:: std::optional<FontRole> role
@@ -1512,6 +1586,8 @@ Related types
    .. cpp:member:: bool italic
 
    .. cpp:member:: std::uint32_t face_index
+
+   .. cpp:member:: FontFamilyId family
 
 .. cpp:namespace:: gui_forms
 
@@ -2855,6 +2931,14 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: FontFamilyKind
+
+   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+   .. cpp:enumerator:: bundled
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: GlyphRunError
 
    ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
@@ -3683,6 +3767,92 @@ Functions, constants and aliases
 .. cpp:function:: std::string_view to_string(ShapingRequestError error) noexcept
 
 .. cpp:function:: std::string_view to_string(GlyphRunError error) noexcept
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+.. cpp:function:: constexpr bool same_font_family_name(std::string_view left, std::string_view right) noexcept
+
+   Whether ``left`` and ``right`` are the same ASCII text, ignoring the case of Latin letters.
+
+.. cpp:function:: constexpr const FontFamilyRecord* font_family_record(FontFamilyId family) noexcept
+
+   The family numbered ``family``, or null for zero or a number no family has.
+
+.. cpp:function:: constexpr bool valid_font_family(FontFamilyId family) noexcept
+
+   Whether ``family`` is zero or a family the registry has.
+
+.. cpp:function:: constexpr const FontFamilyRecord* font_family_named(std::string_view name) noexcept
+
+   The family called ``name`` by its own name, or null. Other names (Segoe UI, Arial) are the substitution table's (gui_drawing::resolve_font_family); the C ABI resolves them through it (fonts.family_id).
+
+.. cpp:function:: constexpr const FontFamilyRecord* font_family_with_face(std::string_view file_name) noexcept
+
+   The family one of whose faces is the bundled file ``file_name``, or null: how a substitution's answer (a face file) finds its registered family.
+
+.. cpp:function:: constexpr FontFamilyId role_font_family(FontRole role) noexcept
+
+   The family whose faces are ``role``'s.
+
+.. cpp:function:: constexpr bool font_face_nearer(std::uint16_t left_weight, bool left_italic, std::uint16_t right_weight, bool right_italic, std::uint16_t weight, bool italic) noexcept
+
+   Whether a face of ``left_weight`` and ``left_italic`` is nearer a request for ``weight`` and ``italic`` than one of ``right_weight`` and ``right_italic`` (stage F decision 7: nearest, never synthesized). The slant decides first; then the smaller weight distance; at an equal distance, the lighter face for a request of 500 or less and the heavier above (CSS Fonts' order). Equal faces are not nearer.
+
+.. cpp:function:: constexpr std::size_t nearest_font_family_face(const FontFamilyRecord& record, std::uint16_t weight, bool italic) noexcept
+
+   The index in ``record.faces`` of the face nearest ``weight`` and ``italic``.
+
+.. cpp:function:: FontFamilyStackId register_font_family_stack(std::span<const FontFamilyId> families)
+
+   Registers the stack ``families`` and returns its number; the same list registered again returns the same number. A list that is empty, longer than maximum_font_stack_families, names zero, an unknown family or one family twice, or that arrives once maximum_font_family_stacks are held, is refused with zero: the font then draws its own family and its role. Thread-safe: registrations are serialized, and a stack once numbered never changes or goes away (the registry lives for the process).
+
+.. cpp:function:: FontFamilyStack font_family_stack(FontFamilyStackId stack) noexcept
+
+   The families of ``stack``; empty for zero or a number not given. Lock-free and thread-safe.
+
+.. cpp:function:: bool valid_font_family_stack(FontFamilyStackId stack) noexcept
+
+   Whether ``stack`` is zero or a number register_font_family_stack gave.
+
+.. cpp:function:: FontFamilyOrder font_family_order(const FontSpec& font) noexcept
+
+.. cpp:function:: constexpr std::optional<std::size_t> font_family_position(const FontFamilyOrder& order, FontFamilyId family) noexcept
+
+   The position of ``family`` in ``order``, or none.
+
+.. cpp:var:: constexpr FontFamilyId selawik_font_family
+
+   The fixed numbers. They never change and are never reused: a number crosses the C ABI (gf_font.reserved) and is stored by consumers. Value: ``{1U}``.
+
+.. cpp:var:: constexpr FontFamilyId portsmouth_rapids_font_family
+
+   Value: ``{2U}``.
+
+.. cpp:var:: constexpr FontFamilyId carlito_font_family
+
+   Value: ``{3U}``.
+
+.. cpp:var:: constexpr FontFamilyId cousine_font_family
+
+   Value: ``{4U}``.
+
+.. cpp:var:: constexpr std::uint16_t maximum_bundled_font_family
+
+   The largest number a bundled family may have; numbers above it are reserved for registered families. Value: ``255U``.
+
+.. cpp:var:: constexpr std::array<FontFamilyRecord, 4> bundled_font_families{
+
+   The bundled families, in the order of their numbers.
+
+.. cpp:var:: constexpr std::size_t maximum_font_stack_families
+
+   The most families one stack lists, and the most stacks a process holds. Value: ``4U``.
+
+.. cpp:var:: constexpr std::size_t maximum_font_family_stacks
+
+   Value: ``1024U``.
 
 .. cpp:namespace:: gui_forms
 

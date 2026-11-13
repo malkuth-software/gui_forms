@@ -8,7 +8,7 @@
 #endif
 
 #include "../../text/harfbuzz/bundled_face_loader.hpp"
-#include "../../../core/resources/fonts/bundled_font_families.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 #include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
 #include "../../text/harfbuzz/reusable_shape_workspace.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
@@ -510,7 +510,7 @@ public:
 
     // One registered face; `bytes` stay valid while `owner` lives (an SkData, a copy, or a
     // sealed bundled face). A lazy fallback has no bytes yet: its coverage and loader instead. A
-    // lazy family face has a loader and its numbered family, and no coverage.
+    // lazy family face has a loader and its family, and no coverage.
     struct FontSource {
         std::optional<FontRole> role;
         std::uint16_t weight;
@@ -519,7 +519,7 @@ public:
         std::shared_ptr<const void> owner;
         std::span<const gui_forms::detail::CodepointRange> coverage;
         text::LazyFaceLoader loader;
-        BundledFontFamily family;
+        FontFamilyId family;
     };
     std::vector<FontSource> font_sources;
     // The process's bundled font set, held so every window shares it (register_bundled_fonts).
@@ -812,9 +812,9 @@ public:
         return true;
     }
 
-    // Registers a face of a numbered bundled family that the text engine loads when text first
-    // names the family.
-    [[nodiscard]] bool register_lazy_family_font(BundledFontFamily family, std::uint16_t weight, bool italic,
+    // Registers a face of a family with faces of its own that the text engine loads when text
+    // first names the family.
+    [[nodiscard]] bool register_lazy_family_font(FontFamilyId family, std::uint16_t weight, bool italic,
                                                  const text::LazyFaceLoader& loader) {
         font_sources.reserve(font_sources.size() + 1U);
         const std::optional<FontFaceId> text_face =
@@ -914,12 +914,16 @@ bool SkiaRaster::register_bundled_fonts(std::shared_ptr<gui_forms::detail::Bundl
         }
         if (!registered && use.required) return false;
     }
-    // The faces of the numbered families a theme may name (font-family: Selawik), each read the
-    // first time text names its family.
-    for (const gui_forms::detail::BundledFamilyFace& family_face : gui_forms::detail::bundled_family_faces) {
-        const text::LazyFaceLoader loader = text::BundledFaceLoader{set, family_face.file_name};
-        if (!(*impl_).register_lazy_family_font(family_face.family, family_face.weight, family_face.italic, loader))
-            return false;
+    // The faces of the families with faces of their own (font-family: Selawik), each read the
+    // first time text names its family; a role's family draws through the role's faces above.
+    for (const FontFamilyRecord& family : bundled_font_families) {
+        if (family.role) continue;
+        for (const FontFamilyFace& family_face : family.faces) {
+            const text::LazyFaceLoader loader = text::BundledFaceLoader{set, family_face.file_name};
+            if (!(*impl_).register_lazy_family_font(family.id, family_face.weight, family_face.italic, loader)) {
+                return false;
+            }
+        }
     }
     (*impl_).bundled_fonts = std::move(set);
     return true;

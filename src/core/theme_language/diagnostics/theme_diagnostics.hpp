@@ -286,6 +286,13 @@ enum class DiagnosticCode : std::uint16_t {
     // content, whose text runs share no part identity. The declaration is
     // kept; the detail says what to style instead.
     part_not_themed = 1112,
+    // A `font-family` entry naming a family the registry does not have (a
+    // host font, a generic family, a face only GUI.Drawing ships): the
+    // entry is passed over and the next family, or the role, draws (owner
+    // decision of 2026-11-13: a fallback with a warning, not a refusal).
+    // When no named family is available and no role is written, the
+    // declaration is dropped.
+    font_family_unavailable = 1113,
     // W3xx versions (R2-07): the sheet declares a newer engine than the
     // running one, reported once; and, in such a sheet, a keyword the
     // running engine lacks, whose declaration is dropped.

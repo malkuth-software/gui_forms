@@ -1,4 +1,5 @@
 #include "text_mask_state.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 #include <cstring>
 
 namespace gui_forms {
@@ -56,6 +57,9 @@ TextMaskResult TextMaskService::create_font_bank(const std::span<const PreparedF
         if (source.encoded.empty() || source.weight < 1 || source.weight > 1000 || source.face_index > 255) {
             return {TextMaskStatus::invalid_input};
         }
+        if (!valid_font_family(source.family) || (source.family.value != 0U && source.role)) {
+            return {TextMaskStatus::invalid_input};
+        }
         if (source.encoded.size() > 4U*1024U*1024U || source.encoded.size() > 8U*1024U*1024U - bytes) {
             return {TextMaskStatus::limit_exceeded, TextMaskLimit::font_bytes};
         }
@@ -91,6 +95,7 @@ TextMaskResult TextMaskService::create_font_bank(const std::span<const PreparedF
             face.weight = source.weight;
             face.italic = source.italic;
             face.index = source.face_index;
+            face.family = source.family;
         }
         const std::shared_ptr<const detail::PreparedFontBank> alias(candidate, &owner.bank);
         owner.count.commit();

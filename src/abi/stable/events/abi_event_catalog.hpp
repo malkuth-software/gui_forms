@@ -1018,8 +1018,6 @@ void append_field(EventFields& fields, std::string_view name, const BindingNavig
 void read_field(EventFields& fields, std::string_view name, BindingNavigatorAddNew& value);
 void append_field(EventFields& fields, std::string_view name, const BindingRow& value);
 void read_field(EventFields& fields, std::string_view name, BindingRow& value);
-void append_field(EventFields& fields, std::string_view name, const BundledFontFamily& value);
-void read_field(EventFields& fields, std::string_view name, BundledFontFamily& value);
 void append_field(EventFields& fields, std::string_view name, const CalendarDateRange& value);
 void append_field(EventFields& fields, std::string_view name, const CaretSettings& value);
 void append_field(EventFields& fields, std::string_view name, const CommandInvocation& value);
@@ -1076,6 +1074,10 @@ void append_field(EventFields& fields, std::string_view name, const FinishFill& 
 void append_field(EventFields& fields, std::string_view name, const FocusedControlChange& value);
 void append_field(EventFields& fields, std::string_view name, const FontChoice& value);
 void append_field(EventFields& fields, std::string_view name, const FontDialogResult& value);
+void append_field(EventFields& fields, std::string_view name, const FontFamilyId& value);
+void read_field(EventFields& fields, std::string_view name, FontFamilyId& value);
+void append_field(EventFields& fields, std::string_view name, const FontFamilyStackId& value);
+void read_field(EventFields& fields, std::string_view name, FontFamilyStackId& value);
 void append_field(EventFields& fields, std::string_view name, const FontSpec& value);
 void read_field(EventFields& fields, std::string_view name, FontSpec& value);
 void append_field(EventFields& fields, std::string_view name, const GalleryPreview& value);
@@ -1329,15 +1331,6 @@ inline void read_field(EventFields& fields, std::string_view name, BindingRow& v
     read_field(fields, "values", value.values);
     read_field(fields, "editable", value.editable);
     fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const BundledFontFamily& value) {
-    // An identity: the field is its one value.
-    append_field(fields, name, value.value);
-}
-
-inline void read_field(EventFields& fields, std::string_view name, BundledFontFamily& value) {
-    read_field(fields, name, value.value);
 }
 
 inline void append_field(EventFields& fields, std::string_view name, const CalendarDateRange& value) {
@@ -1850,6 +1843,24 @@ inline void append_field(EventFields& fields, std::string_view name, const FontD
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const FontFamilyId& value) {
+    // An identity: the field is its one value.
+    append_field(fields, name, value.value);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, FontFamilyId& value) {
+    read_field(fields, name, value.value);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const FontFamilyStackId& value) {
+    // An identity: the field is its one value.
+    append_field(fields, name, value.value);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, FontFamilyStackId& value) {
+    read_field(fields, name, value.value);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const FontSpec& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "role", value.role);
@@ -1858,6 +1869,7 @@ inline void append_field(EventFields& fields, std::string_view name, const FontS
     append_field(fields, "italic", value.italic);
     append_field(fields, "letter_spacing", value.letter_spacing);
     append_field(fields, "family", value.family);
+    append_field(fields, "stack", value.stack);
     fields.leave(prefix);
 }
 
@@ -1869,6 +1881,7 @@ inline void read_field(EventFields& fields, std::string_view name, FontSpec& val
     read_field(fields, "italic", value.italic);
     read_field(fields, "letter_spacing", value.letter_spacing);
     read_field(fields, "family", value.family);
+    read_field(fields, "stack", value.stack);
     fields.leave(prefix);
 }
 

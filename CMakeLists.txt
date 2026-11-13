@@ -544,6 +544,7 @@ add_library(gui_forms_core STATIC
     src/runtime/user_themes/user_themes.cpp
     src/core/resources/integrity/sha256.cpp
     src/core/resources/fonts/bundled_font_set.cpp
+    src/core/resources/fonts/font_family_stacks.cpp
     ${GUI_FORMS_BUNDLED_FONT_MANIFEST_RECORDS}
     src/core/live_surface/buffer/live_surface_buffer.cpp
     src/core/live_surface/frame/live_surface_frame.cpp

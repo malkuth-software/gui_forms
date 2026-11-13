@@ -1,12 +1,11 @@
 // Theme fonts (stage T4, owner ruling of 2026-11-04): the font longhands
-// font-family (a bundled font role or bundled family), font-size, font-weight, font-style and
+// font-family (bundled families, then a role), font-size, font-weight, font-style and
 // letter-spacing are theme properties of a control's primary text font.
 // They cascade per field with provenance, may differ by colour scheme, are
 // refused in a state rule, lose to a font set in code, and a change of the
 // resolved font is a layout change.
 
 #include "../src/core/theme_language/compiler/theme_compiler.hpp"
-#include "../src/core/resources/fonts/bundled_font_families.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
@@ -25,6 +24,7 @@
 #include "gui_forms/theme/types/theme_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
@@ -121,6 +121,9 @@ void test_lowering() {
         "#a { font-family: 'Portsmouth Rapids' }",
         "#a { font-family: Portsmouth Rapids }",
         "#a { font-family: carlito }",
+        "#a { font-family: Selawik, content }",
+        "#a { font-family: Selawik, Cousine, monospace }",
+        "#a { font-family: 'Portsmouth Rapids', Carlito }",
         "#a { font-size: 18px }",
         "#a { font-size: 1.25em }",
         "#a { font-weight: bold }",
@@ -137,14 +140,30 @@ void test_lowering() {
         require(compiled.outcome == CompileOutcome::compiled && compiled.diagnostics.empty(),
                 std::string("admitted: ") + text);
     }
-    const char* const refused[] = {
+    // A family the registry does not have is passed over with a warning
+    // (owner decision of 2026-11-13), never refused; GUI.Forms still draws
+    // only bundled faces.
+    const char* const warned[] = {
         "#a { font-family: Arial }",
         "#a { font-family: \"Lucida Grande\" }",
         "#a { font-family: sans-serif }",
-        "#a { font-family: control, content }",
         "#a { font-family: Arimo }",
         "#a { font-family: \"Segoe UI\" }",
-        "#a { font-family: Selawik, content }",
+        "#a { font-family: Comic Sans }",
+        "#a { font-family: Arial, Selawik }",
+        "#a { font-family: \"Lucida Grande\", monospace }",
+    };
+    for (const char* const text : warned) {
+        const Compilation compiled = compile(text);
+        require(compiled.outcome == CompileOutcome::compiled &&
+                    has_code(compiled, DiagnosticCode::font_family_unavailable),
+                std::string("warned, not refused: ") + text);
+    }
+    const char* const refused[] = {
+        "#a { font-family: control, content }",
+        "#a { font-family: monospace, Selawik }",
+        "#a { font-family: Selawik, , Carlito }",
+        "#a { font-family: Selawik, Carlito, Cousine, Portsmouth Rapids, Selawik, Carlito }",
         "#a { font-family: 12px }",
         "#a { font-size: 2px }",
         "#a { font-size: 200px }",
@@ -159,10 +178,21 @@ void test_lowering() {
     for (const char* const text : refused) {
         require(compile(text).outcome == CompileOutcome::refused, std::string("refused: ") + text);
     }
-    const Compilation unknown = compile("#a { font-family: Comic Sans }");
-    require(has_code(unknown, DiagnosticCode::keyword_unknown), "a name no bundled family has is an unknown keyword");
-    const Compilation listed = compile("#a { font-family: Selawik, content }");
-    require(has_code(listed, DiagnosticCode::value_form_not_admitted), "a family list is not admitted");
+    const Compilation misplaced = compile("#a { font-family: content, Selawik }");
+    require(has_code(misplaced, DiagnosticCode::value_form_not_admitted), "a role is admitted only last");
+    // With no family available and no role, the declaration is dropped: the
+    // rule keeps its other declarations.
+    const Compilation dropped = compile("#a { font-family: serif; font-weight: bold }");
+    bool family_declared = false;
+    bool weight_declared = false;
+    for (const ThemeRule& rule : dropped.sheet.rules) {
+        for (const RecipeDeclaration& declaration : rule.recipe_fields) {
+            if (declaration.field == RecipeField::font_family) family_declared = true;
+            if (declaration.field == RecipeField::font_weight) weight_declared = true;
+        }
+    }
+    require(dropped.outcome == CompileOutcome::compiled && !family_declared && weight_declared,
+            "an unavailable family alone drops only its declaration");
     const Compilation stated = compile("#a:hover { font-size: 20px }");
     require(has_code(stated, DiagnosticCode::property_not_admitted), "a state rule's font is not admitted");
     // A named part's font is its own, in any state (look integration: a
@@ -224,7 +254,7 @@ void test_named_family() {
     const FontSpec own = (*label).resolved_font();
     window.set_theme(theme_of("label { font-family: Selawik; font-weight: 600 }", "fonts-selawik"));
     const ResolvedFont selawik = (*label).resolved_text_font(own);
-    require(selawik.font.family == detail::selawik_family && selawik.font.role == FontRole::content &&
+    require(selawik.font.family == selawik_font_family && selawik.font.role == FontRole::content &&
                 selawik.font.weight == 600,
             "Selawik is its family over the content role");
     require(selawik.themed[static_cast<std::size_t>(FontField::family)], "provenance: the family from the sheet");
@@ -234,10 +264,24 @@ void test_named_family() {
     const ResolvedFont cousine = (*label).resolved_text_font(own);
     require(cousine.font.family.value == 0U && cousine.font.role == FontRole::monospace,
             "a role's face name is that role");
+    // A list compiles to the first available family and a stack of the rest;
+    // a family that is not bundled is passed over (owner decisions of
+    // 2026-11-13).
+    window.set_theme(theme_of("label { font-family: \"Arial\", Selawik, Cousine }", "fonts-stack"));
+    const ResolvedFont stacked = (*label).resolved_text_font(own);
+    const FontFamilyStack rest = font_family_stack(stacked.font.stack);
+    require(stacked.font.family == selawik_font_family && stacked.font.role == FontRole::content &&
+                rest.count == 1U && rest.families[0] == cousine_font_family,
+            "a list is its first available family, then a stack of the rest, then the role");
+    window.set_theme(theme_of("label { font-family: Carlito, Selawik, monospace }", "fonts-stack-role"));
+    const ResolvedFont ended = (*label).resolved_text_font(own);
+    require(ended.font.family == carlito_font_family && ended.font.role == FontRole::monospace &&
+                font_family_stack(ended.font.stack).count == 1U,
+            "a role written last is the final fallback, and a role's family in a list is a family");
     // The stock Windows-familiar theme writes its text in Selawik (owner, 2026-11-10).
     window.set_theme(familiar_theme(FamiliarTheme::windows_professional));
     const ResolvedFont professional = (*label).resolved_text_font(own);
-    require(professional.font.family == detail::selawik_family && professional.font.size == 12.0,
+    require(professional.font.family == selawik_font_family && professional.font.size == 12.0,
             "windows-professional's text is Selawik at 12px");
 }
 

@@ -2113,6 +2113,7 @@ ResolvedFont Theme::resolve_font(const Control& control, FontSpec own, std::stri
     if (family != nullptr) {
         themed.font.role = (*family).font_role;
         themed.font.family = (*family).font_family;
+        themed.font.stack = (*family).font_stack;
     }
     const RecipeDeclaration* const size = set_recipe_field(fields, RecipeField::font_size);
     if (size != nullptr) {

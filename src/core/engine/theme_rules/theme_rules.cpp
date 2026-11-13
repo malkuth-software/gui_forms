@@ -2,7 +2,7 @@
 // primitive registry with diagnostics, and resolving one part.
 
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
-#include "../../resources/fonts/bundled_font_families.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
@@ -2108,7 +2108,7 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
     case RecipeField::font_family:
         return (declaration.font_role == FontRole::control || declaration.font_role == FontRole::content ||
                 declaration.font_role == FontRole::monospace) &&
-               gui_forms::detail::valid_bundled_family(declaration.font_family);
+               valid_font_family(declaration.font_family) && valid_font_family_stack(declaration.font_stack);
     // A size's pixels are 0 where it is in em; the em part is checked when
     // the control's font resolves.
     case RecipeField::font_size: return in_range(declaration.number, 0.0, maximum_rule_font_size);

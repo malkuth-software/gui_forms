@@ -543,11 +543,12 @@ void test_lazy_fallback_matches_eager_and_loads_once() {
             "a lazy face needs coverage and a loader");
 }
 
-// A numbered bundled family (theme-language `font-family: Selawik`): its faces are read only
-// when text names the family, then draw before every role face, by weight, with the role's
-// faces and the fallbacks still covering what the family lacks. Text that names no family,
-// or another family, never reaches them; a family face that cannot be opened leaves the
-// role's faces in charge.
+// A family with faces of its own (theme-language `font-family: Selawik`): its faces are read
+// only when text names the family, then draw before every role face, the face nearest the
+// weight first, with the role's faces and the fallbacks still covering what the family lacks.
+// Text that names no family, or an unknown one, never reaches them; a family face that cannot
+// be opened leaves the role's faces in charge. A role's family named by a font of another
+// role draws that role's faces first, and a stack's families draw after the font's family.
 void test_named_family_draws_first_and_loads_on_demand() {
     const std::vector<std::byte> rapids = read_file(GUI_FORMS_TEST_RAPIDS_REGULAR);
     const std::vector<std::byte> carlito = read_file(GUI_FORMS_TEST_CARLITO_REGULAR);
@@ -556,7 +557,7 @@ void test_named_family_draws_first_and_loads_on_demand() {
     register_primaries(engine, rapids, carlito, cousine);
     require(engine.register_fallback_typeface(400, false, read_file(GUI_FORMS_TEST_NOTO_CJK_REGULAR)).has_value(),
             "CJK fallback registers");
-    const BundledFontFamily selawik{1U};
+    const FontFamilyId selawik = selawik_font_family;
     CountingLoader regular = counting_loader(GUI_FORMS_TEST_SELAWIK_REGULAR);
     CountingLoader bold = counting_loader(GUI_FORMS_TEST_SELAWIK_BOLD);
     const std::optional<FontFaceId> regular_id = engine.register_lazy_family_typeface(selawik, 400, false, regular);
@@ -569,8 +570,8 @@ void test_named_family_draws_first_and_loads_on_demand() {
     require(plain.status == TextResolutionStatus::exact && plain.primary_family == "Carlito",
             "text that names no family draws the role's face");
     FontSpec other = content;
-    other.family = BundledFontFamily{2U};
-    require(engine.resolve("Plain text", other).primary_family == "Carlito", "another family draws the role's face");
+    other.family = FontFamilyId{200U};
+    require(engine.resolve("Plain text", other).primary_family == "Carlito", "an unknown family draws the role's face");
     require(*regular.calls + *bold.calls == 0, "no family face is read for text that does not name it");
 
     FontSpec named = content;
@@ -597,6 +598,38 @@ void test_named_family_draws_first_and_loads_on_demand() {
     require(metrics && regular_id && (*metrics).face == *regular_id, "the family's face gives the primary line metrics");
     require(*regular.calls == 1 && *bold.calls == 1, "an opened family face is not read again");
 
+    // Nearest, never synthesized (stage F decision 7): 600 is nearer 700, 500 nearer 400, and
+    // 550, equally far, takes the heavier face above 500.
+    FontSpec semibold = named;
+    semibold.weight = 600;
+    FontSpec medium = named;
+    medium.weight = 500;
+    FontSpec between = named;
+    between.weight = 550;
+    require(engine.resolve("Near", semibold).runs.front().registered_weight == 700 &&
+                engine.resolve("Near", medium).runs.front().registered_weight == 400 &&
+                engine.resolve("Near", between).runs.front().registered_weight == 700,
+            "the family's face nearest the weight draws");
+    FontSpec slanted = named;
+    slanted.italic = true;
+    require(engine.resolve("Slant", slanted).primary_family == "Selawik",
+            "a family without an italic draws its nearest upright face, not the role's italic");
+
+    // A role's family by number: Cousine before the content role's Carlito.
+    FontSpec monospace_family = content;
+    monospace_family.family = cousine_font_family;
+    require(engine.resolve("Code", monospace_family).primary_family == "Cousine",
+            "a role's family named by another role draws that role's faces first");
+    // A stack after the family, and alone.
+    const std::array<FontFamilyId, 2> listed{cousine_font_family, selawik};
+    const FontFamilyStackId stack = register_font_family_stack(listed);
+    require(stack.value != 0U, "the stack registers");
+    FontSpec stacked = content;
+    stacked.stack = stack;
+    require(engine.resolve("Stack", stacked).primary_family == "Cousine", "a stack's first family draws first");
+    stacked.family = selawik;
+    require(engine.resolve("Stack", stacked).primary_family == "Selawik", "the font's family draws before its stack");
+
     HarfBuzzFontEngine unreadable;
     register_primaries(unreadable, rapids, carlito, cousine);
     CountingLoader missing = counting_loader(nullptr);
@@ -608,7 +641,8 @@ void test_named_family_draws_first_and_loads_on_demand() {
     static_cast<void>(unreadable.resolve("Plain text", named));
     require(*missing.calls == 1, "a family face that cannot be opened is read once");
 
-    require(!engine.register_lazy_family_typeface(BundledFontFamily{}, 400, false, regular).has_value() &&
+    require(!engine.register_lazy_family_typeface(FontFamilyId{}, 400, false, regular).has_value() &&
+                !engine.register_lazy_family_typeface(FontFamilyId{200U}, 400, false, regular).has_value() &&
                 !engine.register_lazy_family_typeface(selawik, 400, false, LazyFaceLoader{}).has_value(),
             "a family face needs a family and a loader");
 }

@@ -38,6 +38,7 @@
 #include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
@@ -400,6 +401,16 @@ std::string recipe_text(const RecipeDeclaration& declaration) {
         text += " role=" + std::to_string(static_cast<unsigned int>(declaration.font_role));
         if (declaration.font_family.value != 0U) {
             text += " family=" + std::to_string(static_cast<unsigned int>(declaration.font_family.value));
+        }
+        // The stack by its families: its number depends on registration order.
+        const FontFamilyStack stack = font_family_stack(declaration.font_stack);
+        if (stack.count != 0U) {
+            text += " stack=[";
+            for (std::size_t index = 0U; index < stack.count; ++index) {
+                if (index != 0U) text += ",";
+                text += std::to_string(static_cast<unsigned int>(stack.families[index].value));
+            }
+            text += "]";
         }
     }
     if (declaration.field == RecipeField::font_style && declaration.italic) text += " italic";

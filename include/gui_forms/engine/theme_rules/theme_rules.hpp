@@ -1332,8 +1332,9 @@ struct GUI_FORMS_API CanvasTextureLayers final {
 //   (within ±maximum_recipe_outline_offset): `number`, in logical units;
 // - text_shadow: `shadowed`, false for none; its `shadow_offset`,
 //   `shadow_blur` (the shadows' blur-radius convention) and `colour`;
-// - font_family: `font_role`, and `font_family` for a numbered bundled
-//   family (FontSpec::family, zero for a role); font_style: `italic`;
+// - font_family: `font_role`, `font_family` (FontSpec::family, zero for
+//   the role's faces alone) and `font_stack` (FontSpec::stack, the
+//   families listed after the first; zero for none); font_style: `italic`;
 // - font_size (in logical units, with em_lengths in the control's own
 //   font size), font_weight and letter_spacing (logical units, with
 //   em_lengths in the resolved size): `number`;
@@ -1372,13 +1373,14 @@ struct GUI_FORMS_API RecipeDeclaration final {
     // Whether `colour` is CSS's currentcolor: the control's text colour.
     bool current_colour{};
     FontRole font_role{FontRole::control};
-    BundledFontFamily font_family{};
+    FontFamilyId font_family{};
+    FontFamilyStackId font_stack{};
     bool italic{};
 
     friend bool operator==(const RecipeDeclaration& left, const RecipeDeclaration& right) noexcept {
         return left.field == right.field && left.initial == right.initial && left.colour == right.colour &&
                left.font_role == right.font_role && left.font_family == right.font_family &&
-               left.italic == right.italic &&
+               left.font_stack == right.font_stack && left.italic == right.italic &&
                left.number == right.number && left.outline_style == right.outline_style &&
                left.needle_shape == right.needle_shape && left.stripe_sense == right.stripe_sense &&
                left.stripe_gloss == right.stripe_gloss &&

@@ -738,6 +738,28 @@ internal static unsafe class Program
         Abi.check(table.detach(system.value, window.value));
     }
 
+    // GF_TABLE_FONTS through FontFamilies: a name resolves once to a bundled
+    // family's id (a Windows Forms name through the substitution table), the
+    // id reads its name back (Font.FontFamily.Name), and a font carries the
+    // id in its reserved word's low half beside its stack.
+    private static void font_families()
+    {
+        uint selawik = FontFamilies.resolve("Selawik");
+        expect(selawik != 0, "a bundled family has an id");
+        expect(FontFamilies.name(selawik) == "Selawik", "the id reads its name back");
+        expect(FontFamilies.resolve("Segoe UI") == selawik, "a Windows Forms name resolves through the substitutions");
+        uint carlito = FontFamilies.resolve("carlito");
+        expect(carlito != 0 && carlito != selawik && FontFamilies.name(carlito) == "Carlito",
+               "a role's family has its own id and name");
+        expect(FontFamilies.resolve("Arial") == 0, "a name without a bundled family is unmapped");
+        expect(FontFamilies.name(0) == null && FontFamilies.name(200) == null, "no name for zero or an unknown id");
+        gf_font font = default;
+        font.reserved = 0x00050000u;
+        gf_font familied = FontFamilies.with_family(font, selawik);
+        expect(FontFamilies.family_of(familied) == selawik && (familied.reserved >> 16) == 5u,
+               "a font carries its family beside its stack");
+    }
+
     private static int Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -756,6 +778,7 @@ internal static unsafe class Program
         binding_list();
         binding_moves_and_filters();
         help_language_files();
+        font_families();
         expect(unhandled_raised == 0, "no failure in these checks ran under an event loop");
         Console.WriteLine(failures == 0 ? "gui_forms_abi_csharp: all checks passed" :
                                           $"gui_forms_abi_csharp: {failures} checks failed");

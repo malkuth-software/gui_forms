@@ -228,6 +228,7 @@
     _ZGVZN9gui_forms12EffectRandom*;
     _ZGVZN9gui_forms12FileDialogOk*;
     _ZGVZN9gui_forms12FocusScopeId*;
+    _ZGVZN9gui_forms12FontFamilyId*;
     _ZGVZN9gui_forms12GlossColours*;
     _ZGVZN9gui_forms12GradientStop*;
     _ZGVZN9gui_forms12GrayTextMask*;
@@ -417,6 +418,7 @@
     _ZGVZN9gui_forms14EffectRegistry*;
     _ZGVZN9gui_forms14FlexItemLayout*;
     _ZGVZN9gui_forms14FlexItemResult*;
+    _ZGVZN9gui_forms14FontFamilyFace*;
     _ZGVZN9gui_forms14FractionFactor*;
     _ZGVZN9gui_forms14GalleryCommand*;
     _ZGVZN9gui_forms14GalleryPreview*;
@@ -526,6 +528,8 @@
     _ZGVZN9gui_forms15EnginePrimitive*;
     _ZGVZN9gui_forms15EventStatistics*;
     _ZGVZN9gui_forms15FontDeclaration*;
+    _ZGVZN9gui_forms15FontFamilyOrder*;
+    _ZGVZN9gui_forms15FontFamilyStack*;
     _ZGVZN9gui_forms15FramePollResult*;
     _ZGVZN9gui_forms15GraphLoadResult*;
     _ZGVZN9gui_forms15GraphSaveResult*;
@@ -631,6 +635,7 @@
     _ZGVZN9gui_forms16FlattenedContour*;
     _ZGVZN9gui_forms16FocusScopeChange*;
     _ZGVZN9gui_forms16FontDialogResult*;
+    _ZGVZN9gui_forms16FontFamilyRecord*;
     _ZGVZN9gui_forms16HelpContentsLine*;
     _ZGVZN9gui_forms16HelpContentsNode*;
     _ZGVZN9gui_forms16HelpContentsTree*;
@@ -709,7 +714,6 @@
     _ZGVZN9gui_forms17BasicControlStyle*;
     _ZGVZN9gui_forms17BindingListChange*;
     _ZGVZN9gui_forms17BreadcrumbSegment*;
-    _ZGVZN9gui_forms17BundledFontFamily*;
     _ZGVZN9gui_forms17CalendarDateRange*;
     _ZGVZN9gui_forms17CommandInvocation*;
     _ZGVZN9gui_forms17ControlTextShadow*;
@@ -730,6 +734,7 @@
     _ZGVZN9gui_forms17ErrorIconSnapshot*;
     _ZGVZN9gui_forms17FocusScopeOptions*;
     _ZGVZN9gui_forms17FontFallbackMatch*;
+    _ZGVZN9gui_forms17FontFamilyStackId*;
     _ZGVZN9gui_forms17FrameRequestToken*;
     _ZGVZN9gui_forms17GridTemplateAreas*;
     _ZGVZN9gui_forms17HelpResolvedField*;
@@ -1425,8 +1430,6 @@
     _ZGVZN9gui_forms6detail15FailureBoundary*;
     _ZGVZN9gui_forms6detail15FailureSnapshot*;
     _ZGVZN9gui_forms6detail16BorrowOwnerState*;
-    _ZGVZN9gui_forms6detail17BundledFamilyFace*;
-    _ZGVZN9gui_forms6detail17BundledFamilyName*;
     _ZGVZN9gui_forms6detail17ControlHelpFields*;
     _ZGVZN9gui_forms6detail18WindowHelpFallback*;
     _ZGVZN9gui_forms6detail19NestedEmissionScope*;
@@ -1752,6 +1755,7 @@
     _ZGVZNK9gui_forms12EffectRandom*;
     _ZGVZNK9gui_forms12FileDialogOk*;
     _ZGVZNK9gui_forms12FocusScopeId*;
+    _ZGVZNK9gui_forms12FontFamilyId*;
     _ZGVZNK9gui_forms12GlossColours*;
     _ZGVZNK9gui_forms12GradientStop*;
     _ZGVZNK9gui_forms12GrayTextMask*;
@@ -1941,6 +1945,7 @@
     _ZGVZNK9gui_forms14EffectRegistry*;
     _ZGVZNK9gui_forms14FlexItemLayout*;
     _ZGVZNK9gui_forms14FlexItemResult*;
+    _ZGVZNK9gui_forms14FontFamilyFace*;
     _ZGVZNK9gui_forms14FractionFactor*;
     _ZGVZNK9gui_forms14GalleryCommand*;
     _ZGVZNK9gui_forms14GalleryPreview*;
@@ -2050,6 +2055,8 @@
     _ZGVZNK9gui_forms15EnginePrimitive*;
     _ZGVZNK9gui_forms15EventStatistics*;
     _ZGVZNK9gui_forms15FontDeclaration*;
+    _ZGVZNK9gui_forms15FontFamilyOrder*;
+    _ZGVZNK9gui_forms15FontFamilyStack*;
     _ZGVZNK9gui_forms15FramePollResult*;
     _ZGVZNK9gui_forms15GraphLoadResult*;
     _ZGVZNK9gui_forms15GraphSaveResult*;
@@ -2155,6 +2162,7 @@
     _ZGVZNK9gui_forms16FlattenedContour*;
     _ZGVZNK9gui_forms16FocusScopeChange*;
     _ZGVZNK9gui_forms16FontDialogResult*;
+    _ZGVZNK9gui_forms16FontFamilyRecord*;
     _ZGVZNK9gui_forms16HelpContentsLine*;
     _ZGVZNK9gui_forms16HelpContentsNode*;
     _ZGVZNK9gui_forms16HelpContentsTree*;
@@ -2233,7 +2241,6 @@
     _ZGVZNK9gui_forms17BasicControlStyle*;
     _ZGVZNK9gui_forms17BindingListChange*;
     _ZGVZNK9gui_forms17BreadcrumbSegment*;
-    _ZGVZNK9gui_forms17BundledFontFamily*;
     _ZGVZNK9gui_forms17CalendarDateRange*;
     _ZGVZNK9gui_forms17CommandInvocation*;
     _ZGVZNK9gui_forms17ControlTextShadow*;
@@ -2254,6 +2261,7 @@
     _ZGVZNK9gui_forms17ErrorIconSnapshot*;
     _ZGVZNK9gui_forms17FocusScopeOptions*;
     _ZGVZNK9gui_forms17FontFallbackMatch*;
+    _ZGVZNK9gui_forms17FontFamilyStackId*;
     _ZGVZNK9gui_forms17FrameRequestToken*;
     _ZGVZNK9gui_forms17GridTemplateAreas*;
     _ZGVZNK9gui_forms17HelpResolvedField*;
@@ -2949,8 +2957,6 @@
     _ZGVZNK9gui_forms6detail15FailureBoundary*;
     _ZGVZNK9gui_forms6detail15FailureSnapshot*;
     _ZGVZNK9gui_forms6detail16BorrowOwnerState*;
-    _ZGVZNK9gui_forms6detail17BundledFamilyFace*;
-    _ZGVZNK9gui_forms6detail17BundledFamilyName*;
     _ZGVZNK9gui_forms6detail17ControlHelpFields*;
     _ZGVZNK9gui_forms6detail18WindowHelpFallback*;
     _ZGVZNK9gui_forms6detail19NestedEmissionScope*;
@@ -3352,6 +3358,7 @@
     _ZN9gui_forms12EffectRandom*;
     _ZN9gui_forms12FileDialogOk*;
     _ZN9gui_forms12FocusScopeId*;
+    _ZN9gui_forms12FontFamilyId*;
     _ZN9gui_forms12GlossColours*;
     _ZN9gui_forms12GradientStop*;
     _ZN9gui_forms12GrayTextMask*;
@@ -3605,6 +3612,7 @@
     _ZN9gui_forms14EffectRegistry*;
     _ZN9gui_forms14FlexItemLayout*;
     _ZN9gui_forms14FlexItemResult*;
+    _ZN9gui_forms14FontFamilyFace*;
     _ZN9gui_forms14FractionFactor*;
     _ZN9gui_forms14GalleryCommand*;
     _ZN9gui_forms14GalleryPreview*;
@@ -3762,6 +3770,8 @@
     _ZN9gui_forms15EnginePrimitive*;
     _ZN9gui_forms15EventStatistics*;
     _ZN9gui_forms15FontDeclaration*;
+    _ZN9gui_forms15FontFamilyOrder*;
+    _ZN9gui_forms15FontFamilyStack*;
     _ZN9gui_forms15FramePollResult*;
     _ZN9gui_forms15GraphLoadResult*;
     _ZN9gui_forms15GraphSaveResult*;
@@ -3909,6 +3919,7 @@
     _ZN9gui_forms16FlattenedContour*;
     _ZN9gui_forms16FocusScopeChange*;
     _ZN9gui_forms16FontDialogResult*;
+    _ZN9gui_forms16FontFamilyRecord*;
     _ZN9gui_forms16HelpContentsLine*;
     _ZN9gui_forms16HelpContentsNode*;
     _ZN9gui_forms16HelpContentsTree*;
@@ -4061,7 +4072,6 @@
     _ZN9gui_forms17BasicControlStyle*;
     _ZN9gui_forms17BindingListChange*;
     _ZN9gui_forms17BreadcrumbSegment*;
-    _ZN9gui_forms17BundledFontFamily*;
     _ZN9gui_forms17CalendarDateRange*;
     _ZN9gui_forms17CommandInvocation*;
     _ZN9gui_forms17ControlTextShadow*;
@@ -4082,6 +4092,7 @@
     _ZN9gui_forms17ErrorIconSnapshot*;
     _ZN9gui_forms17FocusScopeOptions*;
     _ZN9gui_forms17FontFallbackMatch*;
+    _ZN9gui_forms17FontFamilyStackId*;
     _ZN9gui_forms17FrameRequestToken*;
     _ZN9gui_forms17GridTemplateAreas*;
     _ZN9gui_forms17HelpResolvedField*;
@@ -4162,6 +4173,10 @@
     _ZN9gui_forms17find_custom_stateE*;
     _ZN9gui_forms17find_locale_fieldB*;
     _ZN9gui_forms17find_locale_fieldE*;
+    _ZN9gui_forms17font_family_orderB*;
+    _ZN9gui_forms17font_family_orderE*;
+    _ZN9gui_forms17font_family_stackB*;
+    _ZN9gui_forms17font_family_stackE*;
     _ZN9gui_forms17format_sha256_hexB*;
     _ZN9gui_forms17format_sha256_hexE*;
     _ZN9gui_forms17graph_status_nameB*;
@@ -5145,6 +5160,8 @@
     _ZN9gui_forms23surface_material_opaqueE*;
     _ZN9gui_forms23valid_authored_gradientB*;
     _ZN9gui_forms23valid_authored_gradientE*;
+    _ZN9gui_forms23valid_font_family_stackB*;
+    _ZN9gui_forms23valid_font_family_stackE*;
     _ZN9gui_forms23valid_layout_constraintB*;
     _ZN9gui_forms23valid_layout_constraintE*;
     _ZN9gui_forms23validate_theme_packagesB*;
@@ -5348,6 +5365,8 @@
     _ZN9gui_forms26property_value_origin_nameE*;
     _ZN9gui_forms26recipe_declaration_lengthsB*;
     _ZN9gui_forms26recipe_declaration_lengthsE*;
+    _ZN9gui_forms26register_font_family_stackB*;
+    _ZN9gui_forms26register_font_family_stackE*;
     _ZN9gui_forms26register_link_flow_effectsB*;
     _ZN9gui_forms26register_link_flow_effectsE*;
     _ZN9gui_forms26reset_child_property_entryB*;
@@ -5741,8 +5760,6 @@
     _ZN9gui_forms6detail16count_allocationE*;
     _ZN9gui_forms6detail16straight_channelB*;
     _ZN9gui_forms6detail16straight_channelE*;
-    _ZN9gui_forms6detail17BundledFamilyFace*;
-    _ZN9gui_forms6detail17BundledFamilyName*;
     _ZN9gui_forms6detail17ControlHelpFields*;
     _ZN9gui_forms6detail17toggle_rule_valueB*;
     _ZN9gui_forms6detail17toggle_rule_valueE*;
@@ -6214,6 +6231,7 @@
     _ZNK[RO]9gui_forms12EffectRandom*;
     _ZNK[RO]9gui_forms12FileDialogOk*;
     _ZNK[RO]9gui_forms12FocusScopeId*;
+    _ZNK[RO]9gui_forms12FontFamilyId*;
     _ZNK[RO]9gui_forms12GlossColours*;
     _ZNK[RO]9gui_forms12GradientStop*;
     _ZNK[RO]9gui_forms12GrayTextMask*;
@@ -6403,6 +6421,7 @@
     _ZNK[RO]9gui_forms14EffectRegistry*;
     _ZNK[RO]9gui_forms14FlexItemLayout*;
     _ZNK[RO]9gui_forms14FlexItemResult*;
+    _ZNK[RO]9gui_forms14FontFamilyFace*;
     _ZNK[RO]9gui_forms14FractionFactor*;
     _ZNK[RO]9gui_forms14GalleryCommand*;
     _ZNK[RO]9gui_forms14GalleryPreview*;
@@ -6512,6 +6531,8 @@
     _ZNK[RO]9gui_forms15EnginePrimitive*;
     _ZNK[RO]9gui_forms15EventStatistics*;
     _ZNK[RO]9gui_forms15FontDeclaration*;
+    _ZNK[RO]9gui_forms15FontFamilyOrder*;
+    _ZNK[RO]9gui_forms15FontFamilyStack*;
     _ZNK[RO]9gui_forms15FramePollResult*;
     _ZNK[RO]9gui_forms15GraphLoadResult*;
     _ZNK[RO]9gui_forms15GraphSaveResult*;
@@ -6617,6 +6638,7 @@
     _ZNK[RO]9gui_forms16FlattenedContour*;
     _ZNK[RO]9gui_forms16FocusScopeChange*;
     _ZNK[RO]9gui_forms16FontDialogResult*;
+    _ZNK[RO]9gui_forms16FontFamilyRecord*;
     _ZNK[RO]9gui_forms16HelpContentsLine*;
     _ZNK[RO]9gui_forms16HelpContentsNode*;
     _ZNK[RO]9gui_forms16HelpContentsTree*;
@@ -6695,7 +6717,6 @@
     _ZNK[RO]9gui_forms17BasicControlStyle*;
     _ZNK[RO]9gui_forms17BindingListChange*;
     _ZNK[RO]9gui_forms17BreadcrumbSegment*;
-    _ZNK[RO]9gui_forms17BundledFontFamily*;
     _ZNK[RO]9gui_forms17CalendarDateRange*;
     _ZNK[RO]9gui_forms17CommandInvocation*;
     _ZNK[RO]9gui_forms17ControlTextShadow*;
@@ -6716,6 +6737,7 @@
     _ZNK[RO]9gui_forms17ErrorIconSnapshot*;
     _ZNK[RO]9gui_forms17FocusScopeOptions*;
     _ZNK[RO]9gui_forms17FontFallbackMatch*;
+    _ZNK[RO]9gui_forms17FontFamilyStackId*;
     _ZNK[RO]9gui_forms17FrameRequestToken*;
     _ZNK[RO]9gui_forms17GridTemplateAreas*;
     _ZNK[RO]9gui_forms17HelpResolvedField*;
@@ -7411,8 +7433,6 @@
     _ZNK[RO]9gui_forms6detail15FailureBoundary*;
     _ZNK[RO]9gui_forms6detail15FailureSnapshot*;
     _ZNK[RO]9gui_forms6detail16BorrowOwnerState*;
-    _ZNK[RO]9gui_forms6detail17BundledFamilyFace*;
-    _ZNK[RO]9gui_forms6detail17BundledFamilyName*;
     _ZNK[RO]9gui_forms6detail17ControlHelpFields*;
     _ZNK[RO]9gui_forms6detail18WindowHelpFallback*;
     _ZNK[RO]9gui_forms6detail19NestedEmissionScope*;
@@ -7738,6 +7758,7 @@
     _ZN[KRO]9gui_forms12EffectRandom*;
     _ZN[KRO]9gui_forms12FileDialogOk*;
     _ZN[KRO]9gui_forms12FocusScopeId*;
+    _ZN[KRO]9gui_forms12FontFamilyId*;
     _ZN[KRO]9gui_forms12GlossColours*;
     _ZN[KRO]9gui_forms12GradientStop*;
     _ZN[KRO]9gui_forms12GrayTextMask*;
@@ -7927,6 +7948,7 @@
     _ZN[KRO]9gui_forms14EffectRegistry*;
     _ZN[KRO]9gui_forms14FlexItemLayout*;
     _ZN[KRO]9gui_forms14FlexItemResult*;
+    _ZN[KRO]9gui_forms14FontFamilyFace*;
     _ZN[KRO]9gui_forms14FractionFactor*;
     _ZN[KRO]9gui_forms14GalleryCommand*;
     _ZN[KRO]9gui_forms14GalleryPreview*;
@@ -8036,6 +8058,8 @@
     _ZN[KRO]9gui_forms15EnginePrimitive*;
     _ZN[KRO]9gui_forms15EventStatistics*;
     _ZN[KRO]9gui_forms15FontDeclaration*;
+    _ZN[KRO]9gui_forms15FontFamilyOrder*;
+    _ZN[KRO]9gui_forms15FontFamilyStack*;
     _ZN[KRO]9gui_forms15FramePollResult*;
     _ZN[KRO]9gui_forms15GraphLoadResult*;
     _ZN[KRO]9gui_forms15GraphSaveResult*;
@@ -8141,6 +8165,7 @@
     _ZN[KRO]9gui_forms16FlattenedContour*;
     _ZN[KRO]9gui_forms16FocusScopeChange*;
     _ZN[KRO]9gui_forms16FontDialogResult*;
+    _ZN[KRO]9gui_forms16FontFamilyRecord*;
     _ZN[KRO]9gui_forms16HelpContentsLine*;
     _ZN[KRO]9gui_forms16HelpContentsNode*;
     _ZN[KRO]9gui_forms16HelpContentsTree*;
@@ -8219,7 +8244,6 @@
     _ZN[KRO]9gui_forms17BasicControlStyle*;
     _ZN[KRO]9gui_forms17BindingListChange*;
     _ZN[KRO]9gui_forms17BreadcrumbSegment*;
-    _ZN[KRO]9gui_forms17BundledFontFamily*;
     _ZN[KRO]9gui_forms17CalendarDateRange*;
     _ZN[KRO]9gui_forms17CommandInvocation*;
     _ZN[KRO]9gui_forms17ControlTextShadow*;
@@ -8240,6 +8264,7 @@
     _ZN[KRO]9gui_forms17ErrorIconSnapshot*;
     _ZN[KRO]9gui_forms17FocusScopeOptions*;
     _ZN[KRO]9gui_forms17FontFallbackMatch*;
+    _ZN[KRO]9gui_forms17FontFamilyStackId*;
     _ZN[KRO]9gui_forms17FrameRequestToken*;
     _ZN[KRO]9gui_forms17GridTemplateAreas*;
     _ZN[KRO]9gui_forms17HelpResolvedField*;
@@ -8935,8 +8960,6 @@
     _ZN[KRO]9gui_forms6detail15FailureBoundary*;
     _ZN[KRO]9gui_forms6detail15FailureSnapshot*;
     _ZN[KRO]9gui_forms6detail16BorrowOwnerState*;
-    _ZN[KRO]9gui_forms6detail17BundledFamilyFace*;
-    _ZN[KRO]9gui_forms6detail17BundledFamilyName*;
     _ZN[KRO]9gui_forms6detail17ControlHelpFields*;
     _ZN[KRO]9gui_forms6detail18WindowHelpFallback*;
     _ZN[KRO]9gui_forms6detail19NestedEmissionScope*;
@@ -9262,6 +9285,7 @@
     _ZT[VIST]N9gui_forms12EffectRandom*E;
     _ZT[VIST]N9gui_forms12FileDialogOk*E;
     _ZT[VIST]N9gui_forms12FocusScopeId*E;
+    _ZT[VIST]N9gui_forms12FontFamilyId*E;
     _ZT[VIST]N9gui_forms12GlossColours*E;
     _ZT[VIST]N9gui_forms12GradientStop*E;
     _ZT[VIST]N9gui_forms12GrayTextMask*E;
@@ -9451,6 +9475,7 @@
     _ZT[VIST]N9gui_forms14EffectRegistry*E;
     _ZT[VIST]N9gui_forms14FlexItemLayout*E;
     _ZT[VIST]N9gui_forms14FlexItemResult*E;
+    _ZT[VIST]N9gui_forms14FontFamilyFace*E;
     _ZT[VIST]N9gui_forms14FractionFactor*E;
     _ZT[VIST]N9gui_forms14GalleryCommand*E;
     _ZT[VIST]N9gui_forms14GalleryPreview*E;
@@ -9560,6 +9585,8 @@
     _ZT[VIST]N9gui_forms15EnginePrimitive*E;
     _ZT[VIST]N9gui_forms15EventStatistics*E;
     _ZT[VIST]N9gui_forms15FontDeclaration*E;
+    _ZT[VIST]N9gui_forms15FontFamilyOrder*E;
+    _ZT[VIST]N9gui_forms15FontFamilyStack*E;
     _ZT[VIST]N9gui_forms15FramePollResult*E;
     _ZT[VIST]N9gui_forms15GraphLoadResult*E;
     _ZT[VIST]N9gui_forms15GraphSaveResult*E;
@@ -9665,6 +9692,7 @@
     _ZT[VIST]N9gui_forms16FlattenedContour*E;
     _ZT[VIST]N9gui_forms16FocusScopeChange*E;
     _ZT[VIST]N9gui_forms16FontDialogResult*E;
+    _ZT[VIST]N9gui_forms16FontFamilyRecord*E;
     _ZT[VIST]N9gui_forms16HelpContentsLine*E;
     _ZT[VIST]N9gui_forms16HelpContentsNode*E;
     _ZT[VIST]N9gui_forms16HelpContentsTree*E;
@@ -9743,7 +9771,6 @@
     _ZT[VIST]N9gui_forms17BasicControlStyle*E;
     _ZT[VIST]N9gui_forms17BindingListChange*E;
     _ZT[VIST]N9gui_forms17BreadcrumbSegment*E;
-    _ZT[VIST]N9gui_forms17BundledFontFamily*E;
     _ZT[VIST]N9gui_forms17CalendarDateRange*E;
     _ZT[VIST]N9gui_forms17CommandInvocation*E;
     _ZT[VIST]N9gui_forms17ControlTextShadow*E;
@@ -9764,6 +9791,7 @@
     _ZT[VIST]N9gui_forms17ErrorIconSnapshot*E;
     _ZT[VIST]N9gui_forms17FocusScopeOptions*E;
     _ZT[VIST]N9gui_forms17FontFallbackMatch*E;
+    _ZT[VIST]N9gui_forms17FontFamilyStackId*E;
     _ZT[VIST]N9gui_forms17FrameRequestToken*E;
     _ZT[VIST]N9gui_forms17GridTemplateAreas*E;
     _ZT[VIST]N9gui_forms17HelpResolvedField*E;
@@ -10459,8 +10487,6 @@
     _ZT[VIST]N9gui_forms6detail15FailureBoundary*E;
     _ZT[VIST]N9gui_forms6detail15FailureSnapshot*E;
     _ZT[VIST]N9gui_forms6detail16BorrowOwnerState*E;
-    _ZT[VIST]N9gui_forms6detail17BundledFamilyFace*E;
-    _ZT[VIST]N9gui_forms6detail17BundledFamilyName*E;
     _ZT[VIST]N9gui_forms6detail17ControlHelpFields*E;
     _ZT[VIST]N9gui_forms6detail18WindowHelpFallback*E;
     _ZT[VIST]N9gui_forms6detail19NestedEmissionScope*E;
@@ -10786,6 +10812,7 @@
     _ZT[hvc]*9gui_forms12EffectRandom*;
     _ZT[hvc]*9gui_forms12FileDialogOk*;
     _ZT[hvc]*9gui_forms12FocusScopeId*;
+    _ZT[hvc]*9gui_forms12FontFamilyId*;
     _ZT[hvc]*9gui_forms12GlossColours*;
     _ZT[hvc]*9gui_forms12GradientStop*;
     _ZT[hvc]*9gui_forms12GrayTextMask*;
@@ -10975,6 +11002,7 @@
     _ZT[hvc]*9gui_forms14EffectRegistry*;
     _ZT[hvc]*9gui_forms14FlexItemLayout*;
     _ZT[hvc]*9gui_forms14FlexItemResult*;
+    _ZT[hvc]*9gui_forms14FontFamilyFace*;
     _ZT[hvc]*9gui_forms14FractionFactor*;
     _ZT[hvc]*9gui_forms14GalleryCommand*;
     _ZT[hvc]*9gui_forms14GalleryPreview*;
@@ -11084,6 +11112,8 @@
     _ZT[hvc]*9gui_forms15EnginePrimitive*;
     _ZT[hvc]*9gui_forms15EventStatistics*;
     _ZT[hvc]*9gui_forms15FontDeclaration*;
+    _ZT[hvc]*9gui_forms15FontFamilyOrder*;
+    _ZT[hvc]*9gui_forms15FontFamilyStack*;
     _ZT[hvc]*9gui_forms15FramePollResult*;
     _ZT[hvc]*9gui_forms15GraphLoadResult*;
     _ZT[hvc]*9gui_forms15GraphSaveResult*;
@@ -11189,6 +11219,7 @@
     _ZT[hvc]*9gui_forms16FlattenedContour*;
     _ZT[hvc]*9gui_forms16FocusScopeChange*;
     _ZT[hvc]*9gui_forms16FontDialogResult*;
+    _ZT[hvc]*9gui_forms16FontFamilyRecord*;
     _ZT[hvc]*9gui_forms16HelpContentsLine*;
     _ZT[hvc]*9gui_forms16HelpContentsNode*;
     _ZT[hvc]*9gui_forms16HelpContentsTree*;
@@ -11267,7 +11298,6 @@
     _ZT[hvc]*9gui_forms17BasicControlStyle*;
     _ZT[hvc]*9gui_forms17BindingListChange*;
     _ZT[hvc]*9gui_forms17BreadcrumbSegment*;
-    _ZT[hvc]*9gui_forms17BundledFontFamily*;
     _ZT[hvc]*9gui_forms17CalendarDateRange*;
     _ZT[hvc]*9gui_forms17CommandInvocation*;
     _ZT[hvc]*9gui_forms17ControlTextShadow*;
@@ -11288,6 +11318,7 @@
     _ZT[hvc]*9gui_forms17ErrorIconSnapshot*;
     _ZT[hvc]*9gui_forms17FocusScopeOptions*;
     _ZT[hvc]*9gui_forms17FontFallbackMatch*;
+    _ZT[hvc]*9gui_forms17FontFamilyStackId*;
     _ZT[hvc]*9gui_forms17FrameRequestToken*;
     _ZT[hvc]*9gui_forms17GridTemplateAreas*;
     _ZT[hvc]*9gui_forms17HelpResolvedField*;
@@ -11983,8 +12014,6 @@
     _ZT[hvc]*9gui_forms6detail15FailureBoundary*;
     _ZT[hvc]*9gui_forms6detail15FailureSnapshot*;
     _ZT[hvc]*9gui_forms6detail16BorrowOwnerState*;
-    _ZT[hvc]*9gui_forms6detail17BundledFamilyFace*;
-    _ZT[hvc]*9gui_forms6detail17BundledFamilyName*;
     _ZT[hvc]*9gui_forms6detail17ControlHelpFields*;
     _ZT[hvc]*9gui_forms6detail18WindowHelpFallback*;
     _ZT[hvc]*9gui_forms6detail19NestedEmissionScope*;
@@ -12310,6 +12339,7 @@
     _ZZN9gui_forms12EffectRandom*;
     _ZZN9gui_forms12FileDialogOk*;
     _ZZN9gui_forms12FocusScopeId*;
+    _ZZN9gui_forms12FontFamilyId*;
     _ZZN9gui_forms12GlossColours*;
     _ZZN9gui_forms12GradientStop*;
     _ZZN9gui_forms12GrayTextMask*;
@@ -12499,6 +12529,7 @@
     _ZZN9gui_forms14EffectRegistry*;
     _ZZN9gui_forms14FlexItemLayout*;
     _ZZN9gui_forms14FlexItemResult*;
+    _ZZN9gui_forms14FontFamilyFace*;
     _ZZN9gui_forms14FractionFactor*;
     _ZZN9gui_forms14GalleryCommand*;
     _ZZN9gui_forms14GalleryPreview*;
@@ -12608,6 +12639,8 @@
     _ZZN9gui_forms15EnginePrimitive*;
     _ZZN9gui_forms15EventStatistics*;
     _ZZN9gui_forms15FontDeclaration*;
+    _ZZN9gui_forms15FontFamilyOrder*;
+    _ZZN9gui_forms15FontFamilyStack*;
     _ZZN9gui_forms15FramePollResult*;
     _ZZN9gui_forms15GraphLoadResult*;
     _ZZN9gui_forms15GraphSaveResult*;
@@ -12713,6 +12746,7 @@
     _ZZN9gui_forms16FlattenedContour*;
     _ZZN9gui_forms16FocusScopeChange*;
     _ZZN9gui_forms16FontDialogResult*;
+    _ZZN9gui_forms16FontFamilyRecord*;
     _ZZN9gui_forms16HelpContentsLine*;
     _ZZN9gui_forms16HelpContentsNode*;
     _ZZN9gui_forms16HelpContentsTree*;
@@ -12791,7 +12825,6 @@
     _ZZN9gui_forms17BasicControlStyle*;
     _ZZN9gui_forms17BindingListChange*;
     _ZZN9gui_forms17BreadcrumbSegment*;
-    _ZZN9gui_forms17BundledFontFamily*;
     _ZZN9gui_forms17CalendarDateRange*;
     _ZZN9gui_forms17CommandInvocation*;
     _ZZN9gui_forms17ControlTextShadow*;
@@ -12812,6 +12845,7 @@
     _ZZN9gui_forms17ErrorIconSnapshot*;
     _ZZN9gui_forms17FocusScopeOptions*;
     _ZZN9gui_forms17FontFallbackMatch*;
+    _ZZN9gui_forms17FontFamilyStackId*;
     _ZZN9gui_forms17FrameRequestToken*;
     _ZZN9gui_forms17GridTemplateAreas*;
     _ZZN9gui_forms17HelpResolvedField*;
@@ -13507,8 +13541,6 @@
     _ZZN9gui_forms6detail15FailureBoundary*;
     _ZZN9gui_forms6detail15FailureSnapshot*;
     _ZZN9gui_forms6detail16BorrowOwnerState*;
-    _ZZN9gui_forms6detail17BundledFamilyFace*;
-    _ZZN9gui_forms6detail17BundledFamilyName*;
     _ZZN9gui_forms6detail17ControlHelpFields*;
     _ZZN9gui_forms6detail18WindowHelpFallback*;
     _ZZN9gui_forms6detail19NestedEmissionScope*;
@@ -13834,6 +13866,7 @@
     _ZZNK9gui_forms12EffectRandom*;
     _ZZNK9gui_forms12FileDialogOk*;
     _ZZNK9gui_forms12FocusScopeId*;
+    _ZZNK9gui_forms12FontFamilyId*;
     _ZZNK9gui_forms12GlossColours*;
     _ZZNK9gui_forms12GradientStop*;
     _ZZNK9gui_forms12GrayTextMask*;
@@ -14023,6 +14056,7 @@
     _ZZNK9gui_forms14EffectRegistry*;
     _ZZNK9gui_forms14FlexItemLayout*;
     _ZZNK9gui_forms14FlexItemResult*;
+    _ZZNK9gui_forms14FontFamilyFace*;
     _ZZNK9gui_forms14FractionFactor*;
     _ZZNK9gui_forms14GalleryCommand*;
     _ZZNK9gui_forms14GalleryPreview*;
@@ -14132,6 +14166,8 @@
     _ZZNK9gui_forms15EnginePrimitive*;
     _ZZNK9gui_forms15EventStatistics*;
     _ZZNK9gui_forms15FontDeclaration*;
+    _ZZNK9gui_forms15FontFamilyOrder*;
+    _ZZNK9gui_forms15FontFamilyStack*;
     _ZZNK9gui_forms15FramePollResult*;
     _ZZNK9gui_forms15GraphLoadResult*;
     _ZZNK9gui_forms15GraphSaveResult*;
@@ -14237,6 +14273,7 @@
     _ZZNK9gui_forms16FlattenedContour*;
     _ZZNK9gui_forms16FocusScopeChange*;
     _ZZNK9gui_forms16FontDialogResult*;
+    _ZZNK9gui_forms16FontFamilyRecord*;
     _ZZNK9gui_forms16HelpContentsLine*;
     _ZZNK9gui_forms16HelpContentsNode*;
     _ZZNK9gui_forms16HelpContentsTree*;
@@ -14315,7 +14352,6 @@
     _ZZNK9gui_forms17BasicControlStyle*;
     _ZZNK9gui_forms17BindingListChange*;
     _ZZNK9gui_forms17BreadcrumbSegment*;
-    _ZZNK9gui_forms17BundledFontFamily*;
     _ZZNK9gui_forms17CalendarDateRange*;
     _ZZNK9gui_forms17CommandInvocation*;
     _ZZNK9gui_forms17ControlTextShadow*;
@@ -14336,6 +14372,7 @@
     _ZZNK9gui_forms17ErrorIconSnapshot*;
     _ZZNK9gui_forms17FocusScopeOptions*;
     _ZZNK9gui_forms17FontFallbackMatch*;
+    _ZZNK9gui_forms17FontFamilyStackId*;
     _ZZNK9gui_forms17FrameRequestToken*;
     _ZZNK9gui_forms17GridTemplateAreas*;
     _ZZNK9gui_forms17HelpResolvedField*;
@@ -15031,8 +15068,6 @@
     _ZZNK9gui_forms6detail15FailureBoundary*;
     _ZZNK9gui_forms6detail15FailureSnapshot*;
     _ZZNK9gui_forms6detail16BorrowOwnerState*;
-    _ZZNK9gui_forms6detail17BundledFamilyFace*;
-    _ZZNK9gui_forms6detail17BundledFamilyName*;
     _ZZNK9gui_forms6detail17ControlHelpFields*;
     _ZZNK9gui_forms6detail18WindowHelpFallback*;
     _ZZNK9gui_forms6detail19NestedEmissionScope*;

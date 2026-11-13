@@ -231,6 +231,10 @@ struct MaterialLowering final {
     // A recipe property's fields.
     std::vector<RecipeDeclaration> recipe_fields{};
     MaterialLoweringProblem problem{};
+    // Warnings about a declaration that still applies (outcome `lowered`):
+    // the compiler reports each and keeps the declaration, as for a
+    // `font-family` entry naming a family that is not bundled (W113).
+    std::vector<MaterialLoweringProblem> warnings{};
 };
 
 // Lowers `value`, a value of `property` that is not a CSS-wide keyword,

@@ -135,20 +135,28 @@ public:
     [[nodiscard]] std::optional<FontFaceId> register_lazy_fallback_typeface(
         std::uint16_t weight, bool italic, std::span<const gui_forms::detail::CodepointRange> coverage,
         LazyFaceLoader load);
-    // A face of the numbered bundled family `family` (FontSpec::family, never zero), loaded and
-    // opened the first time text names its family. It is preferred over every role face for
-    // such text and takes no part in any other; fallback through the role's faces and the
-    // fallback faces still covers what it lacks. `load` runs on the shaping thread, at most
-    // once unless it throws; a face that does not open is left out from then on. Refused by
-    // a bounded engine (configure_bounded_registration).
+    // A face of the family `family` (a FontFamilyId the registry has, never zero), loaded and
+    // opened the first time text whose family order (font_family_order: FontSpec::family, then
+    // its stack's) lists the family. Such text prefers it over every role face, its family's
+    // face nearest the weight and slant first; it takes no part in other text. Fallback
+    // through the role's faces and the fallback faces still covers what it lacks. `load` runs
+    // on the shaping thread, at most once unless it throws; a face that does not open is left
+    // out from then on. Refused by a bounded engine (configure_bounded_registration).
     [[nodiscard]] std::optional<FontFaceId> register_lazy_family_typeface(
-        BundledFontFamily family, std::uint16_t weight, bool italic, LazyFaceLoader load);
+        FontFamilyId family, std::uint16_t weight, bool italic, LazyFaceLoader load);
+    // An open face of `family`, as register_owned_typeface takes bytes and their owner, taking
+    // part as register_lazy_family_typeface's faces do. Admitted by a bounded engine: prepared
+    // text's font banks register their family faces this way.
+    [[nodiscard]] std::optional<FontFaceId> register_owned_family_typeface(
+        FontFamilyId family, std::uint16_t weight, bool italic, std::span<const std::byte> encoded,
+        std::shared_ptr<const void> owner, std::uint32_t face_index = 0U);
     // Faces opened so far: eager faces and lazy faces that have been needed.
     [[nodiscard]] std::size_t opened_face_count() const noexcept;
     // Native setup/allocation failures throw; a call-owned partial result never
     // becomes a successful return. Callers retain old state until return succeeds.
     [[nodiscard]] ShapedText shape(std::string_view utf8, FontSpec font);
-    // Exact role/weight/italic only, first registered matching primary. No
+    // The first family of the font's order with a face: its face nearest the
+    // weight and slant. Otherwise exact role/weight/italic only, first registered matching primary. No
     // fallback or text shaping. Sets that owned FT face's size once using the
     // same 26.6 rounding as shape; caller confines native mutation to executor.
     // Nullopt means no exact primary. Invalid font/native failures throw.

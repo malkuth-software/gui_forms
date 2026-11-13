@@ -72,6 +72,8 @@ struct PreparedFontFace final {
     std::uint16_t weight{400};
     bool italic{};
     std::uint32_t index{};
+    // A registered family's face (PreparedFontSource::family), or zero.
+    FontFamilyId family{};
 };
 
 struct PreparedFontBank final {

@@ -226,6 +226,7 @@ __ZGVZN9gui_forms12EffectCanvas*
 __ZGVZN9gui_forms12EffectRandom*
 __ZGVZN9gui_forms12FileDialogOk*
 __ZGVZN9gui_forms12FocusScopeId*
+__ZGVZN9gui_forms12FontFamilyId*
 __ZGVZN9gui_forms12GlossColours*
 __ZGVZN9gui_forms12GradientStop*
 __ZGVZN9gui_forms12GrayTextMask*
@@ -415,6 +416,7 @@ __ZGVZN9gui_forms14EffectInstance*
 __ZGVZN9gui_forms14EffectRegistry*
 __ZGVZN9gui_forms14FlexItemLayout*
 __ZGVZN9gui_forms14FlexItemResult*
+__ZGVZN9gui_forms14FontFamilyFace*
 __ZGVZN9gui_forms14FractionFactor*
 __ZGVZN9gui_forms14GalleryCommand*
 __ZGVZN9gui_forms14GalleryPreview*
@@ -524,6 +526,8 @@ __ZGVZN9gui_forms15EnginePartTable*
 __ZGVZN9gui_forms15EnginePrimitive*
 __ZGVZN9gui_forms15EventStatistics*
 __ZGVZN9gui_forms15FontDeclaration*
+__ZGVZN9gui_forms15FontFamilyOrder*
+__ZGVZN9gui_forms15FontFamilyStack*
 __ZGVZN9gui_forms15FramePollResult*
 __ZGVZN9gui_forms15GraphLoadResult*
 __ZGVZN9gui_forms15GraphSaveResult*
@@ -629,6 +633,7 @@ __ZGVZN9gui_forms16FlagsValueEditor*
 __ZGVZN9gui_forms16FlattenedContour*
 __ZGVZN9gui_forms16FocusScopeChange*
 __ZGVZN9gui_forms16FontDialogResult*
+__ZGVZN9gui_forms16FontFamilyRecord*
 __ZGVZN9gui_forms16HelpContentsLine*
 __ZGVZN9gui_forms16HelpContentsNode*
 __ZGVZN9gui_forms16HelpContentsTree*
@@ -707,7 +712,6 @@ __ZGVZN9gui_forms17BackstageItemSpec*
 __ZGVZN9gui_forms17BasicControlStyle*
 __ZGVZN9gui_forms17BindingListChange*
 __ZGVZN9gui_forms17BreadcrumbSegment*
-__ZGVZN9gui_forms17BundledFontFamily*
 __ZGVZN9gui_forms17CalendarDateRange*
 __ZGVZN9gui_forms17CommandInvocation*
 __ZGVZN9gui_forms17ControlTextShadow*
@@ -728,6 +732,7 @@ __ZGVZN9gui_forms17EffectDeclaration*
 __ZGVZN9gui_forms17ErrorIconSnapshot*
 __ZGVZN9gui_forms17FocusScopeOptions*
 __ZGVZN9gui_forms17FontFallbackMatch*
+__ZGVZN9gui_forms17FontFamilyStackId*
 __ZGVZN9gui_forms17FrameRequestToken*
 __ZGVZN9gui_forms17GridTemplateAreas*
 __ZGVZN9gui_forms17HelpResolvedField*
@@ -1423,8 +1428,6 @@ __ZGVZN9gui_forms6detail14WindowLifetime*
 __ZGVZN9gui_forms6detail15FailureBoundary*
 __ZGVZN9gui_forms6detail15FailureSnapshot*
 __ZGVZN9gui_forms6detail16BorrowOwnerState*
-__ZGVZN9gui_forms6detail17BundledFamilyFace*
-__ZGVZN9gui_forms6detail17BundledFamilyName*
 __ZGVZN9gui_forms6detail17ControlHelpFields*
 __ZGVZN9gui_forms6detail18WindowHelpFallback*
 __ZGVZN9gui_forms6detail19NestedEmissionScope*
@@ -1750,6 +1753,7 @@ __ZGVZNK9gui_forms12EffectCanvas*
 __ZGVZNK9gui_forms12EffectRandom*
 __ZGVZNK9gui_forms12FileDialogOk*
 __ZGVZNK9gui_forms12FocusScopeId*
+__ZGVZNK9gui_forms12FontFamilyId*
 __ZGVZNK9gui_forms12GlossColours*
 __ZGVZNK9gui_forms12GradientStop*
 __ZGVZNK9gui_forms12GrayTextMask*
@@ -1939,6 +1943,7 @@ __ZGVZNK9gui_forms14EffectInstance*
 __ZGVZNK9gui_forms14EffectRegistry*
 __ZGVZNK9gui_forms14FlexItemLayout*
 __ZGVZNK9gui_forms14FlexItemResult*
+__ZGVZNK9gui_forms14FontFamilyFace*
 __ZGVZNK9gui_forms14FractionFactor*
 __ZGVZNK9gui_forms14GalleryCommand*
 __ZGVZNK9gui_forms14GalleryPreview*
@@ -2048,6 +2053,8 @@ __ZGVZNK9gui_forms15EnginePartTable*
 __ZGVZNK9gui_forms15EnginePrimitive*
 __ZGVZNK9gui_forms15EventStatistics*
 __ZGVZNK9gui_forms15FontDeclaration*
+__ZGVZNK9gui_forms15FontFamilyOrder*
+__ZGVZNK9gui_forms15FontFamilyStack*
 __ZGVZNK9gui_forms15FramePollResult*
 __ZGVZNK9gui_forms15GraphLoadResult*
 __ZGVZNK9gui_forms15GraphSaveResult*
@@ -2153,6 +2160,7 @@ __ZGVZNK9gui_forms16FlagsValueEditor*
 __ZGVZNK9gui_forms16FlattenedContour*
 __ZGVZNK9gui_forms16FocusScopeChange*
 __ZGVZNK9gui_forms16FontDialogResult*
+__ZGVZNK9gui_forms16FontFamilyRecord*
 __ZGVZNK9gui_forms16HelpContentsLine*
 __ZGVZNK9gui_forms16HelpContentsNode*
 __ZGVZNK9gui_forms16HelpContentsTree*
@@ -2231,7 +2239,6 @@ __ZGVZNK9gui_forms17BackstageItemSpec*
 __ZGVZNK9gui_forms17BasicControlStyle*
 __ZGVZNK9gui_forms17BindingListChange*
 __ZGVZNK9gui_forms17BreadcrumbSegment*
-__ZGVZNK9gui_forms17BundledFontFamily*
 __ZGVZNK9gui_forms17CalendarDateRange*
 __ZGVZNK9gui_forms17CommandInvocation*
 __ZGVZNK9gui_forms17ControlTextShadow*
@@ -2252,6 +2259,7 @@ __ZGVZNK9gui_forms17EffectDeclaration*
 __ZGVZNK9gui_forms17ErrorIconSnapshot*
 __ZGVZNK9gui_forms17FocusScopeOptions*
 __ZGVZNK9gui_forms17FontFallbackMatch*
+__ZGVZNK9gui_forms17FontFamilyStackId*
 __ZGVZNK9gui_forms17FrameRequestToken*
 __ZGVZNK9gui_forms17GridTemplateAreas*
 __ZGVZNK9gui_forms17HelpResolvedField*
@@ -2947,8 +2955,6 @@ __ZGVZNK9gui_forms6detail14WindowLifetime*
 __ZGVZNK9gui_forms6detail15FailureBoundary*
 __ZGVZNK9gui_forms6detail15FailureSnapshot*
 __ZGVZNK9gui_forms6detail16BorrowOwnerState*
-__ZGVZNK9gui_forms6detail17BundledFamilyFace*
-__ZGVZNK9gui_forms6detail17BundledFamilyName*
 __ZGVZNK9gui_forms6detail17ControlHelpFields*
 __ZGVZNK9gui_forms6detail18WindowHelpFallback*
 __ZGVZNK9gui_forms6detail19NestedEmissionScope*
@@ -3350,6 +3356,7 @@ __ZN9gui_forms12EffectCanvas*
 __ZN9gui_forms12EffectRandom*
 __ZN9gui_forms12FileDialogOk*
 __ZN9gui_forms12FocusScopeId*
+__ZN9gui_forms12FontFamilyId*
 __ZN9gui_forms12GlossColours*
 __ZN9gui_forms12GradientStop*
 __ZN9gui_forms12GrayTextMask*
@@ -3603,6 +3610,7 @@ __ZN9gui_forms14EffectInstance*
 __ZN9gui_forms14EffectRegistry*
 __ZN9gui_forms14FlexItemLayout*
 __ZN9gui_forms14FlexItemResult*
+__ZN9gui_forms14FontFamilyFace*
 __ZN9gui_forms14FractionFactor*
 __ZN9gui_forms14GalleryCommand*
 __ZN9gui_forms14GalleryPreview*
@@ -3760,6 +3768,8 @@ __ZN9gui_forms15EnginePartTable*
 __ZN9gui_forms15EnginePrimitive*
 __ZN9gui_forms15EventStatistics*
 __ZN9gui_forms15FontDeclaration*
+__ZN9gui_forms15FontFamilyOrder*
+__ZN9gui_forms15FontFamilyStack*
 __ZN9gui_forms15FramePollResult*
 __ZN9gui_forms15GraphLoadResult*
 __ZN9gui_forms15GraphSaveResult*
@@ -3907,6 +3917,7 @@ __ZN9gui_forms16FlagsValueEditor*
 __ZN9gui_forms16FlattenedContour*
 __ZN9gui_forms16FocusScopeChange*
 __ZN9gui_forms16FontDialogResult*
+__ZN9gui_forms16FontFamilyRecord*
 __ZN9gui_forms16HelpContentsLine*
 __ZN9gui_forms16HelpContentsNode*
 __ZN9gui_forms16HelpContentsTree*
@@ -4059,7 +4070,6 @@ __ZN9gui_forms17BackstageItemSpec*
 __ZN9gui_forms17BasicControlStyle*
 __ZN9gui_forms17BindingListChange*
 __ZN9gui_forms17BreadcrumbSegment*
-__ZN9gui_forms17BundledFontFamily*
 __ZN9gui_forms17CalendarDateRange*
 __ZN9gui_forms17CommandInvocation*
 __ZN9gui_forms17ControlTextShadow*
@@ -4080,6 +4090,7 @@ __ZN9gui_forms17EffectDeclaration*
 __ZN9gui_forms17ErrorIconSnapshot*
 __ZN9gui_forms17FocusScopeOptions*
 __ZN9gui_forms17FontFallbackMatch*
+__ZN9gui_forms17FontFamilyStackId*
 __ZN9gui_forms17FrameRequestToken*
 __ZN9gui_forms17GridTemplateAreas*
 __ZN9gui_forms17HelpResolvedField*
@@ -4160,6 +4171,10 @@ __ZN9gui_forms17find_custom_stateB*
 __ZN9gui_forms17find_custom_stateE*
 __ZN9gui_forms17find_locale_fieldB*
 __ZN9gui_forms17find_locale_fieldE*
+__ZN9gui_forms17font_family_orderB*
+__ZN9gui_forms17font_family_orderE*
+__ZN9gui_forms17font_family_stackB*
+__ZN9gui_forms17font_family_stackE*
 __ZN9gui_forms17format_sha256_hexB*
 __ZN9gui_forms17format_sha256_hexE*
 __ZN9gui_forms17graph_status_nameB*
@@ -5143,6 +5158,8 @@ __ZN9gui_forms23surface_material_opaqueB*
 __ZN9gui_forms23surface_material_opaqueE*
 __ZN9gui_forms23valid_authored_gradientB*
 __ZN9gui_forms23valid_authored_gradientE*
+__ZN9gui_forms23valid_font_family_stackB*
+__ZN9gui_forms23valid_font_family_stackE*
 __ZN9gui_forms23valid_layout_constraintB*
 __ZN9gui_forms23valid_layout_constraintE*
 __ZN9gui_forms23validate_theme_packagesB*
@@ -5346,6 +5363,8 @@ __ZN9gui_forms26property_value_origin_nameB*
 __ZN9gui_forms26property_value_origin_nameE*
 __ZN9gui_forms26recipe_declaration_lengthsB*
 __ZN9gui_forms26recipe_declaration_lengthsE*
+__ZN9gui_forms26register_font_family_stackB*
+__ZN9gui_forms26register_font_family_stackE*
 __ZN9gui_forms26register_link_flow_effectsB*
 __ZN9gui_forms26register_link_flow_effectsE*
 __ZN9gui_forms26reset_child_property_entryB*
@@ -5739,8 +5758,6 @@ __ZN9gui_forms6detail16count_allocationB*
 __ZN9gui_forms6detail16count_allocationE*
 __ZN9gui_forms6detail16straight_channelB*
 __ZN9gui_forms6detail16straight_channelE*
-__ZN9gui_forms6detail17BundledFamilyFace*
-__ZN9gui_forms6detail17BundledFamilyName*
 __ZN9gui_forms6detail17ControlHelpFields*
 __ZN9gui_forms6detail17toggle_rule_valueB*
 __ZN9gui_forms6detail17toggle_rule_valueE*
@@ -6212,6 +6229,7 @@ __ZNK[RO]9gui_forms12EffectCanvas*
 __ZNK[RO]9gui_forms12EffectRandom*
 __ZNK[RO]9gui_forms12FileDialogOk*
 __ZNK[RO]9gui_forms12FocusScopeId*
+__ZNK[RO]9gui_forms12FontFamilyId*
 __ZNK[RO]9gui_forms12GlossColours*
 __ZNK[RO]9gui_forms12GradientStop*
 __ZNK[RO]9gui_forms12GrayTextMask*
@@ -6401,6 +6419,7 @@ __ZNK[RO]9gui_forms14EffectInstance*
 __ZNK[RO]9gui_forms14EffectRegistry*
 __ZNK[RO]9gui_forms14FlexItemLayout*
 __ZNK[RO]9gui_forms14FlexItemResult*
+__ZNK[RO]9gui_forms14FontFamilyFace*
 __ZNK[RO]9gui_forms14FractionFactor*
 __ZNK[RO]9gui_forms14GalleryCommand*
 __ZNK[RO]9gui_forms14GalleryPreview*
@@ -6510,6 +6529,8 @@ __ZNK[RO]9gui_forms15EnginePartTable*
 __ZNK[RO]9gui_forms15EnginePrimitive*
 __ZNK[RO]9gui_forms15EventStatistics*
 __ZNK[RO]9gui_forms15FontDeclaration*
+__ZNK[RO]9gui_forms15FontFamilyOrder*
+__ZNK[RO]9gui_forms15FontFamilyStack*
 __ZNK[RO]9gui_forms15FramePollResult*
 __ZNK[RO]9gui_forms15GraphLoadResult*
 __ZNK[RO]9gui_forms15GraphSaveResult*
@@ -6615,6 +6636,7 @@ __ZNK[RO]9gui_forms16FlagsValueEditor*
 __ZNK[RO]9gui_forms16FlattenedContour*
 __ZNK[RO]9gui_forms16FocusScopeChange*
 __ZNK[RO]9gui_forms16FontDialogResult*
+__ZNK[RO]9gui_forms16FontFamilyRecord*
 __ZNK[RO]9gui_forms16HelpContentsLine*
 __ZNK[RO]9gui_forms16HelpContentsNode*
 __ZNK[RO]9gui_forms16HelpContentsTree*
@@ -6693,7 +6715,6 @@ __ZNK[RO]9gui_forms17BackstageItemSpec*
 __ZNK[RO]9gui_forms17BasicControlStyle*
 __ZNK[RO]9gui_forms17BindingListChange*
 __ZNK[RO]9gui_forms17BreadcrumbSegment*
-__ZNK[RO]9gui_forms17BundledFontFamily*
 __ZNK[RO]9gui_forms17CalendarDateRange*
 __ZNK[RO]9gui_forms17CommandInvocation*
 __ZNK[RO]9gui_forms17ControlTextShadow*
@@ -6714,6 +6735,7 @@ __ZNK[RO]9gui_forms17EffectDeclaration*
 __ZNK[RO]9gui_forms17ErrorIconSnapshot*
 __ZNK[RO]9gui_forms17FocusScopeOptions*
 __ZNK[RO]9gui_forms17FontFallbackMatch*
+__ZNK[RO]9gui_forms17FontFamilyStackId*
 __ZNK[RO]9gui_forms17FrameRequestToken*
 __ZNK[RO]9gui_forms17GridTemplateAreas*
 __ZNK[RO]9gui_forms17HelpResolvedField*
@@ -7409,8 +7431,6 @@ __ZNK[RO]9gui_forms6detail14WindowLifetime*
 __ZNK[RO]9gui_forms6detail15FailureBoundary*
 __ZNK[RO]9gui_forms6detail15FailureSnapshot*
 __ZNK[RO]9gui_forms6detail16BorrowOwnerState*
-__ZNK[RO]9gui_forms6detail17BundledFamilyFace*
-__ZNK[RO]9gui_forms6detail17BundledFamilyName*
 __ZNK[RO]9gui_forms6detail17ControlHelpFields*
 __ZNK[RO]9gui_forms6detail18WindowHelpFallback*
 __ZNK[RO]9gui_forms6detail19NestedEmissionScope*
@@ -7736,6 +7756,7 @@ __ZN[KRO]9gui_forms12EffectCanvas*
 __ZN[KRO]9gui_forms12EffectRandom*
 __ZN[KRO]9gui_forms12FileDialogOk*
 __ZN[KRO]9gui_forms12FocusScopeId*
+__ZN[KRO]9gui_forms12FontFamilyId*
 __ZN[KRO]9gui_forms12GlossColours*
 __ZN[KRO]9gui_forms12GradientStop*
 __ZN[KRO]9gui_forms12GrayTextMask*
@@ -7925,6 +7946,7 @@ __ZN[KRO]9gui_forms14EffectInstance*
 __ZN[KRO]9gui_forms14EffectRegistry*
 __ZN[KRO]9gui_forms14FlexItemLayout*
 __ZN[KRO]9gui_forms14FlexItemResult*
+__ZN[KRO]9gui_forms14FontFamilyFace*
 __ZN[KRO]9gui_forms14FractionFactor*
 __ZN[KRO]9gui_forms14GalleryCommand*
 __ZN[KRO]9gui_forms14GalleryPreview*
@@ -8034,6 +8056,8 @@ __ZN[KRO]9gui_forms15EnginePartTable*
 __ZN[KRO]9gui_forms15EnginePrimitive*
 __ZN[KRO]9gui_forms15EventStatistics*
 __ZN[KRO]9gui_forms15FontDeclaration*
+__ZN[KRO]9gui_forms15FontFamilyOrder*
+__ZN[KRO]9gui_forms15FontFamilyStack*
 __ZN[KRO]9gui_forms15FramePollResult*
 __ZN[KRO]9gui_forms15GraphLoadResult*
 __ZN[KRO]9gui_forms15GraphSaveResult*
@@ -8139,6 +8163,7 @@ __ZN[KRO]9gui_forms16FlagsValueEditor*
 __ZN[KRO]9gui_forms16FlattenedContour*
 __ZN[KRO]9gui_forms16FocusScopeChange*
 __ZN[KRO]9gui_forms16FontDialogResult*
+__ZN[KRO]9gui_forms16FontFamilyRecord*
 __ZN[KRO]9gui_forms16HelpContentsLine*
 __ZN[KRO]9gui_forms16HelpContentsNode*
 __ZN[KRO]9gui_forms16HelpContentsTree*
@@ -8217,7 +8242,6 @@ __ZN[KRO]9gui_forms17BackstageItemSpec*
 __ZN[KRO]9gui_forms17BasicControlStyle*
 __ZN[KRO]9gui_forms17BindingListChange*
 __ZN[KRO]9gui_forms17BreadcrumbSegment*
-__ZN[KRO]9gui_forms17BundledFontFamily*
 __ZN[KRO]9gui_forms17CalendarDateRange*
 __ZN[KRO]9gui_forms17CommandInvocation*
 __ZN[KRO]9gui_forms17ControlTextShadow*
@@ -8238,6 +8262,7 @@ __ZN[KRO]9gui_forms17EffectDeclaration*
 __ZN[KRO]9gui_forms17ErrorIconSnapshot*
 __ZN[KRO]9gui_forms17FocusScopeOptions*
 __ZN[KRO]9gui_forms17FontFallbackMatch*
+__ZN[KRO]9gui_forms17FontFamilyStackId*
 __ZN[KRO]9gui_forms17FrameRequestToken*
 __ZN[KRO]9gui_forms17GridTemplateAreas*
 __ZN[KRO]9gui_forms17HelpResolvedField*
@@ -8933,8 +8958,6 @@ __ZN[KRO]9gui_forms6detail14WindowLifetime*
 __ZN[KRO]9gui_forms6detail15FailureBoundary*
 __ZN[KRO]9gui_forms6detail15FailureSnapshot*
 __ZN[KRO]9gui_forms6detail16BorrowOwnerState*
-__ZN[KRO]9gui_forms6detail17BundledFamilyFace*
-__ZN[KRO]9gui_forms6detail17BundledFamilyName*
 __ZN[KRO]9gui_forms6detail17ControlHelpFields*
 __ZN[KRO]9gui_forms6detail18WindowHelpFallback*
 __ZN[KRO]9gui_forms6detail19NestedEmissionScope*
@@ -9260,6 +9283,7 @@ __ZT[VIST]N9gui_forms12EffectCanvas*E
 __ZT[VIST]N9gui_forms12EffectRandom*E
 __ZT[VIST]N9gui_forms12FileDialogOk*E
 __ZT[VIST]N9gui_forms12FocusScopeId*E
+__ZT[VIST]N9gui_forms12FontFamilyId*E
 __ZT[VIST]N9gui_forms12GlossColours*E
 __ZT[VIST]N9gui_forms12GradientStop*E
 __ZT[VIST]N9gui_forms12GrayTextMask*E
@@ -9449,6 +9473,7 @@ __ZT[VIST]N9gui_forms14EffectInstance*E
 __ZT[VIST]N9gui_forms14EffectRegistry*E
 __ZT[VIST]N9gui_forms14FlexItemLayout*E
 __ZT[VIST]N9gui_forms14FlexItemResult*E
+__ZT[VIST]N9gui_forms14FontFamilyFace*E
 __ZT[VIST]N9gui_forms14FractionFactor*E
 __ZT[VIST]N9gui_forms14GalleryCommand*E
 __ZT[VIST]N9gui_forms14GalleryPreview*E
@@ -9558,6 +9583,8 @@ __ZT[VIST]N9gui_forms15EnginePartTable*E
 __ZT[VIST]N9gui_forms15EnginePrimitive*E
 __ZT[VIST]N9gui_forms15EventStatistics*E
 __ZT[VIST]N9gui_forms15FontDeclaration*E
+__ZT[VIST]N9gui_forms15FontFamilyOrder*E
+__ZT[VIST]N9gui_forms15FontFamilyStack*E
 __ZT[VIST]N9gui_forms15FramePollResult*E
 __ZT[VIST]N9gui_forms15GraphLoadResult*E
 __ZT[VIST]N9gui_forms15GraphSaveResult*E
@@ -9663,6 +9690,7 @@ __ZT[VIST]N9gui_forms16FlagsValueEditor*E
 __ZT[VIST]N9gui_forms16FlattenedContour*E
 __ZT[VIST]N9gui_forms16FocusScopeChange*E
 __ZT[VIST]N9gui_forms16FontDialogResult*E
+__ZT[VIST]N9gui_forms16FontFamilyRecord*E
 __ZT[VIST]N9gui_forms16HelpContentsLine*E
 __ZT[VIST]N9gui_forms16HelpContentsNode*E
 __ZT[VIST]N9gui_forms16HelpContentsTree*E
@@ -9741,7 +9769,6 @@ __ZT[VIST]N9gui_forms17BackstageItemSpec*E
 __ZT[VIST]N9gui_forms17BasicControlStyle*E
 __ZT[VIST]N9gui_forms17BindingListChange*E
 __ZT[VIST]N9gui_forms17BreadcrumbSegment*E
-__ZT[VIST]N9gui_forms17BundledFontFamily*E
 __ZT[VIST]N9gui_forms17CalendarDateRange*E
 __ZT[VIST]N9gui_forms17CommandInvocation*E
 __ZT[VIST]N9gui_forms17ControlTextShadow*E
@@ -9762,6 +9789,7 @@ __ZT[VIST]N9gui_forms17EffectDeclaration*E
 __ZT[VIST]N9gui_forms17ErrorIconSnapshot*E
 __ZT[VIST]N9gui_forms17FocusScopeOptions*E
 __ZT[VIST]N9gui_forms17FontFallbackMatch*E
+__ZT[VIST]N9gui_forms17FontFamilyStackId*E
 __ZT[VIST]N9gui_forms17FrameRequestToken*E
 __ZT[VIST]N9gui_forms17GridTemplateAreas*E
 __ZT[VIST]N9gui_forms17HelpResolvedField*E
@@ -10457,8 +10485,6 @@ __ZT[VIST]N9gui_forms6detail14WindowLifetime*E
 __ZT[VIST]N9gui_forms6detail15FailureBoundary*E
 __ZT[VIST]N9gui_forms6detail15FailureSnapshot*E
 __ZT[VIST]N9gui_forms6detail16BorrowOwnerState*E
-__ZT[VIST]N9gui_forms6detail17BundledFamilyFace*E
-__ZT[VIST]N9gui_forms6detail17BundledFamilyName*E
 __ZT[VIST]N9gui_forms6detail17ControlHelpFields*E
 __ZT[VIST]N9gui_forms6detail18WindowHelpFallback*E
 __ZT[VIST]N9gui_forms6detail19NestedEmissionScope*E
@@ -10784,6 +10810,7 @@ __ZT[hvc]*9gui_forms12EffectCanvas*
 __ZT[hvc]*9gui_forms12EffectRandom*
 __ZT[hvc]*9gui_forms12FileDialogOk*
 __ZT[hvc]*9gui_forms12FocusScopeId*
+__ZT[hvc]*9gui_forms12FontFamilyId*
 __ZT[hvc]*9gui_forms12GlossColours*
 __ZT[hvc]*9gui_forms12GradientStop*
 __ZT[hvc]*9gui_forms12GrayTextMask*
@@ -10973,6 +11000,7 @@ __ZT[hvc]*9gui_forms14EffectInstance*
 __ZT[hvc]*9gui_forms14EffectRegistry*
 __ZT[hvc]*9gui_forms14FlexItemLayout*
 __ZT[hvc]*9gui_forms14FlexItemResult*
+__ZT[hvc]*9gui_forms14FontFamilyFace*
 __ZT[hvc]*9gui_forms14FractionFactor*
 __ZT[hvc]*9gui_forms14GalleryCommand*
 __ZT[hvc]*9gui_forms14GalleryPreview*
@@ -11082,6 +11110,8 @@ __ZT[hvc]*9gui_forms15EnginePartTable*
 __ZT[hvc]*9gui_forms15EnginePrimitive*
 __ZT[hvc]*9gui_forms15EventStatistics*
 __ZT[hvc]*9gui_forms15FontDeclaration*
+__ZT[hvc]*9gui_forms15FontFamilyOrder*
+__ZT[hvc]*9gui_forms15FontFamilyStack*
 __ZT[hvc]*9gui_forms15FramePollResult*
 __ZT[hvc]*9gui_forms15GraphLoadResult*
 __ZT[hvc]*9gui_forms15GraphSaveResult*
@@ -11187,6 +11217,7 @@ __ZT[hvc]*9gui_forms16FlagsValueEditor*
 __ZT[hvc]*9gui_forms16FlattenedContour*
 __ZT[hvc]*9gui_forms16FocusScopeChange*
 __ZT[hvc]*9gui_forms16FontDialogResult*
+__ZT[hvc]*9gui_forms16FontFamilyRecord*
 __ZT[hvc]*9gui_forms16HelpContentsLine*
 __ZT[hvc]*9gui_forms16HelpContentsNode*
 __ZT[hvc]*9gui_forms16HelpContentsTree*
@@ -11265,7 +11296,6 @@ __ZT[hvc]*9gui_forms17BackstageItemSpec*
 __ZT[hvc]*9gui_forms17BasicControlStyle*
 __ZT[hvc]*9gui_forms17BindingListChange*
 __ZT[hvc]*9gui_forms17BreadcrumbSegment*
-__ZT[hvc]*9gui_forms17BundledFontFamily*
 __ZT[hvc]*9gui_forms17CalendarDateRange*
 __ZT[hvc]*9gui_forms17CommandInvocation*
 __ZT[hvc]*9gui_forms17ControlTextShadow*
@@ -11286,6 +11316,7 @@ __ZT[hvc]*9gui_forms17EffectDeclaration*
 __ZT[hvc]*9gui_forms17ErrorIconSnapshot*
 __ZT[hvc]*9gui_forms17FocusScopeOptions*
 __ZT[hvc]*9gui_forms17FontFallbackMatch*
+__ZT[hvc]*9gui_forms17FontFamilyStackId*
 __ZT[hvc]*9gui_forms17FrameRequestToken*
 __ZT[hvc]*9gui_forms17GridTemplateAreas*
 __ZT[hvc]*9gui_forms17HelpResolvedField*
@@ -11981,8 +12012,6 @@ __ZT[hvc]*9gui_forms6detail14WindowLifetime*
 __ZT[hvc]*9gui_forms6detail15FailureBoundary*
 __ZT[hvc]*9gui_forms6detail15FailureSnapshot*
 __ZT[hvc]*9gui_forms6detail16BorrowOwnerState*
-__ZT[hvc]*9gui_forms6detail17BundledFamilyFace*
-__ZT[hvc]*9gui_forms6detail17BundledFamilyName*
 __ZT[hvc]*9gui_forms6detail17ControlHelpFields*
 __ZT[hvc]*9gui_forms6detail18WindowHelpFallback*
 __ZT[hvc]*9gui_forms6detail19NestedEmissionScope*
@@ -12308,6 +12337,7 @@ __ZZN9gui_forms12EffectCanvas*
 __ZZN9gui_forms12EffectRandom*
 __ZZN9gui_forms12FileDialogOk*
 __ZZN9gui_forms12FocusScopeId*
+__ZZN9gui_forms12FontFamilyId*
 __ZZN9gui_forms12GlossColours*
 __ZZN9gui_forms12GradientStop*
 __ZZN9gui_forms12GrayTextMask*
@@ -12497,6 +12527,7 @@ __ZZN9gui_forms14EffectInstance*
 __ZZN9gui_forms14EffectRegistry*
 __ZZN9gui_forms14FlexItemLayout*
 __ZZN9gui_forms14FlexItemResult*
+__ZZN9gui_forms14FontFamilyFace*
 __ZZN9gui_forms14FractionFactor*
 __ZZN9gui_forms14GalleryCommand*
 __ZZN9gui_forms14GalleryPreview*
@@ -12606,6 +12637,8 @@ __ZZN9gui_forms15EnginePartTable*
 __ZZN9gui_forms15EnginePrimitive*
 __ZZN9gui_forms15EventStatistics*
 __ZZN9gui_forms15FontDeclaration*
+__ZZN9gui_forms15FontFamilyOrder*
+__ZZN9gui_forms15FontFamilyStack*
 __ZZN9gui_forms15FramePollResult*
 __ZZN9gui_forms15GraphLoadResult*
 __ZZN9gui_forms15GraphSaveResult*
@@ -12711,6 +12744,7 @@ __ZZN9gui_forms16FlagsValueEditor*
 __ZZN9gui_forms16FlattenedContour*
 __ZZN9gui_forms16FocusScopeChange*
 __ZZN9gui_forms16FontDialogResult*
+__ZZN9gui_forms16FontFamilyRecord*
 __ZZN9gui_forms16HelpContentsLine*
 __ZZN9gui_forms16HelpContentsNode*
 __ZZN9gui_forms16HelpContentsTree*
@@ -12789,7 +12823,6 @@ __ZZN9gui_forms17BackstageItemSpec*
 __ZZN9gui_forms17BasicControlStyle*
 __ZZN9gui_forms17BindingListChange*
 __ZZN9gui_forms17BreadcrumbSegment*
-__ZZN9gui_forms17BundledFontFamily*
 __ZZN9gui_forms17CalendarDateRange*
 __ZZN9gui_forms17CommandInvocation*
 __ZZN9gui_forms17ControlTextShadow*
@@ -12810,6 +12843,7 @@ __ZZN9gui_forms17EffectDeclaration*
 __ZZN9gui_forms17ErrorIconSnapshot*
 __ZZN9gui_forms17FocusScopeOptions*
 __ZZN9gui_forms17FontFallbackMatch*
+__ZZN9gui_forms17FontFamilyStackId*
 __ZZN9gui_forms17FrameRequestToken*
 __ZZN9gui_forms17GridTemplateAreas*
 __ZZN9gui_forms17HelpResolvedField*
@@ -13505,8 +13539,6 @@ __ZZN9gui_forms6detail14WindowLifetime*
 __ZZN9gui_forms6detail15FailureBoundary*
 __ZZN9gui_forms6detail15FailureSnapshot*
 __ZZN9gui_forms6detail16BorrowOwnerState*
-__ZZN9gui_forms6detail17BundledFamilyFace*
-__ZZN9gui_forms6detail17BundledFamilyName*
 __ZZN9gui_forms6detail17ControlHelpFields*
 __ZZN9gui_forms6detail18WindowHelpFallback*
 __ZZN9gui_forms6detail19NestedEmissionScope*
@@ -13832,6 +13864,7 @@ __ZZNK9gui_forms12EffectCanvas*
 __ZZNK9gui_forms12EffectRandom*
 __ZZNK9gui_forms12FileDialogOk*
 __ZZNK9gui_forms12FocusScopeId*
+__ZZNK9gui_forms12FontFamilyId*
 __ZZNK9gui_forms12GlossColours*
 __ZZNK9gui_forms12GradientStop*
 __ZZNK9gui_forms12GrayTextMask*
@@ -14021,6 +14054,7 @@ __ZZNK9gui_forms14EffectInstance*
 __ZZNK9gui_forms14EffectRegistry*
 __ZZNK9gui_forms14FlexItemLayout*
 __ZZNK9gui_forms14FlexItemResult*
+__ZZNK9gui_forms14FontFamilyFace*
 __ZZNK9gui_forms14FractionFactor*
 __ZZNK9gui_forms14GalleryCommand*
 __ZZNK9gui_forms14GalleryPreview*
@@ -14130,6 +14164,8 @@ __ZZNK9gui_forms15EnginePartTable*
 __ZZNK9gui_forms15EnginePrimitive*
 __ZZNK9gui_forms15EventStatistics*
 __ZZNK9gui_forms15FontDeclaration*
+__ZZNK9gui_forms15FontFamilyOrder*
+__ZZNK9gui_forms15FontFamilyStack*
 __ZZNK9gui_forms15FramePollResult*
 __ZZNK9gui_forms15GraphLoadResult*
 __ZZNK9gui_forms15GraphSaveResult*
@@ -14235,6 +14271,7 @@ __ZZNK9gui_forms16FlagsValueEditor*
 __ZZNK9gui_forms16FlattenedContour*
 __ZZNK9gui_forms16FocusScopeChange*
 __ZZNK9gui_forms16FontDialogResult*
+__ZZNK9gui_forms16FontFamilyRecord*
 __ZZNK9gui_forms16HelpContentsLine*
 __ZZNK9gui_forms16HelpContentsNode*
 __ZZNK9gui_forms16HelpContentsTree*
@@ -14313,7 +14350,6 @@ __ZZNK9gui_forms17BackstageItemSpec*
 __ZZNK9gui_forms17BasicControlStyle*
 __ZZNK9gui_forms17BindingListChange*
 __ZZNK9gui_forms17BreadcrumbSegment*
-__ZZNK9gui_forms17BundledFontFamily*
 __ZZNK9gui_forms17CalendarDateRange*
 __ZZNK9gui_forms17CommandInvocation*
 __ZZNK9gui_forms17ControlTextShadow*
@@ -14334,6 +14370,7 @@ __ZZNK9gui_forms17EffectDeclaration*
 __ZZNK9gui_forms17ErrorIconSnapshot*
 __ZZNK9gui_forms17FocusScopeOptions*
 __ZZNK9gui_forms17FontFallbackMatch*
+__ZZNK9gui_forms17FontFamilyStackId*
 __ZZNK9gui_forms17FrameRequestToken*
 __ZZNK9gui_forms17GridTemplateAreas*
 __ZZNK9gui_forms17HelpResolvedField*
@@ -15029,8 +15066,6 @@ __ZZNK9gui_forms6detail14WindowLifetime*
 __ZZNK9gui_forms6detail15FailureBoundary*
 __ZZNK9gui_forms6detail15FailureSnapshot*
 __ZZNK9gui_forms6detail16BorrowOwnerState*
-__ZZNK9gui_forms6detail17BundledFamilyFace*
-__ZZNK9gui_forms6detail17BundledFamilyName*
 __ZZNK9gui_forms6detail17ControlHelpFields*
 __ZZNK9gui_forms6detail18WindowHelpFallback*
 __ZZNK9gui_forms6detail19NestedEmissionScope*

@@ -2,7 +2,7 @@
 
 #include "../source_text/theme_source_text.hpp"
 
-#include "../../resources/fonts/bundled_font_families.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 
 #include "gui_forms/engine/authored_gradient/authored_gradient.hpp"
 #include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -3088,60 +3089,116 @@ bool MaterialReader::lower_part_shape(RecipeField length_field, RecipeField colo
     return true;
 }
 
-// `font-family` (T4 fonts; named families, owner decision of 2026-11-10):
-// one bundled font role, `control`, `content` or `monospace`, or the name of
-// a bundled family (gui_forms::detail::bundled_family_names), quoted or written as
-// words, in any ASCII case: `Selawik`, `"Portsmouth Rapids"`, `Carlito`. The
-// name of a role's face stands for that role. A numbered family (Selawik)
-// draws its own faces first and the content role's faces for anything it
-// lacks. A name no bundled family has, a generic family and a list are
-// refused: GUI.Forms draws its bundled faces, never a host font.
+// `font-family` (T4 fonts; named families, owner decision of 2026-11-10;
+// stacks, owner decisions of 2026-11-13): a comma-separated list of bundled
+// family names (gui_forms/typography/font_families/font_families.hpp),
+// each quoted or written as words, in any ASCII case, optionally ended by a
+// role, `control`, `content` or `monospace`:
+// `Selawik`, `"Portsmouth Rapids", Carlito`, `Selawik, monospace`.
+// The first named family the registry has is the font's family; the others
+// form a registered stack drawn after it; the role draws last. A name the
+// registry does not have (a host font, a generic family, a face only
+// GUI.Drawing ships) is passed over with a warning (W113), never refused:
+// GUI.Forms draws its bundled faces, never a host font. When no named
+// family is available and no role is written, the declaration is dropped
+// with that warning. Without a written role, a role's family as the first
+// family brings its role (Carlito: content), and any other family the
+// content role. A role's family written alone stands for its role, with no
+// family (`font-family: Cousine` is the monospace role, as before stacks).
 bool MaterialReader::lower_font_family() {
-    const std::size_t count = value_.components.size();
-    const ValueComponent& first = value_.components[0];
     RecipeDeclaration declaration = recipe_declaration(RecipeField::font_family);
-    if (count == 1U && first.kind == ValueComponentKind::keyword) {
-        bool role_named = true;
-        if (keyword(0U, "control")) {
-            declaration.font_role = FontRole::control;
-        } else if (keyword(0U, "content")) {
-            declaration.font_role = FontRole::content;
-        } else if (keyword(0U, "monospace")) {
-            declaration.font_role = FontRole::monospace;
-        } else {
-            role_named = false;
+    std::vector<ComponentRange> entries{};
+    split(ComponentRange{0U, value_.components.size()}, entries);
+    // Every family named, then the ones the registry has, in order, each once.
+    constexpr std::size_t maximum_named = 1U + maximum_font_stack_families;
+    std::array<FontFamilyId, maximum_named> available{};
+    std::size_t available_count = 0U;
+    std::size_t named_count = 0U;
+    std::optional<FontRole> written_role{};
+    std::uint32_t first_unavailable_token = start_;
+    std::string first_unavailable{};
+    for (std::size_t entry_index = 0U; entry_index < entries.size(); ++entry_index) {
+        const ComponentRange entry = entries[entry_index];
+        if (entry.first == entry.end) {
+            const std::uint32_t token = entry.first < value_.components.size()
+                                            ? value_.components[entry.first].token
+                                            : start_;
+            return fail(DiagnosticCode::value_syntax, token, "a bundled font family or role");
         }
-        if (role_named) {
-            lowering_.recipe_fields.push_back(declaration);
-            return true;
+        const ValueComponent& first = value_.components[entry.first];
+        if (written_role) {
+            return fail(DiagnosticCode::value_form_not_admitted, first.token, "a font role only as the last entry");
         }
-    }
-    // A family name: one string, or words joined by single spaces.
-    std::string name{};
-    if (count == 1U && first.kind == ValueComponentKind::string) {
-        name = std::string(first.text);
-    } else if (count == 1U && first.kind != ValueComponentKind::keyword) {
-        return fail(DiagnosticCode::value_wrong_kind, first.token, "a bundled font role or family");
-    } else {
-        for (std::size_t index = 0U; index < count; ++index) {
-            const ValueComponent& component = value_.components[index];
-            if (component.kind != ValueComponentKind::keyword) {
-                return fail(DiagnosticCode::value_form_not_admitted, component.token,
-                            "one bundled font role or family");
+        const std::size_t words = count(entry);
+        if (words == 1U && first.kind == ValueComponentKind::keyword) {
+            if (keyword(entry.first, "control")) {
+                written_role = FontRole::control;
+            } else if (keyword(entry.first, "content")) {
+                written_role = FontRole::content;
+            } else if (keyword(entry.first, "monospace")) {
+                written_role = FontRole::monospace;
             }
-            if (index != 0U) name += ' ';
-            name += component.text;
+            if (written_role) continue;
         }
+        // A family name: one string, or words joined by single spaces.
+        std::string name{};
+        if (words == 1U && first.kind == ValueComponentKind::string) {
+            name = std::string(first.text);
+        } else {
+            for (std::size_t index = entry.first; index < entry.end; index = next(index)) {
+                const ValueComponent& component = value_.components[index];
+                if (component.kind != ValueComponentKind::keyword) {
+                    return fail(DiagnosticCode::value_wrong_kind, component.token, "a bundled font family or role");
+                }
+                if (index != entry.first) name += ' ';
+                name += component.text;
+            }
+        }
+        named_count = named_count + 1U;
+        if (named_count > maximum_named) {
+            return fail(DiagnosticCode::value_form_not_admitted, first.token, "at most five font families");
+        }
+        const FontFamilyRecord* const family = font_family_named(name);
+        if (family == nullptr) {
+            std::string detail = clipped_theme_detail(name);
+            if (first_unavailable.empty()) {
+                first_unavailable = detail;
+                first_unavailable_token = first.token;
+            }
+            lowering_.warnings.push_back(
+                MaterialLoweringProblem{DiagnosticCode::font_family_unavailable, first.token, std::move(detail)});
+            continue;
+        }
+        bool listed = false;
+        for (std::size_t index = 0U; index < available_count; ++index) {
+            if (available[index] == (*family).id) listed = true;
+        }
+        if (listed) continue;
+        available[available_count] = (*family).id;
+        available_count = available_count + 1U;
     }
-    const gui_forms::detail::BundledFamilyName* const family = gui_forms::detail::bundled_family_named(name);
-    if (family == nullptr) {
-        return fail(DiagnosticCode::keyword_unknown, first.token, clipped_theme_detail(name));
+    if (available_count == 0U) {
+        if (!written_role) {
+            return fail(DiagnosticCode::font_family_unavailable, first_unavailable_token, first_unavailable);
+        }
+        declaration.font_role = *written_role;
+        lowering_.recipe_fields.push_back(declaration);
+        return true;
     }
-    if ((*family).role) {
-        declaration.font_role = *(*family).role;
-    } else {
-        declaration.font_role = FontRole::content;
-        declaration.font_family = (*family).family;
+    const FontFamilyRecord& first_family = *font_family_record(available[0]);
+    FontRole role = FontRole::content;
+    if (written_role) {
+        role = *written_role;
+    } else if (first_family.role) {
+        role = *first_family.role;
+    }
+    declaration.font_role = role;
+    const bool role_alone = available_count == 1U && first_family.role && *first_family.role == role;
+    if (!role_alone) declaration.font_family = available[0];
+    if (available_count > 1U) {
+        const std::span<const FontFamilyId> rest(available.data() + 1U, available_count - 1U);
+        // A full stack registry leaves the font its first family and its role.
+        declaration.font_stack = register_font_family_stack(rest);
     }
     lowering_.recipe_fields.push_back(declaration);
     return true;
@@ -3303,6 +3360,7 @@ void MaterialReader::lower(MaterialProperty property) {
     lowering_.read_current_colour = false;
     lowering_.declarations.clear();
     lowering_.recipe_fields.clear();
+    lowering_.warnings.clear();
     lowering_.problem = MaterialLoweringProblem{};
     if (value_.components.empty()) {
         fail(DiagnosticCode::value_syntax, start_, "a value");

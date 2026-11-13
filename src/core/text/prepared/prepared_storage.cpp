@@ -1,5 +1,6 @@
 #include "prepared_storage.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 
 #include <cmath>
 #include <limits>
@@ -234,6 +235,9 @@ PreparedTextStatus validate_prepared_key(const PreparedTextKey& key) noexcept {
         key.source.begin.value > key.source.end.value || key.source.begin.value < page.permitted.begin.value ||
         key.source.end.value > page.permitted.end.value || key.display_begin.value > key.display_end.value ||
         !valid_font_spec(key.font) || !std::isfinite(key.scale) || !std::isfinite(key.wrap_width)) {
+        return PreparedTextStatus::invalid_input;
+    }
+    if (!valid_font_family(key.font.family) || !valid_font_family_stack(key.font.stack)) {
         return PreparedTextStatus::invalid_input;
     }
     if (key.font.size < 4 || key.font.size > 128 || key.scale < 0.5 || key.scale > 4 ||

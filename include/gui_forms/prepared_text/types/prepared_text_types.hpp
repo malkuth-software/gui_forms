@@ -66,12 +66,18 @@ struct GUI_FORMS_API PreparedParagraphProof final {
     bool complete_end{};
 };
 
+// One face of a font bank: a role's face (`role`), a face of a registered
+// family (`family`, a FontFamilyId the family registry has; text whose
+// family order lists the family draws it first, its face nearest the weight
+// and slant), or a fallback face (neither). A face is never both a role's
+// and a family's.
 struct GUI_FORMS_API PreparedFontSource final {
     std::span<const std::byte> encoded{};
     std::optional<FontRole> role{};
     std::uint16_t weight{400};
     bool italic{};
     std::uint32_t face_index{};
+    FontFamilyId family{};
 };
 
 struct GUI_FORMS_API PreparedTextLimits final {

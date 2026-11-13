@@ -67,6 +67,9 @@ PreparedTextStatus PreparedTextService::create_font_bank(const std::span<const P
             specification.role = *source.role;
             if (!valid_font_spec(specification)) return PreparedTextStatus::invalid_input;
         }
+        if (!valid_font_family(source.family) || (source.family.value != 0U && source.role)) {
+            return PreparedTextStatus::invalid_input;
+        }
         if (source.encoded.size() > PreparedTextLimits::font_face_bytes ||
             source.encoded.size() > PreparedTextLimits::font_bytes - bytes) return PreparedTextStatus::budget_exceeded;
         bytes += source.encoded.size();
@@ -98,6 +101,7 @@ PreparedTextStatus PreparedTextService::create_font_bank(const std::span<const P
             face.weight = source.weight;
             face.italic = source.italic;
             face.index = source.face_index;
+            face.family = source.family;
         }
         const PreparedTextStatus compatible = detail::validate_prepared_fonts(bank);
         if (compatible != PreparedTextStatus::success) return compatible;
@@ -354,8 +358,10 @@ void PreparedSessionState::run() noexcept {
         for (std::size_t index = 0; index < bank.face_count; ++index) {
             const PreparedFontFace& face = bank.faces[index];
             const std::span<const std::byte> encoded(face.bytes.get(), face.size);
-            const std::optional<FontFaceId> registered = (*engine).register_owned_typeface(
-                face.role, face.weight, face.italic, encoded, fonts, face.index);
+            const std::optional<FontFaceId> registered = face.family.value != 0U
+                ? (*engine).register_owned_family_typeface(face.family, face.weight, face.italic, encoded, fonts,
+                                                           face.index)
+                : (*engine).register_owned_typeface(face.role, face.weight, face.italic, encoded, fonts, face.index);
             if (!registered) {
                 initialization = PreparedTextStatus::incompatible_font;
                 engine.reset();

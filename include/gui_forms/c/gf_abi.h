@@ -374,12 +374,18 @@ typedef uint32_t gf_font_role;
  * 1), size in logical pixels (finite, above zero) and the logical pixels
  * added between grapheme clusters (finite, from -size/4 to size).
  *
- * reserved holds, since 1.2, the font's bundled family: an id from
- * fonts.family_id (Selawik, say), whose faces draw before the role's, or
- * zero for the role's faces alone. The role still draws what the family
- * does not cover. An id the library does not have gives
- * GF_STATUS_INVALID_ARGUMENT; a 1.1 library takes only zero. (The word
- * keeps its sealed name: renaming a sealed field is a break.)
+ * reserved's low 16 bits hold, since 1.2, the font's bundled family: an id
+ * from fonts.family_id (Selawik, say), whose face nearest the weight and
+ * slant draws before the role's (never synthesized), or zero for the role's
+ * faces alone. The role still draws what the family does not cover. Its
+ * high 16 bits hold, since 1.3, the font's family stack: the families a
+ * theme's font-family list names after the first, drawn after the family
+ * and before the role. A stack number is the process's: read it from a font
+ * (properties.get) and pass it back within the same process, never store
+ * it. An id or stack number the library does not have gives
+ * GF_STATUS_INVALID_ARGUMENT; a 1.2 library takes only zero in the high
+ * bits, a 1.1 library only zero. (The word keeps its sealed name: renaming
+ * a sealed field is a break.)
  */
 typedef struct gf_font {
     gf_font_role role;
@@ -3735,13 +3741,20 @@ typedef struct gf_docking_table {
 
 /*
  * GF_TABLE_FONTS (since 1.2): the bundled font families a gf_font names in
- * its reserved word (owner decision D2). A family is a fixed set of faces
- * the library ships; family_id gives the id of one by the name its faces
- * report (ASCII case ignored), family_name the name of an id. A role's own
- * face (Portsmouth Rapids, Carlito, Cousine) has no id: gf_font.role names
- * it, and family_id gives GF_STATUS_NOT_FOUND for it as for an unknown
- * name. Both read only the library's constant list and may be called from
- * any thread.
+ * its reserved word (owner decision D2; the family registry, owner
+ * decisions of 2026-11-13). A family is a fixed set of faces the library
+ * ships, with a number that never changes; an application cannot add one.
+ * family_id gives the id for a name (ASCII case ignored): a family's own
+ * name, then a name the library's font substitution table maps to a
+ * bundled face (Segoe UI and Tahoma to Selawik). Resolve a name once and
+ * pass the id. A name nothing maps to a bundled family (Arial, whose
+ * substitute is not bundled with every program, or an unknown name) gives
+ * GF_STATUS_NOT_FOUND: it is unmapped, and the role's faces draw. Since
+ * 1.3 a role's own face (Portsmouth Rapids, Carlito, Cousine) has an id as
+ * well; a 1.2 library gives GF_STATUS_NOT_FOUND for it. family_name gives
+ * the name of an id (the name Windows Forms' Font.FontFamily.Name reports).
+ * Both read only the library's constant tables and may be called from any
+ * thread.
  */
 typedef struct gf_fonts_table {
     uint32_t struct_size;

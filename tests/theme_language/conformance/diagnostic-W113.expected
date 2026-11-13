@@ -1,0 +1,5 @@
+compiled
+W113 font_family_unavailable 2:23 rule=button property=font-family detail=Comic Sans
+rule 0 theme_sheet type=button
+  label button
+  recipe font_family colour=#000000ff number=0 outline=0 role=1 family=1 stack=[4]
