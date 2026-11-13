@@ -1118,6 +1118,7 @@ add_library(gui_forms_controls STATIC
     src/controls/container/master_detail_view/master_detail_view.cpp
     src/controls/collections/expandable_sections.cpp
     src/controls/collections/row_height_index.cpp
+    src/controls/collections/column_strip.cpp
     src/controls/virtual_rows_view/virtual_rows_view.cpp
     src/controls/virtual_rows_view/virtual_rows_columns.cpp
     src/controls/collections/choice_group.cpp
@@ -4635,6 +4636,11 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_data_grid_view_tests tests/data_grid_view_tests.cpp)
     target_link_libraries(gui_forms_data_grid_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_data_grid_view_tests COMMAND gui_forms_data_grid_view_tests)
+    # The one data engine's million-row workload (cp33); set
+    # GUI_FORMS_GRID_WORKLOAD_TIMING for each step's time.
+    add_executable(gui_forms_data_grid_view_workload_tests tests/data_grid_view_workload_tests.cpp)
+    target_link_libraries(gui_forms_data_grid_view_workload_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_data_grid_view_workload_tests COMMAND gui_forms_data_grid_view_workload_tests)
     add_executable(gui_forms_data_grid_view_order_tests tests/data_grid_view_order_tests.cpp)
     target_link_libraries(gui_forms_data_grid_view_order_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_data_grid_view_order_tests COMMAND gui_forms_data_grid_view_order_tests)

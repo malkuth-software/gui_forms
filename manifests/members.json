@@ -2351,6 +2351,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "row_order_mode", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "row_order_statistics", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "row_source", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "scroll_statistics", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "virtual_row_window_source", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "column_header_click", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "draw_item_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_cells_tests.cpp"},
@@ -2421,6 +2422,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "set_row_selected", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_virtual_row_order", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_virtual_rows", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_cells_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "shared_row", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "written", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "ChoiceGroup", "winforms": null, "gui_forms_base": "Panel", "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp", "members": [

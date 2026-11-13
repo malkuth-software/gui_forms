@@ -468,6 +468,7 @@ void DataGridView::apply_auto_sizes() {
         const std::optional<double> width = automatic_width(column, mode, layout);
         if (structure_revision_ != revision) return;
         if (width) columns_[column].width = *width;
+        columns_placed_changed();
     }
     auto_size_stale_ = false;
     if (fills) distribute_fill_width();
@@ -484,6 +485,7 @@ void DataGridView::distribute_fill_width() {
         if (!definition.visible) continue;
         if (column_auto_size_mode(column) == DataGridViewAutoSizeColumnMode::fill) {
             definition.width = definition.minimum_width;
+            columns_placed_changed();
             weights += definition.fill_weight;
         } else {
             fixed += definition.width;
@@ -519,6 +521,7 @@ void DataGridView::distribute_fill_width() {
         }
         DataGridViewColumn& definition = columns_[column];
         if (weights > 0.0) definition.width = available * definition.fill_weight / weights;
+        columns_placed_changed();
     }
 }
 
@@ -532,6 +535,7 @@ void DataGridView::auto_resize_column(std::size_t column, DataGridViewAutoSizeCo
     // A formatting handler may have changed the columns.
     if (!width || !is_alive() || column >= columns_.size() || columns_[column].width == *width) return;
     columns_[column].width = *width;
+    columns_placed_changed();
     structure_changed();
     column_width_changed_.emit(column);
 }
@@ -603,8 +607,9 @@ double DataGridView::preferred_cell_height(DataGridViewRowPosition row, std::siz
                                                 measure, lines);
         content = line * static_cast<double>(std::max<std::size_t>(1U, lines.size()));
     }
-    // The cell's grid line is inside its height.
-    const double result = content + padding.top + padding.bottom + 1.0;
+    // The cell's grid line is inside its height. Row heights are kept in
+    // the row index's 1/64 units, so the preferred height is given as stored.
+    const double result = DataGridViewRowHeights::stored_height(content + padding.top + padding.bottom + 1.0);
     return result;
 }
 
@@ -644,7 +649,8 @@ double DataGridView::preferred_row_header_height(DataGridViewRowPosition row) co
     const double scale = effective_text_scale();
     const FontSpec face = (style.font ? effective_font(*style.font) : text_font(font.read()));
     const Insets padding = content_padding(style, 1.0);
-    const double result = text_line_height(face) / scale + padding.top + padding.bottom + 1.0;
+    // As stored by the row index (see preferred_cell_height).
+    const double result = DataGridViewRowHeights::stored_height(text_line_height(face) / scale + padding.top + padding.bottom + 1.0);
     return result;
 }
 
@@ -787,9 +793,22 @@ void DataGridView::auto_resize_columns(DataGridViewAutoSizeColumnsMode mode) {
 // -- layout ------------------------------------------------------------------
 
 double DataGridView::content_width() const noexcept {
-    double width = 0.0;
-    for (const std::size_t column : shown_order_) width += columns_[column].width;
-    return width;
+    return column_strip().total();
+}
+
+const ColumnStrip& DataGridView::column_strip() const {
+    if (!column_strip_stale_) return column_strip_;
+    // The frozen run reaches through the last frozen shown column.
+    column_strip_widths_.resize(shown_order_.size());
+    std::size_t frozen = 0U;
+    for (std::size_t position = 0U; position < shown_order_.size(); ++position) {
+        const std::size_t column = shown_order_[position];
+        column_strip_widths_[position] = columns_[column].width;
+        if (columns_[column].frozen) frozen = position + 1U;
+    }
+    column_strip_.assign(column_strip_widths_, frozen);
+    column_strip_stale_ = false;
+    return column_strip_;
 }
 
 DataGridView::GridLayout DataGridView::grid_layout() const {
@@ -862,12 +881,11 @@ double DataGridView::column_left(std::size_t column, const GridLayout& layout) c
     const double frame_sum = layout.client.x * 2.0 + layout.client.width;
     const double reading_start = layout.mirrored ? frame_sum - layout.data.x - layout.data.width : layout.data.x;
     const std::size_t display = column < shown_indices_.size() ? shown_indices_[column] : shown_order_.size();
+    const ColumnStrip& strip = column_strip();
     // Frozen columns do not scroll.
     double x = reading_start;
-    if (display >= frozen_display_count()) x -= horizontal_offset_ * layout.scale;
-    for (std::size_t position = 0; position < display; ++position) {
-        x += shown_width(shown_order_[position]) * layout.scale;
-    }
+    if (display >= strip.frozen()) x -= horizontal_offset_ * layout.scale;
+    x += strip.start(display) * layout.scale;
     if (layout.mirrored) {
         const double drawn = frame_sum - x - shown_width(column) * layout.scale;
         return drawn;
@@ -895,30 +913,27 @@ Rect DataGridView::cell_bounds(DataGridViewRowPosition row, std::size_t column, 
     return bounds;
 }
 
+// Both by the strip's descent, in logical units from the data band's
+// reading start: the scrolling columns show past the frozen ones.
 std::size_t DataGridView::first_visible_display(const GridLayout& layout) const noexcept {
-    // Distances from the data band's reading start; the scrolling columns
-    // show past the frozen ones.
-    const std::size_t frozen = frozen_display_count();
-    const double boundary = layout.data.x + frozen_columns_width() * layout.scale;
-    double x = layout.data.x - horizontal_offset_ * layout.scale;
-    for (std::size_t position = 0; position < shown_order_.size(); ++position) {
-        x += shown_width(shown_order_[position]) * layout.scale;
-        if (position >= frozen && x > boundary) return position;
-    }
-    return shown_order_.size();
+    const ColumnStrip& strip = column_strip();
+    // The first scrolling column whose right edge, scrolled, passes the
+    // frozen columns' end.
+    const double boundary = strip.frozen_width() + horizontal_offset_;
+    const std::size_t result = strip.first_end_past(boundary, strip.frozen(), strip.count());
+    static_cast<void>(layout);
+    return result;
 }
 
 std::size_t DataGridView::visible_display_end(const GridLayout& layout) const noexcept {
-    const double right = layout.data.x + layout.data.width;
-    const std::size_t frozen = frozen_display_count();
-    // Each position's left edge: unscrolled while frozen.
-    double x = layout.data.x;
-    for (std::size_t position = 0; position < shown_order_.size(); ++position) {
-        if (position == frozen) x -= horizontal_offset_ * layout.scale;
-        if (x >= right) return position;
-        x += shown_width(shown_order_[position]) * layout.scale;
-    }
-    return shown_order_.size();
+    const ColumnStrip& strip = column_strip();
+    const double right = layout.data.width / layout.scale;
+    // A frozen column starting past the band ends the shown columns; else
+    // the first scrolling column whose scrolled left edge does.
+    const std::size_t frozen_end = strip.first_start_at_or_past(right, 0U, strip.frozen());
+    if (frozen_end < strip.frozen()) return frozen_end;
+    const std::size_t result = strip.first_start_at_or_past(right + horizontal_offset_, strip.frozen(), strip.count());
+    return result;
 }
 
 DataGridView::IndexSpan DataGridView::display_span(const GridLayout& layout) const noexcept {
@@ -930,18 +945,11 @@ DataGridView::IndexSpan DataGridView::display_span(const GridLayout& layout) con
 }
 
 std::size_t DataGridView::frozen_display_count() const noexcept {
-    std::size_t count = 0U;
-    for (std::size_t position = 0; position < shown_order_.size(); ++position) {
-        if (columns_[shown_order_[position]].frozen) count = position + 1U;
-    }
-    return count;
+    return column_strip().frozen();
 }
 
 double DataGridView::frozen_columns_width() const noexcept {
-    const std::size_t frozen = frozen_display_count();
-    double width = 0.0;
-    for (std::size_t position = 0; position < frozen; ++position) width += shown_width(shown_order_[position]);
-    return width;
+    return column_strip().frozen_width();
 }
 
 std::size_t DataGridView::frozen_rows() const noexcept {

@@ -122,18 +122,17 @@ void VirtualRowsView::set_sort(std::optional<std::size_t> column, VirtualRowsSor
 }
 
 void VirtualRowsView::place_columns() {
-    column_starts_.resize(columns_.size());
-    double start = 0.0;
-    for (std::size_t column = 0U; column < columns_.size(); ++column) {
-        column_starts_[column] = start;
-        start = start + columns_[column].width;
-    }
+    column_widths_.resize(columns_.size());
+    for (std::size_t column = 0U; column < columns_.size(); ++column) column_widths_[column] = columns_[column].width;
+    // No frozen columns here: the header scrolls with nothing.
+    column_strip_.assign(column_widths_, 0U);
 }
 
 Rect VirtualRowsView::column_extent(std::size_t column) const noexcept {
     const double width = columns_[column].width;
-    const double reading_x = viewport_.x + column_starts_[column];
-    const double x = mirrored_ ? viewport_.x + viewport_.width - column_starts_[column] - width : reading_x;
+    const double start = column_strip_.start(column);
+    const double reading_x = viewport_.x + start;
+    const double x = mirrored_ ? viewport_.x + viewport_.width - start - width : reading_x;
     const Rect extent{x, header_.y, width, header_.height};
     return extent;
 }
@@ -145,12 +144,22 @@ Rect VirtualRowsView::column_cell(std::size_t column, Rect row) const {
     return cell;
 }
 
+// By the strip's descent, O(log columns): left to right a column holds
+// [start, start + width) from the viewport's left; mirrored it holds
+// (start, start + width] measured from the viewport's right.
 std::optional<std::size_t> VirtualRowsView::column_at(Point local_point) const noexcept {
-    for (std::size_t column = 0U; column < columns_.size(); ++column) {
-        const Rect extent = column_extent(column);
-        if (local_point.x >= extent.x && local_point.x < extent.x + extent.width) return column;
+    const std::size_t count = column_strip_.count();
+    if (!mirrored_) {
+        const std::size_t found = column_strip_.position_at(local_point.x - viewport_.x);
+        if (found >= count) return std::nullopt;
+        return found;
     }
-    return std::nullopt;
+    const double distance = viewport_.x + viewport_.width - local_point.x;
+    const std::size_t past = column_strip_.first_start_at_or_past(distance, 0U, count);
+    if (past == 0U) return std::nullopt;
+    const std::size_t found = past - 1U;
+    if (distance > column_strip_.start(found) + column_strip_.width(found)) return std::nullopt;
+    return found;
 }
 
 AnatomyStateSet VirtualRowsView::column_states(std::size_t column) const noexcept {

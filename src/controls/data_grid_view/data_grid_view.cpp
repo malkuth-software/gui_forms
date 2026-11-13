@@ -1107,6 +1107,7 @@ void DataGridView::insert_display_column(std::size_t column) {
 }
 
 void DataGridView::refresh_shown_order() {
+    columns_placed_changed();
     shown_order_.clear();
     shown_order_.reserve(display_order_.size());
     shown_indices_.resize(columns_.size());
@@ -1196,6 +1197,7 @@ void DataGridView::set_column_width(std::size_t column, double width) {
     }
     if (columns_[column].width == width) return;
     columns_[column].width = width;
+    columns_placed_changed();
     structure_changed();
     column_width_changed_.emit(column);
 }
@@ -1222,6 +1224,7 @@ void DataGridView::set_column_frozen(std::size_t column, bool column_frozen) {
     if (column >= columns_.size()) throw std::out_of_range("DataGridView column is past the end");
     if (columns_[column].frozen == column_frozen) return;
     columns_[column].frozen = column_frozen;
+    columns_placed_changed();
     // The whole grid moves: a redraw-all, folding the cell region.
     redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
@@ -1260,6 +1263,7 @@ void DataGridView::set_column_visible(std::size_t column, bool column_visible) {
     const bool current_hidden = !column_visible && current_ && (*current_).column == column;
     if (current_hidden && editing_) cancel_edit();
     columns_[column].visible = column_visible;
+    columns_placed_changed();
     refresh_shown_order();
     structure_changed();
     if (!current_hidden || !is_alive()) return;
@@ -1317,6 +1321,15 @@ void DataGridView::validate_row_text(const DataGridViewRow& row) const {
     if (row.cells.size() > columns_.size()) {
         throw std::invalid_argument("DataGridView row has more values than columns");
     }
+}
+
+DataGridViewRow DataGridView::shared_row(DataGridViewRowPosition position) const {
+    if (position.value >= row_count()) throw std::out_of_range("DataGridView row is past the end");
+    DataGridViewRow row{};
+    row.stable_id.value = row_id_text(position);
+    row.cells.reserve(columns_.size());
+    for (std::size_t column = 0U; column < columns_.size(); ++column) row.cells.push_back(cell_value(position, column));
+    return row;
 }
 
 void DataGridView::clear_rows() {
@@ -2183,9 +2196,10 @@ void DataGridView::set_first_displayed_row(DataGridViewRowPosition row) {
     const std::size_t last = count == 0U ? 0U : count - 1U;
     const std::size_t next = std::min(row.value, last);
     if (first_row_ == next) return;
+    const GridLayout layout = grid_layout();
+    const std::size_t former_first = scroll_first_row();
     first_row_ = next;
-    // The whole grid moves: a redraw-all, folding the cell region.
-    redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    scroll_moved(layout, former_first, horizontal_offset_);
 }
 
 void DataGridView::set_horizontal_scroll_offset(double offset) {
@@ -2194,17 +2208,15 @@ void DataGridView::set_horizontal_scroll_offset(double offset) {
         throw std::invalid_argument("DataGridView horizontal offset must be finite and not negative");
     }
     if (horizontal_offset_ == offset) return;
+    const GridLayout layout = grid_layout();
+    const double former_offset = horizontal_offset_;
     horizontal_offset_ = offset;
-    // The whole grid moves: a redraw-all, folding the cell region.
-    redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    scroll_moved(layout, scroll_first_row(), former_offset);
 }
 
 double DataGridView::scrolling_left(std::size_t display) const noexcept {
-    const std::size_t frozen = frozen_display_count();
-    double left = 0.0;
-    for (std::size_t position = frozen; position < display && position < shown_order_.size(); ++position) {
-        left += shown_width(shown_order_[position]);
-    }
+    const ColumnStrip& strip = column_strip();
+    const double left = std::max(0.0, strip.start(display) - strip.frozen_width());
     return left;
 }
 
@@ -2234,16 +2246,69 @@ void DataGridView::set_first_displayed_scrolling_column(std::size_t column) {
 void DataGridView::on_vertical_scroll(double value) {
     if (synchronizing_scroll_) return;
     const double rounded = std::max(0.0, std::round(value));
+    const GridLayout layout = grid_layout();
+    const std::size_t former_first = scroll_first_row();
     first_row_ = static_cast<std::size_t>(rounded);
-    // The whole grid moves: a redraw-all, folding the cell region.
-    redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    scroll_moved(layout, former_first, horizontal_offset_);
 }
 
 void DataGridView::on_horizontal_scroll(double value) {
     if (synchronizing_scroll_) return;
+    const GridLayout layout = grid_layout();
+    const double former_offset = horizontal_offset_;
     horizontal_offset_ = std::max(0.0, value);
-    // The whole grid moves: a redraw-all, folding the cell region.
-    redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    scroll_moved(layout, scroll_first_row(), former_offset);
+}
+
+bool DataGridView::scroll_copy_allowed() const {
+    if (cells_host_ || row_heights_stale_) return false;
+    if (auto_size_rows_mode.read() != DataGridViewAutoSizeRowsMode::none) return false;
+    for (std::size_t column = 0U; column < columns_.size(); ++column) {
+        const DataGridViewAutoSizeColumnMode mode = column_auto_size_mode(column);
+        const bool displayed = mode == DataGridViewAutoSizeColumnMode::displayed_cells ||
+                               mode == DataGridViewAutoSizeColumnMode::displayed_cells_except_header;
+        if (displayed) return false;
+    }
+    return true;
+}
+
+void DataGridView::scroll_moved(const GridLayout& layout, std::size_t former_first, double former_offset) {
+    if (!scroll_copy_allowed() || layout.data.empty()) {
+        ++scroll_statistics_.scroll_repaints;
+        // The whole grid moves: a redraw-all, folding the cell region.
+        redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+        return;
+    }
+    invalidate(Dirty::arrange | Dirty::hit_test | Dirty::semantics);
+    // Where the next arrange will place them, by its own clamps.
+    const std::size_t highest = maximum_first_row(layout);
+    const std::size_t first = std::clamp(first_row_, std::min(frozen_rows(), highest), highest);
+    const double offset = std::clamp(horizontal_offset_, 0.0, maximum_horizontal_offset(layout));
+    const DataGridViewRowHeights& heights = row_heights();
+    const double moved_y = (heights.top(former_first) - heights.top(std::max(first, frozen_rows()))) * layout.scale;
+    const double scrolled_x = (former_offset - offset) * layout.scale;
+    const double moved_x = layout.mirrored ? -scrolled_x : scrolled_x;
+    bool repainted = false;
+    if (moved_y != 0.0) {
+        // The scrolling rows, with their row headers and the frozen
+        // columns' cells, move up or down; the frozen rows stay.
+        const Rect band = Rect::united(layout.data, layout.row_header_band.empty() ? layout.data : layout.row_header_band);
+        const Rect pane = row_pane(false, band, layout);
+        if (!pane.empty() && !scroll_content(pane, Point{0.0, moved_y})) repainted = true;
+    }
+    if (moved_x != 0.0) {
+        // The scrolling columns, with their headers and the frozen rows'
+        // cells, move sideways; the frozen columns stay.
+        const Rect header = layout.column_header_band.empty() ? layout.data : layout.column_header_band;
+        const Rect band = Rect::united(layout.data, Rect{layout.data.x, header.y, layout.data.width, header.height});
+        const Rect pane = column_pane(false, band, layout);
+        if (!pane.empty() && !scroll_content(pane, Point{moved_x, 0.0})) repainted = true;
+    }
+    if (repainted) {
+        ++scroll_statistics_.scroll_repaints;
+    } else if (moved_y != 0.0 || moved_x != 0.0) {
+        ++scroll_statistics_.scroll_copies;
+    }
 }
 
 void DataGridView::scroll_into_view(DataGridViewCellAddress cell) {

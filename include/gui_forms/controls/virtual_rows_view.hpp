@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/column_strip.hpp"
 #include "gui_forms/controls/list_box_values.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/event.hpp"
@@ -706,8 +707,9 @@ private:
     // none, a press on a header (a click until it moves
     // column_drag_threshold), a reorder drag, or a divider drag.
     enum class HeaderGesture : std::uint8_t { none, pressed, reordering, resizing };
-    // Lays the columns out from the reading start: column_starts_[i] is
-    // column i's distance from it. Called after any change of the columns.
+    // Lays the columns out from the reading start in column_strip_ (the
+    // column model's placement, shared with DataGridView): column i's start
+    // is its distance from it. Called after any change of the columns.
     void place_columns();
     // A column's extent in local coordinates (x and width; mirrored).
     [[nodiscard]] Rect column_extent(std::size_t column) const noexcept;
@@ -797,10 +799,12 @@ private:
     std::size_t pending_appended_{};
     std::string announcement_{};
 
-    // The columns, their starts from the reading start (place_columns), the
-    // header strip (local), the sort, the header's hot column and gesture.
+    // The columns, their placement from the reading start (place_columns;
+    // the widths are its reused scratch), the header strip (local), the
+    // sort, the header's hot column and gesture.
     std::vector<VirtualRowsColumn> columns_{};
-    std::vector<double> column_starts_{};
+    std::vector<double> column_widths_{};
+    ColumnStrip column_strip_{};
     Rect header_{};
     std::optional<std::size_t> sort_column_{};
     VirtualRowsSort sort_direction_{VirtualRowsSort::none};

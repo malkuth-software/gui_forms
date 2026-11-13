@@ -12,6 +12,7 @@
 #include "gui_forms/controls/h_scroll_bar.hpp"
 #include "gui_forms/controls/v_scroll_bar.hpp"
 #include "gui_forms/controls/data_grid_view_cells.hpp"
+#include "gui_forms/controls/column_strip.hpp"
 #include "gui_forms/controls/data_grid_view_row_heights.hpp"
 #include "gui_forms/controls/data_grid_view_row_order.hpp"
 #include "gui_forms/controls/data_grid_view_rows.hpp"
@@ -360,6 +361,14 @@ struct GUI_FORMS_API DataGridViewRowPostPaintEvent final {
 // the combo box cell's choice list.
 enum class DataGridViewEditingControlKind : std::uint8_t { text_box, choice_list };
 
+// How the grid's scrolls were painted (the one data engine's scroll copies,
+// as VirtualRowsView counts them): moved by a scroll copy of the scrolling
+// pane, or repainted. Counted per scroll since the grid was made.
+struct GUI_FORMS_API DataGridViewScrollStatistics final {
+    std::uint64_t scroll_copies{};
+    std::uint64_t scroll_repaints{};
+};
+
 // Rows added to or removed from the rows before the new row (Windows Forms'
 // RowsAdded and RowsRemoved): the first position, in the rows as they stand
 // after an addition and as they stood before a removal, and how many. The
@@ -587,6 +596,16 @@ public:
     void clear_rows();
     // The ID of the row at a position. Throws std::out_of_range past the end.
     [[nodiscard]] DataGridViewRowId row_id(DataGridViewRowPosition position) const;
+    // The row at a position as a value made on demand, for any row source
+    // (Windows Forms' Rows.SharedRow): its ID and one value per column, read
+    // as cell_value reads them (a virtual row asks its provider). The grid
+    // keeps no row object for virtual or bound rows, so a million rows cost
+    // no million rows; the copy is the caller's, and editing it changes
+    // nothing (unbound rows are edited through `rows`, the others through
+    // their source). Row-wide defaults, Windows Forms' RowTemplate, are the
+    // grid's row_height, minimum_row_height and rows_default_cell_style.
+    // Throws std::out_of_range past the end.
+    [[nodiscard]] DataGridViewRow shared_row(DataGridViewRowPosition position) const;
     // The position of the row with an ID, or none.
     [[nodiscard]] std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const;
     // Throws std::out_of_range for a cell past the rows or columns.
@@ -817,7 +836,8 @@ public:
     // The height, in logical units at text scale 1, a cell or a row header
     // asks for: its content (a wrapped text cell's lines at its column's
     // width), its padding and its grid line (Windows Forms'
-    // GetPreferredHeight).
+    // GetPreferredHeight), rounded to the row index's 1/64 unit as a row
+    // height is stored (DataGridViewRowHeights::stored_height).
     [[nodiscard]] double preferred_cell_height(DataGridViewRowPosition row, std::size_t column) const;
     [[nodiscard]] double preferred_row_header_height(DataGridViewRowPosition row) const;
     // The height the shown column headers' text and padding want, in
@@ -989,6 +1009,8 @@ public:
     // See DataGridViewRowPrePaintEvent and DataGridViewRowPostPaintEvent.
     [[nodiscard]] Event<DataGridViewRowPrePaintEvent&>& row_pre_paint() noexcept { return row_pre_paint_; }
     [[nodiscard]] Event<DataGridViewRowPostPaintEvent&>& row_post_paint() noexcept { return row_post_paint_; }
+    // See DataGridViewScrollStatistics.
+    [[nodiscard]] DataGridViewScrollStatistics scroll_statistics() const noexcept { return scroll_statistics_; }
     // See DataGridViewRowsChangedEvent and DataGridViewColumnChangedEvent.
     // Raised after the change, the grid laid out again at the next flush.
     [[nodiscard]] Event<const DataGridViewRowsChangedEvent&>& rows_added() noexcept { return rows_added_; }
@@ -1549,6 +1571,13 @@ private:
     void refresh_shown_order();
     // A column's width as laid out: its width when shown, zero when hidden.
     [[nodiscard]] double shown_width(std::size_t column) const noexcept;
+    // The shown columns' placement (the column model shared with
+    // VirtualRowsView): their widths in display order and the frozen run,
+    // rebuilt when column_strip_stale_ (every change of the shown order, a
+    // width or a column's freezing sets it), so starts, the frozen width and
+    // the column at an offset cost O(1) or O(log columns).
+    [[nodiscard]] const ColumnStrip& column_strip() const;
+    void columns_placed_changed() noexcept { column_strip_stale_ = true; }
     [[nodiscard]] DataGridViewDisplayIndex order_target_at(double x, const GridLayout& layout) const;
     void end_column_order();
     // The row height index, rebuilt first when the rows changed since it
@@ -1701,6 +1730,20 @@ private:
     void synchronize_scroll_bars(const GridLayout& layout);
     void on_vertical_scroll(double value);
     void on_horizontal_scroll(double value);
+    // A scroll's paint. Called after first_row_ or horizontal_offset_
+    // changed from `former_first` (the first scrolling row the last arrange
+    // showed) and `former_offset`, with the layout from before: the
+    // scrolling pane's painted pixels move by a scroll copy
+    // (Control::scroll_content) when scroll_copy_allowed, and the grid is
+    // marked for arrange, hit testing and semantics; otherwise the whole
+    // grid is redrawn, folding the cell region.
+    void scroll_moved(const GridLayout& layout, std::size_t former_first, double former_offset);
+    // Whether a scroll leaves every painted pixel of the scrolling pane in
+    // place relative to its rows and columns: no cell region (its pixels
+    // are on another surface), no row auto sizing and no displayed-cells
+    // column auto sizing (both re-measure what a scroll shows), and the row
+    // heights current.
+    [[nodiscard]] bool scroll_copy_allowed() const;
     void scroll_into_view(DataGridViewCellAddress cell);
 
     // Selection, kept by row ID.
@@ -1956,6 +1999,12 @@ private:
     mutable DataGridViewRowHeights row_heights_{};
     mutable bool row_heights_stale_{true};
     mutable std::vector<DataGridViewRowHeight> row_height_scratch_{};
+    // The shown columns' placement, a cache like the row heights: rebuilt by
+    // column_strip() when stale; the widths are its reused scratch.
+    mutable ColumnStrip column_strip_{};
+    mutable std::vector<double> column_strip_widths_{};
+    mutable bool column_strip_stale_{true};
+    DataGridViewScrollStatistics scroll_statistics_{};
     // Counts selection changes, so an operation raises selection_changed once.
     std::uint64_t selection_revision_{};
     // Counts structure_changed calls, so a paint can tell that a handler it

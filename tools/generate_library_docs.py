@@ -195,6 +195,9 @@ HEADER_TO_CATEGORY: dict[str, str] = {
     "include/gui_forms/controls/node_graph.hpp": "Drawing",
     # The node canvas's link flow effect precedes NodeCanvas too.
     "include/gui_forms/controls/link_flow_effects.hpp": "Drawing",
+    # The column model's placement, shared by VirtualRowsView and
+    # DataGridView, sits with the grids.
+    "include/gui_forms/controls/column_strip.hpp": "Selection from a list",
     # The help system's printing sits beside its controls.
     "include/gui_forms/controls/help_print.hpp": "Information display",
     # The stock specimens (one per anatomy, for captures and the theme

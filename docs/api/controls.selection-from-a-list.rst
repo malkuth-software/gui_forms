@@ -104,6 +104,8 @@ Related types
      - The selected item's index, or -1 for none (G14: an ordinary cell).
    * - :cpp:class:`ChoiceItem <gui_forms::ChoiceItem>`
      -  
+   * - :cpp:class:`ColumnStrip <gui_forms::ColumnStrip>`
+     - The column model's placement, shared by VirtualRowsView and DataGridView (the one data engine, owner 2026-11-13): the columns laid along the reading axis in display order, by width in logical units at text scale 1, with a leading run of frozen columns that do not scroll.
    * - :cpp:class:`ComboBox::Parts <gui_forms::ComboBox::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`ComboBox::States <gui_forms::ComboBox::States>`
@@ -328,6 +330,8 @@ Related types
      - Raised when the new row becomes current (Windows Forms' DefaultValuesNeeded): ``values`` holds one value per column, empty, for the handler to fill with the values the new row starts with.
    * - :cpp:class:`DataGridViewRowWindowSource <gui_forms::DataGridViewRowWindowSource>`
      - The application side of a virtual grid's window mode (owner decision W-5): the application keeps the rows' order, and the grid asks for the IDs at the positions it shows (plus a margin) instead of holding the whole order.
+   * - :cpp:class:`DataGridViewScrollStatistics <gui_forms::DataGridViewScrollStatistics>`
+     - How the grid's scrolls were painted (the one data engine's scroll copies, as VirtualRowsView counts them): moved by a scroll copy of the scrolling pane, or repainted.
    * - :cpp:class:`DataGridViewSelectionModeCapability <gui_forms::DataGridViewSelectionModeCapability>`
      - Whether selection takes cells or full rows (SelectionMode).
    * - :cpp:class:`DataGridViewShowCellErrorsCapability <gui_forms::DataGridViewShowCellErrorsCapability>`
@@ -964,6 +968,54 @@ Related types
    .. cpp:member:: ImageId image
 
    .. cpp:member:: std::string accessible_name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ColumnStrip final
+
+   ``#include <gui_forms/controls/column_strip.hpp>``
+
+   The column model's placement, shared by VirtualRowsView and DataGridView (the one data engine, owner 2026-11-13): the columns laid along the reading axis in display order, by width in logical units at text scale 1, with a leading run of frozen columns that do not scroll. assign keeps each placed column's start, the sum of the widths before it, so a column's start, the frozen run's width and the total cost O(1) and the column holding an offset costs O(log count); assign costs O(count). Starts are summed in display order, the order the grids summed them before, so they are the same doubles. Which columns are placed (shown ones), their order and their freezing are the caller's model; the strip only places them. The storage is kept between assigns. Single UI thread.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t count() const noexcept
+
+   .. cpp:function:: std::size_t frozen() const noexcept
+
+   .. cpp:function:: double total() const noexcept
+
+   .. cpp:function:: double frozen_width() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void assign(std::span<const double> widths, std::size_t frozen)
+
+      Places ``widths`` (each finite and not negative) in order; the first :cpp:func:`frozen <gui_forms::ColumnStrip::frozen>` of them (at most widths.size()) are the frozen run.
+
+   .. cpp:function:: void clear() noexcept
+
+   .. cpp:function:: double start(std::size_t position) const noexcept
+
+      The start of placed column ``position``; count() gives total(), and a position past it is held there.
+
+   .. cpp:function:: double width(std::size_t position) const noexcept
+
+      A placed column's width; 0 past the end.
+
+   .. cpp:function:: std::size_t position_at(double offset) const noexcept
+
+      The placed column whose extent [start, start + width) holds ``offset`` (a zero-width column holds nothing): count() for an offset before the first column, at or past the total, or not a number.
+
+   .. cpp:function:: std::size_t first_start_at_or_past(double value, std::size_t from, std::size_t to) const noexcept
+
+      The first position in [from, to) whose start is at or past ``value``, or ``to`` (both held at count()).
+
+   .. cpp:function:: std::size_t first_end_past(double value, std::size_t from, std::size_t to) const noexcept
+
+      The first position in [from, to) whose end (start + width) is past ``value``, or ``to`` (both held at count()).
 
 .. cpp:namespace:: gui_forms
 
@@ -2505,6 +2557,14 @@ Related types
 
       Whether the grid shows the column (Windows Forms' Visible). A hidden column keeps its index, display index, width and values; layout, painting, hit testing, keyboard movement, selection ranges and the semantic tree pass over it. Default: ``{true}``.
 
+   .. cpp:member:: bool frozen
+
+      Whether the column stays at the data area's reading start while the other columns scroll (Windows Forms' Frozen). As there, a frozen column freezes every column shown before it in display order.
+
+   .. cpp:member:: std::string tool_tip_text
+
+      The column header's tooltip (Windows Forms' ToolTipText), published on the header's semantic node while show_cell_tool_tips holds; valid UTF-8, and empty for none.
+
    .. cpp:member:: bool owner_draw
 
       Whether the column's cells are owner drawn while the grid's draw_mode is normal: each raises draw_item_content as every cell does under owner_draw, and the other columns draw as usual (the ImGui-class demonstrator's gap I4). Under owner_draw every column is raised whatever this says. A grid with an owner-drawn column paints its cells on the UI thread, as under owner_draw.
@@ -2516,6 +2576,18 @@ Related types
    .. cpp:member:: std::string tool_tip_text
 
       The column header's tooltip (Windows Forms' ToolTipText), published on the header's semantic node while show_cell_tool_tips holds; valid UTF-8, and empty for none.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewColumnChangedEvent final
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   A column added or removed (Windows Forms' ColumnAdded and ColumnRemoved): its index, after the addition or before the removal, and its name. set_columns raises column_removed for each former column, last first, then column_added for each new one in order.
+
+   .. cpp:member:: std::size_t column
+
+   .. cpp:member:: std::string name
 
 .. cpp:namespace:: gui_forms
 
@@ -3016,7 +3088,12 @@ Related types
 
    ``#include <gui_forms/controls/data_grid_view_row_heights.hpp>``
 
-   A grid's row heights by presentation position, renderer-free, in logical units at text scale 1 (owner decision of 2026-11-02: real per-row heights for every row source, with no linear walk in scrolling, hit testing or painting). Every row has the default height except those given their own. While none is, nothing is stored and every query is arithmetic. Once one is, the index keeps each row's difference from the default and a Fenwick tree of the differences, 16 bytes a row. A row's height costs O(1); a row's top, the row at an offset and setting one row's height cost O(log count); reset with heights costs O(count + heights given). Offsets are sums of doubles. Heights of a few significant bits (whole and half units, quarter units at a text scale) add exactly; others may drift by rounding after many set_height calls, which reset clears. Single UI thread.
+   A grid's row heights by presentation position, renderer-free, in logical units at text scale 1 (owner decision of 2026-11-02: real per-row heights for every row source, with no linear walk in scrolling, hit testing or painting). The one data engine (owner, 2026-11-13): the heights live in the row index VirtualRowsView uses, GUI.Forms' RowHeightIndex over stx_btree's order-statistic tree (src/controls/collections/row_height_index.hpp). Every row has the default height except those given their own. Rows at the default are estimated rows of the index: a million of them are one run, and reset costs O(1) before the heights given. A row's height, its top, the row at an offset and setting one row's height cost O(log count); reset with heights stores each run of consecutive positions in one leaf pass. Heights are kept as 26.6 fixed point, 64 units a logical unit, each rounded to the nearest unit (stored_height). Offsets are exact integer sums of the stored heights, so a row's top does not depend on the order of earlier edits. Single UI thread. Not copyable; moved only by its owner's construction.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: DataGridViewRowHeights()
 
 
    .. rubric:: Properties
@@ -3025,11 +3102,17 @@ Related types
 
    .. cpp:function:: double default_height() const noexcept
 
+      The default as given to reset (the index stores it rounded).
+
    .. cpp:function:: bool uniform() const noexcept
 
-      Whether every row has the default height (nothing stored).
+      Whether every row has the default height (no row measured).
 
    .. cpp:function:: double total() const noexcept
+
+   .. cpp:function:: std::size_t storage_bytes() const noexcept
+
+      The index's heap bytes, for bounded-memory checks (RowHeightIndex:: storage_bytes).
 
 
    .. rubric:: Methods
@@ -3044,7 +3127,7 @@ Related types
 
    .. cpp:function:: double height(std::size_t position) const noexcept
 
-      The height of the row at a position below count().
+      The height of the row at a position below count(), as stored.
 
    .. cpp:function:: double top(std::size_t position) const noexcept
 
@@ -3053,6 +3136,10 @@ Related types
    .. cpp:function:: std::size_t position_at(double offset) const noexcept
 
       The row whose span [top, top + height) holds ``offset``: 0 for an offset before the first row, count() for one at or past the total.
+
+   .. cpp:function:: static double stored_height(double height) noexcept
+
+      A height as this index stores it (rounded to 1/64 logical unit).
 
    .. cpp:function:: void set_height(std::size_t position, double height)
 
@@ -3492,6 +3579,18 @@ Related types
    .. cpp:function:: virtual std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const = 0
 
       The position of a row in the current order, or none when it is gone.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewScrollStatistics final
+
+   ``#include <gui_forms/controls/data_grid_view.hpp>``
+
+   How the grid's scrolls were painted (the one data engine's scroll copies, as VirtualRowsView counts them): moved by a scroll copy of the scrolling pane, or repainted. Counted per scroll since the grid was made.
+
+   .. cpp:member:: std::uint64_t scroll_copies
+
+   .. cpp:member:: std::uint64_t scroll_repaints
 
 .. cpp:namespace:: gui_forms
 
