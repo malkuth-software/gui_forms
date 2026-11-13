@@ -2360,7 +2360,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 231 supported, 0 deferred, 12 excluded, 314 unclassified; 200 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 232 supported, 0 deferred, 12 excluded, 313 unclassified; 200 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -3910,7 +3910,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 231 supp
    * - property
      - GUI.Forms-only
      - ``effective_locale``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``effective_locale_generation``
