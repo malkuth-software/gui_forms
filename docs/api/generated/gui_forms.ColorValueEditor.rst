@@ -48,6 +48,11 @@ gui_forms::ColorValueEditor
       **editor** : ``std::shared_ptr<TextBox>``, read-only
          The :cpp:class:`TextBox <gui_forms::TextBox>` the user types into. It uses a monospace font.
 
+      **picker_open** : ``bool``, read-only
+
+      **picker** : ``std::shared_ptr<ColorPicker>``, read-only
+         The picker, made on first opening (null before).
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -79,6 +84,10 @@ gui_forms::ColorValueEditor
 
       * - :cpp:func:`initialize_control_tree <gui_forms::ColorValueEditor::initialize_control_tree>`
         - Creates the text box.
+      * - :cpp:func:`open_picker <gui_forms::ColorValueEditor::open_picker>`
+        - The text form keeps alpha: format_value writes #RRGGBBAA, and parse_value takes #RRGGBBAA or #RRGGBB (alpha 255), hex digits of either case between optional surrounding white space.
+      * - :cpp:func:`close_picker <gui_forms::ColorValueEditor::close_picker>`
+        -  
       * - :cpp:func:`format_value <gui_forms::ColorValueEditor::format_value>`
         - Returns the canonical text for a colour: ``#`` followed by red, green, blue and alpha as two upper-case hexadecimal digits each, for example ``#2774B8FF``.
       * - :cpp:func:`parse_value <gui_forms::ColorValueEditor::parse_value>`
@@ -195,6 +204,12 @@ gui_forms::ColorValueEditor
 
       The :cpp:class:`TextBox <gui_forms::TextBox>` the user types into. It uses a monospace font.
 
+   .. cpp:function:: bool picker_open() const noexcept
+
+   .. cpp:function:: std::shared_ptr<ColorPicker> picker() const noexcept
+
+      The picker, made on first opening (null before).
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -220,6 +235,12 @@ gui_forms::ColorValueEditor
 
       Creates the text box. ``make_control`` calls it; calling it again does
       nothing.
+
+   .. cpp:function:: bool open_picker()
+
+      The text form keeps alpha: format_value writes #RRGGBBAA, and parse_value takes #RRGGBBAA or #RRGGBB (alpha 255), hex digits of either case between optional surrounding white space. :cpp:member:`value <gui_forms::ColorValueEditor::value>` holds the alpha it was given or parsed. The drop-down picker (the ImGui-class demonstrator's I2): a ColorPicker in an anchored overlay below the editor, opened by a primary press on the swatch, by Alt+Down or F4 while the editor has focus, or by open_picker. While open, each pick writes the value (value_changed) and the text; a click away, Escape or close_picker closes it. open_picker returns false, changing nothing, when the picker is open already or the editor is not in a window or not enabled.
+
+   .. cpp:function:: void close_picker() noexcept
 
    .. cpp:function:: static std::string format_value(Color colour)
 
@@ -254,6 +275,14 @@ gui_forms::ColorValueEditor
       *Protected.*
 
    .. cpp:function:: void on_dispose() noexcept override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
 
       *Protected.*
 

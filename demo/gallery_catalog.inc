@@ -21,7 +21,7 @@ inline constexpr std::array<std::string_view, 14> catalog_categories {{
     "Components",
 }};
 
-inline constexpr std::array<CatalogEntry, 147> control_catalog {{
+inline constexpr std::array<CatalogEntry, 148> control_catalog {{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", "Commands", "Shared retained command state machine for pointer, keyboard, mnemonic, semantic, and dialog activation that Button, CheckBox, RadioButton, and LinkLabel specialize.", "ButtonBase", "stable", "control-spectrum"},
     {"button", "Button", "gui_forms/controls/button.hpp", "Commands", "Push button with accept/cancel dialog results, default-button state, and four visual policies.", "Button", "stable", "control-spectrum"},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", "Commands", "Command button with an explicit disclosure actuator that either routes the whole button to an owned overlay menu or keeps a primary click region beside a trailing split region.", "ToolStripSplitButton", "provisional", "commands-and-menus"},
@@ -68,6 +68,7 @@ inline constexpr std::array<CatalogEntry, 147> control_catalog {{
     {"value_bar", "ValueBar", "gui_forms/controls/value_bar.hpp", "Value setting", "Blender-style value bar over RangeControl: a fill or field style, drag-to-scrub within a soft range, click-to-type bounded arithmetic with units within the hard range, snapping and step arrows.", "GUI.Forms-only", "provisional", ""},
     {"numeric_up_down", "NumericUpDown", "gui_forms/controls/numeric_up_down.hpp", "Value setting", "Composite numeric editor over an owned TextBox and source-private spin buttons with ordered ranges, bounded step and precision, and decimal or hexadecimal formatting.", "NumericUpDown", "stable", "values-and-spinners"},
     {"domain_up_down", "DomainUpDown", "gui_forms/controls/domain_up_down.hpp", "Value setting", "Text field with up and down arrows stepping through an ordered string list; the selection follows the text, with optional wrapping, sorting and a read-only field.", "DomainUpDown", "stable", "values-and-spinners"},
+    {"color_picker", "ColorPicker", "gui_forms/controls/color_picker.hpp", "Value setting", "Colour picker with a saturation-brightness field, a hue track, an optional alpha track and a swatch, picked by pointer drags or the keyboard.", "GUI.Forms-only", "provisional", ""},
     {"color_value_editor", "ColorValueEditor", "gui_forms/controls/color_value_editor.hpp", "Value setting", "Compound editor that delegates editing to a real TextBox and adds a checker-backed swatch with canonical #RRGGBBAA conversion.", "GUI.Forms-only", "stable", "value-editors"},
     {"flags_value_editor", "FlagsValueEditor", "gui_forms/controls/flags_value_editor.hpp", "Value setting", "Compact editor for independent-bit enumeration values that opens a real CheckedListBox overlay under Window overlay and focus-scope leases.", "GUI.Forms-only", "stable", "value-editors"},
     {"property_grid", "PropertyGrid", "gui_forms/controls/property_grid.hpp", "Value setting", "Metadata-driven inspector and editor over one or more selected Controls that projects descriptors into a PropertyList.", "PropertyGrid", "stable", "values-and-spinners"},

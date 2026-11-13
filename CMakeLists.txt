@@ -1132,6 +1132,8 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/flags_value_editor/flags_value_editor.cpp
     src/controls/panel/font_dialog/font_dialog.cpp
     src/controls/panel/color_value_editor/color_value_editor.cpp
+    src/controls/color_picker/color_picker.cpp
+    src/controls/color_picker/color_picker_gradients.cpp
     src/controls/inspection/property_row_spec/property_row_spec.cpp
     src/controls/inspection/property_value_converter_registry/property_value_converter_registry.cpp
     src/controls/inspection/property_editor_registry/property_editor_registry.cpp
@@ -4650,6 +4652,15 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_block_panel_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_block_panel_tests
              COMMAND gui_forms_block_panel_tests)
+
+    # The ImGui-class demonstrator's I2: ColorPicker and ColorValueEditor's
+    # drop-down picker.
+    add_executable(gui_forms_color_picker_tests
+        tests/color_picker_tests.cpp
+    )
+    target_link_libraries(gui_forms_color_picker_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_color_picker_tests
+             COMMAND gui_forms_color_picker_tests)
 
     # The ImGui-class demonstrator's I9: FormLayout's labelled rows.
     add_executable(gui_forms_form_layout_tests

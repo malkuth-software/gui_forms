@@ -2,6 +2,9 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/color_picker.hpp"
+#include "gui_forms/window.hpp"
 #include "gui_forms/controls/color_value_editor_capabilities.hpp"
 
 #include <memory>
@@ -31,6 +34,18 @@ public:
     // parse_value takes #RRGGBBAA or #RRGGBB (alpha 255), hex digits of
     // either case between optional surrounding white space. `value` holds
     // the alpha it was given or parsed.
+    // The drop-down picker (the ImGui-class demonstrator's I2): a ColorPicker
+    // in an anchored overlay below the editor, opened by a primary press on
+    // the swatch, by Alt+Down or F4 while the editor has focus, or by
+    // open_picker. While open, each pick writes the value (value_changed)
+    // and the text; a click away, Escape or close_picker closes it.
+    // open_picker returns false, changing nothing, when the picker is open
+    // already or the editor is not in a window or not enabled.
+    bool open_picker();
+    void close_picker() noexcept;
+    [[nodiscard]] bool picker_open() const noexcept { return picker_open_; }
+    // The picker, made on first opening (null before).
+    [[nodiscard]] std::shared_ptr<ColorPicker> picker() const noexcept { return picker_; }
     [[nodiscard]] static std::string format_value(Color colour);
     [[nodiscard]] static std::optional<Color> parse_value(std::string_view text);
 
@@ -63,6 +78,8 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_dispose() noexcept override;
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_key_down(KeyEventArgs& arguments) override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
@@ -70,6 +87,14 @@ private:
     void commit_text(const std::string& text);
     void commit(std::string_view text);
     void cancel();
+    // The swatch's rectangle in local coordinates.
+    [[nodiscard]] Rect swatch_bounds() const noexcept;
+    // Writes `incoming` as a commit would: the value, the text and the
+    // normal status, then value_changed when the colour moved.
+    void accept_colour(Color incoming);
+    void on_picker_changed(Color colour);
+    void on_layer_dismissed(OverlayDismissReason reason);
+    void on_overlay_revoked();
 
     Color value_{};
     std::shared_ptr<TextBox> editor_;
@@ -78,6 +103,16 @@ private:
     bool synchronizing_{};
     Event<Color> value_changed_;
     Event<const PropertyEditorInputError&> edit_failed_;
+    // The drop-down: its picker and layer (made on first opening), the
+    // overlay lease and focus scope while open.
+    std::shared_ptr<ColorPicker> picker_{};
+    std::shared_ptr<AnchoredOverlayLayer> layer_{};
+    OverlayToken overlay_{};
+    FocusScopeId scope_{};
+    SubscriptionToken picker_changed_{};
+    SubscriptionToken layer_dismissed_{};
+    SubscriptionToken overlay_revoked_{};
+    bool picker_open_{};
     // property_codemod begin ColorValueEditor (tools/property_families/color_value_editor.json; generated, do not edit)
 private:
     friend struct ColorValueEditorValueCapability<ColorValueEditor>;

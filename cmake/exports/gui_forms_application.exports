@@ -141,6 +141,7 @@ __ZGVZN9gui_forms11AccentIndex*
 __ZGVZN9gui_forms11Application*
 __ZGVZN9gui_forms11ChoiceGroup*
 __ZGVZN9gui_forms11ColorDialog*
+__ZGVZN9gui_forms11ColorPicker*
 __ZGVZN9gui_forms11CommandItem*
 __ZGVZN9gui_forms11ContextMenu*
 __ZGVZN9gui_forms11CursorImage*
@@ -400,6 +401,7 @@ __ZGVZN9gui_forms14BindingSortKey*
 __ZGVZN9gui_forms14CheckedListBox*
 __ZGVZN9gui_forms14CheckerPattern*
 __ZGVZN9gui_forms14CollectionEdit*
+__ZGVZN9gui_forms14ColorPickerHsv*
 __ZGVZN9gui_forms14CommandBinding*
 __ZGVZN9gui_forms14ContentItemKey*
 __ZGVZN9gui_forms14ControlAnatomy*
@@ -1669,6 +1671,7 @@ __ZGVZNK9gui_forms11AccentIndex*
 __ZGVZNK9gui_forms11Application*
 __ZGVZNK9gui_forms11ChoiceGroup*
 __ZGVZNK9gui_forms11ColorDialog*
+__ZGVZNK9gui_forms11ColorPicker*
 __ZGVZNK9gui_forms11CommandItem*
 __ZGVZNK9gui_forms11ContextMenu*
 __ZGVZNK9gui_forms11CursorImage*
@@ -1928,6 +1931,7 @@ __ZGVZNK9gui_forms14BindingSortKey*
 __ZGVZNK9gui_forms14CheckedListBox*
 __ZGVZNK9gui_forms14CheckerPattern*
 __ZGVZNK9gui_forms14CollectionEdit*
+__ZGVZNK9gui_forms14ColorPickerHsv*
 __ZGVZNK9gui_forms14CommandBinding*
 __ZGVZNK9gui_forms14ContentItemKey*
 __ZGVZNK9gui_forms14ControlAnatomy*
@@ -3259,6 +3263,7 @@ __ZN9gui_forms11AccentIndex*
 __ZN9gui_forms11Application*
 __ZN9gui_forms11ChoiceGroup*
 __ZN9gui_forms11ColorDialog*
+__ZN9gui_forms11ColorPicker*
 __ZN9gui_forms11CommandItem*
 __ZN9gui_forms11ContextMenu*
 __ZN9gui_forms11CursorImage*
@@ -3596,6 +3601,7 @@ __ZN9gui_forms14BindingSortKey*
 __ZN9gui_forms14CheckedListBox*
 __ZN9gui_forms14CheckerPattern*
 __ZN9gui_forms14CollectionEdit*
+__ZN9gui_forms14ColorPickerHsv*
 __ZN9gui_forms14CommandBinding*
 __ZN9gui_forms14ContentItemKey*
 __ZN9gui_forms14ControlAnatomy*
@@ -6103,6 +6109,7 @@ __ZNK[RO]9gui_forms11AccentIndex*
 __ZNK[RO]9gui_forms11Application*
 __ZNK[RO]9gui_forms11ChoiceGroup*
 __ZNK[RO]9gui_forms11ColorDialog*
+__ZNK[RO]9gui_forms11ColorPicker*
 __ZNK[RO]9gui_forms11CommandItem*
 __ZNK[RO]9gui_forms11ContextMenu*
 __ZNK[RO]9gui_forms11CursorImage*
@@ -6362,6 +6369,7 @@ __ZNK[RO]9gui_forms14BindingSortKey*
 __ZNK[RO]9gui_forms14CheckedListBox*
 __ZNK[RO]9gui_forms14CheckerPattern*
 __ZNK[RO]9gui_forms14CollectionEdit*
+__ZNK[RO]9gui_forms14ColorPickerHsv*
 __ZNK[RO]9gui_forms14CommandBinding*
 __ZNK[RO]9gui_forms14ContentItemKey*
 __ZNK[RO]9gui_forms14ControlAnatomy*
@@ -7631,6 +7639,7 @@ __ZN[KRO]9gui_forms11AccentIndex*
 __ZN[KRO]9gui_forms11Application*
 __ZN[KRO]9gui_forms11ChoiceGroup*
 __ZN[KRO]9gui_forms11ColorDialog*
+__ZN[KRO]9gui_forms11ColorPicker*
 __ZN[KRO]9gui_forms11CommandItem*
 __ZN[KRO]9gui_forms11ContextMenu*
 __ZN[KRO]9gui_forms11CursorImage*
@@ -7890,6 +7899,7 @@ __ZN[KRO]9gui_forms14BindingSortKey*
 __ZN[KRO]9gui_forms14CheckedListBox*
 __ZN[KRO]9gui_forms14CheckerPattern*
 __ZN[KRO]9gui_forms14CollectionEdit*
+__ZN[KRO]9gui_forms14ColorPickerHsv*
 __ZN[KRO]9gui_forms14CommandBinding*
 __ZN[KRO]9gui_forms14ContentItemKey*
 __ZN[KRO]9gui_forms14ControlAnatomy*
@@ -9159,6 +9169,7 @@ __ZT[VIST]N9gui_forms11AccentIndex*E
 __ZT[VIST]N9gui_forms11Application*E
 __ZT[VIST]N9gui_forms11ChoiceGroup*E
 __ZT[VIST]N9gui_forms11ColorDialog*E
+__ZT[VIST]N9gui_forms11ColorPicker*E
 __ZT[VIST]N9gui_forms11CommandItem*E
 __ZT[VIST]N9gui_forms11ContextMenu*E
 __ZT[VIST]N9gui_forms11CursorImage*E
@@ -9418,6 +9429,7 @@ __ZT[VIST]N9gui_forms14BindingSortKey*E
 __ZT[VIST]N9gui_forms14CheckedListBox*E
 __ZT[VIST]N9gui_forms14CheckerPattern*E
 __ZT[VIST]N9gui_forms14CollectionEdit*E
+__ZT[VIST]N9gui_forms14ColorPickerHsv*E
 __ZT[VIST]N9gui_forms14CommandBinding*E
 __ZT[VIST]N9gui_forms14ContentItemKey*E
 __ZT[VIST]N9gui_forms14ControlAnatomy*E
@@ -10687,6 +10699,7 @@ __ZT[hvc]*9gui_forms11AccentIndex*
 __ZT[hvc]*9gui_forms11Application*
 __ZT[hvc]*9gui_forms11ChoiceGroup*
 __ZT[hvc]*9gui_forms11ColorDialog*
+__ZT[hvc]*9gui_forms11ColorPicker*
 __ZT[hvc]*9gui_forms11CommandItem*
 __ZT[hvc]*9gui_forms11ContextMenu*
 __ZT[hvc]*9gui_forms11CursorImage*
@@ -10946,6 +10959,7 @@ __ZT[hvc]*9gui_forms14BindingSortKey*
 __ZT[hvc]*9gui_forms14CheckedListBox*
 __ZT[hvc]*9gui_forms14CheckerPattern*
 __ZT[hvc]*9gui_forms14CollectionEdit*
+__ZT[hvc]*9gui_forms14ColorPickerHsv*
 __ZT[hvc]*9gui_forms14CommandBinding*
 __ZT[hvc]*9gui_forms14ContentItemKey*
 __ZT[hvc]*9gui_forms14ControlAnatomy*
@@ -12215,6 +12229,7 @@ __ZZN9gui_forms11AccentIndex*
 __ZZN9gui_forms11Application*
 __ZZN9gui_forms11ChoiceGroup*
 __ZZN9gui_forms11ColorDialog*
+__ZZN9gui_forms11ColorPicker*
 __ZZN9gui_forms11CommandItem*
 __ZZN9gui_forms11ContextMenu*
 __ZZN9gui_forms11CursorImage*
@@ -12474,6 +12489,7 @@ __ZZN9gui_forms14BindingSortKey*
 __ZZN9gui_forms14CheckedListBox*
 __ZZN9gui_forms14CheckerPattern*
 __ZZN9gui_forms14CollectionEdit*
+__ZZN9gui_forms14ColorPickerHsv*
 __ZZN9gui_forms14CommandBinding*
 __ZZN9gui_forms14ContentItemKey*
 __ZZN9gui_forms14ControlAnatomy*
@@ -13743,6 +13759,7 @@ __ZZNK9gui_forms11AccentIndex*
 __ZZNK9gui_forms11Application*
 __ZZNK9gui_forms11ChoiceGroup*
 __ZZNK9gui_forms11ColorDialog*
+__ZZNK9gui_forms11ColorPicker*
 __ZZNK9gui_forms11CommandItem*
 __ZZNK9gui_forms11ContextMenu*
 __ZZNK9gui_forms11CursorImage*
@@ -14002,6 +14019,7 @@ __ZZNK9gui_forms14BindingSortKey*
 __ZZNK9gui_forms14CheckedListBox*
 __ZZNK9gui_forms14CheckerPattern*
 __ZZNK9gui_forms14CollectionEdit*
+__ZZNK9gui_forms14ColorPickerHsv*
 __ZZNK9gui_forms14CommandBinding*
 __ZZNK9gui_forms14ContentItemKey*
 __ZZNK9gui_forms14ControlAnatomy*

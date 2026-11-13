@@ -47,6 +47,7 @@
 #include "gui_forms/controls/value_bar.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
 #include "gui_forms/controls/domain_up_down.hpp"
+#include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/controls/flags_value_editor.hpp"
 #include "gui_forms/controls/property_grid.hpp"

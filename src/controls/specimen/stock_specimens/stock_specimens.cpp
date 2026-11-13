@@ -906,6 +906,12 @@ StockSpecimenInstance make_domain_up_down(const StockSpecimen&, StableId id) {
     return instance;
 }
 
+StockSpecimenInstance make_color_picker(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<ColorPicker> control = make_control<ColorPicker>(id, Color::rgba(46, 125, 196, 220));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
 StockSpecimenInstance make_color_value_editor(const StockSpecimen&, StableId id) {
     const std::shared_ptr<ColorValueEditor> control =
         make_control<ColorValueEditor>(std::move(id), Color::rgba(38, 110, 196));

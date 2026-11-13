@@ -514,6 +514,17 @@
       "doc": "api/generated/gui_forms.DomainUpDown.rst"
     },
     {
+      "id": "color_picker",
+      "type": "ColorPicker",
+      "header": "gui_forms/controls/color_picker.hpp",
+      "category": "Value setting",
+      "purpose": "Colour picker with a saturation-brightness field, a hue track, an optional alpha track and a swatch, picked by pointer drags or the keyboard.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.ColorPicker.rst"
+    },
+    {
       "id": "color_value_editor",
       "type": "ColorValueEditor",
       "header": "gui_forms/controls/color_value_editor.hpp",

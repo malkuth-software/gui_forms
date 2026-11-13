@@ -27,6 +27,8 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
      - A text field for a number, with up and down buttons that step it.
    * - :cpp:class:`DomainUpDown <gui_forms::DomainUpDown>`
      - A text field with up and down buttons that steps through a list of strings.
+   * - :cpp:class:`ColorPicker <gui_forms::ColorPicker>`
+     - Colour picker with a saturation-brightness field, a hue track, an optional alpha track and a swatch, picked by pointer drags or the keyboard.
    * - :cpp:class:`ColorValueEditor <gui_forms::ColorValueEditor>`
      - A colour field: a swatch beside a text box that edits the colour as hexadecimal text.
    * - :cpp:class:`FlagsValueEditor <gui_forms::FlagsValueEditor>`
@@ -51,6 +53,7 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
    generated/gui_forms.ValueBar
    generated/gui_forms.NumericUpDown
    generated/gui_forms.DomainUpDown
+   generated/gui_forms.ColorPicker
    generated/gui_forms.ColorValueEditor
    generated/gui_forms.FlagsValueEditor
    generated/gui_forms.PropertyGrid
@@ -83,6 +86,18 @@ Related types
      - How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
    * - :cpp:class:`CheckBoxThreeStateCapability <gui_forms::CheckBoxThreeStateCapability>`
      - Whether the box also takes the indeterminate state (ThreeState); clearing it turns an indeterminate box checked.
+   * - :cpp:class:`ColorPicker::Parts <gui_forms::ColorPicker::Parts>`
+     -  
+   * - :cpp:class:`ColorPicker::States <gui_forms::ColorPicker::States>`
+     -  
+   * - :cpp:class:`ColorPickerAlphaEnabledCapability <gui_forms::ColorPickerAlphaEnabledCapability>`
+     - Whether the alpha track is shown and the alpha can be picked; hiding it leaves the value's alpha as it is.
+   * - :cpp:class:`ColorPickerCapabilities <gui_forms::ColorPickerCapabilities>`
+     - Every ColorPicker capability, in the order the declaring class takes them.
+   * - :cpp:class:`ColorPickerHsv <gui_forms::ColorPickerHsv>`
+     - A colour in hue, saturation and brightness (HSV): hue in degrees [0, 360), saturation and brightness in [0, 1].
+   * - :cpp:class:`ColorPickerValueCapability <gui_forms::ColorPickerValueCapability>`
+     - The picked colour; a change raises value_changed.
    * - :cpp:class:`ColorValueEditor::Parts <gui_forms::ColorValueEditor::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`ColorValueEditor::States <gui_forms::ColorValueEditor::States>`
@@ -504,6 +519,117 @@ Related types
    .. cpp:member:: PropertyCell<bool, CheckBoxThreeStateCapability<Declaring>> three_state
 
       Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ColorPicker::Parts final
+
+   ``#include <gui_forms/controls/color_picker.hpp>``
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry field
+
+   .. cpp:member:: PartGeometry field_thumb
+
+   .. cpp:member:: PartGeometry hue_track
+
+   .. cpp:member:: PartGeometry hue_thumb
+
+   .. cpp:member:: PartGeometry alpha_track
+
+   .. cpp:member:: PartGeometry alpha_thumb
+
+   .. cpp:member:: PartGeometry swatch
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ColorPicker::States final
+
+   ``#include <gui_forms/controls/color_picker.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool pressed
+
+   .. cpp:member:: bool captured
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorPickerAlphaEnabledCapability
+
+   ``#include <gui_forms/controls/color_picker_capabilities.hpp>``
+
+   Whether the alpha track is shown and the alpha can be picked; hiding it leaves the value's alpha as it is.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ColorPickerAlphaEnabledCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ColorPickerAlphaEnabledCapability<Declaring>> alpha_enabled
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorPickerCapabilities : public ColorPickerValueCapability<Declaring>, public ColorPickerAlphaEnabledCapability<Declaring>
+
+   ``#include <gui_forms/controls/color_picker_capabilities.hpp>``
+
+   Every ColorPicker capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: Color value
+
+      The picked colour; a change raises value_changed. Picking writes it; a program's write moves the thumbs (the hue is kept when the colour is grey).
+
+   .. cpp:member:: bool alpha_enabled
+
+      Whether the alpha track is shown and the alpha can be picked; hiding it leaves the value's alpha as it is.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ColorPickerHsv final
+
+   ``#include <gui_forms/controls/color_picker.hpp>``
+
+   A colour in hue, saturation and brightness (HSV): hue in degrees [0, 360), saturation and brightness in [0, 1].
+
+   .. cpp:member:: double hue
+
+   .. cpp:member:: double saturation
+
+   .. cpp:member:: double brightness
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ColorPickerValueCapability
+
+   ``#include <gui_forms/controls/color_picker_capabilities.hpp>``
+
+   The picked colour; a change raises value_changed. Picking writes it; a program's write moves the thumbs (the hue is kept when the colour is grey).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ColorPickerValueCapability& capability, Color incoming)
+
+   .. cpp:member:: PropertyCell<Color, ColorPickerValueCapability<Declaring>> value
+
+      Default: ``{Color::rgba(255, 255, 255)}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2847,6 +2973,20 @@ Enumerations
    .. cpp:enumerator:: checked
 
    .. cpp:enumerator:: indeterminate
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ColorPickerPart
+
+   ``#include <gui_forms/controls/color_picker.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: field
+
+   .. cpp:enumerator:: hue
+
+   .. cpp:enumerator:: alpha
 
 .. cpp:namespace:: gui_forms
 

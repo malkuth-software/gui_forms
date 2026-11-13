@@ -14,6 +14,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/command_overflow_panel.hpp"
@@ -497,6 +498,32 @@ void test_choice_group_properties() {
                "ChoiceGroup.presentation: the table reads the cell");
     }
     // selected_index: no sample for int; give the property a "sample".
+}
+
+void test_color_picker_properties() {
+    std::shared_ptr<ColorPicker> control = make_control<ColorPicker>(StableId("generated.colorpicker"));
+    {
+        const Color sample = Color::rgba(10, 20, 30, 40);
+        int raises = 0;
+        const SubscriptionToken token = (*control).value_changed().subscribe(RaiseCounter{&raises});
+        (*control).value = sample;
+        expect((*control).value.read() == sample, "ColorPicker.value: a write stores");
+        expect(raises == 1, "ColorPicker.value: a changed write raises once");
+        (*control).value = sample;
+        expect(raises == 1, "ColorPicker.value: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("value");
+        expect(by_name && *by_name == PropertyValueTraits<Color>::to_binding(sample),
+               "ColorPicker.value: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).alpha_enabled = sample;
+        expect((*control).alpha_enabled.read() == sample, "ColorPicker.alpha_enabled: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("alpha_enabled");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ColorPicker.alpha_enabled: the table reads the cell");
+    }
 }
 
 void test_color_value_editor_properties() {
@@ -3302,6 +3329,7 @@ int main() {
     test_check_box_properties();
     test_checked_list_box_properties();
     test_choice_group_properties();
+    test_color_picker_properties();
     test_color_value_editor_properties();
     test_combo_box_properties();
     test_command_overflow_panel_properties();

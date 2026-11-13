@@ -47,6 +47,7 @@
     {"value_bar", "Value setting", Size{224.0, 32.0}, "Value bar", &make_ranged<ValueBar>, nullptr, ""},
     {"numeric_up_down", "Value setting", Size{160.0, 30.0}, "Numeric up down", &make_numeric_up_down, nullptr, ""},
     {"domain_up_down", "Value setting", Size{160.0, 30.0}, "Domain up down", &make_domain_up_down, nullptr, ""},
+    {"color_picker", "Value setting", Size{220.0, 180.0}, "Color picker", &make_color_picker, nullptr, ""},
     {"color_value_editor", "Value setting", Size{224.0, 30.0}, "Color value editor", &make_color_value_editor, nullptr, ""},
     {"flags_value_editor", "Value setting", Size{224.0, 30.0}, "Flags value editor", &make_flags_value_editor, nullptr, ""},
     {"property_grid", "Value setting", Size{300.0, 260.0}, "Property grid", &make_property_grid, nullptr, ""},

@@ -40,6 +40,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/command_bar.hpp"
@@ -159,7 +160,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 147> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 148> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -206,6 +207,7 @@ inline constexpr std::array<SchemaCatalogEntry, 147> schema_catalog{{
     {"value_bar", "ValueBar", &describe_type<ValueBar>, &create_type<ValueBar>, &is_exact_type<ValueBar>},
     {"numeric_up_down", "NumericUpDown", &describe_type<NumericUpDown>, &create_type<NumericUpDown>, &is_exact_type<NumericUpDown>},
     {"domain_up_down", "DomainUpDown", &describe_type<DomainUpDown>, &create_type<DomainUpDown>, &is_exact_type<DomainUpDown>},
+    {"color_picker", "ColorPicker", &describe_type<ColorPicker>, &create_type<ColorPicker>, &is_exact_type<ColorPicker>},
     {"color_value_editor", "ColorValueEditor", &describe_type<ColorValueEditor>, &create_type<ColorValueEditor>, &is_exact_type<ColorValueEditor>},
     {"flags_value_editor", "FlagsValueEditor", &describe_type<FlagsValueEditor>, &create_type<FlagsValueEditor>, &is_exact_type<FlagsValueEditor>},
     {"property_grid", "PropertyGrid", &describe_type<PropertyGrid>, &create_type<PropertyGrid>, &is_exact_type<PropertyGrid>},

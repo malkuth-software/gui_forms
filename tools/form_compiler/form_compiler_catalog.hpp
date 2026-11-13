@@ -40,6 +40,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/command_bar.hpp"
@@ -159,7 +160,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 147> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 148> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -206,6 +207,7 @@ inline constexpr std::array<FormCatalogEntry, 147> form_catalog{{
     {"value_bar", "ValueBar", "gui_forms/controls/value_bar.hpp", &add_catalog_type<ValueBar>},
     {"numeric_up_down", "NumericUpDown", "gui_forms/controls/numeric_up_down.hpp", &add_catalog_type<NumericUpDown>},
     {"domain_up_down", "DomainUpDown", "gui_forms/controls/domain_up_down.hpp", &add_catalog_type<DomainUpDown>},
+    {"color_picker", "ColorPicker", "gui_forms/controls/color_picker.hpp", &add_catalog_type<ColorPicker>},
     {"color_value_editor", "ColorValueEditor", "gui_forms/controls/color_value_editor.hpp", &add_catalog_type<ColorValueEditor>},
     {"flags_value_editor", "FlagsValueEditor", "gui_forms/controls/flags_value_editor.hpp", &add_catalog_type<FlagsValueEditor>},
     {"property_grid", "PropertyGrid", "gui_forms/controls/property_grid.hpp", &add_catalog_type<PropertyGrid>},
