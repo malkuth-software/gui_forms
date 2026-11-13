@@ -241,13 +241,17 @@ bool ClassBridge::enter_class_frame(Control& control, gf_hook_entry entry, HookK
     frame.name = name;
     {
         const TopFrameScope frame_scope(frame);
-        // A client's entry is foreign code: a C entry cannot throw and the
-        // C# entries catch everything, but a C++ client's entry can. An
-        // exception leaving it is recorded (the failure snapshot) and ends
-        // the process through the fail-fast report (owner's S2 ruling); it
-        // never unwinds into the raiser's frames. The scope restores
-        // top_frame on every exit that leaves this block.
-        detail::call_failing_fast(class_entry_site, entry, instance_, self, &event, base);
+        // A C function: it does not throw (the C# entries catch everything). A
+        // C++ entry that lets an exception out breaks the header's rule: the
+        // callback gate records it and fails fast (survey B8, S2 = 1), so no
+        // exception unwinds past top_frame. The scope restores top_frame on
+        // every exit that leaves this block.
+        void* instance = instance_;
+        gf_object entry_self = self;
+        gf_event* entry_event = &event;
+        gf_base_raiser entry_base = base;
+        const CallbackFrame entry_frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), name};
+        call_client(entry_frame, entry, instance, entry_self, entry_event, entry_base);
     }
     if (with_fields) {
         // What the entry wrote after base reaches the argument.

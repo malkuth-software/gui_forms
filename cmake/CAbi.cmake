@@ -353,6 +353,16 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_abi_event_fields PRIVATE gui_forms_abi_objects gui_forms_application stxlib::boundary)
     target_compile_features(gui_forms_abi_event_fields PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_event_fields COMMAND gui_forms_abi_event_fields)
+    # The callback gate (A2, S2 = 1): a client callback runs inside one
+    # described frame, and an exception out of it fails fast with the report.
+    add_executable(gui_forms_abi_callback_gate tests/abi/callbacks/gf_abi_callback_gate.cpp)
+    target_link_libraries(gui_forms_abi_callback_gate PRIVATE gui_forms_abi_objects gui_forms_application stxlib::boundary)
+    target_compile_features(gui_forms_abi_callback_gate PRIVATE cxx_std_20)
+    add_test(NAME gui_forms_abi_callback_gate COMMAND gui_forms_abi_callback_gate)
+    add_test(NAME gui_forms_abi_callback_gate_throwing_event
+             COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_abi_callback_gate> -DMODE=throwing_event
+                     "-DEXPECTED=GUI.Forms: fatal exception at gui_forms.client_callback: a client callback threw[^#]*#0 kind 3 callback.thrower click"
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
     # The checked sanitizer tree poisons an invoke's lent scratch when it
     # returns: a callback's kept text is reported by AddressSanitizer.
     if(GUI_FORMS_CHECKED_BORROWS)

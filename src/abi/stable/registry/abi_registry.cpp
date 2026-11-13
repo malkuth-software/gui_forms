@@ -60,8 +60,17 @@ CallbackBinding::~CallbackBinding() {
     }
 }
 
+void CallbackBinding::invoke(const CallbackFrame& frame, gf_event& event) const noexcept {
+    void* context = callback_.context;
+    gf_event* delivered = &event;
+    call_client(frame, callback_.invoke, context, delivered);
+}
+
 void CallbackBinding::invoke(gf_event& event) const noexcept {
-    callback_.invoke(callback_.context, &event);
+    const std::string_view name = event.name.data == nullptr
+        ? std::string_view{} : std::string_view(event.name.data, static_cast<std::size_t>(event.name.size));
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, std::string_view{}, name};
+    invoke(frame, event);
 }
 
 void CallbackBinding::disarm() noexcept {
@@ -105,23 +114,23 @@ std::string_view frame_subject(const Component* component) noexcept {
 } // namespace
 
 void SubscriptionBinding::emit(const gf_value* payload) noexcept {
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, frame_subject(source_), name_, 0U);
     gf_event event{};
     event.struct_size = sizeof(gf_event);
     event.sender = registry().identity_of(source_);
     event.name.data = name_.data();
     event.name.size = name_.size();
     event.payload = payload;
-    callback_.invoke(event);
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, frame_subject(source_), name_};
+    callback_.invoke(frame, event);
 }
 
 void SubscriptionBinding::emit(gf_event& event) noexcept {
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, frame_subject(source_), name_, 0U);
     event.struct_size = sizeof(gf_event);
     event.sender = registry().identity_of(source_);
     event.name.data = name_.data();
     event.name.size = name_.size();
-    callback_.invoke(event);
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, frame_subject(source_), name_};
+    callback_.invoke(frame, event);
 }
 
 void SubscriptionBinding::disarm() noexcept {
@@ -905,14 +914,14 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
             if (reference_live) target = (*found).object;
         }
         if (target && (*target).is_alive()) {
-            const ShadowFrameScope shadow_frame(ShadowFrameKind::posted_callback, frame_subject(target.get()),
-                                                std::string_view{}, 0U);
             gf_event event{};
             event.struct_size = sizeof(gf_event);
             event.sender = call.target;
             event.name.data = "invoke";
             event.name.size = 6U;
-            (*call.callback).invoke(event);
+            const CallbackFrame frame{GF_SHADOW_FRAME_KIND_POSTED_CALLBACK, frame_subject(target.get()),
+                                      std::string_view{}};
+            (*call.callback).invoke(frame, event);
             ++invoked;
         }
         call.callback.reset();

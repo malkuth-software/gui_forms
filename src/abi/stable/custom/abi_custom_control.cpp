@@ -7,7 +7,6 @@
 #include "../values/abi_values.hpp"
 
 #include "gui_forms/detail/property_binding_adapters.hpp"
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
 
@@ -191,13 +190,12 @@ BindingValue CustomControlState::get(const Control& control, std::size_t index) 
     const PropertyDescriptor& descriptor = definitions_[index].descriptor;
     gf_value record{};
     record.struct_size = value_size_1_0;
-    gf_status status = GF_STATUS_INTERNAL;
-    {
-        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
-                                            descriptor.name, 0U);
-        status = callbacks_.get_property(callbacks_.context, registry().identity_of(&control),
-                                         static_cast<std::uint64_t>(index), &record);
-    }
+    void* context = callbacks_.context;
+    gf_object self = registry().identity_of(&control);
+    std::uint64_t property = static_cast<std::uint64_t>(index);
+    gf_value* answer = &record;
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), descriptor.name};
+    const gf_status status = call_client(frame, callbacks_.get_property, context, self, property, answer);
     if (status != GF_STATUS_OK) {
         throw std::logic_error("the custom control's get_property failed");
     }
@@ -233,13 +231,12 @@ void CustomControlState::set(const Control& control, std::size_t index, const Bi
     const LentCallText lent(lent_texts_, text);
     record.text.data = lent.text().data();
     record.text.size = lent.text().size();
-    gf_status status = GF_STATUS_INTERNAL;
-    {
-        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
-                                            descriptor.name, 0U);
-        status = callbacks_.set_property(callbacks_.context, registry().identity_of(&control),
-                                         static_cast<std::uint64_t>(index), &record);
-    }
+    void* context = callbacks_.context;
+    gf_object self = registry().identity_of(&control);
+    std::uint64_t property = static_cast<std::uint64_t>(index);
+    const gf_value* given = &record;
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), descriptor.name};
+    const gf_status status = call_client(frame, callbacks_.set_property, context, self, property, given);
     if (status != GF_STATUS_OK) {
         throw std::invalid_argument("the custom control's set_property refused the value");
     }
@@ -314,9 +311,11 @@ void CustomControlState::paint(Control& control, Painter& painter, Rect local_da
     target.scale = scale;
     target.damage = gf_logical_rect{damage.x, damage.y, damage.width, damage.height};
     {
-        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
-                                            paint_frame_name, 0U);
-        callbacks_.paint(callbacks_.context, registry().identity_of(&control), &target);
+        void* context = callbacks_.context;
+        gf_object self = registry().identity_of(&control);
+        gf_paint_target* painted = &target;
+        const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), paint_frame_name};
+        call_client(frame, callbacks_.paint, context, self, painted);
     }
     if (revoked_) {
         // The callback disposed the control.
@@ -407,12 +406,11 @@ std::optional<Size> CustomControlState::measure(const Control& control, Size ava
     given.width = available.width;
     given.height = available.height;
     gf_logical_size preferred{};
-    gf_status status = GF_STATUS_INTERNAL;
-    {
-        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
-                                            "measure", 0U);
-        status = layout_.measure(callbacks_.context, registry().identity_of(&control), given, &preferred);
-    }
+    void* context = callbacks_.context;
+    gf_object self = registry().identity_of(&control);
+    gf_logical_size* answer = &preferred;
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), "measure"};
+    const gf_status status = call_client(frame, layout_.measure, context, self, given, answer);
     if (status != GF_STATUS_OK || !std::isfinite(preferred.width) || !std::isfinite(preferred.height) ||
         preferred.width < 0.0 || preferred.height < 0.0) {
         return std::nullopt;
@@ -429,12 +427,11 @@ std::optional<bool> CustomControlState::hit_test(const Control& control, Point l
     point.x = local_point.x;
     point.y = local_point.y;
     std::uint32_t hit = 2U;
-    gf_status status = GF_STATUS_INTERNAL;
-    {
-        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
-                                            "hit_test", 0U);
-        status = layout_.hit_test(callbacks_.context, registry().identity_of(&control), point, &hit);
-    }
+    void* context = callbacks_.context;
+    gf_object self = registry().identity_of(&control);
+    std::uint32_t* answer = &hit;
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), "hit_test"};
+    const gf_status status = call_client(frame, layout_.hit_test, context, self, point, answer);
     if (status != GF_STATUS_OK || hit > 1U) {
         return std::nullopt;
     }
@@ -455,12 +452,11 @@ void CustomControlState::describe(const Control& control, SemanticDescriptor& de
     record.value.size = descriptor.value.size();
     record.description.data = descriptor.description.data();
     record.description.size = descriptor.description.size();
-    gf_status status = GF_STATUS_INTERNAL;
-    {
-        const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, control.stable_id().value(),
-                                            "semantics", 0U);
-        status = layout_.semantics(callbacks_.context, registry().identity_of(&control), &record);
-    }
+    void* context = callbacks_.context;
+    gf_object self = registry().identity_of(&control);
+    gf_custom_semantics* answer = &record;
+    const CallbackFrame frame{GF_SHADOW_FRAME_KIND_EVENT_CALLBACK, control.stable_id().value(), "semantics"};
+    const gf_status status = call_client(frame, layout_.semantics, context, self, answer);
     if (status != GF_STATUS_OK || record.role >= semantic_role_count) {
         return;
     }

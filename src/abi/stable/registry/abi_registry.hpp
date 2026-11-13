@@ -14,6 +14,9 @@
 
 #include "../failure/abi_failure.hpp"
 
+#include "../../../core/diagnostics/shadow_frames/shadow_frame_records.hpp"
+#include "../../../core/failure/fail_fast.hpp"
+
 #include <stxlib/error.hpp>
 #include <stxlib/gate.hpp>
 #include <stxlib/result.hpp>
@@ -59,6 +62,48 @@ inline constexpr ThreadDomain ui_domain{0U};
 // the UI thread, exactly once, after its last invoke. disarm() is for a call
 // that fails after building the binding: the library then never took the
 // callback and must not release it.
+// The shadow frame a client's callback runs under: an event's
+// (event_callback, the sender's stable id and the event's name) or a posted
+// callback's (posted_callback, the target's stable id). The texts are copied
+// when the frame opens.
+struct CallbackFrame final {
+    gf_shadow_frame_kind kind = GF_SHADOW_FRAME_KIND_EVENT_CALLBACK;
+    std::string_view subject;
+    std::string_view name;
+};
+
+// The callback gate's target for a client's C function: calls it with the
+// gate's arguments.
+template <typename Result, typename... Parameters>
+struct ClientFunctionCall final {
+    Result (GF_CALL* function)(Parameters...);
+
+    template <typename... Given>
+    Result operator()(Given&... given) const {
+        return (*function)(given...);
+    }
+};
+
+// Calls a client's C function behind STXlib's callback gate (survey B2,
+// S2 = 1) inside frame, the frame's only shadow frame. A C client cannot
+// throw; a C++ client that lets an exception out breaks the header's rule,
+// and the gate records it with the frames it was thrown under and fails
+// fast through GUI.Forms' report (fail_fast.hpp). The arguments are lvalues
+// the function takes by value.
+template <typename Result, typename... Parameters, typename... Arguments>
+Result call_client(const CallbackFrame& frame, Result (GF_CALL* function)(Parameters...),
+                   Arguments&... arguments) noexcept {
+    detail::ensure_fail_fast_reporter();
+    const ClientFunctionCall<Result, Parameters...> call{function};
+    const stxlib::GateFrame gate{
+        .operation = "gui_forms.client_callback",
+        .kind = frame.kind,
+        .subject = detail::well_formed_text(frame.subject),
+        .name = detail::well_formed_text(frame.name),
+    };
+    return stxlib::invoke_callback_classified(detail::fail_fast_classifier, gate, call, arguments...);
+}
+
 class CallbackBinding final {
 public:
     explicit CallbackBinding(const gf_callback& callback) noexcept;
@@ -66,6 +111,10 @@ public:
     CallbackBinding(const CallbackBinding&) = delete;
     CallbackBinding& operator=(const CallbackBinding&) = delete;
 
+    // Calls the client's invoke with event through call_client, inside
+    // frame.
+    void invoke(const CallbackFrame& frame, gf_event& event) const noexcept;
+    // As above, inside an event_callback frame named by the event's name.
     void invoke(gf_event& event) const noexcept;
     void disarm() noexcept;
 
