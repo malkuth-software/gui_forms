@@ -1358,7 +1358,10 @@ void NodeCanvas::publish_part_geometry(std::span<PartGeometry> geometry) const {
         bounds[canvas_part_node] = whole;
         bounds[canvas_part_node_header] = Rect{whole.x, whole.y, whole.width, header};
         if (selected(*focused_node_)) {
-            bounds[canvas_part_node_selection] = inflated(whole, selection_outset * view_.zoom);
+            // The ring as painted: its gap and its whole stroke width
+            // outside the body, in view units at every zoom.
+            const double ring_width = std::max(0.0, look_.selection.stroke_width);
+            bounds[canvas_part_node_selection] = inflated(whole, selection_ring_gap + ring_width);
         }
         if (!(*node).ports.empty()) {
             const Point anchor = view_.to_view(port_world(*node, (*node).ports.front()));

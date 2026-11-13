@@ -637,10 +637,15 @@ struct PageDigest final {
 // rows after it moving down; pages further down the list, which scroll it
 // further, move more.
 //
+// cp31 fold D return (NodeCanvas on the Gallery): the node-graphs page
+// lengthens the navigation list again, so every page moves; its own
+// entries are placeholders (0). To be recorded again: every page, in both
+// tables (GUI_FORMS_GALLERY_TRACE_PRINT=1), by the integrator.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
-constexpr std::array<PageDigest, 40> expected_digests{{
+constexpr std::array<PageDigest, 41> expected_digests{{
     {"basics", 0x47ed92249d010365ULL},
     {"values", 0x2e0715579119deedULL},
     {"retained-rows", 0x430fb8b6ac9ee752ULL},
@@ -680,6 +685,7 @@ constexpr std::array<PageDigest, 40> expected_digests{{
     {"guided-tasks", 0xf3d50a7e052d1576ULL},
     {"help-book", 0x1bb6e9e902ef8337ULL},
     {"industrial-surfaces", 0xc0c3a4fb58df15beULL},
+    {"node-graphs", 0x0000000000000000ULL},
     {"controls-inspection", 0xd511a97f0cd2d37dULL},
 }};
 
@@ -696,7 +702,7 @@ constexpr std::array<PageDigest, 40> expected_digests{{
 // dock site parts carry their names. typography-and-inspection is
 // left out (zero): it shows a RuntimeId, which counts every control made
 // before it in the process, and this pass runs after the one above.
-constexpr std::array<PageDigest, 40> professional_digests{{
+constexpr std::array<PageDigest, 41> professional_digests{{
     {"basics", 0x82cc6aa748cbe016ULL},
     {"values", 0x570afc728c30843eULL},
     {"retained-rows", 0x566784b66261fcd5ULL},
@@ -736,6 +742,7 @@ constexpr std::array<PageDigest, 40> professional_digests{{
     {"guided-tasks", 0x62d8931183b32235ULL},
     {"help-book", 0xa6fa99b19f9dd24fULL},
     {"industrial-surfaces", 0xd899312ac95e90ceULL},
+    {"node-graphs", 0x0000000000000000ULL},
     {"controls-inspection", 0xf4d594104f75599cULL},
 }};
 

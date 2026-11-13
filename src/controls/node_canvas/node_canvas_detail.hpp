@@ -60,7 +60,9 @@ inline constexpr double caption_text_size = 12.0;
 inline constexpr double port_label_size = 10.0;
 inline constexpr double port_label_gap = 10.0;
 inline constexpr double port_label_width = 80.0;
-inline constexpr double selection_outset = 3.0;
+// View units between a node's body and the inside of its selection ring,
+// as paint_canvas_node_selection strokes it (zoom-independent).
+inline constexpr double selection_ring_gap = 2.0;
 // View units: the magnet target's square around its port, the captured
 // target's drop ring, the link strokes and the frame margins.
 inline constexpr double target_side = 12.0;

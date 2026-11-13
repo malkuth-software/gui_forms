@@ -1370,7 +1370,7 @@
       "purpose": "Pannable, deeply zoomable editor over a node graph: level of detail, the grid, nodes with ports and lamps, magnetic soft or routed links, marquee and keyboard selection, grid-snapped moves as single undo steps, and an application-hosted editor.",
       "winforms": "GUI.Forms-only",
       "status": "provisional",
-      "gallery_page": null,
+      "gallery_page": "node-graphs",
       "doc": "api/generated/gui_forms.NodeCanvas.rst"
     },
     {

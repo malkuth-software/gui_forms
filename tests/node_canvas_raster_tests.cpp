@@ -115,14 +115,21 @@ void node_canvas_pixels() {
     require((*canvas).statistics().frames_painted >= 1U && (*canvas).statistics().nodes_painted >= 2U,
             "the capture painted the canvas");
 
-    // Selection changes the node's drawing.
-    const std::uint32_t plain_face = pixel_at(capture, 78U, 100U);
+    // Selection changes the node's drawing. The ring (paint_canvas_node_
+    // selection) is stroked 2 view units outside the body plus half its
+    // width: with the theme's 2-unit ring it covers x 26 to 28 left of
+    // Noise's edge at x 30, so column 27 is on it and column 28, the gap
+    // between ring and body, is not. The node's outline (column 30) and
+    // header band (y 50 to 74; (112, 58) is clear of the title and the
+    // corners) are drawn in the selected state's colours; the body's face
+    // keeps its colour.
     (*canvas).select_only(a);
     const std::optional<WindowCapture> selected = attached.capture_window(whole);
     require(selected.has_value(), "the selected canvas is captured");
-    const bool edge_changed = pixel_at(*selected, 28U, 82U) != pixel_at(capture, 28U, 82U) ||
-                              pixel_at(*selected, 78U, 100U) != plain_face;
-    require(edge_changed, "a selected node is drawn differently");
+    require(pixel_at(*selected, 27U, 82U) != pixel_at(capture, 27U, 82U), "a selected node is ringed");
+    const bool body_changed = pixel_at(*selected, 30U, 90U) != pixel_at(capture, 30U, 90U) ||
+                              pixel_at(*selected, 112U, 58U) != pixel_at(capture, 112U, 58U);
+    require(body_changed, "a selected node is drawn differently");
 
     // Looking away: only the region and the grid remain.
     // 4992 is a multiple of the grid spacing, so the lines stay where they

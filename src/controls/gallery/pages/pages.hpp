@@ -134,6 +134,9 @@ void add_guided_tasks(const std::shared_ptr<Surface>& page, const std::shared_pt
 // industrial-surfaces
 void add_industrial_surfaces(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context);
 
+// node-graphs
+void add_node_graphs(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context);
+
 // controls-inspection
 void add_controls_inspection(const std::shared_ptr<Surface>& page,
                              const std::shared_ptr<PageContext>& context);
@@ -151,7 +154,7 @@ struct PageBuilderEntry final {
 // (demo/gallery_page_specs.hpp, which places it in the navigation) and one
 // row here; the shell refuses a page with neither a form page nor a row
 // (std::logic_error at construction).
-inline constexpr std::array<PageBuilderEntry, 36> page_builders{{
+inline constexpr std::array<PageBuilderEntry, 37> page_builders{{
     {"control-spectrum", &add_control_spectrum},
     {"ranges-and-progress", &add_ranges},
     {"containers-and-focus", &add_containers},
@@ -187,6 +190,7 @@ inline constexpr std::array<PageBuilderEntry, 36> page_builders{{
     {"guided-tasks", &add_guided_tasks},
     {"help-book", &add_help_book},
     {"industrial-surfaces", &add_industrial_surfaces},
+    {"node-graphs", &add_node_graphs},
     {"controls-inspection", &add_controls_inspection},
 }};
 

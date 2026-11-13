@@ -1994,6 +1994,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/guided-tasks.cpp
         src/controls/gallery/pages/help-book.cpp
         src/controls/gallery/pages/industrial-surfaces.cpp
+        src/controls/gallery/pages/node-graphs.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -2089,6 +2090,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS GuidedTasksDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/industrial-surfaces.form
         CLASS IndustrialSurfacesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/node-graphs.form
+        CLASS NodeGraphsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/help-book.form
         CLASS HelpBookPageDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
@@ -2135,7 +2138,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             demo/pages/dock-and-anchor.form demo/pages/docking-workspace.form
             demo/pages/containers-and-focus.form demo/pages/tabs-and-pages.form
             demo/pages/anchored-overlays.form demo/pages/commands-and-menus.form
-            demo/pages/live-surfaces.form demo/pages/industrial-surfaces.form)
+            demo/pages/live-surfaces.form demo/pages/industrial-surfaces.form
+            demo/pages/node-graphs.form)
     # The industrial-surfaces page's theme and the GOST palette it imports
     # (skeudoindustrial surfaces, phases 4 and 5). Unchecked here: the
     # industrial package needs the palette in its library, which
@@ -5162,6 +5166,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/guided-tasks_tests.cpp
             tests/gallery_pages/help-book_tests.cpp
             tests/gallery_pages/industrial-surfaces_tests.cpp
+            tests/gallery_pages/node-graphs_tests.cpp
             tests/gallery_pages/anatomy_coverage_tests.cpp
             tests/gallery_pages/schema_export_tests.cpp
         )

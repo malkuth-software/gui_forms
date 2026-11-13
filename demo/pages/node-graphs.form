@@ -1,0 +1,42 @@
+/* The Gallery's node-graphs page (cp31): a NodeCanvas over a small fixed
+   node graph, two sources feeding a mix that feeds an output, and a status
+   line that follows the canvas's selection and edits.
+   gui_forms_add_form() compiles this document into node-graphs_form.hpp
+   at build time.
+
+   gallery.node-graphs.document is a declared boundary only: the page moves
+   its children into the shell's page body (a 1000 x 660 design surface),
+   where each is placed by its bounds in design coordinates. The graph and
+   the status text stay in the page (src/controls/gallery/pages/
+   node-graphs.cpp): the form language states no graph. The canvas's look
+   is the window theme's canvas look (node-canvas rules). */
+scaled-panel gallery.node-graphs.document {
+  design-size: 1000 660;
+
+  label gallery.node-graphs.heading {
+    text: "NODE GRAPHS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.node-graphs.lead {
+    text: "Nodes, ports and links on a world grid: pan, zoom, select, move, link and undo, all through the theme's canvas look.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.node-graphs.group {
+    text: "NodeCanvas · a mix of two sources";
+    classes: "paper" "group-caption";
+    design-size: 930 520;
+    bounds: 24 92 930 520;
+    node-canvas gallery.node-graphs.canvas {
+      accessible-name: "Node graph";
+      bounds: 20 40 890 420;
+    }
+    label gallery.node-graphs.status {
+      text: "";
+      classes: "muted" "body";
+      bounds: 20 474 890 24;
+    }
+  }
+}
