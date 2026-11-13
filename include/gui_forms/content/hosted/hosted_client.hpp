@@ -33,14 +33,16 @@
 
 namespace gui_forms {
 
-// One input event the parent forwarded. `kind` is key, text or pointer and
-// says which fields are set.
+// One input event the parent forwarded. `kind` is key, text, pointer or
+// focus and says which fields are set. They arrive in the order the
+// surface received them (ContentSurface::start_hosted_content).
 struct GUI_FORMS_API HostedClientInput final {
     HostedMessageKind kind{HostedMessageKind::key};
     HostedKeyRecord key{};
     HostedPointerRecord pointer{};
     std::string text{};
     bool composing{};
+    bool focused{};
 };
 
 class GUI_FORMS_API HostedClient final {
@@ -57,8 +59,9 @@ public:
     [[nodiscard]] std::uint64_t slot_bytes() const noexcept { return slot_bytes_; }
 
     // Waits up to `timeout` for parent messages and handles every one that
-    // arrived: configure updates request(), release frees a slot, input is
-    // queued for take_input, stop sets stop_requested(). Returns false once
+    // arrived: configure updates request(), release frees a slot, input
+    // (key, text, pointer, focus) is queued for take_input, stop sets
+    // stop_requested(). Returns false once
     // a stop was asked for or the channel closed or broke.
     bool pump(std::chrono::milliseconds timeout);
     // The region's device size and scale as last configured (zero before

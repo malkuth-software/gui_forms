@@ -578,6 +578,7 @@ void PosixHostedProgram::handle(const HostedMessage& message, ContentFrameSink& 
     case HostedMessageKind::text:
     case HostedMessageKind::pointer:
     case HostedMessageKind::stop:
+    case HostedMessageKind::focus:
         break;
     }
     // The reader admits only the child's kinds; anything else is a breach.
@@ -737,14 +738,14 @@ HostedContentSupport hosted_content_support() noexcept {
 
 HostedInput::HostedInput(std::shared_ptr<detail::HostedInputState> state) noexcept : state_(std::move(state)) {}
 
-bool HostedInput::send(HostedMessageKind kind, std::span<const std::byte> payload) {
+bool HostedInput::send(HostedMessageKind kind, std::span<const std::byte> payload, bool droppable) {
     if (!state_) return false;
     std::vector<std::byte> message{};
     append_hosted_message(message, kind, payload);
     bool queued = false;
     {
         const std::scoped_lock lock((*state_).mutex);
-        if ((*state_).connected.load(std::memory_order_acquire)) queued = enqueue_locked(*state_, message, true);
+        if ((*state_).connected.load(std::memory_order_acquire)) queued = enqueue_locked(*state_, message, droppable);
     }
     if (!queued) (*state_).dropped.fetch_add(1U, std::memory_order_relaxed);
     return queued;
@@ -758,14 +759,15 @@ bool HostedInput::send_key(const KeyEvent& event) {
     record.repeat = event.repeat;
     std::vector<std::byte> payload{};
     encode_hosted_key(payload, record);
-    const bool sent = send(HostedMessageKind::key, payload);
+    const bool droppable = event.action != KeyAction::up;
+    const bool sent = send(HostedMessageKind::key, payload, droppable);
     return sent;
 }
 
 bool HostedInput::send_text(std::string_view text, bool composing) {
     std::vector<std::byte> payload{};
     encode_hosted_text(payload, text, composing);
-    const bool sent = send(HostedMessageKind::text, payload);
+    const bool sent = send(HostedMessageKind::text, payload, true);
     return sent;
 }
 
@@ -781,7 +783,15 @@ bool HostedInput::send_pointer(const PointerEvent& event, Point device_position)
     record.wheel_y = event.wheel_delta.y;
     std::vector<std::byte> payload{};
     encode_hosted_pointer(payload, record);
-    const bool sent = send(HostedMessageKind::pointer, payload);
+    const bool droppable = event.action != PointerAction::up;
+    const bool sent = send(HostedMessageKind::pointer, payload, droppable);
+    return sent;
+}
+
+bool HostedInput::send_focus(bool focused) {
+    std::vector<std::byte> payload{};
+    encode_hosted_focus(payload, focused);
+    const bool sent = send(HostedMessageKind::focus, payload, false);
     return sent;
 }
 

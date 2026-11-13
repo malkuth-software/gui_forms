@@ -148,6 +148,12 @@ void HostedClient::handle(const HostedMessage& message) {
         if (decode_hosted_pointer(message.payload, input.pointer)) input_.push_back(std::move(input));
         return;
     }
+    case HostedMessageKind::focus: {
+        HostedClientInput input{};
+        input.kind = HostedMessageKind::focus;
+        if (decode_hosted_focus(message.payload, input.focused)) input_.push_back(std::move(input));
+        return;
+    }
     case HostedMessageKind::stop:
         stop_requested_ = true;
         return;

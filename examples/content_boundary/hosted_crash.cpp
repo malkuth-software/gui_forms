@@ -41,15 +41,14 @@ void require(const bool condition, const char* const message) {
     if (!condition) throw std::runtime_error(message);
 }
 
-// Makes the program to run: a new process each time it is started.
-gf::HostedContent make_program(const std::filesystem::path& executable) {
+// How to run the program: a new process each time it is started.
+gf::HostedContentOptions program_options(const std::filesystem::path& executable) {
     gf::HostedContentOptions options{};
     options.executable = executable;
     options.slot_bytes = 4U * 1024U * 1024U;
     // Below the surface's termination grace (the default 250 ms).
     options.stop_grace = std::chrono::milliseconds(100);
-    gf::HostedContent hosted = gf::make_hosted_content(std::move(options));
-    return hosted;
+    return options;
 }
 
 // The window's behaviour: a status line, a counter that shows the
@@ -66,12 +65,9 @@ public:
     }
 
     void start() {
-        gf::HostedContent hosted = make_program(executable_);
-        // The input channel would carry the surface's keys and pointer
-        // events to the program (HostedInput::send_key, send_pointer); this
-        // program reads none.
-        input_ = hosted.input;
-        surface_.start_program(std::move(hosted.program), true);
+        // The surface forwards its pointer, keys and focus to the program
+        // (this program reads none of them).
+        static_cast<void>(surface_.start_hosted_content(program_options(executable_), true));
         ++starts;
     }
 
@@ -92,7 +88,6 @@ private:
     gf::Label& status_;
     gf::Button& restart_;
     std::filesystem::path executable_;
-    gf::HostedInput input_{};
 };
 
 struct StatusIs final {

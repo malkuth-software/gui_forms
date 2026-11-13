@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/content/frame_sink/content_frame_sink.hpp"
+#include "gui_forms/content/hosted/hosted_content.hpp"
 #include "gui_forms/content/operation/content_operation.hpp"
 #include "gui_forms/content/types/content_types.hpp"
 #include "gui_forms/content/watchdog/content_watchdog.hpp"
@@ -59,6 +60,26 @@ struct ContentChannel;
 // shutdown), stop a running program with a bounded wait of the grace, then
 // abandon it: they never join a hung content thread.
 //
+// Hosted content (start_hosted_content): the surface forwards its own input
+// to the program's process, in the owner's input order
+// (manifests/abi/interaction_order.json, ADR-003 amendment 2026-11-12).
+// Each physical event goes to the program after GUI.Forms has raised it on
+// the surface (the window's key events, the preview and the surface's own
+// key_down, key_up, mouse_down, mouse_move, mouse_up and mouse_wheel, and
+// for text the window's and the surface's key_press), and only when none of
+// them handled it: a subscriber or rule that sets handled (or a key_down
+// that sets suppress_key_press) keeps the event from the program, as it
+// keeps it from a control's own handling. A forwarded event is marked
+// handled. Derived events (click, double click) are not forwarded; the
+// program derives its own from the physical ones, which arrive in rule 1's
+// order. Focus goes as got and lost focus, after GUI.Forms' own focus
+// events; a key up the window makes when it loses activation is forwarded
+// too, so the program never keeps a key down. Dialog keys the window
+// processes (Tab and the like) do not reach the surface and are not
+// forwarded. Pointer positions are in the region's device pixels. When a
+// handler disposes the surface the rest of the sequence is not forwarded
+// (rule 5). Opening other content or closing it ends the forwarding.
+//
 // Accessibility: the consumer's pixels carry no text. It supplies the
 // surface's semantic text (ContentSemantics) through the sink from its own
 // thread, or through set_content_semantics on the UI thread; the surface
@@ -87,6 +108,15 @@ public:
     // first. Null program is std::invalid_argument; a thread the system
     // refuses is std::system_error (the channel is closed again).
     void start_program(std::unique_ptr<ContentProgram> program, bool opaque);
+    // Makes a hosted program (make_hosted_content), starts it as
+    // start_program does, and forwards the surface's input to its process
+    // (the class comment). Returns the input channel, which the surface also
+    // keeps. Throws what make_hosted_content and start_program throw.
+    HostedInput start_hosted_content(HostedContentOptions options, bool opaque);
+    // The input channel the surface forwards to; an empty one (every send
+    // dropped) without hosted content.
+    [[nodiscard]] const HostedInput& hosted_input() const& noexcept { return hosted_input_; }
+    const HostedInput& hosted_input() const&& = delete;
     // Whether a program the surface started has not yet been reaped
     // (finished, failed or abandoned).
     [[nodiscard]] bool program_running() const noexcept { return worker_ != nullptr; }
@@ -148,6 +178,9 @@ public:
     // Composes the newest frame into the region (Painter::draw_live_surface),
     // and the veil and caption while the status asks for them.
     void on_paint(Painter& painter, Rect local_damage) override;
+    // Forwards text (an input method's composition included) to hosted
+    // content when nothing handled it (the class comment).
+    void on_text_input(TextInputEvent& event) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // A figure named by the semantic text's name (the accessible name, else
     // "Content", without one), whose value is its text; busy while stale or
@@ -177,6 +210,16 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void on_attached_to_window() override;
     void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
+    // Input forwarding to hosted content (the class comment): each calls the
+    // base, then forwards what nothing handled.
+    void on_key_down(KeyEventArgs& arguments) override;
+    void on_key_up(KeyEventArgs& arguments) override;
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_got_focus() override;
+    void on_lost_focus() override;
 
 private:
     // Receives the sink's posted notices (first frame, semantic text) on the
@@ -207,6 +250,10 @@ private:
     // Registers the surface (or, without one, an empty placeholder) with the
     // window's live-surface presenter.
     void register_presentation();
+    // Forwards a pointer event the surface's raisers left unhandled.
+    void forward_pointer(MouseEventArgs& arguments);
+    // Forwards a key the surface's raisers left unhandled.
+    void forward_key(KeyEventArgs& arguments, KeyAction action);
     // Whether the veil is drawn for the current status.
     [[nodiscard]] bool veiled() const noexcept;
 
@@ -232,6 +279,9 @@ private:
     // Indexed by ContentSurfaceStatus.
     std::array<std::string, 8> captions_{};
     bool opaque_{};
+    // The hosted program's input channel while the surface forwards to one.
+    HostedInput hosted_input_{};
+    bool forwarding_{};
     Event<ContentSurfaceStatus> status_changed_;
 };
 

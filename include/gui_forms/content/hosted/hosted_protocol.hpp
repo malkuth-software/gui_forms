@@ -91,6 +91,9 @@ enum class HostedMessageKind : std::uint32_t {
     // payload: none. Stop, release everything and exit; the parent ends the
     // process after its grace.
     stop = 21U,
+    // payload: focused (u32, 0 or 1). The surface gained or lost the
+    // keyboard focus.
+    focus = 22U,
 };
 
 [[nodiscard]] GUI_FORMS_API std::string_view hosted_message_kind_name(HostedMessageKind kind) noexcept;
@@ -165,6 +168,7 @@ GUI_FORMS_API void encode_hosted_key(std::vector<std::byte>& payload, const Host
 GUI_FORMS_API void encode_hosted_text(std::vector<std::byte>& payload, std::string_view text, bool composing);
 GUI_FORMS_API void encode_hosted_pointer(std::vector<std::byte>& payload, const HostedPointerRecord& record);
 GUI_FORMS_API void encode_hosted_configure(std::vector<std::byte>& payload, const HostedConfigureRecord& record);
+GUI_FORMS_API void encode_hosted_focus(std::vector<std::byte>& payload, bool focused);
 // Throws std::length_error when the three strings exceed the payload limit.
 GUI_FORMS_API void encode_hosted_semantics(std::vector<std::byte>& payload, const ContentSemantics& semantics);
 
@@ -182,6 +186,7 @@ GUI_FORMS_API void encode_hosted_semantics(std::vector<std::byte>& payload, cons
 [[nodiscard]] GUI_FORMS_API bool decode_hosted_configure(std::span<const std::byte> payload,
                                                          HostedConfigureRecord& out);
 [[nodiscard]] GUI_FORMS_API bool decode_hosted_semantics(std::span<const std::byte> payload, ContentSemantics& out);
+[[nodiscard]] GUI_FORMS_API bool decode_hosted_focus(std::span<const std::byte> payload, bool& focused);
 
 // What checking a frame record against the frame region found.
 enum class HostedFrameCheck : std::uint8_t {

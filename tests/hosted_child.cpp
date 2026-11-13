@@ -2,7 +2,11 @@
 // (gui_forms_hosted_content_tests). Its first argument picks how it behaves:
 //
 //   frames    publishes frames until asked to stop, then says goodbye and
-//             exits 0; answers each key with semantic text "key <code>"
+//             exits 0; keeps a log of the input it receives as its
+//             semantic text: "kd<code>" and "ku<code>" for keys, "t<text>"
+//             and "c<text>" for committed and composing text, "pd", "pu"
+//             and "pw" for pointer presses, releases and wheel (moves are
+//             not logged), "f1" and "f0" for focus, separated by spaces
 //   crash     publishes one frame, then aborts (a real crash: SIGABRT)
 //   hang      publishes one frame, then ignores everything forever
 //   garbage   writes bytes that are no message, then waits forever
@@ -11,6 +15,7 @@
 //   silent    never connects (the parent's start timeout ends it)
 
 #include "gui_forms/content/hosted/hosted_client.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
 
 #include <unistd.h>
 
@@ -69,15 +74,45 @@ bool publish_one(HostedClient& client) {
     return sent;
 }
 
+// The log's token for one input event; empty for one not logged.
+std::string input_token(const HostedClientInput& event) {
+    switch (event.kind) {
+    case HostedMessageKind::key: {
+        const char* const prefix = event.key.action == static_cast<std::uint32_t>(KeyAction::up) ? "ku" : "kd";
+        return std::string(prefix) + std::to_string(event.key.physical_key);
+    }
+    case HostedMessageKind::text: return std::string(event.composing ? "c" : "t") + event.text;
+    case HostedMessageKind::pointer:
+        if (event.pointer.action == static_cast<std::uint32_t>(PointerAction::down)) return "pd";
+        if (event.pointer.action == static_cast<std::uint32_t>(PointerAction::up)) return "pu";
+        if (event.pointer.action == static_cast<std::uint32_t>(PointerAction::wheel)) return "pw";
+        return std::string{};
+    case HostedMessageKind::focus: return event.focused ? "f1" : "f0";
+    default: return std::string{};
+    }
+}
+
+// The longest log the child keeps; older tokens are not trimmed, later
+// ones are not logged.
+constexpr std::size_t input_log_limit = 4096U;
+
 int run_frames(HostedClient& client) {
     std::vector<HostedClientInput> input{};
+    std::string log{};
     std::uint8_t shade = 0U;
     while (client.pump(std::chrono::milliseconds(20))) {
         input.clear();
         client.take_input(input);
+        bool logged = false;
         for (const HostedClientInput& event : input) {
-            if (event.kind != HostedMessageKind::key) continue;
-            const ContentSemantics answer{"Hosted child", "key " + std::to_string(event.key.physical_key), ""};
+            const std::string token = input_token(event);
+            if (token.empty() || log.size() + token.size() + 1U > input_log_limit) continue;
+            if (!log.empty()) log.push_back(' ');
+            log += token;
+            logged = true;
+        }
+        if (logged) {
+            const ContentSemantics answer{"Hosted child", log, ""};
             static_cast<void>(client.publish_semantics(answer));
         }
         const std::optional<std::uint32_t> slot = client.acquire_slot(std::chrono::milliseconds(0));

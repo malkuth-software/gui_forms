@@ -126,6 +126,7 @@ std::string_view hosted_message_kind_name(HostedMessageKind kind) noexcept {
     case HostedMessageKind::text: return "text";
     case HostedMessageKind::pointer: return "pointer";
     case HostedMessageKind::stop: return "stop";
+    case HostedMessageKind::focus: return "focus";
     }
     return "unknown";
 }
@@ -134,7 +135,7 @@ bool hosted_message_kind_valid(std::uint32_t value, bool from_child) noexcept {
     const bool child_kind = value >= static_cast<std::uint32_t>(HostedMessageKind::hello) &&
                             value <= static_cast<std::uint32_t>(HostedMessageKind::goodbye);
     const bool parent_kind = value >= static_cast<std::uint32_t>(HostedMessageKind::configure) &&
-                             value <= static_cast<std::uint32_t>(HostedMessageKind::stop);
+                             value <= static_cast<std::uint32_t>(HostedMessageKind::focus);
     const bool result = from_child ? child_kind : parent_kind;
     return result;
 }
@@ -188,6 +189,11 @@ void encode_hosted_text(std::vector<std::byte>& payload, std::string_view text, 
     put_u32(payload, composing ? 1U : 0U);
     const std::byte* const first = reinterpret_cast<const std::byte*>(text.data());
     payload.insert(payload.end(), first, first + text.size());
+}
+
+void encode_hosted_focus(std::vector<std::byte>& payload, bool focused) {
+    payload.clear();
+    put_u32(payload, focused ? 1U : 0U);
 }
 
 void encode_hosted_pointer(std::vector<std::byte>& payload, const HostedPointerRecord& record) {
@@ -246,6 +252,14 @@ bool decode_hosted_slot(std::span<const std::byte> payload, std::uint32_t& slot)
     PayloadCursor cursor(payload);
     slot = cursor.u32();
     const bool result = cursor.complete() && slot < hosted_slot_count;
+    return result;
+}
+
+bool decode_hosted_focus(std::span<const std::byte> payload, bool& focused) {
+    PayloadCursor cursor(payload);
+    const std::uint32_t flag = cursor.u32();
+    if (!cursor.complete()) return false;
+    const bool result = flag_of(flag, focused);
     return result;
 }
 

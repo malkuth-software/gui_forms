@@ -12,7 +12,9 @@
 #include "gui_forms/content/types/content_types.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/content_surface.hpp"
+#include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 
@@ -90,6 +92,14 @@ void messages_round_trip_and_split_feeds() {
     std::string text{};
     bool composing = false;
     require(decode_hosted_text(payload, text, composing) && text == "\xE3\x81\x8B" && composing, "text round-trips");
+    encode_hosted_focus(payload, true);
+    bool focused = false;
+    require(decode_hosted_focus(payload, focused) && focused, "a focus change round-trips");
+    payload[0] = std::byte{2};
+    require(!decode_hosted_focus(payload, focused), "a focus flag other than 0 or 1 is refused");
+    require(hosted_message_kind_valid(static_cast<std::uint32_t>(HostedMessageKind::focus), false) &&
+                !hosted_message_kind_valid(static_cast<std::uint32_t>(HostedMessageKind::focus), true),
+            "only the parent sends focus");
 }
 
 void the_reader_refuses_broken_streams() {
@@ -248,9 +258,11 @@ struct HasFrames final {
     bool operator()(const ContentSurface& surface) const { return surface.statistics().frames_published >= 2U; }
 };
 
-struct SemanticTextIs final {
+struct SemanticTextHas final {
     std::string wanted{};
-    bool operator()(const ContentSurface& surface) const { return surface.content_semantics().text == wanted; }
+    bool operator()(const ContentSurface& surface) const {
+        return surface.content_semantics().text.find(wanted) != std::string::npos;
+    }
 };
 
 struct HasRefusal final {
@@ -264,11 +276,90 @@ void frames_and_input_cross_the_process_boundary() {
     require(fixture.input.connected(), "the input channel is connected");
     const KeyEvent key{.action = KeyAction::down, .physical_key = PhysicalKey::enter};
     require(fixture.input.send_key(key), "a key is sent without waiting");
-    require(settle(fixture, SemanticTextIs{"key " + std::to_string(PhysicalKey::enter)}),
+    require(settle(fixture, SemanticTextHas{"kd" + std::to_string(PhysicalKey::enter)}),
             "the program received the key and answered through its semantic text");
     (*fixture.surface).terminate();
     require(settle(fixture, StatusIs{ContentSurfaceStatus::ended}), "a stopped program exits and the surface ends");
     require(!fixture.input.connected() && !fixture.input.send_key(key), "input to an ended program is dropped");
+}
+
+// Keeps every key_down for `withheld` from the program, as any subscriber
+// may.
+struct WithholdKey final {
+    std::uint32_t withheld{};
+    void operator()(KeyEventArgs& arguments) const {
+        if (arguments.physical_key == withheld) arguments.handled = true;
+    }
+};
+
+// Where `token` stands in a space-separated log, or npos.
+std::size_t token_at(const std::string& log, const std::string& token) {
+    const std::string padded = " " + log + " ";
+    const std::size_t found = padded.find(" " + token + " ");
+    return found;
+}
+
+void the_surface_forwards_its_input_in_order() {
+    Fixture fixture;
+    fixture.root = make_control<Panel>(StableId("hosted.forward.root"));
+    fixture.surface = make_control<ContentSurface>(StableId("hosted.forward.surface"));
+    std::shared_ptr<Button> other = make_control<Button>(StableId("hosted.forward.other"), "Other");
+    (*fixture.surface).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
+    (*other).set_requested_bounds({0.0, 90.0, 80.0, 24.0});
+    (*fixture.root).add_child(fixture.surface);
+    (*fixture.root).add_child(other);
+    fixture.window = std::make_unique<Window>(fixture.root, Size{200.0, 120.0});
+    (*fixture.window).perform_layout();
+    (*fixture.surface).set_stale_interval(FrameInterval::zero());
+    (*fixture.surface).set_termination_grace(std::chrono::milliseconds(2000));
+    HostedContentOptions options{};
+    options.executable = GUI_FORMS_HOSTED_CHILD;
+    options.arguments = {"frames"};
+    options.slot_bytes = 1024U * 1024U;
+    options.stop_grace = std::chrono::milliseconds(200);
+    fixture.input = (*fixture.surface).start_hosted_content(options, true);
+    require(settle(fixture, StatusIs{ContentSurfaceStatus::live}), "the program runs");
+    // A subscriber that handles a key keeps it from the program.
+    SubscriptionToken withhold = (*fixture.surface).key_down().subscribe(WithholdKey{PhysicalKey::b});
+
+    Window& window = *fixture.window;
+    const Point inside{40.0, 30.0};
+    PointerEvent down{PointerAction::down, PointerButton::primary, inside};
+    PointerEvent up{PointerAction::up, PointerButton::primary, inside};
+    static_cast<void>(window.dispatch_pointer(down));
+    static_cast<void>(window.dispatch_pointer(up));
+    // The press may have focused it already; either way it has the focus.
+    static_cast<void>(window.request_focus(fixture.surface));
+    require(window.control_focused(fixture.surface), "the surface has the focus");
+    static_cast<void>(window.dispatch_key(KeyEvent{.action = KeyAction::down, .physical_key = PhysicalKey::b}));
+    static_cast<void>(window.dispatch_key(KeyEvent{.action = KeyAction::up, .physical_key = PhysicalKey::b}));
+    static_cast<void>(window.dispatch_key(KeyEvent{.action = KeyAction::down, .physical_key = PhysicalKey::a}));
+    TextInputEvent committed{};
+    committed.text_utf8 = "a";
+    static_cast<void>(window.dispatch_text(committed));
+    static_cast<void>(window.dispatch_key(KeyEvent{.action = KeyAction::up, .physical_key = PhysicalKey::a}));
+    require(window.request_focus(other), "the focus moves away");
+    require(settle(fixture, SemanticTextHas{"f0"}), "the program heard the focus leave");
+
+    const std::string log = (*fixture.surface).content_semantics().text;
+    const std::string key_a = std::to_string(PhysicalKey::a);
+    const std::string key_b = std::to_string(PhysicalKey::b);
+    const std::size_t pressed = token_at(log, "pd");
+    const std::size_t released = token_at(log, "pu");
+    const std::size_t focused = token_at(log, "f1");
+    const std::size_t key_down = token_at(log, "kd" + key_a);
+    const std::size_t text = token_at(log, "ta");
+    const std::size_t key_up = token_at(log, "ku" + key_a);
+    const std::size_t unfocused = token_at(log, "f0");
+    require(pressed != std::string::npos && released != std::string::npos && pressed < released,
+            "the press reaches the program before the release");
+    require(focused != std::string::npos && focused < key_down, "the focus arrives before the keys");
+    require(key_down < text && text < key_up && key_up < unfocused,
+            "key down, its text, key up and the focus leaving arrive in the window's order");
+    require(token_at(log, "kd" + key_b) == std::string::npos, "a key a subscriber handled is withheld");
+    require(token_at(log, "ku" + key_b) != std::string::npos, "its release, which nobody handled, is forwarded");
+    (*fixture.surface).close_content();
+    require(!(*fixture.surface).hosted_input().connected(), "closing the content ends the forwarding");
 }
 
 void a_crash_ends_only_the_program() {
@@ -340,6 +431,7 @@ int main() {
         options_are_checked();
 #if !defined(_WIN32)
         frames_and_input_cross_the_process_boundary();
+        the_surface_forwards_its_input_in_order();
         a_crash_ends_only_the_program();
         a_hung_program_goes_stale_and_is_ended();
         garbage_breaks_the_protocol();

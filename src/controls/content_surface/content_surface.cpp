@@ -1,5 +1,7 @@
 #include "gui_forms/controls/content_surface.hpp"
 
+#include "gui_forms/events/key_events/key_events.hpp"
+#include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/window.hpp"
 #include "../../core/content/channel/content_channel.hpp"
 #include "../../core/surface_root/access/surface_schedule_access.hpp"
@@ -131,6 +133,9 @@ ContentFrameSink ContentSurface::open_content(bool opaque) {
     // A running program is stopped (bounded) before its channel goes.
     stop_worker(false);
     failure_.clear();
+    // New content ends any forwarding; start_hosted_content restores it.
+    hosted_input_ = HostedInput{};
+    forwarding_ = false;
     std::shared_ptr<detail::ContentChannel> fresh = detail::make_content_channel(current.size, opaque);
     if (!fresh) throw std::bad_alloc();
     if (channel_) detail::revoke_content_channel(*channel_);
@@ -156,6 +161,8 @@ ContentFrameSink ContentSurface::open_content(bool opaque) {
 void ContentSurface::close_content() {
     stop_worker(false);
     failure_.clear();
+    hosted_input_ = HostedInput{};
+    forwarding_ = false;
     watchdog_timer_.disconnect();
     watchdog_.stop();
     if (channel_) detail::revoke_content_channel(*channel_);
@@ -178,6 +185,85 @@ void ContentSurface::start_program(std::unique_ptr<ContentProgram> program, bool
     }
     // The checks now also reap the program.
     schedule_watchdog();
+}
+
+HostedInput ContentSurface::start_hosted_content(HostedContentOptions options, bool opaque) {
+    require_mutable();
+    // Made first: a refused option or platform changes nothing.
+    HostedContent hosted = make_hosted_content(std::move(options));
+    start_program(std::move(hosted.program), opaque);
+    hosted_input_ = hosted.input;
+    forwarding_ = true;
+    // A surface that already has the focus tells the program at once.
+    Window* const window = attached_window();
+    if (window != nullptr && (*window).control_focused(shared_from_this())) {
+        static_cast<void>(hosted_input_.send_focus(true));
+    }
+    return hosted.input;
+}
+
+void ContentSurface::forward_key(KeyEventArgs& arguments, KeyAction action) {
+    if (!forwarding_ || arguments.handled || !is_alive()) return;
+    const KeyEvent event = key_event_of(arguments, action);
+    static_cast<void>(hosted_input_.send_key(event));
+    arguments.handled = true;
+}
+
+void ContentSurface::forward_pointer(MouseEventArgs& arguments) {
+    if (!forwarding_ || arguments.handled || !is_alive()) return;
+    Window* const window = attached_window();
+    const double scale = window != nullptr ? (*window).scale() : 1.0;
+    const PointerEvent event = pointer_event_of(arguments);
+    const Point device_position{arguments.location.x * scale, arguments.location.y * scale};
+    static_cast<void>(hosted_input_.send_pointer(event, device_position));
+    arguments.handled = true;
+}
+
+void ContentSurface::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    forward_key(arguments, KeyAction::down);
+}
+
+void ContentSurface::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    forward_key(arguments, KeyAction::up);
+}
+
+void ContentSurface::on_text_input(TextInputEvent& event) {
+    Control::on_text_input(event);
+    if (!forwarding_ || event.handled || !is_alive()) return;
+    static_cast<void>(hosted_input_.send_text(event.text_utf8, event.composing));
+    event.handled = true;
+}
+
+void ContentSurface::on_mouse_down(MouseEventArgs& arguments) {
+    Control::on_mouse_down(arguments);
+    forward_pointer(arguments);
+}
+
+void ContentSurface::on_mouse_up(MouseEventArgs& arguments) {
+    Control::on_mouse_up(arguments);
+    forward_pointer(arguments);
+}
+
+void ContentSurface::on_mouse_move(MouseEventArgs& arguments) {
+    Control::on_mouse_move(arguments);
+    forward_pointer(arguments);
+}
+
+void ContentSurface::on_mouse_wheel(MouseEventArgs& arguments) {
+    Control::on_mouse_wheel(arguments);
+    forward_pointer(arguments);
+}
+
+void ContentSurface::on_got_focus() {
+    Control::on_got_focus();
+    if (forwarding_ && is_alive()) static_cast<void>(hosted_input_.send_focus(true));
+}
+
+void ContentSurface::on_lost_focus() {
+    Control::on_lost_focus();
+    if (forwarding_) static_cast<void>(hosted_input_.send_focus(false));
 }
 
 void ContentSurface::terminate() {

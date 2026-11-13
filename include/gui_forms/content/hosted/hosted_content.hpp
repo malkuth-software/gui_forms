@@ -7,6 +7,9 @@
 // in-process content: make_hosted_content returns a ContentProgram for
 // ContentSurface::start_program, and the surface's status, watchdog,
 // termination and stale veil apply unchanged.
+// ContentSurface::start_hosted_content does both and also forwards the
+// surface's pointer, keys, text and focus to the process, in the owner's
+// input order (content_surface.hpp).
 //
 // What the application is promised:
 //   - A program that crashes ends its own process only. The surface's status
@@ -90,13 +93,20 @@ public:
     // A pointer event; `device_position` is in the region's device pixels
     // from its top left (the local position times the window's scale).
     bool send_pointer(const PointerEvent& event, Point device_position);
+    // The surface gained (true) or lost the keyboard focus.
+    bool send_focus(bool focused);
     // Events dropped because the channel was full or closed.
     [[nodiscard]] std::uint64_t dropped() const noexcept;
     // Whether the program's process is running and connected.
     [[nodiscard]] bool connected() const noexcept;
 
 private:
-    bool send(HostedMessageKind kind, std::span<const std::byte> payload);
+    // `droppable`: whether the event may be dropped while the channel's
+    // backlog is over its limit (presses, moves, wheel and text); key and
+    // button releases and focus changes are queued regardless while the
+    // channel is open, so the program never keeps a key or button down, or
+    // the focus, that the application has let go.
+    bool send(HostedMessageKind kind, std::span<const std::byte> payload, bool droppable);
 
     std::shared_ptr<detail::HostedInputState> state_{};
 };

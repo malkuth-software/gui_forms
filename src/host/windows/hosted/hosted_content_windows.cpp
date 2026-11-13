@@ -39,30 +39,37 @@ HostedContentSupport hosted_content_support() noexcept {
 
 HostedInput::HostedInput(std::shared_ptr<detail::HostedInputState> state) noexcept : state_(std::move(state)) {}
 
-bool HostedInput::send(HostedMessageKind kind, std::span<const std::byte> payload) {
+bool HostedInput::send(HostedMessageKind kind, std::span<const std::byte> payload, bool droppable) {
     static_cast<void>(kind);
     static_cast<void>(payload);
+    static_cast<void>(droppable);
     if (state_) (*state_).dropped.fetch_add(1U, std::memory_order_relaxed);
     return false;
 }
 
 bool HostedInput::send_key(const KeyEvent& event) {
     static_cast<void>(event);
-    const bool sent = send(HostedMessageKind::key, {});
+    const bool sent = send(HostedMessageKind::key, {}, true);
     return sent;
 }
 
 bool HostedInput::send_text(std::string_view text, bool composing) {
     static_cast<void>(text);
     static_cast<void>(composing);
-    const bool sent = send(HostedMessageKind::text, {});
+    const bool sent = send(HostedMessageKind::text, {}, true);
     return sent;
 }
 
 bool HostedInput::send_pointer(const PointerEvent& event, Point device_position) {
     static_cast<void>(event);
     static_cast<void>(device_position);
-    const bool sent = send(HostedMessageKind::pointer, {});
+    const bool sent = send(HostedMessageKind::pointer, {}, true);
+    return sent;
+}
+
+bool HostedInput::send_focus(bool focused) {
+    static_cast<void>(focused);
+    const bool sent = send(HostedMessageKind::focus, {}, false);
     return sent;
 }
 
