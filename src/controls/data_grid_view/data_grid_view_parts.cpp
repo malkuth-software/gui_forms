@@ -378,7 +378,9 @@ double DataGridView::preferred_cell_width(DataGridViewRowPosition row, std::size
         // The face's inset and its label's margins.
         content = text_width + button_inset * 2.0 + cell_padding;
     } else if (kind == DataGridViewColumnKind::combo_box) {
-        content = text_width + drop_down_width;
+        // Text alone takes no button's width.
+        const bool button = columns_[column].display_style != DataGridViewComboBoxDisplayStyle::nothing;
+        content = button ? text_width + drop_down_width : text_width;
     } else if (kind == DataGridViewColumnKind::image) {
         // An image's pixels are logical units (cell_image).
         const BindingValue value = stored_value(row, column);
@@ -1264,7 +1266,7 @@ DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, 
         if (image) record.cell_image = visible_part((*image).bounds, Rect::intersection(inside, clip));
     } else {
         double reserved = 0.0;
-        if (kind == DataGridViewColumnKind::combo_box) {
+        if (kind == DataGridViewColumnKind::combo_box && shows_drop_down(row, column)) {
             reserved = drop_down_width * scale;
             const Rect button{inside.x + std::max(0.0, inside.width - reserved), inside.y,
                               std::min(reserved, inside.width), inside.height};
@@ -1481,9 +1483,10 @@ AnatomyStateSet DataGridView::cell_states(DataGridViewRowPosition row, std::size
     const bool edit_invalid = current && editing_ && edit_invalid_;
     if (edit_invalid || !cell_error_text(row, column).empty()) states.insert(AnatomyState::invalid);
     const DataGridViewColumnKind kind = columns_[column].kind;
-    if (kind == DataGridViewColumnKind::check_box &&
-        binding_value_to_bool(stored_value(row, column)).value_or(false)) {
-        states.insert(AnatomyState::checked);
+    if (kind == DataGridViewColumnKind::check_box) {
+        const std::optional<bool> state = check_state(row, column);
+        if (state && *state) states.insert(AnatomyState::checked);
+        if (!state) states.insert(AnatomyState::indeterminate);
     }
     const bool pressed = pressed_content_ && (*pressed_content_).column == column &&
                          (*pressed_content_).row_id == row_id_text(row);
@@ -2059,12 +2062,13 @@ constexpr std::array<PartField<DataGridView::CellParts>, 16> cell_part_fields{{
      .member = &DataGridView::CellParts::cell_error},
 }};
 
-constexpr std::array<StateField<DataGridView::CellStates>, 8> cell_state_fields{{
+constexpr std::array<StateField<DataGridView::CellStates>, 9> cell_state_fields{{
     {.state = AnatomyState::selected, .member = &DataGridView::CellStates::selected},
     {.state = AnatomyState::current, .member = &DataGridView::CellStates::current},
     {.state = AnatomyState::read_only, .member = &DataGridView::CellStates::read_only},
     {.state = AnatomyState::invalid, .member = &DataGridView::CellStates::invalid},
     {.state = AnatomyState::checked, .member = &DataGridView::CellStates::checked},
+    {.state = AnatomyState::indeterminate, .member = &DataGridView::CellStates::indeterminate},
     {.state = AnatomyState::pressed, .member = &DataGridView::CellStates::pressed},
     {.state = AnatomyState::open, .member = &DataGridView::CellStates::open},
     {.state = AnatomyState::focus_visible, .member = &DataGridView::CellStates::focus_visible},
@@ -2105,7 +2109,7 @@ constexpr std::array<AnatomyState, 6> grid_states_declared = state_declarations(
 constexpr std::array<PartDeclaration, 6> row_parts_declared = part_declarations(row_part_fields);
 constexpr std::array<AnatomyState, 5> row_states_declared = state_declarations(row_state_fields);
 constexpr std::array<PartDeclaration, 16> cell_parts_declared = part_declarations(cell_part_fields);
-constexpr std::array<AnatomyState, 8> cell_states_declared = state_declarations(cell_state_fields);
+constexpr std::array<AnatomyState, 9> cell_states_declared = state_declarations(cell_state_fields);
 constexpr std::array<PartDeclaration, 5> column_parts_declared = part_declarations(column_part_fields);
 constexpr std::array<AnatomyState, 3> column_states_declared = state_declarations(column_state_fields);
 

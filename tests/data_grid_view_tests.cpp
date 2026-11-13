@@ -3858,6 +3858,63 @@ void cell_mouse_events() {
             "the top-left header raises the events with neither row nor column");
 }
 
+struct AddBadDisplayStyle final {
+    DataGridView* grid{};
+    void operator()() const {
+        (*grid).add_column({.name = "styled",
+                            .kind = DataGridViewColumnKind::combo_box,
+                            .display_style = static_cast<DataGridViewComboBoxDisplayStyle>(7)});
+    }
+};
+
+// Windows Forms' ThreeState check box columns and the combo box
+// DisplayStyle and DisplayStyleForCurrentCellOnly.
+void three_state_and_display_style() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.three.state");
+    std::vector<DataGridViewColumn> columns = sample_columns();
+    columns[1].three_state = true;
+    columns[2].display_style = DataGridViewComboBoxDisplayStyle::nothing;
+    (*grid).set_columns(columns);
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require(window.request_focus(grid), "the grid takes focus");
+    // Charlie's row has no value for the check column: indeterminate.
+    const std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
+    const DataGridView::Cell* empty = find_cell(cells, 2U, 1U);
+    const DataGridView::Cell* checked = find_cell(cells, 0U, 1U);
+    require(empty != nullptr && (*empty).states.indeterminate && !(*empty).states.checked && checked != nullptr &&
+                (*checked).states.checked && !(*checked).states.indeterminate,
+            "an empty three-state value is indeterminate");
+    const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
+    const SemanticNode* mixed = find_node(nodes, "charlie.active");
+    require(mixed != nullptr && has_semantic_state((*mixed).states, SemanticState::mixed),
+            "an indeterminate cell publishes mixed");
+    require((*grid).set_current_cell(cell_at(1U, 1U)), "an unchecked cell becomes current");
+    require(key(window, PhysicalKey::space) && (*grid).cell_value(row_at(1U), 1U) == BindingValue{true},
+            "unchecked toggles to checked");
+    require(key(window, PhysicalKey::space) && (*grid).cell_value(row_at(1U), 1U) == BindingValue{},
+            "checked toggles to indeterminate");
+    require(key(window, PhysicalKey::space) && (*grid).cell_value(row_at(1U), 1U) == BindingValue{false},
+            "indeterminate toggles to unchecked");
+
+    const DataGridView::Cell* text_only = find_cell(cells, 0U, 2U);
+    require(text_only != nullptr && !(*text_only).parts.cell_drop_down.present,
+            "display style nothing draws the choice as text alone");
+    columns[2].display_style = DataGridViewComboBoxDisplayStyle::drop_down_button;
+    columns[2].display_style_for_current_cell_only = true;
+    (*grid).set_columns(columns);
+    window.perform_layout();
+    require((*grid).set_current_cell(cell_at(1U, 2U)), "a combo box cell becomes current");
+    window.perform_layout();
+    const std::vector<DataGridView::Cell> current_only = (*grid).realized_cells();
+    const DataGridView::Cell* current = find_cell(current_only, 1U, 2U);
+    const DataGridView::Cell* other = find_cell(current_only, 0U, 2U);
+    require(current != nullptr && (*current).parts.cell_drop_down.present && other != nullptr &&
+                !(*other).parts.cell_drop_down.present,
+            "for the current cell only, only the current cell shows its button");
+    require(throws<std::invalid_argument>(AddBadDisplayStyle{grid.get()}), "a display style outside the enumeration is refused");
+}
+
 int main() {
     columns_and_rows();
     layout_and_parts();
@@ -3907,6 +3964,7 @@ int main() {
     frozen_columns_and_rows();
     column_selection_modes();
     cell_mouse_events();
+    three_state_and_display_style();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";

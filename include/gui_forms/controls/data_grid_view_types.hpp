@@ -40,6 +40,12 @@ enum class DataGridViewColumnKind : std::uint8_t {
 // kept, centred.
 enum class DataGridViewImageLayout : std::uint8_t { normal, stretch, zoom };
 
+// How a combo box cell shows its choice (Windows Forms'
+// DataGridViewComboBoxDisplayStyle): with its drop-down button (combo_box
+// and drop_down_button draw alike, the button beside the text), or as text
+// alone (nothing), opened by a double click or F4.
+enum class DataGridViewComboBoxDisplayStyle : std::uint8_t { combo_box, drop_down_button, nothing };
+
 // Where a cell's content sits in the cell (Windows Forms'
 // DataGridViewContentAlignment): at the top, middle or bottom, and at the
 // start, centre or end across, mirrored with the layout direction. Windows

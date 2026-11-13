@@ -74,6 +74,15 @@ struct GUI_FORMS_API DataGridViewColumn final {
     DataGridViewCellStyle default_cell_style{};
     BindingValueKind value_kind{BindingValueKind::text};
     std::vector<std::string> items{};
+    // A combo box column's look (DisplayStyle), and whether it applies to
+    // the current cell only, the others drawn as text alone
+    // (DisplayStyleForCurrentCellOnly).
+    DataGridViewComboBoxDisplayStyle display_style{DataGridViewComboBoxDisplayStyle::combo_box};
+    bool display_style_for_current_cell_only{};
+    // A check box column with three states (ThreeState): an empty value is
+    // indeterminate, and the user's toggle runs unchecked, checked,
+    // indeterminate. Without it an empty value is unchecked.
+    bool three_state{};
     std::string button_text{};
     DataGridViewImageLayout image_layout{DataGridViewImageLayout::normal};
     std::string image_description{};
@@ -1076,6 +1085,8 @@ public:
         // A cell whose edit did not commit, or with error text.
         bool invalid{};
         bool checked{};
+        // A three-state check box cell whose value is empty.
+        bool indeterminate{};
         bool pressed{};
         bool open{};
         bool focus_visible{};
@@ -1283,6 +1294,11 @@ private:
     // Raises the cell_mouse_* events for a pointer event before the grid
     // acts on it; false when a handler disposed of the grid.
     [[nodiscard]] bool raise_cell_mouse(const PointerEvent& event, Point local);
+    // A check box cell's state: checked or not, or none (indeterminate) for
+    // an empty value in a three-state column.
+    [[nodiscard]] std::optional<bool> check_state(DataGridViewRowPosition row, std::size_t column) const;
+    // Whether a combo box cell shows its drop-down button.
+    [[nodiscard]] bool shows_drop_down(DataGridViewRowPosition row, std::size_t column) const;
     // The cell's tooltip: empty unless show_cell_tool_tips holds and a
     // cell_tool_tip_text_needed handler set valid UTF-8.
     [[nodiscard]] std::string cell_tool_tip_text(DataGridViewRowPosition row, std::size_t column) const;

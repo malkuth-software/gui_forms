@@ -152,11 +152,13 @@ void paint_data_grid_view_cell_parts(Painter& painter, const Control& owner, con
         part.role = PartRole::well;
         part.bounds = parts.check_well.bounds;
         paint_part(painter, owner, part);
-        // The indicator is a mark: drawn while checked, absent otherwise.
-        if (cell.states.contains(AnatomyState::checked)) {
+        // The indicator is a mark: the check while checked, the bar while
+        // indeterminate, absent otherwise.
+        const bool checked = cell.states.contains(AnatomyState::checked);
+        if (checked || cell.states.contains(AnatomyState::indeterminate)) {
             part.role = PartRole::indicator;
             part.bounds = parts.check_indicator.bounds;
-            part.mark = PartMark::check;
+            part.mark = checked ? PartMark::check : PartMark::indeterminate;
             paint_part(painter, owner, part);
             part.mark = PartMark::none;
         }

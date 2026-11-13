@@ -906,6 +906,10 @@ void DataGridView::validate_column(const DataGridViewColumn& column) const {
         throw std::invalid_argument(
             "DataGridView column auto size mode must be in the enumeration and fill weight finite and positive");
     }
+    if (static_cast<std::uint8_t>(column.display_style) >
+        static_cast<std::uint8_t>(DataGridViewComboBoxDisplayStyle::nothing)) {
+        throw std::invalid_argument("DataGridView combo box display style must be in the enumeration");
+    }
     if (column.image_layout != DataGridViewImageLayout::normal &&
         column.image_layout != DataGridViewImageLayout::stretch && column.image_layout != DataGridViewImageLayout::zoom) {
         throw std::invalid_argument("DataGridView image layout must be normal, stretch or zoom");
@@ -3051,15 +3055,42 @@ void DataGridView::close_drop_down() noexcept {
     if (choices_) (*choices_).close();
 }
 
+std::optional<bool> DataGridView::check_state(DataGridViewRowPosition row, std::size_t column) const {
+    const BindingValue value = stored_value(row, column);
+    if (columns_[column].three_state && std::holds_alternative<std::monostate>(value)) return std::nullopt;
+    const bool checked = binding_value_to_bool(value).value_or(false);
+    return checked;
+}
+
+bool DataGridView::shows_drop_down(DataGridViewRowPosition row, std::size_t column) const {
+    const DataGridViewColumn& definition = columns_[column];
+    if (definition.kind != DataGridViewColumnKind::combo_box) return false;
+    if (definition.display_style_for_current_cell_only && !is_current_cell(row, column)) return false;
+    const bool shown = definition.display_style != DataGridViewComboBoxDisplayStyle::nothing;
+    return shown;
+}
+
 bool DataGridView::toggle_check(DataGridViewCellAddress cell) {
     if (columns_[cell.column].kind != DataGridViewColumnKind::check_box ||
         cell_read_only(cell.row, cell.column)) {
         return false;
     }
-    const bool checked = binding_value_to_bool(stored_value(cell.row, cell.column)).value_or(false);
-    const BindingValue value{!checked};
+    // Two states toggle; three run unchecked, checked, indeterminate (an
+    // empty value), as Windows Forms' ThreeState cells do.
+    const std::optional<bool> state = check_state(cell.row, cell.column);
+    BindingValue value{false};
+    std::string shown = "false";
+    if (!state) {
+        value = BindingValue{false};
+    } else if (!*state) {
+        value = BindingValue{true};
+        shown = "true";
+    } else if (columns_[cell.column].three_state) {
+        value = BindingValue{};
+        shown = "";
+    }
     const CellKey key = key_of(cell);
-    if (!store_user_value(cell, value, checked ? "false" : "true").stored) return false;
+    if (!store_user_value(cell, value, shown).stored) return false;
     // A toggle of the new row reports the row it became.
     const DataGridViewCellEvent changed = cell_event(key);
     cell_changed(key);
@@ -4576,8 +4607,9 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             cell.role = SemanticRole::cell;
             if (definition.kind == DataGridViewColumnKind::check_box) {
                 cell.states |= SemanticState::checkable;
-                const bool checked = binding_value_to_bool(stored_value(row, column)).value_or(false);
-                if (checked) cell.states |= SemanticState::checked;
+                const std::optional<bool> state = check_state(row, column);
+                if (state && *state) cell.states |= SemanticState::checked;
+                if (!state) cell.states |= SemanticState::mixed;
                 if (!cell_is_read_only) cell.actions.push_back(SemanticAction::press);
             } else if (definition.kind == DataGridViewColumnKind::button) {
                 cell.name = cell.value;
