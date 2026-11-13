@@ -31,8 +31,6 @@ using namespace node_canvas_detail;
 
 namespace {
 
-// The digits of the largest slot or generation, for the node identities.
-constexpr std::size_t identity_digits_capacity = 12U;
 constexpr std::string_view node_segment = ".node-";
 constexpr std::string_view port_segment = ".port-";
 constexpr std::string_view announcements_segment = ".announcements";

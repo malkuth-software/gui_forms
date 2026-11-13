@@ -23,6 +23,7 @@ BULGE: str = 'primitive\tbulge\trest\t1.00\t1\t51\t0\t58212a64ba6d4616'
 GLASS: str = 'primitive\tglass\trest\t1.00\t1\t51\t0\t8002a0c7d2724c39'
 SAMPLES: list[str] = ['samples\t1', 'sample\tfill_conic\tmaterial\trest\t1.00\t1\t51\t0\t35e5bfc0b8f3e2a1',
                       'feature\tfill.conic_gradient\tfill_conic']
+REFUSAL: str = 'refused\tfinish_glint\t2.00\t31834880\t20000000'
 
 
 def write_evidence(root: Path, manifests: dict[str, str]) -> None:
@@ -53,6 +54,12 @@ class ParseTests(unittest.TestCase):
             engine_gate.parse_manifest(manifest_text([BULGE] + SAMPLES + [SAMPLES[1]]))
         with self.assertRaises(ValueError):
             engine_gate.parse_manifest(manifest_text([BULGE] + SAMPLES + [SAMPLES[2]]))
+
+    def test_a_designed_refusal_is_read(self) -> None:
+        manifest: engine_gate.Manifest = engine_gate.parse_manifest(manifest_text([BULGE] + SAMPLES + [REFUSAL]))
+        self.assertEqual(manifest.refusals, {('finish_glint', '2.00'): ('31834880', '20000000')})
+        with self.assertRaises(ValueError):
+            engine_gate.parse_manifest(manifest_text([BULGE] + SAMPLES + [REFUSAL, REFUSAL]))
 
     def test_a_foreign_file_or_a_malformed_row_is_refused(self) -> None:
         with self.assertRaises(ValueError):
@@ -129,6 +136,19 @@ class CompareTests(unittest.TestCase):
         self.assertEqual(kinds, ['sample', 'feature'])
         self.assertIn('- sample `fill_conic` rest at 1.00:', record)
         self.assertIn('- feature `fill.conic_gradient`:', record)
+
+    def test_a_differing_refusal_fails(self) -> None:
+        moved: str = REFUSAL.replace('31834880', '31834881')
+        status: int
+        result: dict
+        record: str
+        status, result, record = self.run_compare({
+            'windows-x64': manifest_text([BULGE] + SAMPLES + [REFUSAL]),
+            'linux-x64': manifest_text([BULGE] + SAMPLES + [REFUSAL]),
+            'macos-arm64': manifest_text([BULGE] + SAMPLES + [moved])})
+        self.assertEqual(status, 1)
+        self.assertEqual(result['differences'][0]['kind'], 'refusal')
+        self.assertIn('- refusal of `finish_glint` at 2.00:', record)
 
     def test_a_primitive_missing_on_one_host_is_a_difference(self) -> None:
         status: int

@@ -100,7 +100,7 @@ inline constexpr std::size_t keyboard_link_tries = 16U;
     case PortSide::right: return SceneEdge::right;
     case PortSide::top: return SceneEdge::top;
     case PortSide::bottom: return SceneEdge::bottom;
-    default: break;
+    default: break;  // automatic: callers resolve it with effective_side first
     }
     // Automatic is resolved before this; anything else leaves right.
     return SceneEdge::right;
@@ -134,7 +134,7 @@ inline constexpr std::size_t keyboard_link_tries = 16U;
     case PortSide::right: return Point{anchor.x - inset, anchor.y};
     case PortSide::top: return Point{anchor.x, anchor.y + inset};
     case PortSide::bottom: return Point{anchor.x, anchor.y - inset};
-    default: break;
+    default: break;  // automatic: effective_side never returns it
     }
     // Automatic is resolved by effective_side; anything else stays put.
     return anchor;

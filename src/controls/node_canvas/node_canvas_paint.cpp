@@ -58,7 +58,7 @@ constexpr std::string_view socket_class_prefix = "socket-";
     switch (lamp) {
     case PortLamp::on: return CanvasLampState::on;
     case PortLamp::error: return CanvasLampState::error;
-    default: break;
+    default: break;  // off, and any later lamp, shows the unlit lamp
     }
     return CanvasLampState::off;
 }

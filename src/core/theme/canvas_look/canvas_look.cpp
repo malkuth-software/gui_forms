@@ -207,6 +207,7 @@ struct CanvasStateRequest final {
         request.part_state = AnatomyState::disabled;
         break;
     default:
+        // normal (and count, which is no state) asks for the plain record.
         break;
     }
     return request;
@@ -229,6 +230,7 @@ struct CanvasStateRequest final {
         request.part_state = AnatomyState::drop_rejected;
         break;
     default:
+        // normal (and count, which is no state) asks for the plain record.
         break;
     }
     return request;
@@ -251,6 +253,7 @@ struct CanvasStateRequest final {
         request.part_state = AnatomyState::invalid;
         break;
     default:
+        // normal (and count, which is no state) asks for the plain record.
         break;
     }
     return request;
@@ -269,6 +272,7 @@ struct CanvasStateRequest final {
         request.part_state = AnatomyState::invalid;
         break;
     default:
+        // off (and count, which is no state) asks for the unlit record.
         break;
     }
     return request;
@@ -417,6 +421,7 @@ struct CanvasLineStock final {
         request.part_state = AnatomyState::drop_rejected;
         break;
     default:
+        // seeking (and count, which is no state) asks for the plain record.
         break;
     }
     return request;

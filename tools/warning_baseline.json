@@ -34,6 +34,7 @@
    "src/controls/instruments/sparkline": 5,
    "src/controls/instruments/sweep_scope": 7,
    "src/controls/label": 3,
+   "src/controls/link_flow": 1,
    "src/controls/lookup_combo_box": 7,
    "src/controls/menu/menu_strip": 7,
    "src/controls/metrics_view": 5,
