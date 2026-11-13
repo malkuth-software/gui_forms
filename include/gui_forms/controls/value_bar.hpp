@@ -44,7 +44,12 @@ struct GUI_FORMS_API ValueBarContrast final {
 // Gestures (study 3.4): press and drag sideways scrubs (the shared
 // ScrubGesture on the window's drag engine): Shift slows it, Ctrl snaps to
 // snap_step, Escape or a right press restores the start value, and the
-// release raises value_committed once. A click without a drag, Enter or F2
+// release raises value_committed once. The press captures the pointer, so
+// a scrub that leaves the bar keeps tracking until the release; with the
+// host's relative-motion pointer lock the pointer is hidden and the scrub
+// is unbounded, otherwise it stops at the window's edge at the same rate
+// (ScrubPointerLock, src/core/drag_engine/scrub_gesture.hpp). A lost
+// capture restores the start value. A click without a drag, Enter or F2
 // opens the inline editor with the value selected; Enter, Tab or focus
 // leaving it commits the typed text (bounded arithmetic and units, clamped
 // to the hard range), Escape cancels, and a refused text keeps the editor

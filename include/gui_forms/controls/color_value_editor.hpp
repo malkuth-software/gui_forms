@@ -27,6 +27,10 @@ public:
     [[nodiscard]] Event<const PropertyEditorInputError&>& edit_failed() noexcept {
         return edit_failed_;
     }
+    // The text form keeps alpha: format_value writes #RRGGBBAA, and
+    // parse_value takes #RRGGBBAA or #RRGGBB (alpha 255), hex digits of
+    // either case between optional surrounding white space. `value` holds
+    // the alpha it was given or parsed.
     [[nodiscard]] static std::string format_value(Color colour);
     [[nodiscard]] static std::optional<Color> parse_value(std::string_view text);
 
