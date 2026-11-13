@@ -1193,6 +1193,7 @@ NativeWindow::~NativeWindow() {
   (*entry.model).set_dispatch_wake_handler({});
   (*entry.model).set_live_surface_idle_wake_handler({});
   (*entry.model).set_paint_wake_handler({});
+  (*entry.model).set_schedule_wake_handler({});
   (*entry.model).set_text_metrics_provider(nullptr);
   (*entry.model).set_framebuffer_painter(nullptr);
   if (session)
@@ -1232,6 +1233,11 @@ void NativeWindow::report_window_state() {
 void NativeWindow::attach() {
   (*entry.model).set_dispatch_wake_handler(Wake{runtime.wake_pipe[1]});
   (*entry.model).set_paint_wake_handler(Wake{runtime.wake_pipe[1]});
+  // A frame request made outside this window's poll (a Timer restarted from
+  // another window's callback, idle frames armed while painting) writes the
+  // wake pipe, so that the wait in Runtime::step ends and the next turn
+  // reads next_wake again before it waits.
+  (*entry.model).set_schedule_wake_handler(Wake{runtime.wake_pipe[1]});
   // A live publication while the clock rests writes the wake pipe (E4).
   (*entry.model).set_live_surface_idle_wake_handler(Wake{runtime.wake_pipe[1]});
 #if !defined(GUI_FORMS_PREPARED_TEXT)
@@ -1408,6 +1414,7 @@ void NativeWindow::close(HostCloseReason reason, bool force) {
   (*entry.model).set_dispatch_wake_handler({});
   (*entry.model).set_live_surface_idle_wake_handler({});
   (*entry.model).set_paint_wake_handler({});
+  (*entry.model).set_schedule_wake_handler({});
   (*session).shutdown();
   XUnmapWindow(runtime.display, xid);
   if (entry.options.print_metrics_on_close)

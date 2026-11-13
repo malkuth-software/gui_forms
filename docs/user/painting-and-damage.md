@@ -127,6 +127,40 @@ repeat, runs on `Window::schedule_ui_timer`, which the control stops itself.
 faults are isolated per request, and nothing repaints while the window is
 idle: `Window::next_wake` is empty in a resting window.
 
+A host arms its clock for `next_wake` after each poll of the frame schedule.
+A frame request made anywhere else would wait for unrelated activity: a
+Timer started or restarted from posted work or from another window's
+callback, a `schedule_paint` deadline, motion frames, or the idle frames the
+engine arms while painting (procedural patterns, finish tiles, keyframes).
+`set_schedule_wake_handler` closes that gap: such a request calls the
+handler once until the host's next `poll_frame_schedule`, and a request made
+inside a poll calls nothing, since the host arms after the poll. The handler
+runs inside model calls, painting included, so it only schedules: it posts
+work, writes a pipe or posts a message, and returns. The work it schedules
+polls, takes damage and re-arms the clock.
+
+Host contracts for the schedule wake:
+
+- macOS: a damage collection posted through the run loop (CollectDamageWake),
+  which polls and arms the wake timer. The wake timer's own handler only
+  posts the wake, so that a nested loop entered from application code (a
+  modal opened from a Timer) does not hold the main dispatch queue.
+- Linux (X11, including under XWayland): a write to the run's wake pipe.
+  `Runtime::step` reads every window's `next_wake` after its update each
+  turn, so ending the wait is enough.
+- Windows (owed): the same gap exists. `arm_scheduled_wake` runs only at
+  the end of `collect_damage`, and `WM_PAINT` paints without re-arming, so
+  idle frames armed during a paint and Timers restarted from another
+  window's callback wait for the next message that collects damage. The
+  host must install `set_schedule_wake_handler` in `initialize` next to the
+  paint wake, with a `noexcept` target that posts a window message (or
+  reuses `render_dispatch_message` with its coalescing flag) and returns.
+  The message's handler calls `collect_damage`, which polls and calls
+  `arm_scheduled_wake`. Clear the handler wherever the paint wake handler
+  is cleared (destruction and close). It must not call into the model
+  synchronously, and it must work inside the window's own nested modal
+  loops (size/move, the modal dialog loop), which pump posted messages.
+
 ## Live surfaces
 
 A live surface (`LiveSurfaceDescription`, `LiveSurfaceFrame`) lets a producer (an audio visualizer, a video decoder, a

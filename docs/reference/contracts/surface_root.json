@@ -173,6 +173,10 @@
       "reviewed": false,
       "summary": "Installs the host paint wake primitive used by cross-window or asynchronous retained invalidation."
     },
+    "gui_forms::SurfaceRoot::set_schedule_wake_handler|void (std::function<void ()>)": {
+      "reviewed": false,
+      "summary": "Installs the host schedule wake primitive, called once until the next poll when a frame request is made or moved outside a poll, so the host re-arms for next_wake."
+    },
     "gui_forms::SurfaceRoot::shutdown_dispatcher|void () noexcept": {
       "reviewed": false,
       "summary": "Atomically stops acceptance, removes the wake seam, abandons deferred input on the UI thread, cancels pending work, and releases waiters."
