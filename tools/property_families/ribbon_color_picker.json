@@ -2,9 +2,9 @@
   "family": "RibbonColorPicker",
   "step": "M-S8",
   "declaring": "RibbonColorPicker",
-  "header": "include/gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp",
+  "header": "include/gui_forms/controls/ribbon_color_picker.hpp",
   "source": "src/controls/ribbon_color_picker/ribbon_color_picker.cpp",
-  "capabilities_header": "include/gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/ribbon_color_picker_capabilities.hpp",
   "base": "Control",
   "shared": [
     "TextCapability"
@@ -15,7 +15,7 @@
   ],
   "test": {
     "type": "RibbonColorPicker",
-    "include": "gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp"
+    "include": "gui_forms/controls/ribbon_color_picker.hpp"
   },
   "properties": [
     {

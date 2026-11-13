@@ -48,6 +48,28 @@ MINOR_BUMPED: str = "#define GF_ABI_MINOR 2u"
 EXPORT: str = "GF_ABI_EXPORT gf_status GF_CALL gf_abi_get_table("
 TABLE: str = "typedef struct gf_sample_table {"
 WIDE_RECORD: str = "typedef struct gf_wide {\n    double a;\n    double b;\n    double c;\n} gf_wide;\n\n"
+# The shape of a failure snapshot (C ABI 1.2, gf_failure_snapshot): a new
+# status, a new extensible record holding a fixed text field, and a slot
+# that copies it out, appended to an existing table.
+STATUS: str = "#define GF_ERROR_INVALID_ARGUMENT 1\n"
+STATUS_ADDED: str = STATUS + "#define GF_ERROR_NATIVE_EXCEPTION 2\n"
+SNAPSHOT_RECORD: str = ("typedef struct gf_sample_snapshot {\n    uint32_t struct_size;\n    gf_status status;\n"
+                        "    uint64_t sequence;\n    uint8_t site[16];\n} gf_sample_snapshot;\n\n")
+SLOT_SNAPSHOT: str = ("    gf_status (GF_CALL* snapshot)(gf_sample_snapshot* snapshot, uint64_t capacity, "
+                      "uint64_t* required);\n")
+# The shape of the class tables (C ABI 1.3, gf_abi_classes.h): a class id, an
+# entry typedef, a segment, the class header and a class table.
+CLASS_ID: str = "#define GF_CLASS_SAMPLE 1u\n"
+SEGMENT_ENTRY: str = "    gf_hook_entry on_first;\n"
+CLASS_POINTER: str = "    const gf_sample_hooks* sample;\n"
+CLASS_TABLES: str = ("typedef uint32_t gf_class_id;\n" + CLASS_ID +
+                     "typedef void (GF_CALL* gf_hook_entry)(void* instance, gf_object self);\n"
+                     "typedef struct gf_sample_hooks {\n    uint32_t struct_size;\n    gf_class_id class_id;\n" +
+                     SEGMENT_ENTRY + "} gf_sample_hooks;\n\n"
+                     "typedef struct gf_class_header {\n    uint32_t struct_size;\n    uint32_t abi_minor;\n"
+                     "    gf_class_id class_id;\n    uint32_t segment_count;\n} gf_class_header;\n\n"
+                     "typedef struct gf_sample_class {\n    gf_class_header header;\n" + CLASS_POINTER +
+                     "} gf_sample_class;\n\n")
 
 CASES: tuple[Case, ...] = (
     Case("unchanged", (), ""),
@@ -62,6 +84,15 @@ CASES: tuple[Case, ...] = (
          (("(void* context, uint32_t value)", "(void* context, uint64_t value)"),), "break"),
     Case("field type changed", ((FLAGS_FIELD, "    int32_t flags;\n"),), "break"),
     Case("field inserted in the middle", ((FLAGS_FIELD, FLAGS_FIELD + "    uint64_t inserted;\n"),), "break"),
+    Case("failure snapshot shape added with a minor bump",
+         ((STATUS, STATUS_ADDED), (TABLE, SNAPSHOT_RECORD + TABLE), (SLOT_SECOND, SLOT_SECOND + SLOT_SNAPSHOT),
+          (MINOR, MINOR_BUMPED)), ""),
+    Case("failure snapshot shape added without a minor bump",
+         ((STATUS, STATUS_ADDED), (TABLE, SNAPSHOT_RECORD + TABLE), (SLOT_SECOND, SLOT_SECOND + SLOT_SNAPSHOT)),
+         "version"),
+    Case("failure snapshot slot inserted before an existing slot",
+         ((TABLE, SNAPSHOT_RECORD + TABLE), (SLOT_SECOND, SLOT_SNAPSHOT + SLOT_SECOND), (MINOR, MINOR_BUMPED)),
+         "break"),
     Case("fixed record grown", (("    double y;\n", "    double y;\n    double z;\n"), (MINOR, MINOR_BUMPED)), "break"),
     Case("constant value changed",
          (("#define GF_ERROR_INVALID_ARGUMENT 1", "#define GF_ERROR_INVALID_ARGUMENT 2"),), "break"),
@@ -92,6 +123,16 @@ CASES: tuple[Case, ...] = (
          "break", "report", True),
     Case("blocking mode: major changed", ((MAJOR, "#define GF_ABI_MAJOR 2u"),), "break", "blocking"),
     Case("report mode: major changed", ((MAJOR, "#define GF_ABI_MAJOR 2u"),), "", "report"),
+    Case("class tables added with a minor bump", ((TABLE, CLASS_TABLES + TABLE), (MINOR, MINOR_BUMPED)), ""),
+    Case("segment holding a field that is not an entry",
+         ((TABLE, CLASS_TABLES + TABLE), (SEGMENT_ENTRY, SEGMENT_ENTRY + "    uint64_t count_extra;\n"),
+          (MINOR, MINOR_BUMPED)), "class-table"),
+    Case("class table holding a field that is not a segment pointer",
+         ((TABLE, CLASS_TABLES + TABLE), (CLASS_POINTER, CLASS_POINTER + "    uint64_t count_extra;\n"),
+          (MINOR, MINOR_BUMPED)), "class-table"),
+    Case("two class ids sharing a value",
+         ((TABLE, CLASS_TABLES + TABLE), (CLASS_ID, CLASS_ID + "#define GF_CLASS_OTHER 1u\n"),
+          (MINOR, MINOR_BUMPED)), "class-table"),
 )
 UNRECORDED: str = " (unrecorded: "
 

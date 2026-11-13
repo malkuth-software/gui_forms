@@ -10,7 +10,7 @@
 
 #include "gui_forms/control.hpp"
 #include "support/theme_definition_heap.hpp"
-#include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel.hpp"
 #include "gui_forms/engine.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/theme.hpp"
@@ -136,7 +136,7 @@ void test_field_names() {
         "keylines",      "corner_top_left", "corner_top_right", "corner_bottom_right", "corner_bottom_left",
         "colour_filter",
         "drop_shadow",   "filter_blur",       "finish",
-        "mask",          "reflection"};
+        "mask",          "reflection",        "seat",              "gradient_dither"};
     for (std::size_t index = 0U; index < material_field_count; ++index) {
         require(material_field_name(static_cast<MaterialField>(index)) == expected[index],
                 "each material field has its name, in enum order");
@@ -597,25 +597,31 @@ void test_engine_equivalence() {
     require(pixels_hash(*authored) == pixels_hash(*written),
             "the fields bake as the same material written into the recipe in C++");
     require(pixels_hash(*authored) != pixels_hash(*plain), "and the fields change the part");
-    require(assemblies(*(*authored).window) == 1U && assemblies(*(*written).window) == 0U,
-            "the authored part assembled its material once; the written one assembles none");
+    // The field rule names no control type, so it also reaches the root
+    // panel's face, which no primitive draws: the built-in recipe draws it
+    // in its authored material too (built_in_part_material), one assembly
+    // each.
+    require(assemblies(*(*authored).window) == 2U && assemblies(*(*written).window) == 0U,
+            "the authored button face and panel face assembled their material once each; the written one assembles none");
 
     Window& window = *(*authored).window;
     const std::uint64_t first_bakes = bakes(window);
+    const std::uint64_t first_assemblies = assemblies(window);
     (*(*authored).pad).invalidate(Dirty::paint);
     repaint(*authored);
-    require(assemblies(window) == 1U && bakes(window) == first_bakes,
+    require(assemblies(window) == first_assemblies && bakes(window) == first_bakes,
             "a repaint reuses the assembly and the raster");
     (*(*authored).pad).enabled = false;
     (*(*written).pad).enabled = false;
     repaint(*authored);
     repaint(*written);
-    require(assemblies(window) == 2U && bakes(window) == first_bakes + 1U,
+    require(assemblies(window) == first_assemblies + 1U && bakes(window) == first_bakes + 1U,
             "a state whose recipe material differs is one more assembly and one more bake");
     require(pixels_hash(*authored) == pixels_hash(*written), "and still bakes as the C++ material");
     (*(*authored).pad).invalidate(Dirty::paint);
     repaint(*authored);
-    require(assemblies(window) == 2U && bakes(window) == first_bakes + 1U, "which is kept in turn");
+    require(assemblies(window) == first_assemblies + 1U && bakes(window) == first_bakes + 1U,
+            "which is kept in turn");
 }
 
 // The colour in one rule and the image layers in another, the colour's rule
@@ -659,10 +665,13 @@ void test_unkeyed_part() {
     }
     std::unique_ptr<Fixture> fixture = make_fixture(theme);
     Window& window = *(*fixture).window;
-    require(assemblies(window) == 1U, "a part without a key assembles its material for its paint");
+    // The role rule reaches the root panel's face as well, which the
+    // built-in recipe draws in the authored material: one assembly each.
+    const std::uint64_t first_assemblies = assemblies(window);
+    require(first_assemblies == 2U, "a part without a key assembles its material for its paint");
     (*(*fixture).pad).invalidate(Dirty::paint);
     repaint(*fixture);
-    require(assemblies(window) == 1U,
+    require(assemblies(window) == first_assemblies,
             "and none again while its identity holds, kept in the window's unkept assemblies");
     std::unique_ptr<Fixture> written = make_fixture(written_theme());
     require(pixels_hash(*fixture) == pixels_hash(*written), "it bakes the same material");
@@ -703,9 +712,13 @@ void test_refused_assembly() {
     Window& window = *(*fixture).window;
     require((*fixture).painter.rasters == 0U, "a refused assembly composites no raster");
     require(window.metrics_snapshot().engine_primitive_refusals == 1U, "the refusal is counted");
+    // The untyped finish rule also reaches the root panel's face (the
+    // built-in recipe draws it in the authored material), so the count is
+    // taken before the repaint.
+    const std::uint64_t first_assemblies = assemblies(window);
     (*(*fixture).pad).invalidate(Dirty::paint);
     repaint(*fixture);
-    require(window.metrics_snapshot().engine_primitive_refusals == 1U && assemblies(window) == 1U,
+    require(window.metrics_snapshot().engine_primitive_refusals == 1U && assemblies(window) == first_assemblies,
             "once, when it begins, with the assembly kept");
 }
 

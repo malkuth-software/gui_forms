@@ -2,13 +2,13 @@
   "family": "PlotAnnotationItem",
   "step": "PL-1",
   "declaring": "PlotAnnotationItem",
-  "header": "include/gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp",
+  "header": "include/gui_forms/controls/plot_annotation_item.hpp",
   "source": "src/controls/plots/plot_annotation_item/plot_annotation_item.cpp",
-  "capabilities_header": "include/gui_forms/controls/plots/plot_annotation_item/plot_annotation_item_capabilities/plot_annotation_item_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/plot_annotation_item_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
-    "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
+    "gui_forms/controls/plot_values.hpp"
   ],
   "properties": [
     {
@@ -114,6 +114,6 @@
   "not_properties": [],
   "test": {
     "type": "PlotAnnotationItem",
-    "include": "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp"
+    "include": "gui_forms/controls/plot_annotation_item.hpp"
   }
 }

@@ -279,6 +279,7 @@ void clear_results(std::vector<FlexItemResult>& items, std::vector<FlexLine>& li
 } // namespace
 
 void FlexLayoutWorkspace::reserve(std::size_t count) {
+    solve_lender_.invalidate();
     items_.reserve(count);
     lines_.reserve(count);
     order_.reserve(count);
@@ -288,6 +289,8 @@ void FlexLayoutWorkspace::reserve(std::size_t count) {
 
 FlexSolveOutcome resolve_flex_main_sizes(const FlexContainerInput& container, std::span<const FlexItemInput> items,
                                          FlexLayoutWorkspace& workspace) {
+    // A new solve: the views of the last one end (they may relocate below).
+    workspace.solve_lender_.invalidate();
     const std::size_t count = items.size();
     workspace.content_main_ = 0.0;
     workspace.content_cross_ = 0.0;

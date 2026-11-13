@@ -1,5 +1,7 @@
 #include "application_state.hpp"
 #include "splashscreen_surface.hpp"
+#include "../surface_root/access/surface_lifetime_access.hpp"
+#include "../surface_root/access/surface_application_access.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
 #include "gui_forms/application/user_themes/user_themes.hpp"
@@ -204,7 +206,7 @@ bool primary_window_entry(const ApplicationWindow& entry) noexcept {
 }
 
 void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept {
-    model.application_window_ = state;
+    SurfaceApplicationAccess::attach(model, state);
     // The first window of the run is ready: a splashscreen shown before
     // Application::create hands over to it (its later windows find none).
     hand_over_splashscreen();
@@ -375,8 +377,11 @@ ApplicationCreateResult Application::create(ApplicationConfig config) {
     // The theme the process was started with (--theme,
     // GUI_FORMS_THEME_SHEET), held for the first window, which settles it
     // once the program has chosen its policy and its own user theme. The
-    // configured effects are borrowed for create only, so the request
-    // checks only the form of an `effect` name.
+    // configured effects are borrowed for create only, so the request holds
+    // none: it is settled against the process's installed registry
+    // (installed_effect_registry, read then), where a name the registry
+    // does not hold refuses the user theme (E417) as it refuses a program
+    // package, and the program's own theme stays.
     ThemeRequestContext request_context{};
     request_context.library = std::make_shared<const ThemeLibrary>(std::move(config.theme.library));
     request_context.base = config.theme.base;
@@ -486,7 +491,7 @@ void Application::set_presentation_settings(PresentationSettings settings) {
     std::vector<std::shared_ptr<detail::WindowLifetime>> windows;
     windows.reserve(window_count_);
     for (Window* window = first_window_; window != nullptr; window = (*window).next_in_application_) {
-        windows.push_back((*window).lifetime_);
+        windows.push_back(detail::SurfaceLifetimeAccess::observe(*window).lock());
     }
     for (const std::shared_ptr<detail::WindowLifetime>& lifetime : windows) {
         Window* const window = (*lifetime).window;

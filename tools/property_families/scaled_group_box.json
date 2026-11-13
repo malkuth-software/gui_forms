@@ -2,9 +2,9 @@
   "family": "ScaledGroupBox",
   "step": "B2",
   "declaring": "ScaledGroupBox",
-  "header": "include/gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp",
+  "header": "include/gui_forms/controls/scaled_group_box.hpp",
   "source": "src/controls/panel/group_box/scaled_group_box/scaled_group_box.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box_capabilities/scaled_group_box_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/scaled_group_box_capabilities.hpp",
   "base": "GroupBox",
   "shared": [],
   "includes": [
@@ -53,6 +53,6 @@
   ],
   "test": {
     "type": "ScaledGroupBox",
-    "include": "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
+    "include": "gui_forms/controls/scaled_group_box.hpp"
   }
 }

@@ -10,6 +10,7 @@
 #include "../dispatcher/state/dispatcher_state.hpp"
 #include "../drag_engine/drag_engine.hpp"
 #include "../display/chunk/display_chunk.hpp"
+#include "../control/control/control_tree_walk.hpp"
 #include "../display/recording_painter/recording_painter.hpp"
 #include "../display/replay/replay_display_chunk.hpp"
 #include "../scheduler/request/scheduled_frame_request.hpp"
@@ -17,6 +18,7 @@
 #include "overlay/overlay_attachment.hpp"
 #include "interaction/interaction_state.hpp"
 #include "../theme/theme_compiler/control_inline_style.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
 #include <array>
@@ -24,6 +26,7 @@
 #include <cmath>
 #include <exception>
 #include <functional>
+#include <new>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -73,7 +76,7 @@ std::size_t next_child_position(const Control& parent, const Control* visited, s
                                 std::uint64_t& revision) noexcept {
     if (parent.children_revision() == revision) return position + 1U;
     revision = parent.children_revision();
-    const std::span<const Control::Ptr> children = parent.children();
+    const Control::ChildView children = parent.children();
     for (std::size_t index = 0U; index < children.size(); ++index) {
         if (children[index].get() == visited) return index + 1U;
     }
@@ -162,36 +165,62 @@ bool cover_spans(const Rect cover, const Rect damage, const double scale, const 
            (*control).parent().get() == expected_parent;
 }
 
-// A virtual child published without a runtime ID takes the one its stable ID
-// gives, so every node of a snapshot has a nonzero runtime ID; hosts keep
-// zero for the window's own object.
-void assign_missing_virtual_runtime_ids(std::vector<SemanticNode>& nodes) {
-    for (SemanticNode& node : nodes) {
-        if (node.runtime_id == 0U) {
-            node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
-        }
-        assign_missing_virtual_runtime_ids(node.children);
-    }
-}
+// One level of a walk over a control's virtual semantic children: the
+// list being walked and the next node in it.
+struct VirtualNodeFrame final {
+    std::vector<SemanticNode>* nodes{nullptr};
+    std::size_t next{0U};
+};
 
-// A virtual child's stable ID, and the panel it names as controlled, follow
-// the StableId segment rule like a control's: hosts and theme selectors
-// address them the same way. Throws std::invalid_argument naming the
-// publishing control.
-void require_valid_virtual_ids(const Control& owner, const std::vector<SemanticNode>& nodes) {
-    for (const SemanticNode& node : nodes) {
-        const bool valid = valid_stable_id(node.stable_id) &&
-                           (node.controlled_panel.empty() || valid_stable_id(node.controlled_panel));
-        if (!valid) {
-            const std::string_view shown = valid_stable_id(node.stable_id) ? std::string_view(node.controlled_panel)
-                                                                           : std::string_view(node.stable_id);
-            throw std::invalid_argument("GUI.Forms control \"" + std::string(owner.stable_id().value()) +
-                                        "\" published a semantic node ID \"" +
-                                        std::string(shown.substr(0U, 80U)) +
-                                        "\" that is not '.'-separated segments of lowercase ASCII letters and "
-                                        "digits joined by single '-'");
+using VirtualNodeFrames = std::array<VirtualNodeFrame, maximum_virtual_semantic_depth>;
+
+// Checks a control's virtual children before they join the snapshot, in
+// fixed storage of one frame per level (HOUSE_STYLE section 1): every
+// stable ID, and the panel a node names as controlled, follow the StableId
+// segment rule like a control's (hosts and theme selectors address them
+// the same way), and no node nests past maximum_virtual_semantic_depth.
+// Then gives each node published with runtime ID zero the one its stable
+// ID gives, so every node of a snapshot has a nonzero runtime ID (hosts
+// keep zero for the window's own object). Throws std::invalid_argument naming the
+// publishing control, before assigning any runtime ID.
+void validate_virtual_children(const Control& owner, std::vector<SemanticNode>& roots) {
+    VirtualNodeFrames frames{};
+    for (int pass = 0; pass < 2; ++pass) {
+        const bool assigning = pass == 1;
+        frames[0] = VirtualNodeFrame{&roots, 0U};
+        std::size_t depth = 1U;
+        while (depth > 0U) {
+            VirtualNodeFrame& frame = frames[depth - 1U];
+            if (frame.next == (*frame.nodes).size()) {
+                --depth;
+                continue;
+            }
+            SemanticNode& node = (*frame.nodes)[frame.next];
+            ++frame.next;
+            if (assigning) {
+                if (node.runtime_id == 0U) node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
+            } else {
+                const bool valid = valid_stable_id(node.stable_id) &&
+                                   (node.controlled_panel.empty() || valid_stable_id(node.controlled_panel));
+                if (!valid) {
+                    const std::string_view shown = valid_stable_id(node.stable_id)
+                        ? std::string_view(node.controlled_panel) : std::string_view(node.stable_id);
+                    throw std::invalid_argument("GUI.Forms control \"" + std::string(owner.stable_id().value()) +
+                                                "\" published a semantic node ID \"" +
+                                                std::string(shown.substr(0U, 80U)) +
+                                                "\" that is not '.'-separated segments of lowercase ASCII letters "
+                                                "and digits joined by single '-'");
+                }
+                if (!node.children.empty() && depth == frames.size()) {
+                    throw std::invalid_argument("GUI.Forms control \"" + std::string(owner.stable_id().value()) +
+                                                "\" published semantic nodes nested deeper than " +
+                                                std::to_string(maximum_virtual_semantic_depth) + " levels");
+                }
+            }
+            if (node.children.empty()) continue;
+            frames[depth] = VirtualNodeFrame{&node.children, 0U};
+            ++depth;
         }
-        require_valid_virtual_ids(owner, node.children);
     }
 }
 
@@ -220,7 +249,7 @@ void note_hidden_subtree(const Control::Ptr& control, const Control::Ptr& focuse
         pending.pop_back();
         if (!current || !(*current).is_alive() || !(*current).effectively_visible()) continue;
         note_hidden_control(current, focused, hidden);
-        const std::span<const Control::Ptr> children = (*current).children();
+        const Control::ChildView children = (*current).children();
         for (std::size_t index = 0; index < children.size(); ++index) {
             pending.push_back(children[index]);
         }
@@ -232,6 +261,8 @@ void note_hidden_subtree(const Control::Ptr& control, const Control::Ptr& focuse
 // `control` and the controls below it when they publish no node of their
 // own, for the nearest exposed ancestor's node; an exposed control's node
 // takes the focus of its own hidden controls and reports nothing upward.
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void append_semantic_nodes(const Control::Ptr& control,
                            const Control* expected_parent,
                            const SurfaceRoot* owner,
@@ -260,8 +291,7 @@ void append_semantic_nodes(const Control::Ptr& control,
         std::vector<SemanticNode> virtual_children =
             (*control).semantic_virtual_children();
         if (!current_semantic_identity(control, expected_parent, owner)) return;
-        require_valid_virtual_ids(*control, virtual_children);
-        assign_missing_virtual_runtime_ids(virtual_children);
+        validate_virtual_children(*control, virtual_children);
         count += virtual_children.size();
         descendants.insert(descendants.end(),
                             std::make_move_iterator(virtual_children.begin()),
@@ -321,6 +351,8 @@ void append_semantic_nodes(const Control::Ptr& control,
     ++count;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 bool dispatch_semantic_child_action(Control::Ptr control,
                                     std::string_view stable_id,
                                     SemanticAction action,
@@ -354,6 +386,17 @@ bool regions_nest(const Control& first, const Control& second) noexcept {
     const bool nest = region_holds(first, second) || region_holds(second, first);
     return nest;
 }
+
+// Marks the control the layout pass is arranging, for the life of its
+// arrange and on_layout calls (SurfaceRoot::refuse_arrange_outside_slot):
+// it restores the mark it found on every exit. It borrows the window's
+// mark field.
+struct ArrangingMark final {
+    const Control*& control;
+    const Control* previous_control{};
+
+    ~ArrangingMark() { control = previous_control; }
+};
 
 // Marks the control whose display chunk is being recorded, for the theme
 // engine (T2 E6), for the life of one recording: it restores the marks it
@@ -396,10 +439,20 @@ void SurfaceRoot::FocusChangePublication::operator()() const {
         return;
     }
     (*root).metrics_.record_callback_emitted();
+    // Gaining focus: on_enter, on_focus_changed, on_got_focus (its base
+    // raises focus_observed). Losing it: on_focus_changed, on_lost_focus,
+    // on_leave. A raiser may dispose the control; nothing more runs then.
+    if (focused) (*control).on_enter();
+    if (!(*control).is_alive()) return;
     (*control).on_focus_changed(focused);
     if ((*control).is_alive()) {
-        (*control).focus_observed_.emit(focused);
+        if (focused) {
+            (*control).on_got_focus();
+        } else {
+            (*control).on_lost_focus();
+        }
     }
+    if (!focused && (*control).is_alive()) (*control).on_leave();
     if (!(*control).is_alive()) return;
     if (!focused || (*root).eligible(control)) {
         (*control).invalidate((*control).focus_invalidation());
@@ -475,7 +528,14 @@ ImageLoadResult SurfaceRoot::replace_png(ImageId image,
     require_root_thread("PNG resource replacement");
     // Repaints every window sharing the registry, this one included.
     ImageLoadResult result = (*resources_).replace_png(image, encoded);
+    note_image_refusal("replace_png", image, result);
     return result;
+}
+
+void SurfaceRoot::note_image_refusal(std::string_view operation, ImageId image,
+                                     const ImageLoadResult& result) noexcept {
+    if (result.error != ImageResourceError::stale_image_id) return;
+    metrics_.record_stale_image_refusals(operation, image.value, 1U);
 }
 
 void SurfaceRoot::repaint_for_image_replacement() {
@@ -502,6 +562,7 @@ ImageLoadResult SurfaceRoot::replace_bgra32_premultiplied(
     }
     ImageLoadResult result = (*resources_).registry().replace_bgra32_premultiplied(
         image, width, height, row_bytes, pixels);
+    note_image_refusal("replace_bgra32_premultiplied", image, result);
     if (result) {
         mark_dirty(consumer, Dirty::paint | Dirty::semantics);
     }
@@ -519,6 +580,7 @@ ImageLoadResult SurfaceRoot::update_bgra32_premultiplied(
     }
     ImageLoadResult result = (*resources_).registry().update_bgra32_premultiplied(
         image, width, height, row_bytes, pixels);
+    note_image_refusal("update_bgra32_premultiplied", image, result);
     if (result) {
         mark_dirty(consumer, Dirty::paint | Dirty::semantics);
     }
@@ -537,6 +599,7 @@ ImageLoadResult SurfaceRoot::patch_bgra32_premultiplied(
     }
     ImageLoadResult result = (*resources_).registry().patch_bgra32_premultiplied(
         image, x, y, width, height, source_row_bytes, pixels);
+    note_image_refusal("patch_bgra32_premultiplied", image, result);
     if (result) {
         mark_paint_dirty(consumer, local_damage);
     }
@@ -552,6 +615,7 @@ ImageLoadResult SurfaceRoot::replace_png(ImageId image,
             "scoped PNG replacement requires an attached consumer");
     }
     ImageLoadResult result = (*resources_).registry().replace_png(image, encoded);
+    note_image_refusal("replace_png", image, result);
     if (result) {
         mark_dirty(consumer, Dirty::paint | Dirty::semantics);
     }
@@ -907,6 +971,10 @@ void SurfaceRoot::set_focus_cue_visible(bool visible) {
     }
     if (focused && (*focused).is_alive() &&
         (*focused).surface_root() == this) {
+        (*focused).on_change_ui_cues(visible);
+    }
+    if (focused && (*focused).is_alive() &&
+        (*focused).surface_root() == this) {
         (*focused).invalidate(Dirty::paint);
     }
 }
@@ -983,6 +1051,8 @@ bool SurfaceRoot::tab_order_less(const Control::Ptr& left,
     return (*left).tab_index.read() < (*right).tab_index.read();
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::collect_focus_candidates(const Control::Ptr& control,
                                       ControlList& result,
                                       bool focusable_only) const {
@@ -998,6 +1068,8 @@ void SurfaceRoot::collect_focus_candidates(const Control::Ptr& control,
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::collect_mnemonic_candidates(const Control::Ptr& control,
                                          const Control::Ptr& root,
                                          char32_t character,
@@ -1201,6 +1273,8 @@ bool SurfaceRoot::validate_children(const Control::Ptr& container,
     return accepted;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::validate_children_recursive(
     const Control::Ptr& parent, const Control::Ptr& container,
     ValidationConstraints constraints, bool& accepted) {
@@ -1340,6 +1414,9 @@ FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
     state.options = options;
     focus_scopes_.push_back(state);
     ++semantic_generation_;
+    // A modal layer or menu over the window ends the pointer sequences in
+    // progress (input order rule 5).
+    break_pointer_sequences();
 
     const std::size_t depth = focus_scope_depth();
     metrics_.record_focus_scope_opened(depth);
@@ -1677,11 +1754,21 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
     if (previous && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
     // WinForms' MouseCaptureChanged, on the control losing the capture;
     // after the MouseUp when a primary release ends it.
-    if (previous && previous != control && (*previous).mouse_events_) {
+    if (previous && previous != control) {
         if (defer_capture_changed_) {
             deferred_capture_changed_ = previous;
         } else {
-            (*(*previous).mouse_events_).capture_changed.emit();
+            // A capture lost before the release ends the sequence: the
+            // press's click is forgotten (input order rule 5). A revocation
+            // (the subtree turned ineligible) forgets and counts the press
+            // itself after this, so it only marks the break here; resetting
+            // the press here would hide it from press_revocations.
+            if (revoked) {
+                ++input_sequence_breaks_;
+            } else {
+                break_pointer_sequences();
+            }
+            (*previous).on_mouse_capture_changed();
         }
     }
     if (revoked && previous) {
@@ -1710,7 +1797,13 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
 
 bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
     require_root_thread("pointer dispatch");
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "pointer", 0U);
+    ShadowFrameCall shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "pointer", 0U);
+    const bool handled = dispatch_pointer_in_frame(std::move(event));
+    shadow_frame.returned();
+    return handled;
+}
+
+bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
     }
@@ -1739,10 +1832,13 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
                 leave.handled = false;
                 metrics_.record_callback_emitted();
                 set_pointer_over(*previous_hover, false);
-                (*previous_hover).on_pointer(leave);
-                (*previous_hover).publish_change(
-                    (*previous_hover).pointer_observed_, leave);
-                if ((*previous_hover).mouse_events_) (*(*previous_hover).mouse_events_).leave.emit();
+                // MouseLeave carries the control's own handling of the
+                // crossing (its override) and then the subscribers, before
+                // the observers of the raw leave.
+                (*previous_hover).on_mouse_leave();
+                if ((*previous_hover).is_alive()) {
+                    (*previous_hover).publish_change((*previous_hover).pointer_observed_, leave);
+                }
             }
             hovered_ = next_hover;
             interaction.hover_entered(next_hover, event.position, input_time, pointer_settings);
@@ -1754,9 +1850,10 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
                 enter.handled = false;
                 metrics_.record_callback_emitted();
                 set_pointer_over(*next_hover, true);
-                (*next_hover).on_pointer(enter);
-                (*next_hover).publish_change((*next_hover).pointer_observed_, enter);
-                if ((*next_hover).mouse_events_) (*(*next_hover).mouse_events_).enter.emit();
+                (*next_hover).on_mouse_enter();
+                if ((*next_hover).is_alive()) {
+                    (*next_hover).publish_change((*next_hover).pointer_observed_, enter);
+                }
             }
         } else {
             interaction.hover_moved(event.position, input_time, pointer_settings);
@@ -1768,12 +1865,14 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
         (*tool_tips_).pointer_pressed();
     } else if (event.action == PointerAction::leave) {
         // The pointer left the window: nothing is hovered until it returns,
-        // and the control it was over is no longer hot. The leave is routed
-        // below as before.
+        // and the control it was over is no longer hot: its MouseLeave
+        // (its own handling, then the subscribers). The leave is then
+        // routed through the preview and bubble phases as before; its
+        // target phase raises nothing.
         if (Control::Ptr previous_hover = hovered_.lock()) {
             set_pointer_over(*previous_hover, false);
-            if ((*previous_hover).mouse_events_ && eligible(previous_hover)) {
-                (*(*previous_hover).mouse_events_).leave.emit();
+            if (eligible(previous_hover)) {
+                (*previous_hover).on_mouse_leave();
             }
         }
         hovered_.reset();
@@ -1783,8 +1882,14 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
     sync_hover_wake();
     Control::Ptr pressed_for_release;
     Control::Ptr target;
-    const bool handled = route_pointer(event, pressed_for_release, target, hit);
-    raise_mouse_events(event, target, pressed_for_release, hit);
+    // A raiser in the route may close and destroy this window.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
+    const std::uint64_t sequence_breaks = input_sequence_breaks_;
+    bool click_suppressed = false;
+    const bool handled = route_pointer(event, pressed_for_release, target, hit, click_suppressed);
+    if ((*lifetime).window != presenting) return true;
+    raise_mouse_events(event, target, pressed_for_release, hit, click_suppressed, sequence_breaks);
     return handled;
 }
 
@@ -1809,7 +1914,7 @@ Control::Ptr SurfaceRoot::reuse_pointer_hit(PointerHit& hit, Point position) {
 }
 
 bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
-                                PointerHit& hit) {
+                                PointerHit& hit, bool& click_suppressed) {
     Control::Ptr target = captured_.lock();
     if (!target) {
         target = reuse_pointer_hit(hit, event.position);
@@ -1884,7 +1989,12 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
         target_out = target;
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
-        (*target).on_pointer(event);
+        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+        Window* const presenting = (*lifetime).window;
+        const bool suppress_click = raise_pointer_target(*target, event);
+        // A raiser may close this window (a subscriber's dialog OK).
+        if ((*lifetime).window != presenting) return true;
+        click_suppressed = event.action == PointerAction::up && suppress_click;
         // A handler may dispose its own control (audit A6).
         if ((*target).is_alive()) (*target).publish_change((*target).pointer_observed_, event);
     }
@@ -1905,118 +2015,148 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
     return event.handled;
 }
 
-void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
-                                     const Control::Ptr& pressed_for_release, PointerHit& hit) {
-    if (!target) {
-        const Control::Ptr lost_capture = deferred_capture_changed_.lock();
-        deferred_capture_changed_.reset();
-        if (lost_capture && (*lost_capture).mouse_events_) (*(*lost_capture).mouse_events_).capture_changed.emit();
-        return;
-    }
+MouseEventArgs SurfaceRoot::mouse_arguments(const Control& target, const PointerEvent& event) {
     const bool press = event.action == PointerAction::down;
     const bool release = event.action == PointerAction::up;
     // WinForms' MouseEventArgs: the press's click count (the release
     // carries the count of the press it ends), the control-relative
-    // position and the wheel delta.
-    const Rect bounds = (*target).absolute_bounds();
-    MouseEventArgs args{};
-    args.button = event.button;
-    args.clicks = press || release ? (*interaction_).last_click_count() : 0U;
-    args.location = Point{event.position.x - bounds.x, event.position.y - bounds.y};
-    args.window_position = event.position;
-    args.wheel_delta = event.wheel_delta;
-    args.modifiers = event.modifiers;
-    // The window's rules see MouseDown, MouseUp and the clicks before the
-    // control's subscribers (the owner's Q-C5); a rule that consumes one
-    // keeps it from them, and a consumed Click also from on_activate.
-    if (press) {
-        if (offer_mouse_rules(detail::MouseRuleEvent::mouse_down, *target, &args)) return;
-        if ((*target).mouse_events_) (*(*target).mouse_events_).down.emit(args);
-        return;
+    // position and the wheel delta; then the routed event's own fields.
+    const Rect bounds = target.absolute_bounds();
+    MouseEventArgs arguments{};
+    arguments.button = event.button;
+    arguments.clicks = press || release ? interaction_state().last_click_count() : 0U;
+    arguments.location = Point{event.position.x - bounds.x, event.position.y - bounds.y};
+    arguments.window_position = event.position;
+    arguments.wheel_delta = event.wheel_delta;
+    arguments.modifiers = event.modifiers;
+    arguments.action = event.action;
+    arguments.wheel_unit = event.wheel_unit;
+    arguments.pointer_id = event.pointer_id;
+    arguments.phase = event.phase;
+    arguments.handled = event.handled;
+    return arguments;
+}
+
+bool SurfaceRoot::raise_pointer_target(Control& target, PointerEvent& event) {
+    MouseEventArgs arguments = mouse_arguments(target, event);
+    switch (event.action) {
+    case PointerAction::down:
+        target.on_mouse_down(arguments);
+        break;
+    case PointerAction::up:
+        target.on_mouse_up(arguments);
+        break;
+    case PointerAction::move:
+        target.on_mouse_move(arguments);
+        break;
+    case PointerAction::wheel:
+        target.on_mouse_wheel(arguments);
+        break;
+    case PointerAction::enter:
+    case PointerAction::leave:
+    default:
+        // The hover tracking raises MouseEnter and MouseLeave.
+        break;
     }
-    if (event.action == PointerAction::move) {
-        if ((*target).mouse_events_) (*(*target).mouse_events_).move.emit(args);
-        return;
-    }
-    if (event.action == PointerAction::wheel) {
-        if ((*target).mouse_events_) (*(*target).mouse_events_).wheel.emit(args);
-        return;
-    }
-    if (!release) return;
-    // A release over the control the same button pressed is its click, for
-    // any button as in WinForms (unless the control raises clicks for the
-    // primary button only, as ButtonBase does): Click and MouseClick, or
-    // DoubleClick and MouseDoubleClick for a press the host counted as a
-    // double-click's second on a control with standard_click and
-    // standard_double_click; then
-    // MouseUp. A primary Click is followed by on_activate.
-    const Control::Ptr released_over = reuse_pointer_hit(hit, event.position);
-    const bool primary = event.button == PointerButton::primary;
-    const bool clicked = pressed_for_release && pressed_for_release == released_over &&
-                         eligible(pressed_for_release) &&
-                         (primary || !(*pressed_for_release).clicks_primary_button_only());
+    event.handled = arguments.handled;
+    return arguments.suppress_click;
+}
+
+void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
+                                     const Control::Ptr& pressed_for_release, PointerHit& hit,
+                                     bool click_suppressed, std::uint64_t sequence_breaks) {
     // A click handler may close and destroy this window (a dialog's OK):
     // its lifetime record then names no window, and nothing more is raised.
     // The record is held so it outlives the window; it is checked after
     // every handler.
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
-    if (clicked) {
-        Control& control = *pressed_for_release;
-        // As in WinForms, DoubleClick needs both StandardClick and
-        // StandardDoubleClick.
-        const bool double_clicked = args.clicks >= 2U && control.has_style(ControlStyles::standard_click) &&
-                                    control.has_style(ControlStyles::standard_double_click);
-        const bool single_clicked = !double_clicked && control.has_style(ControlStyles::standard_click);
-        if (double_clicked) {
-            const bool double_click_consumed = offer_mouse_rules(detail::MouseRuleEvent::double_click, control, nullptr);
-            if ((*lifetime).window != presenting) return;
-            if (!double_click_consumed && control.mouse_events_) {
-                (*control.mouse_events_).double_click.emit();
-                if ((*lifetime).window != presenting) return;
-            }
-            if (eligible(pressed_for_release)) {
-                const bool consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_double_click, control, &args);
-                if ((*lifetime).window != presenting) return;
-                if (!consumed && control.mouse_events_) {
-                    (*control.mouse_events_).mouse_double_click.emit(args);
-                    if ((*lifetime).window != presenting) return;
-                }
-            }
-        }
-        if (single_clicked) {
-            const bool click_consumed = offer_mouse_rules(detail::MouseRuleEvent::click, control, nullptr);
-            if ((*lifetime).window != presenting) return;
-            if (!click_consumed && control.mouse_events_) {
-                (*control.mouse_events_).click.emit();
-                if ((*lifetime).window != presenting) return;
-            }
-            if (eligible(pressed_for_release)) {
-                const bool consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_click, control, &args);
-                if ((*lifetime).window != presenting) return;
-                if (!consumed && control.mouse_events_) {
-                    (*control.mouse_events_).mouse_click.emit(args);
-                    if ((*lifetime).window != presenting) return;
-                }
-            }
-            if (!click_consumed && primary && eligible(pressed_for_release)) {
-                metrics_.record_callback_emitted();
-                metrics_.record_activation();
-                control.on_activate();
-                if ((*lifetime).window != presenting) return;
-            }
-        }
-    }
-    if ((*lifetime).window != presenting) return;
-    if (eligible(target)) {
-        const bool up_consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_up, *target, &args);
+    if (target && event.action == PointerAction::up) {
+        raise_release_clicks(event, *target, pressed_for_release, hit, click_suppressed, sequence_breaks);
         if ((*lifetime).window != presenting) return;
-        if (!up_consumed && (*target).mouse_events_) (*(*target).mouse_events_).up.emit(args);
     }
-    if ((*lifetime).window != presenting) return;
+    // MouseCaptureChanged on the control a primary release took the
+    // capture from, after the release's events (or the rest of them were
+    // dropped): the capture's end is physical and always reported.
     const Control::Ptr lost_capture = deferred_capture_changed_.lock();
     deferred_capture_changed_.reset();
-    if (lost_capture && (*lost_capture).mouse_events_) (*(*lost_capture).mouse_events_).capture_changed.emit();
+    if (lost_capture) (*lost_capture).on_mouse_capture_changed();
+}
+
+void SurfaceRoot::break_pointer_sequences() noexcept {
+    ++input_sequence_breaks_;
+    pressed_.reset();
+    for (Control::WeakPtr& pressed : pressed_other_) pressed.reset();
+}
+
+bool SurfaceRoot::click_sequence_intact(const Control::Ptr& pressed, std::uint64_t sequence_breaks,
+                                        const std::shared_ptr<detail::WindowLifetime>& lifetime,
+                                        const Window* presenting) const noexcept {
+    const bool intact = (*lifetime).window == presenting && input_sequence_breaks_ == sequence_breaks &&
+                        eligible(pressed);
+    return intact;
+}
+
+void SurfaceRoot::raise_release_clicks(const PointerEvent& event, Control& target,
+                                       const Control::Ptr& pressed_for_release, PointerHit& hit,
+                                       bool click_suppressed, std::uint64_t sequence_breaks) {
+    // A release over the control the same button pressed is its click, for
+    // any button as in WinForms (unless the control raises clicks for the
+    // primary button only, as ButtonBase does): Click and MouseClick, or
+    // DoubleClick and MouseDoubleClick for a press the host counted as a
+    // double-click's second on a control with standard_click and
+    // standard_double_click (that press raises no Click). The window's
+    // rules see each before the control's subscribers (the owner's Q-C5);
+    // a rule that consumes one keeps it from them, and a consumed Click
+    // also from on_activate. A primary Click is followed by on_activate.
+    // All of them follow the MouseUp the route raised (rule 2), none when
+    // that MouseUp set suppress_click (rule 3; handled only ends the route), and the rest are dropped once the
+    // sequence breaks (rule 5: click_sequence_intact after every handler).
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
+    MouseEventArgs args = mouse_arguments(target, event);
+    const Control::Ptr released_over = reuse_pointer_hit(hit, event.position);
+    const bool primary = event.button == PointerButton::primary;
+    const bool clicked = !click_suppressed && pressed_for_release && pressed_for_release == released_over &&
+                         click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting) &&
+                         (primary || !(*pressed_for_release).clicks_primary_button_only());
+    if (!clicked) return;
+    Control& control = *pressed_for_release;
+    // As in WinForms, DoubleClick needs both StandardClick and
+    // StandardDoubleClick.
+    const bool double_clicked = args.clicks >= 2U && control.has_style(ControlStyles::standard_click) &&
+                                control.has_style(ControlStyles::standard_double_click);
+    const bool single_clicked = !double_clicked && control.has_style(ControlStyles::standard_click);
+    if (double_clicked) {
+        const bool double_click_consumed = offer_mouse_rules(detail::MouseRuleEvent::double_click, control, nullptr);
+        if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+        if (!double_click_consumed) {
+            control.on_double_click();
+            if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+        }
+        const bool consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_double_click, control, &args);
+        if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+        if (!consumed) control.on_mouse_double_click(args);
+        return;
+    }
+    if (!single_clicked) return;
+    const bool click_consumed = offer_mouse_rules(detail::MouseRuleEvent::click, control, nullptr);
+    if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+    if (!click_consumed) {
+        control.on_click();
+        if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+    }
+    const bool consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_click, control, &args);
+    if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+    if (!consumed) {
+        control.on_mouse_click(args);
+        if (!click_sequence_intact(pressed_for_release, sequence_breaks, lifetime, presenting)) return;
+    }
+    if (!click_consumed && primary) {
+        metrics_.record_callback_emitted();
+        metrics_.record_activation();
+        control.on_activate();
+    }
 }
 
 bool SurfaceRoot::offer_mouse_rules(detail::MouseRuleEvent event, Control& control, const MouseEventArgs* arguments) {
@@ -2044,7 +2184,13 @@ KeyEventArgs key_arguments(const KeyEvent& event) {
 
 bool SurfaceRoot::dispatch_key(KeyEvent event) {
     require_root_thread("key dispatch");
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "key", 0U);
+    ShadowFrameCall shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "key", 0U);
+    const bool handled = dispatch_key_in_frame(std::move(event));
+    shadow_frame.returned();
+    return handled;
+}
+
+bool SurfaceRoot::dispatch_key_in_frame(KeyEvent event) {
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
     }
@@ -2106,14 +2252,15 @@ bool SurfaceRoot::route_key(KeyEvent event) {
     // control's rather than a dialog key.
     bool input_key = false;
     Control::Ptr target = focused_.lock();
-    if (event.action == KeyAction::down && target && eligible(target) && (*target).key_events_) {
+    if (event.action == KeyAction::down && target && eligible(target)) {
         PreviewKeyDownEventArgs preview;
         preview.key_code = key_code_from_physical_key(event.physical_key);
         preview.physical_key = event.physical_key;
         preview.modifiers = event.modifiers;
         preview.repeat = event.repeat;
-        metrics_.record_callback_emitted();
-        (*(*target).key_events_).preview_key_down.emit(preview);
+        // Counted where the event has subscribers, as before the raiser.
+        if ((*target).key_events_) metrics_.record_callback_emitted();
+        (*target).on_preview_key_down(preview);
         if ((*lifetime).window != presenting) return true;
         input_key = preview.is_input_key;
     }
@@ -2142,12 +2289,11 @@ bool SurfaceRoot::route_key(KeyEvent event) {
     if (!eligible(target)) {
         return event.handled;
     }
-    // KeyDown or KeyUp on the focused control, before its own handling.
+    // The target phase: KeyDown or KeyUp on the focused control, whose
+    // override handles the key after its base raised the event.
+    event.phase = EventPhase::target;
     if (raise_control_key(*target, event, closed)) return true;
     if (closed || !eligible(target)) return true;
-    event.phase = EventPhase::target;
-    metrics_.record_callback_emitted();
-    (*target).on_key(event);
     if (!event.handled) {
         event.phase = EventPhase::bubble;
         for (ControlList::const_reverse_iterator iterator = route.rbegin();
@@ -2179,27 +2325,35 @@ bool SurfaceRoot::raise_window_key(const KeyEvent& event, bool& closed) {
         closed = true;
         return true;
     }
-    if (arguments.suppress_key_press) suppress_key_text_ = true;
+    // suppress_key_press cancels the key's KeyPress and text (input order
+    // rule 3; handled only ends the route), except inside a composition,
+    // whose commit is the input method's.
+    if (arguments.suppress_key_press && !composition_open_) suppress_key_text_ = true;
     const bool handled = arguments.handled || arguments.suppress_key_press;
     return handled;
 }
 
 bool SurfaceRoot::raise_control_key(Control& control, const KeyEvent& event, bool& closed) {
-    if (!control.key_events_) return false;
     KeyEventArgs arguments = key_arguments(event);
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
+    // Counted where the events have subscribers, as before the raisers,
+    // and once for the control's own handling (the target phase).
+    if (control.key_events_) metrics_.record_callback_emitted();
     metrics_.record_callback_emitted();
     if (event.action == KeyAction::down) {
-        (*control.key_events_).key_down.emit(arguments);
+        control.on_key_down(arguments);
     } else {
-        (*control.key_events_).key_up.emit(arguments);
+        control.on_key_up(arguments);
     }
     if ((*lifetime).window != presenting) {
         closed = true;
         return true;
     }
-    if (arguments.suppress_key_press) suppress_key_text_ = true;
+    // suppress_key_press cancels the key's KeyPress and text (input order
+    // rule 3; handled only ends the route), except inside a composition,
+    // whose commit is the input method's.
+    if (arguments.suppress_key_press && !composition_open_) suppress_key_text_ = true;
     const bool handled = arguments.handled || arguments.suppress_key_press;
     return handled;
 }
@@ -2227,12 +2381,12 @@ void SurfaceRoot::release_held_keys() {
         key_up_.emit(arguments);
         if ((*lifetime).window != presenting) return;
         const Control::Ptr focused = focused_.lock();
-        if (focused && (*focused).is_alive() && (*focused).key_events_) {
+        if (focused && (*focused).is_alive()) {
             KeyEventArgs control_arguments;
             control_arguments.key_code = change.key_code;
             control_arguments.physical_key = physical_key;
             control_arguments.released_by_deactivation = true;
-            (*(*focused).key_events_).key_up.emit(control_arguments);
+            (*focused).on_key_up(control_arguments);
             if ((*lifetime).window != presenting) return;
         }
     }
@@ -2286,7 +2440,13 @@ bool SurfaceRoot::resume_unhandled_key(const Control::Ptr& from, KeyEvent event)
 
 bool SurfaceRoot::dispatch_text(TextInputEvent event) {
     require_root_thread("text dispatch");
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "text", 0U);
+    ShadowFrameCall shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "text", 0U);
+    const bool handled = dispatch_text_in_frame(std::move(event));
+    shadow_frame.returned();
+    return handled;
+}
+
+bool SurfaceRoot::dispatch_text_in_frame(TextInputEvent event) {
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
     }
@@ -2294,6 +2454,8 @@ bool SurfaceRoot::dispatch_text(TextInputEvent event) {
     if (forward_to_popup(event)) return true;
     // An input method's marked text passes to the control untouched: no
     // KeyPress, no suppression, until the composition commits.
+    // Open while marked text shows; committed or cancelled text closes it.
+    composition_open_ = event.composing && !event.text_utf8.empty();
     if (!event.composing && !event.text_utf8.empty()) {
         if (suppress_key_text_) {
             suppress_key_text_ = false;
@@ -2307,9 +2469,10 @@ bool SurfaceRoot::dispatch_text(TextInputEvent event) {
         key_press_.emit(press);
         if ((*lifetime).window != presenting || press.handled) return true;
         const Control::Ptr pressed_target = focused_.lock();
-        if (pressed_target && eligible(pressed_target) && (*pressed_target).key_events_) {
-            metrics_.record_callback_emitted();
-            (*(*pressed_target).key_events_).key_press.emit(press);
+        if (pressed_target && eligible(pressed_target)) {
+            // Counted where the event has subscribers, as before the raiser.
+            if ((*pressed_target).key_events_) metrics_.record_callback_emitted();
+            (*pressed_target).on_key_press(press);
             if ((*lifetime).window != presenting || press.handled) return true;
         }
     }
@@ -2487,6 +2650,26 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
         (*target).on_drag(event);
+        // The per-action raiser, after the target's on_drag.
+        if (eligible(target)) {
+            switch (event.action) {
+            case DragAction::enter:
+                (*target).on_drag_enter(event);
+                break;
+            case DragAction::over:
+                (*target).on_drag_over(event);
+                break;
+            case DragAction::drop:
+                (*target).on_drag_drop(event);
+                break;
+            case DragAction::leave:
+                (*target).on_drag_leave(event);
+                break;
+            default:
+                // A future action has no raiser yet.
+                break;
+            }
+        }
     }
     if (!event.handled) {
         event.phase = EventPhase::bubble;
@@ -2534,7 +2717,13 @@ void SurfaceRoot::leave_drag_target(const DragEvent& event,
 
 DragDispatchResult SurfaceRoot::dispatch_drag(DragEvent event) {
     require_root_thread("drag dispatch");
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "drag", 0U);
+    ShadowFrameCall shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "drag", 0U);
+    const DragDispatchResult result = dispatch_drag_in_frame(std::move(event));
+    shadow_frame.returned();
+    return result;
+}
+
+DragDispatchResult SurfaceRoot::dispatch_drag_in_frame(DragEvent event) {
     if (in_paint_) {
         const std::uint64_t session = event.session_id;
         const DragEffect allowed = event.allowed_effects;
@@ -2614,6 +2803,8 @@ void SurfaceRoot::cancel_drag() noexcept {
     abandon_deferred_drag();
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
                                   const Control::WeakPtr& parent,
                                   ControlList& attached) {
@@ -2638,6 +2829,8 @@ void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
                                   ControlList& detached) {
     (*control).lifecycle_notification_ = true;
@@ -2666,23 +2859,31 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     }
 }
 
-void SurfaceRoot::forget_destroyed_subtree(Control& control) noexcept {
-    const std::size_t released = engine_parts_.release_control(control.stable_id_.value());
-    if (released > 0U) metrics_.record_engine_parts_released(released, engine_parts_.record_count());
-    motion_clock_.release_owner(control);
-    erase_containing_block_entries(control.runtime_id());
-    if (control.display_chunk_ && display_cache_entries_ > 0U) --display_cache_entries_;
-    control.layout_deferred_listed_in_ = nullptr;
-    control_table_.release(control.surface_slot_);
-    control.surface_slot_ = {};
-    control.window_ = nullptr;
-    control.surface_root_ = nullptr;
-    {
-        std::scoped_lock lock(control.dispatcher_mutex_);
-        control.dispatcher_state_.reset();
-    }
-    for (const Control::Ptr& child : control.children_) {
-        if (child && (*child).surface_root_ == this) forget_destroyed_subtree(*child);
+void SurfaceRoot::forget_destroyed_subtree(Control& root) noexcept {
+    // Walked in fixed storage (the depth rule): this runs in a destructor.
+    // `root` is forgotten whatever it records; below it, only controls
+    // still registered here, and their subtrees.
+    detail::SubtreeWalk walk(root);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        Control& control = *current;
+        if (current != &root && control.surface_root_ != this) {
+            walk.skip_children();
+            continue;
+        }
+        const std::size_t released = engine_parts_.release_control(control.stable_id_.value());
+        if (released > 0U) metrics_.record_engine_parts_released(released, engine_parts_.record_count());
+        motion_clock_.release_owner(control);
+        erase_containing_block_entries(control.runtime_id());
+        if (control.display_chunk_ && display_cache_entries_ > 0U) --display_cache_entries_;
+        control.layout_deferred_listed_in_ = nullptr;
+        control_table_.release(control.surface_slot_);
+        control.surface_slot_ = {};
+        control.window_ = nullptr;
+        control.surface_root_ = nullptr;
+        {
+            std::scoped_lock lock(control.dispatcher_mutex_);
+            control.dispatcher_state_.reset();
+        }
     }
 }
 
@@ -3035,6 +3236,8 @@ void SurfaceRoot::publish_control_availability(Control& control) {
         ControlAvailabilityPublication{this, retained, change});
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::collect_subtree_registration(
     const Control::Ptr& control, ControlList& controls,
     std::unordered_set<std::string>& local_ids) {
@@ -3085,6 +3288,8 @@ void SurfaceRoot::register_subtree(const Control::Ptr& control) {
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::unregister_subtree(const Control::Ptr& control) {
     const StableIdMap::const_iterator registered = stable_ids_.find((*control).stable_id_.value());
     if (registered != stable_ids_.end()) stable_ids_.erase(registered);
@@ -3412,6 +3617,8 @@ bool SurfaceRoot::semantic_scope_reaches(const Control::Ptr& control) const {
     return false;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::apply_subtree_dirty(Control& control, Dirty requested_dirty,
                                  double& requested_damage_area) {
     // A pending touch inside the subtree whose kinds the mark covers is
@@ -3727,12 +3934,23 @@ void SurfaceRoot::take_scroll_copies(std::vector<ScrollCopy>& copies) {
 
 void SurfaceRoot::collect_overlay_paint(const Control::Ptr& control, Rect clip,
                                         std::vector<Rect>& crossing) const {
-    if (!control || !(*control).is_alive() || !(*control).visible.read()) return;
-    const Rect bounds = visual_bounds_of(*control, (*control).effective_visual_outsets());
-    if (!Rect::intersection(bounds, clip).empty() && !records_no_paint(*control)) crossing.push_back(bounds);
-    for (const Control::Ptr& child : (*control).children_) collect_overlay_paint(child, clip, crossing);
+    if (!control) return;
+    // In pre-order, in fixed storage (the depth rule); a disposed or hidden
+    // control's subtree is skipped whole. Reading bounds changes no child
+    // list.
+    detail::SubtreeWalk walk(*control);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        if (!(*current).is_alive() || !(*current).visible.read()) {
+            walk.skip_children();
+            continue;
+        }
+        const Rect bounds = visual_bounds_of(*current, (*current).effective_visual_outsets());
+        if (!Rect::intersection(bounds, clip).empty() && !records_no_paint(*current)) crossing.push_back(bounds);
+    }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 bool SurfaceRoot::other_plane_crosses(const Control::Ptr& control, const Control& scroller,
                                       Rect clip, bool beneath_covered, std::vector<Rect>& crossing) const {
     if (!control || control.get() == &scroller || !(*control).is_alive() ||
@@ -3979,6 +4197,8 @@ void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
 // Each descendant's paint bounds, placed from its parent's origin; a
 // rectangle inside `covered` (the subtree root's damage, already added)
 // adds nothing to the damage's union, so only those leaving it are added.
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::add_descendant_damage(const Control& parent, Point parent_origin, Rect covered) {
     for (const std::shared_ptr<gui_forms::Control>& child : parent.children_) {
         if (!child) continue;
@@ -4141,8 +4361,14 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
     }
 
     metrics_.record_flush(read_barrier);
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::layout_pass, (*root_).stable_id().value(), std::string_view{},
-                                        layout_pass_sequence_ + 1U);
+    ShadowFrameCall shadow_frame(ShadowFrameKind::layout_pass, (*root_).stable_id().value(), std::string_view{},
+                                 layout_pass_sequence_ + 1U);
+    flush_layout_in_frame();
+    shadow_frame.returned();
+}
+
+// The layout flush itself, inside ensure_layout's frame.
+void SurfaceRoot::flush_layout_in_frame() {
     in_layout_ = true;
     scroll_translating_ = nullptr;
     try {
@@ -4224,6 +4450,8 @@ std::vector<Control::Ptr> SurfaceRoot::route_to(const Control::Ptr& target) cons
     return route;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control, Point parent_origin,
                                         Point window_position) const {
     if (!eligible(control) || (*control).surface_root_ != this) {
@@ -4270,6 +4498,8 @@ Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control, Point 
         ? control : Control::Ptr{};
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
                                      Size available,
                                      std::uint64_t& visited_nodes,
@@ -4350,6 +4580,8 @@ ResizeAxes resized_axes(Rect before, Rect after) noexcept {
 
 } // namespace
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
                                      Rect final_bounds,
                                      std::uint64_t& visited_nodes,
@@ -4371,17 +4603,29 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
         const Rect old_arranged = (*control).arranged_bounds_;
         (*control).clear_dirty(Dirty::arrange | Dirty::hit_test);
         (*control).arranged_by_dock_layout_ = false;
-        try {
-            (*control).arrange(final_bounds);
-        } catch (...) {
-            (*control).dirty_ |= Dirty::arrange | Dirty::hit_test;
-            (*control).subtree_dirty_ |= Dirty::arrange | Dirty::hit_test;
-            throw;
-        }
-        ++callbacks;
-        if (!(*control).is_alive() || (*control).surface_root_ != this) {
-            if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
-            return;
+        {
+            // While the control arranges, arranging any other control of
+            // this window is refused: the descent below places each child
+            // from its published slot, and would undo it.
+            const ArrangingMark arranging{layout_arranging_, layout_arranging_};
+            layout_arranging_ = control.get();
+            try {
+                (*control).arrange(final_bounds);
+            } catch (...) {
+                (*control).dirty_ |= Dirty::arrange | Dirty::hit_test;
+                (*control).subtree_dirty_ |= Dirty::arrange | Dirty::hit_test;
+                throw;
+            }
+            ++callbacks;
+            if (!(*control).is_alive() || (*control).surface_root_ != this) {
+                if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
+                return;
+            }
+            (*control).on_layout();
+            if (!(*control).is_alive() || (*control).surface_root_ != this) {
+                if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
+                return;
+            }
         }
         // The resize registration (reduced M0.4): asked again whenever the
         // size changes, which costs one pass over the children that arrange
@@ -4444,6 +4688,8 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
     (*control).subtree_dirty_ = summary;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 bool SurfaceRoot::has_runnable_layout_dirty(
     const Control::Ptr& control) const noexcept {
     if (!control || (*control).layout_suspend_depth_ != 0U ||
@@ -4505,6 +4751,24 @@ void SurfaceRoot::record_layout_diagnostic(LayoutDiagnostic diagnostic) {
         return;
     }
     layout_diagnostics_.push_back(std::move(diagnostic));
+}
+
+bool SurfaceRoot::refuse_arrange_outside_slot(const Control& control) noexcept {
+    if (layout_arranging_ == nullptr || layout_arranging_ == &control) return false;
+    const Control& arranging = *layout_arranging_;
+    metrics_.record_layout_arrange_refusal(control.stable_id().value(), arranging.stable_id().value());
+    try {
+        LayoutDiagnostic diagnostic{};
+        diagnostic.code = LayoutDiagnosticCode::arrange_outside_slot;
+        diagnostic.severity = layout_diagnostic_severity(diagnostic.code);
+        diagnostic.child = std::string(control.stable_id().value());
+        diagnostic.ancestor = std::string(arranging.stable_id().value());
+        record_layout_diagnostic(std::move(diagnostic));
+    } catch (const std::bad_alloc&) {
+        // Counted above; only the record is lost.
+        ++dropped_layout_diagnostics_;
+    }
+    return true;
 }
 
 void SurfaceRoot::note_containing_block(const Control& child, const Control& ancestor) {
@@ -4576,6 +4840,8 @@ void SurfaceRoot::set_containing_block_dependencies(Control& dependent, std::spa
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::mark_subtree_arrange(Control& control) noexcept {
     constexpr Dirty effects = Dirty::arrange | Dirty::hit_test;
     control.dirty_ |= effects;
@@ -4645,6 +4911,8 @@ void SurfaceRoot::note_suspended_layout_request(Control& control) noexcept {
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::commit_layout_requests_recursive(
     const Control::Ptr& control) noexcept {
     if (!control || (*control).layout_suspend_depth_ != 0U) return;
@@ -4726,6 +4994,8 @@ void SurfaceRoot::refresh_ancestor_summaries(Control& first) noexcept {
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 Dirty SurfaceRoot::recompute_subtree_dirty(const Control::Ptr& control) noexcept {
     Dirty summary = (*control).dirty_;
     for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
@@ -4735,22 +5005,26 @@ Dirty SurfaceRoot::recompute_subtree_dirty(const Control::Ptr& control) noexcept
     return summary;
 }
 
+// The two clears walk in fixed storage (the depth rule); clearing flags
+// changes no child list.
 void SurfaceRoot::clear_layout_dirty_subtree(const Control::Ptr& control) noexcept {
-    (*control).clear_dirty(Dirty::layout | Dirty::hit_test);
-    (*control).clear_subtree_dirty(Dirty::layout | Dirty::hit_test);
-    for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
-        clear_layout_dirty_subtree(child);
+    detail::SubtreeWalk walk(*control);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        (*current).clear_dirty(Dirty::layout | Dirty::hit_test);
+        (*current).clear_subtree_dirty(Dirty::layout | Dirty::hit_test);
     }
 }
 
 void SurfaceRoot::clear_paint_dirty_subtree(const Control::Ptr& control) noexcept {
-    (*control).clear_dirty(Dirty::paint);
-    (*control).clear_subtree_dirty(Dirty::paint);
-    for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
-        clear_paint_dirty_subtree(child);
+    detail::SubtreeWalk walk(*control);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        (*current).clear_dirty(Dirty::paint);
+        (*current).clear_subtree_dirty(Dirty::paint);
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Point parent_origin, const Rect damage,
                               const PaintPlane plane, std::vector<Control::Ptr>& path) const {
     if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).visible.read() ||
@@ -4818,7 +5092,7 @@ void SurfaceRoot::paint_from_cover(const std::span<const Control::Ptr> path,
     for (std::size_t level = 0; level + 1U < path.size(); ++level) {
         const Control& ancestor = *path[level];
         level_damage.push_back(Rect::intersection(absolute_child_viewport_of(ancestor), level_damage.back()));
-        siblings.push_back(ancestor.children_);
+        siblings.push_back(detail::lent_storage(ancestor.children_));
         retained_parents.push_back(ancestor.parent_.lock().get());
     }
     paint_recursive(path.back(), parent_origin_of(*path.back()), painter, level_damage.back(), plane,
@@ -4864,6 +5138,8 @@ void SurfaceRoot::summarize_subtree_paint(Control& control) const noexcept {
     control.subtree_dirty_ = without_dirty(control.subtree_dirty_, Dirty::paint) | paint_summary;
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                              const Point parent_origin,
                              Painter& painter,
@@ -4916,14 +5192,23 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
             (*control).clear_dirty(Dirty::paint);
             detail::RecordingPainter recorder(text_metrics_provider_, DeviceScale{scale()});
             recorder.inherit_caches((*control).display_chunk_);
+            recorder.refuse_stale_images(image_resources());
             // Declared after the recorder it names, so it is destroyed
             // first and the mark never outlives it.
             const RecordingMark mark{recording_control_, recording_painter_, recording_control_,
                                      recording_painter_};
             recording_control_ = control.get();
             recording_painter_ = &recorder;
-            (*control).paint_back_color(recorder, logical_bounds);
-            (*control).paint_authored_surface(recorder, logical_bounds);
+            // The text this control's parts lend (lend_paint_text) is valid
+            // until the recording below ends; a part record kept longer
+            // fails at its next read in the checked build.
+            const detail::PaintScope paint_scope;
+            PaintEventArgs background{recorder, logical_bounds};
+            (*control).on_paint_background(background);
+            if (!(*control).is_alive() || (*control).surface_root_ != this ||
+                (*control).parent_.lock().get() != retained_parent) {
+                return;
+            }
             (*control).paint_owned_decorations(
                 recorder, logical_bounds,
                 OwnerDecorationLayer::before_content);
@@ -4945,6 +5230,10 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                                                       logical_bounds);
             note_display_chunk_change(*control, had_chunk);
             if (recorder.group_refusals() > 0U) metrics_.record_paint_group_refusals(recorder.group_refusals());
+            if (recorder.stale_image_draws() > 0U) {
+                metrics_.record_stale_image_refusals("draw", recorder.first_stale_image().value,
+                                                     recorder.stale_image_draws());
+            }
             ++chunks_rebuilt;
             consumed_invalidations += invalidated ? 1U : 0U;
         } else {
@@ -4990,9 +5279,11 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
 }
 
 std::uint64_t SurfaceRoot::display_cache_entries(const Control::Ptr& control) const noexcept {
-    std::uint64_t entries = (*control).display_chunk_ ? 1U : 0U;
-    for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
-        entries += display_cache_entries(child);
+    // Counted in fixed storage (the depth rule).
+    std::uint64_t entries = 0U;
+    detail::SubtreeWalk walk(*control);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        if ((*current).display_chunk_) ++entries;
     }
     return entries;
 }

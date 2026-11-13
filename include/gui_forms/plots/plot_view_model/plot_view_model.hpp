@@ -26,6 +26,7 @@
 // on the newest data (follow_tail) until the user pans or zooms it, then
 // stops following until a fit or End.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/axis/axis.hpp"
 #include "gui_forms/plots/plot_types/plot_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -40,7 +41,7 @@ namespace gui_forms::plots {
 
 enum class PlotPointerButton : std::uint8_t { primary, secondary, middle };
 
-struct PlotModifiers final {
+struct GUI_FORMS_API PlotModifiers final {
     bool shift{};
     bool control{};
     bool alt{};
@@ -50,7 +51,7 @@ struct PlotModifiers final {
 // and position in the model), or elsewhere.
 enum class PlotZoneKind : std::uint8_t { outside, plot, x_axis, y_axis };
 
-struct PlotZone final {
+struct GUI_FORMS_API PlotZone final {
     PlotZoneKind kind{PlotZoneKind::outside};
     std::size_t axis{};
 };
@@ -63,7 +64,7 @@ enum class PlotKey : std::uint8_t { left, right, up, down, zoom_in, zoom_out, ho
 enum class PlotGesture : std::uint8_t { none, pan, box_zoom, query };
 
 // What one input changed.
-struct PlotViewChange final {
+struct GUI_FORMS_API PlotViewChange final {
     // Some axis's range (the view).
     bool view{};
     // The query selection.
@@ -75,13 +76,13 @@ struct PlotViewChange final {
 
 // The data extents fit() fits to: one range per axis, in model order; an
 // invalid range leaves its axis as it is.
-struct PlotDataBounds final {
+struct GUI_FORMS_API PlotDataBounds final {
     std::array<PlotRange, maximum_axes_per_orientation> x{};
     std::array<PlotRange, maximum_axes_per_orientation> y{};
 };
 
 // A rectangle in data units of the primary axes: the query selection.
-struct PlotSelection final {
+struct GUI_FORMS_API PlotSelection final {
     PlotRange x{};
     PlotRange y{};
 
@@ -99,7 +100,7 @@ inline constexpr double fit_padding = 0.02;
 // A drag shorter than this (logical units) is a click, not a gesture.
 inline constexpr double drag_threshold = 3.0;
 
-class PlotViewModel final {
+class GUI_FORMS_API PlotViewModel final {
 public:
     PlotViewModel() = default;
 

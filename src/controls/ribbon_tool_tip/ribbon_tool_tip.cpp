@@ -3,11 +3,13 @@
 #include "ribbon_tool_tip_layer/ribbon_tool_tip_layer.hpp"
 #include "ribbon_tool_tip_bubble.hpp"
 
-#include "gui_forms/controls/tool_strip/tool_strip.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/timer.hpp"
 #include "gui_forms/window.hpp"
+#include "../../core/surface_root/access/surface_request_access.hpp"
+#include "../../core/surface_root/access/surface_lifetime_access.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
@@ -107,7 +109,7 @@ bool RibbonToolTip::HelpAccelerator::operator()() const {
 }
 
 RibbonToolTip::RibbonToolTip(Window& window)
-    : window_lifetime_(window.lifetime_), timer_(std::make_unique<Timer>(window)),
+    : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)), timer_(std::make_unique<Timer>(window)),
       provider_id_(next_provider_id.fetch_add(1U)) {
     window.verify_access("RibbonToolTip construction");
     timer_subscription_ = (*timer_).tick().subscribe(
@@ -224,7 +226,8 @@ void RibbonToolTip::set_item_tool_tip(const std::shared_ptr<ToolStrip>& strip, s
 }
 
 void RibbonToolTip::set_cover(const Control& target, std::string_view item_id, bool covered) {
-    if (Window* owner = bound_window()) (*owner).cover_tool_tip(target.runtime_id(), item_id, covered);
+    Window* const owner = bound_window();
+    if (owner != nullptr) detail::SurfaceRequestAccess::cover_tool_tip(*owner, target.runtime_id(), item_id, covered);
 }
 
 void RibbonToolTip::uncover_all() noexcept {
@@ -234,8 +237,10 @@ void RibbonToolTip::uncover_all() noexcept {
         const Entry& entry = *mapped.second;
         const RuntimeId target{mapped.first};
         try {
-            if (entry.control_content.has_value()) (*owner).cover_tool_tip(target, {}, false);
-            for (const ItemMapping& mapping : entry.items) (*owner).cover_tool_tip(target, mapping.item_id, false);
+            if (entry.control_content.has_value()) detail::SurfaceRequestAccess::cover_tool_tip(*owner, target, {}, false);
+            for (const ItemMapping& mapping : entry.items) {
+                detail::SurfaceRequestAccess::cover_tool_tip(*owner, target, mapping.item_id, false);
+            }
         } catch (...) {
             // Uncovering only erases map entries; a failed allocation of the
             // key leaves a cover of a mapping that no longer shows anything.

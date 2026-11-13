@@ -1,8 +1,9 @@
-#include "gui_forms/controls/empty_state/empty_state.hpp"
+#include "gui_forms/controls/empty_state.hpp"
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 
 #include <algorithm>
 #include <array>
@@ -192,7 +193,7 @@ void EmptyState::on_paint(Painter& painter, Rect) {
     if (!heading.empty()) {
         PartPaint caption{.role = PartRole::caption, .bounds = placed.caption, .states = states,
                           .family = ControlVisualRole::panel};
-        caption.text = heading;
+        caption.text = lend_paint_text(heading);
         caption.font = title_font();
         caption.alignment = PartTextAlignment::center;
         paint_part(painter, *this, caption);
@@ -201,7 +202,7 @@ void EmptyState::on_paint(Painter& painter, Rect) {
     if (!body.empty()) {
         PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = states,
                         .family = ControlVisualRole::panel};
-        label.text = body;
+        label.text = lend_paint_text(body);
         label.font = description_font();
         label.alignment = PartTextAlignment::center;
         label.tone = PartTextTone::secondary;

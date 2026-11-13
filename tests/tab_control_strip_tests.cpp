@@ -8,7 +8,32 @@
 // allocation per tab while painting. The Windows Forms surface's own tests
 // (tab_control_tests.cpp) are unchanged.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/page_strip.hpp"
+#include "gui_forms/controls/page_strip_values.hpp"
+#include "gui_forms/controls/page_view.hpp"
+#include "gui_forms/controls/tab_control.hpp"
+#include "gui_forms/controls/tab_control_values.hpp"
+#include "gui_forms/controls/tab_page.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/events/key_commands/key_commands.hpp"
+#include "gui_forms/host/session/host_session.hpp"
+#include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
+#include "gui_forms/host/types/host_capability/host_capability.hpp"
+#include "gui_forms/pages/types/page_set_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/colour_scheme.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cmath>
 #include <cstddef>

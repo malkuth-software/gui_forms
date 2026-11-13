@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/types.hpp"
 
@@ -17,7 +18,7 @@ enum class LiveSurfacePixelFormat : std::uint8_t {
 // Valid before attachment: bgra32_premultiplied_srgb on every host. Opaque
 // pixels allow a straight copy for pixel-aligned, unscaled presentation at
 // full opacity.
-[[nodiscard]] LiveSurfacePixelFormat native_live_surface_pixel_format() noexcept;
+[[nodiscard]] GUI_FORMS_API LiveSurfacePixelFormat native_live_surface_pixel_format() noexcept;
 
 inline constexpr std::size_t default_live_surface_buffer_count = 3U;
 inline constexpr std::size_t minimum_live_surface_buffer_count = 2U;
@@ -29,7 +30,7 @@ inline constexpr std::size_t maximum_live_surface_buffer_count = 8U;
 // double-buffered content (child-window or GDI drawing).
 enum class LiveSurfaceOrigin : std::uint8_t { producer, compatibility_paint };
 
-struct LiveSurfaceDescription final {
+struct GUI_FORMS_API LiveSurfaceDescription final {
     std::uint32_t width{};
     std::uint32_t height{};
     LiveSurfacePixelFormat pixel_format{
@@ -43,7 +44,7 @@ struct LiveSurfaceDescription final {
     LiveSurfaceOrigin origin{LiveSurfaceOrigin::producer};
 };
 
-struct LiveSurfaceSnapshot final {
+struct GUI_FORMS_API LiveSurfaceSnapshot final {
     LiveSurfaceDescription description{};
     std::uint64_t epoch{};
     std::uint64_t published_generation{};
@@ -81,7 +82,7 @@ enum class LiveTimingSource : std::uint8_t {
 
 // The display timing a presenter publishes after each present tick: data
 // only, read by producers without the presenter's thread.
-struct LiveDisplayTiming final {
+struct GUI_FORMS_API LiveDisplayTiming final {
     // The display's refresh period; zero when unknown.
     FrameInterval refresh_period{};
     // The vertical blank the tick was phased to (FrameClock time).
@@ -91,7 +92,7 @@ struct LiveDisplayTiming final {
 
 // What the presenter last reported for one surface (LiveSurface::
 // notify_presented).
-struct LivePresentationRecord final {
+struct GUI_FORMS_API LivePresentationRecord final {
     LiveDisplayTiming timing{};
     // The newest generation the presenter put on the screen.
     std::uint64_t presented_generation{};

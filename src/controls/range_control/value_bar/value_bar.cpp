@@ -1,4 +1,4 @@
-#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
+#include "gui_forms/controls/value_bar.hpp"
 
 #include "../range_control_rendering.hpp"
 #include "value_text.hpp"
@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
 #include <utility>
 
@@ -83,6 +84,8 @@ bool ValueBarScrub::begin_scrub(ScrubRange& range) {
     const std::optional<double> snap = bar.snap_step.read();
     range.snap_step = snap ? *snap : bar.small_change.read();
     range.keyboard_step = bar.small_change.read();
+    // Right to left the fill grows from the right, so dragging left raises.
+    range.reversed = bar.effective_layout_direction() == LayoutDirection::right_to_left;
     bar.invalidate(Dirty::paint);
     return true;
 }
@@ -352,7 +355,10 @@ Rect ValueBar::track_bounds() const noexcept {
 Rect ValueBar::fill_bounds() const noexcept {
     if (presentation.read() == ValueBarStyle::field) return {};
     Rect filled = track_bounds();
-    filled.width *= soft_proportion();
+    const double width = filled.width * soft_proportion();
+    // From the right edge under RightToLeft, as a progress bar fills.
+    if (effective_layout_direction() == LayoutDirection::right_to_left) filled.x += filled.width - width;
+    filled.width = width;
     return filled;
 }
 
@@ -368,7 +374,8 @@ Rect ValueBar::decrement_bounds() const noexcept {
     if (presentation.read() != ValueBarStyle::field) return {};
     const Rect track = track_bounds();
     const Rect arrow{track.x, track.y, std::min(value_bar_arrow_width, track.width * 0.5), track.height};
-    return arrow;
+    // The decrement arrow is at the minimum's end: the right under RightToLeft.
+    return directed_rect(arrow, track, effective_layout_direction());
 }
 
 Rect ValueBar::increment_bounds() const noexcept {
@@ -376,7 +383,7 @@ Rect ValueBar::increment_bounds() const noexcept {
     const Rect track = track_bounds();
     const double width = std::min(value_bar_arrow_width, track.width * 0.5);
     const Rect arrow{track.right() - width, track.y, width, track.height};
-    return arrow;
+    return directed_rect(arrow, track, effective_layout_direction());
 }
 
 Rect ValueBar::overrange_bounds() const noexcept {
@@ -385,7 +392,7 @@ Rect ValueBar::overrange_bounds() const noexcept {
     const double width = std::min(value_bar_overrange_width, track.width);
     const bool above = value.read() > effective_soft_maximum();
     const Rect marker{above ? track.right() - width : track.x, track.y, width, track.height};
-    return marker;
+    return directed_rect(marker, track, effective_layout_direction());
 }
 
 namespace {
@@ -540,12 +547,12 @@ void ValueBar::paint_texts(Painter& painter, AnatomyStateSet states, std::option
     text.font = font;
     text.authored_foreground = over_fill;
     if (!name.empty()) {
-        text.text = name;
+        text.text = lend_paint_text(name);
         text.alignment = PartTextAlignment::start;
         if (!over_fill) text.key = PartKey{"label", {}, {}};
         paint_part(painter, *this, text);
     }
-    text.text = shown;
+    text.text = lend_paint_text(shown);
     text.alignment = name.empty() ? PartTextAlignment::center : PartTextAlignment::end;
     text.key = std::nullopt;
     if (!over_fill) text.key = PartKey{"value", {}, {}};
@@ -674,33 +681,58 @@ ValueBarContrast ValueBar::fill_text_contrast() const {
 // A press on an arrow (field style) steps; any other primary press arms
 // the scrub, whose release before the threshold opens the editor. Ctrl and
 // the wheel step while hovered; a plain wheel is left to the parent.
-void ValueBar::on_pointer(PointerEvent& event) {
+void ValueBar::on_mouse_down(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    RangeControl::on_mouse_down(arguments);
+}
+
+void ValueBar::on_mouse_up(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    RangeControl::on_mouse_up(arguments);
+}
+
+void ValueBar::on_mouse_move(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    RangeControl::on_mouse_move(arguments);
+}
+
+void ValueBar::on_mouse_wheel(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    RangeControl::on_mouse_wheel(arguments);
+}
+
+// Ctrl+wheel steps; a primary press on a step button steps, elsewhere it
+// arms the scrub gesture, which takes the moves and release that follow
+// (a release without a drag is a click that begins editing). The scrub
+// gesture ignores a leave.
+void ValueBar::handle_mouse(MouseEventArgs& arguments) {
     if (!enabled.read() || editing_ || !scrub_) return;
-    if (event.action == PointerAction::wheel) {
-        if (!has_modifier(event.modifiers, Modifier::control) || event.wheel_delta.y == 0.0) return;
-        const double delta = event.wheel_delta.y > 0.0 ? small_change.read() : -small_change.read();
+    if (arguments.action == PointerAction::wheel) {
+        if (!has_modifier(arguments.modifiers, Modifier::control) || arguments.wheel_delta.y == 0.0) return;
+        const double delta = arguments.wheel_delta.y > 0.0 ? small_change.read() : -small_change.read();
         static_cast<void>(step_by(delta));
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
-    if (event.action == PointerAction::down && event.button == PointerButton::primary) {
-        const Point local = point_from_window(event.position);
+    const PointerEvent event = pointer_event_of(arguments);
+    if (arguments.action == PointerAction::down && arguments.button == PointerButton::primary) {
+        const Point local = point_from_window(arguments.window_position);
         if (decrement_bounds().contains(local)) {
             static_cast<void>(step_by(-small_change.read()));
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
         if (increment_bounds().contains(local)) {
             static_cast<void>(step_by(small_change.read()));
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
-        if ((*scrub_).gesture.press(event, ScrubPointerLock::clamped)) event.handled = true;
+        if ((*scrub_).gesture.press(event, ScrubPointerLock::clamped)) arguments.handled = true;
         return;
     }
     const ScrubPointerResult result = (*scrub_).gesture.pointer(event);
     if (result == ScrubPointerResult::ignored) return;
-    event.handled = true;
+    arguments.handled = true;
     if (result == ScrubPointerResult::clicked) static_cast<void>(begin_edit());
 }
 
@@ -717,16 +749,24 @@ void ValueBar::on_key_preview(KeyEvent& event) {
     }
 }
 
-void ValueBar::on_key(KeyEvent& event) {
-    if (event.action != KeyAction::down || !enabled.read() || editing_ || !scrub_) return;
-    if ((*scrub_).gesture.key(event)) {
-        event.handled = true;
+void ValueBar::on_key_down(KeyEventArgs& arguments) {
+    RangeControl::on_key_down(arguments);
+    if (arguments.handled || !enabled.read() || editing_ || !scrub_) return;
+    // A keyboard scrub takes its keys first.
+    if ((*scrub_).gesture.key(key_event_of(arguments, KeyAction::down))) {
+        arguments.handled = true;
         return;
     }
-    const Modifier modifiers = event.modifiers;
+    const Modifier modifiers = arguments.modifiers;
     const bool control = has_modifier(modifiers, Modifier::control);
     bool recognized = true;
-    switch (event.physical_key) {
+    // Left and Right move the fill's edge that way: under RightToLeft Left
+    // steps up.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    std::uint32_t key = arguments.physical_key;
+    if (mirrored && key == PhysicalKey::left) key = PhysicalKey::right;
+    else if (mirrored && key == PhysicalKey::right) key = PhysicalKey::left;
+    switch (key) {
     case PhysicalKey::enter:
     case PhysicalKey::f2:
         static_cast<void>(begin_edit());
@@ -771,7 +811,7 @@ void ValueBar::on_key(KeyEvent& event) {
         recognized = false;
         break;
     }
-    if (recognized) event.handled = true;
+    if (recognized) arguments.handled = true;
 }
 
 void ValueBar::on_focus_changed(bool focused) {

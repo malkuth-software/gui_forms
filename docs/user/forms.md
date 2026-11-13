@@ -88,6 +88,7 @@ file, the line and the column. A refused document generates nothing.
 | E816 `form_handler_removed` | an `on-<interaction>:` handler reference: attach behaviour from program code |
 | E817 `form_binding_invalid` | a malformed `bind(...)`, or a binding on a property that is not bindable |
 | E818 `form_binding_option_invalid` | an unknown, repeated or misplaced binding option, such as two way on a one-way property |
+| E820 `form_property_renamed` | a property the language spells another way: `layout-direction` is written `right-to-left` (left-to-right is `no`, right-to-left is `yes`, inherit is `inherit`) |
 | E999 `not_yet_built` | a form reserved for a later phase, such as `convert <name>` |
 
 E808 is retired. E811 and E819 belong to loading a document at run time,

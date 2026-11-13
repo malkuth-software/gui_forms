@@ -1,4 +1,4 @@
-#include "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp"
+#include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>

@@ -9,7 +9,7 @@ gui_forms::InfoBanner
 
 .. cpp:class:: InfoBanner final : public Control, public InfoBannerCapabilities<InfoBanner>
 
-   ``#include <gui_forms/controls/info_banner/info_banner.hpp>``
+   ``#include <gui_forms/controls/info_banner.hpp>``
 
    A message strip across a form or a page, such as "Changes saved" or "Connection lost; retrying".
 
@@ -170,10 +170,6 @@ gui_forms::InfoBanner
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
@@ -181,6 +177,26 @@ gui_forms::InfoBanner
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
@@ -195,3 +211,49 @@ gui_forms::InfoBanner
    .. cpp:member:: constexpr std::size_t info_banner_property_count
 
       InfoBanner's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 5 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``action``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``closable``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``message``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``severity``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``title``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``closed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``info_banner_property_entries``
+     - unclassified (untested)

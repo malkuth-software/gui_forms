@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/allocation/counted_allocator/counted_allocator.hpp"
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/window/update_scope/update_scope.hpp"
 
 #include "gui_forms/commands/command_route/command_route.hpp"
@@ -43,14 +45,11 @@
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <variant>
 #include <vector>
 
 namespace gui_forms {
-
-namespace abi::detail {
-class Registry;
-} // namespace abi::detail
 
 class UpdateScope;
 class Timer;
@@ -84,12 +83,25 @@ class WindowAlerts;
 class SubSurfaceAlertRequester;
 class MessageBoxHelpRoute;
 class InteractionState;
-struct InteractionHoverWake;
-struct BandFlashWake;
 struct CaretBlinkSchedule;
+// SurfaceRoot's named capabilities (src/core/surface_root/access/).
+class SurfaceTreeAccess;
+class SurfaceLifetimeAccess;
+class SurfaceScheduleAccess;
+class SurfaceRequestAccess;
+class SurfaceForwardingAccess;
+class SurfaceApplicationAccess;
+class SurfaceHostAccess;
+class SurfaceResourceAccess;
+class SurfaceEngineAccess;
+class SurfaceHandleAccess;
+class SurfaceHelpAccess;
+class SurfaceMouseRuleAccess;
 
-// The WinForms mouse events raise_mouse_events offers the window's rules
-// before raising them (SurfaceRoot::offer_mouse_rules_). The rules library
+// The WinForms mouse events whose raising offers the window's rules first
+// (SurfaceRoot::offer_mouse_rules_): MouseDown and MouseUp from Control's
+// base raisers (SurfaceMouseRuleAccess), the clicks from
+// raise_mouse_events. The rules library
 // maps them to its trigger kinds; events raised elsewhere as well (capture,
 // hover, the context menu) reach the rules through their subscriptions.
 enum class MouseRuleEvent : std::uint8_t {
@@ -105,12 +117,12 @@ enum class MouseRuleEvent : std::uint8_t {
 
 namespace detail {
 struct ApplicationWindowState;
-void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept;
+GUI_FORMS_API void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept;
 
 // What a window offers the help requests no handler of its own took
 // (Window::request_help): each HelpProvider of the window is one, offered in
 // the order the providers were created. True when it handled the request.
-class WindowHelpFallback {
+class GUI_FORMS_API WindowHelpFallback {
 public:
     virtual bool offer_window_help(HelpRequestEvent& request) = 0;
 
@@ -119,7 +131,7 @@ protected:
 };
 }
 
-class OverlayToken final {
+class GUI_FORMS_API OverlayToken final {
 public:
     OverlayToken() = default;
     ~OverlayToken() { disconnect(); }
@@ -147,7 +159,7 @@ private:
     std::shared_ptr<detail::OverlayAttachment> attachment_;
 };
 
-struct KeyGesture final {
+struct GUI_FORMS_API KeyGesture final {
     std::uint32_t physical_key{};
     Modifier modifiers{Modifier::none};
     friend constexpr bool operator==(const KeyGesture& left,
@@ -164,7 +176,7 @@ struct KeyGesture final {
     }
 };
 
-struct AcceleratorOptions final {
+struct GUI_FORMS_API AcceleratorOptions final {
     // Application navigation gestures such as Alt+Left may preempt ordinary
     // editor word-navigation. Active overlay/focus scopes always retain first
     // refusal so menus and modal editors remain contained.
@@ -176,7 +188,7 @@ inline constexpr std::size_t maximum_deferred_inputs = 1024U;
 // Renderer-neutral lease-time input diagnostics. Pointer moves may compact,
 // but critical input is either retained in order or counted as capacity
 // rejected; no event silently enters application code while paint is active.
-struct DeferredInputSnapshot final {
+struct GUI_FORMS_API DeferredInputSnapshot final {
     std::size_t pending{};
     std::size_t capacity{maximum_deferred_inputs};
     std::uint64_t deferred{};
@@ -191,7 +203,7 @@ struct DeferredInputSnapshot final {
     bool draining{};
 };
 
-class AcceleratorToken final {
+class GUI_FORMS_API AcceleratorToken final {
 public:
     AcceleratorToken() = default;
     ~AcceleratorToken() { disconnect(); }
@@ -219,7 +231,7 @@ private:
     std::shared_ptr<detail::AcceleratorAttachment> attachment_;
 };
 
-struct PointerCaptureChange final {
+struct GUI_FORMS_API PointerCaptureChange final {
     bool captured{};
     RuntimeId control_id{};
     std::string stable_id;
@@ -229,27 +241,27 @@ struct PointerCaptureChange final {
 // Focus moved from one control to another (or to or from none) through
 // request_focus. `previous_id` and `current_id` are zero for none;
 // `stable_id` is the newly focused control's, or empty.
-struct FocusedControlChange final {
+struct GUI_FORMS_API FocusedControlChange final {
     RuntimeId previous_id{};
     RuntimeId current_id{};
     std::string stable_id;
 };
 
-struct ControlAvailabilityChange final {
+struct GUI_FORMS_API ControlAvailabilityChange final {
     RuntimeId control_id{};
     std::string stable_id;
     bool effectively_visible{};
     bool effectively_enabled{};
 };
 
-struct OverlayOptions final {
+struct GUI_FORMS_API OverlayOptions final {
     // Interactive menus and editors require an enabled owner. Passive
     // providers such as ToolTip may opt out while still requiring a live,
     // attached, effectively visible owner.
     bool require_enabled_owner{true};
 };
 
-struct FocusScopeId final {
+struct GUI_FORMS_API FocusScopeId final {
     std::uint64_t value{};
     [[nodiscard]] explicit constexpr operator bool() const noexcept {
         return value != 0;
@@ -266,7 +278,7 @@ struct FocusScopeId final {
 
 inline constexpr std::size_t maximum_focus_scope_depth = 32U;
 
-struct FocusScopeOptions final {
+struct GUI_FORMS_API FocusScopeOptions final {
     // Contained scopes reject attempts to move keyboard focus outside their
     // retained subtree while the scope is active.
     bool contain_focus{true};
@@ -282,7 +294,7 @@ enum class FocusScopeCloseReason : std::uint8_t {
     owner_unavailable,
 };
 
-struct FocusScopeChange final {
+struct GUI_FORMS_API FocusScopeChange final {
     FocusScopeId scope{};
     RuntimeId root_id{};
     std::string stable_id;
@@ -292,7 +304,7 @@ struct FocusScopeChange final {
     bool restored_focus{};
 };
 
-struct ValidationSnapshot final {
+struct GUI_FORMS_API ValidationSnapshot final {
     std::uint64_t attempts{};
     std::uint64_t succeeded{};
     std::uint64_t cancelled{};
@@ -302,7 +314,7 @@ struct ValidationSnapshot final {
     bool validating{};
 };
 
-struct DialogKeySnapshot final {
+struct GUI_FORMS_API DialogKeySnapshot final {
     std::uint64_t mnemonic_attempts{};
     std::uint64_t mnemonics_handled{};
     std::uint64_t accept_attempts{};
@@ -332,7 +344,7 @@ enum class ControlLookupError : std::uint8_t {
 // window with no override stores none: SurfaceRoot holds a null pointer
 // until the first, which allocates this record; clearing the last releases
 // it. A read is one branch: the field when set, else the owner's.
-struct WindowOverrides final {
+struct GUI_FORMS_API WindowOverrides final {
     // Presentation fields that win over the window's own settings.
     PresentationOverrides presentation{};
     // A theme for this window alone (immutable, shared by reference); null
@@ -351,7 +363,7 @@ struct WindowOverrides final {
 
 // What SurfaceRoot::control found: the one control with the ID, or why
 // there is none (then `control` is null).
-struct ControlLookup final {
+struct GUI_FORMS_API ControlLookup final {
     ControlLookupError error{ControlLookupError::none};
     Control::Ptr control{};
 
@@ -361,7 +373,7 @@ struct ControlLookup final {
     }
 };
 
-struct ControlSnapshot final {
+struct GUI_FORMS_API ControlSnapshot final {
     ImageId image{};
     Size logical_size{};
     double scale{};
@@ -371,7 +383,7 @@ struct ControlSnapshot final {
 
 // What Window::capture_window draws (owner request 2026-11-09, the product
 // ports: screenshots and tests).
-struct WindowCaptureOptions final {
+struct GUI_FORMS_API WindowCaptureOptions final {
     // The window's in-surface overlays (menus, drop-downs, tooltips and
     // other overlays opened in it), composited over its content as
     // presented. Off, the capture shows the content beneath them. Windows
@@ -382,11 +394,27 @@ struct WindowCaptureOptions final {
     double scale{};
 };
 
+// What Window::capture_control draws (owner request 2026-11-11, the theme
+// palette): one control and its descendants as the window lays them out.
+struct GUI_FORMS_API ControlCaptureOptions final {
+    // Device pixels per logical unit; 0 takes the window's own scale.
+    double scale{};
+    // Logical units added around the control's bounds on every side, for
+    // what it draws outside them (focus and default rings, shadows); the
+    // area is clipped to the window. Negative or not finite is refused.
+    double margin{};
+    // The window's backplane (the theme's window material) under the
+    // control, as capture_window draws it, so the picture is what the
+    // window shows there; off, what the subtree does not paint stays
+    // transparent, as snapshot_control leaves it.
+    bool include_backplane{true};
+};
+
 // A window's picture (Window::capture_window): its logical size, the scale
 // it was drawn at and its pixels, `pixel_height` rows of `pixel_width`
 // premultiplied BGRA pixels, tightly packed (pixel_width * 4 bytes a row).
 // The capture owns its pixels.
-struct WindowCapture final {
+struct GUI_FORMS_API WindowCapture final {
     Size logical_size{};
     double scale{};
     std::uint32_t pixel_width{};
@@ -398,7 +426,7 @@ struct WindowCapture final {
 // straight), into `png`, replacing its contents; false, leaving it empty,
 // for a capture without pixels or whose pixels are fewer than its size
 // needs.
-[[nodiscard]] bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png);
+[[nodiscard]] GUI_FORMS_API bool encode_window_capture_png(const WindowCapture& capture, std::vector<std::byte>& png);
 
 // The root of one retained control tree and the thread that owns it (the
 // threaded sub-surfaces design, stage S1): the control table, the dirty
@@ -409,7 +437,27 @@ struct WindowCapture final {
 // live-surface composition, host key-map seeding, resize and scale); a
 // sub-surface (stage S2) is one whose output is a LiveSurface. The root is
 // bound to the thread that constructs it and never changes thread.
-class SurfaceRoot {
+// A weak handle on a Window, for a holder that keeps it across callbacks
+// (borrow sanitizer study, section 2.5: retention is not a borrow). Built on
+// the root's lifetime record (detail::WindowLifetime), which the Window
+// clears in its destructor and releases with itself, so a holder never reads
+// a freed window. Made by SurfaceRoot::window_ref(); UI thread only.
+class GUI_FORMS_API WindowRef final {
+public:
+    WindowRef() noexcept : lifetime_() {}
+    explicit WindowRef(std::weak_ptr<detail::WindowLifetime> lifetime) noexcept : lifetime_(std::move(lifetime)) {}
+
+    // The window while it lives, else null. A borrow for the current call:
+    // read it again after any callback rather than keeping the pointer.
+    [[nodiscard]] Window* get() const noexcept;
+    // Forgets the window.
+    void reset() noexcept { lifetime_.reset(); }
+
+private:
+    std::weak_ptr<detail::WindowLifetime> lifetime_;
+};
+
+class GUI_FORMS_API SurfaceRoot {
 public:
     SurfaceRoot(const SurfaceRoot&) = delete;
     SurfaceRoot& operator=(const SurfaceRoot&) = delete;
@@ -419,6 +467,15 @@ public:
     // std::logic_error naming `operation` off the root's thread.
     void verify_access(std::string_view operation = "window access");
     [[nodiscard]] bool invoke_required() const noexcept { return !check_access(); }
+    // The Window this root is, borrowed (null for a root presented some
+    // other way). In the sanitizer tree the copy reports a use after the
+    // Window died; a table that holds a Window across callbacks keeps this.
+    [[nodiscard]] BorrowedPointer<Window> presenting_window() const noexcept {
+        return detail::lend_pointer(presenting_window_);
+    }
+    // A weak handle on the Window this root is (one that answers null for a
+    // root presented some other way): what a holder keeps across callbacks.
+    [[nodiscard]] WindowRef window_ref() const;
 
     // Posts `callback` to run on the root's thread at its next dispatcher
     // turn (drain_posted_work). The owned overload cancels the work when
@@ -543,6 +600,8 @@ public:
     // ceil(height * scale) pixels and one copy of them into the registry;
     // chunks the replay had to rebuild are marked for the next real paint.
     // The image lives until release_control_snapshot or the window's end.
+    // The window is painting while it records and replays, as
+    // capture_window says.
     [[nodiscard]] std::optional<ControlSnapshot> snapshot_control(const Control::Ptr& control, double scale);
     // The whole window as it presents itself (owner request 2026-11-09):
     // its backplane (the theme's window material, cleared where a
@@ -560,8 +619,33 @@ public:
     // framebuffer refuses. Cost: one replay of the window into
     // ceil(width * scale) by ceil(height * scale) pixels and one copy of
     // them; chunks the replay had to rebuild are marked for the next real
-    // paint. On the UI thread (std::logic_error elsewhere).
+    // paint. While it records and replays, the window is painting, as in
+    // paint: an ImageAtlas fill made by a paint callback is deferred and
+    // written when the capture ends (so the capture shows the slot's old
+    // pixels and the next paint or capture the new ones), and input
+    // dispatched meanwhile is deferred. On the UI thread (std::logic_error
+    // elsewhere).
     [[nodiscard]] std::optional<WindowCapture> capture_window(const WindowCaptureOptions& options = {});
+    // One control and its descendants as the window presents them (owner
+    // request 2026-11-11, the theme palette): after any pending layout, the
+    // backplane (unless `options` leaves it out) and every paint plane of
+    // the subtree over the control's bounds grown by `options.margin` and
+    // clipped to the window, replayed into an offscreen framebuffer of the
+    // window's CPU raster, as capture_window does; the capture owns its
+    // pixels (no image is registered, unlike snapshot_control). Siblings,
+    // ancestors' own paint and overlays are not drawn. `logical_size` is
+    // the area's size. None, changing nothing, while no framebuffer
+    // painter is installed (a headless window without an
+    // OffscreenAttachment, a host whose fonts are not ready), during a
+    // paint, for a control of another window or not shown, for an empty
+    // area, for a scale outside (0, 8] or a refused margin, or when the
+    // framebuffer refuses. Cost: one replay of the subtree into the area's
+    // device pixels and one copy of them; chunks the replay had to rebuild
+    // are marked for the next real paint. The window is painting while it
+    // records and replays, as capture_window says. On the UI thread
+    // (std::logic_error elsewhere).
+    [[nodiscard]] std::optional<WindowCapture> capture_control(const Control::Ptr& control,
+                                                             const ControlCaptureOptions& options = {});
 
     // The invalidation overlay (owner request 2026-11-09; see
     // invalidation_overlay.hpp). The window's own setting: on, off, or none
@@ -866,6 +950,19 @@ public:
     [[nodiscard]] ImageLoadResult load_bgra32_premultiplied(
         std::uint32_t width, std::uint32_t height, std::uint64_t row_bytes,
         std::span<const std::byte> pixels);
+    // The replacements, the live update and the patch below take an image
+    // identity from this window's registry. A replace returns the identity
+    // that replaces `image`: its generation advanced, so `image` is stale
+    // from then on, and every later patch, replace, update or draw naming
+    // it is refused. patch_bgra32_premultiplied advances the generation the
+    // same way; ImageRegistry::patch_bgra32_premultiplied_in_place (used by
+    // ImageAtlas) keeps it. update_bgra32_premultiplied keeps the identity.
+    // A call given a stale identity returns stale_image_id and changes
+    // nothing; the window counts it in MetricsSnapshot::stale_image_refusals
+    // and prints a diagnostic line (Metrics::record_stale_image_refusals). A
+    // control's paint that draws a stale identity is recorded without the
+    // draw and counted there too. Keep the returned identity in place of the
+    // one passed in.
     [[nodiscard]] ImageLoadResult replace_png(ImageId image,
                                                std::span<const std::byte> encoded);
     [[nodiscard]] ImageLoadResult replace_png(ImageId image,
@@ -879,6 +976,11 @@ public:
         ImageId image, std::uint32_t width, std::uint32_t height,
         std::uint64_t row_bytes, std::span<const std::byte> pixels,
         Control& consumer);
+    // Writes the pixels of a rectangle of `image` (premultiplied BGRA) and
+    // damages `local_damage` of `consumer`, an attached control of this
+    // window. Returns the identity that replaces `image`, whose generation
+    // advanced: `image` is stale afterwards and refused, counted, if used
+    // again. Throws std::invalid_argument for a consumer not attached here.
     [[nodiscard]] ImageLoadResult patch_bgra32_premultiplied(
         ImageId image, std::uint32_t x, std::uint32_t y,
         std::uint32_t width, std::uint32_t height,
@@ -1248,7 +1350,7 @@ public:
     // dropped_layout_diagnostics(). Clearing empties both. The span is
     // valid until the next layout pass or clear.
     [[nodiscard]] std::span<const LayoutDiagnostic> layout_diagnostics() const& noexcept {
-        return layout_diagnostics_;
+        return std::span<const LayoutDiagnostic>(layout_diagnostics_.data(), layout_diagnostics_.size());
     }
     [[nodiscard]] std::span<const LayoutDiagnostic> layout_diagnostics() const&& = delete;
     [[nodiscard]] std::uint64_t dropped_layout_diagnostics() const noexcept { return dropped_layout_diagnostics_; }
@@ -1356,9 +1458,26 @@ protected:
     void release_tree() noexcept;
 
 private:
+    // Authority over the root's private state (B10). The derived roots are
+    // the root's owners and share its authority whole. Every other party,
+    // Control included, reaches the root through one of the named
+    // capabilities in src/core/surface_root/access/, each a set of static
+    // functions exposing only its group's operations, with its holders and
+    // its stale-use rule stated in its header.
     friend class Window;
     friend class SubSurface;
-    friend class SubSurfaceHost;
+    friend class detail::SurfaceTreeAccess;
+    friend class detail::SurfaceLifetimeAccess;
+    friend class detail::SurfaceScheduleAccess;
+    friend class detail::SurfaceRequestAccess;
+    friend class detail::SurfaceForwardingAccess;
+    friend class detail::SurfaceApplicationAccess;
+    friend class detail::SurfaceHostAccess;
+    friend class detail::SurfaceResourceAccess;
+    friend class detail::SurfaceEngineAccess;
+    friend class detail::SurfaceHandleAccess;
+    friend class detail::SurfaceHelpAccess;
+    friend class detail::SurfaceMouseRuleAccess;
     // Key and text forwarding to a warm Popup window (Window::
     // forward_input_to_popup_window): while set, dispatch_key and
     // dispatch_text offer each event to the model of slot
@@ -1368,10 +1487,6 @@ private:
     std::size_t key_forward_slot_{};
     [[nodiscard]] bool forward_to_popup(const KeyEvent& event);
     [[nodiscard]] bool forward_to_popup(const TextInputEvent& event);
-    // The C ABI's v0 show_tooltip, a program request like SubSurfaceHost's.
-    friend class abi::detail::Registry;
-    friend class SurfaceRoot;
-    friend class Control;
     // How the newest focus change came about, for a control that forwards
     // focus to another tree (SubSurfaceHost): through Tab, Shift+Tab, or
     // anything else (none).
@@ -1390,11 +1505,6 @@ private:
     std::thread::id root_thread_;
     std::shared_ptr<detail::DispatcherState> dispatcher_state_;
     Metrics metrics_;
-    friend class HostSession;
-    // Reaches joined windows through their lifetime records.
-    friend class Application;
-    friend class MotionClock;
-    friend struct detail::CaretBlinkSchedule;
     // Called through detail::CaretBlinkSchedule (the text controls' caret
     // blink): schedule_ui_timer's timer, except that it rests while this
     // window is occluded. It neither ticks nor holds a wake then, so a host
@@ -1414,20 +1524,6 @@ private:
     // request's next frame is due at `deadline`, the earliest effect's,
     // rather than one motion_frame_interval after the last.
     void set_motion_frame_deadline(FrameTime deadline) noexcept;
-    friend class Control;
-    friend class UpdateScope;
-    friend class Timer;
-    // Reads lifetime_ and frame_request_cancellations_: a timer waiting
-    // for its owner's paint holds no request, and stops instead of
-    // resuming when this window cancelled its requests meanwhile.
-    friend class AnimationTimer;
-    friend class detail::ToolTipPresenter;
-    // Uses request_tool_tip_wake for a toast's duration.
-    friend class detail::ToastPresenter;
-    friend class detail::PopupStandby;
-    friend class detail::SubSurfaceToolTipRequester;
-    friend class detail::WindowAlerts;
-    friend class detail::SubSurfaceAlertRequester;
     // Posts `outcome` to `answer` through this root's dispatcher; a target
     // released by then receives nothing.
     void deliver_request_answer(const std::weak_ptr<SurfaceRequestAnswer>& answer,
@@ -1506,6 +1602,8 @@ private:
     // hover (PointerSettings::native_hover) keeps it off.
     void sync_hover_wake();
     void interaction_hover_due(FrameTime now);
+    // The hover wake's target (window_interaction.cpp).
+    struct InteractionHoverWake;
     // Raises MouseHover on `control` when it is still eligible.
     void raise_mouse_hover(const Control::Ptr& control);
     // One hit test's answer and the state it was taken in (audit N81): one
@@ -1526,32 +1624,60 @@ private:
     [[nodiscard]] Control::Ptr reuse_pointer_hit(PointerHit& hit, Point position);
     // dispatch_pointer's route of one event to its target: preview, target
     // and bubble. Sets `pressed_for_release` to the control a release ends
-    // the press of (any button), and `target_out` to the event's target.
-    // `hit` is the event's hit test so far (the hover's, for a move).
+    // the press of (any button), `target_out` to the event's target, and
+    // `click_suppressed` to whether a release's MouseUp (the target phase)
+    // set suppress_click, which cancels its clicks (input order rule 3;
+    // handled only ends the route). `hit` is
+    // the event's hit test so far (the hover's, for a move).
     bool route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
-                       PointerHit& hit);
-    // Raises the WinForms mouse events for one routed pointer event on its
-    // target (Control's mouse_down and the rest), in WinForms' order.
+                       PointerHit& hit, bool& click_suppressed);
+    // The MouseEventArgs of a routed pointer event on `target`.
+    [[nodiscard]] MouseEventArgs mouse_arguments(const Control& target, const PointerEvent& event);
+    // The route's target phase: the raiser of the event's action
+    // (on_mouse_down, on_mouse_up, on_mouse_move or on_mouse_wheel) on
+    // `target`, whose handled comes back into `event`; returns the
+    // arguments' suppress_click. An enter or leave raises nothing here (the
+    // hover tracking raises them).
+    [[nodiscard]] bool raise_pointer_target(Control& target, PointerEvent& event);
+    // Raises the WinForms mouse events that follow one routed pointer
+    // event on its target: a release's clicks (Control::on_click and the
+    // rest) and the deferred capture change. MouseDown, MouseMove,
+    // MouseWheel and MouseUp are the route's target phase (route_pointer).
+    //
+    // The input order (ADR-003 amendment, 2026-11-12): the clicks come
+    // after the MouseUp that completes them, on the control the press
+    // began on only (rule 2); none when MouseUp set suppress_click (rule 3); and
+    // the rest of them are dropped once a handler disposes or disables the
+    // control, opens a modal (the window loses activation or opens a focus
+    // scope), loses the capture or closes the window (rule 5).
+    // `sequence_breaks` is input_sequence_breaks_ when the dispatch began.
     void raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
-                            const Control::Ptr& pressed_for_release, PointerHit& hit);
+                            const Control::Ptr& pressed_for_release, PointerHit& hit,
+                            bool click_suppressed, std::uint64_t sequence_breaks);
+    // Whether the derived events of the pointer sequence dispatch_pointer
+    // began when input_sequence_breaks_ was `sequence_breaks` may go on to
+    // `pressed` (rule 5): the window lives (`presenting` is still the one
+    // `lifetime` names), nothing broke a sequence since, and `pressed` is
+    // still eligible.
+    // raise_mouse_events' part for a release with a target: Click and
+    // MouseClick (then on_activate), or DoubleClick and MouseDoubleClick.
+    void raise_release_clicks(const PointerEvent& event, Control& target, const Control::Ptr& pressed_for_release,
+                              PointerHit& hit, bool click_suppressed, std::uint64_t sequence_breaks);
+    // Ends every pointer sequence in progress (rule 5): counts a break and
+    // forgets the presses whose release would click.
+    void break_pointer_sequences() noexcept;
+    [[nodiscard]] bool click_sequence_intact(const Control::Ptr& pressed, std::uint64_t sequence_breaks,
+                                             const std::shared_ptr<detail::WindowLifetime>& lifetime,
+                                             const Window* presenting) const noexcept;
     // Offers one of those events on `control` to the window's rules before
     // its subscribers (the owner's Q-C5: rules run before the control
     // route). `arguments` is null for Click and DoubleClick. Returns whether
     // a rule consumed it; false without rules.
     bool offer_mouse_rules(detail::MouseRuleEvent event, Control& control, const MouseEventArgs* arguments);
-    friend struct detail::InteractionHoverWake;
-    friend class BackgroundWorker;
-    friend class ToolTip;
-    friend class RibbonToolTip;
-    friend class ErrorProvider;
-    friend class HelpProvider;
-    friend class detail::MessageBoxHelpRoute;
     // Called by HelpProvider: its fallback joins the window's help offers on
     // construction and leaves them on disposal.
     void add_help_fallback(detail::WindowHelpFallback& fallback);
     void remove_help_fallback(const detail::WindowHelpFallback& fallback) noexcept;
-    friend class ImageList;
-    friend class ApplicationResources;
     // Called by ApplicationResources for every window sharing it.
     // Shows `theme`, the resources' theme, or the fallback for the window's
     // scheme (scheme_theme).
@@ -1586,16 +1712,9 @@ private:
     static void commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles);
     void repaint_for_image_replacement();
     void repaint_for_image_removal();
-    friend class BindingSource;
-    friend class NotifyIcon;
-    friend class OpenFileDialog;
-    friend class SaveFileDialog;
-    friend class BindingContext;
-    friend class detail::OverlayAttachment;
-    friend class ThemeEngine;
-    // An effect's backdrop (EP-7) samples the backplane through the same
-    // engine calls a theme part uses, and joins its damage list.
-    friend class EffectInstance;
+    // Counts `result` in stale_image_refusals, with its diagnostic line,
+    // when it refused `image` as stale_image_id; `operation` names the call.
+    void note_image_refusal(std::string_view operation, ImageId image, const ImageLoadResult& result) noexcept;
     // Called by ThemeEngine::paint for a part of `control`, which has an
     // inline style, under a theme with rules of its own: the first time,
     // writes W401 to the log and notes it (inline_with_theme_reported).
@@ -1616,12 +1735,19 @@ private:
     // for this paint only, assembled from the table's slice references when
     // its primitive slices (EnginePartTable::raster_without_record).
     [[nodiscard]] PartRasterResult engine_unkeyed_raster(const PartRasterRequest& request);
+    // Called by ThemeEngine::paint_finish_tiles (cp31): the finish tile held
+    // for `key`, or null after queueing it for an idle frame
+    // (EnginePartTable::finish_tile) with `waiter`, the part that asked, to
+    // be repainted once the queue is painted.
+    [[nodiscard]] std::shared_ptr<const PartRaster> engine_finish_tile(PartRecordHandle waiter,
+                                                                       const FinishTileKey& key);
     // Called by ThemeEngine::paint (E7r): queues the shared keyframe for
     // `request` to bake in an idle frame (EnginePartTable::
     // queue_idle_keyframe), and keeps an idle frame request while any wait.
     void engine_queue_keyframe(const PartRasterRequest& request);
     // Keeps one engine_idle frame request while the engine has idle work:
-    // keyframes or procedural patterns queued (E7r, E10).
+    // keyframes, procedural patterns or finish tiles queued (E7r, E10,
+    // cp31).
     void arm_engine_idle();
     // Where a part ThemeEngine::paint draws with `painter` lands (E6): the
     // control whose display chunk records it (the control being recorded,
@@ -1680,6 +1806,9 @@ private:
     // extent of every keyed part whose raster drew a fill's ground in its
     // place, or, for made_unrecorded, every control and the backplane.
     void damage_pattern_waiters(PatternGeneration generation);
+    // After the engine painted the queued finish tiles (cp31): invalidates
+    // the extent of every keyed part that asked for one.
+    void damage_finish_tile_waiters();
     // Composites the backplane-plane display chunks of `control` and its
     // subtree, clipped to `clip` (window logical units), into `image`
     // covering `region`; adds the commands skipped to `skipped`.
@@ -1704,7 +1833,6 @@ private:
     // Follows the pointer for the engine: a move inside the window damages
     // the hot parts reading the pointer.
     void note_engine_pointer(const PointerEvent& event);
-    friend class PartMotion;
     // Called by PartMotion (E7): one of a part's transition values stepped.
     // Its extent repaints on the control that recorded it; when the value
     // settled, the record's motion_unsettled follows its other values.
@@ -1745,7 +1873,6 @@ private:
     // its effect resumes: when the window is shown again, reduced motion
     // ends or the motion switch is turned on.
     void resume_engine_ambient();
-    friend class detail::AcceleratorAttachment;
 
     using ControlList = std::vector<Control::Ptr>;
     // Stable identity text to its control: looked up by string_view without
@@ -1996,6 +2123,15 @@ private:
     void add_subtree_damage(const Control::Ptr& control);
     void add_descendant_damage(const Control& parent, Point parent_origin, Rect covered);
     void ensure_layout(bool read_barrier);
+    // The bodies of the frame entries (shadow frames, ShadowFrameCall): each
+    // entry opens its frame, calls its body and marks the frame returned.
+    bool dispatch_pointer_in_frame(PointerEvent event);
+    bool dispatch_key_in_frame(KeyEvent event);
+    bool dispatch_text_in_frame(TextInputEvent event);
+    DragDispatchResult dispatch_drag_in_frame(DragEvent event);
+    void flush_layout_in_frame();
+    std::optional<PaintReceipt> paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
+                                                          bool explicit_request);
     void leave_update_scope();
     void flush_if_outermost();
     [[nodiscard]] std::vector<Control::Ptr> route_to(const Control::Ptr& target) const;
@@ -2097,6 +2233,12 @@ private:
     // resolution to its parent is remembered and not recorded.
     void note_containing_block(const Control& child, const Control& ancestor);
     void record_layout_diagnostic(LayoutDiagnostic diagnostic);
+    // Whether `control` may not be arranged now: true while the layout pass
+    // is arranging (arrange and on_layout) a control other than `control`,
+    // after recording arrange_outside_slot and counting it in
+    // layout_arrange_refusals. A diagnostic that cannot be stored for want
+    // of memory is counted in dropped_layout_diagnostics.
+    [[nodiscard]] bool refuse_arrange_outside_slot(const Control& control) noexcept;
     // Marks the ancestors of a control whose layout became dirty, up to and
     // including the first layout boundary (Control::size_depends_on_content):
     // measure and arrange below the boundary, arrange only at it.
@@ -2356,6 +2498,17 @@ private:
     // MouseUp, as WinForms raises it.
     bool defer_capture_changed_{};
     Control::WeakPtr deferred_capture_changed_{};
+    // Counts the events that end every pointer sequence in progress (input
+    // order rule 5): a capture lost other than by a primary release, the
+    // window's deactivation (a modal window over it) and a focus scope
+    // opened (a modal layer, a menu). A press's pending click is forgotten
+    // with them; raise_mouse_events compares the count with the one its
+    // dispatch began with.
+    std::uint64_t input_sequence_breaks_{};
+    // Whether an input method's composition is open (the last text was
+    // marked text): a handled KeyDown then keeps the commit's text
+    // (rule 3 applies to keys outside a composition).
+    bool composition_open_{};
     Control::WeakPtr drag_target_;
     std::uint64_t drag_session_id_{};
     DragEffect drag_last_accepted_effect_{DragEffect::none};
@@ -2382,15 +2535,10 @@ private:
     static constexpr std::size_t maximum_invalidation_causes = 256U;
     class DamageCauseScope final {
     public:
-        DamageCauseScope(SurfaceRoot& root, InvalidationCause cause, const Control* source) noexcept
-            : root_(&root), cause_(root.damage_cause_), source_(root.damage_source_) {
-            root.damage_cause_ = cause;
-            root.damage_source_ = source;
-        }
-        ~DamageCauseScope() {
-            (*root_).damage_cause_ = cause_;
-            (*root_).damage_source_ = source_;
-        }
+        // Puts `cause` and `source` in force until the scope ends, which
+        // restores those it found (surface_root.cpp).
+        DamageCauseScope(SurfaceRoot& root, InvalidationCause cause, const Control* source) noexcept;
+        ~DamageCauseScope();
         DamageCauseScope(const DamageCauseScope&) = delete;
         DamageCauseScope& operator=(const DamageCauseScope&) = delete;
 
@@ -2413,6 +2561,10 @@ private:
     const Control* damage_source_{};
     const Control* scroll_translating_{};
     Point scroll_translation_{};
+    // The control the layout pass is arranging (its arrange and on_layout),
+    // null outside them. Observing: the pass holds the control's strong
+    // reference for the call.
+    const Control* layout_arranging_{};
     // Whether `control`'s current recorded paint draws nothing (a layer
     // that only holds other controls). False when it has no current record.
     [[nodiscard]] bool records_no_paint(const Control& control) const noexcept;
@@ -2500,11 +2652,14 @@ private:
     bool layout_deferred_list_failed_{};
     // A localized paint mark's damage (mark_paint_dirty), in the control's
     // client coordinates, placed in the window at the settle. In mark order.
+    // Counted under AllocationSubsystem::damage_lists.
     struct PendingLocalDamage final {
         detail::ControlSlot slot{};
         Rect local_damage{};
     };
-    std::vector<PendingLocalDamage> pending_local_damage_;
+    std::vector<PendingLocalDamage,
+                detail::CountedAllocator<PendingLocalDamage, AllocationSubsystem::damage_lists>>
+        pending_local_damage_;
     // The controls whose content regions await a gather (note_content_gather),
     // in note order; a control may appear more than once. gather_slots_ is
     // the gather's swapped-in copy, so a gather that notes again appends to
@@ -2554,7 +2709,7 @@ private:
     // The Window this root is, set first by Window's constructor; null for a
     // root presented some other way (a sub-surface, stage S2). Attached
     // controls copy it into Control::window(); nothing else reads it.
-    Window* presenting_window_{};
+    detail::LendingPointer<Window> presenting_window_{};
     std::uint64_t update_depth_{};
     bool layout_dirty_{true};
     bool hit_test_dirty_{true};
@@ -2585,6 +2740,22 @@ private:
     std::vector<LayoutDiagnostic> layout_diagnostics_{};
     std::uint64_t dropped_layout_diagnostics_{};
     bool in_paint_{};
+    // Holds in_paint_ for an offscreen capture's recording and replay
+    // (capture_window, capture_control, snapshot_control), as paint holds
+    // it for its pass. Begun only while in_paint_ is false. Its end clears
+    // in_paint_, writes the image atlas fills deferred meanwhile and
+    // schedules the input deferred meanwhile, as paint's end does; it never
+    // throws.
+    class CapturePaintLease final {
+    public:
+        explicit CapturePaintLease(SurfaceRoot& root) noexcept;
+        ~CapturePaintLease();
+        CapturePaintLease(const CapturePaintLease&) = delete;
+        CapturePaintLease& operator=(const CapturePaintLease&) = delete;
+
+    private:
+        SurfaceRoot& root_;
+    };
     // Paint-pass scratch, reused by every pass so that a frame allocates
     // nothing once they have grown to the window's size (paint_rectangles
     // is not reentrant: in_paint_ guards both). paint_checkpoints_ holds,
@@ -2649,8 +2820,6 @@ private:
     // This window's state in its application run, while it is a ready
     // window of one (detail::attach_application_window); observed, never
     // owned. Empty for a window outside a run.
-    friend void detail::attach_application_window(SurfaceRoot& model,
-                                                  const std::shared_ptr<detail::ApplicationWindowState>& state) noexcept;
     std::weak_ptr<detail::ApplicationWindowState> application_window_{};
     // Whether backdrop_chain_ is the application's (set_backdrop_chain)
     // rather than the theme's.
@@ -2682,7 +2851,8 @@ private:
     // The flash wake: the phase changes, the strips are damaged, and the
     // next wake is armed while the flash still runs.
     void band_flash_due(FrameTime now);
-    friend struct detail::BandFlashWake;
+    // The flash wake's target (window_band.cpp).
+    struct BandFlashWake;
     // Resolves the grant from the request, the compositor state, the
     // declaration and the presentation settings, applies a changed backdrop
     // through the host services, and raises backdrop_changed when it changed.
@@ -2715,7 +2885,7 @@ private:
     // so the core never names RuleSet's members. offer_key_rules_ is the key
     // route's entry into them, set with them: route_key calls it first, and
     // a true result (a consuming rule) ends the key. offer_mouse_rules_ is
-    // raise_mouse_events' entry (offer_mouse_rules), with the same result.
+    // offer_mouse_rules' entry, with the same result.
     // Both null without rules.
     std::shared_ptr<RuleSet> rules_{};
     bool (*offer_key_rules_)(RuleSet& rules, KeyEvent& event){};

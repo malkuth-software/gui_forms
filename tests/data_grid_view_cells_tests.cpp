@@ -7,9 +7,29 @@
 // epoch's snapshot (newest wins; a resize keeps a waiting update); and a
 // region text provider fills virtual rows' cells on the region's thread.
 
-#include "gui_forms/gui_forms.hpp"
-#include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
-#include "gui_forms/controls/data_grid_view/data_grid_view_cells.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/data_grid_view_row_order.hpp"
+#include "gui_forms/controls/data_grid_view_rows.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/live_surface/frame/live_surface_frame.hpp"
+#include "gui_forms/live_surface/surface/live_surface.hpp"
+#include "gui_forms/live_surface/types/live_surface_types.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/theme/owner_draw/owner_draw.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view_cells.hpp"
 #include "../src/controls/data_grid_view/data_grid_view_cells_control.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
@@ -91,7 +111,9 @@ public:
     }
     void end() override {}
     Painter& painter() noexcept override { return painter_; }
-    std::span<std::byte> pixels() noexcept override { return pixels_; }
+    BorrowedMutableSpan<std::byte> pixels() noexcept override {
+        return detail::lend_mutable_view(pixels_.data(), pixels_.size(), lender_);
+    }
     std::size_t row_bytes() const noexcept override { return static_cast<std::size_t>(width_) * 4U; }
     std::uint32_t width() const noexcept override { return width_; }
     std::uint32_t height() const noexcept override { return height_; }
@@ -102,6 +124,7 @@ private:
     std::vector<std::byte> pixels_;
     std::shared_ptr<TextLog> log_;
     TextPainter painter_;
+    detail::BorrowLender lender_;
 };
 
 // The window's framebuffer painter: makes TextFramebuffers sharing one log.

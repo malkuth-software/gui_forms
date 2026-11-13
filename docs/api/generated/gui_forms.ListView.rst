@@ -9,7 +9,7 @@ gui_forms::ListView
 
 .. cpp:class:: ListView final : public Control, public ListViewCapabilities<ListView>
 
-   ``#include <gui_forms/controls/panel/list_view/list_view.hpp>``
+   ``#include <gui_forms/controls/list_view.hpp>``
 
    A list of items shown as details rows, a list, small icons, large icons or tiles.
 
@@ -96,7 +96,7 @@ gui_forms::ListView
          ``minimum_column_width`` and ``maximum_column_width``, or more than
          ``maximum_columns`` columns. The details view shows nothing without columns.
 
-      **items** : ``std::span<const ListViewItem>``
+      **items** : ``BorrowedSpan<ListViewItem>``
          The items of an ordinary view; empty in virtual mode. :cpp:func:`set_items <gui_forms::ListView::set_items>`
          replaces them, keeps the selection, the focused item and the anchor on
          their items by stable ID, and throws ``std::invalid_argument`` for a
@@ -465,7 +465,7 @@ gui_forms::ListView
       ``LabelEdit``): F2 on the focused item begins an edit. Turning it off
       cancels an edit in progress.
 
-   .. cpp:function:: std::span<const ListViewColumn> columns() const noexcept
+   .. cpp:function:: std::span<const ListViewColumn> columns() const& noexcept
 
       The details view's columns. :cpp:func:`set_columns <gui_forms::ListView::set_columns>` replaces them and throws
       ``std::invalid_argument`` for a repeated ID or one that breaks the
@@ -477,7 +477,7 @@ gui_forms::ListView
 
       Sets :cpp:func:`columns <gui_forms::ListView::columns>`; see the property's description above.
 
-   .. cpp:function:: std::span<const ListViewItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<ListViewItem> items() const& noexcept
 
       The items of an ordinary view; empty in virtual mode. :cpp:func:`set_items <gui_forms::ListView::set_items>`
       replaces them, keeps the selection, the focused item and the anchor on
@@ -494,7 +494,7 @@ gui_forms::ListView
       The number of items: the ordinary items, or the count the source last
       reported.
 
-   .. cpp:function:: std::span<const ListViewGroup> groups() const noexcept
+   .. cpp:function:: std::span<const ListViewGroup> groups() const& noexcept
 
       The groups (:cpp:class:`ListViewGroup <gui_forms::ListViewGroup>`: an ID, a header and its alignment). Items
       name their group in ``ListViewItem::group``. :cpp:func:`set_groups <gui_forms::ListView::set_groups>` throws
@@ -769,11 +769,7 @@ gui_forms::ListView
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
 
    .. cpp:function:: void on_text_input(TextInputEvent& event) override
 
@@ -792,6 +788,30 @@ gui_forms::ListView
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -850,3 +870,613 @@ gui_forms::ListView
    .. cpp:member:: constexpr double maximum_tile_side
 
       Default: ``2048.0``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supported, 0 deferred, 2 excluded, 98 unclassified; 38 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ListView``
+     - ``ListView``
+     - supported
+   * - property
+     - ``Activation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Alignment``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowColumnReorder``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoArrange``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BackgroundImageTiled``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BorderStyle``
+     - on ``ObjectView``
+     - unclassified (carried)
+   * - property
+     - ``CheckBoxes``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CheckedIndices``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CheckedItems``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Columns``
+     - ``columns``
+     - supported
+   * - property
+     - ``FocusedItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FullRowSelect``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GridLines``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GroupImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Groups``
+     - ``groups``
+     - supported
+   * - property
+     - ``HeaderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HideSelection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HotTracking``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HoverSelection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``InsertionMark``
+     - ``insertion_mark``
+     - supported
+   * - property
+     - ``Items``
+     - ``items``
+     - supported
+   * - property
+     - ``LabelEdit``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LabelWrap``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LargeImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ListViewItemSorter``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MultiSelect``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``OwnerDraw``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``RightToLeftLayout``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Scrollable``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedIndices``
+     - ``selected_indices``
+     - supported
+   * - property
+     - ``SelectedItems``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowGroups``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowItemToolTips``
+     - none
+     - excluded: Data items have no tooltips; the list reveals cut-off text in place (owner, 2026-10-28).
+   * - property
+     - ``SmallImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Sorting``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``StateImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TileSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TopItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseCompatibleStateImageBehavior``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``View``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``VirtualListSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``VirtualMode``
+     - ``virtual_mode``
+     - supported
+   * - event
+     - ``AfterLabelEdit``
+     - ``after_label_edit``
+     - supported
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BeforeLabelEdit``
+     - ``before_label_edit``
+     - supported
+   * - event
+     - ``CacheVirtualItems``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnClick``
+     - ``column_click``
+     - supported
+   * - event
+     - ``ColumnReordered``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnWidthChanged``
+     - ``column_width_changed``
+     - supported
+   * - event
+     - ``ColumnWidthChanging``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DrawColumnHeader``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DrawItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DrawSubItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``GroupCollapsedStateChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``GroupTaskLinkClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemActivate``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemCheck``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemChecked``
+     - ``item_checked``
+     - supported
+   * - event
+     - ``ItemDrag``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemMouseHover``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemSelectionChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RetrieveVirtualItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RightToLeftLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SearchForVirtualItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SelectedIndexChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``VirtualItemsSelectionRangeChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ArrangeIcons``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AutoResizeColumn``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AutoResizeColumns``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``BeginUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Clear``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``EndUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``EnsureVisible``
+     - ``ensure_visible``
+     - supported
+   * - method
+     - ``FindItemWithText``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``FindNearestItem``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemAt``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemRect``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``HitTest``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnAfterLabelEdit``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnBeforeLabelEdit``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCacheVirtualItems``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnReordered``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnWidthChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnWidthChanging``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDrawColumnHeader``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDrawItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDrawSubItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnGroupCollapsedStateChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnGroupTaskLinkClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemActivate``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemCheck``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemChecked``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemDrag``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemMouseHover``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemSelectionChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRetrieveVirtualItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRightToLeftLayoutChanged``
+     - none
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
+   * - method
+     - ``OnSearchForVirtualItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSelectedIndexChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnVirtualItemsSelectionRangeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``RealizeProperties``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RedrawItems``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Sort``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpdateExtendedStyles``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``focused_index``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``grouped``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``horizontal_offset``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``item_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``label_edit_index``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``label_editor``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_columns``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_groups``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_sub_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selected_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``sort_column``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``sort_order``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``top_index``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``virtual_source``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``draw_item_content``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_checking``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selection_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_label_edit``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cancel_label_edit``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_insertion_mark``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_selection``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``end_label_edit``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``index_of``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``insertion_mark_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``is_selected``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``item_index_at``
+     - supported
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``refresh_virtual_items``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``select_all``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_width``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_item_checked``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_selected``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_sort_indicator``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_insertion_mark``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``sort_items``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``splice_virtual_items``
+     - supported

@@ -104,6 +104,15 @@ struct MaterialEffortWeights final {
     // edge. The pass blends each one in floating point, so it is dear per
     // pixel but touches only those lines.
     std::uint32_t reflection{};
+    // Per device pixel, for a dithered material (MaterialDither): the
+    // threshold looked up and added at the one quantization, in place of
+    // the rounding half. Slices and repeated spans copy whole periods of
+    // the pattern, so a large dithered face still bakes only its
+    // reference (a period longer along each sliced axis). A dither never
+    // pushes a material past the budget: it gives way first, blue noise to
+    // the ordered table, then to none (material_affordable_dither), and
+    // only a material past the budget undithered is refused.
+    std::uint32_t dither{};
 };
 
 // The weights' relative sizes come from the quiet-machine measurements of
@@ -119,7 +128,11 @@ struct MaterialEffortWeights final {
 // which was busy, so by the median of 101 interleaved pairs of bakes
 // against the base material (and the solid layer measured the same way):
 // nine runs suggested 56 to 98, median 68, at its dearest (reach 8, every
-// line drawn, opacity 1).
+// line drawn, opacity 1). dither is a floor, not a measurement: on the M4
+// (2026-11-12, gui_forms_engine_dither_tests --measure) the ordered table
+// cost -0.001 and the blue-noise table 0.018 ns per pixel past the
+// undithered bake, below the timing's noise, so it is the least weight, 1
+// (coordinator ruling, cp31 fold E).
 inline constexpr MaterialEffortWeights material_effort_weights{
     .base = 90U,
     .solid = 25U,
@@ -141,6 +154,7 @@ inline constexpr MaterialEffortWeights material_effort_weights{
     .fill_blend = 140U,
     .mask = 55U,
     .reflection = 70U,
+    .dither = 1U,
 };
 
 } // namespace gui_forms::engine_primitives

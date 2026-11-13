@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/compositor/window_backdrop.hpp"
 #include "gui_forms/host/image/host_image.hpp"
@@ -34,7 +35,7 @@ enum class WindowChromeHitRole : std::uint8_t {
     drag_region,
 };
 
-struct WindowChromeHit final {
+struct GUI_FORMS_API WindowChromeHit final {
     WindowChromeHitRole role{WindowChromeHitRole::client};
     std::string target_stable_id;
     std::string matched_drag_region_id;
@@ -51,7 +52,7 @@ enum class WindowChromeRegionError : std::uint8_t {
     unresolved_id,
 };
 
-struct WindowChromeRegionValidation final {
+struct GUI_FORMS_API WindowChromeRegionValidation final {
     WindowChromeRegionError error{WindowChromeRegionError::none};
     std::size_t index{};
     std::string stable_id;
@@ -61,14 +62,14 @@ struct WindowChromeRegionValidation final {
     }
 };
 
-[[nodiscard]] WindowChromeRegionValidation validate_window_chrome_drag_regions(
+[[nodiscard]] GUI_FORMS_API WindowChromeRegionValidation validate_window_chrome_drag_regions(
     const Window& window, std::span<const std::string> drag_region_ids);
 
-[[nodiscard]] WindowChromeHit resolve_window_chrome_hit(
+[[nodiscard]] GUI_FORMS_API WindowChromeHit resolve_window_chrome_hit(
     Window& window, Point position,
     std::span<const std::string> drag_region_ids);
 
-struct HostMonitor final {
+struct GUI_FORMS_API HostMonitor final {
     std::string id;
     Rect frame;
     Rect work_area;
@@ -98,7 +99,7 @@ enum class HostServiceError : std::uint8_t {
     after_shutdown,
 };
 
-struct HostServiceStatus final {
+struct GUI_FORMS_API HostServiceStatus final {
     HostServiceError error{HostServiceError::none};
 
     [[nodiscard]] bool accepted() const noexcept {
@@ -116,19 +117,19 @@ enum class HostSoundCue : std::uint8_t {
     operation_complete,
 };
 
-struct HostSoundCueRequest final {
+struct GUI_FORMS_API HostSoundCueRequest final {
     HostSoundCue cue{HostSoundCue::notification};
     double gain{1.0};
     // Caller-supplied monotonic time makes coalescing reproducible headlessly.
     std::uint64_t timestamp_nanoseconds{};
 };
 
-struct HostMonitorResult final {
+struct GUI_FORMS_API HostMonitorResult final {
     HostServiceStatus status;
     std::vector<HostMonitor> monitors;
 };
 
-struct HostClipboardTextResult final {
+struct GUI_FORMS_API HostClipboardTextResult final {
     HostServiceStatus status;
     std::string text_utf8;
     std::uint64_t generation{};
@@ -138,7 +139,7 @@ struct HostClipboardTextResult final {
 // A clipboard image read: the image and the clipboard generation it was read
 // at, no image at that generation, or a failure. One alternative per state
 // (house form for results).
-class HostClipboardImageResult final {
+class GUI_FORMS_API HostClipboardImageResult final {
 public:
     // The clipboard's image, read at a clipboard generation.
     [[nodiscard]] static HostClipboardImageResult image_read(HostImage image, std::uint64_t generation) noexcept {
@@ -214,7 +215,7 @@ private:
 // File-manager copies carry local file references as well as optional icon
 // bitmaps. Consumers choose their own codecs and must prefer these references
 // when their command imports the file's contents.
-struct HostClipboardFilesResult final {
+struct GUI_FORMS_API HostClipboardFilesResult final {
     HostServiceStatus status;
     std::vector<std::string> paths_utf8;
     std::uint64_t generation{};
@@ -233,13 +234,13 @@ enum class HostAutoCompleteSource : std::uint8_t {
 
 // `prefix_utf8` is borrowed for the call. A host returns at most
 // `maximum_candidates` strings, each valid UTF-8, in its own order.
-struct HostAutoCompleteRequest final {
+struct GUI_FORMS_API HostAutoCompleteRequest final {
     HostAutoCompleteSource source{HostAutoCompleteSource::file_system};
     std::string_view prefix_utf8{};
     std::size_t maximum_candidates{256U};
 };
 
-struct HostAutoCompleteResult final {
+struct GUI_FORMS_API HostAutoCompleteResult final {
     HostServiceStatus status;
     std::vector<std::string> candidates_utf8;
 };
@@ -288,7 +289,7 @@ enum class HostDialogChoice : std::uint8_t {
     help,
 };
 
-struct HostFileDialogFilter final {
+struct GUI_FORMS_API HostFileDialogFilter final {
     std::string label;
     std::vector<std::string> extensions;
 
@@ -300,7 +301,7 @@ struct HostFileDialogFilter final {
     }
 };
 
-struct HostMessageDialogRequest final {
+struct GUI_FORMS_API HostMessageDialogRequest final {
     std::string title;
     std::string message;
     HostMessageButtons buttons{HostMessageButtons::ok};
@@ -320,12 +321,12 @@ struct HostMessageDialogRequest final {
 
 // The user asked for help in an open message dialog: its Help button, or
 // F1. The dialog stays open.
-struct HostDialogHelpEvent final {
+struct GUI_FORMS_API HostDialogHelpEvent final {
     std::uint64_t request_id{};
     bool keyboard_initiated{};
 };
 
-struct HostOpenFileDialogRequest final {
+struct GUI_FORMS_API HostOpenFileDialogRequest final {
     std::string title;
     std::string initial_directory;
     std::string suggested_name;
@@ -336,7 +337,7 @@ struct HostOpenFileDialogRequest final {
     std::size_t initial_filter{};
 };
 
-struct HostSaveFileDialogRequest final {
+struct GUI_FORMS_API HostSaveFileDialogRequest final {
     std::string title;
     std::string initial_directory;
     std::string suggested_name;
@@ -348,12 +349,12 @@ struct HostSaveFileDialogRequest final {
     std::size_t initial_filter{};
 };
 
-struct HostFolderDialogRequest final {
+struct GUI_FORMS_API HostFolderDialogRequest final {
     std::string title;
     std::string initial_directory;
 };
 
-struct HostColorDialogRequest final {
+struct GUI_FORMS_API HostColorDialogRequest final {
     std::string title;
     std::uint32_t initial_rgba{0x000000FFU};
     bool allow_alpha{};
@@ -366,7 +367,7 @@ using HostDialogRequestPayload = std::variant<
     HostFolderDialogRequest,
     HostColorDialogRequest>;
 
-struct HostDialogRequest final {
+struct GUI_FORMS_API HostDialogRequest final {
     std::uint64_t request_id{};
     // Portable stable identity for the logical owner. An empty value means the
     // application's active top-level window; it is never a native handle.
@@ -374,12 +375,12 @@ struct HostDialogRequest final {
     HostDialogRequestPayload payload;
 };
 
-struct HostMessageDialogResult final {
+struct GUI_FORMS_API HostMessageDialogResult final {
     HostDialogOutcome outcome{HostDialogOutcome::cancelled};
     HostDialogChoice choice{HostDialogChoice::none};
 };
 
-struct HostPathDialogResult final {
+struct GUI_FORMS_API HostPathDialogResult final {
     HostDialogOutcome outcome{HostDialogOutcome::cancelled};
     std::vector<std::string> paths;
     // For an accepted file dialog, the request's filter selected when the
@@ -389,7 +390,7 @@ struct HostPathDialogResult final {
     std::optional<std::size_t> chosen_filter{};
 };
 
-struct HostColorDialogResult final {
+struct GUI_FORMS_API HostColorDialogResult final {
     HostDialogOutcome outcome{HostDialogOutcome::cancelled};
     std::uint32_t rgba{};
 };
@@ -399,7 +400,7 @@ using HostDialogResultPayload = std::variant<
     HostPathDialogResult,
     HostColorDialogResult>;
 
-struct HostDialogResult final {
+struct GUI_FORMS_API HostDialogResult final {
     HostServiceStatus status;
     std::uint64_t request_id{};
     HostDialogResultPayload payload;
@@ -410,7 +411,7 @@ struct HostDialogResult final {
 // contract. `images` holds the icon at one or more sizes (each at most 256
 // pixels a side); an adapter shows the image nearest the size its tray asks
 // for (select_tray_icon_image). `tooltip` is at most 127 bytes of UTF-8.
-struct HostTrayIconRequest final {
+struct GUI_FORMS_API HostTrayIconRequest final {
     std::vector<HostImage> images;
     std::string tooltip;
 };
@@ -420,7 +421,7 @@ struct HostTrayIconRequest final {
 // HostServices; zero is no icon. A distinct type, so it cannot be confused
 // with a window, runtime or request identity, or with a host's own native
 // icon number.
-struct HostTrayIconId final {
+struct GUI_FORMS_API HostTrayIconId final {
     std::uint64_t value{};
 
     [[nodiscard]] bool valid() const noexcept { return value != 0U; }
@@ -434,7 +435,7 @@ struct HostTrayIconId final {
     }
 };
 
-struct HostTrayIconResult final {
+struct GUI_FORMS_API HostTrayIconResult final {
     HostServiceStatus status;
     HostTrayIconId icon_id{};
 };
@@ -449,7 +450,7 @@ enum class HostTrayIconAction : std::uint8_t {
     notification_closed,
 };
 
-struct HostTrayIconEvent final {
+struct GUI_FORMS_API HostTrayIconEvent final {
     HostTrayIconId icon_id{};
     HostTrayIconAction action{HostTrayIconAction::click};
 };
@@ -459,7 +460,7 @@ enum class HostTrayNotificationIcon : std::uint8_t { none, information, warning,
 // Notification text from a tray icon: a title of at most 63 bytes and text
 // of at most 255 bytes of UTF-8, shown for about `timeout_milliseconds` where
 // the platform honours a timeout (zero leaves it to the platform).
-struct HostTrayNotificationRequest final {
+struct GUI_FORMS_API HostTrayNotificationRequest final {
     std::string title;
     std::string text;
     HostTrayNotificationIcon icon{HostTrayNotificationIcon::none};
@@ -467,7 +468,7 @@ struct HostTrayNotificationRequest final {
 };
 
 // One row of a native tray menu: a command with an identity, or a separator.
-struct HostTrayMenuItem final {
+struct GUI_FORMS_API HostTrayMenuItem final {
     std::string id;
     std::string text;
     bool enabled{true};
@@ -475,12 +476,12 @@ struct HostTrayMenuItem final {
     bool separator{};
 };
 
-struct HostTrayMenuRequest final {
+struct GUI_FORMS_API HostTrayMenuRequest final {
     std::vector<HostTrayMenuItem> items;
 };
 
 // The chosen row's identity, or empty when the menu was dismissed.
-struct HostTrayMenuResult final {
+struct GUI_FORMS_API HostTrayMenuResult final {
     HostServiceStatus status;
     std::string chosen_id;
 };
@@ -488,10 +489,10 @@ struct HostTrayMenuResult final {
 // The index of the image to show for a tray that asks for `wanted_side`
 // pixels: the smallest image whose larger side reaches it, or the largest
 // image when none does. `images` must not be empty.
-[[nodiscard]] std::size_t select_tray_icon_image(std::span<const HostImage> images,
+[[nodiscard]] GUI_FORMS_API std::size_t select_tray_icon_image(std::span<const HostImage> images,
                                                  std::uint32_t wanted_side) noexcept;
 
-struct HostModalTransition final {
+struct GUI_FORMS_API HostModalTransition final {
     std::uint64_t request_id{};
     std::uint32_t depth{};
     bool entering{};
@@ -523,32 +524,32 @@ enum class HostCloseReason : std::uint8_t {
     quit,
 };
 
-struct HostAttachEvent final {
+struct GUI_FORMS_API HostAttachEvent final {
     Size client_size{};
     double scale{1.0};
 };
 
-struct HostResizeEvent final {
+struct GUI_FORMS_API HostResizeEvent final {
     Size client_size{};
 };
 
-struct HostScaleEvent final {
+struct GUI_FORMS_API HostScaleEvent final {
     double scale{1.0};
 };
 
-struct HostActivationEvent final {
+struct GUI_FORMS_API HostActivationEvent final {
     bool active{};
 };
 
-struct HostOcclusionEvent final {
+struct GUI_FORMS_API HostOcclusionEvent final {
     bool occluded{};
 };
 
-struct HostDisplayEvent final {
+struct GUI_FORMS_API HostDisplayEvent final {
     std::vector<HostMonitor> monitors;
 };
 
-struct HostCloseRequest final {
+struct GUI_FORMS_API HostCloseRequest final {
     HostCloseReason reason{HostCloseReason::user};
     bool cancel{};
     // Adapter policy: an accepted request hides a reusable window while its
@@ -557,17 +558,17 @@ struct HostCloseRequest final {
     bool hide_on_accept{};
 };
 
-struct HostClosedEvent final {
+struct GUI_FORMS_API HostClosedEvent final {
     HostCloseReason reason{HostCloseReason::user};
 };
 
-struct HostShutdownEvent final {};
+struct GUI_FORMS_API HostShutdownEvent final {};
 
 // The host's compositor and preference state (stage T5): reported once after
 // attach and again whenever it changes (capability compositor_notifications).
 // Each report's generation is later than the last; a report whose opaque
 // backdrop is not supported is refused as invalid_payload.
-struct HostCompositorEvent final {
+struct GUI_FORMS_API HostCompositorEvent final {
     CompositorState state{};
 };
 
@@ -581,7 +582,7 @@ struct HostCompositorEvent final {
 // valid_caret_settings, are refused as invalid_payload. A host reports the
 // pointer and caret values its platform has with origin host and leaves
 // the others at their defaults (origin default_value).
-struct HostInputSettingsEvent final {
+struct GUI_FORMS_API HostInputSettingsEvent final {
     std::uint32_t double_click_milliseconds{default_double_click_milliseconds};
     SettingOrigin double_click_origin{SettingOrigin::host};
     PointerSettings pointer{};
@@ -598,7 +599,7 @@ struct HostInputSettingsEvent final {
 // request names none and goes to the focused control. The window raises
 // ContextMenuRequested from it (SurfaceRoot::dispatch_context_request).
 // A position that is not finite is refused as invalid_payload.
-struct HostContextRequestEvent final {
+struct GUI_FORMS_API HostContextRequestEvent final {
     ContextRequestOrigin origin{ContextRequestOrigin::pointer};
     Point position{};
 };
@@ -608,7 +609,7 @@ struct HostContextRequestEvent final {
 // input settings say native_hover; the window raises MouseHover on the
 // hovered control. A position that is not finite is refused as
 // invalid_payload.
-struct HostHoverEvent final {
+struct GUI_FORMS_API HostHoverEvent final {
     Point position{};
 };
 
@@ -622,7 +623,7 @@ struct HostHoverEvent final {
 // host's own override-redirect fallback). The session passes full_screen
 // to Window::report_full_screen and asks the host for the window's corners
 // again (HostServices::apply_window_corners), so the band follows both.
-struct HostWindowStateEvent final {
+struct GUI_FORMS_API HostWindowStateEvent final {
     bool full_screen{};
 };
 
@@ -646,7 +647,7 @@ using HostEventPayload = std::variant<
     HostHoverEvent,
     HostWindowStateEvent>;
 
-struct HostEvent final {
+struct GUI_FORMS_API HostEvent final {
     std::uint64_t sequence{};
     std::uint64_t timestamp_nanoseconds{};
     HostEventPayload payload;
@@ -667,7 +668,7 @@ enum class HostDispatchError : std::uint8_t {
 // and handle-binding steps, but no portable callback or input may escape before
 // attached. A cancelled close remains attached; an allowed close becomes
 // close_authorized and admits only terminal host notifications.
-struct HostDispatchResult final {
+struct GUI_FORMS_API HostDispatchResult final {
     bool handled{};
     bool input_deferred{};
     bool input_capacity_rejected{};
@@ -680,17 +681,17 @@ struct HostDispatchResult final {
     }
 };
 
-[[nodiscard]] const char* host_dispatch_error_name(HostDispatchError error) noexcept;
-[[nodiscard]] const char* host_lifecycle_phase_name(HostLifecyclePhase phase) noexcept;
-[[nodiscard]] const char* host_event_name(const HostEventPayload& payload) noexcept;
-[[nodiscard]] const char* host_service_error_name(HostServiceError error) noexcept;
-[[nodiscard]] const char* cursor_kind_name(CursorKind cursor) noexcept;
-[[nodiscard]] const char* drag_effect_name(DragEffect effect) noexcept;
-[[nodiscard]] const char* host_dialog_kind_name(
+[[nodiscard]] GUI_FORMS_API const char* host_dispatch_error_name(HostDispatchError error) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* host_lifecycle_phase_name(HostLifecyclePhase phase) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* host_event_name(const HostEventPayload& payload) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* host_service_error_name(HostServiceError error) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* cursor_kind_name(CursorKind cursor) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* drag_effect_name(DragEffect effect) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* host_dialog_kind_name(
     const HostDialogRequestPayload& payload) noexcept;
-[[nodiscard]] const char* host_dialog_outcome_name(HostDialogOutcome outcome) noexcept;
-[[nodiscard]] const char* host_dialog_choice_name(HostDialogChoice choice) noexcept;
-[[nodiscard]] const char* host_sound_cue_name(HostSoundCue cue) noexcept;
-[[nodiscard]] const char* host_tray_icon_action_name(HostTrayIconAction action) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* host_dialog_outcome_name(HostDialogOutcome outcome) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* host_dialog_choice_name(HostDialogChoice choice) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* host_sound_cue_name(HostSoundCue cue) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* host_tray_icon_action_name(HostTrayIconAction action) noexcept;
 
 } // namespace gui_forms

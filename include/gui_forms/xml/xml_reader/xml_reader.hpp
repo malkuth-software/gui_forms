@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
 #include <string_view>
@@ -12,6 +13,6 @@ namespace gui_forms {
 // is produced. Expected faults in the input never throw. Allocation failure
 // propagates as std::bad_alloc; the limits bound the storage a read can
 // retain to a small multiple of maximum_input_bytes.
-[[nodiscard]] XmlReadResult read_xml(std::string_view utf8, const XmlLimits& limits = {});
+[[nodiscard]] GUI_FORMS_API XmlReadResult read_xml(std::string_view utf8, const XmlLimits& limits = {});
 
 } // namespace gui_forms

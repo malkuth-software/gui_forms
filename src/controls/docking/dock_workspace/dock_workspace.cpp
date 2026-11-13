@@ -1,8 +1,8 @@
-#include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
 
 #include "gui_forms/application/workspace_transaction/workspace_transaction.hpp"
 #include "gui_forms/commands/command_route/command_route.hpp"
-#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/controls/dock_site.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -34,6 +34,9 @@ constexpr std::array<InteractionDeclaration, 3> workspace_interactions{{
 constexpr Size smallest_floating_window{64.0, 48.0};
 
 // The stacks under a node in tree order (a split's first child first).
+// Recurses once per dock node level: a committed tree is at most
+// dock_maximum_depth (32) deep, refused beyond by the invariant check;
+// a few hundred bytes of stack per level.
 void collect_stacks(const DockLayout& layout, DockNodeId node_id, std::vector<DockNodeId>& out) {
     const DockNode* const node = layout.find_node(node_id);
     if (node == nullptr) return;
@@ -465,8 +468,11 @@ DockCloseOutcome DockWorkspace::run_close() {
         const std::vector<DockPanelId> asked(request.documents.begin() + static_cast<std::ptrdiff_t>(request.next),
                                              request.documents.begin() +
                                                  static_cast<std::ptrdiff_t>(request.next + count));
+        // The raise owns the payload's view; declared after `asked`, so the
+        // view ends before the copy does.
+        const detail::BorrowScope raise;
         DockDocumentClosing closing{};
-        closing.documents = asked;
+        closing.documents = raise.lend_view(std::span<const DockPanelId>(asked.data(), asked.size()));
         closing.cause = request.cause;
         document_closing_.emit(closing);
         // A handler may have disposed the workspace, which drops the

@@ -1,4 +1,4 @@
-#include "gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp"
+#include "gui_forms/controls/flow_layout_panel_compat.hpp"
 #include "../container_layout_utilities.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -277,7 +277,7 @@ Size FlowLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& 
 
     // The children, held for the pass: a measure callback may change the
     // tree, so each is revalidated after it is measured.
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     workspace.retained.assign(all.begin(), all.end());
     workspace.items.clear();
     workspace.items.reserve(workspace.retained.size());

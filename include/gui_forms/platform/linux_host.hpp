@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 
@@ -15,7 +16,7 @@
 
 namespace gui_forms::host {
 
-struct LinuxHostOptions final {
+struct GUI_FORMS_API LinuxHostOptions final {
   std::string title{"GUI.Forms Application"};
   Size initial_size{1120.0, 680.0};
   // The smallest client size; a side of 0 (the default) sets no minimum
@@ -65,7 +66,7 @@ struct LinuxHostOptions final {
   std::function<void()> closed;
 };
 
-struct LinuxApplicationWindow final {
+struct GUI_FORMS_API LinuxApplicationWindow final {
   std::string stable_id;
   std::string owner_id;
   std::unique_ptr<Window> model;
@@ -85,7 +86,7 @@ struct LinuxApplicationWindow final {
 // returns.
 using LinuxOpenWindow = std::function<HostWindowAdmission(LinuxApplicationWindow)>;
 
-struct LinuxApplicationOptions final {
+struct GUI_FORMS_API LinuxApplicationOptions final {
   // Published once on the UI thread before the first window is created.
   // `windowing` lives until windowing_ended has been called.
   std::function<void(HostWindowing &windowing, LinuxOpenWindow open)> windowing_ready;
@@ -94,9 +95,9 @@ struct LinuxApplicationOptions final {
   std::function<void()> windowing_ended;
 };
 
-[[nodiscard]] HostCapabilities linux_capabilities();
-int run_linux(std::unique_ptr<Window> window, LinuxHostOptions options = {});
-int run_linux_application(std::vector<LinuxApplicationWindow> linux,
+[[nodiscard]] GUI_FORMS_API HostCapabilities linux_capabilities();
+GUI_FORMS_API int run_linux(std::unique_ptr<Window> window, LinuxHostOptions options = {});
+GUI_FORMS_API int run_linux_application(std::vector<LinuxApplicationWindow> linux,
                           LinuxApplicationOptions application = {});
 
 } // namespace gui_forms::host

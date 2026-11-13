@@ -1,6 +1,8 @@
 #include "pages.hpp"
 
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
+#include "gui_forms/controls/command_bar.hpp"
+#include "gui_forms/controls/text_box.hpp"
 
 #include "semantic-feedback_form.hpp"
 

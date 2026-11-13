@@ -1,4 +1,4 @@
-#include "gui_forms/controls/progress_ring/progress_ring.hpp"
+#include "gui_forms/controls/progress_ring.hpp"
 
 #include "ring_dots.hpp"
 

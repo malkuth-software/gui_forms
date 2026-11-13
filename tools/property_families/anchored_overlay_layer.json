@@ -2,13 +2,13 @@
   "family": "AnchoredOverlayLayer",
   "step": "B6",
   "declaring": "AnchoredOverlayLayer",
-  "header": "include/gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp",
+  "header": "include/gui_forms/controls/anchored_overlay_layer.hpp",
   "source": "src/controls/panel/anchored_overlay_layer/anchored_overlay_layer.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/anchored_overlay_layer_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [
-    "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp"
+    "gui_forms/controls/anchored_overlay_placement.hpp"
   ],
   "properties": [
     {
@@ -82,7 +82,7 @@
   ],
   "test": {
     "type": "AnchoredOverlayLayer",
-    "include": "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp",
+    "include": "gui_forms/controls/anchored_overlay_layer.hpp",
     "setup": [
       "const std::shared_ptr<Panel> anchor = make_control<Panel>(StableId(\"generated.anchoredoverlaylayer.anchor\"));"
     ],

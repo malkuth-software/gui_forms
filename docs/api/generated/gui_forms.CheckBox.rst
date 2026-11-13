@@ -9,7 +9,7 @@ gui_forms::CheckBox
 
 .. cpp:class:: CheckBox : public ButtonBase, public CheckBoxCapabilities<CheckBox>
 
-   ``#include <gui_forms/controls/button_base/check_box/check_box.hpp>``
+   ``#include <gui_forms/controls/check_box.hpp>``
 
    A box with a caption that the user checks and unchecks.
 
@@ -270,3 +270,89 @@ gui_forms::CheckBox
    .. cpp:member:: constexpr std::size_t check_box_property_count
 
       CheckBox's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``CheckBox``. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 14 unclassified; 3 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``CheckBox``
+     - ``CheckBox``
+     - supported
+   * - property
+     - ``Appearance``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoCheck``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CheckAlign``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Checked``
+     - ``checked``
+     - supported
+   * - property
+     - ``CheckState``
+     - ``check_state``
+     - unclassified (untested)
+   * - property
+     - ``ThreeState``
+     - ``three_state``
+     - unclassified (untested)
+   * - event
+     - ``AppearanceChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CheckedChanged``
+     - ``checked_changed``
+     - supported
+   * - event
+     - ``CheckStateChanged``
+     - ``check_state_changed``
+     - supported
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - unclassified (untested)
+   * - event
+     - ``MouseDoubleClick``
+     - ``mouse_double_click``
+     - unclassified (untested)
+   * - method
+     - ``OnAppearanceChanged``
+     - ``on_appearance_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnCheckedChanged``
+     - ``on_checked_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnCheckStateChanged``
+     - ``on_check_state_changed``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``indicator_style``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``check_box_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``unbind``
+     - unclassified (untested)

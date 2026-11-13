@@ -9,7 +9,7 @@ gui_forms::ResponsiveTrackPanel
 
 .. cpp:class:: ResponsiveTrackPanel final : public ContainerControl, public ChildTrackCapability<ResponsiveTrackPanel>, public ResponsiveTrackPanelCapabilities<ResponsiveTrackPanel>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel.hpp>``
 
    A container that divides one axis into tracks which shrink, grow and collapse in an order you set.
 
@@ -236,7 +236,7 @@ gui_forms::ResponsiveTrackPanel
       Space between neighbouring tracks that are not collapsed. It must be
       finite and between 0 and 256.
 
-   .. cpp:function:: std::span<const ResponsiveTrackSpec> track_specs() const noexcept
+   .. cpp:function:: std::span<const ResponsiveTrackSpec> track_specs() const& noexcept
 
       The tracks, in order along the axis, from 1 through 64 of them. Each
       :cpp:class:`ResponsiveTrackSpec <gui_forms::ResponsiveTrackSpec>` gives a size mode with a ``minimum``, ``preferred`` and
@@ -322,3 +322,61 @@ gui_forms::ResponsiveTrackPanel
    .. cpp:member:: constexpr std::size_t responsive_track_panel_property_count
 
       ResponsiveTrackPanel's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 5 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``layout_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``orientation``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``track_gap``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``track_specs``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_track_focus_fallback``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``responsive_track_panel_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_track_focus_fallback``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_track_revealed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_track_spec``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``track_child_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``track_revealed``
+     - supported

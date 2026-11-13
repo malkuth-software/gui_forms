@@ -19,6 +19,7 @@ form_language::FormSchema registry_form_schema() {
     for (const FormCatalogEntry& entry : form_catalog) {
         (*entry.add)(entry, schema);
     }
+    add_extension_types(schema);
     schema.types.push_back(form_language::form_root_type());
     return schema;
 }

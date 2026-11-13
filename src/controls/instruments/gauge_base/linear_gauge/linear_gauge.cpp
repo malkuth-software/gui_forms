@@ -1,4 +1,4 @@
-#include "gui_forms/controls/instruments/gauge_base/linear_gauge/linear_gauge.hpp"
+#include "gui_forms/controls/linear_gauge.hpp"
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -76,6 +76,8 @@ double LinearGauge::caption_size() const noexcept {
 LinearGauge::Placement LinearGauge::placement(Size size) const {
     Placement placed;
     placed.horizontal = orientation.read() == Orientation::horizontal;
+    placed.frame = Rect{0.0, 0.0, size.width, size.height};
+    placed.mirrored = placed.horizontal && effective_layout_direction() == LayoutDirection::right_to_left;
     Size text{};
     if (show_value.read()) {
         const std::string shown = value_text();
@@ -113,6 +115,12 @@ LinearGauge::Placement LinearGauge::placement(Size size) const {
     return placed;
 }
 
+Rect LinearGauge::placed_rect(const Placement& placed, Rect laid) noexcept {
+    if (!placed.mirrored) return laid;
+    const Rect mirrored = horizontally_mirrored(laid, placed.frame);
+    return mirrored;
+}
+
 Rect LinearGauge::mark_at(const Placement& placed, double ratio) const noexcept {
     const Rect along = placed.ticks;
     const double width = mark_width;
@@ -120,7 +128,7 @@ Rect LinearGauge::mark_at(const Placement& placed, double ratio) const noexcept 
         const double x = std::clamp(along.x + along.width * ratio - width * 0.5, along.x,
                                     along.x + std::max(0.0, along.width - width));
         const Rect mark{x, along.y, width, along.height};
-        return mark;
+        return placed_rect(placed, mark);
     }
     const double y = std::clamp(along.y + along.height * (1.0 - ratio) - width * 0.5, along.y,
                                 along.y + std::max(0.0, along.height - width));
@@ -134,7 +142,7 @@ Rect LinearGauge::zone_between(const Placement& placed, double first, double las
         const double left = std::round(field.x + field.width * first);
         const double right = std::round(field.x + field.width * last);
         const Rect zone{left, field.y, std::max(0.0, right - left), field.height};
-        return zone;
+        return placed_rect(placed, zone);
     }
     // A vertical bar reads from the bottom.
     const double top = std::round(field.y + field.height * (1.0 - last));
@@ -157,7 +165,7 @@ void LinearGauge::on_paint(Painter& painter, Rect) {
     const Rect client = client_rectangle();
     const Placement placed = placement(Size{client.width, client.height});
     const AnatomyStateSet states = anatomy_states();
-    PartPaint plot{.role = PartRole::plot, .bounds = placed.plot, .states = states,
+    PartPaint plot{.role = PartRole::plot, .bounds = placed_rect(placed, placed.plot), .states = states,
                    .family = ControlVisualRole::progress};
     plot.key = PartKey{"plot", {}, {}};
     paint_part(painter, *this, plot);
@@ -178,7 +186,7 @@ void LinearGauge::on_paint(Painter& painter, Rect) {
         paint_part(painter, *this, alarm);
     }
 
-    PartPaint trace{.role = PartRole::trace, .bounds = placed.trace, .states = reading_states(),
+    PartPaint trace{.role = PartRole::trace, .bounds = placed_rect(placed, placed.trace), .states = reading_states(),
                     .family = ControlVisualRole::progress};
     trace.key = PartKey{"trace", {}, {}};
     paint_part(painter, *this, trace);
@@ -193,9 +201,9 @@ void LinearGauge::on_paint(Painter& painter, Rect) {
 
     if (!placed.caption.empty()) {
         const std::string shown = value_text();
-        PartPaint caption{.role = PartRole::caption, .bounds = placed.caption, .states = states,
+        PartPaint caption{.role = PartRole::caption, .bounds = placed_rect(placed, placed.caption), .states = states,
                           .family = ControlVisualRole::panel};
-        caption.text = shown;
+        caption.text = lend_paint_text(shown);
         caption.font = value_font(caption_size());
         caption.alignment = PartTextAlignment::center;
         paint_part(painter, *this, caption);
@@ -211,16 +219,16 @@ void LinearGauge::publish_part_geometry(std::span<PartGeometry> geometry) const 
     const Placement placed = placement(Size{client.width, client.height});
     Parts record;
     record.region = PartGeometry::from_bounds(client);
-    record.plot = PartGeometry::from_bounds(placed.plot);
-    record.trace = PartGeometry::from_bounds(placed.trace);
-    record.graticule = PartGeometry::from_bounds(placed.ticks);
+    record.plot = PartGeometry::from_bounds(placed_rect(placed, placed.plot));
+    record.trace = PartGeometry::from_bounds(placed_rect(placed, placed.trace));
+    record.graticule = PartGeometry::from_bounds(placed_rect(placed, placed.ticks));
     Rect alarms{};
     const std::optional<double> low = low_alarm.read();
     const std::optional<double> high = high_alarm.read();
     if (low && ratio_of(*low) > 0.0) alarms = joined(alarms, zone_between(placed, 0.0, ratio_of(*low)));
     if (high && ratio_of(*high) < 1.0) alarms = joined(alarms, zone_between(placed, ratio_of(*high), 1.0));
     record.alarm_zone = PartGeometry::from_bounds(alarms);
-    record.caption = PartGeometry::from_bounds(placed.caption);
+    record.caption = PartGeometry::from_bounds(placed_rect(placed, placed.caption));
     write_parts(anatomy(), linear_gauge_part_fields, record, geometry);
 }
 

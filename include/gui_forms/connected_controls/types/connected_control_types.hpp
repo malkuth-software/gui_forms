@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/surface_material.hpp"
 
 #include <cstddef>
@@ -23,7 +24,7 @@ enum class ConnectedControlSegment : std::uint8_t {
     trailing,
 };
 
-struct ConnectedControlTopology final {
+struct GUI_FORMS_API ConnectedControlTopology final {
     ConnectedControlAxis axis{ConnectedControlAxis::horizontal};
     std::size_t index{};
     std::size_t count{};
@@ -35,7 +36,7 @@ struct ConnectedControlTopology final {
     }
 };
 
-struct ConnectedControlSeam final {
+struct GUI_FORMS_API ConnectedControlSeam final {
     Point from{};
     Point to{};
     Color color{};
@@ -51,18 +52,18 @@ struct ConnectedControlSeam final {
 // The resolved recipe owns no renderer object. `paint_bounds` is deliberately
 // larger across joined edges; clipping it to `clip_bounds` removes interior
 // corners and duplicate borders while retaining the material's outer radius.
-struct ConnectedControlVisualGeometry final {
+struct GUI_FORMS_API ConnectedControlVisualGeometry final {
     ConnectedControlSegment segment{ConnectedControlSegment::standalone};
     Rect clip_bounds{};
     Rect paint_bounds{};
     std::optional<ConnectedControlSeam> leading_seam;
 };
 
-[[nodiscard]] bool valid_connected_control_topology(
+[[nodiscard]] GUI_FORMS_API bool valid_connected_control_topology(
     ConnectedControlTopology topology) noexcept;
-[[nodiscard]] ConnectedControlSegment connected_control_segment(
+[[nodiscard]] GUI_FORMS_API ConnectedControlSegment connected_control_segment(
     std::optional<ConnectedControlTopology> topology) noexcept;
-[[nodiscard]] ConnectedControlVisualGeometry
+[[nodiscard]] GUI_FORMS_API ConnectedControlVisualGeometry
 resolve_connected_control_visual_geometry(
     Rect bounds, const SurfaceMaterial& material,
     std::optional<ConnectedControlTopology> topology) noexcept;

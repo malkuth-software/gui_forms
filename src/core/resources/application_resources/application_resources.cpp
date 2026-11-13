@@ -1,11 +1,14 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/application/user_themes/user_themes.hpp"
+#include "gui_forms/engine/light_planes/light_planes.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/window.hpp"
 
 #include "../../theme/theme_compiler/control_inline_style.hpp"
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
+#include "../../surface_root/access/surface_resource_access.hpp"
+#include "gui_forms/resources/image_atlas/image_atlas.hpp"
 
 #include <cstdio>
 
@@ -41,6 +44,34 @@ void ApplicationResources::require_access(const char* operation) const {
     throw std::logic_error(message);
 }
 
+bool ApplicationResources::painting() const noexcept {
+    for (std::size_t index = 0U; index < windows_.size(); ++index) {
+        if (detail::SurfaceResourceAccess::painting(*windows_[index])) return true;
+    }
+    return false;
+}
+
+void ApplicationResources::register_image_atlas(const std::shared_ptr<detail::ImageAtlasLink>& link) {
+    require_access("image atlas registration");
+    // Expired links are reused before the list grows.
+    for (std::size_t index = 0U; index < atlases_.size(); ++index) {
+        if (atlases_[index].expired()) {
+            atlases_[index] = link;
+            return;
+        }
+    }
+    atlases_.push_back(link);
+}
+
+void ApplicationResources::apply_deferred_image_fills() noexcept {
+    if (atlases_.empty() || painting()) return;
+    for (std::size_t index = 0U; index < atlases_.size(); ++index) {
+        const std::shared_ptr<detail::ImageAtlasLink> link = atlases_[index].lock();
+        if (!link || (*link).atlas == nullptr) continue;
+        (*(*link).atlas).apply_pending_fills();
+    }
+}
+
 void ApplicationResources::attach(SurfaceRoot& window) {
     require_access("window attach");
     windows_.push_back(&window);
@@ -69,18 +100,18 @@ void ApplicationResources::set_theme(std::shared_ptr<const Theme> theme) {
     std::vector<detail::InlineRestyle> restyles{};
     std::vector<ThemeCompileDiagnostic> diagnostics{};
     for (SurfaceRoot* const window : windows_) {
-        if (!(*window).collect_inline_restyles(*theme, restyles, diagnostics)) {
+        if (!detail::SurfaceResourceAccess::collect_inline_restyles(*window, *theme, restyles, diagnostics)) {
             throw std::invalid_argument(detail::inline_restyle_refusal("application theme", diagnostics));
         }
     }
-    SurfaceRoot::commit_inline_restyles(restyles);
+    detail::SurfaceResourceAccess::commit_inline_restyles(restyles);
     theme_ = std::move(theme);
     program_theme_ = theme_;
     // A window's theme_changed handler may create or destroy windows; walk a
     // copy of the list and skip windows that left it meanwhile.
     const std::vector<SurfaceRoot*> windows = windows_;
     for (std::size_t index = 0U; index < windows.size(); ++index) {
-        if (listed(windows_, windows[index])) (*windows[index]).apply_theme(theme_);
+        if (listed(windows_, windows[index])) detail::SurfaceResourceAccess::apply_theme(*windows[index], theme_);
     }
 }
 
@@ -91,7 +122,7 @@ void ApplicationResources::set_automatic_colour_scheme(bool automatic) {
     // A handler of a window's change may create or destroy windows.
     const std::vector<SurfaceRoot*> windows = windows_;
     for (std::size_t index = 0U; index < windows.size(); ++index) {
-        if (listed(windows_, windows[index])) (*windows[index]).follow_host_colour_scheme(automatic);
+        if (listed(windows_, windows[index])) detail::SurfaceResourceAccess::follow_host_colour_scheme(*windows[index], automatic);
     }
 }
 
@@ -277,17 +308,36 @@ ImageLoadResult ApplicationResources::replace_png(ImageId image, std::span<const
     ImageLoadResult result = images_.replace_png(image, encoded);
     if (result) {
         for (std::size_t index = 0U; index < windows_.size(); ++index) {
-            (*windows_[index]).repaint_for_image_replacement();
+            detail::SurfaceResourceAccess::repaint_for_image_replacement(*windows_[index]);
         }
     }
     return result;
+}
+
+void ApplicationResources::set_light_plane_directory(std::filesystem::path directory) {
+    require_access("light-plane directory");
+    std::unique_ptr<engine_light::LightPlaneCache> made{};
+    if (!directory.empty()) made = std::make_unique<engine_light::LightPlaneCache>(std::move(directory));
+    light_planes_ = std::move(made);
+    // Any window may show a part composited from the old directory's bakes:
+    // the same whole repaint an image replacement makes.
+    for (std::size_t index = 0U; index < windows_.size(); ++index) {
+        detail::SurfaceResourceAccess::repaint_for_image_replacement(*windows_[index]);
+    }
+}
+
+std::shared_ptr<const engine_light::LightPlanes> ApplicationResources::lend_light_planes(std::string_view name) {
+    require_access("light-plane read");
+    if (!light_planes_) return nullptr;
+    std::shared_ptr<const engine_light::LightPlanes> lent = (*light_planes_).lend(name);
+    return lent;
 }
 
 bool ApplicationResources::remove_image(ImageId image) {
     require_access("PNG resource removal");
     if (!images_.remove(image)) return false;
     for (std::size_t index = 0U; index < windows_.size(); ++index) {
-        (*windows_[index]).repaint_for_image_removal();
+        detail::SurfaceResourceAccess::repaint_for_image_removal(*windows_[index]);
     }
     return true;
 }

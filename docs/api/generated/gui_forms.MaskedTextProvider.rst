@@ -9,7 +9,7 @@ gui_forms::MaskedTextProvider
 
 .. cpp:class:: MaskedTextProvider final
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp>``
+   ``#include <gui_forms/controls/masked_text_provider.hpp>``
 
    A mask and the text assigned to it, without a control.
 
@@ -165,7 +165,7 @@ gui_forms::MaskedTextProvider
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::string_view mask() const noexcept
+   .. cpp:function:: std::string_view mask() const& noexcept
 
       The mask as given.
 

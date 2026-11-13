@@ -21,6 +21,7 @@
 // A sample is `stream_count` doubles (x and y, or x and several y), stored
 // interleaved. Capacity and stream count are fixed at construction.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/series_column/series_column.hpp"
 
 #include <array>
@@ -37,7 +38,7 @@ namespace gui_forms::plots {
 inline constexpr std::size_t maximum_channel_streams = 4U;
 
 // Counters of one channel, read by either thread.
-struct SeriesChannelStatistics final {
+struct GUI_FORMS_API SeriesChannelStatistics final {
     // Samples the producer published.
     std::uint64_t published{};
     // Samples the consumer took into its columns.
@@ -49,7 +50,7 @@ struct SeriesChannelStatistics final {
 
 class SeriesWriteLease;
 
-class SeriesRingChannel final {
+class GUI_FORMS_API SeriesRingChannel final {
 public:
     // `capacity` samples of `stream_count` streams (1 to
     // maximum_channel_streams); allocates once. Throws
@@ -105,7 +106,7 @@ private:
 // publishes them with release ordering. Owned by the producer's thread;
 // destroying it ends the lease, so another may be acquired. The channel
 // must outlive it.
-class SeriesWriteLease final {
+class GUI_FORMS_API SeriesWriteLease final {
 public:
     ~SeriesWriteLease();
     SeriesWriteLease(const SeriesWriteLease&) = delete;

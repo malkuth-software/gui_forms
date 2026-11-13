@@ -4,7 +4,16 @@
 // (display-trace cases: every call is written as text with its arguments and
 // compared exactly), the base painter's fallbacks, and the part primitives
 // composed from them (paint_recipes.hpp: C2, C3, C4).
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/display/types/display_types.hpp"
+#include "gui_forms/plots/decimation/decimation.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_marks/paint_marks.hpp"
+#include "gui_forms/types/paint_recipes/paint_recipes.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
 #include "gui_forms/layout/radial_layout/radial_layout.hpp"
 #include "../src/core/display/recording_painter/recording_painter.hpp"
 #include "../src/core/display/replay/replay_display_chunk.hpp"

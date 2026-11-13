@@ -1,4 +1,4 @@
-#include "gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp"
+#include "gui_forms/controls/ribbon_gallery.hpp"
 
 #include "../scrollable_control/scrolling_utilities.hpp"
 
@@ -470,33 +470,34 @@ bool RibbonGallery::navigate(std::uint32_t key) {
     return true;
 }
 
-void RibbonGallery::on_key(KeyEvent& event) {
-    if (event.action != KeyAction::down || !has_focus_) return;
-    const std::uint32_t key = event.physical_key;
+void RibbonGallery::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || !has_focus_) return;
+    const std::uint32_t key = arguments.physical_key;
     if (key == PhysicalKey::enter || key == PhysicalKey::space) {
         if (focused_) commit(*focused_);
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
     if (key == PhysicalKey::escape) {
         // Escape withdraws a preview first; a second Escape closes an overlay.
         if (command.read() && (*command.read()).previewing()) {
             cancel_preview();
-            event.handled = true;
+            arguments.handled = true;
         } else if (overlay_open_) {
             close_overlay();
-            event.handled = true;
+            arguments.handled = true;
         }
         return;
     }
-    if (navigate(key)) event.handled = true;
+    if (navigate(key)) arguments.handled = true;
 }
 
 // -- pointer --------------------------------------------------------------------------
 
 // A primary press is hit-tested here, before the window moves focus to
 // the gallery (whose focus would scroll the selected item into view and
-// move the items under the pointer); on_pointer acts on this hit.
+// move the items under the pointer); on_mouse_down acts on this hit.
 void RibbonGallery::on_pointer_preview(PointerEvent& event) {
     const bool press = event.action == PointerAction::down && event.button == PointerButton::primary;
     if (!press) return;
@@ -504,24 +505,50 @@ void RibbonGallery::on_pointer_preview(PointerEvent& event) {
     press_hit_ = hit_test(local);
 }
 
-void RibbonGallery::on_pointer(PointerEvent& event) {
-    const Point local = point_from_window(event.position);
+void RibbonGallery::on_mouse_down(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void RibbonGallery::on_mouse_up(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void RibbonGallery::on_mouse_move(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void RibbonGallery::on_mouse_wheel(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+void RibbonGallery::on_mouse_leave() {
+    // Any event but the press ends the press's hit from before its focus
+    // move.
+    press_hit_.reset();
+    if (hot_ || hot_zone_ != HitZone::none) {
+        hot_.reset();
+        hot_zone_ = HitZone::none;
+        invalidate(Dirty::paint);
+    }
+    // Leaving the gallery withdraws the preview.
+    cancel_preview();
+    Control::on_mouse_leave();
+}
+
+// The press, release, move (the move that enters the gallery sets the hot
+// item) and wheel, by arguments.action.
+void RibbonGallery::handle_mouse(MouseEventArgs& arguments) {
+    const Point local = point_from_window(arguments.window_position);
     // The press's hit from before its focus move; any other event ends it.
     const std::optional<HitResult> before_focus = press_hit_;
     press_hit_.reset();
-    if (event.action == PointerAction::leave) {
-        if (hot_ || hot_zone_ != HitZone::none) {
-            hot_.reset();
-            hot_zone_ = HitZone::none;
-            invalidate(Dirty::paint);
-        }
-        // Leaving the gallery withdraws the preview.
-        cancel_preview();
-        return;
-    }
-    const bool press = event.action == PointerAction::down && event.button == PointerButton::primary;
+    const bool press = arguments.action == PointerAction::down && arguments.button == PointerButton::primary;
     const HitResult hit = press && before_focus ? *before_focus : hit_test(local);
-    if (event.action == PointerAction::move || event.action == PointerAction::enter) {
+    if (arguments.action == PointerAction::move) {
         const std::optional<std::size_t> hot =
             hit.zone == HitZone::item && item_enabled(hit.position) ? std::optional<std::size_t>(hit.position)
                                                                     : std::nullopt;
@@ -539,8 +566,8 @@ void RibbonGallery::on_pointer(PointerEvent& event) {
         }
         return;
     }
-    if (event.action == PointerAction::wheel) {
-        const double delta = event.wheel_delta.y;
+    if (arguments.action == PointerAction::wheel) {
+        const double delta = arguments.wheel_delta.y;
         if (delta == 0.0) return;
         // A delta of up to 8 counts lines (whole lines, at least one); a
         // larger one, such as a pixel delta, scrolls one line.
@@ -553,29 +580,29 @@ void RibbonGallery::on_pointer(PointerEvent& event) {
         } else if (can_scroll_down()) {
             scroll_to_line(first_line_ + lines);
         }
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
-    if (event.button != PointerButton::primary) return;
-    if (event.action == PointerAction::down) {
+    if (arguments.button != PointerButton::primary) return;
+    if (arguments.action == PointerAction::down) {
         pressed_zone_ = hit.zone;
         pressed_.reset();
         if (hit.zone == HitZone::item && item_enabled(hit.position)) pressed_ = hit.position;
         if (hit.zone == HitZone::scroll_up && can_scroll_up()) scroll_to_line(first_line_ - 1U);
         if (hit.zone == HitZone::scroll_down && can_scroll_down()) scroll_to_line(first_line_ + 1U);
         if (hit.zone == HitZone::more) static_cast<void>(show_more());
-        event.handled = hit.zone != HitZone::none;
+        arguments.handled = hit.zone != HitZone::none;
         invalidate(Dirty::paint);
         return;
     }
-    if (event.action == PointerAction::up) {
+    if (arguments.action == PointerAction::up) {
         const std::optional<std::size_t> pressed = pressed_;
         pressed_.reset();
         pressed_zone_ = HitZone::none;
         invalidate(Dirty::paint);
         // A click is a press and release on the same item.
         if (pressed && hit.zone == HitZone::item && hit.position == *pressed) commit(*pressed);
-        event.handled = pressed.has_value();
+        arguments.handled = pressed.has_value();
     }
 }
 

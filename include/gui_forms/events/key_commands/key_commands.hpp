@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 
 #include <array>
@@ -12,7 +13,7 @@ namespace gui_forms {
 // One key with the exact modifiers held: Ctrl+F4 is {PhysicalKey::f4,
 // Modifier::control}. A chord whose key is 0 is no chord (an unused slot of
 // a binding); it has no modifiers and matches no event.
-struct KeyChord final {
+struct GUI_FORMS_API KeyChord final {
     std::uint32_t physical_key{};
     Modifier modifiers{Modifier::none};
 
@@ -77,12 +78,12 @@ inline constexpr std::size_t key_command_count = static_cast<std::size_t>(KeyCom
 
 // The registered (snake_case) name of a command, as the capability report
 // lists it; "unknown" for a value outside the enumeration.
-[[nodiscard]] std::string_view key_command_name(KeyCommand command) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view key_command_name(KeyCommand command) noexcept;
 
 // The chords that invoke one command: at most two (Ctrl+F6 and its
 // macOS equivalent, say). Either may be empty; a binding with both empty leaves
 // the command without keys.
-struct KeyBinding final {
+struct GUI_FORMS_API KeyBinding final {
     KeyChord primary{};
     KeyChord secondary{};
 
@@ -103,7 +104,7 @@ struct KeyBinding final {
 // command's chords with exactly that chord's modifiers. Two commands may
 // share a chord; the control asking decides which it means. A map made with
 // no arguments leaves every command without keys.
-class KeyMap final {
+class GUI_FORMS_API KeyMap final {
 public:
     // Throws std::invalid_argument for a command outside the enumeration.
     [[nodiscard]] const KeyBinding& binding(KeyCommand command) const;
@@ -130,7 +131,7 @@ private:
 // The PC convention's map (see KeyCommand): what the Windows, X11 and
 // headless hosts report, and what a window uses until a host reports its
 // own.
-[[nodiscard]] KeyMap pc_key_map();
+[[nodiscard]] GUI_FORMS_API KeyMap pc_key_map();
 
 // The keys of an application's named keyboard commands (owner decision
 // DK-44, review R3): one object shared by every window of the application,
@@ -141,7 +142,7 @@ private:
 // defaults are the PC convention's.
 //
 // Execution: the UI thread of the windows sharing it; not synchronized.
-class KeyBindings final {
+class GUI_FORMS_API KeyBindings final {
 public:
     KeyBindings();
     KeyBindings(const KeyBindings&) = delete;

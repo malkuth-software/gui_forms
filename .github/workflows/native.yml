@@ -106,6 +106,8 @@ jobs:
           # (gui_forms_abi_audit), with the pinned clang.
           python3 -B tools/abi_bindings.py csharp --check
           python3 -B tools/abi_bindings.py cpp --check
+          # The class tables (ABI 1.3): generated outputs and the append-only ledger.
+          python3 -B tools/abi_class_tables.py --check
           python3 tools/control_registry.py emit-forms --check
           python3 -B -m unittest discover -s tools -p test_control_schema.py
           python3 tools/control_schema.py check
@@ -122,15 +124,21 @@ jobs:
           # Theme variants stage B: the colour relocation instrument.
           python3 -B -m unittest discover -s tools -p test_relocate_colours.py
           python3 -B -m unittest discover -s tools -p test_generate_library_docs.py
+          python3 -B -m unittest discover -s tools -p test_flatten_control_headers.py
           python3 tools/generate_library_docs.py --check
-          python3 -B ../template_harness/harness/check_house_style.py include src demo tests examples tools file_manager_demoboard fuzz
+          python3 -B ../template_harness/harness/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz
           python3 -B -m unittest discover -s tools -p test_ci_build.py
           python3 -B -m unittest discover -s tools -p test_ci_docs_only.py
           python3 -B -m unittest discover -s tools -p test_ninja_phases.py
           python3 -B -m unittest discover -s tools -p test_engine_gate.py
           python3 -B -m unittest discover -s tools -p test_profile_hot_paths.py
           python3 -B -m unittest discover -s tools/layout_oracle -p test_layout_oracle.py
-          python3 -B ../template_harness/harness/check_lifetime_rules.py include src demo tests examples tools file_manager_demoboard fuzz
+          python3 -B ../template_harness/harness/check_lifetime_rules.py include src lab demo tests examples tools file_manager_demoboard fuzz
+          # Every public declaration carries its library's export macro.
+          python3 -B tools/export_annotations.py check
+          # 1.0 condition 3: every control and member, supported, deferred or excluded.
+          python3 -B -m unittest discover -s tools -p test_member_manifest.py
+          python3 -B tools/control_registry.py members --check
           python3 -B -m unittest discover -s tools -p test_check_test_registration.py
           python3 -B tools/check_test_registration.py
   # Documentation-only pull requests (owner, 2026-11-09): when every changed

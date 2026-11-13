@@ -5,10 +5,46 @@
 // write stores, an equal write does nothing, and a write from another
 // thread is refused before anything is compared or stored.
 
-#include "gui_forms/gui_forms.hpp"
-#include "gui_forms/controls/collections/choice_group.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/component/component/component.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/badge.hpp"
+#include "gui_forms/controls/badge_values.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/choice_group_values.hpp"
+#include "gui_forms/controls/empty_state.hpp"
+#include "gui_forms/controls/info_banner.hpp"
+#include "gui_forms/controls/notice_values.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/progress_ring.hpp"
+#include "gui_forms/controls/search_field.hpp"
+#include "gui_forms/controls/spinner.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/toast.hpp"
+#include "gui_forms/controls/toggle_switch.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/event/event.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/rules/rule_set/rule_set.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/toasts/toasts.hpp"
+#include "gui_forms/window/window.hpp"
+#include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/types/painter/painter.hpp"
+#include "../src/core/control/control/control_input_access.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -198,12 +234,12 @@ void test_info_banner_closing() {
     KeyEvent other{};
     other.action = KeyAction::down;
     other.physical_key = PhysicalKey::enter;
-    (*banner).on_key(other);
+    gui_forms::detail::ControlInputAccess::on_key(*banner, other);
     require((*banner).visible.read() && !other.handled, "keys other than Escape pass the banner by");
     KeyEvent escape{};
     escape.action = KeyAction::down;
     escape.physical_key = PhysicalKey::escape;
-    (*banner).on_key(escape);
+    gui_forms::detail::ControlInputAccess::on_key(*banner, escape);
     require(escape.handled && !(*banner).visible.read() && recorder.closed == 2, "Escape closes a shown banner");
 
     (*banner).visible = true;
@@ -250,12 +286,12 @@ void test_info_banner_actuator_action_and_threads() {
     press.action = PointerAction::down;
     press.button = PointerButton::primary;
     press.position = mark;
-    (*banner).on_pointer(press);
+    gui_forms::detail::ControlInputAccess::on_pointer(*banner, press);
     require(press.handled && (*banner).visible.read(), "pressing the close mark does not close yet");
     PointerEvent release = press;
     release.action = PointerAction::up;
     release.handled = false;
-    (*banner).on_pointer(release);
+    gui_forms::detail::ControlInputAccess::on_pointer(*banner, release);
     require(release.handled && !(*banner).visible.read() && recorder.closed == 1,
             "releasing over the close mark closes the banner");
 
@@ -406,7 +442,7 @@ void test_segmented_choice_group() {
     KeyEvent right{};
     right.action = KeyAction::down;
     right.physical_key = PhysicalKey::right;
-    (*group).on_key(right);
+    gui_forms::detail::ControlInputAccess::on_key(*group, right);
     window.perform_layout();
     require(right.handled && (*group).selected_index.read() == 2 &&
                 (*group).parts().selection.bounds == (*group).item(2).committed_arranged_bounds(),
@@ -573,12 +609,12 @@ void test_window_toasts() {
     press.action = PointerAction::down;
     press.button = PointerButton::primary;
     press.position = mark;
-    (*marked).on_pointer(press);
+    gui_forms::detail::ControlInputAccess::on_pointer(*marked, press);
     require(press.handled && window.toast_visible(), "pressing the close mark does not close yet");
     PointerEvent release = press;
     release.action = PointerAction::up;
     release.handled = false;
-    (*marked).on_pointer(release);
+    gui_forms::detail::ControlInputAccess::on_pointer(*marked, release);
     require(release.handled && !window.toast_visible() && recorder.seen.back().reason == ToastDismissReason::closed,
             "releasing over the close mark dismisses the toast");
 
@@ -916,12 +952,12 @@ void test_search_field_in_window() {
     press.action = PointerAction::down;
     press.button = PointerButton::primary;
     press.position = mark;
-    (*field).on_pointer(press);
+    gui_forms::detail::ControlInputAccess::on_pointer(*field, press);
     require(press.handled && (*field).text.read() == "x", "pressing the clear mark does not clear yet");
     PointerEvent release = press;
     release.action = PointerAction::up;
     release.handled = false;
-    (*field).on_pointer(release);
+    gui_forms::detail::ControlInputAccess::on_pointer(*field, release);
     require(release.handled && (*field).text.read().empty(), "releasing over the clear mark clears the field");
 }
 

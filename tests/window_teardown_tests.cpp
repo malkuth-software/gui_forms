@@ -9,8 +9,27 @@
 // destroyed with its window and closed by the host; and a DockSite whose
 // pointer drag is in progress when its window is destroyed or closed.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/dock_site.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/dispatcher/operation/dispatch_operation.hpp"
+#include "gui_forms/dispatcher/types/dispatcher_types.hpp"
+#include "gui_forms/docking/types/dock_types.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -42,11 +61,11 @@ struct Recheck final {
 
 // Captures the pointer on a press, takes focus, and posts a recheck to its
 // window whenever it loses capture or focus.
-class Poster final : public Control {
+class Poster final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit Poster(StableId stable_id) : Control(std::move(stable_id)) { focusable = true; }
+    explicit Poster(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) { focusable = true; }
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         if (event.action != PointerAction::down) return;
         Window* const host = attached_window();
         if (host == nullptr) return;

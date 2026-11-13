@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
+#include "gui_forms/controls/rich_text_box.hpp"
 
 #include "../input_control_utilities.hpp"
 #include "../panel_anatomy.hpp"
@@ -111,7 +111,7 @@ private:
 // -- RichTextBox --------------------------------------------------------------
 
 RichTextBox::RichTextBox(StableId stable_id, std::string_view markdown)
-    : Panel(std::move(stable_id)), editing_host_(std::make_unique<EditingHost>(*this)) {
+    : TextBoxBase(std::move(stable_id)), editing_host_(std::make_unique<EditingHost>(*this)) {
     require_source(markdown);
     editing_ = std::make_unique<detail::TextEditingEngine>(*editing_host_, markdown);
     (*editing_).set_maximum_bytes(maximum_bytes);
@@ -288,28 +288,13 @@ void RichTextBox::on_scroll_position_changed() {
 
 // -- selection ------------------------------------------------------------------
 
-TextSelection RichTextBox::selection() const noexcept {
-    const TextSelection result = (*editing_).selection();
-    return result;
+detail::TextEditingEngine* RichTextBox::editing_engine() const noexcept {
+    detail::TextEditingEngine* const engine = editing_.get();
+    return engine;
 }
 
-void RichTextBox::select(Utf8Offset anchor, Utf8Offset caret) {
-    require_mutable();
-    const TextStore& store = (*editing_).store();
-    if (!store.is_grapheme_boundary(anchor) || !store.is_grapheme_boundary(caret)) {
-        throw std::out_of_range("RichTextBox selection must use grapheme boundaries");
-    }
-    set_selection({anchor, caret});
-}
-
-void RichTextBox::select_all() {
-    require_mutable();
-    set_selection({Utf8Offset(0U), (*editing_).store().utf8_size()});
-}
-
-std::string RichTextBox::selected_text() const {
-    const std::string result = (*editing_).selected_text();
-    return result;
+void RichTextBox::apply_selection(TextSelection selection) {
+    set_selection(selection);
 }
 
 void RichTextBox::set_selection(TextSelection selection, bool reveal) {
@@ -329,29 +314,14 @@ void RichTextBox::set_selection(TextSelection selection, bool reveal) {
 
 // -- editing --------------------------------------------------------------------
 
-bool RichTextBox::can_undo() const noexcept {
-    const bool result = (*editing_).can_undo();
-    return result;
-}
-
 bool RichTextBox::can_redo() const noexcept {
     const bool result = (*editing_).can_redo();
-    return result;
-}
-
-bool RichTextBox::undo() {
-    const bool result = (*editing_).undo();
     return result;
 }
 
 bool RichTextBox::redo() {
     const bool result = (*editing_).redo();
     return result;
-}
-
-void RichTextBox::clear_undo_history() {
-    require_mutable();
-    (*editing_).clear_history();
 }
 
 bool RichTextBox::replace_selection(std::string_view replacement) {
@@ -361,21 +331,6 @@ bool RichTextBox::replace_selection(std::string_view replacement) {
 
 bool RichTextBox::delete_selection() {
     const bool result = (*editing_).delete_selection();
-    return result;
-}
-
-bool RichTextBox::copy() {
-    const bool result = (*editing_).copy();
-    return result;
-}
-
-bool RichTextBox::cut() {
-    const bool result = (*editing_).cut();
-    return result;
-}
-
-bool RichTextBox::paste() {
-    const bool result = (*editing_).paste();
     return result;
 }
 
@@ -421,7 +376,7 @@ bool RichTextBox::vertical_key(const KeyEvent& event, bool extend, bool command)
     return true;
 }
 
-void RichTextBox::on_key(KeyEvent& event) {
+void RichTextBox::handle_key(KeyEvent& event) {
     if (!focused_ || !enabled.read() || event.action != KeyAction::down) return;
     const bool extend = includes(event.modifiers, Modifier::shift);
     const bool command = command_modifier(event.modifiers);
@@ -474,6 +429,17 @@ void RichTextBox::on_key(KeyEvent& event) {
     (*editing_).handle_key(event);
 }
 
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void RichTextBox::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
+}
+
 void RichTextBox::on_text_input(TextInputEvent& event) {
     if (!focused_ || !enabled.read()) return;
     (*editing_).handle_text_input(event);
@@ -481,7 +447,7 @@ void RichTextBox::on_text_input(TextInputEvent& event) {
 
 // -- pointer --------------------------------------------------------------------
 
-void RichTextBox::on_pointer(PointerEvent& event) {
+void RichTextBox::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     const Rect absolute = absolute_bounds();
     const double local_x = event.position.x - absolute.x;
@@ -492,7 +458,7 @@ void RichTextBox::on_pointer(PointerEvent& event) {
     }
     if (auto_scroll.read() && (!selecting_ || event.action == PointerAction::wheel)) {
         ensure_layout();
-        Panel::on_pointer(event);
+        scroll_pointer(event);
         if (event.handled || event.action == PointerAction::wheel) return;
         if (!viewport_rectangle().contains(local)) return;
     }
@@ -548,6 +514,40 @@ void RichTextBox::on_pointer(PointerEvent& event) {
         set_pointer_capture(false);
         event.handled = true;
     }
+}
+
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void RichTextBox::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void RichTextBox::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void RichTextBox::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void RichTextBox::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
 }
 
 // -- focus, caret and paint -----------------------------------------------------

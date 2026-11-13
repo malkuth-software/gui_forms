@@ -4,7 +4,26 @@
 // MaskedTextBox, with their refusals; and the unit boundaries hosts move
 // by (fill_semantic_text_boundaries).
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/masked_text_box.hpp"
+#include "gui_forms/controls/masked_text_provider.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/metrics/metrics/metrics.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/text/text_store/text_store.hpp"
+#include "gui_forms/text/types/text_types.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/typography/types/typography_types.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 #include "support/typography_painter.hpp"
 

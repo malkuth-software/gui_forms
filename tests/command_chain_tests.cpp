@@ -4,7 +4,24 @@
 // window's chain, which takes the command before its own `invoked` event;
 // without a window they execute the Command as before.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/commands/command_binding/command_binding.hpp"
+#include "gui_forms/commands/command_route/command_route.hpp"
+#include "gui_forms/commands/gallery_command/gallery_command.hpp"
+#include "gui_forms/commands/types/command_types.hpp"
+#include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/components/notify_icon/notify_icon.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/host/image/host_image.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 
 #include <cstddef>

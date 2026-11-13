@@ -9,7 +9,7 @@ gui_forms::ChoiceGroup
 
 .. cpp:class:: ChoiceGroup final : public Panel, public ChoiceGroupCapabilities<ChoiceGroup>
 
-   ``#include <gui_forms/controls/collections/choice_group.hpp>``
+   ``#include <gui_forms/controls/choice_group.hpp>``
 
    A row of buttons from which the user picks exactly one choice.
 
@@ -51,7 +51,7 @@ gui_forms::ChoiceGroup
          group is bound, the bound value's own validators are consulted too, and
          an exception from them leaves both unchanged.
 
-      **items** : ``std::span<const ChoiceItem>``
+      **items** : ``BorrowedSpan<ChoiceItem>``
          The choices, in display order. Empty by default. Item IDs must be
          unique and every text valid UTF-8, or :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` throws
          ``std::invalid_argument``. Each item's button shows its glyph and label
@@ -209,7 +209,7 @@ gui_forms::ChoiceGroup
       group is bound, the bound value's own validators are consulted too, and
       an exception from them leaves both unchanged.
 
-   .. cpp:function:: std::span<const ChoiceItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<ChoiceItem> items() const noexcept
 
       The choices, in display order. Empty by default. Item IDs must be
       unique and every text valid UTF-8, or :cpp:func:`set_items <gui_forms::ChoiceGroup::set_items>` throws
@@ -291,10 +291,6 @@ gui_forms::ChoiceGroup
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
-      Handles the arrow keys described under Notes. The window calls it.
-
    .. cpp:function:: void on_key_bubble(KeyEvent& event) override
 
       Handles the arrow keys pressed while an item's button has focus.
@@ -306,6 +302,13 @@ gui_forms::ChoiceGroup
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Raises the event, then handles the arrow keys described under Notes.
+      The window calls it.
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -320,3 +323,53 @@ gui_forms::ChoiceGroup
    .. cpp:member:: constexpr std::size_t choice_group_property_count
 
       ChoiceGroup's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 3 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presentation``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``bind``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``choice_group_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``item``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``part``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``unbind``
+     - unclassified (untested)

@@ -1,4 +1,4 @@
-#include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
+#include "gui_forms/controls/toggle_switch.hpp"
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
@@ -101,6 +101,9 @@ FontSpec ToggleSwitch::label_font() const noexcept {
 
 // The track at the start, centred down the control; the label after it and
 // the state text after the label, each one line centred down the control.
+// Laid out left to right and mirrored in `size` when the switch resolves
+// right to left: the track at the right and the thumb's on position at its
+// left end (Windows Forms' check box under RightToLeft).
 ToggleSwitch::Placement ToggleSwitch::placement(Size size) const {
     Placement placed;
     const double centre = size.height * 0.5;
@@ -127,6 +130,13 @@ ToggleSwitch::Placement ToggleSwitch::placement(Size size) const {
         const double width = std::min(std::ceil(measured.width), std::max(0.0, size.width - x));
         const double height = std::ceil(measured.height);
         placed.state = Rect{x, std::floor(centre - height * 0.5), width, height};
+    }
+    if (effective_layout_direction() == LayoutDirection::right_to_left) {
+        const Rect frame{0.0, 0.0, size.width, size.height};
+        placed.track = horizontally_mirrored(placed.track, frame);
+        placed.thumb = horizontally_mirrored(placed.thumb, frame);
+        placed.label = horizontally_mirrored(placed.label, frame);
+        placed.state = horizontally_mirrored(placed.state, frame);
     }
     return placed;
 }
@@ -183,14 +193,14 @@ void ToggleSwitch::on_paint(Painter& painter, Rect) {
     if (placed.label.width > 0.0) {
         PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = states,
                         .family = ControlVisualRole::choice};
-        label.text = shown;
+        label.text = lend_paint_text(shown);
         label.font = spec;
         paint_part(painter, *this, label);
     }
     if (placed.state.width > 0.0) {
         PartPaint state{.role = PartRole::label, .bounds = placed.state, .states = states,
                         .family = ControlVisualRole::choice};
-        state.text = state_text();
+        state.text = lend_paint_text(state_text());
         state.font = spec;
         paint_part(painter, *this, state);
     }

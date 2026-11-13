@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/card/card.hpp"
+#include "gui_forms/controls/card.hpp"
 #include "card_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -247,45 +247,64 @@ bool Card::hit_test_local(Point local_point) const {
     return interactive.read() && Control::hit_test_local(local_point);
 }
 
-void Card::on_pointer(PointerEvent& event) {
-    if (!interactive.read()) return;
-    if (event.action == PointerAction::enter || event.action == PointerAction::leave) {
-        const bool next = event.action == PointerAction::enter;
-        if (hovered_ != next) {
-            hovered_ = next;
-            invalidate(Dirty::paint);
-        }
-    } else if (event.button == PointerButton::primary &&
-               event.action == PointerAction::down) {
-        pressed_ = true;
+void Card::on_mouse_enter() {
+    if (interactive.read() && !hovered_) {
+        hovered_ = true;
         invalidate(Dirty::paint);
-        event.handled = true;
-    } else if (event.button == PointerButton::primary &&
-               event.action == PointerAction::up) {
-        pressed_ = false;
-        invalidate(Dirty::paint);
-        event.handled = true;
     }
+    Control::on_mouse_enter();
 }
 
-void Card::on_key(KeyEvent& event) {
-    if (!interactive.read()) return;
-    const bool activation = event.physical_key == PhysicalKey::space ||
-                            event.physical_key == PhysicalKey::enter;
-    if (!activation) return;
-    if (event.action == KeyAction::down && !event.repeat && !pressed_) {
-        keyboard_key_ = event.physical_key;
+void Card::on_mouse_leave() {
+    if (interactive.read() && hovered_) {
+        hovered_ = false;
+        invalidate(Dirty::paint);
+    }
+    Control::on_mouse_leave();
+}
+
+// The press and release are the card's: Panel's scroll-bar handling does
+// not see them, as before the raisers.
+void Card::on_mouse_down(MouseEventArgs& arguments) {
+    if (interactive.read() && arguments.button == PointerButton::primary) {
         pressed_ = true;
         invalidate(Dirty::paint);
-        event.handled = true;
-    } else if (event.action == KeyAction::up && pressed_ &&
-               keyboard_key_ == event.physical_key) {
-        keyboard_key_ = 0U;
+        arguments.handled = true;
+    }
+    Control::on_mouse_down(arguments);
+}
+
+void Card::on_mouse_up(MouseEventArgs& arguments) {
+    if (interactive.read() && arguments.button == PointerButton::primary) {
         pressed_ = false;
         invalidate(Dirty::paint);
-        event.handled = true;
-        on_activate();
+        arguments.handled = true;
     }
+    Control::on_mouse_up(arguments);
+}
+
+void Card::on_key_down(KeyEventArgs& arguments) {
+    Panel::on_key_down(arguments);
+    if (arguments.handled || !interactive.read()) return;
+    const bool activation = arguments.physical_key == PhysicalKey::space ||
+                            arguments.physical_key == PhysicalKey::enter;
+    if (!activation || arguments.repeat || pressed_) return;
+    keyboard_key_ = arguments.physical_key;
+    pressed_ = true;
+    invalidate(Dirty::paint);
+    arguments.handled = true;
+}
+
+// keyboard_key_ holds Space or Enter while pressed.
+void Card::on_key_up(KeyEventArgs& arguments) {
+    Panel::on_key_up(arguments);
+    if (arguments.handled || arguments.released_by_deactivation || !interactive.read()) return;
+    if (!pressed_ || keyboard_key_ != arguments.physical_key) return;
+    keyboard_key_ = 0U;
+    pressed_ = false;
+    invalidate(Dirty::paint);
+    arguments.handled = true;
+    on_activate();
 }
 
 void Card::on_focus_changed(bool focused) {

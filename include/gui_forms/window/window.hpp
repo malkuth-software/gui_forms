@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window/toasts/toasts.hpp"
@@ -21,7 +22,7 @@ class Application;
 // once per required tag. Called on the window's thread only, through the
 // window's dispatcher, never inside the present path that found it; a
 // listener the control released first receives nothing.
-class LiveSurfacePairingListener {
+class GUI_FORMS_API LiveSurfacePairingListener {
 public:
     virtual ~LiveSurfacePairingListener() = default;
     virtual void live_surface_pairing_missed(std::uint64_t content_tag) = 0;
@@ -35,7 +36,7 @@ public:
 // shares the application's resources unless given its own, starts from its
 // presentation defaults and reads its tooltip switch, and leaves it when
 // destroyed. With no current application it makes its own resources.
-class Window : public SurfaceRoot, public WindowCapabilities<Window> {
+class GUI_FORMS_API Window : public SurfaceRoot, public WindowCapabilities<Window> {
 public:
     explicit Window(Control::Ptr root, Size client_size = {});
     // Joins `application` explicitly, for a program that wants the
@@ -51,7 +52,13 @@ public:
     /// std::invalid_argument; resources made on another thread are
     /// std::logic_error. The window takes the resources' current theme.
     Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources);
-    ~Window();
+    // Virtual: a generated form class derives from Window and holds its
+    // controls in members, and is owned through a Window pointer
+    // (std::unique_ptr<Window>). A non-virtual destructor skipped the form's
+    // members there, so each of their controls, and the whole tree through
+    // the root's, outlived the window (an undefined deletion, seen as a
+    // leaked Gallery under LeakSanitizer).
+    virtual ~Window();
     Window(const Window&) = delete;
     Window& operator=(const Window&) = delete;
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
+#include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
 #include <cstddef>
@@ -28,10 +30,11 @@ namespace gui_forms {
 // layer, a translation and a user's overrides and resolves each field from
 // the highest layer that gives it.
 //
-// The full language-file implementation (control text, tooltips, plurals)
-// is not built yet. These types hold the help fields only and read and
-// write them in the locale XML format of the translation design, so the
-// language-file reader can take them over without a format change.
+// These types are the help view of the language files
+// (text/locale_file/locale_file.hpp): the same records, keeping the four
+// help fields only. read_help_locale and write_help_locale are read_locale
+// and write_locale projected onto them, so there is one reader and one
+// format; HelpCatalog::adopt_locale takes a LocaleCatalog's layers.
 
 enum class HelpField : std::uint8_t { title, help_line, help, keywords };
 
@@ -39,13 +42,13 @@ inline constexpr std::size_t help_field_count = 4U;
 
 // The registered name of a field, as the locale XML spells it: "text",
 // "help-line", "help" or "keywords". Static storage.
-[[nodiscard]] std::string_view help_field_name(HelpField field) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view help_field_name(HelpField field) noexcept;
 
 // The bounds a layer enforces on its fields; each, when exceeded, rejects
 // the one field (HelpEntryRefusal::too_long), not the file. Lengths are in
 // bytes of UTF-8. maximum_records bounds a layer's records and rejects a
 // whole locale file past it.
-struct HelpFieldLimits final {
+struct GUI_FORMS_API HelpFieldLimits final {
     std::size_t maximum_title_bytes{1024U};
     std::size_t maximum_help_line_bytes{2048U};
     std::size_t maximum_help_bytes{64U * 1024U};
@@ -56,7 +59,7 @@ struct HelpFieldLimits final {
 // One record's help fields as one layer gives them. A field the layer does
 // not give is absent, so a lower layer's value shows through; an empty
 // value that is present hides the lower layers' value.
-struct HelpRecordEntry final {
+struct GUI_FORMS_API HelpRecordEntry final {
     std::string stable_id{};
     std::optional<std::string> title{};
     std::optional<std::string> help_line{};
@@ -65,9 +68,9 @@ struct HelpRecordEntry final {
 };
 
 // The field of `entry` named by `field`. The reference borrows `entry`.
-[[nodiscard]] const std::optional<std::string>& help_entry_field(const HelpRecordEntry& entry,
+[[nodiscard]] GUI_FORMS_API const std::optional<std::string>& help_entry_field(const HelpRecordEntry& entry,
                                                                  HelpField field) noexcept;
-[[nodiscard]] std::optional<std::string>& help_entry_field(HelpRecordEntry& entry, HelpField field) noexcept;
+[[nodiscard]] GUI_FORMS_API std::optional<std::string>& help_entry_field(HelpRecordEntry& entry, HelpField field) noexcept;
 
 // Why one field of one record was rejected. The record's other fields, and
 // the file's other records, are kept.
@@ -90,11 +93,17 @@ enum class HelpEntryRefusal : std::uint8_t {
     broken_link,
     // An image names no PNG resource of the program (the helpbook pass).
     missing_image,
+    // The value holds a C0 control other than tab and line feed, or DEL
+    // (LocaleRefusal::control_character).
+    control_character,
+    // A bidirectional control is not closed in its line
+    // (LocaleRefusal::unbalanced_bidi).
+    unbalanced_bidi,
 };
 
-[[nodiscard]] std::string_view help_entry_refusal_name(HelpEntryRefusal refusal) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view help_entry_refusal_name(HelpEntryRefusal refusal) noexcept;
 
-struct HelpEntryRejection final {
+struct GUI_FORMS_API HelpEntryRejection final {
     std::string stable_id{};
     HelpField field{HelpField::help};
     HelpEntryRefusal reason{HelpEntryRefusal::invalid_text};
@@ -105,7 +114,7 @@ struct HelpEntryRejection final {
 
 // The records of one language, sorted by stable ID with each ID once. Owns
 // its records. Not thread-safe; one owner mutates it.
-class HelpRecordLayer final {
+class GUI_FORMS_API HelpRecordLayer final {
 public:
     // The record with this ID, or null. The pointer borrows this layer and
     // is invalidated by any change to it; a temporary layer is refused.
@@ -123,7 +132,9 @@ public:
     void put(HelpRecordEntry entry);
     // Every field `over` gives replaces this layer's; the others stay.
     void merge_over(const HelpRecordLayer& over);
-    [[nodiscard]] std::span<const HelpRecordEntry> entries() const& noexcept { return entries_; }
+    [[nodiscard]] std::span<const HelpRecordEntry> entries() const& noexcept {
+        return std::span<const HelpRecordEntry>(entries_.data(), entries_.size());
+    }
     std::span<const HelpRecordEntry> entries() const&& = delete;
     [[nodiscard]] std::size_t size() const noexcept { return entries_.size(); }
     [[nodiscard]] bool empty() const noexcept { return entries_.empty(); }
@@ -139,7 +150,7 @@ private:
 
 // One keyword of a `keywords` field: the keyword and, when the entry has a
 // ',', its subkeyword. Both are trimmed of spaces.
-struct HelpKeyword final {
+struct GUI_FORMS_API HelpKeyword final {
     std::string keyword{};
     std::string subkeyword{};
 };
@@ -147,13 +158,10 @@ struct HelpKeyword final {
 // Fills `keywords` (cleared first) from a `keywords` field. Returns false,
 // leaving `keywords` empty, when an entry is empty or has more than one ','.
 // An empty or all-space field has no keywords and is valid.
-[[nodiscard]] bool parse_help_keywords(std::string_view field, std::vector<HelpKeyword>& keywords);
+[[nodiscard]] GUI_FORMS_API bool parse_help_keywords(std::string_view field, std::vector<HelpKeyword>& keywords);
 
-// The `<help>` element's character data as a help body: a leading line end
-// and the trailing white space go, and the indentation every non-blank line
-// shares is removed, so a body indented to sit under its `<control>` reads
-// as written. `body` is replaced.
-void normalize_help_body(std::string_view raw, std::string& body);
+// normalize_locale_help_body, under its help name.
+GUI_FORMS_API void normalize_help_body(std::string_view raw, std::string& body);
 
 // Why a whole locale file was refused; none when it was read (some entries
 // may still have been rejected).
@@ -167,11 +175,15 @@ enum class HelpLocaleError : std::uint8_t {
     no_language,
     // The file holds more records than HelpFieldLimits::maximum_records.
     too_many_records,
+    // `xml:lang` is not a language tag (LocaleFileError::invalid_language).
+    invalid_language,
+    // `direction` is neither "ltr" nor "rtl".
+    invalid_direction,
 };
 
-[[nodiscard]] std::string_view help_locale_error_name(HelpLocaleError error) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view help_locale_error_name(HelpLocaleError error) noexcept;
 
-struct HelpLocaleReadResult final {
+struct GUI_FORMS_API HelpLocaleReadResult final {
     HelpLocaleError error{HelpLocaleError::none};
     XmlError xml_error{XmlError::none};
     XmlSourcePosition position{};
@@ -199,18 +211,26 @@ struct HelpLocaleReadResult final {
 //
 // `<control>` elements nest by stable-ID segment; `text` is the record's
 // title, `help-line` an attribute, and the body the `<help>` child's
-// character data (normalize_help_body), with `keywords` on it. Other
-// attributes and elements (the rest of the language file) are ignored.
+// character data (normalize_help_body), with `keywords` on it. This is
+// read_locale with the other fields left out (their rejections too). The
+// document nests at most 67 elements deep (locale, controls, 64 control
+// levels and a help child), whatever xml_limits allows: a deeper file is
+// refused as HelpLocaleError::xml with XmlError::depth_exceeded.
 // Expected faults never throw.
-[[nodiscard]] HelpLocaleReadResult read_help_locale(std::string_view utf8, const HelpFieldLimits& limits = {},
-                                                    const XmlLimits& xml_limits = {});
+[[nodiscard]] GUI_FORMS_API HelpLocaleReadResult read_help_locale(std::string_view utf8, const HelpFieldLimits& limits = {},
+                                                    const XmlLimits& xml_limits = locale_xml_limits());
 
 // Writes `records` as a locale file read_help_locale accepts: the template
 // export when `records` is the built-in layer (every field with the
 // built-in text as its value), or a translation. Records nest by segment
 // in stable-ID order. The result's error is the XML writer's.
-[[nodiscard]] XmlWriteResult write_help_locale(const HelpRecordLayer& records, std::string_view language,
-                                               const XmlLimits& xml_limits = {});
+[[nodiscard]] GUI_FORMS_API XmlWriteResult write_help_locale(const HelpRecordLayer& records, std::string_view language,
+                                               const XmlLimits& xml_limits = locale_xml_limits());
+
+// Fills `target` (cleared first) with the help fields of `source`: its
+// `text` as the title, `help-line`, `help` and `keywords`. Records with
+// none of them are left out.
+GUI_FORMS_API void project_help_fields(const LocaleLayer& source, HelpRecordLayer& target);
 
 // The layers of a HelpCatalog, lowest first.
 enum class HelpLayer : std::uint8_t {
@@ -226,13 +246,13 @@ enum class HelpLayer : std::uint8_t {
 // One resolved field: the text and the layer it came from. `fallback` is
 // set when a translation is in force and the field came from the built-in
 // layer, so the page can mark it.
-struct HelpResolvedField final {
+struct GUI_FORMS_API HelpResolvedField final {
     std::string text{};
     std::optional<HelpLayer> origin{};
     bool fallback{};
 };
 
-struct HelpResolvedRecord final {
+struct GUI_FORMS_API HelpResolvedRecord final {
     std::string stable_id{};
     HelpResolvedField title{};
     HelpResolvedField help_line{};
@@ -245,7 +265,7 @@ struct HelpResolvedRecord final {
 // The help text store of one program: the three layers, the rescue switch
 // and the language in force. The program owns it (HelpBookSystem holds one).
 // UI thread.
-class HelpCatalog final {
+class GUI_FORMS_API HelpCatalog final {
 public:
     [[nodiscard]] const HelpRecordLayer& layer(HelpLayer which) const& noexcept;
     const HelpRecordLayer& layer(HelpLayer which) const&& = delete;
@@ -256,11 +276,18 @@ public:
     void set_translation(HelpRecordLayer records, std::string language);
     // Replaces the user layer. Bumps the revision.
     void set_user_overrides(HelpRecordLayer records);
+    // Takes every layer from a language-file catalog (the help view of it):
+    // its built-in and program layers become the built-in layer (program
+    // values over the file's), its translation and user layers these, and
+    // its language and way-back switch these. Replaces what built_in(),
+    // set_translation and set_user_overrides put in. Bumps the revision.
+    void adopt_locale(const LocaleCatalog& locale);
     // The untranslatable way back (translation design): while set, only the
     // built-in layer resolves, whatever the translation and user files say.
     void set_built_in_only(bool built_in_only) noexcept;
     [[nodiscard]] bool built_in_only() const noexcept { return built_in_only_; }
-    [[nodiscard]] const std::string& language() const noexcept { return language_; }
+    [[nodiscard]] const std::string& language() const& noexcept { return language_; }
+    const std::string& language() const&& = delete;
 
     // Resolves every field of `stable_id` from the highest layer in force
     // that gives it.

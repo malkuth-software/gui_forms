@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/picture_box/picture_box.hpp"
+#include "gui_forms/controls/picture_box.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"

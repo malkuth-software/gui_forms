@@ -4,11 +4,42 @@
 // command, minimizing by a tab click, hosted controls, menus, semantics, the
 // F6 region and refusals.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/commands/types/command_types.hpp"
+#include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/ribbon.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/resources/types/image_resource_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 #include "support/theme_definition_heap.hpp"
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -61,7 +92,27 @@ struct RecordLaunch final {
     void operator()(const RibbonDialogLaunch& launch) const { (*seen).push_back(launch.group_id); }
 };
 
+// One premultiplied BGRA pixel per byte quad, opaque grey: a command icon.
+constexpr std::uint32_t icon_side = 2U;
+constexpr std::uint64_t icon_row_bytes = icon_side * 4U;
+
+ImageId load_icon(ApplicationResources& resources) {
+    std::array<std::byte, icon_row_bytes * icon_side> pixels{};
+    pixels.fill(std::byte{128});
+    const ImageLoadResult loaded = resources.load_bgra32_premultiplied(icon_side, icon_side, icon_row_bytes, pixels);
+    require(static_cast<bool>(loaded), "the fixture icon loads");
+    return loaded.image;
+}
+
+// The commands and the resources every fixture window shares: the icons the
+// sample tabs name are registered there, so a window built with them draws
+// them (a made-up ImageId is refused as stale).
 struct Commands final {
+    Commands() : paste_image(load_icon(*resources)), bold_image(load_icon(*resources)) {}
+
+    std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
+    ImageId paste_image{};
+    ImageId bold_image{};
     std::shared_ptr<Command> paste = std::make_shared<Command>("paste", "Paste");
     std::shared_ptr<Command> cut = std::make_shared<Command>("cut", "Cut");
     std::shared_ptr<Command> copy = std::make_shared<Command>("copy", "&Copy");
@@ -74,14 +125,14 @@ std::vector<RibbonTabSpec> sample_tabs(const Commands& commands) {
     RibbonTabSpec home{.stable_id = "home", .text = "&Home"};
     RibbonGroupSpec clipboard{.stable_id = "clipboard", .caption = "Clipboard", .dialog_launcher = true};
     clipboard.commands.push_back({.stable_id = "paste", .kind = RibbonCommandKind::split,
-                                  .command = commands.paste, .image = ImageId{5},
+                                  .command = commands.paste, .image = commands.paste_image,
                                   .drop_down = {MenuItemSpec("paste.special", MenuItemKind::command, commands.choice,
                                                              "Paste special")}});
     clipboard.commands.push_back({.stable_id = "cut", .size = RibbonCommandSize::small, .command = commands.cut});
     clipboard.commands.push_back({.stable_id = "copy", .size = RibbonCommandSize::small, .command = commands.copy});
     clipboard.commands.push_back({.stable_id = "bold", .kind = RibbonCommandKind::toggle,
                                   .size = RibbonCommandSize::small, .command = commands.bold,
-                                  .image = ImageId{6}, .show_label = false});
+                                  .image = commands.bold_image, .show_label = false});
     RibbonGroupSpec font{.stable_id = "font", .caption = "Font"};
     font.commands.push_back({.stable_id = "font-name", .kind = RibbonCommandKind::combo_box, .text = "Font",
                              .choices = {"Portsmouth", "Carlito"}});
@@ -147,7 +198,7 @@ bool key(Window& window, std::uint32_t physical, Modifier modifiers = Modifier::
 void geometry() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 115.0});
+    Window window(ribbon, {900.0, 115.0}, commands.resources);
     window.perform_layout();
     const ControlAnatomy& anatomy = (*ribbon).anatomy();
     require(validate_control_anatomy(anatomy).defect == AnatomyDefect::none && anatomy.control_id == "ribbon" &&
@@ -201,7 +252,7 @@ void geometry() {
 void one_command_path() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 115.0});
+    Window window(ribbon, {900.0, 115.0}, commands.resources);
     window.perform_layout();
     int pastes = 0;
     int cuts = 0;
@@ -243,7 +294,7 @@ void one_command_path() {
 void tab_navigation() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 115.0});
+    Window window(ribbon, {900.0, 115.0}, commands.resources);
     window.perform_layout();
     std::vector<std::string> launches;
     SubscriptionToken launched = (*ribbon).dialog_launcher_clicked().subscribe(RecordLaunch{&launches});
@@ -268,7 +319,7 @@ void tab_navigation() {
 void state_repaints_only_its_command() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 115.0});
+    Window window(ribbon, {900.0, 115.0}, commands.resources);
     window.perform_layout();
     static_cast<void>(window.take_damage());
     const std::vector<Ribbon::CommandItem> items = (*ribbon).realized_commands();
@@ -311,7 +362,7 @@ void menus_repaint_only_their_command() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
     // Tall enough that the menus open below their commands.
-    Window window(ribbon, {900.0, 400.0});
+    Window window(ribbon, {900.0, 400.0}, commands.resources);
     window.perform_layout();
     const std::vector<Ribbon::CommandItem> items = (*ribbon).realized_commands();
     const Ribbon::CommandItem paste = *find_command(items, "paste");
@@ -354,7 +405,7 @@ void menus_repaint_only_their_command() {
 void minimize_by_tab_click() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 115.0});
+    Window window(ribbon, {900.0, 115.0}, commands.resources);
     window.perform_layout();
     const std::shared_ptr<ComboBox> font = (*ribbon).combo_box("font-name");
     const std::vector<Ribbon::Tab> tabs = (*ribbon).realized_tabs();
@@ -380,7 +431,7 @@ void minimize_by_tab_click() {
 void hosted_controls() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 115.0});
+    Window window(ribbon, {900.0, 115.0}, commands.resources);
     window.perform_layout();
     const std::shared_ptr<ComboBox> font = (*ribbon).combo_box("font-name");
     const std::shared_ptr<NumericUpDown> size = (*ribbon).numeric_up_down("font-size");
@@ -407,7 +458,7 @@ void hosted_controls() {
 void menus_and_launchers() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 115.0});
+    Window window(ribbon, {900.0, 115.0}, commands.resources);
     window.perform_layout();
     std::vector<std::string> launches;
     SubscriptionToken launched = (*ribbon).dialog_launcher_clicked().subscribe(RecordLaunch{&launches});
@@ -433,7 +484,7 @@ void menus_and_launchers() {
 void semantics_and_region() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    Window window(ribbon, {900.0, 115.0});
+    Window window(ribbon, {900.0, 115.0}, commands.resources);
     window.perform_layout();
     const std::vector<Control::Ptr> regions = window.focus_regions();
     require(regions.size() == 1U && regions[0] == ribbon, "an attached ribbon registers itself as an F6 region");
@@ -474,7 +525,7 @@ void arranged_within_maximum_size() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
     (*ribbon).maximum_size = {150.0, 0.0};
-    Window window(ribbon, {900.0, 115.0});
+    Window window(ribbon, {900.0, 115.0}, commands.resources);
     window.perform_layout();
     require((*ribbon).committed_arranged_bounds().width == 150.0, "the ribbon is arranged at its maximum width");
     const std::vector<Ribbon::CommandItem> items = (*ribbon).realized_commands();
@@ -495,7 +546,7 @@ void menus_take_the_ribbon_theme() {
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
     (*ribbon).set_requested_bounds({0.0, 0.0, 900.0, 112.0});
     (*host).add_child(ribbon);
-    Window window(host, {900.0, 300.0});
+    Window window(host, {900.0, 300.0}, commands.resources);
     window.perform_layout();
     const std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
     (*held).id = "ribbon-override";
@@ -564,7 +615,7 @@ void labels_and_rows() {
     tabs.push_back(std::move(home));
     std::shared_ptr<Ribbon> ribbon = make_control<Ribbon>(StableId("ribbon"));
     (*ribbon).set_tabs(std::move(tabs));
-    Window window(ribbon, {900.0, 115.0});
+    Window window(ribbon, {900.0, 115.0}, commands.resources);
     window.perform_layout();
     const std::vector<Ribbon::CommandItem> items = (*ribbon).realized_commands();
     const Rect paste_box = command_named(items, "paste").parts.command_focus.bounds;

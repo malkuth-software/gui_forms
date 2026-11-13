@@ -25,6 +25,7 @@ public static unsafe class Abi
     public static ref readonly gf_diagnostics_table diagnostics => ref tables().diagnostics;
     public static ref readonly gf_windows_table windows => ref tables().windows;
     public static ref readonly gf_bindings_table bindings => ref tables().bindings;
+    public static ref readonly gf_classes_table classes => ref tables().classes;
 
     // Immutable once built: the published reference is the only writer's
     // hand-off, so readers need no lock.
@@ -38,10 +39,11 @@ public static unsafe class Abi
         public readonly gf_diagnostics_table diagnostics;
         public readonly gf_windows_table windows;
         public readonly gf_bindings_table bindings;
+        public readonly gf_classes_table classes;
 
         public Tables(gf_runtime_table runtime, gf_objects_table objects, gf_properties_table properties,
                       gf_events_table events, gf_dispatch_table dispatch, gf_diagnostics_table diagnostics,
-                      gf_windows_table windows, gf_bindings_table bindings)
+                      gf_windows_table windows, gf_bindings_table bindings, gf_classes_table classes)
         {
             this.runtime = runtime;
             this.objects = objects;
@@ -51,6 +53,7 @@ public static unsafe class Abi
             this.diagnostics = diagnostics;
             this.windows = windows;
             this.bindings = bindings;
+            this.classes = classes;
         }
     }
 
@@ -86,7 +89,9 @@ public static unsafe class Abi
             negotiate(Exports.get_diagnostics_table(out gf_diagnostics_table diagnostics), "diagnostics");
             negotiate(Exports.get_windows_table(out gf_windows_table windows), "windows");
             negotiate(Exports.get_bindings_table(out gf_bindings_table bindings), "bindings");
-            Tables made = new Tables(runtime, objects, properties, events, dispatch, diagnostics, windows, bindings);
+            negotiate(Exports.get_classes_table(out gf_classes_table classes), "classes");
+            Tables made = new Tables(runtime, objects, properties, events, dispatch, diagnostics, windows, bindings,
+                                     classes);
             negotiated = made;
             return made;
         }
@@ -103,7 +108,9 @@ public static unsafe class Abi
 
     /// <summary>
     /// Throws when status is not OK, with the failing thread's error detail
-    /// and, in its Data["callback_failures"], any managed callback failures
+    /// (for GF_STATUS_NATIVE_EXCEPTION, a NativeException carrying the
+    /// thread's failure snapshot) and, in its Data["callback_failures"], any
+    /// managed callback failures
     /// the call carried through, so they do not attach to a later, unrelated
     /// call; otherwise rethrows a managed callback's exception that the
     /// library's call carried through (CallbackFailure), so it surfaces at
@@ -111,6 +118,20 @@ public static unsafe class Abi
     /// </summary>
     public static void check(gf_status status)
     {
+        if (status == Constants.GF_STATUS_NATIVE_EXCEPTION)
+        {
+            // Reflection is on (the library gives this status only then):
+            // the thread's failure snapshot becomes the managed exception,
+            // thrown through the named frames.
+            NativeException native = NativeException.read(status);
+            CallbackFailure[] carried_under = CallbackFailure.take_pending();
+            if (carried_under.Length != 0)
+            {
+                native.Data["callback_failures"] = carried_under;
+            }
+            NativeFrames.raise(native);
+            return;
+        }
         if (status != Constants.GF_STATUS_OK)
         {
             GuiFormsException refused = new GuiFormsException(status, error_message());
@@ -130,6 +151,11 @@ public static unsafe class Abi
     /// </summary>
     public static void check_status(gf_status status)
     {
+        if (status == Constants.GF_STATUS_NATIVE_EXCEPTION)
+        {
+            NativeFrames.raise(NativeException.read(status));
+            return;
+        }
         if (status != Constants.GF_STATUS_OK)
         {
             throw new GuiFormsException(status, error_message());
@@ -170,8 +196,11 @@ public static unsafe class Abi
     }
 }
 
-/// <summary>A call the library refused: its status and the thread's error detail.</summary>
-public sealed class GuiFormsException : Exception
+/// <summary>
+/// A call the library refused: its status and the thread's error detail. A
+/// native exception under reflection is the derived NativeException.
+/// </summary>
+public class GuiFormsException : Exception
 {
     public gf_status status { get; }
 

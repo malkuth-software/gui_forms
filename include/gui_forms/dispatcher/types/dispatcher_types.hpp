@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 
@@ -24,7 +25,7 @@ enum class DispatchOperationState : std::uint8_t {
     faulted,
 };
 
-struct DispatchDrainResult final {
+struct GUI_FORMS_API DispatchDrainResult final {
     std::uint64_t invoked{};
     std::uint64_t cancelled{};
     std::uint64_t faulted{};
@@ -32,7 +33,7 @@ struct DispatchDrainResult final {
     bool wake_requested{};
 };
 
-struct DispatcherSnapshot final {
+struct GUI_FORMS_API DispatcherSnapshot final {
     std::uint64_t posted{};
     std::uint64_t invoked{};
     std::uint64_t cancelled{};

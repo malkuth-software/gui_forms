@@ -21,6 +21,7 @@
 // (engine_logarithm, engine_exponential), never the host libm, so a mapping
 // is the same bits on every host; their error is engine_math's bound.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/plot_types/plot_types.hpp"
 
 #include <cstddef>
@@ -31,7 +32,7 @@ namespace gui_forms::plots {
 
 enum class ScaleKind : std::uint8_t { linear, log10, symlog, time, category };
 
-struct Scale final {
+struct GUI_FORMS_API Scale final {
     ScaleKind kind{ScaleKind::linear};
     PlotRange domain{};
     // The device coordinates the domain's minimum and maximum map to. An
@@ -66,7 +67,7 @@ class ScaleMapping;
 struct ScaleMappingResult;
 
 // A validated scale, prepared for mapping. Copyable value.
-class ScaleMapping final {
+class GUI_FORMS_API ScaleMapping final {
 public:
     // The identity-like mapping of the default Scale (linear, [0, 1] onto
     // [0, 1]).
@@ -98,17 +99,17 @@ private:
     double device_per_unit_{1.0};
 };
 
-struct ScaleMappingResult final {
+struct GUI_FORMS_API ScaleMappingResult final {
     ScaleCheck check{ScaleCheck::valid};
     ScaleMapping mapping{};
 };
 
-[[nodiscard]] ScaleCheck check_scale(const Scale& scale) noexcept;
+[[nodiscard]] GUI_FORMS_API ScaleCheck check_scale(const Scale& scale) noexcept;
 
 // log10 of `value` through engine_logarithm (NaN for ≤ 0 and NaN), and 10
 // raised to `exponent` through engine_exponential. Exact at integer
 // exponents from -22 to 22, where the result is a double exactly.
-[[nodiscard]] double engine_log10(double value) noexcept;
-[[nodiscard]] double engine_exp10(double exponent) noexcept;
+[[nodiscard]] GUI_FORMS_API double engine_log10(double value) noexcept;
+[[nodiscard]] GUI_FORMS_API double engine_exp10(double exponent) noexcept;
 
 } // namespace gui_forms::plots

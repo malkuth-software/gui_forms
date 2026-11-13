@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/range_control/range_control.hpp"
+#include "gui_forms/controls/range_control.hpp"
 
 namespace gui_forms {
 

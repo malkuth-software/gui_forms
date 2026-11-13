@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../chunk/display_chunk.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
 
 #include <memory>
 #include <optional>
@@ -79,6 +80,13 @@ public:
         std::string_view text, FontSpec font) override;
     [[nodiscard]] TextResolutionStatus fill_line_break_opportunities_utf8(
         std::string_view text, std::span<LineBreakOpportunity> opportunities) override;
+    [[nodiscard]] TextResolutionStatus fill_cluster_advances_utf8(
+        std::string_view text, FontSpec font, std::span<double> advances) override;
+    // The workspace calls go to the provider the recording measures with;
+    // draw_glyph_runs keeps Painter's (the line is recorded as its text).
+    [[nodiscard]] std::unique_ptr<ShapingWorkspace> create_shaping_workspace() override;
+    [[nodiscard]] TextExtent shape_in_workspace_utf8(ShapingWorkspace& workspace, std::string_view text,
+                                                     FontSpec font) override;
     [[nodiscard]] ResolvedTextLayout resolve_text_layout_utf8(
         std::string_view text, FontSpec font) override;
     void draw_image(ImageId image, Rect destination, double opacity) override;
@@ -107,6 +115,16 @@ public:
     void begin_group(const PaintGroup& group) override;
     void end_group() override;
     [[nodiscard]] std::uint64_t group_refusals() const noexcept { return group_refusals_; }
+    // Refuses, from now on, image draws (draw_image, the region draws and
+    // fill_image_pattern) naming a nonzero identity `images` does not hold:
+    // a stale one, whose generation a replace or patch advanced, or a
+    // removed one. A refused draw records nothing and is counted in
+    // stale_image_draws(); first_stale_image() is the first one refused.
+    // `images` is borrowed and must outlive the recording (the window's
+    // registry, for a control's paint). Without it nothing is refused.
+    void refuse_stale_images(const ImageRegistry& images) noexcept { images_ = &images; }
+    [[nodiscard]] std::uint64_t stale_image_draws() const noexcept { return stale_image_draws_; }
+    [[nodiscard]] ImageId first_stale_image() const noexcept { return first_stale_image_; }
     void draw_image_region(ImageId image, Rect source, Rect destination,
                            double opacity) override;
     void draw_image_region_sampled(ImageId image, Rect source,
@@ -152,11 +170,14 @@ private:
     // The cache the command `recorded` may take from the previous chunk
     // (inherit_caches): the one of the previous command at `ordinal` in
     // `previous_indices` when it matches, else null. Advances `ordinal`.
+    // Whether a draw of `image` is refused (refuse_stale_images), counting
+    // it when it is.
+    [[nodiscard]] bool refuses_image(ImageId image) noexcept;
     [[nodiscard]] std::shared_ptr<RetainedDrawCache> inherited_cache(
         const DisplayCommand& recorded, const std::vector<std::size_t>& previous_indices,
         std::size_t& ordinal) const;
 
-    std::vector<DisplayCommand> commands_;
+    DisplayCommandList commands_;
     // inherit_caches: the replaced chunk, the indices of its horizontal text
     // and box-shadow commands in recording order, and how many of each this
     // recording has recorded so far.
@@ -184,6 +205,11 @@ private:
     std::vector<OpenGroup> open_groups_;
     std::size_t group_depth_{};
     std::uint64_t group_refusals_{};
+    // refuse_stale_images: the registry draws are checked against (null:
+    // none are), the draws refused and the first identity refused.
+    const ImageRegistry* images_{};
+    std::uint64_t stale_image_draws_{};
+    ImageId first_stale_image_{};
     // The origin at each save in force, restored by its restore.
     std::vector<Point> saved_origins_;
     TextMetricsProvider* text_metrics_{};

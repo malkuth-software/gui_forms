@@ -99,7 +99,7 @@ gui_forms::StableId
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::string_view value() const noexcept
+   .. cpp:function:: std::string_view value() const& noexcept
 
       The identity as a view of the stored string. It stays valid as long as
       the :cpp:class:`StableId <gui_forms::StableId>` (or the control holding it) is alive.

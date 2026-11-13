@@ -2,9 +2,9 @@
   "family": "BindingNavigator",
   "step": "M-S8",
   "declaring": "BindingNavigator",
-  "header": "include/gui_forms/controls/binding_navigator/binding_navigator.hpp",
+  "header": "include/gui_forms/controls/binding_navigator.hpp",
   "source": "src/controls/binding_navigator/binding_navigator.cpp",
-  "capabilities_header": "include/gui_forms/controls/binding_navigator/binding_navigator_capabilities/binding_navigator_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/binding_navigator_capabilities.hpp",
   "base": "ToolStrip",
   "shared": [],
   "includes": [

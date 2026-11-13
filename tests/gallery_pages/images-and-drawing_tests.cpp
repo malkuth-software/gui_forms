@@ -1,4 +1,6 @@
 #include "support.hpp"
+#include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/picture_box_values.hpp"
 
 namespace gallery_pages_tests {
 

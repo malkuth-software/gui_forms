@@ -1,4 +1,4 @@
-#include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
+#include "gui_forms/controls/table_layout_panel_compat.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../container_layout_utilities.hpp"
 #include "../text_collection_property.hpp"
@@ -745,7 +745,7 @@ Size TableLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace&
 
     // The children, held for the pass: a measure callback may change the
     // tree, so each is revalidated after it is measured.
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     workspace.retained.assign(all.begin(), all.end());
     workspace.automatic.clear();
     workspace.overflow.clear();

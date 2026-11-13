@@ -38,6 +38,12 @@ gui_forms::SurfaceRoot
          The opposite of :cpp:func:`check_access <gui_forms::SurfaceRoot::check_access>`: whether the caller must post work with
          :cpp:func:`begin_invoke <gui_forms::SurfaceRoot::begin_invoke>` or :cpp:func:`invoke <gui_forms::SurfaceRoot::invoke>` instead of touching the root directly.
 
+      **presenting_window** : ``BorrowedPointer<Window>``, read-only
+         The Window this root is, borrowed (null for a root presented some other way). In the sanitizer tree the copy reports a use after the Window died; a table that holds a Window across callbacks keeps this.
+
+      **window_ref** : ``WindowRef``, read-only
+         A weak handle on the Window this root is (one that answers null for a root presented some other way): what a holder keeps across callbacks.
+
       **dispatcher** : ``WindowDispatcher``, read-only
          A handle to this root's dispatcher that any thread may keep and post through after the root has closed (WindowDispatcher).
 
@@ -423,6 +429,8 @@ gui_forms::SurfaceRoot
         - A picture of a control and its descendants as last laid out: their retained painting is replayed, every paint plane in order, into an offscreen framebuffer of the host's own CPU raster at the given scale, and the pixels are registered as one of the window's images (premultiplied BGRA).
       * - :cpp:func:`capture_window <gui_forms::SurfaceRoot::capture_window>`
         - The whole window as it presents itself (owner request 2026-11-09): its backplane (the theme's window material, cleared where a non-opaque backdrop is granted), every paint plane of its content, its in-surface overlays unless ``options`` leaves them out, and its outer band, replayed from the retained display after any pending layout into an offscreen framebuffer of the host's own CPU raster, as snapshot_control does.
+      * - :cpp:func:`capture_control <gui_forms::SurfaceRoot::capture_control>`
+        - One control and its descendants as the window presents them (owner request 2026-11-11, the theme palette): after any pending layout, the backplane (unless ``options`` leaves it out) and every paint plane of the subtree over the control's bounds grown by ``options.margin`` and clipped to the window, replayed into an offscreen framebuffer of the window's CPU raster, as capture_window does; the capture owns its pixels (no image is registered, unlike snapshot_control).
       * - :cpp:func:`invalidation_overlay_enabled <gui_forms::SurfaceRoot::invalidation_overlay_enabled>`
         - Whether the overlay is on now, after the process switch's last change.
       * - :cpp:func:`invalidation_overlay <gui_forms::SurfaceRoot::invalidation_overlay>`
@@ -490,13 +498,13 @@ gui_forms::SurfaceRoot
       * - :cpp:func:`load_bgra32_premultiplied <gui_forms::SurfaceRoot::load_bgra32_premultiplied>`
         -  
       * - :cpp:func:`replace_png <gui_forms::SurfaceRoot::replace_png>`
-        -  
+        - The replacements, the live update and the patch below take an image identity from this window's registry.
       * - :cpp:func:`replace_bgra32_premultiplied <gui_forms::SurfaceRoot::replace_bgra32_premultiplied>`
         -  
       * - :cpp:func:`update_bgra32_premultiplied <gui_forms::SurfaceRoot::update_bgra32_premultiplied>`
         -  
       * - :cpp:func:`patch_bgra32_premultiplied <gui_forms::SurfaceRoot::patch_bgra32_premultiplied>`
-        -  
+        - Writes the pixels of a rectangle of ``image`` (premultiplied BGRA) and damages ``local_damage`` of ``consumer``, an attached control of this window.
       * - :cpp:func:`remove_image <gui_forms::SurfaceRoot::remove_image>`
         -  
       * - :cpp:func:`find <gui_forms::SurfaceRoot::find>`
@@ -644,6 +652,14 @@ gui_forms::SurfaceRoot
 
       The opposite of :cpp:func:`check_access <gui_forms::SurfaceRoot::check_access>`: whether the caller must post work with
       :cpp:func:`begin_invoke <gui_forms::SurfaceRoot::begin_invoke>` or :cpp:func:`invoke <gui_forms::SurfaceRoot::invoke>` instead of touching the root directly.
+
+   .. cpp:function:: BorrowedPointer<Window> presenting_window() const noexcept
+
+      The Window this root is, borrowed (null for a root presented some other way). In the sanitizer tree the copy reports a use after the Window died; a table that holds a Window across callbacks keeps this.
+
+   .. cpp:function:: WindowRef window_ref() const
+
+      A weak handle on the Window this root is (one that answers null for a root presented some other way): what a holder keeps across callbacks.
 
    .. cpp:function:: WindowDispatcher dispatcher() const
 
@@ -1205,7 +1221,11 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: std::optional<WindowCapture> capture_window(const WindowCaptureOptions& options = {})
 
-      The whole window as it presents itself (owner request 2026-11-09): its backplane (the theme's window material, cleared where a non-opaque backdrop is granted), every paint plane of its content, its in-surface overlays unless ``options`` leaves them out, and its outer band, replayed from the retained display after any pending layout into an offscreen framebuffer of the host's own CPU raster, as snapshot_control does. What the host composites outside the window's pixels (the system backdrop, native frame and shadow) is not drawn. Callable whenever the window is not painting, at any time after the host attached, so a screenshot or a test needs no timer. None, changing nothing, while no framebuffer painter is installed (a headless window, a host whose fonts are not ready), during a paint, for an empty window, for a scale outside (0, 8], or when the framebuffer refuses. Cost: one replay of the window into ceil(width * scale) by ceil(height * scale) pixels and one copy of them; chunks the replay had to rebuild are marked for the next real paint. On the UI thread (std::logic_error elsewhere).
+      The whole window as it presents itself (owner request 2026-11-09): its backplane (the theme's window material, cleared where a non-opaque backdrop is granted), every paint plane of its content, its in-surface overlays unless ``options`` leaves them out, and its outer band, replayed from the retained display after any pending layout into an offscreen framebuffer of the host's own CPU raster, as snapshot_control does. What the host composites outside the window's pixels (the system backdrop, native frame and shadow) is not drawn. Callable whenever the window is not painting, at any time after the host attached, so a screenshot or a test needs no timer. None, changing nothing, while no framebuffer painter is installed (a headless window, a host whose fonts are not ready), during a paint, for an empty window, for a scale outside (0, 8], or when the framebuffer refuses. Cost: one replay of the window into ceil(width * scale) by ceil(height * scale) pixels and one copy of them; chunks the replay had to rebuild are marked for the next real paint. While it records and replays, the window is painting, as in paint: an ImageAtlas fill made by a paint callback is deferred and written when the capture ends (so the capture shows the slot's old pixels and the next paint or capture the new ones), and input dispatched meanwhile is deferred. On the UI thread (std::logic_error elsewhere).
+
+   .. cpp:function:: std::optional<WindowCapture> capture_control(const Control::Ptr& control, const ControlCaptureOptions& options = {})
+
+      One control and its descendants as the window presents them (owner request 2026-11-11, the theme palette): after any pending layout, the backplane (unless ``options`` leaves it out) and every paint plane of the subtree over the control's bounds grown by ``options.margin`` and clipped to the window, replayed into an offscreen framebuffer of the window's CPU raster, as capture_window does; the capture owns its pixels (no image is registered, unlike snapshot_control). Siblings, ancestors' own paint and overlays are not drawn. ``logical_size`` is the area's size. None, changing nothing, while no framebuffer painter is installed (a headless window without an OffscreenAttachment, a host whose fonts are not ready), during a paint, for a control of another window or not shown, for an empty area, for a scale outside (0, 8] or a refused margin, or when the framebuffer refuses. Cost: one replay of the subtree into the area's device pixels and one copy of them; chunks the replay had to rebuild are marked for the next real paint. The window is painting while it records and replays, as capture_window says. On the UI thread (std::logic_error elsewhere).
 
    .. cpp:function:: bool invalidation_overlay_enabled() noexcept
 
@@ -1357,6 +1377,8 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: ImageLoadResult replace_png(ImageId image, std::span<const std::byte> encoded)
 
+      The replacements, the live update and the patch below take an image identity from this window's registry. A replace returns the identity that replaces ``image``: its generation advanced, so ``image`` is stale from then on, and every later patch, replace, update or draw naming it is refused. patch_bgra32_premultiplied advances the generation the same way; ImageRegistry::patch_bgra32_premultiplied_in_place (used by ImageAtlas) keeps it. update_bgra32_premultiplied keeps the identity. A call given a stale identity returns stale_image_id and changes nothing; the window counts it in MetricsSnapshot::stale_image_refusals and prints a diagnostic line (Metrics::record_stale_image_refusals). A control's paint that draws a stale identity is recorded without the draw and counted there too. Keep the returned identity in place of the one passed in.
+
    .. cpp:function:: ImageLoadResult replace_png(ImageId image, std::span<const std::byte> encoded, Control& consumer)
 
    .. cpp:function:: ImageLoadResult replace_bgra32_premultiplied(ImageId image, std::uint32_t width, std::uint32_t height, std::uint64_t row_bytes, std::span<const std::byte> pixels, Control& consumer)
@@ -1364,6 +1386,8 @@ gui_forms::SurfaceRoot
    .. cpp:function:: ImageLoadResult update_bgra32_premultiplied(ImageId image, std::uint32_t width, std::uint32_t height, std::uint64_t row_bytes, std::span<const std::byte> pixels, Control& consumer)
 
    .. cpp:function:: ImageLoadResult patch_bgra32_premultiplied(ImageId image, std::uint32_t x, std::uint32_t y, std::uint32_t width, std::uint32_t height, std::uint64_t source_row_bytes, std::span<const std::byte> pixels, Control& consumer, Rect local_damage)
+
+      Writes the pixels of a rectangle of ``image`` (premultiplied BGRA) and damages ``local_damage`` of ``consumer``, an attached control of this window. Returns the identity that replaces ``image``, whose generation advanced: ``image`` is stale afterwards and refused, counted, if used again. Throws std::invalid_argument for a consumer not attached here.
 
    .. cpp:function:: bool remove_image(ImageId image)
 

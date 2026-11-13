@@ -8,7 +8,7 @@
 #include "gui_forms/application.hpp"
 
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
-#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/window.hpp"
 
@@ -239,7 +239,8 @@ struct AnchoredSession final {
     std::shared_ptr<AnchoredOverlayLayer> layer;
     // The anchor's window, observed while the overlay is connected: the
     // window detaches the overlay (closing its focus scope) before it goes.
-    Window* window = nullptr;
+    // Kept across callbacks, so a weak handle, not a borrow.
+    WindowRef window;
     OverlayToken token;
     FocusScopeId scope{};
     std::unique_ptr<CallbackBinding> events;
@@ -290,9 +291,12 @@ void close_anchored_session(const std::shared_ptr<AnchoredSession>& session) noe
         return;
     }
     held.closed = true;
-    if (held.window != nullptr && held.scope && held.token.connected()) {
+    // The token first: a disconnected overlay's window may be gone, and the
+    // borrowed pointer must not be read then.
+    Window* const anchor_window = held.token.connected() ? held.window.get() : nullptr;
+    if (held.scope && anchor_window != nullptr) {
         try {
-            static_cast<void>((*held.window).end_focus_scope(held.scope));
+            static_cast<void>((*anchor_window).end_focus_scope(held.scope));
         } catch (...) {
         }
     }
@@ -300,7 +304,7 @@ void close_anchored_session(const std::shared_ptr<AnchoredSession>& session) noe
     held.dismiss.disconnect();
     held.revoked.disconnect();
     held.token.disconnect();
-    held.window = nullptr;
+    held.window.reset();
     if (held.layer) {
         try {
             (*held.layer).clear_content();
@@ -419,7 +423,7 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
         // Window::open_overlay refuses a disabled or hidden anchor
         // (std::logic_error: GF_STATUS_INVALID_STATE).
         held.token = (*window).open_overlay(anchor_control, held.layer);
-        held.window = window;
+        held.window = (*window).window_ref();
         if (measures) {
             const Size measured = (*content_control).measure(client);
             AnchoredOverlayPlacement attached = placement;

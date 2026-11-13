@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/binding_provider/binding_provider.hpp"
 #include "gui_forms/binding/binding_table/binding_table.hpp"
 #include "gui_forms/binding/currency_manager/currency_manager.hpp"
@@ -58,7 +59,7 @@ enum class BindingViewMode : std::uint8_t {
 // wrong kind, or an exception it throws becomes a cell error (error()).
 // Misuse of the source itself (another thread, an index past count(), an
 // unknown column in a sort) throws, as a programming error (N70).
-class BindingSource final : public Component,
+class GUI_FORMS_API BindingSource final : public Component,
                             public std::enable_shared_from_this<BindingSource> {
 public:
     explicit BindingSource(Window& window);
@@ -142,7 +143,8 @@ public:
     // An unknown column throws std::invalid_argument and changes nothing.
     void set_sort(std::vector<BindingSortKey> keys);
     void remove_sort();
-    [[nodiscard]] const std::vector<BindingSortKey>& sort() const noexcept { return sort_; }
+    [[nodiscard]] const std::vector<BindingSortKey>& sort() const& noexcept { return sort_; }
+    const std::vector<BindingSortKey>& sort() const&& = delete;
     void set_filter(BindingFilter filter);
     void remove_filter();
     [[nodiscard]] const BindingFilter& filter() const noexcept { return filter_; }
@@ -179,9 +181,10 @@ public:
     void reset_current_item();
     bool reset_item(std::size_t index);
 
-    [[nodiscard]] const std::string& data_member() const noexcept {
+    [[nodiscard]] const std::string& data_member() const& noexcept {
         return data_member_;
     }
+    const std::string& data_member() const&& = delete;
     void set_data_member(std::string member);
     [[nodiscard]] CurrencyManager& currency_manager() noexcept {
         return *currency_manager_;

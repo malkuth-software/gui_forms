@@ -9,7 +9,7 @@ gui_forms::RibbonColorPicker
 
 .. cpp:class:: RibbonColorPicker final : public Control, public RibbonColorPickerCapabilities<RibbonColorPicker>
 
-   ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp>``
+   ``#include <gui_forms/controls/ribbon_color_picker.hpp>``
 
    A ribbon drop-down colour picker: a split button over a palette overlay.
 
@@ -160,7 +160,7 @@ gui_forms::RibbonColorPicker
 
       The picker's accessible name, with an optional mnemonic.
 
-   .. cpp:function:: std::span<const Color> palette() const noexcept
+   .. cpp:function:: std::span<const Color> palette() const& noexcept
 
       The palette colours. :cpp:func:`set_palette <gui_forms::RibbonColorPicker::set_palette>` throws ``std::invalid_argument`` for an
       empty palette, a repeated colour, or more than
@@ -221,10 +221,6 @@ gui_forms::RibbonColorPicker
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -234,6 +230,26 @@ gui_forms::RibbonColorPicker
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -254,3 +270,53 @@ gui_forms::RibbonColorPicker
    .. cpp:member:: constexpr std::size_t palette_columns
 
       Default: ``10U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 2 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``natural_size``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``palette``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``palette_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``palette_overlay``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_entries``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``palette_open_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_palette``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open_palette``
+     - unclassified (untested)

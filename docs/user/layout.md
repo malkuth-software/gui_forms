@@ -38,7 +38,7 @@ Every `Control` carries the inputs the containers consume:
 | `margin`, `padding` | Outside and inside spacing in logical pixels, finite and nonnegative |
 | `auto_size`, `auto_size_mode` | Grow-only or grow-and-shrink to the preferred size |
 | `dock`, `anchor` | Edge-relative placement inside the parent |
-| `layout_direction` | Inherited, left to right, or right to left (see [Right to left](#right-to-left)) |
+| `right_to_left` | Windows Forms' RightToLeft: `no`, `yes` or `inherit` (see [Right to left](#right-to-left)) |
 | `visible` | Hidden children take no space in any container's layout |
 
 A parent assigns a child a private layout slot; it never overwrites the
@@ -300,9 +300,15 @@ At 10,000 children:
 
 ## Right to left
 
-`layout_direction` is a registered property: `inherit` (the default),
-`left_to_right` or `right_to_left`. The window's root is left to right. A
-form document or the property grid can set it.
+`right_to_left` is Windows Forms' RightToLeft, a registered property:
+`inherit` (the default), `no` or `yes`. The window's root is left to right
+(No). A form document (`right-to-left: yes;`) or the property grid sets it,
+and every control whose resolved value changes raises
+`right_to_left_changed`. In C++ it is stored as `layout_direction`
+(`LayoutDirection::inherit`, `left_to_right`, `right_to_left`); that name is
+hidden from the property grid and serialization, and a form writing
+`layout-direction` is refused (E820), naming `right-to-left` and the value
+mapping. `tools/migrate_right_to_left.py` rewrites the old spelling.
 
 - The CSS containers follow CSS's start and end model. A row starts at the
   right, grid column lines run from the right, and `start` and `end`
@@ -363,6 +369,11 @@ In `arrange`, call `arrange_self(final_bounds)` to commit your own geometry,
 then `set_child_layout(child, rect)` to assign each child's layout slot.
 Calling the child's `set_bounds` changes its authored `requested_bounds`,
 even during arrangement; it is not a layout-slot assignment.
+Do not call a child's `arrange` yourself: the layout pass arranges each
+child from its slot afterwards, so a direct arrangement would be undone.
+While the pass arranges your control, arranging any other control of the
+window is refused, changes nothing, records an `arrange_outside_slot` error
+in `layout_diagnostics()` and counts in `layout_arrange_refusals`.
 
 Declare the layout effects of your properties with `invalidate_declared`
 (see [Update scopes and dirtiness](update-scopes-and-dirtiness)), so that

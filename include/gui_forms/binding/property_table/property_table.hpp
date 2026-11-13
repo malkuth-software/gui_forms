@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 
@@ -25,7 +26,7 @@ class Control;
 // declaring class, which derives from Component non-virtually. A null
 // operation means the descriptor's default rule applies, as for a
 // PropertyRegistration without it.
-struct PropertyEntry final {
+struct GUI_FORMS_API PropertyEntry final {
     // The registered (snake_case) name; equal to describe().name.
     std::string_view name;
     // The inert descriptor, built once per type and property on first use
@@ -55,7 +56,7 @@ struct PropertyEntry final {
 // declaring class, as PropertyEntry's do) and the child, which must be a
 // live direct child of it. A child property has no change event and no
 // origin (Windows Forms raises no per-child event).
-struct ChildPropertyEntry final {
+struct GUI_FORMS_API ChildPropertyEntry final {
     // The registered (snake_case) name; equal to describe().name.
     std::string_view name;
     // The inert descriptor, built once (property_table_descriptor).
@@ -119,7 +120,7 @@ template <typename Entry, std::size_t BaseCount, std::size_t OverrideCount>
 }
 
 // Which operations a property has, for the descriptor checks.
-struct PropertyOperations final {
+struct GUI_FORMS_API PropertyOperations final {
     bool read{};
     bool write{};
     bool reset{};
@@ -132,7 +133,7 @@ struct PropertyOperations final {
 // when readable and a writer when writable) and derives resettable and
 // change_notifications from `operations`. Throws std::invalid_argument on a
 // failed check. For an entry's describe().
-[[nodiscard]] PropertyDescriptor property_table_descriptor(PropertyDescriptor descriptor,
+[[nodiscard]] GUI_FORMS_API PropertyDescriptor property_table_descriptor(PropertyDescriptor descriptor,
                                                            PropertyOperations operations);
 
 // Table access for any property owner (study section 14, G7): the entry
@@ -141,21 +142,21 @@ struct PropertyOperations final {
 // included) and check the values against its descriptor; they do not check
 // the owner's thread or liveness, which their callers do (Control's member
 // API) and the entries' writes do through their prepare hooks.
-[[nodiscard]] const PropertyEntry* find_property_entry(const Component& owner, std::string_view registered);
+[[nodiscard]] GUI_FORMS_API const PropertyEntry* find_property_entry(const Component& owner, std::string_view registered);
 // The converted current value; nullopt when the entry is not readable.
 // Throws std::logic_error when the read violates the descriptor.
-[[nodiscard]] std::optional<BindingValue> read_property_entry(const Component& owner, const PropertyEntry& entry);
+[[nodiscard]] GUI_FORMS_API std::optional<BindingValue> read_property_entry(const Component& owner, const PropertyEntry& entry);
 // Converts `value` to the entry's kind and writes it. Throws
 // std::logic_error for a read-only entry and std::invalid_argument for a
 // value that does not convert.
-void write_property_entry(Component& owner, const PropertyEntry& entry, const BindingValue& value);
+GUI_FORMS_API void write_property_entry(Component& owner, const PropertyEntry& entry, const BindingValue& value);
 // Restores the default; false when the entry has none and no reset.
-bool reset_property_entry(Component& owner, const PropertyEntry& entry);
-[[nodiscard]] bool property_entry_should_serialize(const Component& owner, const PropertyEntry& entry);
-[[nodiscard]] PropertyValueOrigin property_entry_origin(const Component& owner, const PropertyEntry& entry);
+GUI_FORMS_API bool reset_property_entry(Component& owner, const PropertyEntry& entry);
+[[nodiscard]] GUI_FORMS_API bool property_entry_should_serialize(const Component& owner, const PropertyEntry& entry);
+[[nodiscard]] GUI_FORMS_API PropertyValueOrigin property_entry_origin(const Component& owner, const PropertyEntry& entry);
 // Connects `changed` for `subscriber`'s lifetime; an empty token when the
 // entry raises no change or `changed` is empty.
-[[nodiscard]] SubscriptionToken connect_property_entry(Component& owner, const PropertyEntry& entry,
+[[nodiscard]] GUI_FORMS_API SubscriptionToken connect_property_entry(Component& owner, const PropertyEntry& entry,
                                                        Component& subscriber, std::function<void()> changed);
 
 // The same operations for one child property. Callers (Control's child
@@ -163,12 +164,12 @@ bool reset_property_entry(Component& owner, const PropertyEntry& entry);
 // direct child; the entries' writes check both again through their
 // prepare hooks. The read is converted and checked against the
 // descriptor, and the written value converted to its kind, as above.
-[[nodiscard]] BindingValue read_child_property_entry(const Component& container, const Control& child,
+[[nodiscard]] GUI_FORMS_API BindingValue read_child_property_entry(const Component& container, const Control& child,
                                                      const ChildPropertyEntry& entry);
-void write_child_property_entry(Component& container, const Control& child, const ChildPropertyEntry& entry,
+GUI_FORMS_API void write_child_property_entry(Component& container, const Control& child, const ChildPropertyEntry& entry,
                                 const BindingValue& value);
-bool reset_child_property_entry(Component& container, const Control& child, const ChildPropertyEntry& entry);
-[[nodiscard]] bool child_property_entry_should_serialize(const Component& container, const Control& child,
+GUI_FORMS_API bool reset_child_property_entry(Component& container, const Control& child, const ChildPropertyEntry& entry);
+[[nodiscard]] GUI_FORMS_API bool child_property_entry_should_serialize(const Component& container, const Control& child,
                                                          const ChildPropertyEntry& entry);
 
 } // namespace gui_forms

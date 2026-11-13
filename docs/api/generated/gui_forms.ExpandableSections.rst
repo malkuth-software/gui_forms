@@ -9,7 +9,7 @@ gui_forms::ExpandableSections
 
 .. cpp:class:: ExpandableSections final : public Panel, public ExpandableSectionsCapabilities<ExpandableSections>
 
-   ``#include <gui_forms/controls/collections/expandable_sections.hpp>``
+   ``#include <gui_forms/controls/expandable_sections.hpp>``
 
    A vertical stack of sections that the user expands and collapses.
 
@@ -37,7 +37,7 @@ gui_forms::ExpandableSections
          every open section after the first, raising :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` for each; at a
          replacement the first open section wins.
 
-      **items** : ``std::span<const SectionItem>``
+      **items** : ``BorrowedSpan<SectionItem>``
          The sections as :cpp:class:`SectionItem <gui_forms::SectionItem>` records: a section ID, a label, the
          content control, and an optional borrowed :cpp:class:`Value <gui_forms::Value>` holding the expanded
          state. :cpp:func:`set_items <gui_forms::ExpandableSections::set_items>` replaces the whole list. It throws
@@ -177,7 +177,7 @@ gui_forms::ExpandableSections
       every open section after the first, raising :cpp:func:`toggled <gui_forms::ExpandableSections::toggled>` for each; at a
       replacement the first open section wins.
 
-   .. cpp:function:: std::span<const SectionItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<SectionItem> items() const noexcept
 
       The sections as :cpp:class:`SectionItem <gui_forms::SectionItem>` records: a section ID, a label, the
       content control, and an optional borrowed :cpp:class:`Value <gui_forms::Value>` holding the expanded
@@ -244,3 +244,37 @@ gui_forms::ExpandableSections
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 0 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``items``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``toggled``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``expanded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``part``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_expanded``
+     - supported

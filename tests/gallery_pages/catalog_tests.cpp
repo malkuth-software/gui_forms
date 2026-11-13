@@ -1,4 +1,5 @@
 #include "support.hpp"
+#include "gui_forms/controls/label.hpp"
 
 namespace gallery_pages_tests {
 

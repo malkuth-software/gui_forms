@@ -1,6 +1,8 @@
 #include "file_manager_demoboard/demoboard.hpp"
 #include "file_manager_demoboard/fixture_model.hpp"
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
+#include "gui_forms_lab/instrument_rack.hpp"
 #include "../src/smoke_test.hpp"
 
 #include <algorithm>

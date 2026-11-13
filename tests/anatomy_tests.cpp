@@ -12,6 +12,7 @@
 #include "gui_forms/schema.hpp"
 #include "gui_forms/timer.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
 
 #include <array>
 #include <cmath>

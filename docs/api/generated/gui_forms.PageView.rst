@@ -9,7 +9,7 @@ gui_forms::PageView
 
 .. cpp:class:: PageView : public Control, public PageViewCapabilities<PageView>
 
-   ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
+   ``#include <gui_forms/controls/page_view.hpp>``
 
    A row of tabs over the selected page's content, in the strip or the document preset.
 
@@ -162,8 +162,9 @@ gui_forms::PageView
    panel); panels of pages not selected are hidden and not published. The view
    adds no node of its own unless it has an accessible name.
 
-   The view paints its content area as a ``well`` part through the by-role
-   paint path; its parts are ``region``, ``strip`` (composed from
+   The view paints its content area as the ``content`` part, a ``well``,
+   through the by-role paint path, so a ``page-view::part(content)`` rule
+   reaches it; its parts are ``region``, ``strip`` (composed from
    ``page_strip``), ``content`` and ``focus``.
 
    .. rubric:: Examples
@@ -353,3 +354,53 @@ gui_forms::PageView
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 1 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``pages``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``preset``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``strip``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``content_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_page``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``page_content``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``panel_identity``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_page_content``
+     - supported

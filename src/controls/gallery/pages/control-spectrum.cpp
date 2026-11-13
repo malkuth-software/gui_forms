@@ -1,4 +1,5 @@
 #include "pages.hpp"
+#include "gui_forms/host/services/host_services.hpp"
 
 #include "control-spectrum_form.hpp"
 

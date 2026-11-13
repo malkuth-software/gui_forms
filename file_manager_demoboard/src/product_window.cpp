@@ -3,6 +3,9 @@
 #include "file_manager_demoboard/fixture_model.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/gui_forms.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
+#include "gui_forms_lab/instrument_rack.hpp"
+#include "gui_forms_lab/review_card.hpp"
 
 #include <algorithm>
 #include <any>
@@ -1226,9 +1229,10 @@ public:
         navigate(history_[index_].path[slot].first);
     }
 
-    [[nodiscard]] const std::string& current_id() const noexcept {
+    [[nodiscard]] const std::string& current_id() const& noexcept {
         return history_[index_].id;
     }
+    const std::string& current_id() const&& = delete;
 
     void restore_projection() { apply(); }
 

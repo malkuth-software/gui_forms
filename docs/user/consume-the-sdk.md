@@ -11,7 +11,7 @@ that the combination is one the toolkit supports.
 cmake_minimum_required(VERSION 3.25)
 project(MyForms LANGUAGES CXX)
 
-find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS Application)
+find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Application)
 
 add_executable(my_forms main.cpp)
 target_compile_features(my_forms PRIVATE cxx_std_20)

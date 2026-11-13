@@ -78,6 +78,14 @@ RuleDiagnostic diagnostic(RuleDiagnosticKind kind, std::size_t rule, const Theme
     return result;
 }
 
+// Whether every custom state position fits an AnatomyStateSet.
+bool custom_states_valid(const std::vector<CustomStateIndex>& states) noexcept {
+    for (const CustomStateIndex state : states) {
+        if (static_cast<std::size_t>(state.value) >= maximum_custom_states) return false;
+    }
+    return true;
+}
+
 // The diagnostic for a selector that cannot be used at its level, or none.
 // A control's own inline style (`owned`) needs no stable ID.
 std::optional<RuleDiagnosticKind> selector_defect(const ThemeRule& rule, bool owned) noexcept {
@@ -85,8 +93,18 @@ std::optional<RuleDiagnosticKind> selector_defect(const ThemeRule& rule, bool ow
     for (const std::string& name : selector.classes) {
         if (!valid_style_class_name(name)) return RuleDiagnosticKind::selector_invalid;
     }
+    for (const std::string& name : selector.item_classes) {
+        if (!valid_style_class_name(name)) return RuleDiagnosticKind::selector_invalid;
+    }
     for (const AnatomyState state : selector.states) {
         if (static_cast<std::size_t>(state) >= anatomy_state_count) return RuleDiagnosticKind::selector_invalid;
+    }
+    // A custom state's position belongs to one control type (R2-13): a
+    // selector naming none has nothing to read it against, except in a
+    // control's own inline style.
+    if (!custom_states_valid(selector.custom_states)) return RuleDiagnosticKind::selector_invalid;
+    if (!selector.custom_states.empty() && selector.control_type.empty() && !owned) {
+        return RuleDiagnosticKind::selector_invalid;
     }
     if (selector.ancestors.size() > maximum_rule_ancestors) return RuleDiagnosticKind::selector_invalid;
     for (const RuleAncestor& ancestor : selector.ancestors) {
@@ -101,6 +119,9 @@ std::optional<RuleDiagnosticKind> selector_defect(const ThemeRule& rule, bool ow
         for (const AnatomyState state : exclusion.states) {
             if (static_cast<std::size_t>(state) >= anatomy_state_count) return RuleDiagnosticKind::selector_invalid;
         }
+        if (!custom_states_valid(exclusion.custom_states)) return RuleDiagnosticKind::selector_invalid;
+        const bool typed = !exclusion.control_type.empty() || !selector.control_type.empty();
+        if (!exclusion.custom_states.empty() && !typed && !owned) return RuleDiagnosticKind::selector_invalid;
     }
     if (selector.role && static_cast<std::size_t>(*selector.role) >= part_role_count) {
         return RuleDiagnosticKind::selector_invalid;
@@ -239,7 +260,8 @@ RuleSpecificity exclusion_specificity(const RuleExclusion& exclusion) noexcept {
     RuleSpecificity result{};
     result.ids = exclusion.stable_id.empty() ? 0U : 1U;
     const std::size_t family = exclusion.family.empty() ? 0U : 1U;
-    result.classes = static_cast<std::uint32_t>(exclusion.classes.size() + exclusion.states.size() + family);
+    const std::size_t states = exclusion.states.size() + exclusion.custom_states.size();
+    result.classes = static_cast<std::uint32_t>(exclusion.classes.size() + states + family);
     result.types = exclusion.control_type.empty() ? 0U : 1U;
     return result;
 }
@@ -248,11 +270,15 @@ RuleSpecificity exclusion_specificity(const RuleExclusion& exclusion) noexcept {
 
 RuleSpecificity rule_specificity(const RuleSelector& selector) noexcept {
     RuleSpecificity result{};
-    result.ids = selector.stable_id.empty() ? 0U : 1U;
-    // Each class, each state and the family, as CSS counts classes and
-    // pseudo-classes.
+    const std::uint32_t own_id = selector.stable_id.empty() ? 0U : 1U;
+    const std::uint32_t item_id = selector.item_id.empty() ? 0U : 1U;
+    result.ids = own_id + item_id;
+    // Each class, each item class, each state and the family, as CSS
+    // counts classes and pseudo-classes.
     const std::size_t family = selector.family.empty() ? 0U : 1U;
-    result.classes = static_cast<std::uint32_t>(selector.classes.size() + selector.states.size() + family);
+    const std::size_t classes = selector.classes.size() + selector.item_classes.size();
+    const std::size_t states = selector.states.size() + selector.custom_states.size();
+    result.classes = static_cast<std::uint32_t>(classes + states + family);
     // A surface selector counts as a type selector, as CSS's `window` would;
     // the part's name and role each as a pseudo-element.
     const bool typed = !selector.control_type.empty() || selector.surface != SurfaceKind::none;
@@ -429,7 +455,9 @@ constexpr std::array<std::string_view, material_field_count> material_field_name
     "filter_blur",
     "finish",
     "mask",
-    "reflection"};
+    "reflection",
+    "seat",
+    "gradient_dither"};
 
 // The edge fields: four edges of three fields each, from border_top_style.
 constexpr std::size_t first_edge_field = static_cast<std::size_t>(MaterialField::border_top_style);
@@ -489,6 +517,8 @@ ColourPosition material_field_colour_position(MaterialField field) noexcept {
     case MaterialField::finish:
     case MaterialField::mask:
     case MaterialField::reflection:
+    case MaterialField::seat:
+    case MaterialField::gradient_dither:
     case MaterialField::count:
     default: return ColourPosition::none;
     }
@@ -531,6 +561,9 @@ void apply_material_declaration(const MaterialDeclaration& declaration, SurfaceM
     case MaterialField::finish: material.finish = declaration.number; return;
     case MaterialField::mask: material.mask = declaration.mask; return;
     case MaterialField::reflection: material.reflection = declaration.reflection; return;
+    // Appended after the other fields (assemble_material).
+    case MaterialField::seat: return;
+    case MaterialField::gradient_dither: material.dither = declaration.dither; return;
     case MaterialField::border_top_style:
     case MaterialField::border_top_width:
     case MaterialField::border_top_colour:
@@ -971,6 +1004,7 @@ bool material_fields_read_box(
     for (const MaterialDeclaration* const declaration : fields) {
         if (declaration == nullptr || (*declaration).initial) continue;
         if (corner_field((*declaration).field) && (*declaration).relative) return true;
+        if ((*declaration).field == MaterialField::seat && (*declaration).relative) return true;
         if ((*declaration).field == MaterialField::fill_sizes) {
             for (const MaterialImageSize& size : (*declaration).image_sizes) {
                 const bool proportional = size.sizing == MaterialImageSizing::cover ||
@@ -1031,7 +1065,8 @@ bool width_field(MaterialField field) noexcept {
 void walk_material_lengths(MaterialDeclaration& declaration, LengthWalk& walk) {
     const MaterialField field = declaration.field;
     const bool corner = corner_field(field) && !declaration.relative;
-    if (width_field(field) || corner || field == MaterialField::filter_blur) walk.visit(declaration.number);
+    const bool seat = field == MaterialField::seat && !declaration.relative;
+    if (width_field(field) || corner || seat || field == MaterialField::filter_blur) walk.visit(declaration.number);
     for (AuthoredGradient& gradient : declaration.gradients) {
         walk.visit(gradient.centre_x.units);
         walk.visit(gradient.centre_y.units);
@@ -1077,7 +1112,11 @@ bool part_length_field(RecipeField field) noexcept {
                         field == RecipeField::padding_inline || field == RecipeField::gap ||
                         field == RecipeField::margin_block_start || field == RecipeField::margin_block_end ||
                         field == RecipeField::taper || field == RecipeField::flare ||
-                        field == RecipeField::edge_shadow_width;
+                        field == RecipeField::edge_shadow_width || field == RecipeField::stripe_pitch ||
+                        field == RecipeField::stroke_dash || field == RecipeField::stroke_gap ||
+                        field == RecipeField::halo_width || field == RecipeField::corner_radius ||
+                        field == RecipeField::grid_spacing || field == RecipeField::grid_band ||
+                        field == RecipeField::flow_spacing;
     return length;
 }
 
@@ -1292,6 +1331,13 @@ void assemble_material(const SurfaceMaterial& floor,
     }
     if (fills) compose_fills(floor, fields, box, material);
     if (corners) compose_corners(floor, fields, std::min(box.width, box.height), material);
+    // The seat's shadows go after the authored ones, at the part's size.
+    const MaterialDeclaration* const seat = set_field(fields, MaterialField::seat);
+    if (seat != nullptr) {
+        const double shorter = std::min(box.width, box.height);
+        const double height = (*seat).relative ? (*seat).number * shorter : (*seat).number;
+        seat_shadows(height, (*seat).colour, material.shadows);
+    }
     const MaterialDeclaration* const border_image = set_field(fields, MaterialField::border_image);
     const bool framed = border_image != nullptr && (*border_image).border_image.has_value();
     if (edges && !framed) assemble_edges(floor, fields, material);
@@ -1300,6 +1346,31 @@ void assemble_material(const SurfaceMaterial& floor,
     material.fills.push_back(*(*border_image).border_image);
     material.border.reset();
     material.border_edges = MaterialBorderEdges{};
+}
+
+void seat_shadows(double height, Color colour, std::vector<MaterialShadow>& shadows) {
+    if (!std::isfinite(height) || height == 0.0) return;
+    const double depth = std::min(std::abs(height), maximum_seat_height);
+    const bool raised = height > 0.0;
+    const double run = depth * seat_light_run;
+    // Raised, a contact shadow a little narrower than the part, so it lies
+    // close under it; sunk, the lip's shade inside the opening.
+    MaterialShadow cast{};
+    cast.offset = Point{run, run};
+    cast.blur_radius = depth;
+    cast.spread = raised ? -0.25 * depth : 0.0;
+    cast.color = colour;
+    cast.inset = !raised;
+    // The crevice: darkening all round the seam, softer than the cast.
+    const double crevice_alpha = std::round(static_cast<double>(colour.alpha) * 0.8);
+    MaterialShadow crevice{};
+    crevice.offset = Point{0.0, 0.0};
+    crevice.blur_radius = std::max(1.0, depth * 0.5);
+    crevice.spread = 0.0;
+    crevice.color = Color::rgba(colour.red, colour.green, colour.blue, static_cast<std::uint8_t>(crevice_alpha));
+    crevice.inset = !raised;
+    if (shadows.size() < SurfaceMaterial::maximum_shadows) shadows.push_back(cast);
+    if (shadows.size() < SurfaceMaterial::maximum_shadows) shadows.push_back(crevice);
 }
 
 RuleDeclaration RuleDeclaration::primitive(std::string_view primitive_name) {
@@ -1497,6 +1568,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         if (engine_table) compiled.provenance.layer = ThemeLayer::built_in;
         compiled.selector = rule.selector;
         for (const AnatomyState state : rule.selector.states) compiled.states.insert(state);
+        for (const CustomStateIndex state : rule.selector.custom_states) compiled.states.insert(state);
         for (const RuleAncestor& ancestor : rule.selector.ancestors) {
             if (!ancestor.control_type.empty()) compiled.ancestor_keys.add({}, ancestor.control_type);
             if (!ancestor.stable_id.empty()) compiled.ancestor_keys.add("#", ancestor.stable_id);
@@ -1812,7 +1884,11 @@ constexpr std::array<std::string_view, recipe_field_count> recipe_field_names{
     "glyph",       "default_outline_width", "default_outline_colour", "fill_text", "stroke_width",
     "needle_shape", "scrim_colour", "block_size", "minimum_inline_size",
     "padding_inline", "gap", "margin_block_start", "margin_block_end", "taper", "taper_colour", "flare",
-    "flare_colour", "edge_shadow_width", "edge_shadow_colour",
+    "flare_colour", "edge_shadow_width", "edge_shadow_colour", "stripe_pitch", "stripe_ratio", "stripe_angle",
+    "stripe_lean", "stripe_direction", "stripe_speed", "stripe_colour", "stripe_ground_colour", "stripe_gloss",
+    "stripe_reduced_motion", "fill_colour", "stroke_colour", "stroke_dash", "stroke_gap", "halo_width",
+    "halo_colour", "corner_radius", "grid_spacing", "grid_band", "texture_layers", "flow_style",
+    "flow_speed", "flow_spacing",
 };
 
 } // namespace
@@ -1823,8 +1899,16 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::muted_text:
     case RecipeField::glyph:
     case RecipeField::fill_text: return ColourPosition::text;
-    // A scrim is a fill over what lies behind.
-    case RecipeField::scrim_colour: return ColourPosition::fill;
+    // A scrim is a fill over what lies behind, and the stripe colours fill
+    // their bands.
+    case RecipeField::scrim_colour:
+    case RecipeField::stripe_colour:
+    case RecipeField::stripe_ground_colour:
+    // A canvas part's area colour.
+    case RecipeField::fill_colour: return ColourPosition::fill;
+    // A canvas part's lines and a link's halo.
+    case RecipeField::stroke_colour:
+    case RecipeField::halo_colour:
     case RecipeField::outline_colour:
     case RecipeField::default_outline_colour:
     case RecipeField::taper_colour:
@@ -1851,6 +1935,24 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::edge_shadow_width:
     case RecipeField::stroke_width:
     case RecipeField::needle_shape:
+    case RecipeField::stripe_pitch:
+    case RecipeField::stripe_ratio:
+    case RecipeField::stripe_angle:
+    case RecipeField::stripe_lean:
+    case RecipeField::stripe_direction:
+    case RecipeField::stripe_speed:
+    case RecipeField::stripe_gloss:
+    case RecipeField::stripe_reduced_motion:
+    case RecipeField::stroke_dash:
+    case RecipeField::stroke_gap:
+    case RecipeField::halo_width:
+    case RecipeField::corner_radius:
+    case RecipeField::grid_spacing:
+    case RecipeField::grid_band:
+    case RecipeField::texture_layers:
+    case RecipeField::flow_style:
+    case RecipeField::flow_speed:
+    case RecipeField::flow_spacing:
     case RecipeField::count:
     default: return ColourPosition::none;
     }
@@ -1861,6 +1963,67 @@ std::string_view recipe_field_name(RecipeField field) noexcept {
     if (position >= recipe_field_count) return {};
     return recipe_field_names[position];
 }
+
+namespace {
+
+// Whether a canvas texture layer may use `pattern`: every tiled built-in
+// pattern; the fresco covers a box and does not tile.
+bool canvas_texture_pattern(ProceduralPattern pattern) noexcept {
+    switch (pattern) {
+    case ProceduralPattern::felt:
+    case ProceduralPattern::wood_grain:
+    case ProceduralPattern::paper_fibre:
+    case ProceduralPattern::pinstripe:
+    case ProceduralPattern::brushed_metal:
+    case ProceduralPattern::checker: return true;
+    case ProceduralPattern::fresco:
+    default: return false;
+    }
+}
+
+// Whether a canvas texture layer may use `finish`: every finish but the
+// glint (whose light stands over its surface's centre, so it would repeat
+// with each block), with its seed and grain in range.
+bool canvas_texture_finish(const FinishFill& finish) noexcept {
+    bool kind = false;
+    switch (finish.kind) {
+    case FinishKind::dusty_matte:
+    case FinishKind::orange_peel:
+    case FinishKind::hammertone:
+    case FinishKind::wrinkle:
+    case FinishKind::bead_blast:
+    case FinishKind::sand_cast:
+    case FinishKind::flat:
+    case FinishKind::cloth_weave: kind = true; break;
+    case FinishKind::glint:
+    default: kind = false; break;
+    }
+    const bool grain = in_range(finish.grain, minimum_finish_grain, maximum_finish_grain);
+    const bool admitted = kind && grain && finish.seed >= 0;
+    return admitted;
+}
+
+// No layer is `none`; each layer's pattern tiles, and its tile, strength
+// and contrast are within the canvas's limits; a finish layer's finish is
+// admitted.
+bool canvas_texture_admitted(const CanvasTextureLayers& texture) noexcept {
+    if (texture.count > texture.items.size()) return false;
+    for (std::size_t index = 0U; index < texture.count; ++index) {
+        const CanvasTextureLayer& layer = texture.items[index];
+        if (!in_range(layer.contrast, 0.0, maximum_canvas_texture_contrast)) return false;
+        if (layer.source == CanvasTextureSource::finish) {
+            if (!canvas_texture_finish(layer.finish)) return false;
+            continue;
+        }
+        if (layer.source != CanvasTextureSource::procedural) return false;
+        if (!canvas_texture_pattern(layer.pattern)) return false;
+        if (!in_range(layer.tile, minimum_procedural_tile, maximum_canvas_texture_tile)) return false;
+        if (!in_range(layer.strength, 0.0, 1.0)) return false;
+    }
+    return true;
+}
+
+} // namespace
 
 bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept {
     switch (declaration.field) {
@@ -1873,7 +2036,44 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
     case RecipeField::scrim_colour:
     case RecipeField::taper_colour:
     case RecipeField::flare_colour:
-    case RecipeField::edge_shadow_colour: return true;
+    case RecipeField::edge_shadow_colour:
+    case RecipeField::stripe_colour:
+    case RecipeField::stripe_ground_colour:
+    case RecipeField::fill_colour:
+    case RecipeField::stroke_colour:
+    case RecipeField::halo_colour: return true;
+    case RecipeField::stroke_dash:
+    case RecipeField::stroke_gap: return in_range(declaration.number, 0.0, maximum_canvas_dash);
+    case RecipeField::halo_width: return in_range(declaration.number, 0.0, maximum_canvas_halo_width);
+    case RecipeField::corner_radius: return in_range(declaration.number, 0.0, maximum_canvas_corner_radius);
+    case RecipeField::grid_spacing:
+        return in_range(declaration.number, minimum_canvas_grid_spacing, maximum_canvas_grid_spacing);
+    case RecipeField::grid_band:
+        return in_range(declaration.number, minimum_canvas_grid_band, maximum_canvas_grid_band);
+    case RecipeField::texture_layers: return canvas_texture_admitted(declaration.texture);
+    case RecipeField::flow_style:
+        return declaration.flow_style == CanvasFlowStyle::none || declaration.flow_style == CanvasFlowStyle::dots ||
+               declaration.flow_style == CanvasFlowStyle::dashes;
+    case RecipeField::flow_speed: return in_range(declaration.number, 0.0, maximum_canvas_flow_speed);
+    case RecipeField::flow_spacing:
+        return in_range(declaration.number, minimum_canvas_flow_spacing, maximum_canvas_flow_spacing);
+    // A pitch of 0 is `auto`.
+    case RecipeField::stripe_pitch:
+        return declaration.number == 0.0 ||
+               in_range(declaration.number, minimum_stripe_pitch, maximum_stripe_pitch);
+    case RecipeField::stripe_ratio:
+        return in_range(declaration.number, minimum_stripe_ratio, maximum_stripe_ratio);
+    case RecipeField::stripe_angle:
+        return in_range(declaration.number, minimum_stripe_angle, maximum_stripe_angle);
+    case RecipeField::stripe_speed: return in_range(declaration.number, 0.0, maximum_stripe_speed);
+    case RecipeField::stripe_lean:
+    case RecipeField::stripe_direction:
+        return declaration.stripe_sense == StripeSense::forward || declaration.stripe_sense == StripeSense::backward;
+    case RecipeField::stripe_gloss:
+        return declaration.stripe_gloss == StripeGloss::automatic || declaration.stripe_gloss == StripeGloss::none;
+    case RecipeField::stripe_reduced_motion:
+        return declaration.stripe_reduced_motion == StripeReducedMotion::still ||
+               declaration.stripe_reduced_motion == StripeReducedMotion::none;
     case RecipeField::stroke_width: return in_range(declaration.number, 0.0, maximum_recipe_stroke_width);
     case RecipeField::needle_shape:
         return declaration.needle_shape == NeedleShape::line || declaration.needle_shape == NeedleShape::tapered ||
@@ -2364,8 +2564,12 @@ bool CompiledThemeRules::matches(const CompiledRule& rule, const PartFacts& fact
     if (!selector.stable_id.empty() && selector.stable_id != facts.stable_id) return false;
     if (!selector.part.empty() && selector.part != facts.part) return false;
     if (selector.role && *selector.role != facts.role) return false;
+    // The control type was compared above, so a custom bit means the
+    // same state in the rule and the facts (R2-13).
     const std::uint64_t needed = rule.states.standard_bits();
     if ((facts.states.standard_bits() & needed) != needed) return false;
+    const std::uint16_t needed_custom = rule.states.custom_bits();
+    if ((facts.states.custom_bits() & needed_custom) != needed_custom) return false;
     for (const std::string& name : selector.classes) {
         bool present = false;
         for (const std::string& held : facts.classes) {
@@ -2374,6 +2578,14 @@ bool CompiledThemeRules::matches(const CompiledRule& rule, const PartFacts& fact
         if (!present) return false;
     }
     if (!selector.family.empty() && selector.family != facts.family) return false;
+    if (!selector.item_id.empty() && selector.item_id != facts.item_id) return false;
+    for (const std::string& name : selector.item_classes) {
+        bool present = false;
+        for (const std::string& held : facts.item_classes) {
+            if (held == name) present = true;
+        }
+        if (!present) return false;
+    }
     for (const RuleExclusion& exclusion : selector.excluded) {
         if (exclusion_matches(exclusion, facts)) return false;
     }
@@ -2455,6 +2667,9 @@ bool CompiledThemeRules::exclusion_matches(const RuleExclusion& exclusion, const
     if (!exclusion.stable_id.empty() && exclusion.stable_id != facts.stable_id) return false;
     if (!exclusion.family.empty() && exclusion.family != facts.family) return false;
     for (const AnatomyState state : exclusion.states) {
+        if (!facts.states.contains(state)) return false;
+    }
+    for (const CustomStateIndex state : exclusion.custom_states) {
         if (!facts.states.contains(state)) return false;
     }
     for (const std::string& name : exclusion.classes) {
@@ -2697,10 +2912,12 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
         if (rule.recipe_fields.empty() || !matches(rule, facts)) continue;
+        const bool on_named_part = !rule.selector.part.empty() && !rule.selector.role.has_value();
         for (const RecipeDeclaration& declaration : rule.recipe_fields) {
             const std::size_t position = static_cast<std::size_t>(declaration.field);
             result.fields[position] = &declaration;
             result.levels[position] = rule.level;
+            if (on_named_part) result.named_part_fields[position] = &declaration;
         }
         result.authored = true;
     }

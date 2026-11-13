@@ -2,15 +2,15 @@
   "family": "DockSite",
   "step": "M-S8",
   "declaring": "DockSite",
-  "header": "include/gui_forms/controls/docking/dock_site/dock_site.hpp",
+  "header": "include/gui_forms/controls/dock_site.hpp",
   "source": "src/controls/docking/dock_site/dock_site.cpp",
-  "capabilities_header": "include/gui_forms/controls/docking/dock_site/dock_site_capabilities/dock_site_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/dock_site_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [],
   "test": {
     "type": "DockSite",
-    "include": "gui_forms/controls/docking/dock_site/dock_site.hpp",
+    "include": "gui_forms/controls/dock_site.hpp",
     "setup": [
       "DockWorkspace workspace(\"generated.dock-workspace\");"
     ],

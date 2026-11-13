@@ -1,10 +1,12 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <span>
@@ -28,6 +30,7 @@ struct ThemePackage;
 struct ThemeRequestReport;
 struct UserThemeFiles;
 struct UserThemeHeader;
+namespace detail { struct ImageAtlasLink; }
 
 // How a program admits user themes (T3 user themes, notes:planning/stages/
 // T3-theme-language/USER_THEMES.md section 4.3).
@@ -51,7 +54,7 @@ enum class UserThemePolicy : std::uint8_t {
 enum class IconOverride : std::uint8_t { overridable, fixed };
 
 // One program icon a user theme may name, by its identifier.
-struct IconDeclaration final {
+struct GUI_FORMS_API IconDeclaration final {
     std::string identifier{};
     IconOverride policy{IconOverride::overridable};
 };
@@ -60,7 +63,12 @@ struct IconDeclaration final {
 // letters, digits and dashes, each beginning with a letter or digit,
 // joined by `.` (as the locale keys), at most 128 bytes in all; for
 // example `toolbar.save` or `check-mark`.
-[[nodiscard]] bool icon_identifier_valid(std::string_view identifier) noexcept;
+[[nodiscard]] GUI_FORMS_API bool icon_identifier_valid(std::string_view identifier) noexcept;
+
+namespace engine_light {
+class LightPlaneCache;
+struct LightPlanes;
+} // namespace engine_light
 
 // The image registry and the theme of an application (stage DK decision 8),
 // shared by every Window constructed with it. In those windows an ImageId
@@ -74,7 +82,7 @@ struct IconDeclaration final {
 // Window registers itself while it lives and the list only observes them.
 // Every member runs on the thread that constructed the object, which must be
 // the windows' UI thread.
-class ApplicationResources final {
+class GUI_FORMS_API ApplicationResources final {
 public:
     explicit ApplicationResources(ImageRegistryLimits limits = {});
     ~ApplicationResources();
@@ -192,7 +200,10 @@ public:
     void register_icon(std::string_view identifier, ImageId image, IconOverride policy);
     // The registered icons, in registration order, for a user theme's
     // compilation (ThemeCompileOptions::icons).
-    [[nodiscard]] std::span<const IconDeclaration> icon_declarations() const noexcept { return icons_; }
+    [[nodiscard]] std::span<const IconDeclaration> icon_declarations() const& noexcept {
+        return std::span<const IconDeclaration>(icons_.data(), icons_.size());
+    }
+    std::span<const IconDeclaration> icon_declarations() const&& = delete;
     // The image to draw for the icon `identifier`: the selected user
     // theme's override of an overridable icon, else the program's image;
     // nullopt for an identifier not registered. A user theme is selected
@@ -202,6 +213,21 @@ public:
     // The program's own image for the icon `identifier`, whatever user
     // theme is selected; nullopt for an identifier not registered.
     [[nodiscard]] std::optional<ImageId> program_icon(std::string_view identifier) const noexcept;
+
+    // Baked light planes (engine/light_planes) for the parts of these
+    // windows that composite them (PartPaint::light_planes, such as an
+    // IndicatorLamp's lens named by its light_planes property), read from
+    // `directory` the first time each is asked for and kept
+    // (LightPlaneCache). An empty path, the default, holds none, so every
+    // such part draws its theme's look. A new directory forgets the bakes
+    // read so far and repaints every sharing window. On the UI thread
+    // (std::logic_error elsewhere).
+    void set_light_plane_directory(std::filesystem::path directory);
+    // The bake named `name` (`<directory>/<name>.f32`), or null when no
+    // directory is set or the bake is missing, defective or not a name
+    // (LightPlaneCache::lend). Throws std::bad_alloc when a read's storage
+    // cannot be had. On the UI thread (std::logic_error elsewhere).
+    [[nodiscard]] std::shared_ptr<const engine_light::LightPlanes> lend_light_planes(std::string_view name);
 
     // The windows currently sharing these resources.
     [[nodiscard]] std::size_t window_count() const noexcept { return windows_.size(); }
@@ -220,7 +246,19 @@ private:
     friend class Window;
     friend class SubSurface;
     friend class SurfaceRoot;
+    // Writes its backing image in place (registry) and refuses fills during
+    // a paint (painting).
+    friend class ImageAtlas;
     void require_access(const char* operation) const;
+    // Whether any window sharing these resources is painting now.
+    [[nodiscard]] bool painting() const noexcept;
+    // Observes an atlas for apply_deferred_image_fills (ImageAtlas's
+    // constructor). May throw std::bad_alloc, adding nothing.
+    void register_image_atlas(const std::shared_ptr<detail::ImageAtlasLink>& link);
+    // Called by a window when its paint pass ends (completed or abandoned):
+    // each live atlas writes its deferred fills unless another window is
+    // still painting; links of destroyed atlases are dropped. Never throws.
+    void apply_deferred_image_fills() noexcept;
     // Every surface root showing these resources: a Window, or a
     // SubSurface with resources of its own on its own thread.
     void attach(SurfaceRoot& root);
@@ -262,6 +300,11 @@ private:
     // detaches in its destructor. Bounded by the roots the program creates
     // on this thread.
     std::vector<SurfaceRoot*> windows_;
+    // The atlases made with these resources, observed; an expired link is an
+    // atlas already destroyed.
+    std::vector<std::weak_ptr<detail::ImageAtlasLink>> atlases_{};
+    // The light-plane bakes, null while no directory is set. Owned.
+    std::unique_ptr<engine_light::LightPlaneCache> light_planes_{};
 };
 
 } // namespace gui_forms

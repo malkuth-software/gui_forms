@@ -1,9 +1,23 @@
 #include "pages.hpp"
+#include "gui_forms/controls/breadcrumb_trail.hpp"
+#include "gui_forms/controls/breadcrumb_trail_values.hpp"
+#include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view_row_order.hpp"
+#include "gui_forms/controls/data_grid_view_types.hpp"
+#include "gui_forms/controls/tree_list_view.hpp"
+#include "gui_forms/controls/tree_view.hpp"
+#include "gui_forms/controls/virtual_rows_view.hpp"
+#include "gui_forms/delegate.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include "tree-and-object-views_form.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -123,7 +137,8 @@ public:
 
     // The rows' IDs in presentation order, for set_virtual_rows and
     // set_virtual_row_order.
-    [[nodiscard]] const std::vector<DataGridViewRowId>& order() const noexcept { return order_; }
+    [[nodiscard]] const std::vector<DataGridViewRowId>& order() const& noexcept { return order_; }
+    const std::vector<DataGridViewRowId>& order() const&& = delete;
 
     // Orders the rows stably by one column's text; the values stay keyed by ID.
     void sort(std::size_t column, bool descending) {
@@ -149,6 +164,132 @@ private:
     std::vector<DataGridViewRowId> order_{};
 };
 
+// VirtualRowsView's sample, apart from the project fixture: a message
+// history of message_row_count rows drawn from a fixed seed, so every run
+// shows the same text. Nothing is stored per row: a row's sender, line count
+// and words come from a hash of the seed and the row index, and each line
+// is composed into one reused buffer just before it is drawn or described.
+constexpr std::uint64_t message_seed = 0x5EED'2026'1112'0001ULL;
+constexpr std::size_t message_row_count = 4000U;
+constexpr std::size_t maximum_message_lines = 3U;
+constexpr std::size_t minimum_line_words = 3U;
+constexpr std::size_t line_word_spread = 5U;
+constexpr double message_line_height = 18.0;
+constexpr double message_padding = 4.0;
+constexpr double message_inset = 8.0;
+constexpr std::uint16_t sender_weight = 600U;
+
+constexpr std::array<std::string_view, 8> message_senders{
+    "Harbour master", "Quay office", "Lighthouse", "Chandlery",
+    "Ferry desk", "Pilot station", "Boatyard", "Tide watch",
+};
+constexpr std::array<std::string_view, 32> message_words{
+    "tide", "berth", "pilot", "fender", "rope", "lamp", "ferry", "crossing",
+    "tender", "quay", "harbour", "chart", "buoy", "mooring", "evening", "morning",
+    "fog", "wind", "swell", "east", "west", "clear", "late", "early",
+    "logged", "tested", "ready", "waiting", "alongside", "boarding", "signal", "crew",
+};
+
+// SplitMix64 of the seed and the row: the row's whole message.
+[[nodiscard]] std::uint64_t message_hash(std::size_t row) noexcept {
+    std::uint64_t value = message_seed + 0x9E37'79B9'7F4A'7C15ULL * (static_cast<std::uint64_t>(row) + 1U);
+    value = (value ^ (value >> 30U)) * 0xBF58'476D'1CE4'E5B9ULL;
+    value = (value ^ (value >> 27U)) * 0x94D0'49BB'1331'11EBULL;
+    const std::uint64_t mixed = value ^ (value >> 31U);
+    return mixed;
+}
+
+[[nodiscard]] std::size_t message_line_count(std::uint64_t hash) noexcept {
+    const std::size_t count = 1U + static_cast<std::size_t>((hash >> 8U) % maximum_message_lines);
+    return count;
+}
+
+[[nodiscard]] std::string_view message_sender(std::uint64_t hash) noexcept {
+    const std::string_view sender = message_senders[static_cast<std::size_t>(hash % message_senders.size())];
+    return sender;
+}
+
+class SeededMessages final {
+public:
+    [[nodiscard]] VirtualRowsCallbacks callbacks() {
+        VirtualRowsCallbacks bound{};
+        bound.measure = Delegate<VirtualRowMeasure&>::bind<SeededMessages, &SeededMessages::measure>(*this);
+        bound.paint = Delegate<VirtualRowPaint&>::bind<SeededMessages, &SeededMessages::paint>(*this);
+        bound.describe = Delegate<VirtualRowDescription&>::bind<SeededMessages, &SeededMessages::describe>(*this);
+        return bound;
+    }
+
+    // A sender line and one to three message lines.
+    void measure(VirtualRowMeasure& request) {
+        const std::size_t lines = message_line_count(message_hash(request.row.value)) + 1U;
+        request.height = 2.0 * message_padding + static_cast<double>(lines) * message_line_height;
+    }
+
+    // Each line is a theme label part, so the rows follow the theme.
+    void paint(VirtualRowPaint& request) {
+        const std::uint64_t hash = message_hash(request.row.value);
+        const FontSpec body = (*request.view).text_font(FontSpec{});
+        PartPaint label;
+        label.family = ControlVisualRole::selection;
+        label.role = PartRole::label;
+        label.states = request.states;
+        label.bounds = {request.bounds.x + message_inset, request.bounds.y + message_padding,
+                        request.bounds.width - 2.0 * message_inset, message_line_height};
+        label.font = body;
+        label.font.weight = sender_weight;
+        label.text = lend_paint_text(message_sender(hash));
+        paint_part(*request.painter, *request.view, label);
+        label.font = body;
+        const std::size_t lines = message_line_count(hash);
+        for (std::size_t line = 0U; line < lines; ++line) {
+            compose_line(hash, line);
+            label.bounds.y = label.bounds.y + message_line_height;
+            label.text = lend_paint_text(line_);
+            paint_part(*request.painter, *request.view, label);
+            label.text = {};
+        }
+    }
+
+    // The sender names the row; the value is the whole message.
+    void describe(VirtualRowDescription& request) {
+        const std::uint64_t hash = message_hash(request.row.value);
+        request.name.append(message_sender(hash));
+        const std::size_t lines = message_line_count(hash);
+        for (std::size_t line = 0U; line < lines; ++line) {
+            compose_line(hash, line);
+            if (line > 0U) request.value.push_back(' ');
+            request.value.append(line_);
+        }
+    }
+
+    // The sender of a row, for the page's status line.
+    [[nodiscard]] static std::string_view sender_of(std::size_t row) noexcept {
+        const std::string_view sender = message_sender(message_hash(row));
+        return sender;
+    }
+
+private:
+    // Writes line `line` of a message into line_: three to seven words, the
+    // first capitalized, ending with a full stop. Reuses line_'s storage.
+    void compose_line(std::uint64_t hash, std::size_t line) {
+        std::uint64_t state = hash ^ (0xA24B'AED4'963E'E407ULL * (static_cast<std::uint64_t>(line) + 1U));
+        state = state * 6364136223846793005ULL + 1442695040888963407ULL;
+        const std::size_t words = minimum_line_words + static_cast<std::size_t>((state >> 33U) % line_word_spread);
+        line_.clear();
+        for (std::size_t word = 0U; word < words; ++word) {
+            state = state * 6364136223846793005ULL + 1442695040888963407ULL;
+            const std::size_t pick = static_cast<std::size_t>((state >> 33U) % message_words.size());
+            if (word > 0U) line_.push_back(' ');
+            line_.append(message_words[pick]);
+        }
+        // Every word is lower-case ASCII, so the first byte is a letter.
+        line_.front() = static_cast<char>(line_.front() - 'a' + 'A');
+        line_.push_back('.');
+    }
+
+    std::string line_{};
+};
+
 // Owns the trees-and-object-views page: the controls
 // demo/pages/tree-and-object-views.form describes, and their behaviour.
 class TreeAndObjectViewsPage final : public Component {
@@ -164,9 +305,19 @@ public:
         build_ledger();
         build_grid();
         build_tree_list();
+        build_messages();
         on(view_mode_.changed(), *this, &TreeAndObjectViewsPage::on_view_mode_changed);
         select_folder(node_index("controls"));
     }
+
+    // The message view borrows messages_source_'s targets; the view may
+    // outlive the page in its surface, so the page takes them back first.
+    ~TreeAndObjectViewsPage() override {
+        if (messages_) (*messages_).set_row_callbacks(VirtualRowsCallbacks{});
+    }
+
+    TreeAndObjectViewsPage(const TreeAndObjectViewsPage&) = delete;
+    TreeAndObjectViewsPage& operator=(const TreeAndObjectViewsPage&) = delete;
 
 private:
     void mount_document(const std::shared_ptr<Surface>& body) {
@@ -186,6 +337,7 @@ private:
         ledger_ = document_.gallery_tree_ledger;
         grid_ = document_.gallery_tree_grid;
         tree_list_ = document_.gallery_tree_tree_list;
+        messages_ = document_.gallery_tree_messages;
         status_ = document_.gallery_tree_status;
     }
 
@@ -295,6 +447,17 @@ private:
         on((*tree_list_).selection_changed(), *this, &TreeAndObjectViewsPage::on_tree_list_selected);
         on((*tree_list_).sort_changed(), *this, &TreeAndObjectViewsPage::on_tree_list_sorted);
         on((*tree_list_).column_moved(), *this, &TreeAndObjectViewsPage::on_tree_list_column_moved);
+    }
+
+    // A VirtualRowsView over the seeded message history, following the tail
+    // as a chat view does, its selection and activation reported.
+    void build_messages() {
+        (*messages_).set_row_callbacks(messages_source_.callbacks());
+        (*messages_).set_estimated_row_height(2.0 * message_padding + 2.0 * message_line_height);
+        (*messages_).reset_rows(message_row_count);
+        (*messages_).set_follow_tail(true);
+        on((*messages_).selection_changed(), *this, &TreeAndObjectViewsPage::on_message_selected);
+        on((*messages_).row_activated(), *this, &TreeAndObjectViewsPage::on_message_activated);
     }
 
     [[nodiscard]] static std::size_t depth_of(std::size_t index) {
@@ -578,6 +741,21 @@ private:
                             (next == DataGridViewSortDirection::ascending ? " ascending" : " descending");
     }
 
+    // VirtualRowsView
+    void on_message_selected(const VirtualRowSelection& change) {
+        if (!change.current.has_value()) {
+            (*status_).text = "VirtualRowsView selection cleared";
+            return;
+        }
+        const std::size_t row = (*change.current).value;
+        (*status_).text = "VirtualRowsView message " + std::to_string(row + 1U) + " from " +
+                          std::string(SeededMessages::sender_of(row)) + " selected";
+    }
+
+    void on_message_activated(const VirtualRowIndex row) {
+        (*status_).text = "VirtualRowsView message " + std::to_string(row.value + 1U) + " opened";
+    }
+
     // TreeListView
     void on_tree_list_selected(const TreeListSelectionChange& change) {
         if (!change.current_id) return;
@@ -616,6 +794,9 @@ private:
     // Shared with grid_, which asks it for values while it shows the rows.
     std::shared_ptr<ProjectFileRows> grid_rows_;
     std::shared_ptr<TreeListView> tree_list_;
+    std::shared_ptr<VirtualRowsView> messages_;
+    // messages_ borrows its targets (see the destructor).
+    SeededMessages messages_source_{};
     std::shared_ptr<Label> status_;
     Value<int> view_mode_{1};
     // Declared after the Value its view-mode row binds, so it is released first.

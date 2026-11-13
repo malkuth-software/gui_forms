@@ -2,7 +2,7 @@
 // DK-41, DK-42): the side strips, the flyout and its timers. The layout pass
 // that sizes the strips' bands and plans collapsing is in dock_site.cpp.
 
-#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/controls/dock_site.hpp"
 
 #include "dock_site_internal.hpp"
 
@@ -145,12 +145,60 @@ public:
         if (site_ != nullptr) (*site_).on_flyout_pointer_preview(event);
     }
 
-    void on_pointer(PointerEvent& event) override {
-        if (site_ != nullptr) (*site_).on_flyout_pointer(event);
+    // The flyout's mouse and keys are the site's (on_flyout_pointer,
+    // on_flyout_key), before the events are raised.
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        forward_mouse(arguments);
+        Control::on_mouse_down(arguments);
     }
 
-    void on_key(KeyEvent& event) override {
-        if (site_ != nullptr) (*site_).on_flyout_key(event);
+    void on_mouse_up(MouseEventArgs& arguments) override {
+        forward_mouse(arguments);
+        Control::on_mouse_up(arguments);
+    }
+
+    void on_mouse_move(MouseEventArgs& arguments) override {
+        forward_mouse(arguments);
+        Control::on_mouse_move(arguments);
+    }
+
+    void on_mouse_wheel(MouseEventArgs& arguments) override {
+        forward_mouse(arguments);
+        Control::on_mouse_wheel(arguments);
+    }
+
+    void on_mouse_leave() override {
+        if (site_ != nullptr) {
+            PointerEvent leave{};
+            leave.action = PointerAction::leave;
+            (*site_).on_flyout_pointer(leave);
+        }
+        Control::on_mouse_leave();
+    }
+
+    void on_key_down(KeyEventArgs& arguments) override {
+        Control::on_key_down(arguments);
+        forward_key(arguments, KeyAction::down);
+    }
+
+    void on_key_up(KeyEventArgs& arguments) override {
+        Control::on_key_up(arguments);
+        forward_key(arguments, KeyAction::up);
+    }
+
+    void forward_mouse(MouseEventArgs& arguments) {
+        if (site_ == nullptr) return;
+        PointerEvent event = pointer_event_of(arguments);
+        (*site_).on_flyout_pointer(event);
+        arguments.handled = event.handled;
+    }
+
+    // A key no subscriber handled.
+    void forward_key(KeyEventArgs& arguments, KeyAction action) {
+        if (site_ == nullptr || arguments.handled || arguments.released_by_deactivation) return;
+        KeyEvent event = key_event_of(arguments, action);
+        (*site_).on_flyout_key(event);
+        arguments.handled = event.handled;
     }
 
     void on_key_bubble(KeyEvent& event) override {

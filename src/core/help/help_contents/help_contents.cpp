@@ -28,6 +28,18 @@ struct SkeletonVisit final {
     std::uint32_t depth{};
 };
 
+struct RecordIdOrder final {
+    [[nodiscard]] bool operator()(const LocaleRecord& left, const LocaleRecord& right) const noexcept {
+        return left.stable_id < right.stable_id;
+    }
+};
+
+struct SameRecordId final {
+    [[nodiscard]] bool operator()(const LocaleRecord& left, const LocaleRecord& right) const noexcept {
+        return left.stable_id == right.stable_id;
+    }
+};
+
 [[nodiscard]] std::string skeleton_name(const Control& control) {
     const std::string& accessible = control.accessible_name.read();
     if (!accessible.empty()) return accessible;
@@ -132,6 +144,56 @@ void put_declared_topics(HelpRecordLayer& layer) {
     }
 }
 
+void put_declared_topics(LocaleLayer& layer) {
+    for (const HelpTopic* topic = HelpTopic::first(); topic != nullptr; topic = (*topic).next()) {
+        LocaleRecord record{};
+        record.stable_id = std::string((*topic).stable_id().value());
+        locale_record_field(record, LocaleField::text) = (*topic).title();
+        locale_record_field(record, LocaleField::help) = (*topic).body();
+        if (!(*topic).help_line().empty()) locale_record_field(record, LocaleField::help_line) = (*topic).help_line();
+        if (!(*topic).keywords().empty()) locale_record_field(record, LocaleField::keywords) = (*topic).keywords();
+        layer.put(std::move(record));
+    }
+}
+
+void append_control_help_fields(const SurfaceRoot& window, LocaleLayer& layer) {
+    const Control::Ptr root = window.root();
+    if (!root) return;
+    std::vector<SkeletonVisit> pending;
+    pending.push_back(SkeletonVisit{root, 0U});
+    std::vector<LocaleRecord> found;
+    while (!pending.empty()) {
+        const SkeletonVisit visit = std::move(pending.back());
+        pending.pop_back();
+        const Control& control = *visit.control;
+        LocaleRecord record{};
+        std::string line = control.help_line.read();
+        std::string body = control.help.read();
+        std::string keywords = control.keywords.read();
+        if (!line.empty()) locale_record_field(record, LocaleField::help_line) = std::move(line);
+        if (!body.empty()) locale_record_field(record, LocaleField::help) = std::move(body);
+        if (!keywords.empty()) locale_record_field(record, LocaleField::keywords) = std::move(keywords);
+        if (!locale_record_empty(record)) {
+            record.stable_id = std::string(control.stable_id().value());
+            found.push_back(std::move(record));
+        }
+        const Control::ChildView children = control.children();
+        for (std::size_t index = children.size(); index > 0U; --index) {
+            const Control::Ptr& child = children[index - 1U];
+            if (child) pending.push_back(SkeletonVisit{child, visit.depth + 1U});
+        }
+    }
+    // Stable IDs are unique within a window; a repeated one (a defect
+    // elsewhere) keeps its first record. Sorted, the records merge in one
+    // pass.
+    std::stable_sort(found.begin(), found.end(), RecordIdOrder{});
+    const std::vector<LocaleRecord>::iterator kept = std::unique(found.begin(), found.end(), SameRecordId{});
+    found.erase(kept, found.end());
+    LocaleLayer harvested;
+    harvested.assign_sorted(std::move(found));
+    layer.merge_over(harvested);
+}
+
 void append_help_skeleton(const SurfaceRoot& window, std::vector<HelpSkeletonNode>& nodes) {
     const Control::Ptr root = window.root();
     if (!root) return;
@@ -144,7 +206,7 @@ void append_help_skeleton(const SurfaceRoot& window, std::vector<HelpSkeletonNod
         const SkeletonVisit visit = std::move(pending.back());
         pending.pop_back();
         const Control& control = *visit.control;
-        const std::span<const Control::Ptr> children = control.children();
+        const Control::ChildView children = control.children();
         HelpSkeletonNode node{};
         node.stable_id = std::string(control.stable_id().value());
         node.name = skeleton_name(control);

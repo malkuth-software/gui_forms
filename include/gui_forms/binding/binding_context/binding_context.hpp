@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/event.hpp"
@@ -15,7 +16,7 @@ namespace detail {
 struct WindowLifetime;
 }
 
-class BindingContext final : public Component {
+class GUI_FORMS_API BindingContext final : public Component {
 public:
     explicit BindingContext(Window& window);
     ~BindingContext() override;

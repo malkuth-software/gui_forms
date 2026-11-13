@@ -72,6 +72,11 @@ enum class MaterialProperty : std::uint8_t {
     mask_image,
     reflection,
     surface_finish,
+    // The part's seat in its panel: `seat: none | <height> [<colour>]`.
+    seat,
+    // The final quantization's dither (MaterialDither): `none`, `ordered`
+    // or `blue-noise`.
+    gradient_dither,
     // The four inner lines one unit inside the border (T4 floor sheet,
     // owner option 1): `keylines: <top> <right> <bottom> <left>`.
     keylines,
@@ -110,6 +115,33 @@ enum class MaterialProperty : std::uint8_t {
     needle_shape,
     scrim_color,
     stroke_width,
+    // A progress fill's stripe pattern (the barber pole, owner rulings of
+    // 2026-11-11): recipe fields of a named part (RecipeField::stripe_pitch
+    // on), read by the stripe effect.
+    stripe_angle,
+    stripe_color,
+    stripe_direction,
+    stripe_gloss,
+    stripe_ground,
+    stripe_lean,
+    stripe_pitch,
+    stripe_ratio,
+    stripe_reduced_motion,
+    stripe_speed,
+    // The node canvas's part fields (cp31; NODE_GRAPH_SPEC gaps N2, 2 and
+    // 3): recipe fields of a named part (RecipeField::fill_colour on), read
+    // by resolve_canvas_look.
+    background_texture,
+    corner_radius,
+    fill_color,
+    flow,
+    flow_spacing,
+    flow_speed,
+    grid_band,
+    grid_spacing,
+    halo,
+    stroke_color,
+    stroke_dash,
 };
 
 // An image resource the theme's manifest lists, bound to the engine's image
@@ -141,6 +173,16 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
 // material's: they are the control's, so a rule naming a part or a role
 // cannot declare them.
 [[nodiscard]] bool recipe_property(MaterialProperty property) noexcept;
+
+// Whether `property` is one of a progress fill's stripe properties
+// (`stripe-pitch` to `stripe-reduced-motion`): part fields, admitted only on
+// a named part.
+[[nodiscard]] bool stripe_property(MaterialProperty property) noexcept;
+
+// Whether `property` is one of the node canvas's part properties
+// (`fill-color` to `flow-spacing`, `background-texture`): part fields,
+// admitted only on a named part.
+[[nodiscard]] bool canvas_property(MaterialProperty property) noexcept;
 
 // The recipe fields a recipe property sets, in order (`count` of the
 // capacity are live): what CSS's `initial` resets. None for a material

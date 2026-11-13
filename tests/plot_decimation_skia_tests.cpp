@@ -9,7 +9,16 @@
 // and mean, in alpha steps) as the measurement the study's open bound
 // waits for.
 #include "gui_forms/engine/effect/effect.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/plots/axis/axis.hpp"
+#include "gui_forms/plots/decimation/decimation.hpp"
+#include "gui_forms/plots/decimation/decimation_kernels.hpp"
+#include "gui_forms/plots/plot_transform/plot_transform.hpp"
+#include "gui_forms/plots/plot_types/plot_types.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_marks/paint_marks.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/plots.hpp"
 #include "skia_raster.hpp"
 

@@ -9,7 +9,7 @@ gui_forms::ModalLayer
 
 .. cpp:class:: ModalLayer final : public Control, public ModalLayerCapabilities<ModalLayer>
 
-   ``#include <gui_forms/controls/modal_layer/modal_layer.hpp>``
+   ``#include <gui_forms/controls/modal_layer.hpp>``
 
    In-window modal layer: any control shown centred over a scrim dimming its owner's window, taking every press outside it and holding focus, closed with a DialogResult through a cancellable closing.
 
@@ -114,8 +114,6 @@ gui_forms::ModalLayer
 
    .. cpp:function:: bool hit_test_local(Point local_point) const override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: void on_key_bubble(KeyEvent& event) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -123,6 +121,18 @@ gui_forms::ModalLayer
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
@@ -137,3 +147,53 @@ gui_forms::ModalLayer
    .. cpp:member:: constexpr std::size_t modal_layer_property_count
 
       ModalLayer's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 3 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``close_on_escape``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``content``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``is_shown``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``result``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``closed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``closing``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``modal_layer_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show``
+     - supported

@@ -7,9 +7,9 @@ gui_forms::TextBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TextBox final : public Panel, public TextBoxCapabilities<TextBox>
+.. cpp:class:: TextBox final : public TextBoxBase, public TextBoxCapabilities<TextBox>
 
-   ``#include <gui_forms/controls/panel/text_box/text_box.hpp>``
+   ``#include <gui_forms/controls/text_box.hpp>``
 
    An editable text field: one line by default, or a plain-text document with :cpp:member:`multiline <gui_forms::TextBox::multiline>`.
 
@@ -21,7 +21,9 @@ gui_forms::TextBox
    the window's accept and cancel buttons. Set a
    :cpp:member:`password_character <gui_forms::TextBox::password_character>`, or :cpp:member:`use_system_password_character <gui_forms::TextBox::use_system_password_character>`, to mask a secret.
    Use a :cpp:class:`Label <gui_forms::Label>` for text the user only reads, a :cpp:class:`ComboBox <gui_forms::ComboBox>` to choose from a
-   list, and a :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>` for numbers.
+   list, and a :cpp:class:`NumericUpDown <gui_forms::NumericUpDown>` for numbers. The selection, ``select``, undo and
+   the clipboard commands are :cpp:class:`TextBoxBase <gui_forms::TextBoxBase>`'s, shared with :cpp:class:`RichTextBox <gui_forms::RichTextBox>` and
+   :cpp:class:`MaskedTextBox <gui_forms::MaskedTextBox>`; undo keeps at most 128 steps and 8 MiB of earlier text.
 
    *Status:* stable. *Windows Forms counterpart:* ``TextBox``.
 
@@ -143,16 +145,6 @@ gui_forms::TextBox
       **password_protected** : ``bool``, read-only
          Whether the text is masked by either property.
 
-      **selection** : ``TextSelection``, read-only
-         The selection as ``anchor`` and ``caret`` UTF-8 byte offsets; they are equal
-         when nothing is selected. Change it with :cpp:func:`select <gui_forms::TextBox::select>` or :cpp:func:`select_all <gui_forms::TextBox::select_all>`.
-
-      **selected_text** : ``std::string``, read-only
-         A copy of the selected text, which is empty when nothing is selected.
-
-      **can_undo** : ``bool``, read-only
-         Whether :cpp:func:`undo <gui_forms::TextBox::undo>` would restore an earlier state.
-
       **can_redo** : ``bool``, read-only
          Whether :cpp:func:`redo <gui_forms::TextBox::redo>` would reapply an undone edit.
 
@@ -209,6 +201,8 @@ gui_forms::TextBox
 
    :Inherited:
 
+      From :cpp:class:`TextBoxBase <gui_forms::TextBoxBase>`: properties :cpp:func:`selection <gui_forms::TextBoxBase::selection>`, :cpp:func:`selected_text <gui_forms::TextBoxBase::selected_text>`, :cpp:func:`can_undo <gui_forms::TextBoxBase::can_undo>`; methods :cpp:func:`clear_undo_history <gui_forms::TextBoxBase::clear_undo_history>`, :cpp:func:`copy <gui_forms::TextBoxBase::copy>`, :cpp:func:`cut <gui_forms::TextBoxBase::cut>`, :cpp:func:`paste <gui_forms::TextBoxBase::paste>`, :cpp:func:`select <gui_forms::TextBoxBase::select>`, :cpp:func:`select_all <gui_forms::TextBoxBase::select_all>`, :cpp:func:`undo <gui_forms::TextBoxBase::undo>`.
+
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
       From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:member:`wheel_scrolls <gui_forms::ScrollableControl::wheel_scrolls>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`scroll_target <gui_forms::ScrollableControl::scroll_target>`, :cpp:func:`scrolling_smoothly <gui_forms::ScrollableControl::scrolling_smoothly>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
@@ -225,30 +219,16 @@ gui_forms::TextBox
         - Checks text against the multi-line limits without changing anything, returning the first problem found.
       * - :cpp:func:`visual_line_count <gui_forms::TextBox::visual_line_count>`
         - The number of displayed lines after wrapping; 1 for a single-line box.
-      * - :cpp:func:`select <gui_forms::TextBox::select>`
-        - Sets the selection from an anchor and a caret offset.
       * - :cpp:func:`utf16_offset <gui_forms::TextBox::utf16_offset>`
-        - The UTF-16 position of a byte offset in the text, and the byte offset of a UTF-16 position, as the box's text store converts them (a Windows Forms selection is in UTF-16 units).
+        - The selection, select, select_all, selected_text, can_undo, undo, clear_undo_history and the clipboard are TextBoxBase's.
       * - :cpp:func:`utf8_offset <gui_forms::TextBox::utf8_offset>`
         -  
-      * - :cpp:func:`select_all <gui_forms::TextBox::select_all>`
-        - Selects the whole text.
-      * - :cpp:func:`undo <gui_forms::TextBox::undo>`
-        - Restores the text and selection before the last edit, and returns false when there is nothing to undo or the box is read-only.
       * - :cpp:func:`redo <gui_forms::TextBox::redo>`
         - Reapplies the last undone edit, and returns false when there is none or the box is read-only.
-      * - :cpp:func:`clear_undo_history <gui_forms::TextBox::clear_undo_history>`
-        - Forgets all undo and redo steps without changing the text or raising events, for example after saving.
       * - :cpp:func:`replace_selection <gui_forms::TextBox::replace_selection>`
         - Replaces the selection with UTF-8 text as one undoable edit, as typing does, and leaves the caret after it.
       * - :cpp:func:`delete_selection <gui_forms::TextBox::delete_selection>`
         - Removes the selection as one undoable edit.
-      * - :cpp:func:`copy <gui_forms::TextBox::copy>`
-        - Copies the selection to the clipboard.
-      * - :cpp:func:`cut <gui_forms::TextBox::cut>`
-        - Copies the selection and then deletes it.
-      * - :cpp:func:`paste <gui_forms::TextBox::paste>`
-        - Replaces the selection with clipboard text.
       * - :cpp:func:`auto_complete_source_status <gui_forms::TextBox::auto_complete_source_status>`
         - Whether :cpp:member:`auto_complete_source <gui_forms::TextBox::auto_complete_source>` can offer candidates.
       * - :cpp:func:`close_auto_complete <gui_forms::TextBox::close_auto_complete>`
@@ -556,19 +536,6 @@ gui_forms::TextBox
 
       Whether the text is masked by either property.
 
-   .. cpp:function:: TextSelection selection() const noexcept
-
-      The selection as ``anchor`` and ``caret`` UTF-8 byte offsets; they are equal
-      when nothing is selected. Change it with :cpp:func:`select <gui_forms::TextBox::select>` or :cpp:func:`select_all <gui_forms::TextBox::select_all>`.
-
-   .. cpp:function:: std::string selected_text() const
-
-      A copy of the selected text, which is empty when nothing is selected.
-
-   .. cpp:function:: bool can_undo() const noexcept
-
-      Whether :cpp:func:`undo <gui_forms::TextBox::undo>` would restore an earlier state.
-
    .. cpp:function:: bool can_redo() const noexcept
 
       Whether :cpp:func:`redo <gui_forms::TextBox::redo>` would reapply an undone edit.
@@ -650,36 +617,16 @@ gui_forms::TextBox
 
       The number of displayed lines after wrapping; 1 for a single-line box.
 
-   .. cpp:function:: void select(Utf8Offset anchor, Utf8Offset caret)
-
-      Sets the selection from an anchor and a caret offset. Both must lie on
-      grapheme boundaries of the text, or it throws ``std::out_of_range``.
-
    .. cpp:function:: Utf16Offset utf16_offset(Utf8Offset position) const
 
-      The UTF-16 position of a byte offset in the text, and the byte offset of a UTF-16 position, as the box's text store converts them (a Windows Forms selection is in UTF-16 units). Throw std::out_of_range past the text, std::invalid_argument inside a scalar or between the halves of a surrogate pair.
+      The selection, select, select_all, selected_text, can_undo, undo, clear_undo_history and the clipboard are TextBoxBase's. The UTF-16 position of a byte offset in the text, and the byte offset of a UTF-16 position, as the box's text store converts them (a Windows Forms selection is in UTF-16 units). Throw std::out_of_range past the text, std::invalid_argument inside a scalar or between the halves of a surrogate pair.
 
    .. cpp:function:: Utf8Offset utf8_offset(Utf16Offset position) const
-
-   .. cpp:function:: void select_all()
-
-      Selects the whole text.
-
-   .. cpp:function:: bool undo()
-
-      Restores the text and selection before the last edit, and returns false
-      when there is nothing to undo or the box is read-only. At most 128 steps
-      and 8 MiB of earlier text are kept; the oldest are dropped first.
 
    .. cpp:function:: bool redo()
 
       Reapplies the last undone edit, and returns false when there is none or
       the box is read-only. A new edit clears the redo steps.
-
-   .. cpp:function:: void clear_undo_history()
-
-      Forgets all undo and redo steps without changing the text or raising
-      events, for example after saving.
 
    .. cpp:function:: bool replace_selection(std::string_view replacement)
 
@@ -692,22 +639,6 @@ gui_forms::TextBox
 
       Removes the selection as one undoable edit. It returns false when nothing
       is selected or the box is read-only.
-
-   .. cpp:function:: bool copy()
-
-      Copies the selection to the clipboard. It returns false when nothing is
-      selected, the text is masked, or the window has no host clipboard.
-
-   .. cpp:function:: bool cut()
-
-      Copies the selection and then deletes it. It returns false when nothing
-      is selected, the box is read-only or masked, or the copy fails.
-
-   .. cpp:function:: bool paste()
-
-      Replaces the selection with clipboard text. It returns false when the box
-      is read-only, the window has no host clipboard, the clipboard holds no
-      text, or the edit is refused.
 
    .. cpp:function:: HostServiceStatus auto_complete_source_status()
 
@@ -764,10 +695,6 @@ gui_forms::TextBox
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_text_input(TextInputEvent& event) override
 
    .. cpp:function:: void on_focus_changed(bool focused) override
@@ -785,6 +712,26 @@ gui_forms::TextBox
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -809,6 +756,16 @@ gui_forms::TextBox
       *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
+
+      *Protected.*
+
+   .. cpp:function:: detail::TextEditingEngine* editing_engine() const noexcept override
+
+      *Protected.*
+
+      TextBoxBase's hooks: the engine this box owns, and set_selection.
+
+   .. cpp:function:: void apply_selection(TextSelection selection) override
 
       *Protected.*
 
@@ -847,3 +804,221 @@ gui_forms::TextBox
    .. cpp:member:: constexpr std::size_t text_box_property_count
 
       TextBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``TextBox``. Members declared here and by the counterpart: 23 supported, 0 deferred, 0 excluded, 28 unclassified; 31 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``TextBox``
+     - ``TextBox``
+     - supported
+   * - property
+     - ``AcceptsReturn``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoCompleteCustomSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoCompleteMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoCompleteSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CharacterCasing``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``PasswordChar``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``PlaceholderText``
+     - ``placeholder_text``
+     - unclassified (untested)
+   * - property
+     - ``ScrollBars``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TextAlign``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseSystemPasswordChar``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextAlignChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnTextAlignChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``Paste``
+     - ``paste``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``auto_complete_highlighted``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``auto_complete_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``auto_complete_suggestions``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``can_redo``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``decorations``
+     - supported
+   * - property
+     - ``TextBoxBase.Multiline``
+     - ``multiline``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``password_protected``
+     - supported
+   * - property
+     - ``TextBoxBase.ReadOnly``
+     - ``read_only``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scroll_offset``
+     - supported
+   * - property
+     - ``Control.Text``
+     - ``text``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``auto_complete_accepted``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``auto_complete_open_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``cancelled``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``committed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selection_changed``
+     - supported
+   * - event
+     - ``Control.TextChanged``
+     - ``text_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``auto_complete_source_status``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_all_decorations``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_decorations``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``close_auto_complete``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``delete_selection``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_accepts_tab_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_multiline_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_read_only_changed``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnTextChanged``
+     - ``on_text_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``redo``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``replace_decorations``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``replace_selection``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_auto_complete_anchor``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_edit_filter``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``styled_runs``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``text_box_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``utf16_offset``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``utf8_offset``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``validate_multiline_text``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``visual_line_count``
+     - supported

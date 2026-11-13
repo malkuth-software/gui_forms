@@ -64,9 +64,18 @@ void add_catalog_type(const FormCatalogEntry& entry, form_language::FormSchema& 
 }
 
 // The schema of every registry type that can be made alone, in registry
-// order, then the reserved form root. Makes and releases one prototype of
-// each type. UI thread.
+// order, then the extension types (add_extension_types), then the reserved
+// form root. Makes and releases one prototype of each type. UI thread.
 [[nodiscard]] form_language::FormSchema registry_form_schema();
+
+// Appends the types a compiler build knows beyond the registry, each from
+// a fresh prototype like a registry type. The installed compiler links
+// form_core_catalog.cpp, which adds none; the Gallery's compiler and the
+// tests that read its documents link form_lab_catalog.cpp, which adds the
+// lab library's controls (lab/) and the demonstration controls
+// (demo/lab_controls/) that left the installed library (audit F9). UI
+// thread.
+void add_extension_types(form_language::FormSchema& schema);
 
 // Adds an application type to `schema`, described by
 // "<name>,<C++ class>,<base type>,<header>": a document names it as

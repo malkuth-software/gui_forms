@@ -216,6 +216,62 @@ void procedural_checker(const FeatureSampleInputs&, ThemeDefinition& definition)
     draw_procedural(definition, ProceduralPattern::checker, 0x0E11F007U, "procedural_checker");
 }
 
+// One surface finish (skeudoindustrial surfaces, phase 1), as the only
+// fill: the study's paint and dust, a seed of its own.
+void draw_finish(ThemeDefinition& definition, FinishKind kind, std::int32_t seed, std::string_view label) {
+    FinishFill finish{};
+    finish.kind = kind;
+    finish.seed = seed;
+    if (kind == FinishKind::cloth_weave) finish.secondary = Color::rgba(0xc8, 0xb9, 0x8f);
+    SurfaceMaterial material = bordered();
+    material.fills.push_back(MaterialFillLayer::finish_fill(finish));
+    draw_material(definition, material, label);
+}
+
+void finish_dusty_matte(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_finish(definition, FinishKind::dusty_matte, 101, "finish_dusty_matte");
+}
+
+void finish_orange_peel(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_finish(definition, FinishKind::orange_peel, 102, "finish_orange_peel");
+}
+
+void finish_hammertone(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_finish(definition, FinishKind::hammertone, 103, "finish_hammertone");
+}
+
+void finish_wrinkle(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_finish(definition, FinishKind::wrinkle, 104, "finish_wrinkle");
+}
+
+void finish_bead_blast(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_finish(definition, FinishKind::bead_blast, 105, "finish_bead_blast");
+}
+
+void finish_sand_cast(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_finish(definition, FinishKind::sand_cast, 106, "finish_sand_cast");
+}
+
+void finish_flat(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_finish(definition, FinishKind::flat, 107, "finish_flat");
+}
+
+void finish_cloth_weave(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    draw_finish(definition, FinishKind::cloth_weave, 108, "finish_cloth_weave");
+}
+
+// The glint (phase 2) in its sand-blast preset, over the preset's metal.
+void finish_glint(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    FinishFill finish{};
+    finish.kind = FinishKind::glint;
+    finish.glint = GlintPreset::sand_blast;
+    finish.seed = 109;
+    finish.secondary = Color::rgba(0xa3, 0xa3, 0xa3);
+    SurfaceMaterial material = bordered();
+    material.fills.push_back(MaterialFillLayer::finish_fill(finish));
+    draw_material(definition, material, "finish_glint");
+}
+
 // A face with a second fill blended onto it by `blend`.
 void draw_fill_blend(ThemeDefinition& definition, MaterialBlendMode blend, std::string_view label) {
     SurfaceMaterial material = lit_face();
@@ -568,6 +624,15 @@ constexpr EngineFeatureSample samples[] = {
     {"procedural_brushed_metal", "material", PartRole::face, Drive::rest, procedural_brushed_metal},
     {"procedural_fresco", "material", PartRole::face, Drive::rest, procedural_fresco},
     {"procedural_checker", "material", PartRole::face, Drive::rest, procedural_checker},
+    {"finish_dusty_matte", "material", PartRole::face, Drive::rest, finish_dusty_matte},
+    {"finish_orange_peel", "material", PartRole::face, Drive::rest, finish_orange_peel},
+    {"finish_hammertone", "material", PartRole::face, Drive::rest, finish_hammertone},
+    {"finish_wrinkle", "material", PartRole::face, Drive::rest, finish_wrinkle},
+    {"finish_bead_blast", "material", PartRole::face, Drive::rest, finish_bead_blast},
+    {"finish_sand_cast", "material", PartRole::face, Drive::rest, finish_sand_cast},
+    {"finish_flat", "material", PartRole::face, Drive::rest, finish_flat},
+    {"finish_cloth_weave", "material", PartRole::face, Drive::rest, finish_cloth_weave},
+    {"finish_glint", "material", PartRole::face, Drive::rest, finish_glint},
     {"fill_blend_multiply", "material", PartRole::face, Drive::rest, fill_blend_multiply},
     {"fill_blend_screen", "material", PartRole::face, Drive::rest, fill_blend_screen},
     {"shape_corner_radii", "material", PartRole::face, Drive::rest, shape_corner_radii},

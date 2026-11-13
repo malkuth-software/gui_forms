@@ -1,10 +1,10 @@
-#include "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
+#include "gui_forms/controls/font_dialog.hpp"
 
 #include "../panel_anatomy.hpp"
 
 #include "gui_forms/basic_controls.hpp"
-#include "gui_forms/controls/panel/list_box/list_box.hpp"
-#include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -63,10 +63,14 @@ public:
         set_background(Color::rgba(0, 0, 0, 0));
     }
 
-    void on_pointer(PointerEvent& event) override {
-        if (event.action == PointerAction::down || event.action == PointerAction::up) {
-            event.handled = true;
-        }
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        Control::on_mouse_down(arguments);
+    }
+
+    void on_mouse_up(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        Control::on_mouse_up(arguments);
     }
 };
 
@@ -456,7 +460,7 @@ void FontDialog::on_paint(Painter& painter, Rect) {
     part.bounds = parts.title.bounds;
     FontSpec title_font{FontRole::control, 13.0, 700, false};
     part.font = effective_font(title_font);
-    part.text = "Font";
+    part.text = lend_paint_text("Font");
     paint_part(painter, *this, part);
     part.text = {};
     part.family = ControlVisualRole::editor;
@@ -467,7 +471,7 @@ void FontDialog::on_paint(Painter& painter, Rect) {
     part.bounds = parts.preview_text.bounds;
     part.font = effective_font(selection_);
     part.alignment = PartTextAlignment::center;
-    part.text = preview_text.read();
+    part.text = lend_paint_text(preview_text.read());
     paint_part(painter, *this, part);
 }
 

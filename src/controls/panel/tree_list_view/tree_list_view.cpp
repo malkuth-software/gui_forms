@@ -1,11 +1,11 @@
-#include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
+#include "gui_forms/controls/tree_list_view.hpp"
 
 #include "../collection_control_utilities.hpp"
 #include "../details_columns.hpp"
 #include "../../collections/row_height_index.hpp"
 
-#include "gui_forms/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.hpp"
-#include "gui_forms/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.hpp"
+#include "gui_forms/controls/h_scroll_bar.hpp"
+#include "gui_forms/controls/v_scroll_bar.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -1037,6 +1037,7 @@ TreeListView::Layout TreeListView::layout_for(Rect client) const {
     const double scale = effective_text_scale();
     placed.scale = scale;
     placed.well = client;
+    placed.mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
     const double inset = edge_inset * scale;
     const Rect content{client.x + inset, client.y + inset, std::max(0.0, client.width - inset * 2.0),
                        std::max(0.0, client.height - inset * 2.0)};
@@ -1051,8 +1052,10 @@ TreeListView::Layout TreeListView::layout_for(Rect client) const {
     placed.shown_rows = columns_.empty() ? 0U : shown_count();
     // Virtual mode: the height index estimates unmeasured rows at this row
     // height; a new estimate (font, scale, images) drops the kept heights.
+    // The index keeps the estimate in 1/64 units, so the comparison is
+    // with the estimate as it would be stored.
     const double estimate = row / scale;
-    if (row_source_ && (*row_heights_).estimated_height() != estimate) {
+    if (row_source_ && (*row_heights_).estimated_height() != RowHeightIndex::stored_estimate(estimate)) {
         (*row_heights_).assign((*row_heights_).count(), estimate);
     }
     const double header_height = columns_.empty() ? 0.0 : row + 2.0 * scale;
@@ -1310,12 +1313,18 @@ void TreeListView::arrange(Rect final_bounds) {
     if (vertical_bar_) {
         const bool shown = !placed.vertical_bar.empty();
         set_child_layout_collapsed(vertical_bar_, !shown);
-        if (shown) set_child_layout(vertical_bar_, placed.vertical_bar);
+        if (shown) {
+            const Rect bar = details_detail::shown_rect(placed.vertical_bar, placed.well, placed.mirrored);
+            set_child_layout(vertical_bar_, bar);
+        }
     }
     if (horizontal_bar_) {
         const bool shown = !placed.horizontal_bar.empty();
         set_child_layout_collapsed(horizontal_bar_, !shown);
-        if (shown) set_child_layout(horizontal_bar_, placed.horizontal_bar);
+        if (shown) {
+            const Rect bar = details_detail::shown_rect(placed.horizontal_bar, placed.well, placed.mirrored);
+            set_child_layout(horizontal_bar_, bar);
+        }
     }
     // Keep the stored scroll within the new bounds.
     top_row_ = placed.top_row;
@@ -1376,28 +1385,36 @@ void TreeListView::paint_column(Painter& painter, const Layout& placed, std::siz
     part.family = ControlVisualRole::menu_item;
     part.role = PartRole::face;
     part.bounds = parts.column_header.bounds;
-    paint_part(painter, *this, part);
+    paint_shown(painter, placed, part);
     part.role = PartRole::label;
     part.bounds = parts.column_label.bounds;
     part.alignment = text_alignment(columns_[column].alignment);
     details_detail::elide_to_width(painter, columns_[column].text, part.font, part.bounds.width, paint_text_);
-    part.text = paint_text_;
-    paint_part(painter, *this, part);
+    part.text = lend_paint_text(paint_text_);
+    paint_shown(painter, placed, part);
     part.text = {};
     part.alignment = PartTextAlignment::start;
     if (parts.sort_glyph.present) {
         part.role = PartRole::glyph;
         part.bounds = parts.sort_glyph.bounds;
         part.mark = sort_order_ == TreeListSortOrder::ascending ? PartMark::arrow_up : PartMark::arrow_down;
-        paint_part(painter, *this, part);
+        paint_shown(painter, placed, part);
         part.mark = PartMark::none;
     }
     part.family = ControlVisualRole::panel;
     part.role = PartRole::divider;
     part.bounds = parts.column_divider.bounds;
-    paint_part(painter, *this, part);
+    paint_shown(painter, placed, part);
     // column_grip is the divider's drag zone. The divider is its visible
     // sign; painting the grip role would draw grip dots at every divider.
+}
+
+// Paints `part`, laid out in reading order, where it shows: mirrored, with
+// its text alignment exchanged, right to left.
+void TreeListView::paint_shown(Painter& painter, const Layout& placed, PartPaint part) {
+    part.bounds = details_detail::shown_rect(part.bounds, placed.well, placed.mirrored);
+    part.alignment = details_detail::shown_alignment(part.alignment, placed.mirrored);
+    paint_part(painter, *this, part);
 }
 
 void TreeListView::paint_row(Painter& painter, const Layout& placed, std::size_t row) {
@@ -1414,12 +1431,13 @@ void TreeListView::paint_row(Painter& painter, const Layout& placed, std::size_t
     part.family = ControlVisualRole::selection;
     part.role = PartRole::face;
     part.bounds = parts.row_face.bounds;
-    paint_part(painter, *this, part);
+    paint_shown(painter, placed, part);
     if (parts.expander.present) {
         part.role = PartRole::disclosure;
         part.bounds = parts.expander.bounds;
-        part.mark = node.expanded ? PartMark::chevron_down : PartMark::chevron_right;
-        paint_part(painter, *this, part);
+        const PartMark collapsed = placed.mirrored ? PartMark::chevron_left : PartMark::chevron_right;
+        part.mark = node.expanded ? PartMark::chevron_down : collapsed;
+        paint_shown(painter, placed, part);
         part.mark = PartMark::none;
     }
     if (parts.icon.present && !node.image_key.empty()) {
@@ -1431,15 +1449,15 @@ void TreeListView::paint_row(Painter& painter, const Layout& placed, std::size_t
             part.role = PartRole::icon;
             part.bounds = parts.icon.bounds;
             part.image = resolved.image;
-            paint_part(painter, *this, part);
+            paint_shown(painter, placed, part);
             part.image = {};
         }
     }
     part.role = PartRole::content;
     part.bounds = parts.text.bounds;
     details_detail::elide_to_width(painter, node.text, part.font, part.bounds.width, paint_text_);
-    part.text = paint_text_;
-    paint_part(painter, *this, part);
+    part.text = lend_paint_text(paint_text_);
+    paint_shown(painter, placed, part);
     part.text = {};
     part.states = cell_states(row);
     for (std::size_t position = 1; position < column_order_.size(); ++position) {
@@ -1450,15 +1468,15 @@ void TreeListView::paint_row(Painter& painter, const Layout& placed, std::size_t
         part.alignment = text_alignment(columns_[column].alignment);
         details_detail::elide_to_width(painter, column_text(node, column), part.font, part.bounds.width,
                                        paint_text_);
-        part.text = paint_text_;
-        paint_part(painter, *this, part);
+        part.text = lend_paint_text(paint_text_);
+        paint_shown(painter, placed, part);
         part.text = {};
     }
     part.states = states;
     part.alignment = PartTextAlignment::start;
     part.role = PartRole::focus;
     part.bounds = parts.row_focus.bounds;
-    paint_part(painter, *this, part);
+    paint_shown(painter, placed, part);
 }
 
 void TreeListView::on_paint(Painter& painter, Rect) {
@@ -1467,15 +1485,15 @@ void TreeListView::on_paint(Painter& painter, Rect) {
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
     well.bounds = placed.well;
-    paint_part(painter, *this, well);
+    paint_shown(painter, placed, well);
     if (!placed.header.empty()) {
         PartPaint header;
         header.family = ControlVisualRole::panel;
         header.role = PartRole::face;
         header.bounds = placed.header;
-        paint_part(painter, *this, header);
+        paint_shown(painter, placed, header);
         painter.save();
-        painter.clip_rect(placed.header);
+        painter.clip_rect(details_detail::shown_rect(placed.header, placed.well, placed.mirrored));
         for (std::size_t column = 0; column < columns_.size(); ++column) {
             if (column_visible(placed, column)) paint_column(painter, placed, column);
         }
@@ -1483,7 +1501,7 @@ void TreeListView::on_paint(Painter& painter, Rect) {
     }
     if (!placed.viewport.empty()) {
         painter.save();
-        painter.clip_rect(placed.viewport);
+        painter.clip_rect(details_detail::shown_rect(placed.viewport, placed.well, placed.mirrored));
         const std::size_t end = end_realized(placed);
         for (std::size_t row = placed.top_row; row < end; ++row) paint_row(painter, placed, row);
         painter.restore();
@@ -1493,7 +1511,7 @@ void TreeListView::on_paint(Painter& painter, Rect) {
         corner.family = ControlVisualRole::panel;
         corner.role = PartRole::face;
         corner.bounds = placed.corner;
-        paint_part(painter, *this, corner);
+        paint_shown(painter, placed, corner);
     }
     // With no row to carry the focus cue, the view itself shows it.
     if (placed.shown_rows == 0U) {
@@ -1507,7 +1525,7 @@ void TreeListView::on_paint(Painter& painter, Rect) {
         focus.role = PartRole::focus;
         focus.bounds = placed.well;
         focus.states = control_states;
-        paint_part(painter, *this, focus);
+        paint_shown(painter, placed, focus);
     }
 }
 
@@ -1555,8 +1573,10 @@ TreeListView::Hit TreeListView::hit_test(const Layout& placed, Point local) cons
 
 std::optional<std::string> TreeListView::node_id_at(Point window_point) const {
     const Rect absolute = absolute_bounds();
-    const Point local{window_point.x - absolute.x, window_point.y - absolute.y};
-    const Hit hit = hit_test(layout(), local);
+    const Layout placed = layout();
+    const Point drawn{window_point.x - absolute.x, window_point.y - absolute.y};
+    const Point local = details_detail::reading_point(drawn, placed.well, placed.mirrored);
+    const Hit hit = hit_test(placed, local);
     if (hit.zone != HitZone::row && hit.zone != HitZone::expander) return std::nullopt;
     TreeListNode scratch;
     std::string identity = row_node(hit.index, scratch).stable_id;
@@ -1592,10 +1612,15 @@ std::size_t TreeListView::drop_position(const Layout& placed, std::size_t column
     return result;
 }
 
-void TreeListView::on_pointer(PointerEvent& event) {
+void TreeListView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const Point drawn{event.position.x - absolute.x, event.position.y - absolute.y};
+    // In reading order from here on (right to left, the drawn view mirrors);
+    // the two values are copied, since the kept layout is remade later.
+    const Rect frame = layout().well;
+    const bool mirrored = layout().mirrored;
+    const Point local = details_detail::reading_point(drawn, frame, mirrored);
     const Control::Ptr lifetime = shared_from_this();
     if (resizing_column_) {
         // The window may end capture before it delivers the release, and a
@@ -1725,6 +1750,48 @@ void TreeListView::on_pointer(PointerEvent& event) {
     }
 }
 
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void TreeListView::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void TreeListView::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void TreeListView::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void TreeListView::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void TreeListView::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
 std::optional<std::size_t> TreeListView::enabled_row_from(std::size_t row, std::ptrdiff_t step) const {
     std::ptrdiff_t position = static_cast<std::ptrdiff_t>(row);
     const std::ptrdiff_t count = static_cast<std::ptrdiff_t>(shown_count());
@@ -1794,7 +1861,7 @@ void TreeListView::step_out(std::size_t row) {
     if (parent) choose_row(*parent);
 }
 
-void TreeListView::on_key(KeyEvent& event) {
+void TreeListView::handle_key(KeyEvent& event) {
     if (!focused_ || !effectively_enabled() || event.action != KeyAction::down) return;
     const Control::Ptr lifetime = shared_from_this();
     if (event.physical_key == PhysicalKey::escape && resizing_column_) {
@@ -1817,7 +1884,14 @@ void TreeListView::on_key(KeyEvent& event) {
     const std::optional<std::size_t> current = current_row();
     const bool has_current = current.has_value();
     const std::size_t from = has_current ? *current : placed.top_row;
-    const std::uint32_t key = event.physical_key;
+    // Right to left the view reads from the right: Left and Right exchange,
+    // so Left steps into a node and Right out of it.
+    std::uint32_t key = event.physical_key;
+    if (placed.mirrored && key == PhysicalKey::left) {
+        key = PhysicalKey::right;
+    } else if (placed.mirrored && key == PhysicalKey::right) {
+        key = PhysicalKey::left;
+    }
     if (key == PhysicalKey::enter) {
         if (has_current) activate_row(from);
         event.handled = true;
@@ -1857,6 +1931,17 @@ void TreeListView::on_key(KeyEvent& event) {
     event.handled = true;
 }
 
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void TreeListView::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
+}
+
 // A repeated first letter steps to the next match; a longer prefix starts
 // its search at the current row. Only rows (shown nodes) are searched.
 void TreeListView::type_select(std::string_view text) {
@@ -1891,7 +1976,7 @@ void TreeListView::on_text_input(TextInputEvent& event) {
         !validate_utf8(event.text_utf8).valid()) {
         return;
     }
-    // Space belongs to on_key; it never starts a search.
+    // Space belongs to handle_key; it never starts a search.
     if (event.text_utf8 == " " && type_prefix_.empty()) return;
     // The asterisk expands everything under the current node, as in Windows
     // Forms' TreeView (the platform reports it as text: there is no keypad
@@ -1956,7 +2041,8 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
     // Column headers first, in display order; a header's press sorts.
     for (const std::size_t column : column_order_) {
         if (!column_visible(placed, column)) continue;
-        const Rect bounds = Rect::intersection(column_cell(placed, column), placed.header);
+        const Rect bounds = details_detail::shown_rect(Rect::intersection(column_cell(placed, column), placed.header),
+                                                       placed.well, placed.mirrored);
         SemanticNode node{};
         node.stable_id = column_identity(view_id, columns_[column].stable_id);
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
@@ -1977,7 +2063,8 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
     for (std::size_t row = placed.top_row; row < end; ++row) {
         const TreeListNode& item = row_node(row, scratch);
         const bool expandable = row_can_expand(row, item);
-        const Rect bounds = Rect::intersection(row_bounds(placed, row), placed.viewport);
+        const Rect bounds = details_detail::shown_rect(Rect::intersection(row_bounds(placed, row), placed.viewport),
+                                                       placed.well, placed.mirrored);
         SemanticNode node{};
         node.stable_id = item.stable_id;
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
@@ -2022,7 +2109,8 @@ void TreeListView::append_row_cells(const Layout& placed, std::size_t row, Seman
     for (const std::size_t column : column_order_) {
         const Rect extent = column_cell(placed, column);
         const Rect cell_rect{extent.x, line.y, extent.width, line.height};
-        const Rect bounds = Rect::intersection(cell_rect, placed.viewport);
+        const Rect bounds = details_detail::shown_rect(Rect::intersection(cell_rect, placed.viewport), placed.well,
+                                                       placed.mirrored);
         if (bounds.empty()) continue;
         SemanticNode cell{};
         cell.stable_id = item.stable_id + ".cell." + columns_[column].stable_id;
@@ -2212,6 +2300,7 @@ void TreeListView::publish_part_geometry(std::span<PartGeometry> geometry) const
     record.horizontal_scroll_bar = PartGeometry::from_bounds(placed.horizontal_bar);
     record.scroll_corner = PartGeometry::from_bounds(placed.corner);
     record.focus = PartGeometry::from_bounds(placed.well);
+    if (placed.mirrored) details_detail::mirror_record(tree_list_view_part_fields, record, placed.well);
     write_parts(anatomy(), tree_list_view_part_fields, record, geometry);
 }
 
@@ -2299,13 +2388,16 @@ void TreeListView::publish_realized_item_geometry(std::size_t item, std::span<Pa
     const RealizedSlot slot = realized_slot(placed, item);
     const ItemSystemDeclaration& system = anatomy().item_systems[slot.system.value];
     if (slot.system == row_system) {
-        const RowParts record = row_parts(placed, slot.row, placed.viewport);
+        RowParts record = row_parts(placed, slot.row, placed.viewport);
+        if (placed.mirrored) details_detail::mirror_record(tree_list_view_row_part_fields, record, placed.well);
         write_item_parts(system, tree_list_view_row_part_fields, record, geometry);
     } else if (slot.system == cell_system) {
-        const CellParts record = cell_parts(placed, slot.row, slot.column, placed.viewport);
+        CellParts record = cell_parts(placed, slot.row, slot.column, placed.viewport);
+        if (placed.mirrored) details_detail::mirror_record(tree_list_view_cell_part_fields, record, placed.well);
         write_item_parts(system, tree_list_view_cell_part_fields, record, geometry);
     } else {
-        const ColumnParts record = column_parts(placed, slot.column, placed.header);
+        ColumnParts record = column_parts(placed, slot.column, placed.header);
+        if (placed.mirrored) details_detail::mirror_record(tree_list_view_column_part_fields, record, placed.well);
         write_item_parts(system, tree_list_view_column_part_fields, record, geometry);
     }
 }

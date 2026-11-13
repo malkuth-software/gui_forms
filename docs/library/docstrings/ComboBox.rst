@@ -108,10 +108,6 @@ font : default ``FontSpec{FontRole::content, 12.0, 400, false}``
 
 Events
 ------
-selected_index_changed
-    Raised after `selected_index` changes, by input, by the setter, or by
-    an edit of `items` moving or clearing it. It carries the new
-    index, or no value. Setting the current index again raises nothing.
 drop_down_changed
     Raised with `true` after the overlay list opens and with `false` after
     it closes, whichever way it closed.
@@ -125,10 +121,12 @@ text_changed
 
 Methods
 -------
-on_pointer
-    Opens the overlay list on a primary press. The window calls it.
-on_key
-    Handles the keyboard input described under Notes. The window calls it.
+on_mouse_down
+    Opens the overlay list on a primary press, then raises the event. The
+    window calls it.
+on_key_down
+    Raises the event, then handles a key its subscribers left unhandled as
+    described under Notes. The window calls it.
 on_key_preview
     In the drop_down style, sees the editor's keys first and handles F4,
     Alt+Down, Up and Down, and Enter and Escape while the list is open. The

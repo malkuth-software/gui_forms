@@ -9,7 +9,7 @@ gui_forms::MonthCalendar
 
 .. cpp:class:: MonthCalendar final : public Control, public MonthCalendarCapabilities<MonthCalendar>
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
+   ``#include <gui_forms/controls/month_calendar.hpp>``
 
    A calendar of one or more months on which the user selects dates.
 
@@ -294,7 +294,7 @@ gui_forms::MonthCalendar
 
       The first day of the first month shown.
 
-   .. cpp:function:: std::span<const DateTimeValue> bolded_dates() const noexcept
+   .. cpp:function:: std::span<const DateTimeValue> bolded_dates() const& noexcept
 
       Days shown in bold. :cpp:func:`set_bolded_dates <gui_forms::MonthCalendar::set_bolded_dates>`, :cpp:func:`add_bolded_date <gui_forms::MonthCalendar::add_bolded_date>`,
       :cpp:func:`remove_bolded_date <gui_forms::MonthCalendar::remove_bolded_date>` and :cpp:func:`remove_all_bolded_dates <gui_forms::MonthCalendar::remove_all_bolded_dates>` change them; an
@@ -304,7 +304,7 @@ gui_forms::MonthCalendar
 
       Sets :cpp:func:`bolded_dates <gui_forms::MonthCalendar::bolded_dates>`; see the property's description above.
 
-   .. cpp:function:: std::span<const DateTimeValue> annually_bolded_dates() const noexcept
+   .. cpp:function:: std::span<const DateTimeValue> annually_bolded_dates() const& noexcept
 
       Days shown in bold every year: only their month and day count.
 
@@ -312,7 +312,7 @@ gui_forms::MonthCalendar
 
       Sets :cpp:func:`annually_bolded_dates <gui_forms::MonthCalendar::annually_bolded_dates>`; see the property's description above.
 
-   .. cpp:function:: std::span<const DateTimeValue> monthly_bolded_dates() const noexcept
+   .. cpp:function:: std::span<const DateTimeValue> monthly_bolded_dates() const& noexcept
 
       Days shown in bold every month: only their day counts.
 
@@ -384,10 +384,6 @@ gui_forms::MonthCalendar
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -405,6 +401,30 @@ gui_forms::MonthCalendar
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -427,3 +447,269 @@ gui_forms::MonthCalendar
       *Protected.*
 
       on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``MonthCalendar``. Members declared here and by the counterpart: 18 supported, 0 deferred, 1 excluded, 44 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``MonthCalendar``
+     - ``MonthCalendar``
+     - supported
+   * - property
+     - ``AnnuallyBoldedDates``
+     - ``annually_bolded_dates``
+     - supported
+   * - property
+     - ``BoldedDates``
+     - ``bolded_dates``
+     - unclassified (untested)
+   * - property
+     - ``CalendarDimensions``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FirstDayOfWeek``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaxDate``
+     - ``max_date``
+     - unclassified (untested)
+   * - property
+     - ``MaxSelectionCount``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MinDate``
+     - ``min_date``
+     - unclassified (untested)
+   * - property
+     - ``MonthlyBoldedDates``
+     - ``monthly_bolded_dates``
+     - supported
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``RightToLeftLayout``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ScrollChange``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionEnd``
+     - ``selection_end``
+     - unclassified (untested)
+   * - property
+     - ``SelectionRange``
+     - ``selection_range``
+     - supported
+   * - property
+     - ``SelectionStart``
+     - ``selection_start``
+     - supported
+   * - property
+     - ``ShowToday``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowTodayCircle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowWeekNumbers``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SingleMonthSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Size``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TitleBackColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TitleForeColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TodayDate``
+     - ``today_date``
+     - supported
+   * - property
+     - ``TodayDateSet``
+     - ``today_date_set``
+     - unclassified (untested)
+   * - property
+     - ``TrailingForeColor``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Click``
+     - ``click``
+     - unclassified (untested)
+   * - event
+     - ``DateChanged``
+     - ``date_changed``
+     - supported
+   * - event
+     - ``DateSelected``
+     - ``date_selected``
+     - supported
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - unclassified (untested)
+   * - event
+     - ``ImeModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseClick``
+     - ``mouse_click``
+     - unclassified (untested)
+   * - event
+     - ``MouseDoubleClick``
+     - ``mouse_double_click``
+     - unclassified (untested)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RightToLeftLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AddAnnuallyBoldedDate``
+     - ``add_annually_bolded_date``
+     - supported
+   * - method
+     - ``AddBoldedDate``
+     - ``add_bolded_date``
+     - supported
+   * - method
+     - ``AddMonthlyBoldedDate``
+     - ``add_monthly_bolded_date``
+     - supported
+   * - method
+     - ``GetDisplayRange``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``HitTest``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnDateChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDateSelected``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRightToLeftLayoutChanged``
+     - none
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
+   * - method
+     - ``RemoveAllAnnuallyBoldedDates``
+     - ``remove_all_annually_bolded_dates``
+     - unclassified (untested)
+   * - method
+     - ``RemoveAllBoldedDates``
+     - ``remove_all_bolded_dates``
+     - unclassified (untested)
+   * - method
+     - ``RemoveAllMonthlyBoldedDates``
+     - ``remove_all_monthly_bolded_dates``
+     - unclassified (untested)
+   * - method
+     - ``RemoveAnnuallyBoldedDate``
+     - ``remove_annually_bolded_date``
+     - supported
+   * - method
+     - ``RemoveBoldedDate``
+     - ``remove_bolded_date``
+     - unclassified (untested)
+   * - method
+     - ``RemoveMonthlyBoldedDate``
+     - ``remove_monthly_bolded_date``
+     - unclassified (untested)
+   * - method
+     - ``SetCalendarDimensions``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetDate``
+     - ``set_date``
+     - supported
+   * - method
+     - ``SetSelectionRange``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpdateBoldedDates``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``first_displayed_month``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_days``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``bolded``
+     - supported
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``scroll_months``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_range``
+     - supported

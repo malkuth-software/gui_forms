@@ -2,13 +2,13 @@
   "family": "Badge",
   "step": "W-4",
   "declaring": "Badge",
-  "header": "include/gui_forms/controls/badge/badge.hpp",
+  "header": "include/gui_forms/controls/badge.hpp",
   "source": "src/controls/badge/badge.cpp",
-  "capabilities_header": "include/gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/badge_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
-    "gui_forms/controls/badge/badge_values/badge_values.hpp"
+    "gui_forms/controls/badge_values.hpp"
   ],
   "properties": [
     {
@@ -141,6 +141,6 @@
   "not_properties": [],
   "test": {
     "type": "Badge",
-    "include": "gui_forms/controls/badge/badge.hpp"
+    "include": "gui_forms/controls/badge.hpp"
   }
 }

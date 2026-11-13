@@ -3,7 +3,7 @@
 // The DockSite's private children, shared by its two sources: the PageView
 // realizing each stack, and the drag layer.
 
-#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/controls/dock_site.hpp"
 
 #include <string>
 #include <string_view>

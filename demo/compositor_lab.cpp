@@ -1,6 +1,26 @@
 #include "compositor_lab.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/display/types/display_types.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/event/event/event.hpp"
+#include "gui_forms/host/compositor/window_backdrop.hpp"
+#include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/rules/rule_set/rule_set.hpp"
+#include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <array>
 #include <cstddef>

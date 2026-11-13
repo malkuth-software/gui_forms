@@ -1,4 +1,4 @@
-#include "gui_forms/controls/label/label.hpp"
+#include "gui_forms/controls/label.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
@@ -369,12 +369,15 @@ Label::TextLayout Label::layout_label_text(const std::string_view shown,
     layout.widths.reserve(layout.lines.size());
     double block_left = arranged.width;
     double block_right = 0.0;
+    // Near is the right edge under RightToLeft (Windows Forms mirrors a
+    // label's TextAlign).
+    const HorizontalAlignment placed_alignment = directed_alignment(alignment.read(), effective_layout_direction());
     for (std::size_t index = 0; index < layout.lines.size(); ++index) {
         const double text_width = metrics[index].logical_size.width;
         double x = horizontal_inset;
-        if (alignment.read() == HorizontalAlignment::center) {
+        if (placed_alignment == HorizontalAlignment::center) {
             x = std::max(horizontal_inset, (arranged.width - text_width) * 0.5);
-        } else if (alignment.read() == HorizontalAlignment::far) {
+        } else if (placed_alignment == HorizontalAlignment::far) {
             x = std::max(horizontal_inset, arranged.width - text_width - horizontal_inset);
         }
         const double leading = std::max(
@@ -404,7 +407,7 @@ void Label::paint_label_text(Painter& painter, const std::string_view shown) con
     line.font = face;
     line.authored_foreground = fore_color.read();
     for (std::size_t index = 0; index < layout.lines.size(); ++index) {
-        line.text = layout.lines[index];
+        line.text = lend_paint_text(layout.lines[index]);
         paint_text_part_at(painter, *this, line, layout.origins[index], layout.widths[index]);
     }
 }

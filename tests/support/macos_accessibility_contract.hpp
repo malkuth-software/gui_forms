@@ -2,7 +2,9 @@
 
 #include "accessibility_actions.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
 
 #include <cstddef>
 #include <optional>

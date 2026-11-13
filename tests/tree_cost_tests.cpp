@@ -17,7 +17,20 @@
 // - N86: the display cache count follows paints, removals and re-attachment;
 // - N87: inherited values follow writes of every input and reparenting.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/layout/types/layout_types.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/surface_root/control_table/control_table.hpp"
 #include "support/clip_tracking_painter.hpp"

@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
+#include "gui_forms/controls/scaled_group_box.hpp"
 #include "../../../scrollable_control/container_control/scaled_layout_utilities.hpp"
 #include "../group_box_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"

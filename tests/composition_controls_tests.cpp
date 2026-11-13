@@ -1,6 +1,7 @@
 #include "gui_forms/composition_controls.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms_lab/review_card.hpp"
 #include "support/named_callbacks.hpp"
 
 #include <cstdlib>

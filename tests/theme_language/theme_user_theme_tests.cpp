@@ -9,7 +9,16 @@
 // theme and resolved by the application's icon registry.
 
 #include "../../src/core/theme_language/package/theme_manifest.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/resources/types/image_resource_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <array>
 #include <cstddef>

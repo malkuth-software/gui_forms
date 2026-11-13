@@ -1,6 +1,7 @@
 #include "gui_forms/window.hpp"
 
 #include "../../display/chunk/display_chunk.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "../../display/command/display_command.hpp"
 #include "../overlay/overlay_attachment.hpp"
 #include "../../text/prepared/prepared_storage.hpp"

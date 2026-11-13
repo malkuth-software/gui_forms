@@ -4,7 +4,20 @@
 // scrolling; week numbers and the first day of the week; several months;
 // semantics; and the published anatomy.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/calendar_values.hpp"
+#include "gui_forms/controls/date_time_value.hpp"
+#include "gui_forms/controls/month_calendar.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cstdlib>
 #include <iostream>

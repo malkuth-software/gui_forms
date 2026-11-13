@@ -74,6 +74,10 @@
 .canvas-mist::part(face) { background: #fbfbf9; }
 .container-face::part(face) { background: #f1f1ef; }
 .lifecycle-face::part(face) { background: #f4f4f2; }
+/* The basics page's lifecycle card (gallery-lifecycle-card): a near-white
+   plate, slightly translucent over its group, under the theme's ink. Its
+   accent strip and outline are mid tones that read on either plate. */
+.lifecycle-card::part(face) { background: rgb(247 249 251 / 93%); }
 .picture-light::part(face) { background: #f9f9f7; }
 .picture-dark::part(face) { background: #ededeb; }
 .picture-ground::part(face) { background: #efefed; }
@@ -87,6 +91,39 @@
 .shell-canvas::part(face) { background: #f5f5f3; }
 .navigation-paper::part(face) { background: #e8e8e6; }
 .status-strip::part(face) { background: #ebebe9; }
+
+/* The industrial-surfaces page's swatches (skeudoindustrial surfaces,
+   phase 5): one finish each, in the GOST machine-tool paints (ГОСТ
+   22133-86's colorimetry; demo/themes/gost_paints/SOURCES.md). These are
+   the page's visual choices, not rulings: each paint is one property here
+   and each finish, seed and grain one rule below. A finish paints the
+   same in light and dark. */
+:root {
+  --swatch-teal: #4d676d;        /* GOST 397, blue-green */
+  --swatch-grey-green: #80948a;  /* GOST 365 */
+  --swatch-pale-mint: #b4c4b2;   /* GOST 319 */
+  --swatch-white-night: #b9bbae; /* GOST 858, here the dust */
+  --swatch-dark-grey: #656f74;   /* GOST 832 */
+  --swatch-grey-silver: #8d9695; /* GOST 810 */
+  --swatch-orange: #e0783a;      /* GOST 121 */
+  --swatch-flake: #bdb6a8;       /* hammertone's aluminium flake */
+  --swatch-warp: #8a6f4a;
+  --swatch-weft: #c8b98f;
+  --swatch-metal: #a3a3a3;       /* a glint's metal, as the fitted presets */
+}
+.finish-dusty-matte::part(face) { background: finish(dusty-matte, var(--swatch-teal), var(--swatch-white-night), 7); }
+.finish-orange-peel::part(face) { background: finish(orange-peel, var(--swatch-pale-mint), var(--swatch-grey-green), 7); }
+.finish-hammertone::part(face) { background: finish(hammertone, var(--swatch-teal), var(--swatch-flake), 11); }
+.finish-wrinkle::part(face) { background: finish(wrinkle, var(--swatch-dark-grey), var(--swatch-flake), 7); }
+.finish-bead-blast::part(face) { background: finish(bead-blast, var(--swatch-grey-silver), var(--swatch-metal), 7); }
+.finish-sand-cast::part(face) { background: finish(sand-cast, var(--swatch-grey-green), var(--swatch-white-night), 7); }
+.finish-flat::part(face) { background: finish(flat, var(--swatch-orange), var(--swatch-orange)); }
+.finish-cloth-weave::part(face) { background: finish(cloth-weave, var(--swatch-warp), var(--swatch-weft), 11, 2); }
+.finish-bead-blast-glint::part(face) { background: finish(bead-blast-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
+.finish-sand-blast-glint::part(face) { background: finish(sand-blast-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
+.finish-iridescent-glint::part(face) { background: finish(iridescent-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
+.finish-coarse-grit-glint::part(face) { background: finish(coarse-grit-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
+.finish-painted-sand-glint::part(face) { background: finish(painted-sand-glint, var(--swatch-teal), var(--swatch-metal), 5); }
 
 /* The dark variant: the same roles and grounds, each a dark paper with a
    light ink, in the order of the light rules above. The grounds keep
@@ -109,6 +146,7 @@
   .canvas-mist::part(face) { background: #21211f; }
   .container-face::part(face) { background: #2a2a28; }
   .lifecycle-face::part(face) { background: #292927; }
+  .lifecycle-card::part(face) { background: rgb(42 48 54 / 93%); }
   .picture-light::part(face) { background: #2d2d2b; }
   .picture-dark::part(face) { background: #20201e; }
   .picture-ground::part(face) { background: #292927; }
@@ -117,4 +155,37 @@
   .shell-canvas::part(face) { background: #1f1f1d; }
   .navigation-paper::part(face) { background: #2a2a28; }
   .status-strip::part(face) { background: #262624; }
+}
+
+/* The metallic fade: an opt-in class for a panel's or a group's face, a
+   thin, dithered fade that gives a large face a quiet metallic finish
+   (the skeudoindustrial positioning's "thin, dithered fade-in metallic
+   effect"). Over the face's own colour, which another rule gives it: a
+   one-unit edge catch along the top, a fainter shade along the foot, and
+   a low-contrast fade from slightly lighter at the top through clear to
+   slightly darker at the foot. Blue-noise dithering keeps the long fade
+   free of bands. These amounts are visual choices, one property each; the
+   dark scheme's follow. The rule comes last, so that it adds its layers
+   over the face colours above in both schemes. Any theme may copy it, the
+   industrial theme included. */
+:root {
+  --metallic-fade-light: rgb(255 255 255 / 8%);
+  --metallic-fade-shade: rgb(0 0 0 / 5%);
+  --metallic-fade-catch: rgb(255 255 255 / 50%);
+  --metallic-fade-foot: rgb(0 0 0 / 8%);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --metallic-fade-light: rgb(255 255 255 / 5%);
+    --metallic-fade-shade: rgb(0 0 0 / 12%);
+    --metallic-fade-catch: rgb(255 255 255 / 18%);
+    --metallic-fade-foot: rgb(0 0 0 / 25%);
+  }
+}
+.metallic-fade::part(face) {
+  background-image:
+    linear-gradient(180deg, var(--metallic-fade-catch) 0px, transparent 1px),
+    linear-gradient(0deg, var(--metallic-fade-foot) 0px, transparent 1px),
+    linear-gradient(180deg, var(--metallic-fade-light), transparent 45%, var(--metallic-fade-shade));
+  gradient-dither: blue-noise;
 }

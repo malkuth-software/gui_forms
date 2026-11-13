@@ -1,7 +1,18 @@
 // Stage DP: a paint pass over a set of damage rectangles paints each one
 // under its own clip. Two distant changes cost the sum of their areas, not
 // their bounding box, and nothing is drawn between them.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
+#include "gui_forms/resources/types/image_resource_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <array>
 #include <cstdlib>
@@ -181,6 +192,23 @@ void single_rectangle_paint_is_unchanged() {
     expect(after.damage_rectangles_painted == before.damage_rectangles_painted + 1U &&
                near(painted, bounding),
            "the single-rectangle overload still paints the bounding box");
+}
+
+// A clip that contains a rectangle on an axis returns that axis as it was:
+// 41.19375 + 40 - 41.19375 is not 40 in doubles, and a row of exactly 40
+// must stay 40 after clipping (TreeListView's virtual rows under a 22.6
+// header). Partial overlaps and disjoint rectangles clip as before.
+void intersection_keeps_contained_extents() {
+    const Rect row{0.0, 41.19375, 383.0, 40.0};
+    const Rect clip{0.0, 22.6, 383.0, 260.0};
+    const Rect kept = Rect::intersection(row, clip);
+    const Rect kept_reversed = Rect::intersection(clip, row);
+    expect(kept.y == row.y && kept.height == 40.0 && kept_reversed.height == 40.0 && kept.width == 383.0,
+           "a contained rectangle keeps its extent bit for bit");
+    const Rect partial = Rect::intersection(Rect{0.0, 270.0, 100.0, 40.0}, clip);
+    expect(partial.y == 270.0 && partial.height == (22.6 + 260.0) - 270.0, "a partial overlap clips to the edge");
+    const Rect apart = Rect::intersection(Rect{0.0, 400.0, 10.0, 10.0}, clip);
+    expect(apart.empty() && apart.height == 0.0, "disjoint rectangles intersect empty");
 }
 
 void accumulated_damage_paints_as_rectangles() {
@@ -374,6 +402,7 @@ int main() {
     distant_rectangles_paint_their_sum_and_nothing_between();
     nearly_touching_rectangles_merge();
     single_rectangle_paint_is_unchanged();
+    intersection_keeps_contained_extents();
     accumulated_damage_paints_as_rectangles();
     presentation_counters_record_copied_area();
     availability_record_reports_the_declaration();

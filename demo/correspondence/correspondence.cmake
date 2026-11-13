@@ -13,7 +13,7 @@ target_include_directories(gui_forms_correspondence_model PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/demo
     ${CMAKE_CURRENT_SOURCE_DIR}/demo/correspondence
 )
-target_link_libraries(gui_forms_correspondence_model PUBLIC gui_forms_controls)
+target_link_libraries(gui_forms_correspondence_model PUBLIC gui_forms_lab)
 
 if(GUI_FORMS_ENABLE_MACOS_HOST)
     set_source_files_properties(
@@ -35,7 +35,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     set_target_properties(gui_forms_correspondence PROPERTIES
         MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Correspondence"
         MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.correspondence"
-        MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
         MACOSX_BUNDLE_BUNDLE_VERSION "1"
         OUTPUT_NAME "GUI.Forms Correspondence"
     )

@@ -9,7 +9,7 @@ gui_forms::BackstageView
 
 .. cpp:class:: BackstageView final : public Control, public BackstageViewCapabilities<BackstageView>
 
-   ``#include <gui_forms/controls/backstage_view/backstage_view.hpp>``
+   ``#include <gui_forms/controls/backstage_view.hpp>``
 
    The File tab's full page: a column of commands and topics beside the topic's page.
 
@@ -39,7 +39,7 @@ gui_forms::BackstageView
          ``std::out_of_range``; an item that is not a topic, or no value, throws
          ``std::invalid_argument``.
 
-      **items** : ``std::span<const BackstageItemSpec>``
+      **items** : ``BorrowedSpan<BackstageItemSpec>``
          The column (:cpp:class:`BackstageItemSpec <gui_forms::BackstageItemSpec>`: ID, kind, Command, text with an
          optional mnemonic, image, definitive flag, page). :cpp:func:`set_items <gui_forms::BackstageView::set_items>` keeps the
          selection on a topic with the same ID, else the first topic, and throws
@@ -134,7 +134,7 @@ gui_forms::BackstageView
       ``std::out_of_range``; an item that is not a topic, or no value, throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: std::span<const BackstageItemSpec> items() const noexcept
+   .. cpp:function:: BorrowedSpan<BackstageItemSpec> items() const& noexcept
 
       The column (:cpp:class:`BackstageItemSpec <gui_forms::BackstageItemSpec>`: ID, kind, Command, text with an
       optional mnemonic, image, definitive flag, page). :cpp:func:`set_items <gui_forms::BackstageView::set_items>` keeps the
@@ -185,10 +185,6 @@ gui_forms::BackstageView
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -204,6 +200,26 @@ gui_forms::BackstageView
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -232,3 +248,37 @@ gui_forms::BackstageView
    .. cpp:member:: constexpr std::size_t maximum_items
 
       Development bounds, not measured capacity. Default: ``64U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 2 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``close_requested``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``topic_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``activate``
+     - unclassified (untested)

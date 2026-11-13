@@ -1106,6 +1106,49 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status failure_snapshot(gf_failure_snapshot* snapshot, gf_shadow_frame* frames,
+                                             uint64_t frame_capacity, uint64_t* frames_required, char* message_buffer,
+                                             uint64_t message_capacity, uint64_t* message_required) const noexcept {
+        if (table_.struct_size < 40u || table_.failure_snapshot == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.failure_snapshot(snapshot, frames, frame_capacity, frames_required,
+                                                         message_buffer, message_capacity, message_required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status clear_failure_snapshot() const noexcept {
+        if (table_.struct_size < 48u || table_.clear_failure_snapshot == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.clear_failure_snapshot();
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_exception_reflection(uint32_t enabled) const noexcept {
+        if (table_.struct_size < 56u || table_.set_exception_reflection == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_exception_reflection(enabled);
+        return called;
+    }
+
+    [[nodiscard]] gf_status exception_reflection(uint32_t* enabled) const noexcept {
+        if (table_.struct_size < 64u || table_.exception_reflection == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.exception_reflection(enabled);
+        return called;
+    }
+
+    [[nodiscard]] gf_status raise_native_exception(gf_utf8_view message) const noexcept {
+        if (table_.struct_size < 72u || table_.raise_native_exception == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.raise_native_exception(message);
+        return called;
+    }
+
 private:
     gf_diagnostics_table table_;
 };
@@ -2643,6 +2686,56 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status load_translation(gf_object system, gf_utf8_view locale_xml) const noexcept {
+        if (table_.struct_size < 88u || table_.load_translation == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.load_translation(system, locale_xml);
+        return called;
+    }
+
+    [[nodiscard]] gf_status load_user_overrides(gf_object system, gf_utf8_view locale_xml) const noexcept {
+        if (table_.struct_size < 96u || table_.load_user_overrides == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.load_user_overrides(system, locale_xml);
+        return called;
+    }
+
+    [[nodiscard]] gf_status clear_user_overrides(gf_object system) const noexcept {
+        if (table_.struct_size < 104u || table_.clear_user_overrides == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.clear_user_overrides(system);
+        return called;
+    }
+
+    [[nodiscard]] gf_status use_built_in_language(gf_object system, uint32_t built_in_only) const noexcept {
+        if (table_.struct_size < 112u || table_.use_built_in_language == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.use_built_in_language(system, built_in_only);
+        return called;
+    }
+
+    [[nodiscard]] gf_status export_template(gf_object system, gf_utf8_view language, char* buffer, uint64_t capacity,
+                                            uint64_t* required) const noexcept {
+        if (table_.struct_size < 120u || table_.export_template == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.export_template(system, language, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status read_field(gf_object system, gf_utf8_view stable_id, gf_locale_field field, char* buffer,
+                                       uint64_t capacity, uint64_t* required, gf_locale_origin* origin) const noexcept {
+        if (table_.struct_size < 128u || table_.read_field == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.read_field(system, stable_id, field, buffer, capacity, required, origin);
+        return called;
+    }
+
 private:
     gf_help_table table_;
 };
@@ -2777,6 +2870,55 @@ public:
 
 private:
     gf_windows_paint_endpoint_table table_;
+};
+
+// gf_classes_table, negotiated as GF_TABLE_CLASSES.
+class ClassesTable {
+public:
+    ClassesTable() noexcept : table_{} {}
+
+    // Negotiates the table at the header's version into output; a refusal
+    // leaves output serving nothing.
+    [[nodiscard]] static gf_status negotiate(ClassesTable& output) noexcept {
+        gf_classes_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_CLASSES, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                      &negotiated_table, sizeof(negotiated_table));
+        if (negotiated != GF_STATUS_OK) {
+            output = ClassesTable{};
+            return negotiated;
+        }
+        output.table_ = negotiated_table;
+        return GF_STATUS_OK;
+    }
+
+    // A table the caller negotiated through gf_abi_get_table.
+    [[nodiscard]] static ClassesTable adopt(const gf_classes_table& adopted_table) noexcept {
+        ClassesTable adopted;
+        adopted.table_ = adopted_table;
+        return adopted;
+    }
+
+    [[nodiscard]] const gf_classes_table& c_table() const noexcept { return table_; }
+
+    [[nodiscard]] gf_status create(const gf_class_header* table, gf_utf8_view stable_id, void* instance,
+                                   gf_object* object) const noexcept {
+        if (table_.struct_size < 16u || table_.create == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.create(table, stable_id, instance, object);
+        return called;
+    }
+
+    [[nodiscard]] gf_status base_raiser(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser) const noexcept {
+        if (table_.struct_size < 24u || table_.base_raiser == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.base_raiser(class_id, entry, raiser);
+        return called;
+    }
+
+private:
+    gf_classes_table table_;
 };
 
 // One reference to a library object, released (objects.release) when the

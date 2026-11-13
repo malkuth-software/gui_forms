@@ -1,7 +1,8 @@
 // Stage L, phase L1: the measure and arrange contract. Layout constraints and
 // intrinsic queries, the per-control measure cache and its counters, layout
-// boundaries, LayoutDirection, Label's min- and max-content sizes, and
-// identical logical boxes at four display scales.
+// boundaries, LayoutDirection, Label's min- and max-content sizes,
+// identical logical boxes at four display scales, and the refusal of a
+// custom layout's direct arrangement of a child (arrange_outside_slot).
 
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/container_controls.hpp"
@@ -14,6 +15,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -144,6 +146,34 @@ public:
         const Size measured{std::numeric_limits<double>::quiet_NaN(), -5.0};
         return measured;
     }
+};
+
+// A custom layout that places its children at `slot`: by publishing the
+// slot (set_child_layout) or, misused, by calling each child's arrange
+// directly, which the window refuses.
+class SlotPanel final : public CountingControl {
+public:
+    SlotPanel(StableId id, bool arranges_children_directly)
+        : CountingControl(std::move(id)), arranges_children_directly_(arranges_children_directly) {}
+
+    void arrange(Rect final_bounds) override {
+        ++arrange_calls;
+        arrange_self(final_bounds);
+        const std::vector<Ptr> retained = snapshot_layout_children();
+        for (const Ptr& child : retained) {
+            if (!is_current_layout_child(child)) continue;
+            if (arranges_children_directly_) {
+                (*child).arrange(slot);
+            } else {
+                set_child_layout(child, slot);
+            }
+        }
+    }
+
+    Rect slot{10.0, 20.0, 30.0, 40.0};
+
+private:
+    bool arranges_children_directly_{};
 };
 
 std::shared_ptr<CountingControl> counting_control(const char* id, double width, double height) {
@@ -354,6 +384,62 @@ void test_layout_boundary_stops_measure_propagation() {
     require((*sizing_root).measure_calls == 1U, "the content-sizing root must be re-measured");
 }
 
+// A child arranged directly from its parent's arrange keeps the placement
+// the pass gives it (its requested bounds, as no slot was published); the
+// arrangement is refused, counted and recorded as an error naming both
+// controls. Published slots are used and refuse nothing; the window
+// arranging the child itself, and a program arranging an attached control
+// outside a pass, are not refused.
+void test_direct_child_arrange_is_refused() {
+    const std::shared_ptr<SlotPanel> misused =
+        std::make_shared<SlotPanel>(StableId("contract.direct"), true);
+    (*misused).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
+    const std::shared_ptr<CountingControl> child = counting_control("contract.direct.child", 50.0, 25.0);
+    (*misused).add_child(child);
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(misused, Size{120.0, 80.0});
+    Window& window = *held_window;
+    window.perform_layout();
+    const Rect placed = (*child).arranged_bounds();
+    require(placed == Rect{0.0, 0.0, 50.0, 25.0},
+            "a child arranged directly must keep the placement the pass gives it from its slot");
+    // One refusal per arrange of the parent; the window arranges the child
+    // itself besides.
+    const std::uint64_t parent_arranges = (*misused).arrange_calls;
+    require(parent_arranges >= 1U && (*child).arrange_calls == parent_arranges + 1U,
+            "the child must be asked by its parent (refused) and once by the window");
+    const MetricsSnapshot refused = window.metrics_snapshot();
+    require(refused.layout_arrange_refusals == parent_arranges,
+            "each direct arrangement must be counted once");
+    const std::span<const LayoutDiagnostic> diagnostics = window.layout_diagnostics();
+    require(diagnostics.size() == parent_arranges, "each refusal must be recorded once");
+    const LayoutDiagnostic& diagnostic = diagnostics[0];
+    require(diagnostic.code == LayoutDiagnosticCode::arrange_outside_slot &&
+                diagnostic.severity == LayoutDiagnosticSeverity::error &&
+                diagnostic.child == "contract.direct.child" && diagnostic.ancestor == "contract.direct",
+            "the record must be an arrange_outside_slot error naming the child and its arranging parent");
+    require(layout_diagnostic_code_name(LayoutDiagnosticCode::arrange_outside_slot) == "arrange_outside_slot",
+            "the code must have its name");
+
+    // Outside a pass a program may still arrange an attached control.
+    (*child).arrange({1.0, 2.0, 3.0, 4.0});
+    require((*child).committed_arranged_bounds() == Rect{1.0, 2.0, 3.0, 4.0} &&
+                window.metrics_snapshot().layout_arrange_refusals == parent_arranges,
+            "an arrangement outside a pass must not be refused");
+
+    const std::shared_ptr<SlotPanel> published =
+        std::make_shared<SlotPanel>(StableId("contract.published"), false);
+    (*published).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
+    const std::shared_ptr<CountingControl> item = counting_control("contract.published.item", 50.0, 25.0);
+    (*published).add_child(item);
+    const std::unique_ptr<Window> held_published = std::make_unique<Window>(published, Size{120.0, 80.0});
+    Window& published_window = *held_published;
+    published_window.perform_layout();
+    require((*item).arranged_bounds() == (*published).slot, "a published slot must place the child");
+    require(published_window.metrics_snapshot().layout_arrange_refusals == 0U &&
+                published_window.layout_diagnostics().empty(),
+            "publishing slots must refuse nothing");
+}
+
 void test_detached_invalidation_advances_ancestors() {
     std::shared_ptr<CountingControl> parent = counting_control("contract.detached.parent", 80.0, 40.0);
     std::shared_ptr<CountingControl> child = counting_control("contract.detached.child", 20.0, 10.0);
@@ -553,6 +639,7 @@ int main() {
         test_cache_slots_keep_content_answers();
         test_window_measure_is_retained_and_counted_per_pass();
         test_layout_boundary_stops_measure_propagation();
+        test_direct_child_arrange_is_refused();
         test_detached_invalidation_advances_ancestors();
         test_self_invalidation_and_clamps();
         test_label_intrinsic_sizes();

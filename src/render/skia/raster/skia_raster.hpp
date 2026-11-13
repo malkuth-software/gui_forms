@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/resources.hpp"
 #include "gui_forms/live_surface/frame/live_surface_frame.hpp"
 #if defined(GUI_FORMS_PREPARED_TEXT)
@@ -177,6 +178,21 @@ public:
         std::string_view text, FontSpec font_spec) override;
     [[nodiscard]] TextResolutionStatus fill_line_break_opportunities_utf8(
         std::string_view text, std::span<LineBreakOpportunity> opportunities) override;
+    // From one shaping by the engine, not kept: a paragraph's shaping would
+    // only crowd the lines' kept shapings out.
+    [[nodiscard]] TextResolutionStatus fill_cluster_advances_utf8(
+        std::string_view text, FontSpec font_spec, std::span<double> advances) override;
+    // The engine's reusable workspace (no bounded registration needed), and
+    // its shaping: shape_text's shaping, with resolve's extent, allocating
+    // nothing once the workspace is reserved and the faces the text needs
+    // are open. A workspace of another raster's engine is refused.
+    [[nodiscard]] std::unique_ptr<ShapingWorkspace> create_shaping_workspace() override;
+    [[nodiscard]] TextExtent shape_in_workspace_utf8(ShapingWorkspace& workspace, std::string_view text,
+                                                     FontSpec font_spec) override;
+    // Draws runs this raster's engine shaped in its current face table
+    // through the same rasterization and compositing as draw_text_utf8
+    // (the same pixels for the same glyphs); anything else as its text.
+    void draw_glyph_runs(Point origin, const GlyphRunsView& view, FontSpec font_spec, Color color) override;
     void draw_image(ImageId image, Rect destination, double opacity) override;
     void draw_live_surface(const std::shared_ptr<LiveSurface> surface,
                            const Rect destination, const double opacity) override;

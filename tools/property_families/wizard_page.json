@@ -2,9 +2,9 @@
   "family": "WizardPage",
   "step": "2.5",
   "declaring": "WizardPage",
-  "header": "include/gui_forms/controls/wizard/wizard_page/wizard_page.hpp",
+  "header": "include/gui_forms/controls/wizard_page.hpp",
   "source": "src/controls/wizard/wizard_page/wizard_page.cpp",
-  "capabilities_header": "include/gui_forms/controls/wizard/wizard_page/wizard_page_capabilities/wizard_page_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/wizard_page_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [],
@@ -112,6 +112,6 @@
   ],
   "test": {
     "type": "WizardPage",
-    "include": "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
+    "include": "gui_forms/controls/wizard_page.hpp"
   }
 }

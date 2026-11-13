@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -20,18 +21,28 @@ enum class LayoutDiagnosticCode : std::uint16_t {
     // area (decision L-Q6: warned, and allowed). Recorded when the child's
     // resolution changes, not on every pass.
     containing_block_not_parent = 201,
+    // A control was arranged (Control::arrange or arrange_self) while the
+    // layout pass was arranging another control: a custom layout arranged a
+    // child directly instead of publishing its slot with set_child_layout.
+    // The pass places each child from its slot, so the direct arrangement
+    // would be overwritten; it is refused, changing nothing, and counted in
+    // MetricsSnapshot::layout_arrange_refusals. `child` names the control
+    // arranged, `ancestor` the control the pass was arranging. Recorded at
+    // every refusal.
+    arrange_outside_slot = 202,
 };
 
-[[nodiscard]] LayoutDiagnosticSeverity layout_diagnostic_severity(LayoutDiagnosticCode code) noexcept;
+[[nodiscard]] GUI_FORMS_API LayoutDiagnosticSeverity layout_diagnostic_severity(LayoutDiagnosticCode code) noexcept;
 // The code's snake_case name, such as `containing_block_not_parent`.
-[[nodiscard]] std::string_view layout_diagnostic_code_name(LayoutDiagnosticCode code) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view layout_diagnostic_code_name(LayoutDiagnosticCode code) noexcept;
 
-struct LayoutDiagnostic final {
+struct GUI_FORMS_API LayoutDiagnostic final {
     LayoutDiagnosticSeverity severity{LayoutDiagnosticSeverity::warning};
     LayoutDiagnosticCode code{LayoutDiagnosticCode::containing_block_not_parent};
     // The stable identities of the child the pass placed and of the
     // ancestor whose box it was placed in (the window's root control for
-    // its client area).
+    // its client area); for arrange_outside_slot, of the control arranged
+    // directly and of the control the pass was arranging.
     std::string child{};
     std::string ancestor{};
 

@@ -1,7 +1,8 @@
-#include "gui_forms/controls/badge/badge.hpp"
+#include "gui_forms/controls/badge.hpp"
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 
 #include <algorithm>
 #include <array>
@@ -126,7 +127,7 @@ void Badge::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, face);
     if (shown.empty()) return;
     PartPaint label{.role = PartRole::label, .bounds = chip, .states = states, .family = ControlVisualRole::badge};
-    label.text = shown;
+    label.text = lend_paint_text(shown);
     label.font = chip_font();
     label.alignment = PartTextAlignment::center;
     paint_part(painter, *this, label);

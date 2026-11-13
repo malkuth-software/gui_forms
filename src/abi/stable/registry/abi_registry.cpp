@@ -2,6 +2,8 @@
 
 #include "abi_registry.hpp"
 
+#include "../../../core/failure/failure_snapshot.hpp"
+
 #include "gui_forms/component/failures/component_failures.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/detail/storage_growth.hpp"
@@ -993,31 +995,61 @@ HandleRegistry& registry() noexcept {
     return *instance;
 }
 
-gf_status fail_with_current_exception(SlotIdentity slot) noexcept {
+namespace {
+
+// The status and message the C ABI gives an exception: the core's own
+// failure types and the standard ones name the status the header documents
+// (N6), whichever table reached them. message borrows the exception's
+// what(), valid while the caller's catch block holds the exception.
+struct ExceptionOutcome final {
+    gf_status status = GF_STATUS_INTERNAL;
+    std::string_view message;
+};
+
+ExceptionOutcome classify_current_exception() noexcept {
     try {
         throw;
     } catch (const std::bad_alloc&) {
-        return fail(GF_STATUS_OUT_OF_MEMORY, slot, "out of memory");
+        return ExceptionOutcome{GF_STATUS_OUT_OF_MEMORY, "out of memory"};
     } catch (const WrongThreadError& error) {
-        // The core's own failure types name the status the header documents
-        // (N6), whichever table reached them.
-        return fail(GF_STATUS_WRONG_THREAD, slot, error.what());
+        return ExceptionOutcome{GF_STATUS_WRONG_THREAD, error.what()};
     } catch (const DisposedError& error) {
-        return fail(GF_STATUS_DISPOSED, slot, error.what());
+        return ExceptionOutcome{GF_STATUS_DISPOSED, error.what()};
     } catch (const std::invalid_argument& error) {
-        return fail(GF_STATUS_INVALID_ARGUMENT, slot, error.what());
+        return ExceptionOutcome{GF_STATUS_INVALID_ARGUMENT, error.what()};
     } catch (const std::out_of_range& error) {
-        return fail(GF_STATUS_INVALID_ARGUMENT, slot, error.what());
+        return ExceptionOutcome{GF_STATUS_INVALID_ARGUMENT, error.what()};
     } catch (const std::length_error& error) {
         // The core reports its size and count limits as length_error.
-        return fail(GF_STATUS_LIMIT_EXCEEDED, slot, error.what());
+        return ExceptionOutcome{GF_STATUS_LIMIT_EXCEEDED, error.what()};
     } catch (const std::logic_error& error) {
-        return fail(GF_STATUS_INVALID_STATE, slot, error.what());
+        return ExceptionOutcome{GF_STATUS_INVALID_STATE, error.what()};
     } catch (const std::exception& error) {
-        return fail(GF_STATUS_INTERNAL, slot, error.what());
+        return ExceptionOutcome{GF_STATUS_INTERNAL, error.what()};
     } catch (...) {
-        return fail(GF_STATUS_INTERNAL, slot, "an unknown exception reached the C ABI");
+        return ExceptionOutcome{GF_STATUS_INTERNAL, "an unknown exception reached the C ABI"};
     }
+}
+
+static_assert(GF_STATUS_NATIVE_EXCEPTION == detail::failure_native_exception_status);
+static_assert(GF_FAILURE_SITE_CAPACITY == detail::failure_site_capacity);
+static_assert(GF_FAILURE_MESSAGE_CAPACITY == detail::failure_snapshot_message_capacity);
+
+} // namespace
+
+gf_status fail_with_current_exception(SlotIdentity slot) noexcept {
+    ExceptionOutcome outcome = classify_current_exception();
+    // An exception with no status of its own is the native exception a
+    // binding reflects, when reflection is on.
+    if (outcome.status == GF_STATUS_INTERNAL && detail::exception_reflection()) {
+        outcome.status = GF_STATUS_NATIVE_EXCEPTION;
+    }
+    // The snapshot before the error detail: nothing opens a frame between
+    // the slot's catch and here, so the unwind mark is current.
+    const detail::FailureBoundary boundary{detail::c_abi_failure_site, outcome.status, slot.table_id,
+                                           slot.slot_index};
+    detail::record_failure_snapshot(boundary, outcome.message);
+    return fail(outcome.status, slot, outcome.message);
 }
 
 gf_status read_text(gf_utf8_view view, SlotIdentity slot, std::string_view& text) noexcept {

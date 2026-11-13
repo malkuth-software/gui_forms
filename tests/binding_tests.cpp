@@ -1,4 +1,34 @@
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/binding/binding.hpp"
+#include "gui_forms/binding/binding_context/binding_context.hpp"
+#include "gui_forms/binding/binding_manager_base/binding_manager_base.hpp"
+#include "gui_forms/binding/binding_source/binding_source.hpp"
+#include "gui_forms/binding/types/binding_contract_types.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
+#include "gui_forms/binding/value/property_collection_value/property_collection_value.hpp"
+#include "gui_forms/binding/value/property_object_value/property_object_value.hpp"
+#include "gui_forms/component/component/component.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/control_layout_styles/control_layout_styles.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/picture_box_values.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/track_bar.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/schema/types/schema_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "support/binding_test_rows.hpp"
 #include "support/named_callbacks.hpp"
@@ -489,7 +519,7 @@ void test_property_metadata_defaults_reset_and_serialization() {
                 "name", "text", "tool_tip_text", "visible"},
             "bindable property enumeration must be deterministic and use the registered names");
     const std::vector<PropertyDescriptor> descriptors = (*editor).property_descriptors();
-    require(descriptors.size() == 39U &&
+    require(descriptors.size() == 43U &&
                 descriptors.front().name == "accessible_description" &&
                 descriptors.back().name == "wheel_scrolls",
             "property descriptor snapshots must follow deterministic canonical order");

@@ -2,24 +2,24 @@
   "family": "DataGridView",
   "step": "P-5",
   "declaring": "DataGridView",
-  "header": "include/gui_forms/controls/data_grid_view/data_grid_view.hpp",
+  "header": "include/gui_forms/controls/data_grid_view.hpp",
   "source": "src/controls/data_grid_view/data_grid_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/data_grid_view_capabilities.hpp",
   "base": "Control",
   "shared": [
     "FontCapability"
   ],
   "includes": [
-    "gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp",
-    "gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp",
-    "gui_forms/controls/panel/panel.hpp",
+    "gui_forms/controls/data_grid_view_row_order.hpp",
+    "gui_forms/controls/data_grid_view_types.hpp",
+    "gui_forms/controls/panel.hpp",
     "gui_forms/theme/owner_draw/owner_draw.hpp",
     "gui_forms/types.hpp",
     "<memory>"
   ],
   "test": {
     "type": "DataGridView",
-    "include": "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+    "include": "gui_forms/controls/data_grid_view.hpp"
   },
   "not_properties": [
     {

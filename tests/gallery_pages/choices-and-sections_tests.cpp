@@ -1,4 +1,11 @@
 #include "page_tests.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/choice_group_values.hpp"
+#include "gui_forms/controls/expandable_sections.hpp"
+#include "gui_forms/controls/group_box.hpp"
+#include "gui_forms/controls/toggle_switch.hpp"
+#include "gui_forms_lab/review_card.hpp"
 
 namespace gallery_pages_tests {
 namespace {

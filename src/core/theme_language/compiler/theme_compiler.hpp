@@ -98,8 +98,15 @@ struct ThemeCompileInput final {
     // sheet): the colour authority, whose literal colours are the colours
     // forced high contrast derives from, so they are not reported as
     // unremappable (W201; owner, 2026-11-08, option 2). Rules before
-    // base_origin_end are the authority too. App and user sheets are not.
+    // base_origin_end are the authority too, and so are rules before
+    // colour_authority_end. App and user sheets are not.
     bool colour_authority{};
+    // The byte offset where the base sheet's text ends in any compilation
+    // that places it first: rules starting before it are the colour
+    // authority (above) without being at the base levels, as a layered
+    // user theme compiled onto the stock floor needs (its rules all stand
+    // at the user levels, so base_origin_end is not set). Unset: none.
+    std::optional<std::uint32_t> colour_authority_end{};
     // The effects an `effect` may name (EP-3), borrowed for the call: a
     // name it does not hold is refused (E417). Null, only the name's form
     // is checked, and the control checks the effect when it attaches it.

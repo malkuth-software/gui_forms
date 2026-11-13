@@ -6,7 +6,26 @@
 // refusals that leave the map unchanged.
 
 #include "gui_forms/application.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/application/application.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/page_strip.hpp"
+#include "gui_forms/controls/page_view.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/events/key_commands/key_commands.hpp"
+#include "gui_forms/events/mouse_events/mouse_events.hpp"
+#include "gui_forms/host/session/host_session.hpp"
+#include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
+#include "gui_forms/host/types/host_capability/host_capability.hpp"
+#include "gui_forms/pages/page_set/page_set.hpp"
+#include "gui_forms/pages/types/page_set_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 
 #include <cstdint>

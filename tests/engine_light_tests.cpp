@@ -13,13 +13,39 @@
 // follows the part's presentational scale: stretched with the face while
 // the scale moves, baked at the scaled size once it rests.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "support/rgba_order.hpp"
 
 #include "../src/core/engine/primitives/material/material_primitive.hpp"
 #include "../src/core/engine/primitives/light/sheen_primitive.hpp"
 #include "../src/core/engine/primitives/material/overlay_shadow_primitive.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -242,10 +268,10 @@ void too_wide_falls_back() {
 
 // A control showing a keyed sheen over a 100 by 30 face of radius 6, hot
 // while the pointer is over the control.
-class Glint final : public Control {
+class Glint final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit Glint(StableId stable_id) : Control(std::move(stable_id)) {}
-    void on_pointer(PointerEvent& event) override {
+    explicit Glint(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) {}
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::enter) {
             hot = true;
             invalidate(Dirty::paint);

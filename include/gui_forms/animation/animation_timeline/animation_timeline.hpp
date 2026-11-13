@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/scheduler.hpp"
 
 #include <cstdint>
@@ -24,7 +25,7 @@ enum class AnimationDirection : std::uint8_t {
     alternate_reverse,
 };
 
-struct AnimationSpec final {
+struct GUI_FORMS_API AnimationSpec final {
     FrameInterval delay{};
     FrameInterval duration{std::chrono::milliseconds(300)};
     double iterations{1.0};
@@ -33,7 +34,7 @@ struct AnimationSpec final {
     bool infinite{};
 };
 
-struct AnimationSample final {
+struct GUI_FORMS_API AnimationSample final {
     double progress{};
     double eased_progress{};
     std::uint64_t iteration{};
@@ -50,7 +51,7 @@ struct AnimationSample final {
 // active, but exposes a calmer cadence, an accumulated-phase speed scale, and
 // limited visual excursion. Controls consume the helpers appropriate to their
 // timeline model. Only the explicit playback gates are quiescent.
-struct MotionPolicy final {
+struct GUI_FORMS_API MotionPolicy final {
     bool enabled{true};
     bool paused{};
     bool reduced{};
@@ -84,9 +85,9 @@ struct MotionPolicy final {
     }
 };
 
-[[nodiscard]] double apply_easing(EasingCurve easing, double progress) noexcept;
+[[nodiscard]] GUI_FORMS_API double apply_easing(EasingCurve easing, double progress) noexcept;
 
-class AnimationTimeline final {
+class GUI_FORMS_API AnimationTimeline final {
 public:
     AnimationTimeline() = default;
     explicit AnimationTimeline(AnimationSpec specification);

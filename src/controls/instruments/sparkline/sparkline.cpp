@@ -1,4 +1,4 @@
-#include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
+#include "gui_forms/controls/sparkline.hpp"
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"

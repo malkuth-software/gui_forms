@@ -10,9 +10,23 @@
 // (A18); mnemonics decode strictly (A19); and a keyed publication outside
 // initialisation runs at once (S6).
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/event/event.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/text/types/text_types.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/text.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <cstdint>
 #include <cstdlib>
@@ -77,10 +91,10 @@ void test_event_state() {
 }
 
 // The control whose pointer handler disposes it (A6).
-class DisposingControl final : public Control {
+class DisposingControl final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit DisposingControl(StableId id) : Control(std::move(id)) {}
-    void on_pointer(PointerEvent& event) override {
+    explicit DisposingControl(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {}
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::down) dispose();
     }
 };

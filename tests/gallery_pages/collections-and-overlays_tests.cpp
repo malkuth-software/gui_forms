@@ -1,4 +1,7 @@
 #include "support.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/list_box.hpp"
 
 namespace gallery_pages_tests {
 

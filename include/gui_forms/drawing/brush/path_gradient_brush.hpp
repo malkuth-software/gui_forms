@@ -1,10 +1,11 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/brush/brush.hpp"
 
 namespace gui_drawing {
 
-class PathGradientBrush final : public Brush {
+class GUI_FORMS_API PathGradientBrush final : public Brush {
 public:
     explicit PathGradientBrush(std::span<const PointF> points,
                                WrapMode wrap_mode = WrapMode::clamp);

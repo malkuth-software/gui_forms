@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/host/windowing/host_windowing.hpp"
@@ -78,9 +79,9 @@ enum class ApplicationWindowRefusal : std::uint8_t {
 
 // A short English sentence for `refusal`, for logs and the C ABI's failure
 // message. Static storage; empty for none.
-[[nodiscard]] std::string_view application_window_refusal_text(ApplicationWindowRefusal refusal) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view application_window_refusal_text(ApplicationWindowRefusal refusal) noexcept;
 
-struct ApplicationResult final {
+struct GUI_FORMS_API ApplicationResult final {
     ApplicationError error{ApplicationError::none};
     int native_exit_code{};
     std::size_t window_index{std::numeric_limits<std::size_t>::max()};
@@ -99,7 +100,7 @@ struct ApplicationResult final {
 
 /// A weak, thread-affine handle to one native application window.
 /// Requests after close or after Application::run return after_shutdown.
-class ApplicationWindowHandle final {
+class GUI_FORMS_API ApplicationWindowHandle final {
 public:
     ApplicationWindowHandle() noexcept = default;
     [[nodiscard]] bool active() const noexcept;
@@ -149,7 +150,7 @@ private:
     std::weak_ptr<detail::ApplicationWindowState> state_{};
 };
 
-struct ApplicationWindowOptions final {
+struct GUI_FORMS_API ApplicationWindowOptions final {
     std::string title{"GUI.Forms Application"};
     Size initial_size{1120.0, 680.0};
     // The smallest client size the user may resize the window to, in
@@ -188,7 +189,7 @@ struct ApplicationWindowOptions final {
     std::function<void(const HostWindowFrameEvent&)> frame_changed{};
 };
 
-struct ApplicationWindow final {
+struct GUI_FORMS_API ApplicationWindow final {
     std::string stable_id{};
     std::string owner_id{};
     std::unique_ptr<Window> model{};
@@ -208,14 +209,14 @@ struct ApplicationWindow final {
     std::optional<HostPopupPlacement> popup{};
 };
 
-struct ApplicationWindowOpenResult final {
+struct GUI_FORMS_API ApplicationWindowOpenResult final {
     HostServiceStatus status{};
     // Active once the window is ready; inactive when the open was refused.
     ApplicationWindowHandle window{};
 };
 
 // What ApplicationWindows::show_modal gives back.
-struct ApplicationModalResult final {
+struct GUI_FORMS_API ApplicationModalResult final {
     // The open's or the nested loop's refusal; accepted once the window
     // has closed (or the run quit during the loop).
     HostServiceStatus status{};
@@ -226,7 +227,7 @@ struct ApplicationModalResult final {
     DialogResult dialog_result{DialogResult::none};
 };
 
-struct ApplicationWindowAtResult final {
+struct GUI_FORMS_API ApplicationWindowAtResult final {
     HostServiceStatus status{};
     // False when no window of the run is topmost at the point.
     bool found{};
@@ -237,7 +238,7 @@ struct ApplicationWindowAtResult final {
 /// application (stage DK decisions 6 and 7). Obtained from
 /// ApplicationWindowHandle::windows(). Requests after the run ends return
 /// after_shutdown; requests from another thread return wrong_thread.
-class ApplicationWindows final {
+class GUI_FORMS_API ApplicationWindows final {
 public:
     ApplicationWindows() noexcept = default;
     [[nodiscard]] bool active() const noexcept;
@@ -285,7 +286,7 @@ private:
 // The application's theme (APP_WINDOW_RULES_DESIGN A.2): the base sheet,
 // then the program's packages in order, compiled once by
 // Application::create (compile_theme_packages).
-struct ApplicationThemeConfig final {
+struct GUI_FORMS_API ApplicationThemeConfig final {
     // The process default's base (default_theme_base) unless chosen.
     ThemeBase base{default_theme_base};
     // The program's packages, in compile order: a later one overrides an
@@ -299,12 +300,14 @@ struct ApplicationThemeConfig final {
     // The effects the packages' `effect` may name (EP-3), usually
     // built_in_effect_registry(); a name it does not hold refuses the theme
     // (E417). Borrowed for the call to create only. Null, only the names'
-    // form is checked.
+    // form is checked. A user theme the process is started with is checked
+    // against the process's installed registry (install_effect_registry)
+    // whatever this holds.
     const EffectRegistry* effects{};
 };
 
 // Everything an application is made with. Move-only (it holds a library).
-struct ApplicationConfig final {
+struct GUI_FORMS_API ApplicationConfig final {
     ApplicationThemeConfig theme{};
     // The presentation defaults every window of the application starts
     // with, until the host reports its own; GUI.Forms' defaults when unset.
@@ -326,7 +329,7 @@ class Application;
 // What Application::create gave: an application owned by the caller, with
 // the theme compile's warnings in `findings`, or a refusal with nothing
 // made and, for theme_refused, the compile's diagnostics.
-struct ApplicationCreateResult final {
+struct GUI_FORMS_API ApplicationCreateResult final {
     ApplicationCreateError error{ApplicationCreateError::none};
     std::unique_ptr<Application> application{};
     std::vector<ThemeCompileDiagnostic> findings{};
@@ -352,7 +355,7 @@ struct ApplicationCreateResult final {
 /// Link GUIForms::Application for `run` and `capabilities`; the rest is
 /// part of GUIForms::Core. Window models given to `run` are consumed even
 /// on failure. UI thread: every member but the tooltip switch and current().
-class Application final {
+class GUI_FORMS_API Application final {
 public:
     static constexpr std::size_t maximum_windows = 64U;
     // Makes the application and registers it as current: compiles its

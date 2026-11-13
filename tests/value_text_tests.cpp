@@ -5,7 +5,7 @@
 // every defect with its position, the bounds, and the formatted value.
 // Headless and deterministic.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/controls/value_bar_values.hpp"
 #include "../src/controls/range_control/value_bar/value_text.hpp"
 
 #include <array>

@@ -9,7 +9,7 @@ gui_forms::DateTimePicker
 
 .. cpp:class:: DateTimePicker final : public Panel, public DateTimePickerCapabilities<DateTimePicker>
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker.hpp>``
+   ``#include <gui_forms/controls/date_time_picker.hpp>``
 
    A field that shows a date and time and lets the user pick a date from a drop-down calendar.
 
@@ -371,10 +371,6 @@ gui_forms::DateTimePicker
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: void on_activate() override
@@ -386,6 +382,18 @@ gui_forms::DateTimePicker
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -412,3 +420,229 @@ gui_forms::DateTimePicker
    .. cpp:function:: virtual void on_font_changed()
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 6 supported, 0 deferred, 1 excluded, 46 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``DateTimePicker``
+     - ``DateTimePicker``
+     - supported
+   * - property
+     - ``CalendarFont``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CalendarForeColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CalendarMonthBackground``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CalendarTitleBackColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CalendarTitleForeColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CalendarTrailingForeColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Checked``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CustomFormat``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DropDownAlign``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Format``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaxDate``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaximumDateTime``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MinDate``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MinimumDateTime``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``PreferredHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RightToLeftLayout``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowCheckBox``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowUpDown``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Value``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Click``
+     - ``click``
+     - unclassified (untested)
+   * - event
+     - ``CloseUp``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - unclassified (untested)
+   * - event
+     - ``DropDown``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ForeColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormatChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseClick``
+     - ``mouse_click``
+     - unclassified (untested)
+   * - event
+     - ``MouseDoubleClick``
+     - ``mouse_double_click``
+     - unclassified (untested)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RightToLeftLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ValueChanged``
+     - ``value_changed``
+     - supported
+   * - method
+     - ``OnCloseUp``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDropDown``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormatChanged``
+     - ``on_format_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnRightToLeftLayoutChanged``
+     - none
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
+   * - method
+     - ``OnValueChanged``
+     - ``on_value_changed``
+     - unclassified (untested)
+   * - field
+     - ``DefaultMonthBackColor``
+     - none
+     - unclassified (unmatched)
+   * - field
+     - ``DefaultTitleBackColor``
+     - none
+     - unclassified (unmatched)
+   * - field
+     - ``DefaultTitleForeColor``
+     - none
+     - unclassified (unmatched)
+   * - field
+     - ``DefaultTrailingForeColor``
+     - none
+     - unclassified (unmatched)
+   * - field
+     - ``MaxDateTime``
+     - none
+     - unclassified (unmatched)
+   * - field
+     - ``MinDateTime``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``formatted_value``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``checked_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_changed``
+     - supported
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_range``
+     - supported

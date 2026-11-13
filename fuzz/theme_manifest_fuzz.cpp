@@ -6,7 +6,9 @@
 
 #include "../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../src/core/theme_language/package/theme_manifest.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
 #include "fuzz_standalone.hpp"
 
 #include <array>

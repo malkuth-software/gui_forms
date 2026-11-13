@@ -4,8 +4,30 @@
 // the properties through their cells or views, checks the refusals leave the
 // value unchanged, and reads table entries where a property has one.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/anchored_overlay_placement.hpp"
+#include "gui_forms/controls/breadcrumb_trail.hpp"
+#include "gui_forms/controls/breadcrumb_trail_values.hpp"
+#include "gui_forms/controls/card.hpp"
+#include "gui_forms/controls/card_values.hpp"
+#include "gui_forms/controls/material_panel.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/property_grid.hpp"
+#include "gui_forms/controls/property_list.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/inspection/inspection_types.hpp"
+#include "gui_forms/inspection/property_editor_registry/property_editor_registry.hpp"
+#include "gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/inspection_controls.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
+#include "gui_forms_lab/instrument_rack.hpp"
+#include "gui_forms_lab/review_card.hpp"
 
 #include <chrono>
 #include <cstdlib>

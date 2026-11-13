@@ -268,6 +268,7 @@ void CollapsedMargin::adjoin(const CollapsedMargin& other) noexcept {
 }
 
 void BlockFlowLayoutWorkspace::reserve(std::size_t count) {
+    solve_lender_.invalidate();
     items_.reserve(count);
     lines_.reserve(count);
 }
@@ -275,6 +276,8 @@ void BlockFlowLayoutWorkspace::reserve(std::size_t count) {
 BlockFlowSolveOutcome solve_block_flow(const BlockFlowContainerInput& container,
                                        std::span<const BlockFlowItemInput> items,
                                        BlockFlowLayoutWorkspace& workspace) {
+    // A new solve: the views of the last one end (they may relocate below).
+    workspace.solve_lender_.invalidate();
     workspace.lines_.clear();
     workspace.content_height_ = 0.0;
     workspace.leading_margin_ = CollapsedMargin{};

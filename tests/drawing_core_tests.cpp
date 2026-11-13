@@ -631,8 +631,8 @@ void bitmap_storage_and_leases_are_generation_safe() {
         recorder.commands().front().image.generation;
     bitmap.set_pixel(0, 0, Color::from_name("black"));
     CHECK(recorder.commands().front().image.generation == submitted_generation);
-    CHECK(recorder.commands().front().image.pixels().data() !=
-          bitmap.snapshot().pixels().data());
+    const ImageSnapshot current = bitmap.snapshot();
+    CHECK(recorder.commands().front().image.pixels().data() != current.pixels().data());
 
     TextureBrush texture(bitmap, WrapMode::tile_flip_x);
     texture.translate_transform(3.0, 4.0);

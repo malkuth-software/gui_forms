@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/color/color.hpp"
 #include "gui_forms/drawing/image_snapshot/image_snapshot.hpp"
 #include "gui_forms/drawing/matrix/matrix.hpp"
@@ -71,7 +72,7 @@ enum class MarkerShape : std::uint8_t {
 // A marker centred on each point: `size` its full width, `fill` its inside,
 // `edge` its outline (or lines) `edge_width` wide. An empty or transparent
 // colour, or a zero edge width, draws nothing of that part.
-struct MarkerStyle final {
+struct GUI_FORMS_API MarkerStyle final {
     MarkerShape shape{MarkerShape::circle};
     double size{6.0};
     Color fill;
@@ -83,7 +84,7 @@ struct MarkerStyle final {
 // `spacing` apart through `origin` (the recorder's coordinates), every
 // `major_every`-th line from the origin in `major`, the rest in `minor`,
 // each `line_width` wide.
-struct GridPatternStyle final {
+struct GUI_FORMS_API GridPatternStyle final {
     PointF origin;
     double spacing{16.0};
     std::uint32_t major_every{4U};
@@ -94,7 +95,7 @@ struct GridPatternStyle final {
 
 // A rounded rectangle's corner radii: top-left, top-right, bottom-right,
 // bottom-left. Each is held to half the rectangle's shorter side.
-struct CornerRadii final {
+struct GUI_FORMS_API CornerRadii final {
     double top_left{};
     double top_right{};
     double bottom_right{};
@@ -104,12 +105,12 @@ struct CornerRadii final {
 // The edge a proportional fill grows from.
 enum class FillDirection : std::uint8_t { left_to_right, right_to_left, bottom_to_top, top_to_bottom };
 
-struct ColorBlend final {
+struct GUI_FORMS_API ColorBlend final {
     std::vector<Color> colors;
     std::vector<double> positions;
 };
 
-struct BrushSnapshot final {
+struct GUI_FORMS_API BrushSnapshot final {
     BrushKind kind{BrushKind::solid};
     Color primary;
     Color secondary;

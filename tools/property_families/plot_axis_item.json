@@ -2,13 +2,13 @@
   "family": "PlotAxisItem",
   "step": "PL-1",
   "declaring": "PlotAxisItem",
-  "header": "include/gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp",
+  "header": "include/gui_forms/controls/plot_axis_item.hpp",
   "source": "src/controls/plots/plot_axis_item/plot_axis_item.cpp",
-  "capabilities_header": "include/gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/plot_axis_item_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
-    "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
+    "gui_forms/controls/plot_values.hpp"
   ],
   "properties": [
     {
@@ -246,6 +246,6 @@
   "not_properties": [],
   "test": {
     "type": "PlotAxisItem",
-    "include": "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp"
+    "include": "gui_forms/controls/plot_axis_item.hpp"
   }
 }

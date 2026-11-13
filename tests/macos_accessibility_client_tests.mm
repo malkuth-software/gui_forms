@@ -1,7 +1,15 @@
 #import <AppKit/AppKit.h>
 #import <ApplicationServices/ApplicationServices.h>
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/plots/decimation/decimation.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/text/types/text_types.hpp"
 #include "support/accessibility_actions.hpp"
 #include "support/macos_accessibility_contract.hpp"
 

@@ -152,6 +152,15 @@ gui_forms::Control
       **accessible_description** : ``std::string``
          A longer description for assistive technology. Empty by default.
 
+      **help_line** : ``std::string``
+         The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents. A program value a language file's help-line translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+      **help** : ``std::string``
+         The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links. A program value a language file's help translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+      **keywords** : ``std::string``
+         The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword. A program value a language file's keywords translate. A malformed list throws std::invalid_argument, changing nothing.
+
       **ceremonial** : ``bool``, default ``false``
          Whether the application marks the control's surface ceremonial, as an
          installer's or a first run's world (T2, decision B3-1). On it and its
@@ -192,10 +201,13 @@ gui_forms::Control
          The control this one is a child of, or null. A child refers to its
          parent weakly, so the parent's lifetime is decided by its own owners.
 
-      **children** : ``std::span<const Ptr>``, read-only
+      **children** : ``ChildView``, read-only
          The children, in paint order: the first child is painted first and is
          the backmost; the last is the frontmost. Each child is owned by this
          control.
+
+      **child_count** : ``std::size_t``, read-only
+         The number of children, and the child at ``index`` in children()'s order as a shared copy (null past the end). The copy keeps the child alive across a callback; re-read child_count() after one, since the list may have changed (children_revision() tells).
 
       **children_revision** : ``std::uint64_t``, read-only
          Advances whenever the child list changes (an add, a removal, a new order, a disposal), so a walk that indexes the live list instead of copying it can tell that a callback changed it meanwhile (audit N84).
@@ -243,10 +255,10 @@ gui_forms::Control
          The arranged bounds in window coordinates. Like :cpp:func:`arranged_bounds <gui_forms::Control::arranged_bounds>`, it
          runs pending layout first when attached and no update scope is open.
 
-      **attached_window** : ``Window*``, read-only
+      **attached_window** : ``BorrowedPointer<Window>``, read-only
          The window whose tree contains this control, or null.
 
-      **attached_surface_root** : ``SurfaceRoot*``, read-only
+      **attached_surface_root** : ``BorrowedPointer<SurfaceRoot>``, read-only
          The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
 
       **effective_text_scale** : ``double``, read-only
@@ -291,6 +303,8 @@ gui_forms::Control
          how stock controls paint and what state they report to assistive
          technology.
 
+      **specimen_states** : ``AnatomyStateSet``
+
       **invoke_required** : ``bool``, read-only
          Whether the calling thread must go through :cpp:func:`begin_invoke <gui_forms::Control::begin_invoke>` or :cpp:func:`invoke <gui_forms::Control::invoke>`
          to touch the control: true when the control is attached and the caller
@@ -314,8 +328,8 @@ gui_forms::Control
          The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
          :cpp:func:`set_style <gui_forms::Control::set_style>` changes them.
 
-      **inline_style** : ``std::string_view``
-         The inline style's text in force; empty without one.
+      **inline_style** : ``BorrowedText``
+         The inline style's text in force; empty without one. Valid until the style is set, cleared or recompiled for a theme change (checked builds fail fast on a later read).
 
       **inline_style_rules** : ``CompiledThemeRules*``, read-only
          Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
@@ -387,7 +401,7 @@ gui_forms::Control
          Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered. Settles first (see dirty()): a descendant's touch advances it at the settle.
 
       **effective_layout_direction** : ``LayoutDirection``, read-only
-         layout_direction is the authored inline direction, ``inherit`` by default (stage L, PLAN section 4); writing it invalidates this subtree's arrangement. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root.
+         layout_direction stores the authored inline direction, ``inherit`` by default (stage L, PLAN section 4): Windows Forms' RightToLeft. The registry, the property grid and forms spell it ``right_to_left`` (No, Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of 2026-11-11); the :cpp:member:`layout_direction <gui_forms::Control::layout_direction>` name is hidden there and refused in forms. Writing it re-arranges and repaints every control whose resolved direction changes. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root (the top-level window's default, No). Kept resolved: a read walks nothing; a write or a reparenting refreshes the affected subtree once. Directional controls (progress and scroll bars, track bars, up-downs, combo boxes, check boxes) mirror when it is right_to_left.
 
       **parts** : ``Parts``, read-only
 
@@ -404,6 +418,9 @@ gui_forms::Control
 
       **enabled_changed** : ``Event<bool>``
          Raised after :cpp:member:`enabled <gui_forms::Control::enabled>` changes, with the new value.
+
+      **right_to_left_changed** : ``Event<bool>``
+         Windows Forms' RightToLeftChanged: raised on every control whose resolved direction (effective_layout_direction) changes, by a write of its own or an ancestor's layout_direction (right_to_left) or by a reparenting; the payload is true when it now resolves right to left. Every affected control's resolved value is updated first; then the events run an ancestor before its descendants and siblings in painter order, each after that control is marked arrange, paint and hit-test dirty. A handler may write directions or move controls: the nested change announces its own controls, and a control it already announced is not announced again.
 
       **auto_size_changed** : ``Event<bool>``
          Raised after :cpp:member:`auto_size <gui_forms::Control::auto_size>` changes, with the new value.
@@ -496,6 +513,8 @@ gui_forms::Control
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`child_at <gui_forms::Control::child_at>`
+        -  
       * - :cpp:func:`add_child <gui_forms::Control::add_child>`
         - Makes a control the frontmost child of this one, detaching it from its previous parent first.
       * - :cpp:func:`insert_child <gui_forms::Control::insert_child>`
@@ -894,6 +913,18 @@ gui_forms::Control
 
       A longer description for assistive technology. Empty by default.
 
+   .. cpp:member:: std::string help_line
+
+      The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents. A program value a language file's help-line translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+   .. cpp:member:: std::string help
+
+      The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links. A program value a language file's help translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+   .. cpp:member:: std::string keywords
+
+      The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword. A program value a language file's keywords translate. A malformed list throws std::invalid_argument, changing nothing.
+
    .. cpp:member:: bool ceremonial
 
       Whether the application marks the control's surface ceremonial, as an
@@ -942,11 +973,15 @@ gui_forms::Control
       The control this one is a child of, or null. A child refers to its
       parent weakly, so the parent's lifetime is decided by its own owners.
 
-   .. cpp:function:: std::span<const Ptr> children() const noexcept
+   .. cpp:function:: ChildView children() const& noexcept
 
       The children, in paint order: the first child is painted first and is
       the backmost; the last is the frontmost. Each child is owned by this
       control.
+
+   .. cpp:function:: std::size_t child_count() const noexcept
+
+      The number of children, and the child at ``index`` in children()'s order as a shared copy (null past the end). The copy keeps the child alive across a callback; re-read child_count() after one, since the list may have changed (children_revision() tells).
 
    .. cpp:function:: std::uint64_t children_revision() const noexcept
 
@@ -1007,11 +1042,11 @@ gui_forms::Control
       The arranged bounds in window coordinates. Like :cpp:func:`arranged_bounds <gui_forms::Control::arranged_bounds>`, it
       runs pending layout first when attached and no update scope is open.
 
-   .. cpp:function:: Window* attached_window() const noexcept
+   .. cpp:function:: BorrowedPointer<Window> attached_window() const noexcept
 
       The window whose tree contains this control, or null.
 
-   .. cpp:function:: SurfaceRoot* attached_surface_root() const noexcept
+   .. cpp:function:: BorrowedPointer<SurfaceRoot> attached_surface_root() const noexcept
 
       The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
 
@@ -1064,7 +1099,7 @@ gui_forms::Control
 
    .. cpp:function:: std::optional<Color> ambient_fore_color() const noexcept
 
-   .. cpp:function:: std::span<const OwnerDecorationRecipe> owned_decorations() const noexcept
+   .. cpp:function:: std::span<const OwnerDecorationRecipe> owned_decorations() const& noexcept
 
    .. cpp:function:: void set_owned_decorations(const OwnerDecorationRecipe* decorations, std::size_t decoration_count)
 
@@ -1077,6 +1112,12 @@ gui_forms::Control
    .. cpp:function:: void set_visual_status(ControlVisualStatus status)
 
       Sets :cpp:func:`visual_status <gui_forms::Control::visual_status>`; see the property's description above.
+
+   .. cpp:function:: AnatomyStateSet specimen_states() const noexcept
+
+   .. cpp:function:: void set_specimen_states(AnatomyStateSet shown)
+
+      Specimen states (theme palettes and tests only; owner request 2026-11-11): shows ``shown`` among the control's published states (base_anatomy_states, so anatomy_states and the parts' states, and visual_context) on top of what its input, focus and values give it, so that a palette can draw a control hot, pressed or focused without sending input. Nothing else changes: no event is raised; focus, pointer capture, values and semantics stay as they are; and real input still adds its own states. A shown disabled replaces enabled, and a shown focus_visible adds focused. Every standard state in ``shown`` must be one anatomy().states declares and every custom index one anatomy().custom_states declares; otherwise std::invalid_argument naming the first other, changing nothing. An empty set ends the presentation. Repaints the control. UI thread. A palette reaches value states (checked, selected, read_only, invalid, disabled) through the control's real values instead: show_specimen_state (gui_forms/capture/specimen_states) chooses the route per state. A control whose paint reads its own flags rather than its published states draws a shown state as its rest state.
 
    .. cpp:function:: bool invoke_required() const noexcept
 
@@ -1110,9 +1151,9 @@ gui_forms::Control
       The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
       :cpp:func:`set_style <gui_forms::Control::set_style>` changes them.
 
-   .. cpp:function:: std::string_view inline_style() const noexcept
+   .. cpp:function:: BorrowedText inline_style() const noexcept
 
-      The inline style's text in force; empty without one.
+      The inline style's text in force; empty without one. Valid until the style is set, cleared or recompiled for a theme change (checked builds fail fast on a later read).
 
    .. cpp:function:: InlineStyleResult set_inline_style(std::string_view text)
 
@@ -1214,7 +1255,7 @@ gui_forms::Control
 
    .. cpp:function:: LayoutDirection effective_layout_direction() const noexcept
 
-      layout_direction is the authored inline direction, ``inherit`` by default (stage L, PLAN section 4); writing it invalidates this subtree's arrangement. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root.
+      layout_direction stores the authored inline direction, ``inherit`` by default (stage L, PLAN section 4): Windows Forms' RightToLeft. The registry, the property grid and forms spell it ``right_to_left`` (No, Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of 2026-11-11); the :cpp:member:`layout_direction <gui_forms::Control::layout_direction>` name is hidden there and refused in forms. Writing it re-arranges and repaints every control whose resolved direction changes. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root (the top-level window's default, No). Kept resolved: a read walks nothing; a write or a reparenting refreshes the affected subtree once. Directional controls (progress and scroll bars, track bars, up-downs, combo boxes, check boxes) mirror when it is right_to_left.
 
    .. cpp:function:: Parts parts() const
 
@@ -1235,6 +1276,10 @@ gui_forms::Control
    .. cpp:function:: Event<bool>& enabled_changed() noexcept
 
       Raised after :cpp:member:`enabled <gui_forms::Control::enabled>` changes, with the new value.
+
+   .. cpp:function:: Event<bool>& right_to_left_changed() noexcept
+
+      Windows Forms' RightToLeftChanged: raised on every control whose resolved direction (effective_layout_direction) changes, by a write of its own or an ancestor's layout_direction (right_to_left) or by a reparenting; the payload is true when it now resolves right to left. Every affected control's resolved value is updated first; then the events run an ancestor before its descendants and siblings in painter order, each after that control is marked arrange, paint and hit-test dirty. A handler may write directions or move controls: the nested change announces its own controls, and a control it already announced is not announced again.
 
    .. cpp:function:: Event<bool>& auto_size_changed() noexcept
 
@@ -1333,6 +1378,8 @@ gui_forms::Control
 
    .. rubric:: Methods
 
+   .. cpp:function:: Ptr child_at(std::size_t index) const
+
    .. cpp:function:: void add_child(Ptr child)
 
       Makes a control the frontmost child of this one, detaching it from its
@@ -1345,7 +1392,7 @@ gui_forms::Control
 
    .. cpp:function:: void insert_child(Ptr child, std::size_t index)
 
-      Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index_from_top moves it. On failure the tree is unchanged.
+      Adds child at index counted from the top (zero is topmost), in one validated mutation; a child already here moves as set_child_index_from_top moves it. On failure the tree is unchanged. The refusals are add_child's.
 
    .. cpp:function:: Ptr remove_child(RuntimeId child)
 
@@ -1715,21 +1762,11 @@ gui_forms::Control
 
    .. cpp:function:: virtual void on_pointer_preview(PointerEvent& event)
 
-   .. cpp:function:: virtual void on_pointer(PointerEvent& event)
-
-      Override to handle a pointer event when this control is the target. Set
-      ``handled`` to stop it bubbling. ``on_pointer_preview`` runs before it from
-      the root down, and ``on_pointer_bubble`` after it from the parent up.
+      The pointer and key routes' preview (root to target) and bubble (target to root) phases. The target phase is the interaction raisers (on_mouse_down, on_key_down and the rest, below).
 
    .. cpp:function:: virtual void on_pointer_bubble(PointerEvent& event)
 
    .. cpp:function:: virtual void on_key_preview(KeyEvent& event)
-
-   .. cpp:function:: virtual void on_key(KeyEvent& event)
-
-      Override to handle a key while this control has focus. Set ``handled`` to
-      stop it bubbling and to keep it from accelerators, dialog keys and Tab
-      traversal. ``on_key_preview`` and ``on_key_bubble`` run around it.
 
    .. cpp:function:: virtual void on_key_bubble(KeyEvent& event)
 
@@ -1880,6 +1917,12 @@ gui_forms::Control
 
       *Protected.*
 
+   .. cpp:function:: virtual void on_right_to_left_changed()
+
+      *Protected.*
+
+      Called on each control whose resolved direction changed, in the order right_to_left_changed() states, after its invalidation; the base raises right_to_left_changed. An override that keeps direction-dependent state drops it and calls the base.
+
    .. cpp:function:: virtual void on_tab_index_changed()
 
       *Protected.*
@@ -1888,9 +1931,163 @@ gui_forms::Control
 
       *Protected.*
 
+   .. cpp:function:: virtual void on_mouse_down(MouseEventArgs& arguments)
+
+      *Protected.*
+
+      Override to handle a press when this control is the pointer event's
+      target; ``on_mouse_up``, ``on_mouse_move`` and ``on_mouse_wheel`` take the
+      release, a move and a wheel turn the same way. Do the control's own
+      handling, then call the base, which raises the event to its
+      subscribers. Set ``handled`` in the arguments to stop the event bubbling.
+      ``on_pointer_preview`` runs before it from the root down, and
+      ``on_pointer_bubble`` after it from the parent up.
+
+   .. cpp:function:: virtual void on_mouse_up(MouseEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_move(MouseEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_wheel(MouseEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_enter()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_hover()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_leave()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_capture_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_click()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_double_click()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_click(MouseEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_mouse_double_click(MouseEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_preview_key_down(PreviewKeyDownEventArgs& arguments)
+
+      *Protected.*
+
+      The keys, on the focused control. on_preview_key_down runs first for a key down; setting is_input_key keeps the key from dialog processing. on_key_down and on_key_up are the target phase of the key route, after the window's own key_down and key_up and the preview route: the base raises the event and turns suppress_key_press into handled; a control's own key handling runs in its override after the base call, and only when handled is still clear, so a subscriber that sets handled keeps the key from the control as well as from the bubble route. on_key_press runs for the committed text a key produced, after the window's key_press; suppress_key_press on a key_down cancels it and the text and handled does not (input order rule 3, as in Windows Forms), except for an IME's commit while a composition is open. A key_up the window raises because it lost activation (released_by_deactivation) also runs on_key_up; a control's handling skips it.
+
+   .. cpp:function:: virtual void on_key_down(KeyEventArgs& arguments)
+
+      *Protected.*
+
+      Override to handle a key while this control has focus; ``on_key_up``
+      takes the release. Call the base first, which raises the event to its
+      subscribers, and skip a key they handled. Set ``handled`` to stop the key
+      bubbling and to keep it from accelerators, dialog keys and Tab
+      traversal. ``on_key_preview`` and ``on_key_bubble`` run around it.
+
+   .. cpp:function:: virtual void on_key_press(KeyPressEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_key_up(KeyEventArgs& arguments)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_enter()
+
+      *Protected.*
+
+      Focus. When the control gains focus: on_enter, on_focus_changed(true), then on_got_focus, whose base raises focus_observed(true). When it loses focus: on_focus_changed(false), on_lost_focus (whose base raises focus_observed(false)), then on_leave. Validation (on_validating, on_validated) runs before the change, from perform_validation. on_enter and on_leave run on the focused control only: a container whose subtree gains or loses focus is not told yet, and they raise no event yet.
+
+   .. cpp:function:: virtual void on_got_focus()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_lost_focus()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_leave()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_validating(ControlValidationEvent& event)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_validated()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_help_requested(HelpRequestEvent& request)
+
+      *Protected.*
+
+      HelpProvider's request for this control (F1 or the help button), before the provider's own help_requested.
+
+   .. cpp:function:: virtual void on_drag_enter(DragEvent& event)
+
+      *Protected.*
+
+      A drag over a control that allows drops, by its action, after on_drag has seen it at the target phase. They raise no event yet; an override may set accepted_effect and handled as on_drag does.
+
+   .. cpp:function:: virtual void on_drag_over(DragEvent& event)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_drag_drop(DragEvent& event)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_drag_leave(DragEvent& event)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_layout()
+
+      *Protected.*
+
+      Runs in the window's layout pass right after arrange placed the control and its children, under the same rules as arrange. It raises no event yet.
+
+   .. cpp:function:: virtual void on_paint_background(PaintEventArgs& arguments)
+
+      *Protected.*
+
+      Paints the control's background, before its owned decorations and on_paint: the base paints the back colour and the authored surface. An override that does not call the base leaves the background unpainted. No event.
+
+   .. cpp:function:: virtual void on_change_ui_cues(bool visible)
+
+      *Protected.*
+
+      The window's focus cue appeared (visible) or went away, on the focused control after on_focus_cue_changed (Windows Forms' OnChangeUICues). It raises no event yet.
+
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
+
+   .. cpp:function:: void stop_inherited_colours()
+
+      *Protected.*
+
+      Stops the application colours an ancestor authored (back_color and fore_color, the ambient colours paint_part applies) at this control: it and its descendants then take only their own authored colours and the theme's. For a layer drawn over the window rather than in it, such as a tooltip's (cp29: a tooltip's ink and plate are the tool_tip role's, as a Windows Forms ToolTip, which is no child control, inherits no ForeColor). Called from the layer's constructor; it advances the inherited-value generation, so a later call also holds.
 
    .. cpp:function:: void set_font_from_code(bool from_code) noexcept
 
@@ -1944,11 +2141,11 @@ gui_forms::Control
 
       The base states every control shares: normal, enabled or disabled, focused and focus-visible. Overrides start from this and add their own.
 
-   .. cpp:function:: Window* window() const noexcept
+   .. cpp:function:: BorrowedPointer<Window> window() const noexcept
 
       *Protected.*
 
-   .. cpp:function:: SurfaceRoot* surface_root() const noexcept
+   .. cpp:function:: BorrowedPointer<SurfaceRoot> surface_root() const noexcept
 
       *Protected.*
 
@@ -2029,7 +2226,7 @@ gui_forms::Control
 
       *Protected.*
 
-      Custom retained layout controls establish their own child slots after arranging only themselves. Calling the public base arrange would also run the default Dock/Anchor engine and create competing layout owners.
+      Custom retained layout controls establish their own child slots after arranging only themselves. Calling the public base arrange would also run the default Dock/Anchor engine and create competing layout owners. Refused like arrange when called on a control other than the one the window's layout pass is arranging.
 
    .. cpp:function:: virtual void on_paint_overlay(Painter& painter, Rect local_damage)
 
@@ -2142,6 +2339,2244 @@ gui_forms::Control
 
       Compound controls opt in explicitly by hiding this constant with true. make_control never infers lifecycle behavior from method presence. Default: ``false``.
 
+   .. cpp:type:: ChildView = BorrowedSpan<Ptr>
+
+      Back to front (painter order, as the C ABI's insert_child and child_at count): index 0 paints first, the last child paints on top. A borrowed view: in the sanitizer tree (GUI_FORMS_CHECKED_BORROWS) it reports a use after the child list changed or this control died. Spell ChildView to keep the check; a walk that calls out to code that may edit the tree (measure, arrange, events) walks child_count() and child_at() instead.
+
    .. cpp:member:: constexpr std::size_t control_property_count
 
-      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``29U``.
+      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``33U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Control``. Members declared here and by the counterpart: 231 supported, 0 deferred, 12 excluded, 312 unclassified; 198 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``Control``
+     - ``Control``
+     - supported
+   * - property
+     - ``AccessibilityObject``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AccessibleDefaultActionDescription``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AccessibleDescription``
+     - ``accessible_description``
+     - unclassified (untested)
+   * - property
+     - ``AccessibleName``
+     - ``accessible_name``
+     - unclassified (untested)
+   * - property
+     - ``AccessibleRole``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowDrop``
+     - ``allow_drop``
+     - unclassified (untested)
+   * - property
+     - ``Anchor``
+     - ``anchor``
+     - unclassified (untested)
+   * - property
+     - ``AutoScrollOffset``
+     - ``auto_scroll_offset``
+     - supported
+   * - property
+     - ``AutoSize``
+     - ``auto_size``
+     - unclassified (untested)
+   * - property
+     - ``BackColor``
+     - ``back_color``
+     - unclassified (untested)
+   * - property
+     - ``BackgroundImage``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BackgroundImageLayout``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BindingContext``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Bottom``
+     - ``bottom``
+     - supported
+   * - property
+     - ``Bounds``
+     - ``bounds``
+     - supported
+   * - property
+     - ``CanEnableIme``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CanFocus``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CanSelect``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Capture``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CausesValidation``
+     - ``causes_validation``
+     - unclassified (untested)
+   * - property
+     - ``CheckForIllegalCrossThreadCalls``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ClientRectangle``
+     - ``client_rectangle``
+     - supported
+   * - property
+     - ``ClientSize``
+     - on ``Window``
+     - unclassified (carried)
+   * - property
+     - ``CompanyName``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ContainsFocus``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ContextMenu``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 10.0:WFDEV006.
+   * - property
+     - ``ContextMenuStrip``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Controls``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Created``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CreateParams``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Cursor``
+     - ``cursor``
+     - supported
+   * - property
+     - ``DataBindings``
+     - ``data_bindings``
+     - supported
+   * - property
+     - ``DataContext``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultBackColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultCursor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultFont``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultForeColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultImeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultMargin``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultMaximumSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultMinimumSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultPadding``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DeviceDpi``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DisplayRectangle``
+     - ``display_rectangle``
+     - supported
+   * - property
+     - ``Disposing``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Dock``
+     - ``dock``
+     - unclassified (untested)
+   * - property
+     - ``DoubleBuffered``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Enabled``
+     - ``enabled``
+     - supported
+   * - property
+     - ``Focused``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Font``
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``Label``, ``CheckBox``, ``RadioButton``, ``GroupBox``
+     - unclassified (carried)
+   * - property
+     - ``FontHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ForeColor``
+     - ``fore_color``
+     - unclassified (untested)
+   * - property
+     - ``Handle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HasChildren``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Height``
+     - ``height``
+     - supported
+   * - property
+     - ``ImeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImeModeBase``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``InvokeRequired``
+     - ``invoke_required``
+     - supported
+   * - property
+     - ``IsAccessible``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsAncestorSiteInDesignMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsDisposed``
+     - on ``ContextMenu``, ``ThreadExceptionDialog``
+     - unclassified (carried)
+   * - property
+     - ``IsHandleCreated``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsMirrored``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LayoutEngine``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Left``
+     - ``left``
+     - supported
+   * - property
+     - ``Location``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Margin``
+     - ``margin``
+     - unclassified (untested)
+   * - property
+     - ``MaximumSize``
+     - ``maximum_size``
+     - unclassified (untested)
+   * - property
+     - ``MinimumSize``
+     - ``minimum_size``
+     - supported
+   * - property
+     - ``ModifierKeys``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MouseButtons``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MousePosition``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Name``
+     - ``name``
+     - supported
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``Parent``
+     - ``parent``
+     - supported
+   * - property
+     - ``PreferredSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ProductName``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ProductVersion``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``PropagatingImeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RecreatingHandle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Region``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RenderRightToLeft``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - property
+     - ``ResizeRedraw``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Right``
+     - ``right``
+     - supported
+   * - property
+     - ``RightToLeft``
+     - ``right_to_left``
+     - unclassified (untested)
+   * - property
+     - ``ScaleChildren``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowFocusCues``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowKeyboardCues``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Size``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabIndex``
+     - ``tab_index``
+     - unclassified (untested)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - property
+     - ``Tag``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Text``
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``TextBox``, ``RichTextBox``, ``Label``, ``ComboBox``, ``CheckBox``, ``RadioButton``, ``GroupBox``
+     - unclassified (carried)
+   * - property
+     - ``Top``
+     - ``top``
+     - supported
+   * - property
+     - ``TopLevelControl``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseWaitCursor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Visible``
+     - ``visible``
+     - supported
+   * - property
+     - ``Width``
+     - ``width``
+     - supported
+   * - property
+     - ``WindowTarget``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - supported
+   * - event
+     - ``BackColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BindingContextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CausesValidationChanged``
+     - ``causes_validation_changed``
+     - unclassified (untested)
+   * - event
+     - ``ChangeUICues``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Click``
+     - ``click``
+     - supported
+   * - event
+     - ``ClientSizeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ContextMenuChanged``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 10.0:WFDEV006.
+   * - event
+     - ``ContextMenuStripChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ControlAdded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ControlRemoved``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CursorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DataContextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DockChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - supported
+   * - event
+     - ``DpiChangedAfterParent``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DpiChangedBeforeParent``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DragDrop``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DragEnter``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DragLeave``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DragOver``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``EnabledChanged``
+     - ``enabled_changed``
+     - supported
+   * - event
+     - ``Enter``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FontChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ForeColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``GiveFeedback``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``GotFocus``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``HandleCreated``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``HandleDestroyed``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``HelpRequested``
+     - ``help_requested``
+     - supported
+   * - event
+     - ``ImeModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Invalidated``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``KeyDown``
+     - ``key_down``
+     - supported
+   * - event
+     - ``KeyPress``
+     - ``key_press``
+     - supported
+   * - event
+     - ``KeyUp``
+     - ``key_up``
+     - supported
+   * - event
+     - ``Layout``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Leave``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``LocationChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``LostFocus``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MarginChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseCaptureChanged``
+     - ``mouse_capture_changed``
+     - supported
+   * - event
+     - ``MouseClick``
+     - ``mouse_click``
+     - supported
+   * - event
+     - ``MouseDoubleClick``
+     - ``mouse_double_click``
+     - supported
+   * - event
+     - ``MouseDown``
+     - ``mouse_down``
+     - supported
+   * - event
+     - ``MouseEnter``
+     - ``mouse_enter``
+     - supported
+   * - event
+     - ``MouseHover``
+     - ``mouse_hover``
+     - supported
+   * - event
+     - ``MouseLeave``
+     - ``mouse_leave``
+     - supported
+   * - event
+     - ``MouseMove``
+     - ``mouse_move``
+     - supported
+   * - event
+     - ``MouseUp``
+     - ``mouse_up``
+     - supported
+   * - event
+     - ``MouseWheel``
+     - ``mouse_wheel``
+     - supported
+   * - event
+     - ``Move``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - on ``Window``
+     - unclassified (carried)
+   * - event
+     - ``ParentChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PreviewKeyDown``
+     - ``preview_key_down``
+     - supported
+   * - event
+     - ``QueryAccessibilityHelp``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``QueryContinueDrag``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RegionChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Resize``
+     - on ``Window``
+     - unclassified (carried)
+   * - event
+     - ``RightToLeftChanged``
+     - ``right_to_left_changed``
+     - supported
+   * - event
+     - ``SizeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``StyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SystemColorsChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabIndexChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabStopChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``TextBox``, ``MaskedTextBox``, ``RichTextBox``, ``Label``, ``ComboBox``, ``CheckBox``, ``RadioButton``, ``GroupBox``
+     - unclassified (carried)
+   * - event
+     - ``Validated``
+     - ``validated``
+     - supported
+   * - event
+     - ``Validating``
+     - ``validating``
+     - supported
+   * - event
+     - ``VisibleChanged``
+     - ``visible_changed``
+     - supported
+   * - method
+     - ``AccessibilityNotifyClients``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``BeginInvoke``
+     - ``begin_invoke``
+     - supported
+   * - method
+     - ``BringToFront``
+     - ``bring_to_front``
+     - supported
+   * - method
+     - ``Contains``
+     - ``contains``
+     - supported
+   * - method
+     - ``CreateAccessibilityInstance``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreateControl``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreateControlsInstance``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreateGraphics``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreateHandle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``DefWndProc``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``DestroyHandle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``DoDragDrop``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``DrawToBitmap``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``EndInvoke``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``FindForm``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Focus``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``FromChildHandle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``FromHandle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetAccessibilityObjectById``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetAutoSizeMode``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetChildAtPoint``
+     - ``get_child_at_point``
+     - supported
+   * - method
+     - ``GetContainerControl``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetNextControl``
+     - ``get_next_control``
+     - supported
+   * - method
+     - ``GetPreferredSize``
+     - ``get_preferred_size``
+     - supported
+   * - method
+     - ``GetScaledBounds``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetStyle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetTopLevel``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Hide``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``InitLayout``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Invalidate``
+     - ``invalidate``
+     - supported
+   * - method
+     - ``Invoke``
+     - ``invoke``
+     - supported
+   * - method
+     - ``InvokeAsync``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``InvokeGotFocus``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``InvokeLostFocus``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``InvokeOnClick``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``InvokePaint``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``InvokePaintBackground``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``IsInputChar``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``IsInputKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``IsKeyLocked``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``IsMnemonic``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``LogicalToDeviceUnits``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``NotifyInvalidate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnAutoSizeChanged``
+     - ``on_auto_size_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnBackColorChanged``
+     - ``on_back_color_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnBackgroundImageChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnBackgroundImageLayoutChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnBindingContextChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCausesValidationChanged``
+     - ``on_causes_validation_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnChangeUICues``
+     - ``on_change_ui_cues``
+     - supported
+   * - method
+     - ``OnClick``
+     - ``on_click``
+     - supported
+   * - method
+     - ``OnClientSizeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnContextMenuChanged``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 10.0:WFDEV006.
+   * - method
+     - ``OnContextMenuStripChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnControlAdded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnControlRemoved``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCreateControl``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCursorChanged``
+     - ``on_cursor_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnDataContextChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDockChanged``
+     - ``on_dock_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnDoubleClick``
+     - ``on_double_click``
+     - unclassified (untested)
+   * - method
+     - ``OnDpiChangedAfterParent``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDpiChangedBeforeParent``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDragDrop``
+     - ``on_drag_drop``
+     - supported
+   * - method
+     - ``OnDragEnter``
+     - ``on_drag_enter``
+     - supported
+   * - method
+     - ``OnDragLeave``
+     - ``on_drag_leave``
+     - unclassified (untested)
+   * - method
+     - ``OnDragOver``
+     - ``on_drag_over``
+     - unclassified (untested)
+   * - method
+     - ``OnEnabledChanged``
+     - ``on_enabled_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnEnter``
+     - ``on_enter``
+     - supported
+   * - method
+     - ``OnFontChanged``
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``TextBox``, ``RichTextBox``, ``Label``, ``ListBox``, ``CheckedListBox``, ``ComboBox``, ``TreeView``, ``ObjectView``, ``ListView``, ``DataGridView``, ``CheckBox``, ``RadioButton``, ``DateTimePicker``, ``MonthCalendar``, ``GroupBox``
+     - unclassified (carried)
+   * - method
+     - ``OnForeColorChanged``
+     - ``on_fore_color_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnGiveFeedback``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnGotFocus``
+     - ``on_got_focus``
+     - supported
+   * - method
+     - ``OnHandleCreated``
+     - none
+     - excluded: no window handle: GUI.Forms controls are not native windows (ADR-001) (On\* hooks (d) list)
+   * - method
+     - ``OnHandleDestroyed``
+     - none
+     - excluded: no window handle: GUI.Forms controls are not native windows (ADR-001) (On\* hooks (d) list)
+   * - method
+     - ``OnHelpRequested``
+     - ``on_help_requested``
+     - supported
+   * - method
+     - ``OnImeModeChanged``
+     - none
+     - excluded: ImeMode is IMM32 conversion-mode control; the host owns the IME (On\* hooks (d) list)
+   * - method
+     - ``OnInvalidated``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnKeyDown``
+     - ``on_key_down``
+     - supported
+   * - method
+     - ``OnKeyPress``
+     - ``on_key_press``
+     - unclassified (untested)
+   * - method
+     - ``OnKeyUp``
+     - ``on_key_up``
+     - supported
+   * - method
+     - ``OnLayout``
+     - ``on_layout``
+     - supported
+   * - method
+     - ``OnLeave``
+     - ``on_leave``
+     - supported
+   * - method
+     - ``OnLocationChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnLostFocus``
+     - ``on_lost_focus``
+     - supported
+   * - method
+     - ``OnMarginChanged``
+     - ``on_margin_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnMouseCaptureChanged``
+     - ``on_mouse_capture_changed``
+     - supported
+   * - method
+     - ``OnMouseClick``
+     - ``on_mouse_click``
+     - supported
+   * - method
+     - ``OnMouseDoubleClick``
+     - ``on_mouse_double_click``
+     - unclassified (untested)
+   * - method
+     - ``OnMouseDown``
+     - ``on_mouse_down``
+     - supported
+   * - method
+     - ``OnMouseEnter``
+     - ``on_mouse_enter``
+     - supported
+   * - method
+     - ``OnMouseHover``
+     - ``on_mouse_hover``
+     - unclassified (untested)
+   * - method
+     - ``OnMouseLeave``
+     - ``on_mouse_leave``
+     - unclassified (untested)
+   * - method
+     - ``OnMouseMove``
+     - ``on_mouse_move``
+     - supported
+   * - method
+     - ``OnMouseUp``
+     - ``on_mouse_up``
+     - supported
+   * - method
+     - ``OnMouseWheel``
+     - ``on_mouse_wheel``
+     - supported
+   * - method
+     - ``OnMove``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnNotifyMessage``
+     - none
+     - excluded: Win32 message emulation is excluded (ADR-001) (On\* hooks (d) list)
+   * - method
+     - ``OnPaddingChanged``
+     - ``on_padding_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnPaint``
+     - ``on_paint``
+     - supported
+   * - method
+     - ``OnPaintBackground``
+     - ``on_paint_background``
+     - supported
+   * - method
+     - ``OnParentBackColorChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnParentBackgroundImageChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnParentBindingContextChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnParentChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnParentCursorChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnParentDataContextChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnParentEnabledChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnParentFontChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnParentForeColorChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnParentRightToLeftChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnParentVisibleChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnPreviewKeyDown``
+     - ``on_preview_key_down``
+     - supported
+   * - method
+     - ``OnPrint``
+     - none
+     - excluded: printing is excluded (On\* hooks (d) list)
+   * - method
+     - ``OnQueryContinueDrag``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRegionChanged``
+     - none
+     - excluded: Region is an HRGN window shape; no Region property (On\* hooks (d) list)
+   * - method
+     - ``OnResize``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRightToLeftChanged``
+     - ``on_right_to_left_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnSizeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnStyleChanged``
+     - none
+     - excluded: Win32 window style bits; no counterpart (ADR-001) (On\* hooks (d) list)
+   * - method
+     - ``OnSystemColorsChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnTabIndexChanged``
+     - ``on_tab_index_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnTabStopChanged``
+     - ``on_tab_stop_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnTextChanged``
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``TextBox``, ``RichTextBox``, ``Label``, ``ComboBox``, ``CheckBox``, ``RadioButton``, ``DomainUpDown``, ``GroupBox``
+     - unclassified (carried)
+   * - method
+     - ``OnValidated``
+     - ``on_validated``
+     - supported
+   * - method
+     - ``OnValidating``
+     - ``on_validating``
+     - supported
+   * - method
+     - ``OnVisibleChanged``
+     - ``on_visible_changed``
+     - supported
+   * - method
+     - ``PerformLayout``
+     - ``perform_layout``
+     - supported
+   * - method
+     - ``PointToClient``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``PointToScreen``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``PreProcessControlMessage``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``PreProcessMessage``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessCmdKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessDialogChar``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessDialogKey``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessKeyEventArgs``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessKeyMessage``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessKeyPreview``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ProcessMnemonic``
+     - ``process_mnemonic``
+     - unclassified (untested)
+   * - method
+     - ``RaiseDragEvent``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RaiseKeyEvent``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RaiseMouseEvent``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RaisePaintEvent``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RecreateHandle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RectangleToClient``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RectangleToScreen``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ReflectMessage``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Refresh``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RescaleConstantsForDpi``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetBackColor``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetBindings``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetCursor``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetFont``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetForeColor``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetImeMode``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetMouseEventArgs``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetRightToLeft``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetText``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResumeLayout``
+     - ``resume_layout``
+     - supported
+   * - method
+     - ``RtlTranslateAlignment``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RtlTranslateContent``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RtlTranslateHorizontal``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RtlTranslateLeftRight``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Scale``
+     - on ``Window``
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - method
+     - ``ScaleBitmapLogicalToDevice``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ScaleControl``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ScaleCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Select``
+     - on ``TextBox``, ``MaskedTextBox``, ``RichTextBox``, ``TextBoxBase``
+     - unclassified (carried)
+   * - method
+     - ``SelectNextControl``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SendToBack``
+     - ``send_to_back``
+     - supported
+   * - method
+     - ``SetAutoSizeMode``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetBounds``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetBoundsCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetClientSizeCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetStyle``
+     - ``set_style``
+     - supported
+   * - method
+     - ``SetTopLevel``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetVisibleCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Show``
+     - on ``ContextMenu``, ``ThreadExceptionDialog``
+     - unclassified (carried)
+   * - method
+     - ``SizeFromClientSize``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SuspendLayout``
+     - ``suspend_layout``
+     - supported
+   * - method
+     - ``Update``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpdateBounds``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpdateStyles``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpdateZOrder``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``WndProc``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``absolute_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``align_self``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``ambient_back_color``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``ambient_fore_color``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``application_colours_suspended``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``arranged_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``attached``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``attached_surface_root``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``attached_window``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``authored_surface_material``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``auto_size_mode``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``back_color_warned``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``bindable_property_names``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``child_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``child_property_descriptors``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``children``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``children_revision``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``classes``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``command_target``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``committed_arranged_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``declares_clarity``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``dirty``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``display_chunk_info``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_cursor``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_cursor_images``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_key_map``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_layout_direction``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_text_scale``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_theme``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effectively_enabled``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effectively_visible``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``eligible_for_input``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focusable``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``fore_color_warned``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``has_pointer_capture``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``help``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``help_line``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``hit_test_transparent``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``initialization_depth``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``initializing``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``inline_style``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``inline_style_rules``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``justify_self``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``keywords``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``layout_collapsed``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``layout_direction``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``layout_transaction_state``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``measure_generation``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``on_ceremonial_surface``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``owned_decorations``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``paint_plane``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``parts``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``pending_layout_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``property_descriptors``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``publishes_item_tool_tips``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``requested_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``runtime_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``specimen_states``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``stable_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``states``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``styles``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``subtree_dirty``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``surface_slot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``theme_override``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tip_presentation``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``tool_tip_text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``visual_status``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``arranged_bounds_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``context_menu_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``focus_observed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``initialization_completed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``name_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``pointer_observed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``pointer_preview_observed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``tool_tip_text_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``add_child``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_class``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``adopt_property_link``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``anatomy``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``anatomy_states``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``apply_provider_semantics``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``arrange``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign_cancel_dialog_result``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``begin_init``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_keyboard_drag``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``child_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``child_index_from_top``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``child_leaving``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``child_property_table``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``child_property_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``child_touch_escalation``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``child_viewport_rectangle``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_authored_surface_material``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_children``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_owned_decorations``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_theme_override``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clicks_primary_button_only``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``command_dialog_result``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``control_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``effective_font``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``end_init``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``fill_line_break_opportunities_utf8``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``fill_part_geometry``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``fill_realized_item_geometry``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``first_baseline``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``focus_invalidation``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``focus_target``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``fold_content_regions``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``gather_content_regions``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``has_bindable_property``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``has_class``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``has_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``hit_test_local``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``insert_child``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``invalidate_declared``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``invalidate_subtree``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``last_baseline``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``layout_resize_response``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``measure``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``measure_for_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``measure_intrinsic``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``measure_text_extent_utf8``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``measures_children_in_arrange``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``mnemonic_matches``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``notify_default``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_activate``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_ambient_frame``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_attached_to_window``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_attachment_committed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_context_menu_requested``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_detached_from_window``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_detaching_from_window``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_drag``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_drag_bubble``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_drag_preview``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_focus_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_focus_cue_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_key_bubble``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_key_preview``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_layout_direction_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_paint_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_pointer_bubble``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_pointer_preview``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_semantic_action``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_semantic_child_action``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_semantic_text_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_set_semantic_text_selection``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_text_input``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``paint_depends_on_size``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``paints_content``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``perform_dialog_command``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``point_from_window``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``point_to_window``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``process_mnemonic_self``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``property_descriptor``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``property_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``property_value_origin``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``publish_part_geometry``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``publish_realized_item_geometry``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``publish_realized_item_system``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``read``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``realized_item_anatomy_states``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``realized_item_count``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``realized_item_stable_id``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``realized_item_system``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``rectangle_from_window``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``rectangle_to_window``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``redraw_all``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``registry_holds_property``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``remove_child``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``remove_class``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reset_child_property``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reset_property``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``resolve_text_layout_utf8``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``resolved_text_font``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reveal_focused_descendant``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``scroll_content``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``semantic_descriptor``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``semantic_virtual_children``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_child_index_from_top``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_child_property_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_custom_cursor``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_pointer_capture``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_property_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``should_serialize_child_property``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``should_serialize_property``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``size_depends_on_content``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``sizes_children_from_content``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``snap_text_baseline``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``subscribe_property_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``supports_dialog_command``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``text_font``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``text_input_caret``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``theme_role_colours``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``tool_tip_items``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``visual_context``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``visual_outsets``
+     - supported

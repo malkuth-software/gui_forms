@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <array>
 #include <cstddef>
 #include <memory>
@@ -23,7 +24,7 @@ inline constexpr std::array<double, 20> identity_colour_entries{1.0, 0.0, 0.0, 0
 // Level 1). A list of functions composes into one matrix with `then`, in
 // source order. CSS clamps between the functions of a list; one matrix
 // does not, which differs only where an intermediate colour leaves [0, 1].
-struct MaterialColourMatrix final {
+struct GUI_FORMS_API MaterialColourMatrix final {
     static constexpr std::size_t rows = 4U;
     static constexpr std::size_t columns = 5U;
     // Row-major: values[row × 5 + column]. The identity by default.
@@ -52,7 +53,7 @@ struct MaterialColourMatrix final {
 };
 
 // Every entry finite and at most 256 in magnitude.
-[[nodiscard]] bool valid_colour_matrix(const MaterialColourMatrix& matrix) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_colour_matrix(const MaterialColourMatrix& matrix) noexcept;
 
 // A material's colour filter: none, or one matrix held out of line. Every
 // recipe of every theme holds a SurfaceMaterial, so a matrix held inline
@@ -60,7 +61,7 @@ struct MaterialColourMatrix final {
 // holder is one pointer. It owns its matrix; a copy copies the matrix, a
 // move leaves the source empty, and two filters are equal when both are
 // empty or their matrices are equal.
-class MaterialColourFilter final {
+class GUI_FORMS_API MaterialColourFilter final {
 public:
     MaterialColourFilter() noexcept;
     // Implicit, as std::optional's is: `material.colour_filter = matrix;`.

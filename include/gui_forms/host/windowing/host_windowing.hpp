@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/host/windowing/desktop_coordinates.hpp"
@@ -18,7 +19,7 @@ namespace gui_forms {
 // Identity of one window within one application run. Identities are
 // assigned from 1 in admission order and never reused within a run, so a
 // destroyed window's identity cannot address a later window.
-struct HostWindowId final {
+struct GUI_FORMS_API HostWindowId final {
     std::uint64_t value{};
 
     [[nodiscard]] bool valid() const noexcept { return value != 0U; }
@@ -56,11 +57,11 @@ enum class HostWindowKind : std::uint8_t {
     popup,
 };
 
-[[nodiscard]] const char* host_window_kind_name(HostWindowKind kind) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* host_window_kind_name(HostWindowKind kind) noexcept;
 
 // What the run does with a window of each kind (stage DK decisions 1, 10 and
 // 11). One portable rule on every host; the adapters only carry it out.
-struct HostWindowKindTraits final {
+struct GUI_FORMS_API HostWindowKindTraits final {
     // Owned by the primary window, without a taskbar button, minimized with
     // it, and above it only, never above other applications' windows. At
     // most HostWindowing::maximum_floating_windows are live at once.
@@ -82,7 +83,7 @@ struct HostWindowKindTraits final {
     bool popup{};
 };
 
-[[nodiscard]] HostWindowKindTraits host_window_kind_traits(HostWindowKind kind) noexcept;
+[[nodiscard]] GUI_FORMS_API HostWindowKindTraits host_window_kind_traits(HostWindowKind kind) noexcept;
 
 // Whether a window entry asks for a floating window (stage DK decision 1).
 // A floating window is owned by the primary window and is not a tool
@@ -106,7 +107,7 @@ enum class HostPopupFocus : std::uint8_t {
     takes_focus,
 };
 
-[[nodiscard]] const char* host_popup_focus_name(HostPopupFocus focus) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* host_popup_focus_name(HostPopupFocus focus) noexcept;
 
 // What a native popup window is for (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN
 // Part S). One lightweight transient window serves two kinds that differ only
@@ -121,15 +122,15 @@ enum class HostTransientKind : std::uint8_t {
     splashscreen,
 };
 
-[[nodiscard]] const char* host_transient_kind_name(HostTransientKind kind) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* host_transient_kind_name(HostTransientKind kind) noexcept;
 // Whether `kind` is a Splash (takes no input): tool_tip and splashscreen.
-[[nodiscard]] bool host_transient_is_splash(HostTransientKind kind) noexcept;
+[[nodiscard]] GUI_FORMS_API bool host_transient_is_splash(HostTransientKind kind) noexcept;
 
 // Where a native popup window opens and how it takes focus (owner,
 // 2026-11-04): carried by its window entry (ApplicationWindow::popup and
 // each adapter's native entry). Programs open popups through
 // Window::open_native_popup, which fills this in.
-struct HostPopupPlacement final {
+struct GUI_FORMS_API HostPopupPlacement final {
     // A Splash kind takes no input, so its focus is always passive; an entry
     // declaring takes_focus with a Splash kind is invalid.
     HostTransientKind kind{HostTransientKind::popup};
@@ -144,17 +145,17 @@ struct HostPopupPlacement final {
 // entry is popup; else a floating entry is floating_tool or
 // floating_document; else a tool window is tool; else a window with an
 // owner is standard and one without is primary.
-[[nodiscard]] HostWindowKind host_window_kind(bool has_owner, bool tool_window,
+[[nodiscard]] GUI_FORMS_API HostWindowKind host_window_kind(bool has_owner, bool tool_window,
                                               HostWindowFloating floating, bool popup) noexcept;
 
 // Moves `outer` the least distance that puts it inside `work_area`; a
 // rectangle wider or taller than the work area is aligned with its left or
 // top edge. The size never changes.
-[[nodiscard]] Rect clamp_to_work_area(Rect outer, Rect work_area) noexcept;
+[[nodiscard]] GUI_FORMS_API Rect clamp_to_work_area(Rect outer, Rect work_area) noexcept;
 
 // What an adapter tells the windowing seam about a window it is about to
 // create. `stable_id` is borrowed for the call.
-struct HostWindowDescription final {
+struct GUI_FORMS_API HostWindowDescription final {
     std::string_view stable_id{};
     // Invalid for a window without an owner.
     HostWindowId owner{};
@@ -163,13 +164,13 @@ struct HostWindowDescription final {
     HostTransientKind transient{HostTransientKind::popup};
 };
 
-struct HostWindowAdmission final {
+struct GUI_FORMS_API HostWindowAdmission final {
     HostServiceStatus status{};
     HostWindowId window{};
 };
 
 // A window's rectangle in desktop logical units (desktop_coordinates.hpp).
-struct HostWindowFrame final {
+struct GUI_FORMS_API HostWindowFrame final {
     // The client area: the rectangle the window's model lays out and paints.
     Rect content{};
     // The whole window including native decorations where the host measures
@@ -185,19 +186,19 @@ struct HostWindowFrame final {
     }
 };
 
-struct HostWindowFrameResult final {
+struct GUI_FORMS_API HostWindowFrameResult final {
     HostServiceStatus status{};
     HostWindowFrame frame{};
 };
 
 // Published once for every native move or resize the adapter reports,
 // whoever caused it (the user, a frame request, the platform).
-struct HostWindowFrameEvent final {
+struct GUI_FORMS_API HostWindowFrameEvent final {
     HostWindowId window{};
     HostWindowFrame frame{};
 };
 
-struct HostScreenPointResult final {
+struct GUI_FORMS_API HostScreenPointResult final {
     HostServiceStatus status{};
     DesktopLogicalPoint position{};
 };
@@ -205,12 +206,12 @@ struct HostScreenPointResult final {
 // An accepted result whose `window` is invalid means no window of this run
 // is the topmost window at the point (the desktop, or another
 // application's window, is).
-struct HostWindowAtResult final {
+struct GUI_FORMS_API HostWindowAtResult final {
     HostServiceStatus status{};
     HostWindowId window{};
 };
 
-struct HostWindowingSnapshot final {
+struct GUI_FORMS_API HostWindowingSnapshot final {
     HostCapabilities capabilities{};
     std::size_t live_windows{};
     std::uint64_t admitted{};
@@ -262,7 +263,7 @@ struct HostWindowingSnapshot final {
 // from another thread report wrong_thread; requests after shutdown()
 // report after_shutdown; unknown or retired identities are
 // invalid_argument.
-class HostWindowing {
+class GUI_FORMS_API HostWindowing {
 public:
     static constexpr std::size_t maximum_windows = 64U;
     static constexpr std::size_t maximum_floating_windows = 32U;

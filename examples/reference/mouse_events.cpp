@@ -87,9 +87,11 @@ void run(gf::Application& application) {
     const std::shared_ptr<gf::Button> ok = window.example_ok;   // request_focus takes the shared pointer
     Journal journal(*ok, *window.example_surface);
 
-    // A click: MouseDown, Click, MouseClick, the button's activation, MouseUp.
+    // A click, in the order manifests/abi/interaction_order.json records
+    // (sequence "click"): MouseDown, MouseUp, Click, MouseClick, then the
+    // button's activation. Windows Forms raises MouseUp last.
     press_and_release(window, {20.0, 20.0}, 1U);
-    require(journal.log == "dcmau", "a click raises the events in WinForms' order");
+    require(journal.log == "ducma", "a click raises the physical events, then the derived ones");
 
     // A double-click on the panel: the host counts the second press (2),
     // and DoubleClick arrives on its release.
@@ -106,7 +108,7 @@ void run(gf::Application& application) {
     require(handled && journal.log == "x", "the panel handles the keyboard context request");
 
     // A consuming rule on the button's Click runs before the subscribers and
-    // keeps Click, and the activation, from them; MouseUp is still raised.
+    // keeps Click, and the activation, from them; MouseUp still comes first.
     gf::Rule swallow{};
     swallow.trigger = gf::trigger::click(*ok);
     swallow.actions.push_back(gf::action(journal, &count_firing));
@@ -115,7 +117,7 @@ void run(gf::Application& application) {
     require(added.refusal == gf::RuleRefusal::none, "the rule is armed");
     journal.log.clear();
     press_and_release(window, {20.0, 20.0}, 1U);
-    require(journal.rule_firings == 1U && journal.log == "dmu",
+    require(journal.rule_firings == 1U && journal.log == "dum",
             "the consumed Click reaches neither its subscriber nor the activation");
 
     // Disposing the journal disconnects every subscription it owns.

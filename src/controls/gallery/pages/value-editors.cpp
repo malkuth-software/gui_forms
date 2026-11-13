@@ -1,6 +1,18 @@
 #include "pages.hpp"
+#include "gui_forms/binding/binding_context/binding_context.hpp"
+#include "gui_forms/binding/binding_schema/binding_schema.hpp"
+#include "gui_forms/binding/binding_source/binding_source.hpp"
+#include "gui_forms/binding/binding_table/binding_table.hpp"
+#include "gui_forms/binding/types/binding_contract_types.hpp"
+#include "gui_forms/controls/color_value_editor.hpp"
+#include "gui_forms/controls/command_bar.hpp"
+#include "gui_forms/controls/flags_value_editor.hpp"
+#include "gui_forms/controls/property_list.hpp"
+#include "gui_forms/inspection/inspection_types.hpp"
+#include "gui_forms/inspection/types/property_editor_kind/property_editor_kind.hpp"
 
 #include "value-editors_form.hpp"
+#include "gui_forms_lab/instrument_rack.hpp"
 
 #include <array>
 #include <vector>

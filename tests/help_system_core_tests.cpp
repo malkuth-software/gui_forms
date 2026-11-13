@@ -4,7 +4,20 @@
 // missing images, markdown faults), its binary round trip and version
 // refusal, search v1 (with a 2,000-record measurement) and the page model.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/help/help_contents/help_contents.hpp"
+#include "gui_forms/help/help_page/help_page.hpp"
+#include "gui_forms/help/help_records/help_records.hpp"
+#include "gui_forms/help/help_search/help_search.hpp"
+#include "gui_forms/help/helpbook_section/helpbook_section.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
+#include "gui_forms/xml/types/xml_types.hpp"
 
 #include <chrono>
 #include <cstdlib>
@@ -324,6 +337,31 @@ void page_model() {
     require(anchor == "hello-world-2", "anchors fold and join with dashes");
 }
 
+// A locale file nested `controls` <control> levels deep, with a <help>
+// child at the bottom.
+std::string nested_locale(std::size_t controls) {
+    std::string text = "<locale xml:lang=\"en\"><controls>";
+    for (std::size_t level = 0U; level < controls; ++level) {
+        text += "<control name=\"s" + std::to_string(level) + "\" text=\"x\">";
+    }
+    text += "<help>body</help>";
+    for (std::size_t level = 0U; level < controls; ++level) text += "</control>";
+    text += "</controls></locale>";
+    return text;
+}
+
+// The locale walk recurses per <control> level, so the read caps the
+// document at 67 elements even when the caller's XML limits allow more.
+void locale_depth_limit() {
+    XmlLimits generous{};
+    generous.maximum_depth = xml_depth_ceiling;
+    const HelpLocaleReadResult at_limit = read_help_locale(nested_locale(64U), HelpFieldLimits{}, generous);
+    require(static_cast<bool>(at_limit), "a locale file 67 elements deep reads");
+    const HelpLocaleReadResult past = read_help_locale(nested_locale(65U), HelpFieldLimits{}, generous);
+    require(past.error == HelpLocaleError::xml && past.xml_error == XmlError::depth_exceeded,
+            "a locale file one level deeper is refused before the walk");
+}
+
 } // namespace
 
 int main() {
@@ -332,6 +370,7 @@ int main() {
     broken_links();
     search();
     page_model();
+    locale_depth_limit();
     std::cout << "help system core tests passed\n";
     return 0;
 }

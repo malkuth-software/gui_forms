@@ -1,4 +1,7 @@
 #include "page_tests.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/list_box.hpp"
 
 #include <span>
 #include <string>
@@ -38,7 +41,7 @@ void press(Window& window, Point point, Modifier modifiers, std::uint32_t clicks
 } // namespace
 
 // The input-and-rules page: the target's WinForms mouse events reach the
-// log in WinForms' order; a pointer context request is logged and handled;
+// log in the raisers' order; a pointer context request is logged and handled;
 // the page's three rules run before the subscribers once armed, and stop
 // when revoked.
 void test_input_and_rules(gui_forms::Window& window) {
@@ -54,7 +57,8 @@ void test_input_and_rules(gui_forms::Window& window) {
     require(target && log && statistics && armed && marked && button && clear,
             "the input-and-rules page publishes its target, log and rule controls by stable id");
 
-    // A click: MouseDown, then Click and MouseClick, then MouseUp. A panel
+    // A click: MouseDown, then MouseUp (raised at the target phase of the
+    // release's route), then Click and MouseClick. A panel
     // whose mouse events only have subscribers does not handle the pointer,
     // so the press is dispatched without requiring it handled.
     press(window, center(target), Modifier::none, 1U);
@@ -64,8 +68,8 @@ void test_input_and_rules(gui_forms::Window& window) {
     const std::size_t up = find_line(*log, "MouseUp · primary ×1");
     require(down != no_line && clicked != no_line && mouse_click != no_line && up != no_line,
             "a click on the target logs MouseDown, Click, MouseClick and MouseUp");
-    require(down < clicked && clicked <= mouse_click && mouse_click < up,
-            "the log keeps WinForms' order: MouseDown, Click, MouseClick, MouseUp");
+    require(down < up && up < clicked && clicked <= mouse_click,
+            "the log keeps the raisers' order: MouseDown, MouseUp, Click, MouseClick");
 
     // A pointer context request is logged at the target and handled there.
     require(window.dispatch_context_request(ContextRequestOrigin::pointer, center(target)),

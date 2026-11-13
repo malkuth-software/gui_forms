@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -53,7 +54,7 @@ enum class MarkdownLoss : std::uint8_t {
 inline constexpr std::size_t markdown_loss_kind_count = 25U;
 
 // How many times a conversion met each kind of loss.
-class MarkdownLossReport final {
+class GUI_FORMS_API MarkdownLossReport final {
 public:
     [[nodiscard]] std::uint32_t count(MarkdownLoss kind) const noexcept;
     // Whether nothing was lost.
@@ -68,14 +69,14 @@ private:
 
 // One sentence for a reader saying what count losses of kind were, for
 // example "2 pictures were skipped."; empty for a count of 0.
-[[nodiscard]] std::string describe_loss(MarkdownLoss kind, std::uint32_t count);
+[[nodiscard]] GUI_FORMS_API std::string describe_loss(MarkdownLoss kind, std::uint32_t count);
 
 // Which rule chose an imported document's body size: no sized text (the
 // 12-point default), the document's default character format, the Normal
 // style, or the size of most of the text. Size steps are relative to it.
 enum class RtfBodyRule : std::uint8_t { none, default_character_format, normal_style, most_common };
 
-struct RtfBodySize final {
+struct GUI_FORMS_API RtfBodySize final {
     std::int32_t half_points{24};
     RtfBodyRule rule{RtfBodyRule::none};
 };
@@ -88,7 +89,7 @@ enum class RtfConversionError : std::uint8_t { malformed, unsupported_encoding, 
 // The result of import_rtf or export_rtf: imported, with its losses and the
 // body size the sizes are relative to; exported, with its losses; or failed
 // with an error and the input offset where reading stopped.
-class RtfConversionResult final {
+class GUI_FORMS_API RtfConversionResult final {
 public:
     [[nodiscard]] static RtfConversionResult imported(const MarkdownLossReport& losses, RtfBodySize body) noexcept;
     [[nodiscard]] static RtfConversionResult exported(const MarkdownLossReport& losses) noexcept;
@@ -124,16 +125,16 @@ private:
 
 // Whether bytes start as RTF does ("{\rtf"). The extension alone does not
 // make a file RTF.
-[[nodiscard]] bool looks_like_rtf(std::span<const std::byte> bytes) noexcept;
+[[nodiscard]] GUI_FORMS_API bool looks_like_rtf(std::span<const std::byte> bytes) noexcept;
 
 // Reads rtf and writes the document as the dialect's canonical markdown
 // into markdown, which is replaced. rtf is read only; the two may not
 // share storage. On failure markdown is empty.
-[[nodiscard]] RtfConversionResult import_rtf(std::span<const std::byte> rtf, std::string& markdown);
+[[nodiscard]] GUI_FORMS_API RtfConversionResult import_rtf(std::span<const std::byte> rtf, std::string& markdown);
 
 // Reads markdown in the dialect and writes it as canonical RTF into rtf,
 // which is replaced. markdown is read only; the two may not share storage.
 // On failure rtf is empty.
-[[nodiscard]] RtfConversionResult export_rtf(std::string_view markdown, std::vector<std::byte>& rtf);
+[[nodiscard]] GUI_FORMS_API RtfConversionResult export_rtf(std::string_view markdown, std::vector<std::byte>& rtf);
 
 } // namespace gui_forms

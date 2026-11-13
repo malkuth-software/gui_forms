@@ -8,6 +8,7 @@
 // Window::set_theme or ApplicationResources::set_theme, so a refused theme
 // never half-applies and the running one stays (B2, RC003).
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
@@ -28,13 +29,13 @@ class EffectRegistry;
 
 // One file of a theme package: its path inside the package, as the
 // manifest lists it, and its bytes.
-struct ThemePackageFile final {
+struct GUI_FORMS_API ThemePackageFile final {
     std::string path{};
     std::string bytes{};
 };
 
 // A theme package: its manifest's bytes and its files.
-struct ThemePackage final {
+struct GUI_FORMS_API ThemePackage final {
     std::string manifest{};
     std::vector<ThemePackageFile> files{};
 };
@@ -47,7 +48,7 @@ enum class ThemeDiagnosticSeverity : std::uint8_t {
 };
 
 // One finding of an install or a compilation.
-struct ThemeCompileDiagnostic final {
+struct GUI_FORMS_API ThemeCompileDiagnostic final {
     // As `E601` or `W106`.
     std::string code{};
     // As `manifest_invalid`.
@@ -67,7 +68,7 @@ struct ThemeCompileDiagnostic final {
 // The installed theme packages an `@import` may name (D2): each verified
 // whole when installed (its manifest, every file's hash, and every
 // `@import` of its sheet listed in its manifest), and found by its name.
-class ThemeLibrary final {
+class GUI_FORMS_API ThemeLibrary final {
 public:
     ThemeLibrary();
     ~ThemeLibrary();
@@ -114,7 +115,7 @@ enum class ThemeBase : std::uint8_t { windows_professional, gui_forms };
 inline constexpr ThemeBase default_theme_base = ThemeBase::gui_forms;
 
 // What a compilation reads besides the package.
-struct ThemeCompileOptions final {
+struct GUI_FORMS_API ThemeCompileOptions final {
     // The control types a selector may name (the stock ones and the
     // application's own); a name outside them is a warning that drops its
     // rule.
@@ -148,7 +149,7 @@ struct ThemeCompileOptions final {
 // applied, with any warnings (none for empty text, which clears the
 // style), or refused with its diagnostics, the control keeping its
 // previous inline style.
-class InlineStyleResult final {
+class GUI_FORMS_API InlineStyleResult final {
 public:
     [[nodiscard]] static InlineStyleResult applied(std::vector<ThemeCompileDiagnostic> warnings) noexcept;
     [[nodiscard]] static InlineStyleResult refused(std::vector<ThemeCompileDiagnostic> diagnostics) noexcept;
@@ -171,7 +172,7 @@ private:
 
 // What compiling a theme package gave: compiled, a theme with any
 // warnings, or refused with its diagnostics.
-class ThemeCompileResult final {
+class GUI_FORMS_API ThemeCompileResult final {
 public:
     [[nodiscard]] static ThemeCompileResult compiled(std::shared_ptr<const Theme> theme,
                                                      std::vector<ThemeCompileDiagnostic> warnings) noexcept;
@@ -207,7 +208,7 @@ private:
 // registry share one image. A refusal leaves none of its own. The package
 // itself need not be installed. Compiles through one library, and the
 // release of their themes, are not safe to run concurrently.
-[[nodiscard]] ThemeCompileResult compile_theme_package(const ThemePackage& package, const ThemeLibrary& library,
+[[nodiscard]] GUI_FORMS_API ThemeCompileResult compile_theme_package(const ThemePackage& package, const ThemeLibrary& library,
                                                        ImageRegistry& images, const ThemeCompileOptions& options);
 
 // The most packages compile_theme_packages takes: 16, as many as one
@@ -226,13 +227,13 @@ inline constexpr std::size_t maximum_theme_packages = 16U;
 // are bounded as one closure's are (1 MiB). Images are owned as
 // compile_theme_package's are; compile_theme_package is the one-package
 // case.
-[[nodiscard]] ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages,
+[[nodiscard]] GUI_FORMS_API ThemeCompileResult compile_theme_packages(std::span<const ThemePackage> packages,
                                                         const ThemeLibrary& library, ImageRegistry& images,
                                                         const ThemeCompileOptions& options);
 
 // What validating theme packages found (validate_theme_packages): whether
 // they compile, and every finding, warnings included.
-struct ThemeValidation final {
+struct GUI_FORMS_API ThemeValidation final {
     bool valid{};
     std::vector<ThemeCompileDiagnostic> diagnostics{};
 };
@@ -244,7 +245,7 @@ struct ThemeValidation final {
 // are decoded into a registry of the call's own, released before it
 // returns. Like compile_theme_package, not concurrently with another
 // compilation through `library`.
-[[nodiscard]] ThemeValidation validate_theme_packages(std::span<const ThemePackage> packages,
+[[nodiscard]] GUI_FORMS_API ThemeValidation validate_theme_packages(std::span<const ThemePackage> packages,
                                                       const ThemeLibrary& library,
                                                       const ThemeCompileOptions& options);
 
@@ -252,13 +253,13 @@ struct ThemeValidation final {
 // <name>: <detail>` (the place left out where the finding has none, then
 // the rule and property where it is inside one), as the build check and a
 // test print it.
-[[nodiscard]] std::string format_theme_diagnostic(const ThemeCompileDiagnostic& diagnostic);
+[[nodiscard]] GUI_FORMS_API std::string format_theme_diagnostic(const ThemeCompileDiagnostic& diagnostic);
 
 // The process default theme: the theme a window shows while no application
 // is current, the compiled base default_theme_base names alone. Built on
 // the first call (thread-safe) and never recompiled; every call returns
 // the same theme.
-[[nodiscard]] std::shared_ptr<const Theme> default_compiled_theme();
+[[nodiscard]] GUI_FORMS_API std::shared_ptr<const Theme> default_compiled_theme();
 
 // A user theme's files (T3 user themes, notes:planning/stages/
 // T3-theme-language/USER_THEMES.md): its name, the stem of its main file
@@ -267,7 +268,7 @@ struct ThemeValidation final {
 // them. The folder's top-level `.css` files are the theme's sub-sheets, its
 // top-level `.png` files its image resources (`url("resource:wood.png")`),
 // and `icons/<identifier>.png` its icon overrides; nothing else is admitted.
-struct UserThemeFiles final {
+struct GUI_FORMS_API UserThemeFiles final {
     std::string name{};
     std::string main_sheet{};
     std::vector<ThemePackageFile> files{};
@@ -284,7 +285,7 @@ inline constexpr std::size_t maximum_user_theme_files = 256U;
 inline constexpr std::size_t maximum_user_theme_bytes = std::size_t{16} * 1024U * 1024U;
 
 // The header of a user theme's main file, which makes the file a theme.
-struct UserThemeHeader final {
+struct GUI_FORMS_API UserThemeHeader final {
     // Whether the main file opens with one: a file without it is no theme.
     bool present{};
     std::string version{};
@@ -305,7 +306,7 @@ struct UserThemeHeader final {
 // owned as compile_theme_package's are. `header`, when given, receives the
 // main file's header once it is read, whether or not the theme then
 // compiles (present false where the main file has none or does not read).
-[[nodiscard]] ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program,
+[[nodiscard]] GUI_FORMS_API ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program,
                                                     ImageRegistry& images, const ThemeCompileOptions& options,
                                                     ThemeRuleSet set, UserThemeHeader* header = nullptr);
 
@@ -314,13 +315,13 @@ struct UserThemeHeader final {
 // of its manifest's version, author, provenance and engine bound, and its
 // `.png` resources as the folder's images. A resource of another kind
 // cannot be a user theme's file; it is left out and named in `omitted`.
-struct ThemePackageExport final {
+struct GUI_FORMS_API ThemePackageExport final {
     UserThemeFiles files{};
     std::vector<std::string> omitted{};
 };
 
 // Every package of `library`, in name order, as export writes it.
-[[nodiscard]] std::vector<ThemePackageExport> export_theme_packages(const ThemeLibrary& library);
+[[nodiscard]] GUI_FORMS_API std::vector<ThemePackageExport> export_theme_packages(const ThemeLibrary& library);
 
 // A theme package of one sheet: an application's theme as one plain CSS
 // file, edited and read again at start-up without a rebuild. The manifest
@@ -329,11 +330,11 @@ struct ThemePackageExport final {
 // version 1.0.0). The name is checked when the package is compiled, as
 // any manifest's is (E601); a quote, backslash or control character in it
 // is escaped, so the manifest is always well-formed JSON.
-[[nodiscard]] ThemePackage theme_sheet_package(std::string_view sheet, std::string_view name);
+[[nodiscard]] GUI_FORMS_API ThemePackage theme_sheet_package(std::string_view sheet, std::string_view name);
 
 // As compile_theme_package, for the installed package named `name`; an
 // unknown name is refused (E603).
-[[nodiscard]] ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library,
+[[nodiscard]] GUI_FORMS_API ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library,
                                                          ImageRegistry& images, const ThemeCompileOptions& options);
 
 } // namespace gui_forms

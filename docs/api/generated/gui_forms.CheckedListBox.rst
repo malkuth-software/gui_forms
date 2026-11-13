@@ -9,7 +9,7 @@ gui_forms::CheckedListBox
 
 .. cpp:class:: CheckedListBox final : public ListBox, public CheckedListBoxCapabilities<CheckedListBox>
 
-   ``#include <gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp>``
+   ``#include <gui_forms/controls/checked_list_box.hpp>``
 
    A list box with a check box on each row.
 
@@ -67,7 +67,9 @@ gui_forms::CheckedListBox
 
    :Inherited:
 
-      From :cpp:class:`ListBox <gui_forms::ListBox>`: properties :cpp:member:`items <gui_forms::ListBox::items>`, :cpp:member:`selection_mode <gui_forms::ListBox::selection_mode>`, :cpp:member:`top_index <gui_forms::ListBox::top_index>`, :cpp:member:`item_height <gui_forms::ListBox::item_height>`, :cpp:member:`font <gui_forms::ListBox::font>`, :cpp:func:`selected_indices <gui_forms::ListBox::selected_indices>`, :cpp:func:`selected_index <gui_forms::ListBox::selected_index>`, :cpp:func:`parts <gui_forms::ListBox::parts>`; events :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>`, :cpp:func:`item_activated <gui_forms::ListBox::item_activated>`; methods :cpp:func:`clear_selection <gui_forms::ListBox::clear_selection>`, :cpp:func:`item_stable_id <gui_forms::ListBox::item_stable_id>`, :cpp:func:`list_box_property_entries <gui_forms::ListBox::list_box_property_entries>`, :cpp:func:`select_index <gui_forms::ListBox::select_index>`, :cpp:func:`set_item_stable_ids <gui_forms::ListBox::set_item_stable_ids>`.
+      From :cpp:class:`ListBox <gui_forms::ListBox>`: properties :cpp:member:`items <gui_forms::ListBox::items>`, :cpp:member:`selection_mode <gui_forms::ListBox::selection_mode>`, :cpp:member:`top_index <gui_forms::ListBox::top_index>`, :cpp:member:`item_height <gui_forms::ListBox::item_height>`, :cpp:member:`font <gui_forms::ListBox::font>`, :cpp:func:`selected_indices <gui_forms::ListBox::selected_indices>`, :cpp:func:`parts <gui_forms::ListBox::parts>`; events :cpp:func:`selection_changed <gui_forms::ListBox::selection_changed>`, :cpp:func:`item_activated <gui_forms::ListBox::item_activated>`; methods :cpp:func:`clear_selection <gui_forms::ListBox::clear_selection>`, :cpp:func:`item_stable_id <gui_forms::ListBox::item_stable_id>`, :cpp:func:`list_box_property_entries <gui_forms::ListBox::list_box_property_entries>`, :cpp:func:`select_index <gui_forms::ListBox::select_index>`, :cpp:func:`set_item_stable_ids <gui_forms::ListBox::set_item_stable_ids>`.
+
+      From :cpp:class:`ListControl <gui_forms::ListControl>`: properties :cpp:func:`selected_index <gui_forms::ListControl::selected_index>`; events :cpp:func:`selected_index_changed <gui_forms::ListControl::selected_index_changed>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
@@ -257,15 +259,6 @@ gui_forms::CheckedListBox
 
    .. rubric:: Extension points
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-      Handles the pointer input described under Notes. The window calls it.
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
-      Toggles the active row on Space and passes every other key to
-      :cpp:class:`ListBox <gui_forms::ListBox>`. The window calls it.
-
    .. cpp:function:: std::vector<SemanticNode> semantic_virtual_children() const override
 
       Publishes the rows as :cpp:class:`ListBox <gui_forms::ListBox>` does, with the role ``check_list_item``,
@@ -281,6 +274,20 @@ gui_forms::CheckedListBox
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+      Handles the pointer input described under Notes, with the other mouse
+      raisers the class overrides, then raises the event. The window calls it.
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Raises the event, then toggles the active row on Space and passes every
+      other key to :cpp:class:`ListBox <gui_forms::ListBox>`. The window calls it.
 
    .. cpp:function:: void on_items_changing(const CollectionEdit& edit) override
 
@@ -305,3 +312,137 @@ gui_forms::CheckedListBox
    .. cpp:function:: void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``CheckedListBox``. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 18 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``CheckedListBox``
+     - ``CheckedListBox``
+     - supported
+   * - property
+     - ``CheckedIndices``
+     - ``checked_indices``
+     - supported
+   * - property
+     - ``CheckedItems``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CheckOnClick``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DataSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DisplayMember``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Items``
+     - ``items``
+     - supported
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``ThreeDCheckBoxes``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseCompatibleTextRendering``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ValueMember``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Click``
+     - ``click``
+     - supported
+   * - event
+     - ``DataSourceChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DisplayMemberChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DrawItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemCheck``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MeasureItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseClick``
+     - ``mouse_click``
+     - unclassified (untested)
+   * - event
+     - ``ValueMemberChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemChecked``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemCheckState``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnItemCheck``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``SetItemChecked``
+     - ``set_item_checked``
+     - supported
+   * - method
+     - ``SetItemCheckState``
+     - ``set_item_check_state``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_check_state_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_checking``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_item``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``item_check_state``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``item_checked``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``toggle_item``
+     - supported

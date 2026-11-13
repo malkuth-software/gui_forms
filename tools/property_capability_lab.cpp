@@ -15,7 +15,24 @@
 // changed-slot gather. Not a test; a measurement program. Each timing is
 // the fastest of several interleaved rounds; one line per measurement.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_cell/property_cell.hpp"
+#include "gui_forms/binding/property_table/property_table.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/shared_capabilities/shared_capabilities.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/event/event/event.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/value/value.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <algorithm>
 #include <array>
@@ -194,7 +211,8 @@ public:
 class SetterButton final : public Control {
 public:
     explicit SetterButton(StableId stable_id) : Control(std::move(stable_id)) {}
-    [[nodiscard]] const std::string& text() const noexcept { return text_; }
+    [[nodiscard]] const std::string& text() const& noexcept { return text_; }
+    const std::string& text() const&& = delete;
     void set_text(std::string text) {
         if (text_ == text) return;
         text_ = std::move(text);

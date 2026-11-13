@@ -65,6 +65,12 @@ struct LoweredSelector final {
 // may name (manifests/control-schema.json lists the stock ones). A part
 // named with a control type must be declared by that type, among its own
 // parts or its item systems'; a part named without one by some type.
+// `:state(name)` names a standard state first (AnatomyState), else a
+// custom state of the selector's control type (R2-13): its anatomy's
+// custom_states, or those of the item system declaring the selector's
+// part. Each anatomy is expected to pass validate_control_anatomy, which
+// refuses a custom state named as a standard one; one that was not checked
+// cannot shadow a standard state, since the standard name is read first.
 // Borrowed for the lowering.
 struct SelectorVocabulary final {
     std::span<const ControlAnatomy> controls{};
@@ -89,8 +95,10 @@ enum class SelectorOutcome : std::uint8_t {
     // A name the vocabulary does not know: one warning, and the rule is
     // dropped (B3, R2-08). Nothing was appended. A part the selector's
     // control type lacks leaves out only that selector, with its own
-    // warning, as CSS's `::part()` matches nothing for an unknown part; a
-    // list left with no selector is dropped.
+    // warning, as CSS's `::part()` matches nothing for an unknown part; so
+    // does a custom state its control type does not declare, or one in a
+    // selector naming no control type (R2-13). A list left with no
+    // selector is dropped.
     dropped,
     // An error: the theme is refused (B2). Nothing was appended.
     refused,
@@ -111,14 +119,32 @@ struct Alternative final {
 // where a control type would be.
 // `family` is `:family(<name>)`, a control visual family (selector step
 // 2); `negation` is a whole `:not()`, its arguments held in
-// SelectorWorkspace::negated.
-enum class SimpleKind : std::uint8_t { control_type, stable_id, style_class, state, part, role, surface, family, negation };
+// SelectorWorkspace::negated. `custom_state` is a `:state(name)` that names
+// no standard state: it is resolved against the selector's control type
+// once the selector is expanded (R2-13), since an `:is()` may give each
+// expansion its own type.
+// item_id and item_class are `:item()`'s arguments (cp31): the item's
+// stable ID and classes.
+enum class SimpleKind : std::uint8_t {
+    control_type,
+    stable_id,
+    style_class,
+    state,
+    custom_state,
+    part,
+    role,
+    surface,
+    family,
+    negation,
+    item_id,
+    item_class,
+};
 struct Simple final {
     SimpleKind kind{SimpleKind::control_type};
     // The token that wrote it, for diagnostics.
     std::uint32_t token{};
-    // The written name: the control type, ID, class or part (in its
-    // written kebab-case for a type or part).
+    // The written name: the control type, ID, class, part or custom state
+    // (in its written kebab-case for a type, part or custom state).
     std::string_view name{};
     AnatomyState state{AnatomyState::normal};
     PartRole role{PartRole::region};

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
 #include <array>
@@ -37,7 +38,7 @@ inline constexpr std::array<std::string_view, part_shape_kind_count> part_shape_
 
 // The four corners' radii of a shape drawn in a box, in the box's units:
 // top-left, top-right, bottom-right and bottom-left.
-struct PartCornerRadii final {
+struct GUI_FORMS_API PartCornerRadii final {
     double top_left{};
     double top_right{};
     double bottom_right{};
@@ -49,7 +50,7 @@ struct PartCornerRadii final {
     }
 };
 
-struct PartShape final {
+struct GUI_FORMS_API PartShape final {
     PartShapeKind kind{PartShapeKind::rounded_rectangle};
     // The corner radius of a rounded rectangle, in logical units.
     double corner_radius{};
@@ -68,22 +69,22 @@ struct PartShape final {
 // The radii of `shape`'s corners drawn in `box`, clamped to half its
 // shorter side. A circle reports half the shorter side at every corner,
 // though it is the inscribed circle, not a rounded box.
-[[nodiscard]] PartCornerRadii part_corner_radii(PartShape shape, Rect box) noexcept;
+[[nodiscard]] GUI_FORMS_API PartCornerRadii part_corner_radii(PartShape shape, Rect box) noexcept;
 
 // The signed distance from `point` to the edge of `shape` drawn in `box`,
 // in the box's units: negative inside, positive outside.
-[[nodiscard]] double shape_signed_distance(PartShape shape, Rect box, Point point) noexcept;
+[[nodiscard]] GUI_FORMS_API double shape_signed_distance(PartShape shape, Rect box, Point point) noexcept;
 
 // Whether `point` lies inside `shape` drawn in `box`, all in the same
 // units. The box's left and top edges are inside, its right and bottom
 // edges outside.
-[[nodiscard]] bool shape_contains(PartShape shape, Rect box, Point point) noexcept;
+[[nodiscard]] GUI_FORMS_API bool shape_contains(PartShape shape, Rect box, Point point) noexcept;
 
 // How much of the device pixel (x, y) `shape` covers when drawn in `box`
 // (logical units) at `scale` device pixels per unit, from 0 to 1: one half
 // minus the signed distance of the pixel's centre in device pixels,
 // clamped. The same inputs give the same coverage on every host.
-[[nodiscard]] double shape_coverage(PartShape shape, Rect box, double scale, std::int64_t x,
+[[nodiscard]] GUI_FORMS_API double shape_coverage(PartShape shape, Rect box, double scale, std::int64_t x,
                                     std::int64_t y) noexcept;
 
 // The pointer target minimum of dense chrome (design language §7.4, 20 × 20
@@ -95,11 +96,11 @@ inline constexpr double minimum_hit_target = 20.0;
 // either inside the shape or inside the minimum target centred in the
 // bounds (clipped to them), so a hit region may exceed what is drawn but
 // never falls below the minimum.
-struct PartHitRegion final {
+struct GUI_FORMS_API PartHitRegion final {
     Rect bounds{};
     PartShape shape{};
 };
 
-[[nodiscard]] bool part_hit(const PartHitRegion& region, Point point) noexcept;
+[[nodiscard]] GUI_FORMS_API bool part_hit(const PartHitRegion& region, Point point) noexcept;
 
 } // namespace gui_forms

@@ -1,4 +1,4 @@
-#include "gui_forms/controls/collections/choice_group.hpp"
+#include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -65,7 +65,7 @@ public:
         const std::string shown = text.read();
         PartPaint label{.role = PartRole::label, .bounds = bounds, .states = states,
                         .family = ControlVisualRole::choice};
-        label.text = shown;
+        label.text = lend_paint_text(shown);
         label.font = text_font(font.read());
         label.alignment = PartTextAlignment::center;
         paint_part(painter, *this, label);
@@ -93,6 +93,8 @@ struct ChoiceGroup::Entry final {
 struct ChoiceGroup::Revision final {
     std::vector<ChoiceItem> items{};
     std::vector<std::shared_ptr<Entry>> entries{};
+    // Stamps items(): replacing the revision ends the views lent from it.
+    detail::BorrowLender lender{};
 };
 struct ChoiceGroup::ItemClick final {
     ChoiceGroup& group;
@@ -128,9 +130,11 @@ ChoiceGroup::ChoiceGroup(StableId id) : Panel(std::move(id)) {
 }
 ChoiceGroup::~ChoiceGroup() = default;
 
-std::span<const ChoiceItem> ChoiceGroup::items() const noexcept {
-    if (!revision_) return {};
-    return (*revision_).items;
+BorrowedSpan<ChoiceItem> ChoiceGroup::items() const noexcept {
+    if (!revision_) return BorrowedSpan<ChoiceItem>();
+    const std::vector<ChoiceItem>& current = (*revision_).items;
+    BorrowedSpan<ChoiceItem> view = detail::lend_view(current.data(), current.size(), (*revision_).lender);
+    return view;
 }
 Button& ChoiceGroup::item(const int index) const {
     if (!revision_ || index < 0 || static_cast<std::size_t>(index) >= (*revision_).entries.size()) {
@@ -240,6 +244,9 @@ void ChoiceGroup::set_items(std::vector<ChoiceItem> items) {
     replacing_ = true;
     try {
         const std::shared_ptr<Revision> previous = std::exchange(revision_, next);
+        // The items lent from the previous revision end here, even while a
+        // callback still holds that revision.
+        if (previous) (*previous).lender.invalidate();
         if (previous) {
             for (const std::shared_ptr<Entry>& entry : (*previous).entries) {
                 const std::vector<std::shared_ptr<Entry>>::const_iterator found =
@@ -364,8 +371,8 @@ void ChoiceGroup::on_paint(Painter& painter, Rect local_damage) {
     selection.key = PartKey{"selection", {}, {}};
     paint_part(painter, *this, selection);
 }
-void ChoiceGroup::on_key_bubble(KeyEvent& event) { on_key(event); }
-void ChoiceGroup::on_key(KeyEvent& event) {
+void ChoiceGroup::on_key_bubble(KeyEvent& event) { handle_key(event); }
+void ChoiceGroup::handle_key(KeyEvent& event) {
     if (event.handled || event.action != KeyAction::down || !enabled.read() || !revision_) return;
     const bool backward = event.physical_key == PhysicalKey::left || event.physical_key == PhysicalKey::up;
     const bool forward = event.physical_key == PhysicalKey::right || event.physical_key == PhysicalKey::down;
@@ -388,6 +395,17 @@ void ChoiceGroup::on_key(KeyEvent& event) {
         }
         return;
     }
+}
+
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void ChoiceGroup::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 SemanticDescriptor ChoiceGroup::semantic_descriptor() const {
     SemanticDescriptor descriptor = Panel::semantic_descriptor();

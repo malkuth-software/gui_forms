@@ -2,13 +2,13 @@
   "family": "Card",
   "step": "B6",
   "declaring": "Card",
-  "header": "include/gui_forms/controls/panel/card/card.hpp",
+  "header": "include/gui_forms/controls/card.hpp",
   "source": "src/controls/panel/card/card.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/card_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [
-    "gui_forms/controls/panel/card/card_values/card_values.hpp"
+    "gui_forms/controls/card_values.hpp"
   ],
   "properties": [
     {
@@ -109,6 +109,6 @@
   ],
   "test": {
     "type": "Card",
-    "include": "gui_forms/controls/panel/card/card.hpp"
+    "include": "gui_forms/controls/card.hpp"
   }
 }

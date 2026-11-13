@@ -3,7 +3,24 @@
 // command and by the position box, adding and deleting records, and losing
 // the source.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/binding_schema/binding_schema.hpp"
+#include "gui_forms/binding/binding_source/binding_source.hpp"
+#include "gui_forms/binding/binding_table/binding_table.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/binding_navigator.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cstdlib>
 #include <iostream>

@@ -2,16 +2,16 @@
   "family": "Spinner",
   "step": "W-4",
   "declaring": "Spinner",
-  "header": "include/gui_forms/controls/spinner/spinner.hpp",
+  "header": "include/gui_forms/controls/spinner.hpp",
   "source": "src/controls/spinner/spinner.cpp",
-  "capabilities_header": "include/gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/spinner_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [],
   "not_properties": [],
   "test": {
     "type": "Spinner",
-    "include": "gui_forms/controls/spinner/spinner.hpp"
+    "include": "gui_forms/controls/spinner.hpp"
   },
   "properties": [
     {

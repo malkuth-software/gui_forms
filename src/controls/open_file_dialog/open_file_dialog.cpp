@@ -2,6 +2,7 @@
 
 #include "../file_dialog/file_dialog_support.hpp"
 #include "gui_forms/window.hpp"
+#include "../../core/surface_root/access/surface_lifetime_access.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
@@ -92,7 +93,7 @@ DialogResult OpenFileDialog::show_dialog(Window& owner) {
     // this dialog and its window; both are observed, and an absent one ends
     // the call without touching it.
     const std::weak_ptr<Presence> presence = presence_;
-    const std::weak_ptr<detail::WindowLifetime> window_lifetime = owner.lifetime_;
+    const std::weak_ptr<detail::WindowLifetime> window_lifetime = detail::SurfaceLifetimeAccess::observe(owner);
     const detail::ShowingScope showing(showing_, presence);
     std::string owner_id{};
     const Control::Ptr root = owner.root();
@@ -117,7 +118,10 @@ DialogResult OpenFileDialog::show_dialog(Window& owner) {
         const HostPathDialogResult* const paths = std::get_if<HostPathDialogResult>(&answer.payload);
         if (paths == nullptr || (*paths).outcome != HostDialogOutcome::accepted) return DialogResult::cancel;
         if (!is_alive() || !detail::window_alive(window_lifetime)) return DialogResult::cancel;
-        FileDialogOk ok{(*paths).paths, false};
+        // The raise owns the payload's view of the answer's paths.
+        const detail::BorrowScope raise;
+        const std::span<const std::string> chosen((*paths).paths.data(), (*paths).paths.size());
+        FileDialogOk ok{raise.lend_view(chosen), false};
         file_ok_.emit(ok);
         if (presence.expired() || !is_alive()) return DialogResult::cancel;
         if (!ok.cancel) {

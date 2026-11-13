@@ -2,9 +2,9 @@
   "family": "RibbonGallery",
   "step": "M-S8",
   "declaring": "RibbonGallery",
-  "header": "include/gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp",
+  "header": "include/gui_forms/controls/ribbon_gallery.hpp",
   "source": "src/controls/ribbon_gallery/ribbon_gallery.cpp",
-  "capabilities_header": "include/gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/ribbon_gallery_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
@@ -13,7 +13,7 @@
   ],
   "test": {
     "type": "RibbonGallery",
-    "include": "gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp"
+    "include": "gui_forms/controls/ribbon_gallery.hpp"
   },
   "properties": [
     {

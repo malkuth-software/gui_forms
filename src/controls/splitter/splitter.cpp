@@ -1,9 +1,8 @@
-#include "gui_forms/controls/splitter/splitter.hpp"
+#include "gui_forms/controls/splitter.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
-#include "../../core/drag_engine/drag_engine.hpp"
 #include "../basic/number_text.hpp"
 
 #include <algorithm>
@@ -35,116 +34,114 @@ bool touches(double left, double right) noexcept {
 
 } // namespace
 
-// The splitter's drag client (the drag engine's first migrated client): one
-// projection along the splitter's axis from the target's extent, clamped to
-// the limits, with no threshold. A preview applies the extent live, after
-// splitter_moving; the release applies the projected extent (not a
-// splitter_moving handler's last change, as before the engine) and raises
-// splitter_moved; any other end puts back the extent before the drag.
-// Owned by the splitter, which the engine observes: a disposed splitter is
-// never called.
-class SplitterDrag final : public DragClient {
-public:
-    explicit SplitterDrag(Splitter& splitter) noexcept : splitter_(&splitter) {}
-
-    [[nodiscard]] DragPlanRefusal plan_drag(DragPlanBuilder& builder, const DragSubject&) override {
-        Splitter& splitter = *splitter_;
-        const Control::Ptr resized = splitter.drag_target_.lock();
-        if (!resized) return DragPlanRefusal::client_refused;
-        const Splitter::SplitLimits bounds = splitter.limits(*resized);
-        // A left or top target grows as the pointer moves away from it, so
-        // to the right or down; a right or bottom target grows the other way.
-        const DockStyle edge = splitter.dock.read();
-        const bool forward = edge == DockStyle::left || edge == DockStyle::top;
-        DragProjection projection{};
-        projection.axis = splitter.horizontal_axis() ? DragAxis::x : DragAxis::y;
-        projection.origin_value = splitter.drag_start_extent_;
-        projection.scale = forward ? 1.0 : -1.0;
-        projection.minimum = bounds.minimum;
-        projection.maximum = bounds.maximum;
-        projection.keyboard_step = semantic_step;
-        const DragNodeIndex root = builder.project(projection);
-        builder.group_container(DragGroup{}, *resized);
-        const DragPlanRefusal refusal = builder.finish(root);
-        if (refusal != DragPlanRefusal::none) return refusal;
-        splitter.dragging_ = true;
-        splitter.invalidate(Dirty::paint);
-        return refusal;
-    }
-
-    void preview_drag(const DragFrame& frame) override {
-        if (frame.selection.kind != DragSelectionKind::value) return;
-        Splitter& splitter = *splitter_;
-        const Control::Ptr resized = splitter.drag_target_.lock();
-        SurfaceRoot* const root = splitter.surface_root();
-        if (!resized || !(*resized).is_alive()) {
-            // The target went away during the drag: the model changed.
-            if (root != nullptr) (*root).drag_engine().cancel(DragEnd::model_changed);
-            return;
-        }
-        SplitterMoveEvent move{pointer_in_parent(frame.pointer), frame.selection.value};
-        splitter.splitter_moving_.emit(move);
-        if (!splitter.is_alive()) return;
-        splitter.apply(*resized, splitter.clamped(move.split_position, *resized));
-        splitter.previewed_ = true;
-    }
-
-    void announce_drag(const DragFrame& frame, DragAnnouncement& announcement) override {
-        if (frame.selection.kind != DragSelectionKind::value && frame.end == DragEnd::none) return;
-        const bool committed = frame.end == DragEnd::free;
-        const bool running = frame.end == DragEnd::none;
-        const double shown = committed || running ? frame.selection.value : (*splitter_).drag_start_extent_;
-        const char* suffix = "";
-        if (committed) suffix = ", done";
-        if (!committed && !running) suffix = ", restored";
-        std::array<char, 96> text{};
-        const int written = std::snprintf(text.data(), text.size(), "Split position %.0f%s", shown, suffix);
-        if (written <= 0) return;
-        const std::size_t length = std::min(static_cast<std::size_t>(written), text.size() - 1U);
-        announcement.assign(std::string_view(text.data(), length));
-    }
-
-    void end_drag(const DragOutcome& outcome) override {
-        Splitter& splitter = *splitter_;
-        const Control::Ptr resized = splitter.drag_target_.lock();
-        const bool previewed = splitter.previewed_;
-        splitter.dragging_ = false;
-        splitter.previewed_ = false;
-        splitter.drag_target_.reset();
-        splitter.invalidate(Dirty::paint);
-        if (!resized || !(*resized).is_alive()) return;
-        if (outcome.end == DragEnd::free && outcome.selection.kind == DragSelectionKind::value) {
-            const SplitterMoveEvent move{pointer_in_parent(outcome.pointer), outcome.selection.value};
-            splitter.apply(*resized, move.split_position);
-            splitter.splitter_moved_.emit(move);
-            return;
-        }
-        if (previewed) splitter.apply(*resized, splitter.drag_start_extent_);
-    }
-
-    [[nodiscard]] DragInteractionEvents* drag_interactions() noexcept override {
-        return &(*splitter_).drag_interactions_;
-    }
-
-private:
-    [[nodiscard]] Point pointer_in_parent(Point window_point) const {
-        const Control::Ptr owner = (*splitter_).parent();
-        const Point pointer = owner ? (*owner).point_from_window(window_point) : window_point;
-        return pointer;
-    }
-
-    Splitter* splitter_;
-};
-
-Splitter::Splitter(StableId stable_id)
-    : Control(std::move(stable_id)), drag_(std::make_unique<SplitterDrag>(*this)) {
+// The splitter's drag (the drag engine's first migrated client, and the
+// first on the public drag client): one value along the splitter's axis from
+// the target's extent, clamped to the limits, with no threshold. A preview
+// applies the extent live, after splitter_moving; the release applies the
+// projected extent (not a splitter_moving handler's last change, as before
+// the engine) and raises splitter_moved; any other end puts back the extent
+// before the drag. The tracker borrows this splitter and is its member, so
+// the engine, which observes the splitter, never calls a disposed one.
+Splitter::Splitter(StableId stable_id) : Control(std::move(stable_id)), drag_(*this, &drag_interactions_) {
     dock = DockStyle::left;
     set_requested_bounds({0.0, 0.0, default_thickness, default_thickness});
+    drag_.callbacks.plan = Delegate<DragPlan&>::bind<Splitter, &Splitter::plan_drag>(*this);
+    drag_.callbacks.preview = Delegate<const DragTrackerFrame&>::bind<Splitter, &Splitter::preview_drag>(*this);
+    drag_.callbacks.announce = Delegate<DragAnnouncementRequest&>::bind<Splitter, &Splitter::announce_drag>(*this);
+    drag_.callbacks.finished = Delegate<const DragTrackerFrame&>::bind<Splitter, &Splitter::finish_drag>(*this);
 }
 
-// The engine observes this splitter, so a session it runs ends without
-// calling the client once the splitter is gone; the client is released here.
+// The tracker, a member, ends a running session without calling back.
 Splitter::~Splitter() = default;
+
+void Splitter::plan_drag(DragPlan& plan) {
+    const Control::Ptr resized = drag_target_.lock();
+    if (!resized) {
+        plan.refused = true;
+        return;
+    }
+    const SplitLimits bounds = limits(*resized);
+    // A left or top target grows as the pointer moves away from it, so to
+    // the right or down; a right or bottom target grows the other way.
+    const DockStyle edge = dock.read();
+    const bool forward = edge == DockStyle::left || edge == DockStyle::top;
+    plan.kind = DragKind::value;
+    plan.value.axis = horizontal_axis() ? DragAxis::x : DragAxis::y;
+    plan.value.origin_value = drag_start_extent_;
+    plan.value.scale = forward ? 1.0 : -1.0;
+    plan.value.minimum = bounds.minimum;
+    plan.value.maximum = bounds.maximum;
+    plan.value.keyboard_step = semantic_step;
+    plan.container = resized.get();
+    dragging_ = true;
+    invalidate(Dirty::paint);
+}
+
+void Splitter::preview_drag(const DragTrackerFrame& frame) {
+    if (frame.hit != DragHit::value) return;
+    const Control::Ptr resized = drag_target_.lock();
+    if (!resized || !(*resized).is_alive()) {
+        // The target went away during the drag: the model changed.
+        drag_.cancel(DragEnd::model_changed);
+        return;
+    }
+    SplitterMoveEvent move{pointer_in_parent(frame.pointer), frame.value};
+    splitter_moving_.emit(move);
+    if (!is_alive()) return;
+    apply(*resized, clamped(move.split_position, *resized));
+    previewed_ = true;
+}
+
+void Splitter::announce_drag(DragAnnouncementRequest& request) {
+    const DragTrackerFrame& frame = request.frame;
+    if (frame.hit != DragHit::value && frame.end == DragEnd::none) return;
+    const bool committed = frame.end == DragEnd::free;
+    const bool running = frame.end == DragEnd::none;
+    const double shown = committed || running ? frame.value : drag_start_extent_;
+    const char* suffix = "";
+    if (committed) suffix = ", done";
+    if (!committed && !running) suffix = ", restored";
+    const int written = std::snprintf(announcement_text_.data(), announcement_text_.size(), "Split position %.0f%s",
+                                      shown, suffix);
+    if (written <= 0) return;
+    const std::size_t length = std::min(static_cast<std::size_t>(written), announcement_text_.size() - 1U);
+    request.text = std::string_view(announcement_text_.data(), length);
+}
+
+void Splitter::finish_drag(const DragTrackerFrame& frame) {
+    const Control::Ptr resized = drag_target_.lock();
+    const bool previewed = previewed_;
+    dragging_ = false;
+    previewed_ = false;
+    drag_target_.reset();
+    invalidate(Dirty::paint);
+    if (!resized || !(*resized).is_alive()) return;
+    if (frame.end == DragEnd::free && frame.hit == DragHit::value) {
+        const SplitterMoveEvent move{pointer_in_parent(frame.pointer), frame.value};
+        apply(*resized, move.split_position);
+        splitter_moved_.emit(move);
+        return;
+    }
+    if (previewed) apply(*resized, drag_start_extent_);
+}
+
+Point Splitter::pointer_in_parent(Point window_point) const {
+    const Control::Ptr owner = parent();
+    const Point pointer = owner ? (*owner).point_from_window(window_point) : window_point;
+    return pointer;
+}
+
+void Splitter::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
+    // A pointer drag has already ended capture_lost (the window revokes the
+    // capture first) and restored. A keyboard drag, holding no capture,
+    // ends here without calling back; the target keeps the extent its last
+    // preview gave it.
+    drag_.owner_detaching(former_window);
+    dragging_ = false;
+    previewed_ = false;
+    drag_target_.reset();
+    Control::on_detaching_from_window(former_window);
+}
 
 bool Splitter::horizontal_axis() const noexcept {
     // Left and right splitters move along x; top and bottom ones along y.
@@ -253,33 +250,62 @@ Size Splitter::measure(Size) {
     return result;
 }
 
-void Splitter::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::enter || event.action == PointerAction::move ||
-        event.action == PointerAction::leave) {
-        // A splitter with nothing to resize ignores the pointer: no resize
-        // cursor and no hot face.
-        const bool hot = event.action != PointerAction::leave && enabled.read() && target() != nullptr;
-        if (hot) cursor = horizontal_axis() ? CursorKind::resize_horizontal : CursorKind::resize_vertical;
-        if (hot_ != hot) {
-            hot_ = hot;
-            invalidate(Dirty::paint);
-        }
+// A splitter with nothing to resize ignores the pointer: no resize cursor
+// and no hot face.
+void Splitter::set_hot_from_pointer(bool inside) {
+    const bool hot = inside && enabled.read() && target() != nullptr;
+    if (hot) cursor = horizontal_axis() ? CursorKind::resize_horizontal : CursorKind::resize_vertical;
+    if (hot_ != hot) {
+        hot_ = hot;
+        invalidate(Dirty::paint);
     }
-    SurfaceRoot* const root = surface_root();
-    if (root == nullptr) return;
-    if (event.action == PointerAction::down && event.button == PointerButton::primary && enabled.read()) {
-        if (!prepare_drag()) return;
+}
+
+void Splitter::on_mouse_enter() {
+    set_hot_from_pointer(true);
+    Control::on_mouse_enter();
+}
+
+void Splitter::on_mouse_leave() {
+    set_hot_from_pointer(false);
+    Control::on_mouse_leave();
+}
+
+void Splitter::on_mouse_down(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary && enabled.read() && prepare_drag()) {
         // No threshold: the press starts the drag, as before the engine.
-        DragEngine& engine = (*root).drag_engine();
-        const bool started = engine.arm(*drag_, *this, *this, 0U, event.position, absolute_bounds(), 0.0);
-        if (!started) return;
-        event.handled = true;
-        return;
+        DragStart start{};
+        start.source = absolute_bounds();
+        start.threshold = 0.0;
+        const PointerEvent press = pointer_event_of(arguments);
+        const DragStartResult result = drag_.press(press, start);
+        if (result == DragStartResult::started) arguments.handled = true;
     }
+    // A moved handler may dispose the splitter.
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void Splitter::on_mouse_move(MouseEventArgs& arguments) {
+    set_hot_from_pointer(true);
+    drag_pointer(arguments);
+    // A moved handler may dispose the splitter.
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void Splitter::on_mouse_up(MouseEventArgs& arguments) {
+    drag_pointer(arguments);
+    // A moved handler may dispose the splitter.
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+// A running drag takes the moves and the release.
+void Splitter::drag_pointer(MouseEventArgs& arguments) {
     if (!dragging_) return;
-    DragEngine& engine = (*root).drag_engine();
-    if (!engine.runs(*drag_)) return;
-    if (engine.pointer(event)) event.handled = true;
+    const PointerEvent event = pointer_event_of(arguments);
+    if (drag_.pointer(event)) arguments.handled = true;
 }
 
 bool Splitter::prepare_drag() {
@@ -292,10 +318,9 @@ bool Splitter::prepare_drag() {
 }
 
 bool Splitter::begin_keyboard_drag() {
-    SurfaceRoot* const root = surface_root();
-    if (root == nullptr || !enabled.read() || !prepare_drag()) return false;
-    DragEngine& engine = (*root).drag_engine();
-    const bool started = engine.begin_keyboard(*drag_, *this, *this, 0U);
+    if (!enabled.read() || !prepare_drag()) return false;
+    const DragStart start{};
+    const bool started = drag_.begin_keyboard(start) == DragStartResult::started;
     return started;
 }
 

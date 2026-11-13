@@ -12,7 +12,30 @@
 // neighbour, and sets Backstage's column apart from its page.
 
 #include "../src/core/theme_language/package/theme_manifest.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/backstage_view.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/ribbon.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/colour_scheme.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <algorithm>
 #include <cstdint>

@@ -7,8 +7,8 @@
 // fallback routes; determinism; and no storage growth when the same graph is
 // routed again (a drag routes on every frame). Headless and renderer-free.
 
-#include "gui_forms/controls/node_canvas/link_router/link_router.hpp"
-#include "gui_forms/controls/node_canvas/node_graph/node_graph.hpp"
+#include "gui_forms/controls/link_router.hpp"
+#include "gui_forms/controls/node_graph.hpp"
 
 #include <algorithm>
 #include <array>
@@ -41,6 +41,9 @@ PortRecord port_of(PortDirection direction, PortSide side, double offset) {
 
 NodeId add_box(NodeGraph& graph, double x, double y, std::vector<PortRecord> ports) {
     NodeSpec spec{};
+    // Keys are unique in a graph; these fixtures never remove a node, so the
+    // slot count names the next one.
+    spec.key = "box" + std::to_string(graph.node_slots().size());
     spec.title = "box";
     spec.bounds = WorldRect{x, y, 100.0, 100.0};
     spec.ports = std::move(ports);

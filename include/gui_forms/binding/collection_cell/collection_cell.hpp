@@ -1,6 +1,8 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/property_cell/property_cell.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 
 #include "gui_forms/surface_root/control_table/control_table.hpp"
 
@@ -31,7 +33,7 @@ enum class CollectionEditKind : std::uint8_t {
 // through the queries, so an edit is always one of the four shapes. The
 // collection's hooks receive it: prepare_edit before anything changes,
 // written after the elements are stored.
-class CollectionEdit final {
+class GUI_FORMS_API CollectionEdit final {
 public:
     // The whole sequence replaced by `count` elements (also clear(), with 0).
     [[nodiscard]] static CollectionEdit assigned(std::size_t count) noexcept;
@@ -72,7 +74,7 @@ private:
 // is dirty (its element moved or is new), so a bit there says nothing more
 // and is dropped at the take. Edits between two takes coalesce: the lowest
 // watermark wins and the bits unite. Used on its control's thread.
-class CollectionDirty final {
+class GUI_FORMS_API CollectionDirty final {
 public:
     // Makes room for replacement bits below `length`; existing bits keep.
     // The only allocation; called before the edit is stored.
@@ -151,8 +153,11 @@ public:
         return *this;
     }
 
-    // The read.
-    [[nodiscard]] std::span<const Element> read() const noexcept { return elements_; }
+    // The read: a borrowed view, which in the sanitizer tree
+    // (GUI_FORMS_CHECKED_BORROWS) reports a use after a structural edit,
+    // a whole store or mark_all, or after the cell died.
+    [[nodiscard]] BorrowedSpan<Element> read() const& noexcept { return detail::lend_view(elements_); }
+    BorrowedSpan<Element> read() const&& = delete;
 
     // The element at `index`; std::out_of_range past the end.
     [[nodiscard]] const Element& operator[](std::size_t index) const {
@@ -292,7 +297,10 @@ private:
     [[nodiscard]] std::uint64_t revision() const noexcept { return revision_; }
     // The elements, writable in place. Call mark_replaced (or mark_all)
     // before writing, so a failed mark leaves the elements unchanged.
-    [[nodiscard]] std::span<Element> owner_elements() noexcept { return elements_; }
+    [[nodiscard]] BorrowedMutableSpan<Element> owner_elements() & noexcept {
+        return detail::lend_mutable_view(elements_);
+    }
+    BorrowedMutableSpan<Element> owner_elements() && = delete;
     // Records a write about to happen to the element at `index` (index
     // below the length). Reserves the dirty record: may throw, before the
     // write.
@@ -302,7 +310,9 @@ private:
         ++revision_;
     }
     // Records a write to every element (a field added to each, say).
+    // Ends the views read so far: every element may change under them.
     void mark_all() noexcept {
+        detail::note_reordered(elements_);
         dirty_.record(CollectionEdit::assigned(elements_.size()));
         ++revision_;
     }
@@ -329,7 +339,9 @@ private:
         return owner;
     }
 
-    std::vector<Element> elements_;
+    // Ends the views lent from it at each structural change (a plain
+    // std::vector outside the sanitizer tree).
+    detail::LendingVector<Element> elements_;
     CollectionDirty dirty_;
     // Advanced by every stored edit and owner operation.
     std::uint64_t revision_;

@@ -1,8 +1,31 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/container_controls.hpp"
 #include "gui_forms/window.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/component/component/component.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/range_control_values.hpp"
+#include "gui_forms/controls/split_container.hpp"
+#include "gui_forms/controls/split_container_values.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/event/event.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/drag_events/drag_events.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/rules/rule_set/rule_set.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "../src/core/drag_engine/drag_engine.hpp"
+#include "../src/core/control/control/control_input_access.hpp"
 
 #include <array>
 #include <chrono>
@@ -729,7 +752,7 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
     window.set_presentation_settings(calm);
     PointerEvent leave = hover;
     leave.action = PointerAction::leave;
-    static_cast<void>((*(*split).splitter_control()).on_pointer(leave));
+    gui_forms::detail::ControlInputAccess::on_pointer(*(*split).splitter_control(), leave);
     const SplitSeamSnapshot reduced = (*split).splitter_seam_snapshot();
     require(!reduced.transition_active &&
                 near(reduced.actuator_bounds.width, 7.0) &&

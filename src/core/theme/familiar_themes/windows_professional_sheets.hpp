@@ -81,12 +81,14 @@ inline constexpr std::string_view windows_professional_floor_sheet =
   border-radius: 3px;
   box-shadow: 0 1px 3px #2a2a2824;
 }
-/* Office 2007's tooltip: white deepening to a pale silver. */
+/* Office 2007's tooltip: white deepening to a pale silver, with black text
+   (owner mandate 2026-11-11). */
 :family(tool-tip) {
   background: linear-gradient(to bottom, #ffffff, #efefed);
   border: 1px solid #6b6b69;
   border-radius: 2px;
   box-shadow: 0 2px 4px #2a2a2833;
+  color: #000000;
 }
 :family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
 :family(notice):state(selected), :family(tool-tip):state(selected) {
@@ -1285,6 +1287,27 @@ h-scroll-bar::part(thumb):active, v-scroll-bar::part(thumb):active {
     background: #3a5272;
     border-color: #5f9be0;
   }
+}
+/* Indicator lamps (follow-up 4): an Office 2003 bezel. The lens is dark
+   glass off; on and error light only the lens, the only saturated colour
+   here. */
+indicator-lamp::part(bezel) {
+  background: linear-gradient(to bottom, #c3d3e8, #f3f7fc);
+  border: 1px solid #8ba2c1;
+}
+indicator-lamp::part(lens) {
+  background: radial-gradient(circle at 40% 35%, #7f8893, #2e343b 70%);
+  border: 1px solid #262b31;
+}
+indicator-lamp::part(lens):state(on) {
+  background: radial-gradient(circle at 40% 35%, #dcf7d9, #2e9e3e 50%, #1b6a26);
+  border: 1px solid #165520;
+  box-shadow: inset 0 0 2px #dcf7d9b0;
+}
+indicator-lamp::part(lens):state(error) {
+  background: radial-gradient(circle at 40% 35%, #fbdcdd, #d13438 50%, #8a1d20);
+  border: 1px solid #6e1619;
+  box-shadow: inset 0 0 2px #fbdcddb0;
 }
 )css";
 

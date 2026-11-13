@@ -318,7 +318,7 @@ Related types
 
 .. cpp:struct:: BlockFlowItemLayout final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp>``
+   ``#include <gui_forms/controls/block_panel.hpp>``
 
    One child's block flow properties (CSS's names; PLAN section 2.4). The panel keeps one per child, keyed by its runtime id and dropped when the child leaves. Margins are the child's own ``margin``; ``auto_margin`` marks the sides that are ``auto`` instead, which matters only for a block item's left and right (CSS 2.1 10.3.3; any other ``auto`` margin is zero). The child's minimum_size and maximum_size bound its used size as its own min and max sizes do.
 
@@ -360,7 +360,7 @@ Related types
 
 .. cpp:struct:: BlockFlowSharedMargins final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp>``
+   ``#include <gui_forms/controls/block_panel.hpp>``
 
    The margins a nested BlockPanel's content shares with the block flow that lays it out (CSS 2.1 8.3.1), its own margins excluded.
 
@@ -380,7 +380,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BlockPanelCapabilities : public BlockPanelTextAlignCapability<Declaring>, public BlockPanelLineStrutCapability<Declaring>, public BlockPanelFontCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/block_panel_capabilities.hpp>``
 
    Every BlockPanel capability, in the order the declaring class takes them.
 
@@ -403,7 +403,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BlockPanelFontCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/block_panel_capabilities.hpp>``
 
    The panel's own font for the strut; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
 
@@ -418,7 +418,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BlockPanelLineStrutCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/block_panel_capabilities.hpp>``
 
    The strut every line box starts with (CSS 2.1 section 10.8.1), used as given; empty takes the font's line-height: normal line box at the effective text scale (used_line_strut). Its values must be finite and nonnegative (std::invalid_argument).
 
@@ -433,7 +433,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BlockPanelTextAlignCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/block_panel_capabilities.hpp>``
 
    The line boxes' inline alignment; start by default. justify is not admitted (std::invalid_argument).
 
@@ -450,7 +450,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ChildTrackCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel.hpp>``
 
    The track a track panel provides to its children (a child property, study sections 10 and 15.4): the authored track index, or none for the next track no child names. ``(*tracks).child_track[*child] = 2U;``
 
@@ -467,7 +467,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CommandOverflowGroupGapCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel_capabilities/command_overflow_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/command_overflow_panel_capabilities.hpp>``
 
    The space between neighbouring groups and before the actuator, finite and between zero and 256 (else std::invalid_argument).
 
@@ -484,7 +484,7 @@ Related types
 
 .. cpp:struct:: CommandOverflowGroupResult final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp>``
+   ``#include <gui_forms/controls/command_overflow_panel.hpp>``
 
    .. cpp:member:: std::string stable_id
 
@@ -500,7 +500,7 @@ Related types
 
 .. cpp:struct:: CommandOverflowGroupSpec final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp>``
+   ``#include <gui_forms/controls/command_overflow_panel.hpp>``
 
    One direct child command group. A missing priority makes the group non-collapsible. Smaller priorities collapse first; priorities are unique so the projection never depends on child coordinates or incidental DOM order.
 
@@ -516,7 +516,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CommandOverflowPanelCapabilities : public CommandOverflowGroupGapCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel_capabilities/command_overflow_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/command_overflow_panel_capabilities.hpp>``
 
    Every CommandOverflowPanel capability, in the order the declaring class takes them.
 
@@ -531,7 +531,7 @@ Related types
 
 .. cpp:struct:: CommandOverflowSnapshot final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp>``
+   ``#include <gui_forms/controls/command_overflow_panel.hpp>``
 
    .. cpp:member:: double available_extent
 
@@ -549,7 +549,7 @@ Related types
 
 .. cpp:class:: DockDragOutcome final
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    How a drag ended, with the subject dragged. Only a drop has a target and only a float a frame; the subject is common to every end. One alternative per state (house form for results).
 
@@ -595,7 +595,7 @@ Related types
 
 .. cpp:struct:: DockFlyoutChange final
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    Raised after a flyout opened (open true) or closed.
 
@@ -611,7 +611,7 @@ Related types
 
 .. cpp:struct:: DockNavigator::Item final
 
-   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator.hpp>``
+   ``#include <gui_forms/controls/dock_navigator.hpp>``
 
    .. cpp:member:: DockNavigatorList list
 
@@ -631,7 +631,7 @@ Related types
 
 .. cpp:struct:: DockNavigator::ItemParts final
 
-   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator.hpp>``
+   ``#include <gui_forms/controls/dock_navigator.hpp>``
 
    Item system entry: one row.
 
@@ -643,7 +643,7 @@ Related types
 
 .. cpp:struct:: DockNavigator::ItemStates final
 
-   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator.hpp>``
+   ``#include <gui_forms/controls/dock_navigator.hpp>``
 
    .. cpp:member:: bool hot
 
@@ -653,7 +653,7 @@ Related types
 
 .. cpp:struct:: DockNavigator::Parts final
 
-   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator.hpp>``
+   ``#include <gui_forms/controls/dock_navigator.hpp>``
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -671,7 +671,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DockNavigatorCapabilities : public DockNavigatorReleaseModifierCapability<Declaring>
 
-   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator_capabilities/dock_navigator_capabilities.hpp>``
+   ``#include <gui_forms/controls/dock_navigator_capabilities.hpp>``
 
    Every DockNavigator capability, in the order the declaring class takes them.
 
@@ -686,7 +686,7 @@ Related types
 
 .. cpp:struct:: DockNavigatorChoice final
 
-   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator.hpp>``
+   ``#include <gui_forms/controls/dock_navigator.hpp>``
 
    The row the user chose, raised by ``chosen``.
 
@@ -700,7 +700,7 @@ Related types
 
 .. cpp:struct:: DockNavigatorEntry final
 
-   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator.hpp>``
+   ``#include <gui_forms/controls/dock_navigator.hpp>``
 
    One row: a panel and the title shown for it.
 
@@ -712,7 +712,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DockNavigatorReleaseModifierCapability
 
-   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator_capabilities/dock_navigator_capabilities.hpp>``
+   ``#include <gui_forms/controls/dock_navigator_capabilities.hpp>``
 
    The modifier whose release chooses the current row, as releasing Ctrl ends Ctrl+Tab; none (the default) leaves choosing to Enter or a click. Anything but none, control, alt or meta throws std::invalid_argument and changes nothing.
 
@@ -729,7 +729,7 @@ Related types
 
 .. cpp:struct:: DockSite::Parts final
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -767,7 +767,7 @@ Related types
 
 .. cpp:struct:: DockSite::Seam final
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    .. cpp:member:: DockNodeId split
 
@@ -785,7 +785,7 @@ Related types
 
 .. cpp:struct:: DockSite::SeamParts final
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    Item system seam: the bar between a split's two children and its grip.
 
@@ -797,7 +797,7 @@ Related types
 
 .. cpp:struct:: DockSite::SeamStates final
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    .. cpp:member:: bool hot
 
@@ -811,7 +811,7 @@ Related types
 
 .. cpp:struct:: DockSite::Stack final
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    .. cpp:member:: DockNodeId stack
 
@@ -833,7 +833,7 @@ Related types
 
 .. cpp:struct:: DockSite::StackParts final
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    Item system stack: a stack's area and, for a tool stack, its caption and the caption's parts (absent for a document stack). The actuators carry their own hot, pressed, open, checked and disabled states.
 
@@ -846,6 +846,10 @@ Related types
    .. cpp:member:: PartGeometry caption_key
 
    .. cpp:member:: PartGeometry caption_label
+
+   .. cpp:member:: PartGeometry caption_grip
+
+      The dotted grip between the title and the buttons (cp29), painted in every theme; dock-site::part(caption-grip) { muted-color: transparent; } hides it.
 
    .. cpp:member:: PartGeometry caption_menu
 
@@ -863,7 +867,7 @@ Related types
 
 .. cpp:struct:: DockSite::StackStates final
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    .. cpp:member:: bool current
 
@@ -875,7 +879,7 @@ Related types
 
 .. cpp:struct:: DockSite::Tile final
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    .. cpp:member:: DockDropTargetKind kind
 
@@ -897,7 +901,7 @@ Related types
 
 .. cpp:struct:: DockSite::TileParts final
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    Item system drop_tile: a target tile and its dock-shape glyph, over the hovered pane (five) and at the window's edges (four), while dragging. ``selected`` is the lit tile; ``disabled`` a choice the restrictions refuse; ``expanding`` while the cross fades in.
 
@@ -909,7 +913,7 @@ Related types
 
 .. cpp:struct:: DockSite::TileStates final
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -921,7 +925,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DockSiteCapabilities : public DockSiteKeyboardIncrementCapability<Declaring>, public DockSiteDragThresholdCapability<Declaring>
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site_capabilities/dock_site_capabilities.hpp>``
+   ``#include <gui_forms/controls/dock_site_capabilities.hpp>``
 
    Every DockSite capability, in the order the declaring class takes them.
 
@@ -940,7 +944,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DockSiteDragThresholdCapability
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site_capabilities/dock_site_capabilities.hpp>``
+   ``#include <gui_forms/controls/dock_site_capabilities.hpp>``
 
    The distance, in logical units along either axis, a caption press moves before it drags (owner decision DK-26, D5-1: 4, or a host's metric; no host reports one yet). A value outside 1 to 64 throws std::out_of_range and changes nothing.
 
@@ -957,7 +961,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DockSiteKeyboardIncrementCapability
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site_capabilities/dock_site_capabilities.hpp>``
+   ``#include <gui_forms/controls/dock_site_capabilities.hpp>``
 
    The step of a keyboard seam move, in logical units; 8 by default. A value outside 1 to 256 throws std::out_of_range and changes nothing.
 
@@ -974,7 +978,7 @@ Related types
 
 .. cpp:struct:: FlexItemLayout final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp>``
+   ``#include <gui_forms/controls/flex_panel.hpp>``
 
    One child's flex item properties (CSS Flexbox's names; PLAN section 2.2). The panel keeps one per child, keyed by its runtime id and dropped when the child leaves. Margins are the child's own ``margin``; ``auto_margin`` marks the sides that are ``auto`` instead. The child's minimum_size and maximum_size still bound it after these sizes are applied.
 
@@ -1016,7 +1020,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlexPanelAlignContentCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel_capabilities/flex_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/flex_panel_capabilities.hpp>``
 
    align-content: the justify-content values; normal and stretch stretch the lines (else std::invalid_argument).
 
@@ -1033,7 +1037,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlexPanelAlignItemsCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel_capabilities/flex_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/flex_panel_capabilities.hpp>``
 
    align-items: normal and stretch stretch the items; start, end, flex-start, flex-end, center and baseline (else std::invalid_argument).
 
@@ -1050,7 +1054,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlexPanelCapabilities : public FlexPanelDirectionCapability<Declaring>, public FlexPanelWrapCapability<Declaring>, public FlexPanelJustifyContentCapability<Declaring>, public FlexPanelAlignContentCapability<Declaring>, public FlexPanelAlignItemsCapability<Declaring>, public FlexPanelRowGapCapability<Declaring>, public FlexPanelColumnGapCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel_capabilities/flex_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/flex_panel_capabilities.hpp>``
 
    Every FlexPanel capability, in the order the declaring class takes them.
 
@@ -1089,7 +1093,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlexPanelColumnGapCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel_capabilities/flex_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/flex_panel_capabilities.hpp>``
 
    column-gap; a percentage is of the content box's width, and zero when that is indefinite. Finite and nonnegative (else std::invalid_argument).
 
@@ -1106,7 +1110,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlexPanelDirectionCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel_capabilities/flex_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/flex_panel_capabilities.hpp>``
 
    flex-direction: row, row-reverse, column or column-reverse (else std::invalid_argument).
 
@@ -1123,7 +1127,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlexPanelJustifyContentCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel_capabilities/flex_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/flex_panel_capabilities.hpp>``
 
    justify-content: normal, stretch (as flex-start), start, end, flex-start, flex-end, center and the three space distributions (else std::invalid_argument).
 
@@ -1140,7 +1144,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlexPanelRowGapCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel_capabilities/flex_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/flex_panel_capabilities.hpp>``
 
    row-gap; a percentage is of the content box's height, and zero when that is indefinite. Finite and nonnegative (else std::invalid_argument).
 
@@ -1157,7 +1161,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlexPanelWrapCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel_capabilities/flex_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/flex_panel_capabilities.hpp>``
 
    flex-wrap: nowrap, wrap or wrap-reverse (else std::invalid_argument).
 
@@ -1174,7 +1178,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlowBreakCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp>``
+   ``#include <gui_forms/controls/flow_layout_panel_compat.hpp>``
 
    The flow break a flow container provides to its children (FlowBreak; a child property, study sections 10 and 15.4): whether the flow continues on a new line after the child. ``(*flow).flow_break[*child] = true;``
 
@@ -1191,7 +1195,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlowLayoutCrossAlignmentCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_capabilities/flow_layout_panel_compat_capabilities.hpp>``
+   ``#include <gui_forms/controls/flow_layout_panel_compat_capabilities.hpp>``
 
    Where an item sits across its line: start, center, end or stretched (std::invalid_argument outside them).
 
@@ -1208,7 +1212,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlowLayoutDirectionCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_capabilities/flow_layout_panel_compat_capabilities.hpp>``
+   ``#include <gui_forms/controls/flow_layout_panel_compat_capabilities.hpp>``
 
    The direction children follow one another: left to right, right to left, top down or bottom up.
 
@@ -1225,7 +1229,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlowLayoutItemSpacingCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_capabilities/flow_layout_panel_compat_capabilities.hpp>``
+   ``#include <gui_forms/controls/flow_layout_panel_compat_capabilities.hpp>``
 
    The space between items along a line (width) and between lines (height); each finite and between zero and 256, else std::invalid_argument.
 
@@ -1242,7 +1246,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlowLayoutMainAlignmentCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_capabilities/flow_layout_panel_compat_capabilities.hpp>``
+   ``#include <gui_forms/controls/flow_layout_panel_compat_capabilities.hpp>``
 
    How a line's items share its free space along the flow (std::invalid_argument outside the enumeration).
 
@@ -1259,7 +1263,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlowLayoutPanelCompatCapabilities : public FlowLayoutDirectionCapability<Declaring>, public FlowLayoutWrapContentsCapability<Declaring>, public FlowLayoutItemSpacingCapability<Declaring>, public FlowLayoutMainAlignmentCapability<Declaring>, public FlowLayoutCrossAlignmentCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_capabilities/flow_layout_panel_compat_capabilities.hpp>``
+   ``#include <gui_forms/controls/flow_layout_panel_compat_capabilities.hpp>``
 
    Every FlowLayoutPanelCompat capability, in the order the declaring class takes them.
 
@@ -1290,7 +1294,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlowLayoutWrapContentsCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_capabilities/flow_layout_panel_compat_capabilities.hpp>``
+   ``#include <gui_forms/controls/flow_layout_panel_compat_capabilities.hpp>``
 
    Whether a child that does not fit the rest of the line starts a new one.
 
@@ -1307,7 +1311,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridAreaCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
+   ``#include <gui_forms/controls/grid_panel.hpp>``
 
    The two views of a grid child's placement (child properties, study 10.9): writing either replaces the other. For example, ``(*grid).area[*ok] = "footer"`` places into the span named footer, and ``(*grid).cell[*title] = GridCell{.row = 0U, .column = 0U}`` places at a cell. Writing "" to ``area`` makes the placement automatic.
 
@@ -1324,7 +1328,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridCellCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
+   ``#include <gui_forms/controls/grid_panel.hpp>``
 
 
    .. rubric:: Methods
@@ -1339,7 +1343,7 @@ Related types
 
 .. cpp:struct:: GridItemLayout final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
+   ``#include <gui_forms/controls/grid_panel.hpp>``
 
    One child's grid item properties (CSS Grid's names; PLAN section 2.3). The panel keeps one per child, keyed by its runtime id and dropped when the child leaves. Margins are the child's own ``margin``; ``auto_margin`` marks the sides that are ``auto`` instead. The child's minimum_size and maximum_size bound its content contributions, and its used size where its own minimum is a length or its own maximum a length or ``none``.
 
@@ -1385,7 +1389,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridPanelAlignContentCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/grid_panel_capabilities.hpp>``
 
    align-content: the justify-content values (else std::invalid_argument).
 
@@ -1402,7 +1406,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridPanelAlignItemsCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/grid_panel_capabilities.hpp>``
 
    align-items: normal and stretch stretch an auto-sized item; start, end, flex-start, flex-end, center and baseline (first-baseline alignment across a row) (else std::invalid_argument).
 
@@ -1419,7 +1423,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridPanelAutoColumnsCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/grid_panel_capabilities.hpp>``
 
    grid-auto-columns: one to 10,000 admitted track sizes, repeated over the implicit columns (else std::invalid_argument). A view onto the container style.
 
@@ -1436,7 +1440,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridPanelAutoFlowCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/grid_panel_capabilities.hpp>``
 
    grid-auto-flow: row or column, sparse or dense (else std::invalid_argument). A view onto the container style.
 
@@ -1453,7 +1457,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridPanelAutoRowsCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/grid_panel_capabilities.hpp>``
 
    grid-auto-rows: one to 10,000 admitted track sizes, repeated over the implicit rows (else std::invalid_argument). A view onto the container style.
 
@@ -1470,7 +1474,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridPanelCapabilities : public GridPanelTemplateColumnsCapability<Declaring>, public GridPanelTemplateRowsCapability<Declaring>, public GridPanelAutoFlowCapability<Declaring>, public GridPanelAutoColumnsCapability<Declaring>, public GridPanelAutoRowsCapability<Declaring>, public GridPanelJustifyContentCapability<Declaring>, public GridPanelAlignContentCapability<Declaring>, public GridPanelJustifyItemsCapability<Declaring>, public GridPanelAlignItemsCapability<Declaring>, public GridPanelRowGapCapability<Declaring>, public GridPanelColumnGapCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/grid_panel_capabilities.hpp>``
 
    Every GridPanel capability, in the order the declaring class takes them.
 
@@ -1525,7 +1529,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridPanelColumnGapCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/grid_panel_capabilities.hpp>``
 
    column-gap; a percentage is of the content box's width, and zero when that is indefinite. Finite and nonnegative (else std::invalid_argument).
 
@@ -1542,7 +1546,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridPanelJustifyContentCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/grid_panel_capabilities.hpp>``
 
    justify-content: normal, stretch, start, end, flex-start, flex-end, center and the three space distributions (else std::invalid_argument).
 
@@ -1559,7 +1563,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridPanelJustifyItemsCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/grid_panel_capabilities.hpp>``
 
    justify-items: normal and stretch stretch an auto-sized item; start, end, flex-start, flex-end, center and baseline (as start) (else std::invalid_argument).
 
@@ -1576,7 +1580,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridPanelRowGapCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/grid_panel_capabilities.hpp>``
 
    row-gap; a percentage is of the content box's height, and zero when that is indefinite. Finite and nonnegative (else std::invalid_argument).
 
@@ -1593,7 +1597,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridPanelTemplateColumnsCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/grid_panel_capabilities.hpp>``
 
    grid-template-columns: at most 10,000 tracks, ``repeat()`` counted; a list with ``repeat(auto-fill | auto-fit, ...)`` holds only fixed tracks (CSS Grid 7.2.3), else std::invalid_argument. A view onto the container style.
 
@@ -1610,7 +1614,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GridPanelTemplateRowsCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/grid_panel_capabilities.hpp>``
 
    grid-template-rows: as template_columns. A view onto the container style.
 
@@ -1627,7 +1631,7 @@ Related types
 
 .. cpp:struct:: GridPlacement final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
+   ``#include <gui_forms/controls/grid_panel.hpp>``
 
    A child's placement in a grid: automatic (the item layout's lines, or auto-placed), into a span by name, or at a cell (a span's anchor places the child into that span's region). Exactly one form is in force.
 
@@ -1647,7 +1651,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GroupSpecCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp>``
+   ``#include <gui_forms/controls/command_overflow_panel.hpp>``
 
    The group spec an overflow panel provides to its children (a child property, study sections 10 and 15.4): a direct child's sizing and collapse priority, or none for a non-collapsible child at its desired width. ``(*shelf).group_spec[*group] = CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};`` In a ``.form`` it is text: the three extents, then optionally ``priority`` and the priority, as in "176 176 176 priority 2".
 
@@ -1664,7 +1668,7 @@ Related types
 
 .. cpp:struct:: MasterDetailLayout final
 
-   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view.hpp>``
+   ``#include <gui_forms/controls/master_detail_view.hpp>``
 
    MasterDetailLayout defines bounded navigation width and inter-pane gap for deterministic responsive projection.
 
@@ -1704,7 +1708,7 @@ Related types
 
 .. cpp:struct:: MasterDetailPresentationChange final
 
-   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view.hpp>``
+   ``#include <gui_forms/controls/master_detail_view.hpp>``
 
    MasterDetailPresentationChange reports previous/current compact or expanded presentation and active pane.
 
@@ -1722,7 +1726,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MasterDetailViewCapabilities : public MasterDetailViewDisplayModeCapability<Declaring>, public MasterDetailViewCompactDetailVisibleCapability<Declaring>
 
-   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view_capabilities/master_detail_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/master_detail_view_capabilities.hpp>``
 
    Every MasterDetailView capability, in the order the declaring class takes them.
 
@@ -1741,7 +1745,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MasterDetailViewCompactDetailVisibleCapability
 
-   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view_capabilities/master_detail_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/master_detail_view_capabilities.hpp>``
 
    In a compact automatic presentation, whether the detail role is shown instead of the master; show_master and show_detail write it.
 
@@ -1756,7 +1760,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MasterDetailViewDisplayModeCapability
 
-   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view_capabilities/master_detail_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/master_detail_view_capabilities.hpp>``
 
    The requested presentation: automatic (side by side above the layout's compact threshold, else one role at a time), side_by_side, master_only or detail_only; effective_display_mode is the one in use. An unknown mode throws std::invalid_argument and changes nothing.
 
@@ -1773,7 +1777,7 @@ Related types
 
 .. cpp:struct:: ResponsiveLayoutSnapshot final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel.hpp>``
 
    .. cpp:member:: ResponsiveTrackOrientation orientation
 
@@ -1787,7 +1791,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ResponsiveTrackAxisCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel_capabilities/responsive_track_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel_capabilities.hpp>``
 
    The axis the tracks run along: horizontal or vertical (std::invalid_argument outside them).
 
@@ -1804,7 +1808,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ResponsiveTrackGapCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel_capabilities/responsive_track_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel_capabilities.hpp>``
 
    The space between neighbouring tracks, finite and between zero and 256 (else std::invalid_argument).
 
@@ -1821,7 +1825,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ResponsiveTrackPanelCapabilities : public ResponsiveTrackAxisCapability<Declaring>, public ResponsiveTrackGapCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel_capabilities/responsive_track_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel_capabilities.hpp>``
 
    Every ResponsiveTrackPanel capability, in the order the declaring class takes them.
 
@@ -1840,7 +1844,7 @@ Related types
 
 .. cpp:struct:: ResponsiveTrackResolution final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel.hpp>``
 
    .. cpp:member:: double available_extent
 
@@ -1866,7 +1870,7 @@ Related types
 
 .. cpp:struct:: ResponsiveTrackResult final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel.hpp>``
 
 
    .. rubric:: Properties
@@ -1899,7 +1903,7 @@ Related types
 
 .. cpp:struct:: ResponsiveTrackSpec final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel.hpp>``
 
    A zero maximum is unbounded, matching Control::maximum_size. Collapse is never inferred from content identity: an authored priority explicitly opts the track into automatic collapse. Smaller priority values collapse first.
 
@@ -1925,7 +1929,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ScaledPanelCapabilities : public ScaledPanelDesignSizeCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/scaled_panel/scaled_panel_capabilities/scaled_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/scaled_panel_capabilities.hpp>``
 
    Every ScaledPanel capability, in the order the declaring class takes them.
 
@@ -1940,7 +1944,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ScaledPanelDesignSizeCapability
 
-   ``#include <gui_forms/controls/panel/scaled_panel/scaled_panel_capabilities/scaled_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/scaled_panel_capabilities.hpp>``
 
    The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
 
@@ -1957,7 +1961,7 @@ Related types
 
 .. cpp:struct:: SplitChangeEvent final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
+   ``#include <gui_forms/controls/split_container_values.hpp>``
 
    SplitChangeEvent reports old/new splitter distance and whether the change originated from pointer interaction.
 
@@ -1977,7 +1981,7 @@ Related types
 
 .. cpp:struct:: SplitContainer::Parts final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp>``
+   ``#include <gui_forms/controls/split_container.hpp>``
 
    Stage T1 anatomy, as dot members.
 
@@ -1991,7 +1995,7 @@ Related types
 
 .. cpp:struct:: SplitContainer::States final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp>``
+   ``#include <gui_forms/controls/split_container.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -2017,7 +2021,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerAutomaticCollapseThresholdCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    Consumer-authored content threshold. Crossing below it automatically collapses collapse_panel; crossing back restores only an automatically collapsed pane. A user restore below the threshold is honored until the composition next crosses above it. Zero turns it off and restores an automatically collapsed pane. A negative or non-finite value throws std::invalid_argument.
 
@@ -2032,7 +2036,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerCapabilities : public SplitContainerOrientationCapability<Declaring>, public SplitContainerSplitterDistanceCapability<Declaring>, public SplitContainerSplitterWidthCapability<Declaring>, public SplitContainerSplitterHitWidthCapability<Declaring>, public SplitContainerSplitterGeometryCapability<Declaring>, public SplitContainerSplitterTransitionDurationCapability<Declaring>, public SplitContainerFirstMinimumCapability<Declaring>, public SplitContainerSecondMinimumCapability<Declaring>, public SplitContainerFirstMaximumCapability<Declaring>, public SplitContainerSecondMaximumCapability<Declaring>, public SplitContainerSplitterFixedCapability<Declaring>, public SplitContainerFixedPanelCapability<Declaring>, public SplitContainerCollapsePanelCapability<Declaring>, public SplitContainerAutomaticCollapseThresholdCapability<Declaring>, public SplitContainerKeyboardIncrementCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    Every SplitContainer capability, in the order the declaring class takes them.
 
@@ -2103,7 +2107,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerCollapsePanelCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    Optional seam-tab authority. Unlike fixed_panel, this identifies the pane toggled by a compact splitter tab and may remain operable while ordinary splitter resizing is fixed.
 
@@ -2120,7 +2124,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerFirstMaximumCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    The greatest extent of the first panel, or none for no limit. A negative, non-finite or below-minimum value throws std::invalid_argument and changes nothing.
 
@@ -2135,7 +2139,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerFirstMinimumCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    The least extent of the first panel (Windows Forms' Panel1MinSize, default 25). A negative, non-finite or above-maximum value throws std::invalid_argument and changes nothing.
 
@@ -2152,7 +2156,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerFixedPanelCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    The panel that keeps its extent when the container resizes (Windows Forms' FixedPanel); none shares the change.
 
@@ -2169,7 +2173,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerKeyboardIncrementCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    How far an arrow key moves the focused splitter (Windows Forms' SplitterIncrement, default 4). A zero, negative or non-finite value throws std::invalid_argument.
 
@@ -2186,7 +2190,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerOrientationCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    Which way the panels are laid out (Windows Forms' Orientation): vertical puts the splitter between a left and a right panel, horizontal between a top and a bottom one. A change re-derives the panel extents and the splitter cursor.
 
@@ -2203,7 +2207,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerSecondMaximumCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    The greatest extent of the second panel, or none for no limit. Refused as first_maximum is.
 
@@ -2218,7 +2222,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerSecondMinimumCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    The least extent of the second panel (Windows Forms' Panel2MinSize, default 25). Refused as first_minimum is.
 
@@ -2235,7 +2239,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerSplitterDistanceCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    The first panel's extent along the orientation (Windows Forms' SplitterDistance). A read returns the effective distance after the panel limits; a write is the requested distance, kept and re-applied as the container resizes, and raises splitter_changed with SplitChangeReason::programmatic. A negative or non-finite value throws std::invalid_argument.
 
@@ -2252,7 +2256,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerSplitterFixedCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    Whether the user may not move the splitter (Windows Forms' IsSplitterFixed). Programmatic distances still apply.
 
@@ -2267,7 +2271,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerSplitterGeometryCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    The seam's visible thickness, thickness policy and hit extents. The whole geometry is validated before any of it is published (std::invalid_argument for an invalid one); this is the form to use for asymmetric hit extents or a physical hairline, and splitter_width and splitter_hit_width are shorthands for it.
 
@@ -2282,7 +2286,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerSplitterHitWidthCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    The least pointer target across the splitter, never below the visible thickness; shorthand for splitter_geometry's minimum_hit_target with the extra extent split evenly. A zero, negative or non-finite value throws std::invalid_argument.
 
@@ -2299,7 +2303,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerSplitterTransitionDurationCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    How long the seam's hot and pressed appearance takes to change; held by the splitter grip.
 
@@ -2316,7 +2320,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitContainerSplitterWidthCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/split_container_capabilities.hpp>``
 
    The splitter's visible thickness (Windows Forms' SplitterWidth), shorthand for splitter_geometry's visible_thickness that keeps the hit target centred. A zero, negative or non-finite value throws std::invalid_argument.
 
@@ -2333,7 +2337,7 @@ Related types
 
 .. cpp:struct:: SplitSeamGeometry final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
+   ``#include <gui_forms/controls/split_container_values.hpp>``
 
    .. cpp:member:: constexpr double maximum_visible_thickness
 
@@ -2369,7 +2373,7 @@ Related types
 
 .. cpp:struct:: SplitSeamSnapshot final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp>``
+   ``#include <gui_forms/controls/split_container.hpp>``
 
    .. cpp:member:: Orientation orientation
 
@@ -2409,7 +2413,7 @@ Related types
 
 .. cpp:struct:: Splitter::Parts final
 
-   ``#include <gui_forms/controls/splitter/splitter.hpp>``
+   ``#include <gui_forms/controls/splitter.hpp>``
 
    Stage T1 anatomy, as dot members.
 
@@ -2421,7 +2425,7 @@ Related types
 
 .. cpp:struct:: Splitter::States final
 
-   ``#include <gui_forms/controls/splitter/splitter.hpp>``
+   ``#include <gui_forms/controls/splitter.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -2439,7 +2443,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitterCapabilities : public SplitterMinSizeCapability<Declaring>, public SplitterMinExtraCapability<Declaring>
 
-   ``#include <gui_forms/controls/splitter/splitter_capabilities/splitter_capabilities.hpp>``
+   ``#include <gui_forms/controls/splitter_capabilities.hpp>``
 
    Every Splitter capability, in the order the declaring class takes them.
 
@@ -2458,7 +2462,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitterMinExtraCapability
 
-   ``#include <gui_forms/controls/splitter/splitter_capabilities/splitter_capabilities.hpp>``
+   ``#include <gui_forms/controls/splitter_capabilities.hpp>``
 
    The least extent left for the rest of the dock area (Windows Forms' MinExtra, default 25). Refused as min_size is.
 
@@ -2475,7 +2479,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitterMinSizeCapability
 
-   ``#include <gui_forms/controls/splitter/splitter_capabilities/splitter_capabilities.hpp>``
+   ``#include <gui_forms/controls/splitter_capabilities.hpp>``
 
    The least extent the target keeps (Windows Forms' MinSize, default 25). A negative or non-finite value throws std::invalid_argument and changes nothing; the next drag or split position uses it.
 
@@ -2492,7 +2496,7 @@ Related types
 
 .. cpp:struct:: SplitterMoveEvent final
 
-   ``#include <gui_forms/controls/splitter/splitter.hpp>``
+   ``#include <gui_forms/controls/splitter.hpp>``
 
    A move of a Splitter by the user. ``pointer`` is the pointer in the parent's coordinates. In splitter_moving, ``split_position`` is the target's proposed extent, which a handler may change (it is clamped again to the limits); in splitter_moved it is the extent the target took.
 
@@ -2504,7 +2508,7 @@ Related types
 
 .. cpp:struct:: SplitterPanel::Parts final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp>``
+   ``#include <gui_forms/controls/splitter_panel.hpp>``
 
    Stage T1 anatomy, as dot members: the scrollable parts and the face.
 
@@ -2516,7 +2520,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitterPanelBackgroundCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel_capabilities/splitter_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/splitter_panel_capabilities.hpp>``
 
    The pane's flat background, painted from its committed bounds so the allocation stays visible while the splitter moves (default transparent: nothing is painted and the face part is absent).
 
@@ -2533,7 +2537,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SplitterPanelCapabilities : public SplitterPanelBackgroundCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel_capabilities/splitter_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/splitter_panel_capabilities.hpp>``
 
    Every SplitterPanel capability, in the order the declaring class takes them.
 
@@ -2548,7 +2552,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TableCellCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat.hpp>``
 
    The placement a table provides to its children (Column, Row, ColumnSpan and RowSpan; child properties, study sections 10, 10.9 section 5 and 15.4). ``cell`` is the child's explicit cell, row then column; a child without one is placed automatically. ``column_span`` and ``row_span`` size the anonymous span the table holds anchored at the child's cell, so a child needs a cell before it can span: ``(*table).cell[*header] = GridCell{.row = 0U, .column = 0U};``, then ``(*table).column_span[*header] = 4U;``.
 
@@ -2565,7 +2569,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TableColumnSpanCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat.hpp>``
 
 
    .. rubric:: Methods
@@ -2580,7 +2584,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TableLayoutCellBorderCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_capabilities/table_layout_panel_compat_capabilities.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat_capabilities.hpp>``
 
    The lines around and between the cells: none, single, inset or outset.
 
@@ -2597,7 +2601,7 @@ Related types
 
 .. cpp:struct:: TableLayoutCellPosition final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat.hpp>``
 
    TableLayoutCellPosition names a zero-based row and column for exact retained child placement.
 
@@ -2609,7 +2613,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TableLayoutColumnCountCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_capabilities/table_layout_panel_compat_capabilities.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat_capabilities.hpp>``
 
    The number of columns, 1 through 64 (else std::out_of_range); the column styles follow it. set_column_styles also sets it. A view onto the table's count.
 
@@ -2626,7 +2630,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TableLayoutGrowCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_capabilities/table_layout_panel_compat_capabilities.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat_capabilities.hpp>``
 
    What a child that does not fit the authored grid does: add rows, add columns, or stay out (fixed size).
 
@@ -2643,7 +2647,7 @@ Related types
 
 .. cpp:struct:: TableLayoutPanelCompat::Parts final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat.hpp>``
 
    Stage T1 anatomy, as dot members: the scrollable parts and the cell grid.
 
@@ -2655,7 +2659,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TableLayoutPanelCompatCapabilities : public TableLayoutGrowCapability<Declaring>, public TableLayoutCellBorderCapability<Declaring>, public TableLayoutTrackSpacingCapability<Declaring>, public TableLayoutColumnCountCapability<Declaring>, public TableLayoutRowCountCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_capabilities/table_layout_panel_compat_capabilities.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat_capabilities.hpp>``
 
    Every TableLayoutPanelCompat capability, in the order the declaring class takes them.
 
@@ -2686,7 +2690,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TableLayoutRowCountCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_capabilities/table_layout_panel_compat_capabilities.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat_capabilities.hpp>``
 
    The number of rows, 1 through 64 (else std::out_of_range); the row styles follow it. set_row_styles also sets it. A view onto the table's count.
 
@@ -2703,7 +2707,7 @@ Related types
 
 .. cpp:struct:: TableLayoutStyle final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat.hpp>``
 
    TableLayoutStyle pairs absolute, autosize, or percentage sizing policy with its validated authored value.
 
@@ -2717,7 +2721,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TableLayoutTrackSpacingCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_capabilities/table_layout_panel_compat_capabilities.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat_capabilities.hpp>``
 
    The space between neighbouring columns (width) and rows (height); each finite and between zero and 256, else std::invalid_argument.
 
@@ -2734,7 +2738,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TableRowSpanCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat.hpp>``
 
 
    .. rubric:: Methods
@@ -2752,7 +2756,7 @@ Enumerations
 
 .. cpp:enum-class:: DockDragEnd
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    .. cpp:enumerator:: dropped
 
@@ -2772,7 +2776,7 @@ Enumerations
 
 .. cpp:enum-class:: DockDragPhase
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    .. cpp:enumerator:: idle
 
@@ -2786,7 +2790,7 @@ Enumerations
 
 .. cpp:enum-class:: DockFlyoutCause
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    .. cpp:enumerator:: hover
 
@@ -2812,7 +2816,7 @@ Enumerations
 
 .. cpp:enum-class:: DockNavigatorList
 
-   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator.hpp>``
+   ``#include <gui_forms/controls/dock_navigator.hpp>``
 
    .. cpp:enumerator:: tools
 
@@ -2822,7 +2826,7 @@ Enumerations
 
 .. cpp:enum-class:: DockPositionCommand
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    .. cpp:enumerator:: float_panel
 
@@ -2846,7 +2850,7 @@ Enumerations
 
 .. cpp:enum-class:: FlowCrossAlignment
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_values/flow_layout_panel_compat_values.hpp>``
+   ``#include <gui_forms/controls/flow_layout_panel_compat_values.hpp>``
 
    .. cpp:enumerator:: start
 
@@ -2860,7 +2864,7 @@ Enumerations
 
 .. cpp:enum-class:: FlowDirection
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_values/flow_layout_panel_compat_values.hpp>``
+   ``#include <gui_forms/controls/flow_layout_panel_compat_values.hpp>``
 
    .. cpp:enumerator:: left_to_right
 
@@ -2874,7 +2878,7 @@ Enumerations
 
 .. cpp:enum-class:: FlowMainAlignment
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_values/flow_layout_panel_compat_values.hpp>``
+   ``#include <gui_forms/controls/flow_layout_panel_compat_values.hpp>``
 
    .. cpp:enumerator:: start
 
@@ -2892,7 +2896,7 @@ Enumerations
 
 .. cpp:enum-class:: GridPlacement::Form
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
+   ``#include <gui_forms/controls/grid_panel.hpp>``
 
    .. cpp:enumerator:: automatic
 
@@ -2904,7 +2908,7 @@ Enumerations
 
 .. cpp:enum-class:: MasterDetailDisplayMode
 
-   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view_values/master_detail_view_values.hpp>``
+   ``#include <gui_forms/controls/master_detail_view_values.hpp>``
 
    .. cpp:enumerator:: automatic
 
@@ -2918,7 +2922,7 @@ Enumerations
 
 .. cpp:enum-class:: ResponsiveTrackCollapseReason
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -2930,7 +2934,7 @@ Enumerations
 
 .. cpp:enum-class:: ResponsiveTrackOrientation
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel_values/responsive_track_panel_values.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel_values.hpp>``
 
    .. cpp:enumerator:: horizontal
 
@@ -2940,7 +2944,7 @@ Enumerations
 
 .. cpp:enum-class:: ResponsiveTrackSizeMode
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
+   ``#include <gui_forms/controls/responsive_track_panel.hpp>``
 
    .. cpp:enumerator:: fixed
 
@@ -2952,7 +2956,7 @@ Enumerations
 
 .. cpp:enum-class:: SplitChangeReason
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
+   ``#include <gui_forms/controls/split_container_values.hpp>``
 
    .. cpp:enumerator:: programmatic
 
@@ -2972,7 +2976,7 @@ Enumerations
 
 .. cpp:enum-class:: SplitCollapseOrigin
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
+   ``#include <gui_forms/controls/split_container_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -2986,7 +2990,7 @@ Enumerations
 
 .. cpp:enum-class:: SplitFixedPanel
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
+   ``#include <gui_forms/controls/split_container_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -2998,7 +3002,7 @@ Enumerations
 
 .. cpp:enum-class:: SplitSeamState
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
+   ``#include <gui_forms/controls/split_container_values.hpp>``
 
    .. cpp:enumerator:: idle
 
@@ -3018,7 +3022,7 @@ Enumerations
 
 .. cpp:enum-class:: SplitSeamThicknessPolicy
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
+   ``#include <gui_forms/controls/split_container_values.hpp>``
 
    .. cpp:enumerator:: logical
 
@@ -3028,7 +3032,7 @@ Enumerations
 
 .. cpp:enum-class:: TableCellBorderStyle
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_values/table_layout_panel_compat_values.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -3042,7 +3046,7 @@ Enumerations
 
 .. cpp:enum-class:: TableLayoutGrowStyle
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_values/table_layout_panel_compat_values.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat_values.hpp>``
 
    .. cpp:enumerator:: fixed_size
 
@@ -3054,7 +3058,7 @@ Enumerations
 
 .. cpp:enum-class:: TableSizeMode
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat.hpp>``
 
    .. cpp:enumerator:: absolute
 
@@ -3066,7 +3070,7 @@ Enumerations
 
 .. cpp:enum-class:: TableSpanAxis
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat.hpp>``
 
    .. cpp:enumerator:: columns
 
@@ -3077,7 +3081,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
+``#include <gui_forms/controls/responsive_track_panel.hpp>``
 
 .. cpp:function:: ResponsiveTrackResolution resolve_responsive_tracks(std::span<const ResponsiveTrackSpec> specs, std::span<const double> measured_content, double available_extent, double gap, double device_scale, std::span<const std::size_t> collapse_protected_tracks = {})
 

@@ -1,7 +1,7 @@
-#include "gui_forms/controls/search_field/search_field.hpp"
+#include "gui_forms/controls/search_field.hpp"
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -343,39 +343,55 @@ void SearchField::on_paint(Painter& painter, Rect) {
 
 // The clear mark acts on release over it, as a button does, and gives the
 // editor the focus; a press elsewhere in the well focuses the editor.
-void SearchField::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input()) return;
-    const Rect client = client_rectangle();
-    const Placement placed = placement(Size{client.width, client.height});
-    const bool over = !text.read().empty() && placed.clear.contains(event.position);
-    if (event.action == PointerAction::move || event.action == PointerAction::leave) {
-        const bool hot = event.action == PointerAction::move && over;
-        if (hot != hot_clear_) {
-            hot_clear_ = hot;
-            invalidate(Dirty::paint);
-        }
-        return;
-    }
-    if (event.button != PointerButton::primary) return;
-    if (event.action == PointerAction::down) {
+void SearchField::on_mouse_leave() {
+    set_hot_clear(false);
+    Control::on_mouse_leave();
+}
+
+void SearchField::on_mouse_move(MouseEventArgs& arguments) {
+    if (eligible_for_input()) set_hot_clear(over_clear(arguments.window_position));
+    Control::on_mouse_move(arguments);
+}
+
+void SearchField::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        const bool over = over_clear(arguments.window_position);
         Window* const host = window();
         if (host != nullptr && editor_) static_cast<void>((*host).request_focus(editor_));
         if (!is_alive()) return;
-        event.handled = true;
+        arguments.handled = true;
         if (over) {
             pressed_clear_ = true;
             set_pointer_capture(true);
             invalidate(Dirty::paint);
         }
-        return;
     }
-    if (event.action == PointerAction::up && pressed_clear_) {
+    Control::on_mouse_down(arguments);
+}
+
+void SearchField::on_mouse_up(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary && pressed_clear_) {
         pressed_clear_ = false;
         set_pointer_capture(false);
         invalidate(Dirty::paint);
-        event.handled = true;
-        if (over) static_cast<void>(clear());
+        arguments.handled = true;
+        if (over_clear(arguments.window_position)) static_cast<void>(clear());
     }
+    Control::on_mouse_up(arguments);
+}
+
+// Whether a window point lies on the clear button, which shows only while
+// there is text.
+bool SearchField::over_clear(Point window_position) const {
+    const Rect client = client_rectangle();
+    const Placement placed = placement(Size{client.width, client.height});
+    return !text.read().empty() && placed.clear.contains(window_position);
+}
+
+void SearchField::set_hot_clear(bool hot) {
+    if (hot == hot_clear_) return;
+    hot_clear_ = hot;
+    invalidate(Dirty::paint);
 }
 
 SemanticDescriptor SearchField::semantic_descriptor() const {

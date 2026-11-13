@@ -11,25 +11,13 @@ Metrics, easing, typography and visual-inspection views.
    :class: autosummary longtable
    :widths: 35 65
 
-   * - :cpp:class:`EasingPreview <gui_forms::EasingPreview>`
-     - A diagnostic view that animates markers along tracks to compare easing curves.
    * - :cpp:class:`MetricsView <gui_forms::MetricsView>`
      - A diagnostic panel that shows the window's runtime counters.
-   * - :cpp:class:`TypographySpecimen <gui_forms::TypographySpecimen>`
-     - A diagnostic view that draws a text run on its baseline and reports how its font resolved.
-   * - :cpp:class:`VisualInspectorView <gui_forms::VisualInspectorView>`
-     - A diagnostic panel that shows the layout, state and paint record of one control.
-   * - :cpp:class:`VisualInspectorOverlay <gui_forms::VisualInspectorOverlay>`
-     - A transparent diagnostic layer that outlines one control's bounds and clip.
 
 .. toctree::
    :hidden:
 
-   generated/gui_forms.EasingPreview
    generated/gui_forms.MetricsView
-   generated/gui_forms.TypographySpecimen
-   generated/gui_forms.VisualInspectorView
-   generated/gui_forms.VisualInspectorOverlay
 
 Related types
 -------------
@@ -40,22 +28,6 @@ Related types
 
    * - :cpp:class:`BundledFontDiagnostics <gui_forms::BundledFontDiagnostics>`
      - What the hosts' font lookups found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::bundled_font_lookups_without_source).
-   * - :cpp:class:`EasingPreview::Parts <gui_forms::EasingPreview::Parts>`
-     - Stage T1 anatomy, as dot members (see Control::Parts).
-   * - :cpp:class:`EasingPreview::States <gui_forms::EasingPreview::States>`
-     -  
-   * - :cpp:class:`EasingPreviewCapabilities <gui_forms::EasingPreviewCapabilities>`
-     - Every EasingPreview capability, in the order the declaring class takes them.
-   * - :cpp:class:`EasingPreviewMarkerSizeCapability <gui_forms::EasingPreviewMarkerSizeCapability>`
-     - The markers' size, 4 to 48 pixels (else std::invalid_argument).
-   * - :cpp:class:`EasingPreviewMotionPolicyCapability <gui_forms::EasingPreviewMotionPolicyCapability>`
-     - Whether the preview moves; a change pauses or resumes a started timeline.
-   * - :cpp:class:`EasingPreviewSpecificationCapability <gui_forms::EasingPreviewSpecificationCapability>`
-     - The animation the tracks show; a started preview restarts from it.
-   * - :cpp:class:`EasingPreviewTitleCapability <gui_forms::EasingPreviewTitleCapability>`
-     - The heading painted above the tracks.
-   * - :cpp:class:`EasingPreviewTrack <gui_forms::EasingPreviewTrack>`
-     - EasingPreviewTrack is one caller-authored easing comparison row: exact curve, label, and marker color.
    * - :cpp:class:`ExpectationThresholds <gui_forms::ExpectationThresholds>`
      - What each expectation allows.
    * - :cpp:class:`Metrics <gui_forms::Metrics>`
@@ -72,20 +44,10 @@ Related types
      - Every MetricsView capability, in the order the declaring class takes them.
    * - :cpp:class:`MetricsViewTitleCapability <gui_forms::MetricsViewTitleCapability>`
      - The heading painted above the metrics; it is also the accessible name.
-   * - :cpp:class:`TypographySpecimen::Parts <gui_forms::TypographySpecimen::Parts>`
-     - Stage T1 anatomy, as dot members (see Control::Parts).
-   * - :cpp:class:`TypographySpecimen::States <gui_forms::TypographySpecimen::States>`
+   * - :cpp:class:`StockSpecimen <gui_forms::StockSpecimen>`
      -  
-   * - :cpp:class:`TypographySpecimenCapabilities <gui_forms::TypographySpecimenCapabilities>`
-     - Every TypographySpecimen capability, in the order the declaring class takes them.
-   * - :cpp:class:`TypographySpecimenCaptionCapability <gui_forms::TypographySpecimenCaptionCapability>`
-     - The line under the run that names its font.
-   * - :cpp:class:`TypographySpecimenDiagnosticsVisibleCapability <gui_forms::TypographySpecimenDiagnosticsVisibleCapability>`
-     - Whether the line box, baseline and provider status are drawn.
-   * - :cpp:class:`TypographySpecimenFontCapability <gui_forms::TypographySpecimenFontCapability>`
-     - The FontSpec the run is committed with; must be valid (std::invalid_argument).
-   * - :cpp:class:`TypographySpecimenWrapTextCapability <gui_forms::TypographySpecimenWrapTextCapability>`
-     - Whether the run wraps at the specimen's width.
+   * - :cpp:class:`StockSpecimenInstance <gui_forms::StockSpecimenInstance>`
+     - What a window holds for one specimen.
    * - :cpp:class:`VisualControlInspection <gui_forms::VisualControlInspection>`
      -  
    * - :cpp:class:`VisualControlLayoutSnapshot <gui_forms::VisualControlLayoutSnapshot>`
@@ -96,22 +58,6 @@ Related types
      -  
    * - :cpp:class:`VisualInspectionSnapshot <gui_forms::VisualInspectionSnapshot>`
      -  
-   * - :cpp:class:`VisualInspectorOverlay::Parts <gui_forms::VisualInspectorOverlay::Parts>`
-     - Stage T1 anatomy, as dot members (see Control::Parts).
-   * - :cpp:class:`VisualInspectorOverlay::States <gui_forms::VisualInspectorOverlay::States>`
-     -  
-   * - :cpp:class:`VisualInspectorOverlayCapabilities <gui_forms::VisualInspectorOverlayCapabilities>`
-     - Every VisualInspectorOverlay capability, in the order the declaring class takes them.
-   * - :cpp:class:`VisualInspectorOverlayTargetStableIdCapability <gui_forms::VisualInspectorOverlayTargetStableIdCapability>`
-     - The stable ID of the control the overlay outlines; empty for none.
-   * - :cpp:class:`VisualInspectorView::Parts <gui_forms::VisualInspectorView::Parts>`
-     - Stage T1 anatomy, as dot members (see Control::Parts).
-   * - :cpp:class:`VisualInspectorView::States <gui_forms::VisualInspectorView::States>`
-     -  
-   * - :cpp:class:`VisualInspectorViewCapabilities <gui_forms::VisualInspectorViewCapabilities>`
-     - Every VisualInspectorView capability, in the order the declaring class takes them.
-   * - :cpp:class:`VisualInspectorViewTargetStableIdCapability <gui_forms::VisualInspectorViewTargetStableIdCapability>`
-     - The stable ID of the control the view inspects; empty for none.
    * - :cpp:class:`VisualPaintOperationSnapshot <gui_forms::VisualPaintOperationSnapshot>`
      - One immutable, backend-neutral record from the last committed display chunk.
 
@@ -131,148 +77,11 @@ Related types
 
       The most recent lookup's answer; none before the first lookup. Default: ``{BundledFontSource::none}``.
 
-.. cpp:namespace:: gui_forms
+   .. cpp:member:: std::uint32_t fallback_faces_found
 
-.. cpp:struct:: EasingPreview::Parts final
+      The bundled fallback faces (the Noto faces for CJK, emoji, Arabic, Hebrew, Devanagari, Bengali and Gurmukhi) that the most recent lookup's directory holds, of how many the library knows. They are optional: an install or app package may leave out their component (fallback_fonts, GUI_FORMS_INSTALL_FALLBACK_FONTS), and text only they cover then falls back as for any missing face (missing-glyph boxes). Found is 0 when the lookup found no directory; bundled_font_notice names the absent faces.
 
-   ``#include <gui_forms/controls/easing_preview/easing_preview.hpp>``
-
-   Stage T1 anatomy, as dot members (see Control::Parts).
-
-   .. cpp:member:: PartGeometry region
-
-   .. cpp:member:: PartGeometry face
-
-   .. cpp:member:: PartGeometry edge
-
-   .. cpp:member:: PartGeometry focus
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: EasingPreview::States final
-
-   ``#include <gui_forms/controls/easing_preview/easing_preview.hpp>``
-
-   .. cpp:member:: bool normal
-
-   .. cpp:member:: bool enabled
-
-   .. cpp:member:: bool disabled
-
-   .. cpp:member:: bool focused
-
-   .. cpp:member:: bool focus_visible
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> EasingPreviewCapabilities : public EasingPreviewTitleCapability<Declaring>, public EasingPreviewSpecificationCapability<Declaring>, public EasingPreviewMotionPolicyCapability<Declaring>, public EasingPreviewMarkerSizeCapability<Declaring>
-
-   ``#include <gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp>``
-
-   Every EasingPreview capability, in the order the declaring class takes them.
-
-
-   .. rubric:: Properties
-
-   .. cpp:member:: std::string title
-
-      The heading painted above the tracks.
-
-   .. cpp:member:: AnimationSpec specification
-
-      The animation the tracks show; a started preview restarts from it. A view onto the preview's timeline.
-
-   .. cpp:member:: MotionPolicy motion_policy
-
-      Whether the preview moves; a change pauses or resumes a started timeline. A view onto the preview's policy.
-
-   .. cpp:member:: double marker_size
-
-      The markers' size, 4 to 48 pixels (else std::invalid_argument).
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> EasingPreviewMarkerSizeCapability
-
-   ``#include <gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp>``
-
-   The markers' size, 4 to 48 pixels (else std::invalid_argument).
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(EasingPreviewMarkerSizeCapability& capability, double incoming)
-
-   .. cpp:member:: PropertyCell<double, EasingPreviewMarkerSizeCapability<Declaring>> marker_size
-
-      Default: ``{14.0}``.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> EasingPreviewMotionPolicyCapability
-
-   ``#include <gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp>``
-
-   Whether the preview moves; a change pauses or resumes a started timeline. A view onto the preview's policy.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(EasingPreviewMotionPolicyCapability& capability, MotionPolicy incoming)
-
-   .. cpp:function:: static MotionPolicy read(const EasingPreviewMotionPolicyCapability& capability)
-
-   .. cpp:member:: PropertyView<MotionPolicy, EasingPreviewMotionPolicyCapability<Declaring>> motion_policy
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> EasingPreviewSpecificationCapability
-
-   ``#include <gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp>``
-
-   The animation the tracks show; a started preview restarts from it. A view onto the preview's timeline.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(EasingPreviewSpecificationCapability& capability, AnimationSpec incoming)
-
-   .. cpp:function:: static AnimationSpec read(const EasingPreviewSpecificationCapability& capability)
-
-   .. cpp:member:: PropertyView<AnimationSpec, EasingPreviewSpecificationCapability<Declaring>> specification
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> EasingPreviewTitleCapability
-
-   ``#include <gui_forms/controls/easing_preview/easing_preview_capabilities/easing_preview_capabilities.hpp>``
-
-   The heading painted above the tracks.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(EasingPreviewTitleCapability& capability, std::string incoming)
-
-   .. cpp:member:: PropertyCell<std::string, EasingPreviewTitleCapability<Declaring>> title
-
-      Default: ``{std::string("Animation timeline and easing")}``.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: EasingPreviewTrack final
-
-   ``#include <gui_forms/controls/easing_preview/easing_preview.hpp>``
-
-   EasingPreviewTrack is one caller-authored easing comparison row: exact curve, label, and marker color.
-
-   .. cpp:member:: EasingCurve curve
-
-      Default: ``{EasingCurve::linear}``.
-
-   .. cpp:member:: std::string label
-
-   .. cpp:member:: Color color
+   .. cpp:member:: std::uint32_t fallback_faces_expected
 
 .. cpp:namespace:: gui_forms
 
@@ -492,9 +301,21 @@ Related types
 
       A primitive refused to draw a part (EnginePrimitive::accepts), which the built-in recipe drew instead.
 
+   .. cpp:function:: void record_engine_dither_degradations(std::uint64_t steps) noexcept
+
+      A material's dither was lowered by ``steps`` to stay within the bake budget (MetricsSnapshot::engine_dither_degradations).
+
    .. cpp:function:: void record_engine_material_assembly() noexcept
 
    .. cpp:function:: void record_paint_group_refusals(std::uint64_t refusals) noexcept
+
+   .. cpp:function:: void record_layout_arrange_refusal(std::string_view arranged, std::string_view arranging) noexcept
+
+      A control arranged while the layout pass was arranging another (LayoutDiagnosticCode::arrange_outside_slot), refused. Counts it and, at the 1st, 2nd, 4th, 8th... refusal, prints one diagnostic line naming both controls' stable identities.
+
+   .. cpp:function:: void record_stale_image_refusals(std::string_view operation, std::uint64_t image, std::uint64_t refusals) noexcept
+
+      ``refusals`` uses of an image identity the registry no longer holds (ImageResourceError::stale_image_id), refused: ``operation`` names the window call (a scoped patch, replace or update) or ``draw`` for a paint that drew it. Counts them and, each time the count reaches a new power of two, prints one diagnostic line naming the operation and the identity's value.
 
    .. cpp:function:: void record_expectation_miss(HousekeepingExpectation expectation, std::uint64_t expected, std::uint64_t observed) noexcept
 
@@ -811,6 +632,10 @@ Related types
 
       Parts a primitive refused to draw (E8c, EnginePrimitive::accepts), such as a material whose bake would exceed its bound: drawn by the built-in recipe instead. Counted when a keyed part's refusal begins, and at every paint of a part without a key.
 
+   .. cpp:member:: std::uint64_t engine_dither_degradations
+
+      Steps a dithered material's dither gave way so that its part stays within the bake budget (EnginePrimitive::affordable_dither): one for blue noise to the ordered table or the ordered table to none, two for blue noise to none. Counted at every paint that lends the lowered material, so a face keeps its material and loses only the dither, never falling back to the built-in look for it.
+
    .. cpp:member:: std::uint64_t engine_material_assemblies
 
       Materials assembled from a recipe's material and the material fields a theme's rules set (T3 EC1): once per distinct assembly for a keyed part (AssembledPartMaterial), and at every paint of a part without a key.
@@ -818,6 +643,14 @@ Related types
    .. cpp:member:: std::uint64_t paint_group_refusals
 
       Paint groups begun deeper than maximum_paint_group_depth, drawn without isolation (Painter::begin_group).
+
+   .. cpp:member:: std::uint64_t layout_arrange_refusals
+
+      Arrangements refused because the layout pass was arranging another control (LayoutDiagnosticCode::arrange_outside_slot): a custom layout that arranged a child directly instead of set_child_layout.
+
+   .. cpp:member:: std::uint64_t stale_image_refusals
+
+      Uses of a stale image identity refused: a window's scoped patch, replace or update given one, and draws recorded with one (counted when the control's paint is recorded, and drawn as nothing). A replace or a generation-advancing patch returns the identity that replaces the one passed in.
 
    .. cpp:member:: std::uint64_t bundled_font_lookups_without_source
 
@@ -839,7 +672,7 @@ Related types
 
 .. cpp:struct:: MetricsView::Parts final
 
-   ``#include <gui_forms/controls/metrics_view/metrics_view.hpp>``
+   ``#include <gui_forms/controls/metrics_view.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -855,7 +688,7 @@ Related types
 
 .. cpp:struct:: MetricsView::States final
 
-   ``#include <gui_forms/controls/metrics_view/metrics_view.hpp>``
+   ``#include <gui_forms/controls/metrics_view.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -871,7 +704,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MetricsViewAccentWidthCapability
 
-   ``#include <gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/metrics_view_capabilities.hpp>``
 
    The width of the accent bar at the leading edge, 1 to 32 (default 5). A value outside that range throws std::invalid_argument and changes nothing.
 
@@ -888,7 +721,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MetricsViewCapabilities : public MetricsViewTitleCapability<Declaring>, public MetricsViewAccentWidthCapability<Declaring>
 
-   ``#include <gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/metrics_view_capabilities.hpp>``
 
    Every MetricsView capability, in the order the declaring class takes them.
 
@@ -907,7 +740,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MetricsViewTitleCapability
 
-   ``#include <gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/metrics_view_capabilities.hpp>``
 
    The heading painted above the metrics; it is also the accessible name.
 
@@ -920,132 +753,49 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: TypographySpecimen::Parts final
+.. cpp:struct:: StockSpecimen final
 
-   ``#include <gui_forms/controls/typography_specimen/typography_specimen.hpp>``
+   ``#include <gui_forms/controls/stock_specimens.hpp>``
 
-   Stage T1 anatomy, as dot members (see Control::Parts).
+   .. cpp:member:: std::string_view control_id
 
-   .. cpp:member:: PartGeometry region
+      The subject's control id, as stock_control_anatomies() names it ("check_box"). A type without an anatomy of its own (a plot item) publishes the base anatomy, "control", at run time.
 
-   .. cpp:member:: PartGeometry face
+   .. cpp:member:: std::string_view family
 
-   .. cpp:member:: PartGeometry edge
+      The registry's category (manifests/controls.json), a palette's family ("Value setting").
 
-   .. cpp:member:: PartGeometry focus
+   .. cpp:member:: Size size
 
-.. cpp:namespace:: gui_forms
+      The logical size the subject is laid out at.
 
-.. cpp:struct:: TypographySpecimen::States final
+   .. cpp:member:: std::string_view sample_text
 
-   ``#include <gui_forms/controls/typography_specimen/typography_specimen.hpp>``
+      The text set on a type with a writable ``text`` property ("Check box").
 
-   .. cpp:member:: bool normal
+   .. cpp:member:: StockSpecimenMaker make
 
-   .. cpp:member:: bool enabled
+   .. cpp:member:: StockSpecimenPresenter present
 
-   .. cpp:member:: bool disabled
+      Null when the instance needs nothing from its window.
 
-   .. cpp:member:: bool focused
+   .. cpp:member:: std::string_view blank_reason
 
-   .. cpp:member:: bool focus_visible
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> TypographySpecimenCapabilities : public TextCapability<Declaring>, public TypographySpecimenFontCapability<Declaring>, public TypographySpecimenCaptionCapability<Declaring>, public TypographySpecimenDiagnosticsVisibleCapability<Declaring>, public TypographySpecimenWrapTextCapability<Declaring>
-
-   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
-
-   Every TypographySpecimen capability, in the order the declaring class takes them.
-
-
-   .. rubric:: Properties
-
-   .. cpp:member:: std::string text
-
-      The text the control shows (Text).
-
-   .. cpp:member:: FontSpec font
-
-      The FontSpec the run is committed with; must be valid (std::invalid_argument).
-
-   .. cpp:member:: std::string caption
-
-      The line under the run that names its font.
-
-   .. cpp:member:: bool diagnostics_visible
-
-      Whether the line box, baseline and provider status are drawn.
-
-   .. cpp:member:: bool wrap_text
-
-      Whether the run wraps at the specimen's width.
+      Why a near-uniform capture at rest is this control's real look (a base that paints nothing of its own); empty for every other row.
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> TypographySpecimenCaptionCapability
+.. cpp:struct:: StockSpecimenInstance final
 
-   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
+   ``#include <gui_forms/controls/stock_specimens.hpp>``
 
-   The line under the run that names its font.
+   What a window holds for one specimen. ``subject`` is the control of the row's type, which a palette captures and shows states on; ``root`` is what the window holds: the subject itself, or a holder that owns what the subject borrows (a PageSet, a DockWorkspace, an overlay's anchor) and lays the subject over its whole client area. Keep ``root`` alive while ``subject`` is used. ``frame`` is what a palette captures: the subject, or, for a part that only shows inside its container (a tab page, a wizard page, a plot's axis, a splitter between two panels), the container.
 
+   .. cpp:member:: Control::Ptr root
 
-   .. rubric:: Methods
+   .. cpp:member:: Control::Ptr subject
 
-   .. cpp:function:: static void assign(TypographySpecimenCaptionCapability& capability, std::string incoming)
-
-   .. cpp:member:: PropertyCell<std::string, TypographySpecimenCaptionCapability<Declaring>> caption
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> TypographySpecimenDiagnosticsVisibleCapability
-
-   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
-
-   Whether the line box, baseline and provider status are drawn.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(TypographySpecimenDiagnosticsVisibleCapability& capability, bool incoming)
-
-   .. cpp:member:: PropertyCell<bool, TypographySpecimenDiagnosticsVisibleCapability<Declaring>> diagnostics_visible
-
-      Default: ``{true}``.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> TypographySpecimenFontCapability
-
-   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
-
-   The FontSpec the run is committed with; must be valid (std::invalid_argument).
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(TypographySpecimenFontCapability& capability, FontSpec incoming)
-
-   .. cpp:member:: PropertyCell<FontSpec, TypographySpecimenFontCapability<Declaring>> font
-
-      Default: ``{FontSpec{FontRole::content, 12.0, 400, false}}``.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> TypographySpecimenWrapTextCapability
-
-   ``#include <gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp>``
-
-   Whether the run wraps at the specimen's width.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(TypographySpecimenWrapTextCapability& capability, bool incoming)
-
-   .. cpp:member:: PropertyCell<bool, TypographySpecimenWrapTextCapability<Declaring>> wrap_text
-
-      Default: ``{false}``.
+   .. cpp:member:: Control::Ptr frame
 
 .. cpp:namespace:: gui_forms
 
@@ -1275,134 +1025,6 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: VisualInspectorOverlay::Parts final
-
-   ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp>``
-
-   Stage T1 anatomy, as dot members (see Control::Parts).
-
-   .. cpp:member:: PartGeometry region
-
-   .. cpp:member:: PartGeometry highlight
-
-   .. cpp:member:: PartGeometry focus
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: VisualInspectorOverlay::States final
-
-   ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp>``
-
-   .. cpp:member:: bool normal
-
-   .. cpp:member:: bool enabled
-
-   .. cpp:member:: bool disabled
-
-   .. cpp:member:: bool focused
-
-   .. cpp:member:: bool focus_visible
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> VisualInspectorOverlayCapabilities : public VisualInspectorOverlayTargetStableIdCapability<Declaring>
-
-   ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_overlay_capabilities/visual_inspector_overlay_capabilities.hpp>``
-
-   Every VisualInspectorOverlay capability, in the order the declaring class takes them.
-
-
-   .. rubric:: Properties
-
-   .. cpp:member:: std::string target_stable_id
-
-      The stable ID of the control the overlay outlines; empty for none.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> VisualInspectorOverlayTargetStableIdCapability
-
-   ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_overlay_capabilities/visual_inspector_overlay_capabilities.hpp>``
-
-   The stable ID of the control the overlay outlines; empty for none.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(VisualInspectorOverlayTargetStableIdCapability& capability, std::string incoming)
-
-   .. cpp:member:: PropertyCell<std::string, VisualInspectorOverlayTargetStableIdCapability<Declaring>> target_stable_id
-
-      Default: ``{std::string{}}``.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: VisualInspectorView::Parts final
-
-   ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp>``
-
-   Stage T1 anatomy, as dot members (see Control::Parts).
-
-   .. cpp:member:: PartGeometry region
-
-   .. cpp:member:: PartGeometry face
-
-   .. cpp:member:: PartGeometry header
-
-   .. cpp:member:: PartGeometry accent_strip
-
-   .. cpp:member:: PartGeometry focus
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: VisualInspectorView::States final
-
-   ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp>``
-
-   .. cpp:member:: bool normal
-
-   .. cpp:member:: bool enabled
-
-   .. cpp:member:: bool disabled
-
-   .. cpp:member:: bool focused
-
-   .. cpp:member:: bool focus_visible
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> VisualInspectorViewCapabilities : public VisualInspectorViewTargetStableIdCapability<Declaring>
-
-   ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_view_capabilities/visual_inspector_view_capabilities.hpp>``
-
-   Every VisualInspectorView capability, in the order the declaring class takes them.
-
-
-   .. rubric:: Properties
-
-   .. cpp:member:: std::string target_stable_id
-
-      The stable ID of the control the view inspects; empty for none.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> VisualInspectorViewTargetStableIdCapability
-
-   ``#include <gui_forms/controls/visual_inspector_view/visual_inspector_view_capabilities/visual_inspector_view_capabilities.hpp>``
-
-   The stable ID of the control the view inspects; empty for none.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(VisualInspectorViewTargetStableIdCapability& capability, std::string incoming)
-
-   .. cpp:member:: PropertyCell<std::string, VisualInspectorViewTargetStableIdCapability<Declaring>> target_stable_id
-
-      Default: ``{std::string{}}``.
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: VisualPaintOperationSnapshot final
 
    ``#include <gui_forms/visual_inspection/types/visual_inspection_types.hpp>``
@@ -1579,6 +1201,42 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/controls/stock_specimens.hpp>``
+
+.. cpp:function:: std::span<const StockSpecimen> stock_specimens() noexcept
+
+   Every row, in schema order. Static storage.
+
+.. cpp:function:: const StockSpecimen* find_stock_specimen(std::string_view control_id) noexcept
+
+   The row for ``control_id``, or null.
+
+.. cpp:function:: StockSpecimenInstance make_stock_specimen(const StockSpecimen& specimen, StableId id)
+
+   ``specimen``'s instance (specimen.make), IDs starting with ``id``. Makers write only ordinary property values; a refused write is the write's own exception (std::invalid_argument or std::logic_error). UI thread. ``frame`` is the subject when the maker names none.
+
+.. cpp:function:: void present_stock_specimen(const StockSpecimen& specimen, const StockSpecimenInstance& instance, Window& window)
+
+   Runs ``specimen.present`` on ``instance`` (nothing when it has none), once ``instance.root`` is in ``window`` and laid out. UI thread.
+
+.. cpp:function:: double stock_specimen_dominant_share(const WindowCapture& capture, std::uint32_t inset_pixels)
+
+   The share, in [0, 1], of the pixels of ``capture`` inside ``inset_pixels`` from each edge that have its most frequent BGRA value; 1 when that region is empty. ``inset_pixels`` leaves out a margin and the subject's own border. Allocates one copy of the region's pixels.
+
+.. cpp:type:: StockSpecimenMaker = StockSpecimenInstance (*)(const StockSpecimen& specimen, StableId id)
+
+   Makes ``specimen``'s instance, its controls' stable IDs starting with ``id``.
+
+.. cpp:type:: StockSpecimenPresenter = void (*)(const StockSpecimenInstance& instance, Window& window)
+
+   Finishes an instance once its root is in ``window`` and laid out: what needs the window (an image in its registry, a modal layer shown over the root). Throws what the window's own call throws, or std::runtime_error when the window refuses (an image not loaded).
+
+.. cpp:var:: constexpr double stock_specimen_uniform_share
+
+   A capture whose most frequent colour covers at least this share of the subject's pixels (stock_specimen_dominant_share) is near-uniform: an empty specimen. Value: ``0.97``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/metrics/font_sources/bundled_font_sources.hpp>``
 
 .. cpp:function:: std::string_view bundled_font_source_name(BundledFontSource source) noexcept
@@ -1590,6 +1248,10 @@ Functions, constants and aliases
 .. cpp:function:: std::string bundled_font_refusal()
 
    The most recent lookup's refusal: which directories it tried and why text is missing, as one line of UTF-8. Empty when that lookup found a source, or before the first lookup. A copy; any thread.
+
+.. cpp:function:: std::string bundled_font_notice()
+
+   The most recent lookup's note on absent fallback faces: which of them its directory lacks and what that means for text, as one line of UTF-8. Empty when every fallback face is present, when that lookup found no directory (bundled_font_refusal says why), or before the first lookup. Only recorded, never written to stderr, since leaving the faces out is an install's or a package's choice. A copy; any thread.
 
 .. cpp:namespace:: gui_forms
 

@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/tree_view.hpp"
 
 #include "../collection_control_utilities.hpp"
 #include "../cut_off_text/cut_off_text_reveal.hpp"
@@ -14,11 +14,26 @@
 #include <charconv>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <stdexcept>
 #include <unordered_set>
 
 namespace gui_forms {
+
+namespace {
+
+// A row part laid out from the left at `laid`, on the side it shows in a
+// view `width` wide: mirrored when the view resolves right to left, so the
+// indentation, expander and image run from the right (WinForms' TreeView
+// with RightToLeftLayout).
+Rect tree_row_side(Rect laid, double width, bool mirror) noexcept {
+    if (!mirror) return laid;
+    const Rect side = horizontally_mirrored(laid, Rect{0.0, 0.0, width, laid.y + laid.height});
+    return side;
+}
+
+} // namespace
 
 using namespace collection_detail;
 TreeView::TreeView(StableId stable_id)
@@ -205,7 +220,10 @@ void TreeView::reveal_cut_off_text(std::size_t visible_row) {
     const double y = 2.0 + static_cast<double>(visible_row - top_row_) * row_height;
     const double left = text_left(item, row_height);
     const double clip_right = std::max(0.0, bounds.width - 2.0);
-    if (item.text.empty() || left >= clip_right) {
+    // A right-to-left row is cut off at the view's left edge, which the
+    // reveal does not cover yet: it stays concealed.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    if (mirrored || item.text.empty() || left >= clip_right) {
         conceal_cut_off_text();
         return;
     }
@@ -298,6 +316,8 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
     AnatomyStateSet states = anatomy_states();
     states.erase(AnatomyState::hot);
     const bool overridden = has_style_override();
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    const PartMark collapsed_mark = mirrored ? PartMark::chevron_left : PartMark::chevron_right;
     for (std::size_t row = top_row_; row < end; ++row) {
         const TreeViewItem& item = items_[visible_[row]];
         const double y = 2.0 + static_cast<double>(row - top_row_) * row_height;
@@ -328,8 +348,8 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
             PartPaint expander;
             expander.family = ControlVisualRole::editor;
             expander.role = PartRole::disclosure;
-            expander.mark = item.expanded ? PartMark::chevron_down : PartMark::chevron_right;
-            expander.bounds = {indent - 2.0, y + 5.0, 12.0, 12.0};
+            expander.mark = item.expanded ? PartMark::chevron_down : collapsed_mark;
+            expander.bounds = tree_row_side({indent - 2.0, y + 5.0, 12.0, 12.0}, bounds.width, mirrored);
             expander.states = row_states;
             if (item.expanded) expander.states.insert(AnatomyState::open);
             paint_part(painter, *this, expander);
@@ -361,7 +381,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
                 icon.role = resolved.resolved_state == ImageVisualState::disabled ? PartRole::image
                                                                                    : PartRole::icon;
                 icon.image = resolved.image;
-                icon.bounds = destination;
+                icon.bounds = tree_row_side(destination, bounds.width, mirrored);
                 icon.states = row_states;
                 paint_part(painter, *this, icon);
             }
@@ -371,12 +391,19 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
         label.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
         label.role = PartRole::content;
         label.states = row_states;
-        label.text = item.text;
+        label.text = lend_paint_text(item.text);
         label.font = row_font;
         if (overridden) label.authored_foreground = selected && focused_ ? style().highlight : style().text;
-        paint_text_part_at(painter, *this, label,
-                           {content_x, y + std::max(row_font.size, row_height * 0.5 + 4.0)},
-                           std::max(0.0, plate_bounds.x + plate_bounds.width - content_x));
+        const double label_baseline = y + std::max(row_font.size, row_height * 0.5 + 4.0);
+        const double label_room = std::max(0.0, plate_bounds.x + plate_bounds.width - content_x);
+        if (mirrored) {
+            // Ending where a left-to-right label starts, mirrored.
+            const double text_width = measure_text_extent_utf8(item.text, row_font).logical_size.width;
+            const double shown = std::min(text_width, label_room);
+            paint_text_part_at(painter, *this, label, {bounds.width - content_x - shown, label_baseline}, shown);
+        } else {
+            paint_text_part_at(painter, *this, label, {content_x, label_baseline}, label_room);
+        }
         if (active) {
             PartPaint ring;
             ring.family = ControlVisualRole::selection;
@@ -390,7 +417,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
     painter.restore();
 }
 
-void TreeView::on_pointer(PointerEvent& event) {
+void TreeView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     if (event.action == PointerAction::move) {
         const std::optional<std::size_t> row = visible_row_at(event.position);
@@ -428,7 +455,11 @@ void TreeView::on_pointer(PointerEvent& event) {
         pressed_expander_ = false;
         if (!pressed_row_) return;
         const TreeViewItem& item = items_[visible_[*pressed_row_]];
-        const double local_x = event.position.x - absolute_bounds().x;
+        const Rect absolute = absolute_bounds();
+        const double pointer_x = event.position.x - absolute.x;
+        // Measured from the right edge in a right-to-left view.
+        const double local_x = effective_layout_direction() == LayoutDirection::right_to_left
+            ? absolute.width - pointer_x : pointer_x;
         const double arrow_x = 7.0 + static_cast<double>(item.depth) *
             indentation.read() * effective_text_scale();
         if (show_expanders.read() && item.expandable && local_x >= arrow_x - 3.0 &&
@@ -451,7 +482,49 @@ void TreeView::on_pointer(PointerEvent& event) {
     }
 }
 
-void TreeView::on_key(KeyEvent& event) {
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void TreeView::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void TreeView::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void TreeView::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void TreeView::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void TreeView::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
+void TreeView::handle_key(KeyEvent& event) {
     if (!focused_ || !enabled.read() || event.action != KeyAction::down || visible_.empty()) return;
     std::optional<std::size_t> active_index_value = item_index(active_id_);
     std::vector<std::size_t>::iterator active_row_iterator = active_index_value
@@ -462,6 +535,10 @@ void TreeView::on_key(KeyEvent& event) {
     if (event.physical_key == PhysicalKey::enter) {
         select_visible_row(row, true); event.handled = true; return;
     }
+    // Right to left, Left opens a node and moves in; Right closes it.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    const std::uint32_t inward = mirrored ? PhysicalKey::left : PhysicalKey::right;
+    const std::uint32_t outward = mirrored ? PhysicalKey::right : PhysicalKey::left;
     if (event.physical_key == PhysicalKey::up && row > 0U) --row;
     else if (event.physical_key == PhysicalKey::down && row + 1U < visible_.size()) ++row;
     else if (event.physical_key == PhysicalKey::home) row = 0U;
@@ -470,12 +547,12 @@ void TreeView::on_key(KeyEvent& event) {
         row = row > visible_row_count() ? row - visible_row_count() : 0U;
     } else if (event.physical_key == PhysicalKey::page_down) {
         row = std::min(row + visible_row_count(), visible_.size() - 1U);
-    } else if (event.physical_key == PhysicalKey::right) {
+    } else if (event.physical_key == inward) {
         TreeViewItem& item = items_[visible_[row]];
         if (item.expandable && !item.expanded) set_expanded(item.stable_id, true);
         else if (row + 1U < visible_.size() &&
                  items_[visible_[row + 1U]].depth > item.depth) ++row;
-    } else if (event.physical_key == PhysicalKey::left) {
+    } else if (event.physical_key == outward) {
         TreeViewItem& item = items_[visible_[row]];
         if (item.expandable && item.expanded) set_expanded(item.stable_id, false);
         else if (item.depth > 0U) {
@@ -484,6 +561,17 @@ void TreeView::on_key(KeyEvent& event) {
     } else return;
     select_visible_row(row, false);
     event.handled = true;
+}
+
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void TreeView::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 
 void TreeView::type_select(std::string_view text) {
@@ -696,12 +784,14 @@ void TreeView::publish_realized_item_geometry(std::size_t item,
     const double y = 2.0 + static_cast<double>(item) * row_height;
     const Rect row{2.0, y, std::max(0.0, bounds.width - 4.0), row_height};
     const double indent = 7.0 + static_cast<double>(node.depth) * indentation.read() * text_scale;
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
     if (show_expanders.read() && node.expandable) {
         // The extent of the two 1.4-unit strokes on_paint draws.
         const Rect expander = node.expanded
             ? Rect{indent - 0.7, y + 8.3, 9.4, 5.4}
             : Rect{indent + 1.3, y + 6.3, 5.4, 9.4};
-        record.expander = PartGeometry::from_bounds(Rect::intersection(expander, content));
+        record.expander = PartGeometry::from_bounds(
+            Rect::intersection(tree_row_side(expander, bounds.width, mirrored), content));
     }
     double content_x = indent + 14.0;
     if (image_list.read() && (*image_list.read()).is_alive() && !node.image_key.empty()) {
@@ -713,13 +803,14 @@ void TreeView::publish_realized_item_geometry(std::size_t item,
         if (slot_width > 0.0 && slot_height > 0.0) {
             const Rect slot{content_x, y + (row_height - slot_height) * 0.5,
                             slot_width, slot_height};
-            record.icon = PartGeometry::from_bounds(Rect::intersection(slot, content));
+            record.icon = PartGeometry::from_bounds(
+                Rect::intersection(tree_row_side(slot, bounds.width, mirrored), content));
             content_x += slot_width + 5.0;
         }
     }
     const double text_width =
         measure_text_extent_utf8(node.text, text_font(font.read())).logical_size.width;
-    const Rect label{content_x, y, text_width, row_height};
+    const Rect label = tree_row_side({content_x, y, text_width, row_height}, bounds.width, mirrored);
     record.row = PartGeometry::from_bounds(Rect::intersection(row, content));
     record.label = PartGeometry::from_bounds(Rect::intersection(Rect::intersection(label, row), content));
     record.row_focus = record.row;

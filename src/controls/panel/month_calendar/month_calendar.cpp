@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
+#include "gui_forms/controls/month_calendar.hpp"
 
 #include "../date_time_picker/calendar_grid/calendar_grid.hpp"
 #include "../date_time_picker/date_time_utilities.hpp"
@@ -619,7 +619,7 @@ void MonthCalendar::paint_day(Painter& painter, std::size_t month, std::size_t d
     part.font = day_font;
     part.alignment = PartTextAlignment::center;
     const std::string number = std::to_string(date.day);
-    part.text = number;
+    part.text = lend_paint_text(number);
     paint_part(painter, *this, part);
     part.text = {};
     if (parts.day_marker.present) {
@@ -651,13 +651,13 @@ void MonthCalendar::on_paint(Painter& painter, Rect) {
         label.font = title_font;
         label.bounds = parts.month_title.bounds;
         const std::string title = month_title_text(month);
-        label.text = title;
+        label.text = lend_paint_text(title);
         paint_part(painter, *this, label);
         label.font = body_font;
         for (std::size_t column = 0U; column < grid_columns; ++column) {
             label.bounds = weekday_parts(month, column).weekday_label.bounds;
             const std::string name = weekday_text(column);
-            label.text = name;
+            label.text = lend_paint_text(name);
             paint_part(painter, *this, label);
         }
         label.text = {};
@@ -670,7 +670,7 @@ void MonthCalendar::on_paint(Painter& painter, Rect) {
             for (std::size_t row = 0U; row < week_rows(month); ++row) {
                 label.bounds = week_parts(month, row).week_label.bounds;
                 const std::string week = week_text(month, row);
-                label.text = week;
+                label.text = lend_paint_text(week);
                 paint_part(painter, *this, label);
             }
             label.text = {};
@@ -707,7 +707,7 @@ void MonthCalendar::on_paint(Painter& painter, Rect) {
         today.font = body_font;
         today.bounds = control.today_label.bounds;
         const std::string text = today_text();
-        today.text = text;
+        today.text = lend_paint_text(text);
         paint_part(painter, *this, today);
     }
 }
@@ -734,7 +734,7 @@ MonthCalendar::Zone MonthCalendar::zone_at(Point local, DateTimeValue& date) con
     return Zone::none;
 }
 
-void MonthCalendar::on_pointer(PointerEvent& event) {
+void MonthCalendar::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     const Rect absolute = absolute_bounds();
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
@@ -793,13 +793,55 @@ void MonthCalendar::on_pointer(PointerEvent& event) {
     }
 }
 
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void MonthCalendar::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void MonthCalendar::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void MonthCalendar::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void MonthCalendar::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void MonthCalendar::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
 void MonthCalendar::move_focus(DateTimeValue target, bool extend) {
     const DateTimeValue reached = std::clamp(civil_date(target), minimum_, maximum_);
     if (!extend) anchor_ = reached;
     select(bounded_range(anchor_, reached), reached);
 }
 
-void MonthCalendar::on_key(KeyEvent& event) {
+void MonthCalendar::handle_key(KeyEvent& event) {
     if (!focused_ || !effectively_enabled() || event.action != KeyAction::down) return;
     const bool extend = has_modifier(event.modifiers, Modifier::shift);
     const std::uint32_t key = event.physical_key;
@@ -820,6 +862,17 @@ void MonthCalendar::on_key(KeyEvent& event) {
         return;
     }
     event.handled = true;
+}
+
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void MonthCalendar::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 
 void MonthCalendar::on_focus_changed(bool focused) {

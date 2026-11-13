@@ -3,7 +3,14 @@
 // and command IDs preserved, and capture from and application to a
 // QuickAccessToolbar.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/quick_access_toolbar.hpp"
+#include "gui_forms/controls/quick_access_toolbar_values.hpp"
+#include "gui_forms/controls/ribbon_state.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cstdlib>
 #include <iostream>

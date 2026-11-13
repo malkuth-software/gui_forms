@@ -87,8 +87,9 @@ part
 arrange
     Gives each item button an equal share of the width, in one row at the
     full height.
-on_key
-    Handles the arrow keys described under Notes. The window calls it.
+on_key_down
+    Raises the event, then handles the arrow keys described under Notes.
+    The window calls it.
 on_key_bubble
     Handles the arrow keys pressed while an item's button has focus.
 semantic_descriptor

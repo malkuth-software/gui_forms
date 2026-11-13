@@ -71,7 +71,7 @@ double material_raster_outset(const SurfaceMaterial& material) noexcept {
     return outset;
 }
 
-std::shared_ptr<const PartRaster> bake_material_raster(const SurfaceMaterial& material, Size logical_size,
+std::shared_ptr<const PartRaster> bake_material_raster(const SurfaceMaterial& authored, Size logical_size,
                                                        DeviceScale scale, double outset) {
     const double value = scale.value;
     if (!(value >= minimum_device_scale && value <= maximum_device_scale)) return nullptr;
@@ -83,6 +83,18 @@ std::shared_ptr<const PartRaster> bake_material_raster(const SurfaceMaterial& ma
     PrimitiveTarget target{};
     target.logical_size = logical_size;
     target.scale = scale;
+    // A dither gives way before the material does (as the engine lends a
+    // part's, EnginePrimitive::affordable_dither): baked with the strongest
+    // dither within the budget, so the raster keeps its material. Copied
+    // only when the dither is lowered.
+    const MaterialDither affordable =
+        engine_primitives::material_affordable_dither(authored, target, extent, outset);
+    std::optional<SurfaceMaterial> lowered{};
+    if (affordable != authored.dither) {
+        lowered.emplace(authored);
+        (*lowered).dither = affordable;
+    }
+    const SurfaceMaterial& material = lowered ? *lowered : authored;
     // A part assembled from slices bakes only its reference, and the budget
     // bounds that bake (as MaterialPrimitive::accepts does).
     const PrimitiveSlicePlan plan = engine_primitives::material_slice_plan(material, target, extent, outset);

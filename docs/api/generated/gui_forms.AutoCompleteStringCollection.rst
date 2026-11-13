@@ -9,7 +9,7 @@ gui_forms::AutoCompleteStringCollection
 
 .. cpp:class:: AutoCompleteStringCollection final
 
-   ``#include <gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp>``
+   ``#include <gui_forms/controls/auto_complete.hpp>``
 
    An ordered list of completion candidates for a text box or combo box.
 
@@ -27,7 +27,7 @@ gui_forms::AutoCompleteStringCollection
 
    :Properties:
 
-      **items** : ``std::span<const std::string>``, read-only
+      **items** : ``BorrowedSpan<std::string>``, read-only
          The strings, in order. The view is valid until the next change.
 
       **size** : ``std::size_t``, read-only
@@ -110,7 +110,7 @@ gui_forms::AutoCompleteStringCollection
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const std::string> items() const noexcept
+   .. cpp:function:: BorrowedSpan<std::string> items() const& noexcept
 
       The strings, in order. The view is valid until the next change.
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -20,7 +21,7 @@ inline constexpr std::size_t sha256_block_bytes = 64U;
 inline constexpr std::size_t sha256_hex_digits = sha256_digest_bytes * 2U;
 
 // The digest in the standard byte order (the first byte is the high byte of the first word).
-struct Sha256Digest final {
+struct GUI_FORMS_API Sha256Digest final {
     std::array<std::uint8_t, sha256_digest_bytes> bytes{};
 
     friend bool operator==(const Sha256Digest& left, const Sha256Digest& right) noexcept {
@@ -37,7 +38,7 @@ struct Sha256Digest final {
 // digest equals sha256 over the pieces joined. It owns its 64-byte block buffer, allocates
 // nothing and is one execution context's (it holds no lock). Copying it copies the state, so a
 // copy finishes the prefix fed so far while the original goes on.
-class Sha256Hasher final {
+class GUI_FORMS_API Sha256Hasher final {
 public:
     Sha256Hasher() noexcept;
 
@@ -63,17 +64,17 @@ private:
 
 // The digest of the whole of `input`. Reads `input` once and allocates nothing; any length,
 // including zero, is accepted.
-[[nodiscard]] Sha256Digest sha256(std::span<const std::uint8_t> input) noexcept;
+[[nodiscard]] GUI_FORMS_API Sha256Digest sha256(std::span<const std::uint8_t> input) noexcept;
 // The same, for text: its bytes as they are.
-[[nodiscard]] Sha256Digest sha256_of_text(std::string_view input) noexcept;
+[[nodiscard]] GUI_FORMS_API Sha256Digest sha256_of_text(std::string_view input) noexcept;
 
 // Parses 64 lowercase or uppercase hexadecimal digits into `digest`. Returns false, leaving
 // `digest` unchanged, for any other length or character.
-[[nodiscard]] bool parse_sha256_hex(std::span<const char> text, Sha256Digest& digest) noexcept;
+[[nodiscard]] GUI_FORMS_API bool parse_sha256_hex(std::span<const char> text, Sha256Digest& digest) noexcept;
 
 // Writes `digest` as 64 lowercase hexadecimal digits into `text`, the form manifests record.
-void format_sha256_hex(const Sha256Digest& digest, std::array<char, sha256_hex_digits>& text) noexcept;
+GUI_FORMS_API void format_sha256_hex(const Sha256Digest& digest, std::array<char, sha256_hex_digits>& text) noexcept;
 // The same, as a new string.
-[[nodiscard]] std::string sha256_hex(const Sha256Digest& digest);
+[[nodiscard]] GUI_FORMS_API std::string sha256_hex(const Sha256Digest& digest);
 
 } // namespace gui_forms

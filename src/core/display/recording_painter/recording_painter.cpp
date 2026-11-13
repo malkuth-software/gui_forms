@@ -50,7 +50,7 @@ void RecordingPainter::inherit_caches(std::shared_ptr<const DisplayChunk> previo
     material_ordinal_ = 0U;
     previous_ = std::move(previous);
     if (!previous_) return;
-    const std::vector<DisplayCommand>& commands = (*previous_).commands();
+    const DisplayCommandList& commands = (*previous_).commands();
     for (std::size_t index = 0; index < commands.size(); ++index) {
         const DisplayCommand& command = commands[index];
         if (command.operation == DisplayOperation::draw_text_utf8 &&
@@ -514,7 +514,36 @@ TextResolutionStatus RecordingPainter::fill_line_break_opportunities_utf8(
     return status;
 }
 
+TextResolutionStatus RecordingPainter::fill_cluster_advances_utf8(
+    std::string_view text, FontSpec font, std::span<double> advances) {
+    if (text_metrics_ == nullptr) return estimate_cluster_advances_utf8(text, font, advances);
+    const TextResolutionStatus status = (*text_metrics_).fill_cluster_advances_utf8(text, font, advances);
+    return status;
+}
+
+bool RecordingPainter::refuses_image(ImageId image) noexcept {
+    if (images_ == nullptr || image.value == 0U) return false;
+    if ((*images_).find(image).has_value()) return false;
+    if (stale_image_draws_ == 0U) first_stale_image_ = image;
+    stale_image_draws_ = stale_image_draws_ + 1U;
+    return true;
+}
+
+std::unique_ptr<ShapingWorkspace> RecordingPainter::create_shaping_workspace() {
+    if (text_metrics_ == nullptr) return nullptr;
+    std::unique_ptr<ShapingWorkspace> workspace = (*text_metrics_).create_shaping_workspace();
+    return workspace;
+}
+
+TextExtent RecordingPainter::shape_in_workspace_utf8(ShapingWorkspace& workspace, std::string_view text,
+                                                     FontSpec font) {
+    if (text_metrics_ == nullptr) return TextMetricsProvider::shape_in_workspace_utf8(workspace, text, font);
+    const TextExtent extent = (*text_metrics_).shape_in_workspace_utf8(workspace, text, font);
+    return extent;
+}
+
 void RecordingPainter::draw_image(ImageId image, Rect destination, double opacity) {
+    if (refuses_image(image)) return;
     DisplayCommand command;
     command.operation = DisplayOperation::draw_image;
     command.rect = destination;
@@ -621,6 +650,7 @@ void RecordingPainter::draw_part_raster_scaled(const std::shared_ptr<const PartR
 
 void RecordingPainter::draw_image_region(ImageId image, Rect source,
                                           Rect destination, double opacity) {
+    if (refuses_image(image)) return;
     DisplayCommand command;
     command.operation = DisplayOperation::draw_image_region;
     command.first = {source.x, source.y};
@@ -634,6 +664,7 @@ void RecordingPainter::draw_image_region(ImageId image, Rect source,
 void RecordingPainter::draw_image_region_sampled(
     ImageId image, Rect source, Rect destination, ImageSampling sampling,
     double opacity) {
+    if (refuses_image(image)) return;
     DisplayCommand command;
     command.operation = DisplayOperation::draw_image_region_sampled;
     command.first = {source.x, source.y};
@@ -648,6 +679,7 @@ void RecordingPainter::draw_image_region_sampled(
 void RecordingPainter::fill_image_pattern(
     ImageId image, Size source_pixel_size, Rect destination,
     Size logical_tile_size, ImagePatternWrap wrap, double opacity) {
+    if (refuses_image(image)) return;
     DisplayCommand command;
     command.operation = DisplayOperation::fill_image_pattern;
     command.first = {source_pixel_size.width, source_pixel_size.height};

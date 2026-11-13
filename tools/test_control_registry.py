@@ -101,12 +101,12 @@ class ScanRuleTests(unittest.TestCase):
             )
             _write(
                 include,
-                "gui_forms/controls/panel/panel.hpp",
+                "gui_forms/controls/panel.hpp",
                 "namespace gui_forms {\nclass Panel : public Control {\n    struct Nested final : public Control {\n    };\n};\n}\n",
             )
             _write(
                 include,
-                "gui_forms/controls/panel/card/card.hpp",
+                "gui_forms/controls/card.hpp",
                 "// class Commented : public Panel {\nnamespace gui_forms {\nstruct CardLayout final {\n};\nclass Card final : public Panel {\n};\n}\n",
             )
             _write(
@@ -129,8 +129,8 @@ class ScanRuleTests(unittest.TestCase):
         self.assertEqual(
             found,
             {
-                "Panel": "gui_forms/controls/panel/panel.hpp",
-                "Card": "gui_forms/controls/panel/card/card.hpp",
+                "Panel": "gui_forms/controls/panel.hpp",
+                "Card": "gui_forms/controls/card.hpp",
                 "Source": "gui_forms/binding/source.hpp",
                 "LiveSurface": "gui_forms/live_surface/surface/live_surface.hpp",
             },

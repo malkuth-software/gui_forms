@@ -9,7 +9,7 @@ gui_forms::Button
 
 .. cpp:class:: Button : public ButtonBase, public ButtonCapabilities<Button>
 
-   ``#include <gui_forms/controls/button_base/button/button.hpp>``
+   ``#include <gui_forms/controls/button.hpp>``
 
    A push button that carries out an action when the user clicks it.
 
@@ -65,9 +65,26 @@ gui_forms::Button
          command's checked state, and stays false for a command that is not
          checkable. Setting a different value raises :cpp:func:`selected_changed <gui_forms::Button::selected_changed>`.
 
+      **danger** : ``bool``, default ``false``
+         Marks a dangerous or irreversible action. The button's parts take the
+         custom state ``danger``, and a warning mark leads its content, widening
+         it by ``leading_mark_column``, so the mark is a cue that does not rest on
+         colour. A theme that styles ``button::part(face):state(danger)`` lights
+         the face from inside (the default theme glows it red); the button fades
+         the lit face slowly between ``danger_glow_floor`` and full over
+         ``danger_glow_period``, some twelve frames a second, only inside the
+         face, and holds it full and steady under reduced motion, while
+         disabled and outside a window.
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
+
+      **danger_glow** : ``double``, read-only
+         The lit face's current share of the danger glow, 1 while steady.
+
+      **danger_glowing** : ``bool``, read-only
+         Whether the danger glow is pulsing.
 
    :Events:
 
@@ -92,6 +109,8 @@ gui_forms::Button
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`danger_glow_level <gui_forms::Button::danger_glow_level>`
+        - The lit face's share at ``since`` into the pulse: full at the start, danger_glow_floor half a period later.
       * - :cpp:func:`button_property_entries <gui_forms::Button::button_property_entries>`
         -  
 
@@ -220,9 +239,29 @@ gui_forms::Button
       command's checked state, and stays false for a command that is not
       checkable. Setting a different value raises :cpp:func:`selected_changed <gui_forms::Button::selected_changed>`.
 
+   .. cpp:member:: bool danger
+
+      Marks a dangerous or irreversible action. The button's parts take the
+      custom state ``danger``, and a warning mark leads its content, widening
+      it by ``leading_mark_column``, so the mark is a cue that does not rest on
+      colour. A theme that styles ``button::part(face):state(danger)`` lights
+      the face from inside (the default theme glows it red); the button fades
+      the lit face slowly between ``danger_glow_floor`` and full over
+      ``danger_glow_period``, some twelve frames a second, only inside the
+      face, and holds it full and steady under reduced motion, while
+      disabled and outside a window.
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
+
+   .. cpp:function:: double danger_glow() const noexcept
+
+      The lit face's current share of the danger glow, 1 while steady.
+
+   .. cpp:function:: bool danger_glowing() const noexcept
+
+      Whether the danger glow is pulsing.
 
 
    .. rubric:: Events
@@ -240,6 +279,10 @@ gui_forms::Button
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: static double danger_glow_level(FrameInterval since) noexcept
+
+      The lit face's share at ``since`` into the pulse: full at the start, danger_glow_floor half a period later.
 
    .. cpp:function:: static const std::array<PropertyEntry, button_property_count>& button_property_entries() noexcept
 
@@ -270,8 +313,114 @@ gui_forms::Button
 
       The button's parts computed for its current style.
 
+   .. cpp:function:: FaceLayer face_layer() const noexcept override
+
+      *Protected.*
+
+   .. cpp:function:: void on_attached_to_window() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_detached_from_window() noexcept override
+
+      *Protected.*
+
+   .. cpp:function:: void on_enabled_changed() override
+
+      *Protected.*
+
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr double danger_glow_floor
+
+      The danger glow's pulse: the share of the lit face shown at its lowest, the period of one rise and fall, and the frame interval (the glow's whole frame budget: some 12 frames a second). Default: ``0.72``.
+
+   .. cpp:member:: constexpr FrameInterval danger_glow_period
+
+      Default: ``std::chrono::milliseconds(2600)``.
+
+   .. cpp:member:: constexpr FrameInterval danger_glow_interval
+
+      Default: ``std::chrono::milliseconds(80)``.
 
    .. cpp:member:: constexpr std::size_t button_property_count
 
-      Button's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 2U``.
+      Button's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Button``. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 8 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``Button``
+     - ``Button``
+     - supported
+   * - property
+     - ``AutoSizeMode``
+     - ``auto_size_mode``
+     - unclassified (untested)
+   * - property
+     - ``DialogResult``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - supported
+   * - event
+     - ``MouseDoubleClick``
+     - ``mouse_double_click``
+     - supported
+   * - method
+     - ``NotifyDefault``
+     - ``notify_default``
+     - unclassified (untested)
+   * - method
+     - ``PerformClick``
+     - ``perform_click``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``danger``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``danger_glow``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``danger_glowing``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flat_border_width``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``visual_style``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``dialog_result_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selected_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``button_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``danger_glow_level``
+     - unclassified (untested)

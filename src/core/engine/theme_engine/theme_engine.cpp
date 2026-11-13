@@ -10,6 +10,7 @@
 #include "../../theme/theme/ancestor_facts.hpp"
 #include "../../theme/theme/forced_high_contrast.hpp"
 #include "../../theme/theme/kept_resolutions.hpp"
+#include "../../surface_root/access/surface_engine_access.hpp"
 
 #include <algorithm>
 #include <array>
@@ -792,10 +793,14 @@ const SurfaceMaterial& authored_material(UnkeptAssemblies& window, EnginePartRec
     return (*held).material;
 }
 
-void paint_built_in(Painter& painter, const Control& control, const PartPaint& part, double opacity) {
+// The built-in recipe at `opacity`, with `resolved_material` (the engine's
+// material for the part, or null) standing in the recipe's own
+// (paint_part_with_built_in_recipe).
+void paint_built_in(Painter& painter, const Control& control, const PartPaint& part, double opacity,
+                    const SurfaceMaterial* resolved_material) {
     if (opacity <= 0.0) return;
     if (opacity >= 1.0) {
-        paint_part_with_built_in_recipe(painter, control, part);
+        paint_part_with_built_in_recipe(painter, control, part, resolved_material);
         return;
     }
     Insets reach{built_in_group_margin, built_in_group_margin, built_in_group_margin, built_in_group_margin};
@@ -805,7 +810,7 @@ void paint_built_in(Painter& painter, const Control& control, const PartPaint& p
                         part.bounds.width + reach.left + reach.right, part.bounds.height + reach.top + reach.bottom};
     group.opacity = opacity;
     painter.begin_group(group);
-    paint_part_with_built_in_recipe(painter, control, part);
+    paint_part_with_built_in_recipe(painter, control, part, resolved_material);
     painter.end_group();
 }
 
@@ -1081,6 +1086,141 @@ void ThemeEngine::paint_clipped(Painter& painter, const Control& control, const 
     paint_planned(painter, control, part, decided, clips, &group);
 }
 
+bool ThemeEngine::paint_material_blocks(Painter& painter, const Control& control,
+                                        const MaterialBlocks& blocks) const {
+    SurfaceRoot* const window = control.attached_surface_root();
+    if (window == nullptr || blocks.material == nullptr) return false;
+    const Rect area = blocks.area;
+    const bool periodic = std::isfinite(blocks.period) && blocks.period >= minimum_procedural_tile &&
+                          blocks.period <= maximum_procedural_tile;
+    const bool anchored = std::isfinite(blocks.anchor.x) && std::isfinite(blocks.anchor.y);
+    if (!part_bounds_paintable(area) || !periodic || !anchored) return false;
+    const EnginePrimitive* const primitive = (*registry_).find("material");
+    if (primitive == nullptr) return false;
+    // The block: whole periods, as many as fit the side bound, at least one.
+    const double scale = (*window).scale();
+    const double period_pixels = blocks.period * scale;
+    const double fitting = std::floor(maximum_material_block_side / period_pixels);
+    const double periods = std::max(1.0, fitting);
+    const double side = periods * blocks.period;
+    const Size block{side, side};
+    const Insets outsets = (*primitive).descriptor().outsets;
+    PartRasterRequest request{};
+    request.primitive = primitive;
+    request.parameters = default_parameters((*primitive).descriptor());
+    request.target.logical_size = block;
+    request.target.scale = DeviceScale{scale};
+    request.target.material = blocks.material;
+    request.target.images = &(*window).image_resources();
+    request.extent = raster_extent(block, outsets, scale);
+    if (request.extent.width == 0U || request.extent.height == 0U) return false;
+    if (!(*primitive).accepts(request.parameters, request.target)) return false;
+    // The record, and where the area was drawn: the window repaints that
+    // extent when a pattern the bake awaits is made.
+    const std::optional<PartRecordHandle> record =
+        detail::SurfaceEngineAccess::note_part(*window, control, blocks.key, AnatomyStateSet{});
+    if (!record) return false;
+    const detail::SurfaceEngineAccess::PaintPlace place =
+        detail::SurfaceEngineAccess::paint_place(*window, control, painter);
+    const Rect extent = part_extent(area, place.origin, Insets{});
+    detail::SurfaceEngineAccess::note_paint(*window, *record, 0U, *place.painted_by, extent);
+    const PartRasterResult drawn = detail::SurfaceEngineAccess::part_raster(*window, *record, request);
+    if (!drawn.raster) return false;
+    // The lattice corner at or before the area's, then whole blocks to the
+    // area's far edges: a count bounded by the area over the block side.
+    const double columns_before = std::floor((area.x - blocks.anchor.x) / side);
+    const double rows_before = std::floor((area.y - blocks.anchor.y) / side);
+    const double left = blocks.anchor.x + columns_before * side;
+    const double top = blocks.anchor.y + rows_before * side;
+    const double column_span = std::ceil((area.right() - left) / side);
+    const double row_span = std::ceil((area.bottom() - top) / side);
+    const std::size_t columns = static_cast<std::size_t>(std::max(0.0, column_span));
+    const std::size_t rows = static_cast<std::size_t>(std::max(0.0, row_span));
+    painter.save();
+    painter.clip_rect(area);
+    for (std::size_t row = 0U; row < rows; ++row) {
+        const double y = top + static_cast<double>(row) * side - outsets.top;
+        for (std::size_t column = 0U; column < columns; ++column) {
+            const double x = left + static_cast<double>(column) * side - outsets.left;
+            painter.draw_part_raster(drawn.raster, Point{x, y}, 1.0);
+        }
+    }
+    painter.restore();
+    return true;
+}
+
+namespace {
+
+// The most finish tiles one paint_finish_tiles call draws: a square of
+// 8192 device pixels. A larger area draws nothing.
+constexpr std::uint64_t maximum_finish_tiles_per_paint = 4096U;
+
+} // namespace
+
+bool ThemeEngine::paint_finish_tiles(Painter& painter, const Control& control, const FinishTiles& tiles) const {
+    SurfaceRoot* const window = control.attached_surface_root();
+    if (window == nullptr || tiles.finish == nullptr) return false;
+    const Rect area = tiles.area;
+    const bool anchored = std::isfinite(tiles.anchor.x) && std::isfinite(tiles.anchor.y);
+    const bool zoomed = std::isfinite(tiles.zoom) && tiles.zoom > 0.0;
+    if (!part_bounds_paintable(area) || !anchored || !zoomed) return false;
+    const double display_scale = (*window).scale();
+    const double kernel_scale = display_scale * tiles.zoom;
+    if (!(std::isfinite(kernel_scale) && kernel_scale > 0.0)) return false;
+    const std::optional<PartRecordHandle> record =
+        detail::SurfaceEngineAccess::note_part(*window, control, tiles.key, AnatomyStateSet{});
+    if (!record) return false;
+    const detail::SurfaceEngineAccess::PaintPlace place =
+        detail::SurfaceEngineAccess::paint_place(*window, control, painter);
+    const Rect extent = part_extent(area, place.origin, Insets{});
+    detail::SurfaceEngineAccess::note_paint(*window, *record, 0U, *place.painted_by, extent);
+    // World (0, 0) on the nearest device pixel of the window, so that every
+    // tile lands on whole pixels and none is resampled at its edges.
+    const double anchor_x_device = std::floor((place.window_origin.x + tiles.anchor.x) * display_scale + 0.5);
+    const double anchor_y_device = std::floor((place.window_origin.y + tiles.anchor.y) * display_scale + 0.5);
+    const double anchor_x = anchor_x_device / display_scale - place.window_origin.x;
+    const double anchor_y = anchor_y_device / display_scale - place.window_origin.y;
+    // The tiles meeting the area: world device pixels from the area's
+    // corners, divided into tiles. Their count is bounded by the area over
+    // a tile, the area by the window.
+    const double side_device = static_cast<double>(finish_tile_side);
+    const double side = side_device / display_scale;
+    const double first_column = std::floor((area.x - anchor_x) / side);
+    const double first_row = std::floor((area.y - anchor_y) / side);
+    const double column_span = std::ceil((area.right() - anchor_x) / side) - first_column;
+    const double row_span = std::ceil((area.bottom() - anchor_y) / side) - first_row;
+    const double most = static_cast<double>(maximum_finish_tiles_per_paint);
+    if (!(column_span > 0.0 && row_span > 0.0 && column_span * row_span <= most)) return false;
+    const std::int64_t columns = static_cast<std::int64_t>(column_span);
+    const std::int64_t rows = static_cast<std::int64_t>(row_span);
+    const std::int64_t column_start = static_cast<std::int64_t>(first_column);
+    const std::int64_t row_start = static_cast<std::int64_t>(first_row);
+    FinishTileKey key{};
+    key.finish = *tiles.finish;
+    key.display_scale = display_scale;
+    key.scale = kernel_scale;
+    bool complete = true;
+    painter.save();
+    painter.clip_rect(area);
+    for (std::int64_t row = 0; row < rows; ++row) {
+        key.row = row_start + row;
+        const double y = anchor_y + static_cast<double>(key.row) * side;
+        for (std::int64_t column = 0; column < columns; ++column) {
+            key.column = column_start + column;
+            const std::shared_ptr<const PartRaster> tile =
+                detail::SurfaceEngineAccess::finish_tile(*window, *record, key);
+            if (!tile) {
+                complete = false;
+                continue;
+            }
+            const double x = anchor_x + static_cast<double>(key.column) * side;
+            painter.draw_part_raster(tile, Point{x, y}, 1.0);
+        }
+    }
+    painter.restore();
+    return complete;
+}
+
 // N39: the state of one part's paint, which each stage of paint_planned
 // reads and leaves for the next. The materials made for this paint only
 // live here, so the request's material pointer stays valid through the
@@ -1097,7 +1237,7 @@ struct ThemeEngine::PartPaintRun final {
     bool primitive_draws{};
     bool samples_backplane{};
     bool reduced_motion{};
-    Window::EnginePaintPlace place{};
+    detail::SurfaceEngineAccess::PaintPlace place{};
     Rect extent{};
     PartTransitionSources transitions{};
     PartRasterRequest request{};
@@ -1115,11 +1255,18 @@ struct ThemeEngine::PartPaintRun final {
     std::optional<PointerOverlay> placed{};
     // The materials lent for this paint only (lend_part_material).
     SurfaceMaterial* unkept_material{};
+    // The material the rules authored for the part, as lent to its
+    // primitive (one of the materials here or the window's or record's
+    // assembly) or assembled for a part no primitive draws
+    // (built_in_part_material), which the built-in recipe draws in place
+    // of the floor's; null while the rules author no material field.
+    const SurfaceMaterial* resolved_material{};
     std::optional<SurfaceMaterial> authored_ground{};
     std::optional<SurfaceMaterial> unreflected{};
     std::optional<SurfaceMaterial> ground{};
+    std::optional<SurfaceMaterial> undithered{};
     std::optional<SurfaceMaterial> overlay{};
-    Window::EngineBackplane backplane{};
+    detail::SurfaceEngineAccess::Backplane backplane{};
     std::optional<std::uint32_t> margin{};
     std::shared_ptr<const PartRaster> raster{};
     std::shared_ptr<const PartRaster> fading_from{};
@@ -1132,7 +1279,7 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
     PartPaintRun run{decided};
     note_part_paint(painter, control, part, run);
     if (!run.primitive_draws) {
-        paint_without_primitive(part, run);
+        paint_without_primitive(control, part, run);
     } else if (prepare_part_request(control, part, run) && lend_part_material(control, part, run)) {
         borrow_part_backplane(part, run);
         bake_part(part, run);
@@ -1165,10 +1312,10 @@ void ThemeEngine::note_part_paint(Painter& painter, const Control& control, cons
     // A program drawing both a theme and an inline style (E1, W401).
     const bool themed = rules_.rule_count() > rules_.built_in_rule_count();
     if (window != nullptr && themed && control.inline_style_rules() != nullptr) {
-        (*window).note_inline_with_theme(control);
+        detail::SurfaceEngineAccess::note_inline_with_theme(*window, control);
     }
     if (part.key && part_bounds_paintable(part.bounds) && window != nullptr) {
-        run.record = (*window).note_engine_part(control, *part.key, part.states);
+        run.record = detail::SurfaceEngineAccess::note_part(*window, control, *part.key, part.states);
     }
     const CompiledThemeRules::Resolution& resolution = run.decided.resolution;
     // A frameless part (PartPaint::frame) is its material's ground; a
@@ -1179,7 +1326,7 @@ void ThemeEngine::note_part_paint(Painter& painter, const Control& control, cons
     run.primitive_draws = run.decided.drawing == PartDrawing::primitive && window != nullptr && !groundless;
     // Where the part lands, and what it reads: the inputs are delivered and
     // damaged only for a part with a record (E6).
-    if (run.record || run.primitive_draws) run.place = (*window).engine_paint_place(control, painter);
+    if (run.record || run.primitive_draws) run.place = detail::SurfaceEngineAccess::paint_place(*window, control, painter);
     run.reduced_motion = window != nullptr && (*window).presentation_settings().reduced_motion;
     // Glass (E9-B) samples the window's backplane, the backplane plane
     // alone; a part recorded in the backplane plane would sample itself, so
@@ -1207,11 +1354,11 @@ void ThemeEngine::note_part_paint(Painter& painter, const Control& control, cons
             outsets.bottom = outsets.bottom + part.granted_overflow.bottom;
         }
         run.extent = part_extent(part.bounds, run.place.origin, outsets);
-        (*window).note_engine_paint(*run.record, inputs_read, *run.place.painted_by, run.extent);
-        (*window).note_engine_backplane_reader(*run.record, run.samples_backplane);
+        detail::SurfaceEngineAccess::note_paint(*window, *run.record, inputs_read, *run.place.painted_by, run.extent);
+        detail::SurfaceEngineAccess::note_backplane_reader(*window, *run.record, run.samples_backplane);
     }
     // The part's record, for its transitions and its ambient effect (E7).
-    run.kept = run.record ? (*window).engine_part_record(*run.record) : nullptr;
+    run.kept = run.record ? detail::SurfaceEngineAccess::part_record(*window, *run.record) : nullptr;
     run.transitions.window = window;
     run.transitions.record = run.kept;
     if (run.record) run.transitions.handle = *run.record;
@@ -1224,8 +1371,9 @@ void ThemeEngine::note_part_paint(Painter& painter, const Control& control, cons
 }
 
 // A part no primitive draws: its transitions, then the built-in recipe at
-// its presented scale, translation and opacity.
-void ThemeEngine::paint_without_primitive(const PartPaint& part, PartPaintRun& run) const {
+// its presented scale, translation and opacity, in the material its rules
+// author.
+void ThemeEngine::paint_without_primitive(const Control& control, const PartPaint& part, PartPaintRun& run) const {
     if (run.kept != nullptr) stop_ambient(*run.window, *run.kept, *run.record);
     PrimitiveParameterBlock unused{};
     const PresentedProperties presented = run_transitions(run.decided.resolution, run.transitions, nullptr, unused);
@@ -1233,7 +1381,50 @@ void ThemeEngine::paint_without_primitive(const PartPaint& part, PartPaintRun& r
     const double shown_scale = std::min(presented.scale, granted_scale(part.bounds, part.granted_overflow));
     run.shown.bounds = moved_by(run.shown.bounds, granted_translation(part, shown_scale, presented.translation));
     run.opacity = presented.opacity;
+    run.resolved_material = built_in_part_material(control, part, run);
     run.outcome = PartPaintRun::Outcome::built_in;
+}
+
+// A rule of material fields selects the material primitive (owner C7),
+// which paints only some roles: a part of another role (a progress fill, a
+// selected row) resolves to role_mismatch and the built-in recipe draws
+// it, as it draws a part no rule selects a primitive for. The recipe's own
+// material is the floor's alone (Theme::resolve), so the fields the rules
+// author for the part stand in it here, assembled as lend_part_material
+// assembles a primitive's: over the recipe's material, darkened by rule in
+// a theme that derives its dark variant. Forced high contrast keeps the
+// built-in recipe's own records. Borrowed from the part's record or the
+// window's unkept assemblies for this paint.
+const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& control, const PartPaint& part,
+                                                           PartPaintRun& run) const {
+    const CompiledThemeRules::Resolution& resolution = run.decided.resolution;
+    SurfaceRoot* const window = run.window;
+    if (!resolution.materials_authored || window == nullptr) return nullptr;
+    const ControlVisualContext context = part_visual_context(control, part.states);
+    if (context.high_contrast) return nullptr;
+    const Theme& theme = control.effective_theme();
+    const bool darkened = context.dark && derives_dark(theme);
+    ControlVisualContext floor_context = context;
+    if (darkened) floor_context.dark = false;
+    const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
+    const ResolvedControlRecipe floor =
+        theme.resolve(control, part.family, floor_context, part.states, part_name, part.control_type);
+    MaterialAssemblyContext relative{};
+    if (material_fields_read_em(resolution.materials)) {
+        relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
+    }
+    if (material_fields_read_current_colour(resolution.materials)) relative.current_colour = floor.recipe().text;
+    UnkeptAssemblies unkept{detail::SurfaceEngineAccess::unkept_assemblies(*window), detail::SurfaceEngineAccess::unkept_next(*window),
+                            (*window).metrics()};
+    if (darkened) {
+        const std::optional<ControlVisualRole> darkened_role = part.family;
+        const SurfaceMaterial& dark = unkept_assembly(unkept, rules_.serial(), floor.recipe().material, part.bounds,
+                                                      relative, resolution, darkened_role);
+        return &dark;
+    }
+    const SurfaceMaterial& assembled = authored_material(unkept, run.kept, rules_.serial(), floor.recipe().material,
+                                                         part.bounds, relative, resolution, (*window).metrics());
+    return &assembled;
 }
 
 // The raster request: the ambient effect's time, then the inputs, the
@@ -1263,7 +1454,7 @@ bool ThemeEngine::prepare_part_request(const Control& control, const PartPaint& 
     sources.part_origin =
         Point{run.place.window_origin.x + part.bounds.x, run.place.window_origin.y + part.bounds.y};
     sources.states = part.states;
-    sources.pointer = (*window).engine_pointer();
+    sources.pointer = detail::SurfaceEngineAccess::pointer(*window);
     sources.record = run.kept;
     sources.time_in_state = run.ambient_time;
     gather_inputs(rules_, resolution.inputs_read, sources, run.inputs);
@@ -1368,7 +1559,7 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
             if (material_fields_read_em(forced.fields)) {
                 relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
             }
-            run.unkept_material = &(*window).engine_paint_material();
+            run.unkept_material = &detail::SurfaceEngineAccess::paint_material(*window);
             assemble_material(recipe.material, forced.fields, Size{part.bounds.width, part.bounds.height}, relative,
                               *run.unkept_material);
             (*window).metrics().record_engine_material_assembly();
@@ -1389,7 +1580,7 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
                 const ResolvedControlRecipe text = theme.resolve(control, part.family, light_context, part.states);
                 relative.current_colour = text.recipe().text;
             }
-            UnkeptAssemblies unkept{(*window).engine_unkept_assemblies(), (*window).engine_unkept_next(),
+            UnkeptAssemblies unkept{detail::SurfaceEngineAccess::unkept_assemblies(*window), detail::SurfaceEngineAccess::unkept_next(*window),
                                     (*window).metrics()};
             request.target.material = &unkept_assembly(unkept, rules_.serial(), light.material, part.bounds,
                                                        relative, resolution, *material_role);
@@ -1404,7 +1595,7 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
                 const ResolvedControlRecipe text = theme.resolve(control, part.family, context, part.states);
                 relative.current_colour = text.recipe().text;
             }
-            UnkeptAssemblies unkept{(*window).engine_unkept_assemblies(), (*window).engine_unkept_next(),
+            UnkeptAssemblies unkept{detail::SurfaceEngineAccess::unkept_assemblies(*window), detail::SurfaceEngineAccess::unkept_next(*window),
                                     (*window).metrics()};
             request.target.material = &authored_material(unkept, run.kept, rules_.serial(), recipe.material,
                                                          part.bounds, relative, resolution, (*window).metrics());
@@ -1437,6 +1628,26 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
         }
         request.target.corner_radius = part.corner_radius;
         request.target.images = &(*window).image_resources();
+        // A dither gives way before the material does: where the lent
+        // material's bake would pass the budget only for its dither, the
+        // part is lent it with the strongest dither within the budget, for
+        // this paint only, and each step counted
+        // (EnginePrimitive::affordable_dither). Lowered last, after every
+        // other change to the lent material, which the bake weighs.
+        const MaterialDither lent_dither = (*request.target.material).dither;
+        if (lent_dither != MaterialDither::none) {
+            const MaterialDither affordable =
+                (*request.primitive).affordable_dither(request.parameters, request.target);
+            if (affordable != lent_dither) {
+                run.undithered.emplace(*request.target.material);
+                (*run.undithered).dither = affordable;
+                request.target.material = &*run.undithered;
+                const std::uint64_t steps =
+                    static_cast<std::uint64_t>(lent_dither) - static_cast<std::uint64_t>(affordable);
+                (*window).metrics().record_engine_dither_degradations(steps);
+            }
+        }
+        if (resolution.materials_authored) run.resolved_material = request.target.material;
     }
     // The overlay shadow (E9, GIVEN E1-1) borrows the theme's layers for the
     // part's presentation, as a material of one transparent fill and those
@@ -1476,7 +1687,7 @@ void ThemeEngine::borrow_part_backplane(const PartPaint& part, PartPaintRun& run
         run.primitive_draws && !run.samples_backplane && lent != nullptr && (*lent).reflection &&
         (*(*lent).reflection).source == MaterialReflectionSource::backplane &&
         (*run.place.painted_by).paint_plane() != PaintPlane::backplane;
-    if (run.record && reflects_backplane) (*window).note_engine_backplane_reader(*run.record, true);
+    if (run.record && reflects_backplane) detail::SurfaceEngineAccess::note_backplane_reader(*window, *run.record, true);
     if (run.samples_backplane) {
         run.margin = (*request.primitive).backplane_margin(request.parameters, run.decided.scale);
     }
@@ -1484,7 +1695,7 @@ void ThemeEngine::borrow_part_backplane(const PartPaint& part, PartPaintRun& run
     if (!run.margin) return;
     const Point raster_origin{run.place.window_origin.x + run.shown.bounds.x - descriptor.outsets.left,
                               run.place.window_origin.y + run.shown.bounds.y - descriptor.outsets.top};
-    run.backplane = (*window).engine_backplane(raster_origin, request.extent, run.decided.scale, *run.margin);
+    run.backplane = detail::SurfaceEngineAccess::backplane(*window, raster_origin, request.extent, run.decided.scale, *run.margin);
     request.target.backplane = run.backplane.image.get();
     request.target.backplane_margin = *run.margin;
     request.target.backplane_generation = run.backplane.generation;
@@ -1521,12 +1732,12 @@ void ThemeEngine::bake_part(const PartPaint& part, PartPaintRun& run) const {
         return;
     }
     if (run.record) {
-        const PartRasterResult drawn = (*window).engine_part_raster(*run.record, request);
+        const PartRasterResult drawn = detail::SurfaceEngineAccess::part_raster(*window, *run.record, request);
         run.raster = drawn.raster;
     } else {
         // A part with no record: a raster of its own, for this paint only
         // (assembled from the window's slice references when it slices).
-        const PartRasterResult drawn = (*window).engine_unkeyed_raster(request);
+        const PartRasterResult drawn = detail::SurfaceEngineAccess::unkeyed_raster(*window, request);
         run.raster = drawn.raster;
     }
     if (!run.raster) {
@@ -1547,7 +1758,7 @@ void ThemeEngine::bake_part(const PartPaint& part, PartPaintRun& run) const {
 void ThemeEngine::draw_part_paint(Painter& painter, const Control& control, const PartPaint& part,
                                   const PartPaintRun& run) const {
     if (run.outcome == PartPaintRun::Outcome::built_in) {
-        paint_built_in(painter, control, run.shown, run.opacity);
+        paint_built_in(painter, control, run.shown, run.opacity, run.resolved_material);
         return;
     }
     const std::shared_ptr<const PartRaster>& raster = run.raster;
@@ -1642,7 +1853,7 @@ void ThemeEngine::queue_keyframes(SurfaceRoot& window, const PartRasterRequest& 
                 if (level >= animated_keyframe_levels) continue;
                 keyframe.parameters.values[index].number = keyframe_value(declared, level);
                 if (primitive.blank(keyframe.parameters)) continue;
-                window.engine_queue_keyframe(keyframe);
+                detail::SurfaceEngineAccess::queue_keyframe(window, keyframe);
             }
         }
     }
@@ -1659,12 +1870,12 @@ double ThemeEngine::ambient_seconds(SurfaceRoot& window, EnginePartRecord* recor
     if (!area_ok && !part.ambient_refused) window.metrics().record_engine_ambient_refusal();
     part.ambient_refused = !area_ok;
     if (!area_ok || window.motion_clock().ambient_suppressed()) {
-        window.stop_engine_ambient(*handle);
+        detail::SurfaceEngineAccess::stop_ambient(window, *handle);
         return pose;
     }
     const std::chrono::duration<double> frame(1.0 / ambient.frames_per_second);
     const FrameInterval interval = std::chrono::ceil<FrameInterval>(frame);
-    window.run_engine_ambient(*handle, interval);
+    detail::SurfaceEngineAccess::run_ambient(window, *handle, interval);
     // The time in the part's states, wrapped to the period, so the effect
     // cycles, and stepped to the start of its loop frame (E7r), so that each
     // frame's raster is baked once and shown again every period; exact in
@@ -1686,7 +1897,7 @@ void ThemeEngine::stop_ambient(SurfaceRoot& window, EnginePartRecord& record, Pa
     if (!record.ambient) return;
     record.ambient = false;
     record.ambient_refused = false;
-    window.stop_engine_ambient(handle);
+    detail::SurfaceEngineAccess::stop_ambient(window, handle);
 }
 
 } // namespace gui_forms

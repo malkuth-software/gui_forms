@@ -1,4 +1,4 @@
-#include "gui_forms/controls/status_strip/status_strip.hpp"
+#include "gui_forms/controls/status_strip.hpp"
 
 #include <array>
 #include <utility>

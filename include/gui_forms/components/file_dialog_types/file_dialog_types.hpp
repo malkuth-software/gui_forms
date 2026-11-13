@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 
 #include <cstddef>
@@ -32,7 +34,7 @@ enum class FileDialogFilterError : std::uint8_t {
 
 // The result of parsing a filter string: the host filters in order, or the
 // first error with no filters.
-struct FileDialogFilterParse final {
+struct GUI_FORMS_API FileDialogFilterParse final {
     FileDialogFilterError error{FileDialogFilterError::none};
     std::vector<HostFileDialogFilter> filters{};
 };
@@ -43,7 +45,7 @@ struct FileDialogFilterParse final {
 // host filter's extension (without the dot; `*.tar.gz` gives `tar.gz`), and
 // `*` and `*.*` become `*`, which every host reads as any file. An empty
 // string is no filter: the host shows every file.
-[[nodiscard]] FileDialogFilterParse parse_file_dialog_filter(std::string_view filter);
+[[nodiscard]] GUI_FORMS_API FileDialogFilterParse parse_file_dialog_filter(std::string_view filter);
 
 // Whether a file name passes a host filter, as the portable hosts filter a
 // directory listing: true when the filter has no extensions or holds `*`
@@ -54,19 +56,20 @@ struct FileDialogFilterParse final {
 // not match. Leading `*` and `.` of an extension are ignored, so a hand-built
 // `*.png` or `.png` reads as `png`. `file_name` is a name, not a path; pass file_dialog_name_part
 // of a path.
-[[nodiscard]] bool file_dialog_filter_matches(const HostFileDialogFilter& filter, std::string_view file_name);
+[[nodiscard]] GUI_FORMS_API bool file_dialog_filter_matches(const HostFileDialogFilter& filter, std::string_view file_name);
 
 // Whether `text` may be a dialog's title, directory or name: valid UTF-8
 // without NUL, of at most HostServices::maximum_dialog_text_bytes.
-[[nodiscard]] bool file_dialog_text_valid(std::string_view text);
+[[nodiscard]] GUI_FORMS_API bool file_dialog_text_valid(std::string_view text);
 
 // Raised by a file dialog after the user accepts and before the dialog
 // takes the names (Windows Forms' FileOk). `file_names` holds the chosen
-// paths and stays valid for the handler's call only. Setting `cancel` keeps
+// paths and stays valid for the handler's call only (a call-scope borrow:
+// the sanitizer tree reports a use after the raise). Setting `cancel` keeps
 // the dialog's old names and shows the dialog again with the same settings,
 // where Windows Forms keeps its dialog open.
-struct FileDialogOk final {
-    std::span<const std::string> file_names{};
+struct GUI_FORMS_API FileDialogOk final {
+    BorrowedSpan<std::string> file_names{};
     bool cancel{};
 };
 
@@ -74,6 +77,6 @@ struct FileDialogOk final {
 // directory, by the path rules of the platform the program runs on
 // (Windows accepts `\` and `/`, the others `/` only). Empty for a path that
 // ends in a separator.
-[[nodiscard]] std::string file_dialog_name_part(std::string_view path);
+[[nodiscard]] GUI_FORMS_API std::string file_dialog_name_part(std::string_view path);
 
 } // namespace gui_forms

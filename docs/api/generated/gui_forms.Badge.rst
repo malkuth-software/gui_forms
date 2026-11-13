@@ -9,7 +9,7 @@ gui_forms::Badge
 
 .. cpp:class:: Badge final : public Control, public BadgeCapabilities<Badge>
 
-   ``#include <gui_forms/controls/badge/badge.hpp>``
+   ``#include <gui_forms/controls/badge.hpp>``
 
    A small count or dot, such as the number of unread messages beside a mailbox.
 
@@ -158,3 +158,45 @@ gui_forms::Badge
    .. cpp:member:: constexpr std::size_t badge_property_count
 
       Badge's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 4 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``display_text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``maximum``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``mode``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``show_zero``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``showing``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``badge_property_entries``
+     - unclassified (untested)

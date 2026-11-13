@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/control.hpp"
@@ -53,7 +54,7 @@ enum class MergeAction : std::uint8_t {
     match_only,
 };
 
-struct MenuItemSpec final {
+struct GUI_FORMS_API MenuItemSpec final {
     MenuItemSpec() = default;
     MenuItemSpec(std::string stable_identity, MenuItemKind item_kind,
                  std::shared_ptr<Command> item_command = {},
@@ -91,7 +92,7 @@ struct MenuItemSpec final {
     std::optional<std::size_t> merge_index{};
 };
 
-struct MenuItemInvocation final {
+struct GUI_FORMS_API MenuItemInvocation final {
     std::string menu_id;
     std::string item_id;
     std::string command_id;
@@ -105,17 +106,19 @@ inline constexpr std::size_t maximum_menu_items = 1024U;
 // presentations, while MenuItemSpec identities and bound Command instances are
 // stable application state. Click-away/Escape revoke the overlay and restore the
 // invoker's focus scope deterministically.
-class ContextMenu final : public Component, public ContextMenuCapabilities<ContextMenu> {
+class GUI_FORMS_API ContextMenu final : public Component, public ContextMenuCapabilities<ContextMenu> {
 public:
     explicit ContextMenu(std::string stable_id);
     ~ContextMenu() override;
 
-    [[nodiscard]] const std::string& stable_id() const noexcept {
+    [[nodiscard]] const std::string& stable_id() const& noexcept {
         return stable_id_;
     }
-    [[nodiscard]] const std::vector<MenuItemSpec>& items() const noexcept {
+    const std::string& stable_id() const&& = delete;
+    [[nodiscard]] const std::vector<MenuItemSpec>& items() const& noexcept {
         return items_;
     }
+    const std::vector<MenuItemSpec>& items() const&& = delete;
     void set_items(std::vector<MenuItemSpec> items);
 
     // Unknown modes throw invalid_argument without closing an existing overlay.

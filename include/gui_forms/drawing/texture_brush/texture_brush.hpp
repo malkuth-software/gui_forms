@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/bitmap/bitmap.hpp"
 #include "gui_forms/drawing/brush/brush.hpp"
 #include "gui_forms/drawing/image_reference/image_reference.hpp"
@@ -8,7 +9,7 @@
 
 namespace gui_drawing {
 
-class TextureBrush final : public Brush {
+class GUI_FORMS_API TextureBrush final : public Brush {
 public:
     explicit TextureBrush(const Bitmap& image,
                           WrapMode wrap_mode = WrapMode::tile);

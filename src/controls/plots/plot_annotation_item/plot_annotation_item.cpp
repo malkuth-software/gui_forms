@@ -1,4 +1,4 @@
-#include "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp"
+#include "gui_forms/controls/plot_annotation_item.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <cmath>

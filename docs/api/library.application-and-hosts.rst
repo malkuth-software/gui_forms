@@ -381,7 +381,7 @@ Related types
 
    .. cpp:member:: const EffectRegistry* effects
 
-      The effects the packages' ``effect`` may name (EP-3), usually built_in_effect_registry(); a name it does not hold refuses the theme (E417). Borrowed for the call to create only. Null, only the names' form is checked.
+      The effects the packages' ``effect`` may name (EP-3), usually built_in_effect_registry(); a name it does not hold refuses the theme (E417). Borrowed for the call to create only. Null, only the names' form is checked. A user theme the process is started with is checked against the process's installed registry (install_effect_registry) whatever this holds.
 
 .. cpp:namespace:: gui_forms
 
@@ -2815,7 +2815,7 @@ Related types
 
    .. cpp:member:: const EffectRegistry* effects
 
-      The effects a theme's ``effect`` may name; it must outlive the request. Null: only the names' form is checked.
+      The effects a theme's ``effect`` may name; it must outlive the request. Null: the process's installed registry when the request is settled (installed_effect_registry); with none installed either, only the names' form is checked and the report says so.
 
 .. cpp:namespace:: gui_forms
 

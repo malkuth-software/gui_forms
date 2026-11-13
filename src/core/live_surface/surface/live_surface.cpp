@@ -113,6 +113,8 @@ LiveSurfaceWriteLease LiveSurface::try_acquire_write(
         }
         (*state_).writing_slot = reserved;
         target = (*state_).buffers[reserved];
+        // The buffer is written again: views of the frames it was end.
+        (*target).lender.invalidate();
         epoch = (*state_).epoch;
         if (preserve_published_contents &&
             (*state_).published_slot < (*state_).buffers.size()) {

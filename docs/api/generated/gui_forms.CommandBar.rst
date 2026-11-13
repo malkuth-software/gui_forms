@@ -9,7 +9,7 @@ gui_forms::CommandBar
 
 .. cpp:class:: CommandBar final : public Panel
 
-   ``#include <gui_forms/controls/collections/command_bar.hpp>``
+   ``#include <gui_forms/controls/command_bar.hpp>``
 
    A toolbar row of command buttons built from a list of items.
 
@@ -32,7 +32,7 @@ gui_forms::CommandBar
 
    :Properties:
 
-      **items** : ``std::span<const CommandItem>``
+      **items** : ``BorrowedSpan<CommandItem>``
          The item records, in display order; empty until the first :cpp:func:`set_items <gui_forms::CommandBar::set_items>`.
          The returned view stays valid until the next :cpp:func:`set_items <gui_forms::CommandBar::set_items>`. :cpp:func:`set_items <gui_forms::CommandBar::set_items>`
          replaces the whole list. Each record's ``label`` becomes its button's
@@ -162,7 +162,7 @@ gui_forms::CommandBar
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const CommandItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<CommandItem> items() const noexcept
 
       The item records, in display order; empty until the first :cpp:func:`set_items <gui_forms::CommandBar::set_items>`.
       The returned view stays valid until the next :cpp:func:`set_items <gui_forms::CommandBar::set_items>`. :cpp:func:`set_items <gui_forms::CommandBar::set_items>`
@@ -211,11 +211,13 @@ gui_forms::CommandBar
 
    .. cpp:function:: void on_key_bubble(KeyEvent& event) override
 
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -228,3 +230,329 @@ gui_forms::CommandBar
    .. cpp:function:: void on_detaching_from_window(SurfaceRoot& former_window) noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 5 supported, 0 deferred, 2 excluded, 71 unclassified; 3 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ToolStrip``
+     - ``CommandBar``
+     - supported
+   * - property
+     - ``AllowClickThrough``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowItemReorder``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowMerge``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoScrollMargin``
+     - ``auto_scroll_margin``
+     - unclassified (untested)
+   * - property
+     - ``AutoScrollMinSize``
+     - ``auto_scroll_min_size``
+     - unclassified (untested)
+   * - property
+     - ``AutoScrollPosition``
+     - ``auto_scroll_position``
+     - unclassified (untested)
+   * - property
+     - ``BackColor``
+     - ``back_color``
+     - unclassified (untested)
+   * - property
+     - ``CanOverflow``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CausesValidation``
+     - ``causes_validation``
+     - unclassified (untested)
+   * - property
+     - ``Controls``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultDock``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultDropDownDirection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultGripMargin``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultShowItemToolTips``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DisplayedItems``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ForeColor``
+     - ``fore_color``
+     - unclassified (untested)
+   * - property
+     - ``GripDisplayStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GripMargin``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GripRectangle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GripStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HasChildren``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HorizontalScroll``
+     - ``horizontal_scroll``
+     - unclassified (untested)
+   * - property
+     - ``ImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImageScalingSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsCurrentlyDragging``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsDropDown``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Items``
+     - ``items``
+     - supported
+   * - property
+     - ``LayoutSettings``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LayoutStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaxItemSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Orientation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``OverflowButton``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Renderer``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RenderMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowItemToolTips``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Stretch``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - property
+     - ``TextDirection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``VerticalScroll``
+     - ``vertical_scroll``
+     - unclassified (untested)
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``BeginDrag``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CausesValidationChanged``
+     - ``causes_validation_changed``
+     - unclassified (untested)
+   * - event
+     - ``ControlAdded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ControlRemoved``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CursorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``EndDrag``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ForeColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemAdded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemClicked``
+     - on ``ToolStrip``, ``StatusStrip``, ``BindingNavigator``
+     - unclassified (carried)
+   * - event
+     - ``ItemRemoved``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``LayoutCompleted``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``LayoutStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PaintGrip``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RendererChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreateDefaultItem``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreateLayoutSettings``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetChildAtPoint``
+     - ``get_child_at_point``
+     - unclassified (untested)
+   * - method
+     - ``GetItemAt``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetNextItem``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnBeginDrag``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnEndDrag``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemAdded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemClicked``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemRemoved``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnLayoutCompleted``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnLayoutStyleChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnPaintGrip``
+     - none
+     - excluded: the grip is painted by role (T4); no renderer hook (On\* hooks (d) list)
+   * - method
+     - ``OnRendererChanged``
+     - none
+     - excluded: ToolStripRenderer is replaced by the theme engine; there is no renderer object (On\* hooks (d) list)
+   * - method
+     - ``ResetMinimumSize``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RestoreFocus``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetAutoScrollMargin``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetDisplayedItems``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetItemLocation``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetItemParent``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - GUI.Forms-only
+     - ``invoked``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``item``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``part``
+     - supported

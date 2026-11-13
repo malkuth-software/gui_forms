@@ -4,7 +4,7 @@
 #include "abi_control_entry.hpp"
 #include "abi_tables.hpp"
 
-#include "gui_forms/controls/panel/property_grid/property_grid.hpp"
+#include "gui_forms/controls/property_grid.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <cstddef>

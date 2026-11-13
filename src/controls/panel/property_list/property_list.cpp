@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/property_list/property_list.hpp"
+#include "gui_forms/controls/property_list.hpp"
 
 #include "property_list_utilities.hpp"
 #include "gui_forms/text.hpp"
@@ -1000,7 +1000,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
         title.family = ControlVisualRole::panel;
         title.role = PartRole::caption;
         title.states = states;
-        title.text = group.title;
+        title.text = lend_paint_text(group.title);
         title.font = group_font;
         paint_text_part_at(painter, *this, title, {22.0 * s, group_baseline},
                            std::max(0.0, bounds.width - 22.0 * s));
@@ -1037,7 +1037,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
             name_part.family = ControlVisualRole::editor;
             name_part.role = PartRole::label;
             name_part.states = row_states;
-            name_part.text = row.name;
+            name_part.text = lend_paint_text(row.name);
             name_part.font = name_font;
             paint_text_part_at(painter, *this, name_part, {name.x, name_baseline}, name.width);
             if (row.editor == PropertyEditorKind::read_only) {
@@ -1045,7 +1045,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
                 value.family = ControlVisualRole::editor;
                 value.role = PartRole::content;
                 value.states = row_states;
-                value.text = row.value;
+                value.text = lend_paint_text(row.value);
                 value.font = value_font;
                 paint_text_part_at(painter, *this, value,
                                    {value_bounds.x,
@@ -1064,7 +1064,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
                 message.states.insert(AnatomyState::invalid);
                 // PartPaint::text borrows: the line is held here, past the paint.
                 const std::string line = "! " + row.validation_message;
-                message.text = line;
+                message.text = lend_paint_text(line);
                 message.font = validation_font;
                 paint_text_part_at(painter, *this, message,
                                    {validation.x,
@@ -1098,7 +1098,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
     }
 }
 
-void PropertyList::on_pointer(PointerEvent& event) {
+void PropertyList::handle_pointer(PointerEvent& event) {
     if (event.action == PointerAction::wheel && event.wheel_delta.y != 0.0) {
         scroll_offset = ((*impl_).scroll_offset +
             (event.wheel_delta.y > 0.0 ? -54.0 : 54.0) *
@@ -1125,7 +1125,41 @@ void PropertyList::on_pointer(PointerEvent& event) {
     }
 }
 
-void PropertyList::on_key(KeyEvent& event) {
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void PropertyList::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void PropertyList::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void PropertyList::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void PropertyList::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void PropertyList::handle_key(KeyEvent& event) {
     if (event.action != KeyAction::down) return;
     double next = (*impl_).scroll_offset;
     if (event.physical_key == PhysicalKey::home) next = 0.0;
@@ -1137,6 +1171,17 @@ void PropertyList::on_key(KeyEvent& event) {
     } else return;
     scroll_offset = next;
     event.handled = true;
+}
+
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void PropertyList::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 
 SemanticDescriptor PropertyList::semantic_descriptor() const {

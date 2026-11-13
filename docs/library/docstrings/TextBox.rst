@@ -8,7 +8,9 @@ Both suit search fields and inline editors; without them the keys go on to
 the window's accept and cancel buttons. Set a
 `password_character`, or `use_system_password_character`, to mask a secret.
 Use a `Label` for text the user only reads, a `ComboBox` to choose from a
-list, and a `NumericUpDown` for numbers.
+list, and a `NumericUpDown` for numbers. The selection, `select`, undo and
+the clipboard commands are `TextBoxBase`'s, shared with `RichTextBox` and
+`MaskedTextBox`; undo keeps at most 128 steps and 8 MiB of earlier text.
 
 Parameters
 ----------
@@ -83,13 +85,6 @@ password_protected
 font : default ``FontSpec{FontRole::content, 12.0, 400, false}``
     Font of the text, scaled by the window's text scale. An invalid
     specification throws `std::invalid_argument`.
-selection
-    The selection as `anchor` and `caret` UTF-8 byte offsets; they are equal
-    when nothing is selected. Change it with `select` or `select_all`.
-selected_text
-    A copy of the selected text, which is empty when nothing is selected.
-can_undo
-    Whether `undo` would restore an earlier state.
 can_redo
     Whether `redo` would reapply an undone edit.
 auto_complete_mode : default ``AutoCompleteMode::none``
@@ -153,11 +148,6 @@ auto_complete_accepted
 
 Methods
 -------
-select
-    Sets the selection from an anchor and a caret offset. Both must lie on
-    grapheme boundaries of the text, or it throws `std::out_of_range`.
-select_all
-    Selects the whole text.
 replace_selection
     Replaces the selection with UTF-8 text as one undoable edit, as typing
     does, and leaves the caret after it. It returns false, changing nothing,
@@ -166,26 +156,9 @@ replace_selection
 delete_selection
     Removes the selection as one undoable edit. It returns false when nothing
     is selected or the box is read-only.
-undo
-    Restores the text and selection before the last edit, and returns false
-    when there is nothing to undo or the box is read-only. At most 128 steps
-    and 8 MiB of earlier text are kept; the oldest are dropped first.
 redo
     Reapplies the last undone edit, and returns false when there is none or
     the box is read-only. A new edit clears the redo steps.
-clear_undo_history
-    Forgets all undo and redo steps without changing the text or raising
-    events, for example after saving.
-copy
-    Copies the selection to the clipboard. It returns false when nothing is
-    selected, the text is masked, or the window has no host clipboard.
-cut
-    Copies the selection and then deletes it. It returns false when nothing
-    is selected, the box is read-only or masked, or the copy fails.
-paste
-    Replaces the selection with clipboard text. It returns false when the box
-    is read-only, the window has no host clipboard, the clipboard holds no
-    text, or the edit is refused.
 set_edit_filter
     Installs a filter that sees every user edit (typing, deletion, paste and
     assistive set-value, as a `TextEdit` with its `TextEditKind`) before it

@@ -6,7 +6,7 @@ bitmap to the window's image registry, maps between client and bitmap
 coordinates at any zoom and pan, and after an edit uploads only the changed
 pixels and repaints only the area they cover. Tools, selection and undo stay
 in the application. Derive from `RasterCanvas` to add pointer tools by
-overriding `on_pointer`, or to draw a selection over the image by overriding
+overriding `on_mouse_down` and the other mouse raisers, or to draw a selection over the image by overriding
 `on_paint_overlay`. Use a `PictureBox` to show an image that does not change,
 and a `DrawingSurface` for vector drawing.
 
@@ -114,8 +114,9 @@ the window's own order, so their pixels are uploaded as they are; the bitmap
 itself is never modified.
 
 The canvas takes keyboard focus, is a tab stop and shows a crosshair cursor.
-It has no tools of its own: pointer input reaches `on_pointer` in a derived
-class and observers of `pointer_observed`. Pointer positions are in window
+It has no tools of its own: pointer input reaches the mouse raisers
+(`on_mouse_down`, `on_mouse_move`, `on_mouse_up`, `on_mouse_wheel`) in a
+derived class and observers of `pointer_observed`. Pointer positions are in window
 coordinates, so convert them with `point_from_window` before
 `client_to_bitmap`. A primary-button press captures the pointer, so the
 release reaches the canvas even outside it; `set_pointer_capture` captures
@@ -162,10 +163,16 @@ window to client coordinates, then to a bitmap pixel:
    public:
        explicit PencilCanvas(gf::StableId id) : gf::RasterCanvas(std::move(id)) {}
 
-       void on_pointer(gf::PointerEvent& event) override {
-           if (event.action != gf::PointerAction::down || !bitmap.read()) return;
+   protected:
+       void on_mouse_down(gf::MouseEventArgs& arguments) override {
+           if (bitmap.read()) draw_at(arguments);
+           gf::RasterCanvas::on_mouse_down(arguments);
+       }
+
+   private:
+       void draw_at(gf::MouseEventArgs& arguments) {
            const gui_drawing::PointF at =
-               client_to_bitmap(point_from_window(event.position));
+               client_to_bitmap(point_from_window(arguments.window_position));
            if (at.x < 0.0 || at.y < 0.0 ||
                at.x >= static_cast<double>((*bitmap.read()).width()) ||
                at.y >= static_cast<double>((*bitmap.read()).height())) {
@@ -175,7 +182,7 @@ window to client coordinates, then to a bitmap pixel:
                                  static_cast<std::uint32_t>(at.y),
                                  gui_drawing::Color::from_rgb(0, 0, 0));
            static_cast<void>(synchronize_bitmap());
-           event.handled = true;
+           arguments.handled = true;
        }
    };
 

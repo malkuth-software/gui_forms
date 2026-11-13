@@ -1,4 +1,21 @@
 #include "gallery_pages.hpp"
+#include "gui_forms/binding/binding/binding.hpp"
+#include "gui_forms/binding/binding_schema/binding_schema.hpp"
+#include "gui_forms/binding/binding_source/binding_source.hpp"
+#include "gui_forms/binding/binding_table/binding_table.hpp"
+#include "gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp"
+#include "gui_forms/binding/types/binding_contract_types.hpp"
+#include "gui_forms/components/error_provider/error_provider.hpp"
+#include "gui_forms/components/error_provider/error_provider_values/error_provider_values.hpp"
+#include "gui_forms/components/help_provider/help_provider.hpp"
+#include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
+#include "gui_forms/components/tool_tip/tool_tip.hpp"
+#include "gui_forms/controls/menu_strip.hpp"
+#include "gui_forms/controls/ribbon.hpp"
+#include "gui_forms/controls/scaled_panel.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
+#include "gui_forms/rules/rule_set/rule_set.hpp"
+#include "gui_forms/timer/timer/timer.hpp"
 
 #include "gallery.hpp"
 #include "gallery/pages/pages.hpp"
@@ -294,6 +311,8 @@ namespace {
 
 // The control under `control` (itself included) whose stable id is
 // `stable_id`, depth first, or null.
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 Control::Ptr find_gallery_control(const Control::Ptr& control, std::string_view stable_id) {
     if ((*control).stable_id().value() == stable_id) return control;
     for (const Control::Ptr& child : (*control).children()) {

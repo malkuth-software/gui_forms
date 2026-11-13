@@ -1,6 +1,15 @@
 #include "visual_inspector_lab.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/display/types/display_types.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
+#include "gui_forms/window/window.hpp"
+#include "gui_forms_demo/visual_inspector_view.hpp"
 
 #include <chrono>
 #include <cstdlib>

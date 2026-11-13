@@ -121,26 +121,50 @@ more than 256 levels up are not matched.
 | part | `::part(scroll-thumb)` |
 | part role | `::role(face)` |
 | state | `:hover` `:active` `:focus` `:focus-visible` `:checked` `:indeterminate` `:disabled` `:enabled` `:read-only` `:invalid` `:open` `:default`, and every other published state as `:state(drag-proximate)` |
+| custom state | `button::part(face):state(danger)`, `indicator-lamp::part(lens):state(on)`: a state the control type declares for itself (below) |
 | either of | `button:is(:hover, :focus-visible)::part(face)` (at most 32 arguments) |
 | either of, counting nothing | `button:where(.primary, #save)` |
 | none of | `button:not(.primary, :hover)`: compounds of types, stable IDs, classes, states and families, not nested |
 | family | `:family(accent-button)`, a control visual family: the parts a control draws for that family (`window`, `panel`, `card`, `button`, `accent-button`, `command-button`, `choice`, `editor`, `menu-item`, `selection`, `progress`, `tool-tip`, `link`, `visited-link`) |
+| item | `:item(#n42)`, `:item(.socket-float)`, `:item(#n42.warning)`: one item of an item-drawing control (a node canvas's node, port or link) by its stable ID and classes, written together with no spaces between them; never a control's own part |
 | selector list | `button, check-box { ... }` |
 | surface | `window`, `popup`, with the surface root's classes and stable ID: `window#settings`, `popup.alert` |
 
 `:has()`, `:nth-*()`, attribute selectors, the sibling combinators `+`
 and `~`, a combinator inside a group, and `&` are errors, as are a
-`:not()` inside a `:not()` and a part, role or surface in one. An unknown control type, state or pseudo-class is a
+`:not()` inside a `:not()` and a part, role, surface or `:item()` in one; an
+`:item()` takes at most one stable ID, and an ancestor compound none. An unknown control type, state or pseudo-class is a
 warning (W106) that drops the rule. A part the selector's control type lacks
 is a warning too, but, as CSS's `::part()` matches nothing for a part the
 element lacks, it leaves out only its own selector: in
 `user-control::part(lid), panel::part(face)` the panel rule still applies. Specificity is CSS's: stable IDs, then
 classes and states (pseudo-classes) together, then control types and parts
-(the part's name and role, as pseudo-elements). `:family()` counts as a
-pseudo-class, `:is()` and `:not()` as their most specific argument and
+(the part's name and role, as pseudo-elements). An `:item()`'s stable
+ID counts as a stable ID and each of its classes as a class. `:family()`
+counts as a pseudo-class, `:is()` and `:not()` as their most specific argument and
 `:where()` as nothing. So `button:hover` beats `.primary`, as in CSS.
 A control's fonts are resolved for no family, so a font property in a
 `:family()` rule is a warning that drops it.
+
+`:state(name)` reads a standard state first: every published state has a
+registered name (`drag-proximate`, `pending`), and that state wins. A name
+that is not a standard state is a custom state of the selector's control
+type: one the type's anatomy declares in its `custom_states` (a button's
+`danger`, an indicator lamp's `on` and `error`), or, when the selector's
+part is an item part, one the item system declaring that part declares (a
+document tab's `modified` and `pinned`). A custom state counts as a
+pseudo-class. Because a custom state belongs to its control type, a
+selector that names no control type (`::part(face):state(danger)`,
+`:family(button):state(danger)`) cannot name one, and a custom state its
+type does not declare (`check-box:state(danger)`) is a warning (W106)
+naming the type checked; either leaves out only its own selector, as an
+unknown part does. Inside `:not()` a custom state is read against the
+argument's own control type, or the selector's when it names none. A
+control type may not declare a custom state named as a standard one:
+`validate_control_anatomy` refuses it
+(`custom_state_shadows_standard_state`), and two custom states of one
+type may not share a name. A control's inline style cannot name custom
+states yet, since its selectors name no control type.
 
 A package compiled onto the GUI.Forms base (`ThemeBase::gui_forms`) sits
 above the base sheet as CSS's author origin sits above the user-agent
@@ -236,15 +260,36 @@ only material fields selects the `material` primitive.
 
 | Area | Properties |
 |---|---|
-| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images, `pattern()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position` |
+| fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |
 | borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `default-outline: <width> <colour>` (the default button's second perimeter, on a control), `keylines` (`none`, or one or two comma-separated rings of one to four colours in box order: lines one unit wide, the first ring one unit inside the border and the second inside it), `shape` |
-| shadows and light | `box-shadow` (up to 4, `inset` admitted), `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
+| shadows and light | `box-shadow` (up to 4, `inset` admitted), `seat`, `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
 | presentation | `opacity`, `scale`, `translate` |
-| effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
+| effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; given the effect registry (`ThemeCompileOptions::effects`, `ApplicationThemeConfig::effects`, usually `built_in_effect_registry()`), a name it does not hold refuses the theme with E417 at the name; a user theme the process is started with (`--theme`, `GUI_FORMS_THEME_SHEET`) is checked against the process's installed registry (`install_built_in_effect_registry()`, called by a program using the stock controls while it sets up) and refused the same way, the program's own theme staying; with none installed the names' form only is checked and the request's report says so; the control also checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
 | text | `color`, `muted-color`, `glyph-color` and `fill-text-color` (the recipe's secondary text and glyph colours, and its text's colour where it lies over a fill such as a value bar's, on a control or a named part, such as `group-box::part(caption)`; not on a role), `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
 | dials and overlays | `stroke-width` (0 to 32px: an `arc` part's thickness and a `needle` part's width at its hub), `needle-shape` (`line`, `tapered`, `dot`), `scrim-color` (the colour, with its alpha as the opacity, a `scrim` part dims what lies behind with); each on a control or a named part, such as `radial-gauge::part(value-arc)`; not on a role |
+| progress stripes | the marching stripes over a progress bar's fill, on `progress-bar::part(fill)` only: `stripe-pitch` (`auto`, the fill's thickness, or 4px to 64px), `stripe-ratio` (0.1 to 0.9: the pale band's share of the pitch; default 0.4), `stripe-angle` (15deg to 75deg; default 45deg), `stripe-lean` (`backward`, the default, leans each band back from the leading edge; `forward`), `stripe-direction` (`forward`, the default, travels toward the leading edge, the way the fill grows; `backward`), `stripe-speed` (0 to 3 pitches a second on the motion clock; default 0.8), `stripe-color` (the pale band), `stripe-ground` (an opaque colour painted under the bands; none by default, so the fill shows between them), `stripe-gloss` (`auto`: a gloss over a painted ground; `none`), `stripe-reduced-motion` (`still`, the default, holds the bands; `none` hides them); the bands are clipped to the fill inside its rim and follow its direction |
+| node canvas | on a named part of `node-canvas` (part fields; refused on a control): `fill-color` and `stroke-color` (an area's fill and its line), `stroke-width` (0 to 32px), `stroke-dash` (`none`, or a dash and a gap, each up to 64px; a dash of 0 is refused, a gap of 0 is solid), `halo` (`none`, or a width of 0 to 16px and a colour in either order: a wider stroke drawn under a link), `corner-radius` (0 to 64px), `grid-spacing` (the minor grid's spacing in world units at zoom 1, 2px to 512px; default 16px), `grid-band` (the smallest minor spacing on screen, 2px to 128px; the band runs to 4 times it, default 6px, so minor lines show fully at zoom 1), `background-texture` (`none`, or one to three comma-separated layers, bottom first, each `procedural(<kind>, <seed>, <tile>, <strength>) multiply <percentage>` or `finish(...) multiply <percentage>`: a baked surface, never an image, under the grid, anchored to the canvas's world coordinates; a procedural kind is `felt`, `wood-grain`, `paper-fibre`, `pinstripe`, `brushed-metal` or `checker`, its seed a whole number from 0 to 4294967295, its tile 2px to 96px, its strength 0 to 1, and the canvas chooses its colours; a finish is written as in a fill (`finish(orange-peel, #ffffff, #c8c8c8, 5)`), any finish but a glint, in the colours written, evaluated at the canvas's world coordinates so it is continuous everywhere and pans and zooms with the canvas; the contrast is 0% to 3%; anything outside refuses the theme), `flow` (`none`, `dots`, `dashes`: marks moving along a link at rest), `flow-speed` (0 to 512 world units a second; default 48), `flow-spacing` (4px to 128px; default 16px); the parts are listed under "The node canvas" below |
 | fonts | `font-family` (`control`, `content`, `monospace`, or a bundled family: `Portsmouth Rapids`, `Carlito`, `Cousine`, `Selawik`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
+
+`gradient-dither: none | ordered | blue-noise` sets how the engine's
+material kernel quantizes a part's finished pixels to 8 bits. `none`
+rounds, as before. `ordered` adds an 8 x 8 Bayer threshold and `blue-noise`
+a 64 x 64 blue-noise threshold to each device pixel, so a smooth,
+low-contrast gradient over a large face shows no bands. It covers the whole
+material: gradients, a finish or pattern under them, shadows and edges. The
+pattern is anchored to the part's first device pixel, so it moves with the
+part when it scrolls. It is the same on every host, and any repaint
+rectangle gives the bytes of a full repaint. The cost is a fixed amount per
+device pixel at quantization. A tall face at a high scale can take more
+than the bake budget with a dither, because each slice reference then holds
+a whole period of the pattern (8 or 64 pixels). The dither gives way first,
+never the material: such a face is drawn with the ordered table in place
+of blue noise, or with no dither, whichever fits, and keeps its material.
+The `engine_dither_degradations` statistic counts each step. The Gallery's
+theme has an opt-in class, `.metallic-fade`, that uses
+it: a thin fade with a one-unit edge catch over a panel's or a group's own
+colour. Any theme can copy that rule.
 
 `pattern(<name>, <ground>, <figure> [, <tile>])` is a built-in procedural
 pattern in two colours: `checker` (a checkerboard; its default 2px tile is a
@@ -255,6 +300,52 @@ pinstripe and 64px for the rest). The engine generates the pattern for each
 display scale in an idle frame and draws the ground until it is ready; a
 pattern layer takes no position, size or repetition. For example,
 `background: pattern(checker, #d4d0c8, #ffffff)`.
+
+`finish(<name>, <paint>, <second> [, <seed> [, <grain>]])` is a surface
+finish: paint or metal lit by one light from the upper left, painted for
+each device pixel as the part is baked, with no tile and no seam. The
+finishes are `dusty-matte` (flat enamel under settled dust; the second
+colour is the dust's), `orange-peel` (satin powder coat), `hammertone`
+(hammered enamel with aluminium flake), `wrinkle` (enamel cured into fine
+ridges), `bead-blast` (bare peened steel, in its own steel colour),
+`sand-cast` (a casting's skin under paint; the second colour is the
+dust's), `flat` (the paint as a plain solid) and `cloth-weave` (a plain
+weave; the paint is the warp's colour and the second the weft's). The
+glints are blasted metal drawn from its facets' glints rather than its
+relief: `bead-blast-glint`, `sand-blast-glint`, `iridescent-glint`,
+`coarse-grit-glint` and `painted-sand-glint` (the sand blast under a thin
+coat of the paint); for a glint the second colour is the metal's (the
+fitted presets used #a3a3a3 to #a6a5a7). A glint costs some eight times a
+finish, and a part too large for it falls back to its built-in look. The
+seed, a whole number from 0 to 2147483647 (7 by default), chooses the
+noise; the grain, a number from 0.5 to 4 (1 by default), scales every
+feature. A finish layer, like a pattern, takes no position, size or
+repetition. For example,
+`background-image: finish(hammertone, #4d676d, #bdb6a8, 11)`.
+
+`seat: none | <height> [<colour>]` seats a part in its panel: the height
+it stands above the panel, a length or a percentage of its shorter side,
+negative for a part sunk into it (a well), and its shadow's colour
+(black at 30% by default). Under the one light from the upper left, a
+raised part casts a thin contact shadow half its height down and to the
+right and darkens the crevice all round where it meets the panel; a sunk
+part's lip shades its upper left inside and its seam darkens. The seat
+adds these as shadows after the `box-shadow` ones, while there is room
+among the four (the contact shadow first); the height is at most 4 units,
+so a share of a long part's side stays a seat. A theme gives each role its
+own height: `button::part(face) { seat: 6% }`,
+`check-box::part(well) { seat: -10% }`.
+
+Two stock hooks carry the skeudoindustrial lights into every theme. An
+indicator lamp's lens is `indicator-lamp::part(lens)`, lit in
+`:state(on)` and `:state(error)`; the lamp draws the lit lens over the
+dark one at its warm-up's power, clipped to the lens, so whatever a theme
+gives the lit lens (a radial heart, an inset glow) lights only the lens.
+A button marked `danger` takes `:state(danger)` on its parts; the button
+draws its face in that state over the plain face, bounded by the face,
+and fades it slowly between 72% and full, steady under reduced motion, so
+a theme lights a danger key with a glow placed over its face:
+`button::part(face):state(danger) { glow: #e2412c 5px; glow-placement: over }`.
 
 `reflection` mirrors the part's finished face (its fills, borders, glows,
 filters and mask; not its text), or with `backplane` the window's backplane
@@ -350,6 +441,91 @@ stays frameless.
 `clip-path`, `rotate`, `transform`, text
 decoration and spacing, and layout properties (`width`, `margin`, ...) are
 warnings: geometry and layout belong to the engine and to forms.
+
+### The node canvas
+
+A graph canvas (control type `node-canvas`) draws every part from the
+theme through `resolve_canvas_look` (`gui_forms/theme/canvas_look`), once
+per theme, colour scheme, contrast or class change, never per frame. Its
+parts, their states and the properties each reads:
+
+| Part | Role | States | Properties |
+|---|---|---|---|
+| `region` | region | none | `fill-color` (the canvas), `grid-spacing`, `grid-band`, `background-texture` |
+| `grid-minor` | grid_minor | none | `stroke-color`, `stroke-width` (both levels' line width) |
+| `grid-major` | grid_major | none | `stroke-color` |
+| `node` | node | `:hover`, `:state(selected)`, `:disabled` | `fill-color`, `stroke-color`, `stroke-width`, `corner-radius` |
+| `node-header` | header | as `node` | `fill-color`, `stroke-color` (the line under it), `color` (the title), `corner-radius` |
+| `node-selection` | selection | none | `stroke-color`, `stroke-width`, `corner-radius` (a ring two units outside the node) |
+| `port` | port | `:hover`, `:state(drop-accepted)`, `:state(drop-rejected)` | `fill-color`, `stroke-color`, `stroke-width` |
+| `link` | link | `:hover`, `:state(selected)`, `:invalid` | `stroke-color`, `stroke-width`, `stroke-dash`, `halo`, `flow`, `flow-speed`, `flow-spacing` (the flow is read from the link at rest) |
+| `dashed-link` | link | as `link` | as `link`; the static form of a flowing link |
+| `lamp` | lamp | `:checked` (on), `:invalid` (error); neither is off | `fill-color`, `stroke-color`, `stroke-width` |
+| `marquee` | marquee | none | `fill-color`, `stroke-color`, `stroke-width`, `stroke-dash` |
+| `port-label` | label | as `port` | `color` (a port's name) |
+| `focus` | focus | none | `stroke-color`, `stroke-width` (at least 2px), `corner-radius` (added to the item's): a ring two units outside the keyboard-focused node or port |
+| `knife` | marquee | none | `stroke-color`, `stroke-width`, `stroke-dash`: the stroke drawn to cut links |
+| `link-preview` | link | `:state(drop-accepted)`, `:state(drop-rejected)`; neither is seeking | as `link`, without the flow: the link being dragged |
+
+A property no rule sets takes the canvas's stock value, coloured from the
+theme's basic style. The grid shows the level whose spacing on screen lies
+in the band, its minor lines fading in across the band, so zooming never
+makes the grid pop. The grid variants are classes on the canvas: the
+default theme has `paper` (its default), `blue`, `green` and `grey`, as
+`node-canvas.blue::part(region)` and the two grid parts; switching is
+`remove_class` and `add_class`. Where a theme derives its dark variant,
+every canvas colour is mapped by the dark rule by what it paints (the
+canvas as a well, nodes and ports as stock faces, headers as chrome,
+lines as lines, the selection as a cue, titles as ink), so a theme writes
+its canvas in light terms; the colours that carry state keep their hue
+(a lamp on stays green, in error red, off a dim neutral; an accepted drop
+green, a rejected drop and an invalid link red), only their lightness
+moved for contrast. The default theme's `blue` and `grey` variants also
+recolour the links, ports' rims, selection and marquee so they read on
+their canvas.
+
+A rule reaches one item with `:item()`: `node-canvas::part(node):item(#n42)`
+styles the node whose stable ID is `n42`, and
+`node-canvas::part(port):item(.warning)` every port of that class. A
+socket's data type is a class on its port and on the links it carries,
+by convention `socket-<type>`, so `node-canvas::part(link):item(.socket-float)`
+colours float links. The canvas resolves one look per distinct item ID
+and class set it shows, on the same triggers as its own. The focus ring
+is at least two units wide and drawn two units outside the item, so focus
+shows by shape as well as colour; a refused link preview is dotted as well
+as red. Forced high contrast draws areas
+in the plate and lines in the state's edge, a two-unit focus-coloured halo
+on the selected link only, no halo on the knife or a link preview, a
+focus ring in the focus colour, no minor grid, no marquee fill and no
+texture.
+
+Each texture layer is one of the engine's procedural patterns, generated
+per display scale in integer arithmetic (the same bytes on every host) in
+an idle frame, never inside a paint, and baked by the theme engine into
+the window's part cache; until its pattern is made a layer changes
+nothing. It stays at its tile's own size at every zoom, so the grain stays
+sharp; each layer is at most 3 % contrast (the design language's texture
+rule), clamped again when painted. The canvas chooses the colours: the
+pattern darkens toward black, or in dark lightens toward white, by its
+strength times its contrast. In dark the layers are screened rather than
+multiplied, at the same contrast: multiplied, they would change a
+near-black canvas by less than one level. A finish layer is the surface finish
+`finish()` paints, in the colours its theme writes (white and a light
+grey keep it a grain only), as a property of the canvas's world: each
+device pixel is the finish at that world position, at the window's scale
+times the zoom, so the finish has no period and no seam, pans with the
+canvas and grows as it zooms in. The window paints it in tiles of 128
+device pixels in idle frames and keeps them (within a 32 MiB budget,
+least recently used first): panning reuses them, a new zoom paints new
+ones, and until a tile is painted its place shows no finish. Adjacent
+tiles join exactly, since each pixel depends only on its world position.
+The glint is refused: its light stands over its surface's centre, which
+a world has none of. A theme that wants it in dark declares
+`:root { color-scheme: light dark; }`, as any theme with a dark variant
+does. The `link_flow` effect draws the flow over the
+links that carry data in the canvas's own colour, as beads or moving
+breaks; it runs only while some link flows and motion is not reduced, and
+a still frame draws the marks at rest.
 
 ## Motion
 

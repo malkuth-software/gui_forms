@@ -21,6 +21,7 @@
 // component is disposed or destroyed, and its token then reads stale. A
 // context that is not a Component must outlive its rules.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
@@ -141,7 +142,7 @@ class RuleTap;
 // the same identity and name are one trigger (the duplicate check, and one
 // subscription shared by every rule on it). identity() is compared, never
 // dereferenced, after connect().
-class RuleSource {
+class GUI_FORMS_API RuleSource {
 public:
     virtual ~RuleSource() = default;
     [[nodiscard]] virtual SubscriptionToken connect(RuleTap& tap) = 0;
@@ -152,14 +153,14 @@ public:
 // Hands one emission of a source's event to its tap, which fills the
 // trigger kind and control and offers it to the window's rules. `firing`
 // carries what the source read from the event (a Value's new value).
-void fire_rule_tap(RuleTap& tap, RuleFiring& firing);
+GUI_FORMS_API void fire_rule_tap(RuleTap& tap, RuleFiring& firing);
 
 } // namespace detail
 
 // What a value_changed trigger's Value held after the change: integers,
 // enumerations and bool in `integer` (bool as 0 or 1), floating values in
 // `real`. `present` is false for other triggers.
-struct RuleValuePayload final {
+struct GUI_FORMS_API RuleValuePayload final {
     std::int64_t integer{};
     double real{};
     bool present{};
@@ -176,7 +177,7 @@ struct RuleValuePayload final {
 // the key triggers and command_executed). `state` is the window's input
 // state as it was when the trigger occurred (one copy per occurrence that
 // fires a rule). `window` is the window whose rules fired.
-struct RuleFiring final {
+struct GUI_FORMS_API RuleFiring final {
     RuleTriggerKind trigger{RuleTriggerKind::none};
     Control* control{};
     const KeyEvent* key{};
@@ -197,7 +198,7 @@ struct RuleFiring final {
 //   source: interaction's and value_changed's connection.
 //   anchor: the component the trigger names (control, command or Value),
 //     whose disposal disarms the rule.
-struct RuleTrigger final {
+struct GUI_FORMS_API RuleTrigger final {
     RuleTriggerKind kind{RuleTriggerKind::none};
     std::uint32_t physical_key{};
     Control::WeakPtr control{};
@@ -214,7 +215,7 @@ struct RuleTrigger final {
 //   flag: is_true's Value; number and expected: equals' Value and number.
 //   anchor: the Value is_true or equals reads, whose disposal disarms the
 //     rule (a control condition's control is anchored through `control`).
-struct RuleCondition final {
+struct GUI_FORMS_API RuleCondition final {
     RuleConditionKind kind{RuleConditionKind::none};
     bool negated{};
     std::uint32_t physical_key{};
@@ -228,7 +229,7 @@ struct RuleCondition final {
 
 // The argument a set action writes: integers, enumerations and bool in
 // `integer`, floating values in `real` (the Value's own type decides).
-struct RuleActionArgument final {
+struct GUI_FORMS_API RuleActionArgument final {
     std::int64_t integer{};
     double real{};
 };
@@ -252,7 +253,7 @@ using RuleValueWrite = void (*)(void* value, const RuleActionArgument& argument)
 //   begin_keyboard_drag: `control`, whose keyboard drag mode is entered.
 //   anchor: the component the action names (a context that is a Component,
 //     the command, the Value), whose disposal disarms the rule.
-struct RuleAction final {
+struct GUI_FORMS_API RuleAction final {
     RuleActionKind kind{RuleActionKind::none};
     void* context{};
     void (*function)(){};
@@ -271,7 +272,7 @@ struct RuleAction final {
 // declared after it for that occurrence and the occurrence's default route
 // (the focused control and the key commands for a key; the ancestors for a
 // context-menu request).
-struct Rule final {
+struct GUI_FORMS_API Rule final {
     RuleTrigger trigger{};
     std::vector<RuleCondition> conditions{};
     std::vector<RuleAction> actions{};
@@ -280,9 +281,9 @@ struct Rule final {
 
 // The vocabulary's names (snake_case, as the C ABI and diagnostics spell
 // them); "none" for a value outside it.
-[[nodiscard]] std::string_view rule_trigger_kind_name(RuleTriggerKind kind) noexcept;
-[[nodiscard]] std::string_view rule_condition_kind_name(RuleConditionKind kind) noexcept;
-[[nodiscard]] std::string_view rule_action_kind_name(RuleActionKind kind) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view rule_trigger_kind_name(RuleTriggerKind kind) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view rule_condition_kind_name(RuleConditionKind kind) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view rule_action_kind_name(RuleActionKind kind) noexcept;
 
 namespace detail {
 
@@ -378,30 +379,30 @@ void write_rule_value(void* value, const RuleActionArgument& argument) {
     }
 }
 
-void toggle_rule_value(void* value, const RuleActionArgument& argument);
+GUI_FORMS_API void toggle_rule_value(void* value, const RuleActionArgument& argument);
 
 } // namespace detail
 
 // The triggers.
 namespace trigger {
 
-[[nodiscard]] RuleTrigger key_pressed(std::uint32_t physical_key);
-[[nodiscard]] RuleTrigger key_released(std::uint32_t physical_key);
-[[nodiscard]] RuleTrigger key_repeat(std::uint32_t physical_key);
-[[nodiscard]] RuleTrigger mouse_down(Control& control);
-[[nodiscard]] RuleTrigger mouse_up(Control& control);
-[[nodiscard]] RuleTrigger click(Control& control);
-[[nodiscard]] RuleTrigger mouse_click(Control& control);
-[[nodiscard]] RuleTrigger double_click(Control& control);
-[[nodiscard]] RuleTrigger mouse_double_click(Control& control);
-[[nodiscard]] RuleTrigger context_menu_requested(Control& control);
-[[nodiscard]] RuleTrigger mouse_enter(Control& control);
-[[nodiscard]] RuleTrigger mouse_hover(Control& control);
-[[nodiscard]] RuleTrigger mouse_leave(Control& control);
-[[nodiscard]] RuleTrigger mouse_capture_changed(Control& control);
-[[nodiscard]] RuleTrigger focus_gained(Control& control);
-[[nodiscard]] RuleTrigger focus_lost(Control& control);
-[[nodiscard]] RuleTrigger command_executed(Command& command);
+[[nodiscard]] GUI_FORMS_API RuleTrigger key_pressed(std::uint32_t physical_key);
+[[nodiscard]] GUI_FORMS_API RuleTrigger key_released(std::uint32_t physical_key);
+[[nodiscard]] GUI_FORMS_API RuleTrigger key_repeat(std::uint32_t physical_key);
+[[nodiscard]] GUI_FORMS_API RuleTrigger mouse_down(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger mouse_up(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger click(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger mouse_click(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger double_click(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger mouse_double_click(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger context_menu_requested(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger mouse_enter(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger mouse_hover(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger mouse_leave(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger mouse_capture_changed(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger focus_gained(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger focus_lost(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleTrigger command_executed(Command& command);
 
 // Any interaction of `control`, named by its typed event, which must be one
 // of `control`'s own (`(*slider).value_changed()`, `(*check).checked_changed()`).
@@ -431,33 +432,33 @@ template <typename T>
 // The conditions. Negation is through the `not_` forms only; OR is two rules.
 namespace condition {
 
-[[nodiscard]] RuleCondition key_down(std::uint32_t physical_key);
-[[nodiscard]] RuleCondition not_key_down(std::uint32_t physical_key);
-[[nodiscard]] RuleCondition modifiers(Modifier exact);
-[[nodiscard]] RuleCondition hovering(Control& control);
-[[nodiscard]] RuleCondition not_hovering(Control& control);
-[[nodiscard]] RuleCondition pressed(Control& control);
-[[nodiscard]] RuleCondition not_pressed(Control& control);
-[[nodiscard]] RuleCondition focused(Control& control);
-[[nodiscard]] RuleCondition not_focused(Control& control);
-[[nodiscard]] RuleCondition focus_within(Control& control);
-[[nodiscard]] RuleCondition not_focus_within(Control& control);
-[[nodiscard]] RuleCondition enabled(Control& control);
-[[nodiscard]] RuleCondition not_enabled(Control& control);
-[[nodiscard]] RuleCondition visible(Control& control);
-[[nodiscard]] RuleCondition not_visible(Control& control);
-[[nodiscard]] RuleCondition window_active();
-[[nodiscard]] RuleCondition not_window_active();
+[[nodiscard]] GUI_FORMS_API RuleCondition key_down(std::uint32_t physical_key);
+[[nodiscard]] GUI_FORMS_API RuleCondition not_key_down(std::uint32_t physical_key);
+[[nodiscard]] GUI_FORMS_API RuleCondition modifiers(Modifier exact);
+[[nodiscard]] GUI_FORMS_API RuleCondition hovering(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition not_hovering(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition pressed(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition not_pressed(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition focused(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition not_focused(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition focus_within(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition not_focus_within(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition enabled(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition not_enabled(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition visible(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition not_visible(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition window_active();
+[[nodiscard]] GUI_FORMS_API RuleCondition not_window_active();
 // The drag engine's levels (GF_RULE_CONDITION_DRAGGING and _DROP_CANDIDATE
 // in the C ABI).
-[[nodiscard]] RuleCondition dragging(Control& control);
-[[nodiscard]] RuleCondition not_dragging(Control& control);
-[[nodiscard]] RuleCondition drop_candidate(Control& control);
-[[nodiscard]] RuleCondition not_drop_candidate(Control& control);
-[[nodiscard]] RuleCondition is_true(Value<bool>& flag);
-[[nodiscard]] RuleCondition not_true(Value<bool>& flag);
-[[nodiscard]] RuleCondition equals(Value<int>& number, int expected);
-[[nodiscard]] RuleCondition not_equals(Value<int>& number, int expected);
+[[nodiscard]] GUI_FORMS_API RuleCondition dragging(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition not_dragging(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition drop_candidate(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition not_drop_candidate(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleCondition is_true(Value<bool>& flag);
+[[nodiscard]] GUI_FORMS_API RuleCondition not_true(Value<bool>& flag);
+[[nodiscard]] GUI_FORMS_API RuleCondition equals(Value<int>& number, int expected);
+[[nodiscard]] GUI_FORMS_API RuleCondition not_equals(Value<int>& number, int expected);
 
 } // namespace condition
 
@@ -483,7 +484,7 @@ namespace builtin {
 
 // Executes `command` through the firing window's command route
 // (Command::execute_routed), as a menu or shortcut does.
-[[nodiscard]] RuleAction invoke(Command& command);
+[[nodiscard]] GUI_FORMS_API RuleAction invoke(Command& command);
 
 // Writes `written` to `value` (Value::set: an equal value does nothing, a
 // rejected one throws and stops the firing's later actions).
@@ -504,16 +505,16 @@ template <typename T>
 }
 
 // Writes the opposite of `value`'s current value.
-[[nodiscard]] RuleAction toggle(Value<bool>& value);
+[[nodiscard]] GUI_FORMS_API RuleAction toggle(Value<bool>& value);
 
 // Gives `control` the keyboard focus (SurfaceRoot::request_focus on the
 // firing window); a control that cannot take it is left as it is.
-[[nodiscard]] RuleAction focus(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleAction focus(Control& control);
 
 // Enters `control`'s keyboard drag mode (Control::begin_keyboard_drag), so
 // that an application can bind its own move key; a control that declares
 // no drag, or a window already running one, is left as it is.
-[[nodiscard]] RuleAction begin_keyboard_drag(Control& control);
+[[nodiscard]] GUI_FORMS_API RuleAction begin_keyboard_drag(Control& control);
 
 } // namespace builtin
 

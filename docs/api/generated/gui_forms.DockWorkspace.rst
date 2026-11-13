@@ -9,7 +9,7 @@ gui_forms::DockWorkspace
 
 .. cpp:class:: DockWorkspace final : public Component, public DockWorkspaceCapabilities<DockWorkspace>
 
-   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/dock_workspace.hpp>``
 
    A docking workspace: the layout, the panels and their factories, and which panel and document are active.
 
@@ -327,7 +327,7 @@ gui_forms::DockWorkspace
       decision DK-27, E1-1): resting the pointer on the tab or clicking it, or
       (``click``) only clicking it.
 
-   .. cpp:function:: const std::string& stable_id() const noexcept
+   .. cpp:function:: const std::string& stable_id() const& noexcept
 
    .. cpp:function:: const DockLayout& layout() const noexcept
 
@@ -379,7 +379,7 @@ gui_forms::DockWorkspace
       The layout as XML (``DockLayout::write_xml``), on the program's request;
       the workspace never saves on its own (owner decision DK-33).
 
-   .. cpp:function:: std::span<const DockNamedLayout> named_layouts() const noexcept
+   .. cpp:function:: std::span<const DockNamedLayout> named_layouts() const& noexcept
 
       The layouts saved by name (:cpp:class:`DockNamedLayout <gui_forms::DockNamedLayout>`: a name and the layout's
       XML), in the order they were first saved. The program keeps the list
@@ -404,11 +404,11 @@ gui_forms::DockWorkspace
 
       The active document. Activating a tool panel leaves it unchanged.
 
-   .. cpp:function:: std::span<const DockPanelId> tool_history() const noexcept
+   .. cpp:function:: std::span<const DockPanelId> tool_history() const& noexcept
 
       The placed tool panels that have been active, most recent first.
 
-   .. cpp:function:: std::span<const DockPanelId> document_history() const noexcept
+   .. cpp:function:: std::span<const DockPanelId> document_history() const& noexcept
 
       The placed documents that have been active, most recent first.
 
@@ -635,3 +635,237 @@ gui_forms::DockWorkspace
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 39 supported, 0 deferred, 0 excluded, 16 unclassified; 55 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``active_document``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_panel``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``area_background``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``auto_hide_opens_on_hover``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``closable_documents``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``close_pending``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``created_panel_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``document_history``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``document_tabs_shown``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``floating_window_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``floats_shown_while_inactive``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``layout``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``main_window``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``named_layouts``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``pending_close``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``save_layout``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``site``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``stable_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_history``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tree_generation``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``windows_attached``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``activation_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``document_closing``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``layout_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``activate_panel``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``answer_close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``apply``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``apply_named_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``attach_windows``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``can_float``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_all_documents``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_other_documents``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_panel``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``create_panel_content``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``detach_windows``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``dock_back``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``dock_back_edit``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``find_named_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``find_registration``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``float_subject``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``floating_site``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``floating_window``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``hide_panel``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``load_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``panel_content``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``panel_title``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``register_panel``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``remove_named_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``save_named_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_floating_window_shown_while_inactive``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_panel_title``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_panel``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``update_panel``
+     - unclassified (untested)

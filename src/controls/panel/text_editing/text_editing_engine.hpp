@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/text.hpp"
 
@@ -59,7 +59,8 @@ public:
     TextEditingEngine& operator=(const TextEditingEngine&) = delete;
 
     [[nodiscard]] const TextStore& store() const noexcept { return store_; }
-    [[nodiscard]] std::string_view text() const noexcept { return store_.utf8(); }
+    [[nodiscard]] BorrowedText text() const& noexcept { return store_.utf8(); }
+    BorrowedText text() const&& = delete;
     [[nodiscard]] TextSelection selection() const noexcept { return selection_; }
     // Records a selection the control has validated; no host call.
     void set_selection_value(TextSelection selection) noexcept { selection_ = selection; }

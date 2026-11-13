@@ -7,13 +7,13 @@ gui_forms::NumericUpDown
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: NumericUpDown final : public Panel, public NumericUpDownCapabilities<NumericUpDown>
+.. cpp:class:: NumericUpDown final : public UpDownBase, public NumericUpDownCapabilities<NumericUpDown>
 
-   ``#include <gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down.hpp>``
 
    A text field for a number, with up and down buttons that step it.
 
-   A numeric up-down shows its :cpp:member:`value <gui_forms::NumericUpDown::value>` in an :cpp:func:`editor <gui_forms::NumericUpDown::editor>` text box beside a pair of
+   A numeric up-down shows its :cpp:member:`value <gui_forms::NumericUpDown::value>` in an ``editor`` text box beside a pair of
    spin buttons. The user types a number, clicks the upper or lower button,
    presses Up or Down, or turns the mouse wheel; every step adds or subtracts
    :cpp:member:`increment <gui_forms::NumericUpDown::increment>` and stays within :cpp:member:`minimum <gui_forms::NumericUpDown::minimum>` and :cpp:member:`maximum <gui_forms::NumericUpDown::maximum>`. The value can be shown
@@ -78,10 +78,6 @@ gui_forms::NumericUpDown
       **text_alignment** : ``HorizontalAlignment``
          Where the editor's text sits (TextAlign): near, center or far.
 
-      **editor** : ``std::shared_ptr<TextBox>``, read-only
-         The :cpp:class:`TextBox <gui_forms::TextBox>` that shows and edits the number. Use it to set the font or
-         to move focus to the field.
-
       **scrubbing** : ``bool``, read-only
          Whether a scrub (scrub mode) is past its threshold or in the keyboard mode.
 
@@ -97,6 +93,8 @@ gui_forms::NumericUpDown
          value.
 
    :Inherited:
+
+      From :cpp:class:`UpDownBase <gui_forms::UpDownBase>`: properties :cpp:func:`editor <gui_forms::UpDownBase::editor>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
@@ -270,11 +268,6 @@ gui_forms::NumericUpDown
 
       Where the editor's text sits (TextAlign): near, center or far.
 
-   .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
-
-      The :cpp:class:`TextBox <gui_forms::TextBox>` that shows and edits the number. Use it to set the font or
-      to move focus to the field.
-
    .. cpp:function:: bool scrubbing() const noexcept
 
       Whether a scrub (scrub mode) is past its threshold or in the keyboard mode.
@@ -312,9 +305,11 @@ gui_forms::NumericUpDown
 
    .. rubric:: Extension points
 
-   .. cpp:function:: Ptr focus_target() const override
+   .. cpp:function:: void up_button() override
 
-      Focus on the field goes to its edit part (null without one).
+      Adds (up) or subtracts (down) the increment, within the range, raising value_changed when the value moves.
+
+   .. cpp:function:: void down_button() override
 
    .. cpp:function:: void arrange(Rect final_bounds) override
 
@@ -359,3 +354,109 @@ gui_forms::NumericUpDown
    .. cpp:member:: constexpr std::size_t numeric_up_down_property_count
 
       NumericUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 8U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``NumericUpDown``. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 16 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``NumericUpDown``
+     - ``NumericUpDown``
+     - supported
+   * - property
+     - ``Accelerations``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DecimalPlaces``
+     - ``decimal_places``
+     - unclassified (untested)
+   * - property
+     - ``Hexadecimal``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Increment``
+     - ``increment``
+     - unclassified (untested)
+   * - property
+     - ``Maximum``
+     - ``maximum``
+     - unclassified (untested)
+   * - property
+     - ``Minimum``
+     - ``minimum``
+     - unclassified (untested)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``ThousandsSeparator``
+     - ``thousands_separator``
+     - unclassified (untested)
+   * - property
+     - ``Value``
+     - ``value``
+     - supported
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ValueChanged``
+     - ``value_changed``
+     - supported
+   * - method
+     - ``BeginInit``
+     - ``begin_init``
+     - supported
+   * - method
+     - ``EndInit``
+     - ``end_init``
+     - supported
+   * - method
+     - ``OnValueChanged``
+     - ``on_value_changed``
+     - unclassified (untested)
+   * - method
+     - ``ParseEditText``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``scrub``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scrubbing``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``text_alignment``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``numeric_up_down_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_range``
+     - supported

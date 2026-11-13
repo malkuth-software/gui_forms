@@ -226,3 +226,53 @@ gui_forms::Timer
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Timer``. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 3 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``Timer``
+     - ``Timer``
+     - supported
+   * - property
+     - ``Enabled``
+     - ``enabled``
+     - supported
+   * - property
+     - ``Interval``
+     - ``interval``
+     - unclassified (untested)
+   * - property
+     - ``Tag``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Tick``
+     - ``tick``
+     - supported
+   * - method
+     - ``OnTick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``Start``
+     - ``start``
+     - supported
+   * - method
+     - ``Stop``
+     - ``stop``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``start_at``
+     - supported

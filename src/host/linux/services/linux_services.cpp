@@ -262,7 +262,8 @@ void write_wm_icon(NativeWindow &window, const HostImage &image) {
 
 // Moves an unmapped window so its client area is centred over its owner
 // (WM_TRANSIENT_FOR, center_parent) or the screen; the size hints say the
-// program chose the position.
+// program chose the position. Device pixels throughout: the window's device
+// size against its owner's or the screen's.
 void place_for_start_position(NativeWindow &window, FormStartPosition position) {
   if (position != FormStartPosition::center_screen && position != FormStartPosition::center_parent) return;
   Display *display = window.runtime.display;
@@ -282,8 +283,8 @@ void place_for_start_position(NativeWindow &window, FormStartPosition position) 
       around_height = attributes.height;
     }
   }
-  const int width = static_cast<int>(window.size.width);
-  const int height = static_cast<int>(window.size.height);
+  const int width = window.device_width;
+  const int height = window.device_height;
   const int x = around_x + (around_width - width) / 2;
   const int y = around_y + (around_height - height) / 2;
   XSizeHints hints{};
@@ -396,14 +397,8 @@ HostWindowChromeResult Services::apply_window_chrome_impl(const WindowChrome &ch
     }
     if (fields.contains(WindowChromeField::minimum_size)) {
       window.chrome_minimum_size = chrome.minimum_size;
-      const Size minimum = window.minimum_size();
-      XSizeHints hints{};
-      long supplied{};
-      XGetWMNormalHints(display, window.xid, &hints, &supplied);
-      hints.flags = hints.flags | PMinSize;
-      hints.min_width = static_cast<int>(std::ceil(minimum.width));
-      hints.min_height = static_cast<int>(std::ceil(minimum.height));
-      XSetWMNormalHints(display, window.xid, &hints);
+      // Logical units, written at the window's scale.
+      window.write_minimum_hint();
       result.applied.add(WindowChromeField::minimum_size);
     }
     if (fields.contains(WindowChromeField::start_position) && !window.shown_once) {

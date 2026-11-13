@@ -6,6 +6,7 @@
 #include "gui_forms/value.hpp"
 #include "gui_forms/collection_controls.hpp"
 #include "gui_forms/window.hpp"
+#include "../src/core/control/control/control_input_access.hpp"
 
 #include <array>
 #include <cstddef>
@@ -502,6 +503,54 @@ void test_nested_emission() {
             "nested events must keep independent registration boundaries");
 }
 
+// A handler that raises `next` again from inside its own emission, with
+// no condition to stop: only the nesting limit ends the chain.
+struct RaiseAgain final {
+    gf::Event<int>* next{nullptr};
+    std::size_t* calls{nullptr};
+
+    void operator()(int depth) const {
+        ++(*calls);
+        (*next).emit(depth + 1);
+    }
+};
+
+// Emissions nest at most maximum_nested_event_emissions deep on a thread,
+// across events: the emission past the limit runs no handler and is
+// counted as refused, and the thread's count recovers afterwards.
+void test_nested_emission_limit() {
+    gf::Event<int> looping{};
+    std::size_t calls = 0U;
+    RaiseAgain again{};
+    again.next = &looping;
+    again.calls = &calls;
+    const gf::SubscriptionToken token = looping.subscribe(again);
+    looping.emit(1);
+    require(calls == gf::maximum_nested_event_emissions && looping.statistics().emissions_refused == 1U,
+            "a handler that raises its own event stops at the nesting limit");
+
+    gf::Event<int> first{};
+    gf::Event<int> second{};
+    std::size_t mutual_calls = 0U;
+    RaiseAgain to_second{};
+    to_second.next = &second;
+    to_second.calls = &mutual_calls;
+    RaiseAgain to_first{};
+    to_first.next = &first;
+    to_first.calls = &mutual_calls;
+    const gf::SubscriptionToken first_token = first.subscribe(to_second);
+    const gf::SubscriptionToken second_token = second.subscribe(to_first);
+    first.emit(1);
+    const std::uint64_t refused = first.statistics().emissions_refused + second.statistics().emissions_refused;
+    require(mutual_calls == gf::maximum_nested_event_emissions && refused == 1U,
+            "two events raising each other stop at the same thread-wide limit");
+
+    // Unwound: a fresh emission runs its full chain again.
+    calls = 0U;
+    looping.emit(1);
+    require(calls == gf::maximum_nested_event_emissions, "the nesting count recovers after the chain unwinds");
+}
+
 void test_publisher_and_target_destruction() {
     PublisherDestruction owner{};
     gf::on(*owner.event, owner, &PublisherDestruction::destroy);
@@ -687,7 +736,7 @@ void test_shared_scalar_state() {
             "accessibility must observe the bound value");
     gf::KeyEvent input{.action = gf::KeyAction::down,
                       .physical_key = gf::PhysicalKey::left};
-    first.on_key(input);
+    gui_forms::detail::ControlInputAccess::on_key(first, input);
     require(input.handled && observer.inputs == 1 && volume.get() == first.value.read(),
             "keyboard input must update the shared model and emit the input event");
     second.maximum = 50.0;
@@ -822,12 +871,12 @@ void test_command_bar_rebuild_and_keyboard() {
             "command bar must publish toolbar semantics and named item parts");
     static_cast<void>(window.request_focus((*bar).item(0).shared_from_this()));
     gf::KeyEvent right{.physical_key = gf::PhysicalKey::right};
-    (*bar).on_key(right);
+    gui_forms::detail::ControlInputAccess::on_key(*bar, right);
     require(right.handled && window.focused_control().get() == reused &&
                 !(*bar).item(0).tab_stop.read() && (*bar).item(1).tab_stop.read(),
             "arrow navigation must maintain a single tab stop");
     gf::KeyEvent tab{.physical_key = gf::PhysicalKey::tab};
-    (*bar).on_key(tab);
+    gui_forms::detail::ControlInputAccess::on_key(*bar, tab);
     require(!tab.handled, "Tab must leave command-bar traversal to the Window");
 
     const std::shared_ptr<gf::CommandBar> rebuilding =
@@ -873,7 +922,7 @@ void test_choice_group_state_and_rebuild() {
             "shrinking a choice list reuses controls and clears a removed selection");
     const int before = observer.choices;
     gf::KeyEvent right{.physical_key = gf::PhysicalKey::right};
-    (*group).on_key(right);
+    gui_forms::detail::ControlInputAccess::on_key(*group, right);
     require(right.handled && model.get() == 0 && observer.choices == before + 1,
             "arrow keys select choices through the shared model");
 }
@@ -1131,6 +1180,7 @@ int main() {
         test_disposal_during_emission();
         test_natural_teardown_cannot_resubscribe();
         test_nested_emission();
+        test_nested_emission_limit();
         test_callable_state_persists();
         test_publisher_and_target_destruction();
         test_exception_recovery_and_null_member();

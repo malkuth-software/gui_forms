@@ -1,4 +1,4 @@
-#include "gui_forms/controls/step_indicator/step_indicator.hpp"
+#include "gui_forms/controls/step_indicator.hpp"
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -185,14 +185,14 @@ void StepIndicator::on_paint(Painter& painter, Rect) {
             const std::string number = decimal(index + 1U);
             PartPaint label{.role = PartRole::label, .bounds = step.chip, .states = chip_states,
                             .family = ControlVisualRole::selection};
-            label.text = number;
+            label.text = lend_paint_text(number);
             label.font = numbers;
             label.alignment = PartTextAlignment::center;
             paint_part(painter, *this, label);
         }
         PartPaint caption{.role = PartRole::caption, .bounds = step.caption, .states = states,
                           .family = ControlVisualRole::panel};
-        caption.text = steps_[index];
+        caption.text = lend_paint_text(steps_[index]);
         caption.font = captions;
         caption.alignment = PartTextAlignment::center;
         caption.tone = index == current ? PartTextTone::ordinary : PartTextTone::secondary;
@@ -200,15 +200,16 @@ void StepIndicator::on_paint(Painter& painter, Rect) {
     }
 }
 
-void StepIndicator::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input()) return;
-    if (event.button != PointerButton::primary || event.action != PointerAction::down) return;
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
-    const std::optional<std::size_t> pressed = step_at(local);
-    if (!pressed || *pressed >= current_step.read()) return;
-    event.handled = true;
-    step_clicked_.emit(*pressed);
+void StepIndicator::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        const std::optional<std::size_t> pressed = step_at(arguments.location);
+        if (pressed && *pressed < current_step.read()) {
+            arguments.handled = true;
+            step_clicked_.emit(*pressed);
+            if (!is_alive()) return;
+        }
+    }
+    Control::on_mouse_down(arguments);
 }
 
 SemanticDescriptor StepIndicator::semantic_descriptor() const {

@@ -6,8 +6,31 @@
 // an animated parameter), nothing is baked between the discrete changes
 // that start them and the rest that ends them.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "support/theme_definition_heap.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -88,10 +111,10 @@ public:
 };
 
 // A control showing one keyed face, hot while the pointer is over it.
-class Pad final : public Control {
+class Pad final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit Pad(StableId stable_id) : Control(std::move(stable_id)) {}
-    void on_pointer(PointerEvent& event) override {
+    explicit Pad(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) {}
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::enter) {
             hot = true;
             invalidate(Dirty::paint);

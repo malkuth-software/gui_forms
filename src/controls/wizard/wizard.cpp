@@ -1,8 +1,8 @@
-#include "gui_forms/controls/wizard/wizard.hpp"
+#include "gui_forms/controls/wizard.hpp"
 
-#include "gui_forms/controls/button_base/button/button.hpp"
-#include "gui_forms/controls/step_indicator/step_indicator.hpp"
-#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/step_indicator.hpp"
+#include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -292,14 +292,14 @@ void Wizard::on_paint(Painter& painter, Rect) {
         const std::string& heading = (*shown).title.read();
         PartPaint caption{.role = PartRole::caption, .bounds = placed.caption, .states = states,
                           .family = ControlVisualRole::panel};
-        caption.text = heading;
+        caption.text = lend_paint_text(heading);
         caption.font = heading_font();
         paint_part(painter, *this, caption);
         const std::string& line = (*shown).description.read();
         if (!line.empty()) {
             PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = states,
                             .family = ControlVisualRole::panel};
-            label.text = line;
+            label.text = lend_paint_text(line);
             label.font = description_font();
             label.tone = PartTextTone::secondary;
             paint_part(painter, *this, label);

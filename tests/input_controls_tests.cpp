@@ -1,5 +1,5 @@
 #include "gui_forms/input_controls.hpp"
-#include "gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp"
+#include "gui_forms/controls/scroll_bar.hpp"
 #include "gui_forms/window.hpp"
 #include "headless_host.hpp"
 #include "support/named_callbacks.hpp"
@@ -15,6 +15,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 namespace {
@@ -1032,6 +1033,174 @@ void test_list_box_long_list_damage_and_window() {
             "the stable ID lookup follows new IDs");
 }
 
+// The control-level bases (TextBoxBase, ListControl, UpDownBase, as
+// Windows Forms names them) hold their leaves: each leaf converts to its
+// base and back, a base cannot be made on its own, and a call through the
+// base reaches the leaf's own overrides (its property table, its focus
+// target). UpDownBase owns the parts both up-down controls share: the edit
+// field and spin column their initialize_control_tree made.
+static_assert(std::is_base_of_v<Panel, TextBoxBase> && std::is_base_of_v<Panel, ListControl> &&
+              std::is_base_of_v<Panel, UpDownBase>);
+static_assert(std::is_base_of_v<TextBoxBase, TextBox> && std::is_base_of_v<TextBoxBase, MaskedTextBox> &&
+              std::is_base_of_v<TextBoxBase, RichTextBox>);
+static_assert(std::is_base_of_v<ListControl, ListBox> && std::is_base_of_v<ListControl, CheckedListBox> &&
+              std::is_base_of_v<ListControl, ComboBox>);
+static_assert(std::is_base_of_v<UpDownBase, NumericUpDown> && std::is_base_of_v<UpDownBase, DomainUpDown>);
+static_assert(!std::is_constructible_v<TextBoxBase, StableId> && !std::is_constructible_v<ListControl, StableId> &&
+              !std::is_constructible_v<UpDownBase, StableId>);
+
+void test_control_bases_hold_their_leaves() {
+    const std::shared_ptr<TextBox> text = make_control<TextBox>(StableId("input.bases.text"));
+    const std::shared_ptr<TextBoxBase> text_base = text;
+    require((*text_base).property_table().size() == TextBox::text_box_property_count &&
+                std::dynamic_pointer_cast<TextBox>(text_base) == text,
+            "TextBoxBase must hold a TextBox and reach its property table");
+    const std::shared_ptr<RichTextBox> rich = make_control<RichTextBox>(StableId("input.bases.rich"));
+    const std::shared_ptr<TextBoxBase> rich_base = rich;
+    require((*rich_base).property_table().size() == RichTextBox::rich_text_box_property_count &&
+                std::dynamic_pointer_cast<TextBox>(rich_base) == nullptr,
+            "TextBoxBase must hold a RichTextBox apart from a TextBox");
+    const std::shared_ptr<MaskedTextBox> masked = make_control<MaskedTextBox>(StableId("input.bases.masked"));
+    const std::shared_ptr<TextBoxBase> masked_base = masked;
+    require(std::dynamic_pointer_cast<MaskedTextBox>(masked_base) == masked &&
+                (*masked_base).focus_target() == (*masked).editor(),
+            "TextBoxBase must hold a MaskedTextBox whose focus goes to its editor");
+
+    const std::shared_ptr<ListBox> list = make_control<ListBox>(StableId("input.bases.list"));
+    const std::shared_ptr<CheckedListBox> checks = make_control<CheckedListBox>(StableId("input.bases.checks"));
+    const std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("input.bases.combo"));
+    const std::shared_ptr<ListControl> list_base = list;
+    const std::shared_ptr<ListControl> checks_base = checks;
+    const std::shared_ptr<ListControl> combo_base = combo;
+    require((*list_base).property_table().size() == ListBox::list_box_property_count &&
+                (*combo_base).property_table().size() == ComboBox::combo_box_property_count &&
+                std::dynamic_pointer_cast<ListBox>(checks_base) == checks &&
+                std::dynamic_pointer_cast<ListBox>(combo_base) == nullptr,
+            "ListControl must hold ListBox, CheckedListBox and ComboBox and reach their tables");
+
+    const std::shared_ptr<NumericUpDown> numeric = make_control<NumericUpDown>(StableId("input.bases.numeric"));
+    const std::shared_ptr<DomainUpDown> domain = make_control<DomainUpDown>(StableId("input.bases.domain"));
+    const std::shared_ptr<UpDownBase> numeric_base = numeric;
+    const std::shared_ptr<UpDownBase> domain_base = domain;
+    require((*numeric_base).property_table().size() == NumericUpDown::numeric_up_down_property_count &&
+                (*domain_base).property_table().size() == DomainUpDown::domain_up_down_property_count,
+            "UpDownBase must reach each up-down control's property table");
+    // The field the base holds is the derived class's child, and focus on
+    // the control goes to it.
+    const std::shared_ptr<TextBox> numeric_field = (*numeric_base).editor();
+    const std::shared_ptr<TextBox> domain_field = (*domain_base).editor();
+    require(numeric_field != nullptr && numeric_field == (*numeric).editor() &&
+                (*numeric_base).focus_target() == numeric_field &&
+                (*numeric_field).parent() == numeric,
+            "UpDownBase must hold NumericUpDown's edit field as its child and focus target");
+    require(domain_field != nullptr && domain_field == (*domain).editor() &&
+                (*domain_base).focus_target() == domain_field &&
+                (*domain_field).parent() == domain,
+            "UpDownBase must hold DomainUpDown's edit field as its child and focus target");
+    Window window(domain, {180.0, 32.0});
+    window.perform_layout();
+    require(window.find("input.bases.domain.spinner") != nullptr &&
+                window.request_focus(domain) && window.focused_control() == domain_field,
+            "UpDownBase's spin column must be a child and focus must reach the field");
+}
+
+// The bases' shared behaviour (owner-accepted base proposals, CP29 I5): the
+// editing surface on TextBoxBase, the stepping pair on UpDownBase and the
+// selected index on ListControl, each reached through the base.
+void test_control_bases_share_behaviour() {
+    const std::shared_ptr<TextBox> text = make_control<TextBox>(StableId("input.shared.text"));
+    (*text).text = "hello";
+    TextBoxBase& text_base = *text;
+    text_base.select(Utf8Offset(1U), Utf8Offset(3U));
+    require(text_base.selected_text() == "el" && (*text).selection().length() == 2U,
+            "TextBoxBase::select must reach TextBox's selection");
+    require(!text_base.can_undo() && (*text).replace_selection("EL") && text_base.can_undo() && text_base.undo() &&
+                (*text).text.read() == "hello",
+            "TextBoxBase's undo must undo TextBox's last edit");
+    text_base.select_all();
+    require(text_base.selected_text() == "hello", "TextBoxBase::select_all must select TextBox's whole text");
+    bool refused = false;
+    try {
+        text_base.select(Utf8Offset(9U), Utf8Offset(9U));
+    } catch (const std::out_of_range&) {
+        refused = true;
+    }
+    require(refused && text_base.selected_text() == "hello", "TextBoxBase::select must refuse offsets past the text");
+
+    const std::shared_ptr<RichTextBox> rich = make_control<RichTextBox>(StableId("input.shared.rich"));
+    (*rich).text = "rich";
+    TextBoxBase& rich_base = *rich;
+    rich_base.select_all();
+    require(rich_base.selected_text() == "rich" && rich_base.selection().length() == 4U,
+            "TextBoxBase::select_all must reach RichTextBox's selection");
+
+    const std::shared_ptr<MaskedTextBox> masked = make_control<MaskedTextBox>(StableId("input.shared.masked"));
+    static_cast<void>((*masked).place_text("abc"));
+    TextBoxBase& masked_base = *masked;
+    masked_base.select(Utf8Offset(0U), Utf8Offset(1U));
+    require(masked_base.selected_text() == "a" && (*(*masked).editor()).selection().length() == 1U,
+            "TextBoxBase::select on a MaskedTextBox must select in its field");
+    require(!masked_base.can_undo() && !masked_base.undo() && masked_base.selected_text() == "a",
+            "MaskedTextBox must report no undo and do nothing on undo");
+    masked_base.clear_undo_history();
+
+    const std::shared_ptr<NumericUpDown> numeric = make_control<NumericUpDown>(StableId("input.shared.numeric"));
+    (*numeric).set_range(0.0, 10.0);
+    (*numeric).increment = 2.0;
+    UpDownBase& numeric_base = *numeric;
+    numeric_base.up_button();
+    numeric_base.up_button();
+    require((*numeric).value.read() == 4.0, "UpDownBase::up_button must add NumericUpDown's increment");
+    numeric_base.down_button();
+    require((*numeric).value.read() == 2.0, "UpDownBase::down_button must subtract NumericUpDown's increment");
+    for (int step = 0; step < 8; ++step) numeric_base.up_button();
+    require((*numeric).value.read() == 10.0, "UpDownBase::up_button must stop at NumericUpDown's maximum");
+
+    const std::shared_ptr<DomainUpDown> domain = make_control<DomainUpDown>(StableId("input.shared.domain"));
+    (*domain).items = {"one", "two", "three"};
+    UpDownBase& domain_base = *domain;
+    domain_base.up_button();
+    require((*domain).selected_index.read() == std::optional<std::size_t>{2U},
+            "UpDownBase::up_button with no selection must select DomainUpDown's last item");
+    domain_base.down_button();
+    require((*domain).selected_index.read() == std::optional<std::size_t>{0U} ||
+                (*domain).selected_index.read() == std::optional<std::size_t>{2U},
+            "UpDownBase::down_button must step DomainUpDown's selection");
+
+    const std::shared_ptr<ListBox> list = make_control<ListBox>(StableId("input.shared.list"));
+    (*list).items = {"Alpha", "Bravo", "Charlie", "Delta"};
+    (*list).selection_mode = ListSelectionMode::multiple_extended;
+    ListControl& list_base = *list;
+    std::string order;
+    SubscriptionToken selection = (*list).selection_changed().subscribe(
+        test_support::AppendLiteral<const ListSelectionChange&>(order, "selection\n"));
+    SubscriptionToken index = list_base.selected_index_changed().subscribe(
+        test_support::AppendLiteral<std::optional<std::size_t>>(order, "index\n"));
+    require(!list_base.selected_index().has_value(), "ListControl must start with no selected index");
+    (*list).select_index(1U);
+    require(list_base.selected_index() == std::optional<std::size_t>{1U} && order == "selection\nindex\n",
+            "ListBox must raise selected_index_changed after selection_changed");
+    order.clear();
+    (*list).select_index(3U, true);
+    require(list_base.selected_index() == std::optional<std::size_t>{1U} && order == "selection\n",
+            "an extended selection keeping the first item must not raise selected_index_changed");
+    order.clear();
+    (*list).clear_selection();
+    require(!list_base.selected_index().has_value() && order == "selection\nindex\n",
+            "clearing ListBox's selection must clear ListControl's selected index");
+
+    const std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("input.shared.combo"));
+    (*combo).items = {"Red", "Green"};
+    ListControl& combo_base = *combo;
+    std::size_t combo_changes{};
+    SubscriptionToken combo_index = combo_base.selected_index_changed().subscribe(
+        test_support::IncrementCounter<std::size_t, std::optional<std::size_t>>(combo_changes));
+    (*combo).selected_index = std::optional<std::size_t>{1U};
+    require(combo_base.selected_index() == std::optional<std::size_t>{1U} &&
+                (*combo).selected_index.read() == std::optional<std::size_t>{1U} && combo_changes == 1U,
+            "ListControl's selected index must follow ComboBox's selected_index cell");
+}
+
 int main() {
     try {
         test_unicode_editing_selection_and_history();
@@ -1053,6 +1222,8 @@ int main() {
         test_numeric_up_down_schema_properties();
         test_list_box_property_capabilities();
         test_combo_box_property_capabilities();
+        test_control_bases_hold_their_leaves();
+        test_control_bases_share_behaviour();
         std::cout << "gui_forms_input_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

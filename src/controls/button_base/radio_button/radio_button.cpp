@@ -1,4 +1,4 @@
-#include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
+#include "gui_forms/controls/radio_button.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "../choice_indicator_property.hpp"
 #include "gui_forms/text.hpp"
@@ -130,18 +130,23 @@ void RadioButton::publish_part_geometry(std::span<PartGeometry> geometry) const 
     const double indicator_width =
         indicator_style.read() == ChoiceIndicatorStyle::toggle ? 30.0 : 15.0;
     const double top = std::max(1.0, (bounds.height - 15.0) * 0.5);
-    const Rect well{1.0, top, indicator_width, 15.0};
+    const Rect laid_well{1.0, top, indicator_width, 15.0};
     // The toggle's knob, or the round dot drawn inside the 15-unit disc.
-    Rect mark{};
+    Rect laid_mark{};
     if (indicator_style.read() == ChoiceIndicatorStyle::toggle) {
-        const double knob_x = checked_ ? well.x + well.width - 13.0 : well.x + 2.0;
-        mark = {knob_x, well.y + 2.0, 11.0, 11.0};
+        const double knob_x = checked_ ? laid_well.x + laid_well.width - 13.0 : laid_well.x + 2.0;
+        laid_mark = {knob_x, laid_well.y + 2.0, 11.0, 11.0};
     } else if (checked_) {
-        mark = {well.x + 4.0, well.y + 4.0, 7.0, 7.0};
+        laid_mark = {laid_well.x + 4.0, laid_well.y + 4.0, 7.0, 7.0};
     }
-    const Rect content_face{well.x + well.width + 1.0, 0.0,
-                            std::max(0.0, bounds.width - well.x - well.width - 1.0),
-                            bounds.height};
+    const Rect laid_face{laid_well.x + laid_well.width + 1.0, 0.0,
+                         std::max(0.0, bounds.width - laid_well.x - laid_well.width - 1.0),
+                         bounds.height};
+    // Mirrored as on_paint mirrors them.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    const Rect well = mirrored ? horizontally_mirrored(laid_well, bounds) : laid_well;
+    const Rect mark = mirrored && !laid_mark.empty() ? horizontally_mirrored(laid_mark, bounds) : laid_mark;
+    const Rect content_face = mirrored ? horizontally_mirrored(laid_face, bounds) : laid_face;
     const ContentLayout layout =
         published_content_layout(content_face, checked_, false);
     Parts record;
@@ -189,7 +194,12 @@ void RadioButton::on_paint(Painter& painter, Rect) {
     const bool toggle = indicator_style.read() == ChoiceIndicatorStyle::toggle;
     const double indicator_width = toggle ? 30.0 : 15.0;
     const double top = std::max(1.0, (bounds.height - 15.0) * 0.5);
-    const Rect box{1.0, top, indicator_width, 15.0};
+    // Laid out left to right; a radio button that resolves right to left
+    // mirrors the well, its mark and the content face, putting the disc at
+    // the right (Windows Forms' CheckAlign follows RightToLeft).
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    const Rect laid_box{1.0, top, indicator_width, 15.0};
+    const Rect box = mirrored ? horizontally_mirrored(laid_box, bounds) : laid_box;
     const AnatomyStateSet states = anatomy_states();
     std::optional<Color> ground{};
     std::optional<Color> ink{};
@@ -214,18 +224,21 @@ void RadioButton::on_paint(Painter& painter, Rect) {
         indicator.states = states;
         indicator.authored_foreground = ink;
         indicator.key = PartKey{"indicator", {}, {}};
+        Rect laid_mark{};
         if (toggle) {
-            const double knob_x = checked_ ? box.x + box.width - 13.0 : box.x + 2.0;
+            const double knob_x = checked_ ? laid_box.x + laid_box.width - 13.0 : laid_box.x + 2.0;
             indicator.mark = PartMark::toggle_knob;
-            indicator.bounds = {knob_x, box.y + 2.0, 11.0, 11.0};
+            laid_mark = {knob_x, laid_box.y + 2.0, 11.0, 11.0};
         } else {
             indicator.mark = PartMark::radio_dot;
-            indicator.bounds = {box.x + 4.0, box.y + 4.0, 7.0, 7.0};
+            laid_mark = {laid_box.x + 4.0, laid_box.y + 4.0, 7.0, 7.0};
         }
+        indicator.bounds = mirrored ? horizontally_mirrored(laid_mark, bounds) : laid_mark;
         paint_part(painter, *this, indicator);
     }
-    const Rect content{box.x + box.width + 1.0, 0.0,
-                       std::max(0.0, bounds.width - box.x - box.width - 1.0), bounds.height};
+    const Rect laid_content{laid_box.x + laid_box.width + 1.0, 0.0,
+                            std::max(0.0, bounds.width - laid_box.x - laid_box.width - 1.0), bounds.height};
+    const Rect content = mirrored ? horizontally_mirrored(laid_content, bounds) : laid_content;
     ButtonContentInk content_ink;
     content_ink.family = ControlVisualRole::choice;
     content_ink.states = states;

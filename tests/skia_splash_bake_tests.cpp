@@ -2,7 +2,13 @@
 // phase 2): a snapshot baked on the worker comes back with the pixels the
 // window's own painter would draw, premultiplied BGRA8.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/display/types/display_types.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 #include "../src/core/display/snapshot/display_snapshot.hpp"
 #include "../src/core/display/snapshot/splash_baker.hpp"
 #include "../src/render/skia/raster/skia_splash_bake.hpp"
@@ -32,7 +38,7 @@ std::shared_ptr<const DisplaySnapshot> red_half(double scale) {
     fill.operation = DisplayOperation::fill_rect;
     fill.rect = Rect{0.0, 0.0, 5.0, 4.0};
     fill.color = Color{255, 0, 0, 255};
-    std::vector<DisplayCommand> commands;
+    DisplayCommandList commands;
     commands.push_back(fill);
     DisplayChunk chunk(1U, PaintPlane::overlay, Rect{0.0, 0.0, 10.0, 4.0}, std::move(commands));
     DisplaySnapshotResult made = make_display_snapshot(chunk, Size{10.0, 4.0}, DeviceScale{scale});

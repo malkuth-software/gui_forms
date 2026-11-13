@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -15,8 +17,8 @@ namespace gui_forms::detail {
 // straight_channel then premultiplied_channel gives back every premultiplied
 // channel c <= a exactly, so a valid host image survives a straight
 // interchange unchanged.
-[[nodiscard]] std::uint8_t premultiplied_channel(std::uint8_t straight, std::uint8_t alpha) noexcept;
-[[nodiscard]] std::uint8_t straight_channel(std::uint8_t premultiplied, std::uint8_t alpha) noexcept;
+[[nodiscard]] GUI_FORMS_API std::uint8_t premultiplied_channel(std::uint8_t straight, std::uint8_t alpha) noexcept;
+[[nodiscard]] GUI_FORMS_API std::uint8_t straight_channel(std::uint8_t premultiplied, std::uint8_t alpha) noexcept;
 
 // Input kernel: `width` straight RGBA8 pixels of `source` (a version-1
 // clipboard image row) as premultiplied BGRA8 in `destination`. Both hold at
@@ -27,6 +29,6 @@ void straight_rgba_to_premultiplied_bgra(std::span<const std::byte> source, std:
 // Output kernel: `width` premultiplied BGRA8 pixels of `source` as straight
 // BGRA8 in `destination` (native DIBs and icons). Both hold at least
 // width * 4 bytes; they may be the same span.
-void premultiplied_bgra_to_straight_bgra(std::span<const std::byte> source, std::span<std::byte> destination,
+GUI_FORMS_API void premultiplied_bgra_to_straight_bgra(std::span<const std::byte> source, std::span<std::byte> destination,
                                          std::uint32_t width) noexcept;
 } // namespace gui_forms::detail

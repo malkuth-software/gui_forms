@@ -2,16 +2,16 @@
   "family": "Label",
   "step": "M-S2",
   "declaring": "Label",
-  "header": "include/gui_forms/controls/label/label.hpp",
+  "header": "include/gui_forms/controls/label.hpp",
   "source": "src/controls/label/label.cpp",
-  "capabilities_header": "include/gui_forms/controls/label/label_capabilities/label_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/label_capabilities.hpp",
   "base": "Control",
   "shared": [
     "TextCapability"
   ],
   "includes": [
     "gui_forms/types.hpp",
-    "gui_forms/controls/label/label_values/label_values.hpp"
+    "gui_forms/controls/label_values.hpp"
   ],
   "overrides": [
     "{\"fore_color\", &describe_label_fore_color,\n         &read_member_entry<Label, decltype(&Label::fore_color_property_value), &Label::fore_color_property_value>,\n         &write_member_entry<Label, decltype(&Label::write_fore_color_property), &Label::write_fore_color_property>,\n         &reset_member_entry<Label, decltype(&Label::reset_fore_color_property), &Label::reset_fore_color_property>,\n         &should_serialize_member_entry<Label, decltype(&Label::fore_color_serialized), &Label::fore_color_serialized>,\n         &origin_member_entry<Label, decltype(&Label::fore_color_property_origin), &Label::fore_color_property_origin>,\n         nullptr}"
@@ -315,6 +315,6 @@
   ],
   "test": {
     "type": "Label",
-    "include": "gui_forms/controls/label/label.hpp"
+    "include": "gui_forms/controls/label.hpp"
   }
 }

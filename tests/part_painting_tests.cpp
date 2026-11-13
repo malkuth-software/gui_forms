@@ -184,7 +184,7 @@ void marks_and_text(const Control& control) {
     label.role = PartRole::label;
     label.bounds = {0.0, 0.0, 100.0, 20.0};
     label.family = ControlVisualRole::button;
-    label.text = "Apply";
+    label.text = lend_paint_text("Apply");
     RecordingPainter enabled;
     paint_part(enabled, control, label);
     const ControlVisualRecipe& button =
@@ -407,7 +407,7 @@ void content_colors(const Control& control) {
         plain.role = role;
         plain.family = ControlVisualRole::menu_item;
         plain.bounds = {0.0, 0.0, 40.0, 20.0};
-        plain.text = "Text";
+        plain.text = lend_paint_text("Text");
         RecordingPainter without;
         paint_part(without, control, plain);
         plain.content_color = sample;
@@ -466,7 +466,7 @@ void authored_colors(const Control& control) {
     label.role = PartRole::label;
     label.family = ControlVisualRole::button;
     label.bounds = {0.0, 0.0, 60.0, 24.0};
-    label.text = "Cell";
+    label.text = lend_paint_text("Cell");
     label.authored_foreground = ink;
     label.authored_background = ground;
     RecordingPainter styled_label;
@@ -572,7 +572,7 @@ void control_colors() {
     label.role = PartRole::label;
     label.family = ControlVisualRole::button;
     label.bounds = {0.0, 0.0, 60.0, 24.0};
-    label.text = "Cell";
+    label.text = lend_paint_text("Cell");
     RecordingPainter inherited_label;
     paint_part(inherited_label, *child, label);
     require(recorded(inherited_label, "text", ink), "a label draws in an inherited foreground");
@@ -613,7 +613,7 @@ void families() {
     const ControlVisualRecipe& card = (*theme).resolve(ControlVisualRole::card, normal);
     require(tool_tip.material.fills.front().color == Color::rgba(255, 255, 225) &&
                 tool_tip.material.border && (*tool_tip.material.border).color == Color::rgba(104, 111, 118) &&
-                tool_tip.material.corner_radius == 0.0 && tool_tip.text == Color::rgba(24, 31, 38) &&
+                tool_tip.material.corner_radius == 0.0 && tool_tip.text == Color::rgba(0, 0, 0) &&
                 !(tool_tip.material == card.material),
             "windows-professional's tooltip family keeps the plain tooltip's face, edge and text");
 
@@ -752,7 +752,7 @@ void pointed_faces(const Control& control) {
     PartPaint label;
     label.role = PartRole::label;
     label.bounds = bounds;
-    label.text = "Segment";
+    label.text = lend_paint_text("Segment");
     RecordingPainter plain_label;
     paint_part(plain_label, control, label);
     label.point = 8.0;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
 
@@ -14,7 +15,7 @@ namespace gui_forms {
 
 // Counters of a host's side of its sub-surface's requests (design note
 // section 15). UI thread.
-struct SubSurfaceRequestStatistics final {
+struct GUI_FORMS_API SubSurfaceRequestStatistics final {
     std::uint64_t received{};
     // Answered shown by the window's tooltip presenter.
     std::uint64_t shown{};
@@ -34,7 +35,7 @@ struct SubSurfaceRequestStatistics final {
 // How a host's sub-surface thread ended (SubSurfaceHost::stopped): stopped
 // when the host stopped it (new content, leaving the window), failed when
 // the content threw or built no root, with what it threw.
-struct SubSurfaceStopped final {
+struct GUI_FORMS_API SubSurfaceStopped final {
     SubSurfaceState state{SubSurfaceState::stopped};
     std::string failure{};
 };
@@ -101,7 +102,7 @@ struct SubSurfaceStopped final {
 // but no text layout (Window::semantic_text_layout answers only for the
 // window's own controls), so hosts offer no text ranges inside a
 // sub-surface.
-class SubSurfaceHost final : public Control {
+class GUI_FORMS_API SubSurfaceHost final : public Control {
 public:
     explicit SubSurfaceHost(StableId stable_id);
     ~SubSurfaceHost() override;
@@ -198,12 +199,12 @@ public:
     // the composed sub-surface frame, present once the sub-surface has a
     // LiveSurface; the sub-surface's own controls are parts of its tree,
     // not of the host.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry content;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool enabled{};
         bool disabled{};
@@ -218,8 +219,17 @@ protected:
     void on_attached_to_window() override;
     void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
     // Forward to the sub-surface while it runs and mark the event handled.
-    void on_pointer(PointerEvent& event) override;
-    void on_key(KeyEvent& event) override;
+    // Forward the mouse to the sub-surface while it runs and mark it
+    // handled, then raise the event. The window's enter is not forwarded:
+    // the move that caused it starts the sub-surface's own hover.
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    // Forward a key no subscriber handled to the sub-surface.
+    void on_key_down(KeyEventArgs& arguments) override;
+    void on_key_up(KeyEventArgs& arguments) override;
     void on_text_input(TextInputEvent& event) override;
     void on_focus_changed(bool focused) override;
     // The sub-surface's published caret: its coordinates are the host's.
@@ -280,6 +290,13 @@ private:
     // Takes or releases the window's pointer capture for a forwarded press
     // or release (pressed_buttons_).
     void hold_capture_for(const PointerEvent& event);
+    // Posts one pointer event to the sub-surface (`event` in the window's
+    // coordinates): the mouse raisers' events and the leave.
+    void forward_pointer(const PointerEvent& event);
+    // Posts the mouse raiser's event and marks it handled.
+    void forward_mouse(MouseEventArgs& arguments);
+    // Posts one key event (a key no subscriber handled) and marks it handled.
+    void forward_key(KeyEventArgs& arguments, KeyAction action);
     // A key the sub-surface returned (KeyReturn): continues in the window.
     void continue_returned_key(const KeyEvent& event);
     // A semantics notice (SemanticsNotice): takes the newest snapshot and

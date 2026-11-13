@@ -19,7 +19,10 @@
 
 #include "gui_forms/background_worker/background_worker.hpp"
 #include "gui_forms/components/about_dialog/about_dialog.hpp"
-#include "gui_forms/controls/instruments/gauge_base/gauge_base.hpp"
+#include "gui_forms/controls/gauge_base.hpp"
+#include "gui_forms/controls/list_control.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
+#include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_context/binding_context.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
@@ -36,14 +39,14 @@
 #include "gui_forms/components/open_file_dialog/open_file_dialog.hpp"
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
-#include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
+#include "gui_forms/controls/help_book_system.hpp"
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
-#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
-#include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
-#include "gui_forms/controls/pages/page_strip/page_strip.hpp"
-#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
-#include "gui_forms/controls/toast/toast.hpp"
+#include "gui_forms/controls/dock_site.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/page_strip.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/toast.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
@@ -132,8 +135,12 @@ void describe_type(SchemaSample& sample) {
     record_control(*control, sample);
 }
 
-// Controls that need another object.
+// Controls that need another object, and the abstract bases (each recorded
+// through a subclass that adds nothing).
 template <> void describe_type<GaugeBase>(SchemaSample& sample);
+template <> void describe_type<TextBoxBase>(SchemaSample& sample);
+template <> void describe_type<ListControl>(SchemaSample& sample);
+template <> void describe_type<UpDownBase>(SchemaSample& sample);
 template <> void describe_type<AnchoredOverlayLayer>(SchemaSample& sample);
 template <> void describe_type<DockSite>(SchemaSample& sample);
 template <> void describe_type<PageStrip>(SchemaSample& sample);

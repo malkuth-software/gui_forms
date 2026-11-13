@@ -3,12 +3,14 @@
 #include "gui_forms/diagnostic_controls.hpp"
 #include "gui_forms/range_controls.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms_demo/easing_preview.hpp"
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <span>
 #include <stdexcept>
 #include <vector>
 
@@ -157,13 +159,18 @@ public:
     void clip_rect(Rect bounds) override { clip = bounds; }
     void fill_rect(Rect, Color) override {}
     void stroke_rect(Rect, Color, double) override {}
-    void draw_line(Point from, Point to, Color, double width) override {
-        ++lines;
-        if (close_to(width, 6.0)) {
-            ++stripe_lines;
-            line_width = width;
-            if (from.y <= to.y) slopes_down = false;
+    void draw_line(Point, Point, Color, double) override { ++lines; }
+    // Each marching band is one four-point polygon: its near side's two
+    // corners (across 0), then its far side's (across the thickness).
+    void fill_polygon(std::span<const Point> points, Color, PolygonFillRule) override {
+        ++bands;
+        if (points.size() != 4U) {
+            leans_back = false;
+            return;
         }
+        band_width = points[1].x - points[0].x;
+        slant = points[3].x - points[0].x;
+        if (!(points[3].y > points[0].y) || !(slant > 0.0)) leans_back = false;
     }
     void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
     void draw_image(ImageId, Rect, double) override {}
@@ -171,10 +178,11 @@ public:
     int saves{};
     int restores{};
     int lines{};
-    int stripe_lines{};
+    int bands{};
     Rect clip{};
-    double line_width{};
-    bool slopes_down{true};
+    double band_width{};
+    double slant{};
+    bool leans_back{true};
 };
 
 // ADR-016: each tick damages only what the phase moved, and a bar that is
@@ -538,11 +546,14 @@ void test_progress_stripes_are_clipped_and_configurable() {
     window.perform_layout();
     StripePainter painter;
     (*progress).on_paint(painter, {0.0, 0.0, 200.0, 24.0});
-    require(painter.saves >= 1 && painter.restores == painter.saves &&
-                painter.stripe_lines > 1 &&
-                painter.clip == Rect{2.0, 2.0, 98.0, 20.0} &&
-                close_to(painter.line_width, 6.0) && painter.slopes_down,
-            "striped progress must clip diagonal bands to the determinate fill");
+    // The barber pole (owner rulings of 2026-11-11): filled bands inside
+    // the fill's one-unit rim, the pitch the interior's thickness (20), the
+    // pale band 0.4 of it, leaning 45 degrees back from the leading edge
+    // across the clip's 18.
+    require(painter.saves >= 1 && painter.restores == painter.saves && painter.bands > 1 &&
+                painter.clip == Rect{3.0, 3.0, 96.0, 18.0} && close_to(painter.band_width, 8.0) &&
+                close_to(painter.slant, 18.0) && painter.leans_back,
+            "striped progress must clip filled bands, leaning back, to the fill inside its rim");
 
     bool narrow_rejected = false;
     try {
@@ -593,6 +604,7 @@ public:
         }
         else ++bands;
     }
+    void fill_polygon(std::span<const Point>, Color, PolygonFillRule) override { ++bands; }
     void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
     void draw_image(ImageId, Rect, double) override {}
 
@@ -654,8 +666,8 @@ void test_progress_animation_style_family() {
     require(stripes.bands > 2 && stripes.saves >= 1 &&
                 stripes.restores == stripes.saves &&
                 std::find(stripes.clips.begin(), stripes.clips.end(),
-                          Rect{2.0, 2.0, 151.04, 20.0}) != stripes.clips.end(),
-            "marching-stripe progress must remain clipped to determinate fill");
+                          Rect{3.0, 3.0, 149.04, 18.0}) != stripes.clips.end(),
+            "marching-stripe progress must remain clipped to determinate fill inside its rim");
 
     (*progress).visual_style = ProgressBarVisualStyle::laser_etch;
     (*progress).advance_animation(origin + 750ms);

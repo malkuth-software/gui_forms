@@ -1,9 +1,11 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/delegate.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -57,11 +59,42 @@ struct MemberArgumentPrefix final {
 
 } // namespace detail
 
-struct EventStatistics {
+struct GUI_FORMS_API EventStatistics {
     std::uint64_t subscriptions_connected{};
     std::uint64_t subscriptions_disconnected{};
     std::uint64_t callbacks_emitted{};
+    // Emissions of this event refused because the thread was already
+    // maximum_nested_event_emissions emissions deep.
+    std::uint64_t emissions_refused{};
 };
+
+// The deepest emissions may nest on one thread, across every Event: a
+// handler that raises an event (the same one or another) nests one
+// emission inside its own. An emission that would pass the limit is
+// refused before any handler runs: emit returns at once and counts it in
+// that event's EventStatistics::emissions_refused. Ordinary chains (a
+// property change whose handler sets another property) nest a few levels;
+// a chain that reaches the limit is a handler loop. The budget: each level
+// is emit's frame, the slot's dispatch and the handler, 8 KiB allowed in
+// all, so 32 levels take at most 256 KiB, half of the smallest UI-thread
+// stack among the hosts (a macOS secondary thread's 512 KiB).
+inline constexpr std::size_t maximum_nested_event_emissions = 32U;
+
+namespace detail {
+
+// Emissions running on this thread, every Event counted.
+inline thread_local std::size_t nested_event_emissions = 0U;
+
+// Counts one emission on this thread for its duration, on every exit.
+class GUI_FORMS_API NestedEmissionScope final {
+public:
+    NestedEmissionScope() noexcept { ++nested_event_emissions; }
+    ~NestedEmissionScope() { --nested_event_emissions; }
+    NestedEmissionScope(const NestedEmissionScope&) = delete;
+    NestedEmissionScope& operator=(const NestedEmissionScope&) = delete;
+};
+
+} // namespace detail
 
 // Emission fixes a registration-order boundary. Handlers added during an
 // emission wait for the next emission. A handler disconnected before its turn
@@ -109,10 +142,17 @@ public:
         return token;
     }
 
+    // Refused, running no handler, when the thread is already
+    // maximum_nested_event_emissions emissions deep.
     void emit(Arguments... arguments) {
         if (state_ == nullptr) return;
         const std::shared_ptr<State> state = state_;
+        if (detail::nested_event_emissions >= maximum_nested_event_emissions) {
+            ++(*state).statistics.emissions_refused;
+            return;
+        }
         const std::size_t boundary = (*state).slots.size();
+        const detail::NestedEmissionScope nesting{};
         EmissionScope emission(state);
         for (std::size_t index = 0; index < boundary; ++index) {
             // A callback can grow the slots vector or disconnect this slot.

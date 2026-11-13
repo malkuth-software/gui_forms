@@ -7,13 +7,13 @@ gui_forms::DomainUpDown
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DomainUpDown final : public Panel, public TextItemsCapability<DomainUpDown>, public DomainUpDownCapabilities<DomainUpDown>
+.. cpp:class:: DomainUpDown final : public UpDownBase, public TextItemsCapability<DomainUpDown>, public DomainUpDownCapabilities<DomainUpDown>
 
-   ``#include <gui_forms/controls/panel/domain_up_down/domain_up_down.hpp>``
+   ``#include <gui_forms/controls/domain_up_down.hpp>``
 
    A text field with up and down buttons that steps through a list of strings.
 
-   A domain up-down shows one of its :cpp:member:`items <gui_forms::DomainUpDown::items>` in an :cpp:func:`editor <gui_forms::DomainUpDown::editor>` text box beside a
+   A domain up-down shows one of its :cpp:member:`items <gui_forms::DomainUpDown::items>` in an ``editor`` text box beside a
    pair of spin buttons. The items are a list read top to bottom: the upper
    button, the Up key and the wheel turned up move to the previous item, and the
    lower button, the Down key and the wheel turned down move to the next. Use it
@@ -67,9 +67,6 @@ gui_forms::DomainUpDown
          The width of the spin buttons, from 12 to 64; a width outside that range
          throws ``std::out_of_range``.
 
-      **editor** : ``std::shared_ptr<TextBox>``, read-only
-         The :cpp:class:`TextBox <gui_forms::TextBox>` that shows the text.
-
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -81,6 +78,8 @@ gui_forms::DomainUpDown
          typing, a setter or a change to the items. It carries the new selection.
 
    :Inherited:
+
+      From :cpp:class:`UpDownBase <gui_forms::UpDownBase>`: properties :cpp:func:`editor <gui_forms::UpDownBase::editor>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
@@ -100,10 +99,6 @@ gui_forms::DomainUpDown
         - The items in display order (:cpp:member:`items <gui_forms::DomainUpDown::items>`, TextItemsCapability, edited in place): while sorted is true, every edit is followed by sorting (ASCII case folded, then byte order), as Windows Forms' sorted DomainUpDown, so an inserted item need not stay at its position.
       * - :cpp:func:`written <gui_forms::DomainUpDown::written>`
         -  
-      * - :cpp:func:`up_button <gui_forms::DomainUpDown::up_button>`
-        - Selects the previous item, or the last when nothing is selected.
-      * - :cpp:func:`down_button <gui_forms::DomainUpDown::down_button>`
-        - Selects the next item, or the first when nothing is selected.
       * - :cpp:func:`domain_up_down_property_entries <gui_forms::DomainUpDown::domain_up_down_property_entries>`
         -  
 
@@ -206,10 +201,6 @@ gui_forms::DomainUpDown
       The width of the spin buttons, from 12 to 64; a width outside that range
       throws ``std::out_of_range``.
 
-   .. cpp:function:: std::shared_ptr<TextBox> editor() const noexcept
-
-      The :cpp:class:`TextBox <gui_forms::TextBox>` that shows the text.
-
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -236,22 +227,18 @@ gui_forms::DomainUpDown
 
    .. cpp:function:: void written(const decltype(items)& cell, const CollectionEdit& edit)
 
-   .. cpp:function:: void up_button()
-
-      Selects the previous item, or the last when nothing is selected.
-
-   .. cpp:function:: void down_button()
-
-      Selects the next item, or the first when nothing is selected.
-
    .. cpp:function:: static const std::array<PropertyEntry, domain_up_down_property_count>& domain_up_down_property_entries() noexcept
 
 
    .. rubric:: Extension points
 
-   .. cpp:function:: Ptr focus_target() const override
+   .. cpp:function:: void up_button() override
 
-      Focus on the field goes to its edit part (null without one).
+      Selects the previous item, or the last when nothing is selected.
+
+   .. cpp:function:: void down_button() override
+
+      Selects the next item, or the first when nothing is selected.
 
    .. cpp:function:: void arrange(Rect final_bounds) override
 
@@ -294,3 +281,81 @@ gui_forms::DomainUpDown
    .. cpp:member:: constexpr std::size_t domain_up_down_property_count
 
       DomainUpDown's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``DomainUpDown``. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 13 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``DomainUpDown``
+     - ``DomainUpDown``
+     - supported
+   * - property
+     - ``Items``
+     - ``items``
+     - supported
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``SelectedIndex``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Sorted``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Wrap``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SelectedItemChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnSelectedItemChanged``
+     - none
+     - unclassified (hook)
+   * - event
+     - GUI.Forms-only
+     - ``selected_index_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``domain_up_down_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnTextChanged``
+     - ``on_text_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``prepare_edit``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``written``
+     - unclassified (untested)

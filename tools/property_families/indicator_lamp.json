@@ -1,0 +1,157 @@
+{
+  "family": "IndicatorLamp",
+  "step": "cp31",
+  "declaring": "IndicatorLamp",
+  "header": "include/gui_forms/controls/indicator_lamp.hpp",
+  "source": "src/controls/indicator_lamp/indicator_lamp.cpp",
+  "capabilities_header": "include/gui_forms/controls/indicator_lamp_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/indicator_lamp_values.hpp",
+    "gui_forms/drawing/color/color.hpp"
+  ],
+  "properties": [
+    {
+      "name": "state",
+      "capability": "IndicatorLampStateChoice",
+      "value": "IndicatorLampState",
+      "initial": "IndicatorLampState::off",
+      "comment": "Whether the lamp is off, on or showing an error. The lens warms up on a change to on or error and cools down on a change to off, at once under reduced motion.",
+      "getter": "state",
+      "setter": "set_state",
+      "clear": null,
+      "field": "state_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "Whether the lamp is off, on or showing an error.",
+        "default": "BindingValue{PropertyEnumValue{\"indicator_lamp_state\", \"off\", 0}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "indicator_lamp_state_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written starts the lens's warm-up or cool-down (IndicatorLamp::begin_change) besides the paint and semantics invalidation"
+      ],
+      "sample": "IndicatorLampState::on"
+    },
+    {
+      "name": "text",
+      "capability": "IndicatorLampText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The legend beside the lens, which also names the lamp to assistive technology; empty for a lens alone. Must be valid UTF-8 (std::invalid_argument).",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": "text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "text",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The legend beside the lens.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) {",
+        "    throw std::invalid_argument(\"IndicatorLamp text must be valid UTF-8\");",
+        "}"
+      ],
+      "sample": "std::string{\"Coolant\"}"
+    },
+    {
+      "name": "light_planes",
+      "capability": "IndicatorLampLightPlanes",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The baked light planes the lens is composited from, by name: a bake in the windows' light-plane directory (ApplicationResources::set_light_plane_directory), 1 to 64 lower-case letters, digits and '_', or empty for the theme's lens (std::invalid_argument otherwise). With the bake present the lens takes its aspect and whole look, its body included, and the bezel gives way; without it, and in forced high contrast, the theme's lens is drawn.",
+      "getter": "light_planes",
+      "setter": "set_light_planes",
+      "clear": null,
+      "field": "light_planes_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The baked light planes the lens is composited from, by name.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::measure | Dirty::paint",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!incoming.empty() && !engine_light::light_plane_name_valid(incoming)) {",
+        "    throw std::invalid_argument(\"IndicatorLamp light_planes must name a bake: lower-case letters, digits and '_'\");",
+        "}"
+      ],
+      "sample": "std::string{\"dialog_ok_up\"}"
+    },
+    {
+      "name": "lamp_color",
+      "capability": "IndicatorLampLampColor",
+      "value": "std::optional<Color>",
+      "initial": null,
+      "comment": "The colour the lens lights in while on, as sRGB, or empty for the theme's. With a bake it is the bake's lamp light at unit power (one bake serves every colour), lamp amber when empty; without one it fills the lit lens over the theme's look, as an authored colour, so not in forced high contrast. An error always lights in the error colour (with a bake, lamp red).",
+      "getter": "lamp_color",
+      "setter": "set_lamp_color",
+      "clear": null,
+      "field": "lamp_color_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "color",
+        "category": "Appearance",
+        "description": "The colour the lens lights in while on.",
+        "default": "BindingValue{}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": true,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "sample": "std::optional<Color>{Color::rgba(10, 20, 30)}"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "IndicatorLamp",
+    "include": "gui_forms/controls/indicator_lamp.hpp"
+  }
+}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/events.hpp"
@@ -30,7 +31,7 @@ class Window;
 // ToolTip set. Disposing a ToolTip clears the text it set. UI thread only;
 // every operation throws std::logic_error once the ToolTip is disposed or
 // its window is gone.
-class ToolTip final : public Component, public ToolTipCapabilities<ToolTip> {
+class GUI_FORMS_API ToolTip final : public Component, public ToolTipCapabilities<ToolTip> {
 public:
     explicit ToolTip(Window& window);
     ~ToolTip() override;

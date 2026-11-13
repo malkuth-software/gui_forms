@@ -5,6 +5,7 @@
 // values and the checks that both the container and the form model apply
 // live here, so the two cannot disagree.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/property_type/property_type.hpp"
 
 #include <cstdint>
@@ -15,7 +16,7 @@ namespace gui_forms {
 
 // One cell of a grid, zero-based, row first (as grid-area and `.form`'s
 // `cell: row column` write it).
-struct GridCell final {
+struct GUI_FORMS_API GridCell final {
     std::uint32_t row{};
     std::uint32_t column{};
 
@@ -40,7 +41,7 @@ struct PropertyValueTraits<GridCell> {
 // its anchor. A named span is a named area (grid-template-areas is another
 // spelling of the named spans); a child placed at an anonymous span's
 // anchor occupies the whole region.
-struct GridSpan final {
+struct GUI_FORMS_API GridSpan final {
     // Empty: anonymous.
     std::string name{};
     GridCell anchor{};
@@ -77,15 +78,15 @@ enum class GridSpanOutcome : std::uint8_t {
 
 // Whether a span has at least one row and column and ends within
 // maximum_grid_span_extent.
-[[nodiscard]] bool grid_span_extent_valid(const GridSpan& span) noexcept;
+[[nodiscard]] GUI_FORMS_API bool grid_span_extent_valid(const GridSpan& span) noexcept;
 // Whether a cell lies within maximum_grid_span_extent on both axes.
-[[nodiscard]] bool grid_cell_admitted(GridCell cell) noexcept;
+[[nodiscard]] GUI_FORMS_API bool grid_cell_admitted(GridCell cell) noexcept;
 // Whether `cell` lies in `span`'s region, and in it other than at its
 // anchor. Valid extents only.
-[[nodiscard]] bool grid_span_contains(const GridSpan& span, GridCell cell) noexcept;
-[[nodiscard]] bool grid_span_interior(const GridSpan& span, GridCell cell) noexcept;
+[[nodiscard]] GUI_FORMS_API bool grid_span_contains(const GridSpan& span, GridCell cell) noexcept;
+[[nodiscard]] GUI_FORMS_API bool grid_span_interior(const GridSpan& span, GridCell cell) noexcept;
 // Whether two spans share a cell. Valid extents only.
-[[nodiscard]] bool grid_spans_overlap(const GridSpan& first, const GridSpan& second) noexcept;
+[[nodiscard]] GUI_FORMS_API bool grid_spans_overlap(const GridSpan& first, const GridSpan& second) noexcept;
 
 // A grid container type that holds spans opts in by specializing this to
 // true beside its declaration (GridPanel does). Such a type provides the

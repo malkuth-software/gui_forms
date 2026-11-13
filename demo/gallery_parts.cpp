@@ -1,4 +1,5 @@
 #include "gallery_parts.hpp"
+#include "gui_forms/controls/label.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -10,7 +11,6 @@ namespace {
 
 constexpr Color accent = Color::rgba(38, 114, 185);
 constexpr Color shadow = Color::rgba(148, 162, 175);
-constexpr Color card_face = Color::rgba(247, 249, 251, 238);
 constexpr Color drop_wash = Color::rgba(216, 235, 249, 96);
 
 bool same_rect(Rect left, Rect right) noexcept {
@@ -60,9 +60,13 @@ void LifecycleCard::arrange(Rect final_bounds) {
     UserControl::arrange(final_bounds);
 }
 
-void LifecycleCard::on_paint(Painter& painter, Rect) {
+void LifecycleCard::on_paint(Painter& painter, Rect local_damage) {
+    // The plate is the card's face part, which the Gallery sheet's
+    // `.lifecycle-card` rules give in each colour scheme (a literal plate
+    // stayed light under the dark scheme's light ink); a theme with no such
+    // rule paints none, and the group's face shows through.
+    UserControl::on_paint(painter, local_damage);
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width, committed_arranged_bounds().height};
-    painter.fill_rect(bounds, card_face);
     painter.fill_rect({0.0, 0.0, 4.0, bounds.height}, accent);
     painter.stroke_rect({0.5, 0.5, std::max(0.0, bounds.width - 1.0), std::max(0.0, bounds.height - 1.0)}, shadow,
                         1.0);

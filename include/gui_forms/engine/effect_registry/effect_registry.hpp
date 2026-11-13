@@ -18,6 +18,7 @@
 // Execution: UI thread. An instance is owned by the control (or engine part)
 // that hosts it; it holds no reference to anything else.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
@@ -47,7 +48,7 @@ struct BoxBlurWork;
 // One registered effect type: its declaration, its parent's name, its state
 // layout and the thunks the engine calls. `setup` is null for an effect
 // without one. `verified` is set at registration from the plugin's record.
-struct EffectEntry final {
+struct GUI_FORMS_API EffectEntry final {
     const EffectDeclaration* declaration{};
     std::string_view parent{};
     std::size_t size{};
@@ -80,19 +81,22 @@ void run(void* state, const void* view, const EffectFrame& frame, EffectCanvas& 
     effect.run(*static_cast<const View*>(view), frame, canvas);
 }
 
-// Releases an EffectInstance's state storage, allocated at `alignment`.
+// Releases an EffectInstance's state storage, `size` bytes allocated at
+// `alignment`; the release is counted under AllocationSubsystem::effects
+// (allocation_statistics.hpp), as the allocation was.
 // Declared at namespace scope, complete before EffectInstance uses it: a
 // nested class with a default member initializer is not default
 // constructible until its enclosing class is complete, which libstdc++'s
 // unique_ptr default constructor requires.
-struct StorageRelease final {
+struct GUI_FORMS_API StorageRelease final {
+    std::size_t size{};
     std::size_t alignment{};
     void operator()(std::byte* storage) const noexcept;
 };
 
 // Releases an instance's blur storage (EffectInstance's backdrop), whose
 // type is private to the engine.
-struct BlurWorkRelease final {
+struct GUI_FORMS_API BlurWorkRelease final {
     void operator()(engine_primitives::BoxBlurWork* work) const noexcept;
 };
 
@@ -123,7 +127,7 @@ template <typename Effect>
 // maximum_effect_name_length characters, and not effect_none_name's
 // `none`, which themes write for no effect.
 inline constexpr std::size_t maximum_effect_name_length = 64U;
-[[nodiscard]] bool effect_name_valid(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API bool effect_name_valid(std::string_view name) noexcept;
 
 enum class EffectRegistrationOutcome : std::uint8_t {
     registered,
@@ -156,9 +160,9 @@ inline constexpr double maximum_effect_backdrop_margin = 8.0;
 inline constexpr std::uint32_t effect_backdrop_operations_per_pixel = 16U;
 // The half width of the box passes for a backdrop blur reaching `margin`
 // logical units at display `scale`: floor(margin * scale / 3) device pixels.
-[[nodiscard]] std::uint32_t effect_backdrop_half(double margin, double scale) noexcept;
+[[nodiscard]] GUI_FORMS_API std::uint32_t effect_backdrop_half(double margin, double scale) noexcept;
 
-class EffectRegistry final {
+class GUI_FORMS_API EffectRegistry final {
 public:
     // Checks `entry` and adds it; anything but `registered` leaves the
     // registry unchanged. Looks up the plugin's verification record for it.
@@ -177,14 +181,35 @@ private:
 
 // The registry of the toolkit's own effects, filled on first use (defined
 // with the controls that host them).
-[[nodiscard]] const EffectRegistry& built_in_effect_registry();
+[[nodiscard]] GUI_FORMS_API const EffectRegistry& built_in_effect_registry();
+
+// The process's installed effect registry: the one a theme compiled without
+// a registry of its own checks `effect` names against (E417), such as the
+// user theme a process is started with (--theme, GUI_FORMS_THEME_SHEET),
+// settled at its first window. gui_forms_core holds only the address and
+// never names a registry: the installer owns the registry, which must stay
+// alive until it is uninstalled (null) or the process ends, and the core
+// reads it when a held request is settled, not when it is held. None is
+// installed until a program installs one; with none, `effect` names are
+// checked for their form only and E417 is skipped, which the request's
+// report says. Replacing or uninstalling does not reach a compile already
+// done. Any thread; settling reads it on the UI thread.
+GUI_FORMS_API void install_effect_registry(const EffectRegistry* registry) noexcept;
+[[nodiscard]] GUI_FORMS_API const EffectRegistry* installed_effect_registry() noexcept;
+
+// Installs built_in_effect_registry() as the process's registry
+// (install_effect_registry), which lives until the process ends (defined
+// with the controls, so only a program linking them can call it). A program
+// using the stock controls calls it once while it sets up, before its first
+// window. Repeating it changes nothing.
+GUI_FORMS_API void install_built_in_effect_registry();
 
 // Whether the effect pass of the gui_forms Clang plugin verified the effect
 // named `name`, of `state_size` bytes, whose run thunk is `run_thunk`: a
 // record naming it with that state size is in the binary holding that code
 // (design note §2). A record of another size (another build's effect of the
 // same name) does not count.
-[[nodiscard]] bool effect_verification_recorded(std::string_view name, std::size_t state_size,
+[[nodiscard]] GUI_FORMS_API bool effect_verification_recorded(std::string_view name, std::size_t state_size,
                                                 const void* run_thunk) noexcept;
 
 // What effect registration found in this process, for diagnostics and the
@@ -192,13 +217,13 @@ private:
 // registered, and those registered unverified. The first unverified
 // registration also writes one line to stderr naming it and saying why; the
 // rest are only counted. Any thread.
-struct EffectLoadDiagnostics final {
+struct GUI_FORMS_API EffectLoadDiagnostics final {
     std::uint64_t registered{};
     std::uint64_t unverified{};
     // Selections the load checks refused (note_effect_refused).
     std::uint64_t refused{};
 };
-[[nodiscard]] EffectLoadDiagnostics effect_load_diagnostics() noexcept;
+[[nodiscard]] GUI_FORMS_API EffectLoadDiagnostics effect_load_diagnostics() noexcept;
 
 // Who asked for the effect a control attaches to a part, in the order the
 // control consults them (design note section 7): the application, by name
@@ -226,8 +251,8 @@ enum class EffectSelectionOutcome : std::uint8_t {
     unverified,
 };
 
-[[nodiscard]] std::string_view effect_selection_source_name(EffectSelectionSource source) noexcept;
-[[nodiscard]] std::string_view effect_selection_outcome_name(EffectSelectionOutcome outcome) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view effect_selection_source_name(EffectSelectionSource source) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view effect_selection_outcome_name(EffectSelectionOutcome outcome) noexcept;
 
 // The most operations one effect frame may cost on its part: the bound an
 // animated primitive's part has (maximum_animated_operations_per_frame,
@@ -237,7 +262,7 @@ inline constexpr std::uint64_t maximum_effect_operations_per_frame = 4'000'000U;
 // What a control's effect selection came to, kept by the control for
 // diagnostics: the name asked for (a copy, empty for none), who asked and
 // the verdict.
-struct EffectSelection final {
+struct GUI_FORMS_API EffectSelection final {
     std::string name{};
     EffectSelectionSource source{EffectSelectionSource::none};
     EffectSelectionOutcome outcome{EffectSelectionOutcome::none};
@@ -252,7 +277,7 @@ struct EffectSelection final {
 // `part` logical units in size at display `scale`. Sets `entry` to the
 // registered entry when the outcome is `selected`, else to null. An empty
 // name is `none`. Never fails.
-[[nodiscard]] EffectSelectionOutcome check_effect_selection(const EffectRegistry& registry, std::string_view name,
+[[nodiscard]] GUI_FORMS_API EffectSelectionOutcome check_effect_selection(const EffectRegistry& registry, std::string_view name,
                                                             EffectSelectionSource source, std::string_view parent,
                                                             Size part, double scale,
                                                             const EffectEntry*& entry) noexcept;
@@ -261,10 +286,10 @@ struct EffectSelection final {
 // `none`) in effect_load_diagnostics; the first in the process also writes
 // one line to stderr naming the effect, who asked and why. A control calls
 // it once per change of its selection, not once per paint. Any thread.
-void note_effect_refused(const EffectSelection& selection) noexcept;
+GUI_FORMS_API void note_effect_refused(const EffectSelection& selection) noexcept;
 
 // What advancing an instance's time did.
-struct EffectAdvance final {
+struct GUI_FORMS_API EffectAdvance final {
     // Ticks now due for the next frame.
     std::uint32_t pending{};
     // Ticks skipped by this advance, past maximum_effect_ticks_per_frame.
@@ -272,7 +297,7 @@ struct EffectAdvance final {
 };
 
 // What an instance has counted over its life.
-struct EffectInstanceCounters final {
+struct GUI_FORMS_API EffectInstanceCounters final {
     std::uint64_t ticks{};
     std::uint64_t skipped_ticks{};
     std::uint64_t frames{};
@@ -282,7 +307,7 @@ struct EffectInstanceCounters final {
     std::uint64_t dropped_input{};
 };
 
-class EffectInstance final {
+class GUI_FORMS_API EffectInstance final {
 public:
     EffectInstance() noexcept = default;
     ~EffectInstance();

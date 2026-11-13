@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
+#include "gui_forms/controls/rich_text_box.hpp"
 
 #include "../text_editing/text_editing_engine.hpp"
 #include "gui_forms/detail/algorithm/binary_search.hpp"
@@ -226,7 +226,7 @@ RichTextFormat RichTextBox::selection_format() const {
     RichTextFormat format{};
     const TextSelection selection = (*editing_).selection();
     const TextStore& store = (*editing_).store();
-    const std::string_view source = store.utf8();
+    const BorrowedText source = store.utf8();
     if (selection.empty()) {
         if (selection.caret.value() > 0U) {
             const Utf8Offset before = store.previous_grapheme_boundary(selection.caret);
@@ -328,7 +328,7 @@ struct OffsetCarrier final {
 bool RichTextBox::apply_changes(const std::vector<SourceChange>& changes, std::optional<TextSelection> selection) {
     require_mutable();
     if (changes.empty() || read_only.read()) return false;
-    const std::string_view source = (*editing_).text();
+    const BorrowedText source = (*editing_).text();
     const std::size_t region_start = changes.front().start;
     const std::size_t region_end = changes.back().end;
     std::string replacement{};
@@ -374,7 +374,7 @@ bool RichTextBox::toggle_wrap(std::span<const std::string_view> delimiters) {
     if (read_only.read()) return false;
     const TextSelection selection = (*editing_).selection();
     const TextStore& store = (*editing_).store();
-    const std::string_view source = store.utf8();
+    const BorrowedText source = store.utf8();
     const std::string_view written = delimiters.front();
     std::vector<SourceChange> changes{};
     if (selection.empty()) {
@@ -503,7 +503,7 @@ bool RichTextBox::set_heading_level(std::size_t level) {
     if (level > 6U) throw std::invalid_argument("RichTextBox heading level must be 0 to 6");
     if (read_only.read()) return false;
     const TextStore& store = (*editing_).store();
-    const std::string_view source = store.utf8();
+    const BorrowedText source = store.utf8();
     const LineSpan lines = touched_lines();
     std::string marker{};
     if (level > 0U) {
@@ -529,7 +529,7 @@ bool RichTextBox::toggle_list(bool numbered) {
     require_mutable();
     if (read_only.read()) return false;
     const TextStore& store = (*editing_).store();
-    const std::string_view text = store.utf8();
+    const BorrowedText text = store.utf8();
     const LineSpan lines = touched_lines();
     const ListMarkerKind wanted = numbered ? ListMarkerKind::ordered : ListMarkerKind::bullet;
     struct Touched final {
@@ -579,7 +579,7 @@ bool RichTextBox::continue_list() {
     const TextSelection selection = (*editing_).selection();
     if (!selection.empty() || read_only.read()) return false;
     const TextStore& store = (*editing_).store();
-    const std::string_view text = store.utf8();
+    const BorrowedText text = store.utf8();
     const std::size_t line = line_of(selection.caret);
     const Utf8Range range = store.line_content_range(LineIndex(line));
     const std::size_t line_start = range.start.value();

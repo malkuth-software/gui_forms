@@ -3,6 +3,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "../../surface_root/access/surface_lifetime_access.hpp"
 
 #include <array>
 #include <algorithm>
@@ -20,7 +21,7 @@
 namespace gui_forms {
 
 BindingContext::BindingContext(Window& window)
-    : window_lifetime_(window.lifetime_) {
+    : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)) {
     window.verify_access("BindingContext construction");
 }
 

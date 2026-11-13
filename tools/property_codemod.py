@@ -244,7 +244,7 @@ def capability_text(prop, shared):
     value = prop["value"]
     lines = ["", "// " + prop["comment"], "template <typename Declaring>", f"struct {cap} {{"]
     if prop.get("storage") == "view":
-        lines.append(f"    PropertyView<{value}, {cap}<Declaring>> {member};")
+        lines.append(f"    {localizable_prefix(prop)}PropertyView<{value}, {cap}<Declaring>> {member};")
         lines.append("")
         lines.append(f"    static void assign({cap}& capability, {value} incoming) {{")
         lines.append("        Declaring& control = static_cast<Declaring&>(capability);")
@@ -414,7 +414,7 @@ def matching(text, open_index, opening, closing):
 
 def class_body(text, declaring):
     """(open brace, closing brace) of the class definition."""
-    head = re.search(r"\bclass\s+%s\b(?:\s+final)?\s*(?::[^;{]*)?\{" % re.escape(declaring), text)
+    head = re.search(r"\bclass\s+(?:GUI_FORMS_API\s+)?%s\b(?:\s+final)?\s*(?::[^;{]*)?\{" % re.escape(declaring), text)
     if head is None:
         raise ValueError("no definition of class " + declaring)
     open_index = head.end() - 1
@@ -743,12 +743,23 @@ def delete_members(text, config, body_open, body_close, report):
     return ranges
 
 
+def include_spelling(path):
+    """The quoted include spelling of a header path: the part after its include
+    root (`include/`, `lab/include/` or `demo/lab_controls/include/`)."""
+    marker = "include/"
+    position = path.find(marker)
+    if position < 0:
+        raise ValueError("%s is not under an include root" % path)
+    spelling = path[position + len(marker):]
+    return spelling
+
+
 def generate_header(config, report):
     path = pathlib.Path(config["header"])
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
     cells = bool(config["properties"])
     if cells:
-        capabilities_include = config["capabilities_header"][len("include/"):]
+        capabilities_include = include_spelling(config["capabilities_header"])
         text = add_include(text, capabilities_include)
     bundle = f"{config['family']}Capabilities<{config['declaring']}>"
     head, body_open, body_close = class_body(text, config["declaring"])

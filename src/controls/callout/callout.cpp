@@ -1,8 +1,8 @@
-#include "gui_forms/controls/callout/callout.hpp"
+#include "gui_forms/controls/callout.hpp"
 
-#include "gui_forms/controls/button_base/button/button.hpp"
-#include "gui_forms/controls/label/label.hpp"
-#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/anchored_overlay_placement.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/text.hpp"
@@ -110,13 +110,22 @@ public:
 
     [[nodiscard]] bool hit_test_local(Point) const override { return callout_.light_dismiss.read(); }
 
-    void on_pointer(PointerEvent& event) override {
-        if (event.action == PointerAction::down) {
-            event.handled = true;
-            callout_.on_press_outside();
-        } else if (event.action == PointerAction::up || event.action == PointerAction::wheel) {
-            event.handled = true;
-        }
+    // A press outside the callout dismisses it; the layer takes the
+    // press, release and wheel so nothing beneath sees them.
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        callout_.on_press_outside();
+        Control::on_mouse_down(arguments);
+    }
+
+    void on_mouse_up(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        Control::on_mouse_up(arguments);
+    }
+
+    void on_mouse_wheel(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        Control::on_mouse_wheel(arguments);
     }
 
 private:
@@ -294,46 +303,66 @@ Insets Callout::visual_outsets() const noexcept {
 }
 
 // The close mark acts on release over it, as a button does.
-void Callout::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input()) return;
-    const Rect absolute = absolute_bounds();
-    const Rect client = client_rectangle();
-    const Placement placed = placement(Size{client.width, client.height});
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
-    const bool over = placed.close.contains(local);
-    if (event.action == PointerAction::move || event.action == PointerAction::leave) {
-        const bool hot = event.action == PointerAction::move && over;
+void Callout::on_mouse_move(MouseEventArgs& arguments) {
+    if (eligible_for_input()) {
+        const Rect client = client_rectangle();
+        const Placement placed = placement(Size{client.width, client.height});
+        const bool hot = placed.close.contains(arguments.location);
         if (hot != hot_close_) {
             hot_close_ = hot;
             invalidate(Dirty::paint);
         }
-        return;
     }
-    if (event.action == PointerAction::wheel) {
-        event.handled = true;
-        return;
-    }
-    if (event.button != PointerButton::primary) return;
-    if (event.action == PointerAction::down) {
-        event.handled = true;
-        if (!over) return;
-        pressed_close_ = true;
-        set_pointer_capture(true);
-        invalidate(Dirty::paint);
-        return;
-    }
-    if (event.action == PointerAction::up) {
-        event.handled = true;
-        if (!pressed_close_) return;
-        pressed_close_ = false;
-        set_pointer_capture(false);
-        invalidate(Dirty::paint);
-        if (over) finish(CalloutCloseReason::close_button);
-    }
+    Control::on_mouse_move(arguments);
 }
 
-void Callout::on_key(KeyEvent& event) {
-    on_key_bubble(event);
+void Callout::on_mouse_leave() {
+    if (eligible_for_input() && hot_close_) {
+        hot_close_ = false;
+        invalidate(Dirty::paint);
+    }
+    Control::on_mouse_leave();
+}
+
+void Callout::on_mouse_wheel(MouseEventArgs& arguments) {
+    if (eligible_for_input()) arguments.handled = true;
+    Control::on_mouse_wheel(arguments);
+}
+
+void Callout::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        arguments.handled = true;
+        const Rect client = client_rectangle();
+        const Placement placed = placement(Size{client.width, client.height});
+        if (placed.close.contains(arguments.location)) {
+            pressed_close_ = true;
+            set_pointer_capture(true);
+            invalidate(Dirty::paint);
+        }
+    }
+    Control::on_mouse_down(arguments);
+}
+
+void Callout::on_mouse_up(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        arguments.handled = true;
+        if (pressed_close_) {
+            const Rect client = client_rectangle();
+            const Placement placed = placement(Size{client.width, client.height});
+            pressed_close_ = false;
+            set_pointer_capture(false);
+            invalidate(Dirty::paint);
+            if (placed.close.contains(arguments.location)) finish(CalloutCloseReason::close_button);
+        }
+    }
+    Control::on_mouse_up(arguments);
+}
+
+void Callout::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || arguments.physical_key != PhysicalKey::escape || !shown_) return;
+    arguments.handled = true;
+    finish(CalloutCloseReason::escape_key);
 }
 
 void Callout::on_key_bubble(KeyEvent& event) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -21,7 +22,7 @@ namespace gui_forms {
 
 // True when `name` is lowercase ASCII words joined by single underscores:
 // [a-z][a-z0-9]*(_[a-z0-9]+)*.
-[[nodiscard]] bool is_registered_name(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API bool is_registered_name(std::string_view name) noexcept;
 // The stored spelling of a name written in any of the three spellings.
 // Hyphens become underscores; a word boundary inside PascalCase or camelCase
 // becomes an underscore ("HScrollBar" is "h_scroll_bar"); ASCII letters are
@@ -29,16 +30,16 @@ namespace gui_forms {
 // segment ("Bounds.Width" is "bounds.width"), and other characters are kept.
 // Leading and trailing whitespace is ignored. Throws std::invalid_argument
 // for an empty name.
-[[nodiscard]] std::string registered_name(std::string_view spelling);
+[[nodiscard]] GUI_FORMS_API std::string registered_name(std::string_view spelling);
 // The kebab-case spelling CSS-family documents write: "auto-size-mode".
-[[nodiscard]] std::string css_spelling(std::string_view registered);
+[[nodiscard]] GUI_FORMS_API std::string css_spelling(std::string_view registered);
 // The PascalCase display spelling: "AutoSizeMode", "Bounds.Width".
-[[nodiscard]] std::string display_spelling(std::string_view registered);
+[[nodiscard]] GUI_FORMS_API std::string display_spelling(std::string_view registered);
 // How a display shows a name that may not be registered: the display
 // spelling of a registered name, and any other text (an application's own
 // label) unchanged. A flags value ("top, left") is shown name by name
 // ("Top, Left").
-[[nodiscard]] std::string display_label(std::string_view text);
+[[nodiscard]] GUI_FORMS_API std::string display_label(std::string_view text);
 
 // Interactions: the events a control or component type raises, as the one
 // schema names them (stage T1). C++ registers a handler through the type's
@@ -51,7 +52,7 @@ namespace gui_forms {
 // for an interaction without arguments. `mutable_payload` is true when some
 // argument reaches the handler by mutable reference, as a validation the
 // handler may cancel does.
-struct InteractionDeclaration final {
+struct GUI_FORMS_API InteractionDeclaration final {
     std::string_view name;
     std::string_view payload;
     bool mutable_payload{};
@@ -77,16 +78,16 @@ enum class InteractionDefect : std::uint8_t {
 
 // The result of validate_interactions: the first defect found and the index
 // of the interaction it concerns, or none.
-struct InteractionValidation final {
+struct GUI_FORMS_API InteractionValidation final {
     InteractionDefect defect{InteractionDefect::none};
     std::size_t index{};
 };
 
-[[nodiscard]] std::string_view interaction_defect_name(InteractionDefect defect) noexcept;
-[[nodiscard]] InteractionValidation validate_interactions(
+[[nodiscard]] GUI_FORMS_API std::string_view interaction_defect_name(InteractionDefect defect) noexcept;
+[[nodiscard]] GUI_FORMS_API InteractionValidation validate_interactions(
     std::span<const InteractionDeclaration> interactions) noexcept;
 // The position of the interaction named `name`, or `interactions.size()`.
-[[nodiscard]] std::size_t find_interaction(std::span<const InteractionDeclaration> interactions,
+[[nodiscard]] GUI_FORMS_API std::size_t find_interaction(std::span<const InteractionDeclaration> interactions,
                                            std::string_view name) noexcept;
 
 } // namespace gui_forms

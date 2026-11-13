@@ -3,7 +3,14 @@
 // cancelled and refused answers, translucent and opaque choices, destruction
 // while showing, reentrancy, the wrong thread and reset.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/components/color_dialog/color_dialog.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 
 #include <cstdint>

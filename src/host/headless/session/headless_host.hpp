@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "../services/headless_host_services.hpp"
 #include "gui_forms/window.hpp"
 
@@ -17,7 +18,7 @@ inline constexpr std::uint32_t headless_double_click_milliseconds = 500U;
 
 // Deterministic reference adapter for host-event conformance tests. It owns no
 // clock and performs no background work; the caller supplies every timestamp.
-class HeadlessHost final {
+class GUI_FORMS_API HeadlessHost final {
 public:
     explicit HeadlessHost(Window& window);
     ~HeadlessHost();
@@ -44,7 +45,8 @@ public:
     // The reference services themselves, for tests that drive or read their
     // simulated native state (the backdrop, stage T5).
     [[nodiscard]] HeadlessHostServices& headless_services() noexcept { return services_; }
-    [[nodiscard]] const std::string& trace() const noexcept { return trace_; }
+    [[nodiscard]] const std::string& trace() const& noexcept { return trace_; }
+    const std::string& trace() const&& = delete;
 
 private:
     void request_dispatcher_wake() noexcept;

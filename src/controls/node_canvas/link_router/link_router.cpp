@@ -1,4 +1,4 @@
-#include "gui_forms/controls/node_canvas/link_router/link_router.hpp"
+#include "gui_forms/controls/link_router.hpp"
 
 #include <algorithm>
 #include <cmath>

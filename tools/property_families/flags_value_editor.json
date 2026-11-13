@@ -2,9 +2,9 @@
   "family": "FlagsValueEditor",
   "step": "B8",
   "declaring": "FlagsValueEditor",
-  "header": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
+  "header": "include/gui_forms/controls/flags_value_editor.hpp",
   "source": "src/controls/panel/flags_value_editor/flags_value_editor.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/flags_value_editor_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [
@@ -104,7 +104,7 @@
   ],
   "test": {
     "type": "FlagsValueEditor",
-    "include": "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
+    "include": "gui_forms/controls/flags_value_editor.hpp"
   },
   "extra_entries": [
     "{\"enumeration_name\", &describe_flags_value_editor_enumeration_name,\n         &read_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::enumeration_name_property), &FlagsValueEditor::enumeration_name_property>,\n         &write_member_entry<FlagsValueEditor, decltype(&FlagsValueEditor::set_enumeration_name_property), &FlagsValueEditor::set_enumeration_name_property>,\n         nullptr, nullptr, nullptr,\n         nullptr}",

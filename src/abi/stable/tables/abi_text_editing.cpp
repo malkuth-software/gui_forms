@@ -6,8 +6,8 @@
 #include "abi_tables.hpp"
 #include "../values/abi_values.hpp"
 
-#include "gui_forms/controls/panel/combo_box/combo_box.hpp"
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/text/text_store/text_store.hpp"
 

@@ -93,8 +93,6 @@
         "measure": "Combines resolved image/text geometry, relation, gap, and ContentPadding under the available constraint.",
         "on_paint": "Selects compatibility or theme rendering, records frame/material cues, then lays out image and text.",
         "visual_outsets": "Reports active material shadows unless compatibility style painting is selected.",
-        "on_pointer": "Maintains hover/engaged/pressed state and qualifies activation through normalized primary-pointer input.",
-        "on_key": "Maintains Space/Enter pressed state and activates only on the matching normalized release.",
         "on_focus_changed": "Commits focus cues and cancels incomplete keyboard presses when focus leaves.",
         "on_activate": "Publishes clicked through the lifetime-safe event path.",
         "semantic_descriptor": "Projects button role, displayed name, disabled/focused/expanded state, and press action.",
@@ -180,29 +178,10 @@
         "on_paint": "Resolves the current card Theme recipe and records its material/focus ring, unless inherited Panel style/background overrides are authoritative.",
         "visual_outsets": "Reports compositor outsets from the active material shadows or delegates to Panel when a Panel override is active.",
         "hit_test_local": "Admits local hit testing only while the Card is explicitly interactive.",
-        "on_pointer": "Tracks normalized enter/leave and primary-button press/release state; qualified click activation remains the shared Control activation path.",
-        "on_key": "Tracks Space/Enter as a retained press and invokes the same activation path on the matching key release.",
         "on_focus_changed": "Commits the focus cue and cancels incomplete keyboard presses when focus leaves.",
         "on_activate": "Applies the configured selection behavior, then publishes activated if the selection callback did not dispose the Card.",
         "semantic_descriptor": "Projects an interactive Card as a selectable list item and carries selected, busy, or invalid state into the semantic graph.",
         "on_semantic_action": "Routes semantic press through activation, semantic select through retained selection, and delegates unrelated actions to Panel."
-      }
-    },
-    "ReviewCard": {
-      "status": "OBSERVED: bundle 001 split; M4 build and focused tests pass",
-      "capture": "captures/review_card.png",
-      "capture_note": "Screen Sharing crop from the M4 File Manager Demoboard showing the title, wrapping summary, verdict footer, selection fill, border, and focus treatment.",
-      "summary": "ReviewCard is a typed Card specialization that owns title, summary, and verdict Labels and atomically projects a bounded UTF-8 ReviewRecord into text, visual status, and semantics.",
-      "methods": {
-        "ReviewCard": "Constructs the three retained Label roles with theme-aware heading, body, and caption policies; attachment remains lazy and idempotent.",
-        "initialize_control_tree": "Attaches the three owned Labels to Card roles exactly once, allowing construction before shared ownership is established.",
-        "title_label": "Returns the owned header Label for ordinary Label-level customization.",
-        "summary_label": "Returns the owned wrapping body Label for ordinary Label-level customization.",
-        "verdict_label": "Returns the owned footer Label for ordinary Label-level customization.",
-        "record_changed": "Returns the event published after the complete record projection commits.",
-        "measure": "Ensures the internal tree exists, then uses Card's section measurement law.",
-        "arrange": "Ensures the internal tree exists, then uses Card's section arrangement law.",
-        "semantic_descriptor": "Projects title, summary, verdict, pending, and rejected state from the same committed record used by the visible Labels."
       }
     },
     "MasterDetailView": {
@@ -282,7 +261,6 @@
         "scroll_by": "Applies a delta through the same clamping/event law while preserving independent horizontal and vertical event reasons.",
         "scroll_control_into_view": "Validates descendant ownership and computes the minimum bounded motion that exposes the requested child.",
         "arrange": "Runs ordinary child arrangement, discovers effective content extent, resolves interdependent scrollbar visibility, and commits translated child geometry.",
-        "on_pointer": "Owns scrollbar hit parts, primary-pointer capture, thumb dragging, line/page buttons, and terminal end-scroll publication.",
         "on_pointer_bubble": "Consumes normalized wheel input from descendants and applies bounded axis increments without duplicating handled events.",
         "semantic_virtual_children": "Exposes active scrollbars as stable semantic range nodes with increment/decrement/set-value actions.",
         "on_semantic_child_action": "Parses a scrollbar virtual-child identity and routes supported semantic range actions through the authoritative axis path."
@@ -414,7 +392,6 @@
         "arrange": "Reconciles page ownership, assigns only the selected page to display bounds, and keeps inactive pages quiescent.",
         "on_paint": "Paints the face and the display by role; the internal strip paints the tabs.",
         "on_key_preview": "Handles the cycle and next/previous-tab key commands before descendant dispatch, unless a nested TabControl holds the focus.",
-        "on_key": "Passes the focused control's keys to the strip (arrows, Home, End), leaving close, context-menu and move-tab commands to the controls around it.",
         "on_focus_changed": "Lends the control's focus to the strip so it shows the keyboard's tab.",
         "semantic_descriptor": "Projects the owner as a tab list with selected-page value.",
         "semantic_virtual_children": "Exposes each live page header as a stable selectable tab semantic node.",
@@ -491,30 +468,34 @@
       "methods": {
         "TextBox": "Constructs a focusable text editor with I-beam cursor, text-input intent, and retained caret state.",
         "password_protected": "Reports whether either explicit or system masking policy is active.",
-        "selection": "Returns directional anchor and active UTF-8 byte boundaries.",
-        "select": "Validates and normalizes requested byte boundaries against Unicode scalar edges.",
-        "select_all": "Selects the complete authoritative byte range.",
-        "selected_text": "Returns the authoritative unmasked substring within the normalized selection.",
-        "can_undo": "Reports whether an earlier text-and-selection snapshot is available.",
         "can_redo": "Reports whether a reverted snapshot remains available.",
-        "undo": "Restores the previous snapshot, records the current snapshot for redo, and publishes coherent changes.",
         "redo": "Reapplies the next snapshot, restores undo continuity, and publishes coherent changes.",
         "replace_selection": "Validates UTF-8, enforces the user maximum-length law, and replaces the selected range as one undoable edit.",
         "delete_selection": "Removes the selected range as one undoable user edit when mutation is allowed.",
-        "copy": "Publishes selected unmasked text to the attached Window clipboard unless password policy forbids disclosure.",
-        "cut": "Copies then removes selection through the normal mutation path when editing is allowed.",
-        "paste": "Reads attached Window clipboard text and applies it through validation and maximum-length enforcement.",
         "text_changed": "Returns the event published after authoritative text commits.",
         "selection_changed": "Returns the event published after directional selection commits.",
         "committed": "Returns the event published by Enter or the corresponding semantic action.",
         "cancelled": "Returns the event published by Escape.",
         "on_paint": "Records background, border, clipped placeholder or projected text, selection highlight, and blinking caret.",
-        "on_pointer": "Owns click/drag selection with capture, scalar-safe hit testing, and focus acquisition.",
-        "on_key": "Implements scalar/word navigation, extension, deletion, clipboard commands, history, commit, and cancel.",
         "on_text_input": "Applies validated text input through the common selection-replacement and history state machine.",
         "on_focus_changed": "Starts or stops caret animation and resets the visible focus phase.",
         "semantic_descriptor": "Projects an editable or read-only text role, value policy, selection metadata, and supported actions without leaking passwords.",
         "on_semantic_action": "Routes focus, set-value, selection, clipboard, history, commit, and cancel actions through normal editor laws."
+      }
+    },
+    "TextBoxBase": {
+      "status": "carried from the TextBox review at the cp29 I5 fold, where these members moved to TextBoxBase",
+      "summary": "TextBoxBase is the editing surface TextBox and its siblings share: directional selection over UTF-8 byte boundaries, undo history, and clipboard commands.",
+      "methods": {
+        "selection": "Returns directional anchor and active UTF-8 byte boundaries.",
+        "select": "Validates and normalizes requested byte boundaries against Unicode scalar edges.",
+        "select_all": "Selects the complete authoritative byte range.",
+        "selected_text": "Returns the authoritative unmasked substring within the normalized selection.",
+        "can_undo": "Reports whether an earlier text-and-selection snapshot is available.",
+        "undo": "Restores the previous snapshot, records the current snapshot for redo, and publishes coherent changes.",
+        "copy": "Publishes selected unmasked text to the attached Window clipboard unless password policy forbids disclosure.",
+        "cut": "Copies then removes selection through the normal mutation path when editing is allowed.",
+        "paste": "Reads attached Window clipboard text and applies it through validation and maximum-length enforcement."
       }
     },
     "ListBox": {
@@ -527,19 +508,24 @@
         "set_item_stable_ids": "Installs caller-provided unique nonzero row identities after exact cardinality validation.",
         "item_stable_id": "Returns the durable semantic identity for a valid row.",
         "selected_indices": "Returns selected row indexes in ascending order.",
-        "selected_index": "Returns the active selected row or no value when selection is empty.",
         "select_index": "Applies programmatic selection using the current selection-mode law.",
         "clear_selection": "Clears selected rows and publishes a typed old/new selection transition.",
         "selection_changed": "Returns typed old/new index collections after selection commits.",
         "item_activated": "Returns the event published for qualified double-click or keyboard activation.",
         "on_paint": "Records only visible rows with alternating, hover, selection, focus, text, and extension adornment states.",
         "arrange": "Updates viewport geometry and vertical scroll extent from row count and fixed height.",
-        "on_pointer": "Maps pointer gestures to rows, focus, selection-mode modifiers, scrolling, and activation.",
-        "on_key": "Implements navigation, home/end/page movement, range extension, toggling, activation, and type-independent selection.",
         "on_focus_changed": "Commits the focus cue and invalidates active-row painting.",
         "semantic_descriptor": "Projects a list role with selection cardinality and active value.",
         "semantic_virtual_children": "Exposes every logical row as a stable selectable virtual option independent of viewport realization.",
         "on_semantic_child_action": "Maps row select/press actions to the same selection and activation state machine."
+      }
+    },
+    "ListControl": {
+      "status": "carried from the ListBox review at the cp29 I5 fold, where these members moved to ListControl",
+      "summary": "ListControl is the base the list controls share for their single selected index and its change event.",
+      "methods": {
+        "selected_index": "Returns the active selected row or no value when selection is empty.",
+        "selected_index_changed": "Returns the event published after selected option commits."
       }
     },
     "CheckedListBox": {
@@ -558,8 +544,6 @@
         "checked_indices": "Returns indexes whose state is specifically checked.",
         "item_checking": "Returns the cancellable event published before a check-state transition.",
         "item_check_state_changed": "Returns the event published after a check-state transition commits.",
-        "on_pointer": "Coordinates inherited row selection with indicator-aware check toggling.",
-        "on_key": "Lets Space toggle the active row and delegates navigation/activation to ListBox.",
         "semantic_virtual_children": "Augments inherited row nodes with checked/mixed state and toggle actions.",
         "on_semantic_child_action": "Routes toggle actions to check state and other actions to inherited list behavior."
       }
@@ -572,7 +556,6 @@
       "methods": {
         "DropDownLayer": "Constructs a full-window transient panel around the owned overlay list.",
         "dismissed": "Returns the event raised when outside pointer or Escape requests closure.",
-        "on_pointer": "Dismisses a primary press outside the overlay bounds and consumes the transient gesture.",
         "on_key_preview": "Dismisses Escape before descendant routing."
       }
     },
@@ -584,12 +567,9 @@
       "methods": {
         "ComboBox": "Constructs a focusable choice field with handoff-ready transient overlay ownership.",
         "selected_text": "Returns selected option text or an empty view when nothing is selected.",
-        "selected_index_changed": "Returns the event published after selected option commits.",
         "drop_down_changed": "Returns the event published after transient ownership opens or closes.",
         "items_changed": "Returns the event published after option collection mutation.",
         "on_paint": "Records framed field, selected/placeholder text, focus cue, and disclosure arrow.",
-        "on_pointer": "Acquires focus and toggles overlay ownership for a qualified primary click.",
-        "on_key": "Handles open/close, option cycling, commit, and cancellation keys.",
         "on_focus_changed": "Updates focus painting while transient closure follows owner/revocation policy.",
         "semantic_descriptor": "Projects a combo-box role, current option, expanded state, and selection actions.",
         "on_semantic_action": "Routes press/expand/collapse and set-value through ordinary selection and overlay state."
@@ -603,8 +583,7 @@
       "methods": {
         "SpinButtons": "Constructs a non-tab-stop vertical two-command surface.",
         "stepped": "Returns the event carrying +1 or -1 after a qualified release.",
-        "on_paint": "Records framed upper/lower button states and directional chevrons.",
-        "on_pointer": "Tracks hover, press, capture, cancellation, and same-part release before publishing a step."
+        "on_paint": "Records framed upper/lower button states and directional chevrons."
       }
     },
     "NumericUpDown": {
@@ -616,7 +595,6 @@
         "NumericUpDown": "Constructs owned editor and spin controls while deferring child attachment until shared ownership exists.",
         "initialize_control_tree": "Attaches owned children and subscriptions exactly once, then synchronizes presentation.",
         "set_range": "Validates finite ordered bounds, constrains the current value, and refreshes editor and semantics atomically.",
-        "editor": "Returns the owned TextBox for composition-aware inspection and focus routing.",
         "value_changed": "Returns the event published after authoritative value commits.",
         "arrange": "Allocates the editor and trailing button column from current button-width policy.",
         "on_key_preview": "Handles Up/Down stepping before the focused TextBox consumes the key.",
@@ -658,8 +636,6 @@
         "TrackBar": "Constructs a RangeControl with slider cursor and control-specific visual defaults.",
         "measure": "Provides orientation- and tick-aware desired cross-axis thickness.",
         "on_paint": "Records track, completed segment, ticks, thumb, hover/press, focus, and disabled states.",
-        "on_pointer": "Captures primary dragging and converts window points to constrained range values.",
-        "on_key": "Handles arrows, page keys, home, and end through reasoned RangeControl transitions.",
         "on_focus_changed": "Commits the keyboard focus cue and invalidates slider painting.",
         "semantic_descriptor": "Projects a slider role with numeric range, value, orientation, and supported change actions.",
         "on_semantic_action": "Routes increment, decrement, and set-value through ordinary constrained transitions."
@@ -704,8 +680,6 @@
         "part_at": "Classifies a local point as none, decrement button/page, thumb, increment page/button.",
         "measure": "Provides orientation-aware desired thickness and two-button axis length.",
         "on_paint": "Records buttons, chevrons, track, pages, thumb, interaction, focus, and disabled states.",
-        "on_pointer": "Owns part qualification, capture, thumb dragging, page/line changes, cancellation, and repeat scheduling.",
-        "on_key": "Handles arrows, page movement, home, and end through reasoned RangeControl transitions.",
         "on_focus_changed": "Commits keyboard focus cues and stops interaction when focus policy requires.",
         "semantic_descriptor": "Projects a scrollbar role with range, value, orientation, and line/page actions.",
         "on_semantic_action": "Routes increment, decrement, page, and set-value commands through ordinary constrained state."
@@ -754,8 +728,7 @@
       "summary": "CalendarOverlayLayer is DateTimePicker's source-private transient boundary. It owns outside-click dismissal around the anchored CalendarOverlay while leaving date navigation and commit with the overlay and picker.",
       "methods": {
         "CalendarOverlayLayer": "Constructs a full-window transient panel around the owned calendar bounds.",
-        "dismissed": "Returns the event raised when an outside primary press requests closure.",
-        "on_pointer": "Dismisses and consumes a primary press outside the overlay, while inside gestures continue to the child."
+        "dismissed": "Returns the event raised when an outside primary press requests closure."
       }
     },
     "CalendarOverlay": {
@@ -769,8 +742,6 @@
         "committed": "Returns the event carrying the selected DateTimeValue after qualified day activation.",
         "cancelled": "Returns the event raised by Escape without modifying picker value.",
         "on_paint": "Records calendar frame, month navigation, weekday headings, 42 day cells, range-disabled states, selection, hover, and focus.",
-        "on_pointer": "Handles month buttons, day selection, hover, capture qualification, and same-cell commit.",
-        "on_key": "Implements day/week/month/year navigation, home/end boundaries, commit, and cancellation under range constraints.",
         "on_focus_changed": "Commits overlay focus state and invalidates the selected-day cue.",
         "semantic_descriptor": "Projects a calendar role with displayed month and selected ISO date.",
         "semantic_virtual_children": "Exposes each visible day as a stable selectable virtual cell with selected/disabled metadata.",
@@ -790,8 +761,6 @@
         "checked_changed": "Returns the event published after optional checked state commits.",
         "drop_down_changed": "Returns the event published after transient calendar ownership opens or closes.",
         "on_paint": "Records checkbox, formatted value, focus, and either spin or disclosure affordance from retained state.",
-        "on_pointer": "Qualifies checkbox toggling, day stepping, field focus, and overlay disclosure by local part.",
-        "on_key": "Handles open/close, day stepping, commit, cancellation, and checked-state toggling.",
         "on_focus_changed": "Commits focus appearance while transient lifetime remains governed by owner/revocation policy.",
         "on_activate": "Invokes the primary check, spin, or calendar action through normal state transitions.",
         "semantic_descriptor": "Projects a date-time picker or spin role with formatted/civil value, checked/expanded state, range, and actions.",
@@ -817,8 +786,6 @@
         "item_activated": "Returns the event raised after qualified pointer, keyboard, or semantic activation.",
         "arrange": "Commits viewport geometry, clamps the row origin, and keeps the active row visible.",
         "on_paint": "Records visible hierarchy rows, depth guides, optional expanders, imagery, selection, hover, and focus.",
-        "on_pointer": "Handles row hit testing, disclosure toggling, selection, capture qualification, and activation.",
-        "on_key": "Implements tree navigation, parent/child disclosure, paging, activation, and selection.",
         "on_text_input": "Performs time-bounded prefix selection across the current visible preorder.",
         "on_focus_changed": "Commits focus presentation and ensures the active row remains usable.",
         "semantic_descriptor": "Projects the control as a tree with selection and item-count state.",
@@ -848,43 +815,11 @@
         "context_requested": "Returns the event carrying item identity and logical position for context UI.",
         "arrange": "Commits viewport geometry, clamps scrolling, and ensures focused content remains reachable.",
         "on_paint": "Records only visible icon cells or detail rows with imagery, text, selection, hover, and focus.",
-        "on_pointer": "Handles item hit testing, modifier-aware selection, context requests, capture qualification, and activation.",
-        "on_key": "Implements spatial/list navigation, range extension, select-all, activation, context request, and paging.",
         "on_text_input": "Performs time-bounded prefix focus and selection over authored item text.",
         "on_focus_changed": "Commits focus presentation and restores a usable focused item when entering the control.",
         "semantic_descriptor": "Projects list or grid semantics with selection policy and item count.",
         "semantic_virtual_children": "Exposes realized item identities with names, descriptions, selection, focus, and actions.",
         "on_semantic_child_action": "Routes virtual selection and press through ordinary selection and activation state machines."
-      }
-    },
-    "CorrespondenceView": {
-      "status": "OBSERVED: bundle 005 split and status-rail enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/correspondence_view.png",
-      "capture_note": "M4 File Manager Demoboard crop showing compact correspondence rows, an expanded matched excerpt, status rails, focus, and virtualization.",
-      "summary": "CorrespondenceView is a virtualized search/result correspondence surface whose stable rows can expand in response to explicit pinning or hover intent. It separates focus, selection, hover, and pin authority; preserves scroll anchors while variable row heights change; bounds realization; and exposes exact virtual semantics.",
-      "methods": {
-        "CorrespondenceView": "Constructs a focusable variable-height result surface with hover-intent scheduling and stable anchoring.",
-        "items": "Returns the authored correspondence records in ranking order.",
-        "set_items": "Validates stable identities, replaces the result model, and reconciles selection, focus, hover, pinning, and scroll anchoring.",
-        "focused_id": "Returns the keyboard-focused result independently of selection.",
-        "hovered_id": "Returns the result currently under hover intent, if any.",
-        "expanded": "Reports whether a result is expanded by pin or active hover intent.",
-        "content_height": "Returns total logical height of compact and expanded rows.",
-        "realized_count": "Returns the number of rows intersecting the current virtualization window.",
-        "item_bounds": "Returns a result's logical viewport-relative bounds when its identity exists.",
-        "selection_changed": "Returns the event published after authoritative result selection changes.",
-        "pin_changed": "Returns the event carrying the old and new explicitly pinned identities.",
-        "expansion_changed": "Returns the event describing rows entering or leaving expanded projection.",
-        "item_activated": "Returns the event carrying the qualified activated result.",
-        "context_requested": "Returns the event carrying result identity and position for owned context UI.",
-        "arrange": "Commits viewport size, clamps offset, and maintains the selected/focused result's reachability.",
-        "on_paint": "Records only realized compact or expanded rows, status rails, matched excerpts, hover, selection, and focus.",
-        "on_pointer": "Handles hover intent, selection, pin toggling, context requests, capture qualification, and activation.",
-        "on_key": "Implements variable-height navigation, paging, expansion/pinning, activation, and context request.",
-        "on_focus_changed": "Commits focus appearance and restores a usable focused result on entry.",
-        "semantic_descriptor": "Projects a result list with total and realized counts plus current selection.",
-        "semantic_virtual_children": "Exposes stable result nodes with correspondence descriptions, expanded/selected state, and actions.",
-        "on_semantic_child_action": "Routes virtual selection, expansion, collapse, and press through ordinary retained transitions."
       }
     },
     "ContextMenu": {
@@ -923,8 +858,6 @@
         "open_changed": "Returns the event forwarding real changes to the menu strip's open state.",
         "measure": "Computes desired menu-bar width from labels, mnemonics, font metrics, and item padding.",
         "on_paint": "Records menu-bar background, hot/active states, labels, access-key cues, disabled state, and focus.",
-        "on_pointer": "Handles hover transfer, root switching, outside routing, press qualification, and dismissal.",
-        "on_key": "Implements root traversal, open/close, submenu handoff, activation, and Escape behavior.",
         "on_focus_changed": "Clears transient hot state when focus leaves unless the owned overlay retains the interaction scope.",
         "semantic_descriptor": "Projects the control as a menu bar with expanded state.",
         "semantic_virtual_children": "Exposes stable root menu items with enabled, focused, and expanded metadata.",
@@ -958,7 +891,6 @@
         "dismiss_requested": "Returns the event carrying click-away or Escape reason for the owning coordinator to close.",
         "measure": "Consumes the available client boundary while measuring content against preferred overlay size.",
         "arrange": "Resolves placement against live anchor/client geometry and arranges content inside exact bounded results.",
-        "on_pointer": "Detects qualified outside primary presses, raises dismissal, and prevents click-through.",
         "on_key_preview": "Intercepts Escape before descendants when enabled and raises a typed dismissal request.",
         "semantic_descriptor": "Projects a transient dialog boundary with expanded content ownership."
       }
@@ -1149,34 +1081,6 @@
         "semantic_descriptor": "Projects group role, title, and the current structured metrics readout."
       }
     },
-    "EasingPreviewTrack": {
-      "status": "OBSERVED: bundle 006 value-type split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/easing_preview.png",
-      "capture_note": "M4 Complete Showcase crop showing eight configured curve/label/color track records.",
-      "summary": "EasingPreviewTrack is one caller-authored easing comparison row: exact curve, label, and marker color.",
-      "methods": {
-        "operator==": "Compares curve, label, and color for exact retained configuration equality."
-      }
-    },
-    "EasingPreview": {
-      "status": "OBSERVED: bundle 006 split and marker-size enhancement; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/easing_preview.png",
-      "capture_note": "M4 Complete Showcase crop showing the live eight-track timeline, directed motion, frame scheduling, and motion-policy controls.",
-      "summary": "EasingPreview is a retained animation conformance surface that owns an AnimationTimeline, one revocable frame lease, configurable tracks/style/title/marker size, authored and effective motion policy, deterministic phase, painter recording, and image semantics. Hidden, detached, paused, or reduced states never create a perpetual redraw loop.",
-      "methods": {
-        "EasingPreview": "Constructs the canonical eight-curve infinite timeline and accessible conformance description.",
-        "style": "Returns the retained visual palette.",
-        "set_style": "Commits palette without changing timeline authority.",
-        "tracks": "Returns ordered curve/label/color track configuration.",
-        "set_tracks": "Requires one through 32 named tracks and refreshes paint and semantics.",
-        "effective_motion_policy": "Combines authored policy with Window reduced-motion presentation settings.",
-        "phase": "Returns the last retained normalized timeline phase.",
-        "advance_animation": "Samples the timeline at a frame time into the phase, and stops the frame timer when a finite animation finishes.",
-        "on_paint": "Records frame, title/readout, each track, and curve-sampled markers from effective motion policy.",
-        "hit_test_local": "Always rejects input because surrounding controls own policy interaction.",
-        "semantic_descriptor": "Projects image role, normalized phase/range, motion readout, and busy state only while active."
-      }
-    },
     "RasterCanvas": {
       "status": "OBSERVED: bundle 006 hierarchical move and transparency-cell enhancement; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/drawing_raster_material.png",
@@ -1244,53 +1148,6 @@
       "capture": "captures/instrument_rack.png",
       "capture_note": "M4 File Manager Demoboard crop showing ordered modules whose keyboard/semantic reorder request carries exact old and requested indices.",
       "summary": "InstrumentModuleMoveRequest carries stable module identity, previous index, and bounded requested index; the consumer remains ordering authority."
-    },
-    "RackModulePanel": {
-      "status": "OBSERVED: bundle 006 source-private responsive-control split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/instrument_rack.png",
-      "capture_note": "M4 File Manager Demoboard crop showing RackModulePanel instances arranging enable, fields, status, and remove roles across the rack.",
-      "summary": "RackModulePanel is InstrumentRack's source-private retained module shell. It owns responsive horizontal/compact child arrangement and reorder semantics while InstrumentRack retains model, event, focus, scrolling, and reconciliation authority.",
-      "methods": {
-        "RackModulePanel": "Constructs a bordered module shell with reorder accessibility guidance.",
-        "set_compact": "Commits responsive stacked-field mode and invalidates child layout.",
-        "compact": "Reports whether fields are arranged vertically for a narrow slot.",
-        "arrange": "Arranges enable/remove edges, weighted horizontal fields or compact stacked fields, and status text.",
-        "semantic_descriptor": "Projects a named group with descendant inclusion and increment/decrement reorder actions.",
-        "on_semantic_action": "Maps decrement/increment to the rack-owned move callback."
-      }
-    },
-    "InstrumentRack": {
-      "status": "OBSERVED: bundle 006 split with source-private module control; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/instrument_rack.png",
-      "capture_note": "M4 File Manager Demoboard crop showing live and staged criteria modules, real choice controls, enable/remove actions, status text, and the Apply action subtree.",
-      "summary": "InstrumentRack is a bounded retained editor rack that reconciles stable module/field identities across model replacements, owns real choice/text/check/button/status controls, preserves surviving focus and overlay state, responsively wraps or compacts modules, scrolls one plane, emits typed commit/toggle/remove/reorder events, and hosts an optional caller-owned action subtree.",
-      "methods": {
-        "InstrumentRack": "Constructs the rack coordinator, source-private module shells, and default layout policy.",
-        "~InstrumentRack": "Releases reconciled module state and owned subscriptions after normal Control disposal.",
-        "modules": "Returns the normalized caller-facing module model in current order.",
-        "set_modules": "Validates bounded UTF-8 identities/fields, reconciles surviving controls by stable ID, disposes removed shells, preserves useful focus, and refreshes layout.",
-        "field_editor": "Returns the real retained editor for a stable module/field pair.",
-        "module_bounds": "Returns the last logical rack bounds for a stable module.",
-        "set_module_enabled": "Commits module enabled state and synchronizes descendants and public model.",
-        "set_module_state": "Commits live/staged/pending/invalid state and status text, then refreshes presentation.",
-        "set_field_value": "Synchronizes one real editor and public model without emitting a user commit.",
-        "set_field_validation": "Commits validation text and refreshes module/accessibility presentation.",
-        "set_action_content": "Validates and assumes ownership of an unparented action subtree plus its minimum slot width.",
-        "action_content": "Returns the optional caller-owned retained action subtree.",
-        "content_height": "Returns the last computed wrapped content height.",
-        "preferred_height": "Computes bounded wrapped height for a positive available width without arranging.",
-        "field_changed": "Returns the event for live text/choice transitions.",
-        "field_committed": "Returns the event for qualified field commits.",
-        "module_toggled": "Returns the event for committed enable-state changes.",
-        "remove_requested": "Returns the event requesting consumer-authorized module removal.",
-        "move_requested": "Returns the event requesting a stable module reorder.",
-        "measure": "Computes desired height from the responsive slot algorithm and available viewport.",
-        "arrange": "Commits bounds and arranges reconciled module/action slots against current scroll origin.",
-        "on_pointer": "Consumes wheel input to scroll the rack through its clamped state machine.",
-        "on_pointer_bubble": "Accepts unhandled descendant wheel input into the same rack scroll path.",
-        "on_key_preview": "Maps Alt+Left/Right from a focused module descendant to typed reorder requests.",
-        "semantic_descriptor": "Projects a named group, module count, and included real descendants."
-      }
     },
     "PropertyConversionContext": {
       "status": "OBSERVED: bundle 006 conversion-policy split; M4 build and focused tests pass",
@@ -1442,8 +1299,6 @@
         "measure": "Computes desired viewport extent from available size and content height.",
         "arrange": "Commits viewport bounds, clamps scrolling, and arranges only current group/row/header child roles.",
         "on_paint": "Records group bars, row labels/value backplanes, hierarchy guides, disclosures, validation, required/reset cues, hover, and focus.",
-        "on_pointer": "Handles wheel scrolling and group/row disclosure hit targets while real editors retain their own input.",
-        "on_key": "Implements disclosure and scrolling keys from the PropertyList surface.",
         "semantic_descriptor": "Projects a grouped property/settings surface with row count and descendant inclusion.",
         "semantic_virtual_children": "Exposes stable group and row nodes, hierarchy/disclosure state, validation, values, and actions around real editor descendants.",
         "on_semantic_child_action": "Maps virtual selection, expand/collapse, set-value, and reset actions through ordinary row state and events."
@@ -1496,8 +1351,6 @@
         "value_changed": "Returns the event published after a typed flags commit.",
         "drop_down_changed": "Returns the event published after transient ownership opens or closes.",
         "on_paint": "Records field frame, canonical flags text, disclosure affordance, focus, and invalid state.",
-        "on_pointer": "Qualifies primary field activation and opens/closes the overlay.",
-        "on_key": "Handles disclosure, commit navigation, and Escape closure.",
         "on_focus_changed": "Commits focus appearance independently of overlay lifetime.",
         "semantic_descriptor": "Projects combo-box role, canonical typed value, expanded/invalid state, and actions.",
         "on_semantic_action": "Maps press/expand/collapse to normal transient state changes."
@@ -1511,7 +1364,6 @@
       "methods": {
         "PropertyEditorDropDownLayer": "Constructs a transparent overlay-plane panel for the complete client boundary.",
         "dismissed": "Returns the unified outside-click/Escape dismissal event.",
-        "on_pointer": "Consumes a primary press reaching the outside layer and requests dismissal.",
         "on_key_preview": "Intercepts Escape before descendants and requests dismissal."
       }
     },
@@ -3108,11 +2960,6 @@
     "UnicodeRange": {"status": "OBSERVED: bundle 011 Unicode-table review", "summary": "UnicodeRange maps an inclusive code-point interval to the generated grapheme-break property used by conformance logic."},
     "AxisGeometry": {"status": "OBSERVED: bundle 011 scroll geometry review", "summary": "AxisGeometry is the resolved track, decrement/increment buttons, thumb, maximum position, and viewport geometry for one scroll axis."},
     "CardLayout": {"status": "OBSERVED: bundle 011 card value review", "summary": "CardLayout defines validated logical padding, section gaps, and footer/header allocation used by Card measurement and arrangement."},
-    "CorrespondenceItem": {"status": "OBSERVED: bundle 011 correspondence value review", "summary": "CorrespondenceItem owns stable identity, primary/secondary text, status, hierarchy, pinned/expanded policy, and optional command data for one correspondence row."},
-    "CorrespondenceSelectionChange": {"status": "OBSERVED: bundle 011 correspondence event review", "summary": "CorrespondenceSelectionChange reports old/new optional stable identities and the initiating interaction."},
-    "CorrespondencePinChange": {"status": "OBSERVED: bundle 011 correspondence event review", "summary": "CorrespondencePinChange reports the exact row and resulting pinned state."},
-    "CorrespondenceExpansionChange": {"status": "OBSERVED: bundle 011 correspondence event review", "summary": "CorrespondenceExpansionChange reports the exact hierarchical row and resulting expanded state."},
-    "ScrollAnchor": {"status": "OBSERVED: bundle 011 correspondence scroll-state review", "summary": "ScrollAnchor preserves a stable row identity plus intra-row offset so refreshes restore semantic rather than index-only position."},
     "ItemCheckEvent": {"status": "OBSERVED: bundle 011 checked-list event review", "summary": "ItemCheckEvent carries item index, current state, and mutable proposed state before a CheckedListBox commit."},
     "ListSelectionChange": {"status": "OBSERVED: bundle 011 list-selection event review", "summary": "ListSelectionChange reports previous/current indices plus the exact selected-index snapshot after one mutation."},
     "MasterDetailLayout": {"status": "OBSERVED: bundle 011 master-detail layout review", "summary": "MasterDetailLayout defines bounded navigation width and inter-pane gap for deterministic responsive projection."},
@@ -3124,7 +2971,6 @@
     "ObjectViewItem": {"status": "OBSERVED: bundle 011 object-view value review", "summary": "ObjectViewItem owns stable identity, primary/secondary text, icon/status metadata, and optional command data for one flat object row."},
     "ObjectSelectionChange": {"status": "OBSERVED: bundle 011 object-view event review", "summary": "ObjectSelectionChange reports previous/current optional identities and interaction source."},
     "ObjectContextRequest": {"status": "OBSERVED: bundle 011 object-view context review", "summary": "ObjectContextRequest carries the selected identity and local/window anchor geometry for one context-surface request."},
-    "ReviewRecord": {"status": "OBSERVED: bundle 011 review-card value review", "summary": "ReviewRecord owns the stable author, timestamp, score/status, title, body, and metadata projected by ReviewCard."},
     "ScrollEvent": {"status": "OBSERVED: bundle 011 scroll event review", "summary": "ScrollEvent reports axis, mutation kind, old/new values, and logical orientation for one admitted scroll transition."},
     "ScrollAxisSnapshot": {"status": "OBSERVED: bundle 011 scroll-state review", "summary": "ScrollAxisSnapshot exposes minimum, maximum, viewport, small/large change, value, effective maximum, and visibility for one axis."},
     "ScrollSnapshot": {"status": "OBSERVED: bundle 011 scroll-state review", "summary": "ScrollSnapshot combines horizontal/vertical axis snapshots with auto-scroll policy, margin, minimum size, offset, and logical position."},
@@ -3157,18 +3003,6 @@
     "gd_raster_service_v0": {"status": "OBSERVED: bundle 011 drawing raster-service review", "summary": "gd_raster_service_v0 is the size-versioned host callback table for registering, updating, unregistering, and invalidating shared raster surfaces."},
     "gd_api_v0": {"status": "OBSERVED: bundle 011 complete GUI.Drawing ABI table review", "summary": "gd_api_v0 is the size-versioned negotiated function table for drawing object ownership, transforms, paths, regions, brushes, pens, fonts, text, images, bitmap locks/edits/damage, recording/replay, native interop, and raster publication."},
     "CapturedSurface": {"status": "OBSERVED: bundle 010 private drawing ABI platform review; native drawing and complete M4 MinGW builds pass", "summary": "CapturedSurface owns the bitmap and source-relative bounds produced by one host-surface capture, keeping platform handles outside the portable drawing contract."},
-    "VisualInspectorView": {
-      "status": "OBSERVED declaration inventory; declaration-derived method narrative; capture pending",
-      "summary": "VisualInspectorView is a reusable renderer-neutral presentation of a Window's public visual-inspection snapshot for demoboards and local diagnostics; ordinary rendering never requires it."
-    },
-    "VisualInspectorOverlay": {
-      "status": "OBSERVED declaration inventory; declaration-derived method narrative; capture pending",
-      "summary": "VisualInspectorOverlay is the transparent companion of VisualInspectorView that draws a target's arranged, visual, and effective clipped bounds in three colors without altering hit testing or the inspected tree."
-    },
-    "TypographySpecimen": {
-      "status": "OBSERVED declaration inventory; declaration-derived method narrative; capture pending",
-      "summary": "TypographySpecimen is a renderer-neutral review instrument that draws one committed text run with its logical line box, resolved baseline, and exact provider status."
-    },
     "ChoiceGroup": {
       "status": "OBSERVED declaration inventory; declaration-derived method narrative; capture pending",
       "summary": "ChoiceGroup is a Panel-derived collection control that presents authored ChoiceItem records as retained item Buttons forming one exclusive selection; the selected index is a bindable Value<int> with changed and activated events, keyboard traversal, named skin parts, and group semantics."

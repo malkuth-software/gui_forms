@@ -9,7 +9,12 @@
 #include "generated/note_card.hpp"
 #include "note_dialog_form.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/commands/types/command_types.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cstddef>
 #include <iostream>
@@ -97,11 +102,28 @@ void test_application_type_descriptions() {
     require(refused(schema, "pin,app::Pin,user_control,"), "descriptions: an empty header");
 }
 
+// The installed compiler's schema (form_core_catalog.cpp) names no lab or
+// demonstration control (audit F9): those types left the registry, and only
+// the Gallery's compiler adds them (form_lab_catalog.cpp).
+void test_installed_schema_has_no_lab_types() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    bool lab_type = false;
+    for (const gui_forms::form_language::FormSchemaType& type : schema.types) {
+        const bool lab_name = type.name == "review_card" || type.name == "correspondence_view" ||
+                              type.name == "instrument_rack" || type.name == "easing_preview" ||
+                              type.name == "typography_specimen" || type.name == "visual_inspector_view" ||
+                              type.name == "visual_inspector_overlay";
+        if (lab_name) lab_type = true;
+    }
+    require(!lab_type, "installed schema: no lab or demonstration control");
+}
+
 } // namespace
 
 int main() {
     test_generated_application_type();
     test_application_type_descriptions();
+    test_installed_schema_has_no_lab_types();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

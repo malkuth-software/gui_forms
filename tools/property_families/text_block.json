@@ -2,9 +2,9 @@
   "family": "TextBlock",
   "step": "M-S2",
   "declaring": "TextBlock",
-  "header": "include/gui_forms/controls/text_block/text_block.hpp",
+  "header": "include/gui_forms/controls/text_block.hpp",
   "source": "src/controls/text_block/text_block.cpp",
-  "capabilities_header": "include/gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/text_block_capabilities.hpp",
   "base": "Control",
   "shared": [
     "TextCapability"
@@ -170,6 +170,6 @@
   ],
   "test": {
     "type": "TextBlock",
-    "include": "gui_forms/controls/text_block/text_block.hpp"
+    "include": "gui_forms/controls/text_block.hpp"
   }
 }

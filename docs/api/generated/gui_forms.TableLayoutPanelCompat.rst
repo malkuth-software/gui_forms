@@ -9,7 +9,7 @@ gui_forms::TableLayoutPanelCompat
 
 .. cpp:class:: TableLayoutPanelCompat final : public ContainerControl, public TableCellCapability<TableLayoutPanelCompat>, public TableColumnSpanCapability<TableLayoutPanelCompat>, public TableRowSpanCapability<TableLayoutPanelCompat>, public TableLayoutPanelCompatCapabilities<TableLayoutPanelCompat>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+   ``#include <gui_forms/controls/table_layout_panel_compat.hpp>``
 
    For Windows Forms migration: Windows Forms' TableLayoutPanel, arranging its children in a grid of sized rows and columns.
 
@@ -338,7 +338,7 @@ gui_forms::TableLayoutPanelCompat
       The anonymous spans, in the order they were made, each anchored at a
       placed child's cell.
 
-   .. cpp:function:: std::span<const TableLayoutStyle> column_styles() const noexcept
+   .. cpp:function:: std::span<const TableLayoutStyle> column_styles() const& noexcept
 
       The size mode and size of each authored column, one per column. Set one
       with :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`, or all with :cpp:func:`set_column_styles <gui_forms::TableLayoutPanelCompat::set_column_styles>`, which makes the
@@ -351,7 +351,7 @@ gui_forms::TableLayoutPanelCompat
 
       Sets :cpp:func:`column_styles <gui_forms::TableLayoutPanelCompat::column_styles>`; see the property's description above.
 
-   .. cpp:function:: std::span<const TableLayoutStyle> row_styles() const noexcept
+   .. cpp:function:: std::span<const TableLayoutStyle> row_styles() const& noexcept
 
       The size mode and size of each authored row, set with :cpp:func:`set_row_style <gui_forms::TableLayoutPanelCompat::set_row_style>` or
       :cpp:func:`set_row_styles <gui_forms::TableLayoutPanelCompat::set_row_styles>` as the columns are (``row-styles`` in a ``.form``).
@@ -360,12 +360,12 @@ gui_forms::TableLayoutPanelCompat
 
       Sets :cpp:func:`row_styles <gui_forms::TableLayoutPanelCompat::row_styles>`; see the property's description above.
 
-   .. cpp:function:: std::span<const double> column_widths() const noexcept
+   .. cpp:function:: std::span<const double> column_widths() const& noexcept
 
       The column widths resolved by the last layout, including any columns the
       table added. Empty before the first layout.
 
-   .. cpp:function:: std::span<const double> row_heights() const noexcept
+   .. cpp:function:: std::span<const double> row_heights() const& noexcept
 
       The row heights resolved by the last layout, including any rows the table
       added. Empty before the first layout.
@@ -456,3 +456,173 @@ gui_forms::TableLayoutPanelCompat
    .. cpp:member:: constexpr std::size_t table_layout_panel_compat_property_count
 
       TableLayoutPanelCompat's property table: Control's entries, then its own. Default: ``Control::control_property_count + 7U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``TableLayoutPanel``. Members declared here and by the counterpart: 13 supported, 0 deferred, 0 excluded, 26 unclassified; 13 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``TableLayoutPanel``
+     - ``TableLayoutPanelCompat``
+     - supported
+   * - property
+     - ``BorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CellBorderStyle``
+     - ``cell_border_style``
+     - unclassified (untested)
+   * - property
+     - ``ColumnCount``
+     - ``column_count``
+     - unclassified (untested)
+   * - property
+     - ``ColumnStyles``
+     - ``column_styles``
+     - supported
+   * - property
+     - ``Controls``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GrowStyle``
+     - ``grow_style``
+     - unclassified (untested)
+   * - property
+     - ``LayoutSettings``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RowCount``
+     - ``row_count``
+     - unclassified (untested)
+   * - property
+     - ``RowStyles``
+     - ``row_styles``
+     - supported
+   * - event
+     - ``CellPaint``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetCellPosition``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetColumn``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetColumnSpan``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetColumnWidths``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetControlFromPosition``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetPositionFromControl``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetRow``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetRowHeights``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetRowSpan``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnCellPaint``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``SetCellPosition``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetColumn``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetColumnSpan``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetRow``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetRowSpan``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``column_widths``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``layout_overflowed``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``row_heights``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``spans``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``track_spacing``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``cell_position``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_cell``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``control_from_position``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``has_cell``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_row_style``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``table_child_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``table_layout_panel_compat_property_entries``
+     - unclassified (untested)

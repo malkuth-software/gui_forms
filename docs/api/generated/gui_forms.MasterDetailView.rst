@@ -9,7 +9,7 @@ gui_forms::MasterDetailView
 
 .. cpp:class:: MasterDetailView final : public ContainerControl, public MasterDetailViewCapabilities<MasterDetailView>
 
-   ``#include <gui_forms/controls/container/master_detail_view/master_detail_view.hpp>``
+   ``#include <gui_forms/controls/master_detail_view.hpp>``
 
    A list-and-details layout that shows both side by side on wide windows and one at a time on narrow ones.
 
@@ -313,3 +313,65 @@ gui_forms::MasterDetailView
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 2 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``detail``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_display_mode``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_master_detail_layout``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``master``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``master_detail_layout``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``split_container``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``uses_theme_layout``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``presentation_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``reset_master_detail_layout_to_theme``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_detail``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_master``
+     - unclassified (untested)

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/layout/resize_axes/resize_axes.hpp"
 
@@ -21,7 +22,7 @@ namespace detail {
 // attach and released at detach, and the generation the slot had when it
 // was assigned. A released slot's generation advances, so a slot kept past
 // its control's detach is rejected (ControlTable::control_at answers null).
-struct ControlSlot final {
+struct GUI_FORMS_API ControlSlot final {
     static constexpr std::uint32_t unassigned = std::numeric_limits<std::uint32_t>::max();
 
     std::uint32_t index{unassigned};
@@ -59,7 +60,7 @@ inline constexpr std::size_t dirty_kind_count = static_cast<std::size_t>(DirtyKi
 // bits and clearing them cost the set words, not the capacity. Capacity
 // grows with the table and never shrinks; every bit past the live length is
 // clear.
-class DirtyBitset final {
+class GUI_FORMS_API DirtyBitset final {
 public:
     // Makes room for indices below `capacity`; existing bits keep.
     void reserve(std::size_t capacity);
@@ -85,7 +86,7 @@ private:
 // SurfaceRoot::settle_dirty does at the settle what mark_dirty once did at
 // the write. Touches between two settles merge: the kinds unite and each
 // piece of work is owed once.
-struct PendingTouch final {
+struct GUI_FORMS_API PendingTouch final {
     // The kinds to add to every ancestor's subtree flags.
     Dirty requested{Dirty::none};
     // Whether the layout ancestors are marked (SurfaceRoot::
@@ -104,7 +105,7 @@ struct PendingTouch final {
 // observes its controls (the tree owns them): a slot is released before
 // its control leaves the surface, so a live slot's pointer is valid. Used
 // only on the surface root's thread.
-class ControlTable final {
+class GUI_FORMS_API ControlTable final {
 public:
     // Gives `control` a slot: a released one first (most recently released
     // first), else a new one at the end. The slot's bits are clear.
@@ -169,7 +170,7 @@ private:
 };
 
 // The kinds `dirty` reaches.
-[[nodiscard]] bool dirty_reaches(Dirty dirty, DirtyKind kind) noexcept;
+[[nodiscard]] GUI_FORMS_API bool dirty_reaches(Dirty dirty, DirtyKind kind) noexcept;
 
 } // namespace detail
 } // namespace gui_forms

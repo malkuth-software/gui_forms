@@ -9,7 +9,7 @@ gui_forms::BreadcrumbTrail
 
 .. cpp:class:: BreadcrumbTrail final : public Panel, public BreadcrumbTrailCapabilities<BreadcrumbTrail>
 
-   ``#include <gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp>``
+   ``#include <gui_forms/controls/breadcrumb_trail.hpp>``
 
    A location bar that shows the path to the current place as clickable segments.
 
@@ -253,7 +253,7 @@ gui_forms::BreadcrumbTrail
       moving the focus. It can only be true while :cpp:member:`editing <gui_forms::BreadcrumbTrail::editing>`; setting it at
       other times keeps it false.
 
-   .. cpp:function:: std::span<const BreadcrumbSegment> segments() const noexcept
+   .. cpp:function:: std::span<const BreadcrumbSegment> segments() const& noexcept
 
       The path, from the root to the current location. Empty by default. Each
       :cpp:class:`BreadcrumbSegment <gui_forms::BreadcrumbSegment>` has an ID, text, a description of at most 4096
@@ -265,7 +265,7 @@ gui_forms::BreadcrumbTrail
 
       Sets :cpp:func:`segments <gui_forms::BreadcrumbTrail::segments>`; see the property's description above.
 
-   .. cpp:function:: std::span<const std::string> hidden_segment_ids() const noexcept
+   .. cpp:function:: std::span<const std::string> hidden_segment_ids() const& noexcept
 
       The IDs of the middle segments hidden behind the overflow item, in path
       order; empty when every segment fits. Show them, for example in a menu,
@@ -276,11 +276,11 @@ gui_forms::BreadcrumbTrail
       The :cpp:class:`TextBox <gui_forms::TextBox>` used for editing. It has no border, the placeholder
       "Enter an exact path" and the accessible name "Exact location path".
 
-   .. cpp:function:: std::string_view overflow_stable_id() const noexcept
+   .. cpp:function:: std::string_view overflow_stable_id() const& noexcept
 
       The ID of the overflow item, ``<stable_id>.overflow``.
 
-   .. cpp:function:: std::string_view edit_stable_id() const noexcept
+   .. cpp:function:: std::string_view edit_stable_id() const& noexcept
 
       The ID of the edit button, ``<stable_id>.edit``.
 
@@ -350,18 +350,10 @@ gui_forms::BreadcrumbTrail
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-      Handles the pointer input described under Notes. The window calls it.
-
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
 
       Turns Tab in the editor into :cpp:func:`edit_completion_requested <gui_forms::BreadcrumbTrail::edit_completion_requested>` while
       completion is available. The window calls it.
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
-      Handles the keyboard input described under Notes. The window calls it.
 
    .. cpp:function:: void on_focus_changed(bool focused) override
 
@@ -390,6 +382,32 @@ gui_forms::BreadcrumbTrail
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
 
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Raises the event, then handles a key its subscribers left unhandled as
+      described under Notes. The window calls it.
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+      Handles the pointer input described under Notes, with the other mouse
+      raisers the class overrides, then raises the event. The window calls it.
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
@@ -411,3 +429,77 @@ gui_forms::BreadcrumbTrail
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 3 unclassified; 15 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``edit_stable_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``hidden_segment_ids``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overflow_stable_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``segments``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``edit_cancelled``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``edit_committed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``edit_completion_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``edit_started``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``overflow_activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``segment_activated``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_edit``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_font_changed``
+     - unclassified (untested)

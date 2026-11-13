@@ -1,0 +1,78 @@
+/* The industrial theme (skeudoindustrial surfaces, phase 5): stock
+   controls in the GOST machine-tool paints, pale mint keys in a satin
+   powder coat over a grey-green body, the documented "Soviet machine" look
+   of ГОСТ 22133-86 Appendix 4 (demo/themes/gost_paints/SOURCES.md).
+
+   These are visual choices, not rulings: each is one property in the
+   block below, naming a card of the imported palette. Finishes go on
+   small parts only; a large face (a group's) takes a plain paint, since
+   a finish over it would be past the bake budget and draw the built-in
+   look. The manifest pins the palette's manifest by its hash and is
+   written by tools/industrial_surfaces/gost_palette.py; run it after
+   changing this sheet. */
+@import "gost-paints";
+
+:root {
+  --industrial-body: var(--gost-a-365);   /* grey-green */
+  --industrial-key: var(--gost-a-319);    /* pale mint */
+  --industrial-key-shade: var(--gost-a-365);
+  --industrial-well: var(--gost-a-397);   /* blue-green */
+  --industrial-flake: var(--gost-a-810);  /* grey-silver */
+  --industrial-key-seed: 7;
+  --industrial-well-seed: 3;
+  /* Relief by role (owner, 2026-11-12): each role's height above or below
+     the panel, which seats it with a contact shadow and crevice darkening
+     under the one light. Keys a share of their shorter side, wells sunk,
+     group panels a plain length (a share of a large panel's side would be
+     clamped anyway). */
+  --industrial-key-seat: 6%;
+  --industrial-well-seat: -10%;
+  --industrial-panel-seat: 1px;
+  /* The danger key (follow-up 5): signal red, a choice outside the palette
+     (GOST 22133-86 gives no red card, and the palette has no red near it),
+     lit from inside. Its legend is the palette's cream (A-270), the
+     warmest light entry, 4.6:1 on the red rim (the integrator's choice,
+     cp31 fold B, not a rule), read through an application colour role so
+     that forced high contrast can replace it as it replaces ink on an
+     accent. */
+  --industrial-danger: #9c3128;
+  --industrial-danger-heart: #d4553f;
+  color-roles: danger-legend from on-accent-on-accent;
+  danger-legend: var(--gost-a-270) on var(--industrial-danger);
+}
+
+group-box::part(face), scaled-group-box::part(face) {
+  background: var(--industrial-body);
+  seat: var(--industrial-panel-seat);
+}
+button::part(face) {
+  background: finish(orange-peel, var(--industrial-key), var(--industrial-key-shade), var(--industrial-key-seed));
+  seat: var(--industrial-key-seat);
+}
+check-box::part(well), radio-button::part(well) {
+  background: finish(hammertone, var(--industrial-well), var(--industrial-flake), var(--industrial-well-seed));
+  seat: var(--industrial-well-seat);
+}
+
+/* An indicator lamp's bezel is a hammered ring sunk into the panel; the
+   lens keeps the default theme's dark glass and lit colours, the only
+   saturated light on the panel. */
+indicator-lamp::part(bezel) {
+  background: finish(hammertone, var(--industrial-well), var(--industrial-flake), var(--industrial-well-seed));
+  seat: var(--industrial-well-seat);
+}
+
+/* The danger key (follow-up 5): a red key lit from a lamp inside it, its
+   heart brighter than its rim. The glow is placed over the face, inside
+   its edge, so no light reaches the panel or a neighbour; the button
+   pulses it slowly and holds it steady under reduced motion. Its warning
+   mark leads the legend. */
+button::part(face):state(danger) {
+  background: radial-gradient(circle at 50% 60%, var(--industrial-danger-heart), var(--industrial-danger) 80%);
+  glow: #ff6a4a 4px;
+  glow-placement: over;
+  seat: var(--industrial-key-seat);
+}
+button::part(label):state(danger) {
+  color: role(danger-legend foreground);
+}

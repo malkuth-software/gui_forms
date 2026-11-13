@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../scrollable_control/scrollable_anatomy.hpp"
-#include "gui_forms/controls/panel/group_box/group_box.hpp"
+#include "gui_forms/controls/group_box.hpp"
 
 #include <array>
 

@@ -2,7 +2,7 @@
 // pilot, design accepted 2026-11-07): the edit hooks and the flush's damage
 // settle. The selection, current cell and per-row state are kept by row ID,
 // so an edit needs only the identity index and the rows it removed.
-#include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
 
 #include <algorithm>
 #include <cstddef>

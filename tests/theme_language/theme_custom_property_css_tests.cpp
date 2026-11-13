@@ -8,7 +8,11 @@
 // the cascade; copies whose definitions cannot win together are not made.
 
 #include "../../src/core/theme_language/compiler/theme_compiler.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <array>
 #include <cstddef>

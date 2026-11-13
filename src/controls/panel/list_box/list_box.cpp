@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/list_box/list_box.hpp"
+#include "gui_forms/controls/list_box.hpp"
 #include "list_box_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
@@ -43,10 +43,18 @@ constexpr double baseline_below_middle = 4.0;
 // The active row's focus ring sits this far inside the row.
 constexpr double focus_ring_inset = 1.0;
 
+// ListControl's selected index for a selection kept sorted: its first item,
+// or none.
+std::optional<std::size_t> first_selected(const std::vector<std::size_t>& selection) noexcept {
+    if (selection.empty()) return std::nullopt;
+    const std::optional<std::size_t> first(selection.front());
+    return first;
+}
+
 } // namespace
 using namespace input_control_detail;
 
-ListBox::ListBox(StableId stable_id) : Panel(std::move(stable_id)) {
+ListBox::ListBox(StableId stable_id) : ListControl(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;
@@ -130,8 +138,10 @@ void ListBox::written(const decltype(items)&, const CollectionEdit& edit) {
     if (selection_changed || top_before != top_index_) effects |= Dirty::paint;
     invalidate(effects);
     if (selection_changed) {
+        const bool index_moved = record_selected_index(first_selected(selected_));
         publish_change(selection_changed_,
                        ListSelectionChange{edit_selection_, selected_, active_index_});
+        if (index_moved) publish_change(selected_index_changed_, selected_index());
     }
 }
 
@@ -200,11 +210,6 @@ void ListBox::written(const decltype(selection_mode)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-std::optional<std::size_t> ListBox::selected_index() const noexcept {
-    return selected_.empty() ? std::optional<std::size_t>{}
-                             : std::optional<std::size_t>{selected_.front()};
-}
-
 void ListBox::apply_selection(std::vector<std::size_t> selection,
                               std::optional<std::size_t> active) {
     std::sort(selection.begin(), selection.end());
@@ -215,8 +220,10 @@ void ListBox::apply_selection(std::vector<std::size_t> selection,
     active_index_ = active;
     if (previous == selected_ && previous_active == active_index_) return;
     invalidate(Dirty::paint | Dirty::semantics);
+    const bool index_moved = record_selected_index(first_selected(selected_));
     publish_change(selection_changed_,
                    ListSelectionChange{previous, selected_, active_index_});
+    if (index_moved) publish_change(selected_index_changed_, selected_index());
 }
 
 void ListBox::select_index(std::size_t index, bool extend, bool toggle) {
@@ -409,13 +416,20 @@ void ListBox::on_paint(Painter& painter, Rect) {
         text.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
         text.role = PartRole::content;
         text.states = row_states;
-        text.text = items.read()[index];
+        text.text = lend_paint_text(items.read()[index]);
         text.font = row_font;
         if (overridden) text.authored_foreground = selected && focused_ ? style().highlight : style().text;
         const double left = row_text_left();
-        paint_text_part_at(painter, *this, text,
-                           {left, y + std::max(row_font.size, row_height * 0.5 + baseline_below_middle)},
-                           std::max(0.0, row.x + row.width - left));
+        const double baseline = y + std::max(row_font.size, row_height * 0.5 + baseline_below_middle);
+        const double room = std::max(0.0, row.x + row.width - left);
+        if (effective_layout_direction() == LayoutDirection::right_to_left) {
+            // Right-aligned, the text inset (and any adornment) at the right
+            // (WinForms' ListBox under RightToLeft).
+            const double text_width = std::min(room, measure_text_extent_utf8(text.text, row_font).logical_size.width);
+            paint_text_part_at(painter, *this, text, {bounds.width - left - text_width, baseline}, text_width);
+        } else {
+            paint_text_part_at(painter, *this, text, {left, baseline}, room);
+        }
         if (focused_ && active_index_ == index) {
             PartPaint ring;
             ring.family = ControlVisualRole::selection;
@@ -438,10 +452,38 @@ double ListBox::row_text_left() const noexcept {
 void ListBox::paint_row_adornment(Painter&, std::size_t, Rect, bool,
                                   bool) const {}
 
-void ListBox::on_pointer(PointerEvent& event) {
+// The raisers run ListBox's handling, then raise the event through
+// Control: ScrollableControl's bar handling does not see the list's
+// pointer events, as before the raisers.
+void ListBox::on_mouse_down(MouseEventArgs& arguments) {
+    list_pointer(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void ListBox::on_mouse_up(MouseEventArgs& arguments) {
+    list_pointer(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void ListBox::on_mouse_move(MouseEventArgs& arguments) {
+    list_pointer(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void ListBox::on_mouse_wheel(MouseEventArgs& arguments) {
+    list_pointer(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+void ListBox::on_mouse_leave() {
+    list_pointer_left();
+    Control::on_mouse_leave();
+}
+
+void ListBox::list_pointer(MouseEventArgs& arguments) {
     if (!eligible_for_input()) return;
-    if (event.action == PointerAction::move) {
-        const std::optional<std::size_t> next = index_at(event.position);
+    if (arguments.action == PointerAction::move) {
+        const std::optional<std::size_t> next = index_at(arguments.window_position);
         if (next != hovered_index_) {
             // Only the row left and the row entered repaint (audit C9).
             const std::optional<std::size_t> previous = hovered_index_;
@@ -451,58 +493,64 @@ void ListBox::on_pointer(PointerEvent& event) {
         }
         return;
     }
-    if (event.action == PointerAction::leave) {
-        const std::optional<std::size_t> previous = hovered_index_;
-        hovered_index_.reset();
-        if (previous) invalidate_row(*previous);
-        return;
-    }
-    if (event.action == PointerAction::wheel) {
-        if (!items.read().empty() && event.wheel_delta.y != 0.0) {
-            const int direction = event.wheel_delta.y > 0.0 ? -1 : 1;
+    if (arguments.action == PointerAction::wheel) {
+        if (!items.read().empty() && arguments.wheel_delta.y != 0.0) {
+            const int direction = arguments.wheel_delta.y > 0.0 ? -1 : 1;
             const std::ptrdiff_t next = std::clamp<std::ptrdiff_t>(
                 static_cast<std::ptrdiff_t>(top_index_) + direction * 3,
                 0, static_cast<std::ptrdiff_t>(items.read().size() - 1U));
             top_index = static_cast<std::size_t>(next);
-            event.handled = true;
+            arguments.handled = true;
         }
         return;
     }
-    if (event.action == PointerAction::down && event.button == PointerButton::primary) {
+    if (arguments.action == PointerAction::down && arguments.button == PointerButton::primary) {
         if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
-        if (const std::optional<std::size_t> index = index_at(event.position)) {
-            select_index(*index, includes(event.modifiers, Modifier::shift),
-                         command_modifier(event.modifiers));
-            event.handled = true;
+        if (const std::optional<std::size_t> index = index_at(arguments.window_position)) {
+            select_index(*index, includes(arguments.modifiers, Modifier::shift),
+                         command_modifier(arguments.modifiers));
+            arguments.handled = true;
         }
-    } else if (event.action == PointerAction::up &&
-               event.button == PointerButton::primary) {
-        if (const std::optional<std::size_t> index = index_at(event.position);
+    } else if (arguments.action == PointerAction::up &&
+               arguments.button == PointerButton::primary) {
+        if (const std::optional<std::size_t> index = index_at(arguments.window_position);
             index && active_index_ == index) {
             item_activated_.emit(*index);
-            event.handled = true;
+            arguments.handled = true;
         }
     }
 }
 
-void ListBox::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled.read() || event.action != KeyAction::down || items.read().empty()) return;
-    if (event.physical_key == PhysicalKey::enter && active_index_) {
+void ListBox::list_pointer_left() {
+    if (!eligible_for_input()) return;
+    const std::optional<std::size_t> previous = hovered_index_;
+    hovered_index_.reset();
+    if (previous) invalidate_row(*previous);
+}
+
+void ListBox::on_key_down(KeyEventArgs& arguments) {
+    ListControl::on_key_down(arguments);
+    if (!arguments.handled) list_key_down(arguments);
+}
+
+void ListBox::list_key_down(KeyEventArgs& arguments) {
+    if (!focused_ || !enabled.read() || items.read().empty()) return;
+    if (arguments.physical_key == PhysicalKey::enter && active_index_) {
         item_activated_.emit(*active_index_);
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
     std::optional<std::size_t> next;
     const std::size_t current = active_index_.value_or(0U);
-    if (event.physical_key == PhysicalKey::up) next = current == 0U ? 0U : current - 1U;
-    else if (event.physical_key == PhysicalKey::down) next = std::min(current + 1U, items.read().size() - 1U);
-    else if (event.physical_key == PhysicalKey::home) next = 0U;
-    else if (event.physical_key == PhysicalKey::end) next = items.read().size() - 1U;
-    else if (event.physical_key == PhysicalKey::page_up) next = current > visible_row_count() ? current - visible_row_count() : 0U;
-    else if (event.physical_key == PhysicalKey::page_down) next = std::min(current + visible_row_count(), items.read().size() - 1U);
+    if (arguments.physical_key == PhysicalKey::up) next = current == 0U ? 0U : current - 1U;
+    else if (arguments.physical_key == PhysicalKey::down) next = std::min(current + 1U, items.read().size() - 1U);
+    else if (arguments.physical_key == PhysicalKey::home) next = 0U;
+    else if (arguments.physical_key == PhysicalKey::end) next = items.read().size() - 1U;
+    else if (arguments.physical_key == PhysicalKey::page_up) next = current > visible_row_count() ? current - visible_row_count() : 0U;
+    else if (arguments.physical_key == PhysicalKey::page_down) next = std::min(current + visible_row_count(), items.read().size() - 1U);
     if (next) {
-        select_index(*next, includes(event.modifiers, Modifier::shift), false);
-        event.handled = true;
+        select_index(*next, includes(arguments.modifiers, Modifier::shift), false);
+        arguments.handled = true;
     }
 }
 
@@ -705,7 +753,10 @@ ListBox::ItemParts ListBox::list_item_parts(std::size_t item) const {
     const double label_left = row_text_left();
     const double label_width = std::min(text.logical_size.width,
                                         std::max(0.0, row.right() - label_left));
-    const Rect label{label_left, y, label_width, row_height};
+    Rect label{label_left, y, label_width, row_height};
+    if (effective_layout_direction() == LayoutDirection::right_to_left) {
+        label = horizontally_mirrored(label, Rect{0.0, 0.0, bounds.width, bounds.height});
+    }
     ItemParts record;
     record.row = PartGeometry::from_bounds(Rect::intersection(row, content));
     record.label = PartGeometry::from_bounds(Rect::intersection(label, content));
@@ -757,7 +808,7 @@ std::vector<ListBox::Item> ListBox::realized_items() const {
 
 namespace {
 
-// The events ListBox adds to those of Panel, in declaration order.
+// The events ListBox adds to those of ListControl, in declaration order.
 constexpr std::array<InteractionDeclaration, 2> list_box_interactions{{
     {.name = "selection_changed", .payload = "ListSelectionChange", .mutable_payload = false},
     {.name = "item_activated", .payload = "std::size_t", .mutable_payload = false},
@@ -766,7 +817,7 @@ constexpr std::array<InteractionDeclaration, 2> list_box_interactions{{
 } // namespace
 
 void ListBox::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
-    Panel::append_interactions(interactions);
+    ListControl::append_interactions(interactions);
     interactions.insert(interactions.end(), list_box_interactions.begin(), list_box_interactions.end());
 }
 

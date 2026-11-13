@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
@@ -90,6 +90,8 @@ Color material_ground(const SurfaceMaterial& material) noexcept {
         return fill.color;
     case MaterialFillKind::procedural:
         return fill.procedural.ground;
+    case MaterialFillKind::finish:
+        return fill.finish.paint;
     }
     // A kind outside the enumeration: the layer's colour.
     return fill.color;

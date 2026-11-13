@@ -9,7 +9,26 @@
 // begin_keyboard_drag rule action. Phase E4: the typed drag interactions, a
 // rule reading RuleFiring::drag, and the window's announcement live region.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/component/component/component.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/control_layout_styles/control_layout_styles.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/splitter.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/event/event.hpp"
+#include "gui_forms/events/drag_events/drag_events.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/rules/rule_set/rule_set.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 #include "../src/core/drag_engine/drag_engine.hpp"
 
 #include <array>

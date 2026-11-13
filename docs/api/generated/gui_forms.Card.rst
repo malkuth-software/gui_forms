@@ -9,7 +9,7 @@ gui_forms::Card
 
 .. cpp:class:: Card : public Panel, public CardCapabilities<Card>
 
-   ``#include <gui_forms/controls/panel/card/card.hpp>``
+   ``#include <gui_forms/controls/card.hpp>``
 
    A themed surface with a header, a body and a footer.
 
@@ -124,9 +124,6 @@ gui_forms::Card
         - Returns to the theme's layout after ``set_card_layout``.
 
    .. seealso::
-
-      :cpp:class:`ReviewCard <gui_forms::ReviewCard>`
-         A card that presents a review record.
 
       :cpp:class:`Panel <gui_forms::Panel>`
          A plain container for children placed by bounds, dock or anchor.
@@ -348,10 +345,6 @@ gui_forms::Card
 
    .. cpp:function:: bool hit_test_local(Point local_point) const override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: void on_activate() override
@@ -364,6 +357,30 @@ gui_forms::Card
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
 
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_enter() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_up(KeyEventArgs& arguments) override
+
+      *Protected.*
+
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
@@ -371,3 +388,61 @@ gui_forms::Card
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 1 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``body``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_card_layout``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_visual``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``footer``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``header``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``hovered_visual``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``pressed_visual``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``uses_theme_layout``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selected_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reset_card_layout_to_theme``
+     - supported

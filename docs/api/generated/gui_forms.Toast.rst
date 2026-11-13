@@ -9,7 +9,7 @@ gui_forms::Toast
 
 .. cpp:class:: Toast final : public Control
 
-   ``#include <gui_forms/controls/toast/toast.hpp>``
+   ``#include <gui_forms/controls/toast.hpp>``
 
    A brief notice shown for a while above the bottom of a window, such as "Message archived." with an Undo button after a deletion.
 
@@ -157,8 +157,6 @@ gui_forms::Toast
 
    .. cpp:function:: Insets visual_outsets() const noexcept override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
@@ -166,6 +164,22 @@ gui_forms::Toast
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
@@ -178,3 +192,37 @@ gui_forms::Toast
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       The action button is made after construction (make_control calls initialize_control_tree), since add_child needs a shared owner. Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 1 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``action``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``content``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``action_invoked``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)

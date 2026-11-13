@@ -59,7 +59,8 @@ constexpr std::string_view floor_sheet = R"css(/* gui-forms: the default theme's
 
 /* Flat stock (windows, panels, cards and tooltips): one solid face with a
    quiet line. A selected one takes the pale selection. Tooltips are
-   windows-professional's pale yellow (owner decision RB-38). */
+   windows-professional's pale yellow (owner decision RB-38), with black
+   text (owner mandate 2026-11-11). */
 :family(window), :family(panel), :family(card), :family(tool-tip) {
   color: #1b2733;
   glyph-color: #1b2733;
@@ -83,6 +84,7 @@ constexpr std::string_view floor_sheet = R"css(/* gui-forms: the default theme's
   background: #ffffe1;
   border: 1px solid #686f76;
   border-radius: 0;
+  color: #000000;
 }
 :family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
 :family(tool-tip):state(selected) {
@@ -617,6 +619,257 @@ status-strip::part(face) {
 dial::part(needle) {
   needle-shape: line;
   stroke-width: 3px;
+}
+
+/* Indicator lamps (skeudoindustrial surfaces, follow-up 4): restrained
+   chrome, so that a lit lens is the only saturated light on the form. The
+   bezel is a quiet grey ring seated into the panel; the lens is dark glass
+   with a faint highlight. Lit, a hot centre falls to the lamp's colour at
+   the rim with a soft glow inside the lens only: green for on, red for
+   error. */
+indicator-lamp::part(bezel) {
+  background: linear-gradient(to bottom, #b4bac1, #eef0f2);
+  border: 1px solid #8d949c;
+  seat: -10%;
+}
+indicator-lamp::part(lens) {
+  background: radial-gradient(circle at 40% 35%, #7a8088, #2c3035 70%);
+  border: 1px solid #24282c;
+  box-shadow: inset 0 1px 1px #ffffff30;
+}
+indicator-lamp::part(lens):state(on) {
+  background: radial-gradient(circle at 40% 35%, #eaffdc, #46c14a 45%, #1d7424);
+  border: 1px solid #17591c;
+  box-shadow: inset 0 0 3px #eaffdcb0;
+}
+indicator-lamp::part(lens):state(error) {
+  background: radial-gradient(circle at 40% 35%, #ffe4da, #e5432e 45%, #8c1a0f);
+  border: 1px solid #6b130a;
+  box-shadow: inset 0 0 3px #ffe4dab0;
+}
+
+/* The danger key (skeudoindustrial surfaces, follow-up 5): a button that
+   marks a dangerous or irreversible action (Button::danger) is lit red from
+   inside its face, standing out from the quiet chrome around it. The glow
+   is placed over the face's fills, inside its edge, so nothing reaches a
+   neighbour; the button pulses the lit face slowly over the plain one and
+   holds it steady under reduced motion. The warning mark that leads the
+   label is the cue that does not rest on colour. */
+button::part(face):state(danger) {
+  background: radial-gradient(circle at 50% 65%, #f3bdb3, #f8e7e4 80%);
+  border-color: #a5463b;
+  glow: #e2412c 4px;
+  glow-placement: over;
+}
+button::part(label):state(danger) {
+  color: #7a1a10;
+}
+
+/* The node canvas (cp31; NODE_GRAPH_SPEC section 3): a paper canvas with
+   a blueprint grid in the ordinary line's blue, white nodes outlined in
+   it under chrome headers, links in the dark line with flowing dots, the
+   selection in the accent blue with a soft halo, the signal group for an
+   invalid link, a rejected drop and a lamp in error. The grid variants
+   are classes on the canvas: paper (the default), blue (white lines on
+   the royale blue), green and grey. The dark variant is derived by rule
+   (resolve_canvas_look), so these rules are written in light terms. */
+node-canvas::part(region) {
+  fill-color: #fbfcfd;
+  grid-spacing: 16px;
+  grid-band: 6px;
+}
+node-canvas::part(grid-minor) {
+  stroke-color: rgb(99 132 178 / 22%);
+  stroke-width: 1px;
+}
+node-canvas::part(grid-major) {
+  stroke-color: rgb(99 132 178 / 45%);
+}
+node-canvas.blue::part(region) {
+  fill-color: #1f4f8f;
+}
+node-canvas.blue::part(grid-minor) {
+  stroke-color: rgb(255 255 255 / 16%);
+}
+node-canvas.blue::part(grid-major) {
+  stroke-color: rgb(255 255 255 / 34%);
+}
+node-canvas.green::part(region) {
+  fill-color: #e9f2e4;
+}
+node-canvas.green::part(grid-minor) {
+  stroke-color: rgb(46 125 79 / 20%);
+}
+node-canvas.green::part(grid-major) {
+  stroke-color: rgb(46 125 79 / 42%);
+}
+node-canvas.grey::part(region) {
+  fill-color: #8a8f96;
+}
+node-canvas.grey::part(grid-minor) {
+  stroke-color: rgb(27 39 51 / 18%);
+}
+node-canvas.grey::part(grid-major) {
+  stroke-color: rgb(27 39 51 / 36%);
+}
+/* The links, ports, selection and marquee on the two deep variants: on
+   the royale blue, pale links, gold for the selection and a coral for an
+   invalid link; on the mid grey, ink links and white for the selection.
+   Each reads at 3:1 or more on its canvas. The green variant is pale
+   and keeps the paper's. */
+node-canvas.blue::part(link), node-canvas.blue::part(dashed-link) {
+  stroke-color: #e8f2ff;
+}
+node-canvas.blue::part(link):hover, node-canvas.blue::part(dashed-link):hover {
+  stroke-color: #ffffff;
+}
+node-canvas.blue::part(link):state(selected), node-canvas.blue::part(dashed-link):state(selected) {
+  stroke-color: #ffcf66;
+  halo: 4px rgb(255 207 102 / 35%);
+}
+node-canvas.blue::part(link):invalid, node-canvas.blue::part(dashed-link):invalid {
+  stroke-color: #ffb4a8;
+}
+node-canvas.blue::part(port) {
+  stroke-color: #173f79;
+}
+node-canvas.blue::part(node-selection) {
+  stroke-color: #ffcf66;
+}
+node-canvas.blue::part(marquee) {
+  fill-color: rgb(255 255 255 / 14%);
+  stroke-color: #ffffff;
+}
+node-canvas.grey::part(link), node-canvas.grey::part(dashed-link) {
+  stroke-color: #1b2733;
+}
+node-canvas.grey::part(link):hover, node-canvas.grey::part(dashed-link):hover {
+  stroke-color: #000000;
+}
+node-canvas.grey::part(link):state(selected), node-canvas.grey::part(dashed-link):state(selected) {
+  stroke-color: #ffffff;
+  halo: 4px rgb(255 255 255 / 35%);
+}
+node-canvas.grey::part(link):invalid, node-canvas.grey::part(dashed-link):invalid {
+  stroke-color: #6e0f0f;
+}
+node-canvas.grey::part(port) {
+  stroke-color: #1b2733;
+}
+node-canvas.grey::part(node-selection) {
+  stroke-color: #ffffff;
+}
+node-canvas.grey::part(marquee) {
+  fill-color: rgb(255 255 255 / 18%);
+  stroke-color: #ffffff;
+}
+node-canvas::part(node) {
+  fill-color: #ffffff;
+  stroke-color: #6384b2;
+  stroke-width: 1px;
+  corner-radius: 6px;
+}
+node-canvas::part(node):hover {
+  stroke-color: #496c9f;
+}
+node-canvas::part(node):state(selected) {
+  stroke-color: #2f69be;
+}
+node-canvas::part(node):disabled {
+  fill-color: #f4f4f5;
+  stroke-color: #becfe4;
+}
+node-canvas::part(node-header) {
+  fill-color: #cadefb;
+  stroke-color: #a5c4f1;
+  stroke-width: 1px;
+  corner-radius: 6px;
+  color: #153765;
+}
+node-canvas::part(node-header):hover {
+  fill-color: #d2e4fb;
+}
+node-canvas::part(node-header):state(selected) {
+  fill-color: #a5c4f1;
+}
+node-canvas::part(node-header):disabled {
+  fill-color: #becfe4;
+  color: #627997;
+}
+node-canvas::part(node-selection) {
+  stroke-color: #2f69be;
+  stroke-width: 2px;
+  corner-radius: 8px;
+}
+node-canvas::part(port) {
+  fill-color: #ffffff;
+  stroke-color: #496c9f;
+  stroke-width: 1.5px;
+}
+node-canvas::part(port):hover {
+  fill-color: #ffcf66;
+}
+node-canvas::part(port):state(drop-accepted) {
+  fill-color: #2e7d4f;
+}
+node-canvas::part(port):state(drop-rejected) {
+  fill-color: #fde4e1;
+  stroke-color: #9b1c1c;
+}
+node-canvas::part(link), node-canvas::part(dashed-link) {
+  stroke-color: #496c9f;
+  stroke-width: 2px;
+}
+node-canvas::part(link) {
+  flow: dots;
+  flow-speed: 48;
+  flow-spacing: 16px;
+}
+node-canvas::part(dashed-link) {
+  stroke-dash: 6px 4px;
+}
+node-canvas::part(link):hover, node-canvas::part(dashed-link):hover {
+  stroke-color: #2f69be;
+  stroke-width: 2.5px;
+}
+node-canvas::part(link):state(selected), node-canvas::part(dashed-link):state(selected) {
+  stroke-color: #2f69be;
+  halo: 4px rgb(47 105 190 / 30%);
+}
+node-canvas::part(link):invalid, node-canvas::part(dashed-link):invalid {
+  stroke-color: #b4413c;
+  stroke-dash: 2px 3px;
+}
+node-canvas::part(lamp) {
+  fill-color: #becfe4;
+  stroke-color: #496c9f;
+  stroke-width: 1px;
+}
+node-canvas::part(lamp):checked {
+  fill-color: #3fae5a;
+  stroke-color: #2e7d4f;
+}
+node-canvas::part(lamp):invalid {
+  fill-color: #d9463e;
+  stroke-color: #9b1c1c;
+}
+node-canvas::part(marquee) {
+  fill-color: rgb(47 105 190 / 12%);
+  stroke-color: #2f69be;
+  stroke-width: 1px;
+  stroke-dash: 4px 3px;
+}
+node-canvas.blue::part(link-preview) {
+  stroke-color: #e8f2ff;
+}
+node-canvas.blue::part(knife) {
+  stroke-color: #ffb4a8;
+}
+node-canvas.blue::part(port-label), node-canvas.grey::part(port-label) {
+  color: #ffffff;
+}
+node-canvas.grey::part(link-preview) {
+  stroke-color: #1b2733;
 }
 )css";
 

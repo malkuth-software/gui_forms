@@ -59,8 +59,9 @@ struct RunCallbacks {
     std::unique_ptr<CallbackBinding> closing;
     std::unique_ptr<CallbackBinding> closed;
     // The run's window model, from ready until run returns (observing; the
-    // run's window owns it): closed reads its host_close_reason.
-    Window* model = nullptr;
+    // run's window owns it): closed reads its host_close_reason. Kept across
+    // callbacks, so a weak handle, not a borrow.
+    WindowRef model;
 };
 
 // The "reason" field's text (gf_abi.h, "Run callbacks"): the names of
@@ -97,7 +98,8 @@ std::uint32_t call_run_callback(const RunCallbacks& callbacks, const CallbackBin
     EventFields fields;
     gf_value& record = fields.append("reason", GF_VALUE_KIND_ENUMERATION, 0U, nullptr);
     record.signed_integer = static_cast<std::int64_t>(*reason);
-    const std::string_view text = close_reason_name(*reason);
+    // Valid only during the callback (EventFields::lend_text).
+    const std::string_view text = fields.lend_text(close_reason_name(*reason));
     record.text.data = text.data();
     record.text.size = text.size();
     fields.publish(event, false);
@@ -113,7 +115,7 @@ struct RunReady {
     void operator()(Window& model, ApplicationWindowHandle window) const {
         registry().set_run_window(window);
         engine().attach_window(model);
-        (*callbacks).model = &model;
+        (*callbacks).model = model.window_ref();
         static_cast<void>(call_run_callback(*callbacks, (*callbacks).ready.get(), "ready", std::nullopt));
     }
 };
@@ -150,10 +152,11 @@ struct RunClosed {
         // The model outlives its closed callback; a run whose window never
         // became ready reports the program's close.
         std::optional<HostCloseReason> reason{HostCloseReason::application};
-        if ((*callbacks).model != nullptr && (*(*callbacks).model).host_close_reason().has_value()) {
-            reason = (*(*callbacks).model).host_close_reason();
+        Window* const model = (*callbacks).model.get();
+        if (model != nullptr && (*model).host_close_reason().has_value()) {
+            reason = (*model).host_close_reason();
         }
-        (*callbacks).model = nullptr;
+        (*callbacks).model.reset();
         static_cast<void>(call_run_callback(*callbacks, (*callbacks).closed.get(), "closed", reason));
     }
 };

@@ -6,7 +6,38 @@
 // document writes.
 
 #include "../src/core/theme_language/package/theme_manifest.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
+#include "gui_forms/binding/value/property_collection_value/property_collection_value.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/container_control.hpp"
+#include "gui_forms/controls/dock_site.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/page_view.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/scaled_group_box.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
+#include "gui_forms/controls/split_container.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/user_control.hpp"
+#include "gui_forms/controls/v_scroll_bar.hpp"
+#include "gui_forms/docking/types/dock_types.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <array>
 #include <cstddef>
@@ -64,6 +95,15 @@ public:
 
     void draw_part_raster_scaled(const std::shared_ptr<const PartRaster>& raster, Rect, double opacity) override {
         draw_part_raster(raster, Point{}, opacity);
+    }
+
+    // The fills that leave ink: those whose colour is not fully transparent.
+    [[nodiscard]] std::size_t inked_fills() const {
+        std::size_t inked = 0U;
+        for (const Color& color : fills) {
+            if (color.alpha != 0U) ++inked;
+        }
+        return inked;
     }
 
     [[nodiscard]] bool filled(Color color) const {
@@ -191,6 +231,25 @@ void test_rule_faces() {
     // (truly inline code, the owner's last layer).
     (*heading).fore_color = Color::rgba(1, 2, 3);
     require((*heading).foreground() == Color::rgba(1, 2, 3), "code's own foreground stands over the rule");
+}
+
+// A sheet whose only findings are literal colours in text positions
+// (W201): warned, and still applied.
+std::shared_ptr<const Theme> theme_from_sheet_with_literal_inks(std::string_view text) {
+    ImageRegistry images{};
+    const ThemeLibrary library{};
+    ThemeCompileOptions options{};
+    options.controls = stock_control_anatomies();
+    options.base = ThemeBase::windows_professional;
+    const ThemeCompileResult result = compile_theme_package(faces_package(text), library, images, options);
+    require(result.succeeded(), "the literal-ink sheet compiles");
+    for (const ThemeCompileDiagnostic& diagnostic : result.diagnostics()) {
+        const bool literal_ink = diagnostic.code == "W201";
+        require(literal_ink, "the literal-ink sheet warns only of literal inks");
+        if (!literal_ink) std::cerr << "  " << diagnostic.code << " " << diagnostic.name << '\n';
+    }
+    std::shared_ptr<const Theme> theme = result.theme();
+    return theme;
 }
 
 // The package's compile result, diagnostics and all.
@@ -345,6 +404,43 @@ void test_dock_site_parts() {
     ColourPainter painter{};
     window.paint(painter);
     require(painter.filled(caption_blue), "dock-site::part(caption) paints the tool stacks' captions");
+
+    // The caption grip (cp29): drawn in every theme in the grip mark's muted
+    // ink (owner, 2026-11-11); a rule recolours it, and a transparent ink
+    // hides it. muted-color takes no role (E405), and a literal colour in a
+    // text position warns (W201) though it still applies, so both sheets
+    // admit W201.
+    window.set_theme(
+        theme_from_sheet_with_literal_inks("dock-site::part(caption-grip) { muted-color: #3060a0; }\n"));
+    window.perform_layout();
+    ColourPainter gripped{};
+    window.paint(gripped);
+    require(gripped.filled(caption_blue), "dock-site::part(caption-grip) recolours the captions' dotted grip");
+    window.set_theme(theme_from_sheet(""));
+    window.perform_layout();
+    ColourPainter plain{};
+    window.paint(plain);
+    window.set_theme(
+        theme_from_sheet_with_literal_inks("dock-site::part(caption-grip) { muted-color: transparent; }\n"));
+    window.perform_layout();
+    ColourPainter hidden{};
+    window.paint(hidden);
+    const std::size_t plain_inked = plain.inked_fills();
+    const std::size_t hidden_inked = hidden.inked_fills();
+    require(plain_inked > hidden_inked, "the grip is drawn where no rule names it");
+    require(hidden.filled(Color::rgba(0U, 0U, 0U, 0U)), "a transparent muted ink hides the grip");
+}
+
+// PageView's content well carries its anatomy name (cp29), so a
+// `page-view::part(content)` rule reaches it.
+void test_page_view_content_well() {
+    const std::shared_ptr<PageView> view = make_control<PageView>(StableId("faces.pages"));
+    Window window(view, Size{240.0, 160.0});
+    window.set_theme(theme_from_sheet("page-view::part(content) { background: #d09010; }\n"));
+    window.perform_layout();
+    ColourPainter painter{};
+    window.paint(painter);
+    require(painter.filled(ground_amber), "page-view::part(content) paints the view's content well");
 }
 
 constexpr Color bar_amber = Color::rgba(0xd0, 0x90, 0x10);
@@ -416,6 +512,7 @@ int main() {
     test_container_grounds();
     test_unknown_part_in_a_list();
     test_dock_site_parts();
+    test_page_view_content_well();
     test_embedded_scroll_bar_rules();
     if (failures != 0) {
         std::cerr << failures << " theme rule face check(s) failed\n";

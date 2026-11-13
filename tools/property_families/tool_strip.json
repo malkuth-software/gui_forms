@@ -2,20 +2,20 @@
   "family": "ToolStrip",
   "step": "M-S8",
   "declaring": "ToolStrip",
-  "header": "include/gui_forms/controls/tool_strip/tool_strip.hpp",
+  "header": "include/gui_forms/controls/tool_strip.hpp",
   "source": "src/controls/tool_strip/tool_strip.cpp",
-  "capabilities_header": "include/gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/tool_strip_capabilities.hpp",
   "base": "Control",
   "shared": [
     "FontCapability"
   ],
   "includes": [
-    "gui_forms/controls/range_control/range_control.hpp",
+    "gui_forms/controls/range_control.hpp",
     "gui_forms/types.hpp"
   ],
   "test": {
     "type": "ToolStrip",
-    "include": "gui_forms/controls/tool_strip/tool_strip.hpp"
+    "include": "gui_forms/controls/tool_strip.hpp"
   },
   "properties": [
     {

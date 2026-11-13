@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/engine/engine_expression/engine_expression.hpp"
 #include "gui_forms/engine/motion_value/motion_value.hpp"
@@ -8,6 +9,7 @@
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/surface_material/finish_fill/finish_fill.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
@@ -74,7 +76,7 @@ namespace gui_forms {
 // generation when the record was made. Releasing a record advances its
 // slot's generation, so a handle kept past the release is stale and finds
 // nothing, even after the slot is reused.
-struct PartRecordHandle final {
+struct GUI_FORMS_API PartRecordHandle final {
     std::uint32_t slot{};
     std::uint32_t generation{};
 
@@ -94,7 +96,7 @@ struct PartRecordHandle final {
 // occupy its address. The kept target's borrowed pointers are cleared. When
 // the material has an image fill, `image_revision` is the image registry's
 // revision it was drawn at, so any change to the registry redraws it.
-struct CachedPartRaster final {
+struct GUI_FORMS_API CachedPartRaster final {
     std::shared_ptr<PartRaster> raster{};
     const EnginePrimitive* primitive{};
     PrimitiveParameterBlock parameters{};
@@ -132,7 +134,7 @@ struct CachedPartRaster final {
 //   theme's recipe may be replaced and another may occupy its address;
 // - `box`: the part's box size, for fields that read it
 //   (material_fields_read_box), else empty.
-struct AssembledPartMaterial final {
+struct GUI_FORMS_API AssembledPartMaterial final {
     std::uint64_t rules_serial{};
     // The serial of the part's inline style, or 0 (T3 P9).
     std::uint64_t inline_serial{};
@@ -152,7 +154,7 @@ struct AssembledPartMaterial final {
 // part without a record, and every part's derived dark variant): the
 // assembly, the role whose dark variant darkened it (none for a light
 // assembly) and whether it holds one yet.
-struct UnkeptPartAssembly final {
+struct GUI_FORMS_API UnkeptPartAssembly final {
     AssembledPartMaterial assembled{};
     std::optional<ControlVisualRole> darkened{};
     bool filled{};
@@ -172,7 +174,7 @@ class SurfaceRoot;
 // with the transition. The machine is CompiledTransition::machine of the
 // compiled rules whose serial is `rules_serial`; a machine of other rules
 // (a theme replaced) is compared by state alone.
-struct PartTransitionChannel final {
+struct GUI_FORMS_API PartTransitionChannel final {
     PresentationProperty property{PresentationProperty::parameter};
     std::size_t parameter{};
     std::uint64_t rules_serial{};
@@ -188,7 +190,7 @@ struct PartTransitionChannel final {
 // window's MotionClock, and reports each step to on_step, which repaints
 // the part's extent on the control that recorded it. The record is released
 // with its control, which releases the values from the clock.
-class PartMotion final {
+class GUI_FORMS_API PartMotion final {
 public:
     PartMotion(SurfaceRoot& window, PartRecordHandle record) noexcept;
     PartMotion(const PartMotion&) = delete;
@@ -209,7 +211,7 @@ private:
 
 // One painted part's record. The identity strings are owned copies of the
 // key the part was first painted with.
-struct EnginePartRecord final {
+struct GUI_FORMS_API EnginePartRecord final {
     std::string control;
     std::string part;
     std::string item;
@@ -308,7 +310,7 @@ inline constexpr std::size_t maximum_item_part_records = 4096;
 // parameters stand at keyframe levels or whose ambient effect is at a frame
 // of its loop, so that its rasters are baked once and kept for every
 // transition after.
-struct PartRasterRequest final {
+struct GUI_FORMS_API PartRasterRequest final {
     const EnginePrimitive* primitive{};
     PrimitiveParameterBlock parameters{};
     PrimitiveTarget target{};
@@ -336,14 +338,14 @@ enum class PartRasterStatus : std::uint8_t {
     refused,
 };
 
-struct PartRasterResult final {
+struct GUI_FORMS_API PartRasterResult final {
     // The part's raster, or null when status is stale_record or refused.
     std::shared_ptr<const PartRaster> raster{};
     PartRasterStatus status{PartRasterStatus::refused};
 };
 
 // The raster cache's counters, for instrumentation.
-struct RasterCacheStatistics final {
+struct GUI_FORMS_API RasterCacheStatistics final {
     // Rasters held and their bytes now.
     std::size_t rasters{};
     std::size_t bytes{};
@@ -414,12 +416,25 @@ struct RasterCacheStatistics final {
     // the part, or the backplane region, was drawn unmasked, as the
     // built-in path draws it.
     std::uint64_t image_mask_fallbacks{};
+    // World finish tiles (cp31): painted in idle frames, lent from those
+    // held, asked for before they were ready (nothing drawn there yet),
+    // evicted to keep within finish_tile_budget_bytes, and not held for
+    // want of room among tiles the latest paint used; held now, their
+    // bytes, and queued now.
+    std::uint64_t finish_tile_bakes{};
+    std::uint64_t finish_tile_hits{};
+    std::uint64_t finish_tile_misses{};
+    std::uint64_t finish_tile_evictions{};
+    std::uint64_t finish_tile_refusals{};
+    std::size_t finish_tiles{};
+    std::size_t finish_tile_bytes{};
+    std::size_t finish_tiles_queued{};
 };
 
 // One backplane image's region (E9-B): `extent` device pixels at `scale`,
 // its top-left pixel at `origin` in the window's device pixels (the
 // window's logical origin times the scale; possibly fractional).
-struct BackplaneRegion final {
+struct GUI_FORMS_API BackplaneRegion final {
     Point origin{};
     DeviceExtent extent{};
     DeviceScale scale{};
@@ -448,6 +463,46 @@ inline constexpr std::size_t maximum_idle_keyframes = 64U;
 // pattern that does not fit is queued again when a paint next asks for it.
 inline constexpr std::size_t maximum_queued_patterns = 32U;
 
+// World finish tiles (cp31; the node canvas's finish texture): squares of
+// finish_tile_side device pixels of a surface finish evaluated at world
+// device pixels (engine_primitives::paint_world_finish), so that held
+// tiles join with no seam. A tile is named by its finish, the display
+// scale its raster is drawn at, the kernel's scale (device pixels per world
+// unit: the display scale times the canvas's zoom), and its column and row
+// on the lattice of tiles through the world's origin: tile (c, r) covers
+// world device pixels [c * side, (c + 1) * side) by [r * side, (r + 1) *
+// side). A paint takes the tiles held and queues the rest; idle frames
+// paint them (EnginePartTable::generate_finish_tiles).
+inline constexpr std::uint32_t finish_tile_side = 128U;
+struct GUI_FORMS_API FinishTileKey final {
+    FinishFill finish{};
+    double display_scale{1.0};
+    double scale{1.0};
+    std::int64_t column{};
+    std::int64_t row{};
+    friend bool operator==(const FinishTileKey& left, const FinishTileKey& right) noexcept {
+        return left.finish == right.finish && left.display_scale == right.display_scale &&
+               left.scale == right.scale && left.column == right.column && left.row == right.row;
+    }
+};
+// The most bytes of finish tiles one window keeps: 512 tiles of 64 KiB,
+// a 2900-pixel square of one layer. The least recently used tile is
+// evicted first, never one the latest paint used: a tile that finds no
+// room is not held (counted as a refusal) and its place stays bare. A
+// proposed default.
+inline constexpr std::size_t finish_tile_budget_bytes = 32U * 1024U * 1024U;
+// The most finish tiles queued for idle frames at once; a tile that does
+// not fit is queued again when a paint next asks for it.
+inline constexpr std::size_t maximum_queued_finish_tiles = 256U;
+// The effort one idle frame spends painting finish tiles, in the
+// material bake's effort units (finish_effort_weight per device pixel):
+// four orange-peel tiles, one of hammertone. At least one tile is painted
+// whatever its cost.
+inline constexpr std::uint64_t finish_tile_idle_effort = 16'000'000U;
+// The most parts waiting for finish tiles at once; a part beyond it is
+// repainted when the window next repaints it.
+inline constexpr std::size_t maximum_finish_tile_waiters = 32U;
+
 // What EnginePartTable::generate_pattern did (E10): nothing was queued
 // (none); a pattern was made, and the parts whose rasters drew a ground
 // are to be repainted (made); or a pattern was made and a raster without a
@@ -456,7 +511,7 @@ inline constexpr std::size_t maximum_queued_patterns = 32U;
 enum class PatternGeneration : std::uint8_t { none, made, made_unrecorded };
 
 // What acquire() did.
-struct PartRecordAcquisition final {
+struct GUI_FORMS_API PartRecordAcquisition final {
     PartRecordHandle handle{};
     // A new record was made for the key.
     bool created{};
@@ -466,7 +521,7 @@ struct PartRecordAcquisition final {
 
 // The table. It owns its records. Every member runs on the window's UI
 // thread; the table is not shared between windows.
-class EnginePartTable final {
+class GUI_FORMS_API EnginePartTable final {
 public:
     // The table keeps at most `item_record_cap` item-part records (at least
     // 1); the window's table uses maximum_item_part_records.
@@ -554,6 +609,24 @@ public:
     [[nodiscard]] bool patterns_waiting() const noexcept;
     // Whether `cached` drew a ground for a pattern made since.
     [[nodiscard]] bool awaits_pattern(const CachedPartRaster& cached) const noexcept;
+
+    // World finish tiles (cp31). finish_tile returns the tile held for
+    // `key`, marked used by `paint_sequence`, or null after queueing it
+    // (unless queued already or the queue is full) and noting `waiter`, the
+    // part that asked, to be repainted. Nothing is painted inside a paint.
+    // generate_finish_tiles paints queued tiles, oldest first, until an
+    // idle frame's effort (finish_tile_idle_effort) is spent, at least one;
+    // it returns true when it held a tile and the queue is then empty: the
+    // waiters are to be repainted (take_finish_tile_waiters), once for the
+    // whole queue rather than once a tile. Allocation failure propagates
+    // as std::bad_alloc and leaves the tile being painted unheld.
+    [[nodiscard]] std::shared_ptr<const PartRaster> finish_tile(const FinishTileKey& key, PartRecordHandle waiter,
+                                                                std::uint64_t paint_sequence);
+    bool generate_finish_tiles(std::uint64_t paint_sequence);
+    [[nodiscard]] bool finish_tiles_waiting() const noexcept;
+    // Moves the parts waiting for finish tiles into `waiters` (cleared
+    // first) and forgets them.
+    void take_finish_tile_waiters(std::vector<PartRecordHandle>& waiters);
 
     // A raster for a part painted without a key, which has no record: drawn
     // for this paint and never kept (status uncached), assembled from a
@@ -753,6 +826,10 @@ private:
                       std::uint64_t paint_sequence);
     // Subtracts `held`'s bytes and its count from the statistics.
     void forget_variant(const HeldImageVariant& held) noexcept;
+    // Evicts the least recently used finish tiles until `incoming` more
+    // bytes fit finish_tile_budget_bytes, sparing tiles used by the paint
+    // before `paint_sequence`; returns whether they fit.
+    bool make_finish_tile_room(std::size_t incoming, std::uint64_t paint_sequence) noexcept;
 
     std::vector<RecordSlot> slots_;
     std::vector<std::uint32_t> free_slots_;
@@ -802,6 +879,20 @@ private:
     // in use, so lookups scan them. All made at backplane_generation_.
     std::vector<HeldBackplane> backplanes_;
     std::uint64_t backplane_generation_{};
+    // A finish tile held: its key, and the paint that last used it.
+    struct HeldFinishTile final {
+        FinishTileKey key{};
+        std::shared_ptr<const PartRaster> raster{};
+        std::uint64_t last_used{};
+    };
+    // The finish tiles, in no order (at most the budget's 512), looked up
+    // by scanning; the tiles waiting for idle frames, oldest first; the
+    // parts to repaint when they are made; and whether a tile was held
+    // since the queue last emptied.
+    std::vector<HeldFinishTile> finish_tiles_;
+    std::deque<FinishTileKey> finish_tile_queue_;
+    std::vector<PartRecordHandle> finish_tile_waiters_;
+    bool finish_tile_made_{};
     // Keyframes waiting for idle frames, oldest first; each a request kept
     // as a cached raster's description, its raster null.
     std::deque<CachedPartRaster> idle_keyframes_;

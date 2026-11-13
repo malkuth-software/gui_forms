@@ -35,9 +35,11 @@ bool LiveSurfaceFrame::opaque() const noexcept {
     return result;
 }
 
-std::span<const std::byte> LiveSurfaceFrame::pixels() const noexcept {
-    return buffer_ ? std::span<const std::byte>((*buffer_).pixels)
-                   : std::span<const std::byte>{};
+BorrowedSpan<std::byte> LiveSurfaceFrame::pixels() const noexcept {
+    if (!buffer_) return BorrowedSpan<std::byte>();
+    const std::vector<std::byte>& bytes = (*buffer_).pixels;
+    BorrowedSpan<std::byte> view = detail::lend_view(bytes.data(), bytes.size(), (*buffer_).lender);
+    return view;
 }
 
 } // namespace gui_forms

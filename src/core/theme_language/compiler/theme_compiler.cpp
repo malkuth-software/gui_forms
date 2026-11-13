@@ -416,6 +416,10 @@ private:
     // Whether a rule's node is the base sheet's, in a program compiled onto
     // the GUI.Forms base (ThemeCompileInput::base_origin_end).
     [[nodiscard]] bool in_base_origin(std::size_t node_index) const noexcept;
+    // Whether a rule's node is the colour authority's: a built-in sheet's,
+    // or the base sheet's (ThemeCompileInput::colour_authority,
+    // base_origin_end and colour_authority_end).
+    [[nodiscard]] bool in_colour_authority(std::size_t node_index) const noexcept;
     // The number a definition declared at `declaration` goes by (P12b):
     // an inline style's from inline_definition_base, a theme's its node.
     [[nodiscard]] std::uint32_t definition_number(std::uint32_t declaration) const noexcept;
@@ -645,6 +649,9 @@ private:
     // The first style rule node after the base sheet, with base_origin_end;
     // every node before it is the base's.
     std::uint32_t base_node_{};
+    // The first style rule node after the base sheet, with
+    // colour_authority_end; every node before it is the colour authority.
+    std::uint32_t colour_authority_node_{};
     // Whether the sheet names a custom property at all: only then can an
     // inline style's definitions vary its rules, and only then are its
     // rules given their source positions (P12b).
@@ -724,6 +731,15 @@ CompileOutcome CompilePass::run() {
             if (all[index].kind != SyntaxNodeKind::style_rule) continue;
             const ByteOffset at = tokens_.tokens[all[index].tokens.first.value].offset;
             if (at.value >= *input_.base_origin_end) base_node_ = index;
+        }
+    }
+    colour_authority_node_ = static_cast<std::uint32_t>(tree_.nodes.size());
+    if (input_.colour_authority_end) {
+        const std::vector<SyntaxNode>& all = tree_.nodes;
+        for (std::uint32_t index = 1U; index < all.size() && colour_authority_node_ == all.size(); ++index) {
+            if (all[index].kind != SyntaxNodeKind::style_rule) continue;
+            const ByteOffset at = tokens_.tokens[all[index].tokens.first.value].offset;
+            if (at.value >= *input_.colour_authority_end) colour_authority_node_ = index;
         }
     }
     motion_.keyframes.clear();
@@ -1043,6 +1059,12 @@ bool CompilePass::in_inline_segment(std::size_t node_index) const noexcept {
 
 bool CompilePass::in_base_origin(std::size_t node_index) const noexcept {
     return input_.base_origin_end.has_value() && node_index < base_node_;
+}
+
+bool CompilePass::in_colour_authority(std::size_t node_index) const noexcept {
+    if (input_.colour_authority || in_base_origin(node_index)) return true;
+    const bool before_end = input_.colour_authority_end.has_value() && node_index < colour_authority_node_;
+    return before_end;
 }
 
 std::uint32_t CompilePass::definition_number(std::uint32_t declaration) const noexcept {
@@ -2942,7 +2964,8 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
                             property == MaterialProperty::padding_inline || property == MaterialProperty::gap ||
                             property == MaterialProperty::margin_top || property == MaterialProperty::margin_bottom ||
                             property == MaterialProperty::taper || property == MaterialProperty::flare ||
-                            property == MaterialProperty::edge_shadow;
+                            property == MaterialProperty::edge_shadow || stripe_property(property) ||
+                            canvas_property(property);
     const bool named_part = rule_names_parts_only();
     if (part_field && !named_part) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_);
@@ -3054,7 +3077,7 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
         if (position == ColourPosition::text || position == ColourPosition::edge) unremappable = true;
         add_recipe_field(declaration);
     }
-    const bool authority = input_.colour_authority || in_base_origin(source_position_);
+    const bool authority = in_colour_authority(source_position_);
     if (unremappable && origin.source == ColourSource::literal && !authority) {
         report(DiagnosticCode::literal_colour_unremappable, literal, clipped_theme_detail(token_text(literal)));
     }
@@ -3609,9 +3632,9 @@ void CompilePass::add_recipe_field(const RecipeDeclaration& declaration) {
 
 bool CompilePass::rule_has_states() const noexcept {
     for (const LoweredSelector& lowered : lowered_selectors_) {
-        if (!lowered.selector.states.empty()) return true;
+        if (!lowered.selector.states.empty() || !lowered.selector.custom_states.empty()) return true;
         for (const RuleExclusion& exclusion : lowered.selector.excluded) {
-            if (!exclusion.states.empty()) return true;
+            if (!exclusion.states.empty() || !exclusion.custom_states.empty()) return true;
         }
     }
     return false;

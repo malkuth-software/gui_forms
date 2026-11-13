@@ -9,7 +9,7 @@ gui_forms::ProgressBar
 
 .. cpp:class:: ProgressBar : public RangeControl, public ProgressBarCapabilities<ProgressBar>
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar.hpp>``
+   ``#include <gui_forms/controls/progress_bar.hpp>``
 
    A bar that shows how far an operation has progressed.
 
@@ -284,8 +284,6 @@ gui_forms::ProgressBar
 
       The effects' ambient frame (MotionClock::enlist_control_ambient): their ticks due at ``now``, and their extent invalidated; false when the bar was not painted since its last frame.
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: Size measure(Size available) override
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
@@ -297,6 +295,22 @@ gui_forms::ProgressBar
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
 
    .. cpp:function:: void on_attached_to_window() override
 
@@ -315,3 +329,189 @@ gui_forms::ProgressBar
    .. cpp:member:: constexpr std::size_t progress_bar_property_count
 
       ProgressBar's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ProgressBar``. Members declared here and by the counterpart: 8 supported, 0 deferred, 1 excluded, 34 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ProgressBar``
+     - ``ProgressBar``
+     - supported
+   * - property
+     - ``CausesValidation``
+     - ``causes_validation``
+     - unclassified (untested)
+   * - property
+     - ``ImeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MarqueeAnimationSpeed``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Maximum``
+     - ``maximum``
+     - unclassified (untested)
+   * - property
+     - ``Minimum``
+     - ``minimum``
+     - unclassified (untested)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``RightToLeftLayout``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Step``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Style``
+     - ``style``
+     - unclassified (untested)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - property
+     - ``Value``
+     - ``value``
+     - supported
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CausesValidationChanged``
+     - ``causes_validation_changed``
+     - unclassified (untested)
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - unclassified (untested)
+   * - event
+     - ``Enter``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FontChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ImeModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``KeyDown``
+     - ``key_down``
+     - unclassified (untested)
+   * - event
+     - ``KeyPress``
+     - ``key_press``
+     - unclassified (untested)
+   * - event
+     - ``KeyUp``
+     - ``key_up``
+     - unclassified (untested)
+   * - event
+     - ``Leave``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseDoubleClick``
+     - ``mouse_double_click``
+     - unclassified (untested)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RightToLeftLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabStopChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Increment``
+     - ``increment``
+     - unclassified (untested)
+   * - method
+     - ``OnRightToLeftLayoutChanged``
+     - none
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
+   * - method
+     - ``PerformStep``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``animation_phase``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effect``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``effect_colours``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effect_input``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``effect_instance``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effect_seed``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``effect_selection``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_motion_policy``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``visual_style``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``advance_animation``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``progress_bar_property_entries``
+     - unclassified (untested)

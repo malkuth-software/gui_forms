@@ -1,6 +1,6 @@
-#include "gui_forms/controls/task_dialog/task_dialog.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
 
-#include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
+#include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -151,11 +151,20 @@ public:
 
     [[nodiscard]] bool hit_test_local(Point) const override { return true; }
 
-    void on_pointer(PointerEvent& event) override {
-        if (event.action == PointerAction::down || event.action == PointerAction::up ||
-            event.action == PointerAction::wheel) {
-            event.handled = true;
-        }
+    // The dialog's backdrop swallows presses, releases and wheels.
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        Control::on_mouse_down(arguments);
+    }
+
+    void on_mouse_up(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        Control::on_mouse_up(arguments);
+    }
+
+    void on_mouse_wheel(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        Control::on_mouse_wheel(arguments);
     }
 };
 
@@ -794,7 +803,7 @@ void TaskDialog::paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeo
     if (label.present) {
         part.role = PartRole::label;
         part.bounds = label.bounds;
-        part.text = icon_letter(icon);
+        part.text = lend_paint_text(icon_letter(icon));
         part.alignment = PartTextAlignment::center;
         FontSpec letter = part.font;
         letter.weight = 700;
@@ -819,7 +828,7 @@ void TaskDialog::on_paint(Painter& painter, Rect) {
         paint_part(painter, *this, part);
         part.role = PartRole::label;
         part.bounds = parts.caption.bounds;
-        part.text = page_.caption;
+        part.text = lend_paint_text(page_.caption);
         paint_part(painter, *this, part);
         part.text = {};
     }

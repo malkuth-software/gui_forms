@@ -170,4 +170,13 @@ MaterialFillLayer MaterialFillLayer::procedural_pattern(
     return result;
 }
 
+MaterialFillLayer MaterialFillLayer::finish_fill(
+    const FinishFill& value_finish, double value_opacity) {
+    MaterialFillLayer result;
+    result.kind = MaterialFillKind::finish;
+    result.finish = value_finish;
+    result.opacity = value_opacity;
+    return result;
+}
+
 } // namespace gui_forms

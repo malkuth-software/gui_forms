@@ -2,13 +2,23 @@
 // --theme <name|built-in|path.css> and GUI_FORMS_THEME_SHEET), in process:
 // reading the request, the arguments a program keeps, the Windows command
 // line's splitting, settling a request under each policy (a sheet, a name,
-// built-in, a refused sheet, a missing file, a misformed command line), and
+// built-in, a refused sheet, a missing file, a misformed command line, a
+// misspelt effect name with and without an installed effect registry), and
 // a request held by the resources until their first window, which wins
 // over the program's own choice. The launched programs are
 // theme_request_app.cpp and tests/abi/gf_abi_theme_request_app.c. Works in a
 // folder of its own under the system's temporary one.
 #include "../../src/runtime/user_themes/theme_files.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/application/user_themes/user_themes.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -179,6 +189,43 @@ void test_bad_sheet(const std::filesystem::path& root) {
     require(resources.user_theme_ptr() == chosen, "a refused sheet leaves the program's own choice in force");
 }
 
+// A sheet naming an effect no registry holds: with no registry installed
+// it is applied, its name checked for its form only, and the report says
+// so; with the stock controls' registry installed it is refused with E417
+// and the program's choice stays. Leaves none installed.
+void test_effect_names_against_the_installed_registry(const std::filesystem::path& root) {
+    const std::filesystem::path sheet = root / "misspelt-effect.css";
+    write_file(sheet, "progress-bar::part(fill) { effect: progress-stirpes }\n");
+    install_effect_registry(nullptr);
+    {
+        ApplicationResources resources{};
+        const ThemeRequestReport report =
+            apply_theme_request(resources, request(ThemeRequestKind::sheet, text_of(sheet)), ThemeRequestContext{});
+        require(report.outcome == ThemeRequestOutcome::applied,
+                "with no effect registry installed a misspelt effect name is not refused");
+        bool noted = false;
+        for (const std::string& line : report.log) {
+            if (line.find("no effect registry is installed") != std::string::npos) noted = true;
+        }
+        require(noted, "the report says effect names were checked for their form only");
+    }
+    install_built_in_effect_registry();
+    {
+        ApplicationResources resources{};
+        const ThemeRequestReport report =
+            apply_theme_request(resources, request(ThemeRequestKind::sheet, text_of(sheet)), ThemeRequestContext{});
+        require(report.outcome == ThemeRequestOutcome::refused,
+                "with the built-in registry installed a misspelt effect name refuses the sheet");
+        bool unknown = false;
+        for (const ThemeCompileDiagnostic& finding : report.findings) {
+            if (finding.code == "E417") unknown = true;
+        }
+        require(unknown, "the refusal is E417, at the name");
+        require(resources.user_theme() == nullptr, "a refused sheet selects no user theme");
+    }
+    install_effect_registry(nullptr);
+}
+
 void test_missing_and_misformed(const std::filesystem::path& root) {
     ApplicationResources resources{};
     const ThemeRequestReport missing = apply_theme_request(
@@ -254,6 +301,7 @@ int main() {
     test_refused_policy(root);
     test_bad_sheet(root);
     test_missing_and_misformed(root);
+    test_effect_names_against_the_installed_registry(root);
     test_named_and_built_in(root);
     test_held_until_the_first_window(root);
     // The test's own folder, which it made above.

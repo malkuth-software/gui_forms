@@ -2,9 +2,9 @@
   "family": "VisualInspectorOverlay",
   "step": "M-S6",
   "declaring": "VisualInspectorOverlay",
-  "header": "include/gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp",
-  "source": "src/controls/visual_inspector_view/visual_inspector_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/visual_inspector_view/visual_inspector_overlay_capabilities/visual_inspector_overlay_capabilities.hpp",
+  "header": "demo/lab_controls/include/gui_forms_demo/visual_inspector_view.hpp",
+  "source": "demo/lab_controls/src/visual_inspector_view.cpp",
+  "capabilities_header": "demo/lab_controls/include/gui_forms_demo/visual_inspector_overlay_capabilities.hpp",
   "base": "Control",
   "includes": [
     "gui_forms/basic_controls.hpp"
@@ -44,6 +44,6 @@
   "not_properties": [],
   "test": {
     "type": "VisualInspectorOverlay",
-    "include": "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
+    "include": "gui_forms_demo/visual_inspector_view.hpp"
   }
 }

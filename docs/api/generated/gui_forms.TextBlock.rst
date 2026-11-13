@@ -9,7 +9,7 @@ gui_forms::TextBlock
 
 .. cpp:class:: TextBlock final : public Control, public TextBlockCapabilities<TextBlock>
 
-   ``#include <gui_forms/controls/text_block/text_block.hpp>``
+   ``#include <gui_forms/controls/text_block.hpp>``
 
    Read-only text laid out as CSS lays out the text of a block, for use inside the layout panels.
 
@@ -275,3 +275,57 @@ gui_forms::TextBlock
    .. cpp:member:: constexpr std::size_t text_block_property_count
 
       TextBlock's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 7 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``font``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``foreground``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``line_height``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``resolved_font``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``text_align``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``text_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_text_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``text_block_property_entries``
+     - unclassified (untested)

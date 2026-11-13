@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/document_view/types/document_view_types.hpp"
 #include "gui_forms/types.hpp"
 
@@ -18,7 +19,7 @@ enum class PreparedTextStatus {
 };
 
 enum class PreparedTextPaintDisposition { refused, recorded, staged };
-struct PreparedTextPaintResult final {
+struct GUI_FORMS_API PreparedTextPaintResult final {
     PreparedTextPaintDisposition disposition{PreparedTextPaintDisposition::refused};
     PreparedTextStatus status{PreparedTextStatus::incompatible_backend};
 };
@@ -29,13 +30,13 @@ enum class PreparedTextSlot { empty, queued, running, ready };
 // and refused as unsupported.
 enum class PreparedRasterProfile : std::uint32_t { outline_gray_72dpi_v1 = 1, light_gray_v2 = 2 };
 
-struct LayoutAuthority final {
+struct GUI_FORMS_API LayoutAuthority final {
     // Process-wide nonreused session identity, with checked exhaustion.
     std::uint64_t session{};
     std::uint64_t epoch{};
 };
 
-struct PreparedTextKey final {
+struct GUI_FORMS_API PreparedTextKey final {
     DocumentPageRequest page{};
     SourceByteRange source{};
     DisplayByteOffset display_begin{};
@@ -53,19 +54,19 @@ struct PreparedTextKey final {
     PreparedRasterProfile raster{PreparedRasterProfile::light_gray_v2};
 };
 
-struct PreparedSourceEndpoint final {
+struct GUI_FORMS_API PreparedSourceEndpoint final {
     SourceByteOffset source{};
     DisplayByteOffset display{};
 };
 
 // Producer certifies real paragraph boundaries under the complete D1 token.
 // The provider validates paired endpoints/mapping, never fabricates source proof.
-struct PreparedParagraphProof final {
+struct GUI_FORMS_API PreparedParagraphProof final {
     bool complete_begin{};
     bool complete_end{};
 };
 
-struct PreparedFontSource final {
+struct GUI_FORMS_API PreparedFontSource final {
     std::span<const std::byte> encoded{};
     std::optional<FontRole> role{};
     std::uint16_t weight{400};
@@ -73,7 +74,7 @@ struct PreparedFontSource final {
     std::uint32_t face_index{};
 };
 
-struct PreparedTextLimits final {
+struct GUI_FORMS_API PreparedTextLimits final {
     static constexpr std::size_t display_bytes = 16'384;
     static constexpr std::size_t metadata_records = 16'385;
     static constexpr std::size_t metadata_bytes = 1U * 1024U * 1024U;
@@ -89,7 +90,7 @@ struct PreparedTextLimits final {
     static constexpr std::size_t mask_owners = 2;
 };
 
-struct PreparedTextMetrics final {
+struct GUI_FORMS_API PreparedTextMetrics final {
     double advance_dip{};
     double height_dip{};
     double ascent_dip{};
@@ -98,7 +99,7 @@ struct PreparedTextMetrics final {
     std::int64_t device_size_26_6{};
 };
 
-struct PreparedTextBudgetSnapshot final {
+struct GUI_FORMS_API PreparedTextBudgetSnapshot final {
     std::size_t payload_generations{};
     std::size_t payload_reserved_bytes{};
     std::size_t font_banks{};
@@ -110,7 +111,7 @@ struct PreparedTextBudgetSnapshot final {
     // Reports requested controlled payload only, not allocator/vendor/RSS quota.
 };
 
-struct PreparedTextSessionSnapshot final {
+struct GUI_FORMS_API PreparedTextSessionSnapshot final {
     PreparedTextSlot slot{PreparedTextSlot::empty};
     PreparedTextStatus completion{PreparedTextStatus::pending};
     LayoutAuthority desired{};
@@ -118,7 +119,7 @@ struct PreparedTextSessionSnapshot final {
     bool joined{};
 };
 
-[[nodiscard]] bool same_prepared_text_key(const PreparedTextKey& left, const PreparedTextKey& right) noexcept;
-[[nodiscard]] bool same_layout_authority(const LayoutAuthority left, const LayoutAuthority right) noexcept;
+[[nodiscard]] GUI_FORMS_API bool same_prepared_text_key(const PreparedTextKey& left, const PreparedTextKey& right) noexcept;
+[[nodiscard]] GUI_FORMS_API bool same_layout_authority(const LayoutAuthority left, const LayoutAuthority right) noexcept;
 
 } // namespace gui_forms

@@ -2,12 +2,12 @@
   "family": "Button",
   "step": "M-S3",
   "declaring": "Button",
-  "header": "include/gui_forms/controls/button_base/button/button.hpp",
+  "header": "include/gui_forms/controls/button.hpp",
   "source": "src/controls/button_base/button/button.cpp",
-  "capabilities_header": "include/gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/button_capabilities.hpp",
   "base": "ButtonBase",
   "includes": [
-    "gui_forms/controls/button_base/button/button_values/button_values.hpp"
+    "gui_forms/controls/button_values.hpp"
   ],
   "properties": [
     {
@@ -146,11 +146,44 @@
       "hand": [],
       "effects": "Dirty::paint | Dirty::semantics",
       "sample": "true"
+    },
+    {
+      "name": "danger",
+      "capability": "ButtonDanger",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the button marks a dangerous or irreversible action (skeudoindustrial surfaces, follow-up 5): its parts take the custom state danger, a warning mark leads its content, and a theme that styles the state lights its face from inside with a slow, low glow, steady under reduced motion.",
+      "getter": "danger",
+      "setter": "set_danger",
+      "clear": null,
+      "field": "danger_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the button marks a dangerous or irreversible action.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written starts or stops the danger glow (Button::update_danger_glow) besides the measure, paint and semantics invalidation"
+      ],
+      "sample": "true"
     }
   ],
   "not_properties": [],
   "test": {
     "type": "Button",
-    "include": "gui_forms/controls/button_base/button/button.hpp"
+    "include": "gui_forms/controls/button.hpp"
   }
 }

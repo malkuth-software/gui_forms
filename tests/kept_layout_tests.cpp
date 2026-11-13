@@ -7,7 +7,22 @@
 // layout made afresh (detail::set_layout_keeping(false)); the two runs must
 // read the same thing after every step.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/list_view.hpp"
+#include "gui_forms/controls/list_view_values.hpp"
+#include "gui_forms/controls/navigation_pane.hpp"
+#include "gui_forms/controls/ribbon.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
+#include "gui_forms/controls/tree_list_view.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/pages/page_set/page_set.hpp"
+#include "gui_forms/pages/types/page_set_types.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cstddef>
 #include <cstdlib>

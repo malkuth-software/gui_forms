@@ -2,9 +2,9 @@
   "family": "SearchField",
   "step": "W-4",
   "declaring": "SearchField",
-  "header": "include/gui_forms/controls/search_field/search_field.hpp",
+  "header": "include/gui_forms/controls/search_field.hpp",
   "source": "src/controls/search_field/search_field.cpp",
-  "capabilities_header": "include/gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/search_field_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
@@ -143,6 +143,6 @@
   ],
   "test": {
     "type": "SearchField",
-    "include": "gui_forms/controls/search_field/search_field.hpp"
+    "include": "gui_forms/controls/search_field.hpp"
   }
 }

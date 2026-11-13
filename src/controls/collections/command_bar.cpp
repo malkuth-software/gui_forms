@@ -1,4 +1,4 @@
-#include "gui_forms/controls/collections/command_bar.hpp"
+#include "gui_forms/controls/command_bar.hpp"
 #include "gui_forms/text.hpp"
 #include "../panel/panel_anatomy.hpp"
 
@@ -23,6 +23,8 @@ struct CommandBar::Entry final {
 struct CommandBar::Revision final {
     std::vector<CommandItem> items{};
     std::vector<std::shared_ptr<Entry>> entries{};
+    // Stamps items(): replacing the revision ends the views lent from it.
+    detail::BorrowLender lender{};
 };
 
 struct CommandBar::ItemClick final {
@@ -59,9 +61,11 @@ CommandBar::CommandBar(StableId id) : Panel(std::move(id)) {
 }
 CommandBar::~CommandBar() = default;
 
-std::span<const CommandItem> CommandBar::items() const noexcept {
-    if (!revision_) return {};
-    return (*revision_).items;
+BorrowedSpan<CommandItem> CommandBar::items() const noexcept {
+    if (!revision_) return BorrowedSpan<CommandItem>();
+    const std::vector<CommandItem>& current = (*revision_).items;
+    BorrowedSpan<CommandItem> view = detail::lend_view(current.data(), current.size(), (*revision_).lender);
+    return view;
 }
 
 Button& CommandBar::item(const int index) const {
@@ -123,6 +127,9 @@ void CommandBar::set_items(std::vector<CommandItem> items) {
     try {
         clear_shortcuts();
         const std::shared_ptr<Revision> previous = std::exchange(revision_, next);
+        // The items lent from the previous revision end here, even while a
+        // callback still holds that revision.
+        if (previous) (*previous).lender.invalidate();
         if (previous) {
             for (const std::shared_ptr<Entry>& entry : (*previous).entries) {
                 const std::vector<std::shared_ptr<Entry>>::const_iterator found =
@@ -198,8 +205,8 @@ void CommandBar::arrange(const Rect bounds) {
     }
 }
 
-void CommandBar::on_key_bubble(KeyEvent& event) { on_key(event); }
-void CommandBar::on_key(KeyEvent& event) {
+void CommandBar::on_key_bubble(KeyEvent& event) { handle_key(event); }
+void CommandBar::handle_key(KeyEvent& event) {
     if (event.handled || event.action != KeyAction::down || !enabled.read() || !revision_) return;
     const bool backward = event.physical_key == PhysicalKey::left || event.physical_key == PhysicalKey::up;
     const bool forward = event.physical_key == PhysicalKey::right || event.physical_key == PhysicalKey::down;
@@ -223,6 +230,17 @@ void CommandBar::on_key(KeyEvent& event) {
         event.handled = (*window()).request_focus(button);
         return;
     }
+}
+
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void CommandBar::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 
 SemanticDescriptor CommandBar::semantic_descriptor() const {

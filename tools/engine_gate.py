@@ -6,11 +6,13 @@ GUI_FORMS_ENGINE_GATE_MANIFEST set, which writes engine-gate-<platform>.tsv.
 That file lists every registered primitive's reference-image hashes (four
 scales, three states), every feature sample's image hashes (four scales,
 and the frames of its drive), the census of features with the sample that
-draws each, and the window counters of the idle checks.
+draws each, the samples refused by design (each with its bake effort and
+the budget it exceeds), and the window counters of the idle checks.
 
 `compare` finds those manifests under --evidence, at any depth (the native
 jobs' evidence artifacts). It checks that every host lists the same
-primitives, samples and features with the same hashes, and that every idle
+primitives, samples and features with the same hashes, the same designed
+refusals with the same bake effort, and that every idle
 counter is zero. It
 then writes the comparison as JSON and as the record filled from
 tools/engine_gate_record.template.md.
@@ -66,6 +68,8 @@ class Manifest:
         self.samples: dict[tuple[str, str, str], tuple[str, str, str, str, str]] = {}
         # feature -> the first sample drawing it
         self.features: dict[str, str] = {}
+        # (sample, scale) -> (bake effort, budget): a sample its primitive refuses by design
+        self.refusals: dict[tuple[str, str], tuple[str, str]] = {}
         self.counters: dict[str, int] = {}
 
 
@@ -99,6 +103,11 @@ def parse_manifest(text: str) -> Manifest:
             if fields[1] in manifest.features:
                 raise ValueError(f'line {number}: feature {fields[1]} is listed twice')
             manifest.features[fields[1]] = fields[2]
+        elif fields[0] == 'refused' and len(fields) == 5:
+            refusal_key: tuple[str, str] = (fields[1], fields[2])
+            if refusal_key in manifest.refusals:
+                raise ValueError(f'line {number}: refusal {refusal_key} is listed twice')
+            manifest.refusals[refusal_key] = (fields[3], fields[4])
         elif fields[0] == 'counter' and len(fields) == 3:
             manifest.counters[fields[1]] = int(fields[2])
         else:
@@ -122,7 +131,8 @@ def find_manifests(evidence: Path) -> dict[str, Path]:
 
 
 def host_values(manifests: dict[str, Manifest], platforms: list[str], table: str, key: object) -> dict:
-    """Each host's row under key in one of its tables ('images', 'samples', 'features'), as a list, or None."""
+    """Each host's row under key in one of its tables ('images', 'samples', 'features', 'refusals'), as a list,
+    or None."""
     values: dict[str, list[str] | None] = {}
     platform: str
     for platform in platforms:
@@ -194,11 +204,13 @@ def compare(manifests: dict[str, Manifest], required: tuple[str, ...]) -> dict:
     keys: set[tuple[str, str, str]] = set()
     sample_keys: set[tuple[str, str, str]] = set()
     features: set[str] = set()
+    refusal_keys: set[tuple[str, str]] = set()
     platform: str
     for platform in platforms:
         keys.update(manifests[platform].images)
         sample_keys.update(manifests[platform].samples)
         features.update(manifests[platform].features)
+        refusal_keys.update(manifests[platform].refusals)
     differences: list[dict] = []
     key: tuple[str, str, str]
     values: dict[str, list[str] | None]
@@ -217,6 +229,12 @@ def compare(manifests: dict[str, Manifest], required: tuple[str, ...]) -> dict:
         values = host_values(manifests, platforms, 'features', feature)
         if differs(values):
             differences.append({'kind': 'feature', 'feature': feature, 'hosts': values})
+    refusal_key: tuple[str, str]
+    for refusal_key in sorted(refusal_keys):
+        values = host_values(manifests, platforms, 'refusals', refusal_key)
+        if differs(values):
+            differences.append({'kind': 'refusal', 'sample': refusal_key[0], 'scale': refusal_key[1],
+                                'hosts': values})
     registries: dict[str, int] = {}
     sample_counts: dict[str, int] = {}
     for platform in platforms:
@@ -335,6 +353,8 @@ def difference_list(result: dict) -> str:
             lines.append(f"- sample `{difference['sample']}` {difference['frame']} at {difference['scale']}: {hosts}")
         elif difference['kind'] == 'feature':
             lines.append(f"- feature `{difference['feature']}`: {hosts}")
+        elif difference['kind'] == 'refusal':
+            lines.append(f"- refusal of `{difference['sample']}` at {difference['scale']}: {hosts}")
         else:
             lines.append(f"- `{difference['primitive']}` {difference['state']} at {difference['scale']}: {hosts}")
     return '\n'.join(lines)

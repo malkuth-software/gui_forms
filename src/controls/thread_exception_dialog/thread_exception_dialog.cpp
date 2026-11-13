@@ -1,6 +1,6 @@
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
 
-#include "gui_forms/controls/task_dialog/task_dialog.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
 
 #include <array>
 #include <stdexcept>

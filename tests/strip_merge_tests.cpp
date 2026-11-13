@@ -3,7 +3,14 @@
 // recursion into menus, refusals, the history, and both reverts (including
 // re-merging newer merges and a destroyed source).
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/menu_strip.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
+#include "gui_forms/controls/tool_strip_manager.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -40,7 +47,7 @@ MenuItemSpec menu_command(const std::string& id, const std::string& text, MergeA
     return item;
 }
 
-std::string ids(const std::vector<ToolStripItemSpec>& items) {
+std::string ids(BorrowedSpan<ToolStripItemSpec> items) {
     std::string joined{};
     for (const ToolStripItemSpec& item : items) {
         if (!joined.empty()) joined += ' ';

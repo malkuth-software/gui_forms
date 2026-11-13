@@ -72,7 +72,8 @@ public:
 
     void emit() { event_.emit(); }
 
-    [[nodiscard]] const std::vector<int>& order() const noexcept { return order_; }
+    [[nodiscard]] const std::vector<int>& order() const& noexcept { return order_; }
+    const std::vector<int>& order() const&& = delete;
     [[nodiscard]] EventStatistics statistics() const noexcept {
         return event_.statistics();
     }

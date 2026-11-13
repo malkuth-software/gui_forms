@@ -1,12 +1,12 @@
-#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
+#include "gui_forms/controls/plot_view.hpp"
 
 #include "plot_engine.hpp"
 #include "plot_view_live.hpp"
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
-#include "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp"
-#include "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp"
-#include "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp"
+#include "gui_forms/controls/plot_annotation_item.hpp"
+#include "gui_forms/controls/plot_axis_item.hpp"
+#include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
@@ -107,7 +107,7 @@ PlotView::~PlotView() {
 
 std::vector<PlotSeriesItem*> PlotView::series_items() const {
     std::vector<PlotSeriesItem*> items;
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     for (std::size_t index = 0U; index < all.size(); ++index) {
         PlotSeriesItem* const item = dynamic_cast<PlotSeriesItem*>(all[index].get());
         if (item != nullptr) items.push_back(item);
@@ -121,7 +121,7 @@ void PlotView::collect_series(std::vector<detail::PlotEngineSeries>& series,
     series.clear();
     if (annotations != nullptr) (*annotations).clear();
     if (items != nullptr) (*items).clear();
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     for (std::size_t index = 0U; index < all.size(); ++index) {
         Control* const child = all[index].get();
         PlotSeriesItem* const item = dynamic_cast<PlotSeriesItem*>(child);
@@ -164,7 +164,7 @@ void PlotView::take_axes(bool force) {
     std::size_t x_count = 0U;
     std::size_t y_count = 0U;
     std::uint64_t signature = 0U;
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     for (std::size_t index = 0U; index < all.size(); ++index) {
         const PlotAxisItem* const item = dynamic_cast<const PlotAxisItem*>(all[index].get());
         if (item == nullptr) continue;
@@ -375,7 +375,7 @@ void PlotView::arrange(Rect final_bounds) {
     (*engine_).layout(local, !title.read().empty());
     fit_and_follow();
     // Items take no space; the live host covers the plot.
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     for (std::size_t index = 0U; index < all.size(); ++index) {
         const bool host = live_host_ && all[index] == live_host_;
         set_child_layout(all[index], host ? local : Rect{});
@@ -466,7 +466,7 @@ void PlotView::on_detached_from_window() noexcept {
 
 // -- input ---------------------------------------------------------------------------
 
-void PlotView::on_pointer(PointerEvent& event) {
+void PlotView::handle_pointer(PointerEvent& event) {
     if (live_host_ || !eligible_for_input()) return;
     gather_series();
     const Rect absolute = absolute_bounds();
@@ -486,7 +486,49 @@ void PlotView::on_pointer(PointerEvent& event) {
     raise_outcome(outcome.view, outcome.selection, outcome.pick, outcome.legend_toggle);
 }
 
-void PlotView::on_key(KeyEvent& event) {
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void PlotView::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void PlotView::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void PlotView::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void PlotView::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void PlotView::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
+void PlotView::handle_key(KeyEvent& event) {
     if (live_host_ || !eligible_for_input()) return;
     gather_series();
     const detail::PlotEngineOutcome outcome = (*engine_).key(event, gathered_);
@@ -495,6 +537,25 @@ void PlotView::on_key(KeyEvent& event) {
     if (outcome.view) view_moved_ = true;
     if (outcome.repaint) invalidate(Dirty::paint | Dirty::semantics);
     raise_outcome(outcome.view, outcome.selection, outcome.pick, outcome.legend_toggle);
+}
+
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void PlotView::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
+}
+
+void PlotView::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    if (arguments.handled || arguments.released_by_deactivation) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::up);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 
 void PlotView::on_focus_changed(bool focused) {
@@ -547,7 +608,7 @@ void PlotView::send_live_update(bool reset_view) {
     const std::span<const plots::Axis> ys = (*engine_).model().y_axes();
     std::size_t x_seen = 0U;
     std::size_t y_seen = 0U;
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     std::vector<const PlotAxisItem*> axis_items;
     for (std::size_t index = 0U; index < all.size(); ++index) {
         const PlotAxisItem* const item = dynamic_cast<const PlotAxisItem*>(all[index].get());

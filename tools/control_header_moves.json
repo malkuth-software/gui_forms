@@ -1,0 +1,1097 @@
+{
+  "about": "Control headers flattened to include/gui_forms/controls/<name>.hpp (audit F2), written by tools/flatten_control_headers.py. Each entry is a repository path before and after the move; an include spelling drops the leading include/. No forwarding headers exist: the old spellings do not compile.",
+  "moves": [
+    {
+      "from": "include/gui_forms/controls/backstage_view/backstage_view.hpp",
+      "to": "include/gui_forms/controls/backstage_view.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/backstage_view/backstage_view_capabilities/backstage_view_capabilities.hpp",
+      "to": "include/gui_forms/controls/backstage_view_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/badge/badge.hpp",
+      "to": "include/gui_forms/controls/badge.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp",
+      "to": "include/gui_forms/controls/badge_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/badge/badge_values/badge_values.hpp",
+      "to": "include/gui_forms/controls/badge_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/binding_navigator/binding_navigator.hpp",
+      "to": "include/gui_forms/controls/binding_navigator.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/binding_navigator/binding_navigator_capabilities/binding_navigator_capabilities.hpp",
+      "to": "include/gui_forms/controls/binding_navigator_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/button/button.hpp",
+      "to": "include/gui_forms/controls/button.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/button/button_capabilities/button_capabilities.hpp",
+      "to": "include/gui_forms/controls/button_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/button/button_values/button_values.hpp",
+      "to": "include/gui_forms/controls/button_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp",
+      "to": "include/gui_forms/controls/drop_down_button.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/button/drop_down_button/drop_down_button_capabilities/drop_down_button_capabilities.hpp",
+      "to": "include/gui_forms/controls/drop_down_button_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/button/drop_down_button/drop_down_button_values/drop_down_button_values.hpp",
+      "to": "include/gui_forms/controls/drop_down_button_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/button_base.hpp",
+      "to": "include/gui_forms/controls/button_base.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp",
+      "to": "include/gui_forms/controls/button_base_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/button_content_types/button_content_types.hpp",
+      "to": "include/gui_forms/controls/button_content_types.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/check_box/check_box.hpp",
+      "to": "include/gui_forms/controls/check_box.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/check_box/check_box_capabilities/check_box_capabilities.hpp",
+      "to": "include/gui_forms/controls/check_box_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/check_box/check_box_values/check_box_values.hpp",
+      "to": "include/gui_forms/controls/check_box_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/link_label/link_label.hpp",
+      "to": "include/gui_forms/controls/link_label.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/link_label/link_label_capabilities/link_label_capabilities.hpp",
+      "to": "include/gui_forms/controls/link_label_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/radio_button/radio_button.hpp",
+      "to": "include/gui_forms/controls/radio_button.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/radio_button/radio_button_capabilities/radio_button_capabilities.hpp",
+      "to": "include/gui_forms/controls/radio_button_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp",
+      "to": "include/gui_forms/controls/toggle_switch.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/button_base/toggle_switch/toggle_switch_capabilities/toggle_switch_capabilities.hpp",
+      "to": "include/gui_forms/controls/toggle_switch_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/callout/callout.hpp",
+      "to": "include/gui_forms/controls/callout.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp",
+      "to": "include/gui_forms/controls/callout_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/collections/choice_group.hpp",
+      "to": "include/gui_forms/controls/choice_group.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/collections/choice_group_capabilities/choice_group_capabilities.hpp",
+      "to": "include/gui_forms/controls/choice_group_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/collections/choice_group_values/choice_group_values.hpp",
+      "to": "include/gui_forms/controls/choice_group_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/collections/command_bar.hpp",
+      "to": "include/gui_forms/controls/command_bar.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/collections/expandable_sections.hpp",
+      "to": "include/gui_forms/controls/expandable_sections.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/collections/expandable_sections_capabilities/expandable_sections_capabilities.hpp",
+      "to": "include/gui_forms/controls/expandable_sections_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/container/master_detail_view/master_detail_view.hpp",
+      "to": "include/gui_forms/controls/master_detail_view.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/container/master_detail_view/master_detail_view_capabilities/master_detail_view_capabilities.hpp",
+      "to": "include/gui_forms/controls/master_detail_view_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/container/master_detail_view/master_detail_view_values/master_detail_view_values.hpp",
+      "to": "include/gui_forms/controls/master_detail_view_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/data_grid_view/data_grid_view.hpp",
+      "to": "include/gui_forms/controls/data_grid_view.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/data_grid_view/data_grid_view_capabilities/data_grid_view_capabilities.hpp",
+      "to": "include/gui_forms/controls/data_grid_view_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/data_grid_view/data_grid_view_cells.hpp",
+      "to": "include/gui_forms/controls/data_grid_view_cells.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/data_grid_view/data_grid_view_row_heights.hpp",
+      "to": "include/gui_forms/controls/data_grid_view_row_heights.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp",
+      "to": "include/gui_forms/controls/data_grid_view_row_order.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/data_grid_view/data_grid_view_rows/data_grid_view_rows.hpp",
+      "to": "include/gui_forms/controls/data_grid_view_rows.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp",
+      "to": "include/gui_forms/controls/data_grid_view_types.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/docking/dock_navigator/dock_navigator.hpp",
+      "to": "include/gui_forms/controls/dock_navigator.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/docking/dock_navigator/dock_navigator_capabilities/dock_navigator_capabilities.hpp",
+      "to": "include/gui_forms/controls/dock_navigator_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/docking/dock_site/dock_site.hpp",
+      "to": "include/gui_forms/controls/dock_site.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/docking/dock_site/dock_site_capabilities/dock_site_capabilities.hpp",
+      "to": "include/gui_forms/controls/dock_site_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/docking/dock_workspace/dock_workspace.hpp",
+      "to": "include/gui_forms/controls/dock_workspace.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/docking/dock_workspace/dock_workspace_capabilities/dock_workspace_capabilities.hpp",
+      "to": "include/gui_forms/controls/dock_workspace_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/docking/dock_workspace/dock_workspace_values/dock_workspace_values.hpp",
+      "to": "include/gui_forms/controls/dock_workspace_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/drawing_surface/drawing_surface.hpp",
+      "to": "include/gui_forms/controls/drawing_surface.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/drawing_surface/drawing_surface_capabilities/drawing_surface_capabilities.hpp",
+      "to": "include/gui_forms/controls/drawing_surface_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/empty_state/empty_state.hpp",
+      "to": "include/gui_forms/controls/empty_state.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp",
+      "to": "include/gui_forms/controls/empty_state_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/help/help_book/help_book.hpp",
+      "to": "include/gui_forms/controls/help_book.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/help/help_book_system/help_book_system.hpp",
+      "to": "include/gui_forms/controls/help_book_system.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp",
+      "to": "include/gui_forms/controls/help_book_viewer.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/help/help_print/help_print.hpp",
+      "to": "include/gui_forms/controls/help_print.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/info_banner/info_banner.hpp",
+      "to": "include/gui_forms/controls/info_banner.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp",
+      "to": "include/gui_forms/controls/info_banner_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/info_banner/notice_values/notice_values.hpp",
+      "to": "include/gui_forms/controls/notice_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/dial/dial.hpp",
+      "to": "include/gui_forms/controls/dial.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/dial/dial_capabilities/dial_capabilities.hpp",
+      "to": "include/gui_forms/controls/dial_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/gauge_base/gauge_base.hpp",
+      "to": "include/gui_forms/controls/gauge_base.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp",
+      "to": "include/gui_forms/controls/gauge_base_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/gauge_base/linear_gauge/linear_gauge.hpp",
+      "to": "include/gui_forms/controls/linear_gauge.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/gauge_base/radial_gauge/radial_gauge.hpp",
+      "to": "include/gui_forms/controls/radial_gauge.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp",
+      "to": "include/gui_forms/controls/seven_segment_display.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/seven_segment_display/seven_segment_display_capabilities/seven_segment_display_capabilities.hpp",
+      "to": "include/gui_forms/controls/seven_segment_display_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/sparkline/sparkline.hpp",
+      "to": "include/gui_forms/controls/sparkline.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/sparkline/sparkline_capabilities/sparkline_capabilities.hpp",
+      "to": "include/gui_forms/controls/sparkline_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp",
+      "to": "include/gui_forms/controls/sweep_scope.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp",
+      "to": "include/gui_forms/controls/sweep_scope_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/instruments/sweep_scope/sweep_scope_effects.hpp",
+      "to": "include/gui_forms/controls/sweep_scope_effects.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/label/label.hpp",
+      "to": "include/gui_forms/controls/label.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/label/label_capabilities/label_capabilities.hpp",
+      "to": "include/gui_forms/controls/label_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/label/label_values/label_values.hpp",
+      "to": "include/gui_forms/controls/label_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp",
+      "to": "include/gui_forms/controls/lookup_combo_box.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/lookup_combo_box/lookup_combo_box_capabilities/lookup_combo_box_capabilities.hpp",
+      "to": "include/gui_forms/controls/lookup_combo_box_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
+      "to": "include/gui_forms/controls/menu_strip.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp",
+      "to": "include/gui_forms/controls/menu_strip_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/metrics_view/metrics_view.hpp",
+      "to": "include/gui_forms/controls/metrics_view.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp",
+      "to": "include/gui_forms/controls/metrics_view_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/modal_layer/modal_layer.hpp",
+      "to": "include/gui_forms/controls/modal_layer.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/modal_layer/modal_layer_capabilities/modal_layer_capabilities.hpp",
+      "to": "include/gui_forms/controls/modal_layer_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/node_canvas/link_router/link_router.hpp",
+      "to": "include/gui_forms/controls/link_router.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/node_canvas/node_graph/node_graph.hpp",
+      "to": "include/gui_forms/controls/node_graph.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/pages/navigation_pane/navigation_pane.hpp",
+      "to": "include/gui_forms/controls/navigation_pane.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp",
+      "to": "include/gui_forms/controls/navigation_pane_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/pages/page_strip/page_strip.hpp",
+      "to": "include/gui_forms/controls/page_strip.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp",
+      "to": "include/gui_forms/controls/page_strip_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp",
+      "to": "include/gui_forms/controls/page_strip_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/pages/page_view/page_view.hpp",
+      "to": "include/gui_forms/controls/page_view.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp",
+      "to": "include/gui_forms/controls/page_view_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/pages/page_view/page_view_values/page_view_values.hpp",
+      "to": "include/gui_forms/controls/page_view_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp",
+      "to": "include/gui_forms/controls/anchored_overlay_layer.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer_capabilities/anchored_overlay_layer_capabilities.hpp",
+      "to": "include/gui_forms/controls/anchored_overlay_layer_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp",
+      "to": "include/gui_forms/controls/anchored_overlay_placement.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/border_style/border_style.hpp",
+      "to": "include/gui_forms/controls/border_style.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp",
+      "to": "include/gui_forms/controls/breadcrumb_trail.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_capabilities/breadcrumb_trail_capabilities.hpp",
+      "to": "include/gui_forms/controls/breadcrumb_trail_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail_values/breadcrumb_trail_values.hpp",
+      "to": "include/gui_forms/controls/breadcrumb_trail_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/card/card.hpp",
+      "to": "include/gui_forms/controls/card.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp",
+      "to": "include/gui_forms/controls/card_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/card/card_values/card_values.hpp",
+      "to": "include/gui_forms/controls/card_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/color_value_editor/color_value_editor.hpp",
+      "to": "include/gui_forms/controls/color_value_editor.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/color_value_editor/color_value_editor_capabilities/color_value_editor_capabilities.hpp",
+      "to": "include/gui_forms/controls/color_value_editor_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/combo_box/combo_box.hpp",
+      "to": "include/gui_forms/controls/combo_box.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/combo_box/combo_box_capabilities/combo_box_capabilities.hpp",
+      "to": "include/gui_forms/controls/combo_box_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/combo_box/combo_box_values/combo_box_values.hpp",
+      "to": "include/gui_forms/controls/combo_box_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/date_time_picker/date_time_format_provider/date_time_format_provider.hpp",
+      "to": "include/gui_forms/controls/date_time_format_provider.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/date_time_picker/date_time_picker.hpp",
+      "to": "include/gui_forms/controls/date_time_picker.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp",
+      "to": "include/gui_forms/controls/date_time_picker_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/date_time_picker/date_time_picker_values/date_time_picker_values.hpp",
+      "to": "include/gui_forms/controls/date_time_picker_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/date_time_picker/date_time_value/date_time_value.hpp",
+      "to": "include/gui_forms/controls/date_time_value.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/domain_up_down/domain_up_down.hpp",
+      "to": "include/gui_forms/controls/domain_up_down.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/domain_up_down/domain_up_down_capabilities/domain_up_down_capabilities.hpp",
+      "to": "include/gui_forms/controls/domain_up_down_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp",
+      "to": "include/gui_forms/controls/flags_value_editor.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/flags_value_editor/flags_value_editor_capabilities/flags_value_editor_capabilities.hpp",
+      "to": "include/gui_forms/controls/flags_value_editor_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/font_dialog/font_dialog.hpp",
+      "to": "include/gui_forms/controls/font_dialog.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/font_dialog/font_dialog_capabilities/font_dialog_capabilities.hpp",
+      "to": "include/gui_forms/controls/font_dialog_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/group_box/group_box.hpp",
+      "to": "include/gui_forms/controls/group_box.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/group_box/group_box_capabilities/group_box_capabilities.hpp",
+      "to": "include/gui_forms/controls/group_box_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp",
+      "to": "include/gui_forms/controls/scaled_group_box.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box_capabilities/scaled_group_box_capabilities.hpp",
+      "to": "include/gui_forms/controls/scaled_group_box_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp",
+      "to": "include/gui_forms/controls/checked_list_box.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/list_box/checked_list_box/checked_list_box_capabilities/checked_list_box_capabilities.hpp",
+      "to": "include/gui_forms/controls/checked_list_box_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/list_box/list_box.hpp",
+      "to": "include/gui_forms/controls/list_box.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp",
+      "to": "include/gui_forms/controls/list_box_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/list_box/list_box_values/list_box_values.hpp",
+      "to": "include/gui_forms/controls/list_box_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/list_view/list_view.hpp",
+      "to": "include/gui_forms/controls/list_view.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/list_view/list_view_capabilities/list_view_capabilities.hpp",
+      "to": "include/gui_forms/controls/list_view_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/list_view/list_view_values/list_view_values.hpp",
+      "to": "include/gui_forms/controls/list_view_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/masked_text_box/masked_text_box.hpp",
+      "to": "include/gui_forms/controls/masked_text_box.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp",
+      "to": "include/gui_forms/controls/masked_text_box_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp",
+      "to": "include/gui_forms/controls/masked_text_provider.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/material_panel/material_panel.hpp",
+      "to": "include/gui_forms/controls/material_panel.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/material_panel/material_panel_capabilities/material_panel_capabilities.hpp",
+      "to": "include/gui_forms/controls/material_panel_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/month_calendar/calendar_values/calendar_values.hpp",
+      "to": "include/gui_forms/controls/calendar_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/month_calendar/month_calendar.hpp",
+      "to": "include/gui_forms/controls/month_calendar.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp",
+      "to": "include/gui_forms/controls/month_calendar_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp",
+      "to": "include/gui_forms/controls/numeric_up_down.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/numeric_up_down/numeric_up_down_capabilities/numeric_up_down_capabilities.hpp",
+      "to": "include/gui_forms/controls/numeric_up_down_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/object_view/object_view.hpp",
+      "to": "include/gui_forms/controls/object_view.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/object_view/object_view_capabilities/object_view_capabilities.hpp",
+      "to": "include/gui_forms/controls/object_view_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp",
+      "to": "include/gui_forms/controls/object_view_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/panel.hpp",
+      "to": "include/gui_forms/controls/panel.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/panel_capabilities/panel_capabilities.hpp",
+      "to": "include/gui_forms/controls/panel_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/picture_box/picture_box.hpp",
+      "to": "include/gui_forms/controls/picture_box.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp",
+      "to": "include/gui_forms/controls/picture_box_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/picture_box/picture_box_values/picture_box_values.hpp",
+      "to": "include/gui_forms/controls/picture_box_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/property_grid/property_grid.hpp",
+      "to": "include/gui_forms/controls/property_grid.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/property_grid/property_grid_capabilities/property_grid_capabilities.hpp",
+      "to": "include/gui_forms/controls/property_grid_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/property_list/property_list.hpp",
+      "to": "include/gui_forms/controls/property_list.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp",
+      "to": "include/gui_forms/controls/property_list_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
+      "to": "include/gui_forms/controls/rich_text_box.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp",
+      "to": "include/gui_forms/controls/rich_text_box_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/scaled_panel/scaled_panel.hpp",
+      "to": "include/gui_forms/controls/scaled_panel.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/scaled_panel/scaled_panel_capabilities/scaled_panel_capabilities.hpp",
+      "to": "include/gui_forms/controls/scaled_panel_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/text_box/auto_complete/auto_complete.hpp",
+      "to": "include/gui_forms/controls/auto_complete.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/text_box/text_box.hpp",
+      "to": "include/gui_forms/controls/text_box.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/text_box/text_box_capabilities/text_box_capabilities.hpp",
+      "to": "include/gui_forms/controls/text_box_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/text_box/text_decorations/text_decorations.hpp",
+      "to": "include/gui_forms/controls/text_decorations.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/text_items_capability/text_items_capability.hpp",
+      "to": "include/gui_forms/controls/text_items_capability.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/token_box/token_box.hpp",
+      "to": "include/gui_forms/controls/token_box.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/token_box/token_box_capabilities/token_box_capabilities.hpp",
+      "to": "include/gui_forms/controls/token_box_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/tree_list_view/tree_list_view.hpp",
+      "to": "include/gui_forms/controls/tree_list_view.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/tree_list_view/tree_list_view_capabilities/tree_list_view_capabilities.hpp",
+      "to": "include/gui_forms/controls/tree_list_view_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/tree_view/tree_view.hpp",
+      "to": "include/gui_forms/controls/tree_view.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/panel/tree_view/tree_view_capabilities/tree_view_capabilities.hpp",
+      "to": "include/gui_forms/controls/tree_view_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp",
+      "to": "include/gui_forms/controls/plot_annotation_item.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/plots/plot_annotation_item/plot_annotation_item_capabilities/plot_annotation_item_capabilities.hpp",
+      "to": "include/gui_forms/controls/plot_annotation_item_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp",
+      "to": "include/gui_forms/controls/plot_axis_item.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp",
+      "to": "include/gui_forms/controls/plot_axis_item_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/plots/plot_series_item/plot_series_item.hpp",
+      "to": "include/gui_forms/controls/plot_series_item.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp",
+      "to": "include/gui_forms/controls/plot_series_item_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp",
+      "to": "include/gui_forms/controls/plot_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/plots/plot_view/plot_view.hpp",
+      "to": "include/gui_forms/controls/plot_view.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp",
+      "to": "include/gui_forms/controls/plot_view_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/progress_ring/progress_ring.hpp",
+      "to": "include/gui_forms/controls/progress_ring.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp",
+      "to": "include/gui_forms/controls/progress_ring_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp",
+      "to": "include/gui_forms/controls/quick_access_toolbar.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/quick_access_toolbar/quick_access_toolbar_capabilities/quick_access_toolbar_capabilities.hpp",
+      "to": "include/gui_forms/controls/quick_access_toolbar_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/quick_access_toolbar/quick_access_toolbar_values/quick_access_toolbar_values.hpp",
+      "to": "include/gui_forms/controls/quick_access_toolbar_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/quick_access_toolbar/ribbon_state.hpp",
+      "to": "include/gui_forms/controls/ribbon_state.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/progress_bar/progress_bar.hpp",
+      "to": "include/gui_forms/controls/progress_bar.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp",
+      "to": "include/gui_forms/controls/progress_bar_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp",
+      "to": "include/gui_forms/controls/progress_bar_effects.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp",
+      "to": "include/gui_forms/controls/progress_bar_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/range_control.hpp",
+      "to": "include/gui_forms/controls/range_control.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/range_control_capabilities/range_control_capabilities.hpp",
+      "to": "include/gui_forms/controls/range_control_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/range_control_values/range_control_values.hpp",
+      "to": "include/gui_forms/controls/range_control_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.hpp",
+      "to": "include/gui_forms/controls/h_scroll_bar.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/scroll_bar/scroll_bar.hpp",
+      "to": "include/gui_forms/controls/scroll_bar.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/scroll_bar/scroll_bar_capabilities/scroll_bar_capabilities.hpp",
+      "to": "include/gui_forms/controls/scroll_bar_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.hpp",
+      "to": "include/gui_forms/controls/v_scroll_bar.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/track_bar/track_bar.hpp",
+      "to": "include/gui_forms/controls/track_bar.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/track_bar/track_bar_capabilities/track_bar_capabilities.hpp",
+      "to": "include/gui_forms/controls/track_bar_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/track_bar/track_bar_values/track_bar_values.hpp",
+      "to": "include/gui_forms/controls/track_bar_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/value_bar/value_bar.hpp",
+      "to": "include/gui_forms/controls/value_bar.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/value_bar/value_bar_capabilities/value_bar_capabilities.hpp",
+      "to": "include/gui_forms/controls/value_bar_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/range_control/value_bar/value_bar_values/value_bar_values.hpp",
+      "to": "include/gui_forms/controls/value_bar_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/raster_canvas/raster_canvas.hpp",
+      "to": "include/gui_forms/controls/raster_canvas.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp",
+      "to": "include/gui_forms/controls/raster_canvas_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/ribbon/ribbon.hpp",
+      "to": "include/gui_forms/controls/ribbon.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/ribbon/ribbon_capabilities/ribbon_capabilities.hpp",
+      "to": "include/gui_forms/controls/ribbon_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp",
+      "to": "include/gui_forms/controls/ribbon_color_picker.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/ribbon_color_picker/ribbon_color_picker_capabilities/ribbon_color_picker_capabilities.hpp",
+      "to": "include/gui_forms/controls/ribbon_color_picker_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp",
+      "to": "include/gui_forms/controls/ribbon_font_control.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/ribbon_font_control/ribbon_font_control_capabilities/ribbon_font_control_capabilities.hpp",
+      "to": "include/gui_forms/controls/ribbon_font_control_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp",
+      "to": "include/gui_forms/controls/ribbon_gallery.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/ribbon_gallery/ribbon_gallery_capabilities/ribbon_gallery_capabilities.hpp",
+      "to": "include/gui_forms/controls/ribbon_gallery_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp",
+      "to": "include/gui_forms/controls/block_panel.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/block_panel/block_panel_capabilities/block_panel_capabilities.hpp",
+      "to": "include/gui_forms/controls/block_panel_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp",
+      "to": "include/gui_forms/controls/command_overflow_panel.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel_capabilities/command_overflow_panel_capabilities.hpp",
+      "to": "include/gui_forms/controls/command_overflow_panel_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/container_control.hpp",
+      "to": "include/gui_forms/controls/container_control.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/container_control_capabilities/container_control_capabilities.hpp",
+      "to": "include/gui_forms/controls/container_control_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp",
+      "to": "include/gui_forms/controls/flex_panel.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel_capabilities/flex_panel_capabilities.hpp",
+      "to": "include/gui_forms/controls/flex_panel_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp",
+      "to": "include/gui_forms/controls/flow_layout_panel_compat.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_capabilities/flow_layout_panel_compat_capabilities.hpp",
+      "to": "include/gui_forms/controls/flow_layout_panel_compat_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_values/flow_layout_panel_compat_values.hpp",
+      "to": "include/gui_forms/controls/flow_layout_panel_compat_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp",
+      "to": "include/gui_forms/controls/grid_panel.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel_capabilities/grid_panel_capabilities.hpp",
+      "to": "include/gui_forms/controls/grid_panel_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp",
+      "to": "include/gui_forms/controls/responsive_track_panel.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel_capabilities/responsive_track_panel_capabilities.hpp",
+      "to": "include/gui_forms/controls/responsive_track_panel_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel_values/responsive_track_panel_values.hpp",
+      "to": "include/gui_forms/controls/responsive_track_panel_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp",
+      "to": "include/gui_forms/controls/split_container.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp",
+      "to": "include/gui_forms/controls/split_container_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp",
+      "to": "include/gui_forms/controls/split_container_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp",
+      "to": "include/gui_forms/controls/splitter_panel.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel_capabilities/splitter_panel_capabilities.hpp",
+      "to": "include/gui_forms/controls/splitter_panel_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp",
+      "to": "include/gui_forms/controls/tab_control.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp",
+      "to": "include/gui_forms/controls/tab_control_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp",
+      "to": "include/gui_forms/controls/tab_control_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp",
+      "to": "include/gui_forms/controls/tab_page.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page_capabilities/tab_page_capabilities.hpp",
+      "to": "include/gui_forms/controls/tab_page_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp",
+      "to": "include/gui_forms/controls/table_layout_panel_compat.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_capabilities/table_layout_panel_compat_capabilities.hpp",
+      "to": "include/gui_forms/controls/table_layout_panel_compat_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat_values/table_layout_panel_compat_values.hpp",
+      "to": "include/gui_forms/controls/table_layout_panel_compat_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/container_control/user_control/user_control.hpp",
+      "to": "include/gui_forms/controls/user_control.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/scroll_bar_metrics/scroll_bar_metrics.hpp",
+      "to": "include/gui_forms/controls/scroll_bar_metrics.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp",
+      "to": "include/gui_forms/controls/scroll_properties.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
+      "to": "include/gui_forms/controls/scrollable_control.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+      "to": "include/gui_forms/controls/scrollable_control_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/search_field/search_field.hpp",
+      "to": "include/gui_forms/controls/search_field.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/search_field/search_field_capabilities/search_field_capabilities.hpp",
+      "to": "include/gui_forms/controls/search_field_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/specimen/stock_specimens/stock_specimens.hpp",
+      "to": "include/gui_forms/controls/stock_specimens.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/spinner/spinner.hpp",
+      "to": "include/gui_forms/controls/spinner.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp",
+      "to": "include/gui_forms/controls/spinner_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/splitter/splitter.hpp",
+      "to": "include/gui_forms/controls/splitter.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/splitter/splitter_capabilities/splitter_capabilities.hpp",
+      "to": "include/gui_forms/controls/splitter_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/status_strip/status_strip.hpp",
+      "to": "include/gui_forms/controls/status_strip.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/step_indicator/step_indicator.hpp",
+      "to": "include/gui_forms/controls/step_indicator.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/step_indicator/step_indicator_capabilities/step_indicator_capabilities.hpp",
+      "to": "include/gui_forms/controls/step_indicator_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/task_dialog/task_dialog.hpp",
+      "to": "include/gui_forms/controls/task_dialog.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/task_dialog/task_dialog_capabilities/task_dialog_capabilities.hpp",
+      "to": "include/gui_forms/controls/task_dialog_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/text_block/text_block.hpp",
+      "to": "include/gui_forms/controls/text_block.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp",
+      "to": "include/gui_forms/controls/text_block_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/toast/toast.hpp",
+      "to": "include/gui_forms/controls/toast.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/tool_strip/tool_strip.hpp",
+      "to": "include/gui_forms/controls/tool_strip.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp",
+      "to": "include/gui_forms/controls/tool_strip_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/tool_strip/tool_strip_manager.hpp",
+      "to": "include/gui_forms/controls/tool_strip_manager.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/tool_strip_container/tool_strip_container.hpp",
+      "to": "include/gui_forms/controls/tool_strip_container.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp",
+      "to": "include/gui_forms/controls/tool_strip_container_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp",
+      "to": "include/gui_forms/controls/tool_strip_panel.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/tool_strip_panel/tool_strip_panel_capabilities/tool_strip_panel_capabilities.hpp",
+      "to": "include/gui_forms/controls/tool_strip_panel_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/tool_strip_panel/tool_strip_panel_values/tool_strip_panel_values.hpp",
+      "to": "include/gui_forms/controls/tool_strip_panel_values.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/wizard/wizard.hpp",
+      "to": "include/gui_forms/controls/wizard.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp",
+      "to": "include/gui_forms/controls/wizard_capabilities.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/wizard/wizard_page/wizard_page.hpp",
+      "to": "include/gui_forms/controls/wizard_page.hpp"
+    },
+    {
+      "from": "include/gui_forms/controls/wizard/wizard_page/wizard_page_capabilities/wizard_page_capabilities.hpp",
+      "to": "include/gui_forms/controls/wizard_page_capabilities.hpp"
+    }
+  ]
+}

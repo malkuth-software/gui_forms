@@ -25,7 +25,7 @@
       "reviewed": false,
       "summary": "Closes transient state and disconnects owned menu subscriptions before destruction."
     },
-    "gui_forms::MenuStrip::items|const std::vector<MenuStripItemSpec> &() const noexcept": {
+    "gui_forms::MenuStrip::items|const std::vector<MenuStripItemSpec> &() const & noexcept": {
       "reviewed": false,
       "summary": "Returns the authored top-level menu records and submenu trees."
     },
@@ -65,13 +65,21 @@
       "reviewed": false,
       "summary": "Records menu-bar background, hot/active states, labels, access-key cues, disabled state, and focus."
     },
-    "gui_forms::MenuStrip::on_pointer|void (PointerEvent &)": {
+    "gui_forms::MenuStrip::on_mouse_down|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Handles hover transfer, root switching, outside routing, press qualification, and dismissal."
+      "summary": "The press's target phase: handles hover transfer, root switching, outside routing, press qualification, and dismissal, then raises the event."
     },
-    "gui_forms::MenuStrip::on_key|void (KeyEvent &)": {
+    "gui_forms::MenuStrip::on_mouse_move|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Implements root traversal, open/close, submenu handoff, activation, and Escape behavior."
+      "summary": "The move's target phase: handles hover transfer, root switching, outside routing, press qualification, and dismissal, then raises the event."
+    },
+    "gui_forms::MenuStrip::on_mouse_leave|void ()": {
+      "reviewed": false,
+      "summary": "Clears the hover state the pointer left, then raises MouseLeave."
+    },
+    "gui_forms::MenuStrip::on_key_down|void (KeyEventArgs &)": {
+      "reviewed": false,
+      "summary": "Raises the event, then for an unhandled key: implements root traversal, open/close, submenu handoff, activation, and Escape behavior."
     },
     "gui_forms::MenuStrip::on_focus_changed|void (bool)": {
       "reviewed": false,

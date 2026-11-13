@@ -1,4 +1,4 @@
-#include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/controls/button.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <iterator>
 #include <memory>
@@ -85,11 +86,19 @@ constexpr std::array<PartDeclaration, 6> button_parts =
 constexpr std::array<AnatomyState, 11> button_states =
     state_declarations(button_state_fields);
 
+// "danger" names a button that marks a dangerous or irreversible action
+// (Button::danger) for a theme's selectors
+// (`button::part(face):state(danger)`).
+constexpr std::array<CustomStateDeclaration, 1> button_custom_states{{
+    {.name = "danger"},
+}};
+constexpr CustomStateIndex danger_state{0U};
+
 constexpr ControlAnatomy button_anatomy{
     .control_id = "button",
     .parts = button_parts,
     .states = button_states,
-    .custom_states = {},
+    .custom_states = button_custom_states,
 };
 
 // The theme role a button of `style` is drawn with.
@@ -138,7 +147,104 @@ AnatomyStateSet Button::anatomy_states() const {
     if (selected.read()) {
         states.insert(AnatomyState::selected);
     }
+    if (danger.read()) states.insert(danger_state);
     return states;
+}
+
+ButtonBase::FaceLayer Button::face_layer() const noexcept {
+    FaceLayer layer{};
+    if (!danger.read()) return layer;
+    layer.state = danger_state;
+    layer.level = danger_level_;
+    layer.leading_mark = PartMark::warning;
+    return layer;
+}
+
+double Button::danger_glow_level(FrameInterval since) noexcept {
+    const double period = std::chrono::duration<double>(danger_glow_period).count();
+    const double seconds = std::chrono::duration<double>(since).count();
+    const double turns = seconds / period;
+    const double phase = (turns - std::floor(turns)) * 2.0 * 3.14159265358979323846;
+    // A raised cosine: 1 at the start of each period, the floor half way.
+    const double rise = 0.5 + 0.5 * std::cos(phase);
+    const double level = danger_glow_floor + (1.0 - danger_glow_floor) * rise;
+    return level;
+}
+
+bool Button::danger_glowing() const noexcept {
+    const bool running = danger_timer_.started();
+    return running;
+}
+
+void Button::update_danger_glow() {
+    const Window* const owner = attached_window();
+    const bool reduced = owner != nullptr && (*owner).presentation_settings().reduced_motion;
+    const bool runs = danger.read() && owner != nullptr && effectively_enabled() && !reduced;
+    if (!runs) {
+        danger_timer_.stop();
+        danger_since_.reset();
+        danger_level_ = 1.0;
+        return;
+    }
+    if (danger_timer_.started()) return;
+    const std::shared_ptr<Button> self = std::dynamic_pointer_cast<Button>(shared_from_this());
+    if (!self) return;
+    danger_since_.reset();
+    danger_level_ = 1.0;
+    danger_timer_.start(*this, danger_glow_interval, DangerTick{self});
+}
+
+AnimationTickResult Button::advance_danger_glow(FrameTime now) {
+    const Window* const owner = attached_window();
+    const bool reduced = owner != nullptr && (*owner).presentation_settings().reduced_motion;
+    if (reduced || !danger.read() || !effectively_enabled()) {
+        // Steady from here; a later change of state starts the pulse again.
+        danger_timer_.stop();
+        danger_since_.reset();
+        danger_level_ = 1.0;
+        invalidate(Dirty::paint);
+        return AnimationTickResult::damaged;
+    }
+    if (!danger_since_) danger_since_ = now;
+    const FrameInterval since = std::chrono::duration_cast<FrameInterval>(now - *danger_since_);
+    const double level = danger_glow_level(since);
+    if (level == danger_level_) return AnimationTickResult::unchanged;
+    danger_level_ = level;
+    invalidate(Dirty::paint);
+    return AnimationTickResult::damaged;
+}
+
+AnimationTickResult Button::DangerTick::operator()(FrameTime now) const {
+    const std::shared_ptr<Button> live = button.lock();
+    if (!live) return AnimationTickResult::unchanged;
+    const AnimationTickResult result = (*live).advance_danger_glow(now);
+    return result;
+}
+
+void Button::on_attached_to_window() {
+    ButtonBase::on_attached_to_window();
+    update_danger_glow();
+}
+
+void Button::on_detached_from_window() noexcept {
+    ButtonBase::on_detached_from_window();
+    danger_timer_.stop();
+    danger_since_.reset();
+    danger_level_ = 1.0;
+}
+
+void Button::on_enabled_changed() {
+    ButtonBase::on_enabled_changed();
+    update_danger_glow();
+}
+
+void Button::prepare_write(const decltype(danger)&, bool&) {
+    require_mutable();
+}
+
+void Button::written(const decltype(danger)&) {
+    update_danger_glow();
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
 Button::Parts Button::parts() const {
@@ -155,6 +261,7 @@ Button::States Button::states() const {
 }
 
 void Button::on_paint(Painter& painter, Rect) {
+    danger_timer_.note_painted();
     const Rect bounds = local_bounds();
     if (visual_style.read() == ButtonVisualStyle::flat) {
         paint_flat_button(painter, bounds, flat_border_width.read());
@@ -250,6 +357,24 @@ const PropertyDescriptor& describe_button_flat_border_width() {
     return descriptor;
 }
 
+PropertyDescriptor button_danger_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "danger";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Appearance";
+    descriptor.description = "Whether the button marks a dangerous or irreversible action.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_button_danger() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        button_danger_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
 } // namespace
 
 PropertyType PropertyValueTraits<ButtonVisualStyle>::type() {
@@ -272,7 +397,7 @@ ButtonVisualStyle PropertyValueTraits<ButtonVisualStyle>::from_binding(const Bin
 }
 
 const std::array<PropertyEntry, Button::button_property_count>& Button::button_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 2U> own{{
+    static constexpr std::array<PropertyEntry, 3U> own{{
         {"visual_style", &describe_button_visual_style,
          &read_cell_entry<Button, decltype(&Button::visual_style), &Button::visual_style>,
          &write_cell_entry<Button, decltype(&Button::visual_style), &Button::visual_style>,
@@ -281,6 +406,11 @@ const std::array<PropertyEntry, Button::button_property_count>& Button::button_p
         {"flat_border_width", &describe_button_flat_border_width,
          &read_cell_entry<Button, decltype(&Button::flat_border_width), &Button::flat_border_width>,
          &write_cell_entry<Button, decltype(&Button::flat_border_width), &Button::flat_border_width>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"danger", &describe_button_danger,
+         &read_cell_entry<Button, decltype(&Button::danger), &Button::danger>,
+         &write_cell_entry<Button, decltype(&Button::danger), &Button::danger>,
          nullptr, nullptr, nullptr,
          nullptr},
     }};

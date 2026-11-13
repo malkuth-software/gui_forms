@@ -2,9 +2,9 @@
   "family": "Panel",
   "step": "P-4",
   "declaring": "Panel",
-  "header": "include/gui_forms/controls/panel/panel.hpp",
+  "header": "include/gui_forms/controls/panel.hpp",
   "source": "src/controls/panel/panel.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/panel_capabilities/panel_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/panel_capabilities.hpp",
   "shared": [],
   "properties": [
     {
@@ -71,11 +71,11 @@
   ],
   "test": {
     "type": "Panel",
-    "include": "gui_forms/controls/panel/panel.hpp"
+    "include": "gui_forms/controls/panel.hpp"
   },
   "base": "ScrollableControl",
   "includes": [
-    "gui_forms/controls/panel/border_style/border_style.hpp",
+    "gui_forms/controls/border_style.hpp",
     "gui_forms/theme/types/theme_types.hpp"
   ]
 }

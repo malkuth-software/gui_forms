@@ -1,4 +1,16 @@
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/display/types/display_types.hpp"
+#include "gui_forms/live_surface/frame/live_surface_frame.hpp"
+#include "gui_forms/live_surface/surface/live_surface.hpp"
+#include "gui_forms/live_surface/types/live_surface_types.hpp"
+#include "gui_forms/live_surface/wake_connection/live_surface_wake_connection.hpp"
+#include "gui_forms/live_surface/write_lease/live_surface_write_lease.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <atomic>
 #include <cstddef>

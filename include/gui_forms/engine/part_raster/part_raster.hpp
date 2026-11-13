@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
 
 #include <cstddef>
@@ -19,7 +21,7 @@ namespace gui_forms {
 // std::shared_ptr<const PartRaster>, with every recorded command that
 // composites it (Painter::draw_part_raster). Recorded commands keep it
 // alive until their display chunk is rebuilt or retired.
-class PartRaster final {
+class GUI_FORMS_API PartRaster final {
 public:
     // A transparent raster of `extent` for display scale `scale`, or null
     // when either side exceeds maximum_part_raster_side or the scale is not
@@ -42,7 +44,10 @@ public:
     // Whether record_opacity found every pixel opaque since the last view().
     [[nodiscard]] bool opaque() const noexcept { return opaque_; }
 
-    [[nodiscard]] std::span<const std::uint8_t> pixels() const noexcept { return pixels_; }
+    // Borrowed from the raster: the sanitizer tree reports a use after the
+    // raster died (the last shared owner let it go).
+    [[nodiscard]] BorrowedSpan<std::uint8_t> pixels() const& noexcept { return detail::lend_view(pixels_); }
+    BorrowedSpan<std::uint8_t> pixels() const&& = delete;
     [[nodiscard]] DeviceExtent extent() const noexcept { return extent_; }
     [[nodiscard]] std::size_t row_bytes() const noexcept { return row_bytes_; }
     [[nodiscard]] DeviceScale scale() const noexcept { return scale_; }
@@ -50,7 +55,7 @@ public:
 private:
     PartRaster(DeviceExtent extent, DeviceScale scale);
 
-    std::vector<std::uint8_t> pixels_;
+    detail::LendingVector<std::uint8_t> pixels_;
     DeviceExtent extent_{};
     std::size_t row_bytes_{};
     DeviceScale scale_{};

@@ -117,7 +117,8 @@ DragPlanRefusal ScrubGesture::plan_drag(DragPlanBuilder& builder, const DragSubj
     DragProjection projection{};
     projection.axis = DragAxis::x;
     projection.origin_value = range.start;
-    projection.scale = range.rate;
+    // A reversed scrub projects leftward travel as the increase.
+    projection.scale = range.reversed ? -range.rate : range.rate;
     projection.minimum = low_;
     projection.maximum = high_;
     projection.keyboard_step = range.keyboard_step;
@@ -147,7 +148,8 @@ bool ScrubGesture::on_edge(Point pointer) const noexcept {
 }
 
 double ScrubGesture::advance_to(Point pointer, Modifier modifiers) noexcept {
-    const double travel = pointer.x - last_pointer_.x;
+    const double rightward = pointer.x - last_pointer_.x;
+    const double travel = range_.reversed ? -rightward : rightward;
     const double factor = has_modifier(modifiers, Modifier::shift) ? scrub_fine_factor : 1.0;
     const double moved = raw_ + travel * range_.rate * factor;
     raw_ = std::clamp(moved, low_, high_);

@@ -7,8 +7,18 @@
 // first scrubbing frame; and a pointer script's trace. Headless: a window
 // that is never shown.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "../src/core/drag_engine/scrub_gesture.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <array>
 #include <cmath>
@@ -196,11 +206,11 @@ public:
 
 // A control owning a gesture, as ValueBar does: a primary press arms it,
 // the rest of the pointer stream goes to it, a click is counted.
-class ScrubPad final : public Control {
+class ScrubPad final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit ScrubPad(StableId stable_id) : Control(std::move(stable_id)), gesture(*this, target) {}
+    explicit ScrubPad(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)), gesture(*this, target) {}
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::down && event.button == PointerButton::primary) {
             if (gesture.press(event, lock)) event.handled = true;
             return;
@@ -313,6 +323,23 @@ void soft_range() {
     pointer(window, PointerAction::up, {90.0, row});
     require(near(pad.target.previews[0], 1.4) && near(pad.target.last_value, 1.4),
             "a start above the soft range scrubs down from itself");
+}
+
+// A reversed range (a right-to-left target, Control::right_to_left) raises
+// the value with travel to the left and lowers it with travel to the right.
+void reversed_scrub() {
+    Fixture fixture = make_fixture();
+    Window& window = *fixture.window;
+    ScrubPad& pad = *fixture.pad;
+    pad.target.range.reversed = true;
+    pointer(window, PointerAction::down, {100.0, row});
+    pointer(window, PointerAction::move, {90.0, row});
+    pointer(window, PointerAction::move, {110.0, row});
+    pointer(window, PointerAction::up, {110.0, row});
+    const std::vector<double>& previews = pad.target.previews;
+    require(previews.size() >= 2U && near(previews[0], 0.6) && near(previews[1], 0.4) &&
+                near(pad.target.last_value, 0.4),
+            "a reversed scrub rises leftward and falls rightward");
 }
 
 // Shift slows the scrub from where it is pressed; Ctrl snaps the shown
@@ -481,13 +508,15 @@ int main() {
     click_is_not_a_scrub();
     scrub_commits_once();
     soft_range();
+    reversed_scrub();
     modifiers();
     cancels_restore();
     keyboard_mode();
     pointer_lock();
     no_allocation_while_scrubbing();
     scrub_trace();
-    std::cout << "scrub gesture: click, scrub, soft range, modifiers, cancels, keyboard, pointer lock, allocation "
+    std::cout << "scrub gesture: click, scrub, soft range, reversed, modifiers, cancels, keyboard, pointer lock, "
+                 "allocation "
                  "and trace passed\n";
     return 0;
 }

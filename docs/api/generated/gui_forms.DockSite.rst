@@ -9,7 +9,7 @@ gui_forms::DockSite
 
 .. cpp:class:: DockSite : public Control, public DockSiteCapabilities<DockSite>
 
-   ``#include <gui_forms/controls/docking/dock_site/dock_site.hpp>``
+   ``#include <gui_forms/controls/dock_site.hpp>``
 
    The docked part of a docking workspace in one window: tool stacks with captions around the document area, separated by seams.
 
@@ -424,7 +424,11 @@ gui_forms::DockSite
    ``grip_dots`` mark), with hot, captured, focus_visible and disabled. The
    ``stack`` item system has ``stack_area`` and, for a tool stack,
    ``caption``, ``caption_accent`` (present while current), ``caption_key``,
-   ``caption_label``, ``caption_menu`` and ``caption_menu_glyph`` (a
+   ``caption_label``, ``caption_grip`` (the ``grip_dots`` mark in the muted
+   ink, between the title and the buttons, drawn in every theme; a sheet
+   recolours it with ``dock-site::part(caption-grip) { muted-color: ... }`` and
+   hides it with ``muted-color: transparent`` (which warns W201, as any literal
+   text ink does)), ``caption_menu`` and ``caption_menu_glyph`` (a
    ``chevron_down``), ``caption_pin`` and ``caption_pin_glyph`` (the ``pin``
    mark, checked while docked), ``caption_close`` and ``caption_close_glyph``;
    its states
@@ -601,7 +605,7 @@ gui_forms::DockSite
 
       The stamp's rectangle while dragging or settling.
 
-   .. cpp:function:: const std::string& drag_announcement() const noexcept
+   .. cpp:function:: const std::string& drag_announcement() const& noexcept
 
       What the drag announces ("Output: dock left of Properties"), also the
       name of the site's last semantic child, a ``live_region`` with the ID
@@ -786,11 +790,7 @@ gui_forms::DockSite
 
    .. cpp:function:: void on_pointer_preview(PointerEvent& event) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
 
    .. cpp:function:: void on_context_menu_requested(ContextMenuRequest& request) override
 
@@ -811,6 +811,34 @@ gui_forms::DockSite
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_up(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -855,3 +883,221 @@ gui_forms::DockSite
    .. cpp:member:: constexpr std::chrono::milliseconds flyout_slide_duration
 
       Default: ``{180}``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 44 supported, 0 deferred, 0 excluded, 7 unclassified; 51 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``collapsed_stacks``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``document_area_maximized``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_announcement``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_panes``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_phase``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_stamp``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_subject``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_suppressed``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_target``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_targets``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``floating``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``floating_site``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flyout_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flyout_extent``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flyout_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flyout_panel``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``flyout_reveal``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_seam``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``moving_window``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``navigator``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``navigator_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``position_menu_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_seams``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_stack_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_stacks``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_tiles``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``showing_remote_drag``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``workspace``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drag_ended``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``flyout_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``activate_relative_document``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``begin_keyboard_move``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``cancel_drag``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``close_flyout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_navigator``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``close_position_menu``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``focus_seam``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``move_seam``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open_flyout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open_navigator``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``position_command_enabled``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``release_workspace``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``resize_flyout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``run_position_command``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``seam_identity``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show_position_menu``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``side_panels``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``side_strip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``stack_identity``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``stack_view``
+     - supported

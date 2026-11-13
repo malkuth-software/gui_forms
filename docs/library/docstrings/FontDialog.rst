@@ -81,7 +81,6 @@ initialize_control_tree
 See Also
 --------
 Label : Text whose font a dialog result can set.
-TypographySpecimen : The bundled faces and text roles, side by side.
 
 Notes
 -----

@@ -12,21 +12,21 @@ typed records (`(*bar).parts().thumb`) and registers handlers through each type'
 (`(*button).clicked()`). An interaction's payload is the handler's argument types; *by
 reference* marks a payload the handler receives by mutable reference.
 
-Every control also has these properties: `accessible_description`, `accessible_name`, `align_self`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `classes`, `cursor`, `dock`, `enabled`, `focusable`, `fore_color`, `hit_test_transparent`, `justify_self`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
+Every control also has these properties: `accessible_description`, `accessible_name`, `align_self`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `classes`, `cursor`, `dock`, `enabled`, `focusable`, `fore_color`, `help`, `help_line`, `hit_test_transparent`, `justify_self`, `keywords`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `right_to_left`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
 
-Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `mouse_down`, `mouse_up`, `mouse_move`, `mouse_wheel`, `mouse_enter`, `mouse_hover`, `mouse_leave`, `mouse_capture_changed`, `click`, `mouse_click`, `double_click`, `mouse_double_click`, `context_menu_requested`, `focus_observed`, `arranged_bounds_changed`, `help_requested`, `preview_key_down`, `key_down`, `key_press`, `key_up`.
+Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `right_to_left_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `mouse_down`, `mouse_up`, `mouse_move`, `mouse_wheel`, `mouse_enter`, `mouse_hover`, `mouse_leave`, `mouse_capture_changed`, `click`, `mouse_click`, `double_click`, `mouse_double_click`, `context_menu_requested`, `focus_observed`, `arranged_bounds_changed`, `help_requested`, `preview_key_down`, `key_down`, `key_press`, `key_up`.
 
 ## Vocabulary
 
 The atoms controls declare and themes address (design language §8.5 and §12.7).
 
-Part roles: `region`, `shadow`, `face`, `edge`, `keyline`, `perimeter`, `sheen`, `seam`, `divider`, `caption`, `cap`, `well`, `track`, `fill`, `thumb`, `actuator`, `indicator`, `activity`, `glyph`, `icon`, `label`, `content`, `caret`, `disclosure`, `grip`, `chip`, `focus`, `preselect`, `selection`, `validation`, `drop`, `image`, `plot`, `graticule`, `trace`, `axis`, `tick`, `tick_label`, `grid_major`, `grid_minor`, `legend`, `legend_entry`, `marker`, `crosshair`, `annotation`, `color_scale`, `series`, `arc`, `needle`, `beak`, `scrim`.
+Part roles: `region`, `shadow`, `face`, `edge`, `keyline`, `perimeter`, `sheen`, `seam`, `divider`, `caption`, `cap`, `well`, `track`, `fill`, `thumb`, `actuator`, `indicator`, `activity`, `glyph`, `icon`, `label`, `content`, `caret`, `disclosure`, `grip`, `chip`, `focus`, `preselect`, `selection`, `validation`, `drop`, `image`, `plot`, `graticule`, `trace`, `axis`, `tick`, `tick_label`, `grid_major`, `grid_minor`, `legend`, `legend_entry`, `marker`, `crosshair`, `annotation`, `color_scale`, `series`, `arc`, `needle`, `beak`, `scrim`, `node`, `header`, `port`, `link`, `lamp`, `marquee`.
 
 States: `normal`, `hot`, `pressed`, `captured`, `focused`, `focus_visible`, `preselect`, `selected`, `checked`, `indeterminate`, `current`, `active_tool`, `enabled`, `disabled`, `unavailable`, `read_only`, `invalid`, `pending`, `open`, `closed`, `expanding`, `collapsing`, `interrupted`, `drop_accepted`, `drop_rejected`, `key`, `secondary_participating`, `drag_proximate`, `deactivated`, `high_contrast`, `reduced_motion`.
 
 Admitted custom states: `modified`, `pinned`.
 
-Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_down`, `arrow_left`, `arrow_right`, `chevron_down`, `chevron_right`, `close`, `grip_dots`, `dialog_launcher`, `more`, `overflow`, `customize`, `pin`, `dock_shape`, `underline`, `pencil`, `asterisk`, `error`, `search`, `information`, `warning`, `success`.
+Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_down`, `arrow_left`, `arrow_right`, `chevron_down`, `chevron_right`, `close`, `grip_dots`, `dialog_launcher`, `more`, `overflow`, `customize`, `pin`, `dock_shape`, `underline`, `pencil`, `asterisk`, `error`, `search`, `information`, `warning`, `success`, `chevron_left`.
 
 Engine inputs: `pointer_x`, `pointer_y`, `time_in_state`, `display_scale`, `text_scale`.
 
@@ -96,9 +96,9 @@ Properties beyond every control's: `content_padding` (insets), `font` (font), `i
 | `preselect` | preselect |  |  |
 | `focus` | focus |  |  |
 
-States: `normal`, `hot`, `pressed`, `preselect`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
+States: `normal`, `hot`, `pressed`, `preselect`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`. Application-defined: `danger`.
 
-Properties beyond every control's: `content_padding` (insets), `flat_border_width` (number), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration), `visual_style` (enumeration).
+Properties beyond every control's: `content_padding` (insets), `danger` (boolean), `flat_border_width` (number), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration), `visual_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -121,9 +121,9 @@ Properties beyond every control's: `content_padding` (insets), `flat_border_widt
 | `preselect` | preselect |  |  |
 | `focus` | focus |  |  |
 
-States: `normal`, `hot`, `pressed`, `preselect`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
+States: `normal`, `hot`, `pressed`, `preselect`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`. Application-defined: `danger`.
 
-Properties beyond every control's: `content_padding` (insets), `flat_border_width` (number), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration), `visual_style` (enumeration).
+Properties beyond every control's: `content_padding` (insets), `danger` (boolean), `flat_border_width` (number), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration), `visual_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -394,6 +394,21 @@ Properties beyond every control's: `count` (unsigned_integer), `maximum` (unsign
 
 Interactions beyond every control's: none.
 
+## `indicator_lamp` (IndicatorLamp, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `bezel` | well |  |  |
+| `lens` | indicator |  |  |
+| `label` | label |  |  |
+
+States: `normal`, `enabled`, `disabled`. Application-defined: `on`, `error`.
+
+Properties beyond every control's: `lamp_color` (color), `light_planes` (text), `state` (enumeration), `text` (text).
+
+Interactions beyond every control's: none.
+
 ## `info_banner` (InfoBanner, control)
 
 | Part | Role | Reuses | Own states |
@@ -625,36 +640,6 @@ Properties beyond every control's: `text` (text), `x` (number), `y` (number).
 
 Interactions beyond every control's: none.
 
-## `review_card` (ReviewCard, control)
-
-| Part | Role | Reuses | Own states |
-|---|---|---|---|
-| `region` | region |  |  |
-| `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
-| `horizontal_track` | track |  | hot, pressed |
-| `horizontal_thumb` | thumb |  | hot, pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
-| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
-| `vertical_track` | track |  | hot, pressed |
-| `vertical_thumb` | thumb |  | hot, pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
-| `scroll_corner` | face |  |  |
-| `focus` | focus |  |  |
-| `face` | face |  |  |
-| `edge` | edge |  |  |
-
-States: `normal`, `hot`, `pressed`, `captured`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`.
-
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
-
-| Interaction | Payload |
-|---|---|
-| `scroll` | `ScrollEvent`, by reference |
-| `activated` | `Card`, by reference |
-| `selected_changed` | `bool` |
-| `record_changed` | `ReviewRecord` |
-
 ## `list_box` (ListBox, control)
 
 | Part | Role | Reuses | Own states |
@@ -693,6 +678,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
+| `selected_index_changed` | `std::optional<std::size_t>` |
 | `selection_changed` | `ListSelectionChange` |
 | `item_activated` | `std::size_t` |
 
@@ -736,6 +722,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
+| `selected_index_changed` | `std::optional<std::size_t>` |
 | `selection_changed` | `ListSelectionChange` |
 | `item_activated` | `std::size_t` |
 | `item_checking` | `ItemCheckEvent`, by reference |
@@ -1011,52 +998,34 @@ Properties beyond every control's: none.
 | `column_width_changed` | `TreeListColumnWidthChange` |
 | `column_moved` | `TreeListColumnMove` |
 
-## `correspondence_view` (CorrespondenceView, control)
+## `virtual_rows_view` (VirtualRowsView, control)
 
 | Part | Role | Reuses | Own states |
 |---|---|---|---|
 | `region` | region |  |  |
-| `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
-| `horizontal_track` | track |  | hot, pressed |
-| `horizontal_thumb` | thumb |  | hot, pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
-| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
-| `vertical_track` | track |  | hot, pressed |
-| `vertical_thumb` | thumb |  | hot, pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
-| `scroll_corner` | face |  |  |
+| `well` | well |  |  |
+| `vertical_scroll_bar` | track | `v_scroll_bar` |  |
 | `focus` | focus |  |  |
-| `face` | face |  |  |
-| `edge` | edge |  |  |
 
-States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Item system `item`:
+Item system `row`:
 
 | Part | Role | Reuses | Own states |
 |---|---|---|---|
-| `card` | face |  |  |
-| `status_rail` | keyline |  |  |
-| `glyph` | icon |  |  |
-| `title` | label |  |  |
-| `secondary` | content |  |  |
-| `metric` | content |  |  |
-| `evidence` | well |  |  |
-| `card_focus` | focus |  |  |
+| `row` | region |  |  |
+| `row_face` | face |  |  |
+| `row_focus` | focus |  |  |
 
-Item states: `selected`, `hot`, `current`, `open`, `unavailable`, `disabled`. Application-defined: `pinned`, `stale`.
+Item states: `selected`, `hot`, `current`, `disabled`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
+Properties beyond every control's: none.
 
 | Interaction | Payload |
 |---|---|
-| `scroll` | `ScrollEvent`, by reference |
-| `selection_changed` | `CorrespondenceSelectionChange` |
-| `pin_changed` | `CorrespondencePinChange` |
-| `expansion_changed` | `CorrespondenceExpansionChange` |
-| `item_activated` | `std::string` |
-| `context_requested` | `ObjectContextRequest` |
+| `selection_changed` | `VirtualRowSelection` |
+| `row_activated` | `VirtualRowIndex` |
+| `scrolled` | `VirtualRowScroll` |
 
 ## `data_grid_view` (DataGridView, control)
 
@@ -1578,38 +1547,6 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `group_changed` | `PropertyGroupChange` |
 | `row_expansion_changed` | `PropertyRowExpansionChange` |
 | `reset_requested` | `PropertyResetRequest` |
-
-## `instrument_rack` (InstrumentRack, control)
-
-| Part | Role | Reuses | Own states |
-|---|---|---|---|
-| `region` | region |  |  |
-| `viewport` | region |  |  |
-| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
-| `horizontal_track` | track |  | hot, pressed |
-| `horizontal_thumb` | thumb |  | hot, pressed, captured |
-| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
-| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
-| `vertical_track` | track |  | hot, pressed |
-| `vertical_thumb` | thumb |  | hot, pressed, captured |
-| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
-| `scroll_corner` | face |  |  |
-| `focus` | focus |  |  |
-| `face` | face |  |  |
-| `edge` | edge |  |  |
-
-States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
-
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
-
-| Interaction | Payload |
-|---|---|
-| `scroll` | `ScrollEvent`, by reference |
-| `field_changed` | `InstrumentFieldChange` |
-| `field_committed` | `InstrumentFieldChange` |
-| `module_toggled` | `InstrumentModuleToggle` |
-| `remove_requested` | `InstrumentModuleRequest` |
-| `move_requested` | `InstrumentModuleMoveRequest` |
 
 ## `date_time_picker` (DateTimePicker, control)
 
@@ -2133,6 +2070,7 @@ Item system `stack`:
 | `caption_accent` | keyline |  |  |
 | `caption_key` | chip |  |  |
 | `caption_label` | caption |  |  |
+| `caption_grip` | grip |  |  |
 | `caption_menu` | actuator | `button` | hot, pressed, open, disabled |
 | `caption_menu_glyph` | glyph |  | disabled |
 | `caption_pin` | actuator | `button` | hot, pressed, checked, disabled |
@@ -3492,6 +3430,39 @@ Properties beyond every control's: none.
 
 Interactions beyond every control's: none.
 
+## `node_canvas` (NodeCanvas, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `grid_minor` | grid_minor |  |  |
+| `grid_major` | grid_major |  |  |
+| `node` | node |  | hot, selected, disabled |
+| `node_header` | header |  | hot, selected, disabled |
+| `node_selection` | selection |  |  |
+| `port` | port |  | hot, drop_accepted, drop_rejected |
+| `link` | link |  | hot, selected, invalid |
+| `dashed_link` | link |  | hot, selected, invalid |
+| `lamp` | lamp |  | checked, invalid |
+| `marquee` | marquee |  |  |
+| `port_label` | label |  | hot, drop_accepted, drop_rejected |
+| `focus` | focus |  |  |
+| `knife` | marquee |  |  |
+| `link_preview` | link |  | drop_accepted, drop_rejected |
+
+States: `normal`, `hot`, `focused`, `focus_visible`, `selected`, `checked`, `enabled`, `disabled`, `invalid`, `drop_accepted`, `drop_rejected`.
+
+Properties beyond every control's: none.
+
+| Interaction | Payload |
+|---|---|
+| `selection_changed` | `NodeCanvasSelection` |
+| `link_connected` | `NodeLinkConnected` |
+| `graph_edited` | `NodeGraphEdited` |
+| `view_changed` | `SceneViewTransform` |
+| `palette_requested` | `NodePaletteRequest` |
+| `edit_ended` | `NodeEditEnded` |
+
 ## `live_surface` (LiveSurface, service)
 
 Interactions: none.
@@ -3513,21 +3484,6 @@ Properties beyond every control's: none.
 | `stopped` | `SubSurfaceStopped` |
 | `pairing_missed` | `std::uint64_t` |
 
-## `easing_preview` (EasingPreview, control)
-
-| Part | Role | Reuses | Own states |
-|---|---|---|---|
-| `region` | region |  |  |
-| `face` | face |  |  |
-| `edge` | edge |  |  |
-| `focus` | focus |  |  |
-
-States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
-
-Properties beyond every control's: `title` (text).
-
-Interactions beyond every control's: none.
-
 ## `metrics_view` (MetricsView, control)
 
 | Part | Role | Reuses | Own states |
@@ -3540,51 +3496,6 @@ Interactions beyond every control's: none.
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
 Properties beyond every control's: none.
-
-Interactions beyond every control's: none.
-
-## `typography_specimen` (TypographySpecimen, control)
-
-| Part | Role | Reuses | Own states |
-|---|---|---|---|
-| `region` | region |  |  |
-| `face` | face |  |  |
-| `edge` | edge |  |  |
-| `focus` | focus |  |  |
-
-States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
-
-Properties beyond every control's: `caption` (text), `font` (font), `text` (text), `wrap_text` (boolean).
-
-Interactions beyond every control's: none.
-
-## `visual_inspector_view` (VisualInspectorView, control)
-
-| Part | Role | Reuses | Own states |
-|---|---|---|---|
-| `region` | region |  |  |
-| `face` | face |  |  |
-| `header` | face |  |  |
-| `accent_strip` | keyline |  |  |
-| `focus` | focus |  |  |
-
-States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
-
-Properties beyond every control's: `target_stable_id` (text).
-
-Interactions beyond every control's: none.
-
-## `visual_inspector_overlay` (VisualInspectorOverlay, control)
-
-| Part | Role | Reuses | Own states |
-|---|---|---|---|
-| `region` | region |  |  |
-| `highlight` | selection |  |  |
-| `focus` | focus |  |  |
-
-States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
-
-Properties beyond every control's: `target_stable_id` (text).
 
 Interactions beyond every control's: none.
 
@@ -3755,6 +3666,88 @@ Properties beyond every control's: none.
 | Interaction | Payload |
 |---|---|
 | `collection_changed` | `BindingContextChange` |
+
+## `text_box_base` (TextBoxBase, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `viewport` | region |  |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
+| `scroll_corner` | face |  |  |
+| `focus` | focus |  |  |
+| `face` | face |  |  |
+| `edge` | edge |  |  |
+
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
+
+| Interaction | Payload |
+|---|---|
+| `scroll` | `ScrollEvent`, by reference |
+
+## `list_control` (ListControl, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `viewport` | region |  |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
+| `scroll_corner` | face |  |  |
+| `focus` | focus |  |  |
+| `face` | face |  |  |
+| `edge` | edge |  |  |
+
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
+
+| Interaction | Payload |
+|---|---|
+| `scroll` | `ScrollEvent`, by reference |
+| `selected_index_changed` | `std::optional<std::size_t>` |
+
+## `up_down_base` (UpDownBase, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `viewport` | region |  |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
+| `scroll_corner` | face |  |  |
+| `focus` | focus |  |  |
+| `face` | face |  |  |
+| `edge` | edge |  |  |
+
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
+
+| Interaction | Payload |
+|---|---|
+| `scroll` | `ScrollEvent`, by reference |
 
 ## `window` (Window, component)
 

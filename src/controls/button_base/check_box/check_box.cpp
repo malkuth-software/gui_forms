@@ -1,4 +1,4 @@
-#include "gui_forms/controls/button_base/check_box/check_box.hpp"
+#include "gui_forms/controls/check_box.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "../choice_indicator_property.hpp"
 #include "gui_forms/text.hpp"
@@ -225,12 +225,17 @@ void CheckBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
         return;
     }
     const Rect bounds = local_bounds();
-    const Rect box = check_box_well(bounds, indicator_style.read());
+    const Rect laid_box = check_box_well(bounds, indicator_style.read());
     const PartMark mark_kind = check_box_mark(indicator_style.read(), check_state_);
-    const Rect mark = check_box_mark_bounds(box, mark_kind, checked.read());
-    const Rect content_face{box.x + box.width + 1.0, 0.0,
-                            std::max(0.0, bounds.width - box.x - box.width - 1.0),
-                            bounds.height};
+    const Rect laid_mark = check_box_mark_bounds(laid_box, mark_kind, checked.read());
+    const Rect laid_face{laid_box.x + laid_box.width + 1.0, 0.0,
+                         std::max(0.0, bounds.width - laid_box.x - laid_box.width - 1.0),
+                         bounds.height};
+    // Mirrored as on_paint mirrors them.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    const Rect box = mirrored ? horizontally_mirrored(laid_box, bounds) : laid_box;
+    const Rect mark = mirrored ? horizontally_mirrored(laid_mark, bounds) : laid_mark;
+    const Rect content_face = mirrored ? horizontally_mirrored(laid_face, bounds) : laid_face;
     const ContentLayout layout =
         published_content_layout(content_face, checked.read(), false);
     record.region = PartGeometry::from_bounds(bounds);
@@ -283,7 +288,13 @@ void CheckBox::on_paint(Painter& painter, Rect) {
                             false, checked.read());
         return;
     }
-    const Rect box = check_box_well(bounds, indicator_style.read());
+    // Laid out left to right; a check box that resolves right to left
+    // mirrors the well, its mark (a checked toggle's knob sits left) and
+    // the content face, putting the box at the right (Windows Forms'
+    // CheckAlign follows RightToLeft).
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    const Rect laid_box = check_box_well(bounds, indicator_style.read());
+    const Rect box = mirrored ? horizontally_mirrored(laid_box, bounds) : laid_box;
     const AnatomyStateSet states = anatomy_states();
     std::optional<Color> ground{};
     std::optional<Color> ink{};
@@ -312,14 +323,16 @@ void CheckBox::on_paint(Painter& painter, Rect) {
         indicator.family = ControlVisualRole::choice;
         indicator.role = PartRole::indicator;
         indicator.mark = mark;
-        indicator.bounds = check_box_mark_bounds(box, mark, checked.read());
+        const Rect laid_mark = check_box_mark_bounds(laid_box, mark, checked.read());
+        indicator.bounds = mirrored ? horizontally_mirrored(laid_mark, bounds) : laid_mark;
         indicator.states = states;
         indicator.authored_foreground = ink;
         indicator.key = PartKey{"indicator", {}, {}};
         paint_part(painter, *this, indicator);
     }
-    const Rect content{box.x + box.width + 1.0, 0.0,
-                       std::max(0.0, bounds.width - box.x - box.width - 1.0), bounds.height};
+    const Rect laid_content{laid_box.x + laid_box.width + 1.0, 0.0,
+                            std::max(0.0, bounds.width - laid_box.x - laid_box.width - 1.0), bounds.height};
+    const Rect content = mirrored ? horizontally_mirrored(laid_content, bounds) : laid_content;
     ButtonContentInk content_ink;
     content_ink.family = ControlVisualRole::choice;
     content_ink.states = states;

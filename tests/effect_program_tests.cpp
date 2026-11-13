@@ -11,18 +11,45 @@
 // its record's bounds fit its budgets; this file is compiled without the
 // pass, so its own test effect is labelled unverified either way.
 
-#include "gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp"
+#include "gui_forms/controls/progress_bar_effects.hpp"
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/animation/animation_timeline/animation_timeline.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/progress_bar.hpp"
+#include "gui_forms/controls/progress_bar_values.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/engine/part_shape/part_shape.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/layout/types/layout_types.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_marks/paint_marks.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/presentation/colour_scheme.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "support/professional_theme.hpp"
 #include "support/theme_definition_heap.hpp"
 
 #include "../src/core/text/localizable/gui_forms_notes.hpp"
+#include "../src/core/control/control/control_input_access.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -90,6 +117,7 @@ public:
     void fill_polygon(std::span<const Point> points, Color, PolygonFillRule) override {
         polygons = polygons + 1;
         last_batch = points.size();
+        if (!points.empty()) polygon_starts.push_back(points[0]);
     }
     void fill_band(std::span<const Point> upper, std::span<const Point>, Color) override {
         bands = bands + 1;
@@ -138,6 +166,7 @@ public:
     std::vector<Rect> clips{};
     std::vector<Point> radial_centers{};
     std::vector<Point> line_starts{};
+    std::vector<Point> polygon_starts{};
     std::vector<Rect> corner_boxes{};
     std::vector<PaintCornerRadii> corner_clips{};
     std::vector<std::shared_ptr<const PartRaster>> part_rasters{};
@@ -159,6 +188,17 @@ EffectView<ProgressBar> bar_view(double fraction) {
     view.stripe_width = 7.0;
     view.period_seconds = 1.4;
     view.still_phase = 0.5;
+    // The marching stripes as the bar resolves them by default: inside the
+    // fill's one-unit rim, the pitch the interior's thickness, the pale band
+    // 0.4 of it, leaning 45 degrees back, 0.8 pitches a second forward.
+    view.stripes.clip = Rect{1.0, 1.0, 196.0 * fraction - 2.0, 14.0};
+    view.stripes.pitch = 16.0;
+    view.stripes.band = 6.4;
+    view.stripes.slant = 14.0;
+    view.stripes.forward = true;
+    view.stripes.direction = ProgressFillDirection::left_to_right;
+    view.stripes.colour = Color::rgba(224, 241, 252, 116);
+    view.stripes.period_seconds = 1.25;
     return view;
 }
 
@@ -220,8 +260,10 @@ void bounded_ranges() {
 
 void registry_checks() {
     const EffectRegistry& registry = built_in_effect_registry();
-    require(registry.count() == 6U, "six built-in effects: the progress bar's five and the sweep scope's");
+    require(registry.count() == 7U,
+            "seven built-in effects: the progress bar's five, the sweep scope's and the node canvas's link flow");
     require(built_in("scope_sweep").parent == "sweep_scope", "the sweep scope's effect names its parent");
+    require(built_in("link_flow").parent == "node_canvas", "the link flow names the node canvas as its parent");
     const std::array<std::string_view, 5> names{"progress_stripes", "progress_pulse", "progress_laser",
                                                  "progress_woven_stripes", "progress_bubbles"};
     for (const std::string_view name : names) {
@@ -410,11 +452,50 @@ void stripes_pulse_laser() {
     EffectInstance stripe_instance;
     stripe_instance.attach(built_in("progress_stripes"), 1U, start);
     stripe_instance.paint(stripes, part, 1.0, false, view);
-    // The legacy count: x from fill.x − h − pitch to fill.x + w + h + pitch.
-    const double pitch = 14.0;
-    const int expected = static_cast<int>((98.0 + 16.0 + 14.0 - (-16.0 - 14.0)) / pitch) + 1;
-    require(stripes.lines == expected, "the stripes draw the legacy count of lines");
+    // Bands anchored to the track's start, every 16 from −32 (the first
+    // whose far side, 6.4 + 14 on, could reach the clip at 1) to 96 (the
+    // last starting before the clip's end at 97): nine four-point polygons.
+    require(stripes.polygons == 9 && stripes.last_batch == 4U && stripes.lines == 0,
+            "the stripes draw nine filled bands");
     require(stripe_instance.last_meter().refused == 0U, "the stripes stay within budget");
+    // A quarter second at 0.8 pitches a second moves them 0.2 of 16 = 3.2
+    // units forward, stepped to 3 whole device pixels. A frame runs at most
+    // four ticks (the rest are skipped), so the quarter second goes by in
+    // five 50 ms frames of three ticks each.
+    RecordingPainter between;
+    for (std::int64_t step = 1; step < 5; ++step) {
+        static_cast<void>(stripe_instance.advance(at_milliseconds(step * 50)));
+        stripe_instance.paint(between, part, 1.0, false, view);
+    }
+    static_cast<void>(stripe_instance.advance(at_milliseconds(250)));
+    RecordingPainter moved;
+    stripe_instance.paint(moved, part, 1.0, false, view);
+    const bool travelled = !stripes.polygon_starts.empty() && !moved.polygon_starts.empty() &&
+                           moved.polygon_starts[0].x - stripes.polygon_starts[0].x == 3.0;
+    if (!travelled && !stripes.polygon_starts.empty() && !moved.polygon_starts.empty()) {
+        std::cerr << "  stripes: first band at " << stripes.polygon_starts[0].x << ", then "
+                  << moved.polygon_starts[0].x << " (" << stripes.polygons << " and " << moved.polygons
+                  << " bands)\n";
+    }
+    require(travelled, "the stripes travel forward, toward the leading edge, in whole device pixels");
+    // Mirrored for a right-to-left fill: the bands travel left.
+    EffectView<ProgressBar> mirrored = view;
+    mirrored.stripes.direction = ProgressFillDirection::right_to_left;
+    mirrored.stripes.clip = Rect{99.0, 1.0, 96.0, 14.0};
+    EffectInstance mirrored_instance;
+    mirrored_instance.attach(built_in("progress_stripes"), 1U, start);
+    RecordingPainter mirrored_first;
+    mirrored_instance.paint(mirrored_first, part, 1.0, false, mirrored);
+    for (std::int64_t step = 1; step < 5; ++step) {
+        static_cast<void>(mirrored_instance.advance(at_milliseconds(step * 50)));
+        mirrored_instance.paint(between, part, 1.0, false, mirrored);
+    }
+    static_cast<void>(mirrored_instance.advance(at_milliseconds(250)));
+    RecordingPainter mirrored_moved;
+    mirrored_instance.paint(mirrored_moved, part, 1.0, false, mirrored);
+    const bool leftward = !mirrored_first.polygon_starts.empty() && !mirrored_moved.polygon_starts.empty() &&
+                          mirrored_moved.polygon_starts[0].x - mirrored_first.polygon_starts[0].x == -3.0;
+    require(leftward, "a right-to-left fill's stripes travel left");
 
     RecordingPainter pulse;
     EffectInstance pulse_instance;
@@ -658,12 +739,12 @@ void effect_properties_and_input() {
     press.action = PointerAction::down;
     press.button = PointerButton::primary;
     press.position = Point{50.0, 10.0};
-    (*bar).on_pointer(press);
+    gui_forms::detail::ControlInputAccess::on_pointer(*bar, press);
     RecordingPainter after;
     (*bar).on_paint(after, {0.0, 0.0, 200.0, 20.0});
     require(after.circles == before.circles + 1, "a granted press releases one bubble under the pointer");
     (*bar).effect_input = EffectInputKind::none;
-    (*bar).on_pointer(press);
+    gui_forms::detail::ControlInputAccess::on_pointer(*bar, press);
     RecordingPainter ignored;
     (*bar).on_paint(ignored, {0.0, 0.0, 200.0, 20.0});
     require(ignored.circles == after.circles, "without a grant a press reaches no effect");
@@ -857,6 +938,52 @@ std::unique_ptr<ThemeDefinition> colour_role_theme() {
     dark.declarations[1].colour = Color::rgba(40, 44, 52);
     definition.rules.rules.push_back(dark);
     return held;
+}
+
+// The barber pole follows Control::right_to_left (owner ruling of
+// 2026-11-11). Left to right, a marching-stripes bar fills from the left
+// and its bands are laid from the left edge; under a right-to-left parent
+// the fill grows from the right and the bands are laid, leaning and
+// travelling, from the right edge (the effect's own mirrored travel is
+// stripes_pulse_laser's). Each band's first point is on its near side, so
+// their mean lies in the filled half.
+double mean_polygon_start(const RecordingPainter& painter) {
+    double total = 0.0;
+    for (const Point& start : painter.polygon_starts) total += start.x;
+    const double count = static_cast<double>(painter.polygon_starts.size());
+    const double mean = count > 0.0 ? total / count : 0.0;
+    return mean;
+}
+
+void progress_bar_follows_right_to_left() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("effects.direction.root"));
+    std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId("effects.direction.bar"));
+    (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
+    (*bar).margin = Insets{0.0, 0.0, 0.0, 0.0};
+    (*bar).value = 50.0;
+    (*bar).visual_style = ProgressBarVisualStyle::marching_stripes;
+    (*root).add_child(bar);
+    Window window(root, {200.0, 40.0});
+    window.perform_layout();
+    RecordingPainter forward;
+    (*bar).on_paint(forward, {0.0, 0.0, 200.0, 20.0});
+    const Rect forward_fill = (*bar).parts().fill.bounds;
+    require(forward_fill.x == 2.0 && forward.polygons > 0 && mean_polygon_start(forward) < 100.0,
+            "left to right, the barber pole fills and lays its bands from the left");
+
+    (*root).layout_direction = LayoutDirection::right_to_left;
+    window.perform_layout();
+    RecordingPainter mirrored;
+    (*bar).on_paint(mirrored, {0.0, 0.0, 200.0, 20.0});
+    const Rect mirrored_fill = (*bar).parts().fill.bounds;
+    require(mirrored_fill.right() == 198.0 && mirrored_fill.width == forward_fill.width,
+            "right to left, the barber pole's fill grows from the right edge");
+    require(mirrored.polygons > 0 && mean_polygon_start(mirrored) > 100.0,
+            "right to left, the barber pole's bands are laid from the right edge");
+
+    (*bar).visual_style = ProgressBarVisualStyle::blocks;
+    const Rect blocks_fill = (*bar).parts().fill.bounds;
+    require(blocks_fill.right() == 198.0, "right to left, the blocks fill from the right edge too");
 }
 
 // Effects take colour roles (EP-4): the theme's primary and secondary roles
@@ -1369,13 +1496,15 @@ int main() {
     effect_properties_and_input();
     themes_select_effects();
     effects_take_colour_roles();
+    progress_bar_follows_right_to_left();
     pointer_record();
     part_shape_clip();
     backdrop_sampling();
     vocabulary_version_two();
     std::cout << "effect programs: generator, bounded ranges, registry, verification, ticks and skips, meter, "
                  "stripes, pulse, laser, woven stripes, bubbles and steam, progress bar hosting, motion clock, "
-                 "properties and input, themes selecting effects, colour roles, pointer record, part shape clip, "
+                 "properties and input, themes selecting effects, colour roles, right to left, pointer record, "
+                 "part shape clip, "
                  "backdrop, vocabulary version 2\n";
     return 0;
 }

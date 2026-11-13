@@ -1,4 +1,23 @@
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/components/error_provider/error_provider.hpp"
+#include "gui_forms/components/error_provider/error_provider_values/error_provider_values.hpp"
+#include "gui_forms/components/help_provider/help_provider.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/resources/types/image_resource_types.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "support/named_callbacks.hpp"
 
 #include <array>
@@ -355,6 +374,26 @@ void test_help_routes_f1_locally_then_to_provider_without_external_policy() {
                 {KeyAction::down, PhysicalKey::f1, Modifier::none}) &&
                 provider_calls == 0,
             "a handled control request must not fall through to provider policy");
+
+    // The provider is a view onto the control's help fields (help H1): one
+    // value, whichever side writes it.
+    require((*fixture.panel).help_line.read() == "Choose a reachable local service endpoint." &&
+                (*fixture.panel).keywords.read() == "network.endpoint",
+            "HelpProvider writes the control's help line and keywords");
+    (*fixture.panel).help_line = "Pick an endpoint you can reach.";
+    require(help.help_string(*fixture.panel) == "Pick an endpoint you can reach.",
+            "a help line set on the control is the provider's help string");
+    bool refused = false;
+    try {
+        help.set_help_string(fixture.panel, std::string("Bell\x07"));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && help.help_string(*fixture.panel) == "Pick an endpoint you can reach.",
+            "a control character is refused and nothing changes");
+    help.clear();
+    require((*fixture.panel).help_line.read() == "Pick an endpoint you can reach.",
+            "clear drops the provider's settings and leaves the control's field");
 }
 
 void test_multiple_providers_and_disposal_cleanup() {

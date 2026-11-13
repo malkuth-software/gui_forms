@@ -6,12 +6,46 @@
 // accessibility (section 5), and the host's stopped and pairing_missed
 // notices (decision 6, section 9).
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/drawing_surface.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/dispatcher/operation/dispatch_operation.hpp"
+#include "gui_forms/dispatcher/types/dispatcher_types.hpp"
+#include "gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/live_surface/frame/live_surface_frame.hpp"
+#include "gui_forms/live_surface/surface/live_surface.hpp"
+#include "gui_forms/live_surface/types/live_surface_types.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/surface_root/requests/surface_requests.hpp"
+#include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/tool_tips/tool_tips.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "headless_host.hpp"
 #include "support/fill_raster.hpp"
 #include "support/theme_definition_heap.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -129,6 +163,18 @@ constexpr std::chrono::seconds wait_limit{10};
     const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
     while (std::chrono::steady_clock::now() < limit) {
         if (thread.statistics().frames_published >= frames) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+// Waits until the thread has built `snapshots` semantic snapshots. A frame
+// is counted before the same turn publishes its snapshot (produce, then
+// publish_semantics), so a published frame does not imply a snapshot.
+[[nodiscard]] bool wait_for_snapshots(const SubSurfaceThread& thread, std::uint64_t snapshots) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        if (thread.statistics().semantic_snapshots_published >= snapshots) return true;
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     return false;
@@ -626,10 +672,10 @@ struct InputLog final {
 // A focusable control that logs its focus, keys and pointer presses. It
 // handles every key but Tab, which goes on to traversal, and names a text
 // input caret at (5, 3), one unit wide and twelve high.
-class InputRecorder final : public Control {
+class InputRecorder final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
     InputRecorder(StableId stable_id, std::string name, std::shared_ptr<InputLog> log)
-        : Control(std::move(stable_id)), name_(std::move(name)), log_(std::move(log)) {
+        : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)), name_(std::move(name)), log_(std::move(log)) {
         focusable = true;
     }
 
@@ -639,12 +685,12 @@ protected:
     void on_focus_changed(bool focused) override {
         record(focused ? ":focus" : ":blur");
     }
-    void on_key(KeyEvent& event) override {
+    void routed_key(KeyEvent& event) override {
         if (event.physical_key == PhysicalKey::tab) return;
         if (event.action == KeyAction::down) record(":key");
         event.handled = true;
     }
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         if (event.action != PointerAction::down) return;
         record(":down");
         const std::lock_guard<std::mutex> lock((*log_).mutex);
@@ -1261,6 +1307,7 @@ void thread_publishes_semantics() {
     require(!thread.take_semantics(), "nothing is published before the first configuration");
     thread.configure(configuration_of(1U, 100U, 30U));
     require(wait_for_published(thread, 1U), "the first frame is published");
+    require(wait_for_snapshots(thread, 1U), "the first configuration builds a snapshot");
     std::shared_ptr<const SemanticSnapshot> first = thread.take_semantics();
     require(static_cast<bool>(first), "a snapshot is published with the first configuration");
     const SemanticNode* const stop = find_node((*first).roots, "sub.first");
@@ -1272,10 +1319,7 @@ void thread_publishes_semantics() {
 
     const DispatchOperation renamed = thread.dispatcher().begin_invoke(RenameFirst(stops, "renamed"));
     static_cast<void>(renamed);
-    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
-    while (thread.statistics().semantic_snapshots_published < 2U && std::chrono::steady_clock::now() < limit) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
+    require(wait_for_snapshots(thread, 2U), "the change builds a second snapshot");
     std::shared_ptr<const SemanticSnapshot> second = thread.take_semantics();
     require(second && (*second).generation > (*first).generation, "a semantic change publishes again");
     const SemanticNode* const named = find_node((*second).roots, "sub.first");
@@ -1304,11 +1348,8 @@ void thread_builds_semantics_only_when_taken() {
     SubSurfaceThread thread(std::make_unique<SemanticContent>(log, stops), surface, default_theme(), nullptr);
     require(wait_for_state(thread, SubSurfaceState::running), "thread reaches running");
     thread.configure(configuration_of(1U, 100U, 30U));
-    const std::chrono::steady_clock::time_point first_limit = std::chrono::steady_clock::now() + wait_limit;
-    while (thread.statistics().semantic_snapshots_published < 1U && std::chrono::steady_clock::now() < first_limit) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-    require(thread.statistics().semantic_snapshots_published == 1U, "the first snapshot is built untaken");
+    require(wait_for_snapshots(thread, 1U) && thread.statistics().semantic_snapshots_published == 1U,
+            "the first snapshot is built untaken");
 
     // Two changes, neither snapshot taken: each completes on the thread, and
     // a correct thread builds nothing however long it is given.
@@ -1327,10 +1368,7 @@ void thread_builds_semantics_only_when_taken() {
     std::shared_ptr<const SemanticSnapshot> stale = thread.take_semantics();
     require(stale && (*find_node((*stale).roots, "sub.first")).name == "first",
             "the snapshot taken is the one built before the changes");
-    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
-    while (thread.statistics().semantic_snapshots_published < 2U && std::chrono::steady_clock::now() < limit) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
+    require(wait_for_snapshots(thread, 2U), "taking the stale snapshot builds the newest");
     std::shared_ptr<const SemanticSnapshot> newest = thread.take_semantics();
     require(thread.statistics().semantic_snapshots_published == 2U && newest &&
                 (*find_node((*newest).roots, "sub.first")).name == "twice",
@@ -1935,10 +1973,10 @@ struct EnvironmentLog final {
     std::uint64_t pointer_moves{};
 };
 
-class EnvironmentProbe final : public Control {
+class EnvironmentProbe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
     EnvironmentProbe(StableId stable_id, std::shared_ptr<EnvironmentLog> log)
-        : Control(std::move(stable_id)), log_(std::move(log)) {}
+        : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)), log_(std::move(log)) {}
     void on_paint(Painter& painter, Rect local_damage) override {
         Control::on_paint(painter, local_damage);
         const SurfaceRoot* const root = attached_surface_root();
@@ -1948,8 +1986,7 @@ public:
         (*log_).painted = true;
         (*log_).user_rules = reinterpret_cast<std::uintptr_t>((*root).user_theme_rules());
     }
-    void on_pointer(PointerEvent& event) override {
-        Control::on_pointer(event);
+    void routed_pointer(PointerEvent& event) override {
         if (event.action != PointerAction::move) return;
         const SurfaceRoot* const root = attached_surface_root();
         if (root == nullptr) return;

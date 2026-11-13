@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
 #include "gui_forms/control/control/control.hpp"
@@ -32,16 +33,22 @@ class Window;
 // and the filter must parse (parse_file_dialog_filter); anything else throws
 // std::invalid_argument and changes nothing. The dialog is used on the UI
 // thread of the window it is shown over.
-class SaveFileDialog final : public Component, public SaveFileDialogCapabilities<SaveFileDialog> {
+class GUI_FORMS_API SaveFileDialog final : public Component, public SaveFileDialogCapabilities<SaveFileDialog> {
 public:
     SaveFileDialog();
     ~SaveFileDialog() override;
 
     // The host filters parsed from filter.
-    [[nodiscard]] std::span<const HostFileDialogFilter> filters() const noexcept { return filters_; }
+    [[nodiscard]] std::span<const HostFileDialogFilter> filters() const& noexcept {
+        return std::span<const HostFileDialogFilter>(filters_.data(), filters_.size());
+    }
+    std::span<const HostFileDialogFilter> filters() const&& = delete;
 
     // The chosen path as a list of one, or none (Windows Forms' FileNames).
-    [[nodiscard]] std::span<const std::string> file_names() const noexcept { return file_names_; }
+    [[nodiscard]] std::span<const std::string> file_names() const& noexcept {
+        return std::span<const std::string>(file_names_.data(), file_names_.size());
+    }
+    std::span<const std::string> file_names() const&& = delete;
 
     // The host's answer to the last show_dialog.
     [[nodiscard]] HostServiceStatus status() const noexcept { return status_; }

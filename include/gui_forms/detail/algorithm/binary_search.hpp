@@ -1,11 +1,12 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstddef>
 #include <span>
 
 namespace gui_forms::detail {
 
-struct AscendingLess final {
+struct GUI_FORMS_API AscendingLess final {
     template <typename Left, typename Right>
     [[nodiscard]] constexpr bool operator()(const Left& left,
                                             const Right& right) const {

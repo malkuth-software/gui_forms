@@ -3,7 +3,7 @@
 // content face, against the table the Windows host's raster also checks
 // (windows_backplane_replay_tests). GUI_FORMS_BACKPLANE_REPLAY_PRINT=1
 // prints the observed hashes instead of checking them.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 #include "skia_raster.hpp"
 #include "backplane_replay_scene.hpp"
 

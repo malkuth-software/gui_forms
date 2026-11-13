@@ -21,6 +21,7 @@
 namespace gui_forms::render::text {
 
 class BoundedShapeWorkspace;
+class ReusableShapeWorkspace;
 
 struct ShapedFontRun final {
     FontFaceId face{};
@@ -63,6 +64,24 @@ struct ShapeStorageLimits final {
     std::size_t glyphs{65'536};
     std::size_t output_bytes{8U * 1024U * 1024U};
     std::size_t workspace_bytes{16U * 1024U * 1024U};
+};
+
+// The text stack's heap calls on the calling thread since it started, never
+// reset (HarfBuzzFontEngine::thread_native_allocations): read before and
+// after a piece of work and subtract.
+// - freetype: allocations and reallocations through the FreeType library of
+//   every engine (its faces, sizes and glyph loading); not the glyph
+//   rasterizer's own library (GlyphRunRasterizer).
+// - harfbuzz: HarfBuzz's hb_malloc, hb_calloc and hb_realloc calls, from any
+//   caller.
+// - sheenbidi_heap: SheenBidi allocations that reached the C heap (every one
+//   outside a reusable workspace's shaping, and those its arena had no room
+//   for); sheenbidi_arena: those a workspace's arena served.
+struct NativeAllocationCounts final {
+    std::uint64_t freetype{};
+    std::uint64_t harfbuzz{};
+    std::uint64_t sheenbidi_heap{};
+    std::uint64_t sheenbidi_arena{};
 };
 
 struct PrimaryLineMetrics final {
@@ -151,6 +170,29 @@ public:
         BoundedShapeWorkspace& workspace);
     [[nodiscard]] ResolvedTextLayout resolve(std::string_view utf8,
                                              FontSpec font);
+    // A reusable workspace for shape_in_workspace, of no capacity until
+    // reserved (gui_forms::ShapingWorkspace::reserve). It answers to this
+    // engine only. Needs no bounded registration.
+    [[nodiscard]] std::unique_ptr<ReusableShapeWorkspace> create_reusable_workspace() const;
+    // TextMetricsProvider::shape_in_workspace_utf8's contract: one shaping
+    // of `utf8` into `workspace`, the shaping shape() does (the same faces,
+    // grapheme clusters, bidi runs and glyph positions), answered with the
+    // extent resolve() reports. It allocates nothing once the workspace
+    // holds utf8.size() bytes, except what HarfBuzz, FreeType and SheenBidi
+    // do on their own (counted by thread_native_allocations: the HarfBuzz
+    // buffer and the SheenBidi arena are the workspace's, a face's font and
+    // shape plans are made at its first use) and the first loading of a
+    // lazy face. The status is invalid_request, with no shaping kept, for a
+    // workspace of another engine or too small, invalid UTF-8, an invalid
+    // font, or more runs or glyphs than the workspace stages. Native
+    // failures throw, as shape() does, with no shaping kept.
+    [[nodiscard]] TextExtent shape_in_workspace(std::string_view utf8, FontSpec font,
+                                                ReusableShapeWorkspace& workspace);
+    // This engine's identity and current face table (GlyphSource): the
+    // source of what shape_in_workspace shapes now.
+    [[nodiscard]] GlyphSource glyph_source() const noexcept;
+    // The calling thread's text stack heap calls (NativeAllocationCounts).
+    [[nodiscard]] static NativeAllocationCounts thread_native_allocations() noexcept;
     // UAX #14 line-break opportunities (libunibreak 8.0, Unicode 17, the
     // locale-independent "-strict" tailoring), one per input byte, under
     // TextMetricsProvider::fill_line_break_opportunities_utf8's contract.
@@ -158,6 +200,13 @@ public:
     // reads no face and allocates nothing.
     [[nodiscard]] static TextResolutionStatus fill_line_break_opportunities_utf8(
         std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept;
+    // TextMetricsProvider::fill_cluster_advances_utf8's contract, from one
+    // shape(): each glyph's advance (letter spacing included, as shape
+    // places it) added at its cluster's first byte. Returns exact, the
+    // resolution's missing-face status, or invalid_request with `advances`
+    // unchanged. Shaping allocates its glyph records, as shape() does.
+    [[nodiscard]] TextResolutionStatus fill_cluster_advances_utf8(
+        std::string_view utf8, FontSpec font, std::span<double> advances);
     [[nodiscard]] std::size_t face_count() const noexcept;
     // Nullopt for an unknown ID. Registered faces are never removed, so the
     // span stays valid while the returned owner is held.

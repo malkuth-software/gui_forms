@@ -31,101 +31,102 @@
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/control/control/control.hpp"
-#include "gui_forms/controls/backstage_view/backstage_view.hpp"
-#include "gui_forms/controls/binding_navigator/binding_navigator.hpp"
-#include "gui_forms/controls/button_base/button/button.hpp"
-#include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
-#include "gui_forms/controls/button_base/button_base.hpp"
-#include "gui_forms/controls/button_base/check_box/check_box.hpp"
-#include "gui_forms/controls/button_base/check_box/check_box_values/check_box_values.hpp"
-#include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
-#include "gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp"
-#include "gui_forms/controls/callout/callout.hpp"
-#include "gui_forms/controls/collections/choice_group.hpp"
-#include "gui_forms/controls/collections/command_bar.hpp"
-#include "gui_forms/controls/collections/expandable_sections.hpp"
-#include "gui_forms/controls/container/master_detail_view/master_detail_view.hpp"
-#include "gui_forms/controls/container/master_detail_view/master_detail_view_values/master_detail_view_values.hpp"
-#include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
-#include "gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp"
-#include "gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp"
-#include "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
-#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
-#include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
-#include "gui_forms/controls/help/help_book/help_book.hpp"
-#include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
-#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
-#include "gui_forms/controls/info_banner/info_banner.hpp"
-#include "gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp"
-#include "gui_forms/controls/label/label.hpp"
-#include "gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp"
-#include "gui_forms/controls/menu_strip/menu_strip.hpp"
-#include "gui_forms/controls/modal_layer/modal_layer.hpp"
-#include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
-#include "gui_forms/controls/pages/page_strip/page_strip.hpp"
-#include "gui_forms/controls/pages/page_view/page_view.hpp"
-#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
-#include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
-#include "gui_forms/controls/panel/card/card.hpp"
-#include "gui_forms/controls/panel/card/review_card/review_card.hpp"
-#include "gui_forms/controls/panel/card/review_card/review_card_values/review_card_values.hpp"
-#include "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
-#include "gui_forms/controls/panel/combo_box/combo_box.hpp"
-#include "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"
-#include "gui_forms/controls/panel/date_time_picker/date_time_picker.hpp"
-#include "gui_forms/controls/panel/date_time_picker/date_time_value/date_time_value.hpp"
-#include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
-#include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
-#include "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
-#include "gui_forms/controls/panel/group_box/group_box.hpp"
-#include "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp"
-#include "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp"
-#include "gui_forms/controls/panel/list_box/list_box.hpp"
-#include "gui_forms/controls/panel/list_view/list_view.hpp"
-#include "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp"
-#include "gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp"
-#include "gui_forms/controls/panel/material_panel/material_panel.hpp"
-#include "gui_forms/controls/panel/month_calendar/calendar_values/calendar_values.hpp"
-#include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
-#include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
-#include "gui_forms/controls/panel/object_view/object_view.hpp"
-#include "gui_forms/controls/panel/object_view/object_view_values/object_view_values.hpp"
-#include "gui_forms/controls/panel/picture_box/picture_box.hpp"
-#include "gui_forms/controls/panel/property_grid/property_grid.hpp"
-#include "gui_forms/controls/panel/property_list/property_list.hpp"
-#include "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
-#include "gui_forms/controls/panel/token_box/token_box.hpp"
-#include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
-#include "gui_forms/controls/panel/tree_view/tree_view.hpp"
-#include "gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp"
-#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
-#include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
-#include "gui_forms/controls/quick_access_toolbar/quick_access_toolbar_values/quick_access_toolbar_values.hpp"
-#include "gui_forms/controls/range_control/range_control.hpp"
-#include "gui_forms/controls/range_control/range_control_values/range_control_values.hpp"
-#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
-#include "gui_forms/controls/ribbon/ribbon.hpp"
-#include "gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp"
-#include "gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp"
-#include "gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/user_control/user_control.hpp"
-#include "gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp"
-#include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
-#include "gui_forms/controls/search_field/search_field.hpp"
-#include "gui_forms/controls/splitter/splitter.hpp"
-#include "gui_forms/controls/step_indicator/step_indicator.hpp"
-#include "gui_forms/controls/task_dialog/task_dialog.hpp"
-#include "gui_forms/controls/text_block/text_block.hpp"
-#include "gui_forms/controls/toast/toast.hpp"
-#include "gui_forms/controls/tool_strip/tool_strip.hpp"
-#include "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
-#include "gui_forms/controls/tool_strip_panel/tool_strip_panel_values/tool_strip_panel_values.hpp"
-#include "gui_forms/controls/wizard/wizard.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/backstage_view.hpp"
+#include "gui_forms/controls/binding_navigator.hpp"
+#include "gui_forms/controls/breadcrumb_trail.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/calendar_values.hpp"
+#include "gui_forms/controls/callout.hpp"
+#include "gui_forms/controls/card.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/check_box_values.hpp"
+#include "gui_forms/controls/checked_list_box.hpp"
+#include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/color_value_editor.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/command_bar.hpp"
+#include "gui_forms/controls/container_control.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view_row_order.hpp"
+#include "gui_forms/controls/data_grid_view_types.hpp"
+#include "gui_forms/controls/date_time_picker.hpp"
+#include "gui_forms/controls/date_time_value.hpp"
+#include "gui_forms/controls/dock_navigator.hpp"
+#include "gui_forms/controls/dock_site.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/domain_up_down.hpp"
+#include "gui_forms/controls/drop_down_button.hpp"
+#include "gui_forms/controls/expandable_sections.hpp"
+#include "gui_forms/controls/flags_value_editor.hpp"
+#include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/group_box.hpp"
+#include "gui_forms/controls/help_book.hpp"
+#include "gui_forms/controls/help_book_system.hpp"
+#include "gui_forms/controls/help_book_viewer.hpp"
+#include "gui_forms/controls/info_banner.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/list_control.hpp"
+#include "gui_forms/controls/list_view.hpp"
+#include "gui_forms/controls/lookup_combo_box.hpp"
+#include "gui_forms/controls/masked_text_box.hpp"
+#include "gui_forms/controls/masked_text_provider.hpp"
+#include "gui_forms/controls/master_detail_view.hpp"
+#include "gui_forms/controls/master_detail_view_values.hpp"
+#include "gui_forms/controls/material_panel.hpp"
+#include "gui_forms/controls/menu_strip.hpp"
+#include "gui_forms/controls/modal_layer.hpp"
+#include "gui_forms/controls/month_calendar.hpp"
+#include "gui_forms/controls/navigation_pane.hpp"
+#include "gui_forms/controls/node_canvas.hpp"
+#include "gui_forms/controls/node_graph.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/controls/object_view.hpp"
+#include "gui_forms/controls/object_view_values.hpp"
+#include "gui_forms/controls/page_strip.hpp"
+#include "gui_forms/controls/page_view.hpp"
+#include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/plot_values.hpp"
+#include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/property_grid.hpp"
+#include "gui_forms/controls/property_list.hpp"
+#include "gui_forms/controls/quick_access_toolbar.hpp"
+#include "gui_forms/controls/quick_access_toolbar_values.hpp"
+#include "gui_forms/controls/radio_button.hpp"
+#include "gui_forms/controls/range_control.hpp"
+#include "gui_forms/controls/range_control_values.hpp"
+#include "gui_forms/controls/ribbon.hpp"
+#include "gui_forms/controls/ribbon_color_picker.hpp"
+#include "gui_forms/controls/ribbon_font_control.hpp"
+#include "gui_forms/controls/ribbon_gallery.hpp"
+#include "gui_forms/controls/rich_text_box.hpp"
+#include "gui_forms/controls/scroll_properties.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
+#include "gui_forms/controls/search_field.hpp"
+#include "gui_forms/controls/seven_segment_display.hpp"
+#include "gui_forms/controls/split_container.hpp"
+#include "gui_forms/controls/split_container_values.hpp"
+#include "gui_forms/controls/splitter.hpp"
+#include "gui_forms/controls/step_indicator.hpp"
+#include "gui_forms/controls/tab_control.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
+#include "gui_forms/controls/text_block.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
+#include "gui_forms/controls/toast.hpp"
+#include "gui_forms/controls/toggle_switch.hpp"
+#include "gui_forms/controls/token_box.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
+#include "gui_forms/controls/tool_strip_container.hpp"
+#include "gui_forms/controls/tool_strip_panel_values.hpp"
+#include "gui_forms/controls/tree_list_view.hpp"
+#include "gui_forms/controls/tree_view.hpp"
+#include "gui_forms/controls/user_control.hpp"
+#include "gui_forms/controls/value_bar.hpp"
+#include "gui_forms/controls/virtual_rows_view.hpp"
+#include "gui_forms/controls/wizard.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
@@ -139,8 +140,10 @@
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
-#include "gui_forms/instrument/instrument_types.hpp"
 #include "gui_forms/pages/types/page_set_types.hpp"
+#include "gui_forms/scene/scene_view/scene_view.hpp"
+#include "gui_forms/scene/world_geometry/world_geometry.hpp"
+#include "gui_forms/surface_material/finish_fill/finish_fill.hpp"
 #include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
 #include "gui_forms/surface_material/procedural_fill/procedural_fill.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
@@ -268,17 +271,6 @@ struct EnumerationChoices<ContextRequestOrigin> {
     static constexpr std::array<EnumerationChoice, 2> choices{{
         {"pointer", static_cast<std::int64_t>(ContextRequestOrigin::pointer)},
         {"keyboard", static_cast<std::int64_t>(ContextRequestOrigin::keyboard)},
-    }};
-};
-
-template <>
-struct EnumerationChoices<CorrespondenceExpansionReason> {
-    static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 4> choices{{
-        {"programmatic", static_cast<std::int64_t>(CorrespondenceExpansionReason::programmatic)},
-        {"hover_intent", static_cast<std::int64_t>(CorrespondenceExpansionReason::hover_intent)},
-        {"keyboard_focus", static_cast<std::int64_t>(CorrespondenceExpansionReason::keyboard_focus)},
-        {"pin", static_cast<std::int64_t>(CorrespondenceExpansionReason::pin)},
     }};
 };
 
@@ -463,12 +455,40 @@ struct EnumerationChoices<EventPhase> {
 };
 
 template <>
+struct EnumerationChoices<FinishKind> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 9> choices{{
+        {"dusty_matte", static_cast<std::int64_t>(FinishKind::dusty_matte)},
+        {"orange_peel", static_cast<std::int64_t>(FinishKind::orange_peel)},
+        {"hammertone", static_cast<std::int64_t>(FinishKind::hammertone)},
+        {"wrinkle", static_cast<std::int64_t>(FinishKind::wrinkle)},
+        {"bead_blast", static_cast<std::int64_t>(FinishKind::bead_blast)},
+        {"sand_cast", static_cast<std::int64_t>(FinishKind::sand_cast)},
+        {"flat", static_cast<std::int64_t>(FinishKind::flat)},
+        {"cloth_weave", static_cast<std::int64_t>(FinishKind::cloth_weave)},
+        {"glint", static_cast<std::int64_t>(FinishKind::glint)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<FontRole> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 3> choices{{
         {"control", static_cast<std::int64_t>(FontRole::control)},
         {"content", static_cast<std::int64_t>(FontRole::content)},
         {"monospace", static_cast<std::int64_t>(FontRole::monospace)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<GlintPreset> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 5> choices{{
+        {"bead_blast", static_cast<std::int64_t>(GlintPreset::bead_blast)},
+        {"sand_blast", static_cast<std::int64_t>(GlintPreset::sand_blast)},
+        {"iridescent", static_cast<std::int64_t>(GlintPreset::iridescent)},
+        {"coarse_grit", static_cast<std::int64_t>(GlintPreset::coarse_grit)},
+        {"painted_sand", static_cast<std::int64_t>(GlintPreset::painted_sand)},
     }};
 };
 
@@ -591,6 +611,16 @@ struct EnumerationChoices<MaterialCoordinateSpace> {
 };
 
 template <>
+struct EnumerationChoices<MaterialDither> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 3> choices{{
+        {"none", static_cast<std::int64_t>(MaterialDither::none)},
+        {"ordered", static_cast<std::int64_t>(MaterialDither::ordered)},
+        {"blue_noise", static_cast<std::int64_t>(MaterialDither::blue_noise)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<MaterialEdge> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 4> choices{{
@@ -604,13 +634,14 @@ struct EnumerationChoices<MaterialEdge> {
 template <>
 struct EnumerationChoices<MaterialFillKind> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 6> choices{{
+    static constexpr std::array<EnumerationChoice, 7> choices{{
         {"solid", static_cast<std::int64_t>(MaterialFillKind::solid)},
         {"linear_gradient", static_cast<std::int64_t>(MaterialFillKind::linear_gradient)},
         {"radial_gradient", static_cast<std::int64_t>(MaterialFillKind::radial_gradient)},
         {"image", static_cast<std::int64_t>(MaterialFillKind::image)},
         {"conic_gradient", static_cast<std::int64_t>(MaterialFillKind::conic_gradient)},
         {"procedural", static_cast<std::int64_t>(MaterialFillKind::procedural)},
+        {"finish", static_cast<std::int64_t>(MaterialFillKind::finish)},
     }};
 };
 
@@ -661,6 +692,38 @@ struct EnumerationChoices<Modifier> {
         {"control", static_cast<std::int64_t>(Modifier::control)},
         {"alt", static_cast<std::int64_t>(Modifier::alt)},
         {"meta", static_cast<std::int64_t>(Modifier::meta)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<NodeEditEnd> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"commit", static_cast<std::int64_t>(NodeEditEnd::commit)},
+        {"cancel", static_cast<std::int64_t>(NodeEditEnd::cancel)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<NodeEditPart> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"body", static_cast<std::int64_t>(NodeEditPart::body)},
+        {"caption", static_cast<std::int64_t>(NodeEditPart::caption)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<NodeGraphEditKind> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 7> choices{{
+        {"moved", static_cast<std::int64_t>(NodeGraphEditKind::moved)},
+        {"connected", static_cast<std::int64_t>(NodeGraphEditKind::connected)},
+        {"disconnected", static_cast<std::int64_t>(NodeGraphEditKind::disconnected)},
+        {"removed", static_cast<std::int64_t>(NodeGraphEditKind::removed)},
+        {"undone", static_cast<std::int64_t>(NodeGraphEditKind::undone)},
+        {"redone", static_cast<std::int64_t>(NodeGraphEditKind::redone)},
+        {"edited", static_cast<std::int64_t>(NodeGraphEditKind::edited)},
     }};
 };
 
@@ -786,19 +849,6 @@ struct EnumerationChoices<RangeAction> {
         {"last", static_cast<std::int64_t>(RangeAction::last)},
         {"thumb_track", static_cast<std::int64_t>(RangeAction::thumb_track)},
         {"thumb_position", static_cast<std::int64_t>(RangeAction::thumb_position)},
-    }};
-};
-
-template <>
-struct EnumerationChoices<ReviewDisposition> {
-    static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 6> choices{{
-        {"neutral", static_cast<std::int64_t>(ReviewDisposition::neutral)},
-        {"information", static_cast<std::int64_t>(ReviewDisposition::information)},
-        {"accepted", static_cast<std::int64_t>(ReviewDisposition::accepted)},
-        {"pending", static_cast<std::int64_t>(ReviewDisposition::pending)},
-        {"warning", static_cast<std::int64_t>(ReviewDisposition::warning)},
-        {"rejected", static_cast<std::int64_t>(ReviewDisposition::rejected)},
     }};
 };
 
@@ -980,9 +1030,6 @@ void append_field(EventFields& fields, std::string_view name, const ContextMenuR
 void read_field(EventFields& fields, std::string_view name, ContextMenuRequest& value);
 void append_field(EventFields& fields, std::string_view name, const ControlValidationEvent& value);
 void read_field(EventFields& fields, std::string_view name, ControlValidationEvent& value);
-void append_field(EventFields& fields, std::string_view name, const CorrespondenceExpansionChange& value);
-void append_field(EventFields& fields, std::string_view name, const CorrespondencePinChange& value);
-void append_field(EventFields& fields, std::string_view name, const CorrespondenceSelectionChange& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellAddress& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellCancelEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewCellCancelEvent& value);
@@ -1025,6 +1072,7 @@ void append_field(EventFields& fields, std::string_view name, const DragInteract
 void append_field(EventFields& fields, std::string_view name, const ErrorProviderChange& value);
 void append_field(EventFields& fields, std::string_view name, const FileDialogOk& value);
 void read_field(EventFields& fields, std::string_view name, FileDialogOk& value);
+void append_field(EventFields& fields, std::string_view name, const FinishFill& value);
 void append_field(EventFields& fields, std::string_view name, const FocusedControlChange& value);
 void append_field(EventFields& fields, std::string_view name, const FontChoice& value);
 void append_field(EventFields& fields, std::string_view name, const FontDialogResult& value);
@@ -1041,10 +1089,6 @@ void read_field(EventFields& fields, std::string_view name, HelpRequestEvent& va
 void append_field(EventFields& fields, std::string_view name, const HelpSectionToggle& value);
 void append_field(EventFields& fields, std::string_view name, const ImageId& value);
 void append_field(EventFields& fields, std::string_view name, const ImageListChange& value);
-void append_field(EventFields& fields, std::string_view name, const InstrumentFieldChange& value);
-void append_field(EventFields& fields, std::string_view name, const InstrumentModuleMoveRequest& value);
-void append_field(EventFields& fields, std::string_view name, const InstrumentModuleRequest& value);
-void append_field(EventFields& fields, std::string_view name, const InstrumentModuleToggle& value);
 void append_field(EventFields& fields, std::string_view name, const ItemCheckEvent& value);
 void read_field(EventFields& fields, std::string_view name, ItemCheckEvent& value);
 void append_field(EventFields& fields, std::string_view name, const ItemContentPaint& value);
@@ -1055,6 +1099,7 @@ void append_field(EventFields& fields, std::string_view name, const KeyGesture& 
 void append_field(EventFields& fields, std::string_view name, const KeyPressEventArgs& value);
 void read_field(EventFields& fields, std::string_view name, KeyPressEventArgs& value);
 void append_field(EventFields& fields, std::string_view name, const KeyStateChange& value);
+void append_field(EventFields& fields, std::string_view name, const LinkId& value);
 void append_field(EventFields& fields, std::string_view name, const ListSelectionChange& value);
 void append_field(EventFields& fields, std::string_view name, const ListViewColumnClick& value);
 void append_field(EventFields& fields, std::string_view name, const ListViewColumnWidthChange& value);
@@ -1081,8 +1126,15 @@ void append_field(EventFields& fields, std::string_view name, const MenuStripInv
 void append_field(EventFields& fields, std::string_view name, const ModalLayerClosingEvent& value);
 void read_field(EventFields& fields, std::string_view name, ModalLayerClosingEvent& value);
 void append_field(EventFields& fields, std::string_view name, const MouseEventArgs& value);
+void read_field(EventFields& fields, std::string_view name, MouseEventArgs& value);
 void append_field(EventFields& fields, std::string_view name, const NavigationPaneOptionsRequest& value);
 void append_field(EventFields& fields, std::string_view name, const NavigationPaneState& value);
+void append_field(EventFields& fields, std::string_view name, const NodeCanvasSelection& value);
+void append_field(EventFields& fields, std::string_view name, const NodeEditEnded& value);
+void append_field(EventFields& fields, std::string_view name, const NodeGraphEdited& value);
+void append_field(EventFields& fields, std::string_view name, const NodeId& value);
+void append_field(EventFields& fields, std::string_view name, const NodeLinkConnected& value);
+void append_field(EventFields& fields, std::string_view name, const NodePaletteRequest& value);
 void append_field(EventFields& fields, std::string_view name, const NotifyIconClick& value);
 void append_field(EventFields& fields, std::string_view name, const ObjectColumnId& value);
 void append_field(EventFields& fields, std::string_view name, const ObjectContextRequest& value);
@@ -1106,6 +1158,8 @@ void append_field(EventFields& fields, std::string_view name, const PlotQuery& v
 void append_field(EventFields& fields, std::string_view name, const PlotViewRanges& value);
 void append_field(EventFields& fields, std::string_view name, const PointerEvent& value);
 void append_field(EventFields& fields, std::string_view name, const PointerSettings& value);
+void append_field(EventFields& fields, std::string_view name, const PortIndex& value);
+void append_field(EventFields& fields, std::string_view name, const PortRef& value);
 void append_field(EventFields& fields, std::string_view name, const PresentationSettings& value);
 void append_field(EventFields& fields, std::string_view name, const PreviewKeyDownEventArgs& value);
 void read_field(EventFields& fields, std::string_view name, PreviewKeyDownEventArgs& value);
@@ -1121,7 +1175,6 @@ void append_field(EventFields& fields, std::string_view name, const PropertyValu
 void append_field(EventFields& fields, std::string_view name, const QuickAccessToolbarCustomization& value);
 void append_field(EventFields& fields, std::string_view name, const QuickAccessToolbarPlacementChange& value);
 void append_field(EventFields& fields, std::string_view name, const RangeScrollEvent& value);
-void append_field(EventFields& fields, std::string_view name, const ReviewRecord& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonCommandClick& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonDialogLaunch& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonDropDownInvocation& value);
@@ -1131,6 +1184,7 @@ void append_field(EventFields& fields, std::string_view name, const RibbonToolTi
 void append_field(EventFields& fields, std::string_view name, const RibbonToolTipEvent& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonToolTipHelpRequest& value);
 void append_field(EventFields& fields, std::string_view name, const RuntimeId& value);
+void append_field(EventFields& fields, std::string_view name, const SceneViewTransform& value);
 void append_field(EventFields& fields, std::string_view name, const ScrollEvent& value);
 void read_field(EventFields& fields, std::string_view name, ScrollEvent& value);
 void append_field(EventFields& fields, std::string_view name, const SemanticFeedbackRecord& value);
@@ -1162,9 +1216,13 @@ void append_field(EventFields& fields, std::string_view name, const TreeListExpa
 void append_field(EventFields& fields, std::string_view name, const TreeListSelectionChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeListSortChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeSelectionChange& value);
+void append_field(EventFields& fields, std::string_view name, const VirtualRowIndex& value);
+void append_field(EventFields& fields, std::string_view name, const VirtualRowScroll& value);
+void append_field(EventFields& fields, std::string_view name, const VirtualRowSelection& value);
 void append_field(EventFields& fields, std::string_view name, const WindowBackdropGrant& value);
 void append_field(EventFields& fields, std::string_view name, const WizardPageChangingEvent& value);
 void read_field(EventFields& fields, std::string_view name, WizardPageChangingEvent& value);
+void append_field(EventFields& fields, std::string_view name, const WorldPoint& value);
 
 inline void append_field(EventFields& fields, std::string_view name, const BackgroundWorkerCompleted& value) {
     const EventFieldPrefix prefix = fields.enter(name);
@@ -1369,29 +1427,6 @@ inline void read_field(EventFields& fields, std::string_view name, ControlValida
     read_field(fields, "destination", value.destination);
     read_field(fields, "bulk", value.bulk);
     read_field(fields, "cancel", value.cancel);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const CorrespondenceExpansionChange& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "stable_id", value.stable_id);
-    append_field(fields, "expanded", value.expanded);
-    append_field(fields, "pinned", value.pinned);
-    append_field(fields, "reason", value.reason);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const CorrespondencePinChange& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "previous_id", value.previous_id);
-    append_field(fields, "current_id", value.current_id);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const CorrespondenceSelectionChange& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "previous_id", value.previous_id);
-    append_field(fields, "current_id", value.current_id);
     fields.leave(prefix);
 }
 
@@ -1777,6 +1812,22 @@ inline void read_field(EventFields& fields, std::string_view name, FileDialogOk&
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const FinishFill& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "kind", value.kind);
+    append_field(fields, "seed", value.seed);
+    append_field(fields, "grain", value.grain);
+    append_field(fields, "paint", value.paint);
+    append_field(fields, "secondary", value.secondary);
+    append_field(fields, "light_azimuth_degrees", value.light_azimuth_degrees);
+    append_field(fields, "light_elevation_degrees", value.light_elevation_degrees);
+    append_field(fields, "ambient", value.ambient);
+    append_field(fields, "relief", value.relief);
+    append_field(fields, "gloss", value.gloss);
+    append_field(fields, "glint", value.glint);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const FocusedControlChange& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "previous_id", value.previous_id);
@@ -1920,37 +1971,6 @@ inline void append_field(EventFields& fields, std::string_view name, const Image
     fields.leave(prefix);
 }
 
-inline void append_field(EventFields& fields, std::string_view name, const InstrumentFieldChange& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "module_id", value.module_id);
-    append_field(fields, "field_id", value.field_id);
-    append_field(fields, "previous_value", value.previous_value);
-    append_field(fields, "current_value", value.current_value);
-    append_field(fields, "committed", value.committed);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const InstrumentModuleMoveRequest& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "module_id", value.module_id);
-    append_field(fields, "previous_index", value.previous_index);
-    append_field(fields, "requested_index", value.requested_index);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const InstrumentModuleRequest& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "module_id", value.module_id);
-    fields.leave(prefix);
-}
-
-inline void append_field(EventFields& fields, std::string_view name, const InstrumentModuleToggle& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "module_id", value.module_id);
-    append_field(fields, "enabled", value.enabled);
-    fields.leave(prefix);
-}
-
 inline void append_field(EventFields& fields, std::string_view name, const ItemCheckEvent& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "index", value.index);
@@ -2050,6 +2070,13 @@ inline void append_field(EventFields& fields, std::string_view name, const KeySt
     append_field(fields, "modifiers", value.modifiers);
     append_field(fields, "down", value.down);
     append_field(fields, "released_by_deactivation", value.released_by_deactivation);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const LinkId& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "index", value.index);
+    append_field(fields, "generation", value.generation);
     fields.leave(prefix);
 }
 
@@ -2219,6 +2246,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Mater
     append_field(fields, "period_degrees", value.period_degrees);
     append_field(fields, "blend", value.blend);
     append_field(fields, "procedural", value.procedural);
+    append_field(fields, "finish", value.finish);
     fields.leave(prefix);
 }
 
@@ -2300,6 +2328,29 @@ inline void append_field(EventFields& fields, std::string_view name, const Mouse
     append_field(fields, "window_position", value.window_position);
     append_field(fields, "wheel_delta", value.wheel_delta);
     append_field(fields, "modifiers", value.modifiers);
+    append_field(fields, "action", value.action);
+    append_field(fields, "wheel_unit", value.wheel_unit);
+    append_field(fields, "pointer_id", value.pointer_id);
+    append_field(fields, "phase", value.phase);
+    append_field(fields, "handled", value.handled);
+    append_field(fields, "suppress_click", value.suppress_click);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, MouseEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "button", value.button);
+    read_field(fields, "clicks", value.clicks);
+    read_field(fields, "location", value.location);
+    read_field(fields, "window_position", value.window_position);
+    read_field(fields, "wheel_delta", value.wheel_delta);
+    read_field(fields, "modifiers", value.modifiers);
+    read_field(fields, "action", value.action);
+    read_field(fields, "wheel_unit", value.wheel_unit);
+    read_field(fields, "pointer_id", value.pointer_id);
+    read_field(fields, "phase", value.phase);
+    read_field(fields, "handled", value.handled);
+    read_field(fields, "suppress_click", value.suppress_click);
     fields.leave(prefix);
 }
 
@@ -2315,6 +2366,51 @@ inline void append_field(EventFields& fields, std::string_view name, const Navig
     append_field(fields, "button_count", value.button_count);
     append_field(fields, "hidden_pages", value.hidden_pages);
     append_field(fields, "page_order", value.page_order);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const NodeCanvasSelection& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "nodes", value.nodes);
+    append_field(fields, "link", value.link);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const NodeEditEnded& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "node", value.node);
+    append_field(fields, "part", value.part);
+    append_field(fields, "end", value.end);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const NodeGraphEdited& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "kind", value.kind);
+    append_field(fields, "revision", value.revision);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const NodeId& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "index", value.index);
+    append_field(fields, "generation", value.generation);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const NodeLinkConnected& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "link", value.link);
+    append_field(fields, "from", value.from);
+    append_field(fields, "to", value.to);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const NodePaletteRequest& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "world", value.world);
+    append_field(fields, "local", value.local);
+    append_field(fields, "from", value.from);
     fields.leave(prefix);
 }
 
@@ -2504,6 +2600,18 @@ inline void append_field(EventFields& fields, std::string_view name, const Point
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const PortIndex& value) {
+    // An identity: the field is its one value.
+    append_field(fields, name, value.value);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PortRef& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "node", value.node);
+    append_field(fields, "port", value.port);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const PresentationSettings& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "text_scale", value.text_scale);
@@ -2638,16 +2746,6 @@ inline void append_field(EventFields& fields, std::string_view name, const Range
     fields.leave(prefix);
 }
 
-inline void append_field(EventFields& fields, std::string_view name, const ReviewRecord& value) {
-    const EventFieldPrefix prefix = fields.enter(name);
-    append_field(fields, "key", value.key);
-    append_field(fields, "title", value.title);
-    append_field(fields, "summary", value.summary);
-    append_field(fields, "verdict", value.verdict);
-    append_field(fields, "disposition", value.disposition);
-    fields.leave(prefix);
-}
-
 inline void append_field(EventFields& fields, std::string_view name, const RibbonCommandClick& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "ribbon_id", value.ribbon_id);
@@ -2715,6 +2813,13 @@ inline void append_field(EventFields& fields, std::string_view name, const Ribbo
 inline void append_field(EventFields& fields, std::string_view name, const RuntimeId& value) {
     // An identity: the field is its one value.
     append_field(fields, name, value.value);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const SceneViewTransform& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "origin", value.origin);
+    append_field(fields, "zoom", value.zoom);
+    fields.leave(prefix);
 }
 
 inline void append_field(EventFields& fields, std::string_view name, const ScrollEvent& value) {
@@ -2792,6 +2897,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Surfa
     append_field(fields, "finish", value.finish);
     append_field(fields, "mask", value.mask);
     append_field(fields, "reflection", value.reflection);
+    append_field(fields, "dither", value.dither);
     fields.leave(prefix);
 }
 
@@ -2968,6 +3074,27 @@ inline void append_field(EventFields& fields, std::string_view name, const TreeS
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const VirtualRowIndex& value) {
+    // An identity: the field is its one value.
+    append_field(fields, name, value.value);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const VirtualRowScroll& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "first_visible", value.first_visible);
+    append_field(fields, "offset", value.offset);
+    append_field(fields, "following_tail", value.following_tail);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const VirtualRowSelection& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "previous", value.previous);
+    append_field(fields, "current", value.current);
+    append_field(fields, "selected_count", value.selected_count);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const WindowBackdropGrant& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "requested", value.requested);
@@ -2990,6 +3117,13 @@ inline void read_field(EventFields& fields, std::string_view name, WizardPageCha
     read_field(fields, "from", value.from);
     read_field(fields, "to", value.to);
     read_field(fields, "cancel", value.cancel);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const WorldPoint& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "x", value.x);
+    append_field(fields, "y", value.y);
     fields.leave(prefix);
 }
 
@@ -3695,15 +3829,6 @@ inline SubscriptionToken connect_control_context_menu_requested(Component& sourc
     return token;
 }
 
-inline SubscriptionToken connect_correspondence_view_context_requested(Component& source, const EventSink& sink) {
-    CorrespondenceView* typed = dynamic_cast<CorrespondenceView*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).context_requested(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_object_view_context_requested(Component& source, const EventSink& sink) {
     ObjectView* typed = dynamic_cast<ObjectView*>(&source);
     if (typed == nullptr) {
@@ -4158,6 +4283,15 @@ inline SubscriptionToken connect_breadcrumb_trail_edit_completion_requested(Comp
     return token;
 }
 
+inline SubscriptionToken connect_node_canvas_edit_ended(Component& source, const EventSink& sink) {
+    NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).edit_ended(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_color_value_editor_edit_failed(Component& source, const EventSink& sink) {
     ColorValueEditor* typed = dynamic_cast<ColorValueEditor*>(&source);
     if (typed == nullptr) {
@@ -4230,15 +4364,6 @@ inline SubscriptionToken connect_task_dialog_expanded_changed(Component& source,
     return token;
 }
 
-inline SubscriptionToken connect_correspondence_view_expansion_changed(Component& source, const EventSink& sink) {
-    CorrespondenceView* typed = dynamic_cast<CorrespondenceView*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).expansion_changed(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_tree_view_expansion_changed(Component& source, const EventSink& sink) {
     TreeView* typed = dynamic_cast<TreeView*>(&source);
     if (typed == nullptr) {
@@ -4272,24 +4397,6 @@ inline SubscriptionToken connect_help_book_system_external_link(Component& sourc
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).external_link(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_instrument_rack_field_changed(Component& source, const EventSink& sink) {
-    InstrumentRack* typed = dynamic_cast<InstrumentRack*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).field_changed(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_instrument_rack_field_committed(Component& source, const EventSink& sink) {
-    InstrumentRack* typed = dynamic_cast<InstrumentRack*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).field_committed(), sink);
     return token;
 }
 
@@ -4357,6 +4464,15 @@ inline SubscriptionToken connect_binding_format(Component& source, const EventSi
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).format(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_node_canvas_graph_edited(Component& source, const EventSink& sink) {
+    NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).graph_edited(), sink);
     return token;
 }
 
@@ -4442,15 +4558,6 @@ inline SubscriptionToken connect_command_invoked(Component& source, const EventS
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).invoked(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_correspondence_view_item_activated(Component& source, const EventSink& sink) {
-    CorrespondenceView* typed = dynamic_cast<CorrespondenceView*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).item_activated(), sink);
     return token;
 }
 
@@ -4695,6 +4802,15 @@ inline SubscriptionToken connect_rich_text_box_link_clicked(Component& source, c
     return token;
 }
 
+inline SubscriptionToken connect_node_canvas_link_connected(Component& source, const EventSink& sink) {
+    NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).link_connected(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_binding_source_list_changed(Component& source, const EventSink& sink) {
     BindingSource* typed = dynamic_cast<BindingSource*>(&source);
     if (typed == nullptr) {
@@ -4755,15 +4871,6 @@ inline SubscriptionToken connect_ribbon_minimized_changed(Component& source, con
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).minimized_changed(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_instrument_rack_module_toggled(Component& source, const EventSink& sink) {
-    InstrumentRack* typed = dynamic_cast<InstrumentRack*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).module_toggled(), sink);
     return token;
 }
 
@@ -4854,15 +4961,6 @@ inline SubscriptionToken connect_control_mouse_wheel(Component& source, const Ev
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).mouse_wheel(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_instrument_rack_move_requested(Component& source, const EventSink& sink) {
-    InstrumentRack* typed = dynamic_cast<InstrumentRack*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).move_requested(), sink);
     return token;
 }
 
@@ -5046,21 +5144,21 @@ inline SubscriptionToken connect_ribbon_color_picker_palette_open_changed(Compon
     return token;
 }
 
+inline SubscriptionToken connect_node_canvas_palette_requested(Component& source, const EventSink& sink) {
+    NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).palette_requested(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_binding_parse(Component& source, const EventSink& sink) {
     Binding* typed = dynamic_cast<Binding*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).parse(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_correspondence_view_pin_changed(Component& source, const EventSink& sink) {
-    CorrespondenceView* typed = dynamic_cast<CorrespondenceView*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).pin_changed(), sink);
     return token;
 }
 
@@ -5230,24 +5328,6 @@ inline SubscriptionToken connect_ribbon_recent_item_invoked(Component& source, c
     return token;
 }
 
-inline SubscriptionToken connect_review_card_record_changed(Component& source, const EventSink& sink) {
-    ReviewCard* typed = dynamic_cast<ReviewCard*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).record_changed(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_instrument_rack_remove_requested(Component& source, const EventSink& sink) {
-    InstrumentRack* typed = dynamic_cast<InstrumentRack*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).remove_requested(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_property_list_reset_requested(Component& source, const EventSink& sink) {
     PropertyList* typed = dynamic_cast<PropertyList*>(&source);
     if (typed == nullptr) {
@@ -5257,12 +5337,30 @@ inline SubscriptionToken connect_property_list_reset_requested(Component& source
     return token;
 }
 
+inline SubscriptionToken connect_control_right_to_left_changed(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).right_to_left_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_error_provider_right_to_left_changed(Component& source, const EventSink& sink) {
     ErrorProvider* typed = dynamic_cast<ErrorProvider*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).right_to_left_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_virtual_rows_view_row_activated(Component& source, const EventSink& sink) {
+    VirtualRowsView* typed = dynamic_cast<VirtualRowsView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).row_activated(), sink);
     return token;
 }
 
@@ -5383,6 +5481,15 @@ inline SubscriptionToken connect_scrollable_control_scroll(Component& source, co
     return token;
 }
 
+inline SubscriptionToken connect_virtual_rows_view_scrolled(Component& source, const EventSink& sink) {
+    VirtualRowsView* typed = dynamic_cast<VirtualRowsView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).scrolled(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_search_field_search_requested(Component& source, const EventSink& sink) {
     SearchField* typed = dynamic_cast<SearchField*>(&source);
     if (typed == nullptr) {
@@ -5437,8 +5544,8 @@ inline SubscriptionToken connect_button_selected_changed(Component& source, cons
     return token;
 }
 
-inline SubscriptionToken connect_combo_box_selected_index_changed(Component& source, const EventSink& sink) {
-    ComboBox* typed = dynamic_cast<ComboBox*>(&source);
+inline SubscriptionToken connect_domain_up_down_selected_index_changed(Component& source, const EventSink& sink) {
+    DomainUpDown* typed = dynamic_cast<DomainUpDown*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5446,8 +5553,8 @@ inline SubscriptionToken connect_combo_box_selected_index_changed(Component& sou
     return token;
 }
 
-inline SubscriptionToken connect_domain_up_down_selected_index_changed(Component& source, const EventSink& sink) {
-    DomainUpDown* typed = dynamic_cast<DomainUpDown*>(&source);
+inline SubscriptionToken connect_list_control_selected_index_changed(Component& source, const EventSink& sink) {
+    ListControl* typed = dynamic_cast<ListControl*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5509,26 +5616,8 @@ inline SubscriptionToken connect_tab_control_selecting(Component& source, const 
     return token;
 }
 
-inline SubscriptionToken connect_correspondence_view_selection_changed(Component& source, const EventSink& sink) {
-    CorrespondenceView* typed = dynamic_cast<CorrespondenceView*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_list_box_selection_changed(Component& source, const EventSink& sink) {
     ListBox* typed = dynamic_cast<ListBox*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_object_view_selection_changed(Component& source, const EventSink& sink) {
-    ObjectView* typed = dynamic_cast<ObjectView*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5547,6 +5636,15 @@ inline SubscriptionToken connect_rich_text_box_selection_changed(Component& sour
 
 inline SubscriptionToken connect_text_box_selection_changed(Component& source, const EventSink& sink) {
     TextBox* typed = dynamic_cast<TextBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_object_view_selection_changed(Component& source, const EventSink& sink) {
+    ObjectView* typed = dynamic_cast<ObjectView*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5581,6 +5679,15 @@ inline SubscriptionToken connect_list_view_selection_changed(Component& source, 
     return token;
 }
 
+inline SubscriptionToken connect_node_canvas_selection_changed(Component& source, const EventSink& sink) {
+    NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_plot_view_selection_changed(Component& source, const EventSink& sink) {
     PlotView* typed = dynamic_cast<PlotView*>(&source);
     if (typed == nullptr) {
@@ -5601,6 +5708,15 @@ inline SubscriptionToken connect_ribbon_gallery_selection_changed(Component& sou
 
 inline SubscriptionToken connect_tree_list_view_selection_changed(Component& source, const EventSink& sink) {
     TreeListView* typed = dynamic_cast<TreeListView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_virtual_rows_view_selection_changed(Component& source, const EventSink& sink) {
+    VirtualRowsView* typed = dynamic_cast<VirtualRowsView*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5725,15 +5841,6 @@ inline SubscriptionToken connect_combo_box_text_changed(Component& source, const
     return token;
 }
 
-inline SubscriptionToken connect_group_box_text_changed(Component& source, const EventSink& sink) {
-    GroupBox* typed = dynamic_cast<GroupBox*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).text_changed(), sink);
-    return token;
-}
-
 inline SubscriptionToken connect_masked_text_box_text_changed(Component& source, const EventSink& sink) {
     MaskedTextBox* typed = dynamic_cast<MaskedTextBox*>(&source);
     if (typed == nullptr) {
@@ -5754,6 +5861,15 @@ inline SubscriptionToken connect_rich_text_box_text_changed(Component& source, c
 
 inline SubscriptionToken connect_text_box_text_changed(Component& source, const EventSink& sink) {
     TextBox* typed = dynamic_cast<TextBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).text_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_group_box_text_changed(Component& source, const EventSink& sink) {
+    GroupBox* typed = dynamic_cast<GroupBox*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5927,6 +6043,15 @@ inline SubscriptionToken connect_control_validating(Component& source, const Eve
     return token;
 }
 
+inline SubscriptionToken connect_numeric_up_down_value_changed(Component& source, const EventSink& sink) {
+    NumericUpDown* typed = dynamic_cast<NumericUpDown*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).value_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_color_value_editor_value_changed(Component& source, const EventSink& sink) {
     ColorValueEditor* typed = dynamic_cast<ColorValueEditor*>(&source);
     if (typed == nullptr) {
@@ -5947,15 +6072,6 @@ inline SubscriptionToken connect_date_time_picker_value_changed(Component& sourc
 
 inline SubscriptionToken connect_flags_value_editor_value_changed(Component& source, const EventSink& sink) {
     FlagsValueEditor* typed = dynamic_cast<FlagsValueEditor*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).value_changed(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_numeric_up_down_value_changed(Component& source, const EventSink& sink) {
-    NumericUpDown* typed = dynamic_cast<NumericUpDown*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -6053,6 +6169,15 @@ inline SubscriptionToken connect_task_dialog_verification_changed(Component& sou
     return token;
 }
 
+inline SubscriptionToken connect_node_canvas_view_changed(Component& source, const EventSink& sink) {
+    NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).view_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_plot_view_view_changed(Component& source, const EventSink& sink) {
     PlotView* typed = dynamic_cast<PlotView*>(&source);
     if (typed == nullptr) {
@@ -6090,7 +6215,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 339> event_connectors{{
+inline constexpr std::array<EventConnector, 338> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6168,7 +6293,6 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"content_changed", "RichTextBox", &connect_rich_text_box_content_changed},
     {"content_requested", "PageView", &connect_page_view_content_requested},
     {"context_menu_requested", "Control", &connect_control_context_menu_requested},
-    {"context_requested", "CorrespondenceView", &connect_correspondence_view_context_requested},
     {"context_requested", "ObjectView", &connect_object_view_context_requested},
     {"current_cell_changed", "DataGridView", &connect_data_grid_view_current_cell_changed},
     {"current_cell_dirty_state_changed", "DataGridView", &connect_data_grid_view_current_cell_dirty_state_changed},
@@ -6219,6 +6343,7 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"edit_cancelled", "BreadcrumbTrail", &connect_breadcrumb_trail_edit_cancelled},
     {"edit_committed", "BreadcrumbTrail", &connect_breadcrumb_trail_edit_committed},
     {"edit_completion_requested", "BreadcrumbTrail", &connect_breadcrumb_trail_edit_completion_requested},
+    {"edit_ended", "NodeCanvas", &connect_node_canvas_edit_ended},
     {"edit_failed", "ColorValueEditor", &connect_color_value_editor_edit_failed},
     {"edit_failed", "PropertyGrid", &connect_property_grid_edit_failed},
     {"edit_started", "BreadcrumbTrail", &connect_breadcrumb_trail_edit_started},
@@ -6227,13 +6352,10 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"error_changed", "ErrorProvider", &connect_error_provider_error_changed},
     {"expanded_changed", "ButtonBase", &connect_button_base_expanded_changed},
     {"expanded_changed", "TaskDialog", &connect_task_dialog_expanded_changed},
-    {"expansion_changed", "CorrespondenceView", &connect_correspondence_view_expansion_changed},
     {"expansion_changed", "TreeView", &connect_tree_view_expansion_changed},
     {"expansion_changed", "TreeListView", &connect_tree_list_view_expansion_changed},
     {"external_link", "HelpBookViewer", &connect_help_book_viewer_external_link},
     {"external_link", "HelpBookSystem", &connect_help_book_system_external_link},
-    {"field_changed", "InstrumentRack", &connect_instrument_rack_field_changed},
-    {"field_committed", "InstrumentRack", &connect_instrument_rack_field_committed},
     {"file_ok", "OpenFileDialog", &connect_open_file_dialog_file_ok},
     {"file_ok", "SaveFileDialog", &connect_save_file_dialog_file_ok},
     {"finished", "Wizard", &connect_wizard_finished},
@@ -6241,6 +6363,7 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"focus_observed", "Control", &connect_control_focus_observed},
     {"focused_control_changed", "Window", &connect_window_focused_control_changed},
     {"format", "Binding", &connect_binding_format},
+    {"graph_edited", "NodeCanvas", &connect_node_canvas_graph_edited},
     {"group_changed", "PropertyList", &connect_property_list_group_changed},
     {"help_requested", "Control", &connect_control_help_requested},
     {"help_requested", "HelpProvider", &connect_help_provider_help_requested},
@@ -6250,7 +6373,6 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"initialization_completed", "Control", &connect_control_initialization_completed},
     {"invoked", "CommandBar", &connect_command_bar_invoked},
     {"invoked", "Command", &connect_command_invoked},
-    {"item_activated", "CorrespondenceView", &connect_correspondence_view_item_activated},
     {"item_activated", "ListBox", &connect_list_box_item_activated},
     {"item_activated", "ObjectView", &connect_object_view_item_activated},
     {"item_activated", "TreeView", &connect_tree_view_item_activated},
@@ -6276,6 +6398,7 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"legend_toggled", "PlotView", &connect_plot_view_legend_toggled},
     {"link_activated", "HelpBook", &connect_help_book_link_activated},
     {"link_clicked", "RichTextBox", &connect_rich_text_box_link_clicked},
+    {"link_connected", "NodeCanvas", &connect_node_canvas_link_connected},
     {"list_changed", "BindingSource", &connect_binding_source_list_changed},
     {"loaded", "UserControl", &connect_user_control_loaded},
     {"mask_changed", "MaskedTextBox", &connect_masked_text_box_mask_changed},
@@ -6283,7 +6406,6 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"material_changed", "MaterialPanel", &connect_material_panel_material_changed},
     {"menu_item_invoked", "NotifyIcon", &connect_notify_icon_menu_item_invoked},
     {"minimized_changed", "Ribbon", &connect_ribbon_minimized_changed},
-    {"module_toggled", "InstrumentRack", &connect_instrument_rack_module_toggled},
     {"mouse_capture_changed", "Control", &connect_control_mouse_capture_changed},
     {"mouse_click", "Control", &connect_control_mouse_click},
     {"mouse_double_click", "Control", &connect_control_mouse_double_click},
@@ -6294,7 +6416,6 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"mouse_move", "Control", &connect_control_mouse_move},
     {"mouse_up", "Control", &connect_control_mouse_up},
     {"mouse_wheel", "Control", &connect_control_mouse_wheel},
-    {"move_requested", "InstrumentRack", &connect_instrument_rack_move_requested},
     {"name_changed", "Control", &connect_control_name_changed},
     {"navigated", "HelpBookViewer", &connect_help_book_viewer_navigated},
     {"navigated", "TaskDialog", &connect_task_dialog_navigated},
@@ -6315,8 +6436,8 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"page_pin_requested", "PageStrip", &connect_page_strip_page_pin_requested},
     {"pairing_missed", "SubSurfaceHost", &connect_sub_surface_host_pairing_missed},
     {"palette_open_changed", "RibbonColorPicker", &connect_ribbon_color_picker_palette_open_changed},
+    {"palette_requested", "NodeCanvas", &connect_node_canvas_palette_requested},
     {"parse", "Binding", &connect_binding_parse},
-    {"pin_changed", "CorrespondenceView", &connect_correspondence_view_pin_changed},
     {"placement_changed", "QuickAccessToolbar", &connect_quick_access_toolbar_placement_changed},
     {"point_picked", "PlotView", &connect_plot_view_point_picked},
     {"pointer_observed", "Control", &connect_control_pointer_observed},
@@ -6335,10 +6456,10 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"radio_button_changed", "TaskDialog", &connect_task_dialog_radio_button_changed},
     {"range_changed", "RangeControl", &connect_range_control_range_changed},
     {"recent_item_invoked", "Ribbon", &connect_ribbon_recent_item_invoked},
-    {"record_changed", "ReviewCard", &connect_review_card_record_changed},
-    {"remove_requested", "InstrumentRack", &connect_instrument_rack_remove_requested},
     {"reset_requested", "PropertyList", &connect_property_list_reset_requested},
+    {"right_to_left_changed", "Control", &connect_control_right_to_left_changed},
     {"right_to_left_changed", "ErrorProvider", &connect_error_provider_right_to_left_changed},
+    {"row_activated", "VirtualRowsView", &connect_virtual_rows_view_row_activated},
     {"row_edit_cancelled", "DataGridView", &connect_data_grid_view_row_edit_cancelled},
     {"row_enter", "DataGridView", &connect_data_grid_view_row_enter},
     {"row_error_text_changed", "DataGridView", &connect_data_grid_view_row_error_text_changed},
@@ -6352,31 +6473,33 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"run_worker_completed", "BackgroundWorker", &connect_background_worker_run_worker_completed},
     {"scroll", "RangeControl", &connect_range_control_scroll},
     {"scroll", "ScrollableControl", &connect_scrollable_control_scroll},
+    {"scrolled", "VirtualRowsView", &connect_virtual_rows_view_scrolled},
     {"search_requested", "SearchField", &connect_search_field_search_requested},
     {"section_toggled", "HelpBook", &connect_help_book_section_toggled},
     {"segment_activated", "BreadcrumbTrail", &connect_breadcrumb_trail_segment_activated},
     {"selected", "TabControl", &connect_tab_control_selected},
     {"selected_changed", "Card", &connect_card_selected_changed},
     {"selected_changed", "Button", &connect_button_selected_changed},
-    {"selected_index_changed", "ComboBox", &connect_combo_box_selected_index_changed},
     {"selected_index_changed", "DomainUpDown", &connect_domain_up_down_selected_index_changed},
+    {"selected_index_changed", "ListControl", &connect_list_control_selected_index_changed},
     {"selected_index_changed", "TabControl", &connect_tab_control_selected_index_changed},
     {"selected_key_changed", "LookupComboBox", &connect_lookup_combo_box_selected_key_changed},
     {"selected_object_changed", "PropertyGrid", &connect_property_grid_selected_object_changed},
     {"selected_tab_changed", "Ribbon", &connect_ribbon_selected_tab_changed},
     {"selected_token_changed", "TokenBox", &connect_token_box_selected_token_changed},
     {"selecting", "TabControl", &connect_tab_control_selecting},
-    {"selection_changed", "CorrespondenceView", &connect_correspondence_view_selection_changed},
     {"selection_changed", "ListBox", &connect_list_box_selection_changed},
-    {"selection_changed", "ObjectView", &connect_object_view_selection_changed},
     {"selection_changed", "RichTextBox", &connect_rich_text_box_selection_changed},
     {"selection_changed", "TextBox", &connect_text_box_selection_changed},
+    {"selection_changed", "ObjectView", &connect_object_view_selection_changed},
     {"selection_changed", "TreeView", &connect_tree_view_selection_changed},
     {"selection_changed", "DataGridView", &connect_data_grid_view_selection_changed},
     {"selection_changed", "ListView", &connect_list_view_selection_changed},
+    {"selection_changed", "NodeCanvas", &connect_node_canvas_selection_changed},
     {"selection_changed", "PlotView", &connect_plot_view_selection_changed},
     {"selection_changed", "RibbonGallery", &connect_ribbon_gallery_selection_changed},
     {"selection_changed", "TreeListView", &connect_tree_list_view_selection_changed},
+    {"selection_changed", "VirtualRowsView", &connect_virtual_rows_view_selection_changed},
     {"sort_changed", "TreeListView", &connect_tree_list_view_sort_changed},
     {"sort_compare", "DataGridView", &connect_data_grid_view_sort_compare},
     {"sort_requested", "ObjectView", &connect_object_view_sort_requested},
@@ -6390,10 +6513,10 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"stopped", "SubSurfaceHost", &connect_sub_surface_host_stopped},
     {"strip_moved", "ToolStripContainer", &connect_tool_strip_container_strip_moved},
     {"text_changed", "ComboBox", &connect_combo_box_text_changed},
-    {"text_changed", "GroupBox", &connect_group_box_text_changed},
     {"text_changed", "MaskedTextBox", &connect_masked_text_box_text_changed},
     {"text_changed", "RichTextBox", &connect_rich_text_box_text_changed},
     {"text_changed", "TextBox", &connect_text_box_text_changed},
+    {"text_changed", "GroupBox", &connect_group_box_text_changed},
     {"text_changed", "ButtonBase", &connect_button_base_text_changed},
     {"text_changed", "Label", &connect_label_text_changed},
     {"text_changed", "SearchField", &connect_search_field_text_changed},
@@ -6412,10 +6535,10 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"user_deleting_row", "DataGridView", &connect_data_grid_view_user_deleting_row},
     {"validated", "Control", &connect_control_validated},
     {"validating", "Control", &connect_control_validating},
+    {"value_changed", "NumericUpDown", &connect_numeric_up_down_value_changed},
     {"value_changed", "ColorValueEditor", &connect_color_value_editor_value_changed},
     {"value_changed", "DateTimePicker", &connect_date_time_picker_value_changed},
     {"value_changed", "FlagsValueEditor", &connect_flags_value_editor_value_changed},
-    {"value_changed", "NumericUpDown", &connect_numeric_up_down_value_changed},
     {"value_changed", "PropertyList", &connect_property_list_value_changed},
     {"value_changed", "RangeControl", &connect_range_control_value_changed},
     {"value_changed", "RibbonColorPicker", &connect_ribbon_color_picker_value_changed},
@@ -6426,6 +6549,7 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"value_committed", "PropertyList", &connect_property_list_value_committed},
     {"value_committed", "ValueBar", &connect_value_bar_value_committed},
     {"verification_changed", "TaskDialog", &connect_task_dialog_verification_changed},
+    {"view_changed", "NodeCanvas", &connect_node_canvas_view_changed},
     {"view_changed", "PlotView", &connect_plot_view_view_changed},
     {"visibility_changed", "RibbonToolTip", &connect_ribbon_tool_tip_visibility_changed},
     {"visibility_changed", "ToolTip", &connect_tool_tip_visibility_changed},

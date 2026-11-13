@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
@@ -61,25 +62,25 @@ inline constexpr std::size_t familiar_theme_count = static_cast<std::size_t>(Fam
 
 // The theme's id (`classic`, `modern-flat`, `xp-style`, `windows7-style`,
 // `macos-style`, `windows-professional`); empty for `count`.
-[[nodiscard]] std::string_view familiar_theme_id(FamiliarTheme theme) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view familiar_theme_id(FamiliarTheme theme) noexcept;
 
 // The theme `id` names, or none.
-[[nodiscard]] std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept;
+[[nodiscard]] GUI_FORMS_API std::optional<FamiliarTheme> familiar_theme_named(std::string_view id) noexcept;
 
 // The theme's floor sheet (`<id>/floor.css` in diagnostics). Static
 // storage; empty for `count`.
-[[nodiscard]] std::string_view familiar_theme_floor_sheet(FamiliarTheme theme) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view familiar_theme_floor_sheet(FamiliarTheme theme) noexcept;
 
 // The theme's dark floor sheet (`<id>/floor-dark.css`), whose records the
 // theme's dark colour scheme resolves (ThemeDarkVariant::authored).
 // Static storage; empty for a light-only theme and for `count`.
-[[nodiscard]] std::string_view familiar_theme_dark_floor_sheet(FamiliarTheme theme) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view familiar_theme_dark_floor_sheet(FamiliarTheme theme) noexcept;
 
 // A built theme and what building it measured. When the floor sheet is
 // refused, `theme` keeps windows-professional's recipes under the theme's
 // id and `diagnostics` says why; the stock sheets compile with no
 // diagnostics (tests/familiar_themes_tests).
-struct FamiliarThemeBuild final {
+struct GUI_FORMS_API FamiliarThemeBuild final {
     std::shared_ptr<const Theme> theme{};
     std::vector<ThemeCompileDiagnostic> diagnostics{};
     // The compiler's work for the floor sheet (ThemeCompileWork::
@@ -92,7 +93,7 @@ struct FamiliarThemeBuild final {
 // The theme, built on its first call (thread-safe; later calls return the
 // same build) and kept for the life of the program. `theme` is below
 // familiar_theme_count.
-[[nodiscard]] const FamiliarThemeBuild& familiar_theme_build(FamiliarTheme theme);
-[[nodiscard]] std::shared_ptr<const Theme> familiar_theme(FamiliarTheme theme);
+[[nodiscard]] GUI_FORMS_API const FamiliarThemeBuild& familiar_theme_build(FamiliarTheme theme);
+[[nodiscard]] GUI_FORMS_API std::shared_ptr<const Theme> familiar_theme(FamiliarTheme theme);
 
 } // namespace gui_forms

@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
+#include "gui_forms/controls/scaled_panel.hpp"
 #include "../../scrollable_control/container_control/scaled_layout_utilities.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"

@@ -159,6 +159,7 @@ property.fill-text-color	recipe-colours
 property.filter-blur	shadows-opacity-filters
 property.filter-colour	shadows-opacity-filters
 property.filter-drop-shadow	shadows-opacity-filters
+property.finish-fill	finish-fills
 property.font-family	fonts
 property.font-role	transforms-text
 property.font-size	fonts
@@ -167,6 +168,7 @@ property.font-weight	fonts
 property.glow	finish-light-images-masks
 property.glow-placement	finish-light-images-masks
 property.glyph-color	recipe-colours
+property.gradient-dither	gradient-dither
 property.isolation	shadows-opacity-filters
 property.keyline-rings	parts-rings-patterns
 property.keylines	recipe-colours
@@ -301,3 +303,4 @@ code-elsewhere E816	form_model_tests (form documents only)
 code-elsewhere E817	form_model_tests (form documents only)
 code-elsewhere E818	form_model_tests (form documents only)
 code-elsewhere E819	form_loader_tests (form documents only)
+code-elsewhere E820	form_model_tests (form documents only)

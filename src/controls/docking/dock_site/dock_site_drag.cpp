@@ -3,7 +3,7 @@
 // drag layer and the keyboard move mode. The targets' geometry and their
 // plan are DockLayout's neighbours in the core (dock_drop_targets).
 
-#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/controls/dock_site.hpp"
 #include "dock_site_children.hpp"
 #include "../../drag_gesture/drag_gesture.hpp"
 
@@ -808,7 +808,7 @@ void DockSite::paint_drag_layer(Painter& painter) {
         if (drag_.source.height > 0.0) font.size = std::max(1.0, font.size * drag_.stamp.height / drag_.source.height);
         part.font = font;
         part.role = PartRole::label;
-        part.text = drag_.title;
+        part.text = lend_paint_text(drag_.title);
         paint_part(painter, *this, part);
         part.text = {};
         part.bounds = drag_image_bounds();

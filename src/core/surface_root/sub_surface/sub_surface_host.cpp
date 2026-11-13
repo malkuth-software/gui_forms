@@ -1,6 +1,9 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 
 #include "gui_forms/window.hpp"
+#include "../access/surface_request_access.hpp"
+#include "../access/surface_forwarding_access.hpp"
 
 #include <algorithm>
 #include <array>
@@ -46,6 +49,9 @@ constexpr std::string_view request_item_prefix = "sub-surface-request.";
 // comment of SubSurfaceHost): `prefix` is the host's stable identity and a
 // '.', `offset` the host's position in the window, `keep_focus` whether the
 // sub-surface has keyboard focus.
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 void translate_sub_surface_nodes(std::vector<SemanticNode>& nodes, const std::string& prefix, Point offset,
                                  bool keep_focus) {
     for (SemanticNode& node : nodes) {
@@ -77,6 +83,9 @@ struct SubSurfaceNodeTarget final {
 // Finds the node of the sub-surface's own snapshot whose stable identity is
 // `inner`, depth first in publication order, under the control `owner`.
 // False when there is none.
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 bool find_sub_surface_node(const std::vector<SemanticNode>& nodes, std::string_view inner, RuntimeId owner,
                            SubSurfaceNodeTarget& found) {
     for (const SemanticNode& node : nodes) {
@@ -273,7 +282,7 @@ void SubSurfaceHost::adopt_content(std::unique_ptr<SubSurfaceContent>& content, 
     stop_thread();
     // A tooltip the old content asked for closes.
     SurfaceRoot* const root = attached_surface_root();
-    if (had_requests && root != nullptr) (*root).tool_tip_items_changed(*this);
+    if (had_requests && root != nullptr) detail::SurfaceRequestAccess::tool_tip_items_changed(*root, *this);
     content_ = std::move(content);
     opaque_ = opaque;
     redraw_requested_ = false;
@@ -505,17 +514,7 @@ void SubSurfaceHost::on_window_active_changed(bool) {
     update_keyboard_focus(SubSurfaceFocusEntry::restore);
 }
 
-void SubSurfaceHost::on_pointer(PointerEvent& event) {
-    if (!thread_) return;
-    // The window sends an enter just before routing the move that caused
-    // it, at the same position: that move starts the sub-surface's own
-    // hover, so the enter is not forwarded (forwarded as a move it
-    // delivered every entering move twice).
-    if (event.action == PointerAction::enter) {
-        event.handled = true;
-        return;
-    }
-    hold_capture_for(event);
+void SubSurfaceHost::forward_pointer(const PointerEvent& event) {
     SubSurfaceInput input;
     input.kind = SubSurfaceInputKind::pointer;
     input.pointer = event;
@@ -523,11 +522,55 @@ void SubSurfaceHost::on_pointer(PointerEvent& event) {
     input.pointer.phase = EventPhase::target;
     input.pointer.handled = false;
     const std::uint64_t sequence = (*thread_).post_input(input);
-    event.handled = true;
     if (input.pointer.action != PointerAction::leave) return;
     // Requests the sub-surface made before it sees this leave are stale.
     pointer_left_sequence_ = sequence;
     revoke_requests(SubSurfaceToolTipOrigin::pointer);
+}
+
+void SubSurfaceHost::forward_mouse(MouseEventArgs& arguments) {
+    if (!thread_) return;
+    const PointerEvent event = pointer_event_of(arguments);
+    hold_capture_for(event);
+    forward_pointer(event);
+    arguments.handled = true;
+}
+
+void SubSurfaceHost::on_mouse_down(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void SubSurfaceHost::on_mouse_up(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void SubSurfaceHost::on_mouse_move(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void SubSurfaceHost::on_mouse_wheel(MouseEventArgs& arguments) {
+    forward_mouse(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+// The leave is posted where the window last saw the pointer: the move that
+// left the host, or the point where it left the window.
+void SubSurfaceHost::on_mouse_leave() {
+    SurfaceRoot* const root = attached_surface_root();
+    if (thread_ && root != nullptr) {
+        const InteractionSnapshot pointer = (*root).interaction_snapshot();
+        PointerEvent leave{};
+        leave.action = PointerAction::leave;
+        leave.position = pointer.pointer_position;
+        leave.modifiers = pointer.modifiers;
+        leave.pointer_id = 1U;
+        leave.click_count = 0U;
+        forward_pointer(leave);
+    }
+    Control::on_mouse_leave();
 }
 
 void SubSurfaceHost::hold_capture_for(const PointerEvent& event) {
@@ -565,15 +608,24 @@ std::optional<Rect> SubSurfaceHost::text_input_caret() const {
     return caret;
 }
 
-void SubSurfaceHost::on_key(KeyEvent& event) {
-    if (!thread_) return;
+void SubSurfaceHost::forward_key(KeyEventArgs& arguments, KeyAction action) {
+    if (!thread_ || arguments.handled || arguments.released_by_deactivation) return;
     SubSurfaceInput input;
     input.kind = SubSurfaceInputKind::key;
-    input.key = event;
-    input.key.phase = EventPhase::target;
+    input.key = key_event_of(arguments, action);
     input.key.handled = false;
     static_cast<void>((*thread_).post_input(input));
-    event.handled = true;
+    arguments.handled = true;
+}
+
+void SubSurfaceHost::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    forward_key(arguments, KeyAction::down);
+}
+
+void SubSurfaceHost::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    forward_key(arguments, KeyAction::up);
 }
 
 void SubSurfaceHost::on_text_input(TextInputEvent& event) {
@@ -591,9 +643,11 @@ void SubSurfaceHost::on_focus_changed(bool focused) {
     SubSurfaceFocusEntry entry = SubSurfaceFocusEntry::restore;
     SurfaceRoot* const root = attached_surface_root();
     if (focused && root != nullptr) {
-        if ((*root).last_focus_traversal_ == SurfaceRoot::FocusTraversal::forward) {
+        const detail::SurfaceForwardingAccess::FocusTraversal traversal =
+            detail::SurfaceForwardingAccess::last_focus_traversal(*root);
+        if (traversal == detail::SurfaceForwardingAccess::FocusTraversal::forward) {
             entry = SubSurfaceFocusEntry::first;
-        } else if ((*root).last_focus_traversal_ == SurfaceRoot::FocusTraversal::backward) {
+        } else if (traversal == detail::SurfaceForwardingAccess::FocusTraversal::backward) {
             entry = SubSurfaceFocusEntry::last;
         }
     }
@@ -686,11 +740,11 @@ void SubSurfaceHost::receive_request(const SubSurfaceRequest& request) {
         const Rect origin = absolute_bounds();
         const Rect anchor{origin.x + request.anchor.x, origin.y + request.anchor.y, request.anchor.width,
                           request.anchor.height};
-        (*window).show_requested_tool_tip(shared_from_this(), request_item_id(request.id), request.text, anchor,
-                                          request.duration);
+        detail::SurfaceRequestAccess::show_requested_tool_tip(*window, shared_from_this(), request_item_id(request.id),
+                                                              request.text, anchor, request.duration);
         return;
     }
-    (*window).tool_tip_items_changed(*this);
+    detail::SurfaceRequestAccess::tool_tip_items_changed(*window, *this);
 }
 
 void SubSurfaceHost::receive_alert(const SubSurfaceRequest& request) {
@@ -742,7 +796,7 @@ void SubSurfaceHost::receive_revoke(std::uint64_t id) {
     requests_.erase(found);
     ++request_statistics_.withdrawn;
     SurfaceRoot* const root = attached_surface_root();
-    if (root != nullptr) (*root).tool_tip_items_changed(*this);
+    if (root != nullptr) detail::SurfaceRequestAccess::tool_tip_items_changed(*root, *this);
 }
 
 void SubSurfaceHost::revoke_requests(SubSurfaceToolTipOrigin origin) {
@@ -761,7 +815,7 @@ void SubSurfaceHost::revoke_requests(SubSurfaceToolTipOrigin origin) {
     }
     requests_.erase(kept, requests_.end());
     SurfaceRoot* const root = attached_surface_root();
-    if (revoked && root != nullptr) (*root).tool_tip_items_changed(*this);
+    if (revoked && root != nullptr) detail::SurfaceRequestAccess::tool_tip_items_changed(*root, *this);
 }
 
 void SubSurfaceHost::answer(std::uint64_t id, SurfaceRequestResult result, HostDialogChoice choice) {
@@ -791,7 +845,7 @@ void SubSurfaceHost::continue_returned_key(const KeyEvent& event) {
         ++returned_keys_discarded_;
         return;
     }
-    static_cast<void>((*root).resume_unhandled_key(focused, event));
+    static_cast<void>(detail::SurfaceForwardingAccess::resume_unhandled_key(*root, focused, event));
 }
 
 void SubSurfaceHost::on_detaching_from_window(SurfaceRoot& former_window) noexcept {

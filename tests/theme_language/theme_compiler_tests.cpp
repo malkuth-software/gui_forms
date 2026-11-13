@@ -10,7 +10,27 @@
 #include "../support/rgba_order.hpp"
 #include "../support/theme_definition_heap.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/engine_expression/engine_expression.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
+#include "../support/routed_input_probe.hpp"
 
 #include <array>
 #include <cstddef>
@@ -77,6 +97,8 @@ struct Options final {
     EngineVersion requires_engine{current_engine_version};
     // The effects an `effect` may name; null checks the name's form only.
     const EffectRegistry* effects{};
+    // The theme images `url("resource:...")` may name in a texture.
+    std::span<const theme_language::ThemeImageResource> images{};
 };
 
 struct Compilation final {
@@ -98,6 +120,7 @@ Compilation compile(std::string_view text, Options options = Options{}) {
                             .vocabulary = SelectorVocabulary{},
                             .published_values = published,
                             .resources = resources,
+                            .images = options.images,
                             .requires_engine = options.requires_engine,
                             .effects = options.effects};
     input.vocabulary.controls = controls;
@@ -263,10 +286,10 @@ public:
 };
 
 // A control showing one face part, hot while the pointer is over it.
-class Pad final : public Control {
+class Pad final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit Pad(StableId stable_id) : Control(std::move(stable_id)) {}
-    void on_pointer(PointerEvent& event) override {
+    explicit Pad(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) {}
+    void routed_pointer(PointerEvent& event) override {
         if (event.action == PointerAction::enter) {
             hot = true;
             invalidate(Dirty::paint);
@@ -677,6 +700,174 @@ void test_warnings() {
                 warned(control_fields, DiagnosticCode::property_not_admitted, "taper") &&
                 warned(control_fields, DiagnosticCode::property_not_admitted, "font-weight in a state rule"),
             "part metrics and state fonts are refused on a control");
+    // A progress fill's stripe properties (the barber pole's knobs, owner
+    // rulings of 2026-11-11) are part fields: admitted on a named part
+    // (this vocabulary's button face stands in for a progress fill),
+    // range-checked, and refused on a control.
+    const Compilation stripes =
+        compile("#a::part(face) { stripe-pitch: auto; stripe-ratio: 0.35; stripe-angle: 30deg;"
+                " stripe-lean: backward; stripe-direction: forward; stripe-speed: 1.5; stripe-color: #ffffff;"
+                " stripe-ground: #2060c0; stripe-gloss: none; stripe-reduced-motion: still }\n"
+                "#b::part(face) { stripe-pitch: 12px; stripe-lean: forward; stripe-gloss: auto;"
+                " stripe-reduced-motion: none }");
+    bool stripes_admitted = true;
+    for (const ThemeDiagnostic& diagnostic : stripes.diagnostics) {
+        if (diagnostic.code == DiagnosticCode::literal_colour_unremappable) continue;
+        stripes_admitted = false;
+        std::cerr << "  stripes: " << diagnostic_code_label(diagnostic.code) << ' '
+                  << diagnostic_code_name(diagnostic.code) << " (" << diagnostic.detail << ")\n";
+    }
+    require(stripes.outcome == CompileOutcome::compiled && stripes_admitted && stripes.sheet.rules.size() == 2U,
+            "the stripe properties compile on a named part");
+    // Each bad value is an error, which refuses its sheet at the first one
+    // (the guide: the first error is named and the old theme stays), so
+    // each is compiled on its own.
+    struct BadStripe final {
+        const char* sheet;
+        DiagnosticCode code;
+    };
+    const std::array<BadStripe, 5> bad_stripes{{
+        {"#a::part(face) { stripe-pitch: 2px }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { stripe-ratio: 0.95 }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { stripe-angle: 80deg }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { stripe-lean: sideways }", DiagnosticCode::keyword_unknown},
+        {"#a::part(face) { stripe-speed: 4 }", DiagnosticCode::value_out_of_range},
+    }};
+    bool each_refused = true;
+    for (const BadStripe& bad : bad_stripes) {
+        const Compilation refused = compile(bad.sheet);
+        const bool one = refused.outcome == CompileOutcome::refused && refused.diagnostics.size() == 1U &&
+                         refused.diagnostics[0].code == bad.code;
+        if (!one) {
+            each_refused = false;
+            std::cerr << "  bad stripe not refused as expected: " << bad.sheet << '\n';
+        }
+    }
+    require(each_refused, "each stripe value outside its range or vocabulary refuses its sheet with one error");
+    // The node canvas's properties (cp31) are part fields too: admitted on
+    // a named part, range-checked, and refused on a control; the texture is
+    // one to three baked layers, procedural or a finish, each multiplied at
+    // most 3 %.
+    const Compilation canvas = compile(
+        "#a::part(face) { fill-color: #fbfcfd; stroke-color: rgb(99 132 178 / 22%); stroke-width: 1.5px;"
+        " stroke-dash: 6px 4px; halo: rgb(47 105 190 / 30%) 4px; corner-radius: 6px; grid-spacing: 16px;"
+        " grid-band: 12px; flow: dots; flow-speed: 48; flow-spacing: 16px;"
+        " background-texture: procedural(felt, 7, 64px, 0.5) multiply 2.5%,"
+        " procedural(paper-fibre, 4294967295, 48px, 1) multiply 3%,"
+        " finish(cloth-weave, #ffffff, #d8d8d8, 9, 2) multiply 1% }\n"
+        "#b::part(face) { stroke-dash: none; halo: none; flow: none; background-texture: none }");
+    bool canvas_admitted = true;
+    for (const ThemeDiagnostic& diagnostic : canvas.diagnostics) {
+        if (diagnostic.code == DiagnosticCode::literal_colour_unremappable) continue;
+        canvas_admitted = false;
+        std::cerr << "  canvas: " << diagnostic_code_label(diagnostic.code) << ' '
+                  << diagnostic_code_name(diagnostic.code) << " (" << diagnostic.detail << ")\n";
+    }
+    require(canvas.outcome == CompileOutcome::compiled && canvas_admitted && canvas.sheet.rules.size() == 2U,
+            "the node canvas properties compile on a named part");
+    const RecipeDeclaration* texture = nullptr;
+    const RecipeDeclaration* untextured = nullptr;
+    const RecipeDeclaration* dash = nullptr;
+    const RecipeDeclaration* gap = nullptr;
+    const RecipeDeclaration* halo_width = nullptr;
+    const RecipeDeclaration* flow = nullptr;
+    if (canvas.sheet.rules.size() == 2U) {
+        for (const RecipeDeclaration& field : canvas.sheet.rules[0].recipe_fields) {
+            if (field.field == RecipeField::texture_layers) texture = &field;
+            if (field.field == RecipeField::stroke_dash) dash = &field;
+            if (field.field == RecipeField::stroke_gap) gap = &field;
+            if (field.field == RecipeField::halo_width) halo_width = &field;
+            if (field.field == RecipeField::flow_style) flow = &field;
+        }
+        for (const RecipeDeclaration& field : canvas.sheet.rules[1].recipe_fields) {
+            if (field.field == RecipeField::texture_layers) untextured = &field;
+        }
+    }
+    require(texture != nullptr && (*texture).texture.count == 3U, "a texture lowers to its three layers");
+    if (texture != nullptr && (*texture).texture.count == 3U) {
+        const CanvasTextureLayer& felt = (*texture).texture.items[0];
+        const CanvasTextureLayer& fibre = (*texture).texture.items[1];
+        const CanvasTextureLayer& weave = (*texture).texture.items[2];
+        require(felt.pattern == ProceduralPattern::felt && felt.seed == 7U && felt.tile == 64.0 &&
+                    felt.strength == 0.5 && felt.contrast == 0.025,
+                "a layer lowers to its pattern, seed, tile, strength and contrast fraction");
+        require(fibre.pattern == ProceduralPattern::paper_fibre && fibre.seed == 4294967295U &&
+                    fibre.contrast == 0.03,
+                "the largest seed and 3 % are admitted");
+        require(felt.source == CanvasTextureSource::procedural && weave.source == CanvasTextureSource::finish &&
+                    weave.finish.kind == FinishKind::cloth_weave && weave.finish.seed == 9 &&
+                    weave.finish.grain == 2.0 && weave.finish.paint == Color::rgba(255, 255, 255) &&
+                    weave.finish.secondary == Color::rgba(0xd8, 0xd8, 0xd8) && weave.contrast == 0.01,
+                "a finish layer lowers to its finish, written as a fill writes it");
+    }
+    require(untextured != nullptr && (*untextured).texture.count == 0U, "none lowers to no layer");
+    require(dash != nullptr && (*dash).number == 6.0 && gap != nullptr && (*gap).number == 4.0,
+            "stroke-dash lowers to its dash and its gap");
+    require(halo_width != nullptr && (*halo_width).number == 4.0, "a halo's width is read in either order");
+    require(flow != nullptr && (*flow).flow_style == CanvasFlowStyle::dots, "flow lowers to its mark");
+    const std::array<BadStripe, 21> bad_canvas{{
+        {"#a::part(face) { background-texture: procedural(cloth-weave, 0, 16px, 1) multiply 2% }",
+         DiagnosticCode::value_wrong_kind},
+        {"#a::part(face) { background-texture: finish(sand-blast-glint, #ffffff, #a3a3a3) multiply 2% }",
+         DiagnosticCode::value_wrong_kind},
+        {"#a::part(face) { background-texture: finish(orange-peel) multiply 2% }", DiagnosticCode::value_syntax},
+        {"#a::part(face) { background-texture: finish(orange-peel, #ffffff, #c8c8c8) multiply 4% }",
+         DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { background-texture: procedural(felt, 0, 64px, 1) multiply 5% }",
+         DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { background-texture: procedural(felt, 0, 64px, 1) screen 2% }",
+         DiagnosticCode::keyword_unknown},
+        {"#a::part(face) { background-texture: procedural(marble, 0, 64px, 1) multiply 2% }",
+         DiagnosticCode::value_wrong_kind},
+        {"#a::part(face) { background-texture: procedural(fresco, 0, 64px, 1) multiply 2% }",
+         DiagnosticCode::value_wrong_kind},
+        {"#a::part(face) { background-texture: procedural(felt, 0, 97px, 1) multiply 2% }",
+         DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { background-texture: procedural(felt, 0, 1px, 1) multiply 2% }",
+         DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { background-texture: procedural(felt, 1.5, 64px, 1) multiply 2% }",
+         DiagnosticCode::value_wrong_kind},
+        {"#a::part(face) { background-texture: procedural(felt, 0, 64px, 2) multiply 2% }",
+         DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { background-texture: procedural(felt, 0, 64px) multiply 2% }",
+         DiagnosticCode::value_syntax},
+        {"#a::part(face) { background-texture: procedural(felt, 0, 64px, 1) multiply 1%,"
+         " procedural(felt, 1, 64px, 1) multiply 1%, procedural(felt, 2, 64px, 1) multiply 1%,"
+         " procedural(felt, 3, 64px, 1) multiply 1% }",
+         DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { stroke-dash: 80px 4px }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { halo: 20px #ffffff }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { corner-radius: 65px }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { grid-spacing: 1px }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { grid-band: 129px }", DiagnosticCode::value_out_of_range},
+        {"#a::part(face) { flow: sparks }", DiagnosticCode::keyword_unknown},
+        {"#a::part(face) { flow-speed: 600 }", DiagnosticCode::value_out_of_range},
+    }};
+    bool canvas_refused = true;
+    for (const BadStripe& bad : bad_canvas) {
+        const Compilation refused = compile(bad.sheet);
+        const bool one = refused.outcome == CompileOutcome::refused && refused.diagnostics.size() == 1U &&
+                         refused.diagnostics[0].code == bad.code;
+        if (!one) {
+            canvas_refused = false;
+            std::cerr << "  bad canvas value not refused as expected: " << bad.sheet << '\n';
+        }
+    }
+    require(canvas_refused, "each canvas value outside its range or vocabulary refuses its sheet with one error");
+    const Compilation imaged = compile("#a::part(face) { background-texture: url(\"resource:icon.check\") multiply 1% }");
+    require(imaged.outcome == CompileOutcome::refused, "a texture is never an image");
+    const Compilation elsewhere = compile("#a::part(face) { background: procedural(felt, 0, 64px, 1) }");
+    require(elsewhere.outcome != CompileOutcome::compiled || !elsewhere.diagnostics.empty(),
+            "procedural() is known to background-texture alone");
+    const Compilation control_canvas = compile("#a { fill-color: #ffffff; flow: dots }");
+    require(control_canvas.outcome == CompileOutcome::compiled && control_canvas.diagnostics.size() == 2U &&
+                warned(control_canvas, DiagnosticCode::property_not_admitted, "fill-color") &&
+                warned(control_canvas, DiagnosticCode::property_not_admitted, "flow"),
+            "the canvas properties are refused on a control");
+    const Compilation control_stripes = compile("#a { stripe-speed: 1 }");
+    require(control_stripes.outcome == CompileOutcome::compiled && control_stripes.diagnostics.size() == 1U &&
+                warned(control_stripes, DiagnosticCode::property_not_admitted, "stripe-speed"),
+            "the stripe properties are refused on a control");
     const Compilation not_read = compile("#a { width: var(--missing); glimmer: 1 2 3 }");
     require(not_read.outcome == CompileOutcome::compiled && not_read.diagnostics.size() == 2U,
             "a dropped property's value is not read");

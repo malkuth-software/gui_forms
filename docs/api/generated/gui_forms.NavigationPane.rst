@@ -9,7 +9,7 @@ gui_forms::NavigationPane
 
 .. cpp:class:: NavigationPane : public Control, public NavigationPaneCapabilities<NavigationPane>
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
+   ``#include <gui_forms/controls/navigation_pane.hpp>``
 
    An Outlook-style navigation pane: the selected page's content above a stack of large page buttons.
 
@@ -374,10 +374,6 @@ gui_forms::NavigationPane
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -393,6 +389,26 @@ gui_forms::NavigationPane
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -421,3 +437,97 @@ gui_forms::NavigationPane
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 17 supported, 0 deferred, 0 excluded, 3 unclassified; 20 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``configure_menu_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``hidden_pages``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``overlay_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``pages``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``state``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``visible_button_count``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``options_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``overlay_open_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``state_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``apply_state``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_configure_menu``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_overlay``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``open_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``page_hidden``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_page_hidden``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_configure_menu``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_fewer_buttons``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_more_buttons``
+     - supported

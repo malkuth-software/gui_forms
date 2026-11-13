@@ -9,7 +9,7 @@ gui_forms::DockNavigator
 
 .. cpp:class:: DockNavigator : public Control, public DockNavigatorCapabilities<DockNavigator>
 
-   ``#include <gui_forms/controls/docking/dock_navigator/dock_navigator.hpp>``
+   ``#include <gui_forms/controls/dock_navigator.hpp>``
 
    The two-list window switcher of docking: the active tool windows beside the active files.
 
@@ -231,10 +231,6 @@ gui_forms::DockNavigator
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: std::vector<SemanticNode> semantic_virtual_children() const override
@@ -249,6 +245,30 @@ gui_forms::DockNavigator
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
 
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_up(KeyEventArgs& arguments) override
+
+      *Protected.*
+
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
@@ -260,3 +280,73 @@ gui_forms::DockNavigator
    .. cpp:function:: void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 4 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``current_index``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``current_list``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``current_panel``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``cancelled``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``chosen``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``cancel``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``choose``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``entries``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``entry_identity``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``select``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_entries``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``step``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``switch_list``
+     - supported

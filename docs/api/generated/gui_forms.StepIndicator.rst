@@ -9,7 +9,7 @@ gui_forms::StepIndicator
 
 .. cpp:class:: StepIndicator final : public Control, public StepIndicatorCapabilities<StepIndicator>
 
-   ``#include <gui_forms/controls/step_indicator/step_indicator.hpp>``
+   ``#include <gui_forms/controls/step_indicator.hpp>``
 
    Row of numbered steps joined by connectors, completed steps checked and the current step highlighted, a press on a completed step reported for going back.
 
@@ -62,7 +62,7 @@ gui_forms::StepIndicator
 
       The step under way, counted from zero; the steps before it are complete. Past the last step throws std::invalid_argument (zero is always accepted).
 
-   .. cpp:function:: const std::vector<std::string>& steps() const noexcept
+   .. cpp:function:: const std::vector<std::string>& steps() const& noexcept
 
    .. cpp:function:: void set_steps(std::vector<std::string> steps)
 
@@ -97,11 +97,13 @@ gui_forms::StepIndicator
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
@@ -112,3 +114,41 @@ gui_forms::StepIndicator
    .. cpp:member:: constexpr std::size_t step_indicator_property_count
 
       StepIndicator's property table: Control's entries, then its own. Default: ``Control::control_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 2 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``current_step``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``steps``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``current_step_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``step_clicked``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``step_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``step_indicator_property_entries``
+     - unclassified (untested)

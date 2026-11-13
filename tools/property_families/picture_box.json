@@ -2,13 +2,13 @@
   "family": "PictureBox",
   "step": "B5",
   "declaring": "PictureBox",
-  "header": "include/gui_forms/controls/panel/picture_box/picture_box.hpp",
+  "header": "include/gui_forms/controls/picture_box.hpp",
   "source": "src/controls/panel/picture_box/picture_box.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/picture_box_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [
-    "gui_forms/controls/panel/picture_box/picture_box_values/picture_box_values.hpp",
+    "gui_forms/controls/picture_box_values.hpp",
     "gui_forms/types.hpp"
   ],
   "properties": [
@@ -123,6 +123,6 @@
   ],
   "test": {
     "type": "PictureBox",
-    "include": "gui_forms/controls/panel/picture_box/picture_box.hpp"
+    "include": "gui_forms/controls/picture_box.hpp"
   }
 }

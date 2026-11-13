@@ -35,6 +35,7 @@
 // Painter's stroke_polyline breaks there) and the pyramid declines a series
 // holding gaps (the caller falls back to the linear envelope).
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/plot_transform/plot_transform.hpp"
 #include "gui_forms/plots/series_column/series_column.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -87,7 +88,7 @@ struct ImplicitXSamples final {
 // -- cull ------------------------------------------------------------------------
 
 // Elements [first, end) of a monotone source.
-struct ElementRange final {
+struct GUI_FORMS_API ElementRange final {
     std::size_t first{};
     std::size_t end{};
 
@@ -129,7 +130,7 @@ template <typename Source>
 // -- envelope ----------------------------------------------------------------------
 
 // What a decimation pass did.
-struct DecimationStatistics final {
+struct GUI_FORMS_API DecimationStatistics final {
     std::size_t points_in{};
     std::size_t points_out{};
     // Runs of finite points separated by gaps.
@@ -180,10 +181,10 @@ enum class PyramidOutcome : std::uint8_t {
     declined_size,
 };
 
-class EnvelopePyramid final {
+class GUI_FORMS_API EnvelopePyramid final {
 public:
     // Reserves the levels for up to `capacity` elements (allocates once).
-    void reserve(std::size_t capacity);
+    inline void reserve(std::size_t capacity);
     // Rebuilds from `source` (y only) in O(n).
     template <typename Source>
     PyramidOutcome build(const Source& source) noexcept;
@@ -197,11 +198,11 @@ public:
     [[nodiscard]] std::size_t capacity() const noexcept { return capacity_; }
     [[nodiscard]] std::size_t level_count() const noexcept { return level_count_; }
     // Buckets at `level` (level 0 holds size()/pyramid_base whole buckets).
-    [[nodiscard]] std::size_t bucket_count(std::size_t level) const noexcept;
+    [[nodiscard]] inline std::size_t bucket_count(std::size_t level) const noexcept;
     // The minimum's and maximum's element indices of bucket `bucket` at
     // `level`.
-    [[nodiscard]] std::uint32_t minimum_index(std::size_t level, std::size_t bucket) const noexcept;
-    [[nodiscard]] std::uint32_t maximum_index(std::size_t level, std::size_t bucket) const noexcept;
+    [[nodiscard]] inline std::uint32_t minimum_index(std::size_t level, std::size_t bucket) const noexcept;
+    [[nodiscard]] inline std::uint32_t maximum_index(std::size_t level, std::size_t bucket) const noexcept;
 
     // The envelope of `range`, as decimate_envelope writes it, with each
     // column's minimum and maximum taken from the pyramid. `source` must be
@@ -238,9 +239,9 @@ private:
 
 // A device pixel grid over a plot, reused between frames (decimation
 // stage 4). Caller-owned; reserve() allocates.
-class OccupancyGrid final {
+class GUI_FORMS_API OccupancyGrid final {
 public:
-    void reserve(std::size_t columns, std::size_t rows);
+    inline void reserve(std::size_t columns, std::size_t rows);
     [[nodiscard]] std::size_t columns() const noexcept { return columns_; }
     [[nodiscard]] std::size_t rows() const noexcept { return rows_; }
 
@@ -262,13 +263,13 @@ private:
 
 // Fixed bins over [minimum, maximum]: `count` bins of equal width,
 // right-open except the last, which is closed.
-struct BinSpec final {
+struct GUI_FORMS_API BinSpec final {
     double minimum{};
     double maximum{1.0};
     std::size_t count{10U};
 };
 
-struct BinTally final {
+struct GUI_FORMS_API BinTally final {
     std::uint64_t binned{};
     std::uint64_t gaps{};
     std::uint64_t below{};

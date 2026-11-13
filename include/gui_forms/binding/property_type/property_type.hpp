@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/type_tag/type_tag.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/types.hpp"
@@ -19,7 +20,7 @@ namespace gui_forms {
 // A property's runtime type (study section 15; numpy's dtype): the binding
 // kind, whether empty is a value, and an enumeration's finite choice set.
 // `(*c).visible.type()` returns it; `as_type(type)` converts to it.
-struct PropertyType final {
+struct GUI_FORMS_API PropertyType final {
     BindingValueKind kind{BindingValueKind::null};
     bool nullable{};
     std::shared_ptr<const PropertyEnumDescriptor> enumeration;
@@ -28,7 +29,7 @@ struct PropertyType final {
 // Converts `value` to `target` with the property conversion rules
 // (convert_property_value: the one conversion table). Nullopt when the
 // value has no form of that type.
-[[nodiscard]] std::optional<BindingValue> convert_to_property_type(const BindingValue& value,
+[[nodiscard]] GUI_FORMS_API std::optional<BindingValue> convert_to_property_type(const BindingValue& value,
                                                                    const PropertyType& target);
 
 // One specialization per property value type: its PropertyType (type()),

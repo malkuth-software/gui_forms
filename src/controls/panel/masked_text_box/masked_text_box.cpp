@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp"
+#include "gui_forms/controls/masked_text_box.hpp"
 
 #include "../input_control_utilities.hpp"
 #include "../panel_anatomy.hpp"
@@ -44,7 +44,7 @@ bool valid_format(MaskTextFormat format) noexcept {
 } // namespace
 
 MaskedTextBox::MaskedTextBox(StableId stable_id, std::string initial_mask)
-    : Panel(std::move(stable_id)), provider_(std::move(initial_mask)) {
+    : TextBoxBase(std::move(stable_id), UndoHistory::none), provider_(std::move(initial_mask)) {
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     border_style = BorderStyle::none;
     published_text_ = text.read();
@@ -72,7 +72,7 @@ void MaskedTextBox::initialize_control_tree() {
         std::static_pointer_cast<MaskedTextBox>(shared_from_this());
     editor_change_ = (*editor_).text_changed().subscribe(*this, EditorChangeCallback{weak});
     validating_ = validating().subscribe(
-        *this, Delegate<ControlValidationEvent&>::bind<MaskedTextBox, &MaskedTextBox::on_validating>(*this));
+        *this, Delegate<ControlValidationEvent&>::bind<MaskedTextBox, &MaskedTextBox::check_mask_on_validating>(*this));
 }
 
 // -- the edit filter -----------------------------------------------------------
@@ -399,6 +399,17 @@ MaskEditResult MaskedTextBox::place_text(std::string_view incoming) {
     return result;
 }
 
+detail::TextEditingEngine* MaskedTextBox::editing_engine() const noexcept {
+    if (!editor_) return nullptr;
+    detail::TextEditingEngine* const engine = engine_of(*editor_);
+    return engine;
+}
+
+void MaskedTextBox::apply_selection(TextSelection selection) {
+    // The field shows the selection and raises its own selection_changed.
+    if (editor_) (*editor_).select(selection.anchor, selection.caret);
+}
+
 void MaskedTextBox::clear() {
     require_mutable();
     provider_.clear();
@@ -513,7 +524,7 @@ bool MaskedTextBox::validate_text() {
     return validation.valid;
 }
 
-void MaskedTextBox::on_validating(ControlValidationEvent& event) {
+void MaskedTextBox::check_mask_on_validating(ControlValidationEvent& event) {
     const MaskValidation validation = run_validation();
     if (!validation.valid && validation.cancel) event.cancel = true;
 }

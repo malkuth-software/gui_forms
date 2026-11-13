@@ -9,7 +9,7 @@ gui_forms::EmptyState
 
 .. cpp:class:: EmptyState final : public Control, public EmptyStateCapabilities<EmptyState>
 
-   ``#include <gui_forms/controls/empty_state/empty_state.hpp>``
+   ``#include <gui_forms/controls/empty_state.hpp>``
 
    What a list, a page or a search shows when it has nothing to show, such as "No messages" in an empty mailbox.
 
@@ -150,3 +150,37 @@ gui_forms::EmptyState
    .. cpp:member:: constexpr std::size_t empty_state_property_count
 
       EmptyState's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 2 supported, 0 deferred, 0 excluded, 3 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``action``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``description``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``image``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``title``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``empty_state_property_entries``
+     - unclassified (untested)

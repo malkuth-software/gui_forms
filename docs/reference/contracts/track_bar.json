@@ -29,13 +29,25 @@
       "reviewed": false,
       "summary": "Records track, completed segment, ticks, thumb, hover/press, focus, and disabled states."
     },
-    "gui_forms::TrackBar::on_pointer|void (PointerEvent &)": {
+    "gui_forms::TrackBar::on_mouse_down|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Captures primary dragging and converts window points to constrained range values."
+      "summary": "The press's target phase: captures primary dragging and converts window points to constrained range values, then raises the event."
     },
-    "gui_forms::TrackBar::on_key|void (KeyEvent &)": {
+    "gui_forms::TrackBar::on_mouse_up|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Handles arrows, page keys, home, and end through reasoned RangeControl transitions."
+      "summary": "The release's target phase: captures primary dragging and converts window points to constrained range values, then raises the event."
+    },
+    "gui_forms::TrackBar::on_mouse_move|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "The move's target phase: captures primary dragging and converts window points to constrained range values, then raises the event."
+    },
+    "gui_forms::TrackBar::on_mouse_wheel|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "The wheel turn's target phase: captures primary dragging and converts window points to constrained range values, then raises the event."
+    },
+    "gui_forms::TrackBar::on_key_down|void (KeyEventArgs &)": {
+      "reviewed": false,
+      "summary": "Raises the event, then for an unhandled key: handles arrows, page keys, home, and end through reasoned RangeControl transitions."
     },
     "gui_forms::TrackBar::on_focus_changed|void (bool)": {
       "reviewed": false,

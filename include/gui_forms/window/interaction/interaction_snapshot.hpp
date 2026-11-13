@@ -3,6 +3,7 @@
 // where the pointer is, copied for tests and diagnostics by
 // SurfaceRoot::interaction_snapshot.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 
@@ -19,7 +20,7 @@ inline constexpr std::size_t maximum_held_keys = 16U;
 
 // One held physical key (a USB HID usage, PhysicalKey) and when it went
 // down, in the window's input time (InputTimeSource).
-struct HeldKey final {
+struct GUI_FORMS_API HeldKey final {
     std::uint32_t physical_key{};
     FrameTime pressed_at{};
 
@@ -35,7 +36,7 @@ struct HeldKey final {
 // the pointer's leave, and `last_click_count` is the click count the host
 // reported for the last press. A window that has dispatched no input
 // reports empty input fields.
-struct InteractionSnapshot final {
+struct GUI_FORMS_API InteractionSnapshot final {
     std::vector<HeldKey> held_keys{};  // in press order
     std::uint32_t untracked_key_presses{};
     Modifier modifiers{Modifier::none};
@@ -60,7 +61,7 @@ struct InteractionSnapshot final {
 // source is installed: tests install one so that times are theirs. Its
 // times must be in the same domain as the times the window is polled with
 // (SurfaceRoot::poll_frame_schedule), which wakes a pending hover.
-class InputTimeSource {
+class GUI_FORMS_API InputTimeSource {
 public:
     virtual ~InputTimeSource() = default;
     [[nodiscard]] virtual FrameTime now() const noexcept = 0;

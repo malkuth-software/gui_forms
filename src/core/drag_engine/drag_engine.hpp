@@ -65,6 +65,7 @@
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
+#include "gui_forms/drag/drag_tracker/drag_tracker.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
@@ -131,9 +132,9 @@ inline constexpr DragNodeIndex no_drag_node{};
 
 // A contiguous run of the plan's landings, as add_landings or add_list
 // stored it. `uniform` marks a list run whose anchors lie at a constant
-// pitch along `axis` from `origin`: a nearest operator over it with that
-// axis' metric finds its candidate in O(1).
-enum class DragAxis : std::uint8_t { x, y };
+// pitch along `axis` (DragAxis, public in drag_tracker.hpp) from `origin`:
+// a nearest operator over it with that axis' metric finds its candidate in
+// O(1).
 struct DragCandidateRange final {
     std::uint32_t first{};
     std::uint32_t count{};
@@ -145,10 +146,9 @@ struct DragCandidateRange final {
 
 // -- vocabulary -----------------------------------------------------------------
 
-enum class DragPhase : std::uint8_t { idle, armed, planning, dragging, settling };
-
-// DragEnd and DragInputMode are public (gui_forms/events/drag_events), as
-// the typed drag interactions carry them.
+// DragPhase is public (gui_forms/drag/drag_tracker), as the public drag
+// client reports it; DragEnd and DragInputMode are public
+// (gui_forms/events/drag_events), as the typed drag interactions carry them.
 inline constexpr std::size_t drag_end_count = 9U;
 
 // The distance a nearest operator compares: from the grab-adjusted pointer
@@ -258,6 +258,8 @@ struct DragListGeometry final {
 //   range: nearest's and target's landings.
 //   primary, secondary: fallback's children; snap's and suppress' child.
 //   distance: nearest's stickiness, fallback's gap, snap's radius.
+//   release: snap's release radius (at least its radius): the candidate it
+//     holds stays selected until it is farther than this (hysteresis).
 //   metric: nearest's metric.
 //   chain: snap's chaining.
 //   suppressed_by: suppress' modifiers.
@@ -269,6 +271,7 @@ struct DragOperator final {
     DragNodeIndex primary{};
     DragNodeIndex secondary{};
     double distance{};
+    double release{};
     DragMetric metric{DragMetric::euclidean};
     DragChain chain{DragChain::off};
     Modifier suppressed_by{Modifier::none};
@@ -349,10 +352,11 @@ public:
     // character boundary.
     void assign(std::string_view text) noexcept;
     void clear() noexcept { length_ = 0U; }
-    [[nodiscard]] std::string_view view() const noexcept {
+    [[nodiscard]] std::string_view view() const& noexcept {
         const std::string_view text(bytes_.data(), length_);
         return text;
     }
+    std::string_view view() const&& = delete;
 
 private:
     std::array<char, maximum_drag_announcement_bytes> bytes_{};
@@ -371,6 +375,8 @@ struct DragStatistics final {
     std::uint64_t evaluations{};
     std::uint64_t ties{};
     std::uint64_t chains{};
+    // Plans redone for the client's moved geometry (replan).
+    std::uint64_t replans{};
     std::uint64_t storage_growths{};
     std::array<std::uint64_t, drag_end_count> ends{};
 };
@@ -424,7 +430,11 @@ public:
     // Writes the announcement for a frame whose selection changed, and for
     // the end. Nothing by default.
     virtual void announce_drag(const DragFrame& frame, DragAnnouncement& announcement);
-    // Maps a committing outcome before end_drag (the study's rewrite).
+    // Maps a committing outcome before end_drag (the study's rewrite). It
+    // may change the selection, or turn the end into rejected (the selected
+    // candidate went away); the engine then clears the selection, and the
+    // announcement and the typed interactions report rejected. Any other
+    // end it writes is taken as rejected.
     virtual void rewrite_drag_outcome(DragOutcome& outcome);
     // Commits a chained candidate; planning follows at once.
     virtual void commit_drag_chain(const DragOutcome& outcome);
@@ -459,7 +469,15 @@ public:
     DragNodeIndex project(const DragProjection& projection);
     DragNodeIndex free(const DragFreeArea& area);
     DragNodeIndex fallback(DragNodeIndex primary, DragNodeIndex secondary, double gap);
+    // A candidate is captured within `radius` and, once held, released
+    // only past `release_radius` (at least radius; refused otherwise). The
+    // three-argument form releases at the capture radius. Hysteresis needs
+    // the held candidate to stay reachable: when `child` selects another
+    // candidate, the held one is kept while it is within the release radius
+    // under `child`'s metric (a nearest child; any other child selects one
+    // candidate only).
     DragNodeIndex snap(DragNodeIndex child, double radius, DragChain chain);
+    DragNodeIndex snap(DragNodeIndex child, double radius, DragChain chain, double release_radius);
     DragNodeIndex suppress(DragNodeIndex child, Modifier suppressed_by);
     // Names the container of a group, for the drop_candidate rule condition.
     void group_container(DragGroup group, Control& container);
@@ -518,6 +536,29 @@ public:
     // model_changed (the client's own edit during the drag). Other ends are
     // ignored.
     void cancel(DragEnd end);
+    // Plans the running pointer session of `client` again at the same
+    // pointer, because its geometry moved under the drag: an auto-scroll
+    // step moved its content by `moved` (the root's coordinates; zero when
+    // only the candidates changed, a withdrawn target). The press and the
+    // source move by `moved`, so the grab is kept; the epoch advances
+    // (tokens of the older epoch are stale), the new plan is evaluated
+    // without stickiness at the current pointer and modifiers, and the
+    // client previews a changed selection. A refused plan ends the session
+    // rejected. True while the session still drags afterwards; false,
+    // changing nothing, unless `client` runs a pointer session that is
+    // dragging, or for a non-finite `moved`. Never called from inside one of
+    // the client's own calls (it would plan within a plan or a preview).
+    bool replan(const DragClient& client, Point moved);
+    // Keyboard sessions of `client` only: the landings of `token` are no
+    // longer keyboard stops, so the arrows and Tab step past them (a
+    // withdrawn target; the selection stays where it is). True when a stop
+    // was removed.
+    bool withdraw_keyboard_stop(const DragClient& client, DragCandidateToken token) noexcept;
+    // Replaces the running session's announcement for `client` (outside a
+    // frame: a withdrawn target), cut as DragAnnouncement::assign cuts it,
+    // and invalidates the root's semantics when it changed. False, changing
+    // nothing, unless `client` runs the session.
+    bool set_announcement(const DragClient& client, std::string_view text);
     // The window's capture moved away from `control` (SurfaceRoot's hook).
     void note_capture_lost(const Control& control);
     // The client is going away: the session ends subject_gone without
@@ -530,7 +571,8 @@ public:
     [[nodiscard]] DragInputMode mode() const noexcept { return mode_; }
     [[nodiscard]] DragEpoch epoch() const noexcept { return epoch_; }
     [[nodiscard]] const DragSelection& selection() const noexcept { return selection_; }
-    [[nodiscard]] std::string_view announcement() const noexcept { return announcement_.view(); }
+    [[nodiscard]] std::string_view announcement() const& noexcept { return announcement_.view(); }
+    std::string_view announcement() const&& = delete;
     [[nodiscard]] const DragStatistics& statistics() const noexcept { return statistics_; }
     // Whether `client` runs the current session (any phase but idle).
     [[nodiscard]] bool runs(const DragClient& client) const noexcept;

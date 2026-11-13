@@ -9,7 +9,7 @@ gui_forms::ToggleSwitch
 
 .. cpp:class:: ToggleSwitch final : public ButtonBase, public ToggleSwitchCapabilities<ToggleSwitch>
 
-   ``#include <gui_forms/controls/button_base/toggle_switch/toggle_switch.hpp>``
+   ``#include <gui_forms/controls/toggle_switch.hpp>``
 
    A switch for a setting that takes effect as soon as it is turned, such as "Wi-Fi" on or off.
 
@@ -179,3 +179,45 @@ gui_forms::ToggleSwitch
    .. cpp:member:: constexpr std::size_t toggle_switch_property_count
 
       ToggleSwitch's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 3 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``checked``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``off_text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``on_text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``state_text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``thumb_position``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``checked_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``toggle_switch_property_entries``
+     - unclassified (untested)

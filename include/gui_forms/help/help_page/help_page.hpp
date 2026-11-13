@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/help/helpbook_section/helpbook_section.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
 
@@ -27,12 +28,12 @@ namespace gui_forms {
 
 enum class HelpCalloutKind : std::uint8_t { none, note, tip, caution };
 
-[[nodiscard]] std::string_view help_callout_name(HelpCalloutKind kind) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view help_callout_name(HelpCalloutKind kind) noexcept;
 
 enum class HelpPageBlockKind : std::uint8_t { paragraph, heading, list_item, code, rule, image };
 
 // A piece of a block's text in one style. `link` indexes the page's links.
-struct HelpPageRun final {
+struct GUI_FORMS_API HelpPageRun final {
     std::string text{};
     bool bold{};
     bool italic{};
@@ -49,7 +50,7 @@ struct HelpPageRun final {
 // fragment name (help_heading_anchor), or a listed control's stable ID for a
 // help-line entry, so a link or F1 can scroll to it. `image` indexes the
 // page's images for an image block.
-struct HelpPageBlock final {
+struct GUI_FORMS_API HelpPageBlock final {
     HelpPageBlockKind kind{HelpPageBlockKind::paragraph};
     std::size_t level{};
     std::size_t quote_depth{};
@@ -67,13 +68,13 @@ struct HelpPageBlock final {
 
 // A collapsible section: its heading block, the first block after it, and
 // whether it starts open.
-struct HelpPageSection final {
+struct GUI_FORMS_API HelpPageSection final {
     std::size_t heading{};
     std::size_t end{};
     bool initially_open{};
 };
 
-struct HelpPageLink final {
+struct GUI_FORMS_API HelpPageLink final {
     HelpLinkKind kind{HelpLinkKind::external};
     std::string target{};
     std::string fragment{};
@@ -82,12 +83,12 @@ struct HelpPageLink final {
     std::string target_title{};
 };
 
-struct HelpPageImage final {
+struct GUI_FORMS_API HelpPageImage final {
     std::string source{};
     std::string alternative{};
 };
 
-struct HelpPageModel final {
+struct GUI_FORMS_API HelpPageModel final {
     std::string stable_id{};
     std::string title{};
     // A field came from the built-in language while a translation is in
@@ -108,18 +109,18 @@ struct HelpPageModel final {
 // A heading's fragment name: ASCII letters folded to lower case, digits
 // and non-ASCII bytes kept, every other run of bytes one '-', with no '-'
 // at either end. `anchor` is replaced.
-void help_heading_anchor(std::string_view heading, std::string& anchor);
+GUI_FORMS_API void help_heading_anchor(std::string_view heading, std::string& anchor);
 
 // Builds `page` from a record's title and body. On a markdown failure the
 // page holds the title only and the result says why. `page` is replaced.
-[[nodiscard]] MarkdownParseResult build_help_page(std::string_view stable_id, std::string_view title,
+[[nodiscard]] GUI_FORMS_API MarkdownParseResult build_help_page(std::string_view stable_id, std::string_view title,
                                                   std::string_view body, HelpPageModel& page,
                                                   const MarkdownLimits& limits = {});
 
 // Builds the page of record `record` of `section`: its body, then one list
 // entry per control listed on the page (HelpContentsLine), with the
 // control's title in bold and its help line, anchored at its stable ID.
-[[nodiscard]] MarkdownParseResult build_help_page(const HelpBookSection& section, std::size_t record,
+[[nodiscard]] GUI_FORMS_API MarkdownParseResult build_help_page(const HelpBookSection& section, std::size_t record,
                                                   HelpPageModel& page, const MarkdownLimits& limits = {});
 
 } // namespace gui_forms

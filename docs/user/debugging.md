@@ -67,3 +67,22 @@ about 30 frames a second (a timer on Windows and macOS, the event loop's wait
 on Linux) and stops with the last outline. On macOS a fade step asks AppKit
 to draw the outlined areas; with nothing owed that draw copies the raster and
 paints nothing.
+
+# Native exceptions in a binding
+
+An exception inside the library that reaches a C ABI function refuses the
+call. Since ABI 1.2 the refusing thread also keeps a failure snapshot: the
+exception's text, the function, and the shadow frames it was thrown under
+(the library calls, events, posted callbacks, layout and paint passes it
+unwound). `gf_diagnostics_table.failure_snapshot` copies it out after the
+call has returned; `clear_failure_snapshot` forgets it.
+
+| Where | How |
+|---|---|
+| C ABI | `set_exception_reflection(1)` turns reflection on for the process (it starts off). An exception the library has no status for is then `GF_STATUS_NATIVE_EXCEPTION` instead of `GF_STATUS_INTERNAL`. `raise_native_exception(message)` throws one on purpose, so a binding can test its handling. |
+| C# | `NativeException.reflection = true`. `Abi.check` then throws a `NativeException` whose `frames` are the snapshot's frames. It is thrown through one named method per frame (`NativeFrames.library_call`, `NativeFrames.posted_callback`, and so on), so the stack trace lists the library's frames between your call and the throw. |
+
+A native callback entry, such as a window procedure or an AppKit method,
+still ends the process when an exception reaches it, because its caller is
+foreign code that takes no status. Its report on stderr now prints the
+snapshot's frames before the native stack.

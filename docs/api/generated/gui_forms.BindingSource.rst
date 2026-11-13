@@ -421,7 +421,7 @@ gui_forms::BindingSource
 
       The bindings currently connected to the source.
 
-   .. cpp:function:: const std::vector<BindingSortKey>& sort() const noexcept
+   .. cpp:function:: const std::vector<BindingSortKey>& sort() const& noexcept
 
       The sort keys, each a column name and a :cpp:enum:`BindingSortDirection <gui_forms::BindingSortDirection>`.
       ``set_sort(keys)`` sorts the shown rows and :cpp:func:`remove_sort <gui_forms::BindingSource::remove_sort>` restores the
@@ -502,7 +502,7 @@ gui_forms::BindingSource
 
       Sets :cpp:func:`raise_list_changed_events <gui_forms::BindingSource::raise_list_changed_events>`; see the property's description above.
 
-   .. cpp:function:: const std::string& data_member() const noexcept
+   .. cpp:function:: const std::string& data_member() const& noexcept
 
       A name stored for consumers of the source. Changing it raises
       :cpp:func:`data_member_changed <gui_forms::BindingSource::data_member_changed>` and refreshes the bindings; the source itself
@@ -785,3 +785,437 @@ gui_forms::BindingSource
    .. cpp:member:: constexpr std::size_t row_cache_rows
 
       The rows the row cache holds at most. Default: ``512U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``BindingSource``. Members declared here and by the counterpart: 45 supported, 0 deferred, 0 excluded, 60 unclassified; 28 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``BindingSource``
+     - ``BindingSource``
+     - supported
+   * - property
+     - ``AllowEdit``
+     - ``allow_edit``
+     - unclassified (untested)
+   * - property
+     - ``AllowNew``
+     - ``allow_new``
+     - supported
+   * - property
+     - ``AllowRemove``
+     - ``allow_remove``
+     - supported
+   * - property
+     - ``Count``
+     - ``count``
+     - supported
+   * - property
+     - ``CurrencyManager``
+     - ``currency_manager``
+     - supported
+   * - property
+     - ``Current``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DataMember``
+     - ``data_member``
+     - unclassified (untested)
+   * - property
+     - ``DataSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Filter``
+     - ``filter``
+     - supported
+   * - property
+     - ``IsBindingSuspended``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsFixedSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsReadOnly``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsSorted``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsSynchronized``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``List``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Position``
+     - ``position``
+     - supported
+   * - property
+     - ``RaiseListChangedEvents``
+     - ``raise_list_changed_events``
+     - unclassified (untested)
+   * - property
+     - ``Sort``
+     - ``sort``
+     - supported
+   * - property
+     - ``SortDescriptions``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SortDirection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SortProperty``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SupportsAdvancedSorting``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SupportsChangeNotification``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SupportsFiltering``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SupportsSearching``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SupportsSorting``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SyncRoot``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``this[]``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AddingNew``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BindingComplete``
+     - ``binding_complete``
+     - supported
+   * - event
+     - ``CurrentChanged``
+     - ``current_changed``
+     - supported
+   * - event
+     - ``CurrentItemChanged``
+     - ``current_item_changed``
+     - supported
+   * - event
+     - ``DataError``
+     - ``data_error``
+     - supported
+   * - event
+     - ``DataMemberChanged``
+     - ``data_member_changed``
+     - unclassified (untested)
+   * - event
+     - ``DataSourceChanged``
+     - ``data_source_changed``
+     - unclassified (untested)
+   * - event
+     - ``ListChanged``
+     - ``list_changed``
+     - supported
+   * - event
+     - ``PositionChanged``
+     - ``position_changed``
+     - supported
+   * - method
+     - ``Add``
+     - ``add``
+     - supported
+   * - method
+     - ``AddNew``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ApplySort``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CancelEdit``
+     - ``cancel_edit``
+     - supported
+   * - method
+     - ``Clear``
+     - ``clear``
+     - supported
+   * - method
+     - ``Contains``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CopyTo``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``EndEdit``
+     - ``end_edit``
+     - supported
+   * - method
+     - ``Find``
+     - ``find``
+     - supported
+   * - method
+     - ``GetEnumerator``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemProperties``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetListName``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetRelatedCurrencyManager``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``IndexOf``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Insert``
+     - ``insert``
+     - supported
+   * - method
+     - ``MoveFirst``
+     - ``move_first``
+     - unclassified (untested)
+   * - method
+     - ``MoveLast``
+     - ``move_last``
+     - unclassified (untested)
+   * - method
+     - ``MoveNext``
+     - ``move_next``
+     - supported
+   * - method
+     - ``MovePrevious``
+     - ``move_previous``
+     - unclassified (untested)
+   * - method
+     - ``OnAddingNew``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnBindingComplete``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCurrentChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCurrentItemChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDataError``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDataMemberChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDataSourceChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnListChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnPositionChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``Remove``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RemoveAt``
+     - ``remove_at``
+     - supported
+   * - method
+     - ``RemoveCurrent``
+     - ``remove_current``
+     - unclassified (untested)
+   * - method
+     - ``RemoveFilter``
+     - ``remove_filter``
+     - unclassified (untested)
+   * - method
+     - ``RemoveSort``
+     - ``remove_sort``
+     - supported
+   * - method
+     - ``ResetAllowNew``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetBindings``
+     - ``reset_bindings``
+     - unclassified (untested)
+   * - method
+     - ``ResetCurrentItem``
+     - ``reset_current_item``
+     - unclassified (untested)
+   * - method
+     - ``ResetItem``
+     - ``reset_item``
+     - unclassified (untested)
+   * - method
+     - ``ResumeBinding``
+     - ``resume_binding``
+     - supported
+   * - method
+     - ``SuspendBinding``
+     - ``suspend_binding``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``binding_suspended``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``bindings``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``current_stable_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``generation``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``provider``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``provider_reads``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``schema``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``table``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``view_mode``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``view_node_count``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``view_text_bytes``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``disposed_event``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``add_rows``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_edit``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``column_of``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``current_error``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``current_field``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``error``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``field``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``find_stable_id``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``provider_row``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``read_only``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_current_field``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``stable_id``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``value_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``write``
+     - supported

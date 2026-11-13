@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/schema/types/schema_types.hpp"
 #include "gui_forms/types.hpp"
 
@@ -104,6 +105,20 @@ enum class PartRole : std::uint8_t {
     needle,
     beak,
     scrim,
+    // The node canvas roles (NODE_GRAPH_SPEC gap N2; cp31), appended: a
+    // graph node's body (`node`) and its title band (`header`), a node's
+    // connection point (`port`), a stroked connection between ports
+    // (`link`), a small status light on a port or node (`lamp`) and the
+    // rubber-band selection rectangle (`marquee`). The canvas paints them
+    // through resolve_canvas_look (gui_forms/theme/canvas_look); before a
+    // theme binds them the built-in recipe draws `link` as a divider and
+    // the others as a face.
+    node,
+    header,
+    port,
+    link,
+    lamp,
+    marquee,
     count,
 };
 
@@ -192,7 +207,7 @@ static_assert(anatomy_state_count <= 64,
 
 // Position of a part in its control type's declaration list. Distinct from
 // the part's role (shared vocabulary) and from its name (public identity).
-struct PartIndex final {
+struct GUI_FORMS_API PartIndex final {
     std::uint8_t value{};
 
     friend constexpr bool operator==(PartIndex left, PartIndex right) noexcept {
@@ -202,7 +217,7 @@ struct PartIndex final {
 
 // Position of an application-defined state in its control type's
 // declaration list.
-struct CustomStateIndex final {
+struct GUI_FORMS_API CustomStateIndex final {
     std::uint8_t value{};
 
     friend constexpr bool operator==(CustomStateIndex left,
@@ -212,7 +227,7 @@ struct CustomStateIndex final {
 };
 
 // Position of an item system in its control type's declaration list.
-struct ItemSystemIndex final {
+struct GUI_FORMS_API ItemSystemIndex final {
     std::uint8_t value{};
 
     friend constexpr bool operator==(ItemSystemIndex left, ItemSystemIndex right) noexcept {
@@ -225,7 +240,7 @@ struct ItemSystemIndex final {
 // items apart, such as a ribbon's contextual tab sets. Index 0 is the ramp's
 // first colour; an index past the end of a theme's ramp wraps around it.
 // A part or item carries one as data, not as a state.
-struct AccentIndex final {
+struct GUI_FORMS_API AccentIndex final {
     std::uint8_t value{};
 
     friend constexpr bool operator==(AccentIndex left, AccentIndex right) noexcept {
@@ -234,7 +249,7 @@ struct AccentIndex final {
 };
 
 // A bounded set of active standard and custom states.
-class AnatomyStateSet final {
+class GUI_FORMS_API AnatomyStateSet final {
 public:
     constexpr void insert(AnatomyState state) noexcept {
         standard_bits_ |= standard_bit(state);
@@ -285,7 +300,7 @@ private:
 // control type; documents write it in `::part(name)`. `composed_from` names the
 // control id of a simpler system the part reuses (a scroll arrow is a
 // "button"), or is empty.
-struct PartDeclaration final {
+struct GUI_FORMS_API PartDeclaration final {
     std::string_view name;
     PartRole role{PartRole::region};
     std::string_view composed_from;
@@ -297,7 +312,7 @@ struct PartDeclaration final {
 };
 
 // One application-defined finite state, as written in `:state(name)`.
-struct CustomStateDeclaration final {
+struct GUI_FORMS_API CustomStateDeclaration final {
     std::string_view name;
 };
 
@@ -319,7 +334,7 @@ inline constexpr std::array<CustomStateDeclaration, 2> admitted_custom_states{
 // registered name in the schema ("item", "column"). Item part names are
 // unique within the control, across its own parts and every item system, so
 // a document addresses an item part by its name alone.
-struct ItemSystemDeclaration final {
+struct GUI_FORMS_API ItemSystemDeclaration final {
     std::string_view name;
     std::span<const PartDeclaration> parts;
     std::span<const AnatomyState> states;
@@ -330,7 +345,7 @@ struct ItemSystemDeclaration final {
 // The anatomy of one control type. Every span refers to static storage
 // owned by the control type's translation unit, so a ControlAnatomy may be
 // copied and retained for the life of the program.
-struct ControlAnatomy final {
+struct GUI_FORMS_API ControlAnatomy final {
     // The control's id in manifests/controls.json, or "control" for the
     // anatomy every control inherits.
     std::string_view control_id;
@@ -350,7 +365,7 @@ struct ControlAnatomy final {
 // Presence does not depend on transient state: a focus part is present while
 // the control is unfocused. `states` holds only states the part's
 // declaration lists, and no custom states.
-struct PartGeometry final {
+struct GUI_FORMS_API PartGeometry final {
     Rect bounds{};
     bool present{};
     AnatomyStateSet states{};
@@ -385,7 +400,7 @@ struct PartGeometry final {
 
 // Storage for one control's published part geometry: `count` live records,
 // one per declared part, in declaration order.
-struct PartGeometryBuffer final {
+struct GUI_FORMS_API PartGeometryBuffer final {
     std::array<PartGeometry, maximum_control_parts> geometry{};
     std::size_t count{};
 
@@ -396,33 +411,33 @@ struct PartGeometryBuffer final {
 };
 
 // Registered (snake_case) public names.
-[[nodiscard]] std::string_view part_role_name(PartRole role) noexcept;
-[[nodiscard]] std::string_view anatomy_state_name(AnatomyState state) noexcept;
-[[nodiscard]] std::string_view engine_input_name(EngineInput input) noexcept;
-[[nodiscard]] std::optional<PartRole> part_role_from_name(
+[[nodiscard]] GUI_FORMS_API std::string_view part_role_name(PartRole role) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view anatomy_state_name(AnatomyState state) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view engine_input_name(EngineInput input) noexcept;
+[[nodiscard]] GUI_FORMS_API std::optional<PartRole> part_role_from_name(
     std::string_view name) noexcept;
-[[nodiscard]] std::optional<AnatomyState> anatomy_state_from_name(
+[[nodiscard]] GUI_FORMS_API std::optional<AnatomyState> anatomy_state_from_name(
     std::string_view name) noexcept;
 
 // Lookup by declared name within one declaration list, within a control
 // type's own parts, or within one of its item systems.
-[[nodiscard]] std::optional<PartIndex> find_declared_part(
+[[nodiscard]] GUI_FORMS_API std::optional<PartIndex> find_declared_part(
     std::span<const PartDeclaration> declared, std::string_view part_name) noexcept;
-[[nodiscard]] std::optional<PartIndex> find_part(
+[[nodiscard]] GUI_FORMS_API std::optional<PartIndex> find_part(
     const ControlAnatomy& anatomy, std::string_view part_name) noexcept;
-[[nodiscard]] std::optional<ItemSystemIndex> find_item_system(
+[[nodiscard]] GUI_FORMS_API std::optional<ItemSystemIndex> find_item_system(
     const ControlAnatomy& anatomy, std::string_view system_name) noexcept;
-[[nodiscard]] std::optional<PartIndex> find_item_part(
+[[nodiscard]] GUI_FORMS_API std::optional<PartIndex> find_item_part(
     const ItemSystemDeclaration& system, std::string_view part_name) noexcept;
-[[nodiscard]] std::optional<CustomStateIndex> find_custom_state(
+[[nodiscard]] GUI_FORMS_API std::optional<CustomStateIndex> find_custom_state(
     const ControlAnatomy& anatomy, std::string_view state_name) noexcept;
-[[nodiscard]] std::optional<CustomStateIndex> find_item_custom_state(
+[[nodiscard]] GUI_FORMS_API std::optional<CustomStateIndex> find_item_custom_state(
     const ItemSystemDeclaration& system, std::string_view state_name) noexcept;
-[[nodiscard]] bool declares_state(const ControlAnatomy& anatomy,
+[[nodiscard]] GUI_FORMS_API bool declares_state(const ControlAnatomy& anatomy,
                                   AnatomyState state) noexcept;
-[[nodiscard]] bool declares_item_state(const ItemSystemDeclaration& system,
+[[nodiscard]] GUI_FORMS_API bool declares_item_state(const ItemSystemDeclaration& system,
                                        AnatomyState state) noexcept;
-[[nodiscard]] bool declares_part_state(const PartDeclaration& part,
+[[nodiscard]] GUI_FORMS_API bool declares_part_state(const PartDeclaration& part,
                                        AnatomyState state) noexcept;
 
 // Typed records (stage T1). C++ reads a control's parts and states as dot
@@ -588,7 +603,7 @@ enum class AnatomyDefect : std::uint8_t {
 };
 
 // The result of validate_control_anatomy: the first defect found, or none.
-struct AnatomyValidation final {
+struct GUI_FORMS_API AnatomyValidation final {
     AnatomyDefect defect{AnatomyDefect::none};
     // Index into the list the defect concerns (parts, states, custom states,
     // item systems, or one item system's parts or states); zero when the
@@ -598,12 +613,12 @@ struct AnatomyValidation final {
     std::size_t item_system{};
 };
 
-[[nodiscard]] std::string_view anatomy_defect_name(AnatomyDefect defect) noexcept;
-[[nodiscard]] AnatomyValidation validate_control_anatomy(
+[[nodiscard]] GUI_FORMS_API std::string_view anatomy_defect_name(AnatomyDefect defect) noexcept;
+[[nodiscard]] GUI_FORMS_API AnatomyValidation validate_control_anatomy(
     const ControlAnatomy& anatomy) noexcept;
 
 // The anatomy every control inherits until its type declares its own: the
 // granted region and the focus part.
-[[nodiscard]] const ControlAnatomy& base_control_anatomy() noexcept;
+[[nodiscard]] GUI_FORMS_API const ControlAnatomy& base_control_anatomy() noexcept;
 
 } // namespace gui_forms

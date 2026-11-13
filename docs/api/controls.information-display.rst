@@ -17,6 +17,8 @@ Labels, images, progress and review cards.
      - Read-only text laid out as CSS lays out the text of a block, for use inside the layout panels.
    * - :cpp:class:`Badge <gui_forms::Badge>`
      - A small count or dot, such as the number of unread messages beside a mailbox.
+   * - :cpp:class:`IndicatorLamp <gui_forms::IndicatorLamp>`
+     - An indicator lamp: a round lens in a bezel that shows off, on or error, with an optional legend beside it, such as a coolant or fault lamp on a machine panel.
    * - :cpp:class:`InfoBanner <gui_forms::InfoBanner>`
      - A message strip across a form or a page, such as "Changes saved" or "Connection lost; retrying".
    * - :cpp:class:`EmptyState <gui_forms::EmptyState>`
@@ -43,8 +45,6 @@ Labels, images, progress and review cards.
      - Item child of a PlotView declaring one series: its kind, legend label, axes and data (copied, a ring, borrowed views, a signal program or a producer's ring channel).
    * - :cpp:class:`PlotAnnotationItem <gui_forms::PlotAnnotationItem>`
      - Item child of a PlotView declaring a text label anchored at a data point.
-   * - :cpp:class:`ReviewCard <gui_forms::ReviewCard>`
-     - A card that presents one review record: a title, a summary and a verdict.
    * - :cpp:class:`SevenSegmentDisplay <gui_forms::SevenSegmentDisplay>`
      - Read-only seven-segment readout from the instruments package: digits, hexadecimal and the letters a cell can form, decimal points and colons, right-aligned in a fixed or fitted number of cells, unlit segments drawn faintly.
    * - :cpp:class:`GaugeBase <gui_forms::GaugeBase>`
@@ -66,6 +66,7 @@ Labels, images, progress and review cards.
    generated/gui_forms.Label
    generated/gui_forms.TextBlock
    generated/gui_forms.Badge
+   generated/gui_forms.IndicatorLamp
    generated/gui_forms.InfoBanner
    generated/gui_forms.EmptyState
    generated/gui_forms.Toast
@@ -79,7 +80,6 @@ Labels, images, progress and review cards.
    generated/gui_forms.PlotAxisItem
    generated/gui_forms.PlotSeriesItem
    generated/gui_forms.PlotAnnotationItem
-   generated/gui_forms.ReviewCard
    generated/gui_forms.SevenSegmentDisplay
    generated/gui_forms.GaugeBase
    generated/gui_forms.LinearGauge
@@ -229,6 +229,18 @@ Related types
      - A stand-alone topic ("Make your first picture"): an ordinary help record that no control holds, declared like a message, inline const gui_forms::HelpTopic first_picture{ gui_forms::StableId("help.first-picture"), "Make your first picture", first_picture_body, gui_forms::HelpPlace::after("main")}; Its title is the record's ``text``, its body the record's ``help``.
    * - :cpp:class:`HelpTopicPlacement <gui_forms::HelpTopicPlacement>`
      - A topic's place in the contents, as the contents generator reads it: from a HelpTopic or from a run-time declaration (HelpBookSystem::declare_topic).
+   * - :cpp:class:`IndicatorLamp::Parts <gui_forms::IndicatorLamp::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`IndicatorLampCapabilities <gui_forms::IndicatorLampCapabilities>`
+     - Every IndicatorLamp capability, in the order the declaring class takes them.
+   * - :cpp:class:`IndicatorLampLampColorCapability <gui_forms::IndicatorLampLampColorCapability>`
+     - The colour the lens lights in while on, as sRGB, or empty for the theme's.
+   * - :cpp:class:`IndicatorLampLightPlanesCapability <gui_forms::IndicatorLampLightPlanesCapability>`
+     - The baked light planes the lens is composited from, by name: a bake in the windows' light-plane directory (ApplicationResources::set_light_plane_directory), 1 to 64 lower-case letters, digits and '_', or empty for the theme's lens (std::invalid_argument otherwise).
+   * - :cpp:class:`IndicatorLampStateChoiceCapability <gui_forms::IndicatorLampStateChoiceCapability>`
+     - Whether the lamp is off, on or showing an error.
+   * - :cpp:class:`IndicatorLampTextCapability <gui_forms::IndicatorLampTextCapability>`
+     - The legend beside the lens, which also names the lamp to assistive technology; empty for a lens alone.
    * - :cpp:class:`InfoBanner::Parts <gui_forms::InfoBanner::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`InfoBannerCapabilities <gui_forms::InfoBannerCapabilities>`
@@ -380,17 +392,13 @@ Related types
    * - :cpp:class:`ProgressRingValueCapability <gui_forms::ProgressRingValueCapability>`
      - The progress, from 0 to maximum; a value outside that range is drawn clamped to it.
    * - :cpp:class:`ProgressStripes <gui_forms::ProgressStripes>`
-     - Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay).
+     - Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay): filled bands clipped to the fill's inner shape, leaning back from the leading edge and travelling toward it, anchored to the track's start edge so a growing fill does not shift them.
+   * - :cpp:class:`ProgressStripeView <gui_forms::ProgressStripeView>`
+     - The marching stripes' geometry and colours (the barber pole, owner rulings of 2026-11-11), resolved by the bar from the fill part's stripe properties (ControlStripePattern) before the frame runs.
    * - :cpp:class:`ProgressWovenStripes <gui_forms::ProgressWovenStripes>`
      - Randomly woven stripes (owner amendment, 2026-11-02): setup chooses which stripes exist, where and in what order at random; run weaves each in as the fraction passes its threshold, and shimmers them.
    * - :cpp:class:`RadialGauge::Parts <gui_forms::RadialGauge::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
-   * - :cpp:class:`ReviewCardCapabilities <gui_forms::ReviewCardCapabilities>`
-     - Every ReviewCard capability, in the order the declaring class takes them.
-   * - :cpp:class:`ReviewCardRecordCapability <gui_forms::ReviewCardRecordCapability>`
-     - The review shown: key, title, summary, verdict and disposition.
-   * - :cpp:class:`ReviewRecord <gui_forms::ReviewRecord>`
-     - ReviewRecord owns the stable author, timestamp, score/status, title, body, and metadata projected by ReviewCard.
    * - :cpp:class:`RisingBody <gui_forms::RisingBody>`
      - One bubble rising in the fill, or one puff of steam rising above the bar.
    * - :cpp:class:`ScopeSweep <gui_forms::ScopeSweep>`
@@ -460,7 +468,7 @@ Related types
 
 .. cpp:struct:: Badge::Parts final
 
-   ``#include <gui_forms/controls/badge/badge.hpp>``
+   ``#include <gui_forms/controls/badge.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``chip`` is the drawn pill or dot and ``label`` the text inside it; both are absent while the badge is hidden, and ``label`` in dot mode.
 
@@ -474,7 +482,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BadgeCapabilities : public BadgeCountCapability<Declaring>, public BadgeMaximumCapability<Declaring>, public BadgeModeCapability<Declaring>, public BadgeShowZeroCapability<Declaring>
 
-   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+   ``#include <gui_forms/controls/badge_capabilities.hpp>``
 
    Every Badge capability, in the order the declaring class takes them.
 
@@ -501,7 +509,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BadgeCountCapability
 
-   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+   ``#include <gui_forms/controls/badge_capabilities.hpp>``
 
    The number the badge shows in count mode; zero hides the chip unless show_zero is set.
 
@@ -518,7 +526,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BadgeMaximumCapability
 
-   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+   ``#include <gui_forms/controls/badge_capabilities.hpp>``
 
    The largest count shown as it is (99 by default); a larger count shows the maximum followed by "+". Zero throws std::invalid_argument.
 
@@ -535,7 +543,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BadgeModeCapability
 
-   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+   ``#include <gui_forms/controls/badge_capabilities.hpp>``
 
    Whether the badge shows a count chip or a dot without text.
 
@@ -552,7 +560,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BadgeShowZeroCapability
 
-   ``#include <gui_forms/controls/badge/badge_capabilities/badge_capabilities.hpp>``
+   ``#include <gui_forms/controls/badge_capabilities.hpp>``
 
    Whether a zero count still shows its chip; off by default.
 
@@ -567,7 +575,7 @@ Related types
 
 .. cpp:struct:: EmptyState::Parts final
 
-   ``#include <gui_forms/controls/empty_state/empty_state.hpp>``
+   ``#include <gui_forms/controls/empty_state.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``icon`` is the picture, ``caption`` the title, ``label`` the description and ``content`` the action's slot; each is absent while it has nothing to show.
 
@@ -585,7 +593,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> EmptyStateCapabilities : public EmptyStateImageCapability<Declaring>, public EmptyStateTitleCapability<Declaring>, public EmptyStateDescriptionCapability<Declaring>
 
-   ``#include <gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp>``
+   ``#include <gui_forms/controls/empty_state_capabilities.hpp>``
 
    Every EmptyState capability, in the order the declaring class takes them.
 
@@ -608,7 +616,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> EmptyStateDescriptionCapability
 
-   ``#include <gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp>``
+   ``#include <gui_forms/controls/empty_state_capabilities.hpp>``
 
    The line below the title that says why, or what to do next; it describes the control to assistive technology. Must be valid UTF-8 (std::invalid_argument).
 
@@ -623,7 +631,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> EmptyStateImageCapability
 
-   ``#include <gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp>``
+   ``#include <gui_forms/controls/empty_state_capabilities.hpp>``
 
    The picture above the title, an ImageId into the window's ImageRegistry, drawn in a 48-unit square; none by default.
 
@@ -638,7 +646,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> EmptyStateTitleCapability
 
-   ``#include <gui_forms/controls/empty_state/empty_state_capabilities/empty_state_capabilities.hpp>``
+   ``#include <gui_forms/controls/empty_state_capabilities.hpp>``
 
    The heading that says what is empty, such as "No messages"; it names the control to assistive technology. Must be valid UTF-8 (std::invalid_argument).
 
@@ -653,7 +661,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GaugeBaseCapabilities : public GaugeBaseTickFrequencyCapability<Declaring>, public GaugeBaseUnitsCapability<Declaring>, public GaugeBaseDecimalPlacesCapability<Declaring>, public GaugeBaseShowValueCapability<Declaring>, public GaugeBaseLowAlarmCapability<Declaring>, public GaugeBaseHighAlarmCapability<Declaring>
 
-   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/gauge_base_capabilities.hpp>``
 
    Every GaugeBase capability, in the order the declaring class takes them.
 
@@ -688,7 +696,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GaugeBaseDecimalPlacesCapability
 
-   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/gauge_base_capabilities.hpp>``
 
    Digits after the decimal point in the shown value, at most 6 (std::invalid_argument).
 
@@ -705,7 +713,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GaugeBaseHighAlarmCapability
 
-   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/gauge_base_capabilities.hpp>``
 
    The value above which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
 
@@ -720,7 +728,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GaugeBaseLowAlarmCapability
 
-   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/gauge_base_capabilities.hpp>``
 
    The value below which the gauge is in alarm, or none. A present value that is not finite throws std::invalid_argument.
 
@@ -735,7 +743,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GaugeBaseShowValueCapability
 
-   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/gauge_base_capabilities.hpp>``
 
    Whether the value is shown as text beside the scale.
 
@@ -752,7 +760,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GaugeBaseTickFrequencyCapability
 
-   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/gauge_base_capabilities.hpp>``
 
    Distance in value units between scale marks; zero draws none. Negative or not finite throws std::invalid_argument.
 
@@ -769,7 +777,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GaugeBaseUnitsCapability
 
-   ``#include <gui_forms/controls/instruments/gauge_base/gauge_base_capabilities/gauge_base_capabilities.hpp>``
+   ``#include <gui_forms/controls/gauge_base_capabilities.hpp>``
 
    The unit shown after the value, such as "kPa"; empty for none. Must be valid UTF-8 (std::invalid_argument).
 
@@ -784,7 +792,7 @@ Related types
 
 .. cpp:struct:: HelpBook::LinkParts final
 
-   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+   ``#include <gui_forms/controls/help_book.hpp>``
 
    .. cpp:member:: PartGeometry link_text
 
@@ -792,7 +800,7 @@ Related types
 
 .. cpp:struct:: HelpBook::Parts final
 
-   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+   ``#include <gui_forms/controls/help_book.hpp>``
 
    Stage T1 anatomy, as dot members.
 
@@ -812,7 +820,7 @@ Related types
 
 .. cpp:struct:: HelpBook::TopicParts final
 
-   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+   ``#include <gui_forms/controls/help_book.hpp>``
 
    One topic item: a collapsible section's bar and expander, or one link's text.
 
@@ -855,7 +863,7 @@ Related types
 
 .. cpp:struct:: HelpBookImage final
 
-   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+   ``#include <gui_forms/controls/help_book.hpp>``
 
    A PNG resource a help body may show (``![alt](name.png)``): its name in the body, the registered image and its size in logical units.
 
@@ -869,7 +877,7 @@ Related types
 
 .. cpp:struct:: HelpBookLabels final
 
-   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+   ``#include <gui_forms/controls/help_book.hpp>``
 
    The words the book shows for its callouts: a one-word label each. They are the help system's own text, translated with the program's.
 
@@ -1002,7 +1010,7 @@ Related types
 
 .. cpp:struct:: HelpBookViewerLabels final
 
-   ``#include <gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp>``
+   ``#include <gui_forms/controls/help_book_viewer.hpp>``
 
    The words HelpBookViewer shows: the help system's own text, translated with the program's. ``built_in_language`` is the untranslatable way back (translation design): the name of the program's built-in language, which the program supplies in that language; empty hides the link.
 
@@ -1076,7 +1084,7 @@ Related types
 
 .. cpp:struct:: HelpBookViewerSnapshot final
 
-   ``#include <gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp>``
+   ``#include <gui_forms/controls/help_book_viewer.hpp>``
 
    .. cpp:member:: std::size_t history_size
 
@@ -1109,7 +1117,7 @@ Related types
 
       The untranslatable way back (translation design): while set, only the built-in layer resolves, whatever the translation and user files say.
 
-   .. cpp:function:: const std::string& language() const noexcept
+   .. cpp:function:: const std::string& language() const& noexcept
 
    .. cpp:function:: std::uint64_t revision() const noexcept
 
@@ -1123,6 +1131,10 @@ Related types
    .. cpp:function:: HelpRecordLayer& built_in() & noexcept
 
       The built-in layer, for the program to fill. Bumps the revision.
+
+   .. cpp:function:: void adopt_locale(const LocaleCatalog& locale)
+
+      Takes every layer from a language-file catalog (the help view of it): its built-in and program layers become the built-in layer (program values over the file's), its translation and user layers these, and its language and way-back switch these. Replaces what built_in(), set_translation and set_user_overrides put in. Bumps the revision.
 
    .. cpp:function:: HelpResolvedRecord resolve(std::string_view stable_id) const
 
@@ -1277,7 +1289,7 @@ Related types
 
 .. cpp:struct:: HelpLinkActivation final
 
-   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+   ``#include <gui_forms/controls/help_book.hpp>``
 
    A link was activated (click, Enter, or the semantic press). ``page`` is the page's stable ID; ``bounds`` the link's box in window coordinates, where a popup anchors. A handler that acts sets ``handled``; the viewer handles topic and popup links itself and offers external ones to the application.
 
@@ -1515,7 +1527,7 @@ Related types
 
    .. cpp:function:: HelpPlaceKind kind() const noexcept
 
-   .. cpp:function:: std::string_view anchor() const noexcept
+   .. cpp:function:: std::string_view anchor() const& noexcept
 
 
    .. rubric:: Methods
@@ -1540,7 +1552,7 @@ Related types
 
 .. cpp:struct:: HelpPrintOptions final
 
-   ``#include <gui_forms/controls/help/help_print/help_print.hpp>``
+   ``#include <gui_forms/controls/help_print.hpp>``
 
    Printing help pages (help system study, section 8). The page is laid out for paper (every section open, links followed by their target's title in brackets), broken into sheets only between lines, and each sheet carries a header: the program's name at the left and the page's title at the right, over a rule, and a footer with the sheet number. Sending sheets to a printer is the host's print path, which GUI.Forms does not have yet: the program paints each sheet onto the painter its print path gives it.
 
@@ -1570,7 +1582,7 @@ Related types
 
 .. cpp:struct:: HelpPrintPlan final
 
-   ``#include <gui_forms/controls/help/help_print/help_print.hpp>``
+   ``#include <gui_forms/controls/help_print.hpp>``
 
    .. cpp:member:: double content_width
 
@@ -1582,7 +1594,7 @@ Related types
 
 .. cpp:struct:: HelpPrintRequest final
 
-   ``#include <gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp>``
+   ``#include <gui_forms/controls/help_book_viewer.hpp>``
 
    Printing was asked for: the page shown (``page``), or the contents book under it when ``book`` is set. The help system's handler prints.
 
@@ -1596,7 +1608,7 @@ Related types
 
 .. cpp:struct:: HelpPrintSheet final
 
-   ``#include <gui_forms/controls/help/help_print/help_print.hpp>``
+   ``#include <gui_forms/controls/help_print.hpp>``
 
    One sheet: the band of the print layout it shows, in content coordinates.
 
@@ -1780,7 +1792,7 @@ Related types
 
 .. cpp:struct:: HelpSectionToggle final
 
-   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+   ``#include <gui_forms/controls/help_book.hpp>``
 
    A collapsible section was opened or closed.
 
@@ -1824,15 +1836,15 @@ Related types
 
    .. cpp:function:: const StableId& stable_id() const noexcept
 
-   .. cpp:function:: const std::string& title() const noexcept
+   .. cpp:function:: const std::string& title() const& noexcept
 
-   .. cpp:function:: const std::string& body() const noexcept
+   .. cpp:function:: const std::string& body() const& noexcept
 
    .. cpp:function:: const HelpPlace& place() const noexcept
 
-   .. cpp:function:: const std::string& help_line() const noexcept
+   .. cpp:function:: const std::string& help_line() const& noexcept
 
-   .. cpp:function:: const std::string& keywords() const noexcept
+   .. cpp:function:: const std::string& keywords() const& noexcept
 
    .. cpp:function:: const HelpTopic* next() const noexcept
 
@@ -1861,9 +1873,114 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: IndicatorLamp::Parts final
+
+   ``#include <gui_forms/controls/indicator_lamp.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``bezel`` is the ring the lens sits in, ``lens`` the glass that lights, and ``label`` the legend, absent while the text is empty.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry bezel
+
+   .. cpp:member:: PartGeometry lens
+
+   .. cpp:member:: PartGeometry label
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> IndicatorLampCapabilities : public IndicatorLampStateChoiceCapability<Declaring>, public IndicatorLampTextCapability<Declaring>, public IndicatorLampLightPlanesCapability<Declaring>, public IndicatorLampLampColorCapability<Declaring>
+
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
+
+   Every IndicatorLamp capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: IndicatorLampState state
+
+      Whether the lamp is off, on or showing an error. The lens warms up on a change to on or error and cools down on a change to off, at once under reduced motion.
+
+   .. cpp:member:: std::string text
+
+      The legend beside the lens, which also names the lamp to assistive technology; empty for a lens alone. Must be valid UTF-8 (std::invalid_argument).
+
+   .. cpp:member:: std::string light_planes
+
+      The baked light planes the lens is composited from, by name: a bake in the windows' light-plane directory (ApplicationResources::set_light_plane_directory), 1 to 64 lower-case letters, digits and '_', or empty for the theme's lens (std::invalid_argument otherwise). With the bake present the lens takes its aspect and whole look, its body included, and the bezel gives way; without it, and in forced high contrast, the theme's lens is drawn.
+
+   .. cpp:member:: std::optional<Color> lamp_color
+
+      The colour the lens lights in while on, as sRGB, or empty for the theme's. With a bake it is the bake's lamp light at unit power (one bake serves every colour), lamp amber when empty; without one it fills the lit lens over the theme's look, as an authored colour, so not in forced high contrast. An error always lights in the error colour (with a bake, lamp red).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> IndicatorLampLampColorCapability
+
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
+
+   The colour the lens lights in while on, as sRGB, or empty for the theme's. With a bake it is the bake's lamp light at unit power (one bake serves every colour), lamp amber when empty; without one it fills the lit lens over the theme's look, as an authored colour, so not in forced high contrast. An error always lights in the error colour (with a bake, lamp red).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(IndicatorLampLampColorCapability& capability, std::optional<Color> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<Color>, IndicatorLampLampColorCapability<Declaring>> lamp_color
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> IndicatorLampLightPlanesCapability
+
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
+
+   The baked light planes the lens is composited from, by name: a bake in the windows' light-plane directory (ApplicationResources::set_light_plane_directory), 1 to 64 lower-case letters, digits and '_', or empty for the theme's lens (std::invalid_argument otherwise). With the bake present the lens takes its aspect and whole look, its body included, and the bezel gives way; without it, and in forced high contrast, the theme's lens is drawn.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(IndicatorLampLightPlanesCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, IndicatorLampLightPlanesCapability<Declaring>> light_planes
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> IndicatorLampStateChoiceCapability
+
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
+
+   Whether the lamp is off, on or showing an error. The lens warms up on a change to on or error and cools down on a change to off, at once under reduced motion.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(IndicatorLampStateChoiceCapability& capability, IndicatorLampState incoming)
+
+   .. cpp:member:: PropertyCell<IndicatorLampState, IndicatorLampStateChoiceCapability<Declaring>> state
+
+      Default: ``{IndicatorLampState::off}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> IndicatorLampTextCapability
+
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
+
+   The legend beside the lens, which also names the lamp to assistive technology; empty for a lens alone. Must be valid UTF-8 (std::invalid_argument).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(IndicatorLampTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, IndicatorLampTextCapability<Declaring>> text
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: InfoBanner::Parts final
 
-   ``#include <gui_forms/controls/info_banner/info_banner.hpp>``
+   ``#include <gui_forms/controls/info_banner.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``face`` is the notice surface, ``keyline`` the severity's rule along the start edge, ``icon`` the severity mark, ``caption`` the title, ``label`` the message, ``actuator`` the close mark (absent unless closable; hot and pressed as the pointer is) and ``content`` the action's slot (absent without an action). An empty title or message publishes no caption or label. The icon and the actuator take the glyph role, the role that draws a mark.
 
@@ -1887,7 +2004,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> InfoBannerCapabilities : public InfoBannerSeverityCapability<Declaring>, public InfoBannerTitleCapability<Declaring>, public InfoBannerMessageCapability<Declaring>, public InfoBannerClosableCapability<Declaring>
 
-   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+   ``#include <gui_forms/controls/info_banner_capabilities.hpp>``
 
    Every InfoBanner capability, in the order the declaring class takes them.
 
@@ -1914,7 +2031,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> InfoBannerClosableCapability
 
-   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+   ``#include <gui_forms/controls/info_banner_capabilities.hpp>``
 
    Whether the banner shows a close actuator, takes focus and closes on Escape; on by default.
 
@@ -1931,7 +2048,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> InfoBannerMessageCapability
 
-   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+   ``#include <gui_forms/controls/info_banner_capabilities.hpp>``
 
    The banner's message, on the line below the title; it describes the banner to assistive technology. Must be valid UTF-8 (std::invalid_argument).
 
@@ -1946,7 +2063,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> InfoBannerSeverityCapability
 
-   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+   ``#include <gui_forms/controls/info_banner_capabilities.hpp>``
 
    How much the message matters: information, warning, success or error. It chooses the icon, the keyline's colour and the banner's one custom state.
 
@@ -1963,7 +2080,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> InfoBannerTitleCapability
 
-   ``#include <gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp>``
+   ``#include <gui_forms/controls/info_banner_capabilities.hpp>``
 
    The banner's title, drawn in a heavier weight before the message; it names the banner to assistive technology. Must be valid UTF-8 (std::invalid_argument).
 
@@ -1978,7 +2095,7 @@ Related types
 
 .. cpp:struct:: Label::Parts final
 
-   ``#include <gui_forms/controls/label/label.hpp>``
+   ``#include <gui_forms/controls/label.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
 
@@ -1990,7 +2107,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LabelAlignmentCapability
 
-   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+   ``#include <gui_forms/controls/label_capabilities.hpp>``
 
    Horizontal placement of the text: near, center or far.
 
@@ -2007,7 +2124,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LabelCapabilities : public TextCapability<Declaring>, public LabelFontCapability<Declaring>, public LabelAlignmentCapability<Declaring>, public LabelVerticalAlignmentCapability<Declaring>, public LabelTextWrappingCapability<Declaring>, public LabelMaximumLinesCapability<Declaring>, public LabelTextStyleRoleCapability<Declaring>, public LabelLineSpacingCapability<Declaring>, public LabelTextCaseTransformCapability<Declaring>, public LabelUseMnemonicCapability<Declaring>
 
-   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+   ``#include <gui_forms/controls/label_capabilities.hpp>``
 
    Every Label capability, in the order the declaring class takes them.
 
@@ -2058,7 +2175,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LabelFontCapability
 
-   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+   ``#include <gui_forms/controls/label_capabilities.hpp>``
 
    The label's own font; empty takes the theme typography of text_style_role (resolved_font). Must be a valid font specification (std::invalid_argument).
 
@@ -2073,7 +2190,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LabelLineSpacingCapability
 
-   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+   ``#include <gui_forms/controls/label_capabilities.hpp>``
 
    The line height as a multiple of the font's; from 0.75 to 3.0 (std::invalid_argument).
 
@@ -2090,7 +2207,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LabelMaximumLinesCapability
 
-   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+   ``#include <gui_forms/controls/label_capabilities.hpp>``
 
    The most lines measured and painted; zero keeps every line. Semantics keep the complete text. At most 4096 (std::out_of_range).
 
@@ -2107,7 +2224,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LabelTextCaseTransformCapability
 
-   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+   ``#include <gui_forms/controls/label_capabilities.hpp>``
 
    How the shown text is cased: none, uppercase_ascii or lowercase_ascii; the text itself is unchanged.
 
@@ -2124,7 +2241,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LabelTextStyleRoleCapability
 
-   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+   ``#include <gui_forms/controls/label_capabilities.hpp>``
 
    The theme typography role the label takes while it has no font of its own: body, control, caption, heading, title or monospace.
 
@@ -2141,7 +2258,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LabelTextWrappingCapability
 
-   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+   ``#include <gui_forms/controls/label_capabilities.hpp>``
 
    Whether the text wraps at word boundaries: no_wrap or word.
 
@@ -2158,7 +2275,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LabelUseMnemonicCapability
 
-   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+   ``#include <gui_forms/controls/label_capabilities.hpp>``
 
    Whether an ampersand in the text marks the access key (UseMnemonic).
 
@@ -2175,7 +2292,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LabelVerticalAlignmentCapability
 
-   ``#include <gui_forms/controls/label/label_capabilities/label_capabilities.hpp>``
+   ``#include <gui_forms/controls/label_capabilities.hpp>``
 
    Vertical placement of the text: near, center or far.
 
@@ -2192,7 +2309,7 @@ Related types
 
 .. cpp:struct:: LinearGauge::Parts final
 
-   ``#include <gui_forms/controls/instruments/gauge_base/linear_gauge/linear_gauge.hpp>``
+   ``#include <gui_forms/controls/linear_gauge.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``alarm_zone`` spans the alarm segments and is absent without alarm limits inside the range; ``caption`` is absent while show_value is clear.
 
@@ -2212,7 +2329,7 @@ Related types
 
 .. cpp:struct:: PictureBox::Parts final
 
-   ``#include <gui_forms/controls/panel/picture_box/picture_box.hpp>``
+   ``#include <gui_forms/controls/picture_box.hpp>``
 
    Stage T1 anatomy, as dot members: Panel's parts and the image.
 
@@ -2228,7 +2345,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PictureBoxCapabilities : public PictureBoxImageCapability<Declaring>, public PictureBoxSizeModePropertyCapability<Declaring>, public PictureBoxImageOpacityCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/picture_box_capabilities.hpp>``
 
    Every PictureBox capability, in the order the declaring class takes them.
 
@@ -2251,7 +2368,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PictureBoxImageCapability
 
-   ``#include <gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/picture_box_capabilities.hpp>``
 
    The generational image resource shown (Image); an ImageId into the window's ImageRegistry. A change raises image_changed. clear_image() resets it.
 
@@ -2266,7 +2383,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PictureBoxImageOpacityCapability
 
-   ``#include <gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/picture_box_capabilities.hpp>``
 
    The image's opacity from zero through one; anything else, or a value that is not finite, throws std::invalid_argument.
 
@@ -2283,7 +2400,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PictureBoxSizeModePropertyCapability
 
-   ``#include <gui_forms/controls/panel/picture_box/picture_box_capabilities/picture_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/picture_box_capabilities.hpp>``
 
    How the image is placed and scaled (SizeMode): normal, stretch_image, auto_size, center_image or zoom.
 
@@ -2300,7 +2417,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotAnnotationItemCapabilities : public PlotAnnotationItemTextCapability<Declaring>, public PlotAnnotationItemXCapability<Declaring>, public PlotAnnotationItemYCapability<Declaring>
 
-   ``#include <gui_forms/controls/plots/plot_annotation_item/plot_annotation_item_capabilities/plot_annotation_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_annotation_item_capabilities.hpp>``
 
    Every PlotAnnotationItem capability, in the order the declaring class takes them.
 
@@ -2323,7 +2440,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotAnnotationItemTextCapability
 
-   ``#include <gui_forms/controls/plots/plot_annotation_item/plot_annotation_item_capabilities/plot_annotation_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_annotation_item_capabilities.hpp>``
 
    The annotation's words.
 
@@ -2338,7 +2455,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotAnnotationItemXCapability
 
-   ``#include <gui_forms/controls/plots/plot_annotation_item/plot_annotation_item_capabilities/plot_annotation_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_annotation_item_capabilities.hpp>``
 
    The anchor's x in the first horizontal axis's units.
 
@@ -2355,7 +2472,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotAnnotationItemYCapability
 
-   ``#include <gui_forms/controls/plots/plot_annotation_item/plot_annotation_item_capabilities/plot_annotation_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_annotation_item_capabilities.hpp>``
 
    The anchor's y in the first vertical axis's units.
 
@@ -2372,7 +2489,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotAxisItemAutoFitCapability
 
-   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_axis_item_capabilities.hpp>``
 
    Whether the axis fits the data when the series change, until a gesture moves the view.
 
@@ -2389,7 +2506,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotAxisItemCapabilities : public PlotAxisItemDirectionCapability<Declaring>, public PlotAxisItemScaleCapability<Declaring>, public PlotAxisItemMinimumCapability<Declaring>, public PlotAxisItemMaximumCapability<Declaring>, public PlotAxisItemLabelCapability<Declaring>, public PlotAxisItemAutoFitCapability<Declaring>, public PlotAxisItemFollowSpanCapability<Declaring>
 
-   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_axis_item_capabilities.hpp>``
 
    Every PlotAxisItem capability, in the order the declaring class takes them.
 
@@ -2428,7 +2545,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotAxisItemDirectionCapability
 
-   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_axis_item_capabilities.hpp>``
 
    Which way the axis runs: horizontal (an x axis) or vertical (a y axis).
 
@@ -2445,7 +2562,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotAxisItemFollowSpanCapability
 
-   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_axis_item_capabilities.hpp>``
 
    A horizontal axis's following window: above zero the axis shows the newest x and this span before it (a live plot's tail); zero turns following off. Negative or not finite throws std::invalid_argument.
 
@@ -2462,7 +2579,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotAxisItemLabelCapability
 
-   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_axis_item_capabilities.hpp>``
 
    The axis title drawn beside its tick labels.
 
@@ -2477,7 +2594,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotAxisItemMaximumCapability
 
-   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_axis_item_capabilities.hpp>``
 
    The largest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
 
@@ -2494,7 +2611,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotAxisItemMinimumCapability
 
-   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_axis_item_capabilities.hpp>``
 
    The smallest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
 
@@ -2511,7 +2628,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotAxisItemScaleCapability
 
-   ``#include <gui_forms/controls/plots/plot_axis_item/plot_axis_item_capabilities/plot_axis_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_axis_item_capabilities.hpp>``
 
    How the axis maps values: linear, log10, symlog, time (UTC seconds) or category.
 
@@ -2528,7 +2645,7 @@ Related types
 
 .. cpp:struct:: PlotPointPick final
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp>``
+   ``#include <gui_forms/controls/plot_values.hpp>``
 
    A point the pointer or the keyboard cursor picked (PlotView::point_picked).
 
@@ -2546,7 +2663,7 @@ Related types
 
 .. cpp:struct:: PlotQuery final
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp>``
+   ``#include <gui_forms/controls/plot_values.hpp>``
 
    A query rectangle (Ctrl + right drag, owner ruling 3a) in the first axes' data units (PlotView::selection_changed); ``present`` false when the selection was cleared.
 
@@ -2564,7 +2681,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotSeriesItemCapabilities : public PlotSeriesItemKindCapability<Declaring>, public PlotSeriesItemLabelCapability<Declaring>, public PlotSeriesItemSourceCapability<Declaring>, public PlotSeriesItemHiddenCapability<Declaring>, public PlotSeriesItemXAxisCapability<Declaring>, public PlotSeriesItemYAxisCapability<Declaring>
 
-   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_series_item_capabilities.hpp>``
 
    Every PlotSeriesItem capability, in the order the declaring class takes them.
 
@@ -2599,7 +2716,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotSeriesItemHiddenCapability
 
-   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_series_item_capabilities.hpp>``
 
    Whether the series is left out of the plot (its legend entry stays, dimmed); clicking the entry toggles it.
 
@@ -2614,7 +2731,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotSeriesItemKindCapability
 
-   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_series_item_capabilities.hpp>``
 
    What the series draws: line, stairs, scatter, shaded, bars or stems.
 
@@ -2631,7 +2748,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotSeriesItemLabelCapability
 
-   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_series_item_capabilities.hpp>``
 
    The series' name in the legend and to assistive technology.
 
@@ -2646,7 +2763,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotSeriesItemSourceCapability
 
-   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_series_item_capabilities.hpp>``
 
    A signal program declaration, ``signal(sine, frequency 2Hz, amplitude 1)`` (plots::parse_signal_source); empty for data written in C++. A declaration that does not parse throws std::invalid_argument.
 
@@ -2661,7 +2778,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotSeriesItemXAxisCapability
 
-   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_series_item_capabilities.hpp>``
 
    The horizontal axis the series is drawn against, by position among the plot's horizontal axes (past the last: the first).
 
@@ -2678,7 +2795,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotSeriesItemYAxisCapability
 
-   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item_capabilities/plot_series_item_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_series_item_capabilities.hpp>``
 
    The vertical axis the series is drawn against, by position among the plot's vertical axes (past the last: the first).
 
@@ -2695,7 +2812,7 @@ Related types
 
 .. cpp:struct:: PlotView::Parts final
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_view.hpp>``
+   ``#include <gui_forms/controls/plot_view.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -2719,7 +2836,7 @@ Related types
 
 .. cpp:struct:: PlotView::States final
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_view.hpp>``
+   ``#include <gui_forms/controls/plot_view.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -2735,7 +2852,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotViewCapabilities : public PlotViewTitleCapability<Declaring>, public PlotViewLiveCapability<Declaring>, public PlotViewShowLegendCapability<Declaring>, public PlotViewShowGridCapability<Declaring>, public PlotViewCrosshairCapability<Declaring>
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_view_capabilities.hpp>``
 
    Every PlotView capability, in the order the declaring class takes them.
 
@@ -2766,7 +2883,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotViewCrosshairCapability
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_view_capabilities.hpp>``
 
    Whether a crosshair follows the pointer over the plot, with its coordinates.
 
@@ -2781,7 +2898,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotViewLiveCapability
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_view_capabilities.hpp>``
 
    Whether the plot draws on its own sub-surface, paced by its frame pacer and fed by its series' ring channels (owner ruling 4a). Off draws on the window's thread.
 
@@ -2796,7 +2913,7 @@ Related types
 
 .. cpp:struct:: PlotViewRanges final
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp>``
+   ``#include <gui_forms/controls/plot_values.hpp>``
 
    The plot's visible ranges after a gesture or a programmatic change (PlotView::view_changed): the first x and y axes', as plain numbers so the C ABI carries them as fields.
 
@@ -2816,7 +2933,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotViewShowGridCapability
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_view_capabilities.hpp>``
 
    Whether the major and minor grid lines are drawn.
 
@@ -2833,7 +2950,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotViewShowLegendCapability
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_view_capabilities.hpp>``
 
    Whether the legend is drawn (when a series has a label).
 
@@ -2850,7 +2967,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PlotViewTitleCapability
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_view_capabilities/plot_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/plot_view_capabilities.hpp>``
 
    The words drawn above the plot, and its accessible name by default.
 
@@ -2865,7 +2982,7 @@ Related types
 
 .. cpp:struct:: ProgressBar::Parts final
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar.hpp>``
+   ``#include <gui_forms/controls/progress_bar.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -2881,7 +2998,7 @@ Related types
 
 .. cpp:struct:: ProgressBar::States final
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar.hpp>``
+   ``#include <gui_forms/controls/progress_bar.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -2897,7 +3014,7 @@ Related types
 
 .. cpp:struct:: ProgressBarAnimationAppearance final
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp>``
+   ``#include <gui_forms/controls/progress_bar_values.hpp>``
 
    ProgressBarAnimationAppearance is the validated value object for stripe width, gap, angle, and opacity used by painter-neutral progress animation.
 
@@ -2937,7 +3054,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressBarAnimationEnabledCapability
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_bar_capabilities.hpp>``
 
    Whether the bar animates; turning it off resets the phase.
 
@@ -2954,7 +3071,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressBarAnimationPeriodCapability
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_bar_capabilities.hpp>``
 
    The period of the indeterminate motion, at least 100 milliseconds (else std::invalid_argument).
 
@@ -2971,7 +3088,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressBarAppearanceCapability
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_bar_capabilities.hpp>``
 
    The animation's colours and extents; each extent finite and within its range, else std::invalid_argument.
 
@@ -2988,7 +3105,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressBarCapabilities : public ProgressBarVisualStyleChoiceCapability<Declaring>, public ProgressBarOverlayStyleChoiceCapability<Declaring>, public ProgressBarStripeWidthCapability<Declaring>, public ProgressBarAppearanceCapability<Declaring>, public ProgressBarAnimationEnabledCapability<Declaring>, public ProgressBarAnimationPeriodCapability<Declaring>, public ProgressBarEffectCapability<Declaring>, public ProgressBarEffectSeedCapability<Declaring>, public ProgressBarEffectInputCapability<Declaring>, public ProgressBarMotionPolicyCapability<Declaring>
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_bar_capabilities.hpp>``
 
    Every ProgressBar capability, in the order the declaring class takes them.
 
@@ -3039,7 +3156,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressBarEffectCapability
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_bar_capabilities.hpp>``
 
    The registered effect program drawn over the bar, by name (effect programs, design note section 7); empty takes the visual style's own, or the theme's.
 
@@ -3056,7 +3173,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressBarEffectInputCapability
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_bar_capabilities.hpp>``
 
    The input the bar grants its effect: none, the pointer, or the pointer and keys. The bar never takes focus, so a key grant delivers nothing.
 
@@ -3073,7 +3190,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressBarEffectSeedCapability
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_bar_capabilities.hpp>``
 
    The seed of the bar's effects; none derives it from the stable ID and the effect's name, so runs and checksums reproduce. A change restarts the effects.
 
@@ -3090,7 +3207,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressBarMotionPolicyCapability
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_bar_capabilities.hpp>``
 
    Whether the bar's animation and effects move: disabled or paused stops them, keeping the phase; reduced swaps motion for a still form. A view onto the bar's policy; effective_motion_policy adds the window's reduced-motion setting.
 
@@ -3107,7 +3224,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressBarOverlayStyleChoiceCapability
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_bar_capabilities.hpp>``
 
    The overlay drawn over the bar: none or moving stripes. A change restarts the animation phase and reselects the effects.
 
@@ -3124,7 +3241,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressBarStripeWidthCapability
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_bar_capabilities.hpp>``
 
    The stripes' width, 2 to 32 pixels (else std::invalid_argument).
 
@@ -3141,7 +3258,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressBarVisualStyleChoiceCapability
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_capabilities/progress_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_bar_capabilities.hpp>``
 
    How the bar draws: blocks, continuous, marquee, pulse, marching stripes or laser etch. A change restarts the animation phase and reselects the effects.
 
@@ -3158,7 +3275,7 @@ Related types
 
 .. cpp:class:: ProgressBubbles final
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+   ``#include <gui_forms/controls/progress_bar_effects.hpp>``
 
    Bubbles rising in the filled length; each that reaches the top breaks into a puff of steam rising into the top outset and fading. With pointer input granted, a press in the fill releases a bubble there.
 
@@ -3187,7 +3304,7 @@ Related types
 
 .. cpp:class:: ProgressLaser final
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+   ``#include <gui_forms/controls/progress_bar_effects.hpp>``
 
    The laser etch: phase bands over the fill, a glowing edge, and a burning front with flickering lobes and short sparks (ProgressBarVisualStyle:: laser_etch).
 
@@ -3204,7 +3321,7 @@ Related types
 
 .. cpp:class:: ProgressPulse final
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+   ``#include <gui_forms/controls/progress_bar_effects.hpp>``
 
    A soft luminance band sweeping along the fill (ProgressBarVisualStyle:: pulse).
 
@@ -3221,7 +3338,7 @@ Related types
 
 .. cpp:struct:: ProgressRing::Parts final
 
-   ``#include <gui_forms/controls/progress_ring/progress_ring.hpp>``
+   ``#include <gui_forms/controls/progress_ring.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``track`` is the ring's square; ``fill`` the same square while determinate with a positive fraction, ``activity`` while indeterminate.
 
@@ -3237,7 +3354,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressRingCapabilities : public ProgressRingValueCapability<Declaring>, public ProgressRingMaximumCapability<Declaring>, public ProgressRingIndeterminateCapability<Declaring>
 
-   ``#include <gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_ring_capabilities.hpp>``
 
    Every ProgressRing capability, in the order the declaring class takes them.
 
@@ -3260,7 +3377,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressRingIndeterminateCapability
 
-   ``#include <gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_ring_capabilities.hpp>``
 
    Whether the ring shows activity without an amount: a turning arc instead of the value.
 
@@ -3277,7 +3394,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressRingMaximumCapability
 
-   ``#include <gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_ring_capabilities.hpp>``
 
    The value of a full ring (100 by default). Not finite or not above zero throws std::invalid_argument.
 
@@ -3294,7 +3411,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ProgressRingValueCapability
 
-   ``#include <gui_forms/controls/progress_ring/progress_ring_capabilities/progress_ring_capabilities.hpp>``
+   ``#include <gui_forms/controls/progress_ring_capabilities.hpp>``
 
    The progress, from 0 to maximum; a value outside that range is drawn clamped to it. Not finite throws std::invalid_argument.
 
@@ -3311,9 +3428,9 @@ Related types
 
 .. cpp:class:: ProgressStripes final
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+   ``#include <gui_forms/controls/progress_bar_effects.hpp>``
 
-   Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay).
+   Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay): filled bands clipped to the fill's inner shape, leaning back from the leading edge and travelling toward it, anchored to the track's start edge so a growing fill does not shift them. Each band is one four-point polygon; the bar keeps the pitch at least the fill's length over maximum_stripes less the margin bands, so run's bound (256 passes of about 110: a polygon 72, its points and the pass's arithmetic) stays under the 40,000 budget.
 
 
    .. rubric:: Methods
@@ -3324,15 +3441,67 @@ Related types
 
    .. cpp:member:: constexpr std::size_t maximum_stripes
 
-      Default: ``1024U``.
+      Default: ``256U``.
 
    .. cpp:member:: constexpr EffectDeclaration declaration
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ProgressStripeView final
+
+   ``#include <gui_forms/controls/progress_bar_effects.hpp>``
+
+   The marching stripes' geometry and colours (the barber pole, owner rulings of 2026-11-11), resolved by the bar from the fill part's stripe properties (ControlStripePattern) before the frame runs. Lengths are logical units in bar space: along the fill direction and across it.
+
+   .. cpp:member:: double pitch
+
+      The distance from one band to the next, along the fill direction. Default: ``{16.0}``.
+
+   .. cpp:member:: double band
+
+      The pale band's width, a minority of the pitch: the fill colour between the bands dominates. Default: ``{6.4}``.
+
+   .. cpp:member:: double slant
+
+      How far a band's far side (across the bar) runs ahead of its near side, along the fill direction: positive leans the band back from the leading edge (Rule 1), negative leans it forward. Default: ``{16.0}``.
+
+   .. cpp:member:: bool forward
+
+      Whether the bands travel toward the leading edge (Rule 2); false travels them back toward the start edge. Default: ``{true}``.
+
+   .. cpp:member:: ProgressFillDirection direction
+
+      Default: ``{ProgressFillDirection::left_to_right}``.
+
+   .. cpp:member:: Rect clip
+
+      The fill's inner shape the bands are clipped to: the fill inside its rim, with its rounded ends.
+
+   .. cpp:member:: double clip_radius
+
+   .. cpp:member:: Color colour
+
+      The pale band's colour, and the opaque ground painted under the bands where the theme sets ``stripe-ground`` (alpha 0: the fill as painted shows between the bands).
+
+   .. cpp:member:: Color ground
+
+   .. cpp:member:: bool gloss
+
+      Whether a gloss is drawn over a painted ground, standing for the fill's shading it covers. Default: ``{true}``.
+
+   .. cpp:member:: double period_seconds
+
+      Seconds for the bands to travel one pitch; 0 holds them. Default: ``{1.25}``.
+
+   .. cpp:member:: bool hidden
+
+      Whether the bands are hidden rather than held while motion is reduced (``stripe-reduced-motion: none``).
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: ProgressWovenStripes final
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+   ``#include <gui_forms/controls/progress_bar_effects.hpp>``
 
    Randomly woven stripes (owner amendment, 2026-11-02): setup chooses which stripes exist, where and in what order at random; run weaves each in as the fraction passes its threshold, and shimmers them. Setup stores the stripes in their drawing order (under, along, over), so run draws them in one pass with each stripe's weave and glint computed once. The effect pass bounds run at 3,772 operations (48 passes of about 78: a smoothstep 10, a sine 40, a fade 6, a stroke 6, the arithmetic and the pass's 2), under the 6,000 budget; three layer passes cost 11,851. Setup, with the ordering's three passes over 48, is bounded at 4,210, within its 8,000.
 
@@ -3355,7 +3524,7 @@ Related types
 
 .. cpp:struct:: RadialGauge::Parts final
 
-   ``#include <gui_forms/controls/instruments/gauge_base/radial_gauge/radial_gauge.hpp>``
+   ``#include <gui_forms/controls/radial_gauge.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts). The arcs and the needle publish the square their circle is inscribed in; ``alarm_arc`` is absent without alarm limits, ``value_arc`` at the minimum, and ``caption`` while show_value is clear.
 
@@ -3377,59 +3546,9 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ReviewCardCapabilities : public ReviewCardRecordCapability<Declaring>
-
-   ``#include <gui_forms/controls/panel/card/review_card/review_card_capabilities/review_card_capabilities.hpp>``
-
-   Every ReviewCard capability, in the order the declaring class takes them.
-
-
-   .. rubric:: Properties
-
-   .. cpp:member:: ReviewRecord record
-
-      The review shown: key, title, summary, verdict and disposition. A change rewrites the three labels, the accessible name and description and the visual status, then raises record_changed. An invalid or unbounded record throws std::invalid_argument.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> ReviewCardRecordCapability
-
-   ``#include <gui_forms/controls/panel/card/review_card/review_card_capabilities/review_card_capabilities.hpp>``
-
-   The review shown: key, title, summary, verdict and disposition. A change rewrites the three labels, the accessible name and description and the visual status, then raises record_changed. An invalid or unbounded record throws std::invalid_argument.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(ReviewCardRecordCapability& capability, ReviewRecord incoming)
-
-   .. cpp:member:: PropertyCell<ReviewRecord, ReviewCardRecordCapability<Declaring>> record
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: ReviewRecord final
-
-   ``#include <gui_forms/controls/panel/card/review_card/review_card_values/review_card_values.hpp>``
-
-   ReviewRecord owns the stable author, timestamp, score/status, title, body, and metadata projected by ReviewCard.
-
-   .. cpp:member:: std::string key
-
-   .. cpp:member:: std::string title
-
-   .. cpp:member:: std::string summary
-
-   .. cpp:member:: std::string verdict
-
-   .. cpp:member:: ReviewDisposition disposition
-
-      Default: ``{ReviewDisposition::neutral}``.
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: RisingBody final
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+   ``#include <gui_forms/controls/progress_bar_effects.hpp>``
 
    One bubble rising in the fill, or one puff of steam rising above the bar.
 
@@ -3447,7 +3566,7 @@ Related types
 
 .. cpp:class:: ScopeSweep final
 
-   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_effects.hpp>``
+   ``#include <gui_forms/controls/sweep_scope_effects.hpp>``
 
    The trace (a rise from the lower left to a peak above the level's place, and a fall to the right edge) and the sweep line crossing the plot once a period.
 
@@ -3472,7 +3591,7 @@ Related types
 
 .. cpp:struct:: SevenSegmentCell final
 
-   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp>``
+   ``#include <gui_forms/controls/seven_segment_display.hpp>``
 
    One cell of a seven-segment reading: the lit segments, as bits from a (the top bar, bit 0) clockwise through f (the upper left, bit 5) to g (the middle bar, bit 6); whether its decimal point is lit; and whether it is a colon cell, which is half a digit wide and shows two dots instead.
 
@@ -3486,7 +3605,7 @@ Related types
 
 .. cpp:struct:: SevenSegmentDisplay::Parts final
 
-   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp>``
+   ``#include <gui_forms/controls/seven_segment_display.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``plot`` is the window, ``trace`` the box around the cells' lit bars and ``graticule`` the box around the cells (present while ghost_segments is set).
 
@@ -3502,7 +3621,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SevenSegmentDisplayCapabilities : public SevenSegmentDisplayTextCapability<Declaring>, public SevenSegmentDisplayDigitCountCapability<Declaring>, public SevenSegmentDisplayGhostSegmentsCapability<Declaring>
 
-   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display_capabilities/seven_segment_display_capabilities.hpp>``
+   ``#include <gui_forms/controls/seven_segment_display_capabilities.hpp>``
 
    Every SevenSegmentDisplay capability, in the order the declaring class takes them.
 
@@ -3525,7 +3644,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SevenSegmentDisplayDigitCountCapability
 
-   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display_capabilities/seven_segment_display_capabilities.hpp>``
+   ``#include <gui_forms/controls/seven_segment_display_capabilities.hpp>``
 
    The digit cells shown, at most 64 (std::invalid_argument); zero shows as many as the text needs. A longer reading keeps its last digits (overflowed()).
 
@@ -3542,7 +3661,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SevenSegmentDisplayGhostSegmentsCapability
 
-   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display_capabilities/seven_segment_display_capabilities.hpp>``
+   ``#include <gui_forms/controls/seven_segment_display_capabilities.hpp>``
 
    Whether the unlit segments are drawn faintly, as on a real display.
 
@@ -3559,7 +3678,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SevenSegmentDisplayTextCapability
 
-   ``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display_capabilities/seven_segment_display_capabilities.hpp>``
+   ``#include <gui_forms/controls/seven_segment_display_capabilities.hpp>``
 
    The reading the cells show, right-aligned: digits, the hexadecimal letters, the letters a seven-segment cell can form, '-', '_', '=', the degree sign and spaces; '.' and ',' light the previous cell's point and ':' is a colon cell. Other characters show as blank cells. Must be valid UTF-8 (std::invalid_argument).
 
@@ -3574,7 +3693,7 @@ Related types
 
 .. cpp:struct:: Sparkline::Parts final
 
-   ``#include <gui_forms/controls/instruments/sparkline/sparkline.hpp>``
+   ``#include <gui_forms/controls/sparkline.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -3590,7 +3709,7 @@ Related types
 
 .. cpp:struct:: Sparkline::States final
 
-   ``#include <gui_forms/controls/instruments/sparkline/sparkline.hpp>``
+   ``#include <gui_forms/controls/sparkline.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -3602,7 +3721,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SparklineCapabilities : public SparklineCapacityCapability<Declaring>, public SparklineFillCapability<Declaring>
 
-   ``#include <gui_forms/controls/instruments/sparkline/sparkline_capabilities/sparkline_capabilities.hpp>``
+   ``#include <gui_forms/controls/sparkline_capabilities.hpp>``
 
    Every Sparkline capability, in the order the declaring class takes them.
 
@@ -3621,7 +3740,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SparklineCapacityCapability
 
-   ``#include <gui_forms/controls/instruments/sparkline/sparkline_capabilities/sparkline_capabilities.hpp>``
+   ``#include <gui_forms/controls/sparkline_capabilities.hpp>``
 
    How many of the newest values the line keeps, 2 to 100000 (std::invalid_argument outside them); a smaller capacity drops the oldest.
 
@@ -3638,7 +3757,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SparklineFillCapability
 
-   ``#include <gui_forms/controls/instruments/sparkline/sparkline_capabilities/sparkline_capabilities.hpp>``
+   ``#include <gui_forms/controls/sparkline_capabilities.hpp>``
 
    Whether the band under the line is shaded.
 
@@ -3653,7 +3772,7 @@ Related types
 
 .. cpp:struct:: Spinner::Parts final
 
-   ``#include <gui_forms/controls/spinner/spinner.hpp>``
+   ``#include <gui_forms/controls/spinner.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``activity`` is the ring's square, present while active.
 
@@ -3665,7 +3784,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SpinnerActiveCapability
 
-   ``#include <gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp>``
+   ``#include <gui_forms/controls/spinner_capabilities.hpp>``
 
    Whether the spinner shows and turns; an inactive spinner draws nothing and reports no busy state.
 
@@ -3682,7 +3801,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SpinnerCapabilities : public SpinnerActiveCapability<Declaring>
 
-   ``#include <gui_forms/controls/spinner/spinner_capabilities/spinner_capabilities.hpp>``
+   ``#include <gui_forms/controls/spinner_capabilities.hpp>``
 
    Every Spinner capability, in the order the declaring class takes them.
 
@@ -3697,7 +3816,7 @@ Related types
 
 .. cpp:struct:: StepIndicator::Parts final
 
-   ``#include <gui_forms/controls/step_indicator/step_indicator.hpp>``
+   ``#include <gui_forms/controls/step_indicator.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts): the chips and connectors of every step, each part spanning all of its instances.
 
@@ -3715,7 +3834,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> StepIndicatorCapabilities : public StepIndicatorCurrentStepCapability<Declaring>
 
-   ``#include <gui_forms/controls/step_indicator/step_indicator_capabilities/step_indicator_capabilities.hpp>``
+   ``#include <gui_forms/controls/step_indicator_capabilities.hpp>``
 
    Every StepIndicator capability, in the order the declaring class takes them.
 
@@ -3730,7 +3849,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> StepIndicatorCurrentStepCapability
 
-   ``#include <gui_forms/controls/step_indicator/step_indicator_capabilities/step_indicator_capabilities.hpp>``
+   ``#include <gui_forms/controls/step_indicator_capabilities.hpp>``
 
    The step under way, counted from zero; the steps before it are complete. Past the last step throws std::invalid_argument (zero is always accepted).
 
@@ -3747,7 +3866,7 @@ Related types
 
 .. cpp:struct:: SweepScope::Parts final
 
-   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp>``
+   ``#include <gui_forms/controls/sweep_scope.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts). The plot is the well the trace is drawn in; the graticule its ruled lines; the indicator the level's trace; the activity the band the sweep line crosses (the plot: its phase is the effect's state).
 
@@ -3767,7 +3886,7 @@ Related types
 
 .. cpp:struct:: SweepScope::States final
 
-   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp>``
+   ``#include <gui_forms/controls/sweep_scope.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -3781,7 +3900,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SweepScopeCapabilities : public SweepScopeCaptionCapability<Declaring>, public SweepScopePeriodCapability<Declaring>
 
-   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp>``
+   ``#include <gui_forms/controls/sweep_scope_capabilities.hpp>``
 
    Every SweepScope capability, in the order the declaring class takes them.
 
@@ -3800,7 +3919,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SweepScopeCaptionCapability
 
-   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp>``
+   ``#include <gui_forms/controls/sweep_scope_capabilities.hpp>``
 
    The words drawn before the level's percentage.
 
@@ -3817,7 +3936,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SweepScopePeriodCapability
 
-   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_capabilities/sweep_scope_capabilities.hpp>``
+   ``#include <gui_forms/controls/sweep_scope_capabilities.hpp>``
 
    How long the sweep takes to cross the trace once, from 0.1 to 60 seconds (std::out_of_range outside them); the table value is in seconds.
 
@@ -3834,7 +3953,7 @@ Related types
 
 .. cpp:struct:: TextBlock::Parts final
 
-   ``#include <gui_forms/controls/text_block/text_block.hpp>``
+   ``#include <gui_forms/controls/text_block.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's. ``text`` is the box the lines fill: the content box's width and the lines' height, absent with no text.
 
@@ -3846,7 +3965,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBlockCapabilities : public TextCapability<Declaring>, public TextBlockFontCapability<Declaring>, public TextBlockTextAlignCapability<Declaring>, public TextBlockLineHeightCapability<Declaring>
 
-   ``#include <gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_block_capabilities.hpp>``
 
    Every TextBlock capability, in the order the declaring class takes them.
 
@@ -3873,7 +3992,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBlockFontCapability
 
-   ``#include <gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_block_capabilities.hpp>``
 
    The block's own font; empty takes the theme's field typography (resolved_font). Must be a valid font specification (std::invalid_argument).
 
@@ -3888,7 +4007,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBlockLineHeightCapability
 
-   ``#include <gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_block_capabilities.hpp>``
 
    CSS line-height as a length in logical pixels at text scale 1; empty is normal. A present value must be finite and positive (std::invalid_argument).
 
@@ -3903,7 +4022,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextBlockTextAlignCapability
 
-   ``#include <gui_forms/controls/text_block/text_block_capabilities/text_block_capabilities.hpp>``
+   ``#include <gui_forms/controls/text_block_capabilities.hpp>``
 
    CSS text-align; start and end follow the effective layout direction (std::invalid_argument outside the enumeration).
 
@@ -3920,7 +4039,7 @@ Related types
 
 .. cpp:struct:: Toast::Parts final
 
-   ``#include <gui_forms/controls/toast/toast.hpp>``
+   ``#include <gui_forms/controls/toast.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``face`` is the notice surface, ``icon`` the severity mark, ``label`` the message, ``actuator`` the action button's slot (absent without one) and ``close`` the close mark (absent unless closable; hot and pressed as the pointer is). The icon and the close mark take the glyph role.
 
@@ -3940,7 +4059,7 @@ Related types
 
 .. cpp:struct:: ToastContent final
 
-   ``#include <gui_forms/controls/toast/toast.hpp>``
+   ``#include <gui_forms/controls/toast.hpp>``
 
    What a Toast says, fixed when it is made: its message, the text of its action button (empty for none), its severity and whether it shows a close mark.
 
@@ -3960,7 +4079,7 @@ Related types
 
 .. cpp:struct:: WovenStripe final
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+   ``#include <gui_forms/controls/progress_bar_effects.hpp>``
 
    One woven stripe: warp (along the bar) or weft (across it), where it lies, how wide, which colour and the fraction at which it weaves in.
 
@@ -3981,7 +4100,7 @@ Enumerations
 
 .. cpp:enum-class:: BadgeMode
 
-   ``#include <gui_forms/controls/badge/badge_values/badge_values.hpp>``
+   ``#include <gui_forms/controls/badge_values.hpp>``
 
    .. cpp:enumerator:: count
 
@@ -4039,6 +4158,10 @@ Enumerations
 
    .. cpp:enumerator:: missing_image
 
+   .. cpp:enumerator:: control_character
+
+   .. cpp:enumerator:: unbalanced_bidi
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HelpField
@@ -4095,11 +4218,15 @@ Enumerations
 
    .. cpp:enumerator:: too_many_records
 
+   .. cpp:enumerator:: invalid_language
+
+   .. cpp:enumerator:: invalid_direction
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HelpNavigationTab
 
-   ``#include <gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp>``
+   ``#include <gui_forms/controls/help_book_viewer.hpp>``
 
    .. cpp:enumerator:: contents
 
@@ -4167,7 +4294,7 @@ Enumerations
 
 .. cpp:enum-class:: HorizontalAlignment
 
-   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
+   ``#include <gui_forms/controls/label_values.hpp>``
 
    .. cpp:enumerator:: near
 
@@ -4177,9 +4304,21 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: IndicatorLampState
+
+   ``#include <gui_forms/controls/indicator_lamp_values.hpp>``
+
+   .. cpp:enumerator:: off
+
+   .. cpp:enumerator:: on
+
+   .. cpp:enumerator:: error
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: NoticeSeverity
 
-   ``#include <gui_forms/controls/info_banner/notice_values/notice_values.hpp>``
+   ``#include <gui_forms/controls/notice_values.hpp>``
 
    .. cpp:enumerator:: information
 
@@ -4193,7 +4332,7 @@ Enumerations
 
 .. cpp:enum-class:: PictureBoxSizeMode
 
-   ``#include <gui_forms/controls/panel/picture_box/picture_box_values/picture_box_values.hpp>``
+   ``#include <gui_forms/controls/picture_box_values.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -4209,7 +4348,7 @@ Enumerations
 
 .. cpp:enum-class:: PlotAxisDirection
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp>``
+   ``#include <gui_forms/controls/plot_values.hpp>``
 
    .. cpp:enumerator:: horizontal
 
@@ -4219,7 +4358,7 @@ Enumerations
 
 .. cpp:enum-class:: PlotAxisScale
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp>``
+   ``#include <gui_forms/controls/plot_values.hpp>``
 
    .. cpp:enumerator:: linear
 
@@ -4235,7 +4374,7 @@ Enumerations
 
 .. cpp:enum-class:: PlotSeriesItem::DataSource
 
-   ``#include <gui_forms/controls/plots/plot_series_item/plot_series_item.hpp>``
+   ``#include <gui_forms/controls/plot_series_item.hpp>``
 
    .. cpp:enumerator:: columns
 
@@ -4245,7 +4384,7 @@ Enumerations
 
 .. cpp:enum-class:: PlotSeriesKind
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_values/plot_values.hpp>``
+   ``#include <gui_forms/controls/plot_values.hpp>``
 
    .. cpp:enumerator:: line
 
@@ -4263,7 +4402,7 @@ Enumerations
 
 .. cpp:enum-class:: ProgressBarOverlayStyle
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp>``
+   ``#include <gui_forms/controls/progress_bar_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -4275,7 +4414,7 @@ Enumerations
 
 .. cpp:enum-class:: ProgressBarVisualStyle
 
-   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_values/progress_bar_values.hpp>``
+   ``#include <gui_forms/controls/progress_bar_values.hpp>``
 
    .. cpp:enumerator:: blocks
 
@@ -4293,27 +4432,23 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:enum-class:: ReviewDisposition
+.. cpp:enum-class:: ProgressFillDirection
 
-   ``#include <gui_forms/controls/panel/card/review_card/review_card_values/review_card_values.hpp>``
+   ``#include <gui_forms/controls/progress_bar_effects.hpp>``
 
-   .. cpp:enumerator:: neutral
+   .. cpp:enumerator:: left_to_right
 
-   .. cpp:enumerator:: information
+   .. cpp:enumerator:: right_to_left
 
-   .. cpp:enumerator:: accepted
+   .. cpp:enumerator:: bottom_to_top
 
-   .. cpp:enumerator:: pending
-
-   .. cpp:enumerator:: warning
-
-   .. cpp:enumerator:: rejected
+   .. cpp:enumerator:: top_to_bottom
 
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: TextCaseTransform
 
-   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
+   ``#include <gui_forms/controls/label_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -4325,7 +4460,7 @@ Enumerations
 
 .. cpp:enum-class:: TextStyleRole
 
-   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
+   ``#include <gui_forms/controls/label_values.hpp>``
 
    .. cpp:enumerator:: body
 
@@ -4343,7 +4478,7 @@ Enumerations
 
 .. cpp:enum-class:: TextWrapping
 
-   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
+   ``#include <gui_forms/controls/label_values.hpp>``
 
    .. cpp:enumerator:: no_wrap
 
@@ -4353,7 +4488,7 @@ Enumerations
 
 .. cpp:enum-class:: VerticalAlignment
 
-   ``#include <gui_forms/controls/label/label_values/label_values.hpp>``
+   ``#include <gui_forms/controls/label_values.hpp>``
 
    .. cpp:enumerator:: near
 
@@ -4366,7 +4501,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/help/help_print/help_print.hpp>``
+``#include <gui_forms/controls/help_print.hpp>``
 
 .. cpp:function:: void plan_help_print(HelpBook& book, const HelpPrintOptions& options, HelpPrintPlan& plan)
 
@@ -4378,7 +4513,15 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/info_banner/notice_values/notice_values.hpp>``
+``#include <gui_forms/controls/label_values.hpp>``
+
+.. cpp:function:: constexpr HorizontalAlignment directed_alignment(HorizontalAlignment alignment, LayoutDirection direction) noexcept
+
+   The alignment a control resolving ``direction`` places: Windows Forms mirrors a horizontal alignment under RightToLeft, so ``near`` is the right edge and ``far`` the left in right to left (Control:: effective_layout_direction). A value outside the enumeration is kept.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/notice_values.hpp>``
 
 .. cpp:function:: constexpr Color notice_severity_colour(NoticeSeverity severity) noexcept
 
@@ -4386,7 +4529,15 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp>``
+``#include <gui_forms/controls/progress_bar_effects.hpp>``
+
+.. cpp:function:: void register_progress_bar_effects(EffectRegistry& registry)
+
+   Adds the progress bar's effects to ``registry``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/seven_segment_display.hpp>``
 
 .. cpp:function:: std::uint8_t seven_segment_pattern(char32_t character) noexcept
 
@@ -4394,19 +4545,11 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_effects.hpp>``
+``#include <gui_forms/controls/sweep_scope_effects.hpp>``
 
 .. cpp:function:: void register_sweep_scope_effects(EffectRegistry& registry)
 
    Adds the sweep scope's effects to ``registry``.
-
-.. cpp:namespace:: gui_forms
-
-``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
-
-.. cpp:function:: void register_progress_bar_effects(EffectRegistry& registry)
-
-   Adds the progress bar's effects to ``registry``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4420,9 +4563,17 @@ Functions, constants and aliases
 
    Writes every declared HelpTopic's text into ``layer`` (the built-in layer): title, body, help line and keywords.
 
+.. cpp:function:: void put_declared_topics(LocaleLayer& layer)
+
+   The same, as language-file records (text, help, help-line, keywords), for the template export.
+
 .. cpp:function:: void append_help_skeleton(const SurfaceRoot& window, std::vector<HelpSkeletonNode>& nodes)
 
    Appends ``window``'s structure to ``nodes``: its root as the window, then every control of its tree, depth first. Overlays and controls without a stable ID path under the root are not part of the structure. UI thread.
+
+.. cpp:function:: void append_control_help_fields(const SurfaceRoot& window, LocaleLayer& layer)
+
+   Puts the help fields ``window``'s controls hold in code (Control::help_line, help and keywords; HelpProvider writes the first and last) into ``layer`` as program values, keyed by each control's stable ID: only the non-empty fields, over what ``layer`` held for that ID. The same walk as append_help_skeleton (an explicit stack, bounded by the window's own nesting limit). UI thread.
 
 .. cpp:function:: void build_help_contents(std::span<const HelpSkeletonNode> skeleton, std::span<const HelpTopicPlacement> topics, const HelpCatalog& catalog, HelpContentsTree& tree)
 
@@ -4472,17 +4623,21 @@ Functions, constants and aliases
 
 .. cpp:function:: void normalize_help_body(std::string_view raw, std::string& body)
 
-   The ``<help>`` element's character data as a help body: a leading line end and the trailing white space go, and the indentation every non-blank line shares is removed, so a body indented to sit under its ``<control>`` reads as written. ``body`` is replaced.
+   normalize_locale_help_body, under its help name.
 
 .. cpp:function:: std::string_view help_locale_error_name(HelpLocaleError error) noexcept
 
-.. cpp:function:: HelpLocaleReadResult read_help_locale(std::string_view utf8, const HelpFieldLimits& limits = {}, const XmlLimits& xml_limits = {})
+.. cpp:function:: HelpLocaleReadResult read_help_locale(std::string_view utf8, const HelpFieldLimits& limits = {}, const XmlLimits& xml_limits = locale_xml_limits())
 
-   Reads the help fields of a ``locales-<tag>.xml`` file: <locale xml:lang="fr"> <controls> <control name="main"> <control name="paste" text="Coller" help-line="..."> <help keywords="presse-papiers; coller, image">...</help> </control> </control> </controls> </locale> ``<control>`` elements nest by stable-ID segment; ``text`` is the record's title, ``help-line`` an attribute, and the body the ``<help>`` child's character data (normalize_help_body), with ``keywords`` on it. Other attributes and elements (the rest of the language file) are ignored. Expected faults never throw.
+   Reads the help fields of a ``locales-<tag>.xml`` file: <locale xml:lang="fr"> <controls> <control name="main"> <control name="paste" text="Coller" help-line="..."> <help keywords="presse-papiers; coller, image">...</help> </control> </control> </controls> </locale> ``<control>`` elements nest by stable-ID segment; ``text`` is the record's title, ``help-line`` an attribute, and the body the ``<help>`` child's character data (normalize_help_body), with ``keywords`` on it. This is read_locale with the other fields left out (their rejections too). The document nests at most 67 elements deep (locale, controls, 64 control levels and a help child), whatever xml_limits allows: a deeper file is refused as HelpLocaleError::xml with XmlError::depth_exceeded. Expected faults never throw.
 
-.. cpp:function:: XmlWriteResult write_help_locale(const HelpRecordLayer& records, std::string_view language, const XmlLimits& xml_limits = {})
+.. cpp:function:: XmlWriteResult write_help_locale(const HelpRecordLayer& records, std::string_view language, const XmlLimits& xml_limits = locale_xml_limits())
 
    Writes ``records`` as a locale file read_help_locale accepts: the template export when ``records`` is the built-in layer (every field with the built-in text as its value), or a translation. Records nest by segment in stable-ID order. The result's error is the XML writer's.
+
+.. cpp:function:: void project_help_fields(const LocaleLayer& source, HelpRecordLayer& target)
+
+   Fills ``target`` (cleared first) with the help fields of ``source``: its ``text`` as the title, ``help-line``, ``help`` and ``keywords``. Records with none of them are left out.
 
 .. cpp:var:: constexpr std::size_t help_field_count
 

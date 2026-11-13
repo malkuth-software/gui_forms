@@ -3,7 +3,21 @@
 // report, report validation, disposal and destruction while shown, and a
 // dialog destroyed by its own closed handler.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/component/component/component.hpp"
+#include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
+#include "gui_forms/event/event/event.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/rules/rule_set/rule_set.hpp"
+#include "gui_forms/schema/types/schema_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cstdlib>
 #include <iostream>

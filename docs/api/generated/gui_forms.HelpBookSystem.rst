@@ -9,7 +9,7 @@ gui_forms::HelpBookSystem
 
 .. cpp:class:: HelpBookSystem final : public Component
 
-   ``#include <gui_forms/controls/help/help_book_system/help_book_system.hpp>``
+   ``#include <gui_forms/controls/help_book_system.hpp>``
 
    The program's help: catalog of help fields, helpbook compile, F1 walking up to the window page, What's This, window cards, paper popups and the help window; external links go to the program.
 
@@ -20,6 +20,9 @@ gui_forms::HelpBookSystem
       **options** : ``HelpBookSystemOptions``, default ``{}``
 
    :Properties:
+
+      **locale** : ``LocaleCatalog``, read-only
+         The language files' text: every field the loaded files give, and the program layer as of the last compile, section(), export or resolve_field. Declared HelpTopics are not in it; they join the help view at each compile and the template export.
 
       **options** : ``HelpBookSystemOptions``, read-only
 
@@ -54,13 +57,21 @@ gui_forms::HelpBookSystem
       :widths: 35 65
 
       * - :cpp:func:`catalog <gui_forms::HelpBookSystem::catalog>`
-        -  
+        - The help view of locale().
       * - :cpp:func:`load_built_in <gui_forms::HelpBookSystem::load_built_in>`
-        - Reads a locale file's help fields: into the built-in layer (the embedded built-in locale file) or as the translation.
+        - Reads a locale file: merged into the built-in layer (the embedded built-in locale file, which must be for options().built_in_language), or as the translation (user overrides for another language go).
       * - :cpp:func:`load_translation <gui_forms::HelpBookSystem::load_translation>`
         -  
+      * - :cpp:func:`load_user_overrides <gui_forms::HelpBookSystem::load_user_overrides>`
+        - The user's own ``locales-<tag>.xml`` for the language in force: wins over the translation and the built-in text per field.
+      * - :cpp:func:`clear_user_overrides <gui_forms::HelpBookSystem::clear_user_overrides>`
+        - Drops the user's overrides (one way back: the file is removed).
       * - :cpp:func:`use_built_in_language <gui_forms::HelpBookSystem::use_built_in_language>`
-        - The untranslatable way back: help in the built-in language only.
+        - The untranslatable way back: help in the built-in language only, whatever the translation and the user's file say.
+      * - :cpp:func:`export_template <gui_forms::HelpBookSystem::export_template>`
+        - The template export (translation design 7): the declared topics, the built-in file and the attached windows' program values, with the built-in text as values and, when ``language`` is the translation's, its translations over them; never the user's overrides.
+      * - :cpp:func:`resolve_field <gui_forms::HelpBookSystem::resolve_field>`
+        - One field of a record as it shows now, with the layer it came from: the attached windows' program values are read first.
       * - :cpp:func:`compile <gui_forms::HelpBookSystem::compile>`
         - Compiles the section from the catalog, the attached windows' structure and the declared topics, and shows it in the viewers.
       * - :cpp:func:`section <gui_forms::HelpBookSystem::section>`
@@ -114,6 +125,10 @@ gui_forms::HelpBookSystem
 
    .. rubric:: Properties
 
+   .. cpp:function:: const LocaleCatalog& locale() const noexcept
+
+      The language files' text: every field the loaded files give, and the program layer as of the last compile, section(), export or resolve_field. Declared HelpTopics are not in it; they join the help view at each compile and the template export.
+
    .. cpp:function:: const HelpBookSystemOptions& options() const noexcept
 
    .. cpp:function:: std::shared_ptr<HelpBookViewer> active_viewer() const
@@ -126,7 +141,7 @@ gui_forms::HelpBookSystem
 
    .. cpp:function:: HelpBookSystemSnapshot snapshot() const noexcept
 
-   .. cpp:function:: const std::vector<std::string>& bookmarks() const noexcept
+   .. cpp:function:: const std::vector<std::string>& bookmarks() const& noexcept
 
    .. cpp:function:: void set_bookmarks(std::vector<std::string> stable_ids)
 
@@ -144,15 +159,33 @@ gui_forms::HelpBookSystem
 
    .. cpp:function:: HelpCatalog& catalog() noexcept
 
-   .. cpp:function:: HelpLocaleReadResult load_built_in(std::string_view locale_xml)
+      The help view of locale(). Every load and the way back replace it from locale() (HelpCatalog::adopt_locale), so a direct edit lasts only until the next one.
 
-      Reads a locale file's help fields: into the built-in layer (the embedded built-in locale file) or as the translation. A refused file changes nothing; rejected fields are left out and listed.
+   .. cpp:function:: LocaleReadResult load_built_in(std::string_view locale_xml)
 
-   .. cpp:function:: HelpLocaleReadResult load_translation(std::string_view locale_xml)
+      Reads a locale file: merged into the built-in layer (the embedded built-in locale file, which must be for options().built_in_language), or as the translation (user overrides for another language go). A refused file changes nothing; rejected fields are left out and listed.
+
+   .. cpp:function:: LocaleReadResult load_translation(std::string_view locale_xml)
+
+   .. cpp:function:: LocaleReadResult load_user_overrides(std::string_view locale_xml)
+
+      The user's own ``locales-<tag>.xml`` for the language in force: wins over the translation and the built-in text per field. A file for another language is refused (language_mismatch) and changes nothing.
+
+   .. cpp:function:: void clear_user_overrides()
+
+      Drops the user's overrides (one way back: the file is removed).
 
    .. cpp:function:: void use_built_in_language(bool built_in_only)
 
-      The untranslatable way back: help in the built-in language only.
+      The untranslatable way back: help in the built-in language only, whatever the translation and the user's file say. The viewer's built-in-language link turns it on.
+
+   .. cpp:function:: XmlWriteResult export_template(std::string_view language)
+
+      The template export (translation design 7): the declared topics, the built-in file and the attached windows' program values, with the built-in text as values and, when ``language`` is the translation's, its translations over them; never the user's overrides. ``language`` empty exports the built-in language. The error is the XML writer's.
+
+   .. cpp:function:: LocaleResolvedField resolve_field(std::string_view stable_id, LocaleField field)
+
+      One field of a record as it shows now, with the layer it came from: the attached windows' program values are read first.
 
    .. cpp:function:: const HelpBookCompileResult& compile()
 
@@ -220,3 +253,189 @@ gui_forms::HelpBookSystem
    .. rubric:: Extension points
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Help``. Members declared here and by the counterpart: 30 supported, 0 deferred, 0 excluded, 13 unclassified; 40 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - method
+     - ``ShowHelp``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ShowHelpIndex``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ShowPopup``
+     - ``show_popup``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_viewer``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``bookmarks``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``help_mode_active``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``locale``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``options``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``popup_book``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``popup_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``snapshot``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``bookmarks_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``external_link``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``print_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``attach``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``attach_ribbon_tool_tip``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``cancel_help_mode``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``catalog``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_user_overrides``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_popup``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``compile``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``detach``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``enter_help_mode``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``export_template``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``load_built_in``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``load_translation``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``load_user_overrides``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_help_key``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_help_mode_key``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_help_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_ribbon_help``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``resolve``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``resolve_field``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``section``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_section``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_viewer``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_card``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_contents``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show_help_for``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show_index``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_search``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``use_built_in_language``
+     - supported

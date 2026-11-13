@@ -111,6 +111,7 @@ const char* fill_kind_name(MaterialFillKind kind) noexcept {
     case MaterialFillKind::image: return "image";
     case MaterialFillKind::conic_gradient: return "conic_gradient";
     case MaterialFillKind::procedural: return "procedural";
+    case MaterialFillKind::finish: return "finish";
     }
     return "unknown";
 }
@@ -124,6 +125,32 @@ const char* procedural_pattern_name(ProceduralPattern pattern) noexcept {
     case ProceduralPattern::brushed_metal: return "brushed_metal";
     case ProceduralPattern::fresco: return "fresco";
     case ProceduralPattern::checker: return "checker";
+    }
+    return "unknown";
+}
+
+const char* finish_kind_name(FinishKind kind) noexcept {
+    switch (kind) {
+    case FinishKind::dusty_matte: return "dusty_matte";
+    case FinishKind::orange_peel: return "orange_peel";
+    case FinishKind::hammertone: return "hammertone";
+    case FinishKind::wrinkle: return "wrinkle";
+    case FinishKind::bead_blast: return "bead_blast";
+    case FinishKind::sand_cast: return "sand_cast";
+    case FinishKind::flat: return "flat";
+    case FinishKind::cloth_weave: return "cloth_weave";
+    case FinishKind::glint: return "glint";
+    }
+    return "unknown";
+}
+
+const char* glint_preset_name(GlintPreset preset) noexcept {
+    switch (preset) {
+    case GlintPreset::bead_blast: return "bead_blast";
+    case GlintPreset::sand_blast: return "sand_blast";
+    case GlintPreset::iridescent: return "iridescent";
+    case GlintPreset::coarse_grit: return "coarse_grit";
+    case GlintPreset::painted_sand: return "painted_sand";
     }
     return "unknown";
 }
@@ -314,6 +341,23 @@ void append_fill(std::ostringstream& output, const MaterialFillLayer& fill) {
         append_color(output, pattern.bloom);
         output << '}';
     }
+    // A finish fill's parameters, only for one, so that other fills'
+    // snapshots are unchanged.
+    if (fill.kind == MaterialFillKind::finish) {
+        const FinishFill& finish = fill.finish;
+        output << ",\"finish\":{\"kind\":";
+        append_json_string(output, finish_kind_name(finish.kind));
+        output << ",\"seed\":" << finish.seed << ",\"grain\":" << finish.grain << ",\"paint\":";
+        append_color(output, finish.paint);
+        output << ",\"secondary\":";
+        append_color(output, finish.secondary);
+        output << ",\"light_azimuth_degrees\":" << finish.light_azimuth_degrees
+               << ",\"light_elevation_degrees\":" << finish.light_elevation_degrees
+               << ",\"ambient\":" << finish.ambient << ",\"relief\":" << finish.relief
+               << ",\"gloss\":" << finish.gloss << ",\"glint\":";
+        append_json_string(output, glint_preset_name(finish.glint));
+        output << '}';
+    }
     output << '}';
 }
 
@@ -394,6 +438,11 @@ void append_material(std::ostringstream& output,
         const bool backplane = reflection.source == MaterialReflectionSource::backplane;
         append_json_string(output, backplane ? "backplane" : "face");
         output << '}';
+    }
+    // The dither (MaterialDither), likewise only when set.
+    if (material.dither != MaterialDither::none) {
+        output << ",\"dither\":";
+        append_json_string(output, material.dither == MaterialDither::ordered ? "ordered" : "blue-noise");
     }
     output << '}';
 }

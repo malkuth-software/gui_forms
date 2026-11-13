@@ -1,4 +1,10 @@
 #include "support.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
+#include "gui_forms/controls/text_box.hpp"
 
 namespace gallery_pages_tests {
 

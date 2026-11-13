@@ -1,4 +1,4 @@
-#include "gui_forms/controls/ribbon/ribbon.hpp"
+#include "gui_forms/controls/ribbon.hpp"
 
 #include "../menu/menu_utilities.hpp"
 #include "ribbon_application_menu.hpp"
@@ -1277,7 +1277,7 @@ void Ribbon::on_paint(Painter& painter, Rect) {
     part.key = PartKey{"application_button", {}, {}};
     paint_part(painter, *this, part);
     part.role = PartRole::label;
-    part.text = application_label;
+    part.text = lend_paint_text(application_label);
     part.alignment = PartTextAlignment::center;
     part.bounds = own.application_label.bounds;
     part.key = PartKey{"application_label", {}, {}};
@@ -1385,7 +1385,7 @@ void Ribbon::paint_tab(Painter& painter, PartPaint& part, const Layout& placed, 
     const std::string label = parse_mnemonic_text(tabs_[tab].text).display_text;
     part.role = PartRole::label;
     part.bounds = parts.tab_label.bounds;
-    part.text = label;
+    part.text = lend_paint_text(label);
     part.font = tab_label_font(states);
     part.alignment = PartTextAlignment::center;
     part.key = PartKey{"tab_label", id, {}};
@@ -1438,7 +1438,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
             part.role = PartRole::label;
             part.bounds = parts.group_button_label.bounds;
             part.alignment = PartTextAlignment::center;
-            part.text = groups[group].caption;
+            part.text = lend_paint_text(groups[group].caption);
             part.key = PartKey{"group_button_label", group_id, {}};
             paint_part(painter, *this, part);
             part.text = {};
@@ -1459,7 +1459,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
         part.role = PartRole::caption;
         part.bounds = parts.group_caption.bounds;
         part.alignment = PartTextAlignment::center;
-        part.text = groups[group].caption;
+        part.text = lend_paint_text(groups[group].caption);
         part.key = PartKey{"group_caption", group_id, {}};
         paint_part(painter, *this, part);
         part.text = {};
@@ -1494,7 +1494,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 part.bounds = command_part.command_label.bounds;
                 // part.text views the label: it lives here until the paint.
                 const std::string label = command_text(spec);
-                part.text = label;
+                part.text = lend_paint_text(label);
                 paint_part(painter, *this, part);
                 part.text = {};
             }
@@ -1540,7 +1540,7 @@ void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
                 const bool large = layout_command_size(group_layout, spec, command) == RibbonCommandSize::large;
                 part.role = PartRole::label;
                 part.bounds = command_part.command_label.bounds;
-                part.text = label;
+                part.text = lend_paint_text(label);
                 part.alignment = large ? PartTextAlignment::center : PartTextAlignment::start;
                 part.key = PartKey{"command_label", command_id, {}};
                 paint_part(painter, *this, part);
@@ -1574,7 +1574,7 @@ void Ribbon::paint_label_command(Painter& painter, PartPaint& part, const Ribbon
     part.bounds = command_part.command_label.bounds;
     // Kept alive while the part borrows it.
     const std::string label = command_text(spec);
-    part.text = label;
+    part.text = lend_paint_text(label);
     part.alignment = PartTextAlignment::start;
     part.key = PartKey{"command_label", spec.stable_id, {}};
     paint_part(painter, *this, part);
@@ -1885,29 +1885,40 @@ void Ribbon::release(const Hit& hit, PointerEvent& event) {
     }
 }
 
-void Ribbon::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input()) return;
-    if (event.action == PointerAction::leave) {
-        set_hot(Hit{});
-        return;
+void Ribbon::on_mouse_leave() {
+    if (eligible_for_input()) set_hot(Hit{});
+    Control::on_mouse_leave();
+}
+
+// The hot part follows the pointer's moves (the move that enters the
+// ribbon sets it).
+void Ribbon::on_mouse_move(MouseEventArgs& arguments) {
+    if (eligible_for_input()) set_hot(hit_test(layout(), arguments.location));
+    Control::on_mouse_move(arguments);
+}
+
+void Ribbon::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        const Control::Ptr lifetime = shared_from_this();
+        const Hit hit = hit_test(layout(), arguments.location);
+        if (hit.kind != Hit::Kind::none) {
+            PointerEvent event = pointer_event_of(arguments);
+            press(hit, event);
+            arguments.handled = event.handled;
+        }
     }
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
-    const Layout placed = layout();
-    const Hit hit = hit_test(placed, local);
-    if (event.action == PointerAction::move || event.action == PointerAction::enter) {
-        set_hot(hit);
-        return;
+    Control::on_mouse_down(arguments);
+}
+
+void Ribbon::on_mouse_up(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) {
+        const Control::Ptr lifetime = shared_from_this();
+        const Hit hit = hit_test(layout(), arguments.location);
+        PointerEvent event = pointer_event_of(arguments);
+        release(hit, event);
+        arguments.handled = event.handled;
     }
-    if (event.button != PointerButton::primary) return;
-    const Control::Ptr lifetime = shared_from_this();
-    if (event.action == PointerAction::down) {
-        if (hit.kind == Hit::Kind::none) return;
-        press(hit, event);
-        return;
-    }
-    if (event.action != PointerAction::up) return;
-    release(hit, event);
+    Control::on_mouse_up(arguments);
 }
 
 // The overlay's layer lets presses on the ribbon (its anchor) through, but its
@@ -2070,8 +2081,9 @@ void Ribbon::activate_stop(const Stop& stop) {
     }
 }
 
-void Ribbon::on_key(KeyEvent& event) {
-    if (!focused_ || event.action != KeyAction::down || !effectively_enabled()) return;
+void Ribbon::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || !focused_ || !effectively_enabled()) return;
     const std::vector<Stop> all = stops();
     if (!stop_) stop_ = Stop{StopKind::tab, selected_tab_.value_or(0U), {}};
     const Stop resolved = resolve_stop(all, *stop_);
@@ -2085,8 +2097,8 @@ void Ribbon::on_key(KeyEvent& event) {
     for (const Stop& stop : all) {
         if (stop.kind == StopKind::application || stop.kind == StopKind::tab) ++row_count;
     }
-    const std::uint32_t key = event.physical_key;
-    const bool shift = has_modifier(event.modifiers, Modifier::shift);
+    const std::uint32_t key = arguments.physical_key;
+    const bool shift = has_modifier(arguments.modifiers, Modifier::shift);
     if (key == PhysicalKey::tab) {
         // Tab moves through every stop and leaves the ribbon after the last
         // (or, with Shift, before the first).
@@ -2135,7 +2147,7 @@ void Ribbon::on_key(KeyEvent& event) {
     } else {
         return;
     }
-    event.handled = true;
+    arguments.handled = true;
 }
 
 // Keys in the group overlay: Tab and Shift+Tab through its stops and then out

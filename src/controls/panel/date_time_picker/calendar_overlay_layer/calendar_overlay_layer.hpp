@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel.hpp"
 
 namespace gui_forms {
 
@@ -8,7 +8,9 @@ class CalendarOverlayLayer final : public Panel {
 public:
     explicit CalendarOverlayLayer(StableId stable_id);
     [[nodiscard]] Event<>& dismissed() noexcept { return dismissed_; }
-    void on_pointer(PointerEvent& event) override;
+
+protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
 
 private:
     Event<> dismissed_;

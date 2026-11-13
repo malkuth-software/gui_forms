@@ -1,4 +1,7 @@
 #include "pages.hpp"
+#include "gui_forms/controls/raster_canvas.hpp"
+#include "gui_forms/drawing/bitmap/bitmap.hpp"
+#include "gui_forms/drawing/color/color.hpp"
 
 #include "images-and-drawing_form.hpp"
 

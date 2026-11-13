@@ -1,4 +1,4 @@
-#include "gui_forms/controls/pages/page_strip/page_strip.hpp"
+#include "gui_forms/controls/page_strip.hpp"
 
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
@@ -324,6 +324,14 @@ bool PageStrip::horizontal() const noexcept {
     return result;
 }
 
+// A top or bottom strip under a resolved right-to-left direction runs its
+// tabs, scroll buttons and list button from the right (WinForms'
+// TabControl with RightToLeftLayout); a side strip is not directional.
+bool PageStrip::mirrored() const noexcept {
+    const bool result = horizontal() && effective_layout_direction() == LayoutDirection::right_to_left;
+    return result;
+}
+
 double PageStrip::main_extent() const noexcept {
     const double extent = horizontal() ? layout_.key.surface.width : layout_.key.surface.height;
     return extent;
@@ -334,9 +342,26 @@ double PageStrip::cross_extent() const noexcept {
     return extent;
 }
 
+// The start of `bounds` along the row in reading order: measured from the
+// right edge on a mirrored strip, so the drag and insertion arithmetic
+// below works in reading order on either side.
 double PageStrip::main_start(Rect bounds) const noexcept {
+    if (mirrored()) {
+        const double start = layout_.key.surface.width - bounds.x - bounds.width;
+        return start;
+    }
     const double start = horizontal() ? bounds.x : bounds.y;
     return start;
+}
+
+// A band at reading-order `start` on the strip as drawn.
+Rect PageStrip::drawn_band(double start, double length) const {
+    if (mirrored()) {
+        const Rect band = band_rect(layout_.key.surface.width - start - length, length);
+        return band;
+    }
+    const Rect band = band_rect(start, length);
+    return band;
 }
 
 // The reading direction of a tab's label (owner decision DK-42).
@@ -354,6 +379,7 @@ PageStrip::LayoutKey PageStrip::current_key() const {
     key.settings_revision = settings_revision_;
     key.scroll_revision = scroll_revision_;
     key.bound = pages_ != nullptr;
+    key.mirrored = mirrored();
     if (pages_ != nullptr) {
         key.set_revision = (*pages_).revision();
         key.page_count = (*pages_).count();
@@ -508,6 +534,10 @@ Rect PageStrip::along_tab(Rect tab, double offset, double length, double cross_o
         const Rect turned{tab.x + tab.width - cross_offset - cross_length, tab.y + offset, cross_length, length};
         return turned;
     }
+    if (mirrored()) {
+        const Rect part{tab.x + tab.width - offset - length, tab.y + cross_offset, length, cross_length};
+        return part;
+    }
     const Rect part{tab.x + offset, tab.y + cross_offset, length, cross_length};
     return part;
 }
@@ -533,8 +563,10 @@ void PageStrip::place_tabs(double start, double area) const {
 // to the list button (or the strip's end); a tab reaching past it is cut to
 // it and those after it are dropped.
 void PageStrip::place_visible(double start) const {
-    const double end = layout_.overflow ? main_start(layout_.list_button)
-                                        : main_extent() - edge_inset * layout_.key.scale;
+    // Laid out in reading order before compute_layout mirrors the result,
+    // so the list button's start is read unmirrored here.
+    const double list_start = horizontal() ? layout_.list_button.x : layout_.list_button.y;
+    const double end = layout_.overflow ? list_start : main_extent() - edge_inset * layout_.key.scale;
     double x = start;
     std::size_t placed = 0U;
     for (; placed < layout_.visible.size(); ++placed) {
@@ -731,7 +763,7 @@ void PageStrip::compute_layout(const LayoutKey& key) const {
                              previous.set_revision == key.set_revision &&
                              previous.settings_revision == key.settings_revision &&
                              previous.page_count == key.page_count && previous.expanded == key.expanded &&
-                             previous.bound == key.bound;
+                             previous.bound == key.bound && previous.mirrored == key.mirrored;
     layout_.key = key;
     layout_.valid = true;
     layout_.rail = {0.0, 0.0, key.surface.width, key.surface.height};
@@ -790,6 +822,21 @@ void PageStrip::compute_layout(const LayoutKey& key) const {
         layout_scroll(scroll_only);
     }
     layout_.hidden = count - layout_.visible.size();
+    if (mirrored()) mirror_layout();
+}
+
+// Mirrors the reading-order layout across the strip for a right-to-left
+// row; tabs are laid out left to right above and flipped once here.
+void PageStrip::mirror_layout() const {
+    const Rect frame{0.0, 0.0, layout_.key.surface.width, layout_.key.surface.height};
+    for (TabSlot& tab : layout_.tabs) {
+        if (!tab.bounds.empty()) tab.bounds = horizontally_mirrored(tab.bounds, frame);
+    }
+    layout_.scroll_back = horizontally_mirrored(layout_.scroll_back, frame);
+    layout_.scroll_forward = horizontally_mirrored(layout_.scroll_forward, frame);
+    layout_.list_button = horizontally_mirrored(layout_.list_button, frame);
+    layout_.list_count = horizontally_mirrored(layout_.list_count, frame);
+    layout_.list_glyph = horizontally_mirrored(layout_.list_glyph, frame);
 }
 
 // -- part geometry -------------------------------------------------------------
@@ -1105,6 +1152,10 @@ void PageStrip::on_paint(Painter& painter, Rect) {
     // The list opens a list of pages: an open down chevron, as a combo
     // box's, rather than the tool strip's overflow mark.
     std::array<PartMark, 3> marks{PartMark::arrow_left, PartMark::arrow_right, PartMark::chevron_down};
+    if (mirrored()) {
+        marks[0] = PartMark::arrow_right;
+        marks[1] = PartMark::arrow_left;
+    }
     constexpr std::array<std::string_view, 3> button_names{"scroll_back", "scroll_forward", "list_button"};
     constexpr std::array<std::string_view, 3> glyph_names{"scroll_back_glyph", "scroll_forward_glyph", "list_glyph"};
     if (!horizontal()) {
@@ -1129,7 +1180,7 @@ void PageStrip::on_paint(Painter& painter, Rect) {
         part.states = own.list_count.states;
         part.role = PartRole::label;
         part.bounds = own.list_count.bounds;
-        part.text = placed.list_count_text;
+        part.text = lend_paint_text(placed.list_count_text);
         part.key = PartKey{"list_count", {}, {}};
         paint_part(painter, *this, part);
         part.text = {};
@@ -1192,7 +1243,7 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
         part.role = PartRole::label;
         part.bounds = parts.tab_label.bounds;
         part.key = PartKey{"tab_label", paint_stable_id_, {}};
-        part.text = placed.tabs[position].label;
+        part.text = lend_paint_text(placed.tabs[position].label);
         paint_part(painter, *this, part);
         part.text = {};
     }
@@ -1488,6 +1539,10 @@ double PageStrip::main_length(Rect bounds) const noexcept {
 
 double PageStrip::local_main(Point window_point) const {
     const Rect absolute = absolute_bounds();
+    if (mirrored()) {
+        const double local = layout_.key.surface.width - (window_point.x - absolute.x);
+        return local;
+    }
     const double local = horizontal() ? window_point.x - absolute.x : window_point.y - absolute.y;
     return local;
 }
@@ -1627,7 +1682,9 @@ Rect PageStrip::slid_bounds(std::size_t position) const {
         shift = length;
     }
     Rect moved = bounds;
-    if (horizontal()) {
+    if (mirrored()) {
+        moved.x -= shift;
+    } else if (horizontal()) {
         moved.x += shift;
     } else {
         moved.y += shift;
@@ -1668,11 +1725,11 @@ Rect PageStrip::insertion_mark_bounds() const {
         if (shrinking && position >= placed.front_end) continue;
         const Rect bounds = placed.tabs[position].bounds;
         if (position == gap) {
-            const Rect mark = band_rect(main_start(bounds) - thickness * 0.5, thickness);
+            const Rect mark = drawn_band(main_start(bounds) - thickness * 0.5, thickness);
             return mark;
         }
         if (position + 1U == gap) {
-            const Rect mark = band_rect(main_start(bounds) + main_length(bounds) - thickness * 0.5, thickness);
+            const Rect mark = drawn_band(main_start(bounds) + main_length(bounds) - thickness * 0.5, thickness);
             return mark;
         }
     }
@@ -1828,14 +1885,44 @@ void PageStrip::on_middle_button(PointerEvent& event, Hit hit) {
     static_cast<void>(request_close(page, PageCloseCause::middle_button));
 }
 
-void PageStrip::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::leave) {
-        set_hot({});
-        middle_pressed_.reset();
-        thaw_widths();
-        return;
-    }
-    if (event.action == PointerAction::move || event.action == PointerAction::enter) {
+void PageStrip::on_mouse_leave() {
+    set_hot({});
+    middle_pressed_.reset();
+    thaw_widths();
+    Control::on_mouse_leave();
+}
+
+void PageStrip::on_mouse_down(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void PageStrip::on_mouse_up(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void PageStrip::on_mouse_move(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void PageStrip::on_mouse_wheel(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+void PageStrip::handle_mouse(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+}
+
+// The press, release, move and wheel in the routed form the button helpers
+// (on_pointer_release, on_middle_button, on_secondary_button) take; the
+// move that enters the strip sets the hot zone.
+void PageStrip::handle_pointer(PointerEvent& event) {
+    if (event.action == PointerAction::move) {
         const bool dragging = drag_.phase == DragState::Phase::armed || drag_.phase == DragState::Phase::sliding;
         if (dragging) on_drag_move(event.position);
         if (!is_alive()) return;
@@ -1925,49 +2012,57 @@ void PageStrip::on_context_menu_requested(ContextMenuRequest& request) {
     request.handled = true;
 }
 
-void PageStrip::on_key(KeyEvent& event) {
-    if (!focused_ || event.action != KeyAction::down || pages_ == nullptr || (*pages_).count() == 0U) return;
+void PageStrip::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || !focused_ || pages_ == nullptr || (*pages_).count() == 0U) return;
+    // The key command table matches the routed form.
+    const KeyEvent pressed = key_event_of(arguments, KeyAction::down);
     const std::size_t count = (*pages_).count();
     // The named commands' keys are the window's (owner decision DK-30): the
     // host's defaults, as the application rebound them.
     const KeyMap& keys = effective_key_map();
-    const bool plain = event.modifiers == Modifier::none;
+    const bool plain = arguments.modifiers == Modifier::none;
     // Along the row: Left and Right on a top or bottom strip, Up and Down on
     // a side strip.
-    const std::uint32_t previous_key = horizontal() ? PhysicalKey::left : PhysicalKey::up;
-    const std::uint32_t next_key = horizontal() ? PhysicalKey::right : PhysicalKey::down;
+    // A mirrored strip reads from the right, so Left moves on.
+    std::uint32_t previous_key = horizontal() ? PhysicalKey::left : PhysicalKey::up;
+    std::uint32_t next_key = horizontal() ? PhysicalKey::right : PhysicalKey::down;
+    if (mirrored()) {
+        previous_key = PhysicalKey::right;
+        next_key = PhysicalKey::left;
+    }
     const std::size_t current = keyboard_position().value_or(0U);
-    if (plain && event.physical_key == PhysicalKey::escape) {
+    if (plain && arguments.physical_key == PhysicalKey::escape) {
         // Escape ends a live reorder with nothing moved; otherwise it is not
         // the strip's.
         if (!cancel_drag()) return;
-    } else if (keys.matches(KeyCommand::close_document, event)) {
+    } else if (keys.matches(KeyCommand::close_document, pressed)) {
         // Ctrl+F4 (Cmd+W on macOS) closes the selected closable page (owner
         // decision DK-38); Delete closes nothing.
         const std::optional<PageId> selected = (*pages_).selected_page();
         if (selected) static_cast<void>(request_close(*selected, PageCloseCause::keyboard));
-    } else if (keys.matches(KeyCommand::move_tab_later, event)) {
+    } else if (keys.matches(KeyCommand::move_tab_later, pressed)) {
         static_cast<void>(move_selected(1));
-    } else if (keys.matches(KeyCommand::move_tab_earlier, event)) {
+    } else if (keys.matches(KeyCommand::move_tab_earlier, pressed)) {
         static_cast<void>(move_selected(-1));
-    } else if (keys.matches(KeyCommand::next_tab, event)) {
+    } else if (keys.matches(KeyCommand::next_tab, pressed)) {
         static_cast<void>(select_relative(1, PageSelectionCause::keyboard));
-    } else if (keys.matches(KeyCommand::previous_tab, event)) {
+    } else if (keys.matches(KeyCommand::previous_tab, pressed)) {
         static_cast<void>(select_relative(-1, PageSelectionCause::keyboard));
-    } else if (plain && event.physical_key == next_key) {
+    } else if (plain && arguments.physical_key == next_key) {
         move_keyboard((current + 1U) % count);
-    } else if (plain && event.physical_key == previous_key) {
+    } else if (plain && arguments.physical_key == previous_key) {
         move_keyboard((current + count - 1U) % count);
-    } else if (plain && event.physical_key == PhysicalKey::home) {
+    } else if (plain && arguments.physical_key == PhysicalKey::home) {
         move_keyboard(0U);
-    } else if (plain && event.physical_key == PhysicalKey::end) {
+    } else if (plain && arguments.physical_key == PhysicalKey::end) {
         move_keyboard(count - 1U);
-    } else if (plain && (event.physical_key == PhysicalKey::space || event.physical_key == PhysicalKey::enter)) {
+    } else if (plain && (arguments.physical_key == PhysicalKey::space || arguments.physical_key == PhysicalKey::enter)) {
         static_cast<void>(choose(current, PageSelectionCause::keyboard));
     } else {
         return;
     }
-    event.handled = true;
+    arguments.handled = true;
 }
 
 void PageStrip::on_focus_changed(bool focused) {
@@ -2051,6 +2146,9 @@ bool PageStrip::show_page_list(MenuOpenMode mode) {
     // Right-aligned below the list button (beside it on a side strip, on the
     // content's side); the overlay layer keeps it on screen.
     Point anchor{std::max(absolute.x, right - (*list_).preferred_width.read()), absolute.y + button.y + button.height};
+    // A mirrored strip's list button is at its left: the list opens
+    // left-aligned below it.
+    if (mirrored()) anchor = {absolute.x + button.x, absolute.y + button.y + button.height};
     if (placement.read() == PageStripPlacement::left) anchor = {right, absolute.y + button.y};
     if (placement.read() == PageStripPlacement::right) {
         anchor = {absolute.x + button.x - (*list_).preferred_width.read(), absolute.y + button.y};

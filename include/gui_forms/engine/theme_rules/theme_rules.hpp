@@ -1,11 +1,14 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/engine/authored_gradient/authored_gradient.hpp"
+#include "gui_forms/engine/theme_rules/cascade_facts.hpp"
 #include "gui_forms/engine/engine_expression/engine_expression.hpp"
 #include "gui_forms/engine/motion_value/motion_value.hpp"
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/surface_material/finish_fill/finish_fill.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
@@ -21,60 +24,6 @@
 
 namespace gui_forms {
 
-// The cascade (T2 plan, phase E4): which primitive draws a part, and with
-// which parameters. Theme data is rules; each rule has a selector, a cascade
-// level and declarations. T3 fills the rules by parsing theme documents and
-// FD fills the inline styles; until then they are C++ data (tests).
-//
-// The levels, lowest first. A declaration at a higher level wins over every
-// declaration at a lower one; within a level, the more specific selector
-// wins, and among equals the later rule. `built_in` and
-// `forced_high_contrast` are not authored: the built-in recipe is what a
-// part falls back to when no rule selects a primitive, and forced high
-// contrast is the engine's own pass over the result.
-//
-// The important levels (T3 engine change EC6) hold a sheet's `!important`
-// declarations: a theme's above every inline style's ordinary ones, and an
-// inline style's above all. So an important declaration wins whichever side
-// it is on, and where neither or both are important the inline style wins
-// (the owner's rule E1). Forced high contrast sits between them: under it,
-// only the `important_inline_style` declarations that are not colours
-// stand, and every colour is the high-contrast pass's.
-//
-// The user levels (T3 user themes, notes:planning/stages/T3-theme-language/
-// USER_THEMES.md section 4) hold a user theme layered under the program's:
-// its ordinary declarations below every program declaration, its
-// `!important` ones above the program's ordinary declarations and below
-// its `!important` ones. A user theme's rules are a set of their own
-// (CompiledThemeRules::compile_user, PartFacts::user_rules).
-//
-// The base levels (selector step 1, owner ruling of 2026-11-08) hold the
-// GUI.Forms base sheet when a program's packages are compiled onto it, as
-// CSS's user-agent origin: its ordinary declarations below every user and
-// program declaration whatever their specificity, and its `!important`
-// ones below the user theme's and the program's.
-//
-// `class_rule` and `stable_id_rule` are for rules written as data: the
-// theme language puts every sheet rule at `theme_sheet`, where its CSS
-// specificity alone orders it (selector step 1).
-enum class CascadeLevel : std::uint8_t {
-    built_in,
-    base_sheet,
-    user_theme,
-    theme_sheet,
-    class_rule,
-    stable_id_rule,
-    inline_style,
-    important_base_sheet,
-    important_user_theme,
-    important_theme_sheet,
-    forced_high_contrast,
-    important_inline_style,
-    count,
-};
-
-[[nodiscard]] std::string_view cascade_level_name(CascadeLevel level) noexcept;
-
 // Which set a theme's rules are compiled as: a program's theme
 // (CompiledThemeRules::compile_with_built_in) or a user theme layered under
 // it (CompiledThemeRules::compile_user).
@@ -82,7 +31,7 @@ enum class ThemeRuleSet : std::uint8_t { program, user };
 
 // Whether `name` is a valid style class name: 1 to 64 characters of
 // lowercase ASCII letters, digits, '-' and '_', the first a letter.
-[[nodiscard]] bool valid_style_class_name(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_style_class_name(std::string_view name) noexcept;
 
 // What a rule applies to. Every field it sets must match; an empty field
 // matches anything. No combinators: a selector names one part of one
@@ -111,16 +60,21 @@ enum class SurfaceKind : std::uint8_t { none, window, popup };
 // One argument of a selector's `:not()` (selector step 2): a compound of a
 // control type, a stable ID, classes, states and a family, each optional;
 // it excludes the parts it matches. It names no part, role or surface.
-struct RuleExclusion final {
+struct GUI_FORMS_API RuleExclusion final {
     std::string control_type{};
     std::string stable_id{};
     std::vector<std::string> classes{};
     std::vector<AnatomyState> states{};
+    // Custom states (RuleSelector::custom_states), positions in the
+    // custom states of the exclusion's control type, or of its selector's
+    // when it names none.
+    std::vector<CustomStateIndex> custom_states{};
     std::string family{};
 
     friend bool operator==(const RuleExclusion& left, const RuleExclusion& right) noexcept {
         return left.control_type == right.control_type && left.stable_id == right.stable_id &&
-               left.classes == right.classes && left.states == right.states && left.family == right.family;
+               left.classes == right.classes && left.states == right.states &&
+               left.custom_states == right.custom_states && left.family == right.family;
     }
 };
 
@@ -136,7 +90,7 @@ enum class AncestorCombinator : std::uint8_t { descendant, child };
 // Ancestor compounds name no state, family, part, role or surface, so a
 // rule's ancestors change only when an ancestor's type, ID or classes do,
 // or a control moves.
-struct RuleAncestor final {
+struct GUI_FORMS_API RuleAncestor final {
     std::string control_type{};
     std::string stable_id{};
     std::vector<std::string> classes{};
@@ -156,7 +110,7 @@ inline constexpr std::size_t maximum_ancestor_depth = 256U;
 
 // One ancestor control as a selector's ancestor compounds read it:
 // borrowed from the control for the resolution.
-struct AncestorFacts final {
+struct GUI_FORMS_API AncestorFacts final {
     std::string_view control_type{};
     std::string_view stable_id{};
     std::span<const std::string> classes{};
@@ -165,7 +119,7 @@ struct AncestorFacts final {
 // The keys an ancestor chain holds, hashed into 256 bits: a rule whose
 // ancestor keys are not all present cannot match, and is rejected without
 // walking the chain (CSS engines' ancestor Bloom filter).
-struct AncestorBloom final {
+struct GUI_FORMS_API AncestorBloom final {
     std::array<std::uint64_t, 4> bits{};
 
     // Adds `key`, written as a selector writes it: `type`, `#id` or `.class`.
@@ -177,34 +131,51 @@ struct AncestorBloom final {
 // theme's ControlVisualRole, such as `accent_button`): the selector matches
 // only parts resolved for that family (PartFacts::family). `excluded`
 // holds the arguments of its `:not()` selectors: it matches no part any of them
-// matches.
-struct RuleSelector final {
+// matches. `custom_states` (R2-13) are the custom states its `:state()`
+// names: each a position in its control type's
+// ControlAnatomy::custom_states, or, when its part is an item part, in the
+// custom states of the item system declaring that part. A position means
+// something only for one control type, so a selector with custom states
+// names its control type (an inline style's rules, which apply to their
+// own control alone, need not). They match the part's AnatomyStateSet
+// custom bits.
+struct GUI_FORMS_API RuleSelector final {
     std::string control_type{};
     std::string stable_id{};
     std::vector<std::string> classes{};
     std::string part{};
     std::optional<PartRole> role{};
     std::vector<AnatomyState> states{};
+    std::vector<CustomStateIndex> custom_states{};
     SurfaceKind surface{SurfaceKind::none};
     std::string family{};
     std::vector<RuleExclusion> excluded{};
     // The selector's ancestor compounds, nearest first (selector step 4).
     std::vector<RuleAncestor> ancestors{};
+    // The item the part belongs to (`:item(#id.class)`; cp31): its stable
+    // ID and classes, each optional. A selector with either matches only
+    // a part resolved for an item that has them (PartFacts::item_id and
+    // item_classes), never a control's own part.
+    std::string item_id{};
+    std::vector<std::string> item_classes{};
 
     friend bool operator==(const RuleSelector& left, const RuleSelector& right) noexcept {
         return left.control_type == right.control_type && left.stable_id == right.stable_id &&
                left.classes == right.classes && left.part == right.part && left.role == right.role &&
-               left.states == right.states && left.surface == right.surface && left.family == right.family &&
-               left.excluded == right.excluded && left.ancestors == right.ancestors;
+               left.states == right.states && left.custom_states == right.custom_states &&
+               left.surface == right.surface && left.family == right.family &&
+               left.excluded == right.excluded && left.ancestors == right.ancestors &&
+               left.item_id == right.item_id && left.item_classes == right.item_classes;
     }
 };
 
 // A selector's specificity, CSS's three columns compared in order: the
-// stable ID; the classes, the states and the family (pseudo-classes); the
+// stable ID and the item's ID; the classes, the item's classes, the states
+// (standard and custom) and the family (pseudo-classes); the
 // control type or surface and the part (its name or role, one each, as
 // pseudo-elements). A `:not()` adds its most specific argument's, and each
 // ancestor compound its own.
-struct RuleSpecificity final {
+struct GUI_FORMS_API RuleSpecificity final {
     std::uint32_t ids{};
     std::uint32_t classes{};
     std::uint32_t types{};
@@ -219,26 +190,7 @@ struct RuleSpecificity final {
     }
 };
 
-[[nodiscard]] RuleSpecificity rule_specificity(const RuleSelector& selector) noexcept;
-
-// What a window is, as a rule's media condition reads it (T3 EC3): its
-// presentation settings and its scale. Every window evaluates a theme's
-// conditions against its own facts, so windows sharing a theme may differ.
-struct MediaFacts final {
-    // PresentationSettings::colour_scheme is ColourScheme::dark.
-    bool dark_scheme{};
-    // PresentationSettings::high_contrast.
-    bool forced_colours{};
-    // PresentationSettings::reduced_motion.
-    bool reduced_motion{};
-    // The window's scale: device pixels per logical unit.
-    double resolution{1.0};
-
-    friend bool operator==(const MediaFacts& left, const MediaFacts& right) noexcept {
-        return left.dark_scheme == right.dark_scheme && left.forced_colours == right.forced_colours &&
-               left.reduced_motion == right.reduced_motion && left.resolution == right.resolution;
-    }
-};
+[[nodiscard]] GUI_FORMS_API RuleSpecificity rule_specificity(const RuleSelector& selector) noexcept;
 
 // A rule's media condition (EC3): every feature it names must hold for the
 // window, and an unnamed feature always holds, so the default condition
@@ -247,7 +199,7 @@ struct MediaFacts final {
 // meets, such as a minimum above the maximum, is admitted: its rule never
 // matches. The theme language's `@media` blocks lower to these (one rule a
 // query of a comma list).
-struct MediaCondition final {
+struct GUI_FORMS_API MediaCondition final {
     // `prefers-color-scheme`: dark (true) or light (false).
     std::optional<bool> dark_scheme{};
     // `forced-colors`: active (true) or none (false).
@@ -266,11 +218,11 @@ struct MediaCondition final {
 };
 
 // Whether `condition` names nothing (it holds for every window).
-[[nodiscard]] bool media_condition_unconditional(const MediaCondition& condition) noexcept;
+[[nodiscard]] GUI_FORMS_API bool media_condition_unconditional(const MediaCondition& condition) noexcept;
 // Whether `condition`'s resolution bounds are finite and above zero.
-[[nodiscard]] bool media_condition_valid(const MediaCondition& condition) noexcept;
+[[nodiscard]] GUI_FORMS_API bool media_condition_valid(const MediaCondition& condition) noexcept;
 // Whether a window with `facts` meets `condition`.
-[[nodiscard]] bool media_condition_holds(const MediaCondition& condition, const MediaFacts& facts) noexcept;
+[[nodiscard]] GUI_FORMS_API bool media_condition_holds(const MediaCondition& condition, const MediaFacts& facts) noexcept;
 
 // The name of the declaration that selects a part's primitive. Its value is
 // a registered primitive's name, or `built_in` for the built-in recipe.
@@ -327,12 +279,12 @@ enum class ColourRole : std::uint8_t {
 inline constexpr std::size_t colour_role_count = static_cast<std::size_t>(ColourRole::count);
 
 // The role's name in kebab case, such as `ink-on-paper`; empty for count.
-[[nodiscard]] std::string_view colour_role_name(ColourRole role) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view colour_role_name(ColourRole role) noexcept;
 // The role `name` (kebab case, exact) names, or none.
-[[nodiscard]] std::optional<ColourRole> colour_role_from_name(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API std::optional<ColourRole> colour_role_from_name(std::string_view name) noexcept;
 // Whether the role is a pair (a foreground on a background) rather than a
 // single colour.
-[[nodiscard]] bool colour_role_paired(ColourRole role) noexcept;
+[[nodiscard]] GUI_FORMS_API bool colour_role_paired(ColourRole role) noexcept;
 
 // Which colour of a pair; a single role's colour is its foreground.
 enum class ColourRoleSide : std::uint8_t { foreground, background };
@@ -358,7 +310,7 @@ inline constexpr std::size_t maximum_application_colour_role_name = 64U;
 
 // One declaration of an application role's colours: its foreground and,
 // for a pair, its background, where `media` holds.
-struct ApplicationColourRoleVariant final {
+struct GUI_FORMS_API ApplicationColourRoleVariant final {
     MediaCondition media{};
     Color foreground{};
     Color background{};
@@ -376,7 +328,7 @@ struct ApplicationColourRoleVariant final {
 // colours, where there is one), each later one holding where its condition
 // does. A role without an unconditional declaration carries its fallback's
 // declarations before its own.
-struct ApplicationColourRole final {
+struct GUI_FORMS_API ApplicationColourRole final {
     std::string name{};
     ColourRole fallback{ColourRole::ink_on_paper};
     bool paired{};
@@ -390,7 +342,7 @@ struct ApplicationColourRole final {
 
 // Whether `name` is a valid application role name (above), whatever the
 // theme declares.
-[[nodiscard]] bool application_colour_role_name_valid(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API bool application_colour_role_name_valid(std::string_view name) noexcept;
 
 // Where a declaration's colour came from (EC4): none (the declaration
 // holds no colour, or is `initial`); a literal (a hexadecimal, functional
@@ -400,7 +352,7 @@ struct ApplicationColourRole final {
 // role's colour by the role, and a literal by its position.
 enum class ColourSource : std::uint8_t { none, literal, role };
 
-struct ColourOrigin final {
+struct GUI_FORMS_API ColourOrigin final {
     ColourSource source{ColourSource::none};
     ColourRole role{ColourRole::ink_on_paper};
     ColourRoleSide side{ColourRoleSide::foreground};
@@ -426,7 +378,7 @@ enum class BackdropStepKind : std::uint8_t { blur, saturate, tint };
 inline constexpr double maximum_backdrop_blur = 32.0;
 inline constexpr double maximum_backdrop_saturation = 4.0;
 
-struct BackdropStep final {
+struct GUI_FORMS_API BackdropStep final {
     BackdropStepKind kind{BackdropStepKind::tint};
     double amount{};
     Color colour{};
@@ -438,7 +390,7 @@ struct BackdropStep final {
     }
 };
 
-struct BackdropDeclaration final {
+struct GUI_FORMS_API BackdropDeclaration final {
     static constexpr std::size_t maximum_steps = 8U;
     // The first `length` entries are the chain, in order; the rest are
     // value-initialized and never read.
@@ -456,7 +408,7 @@ struct BackdropDeclaration final {
 
 // Whether `backdrop` is a chain the engine admits: its length within
 // capacity, every amount finite and in its range, and at most one blur.
-[[nodiscard]] bool backdrop_declaration_valid(const BackdropDeclaration& backdrop) noexcept;
+[[nodiscard]] GUI_FORMS_API bool backdrop_declaration_valid(const BackdropDeclaration& backdrop) noexcept;
 
 // What a theme's band does while lit (`band-effect`): nothing more, or
 // flash (the window's flash limiter bounds it; gui_forms/window/band/
@@ -468,7 +420,7 @@ enum class BandEffect : std::uint8_t { none, flash };
 // `band-color` (the rest colour), `band-lit-color` and `band-effect`. Each
 // field is set only by its own declaration; the cascade takes each field
 // from the last matching rule that sets it.
-struct BandDeclaration final {
+struct GUI_FORMS_API BandDeclaration final {
     std::optional<double> width{};
     std::optional<Color> rest_colour{};
     std::optional<Color> lit_colour{};
@@ -491,7 +443,7 @@ inline constexpr double maximum_theme_band_width = 32.0;
 
 // Whether `band` is one the engine admits: a width, if set, finite from 0
 // to maximum_theme_band_width; an effect, if set, in the enumeration.
-[[nodiscard]] bool band_declaration_valid(const BandDeclaration& band) noexcept;
+[[nodiscard]] GUI_FORMS_API bool band_declaration_valid(const BandDeclaration& band) noexcept;
 
 // Where a colour is drawn, as forced high contrast reads it: a fill (a
 // plate), an edge (a border, a keyline or a ring) or text; `none` for a
@@ -508,7 +460,7 @@ enum class ColourPosition : std::uint8_t { none, fill, edge, text };
 // cascade gives it before any expression, so expressions never read one
 // another. `number` is the expression's fallback. Its value is clamped to
 // the parameter's range.
-struct RuleDeclaration final {
+struct GUI_FORMS_API RuleDeclaration final {
     std::string property{};
     RuleValueKind kind{RuleValueKind::number};
     std::string name{};
@@ -621,7 +573,7 @@ inline constexpr std::string_view effect_secondary_property = "effect_secondary"
 
 // One effect colour as the rules resolve it: the role's colour in the
 // part's palette and the role it came from.
-struct EffectColourDeclaration final {
+struct GUI_FORMS_API EffectColourDeclaration final {
     Color colour{};
     ColourOrigin origin{};
 
@@ -640,9 +592,9 @@ inline constexpr std::size_t text_role_count = static_cast<std::size_t>(TextRole
 
 // The role's name in a sheet: `ui`, `field`, `caption`, `heading`,
 // `title`, `monospace`.
-[[nodiscard]] std::string_view text_role_name(TextRole role) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view text_role_name(TextRole role) noexcept;
 // The role `name` names exactly, if any.
-[[nodiscard]] std::optional<TextRole> text_role_from_name(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API std::optional<TextRole> text_role_from_name(std::string_view name) noexcept;
 
 // The engine's font property (T3 P8c, D6): a declaration of this name,
 // whose value is a name (a text role's, or font_inherit_name), sets the
@@ -655,7 +607,7 @@ inline constexpr std::string_view font_inherit_name = "inherit";
 // A part's font as the cascade resolved it: a text role, or, with
 // `inherit` (D7), the parent control's, which the caller resolves at
 // paint.
-struct FontDeclaration final {
+struct GUI_FORMS_API FontDeclaration final {
     TextRole role{TextRole::ui};
     bool inherit{};
 
@@ -713,7 +665,7 @@ inline constexpr std::size_t maximum_part_transitions = 6;
 // coefficients, as each stop's value_em: the value is the number plus the
 // part's em times its coefficient. Only a translation's and a number
 // parameter's machine takes them.
-struct PresentationState final {
+struct GUI_FORMS_API PresentationState final {
     std::vector<AnatomyState> when{};
     double target{};
     std::optional<double> enter_from{};
@@ -734,7 +686,7 @@ struct PresentationState final {
 // preparation. It runs on the window's MotionClock with `curve`; every
 // duration is clamped to the 400 ms ceiling. Under reduced motion and in an
 // occluded or minimized window it jumps to its end (GIVEN D2-1, D4-1).
-struct PropertyTransition final {
+struct GUI_FORMS_API PropertyTransition final {
     std::string property{};
     std::vector<PresentationState> states{};
     MotionCurve curve{};
@@ -761,7 +713,7 @@ inline constexpr double maximum_ambient_window_fraction = 0.10;
 // (PresentationSettings::ambient_motion); the part then rests at `pose`,
 // the time within the period it shows when still, such as an activity
 // object's static pose.
-struct AmbientEffect final {
+struct GUI_FORMS_API AmbientEffect final {
     FrameInterval period{};
     double frames_per_second{};
     FrameInterval pose{};
@@ -784,7 +736,7 @@ struct AmbientEffect final {
 // - stretch: the box (CSS `100% 100%`, MaterialImageMode::stretch).
 enum class MaterialImageSizing : std::uint8_t { natural, width, height, cover, contain, stretch };
 
-struct MaterialImageSize final {
+struct GUI_FORMS_API MaterialImageSize final {
     MaterialImageSizing sizing{MaterialImageSizing::natural};
     BoxLength length{};
     friend constexpr bool operator==(const MaterialImageSize& left, const MaterialImageSize& right) noexcept {
@@ -795,7 +747,7 @@ struct MaterialImageSize final {
 // An image layer's position (CSS `background-position`): each axis's
 // fraction is the layer's image_anchor, of the room the box leaves around
 // one tile, and its units its image_offset.
-struct MaterialImagePosition final {
+struct GUI_FORMS_API MaterialImagePosition final {
     BoxLength across{};
     BoxLength down{};
     friend constexpr bool operator==(const MaterialImagePosition& left, const MaterialImagePosition& right) noexcept {
@@ -868,16 +820,20 @@ enum class MaterialField : std::uint8_t {
     finish,
     mask,
     reflection,
+    // The part's seat in its panel (skeudoindustrial surfaces): derived
+    // shadows, appended to the shadows when the material is assembled.
+    seat,
+    gradient_dither,
     count,
 };
 
 inline constexpr std::size_t material_field_count = static_cast<std::size_t>(MaterialField::count);
 
-[[nodiscard]] std::string_view material_field_name(MaterialField field) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view material_field_name(MaterialField field) noexcept;
 // Where the field's colours are drawn (EC4): the background colour and the
 // fills are a fill, the border colours and keylines an edge; every other
 // field none.
-[[nodiscard]] ColourPosition material_field_colour_position(MaterialField field) noexcept;
+[[nodiscard]] GUI_FORMS_API ColourPosition material_field_colour_position(MaterialField field) noexcept;
 
 // One material field a rule sets and its value. Only the members `field`
 // names are read; the others stay empty:
@@ -908,11 +864,16 @@ inline constexpr std::size_t material_field_count = static_cast<std::size_t>(Mat
 //   none; mask: `mask`, empty for none, and `gradients`, empty or one
 //   entry, the mask's authored gradient as for a fill layer;
 // - filter_blur and finish: `number`;
-// - reflection: `reflection`, empty for none (stage T5, C7).
+// - reflection: `reflection`, empty for none (stage T5, C7);
+// - seat: `number`, the part's height above its panel in logical units
+//   (negative: sunk into it), or, with `relative`, a fraction of the box's
+//   shorter side, and `colour`, its shadow's; 0 for none. Resolved when
+//   the material is assembled (seat_shadows).
+// - gradient_dither: `dither` (MaterialDither, `gradient-dither`).
 // `initial`, set, is CSS's `initial`: the field keeps the floor's value,
 // and the declaration still wins over those beneath it; its value members
 // are not read.
-struct MaterialDeclaration final {
+struct GUI_FORMS_API MaterialDeclaration final {
     MaterialField field{MaterialField::fills};
     bool initial{};
     std::vector<MaterialFillLayer> fills{};
@@ -935,6 +896,7 @@ struct MaterialDeclaration final {
     std::optional<MaterialDropShadow> drop_shadow{};
     std::optional<MaterialFillLayer> mask{};
     std::optional<MaterialReflection> reflection{};
+    MaterialDither dither{MaterialDither::none};
     // Where the declaration's colours came from (EC4).
     ColourOrigin origin{};
     // Its lengths in em (T3 P8c, owner decision D4): empty, or one
@@ -958,7 +920,8 @@ struct MaterialDeclaration final {
                left.colour == right.colour && left.keylines == right.keylines &&
                left.number == right.number && left.relative == right.relative &&
                left.colour_filter == right.colour_filter && left.drop_shadow == right.drop_shadow &&
-               left.mask == right.mask && left.reflection == right.reflection && left.origin == right.origin &&
+               left.mask == right.mask && left.reflection == right.reflection && left.dither == right.dither &&
+               left.origin == right.origin &&
                left.em_lengths == right.em_lengths &&
                left.current_colours == right.current_colours;
     }
@@ -971,21 +934,51 @@ struct MaterialDeclaration final {
 // image positions' and the image sizes' units; each shadow's offset, blur
 // and spread; each glow's blur and spread; each keyline's width and inset;
 // the drop shadow's offset and blur; the reflection's gap and reach.
-void material_declaration_lengths(const MaterialDeclaration& declaration, std::vector<double>& lengths);
+GUI_FORMS_API void material_declaration_lengths(const MaterialDeclaration& declaration, std::vector<double>& lengths);
 // Sets the lengths of `declaration` from `lengths`, in that order; a length
 // past the end of `lengths` is kept.
-void set_material_declaration_lengths(MaterialDeclaration& declaration, std::span<const double> lengths) noexcept;
+GUI_FORMS_API void set_material_declaration_lengths(MaterialDeclaration& declaration, std::span<const double> lengths) noexcept;
 // Adds `em` times each of the declaration's em_lengths to its length.
-void add_material_em(MaterialDeclaration& declaration, double em) noexcept;
+GUI_FORMS_API void add_material_em(MaterialDeclaration& declaration, double em) noexcept;
 
 // The colours of `declaration`, into `colours` (cleared first), in a fixed
 // order: its colour; each authored gradient's stop colours; each shadow's,
 // glow's and keyline's colour; the drop shadow's.
-void material_declaration_colours(const MaterialDeclaration& declaration, std::vector<Color>& colours);
+GUI_FORMS_API void material_declaration_colours(const MaterialDeclaration& declaration, std::vector<Color>& colours);
 // Sets them from `colours`, in that order; one past its end is kept.
-void set_material_declaration_colours(MaterialDeclaration& declaration, std::span<const Color> colours) noexcept;
+GUI_FORMS_API void set_material_declaration_colours(MaterialDeclaration& declaration, std::span<const Color> colours) noexcept;
 // Sets each of the declaration's current_colours to `colour`.
-void set_material_current_colour(MaterialDeclaration& declaration, Color colour) noexcept;
+GUI_FORMS_API void set_material_current_colour(MaterialDeclaration& declaration, Color colour) noexcept;
+
+// -- the seat ------------------------------------------------------------------------------
+//
+// A part seated in its panel (skeudoindustrial surfaces; the theme's
+// "object presence"): a key, a well or a plate that stands proud of the
+// panel, or sinks into it, by a height a theme sets per role (`seat`).
+// Under the one fixed light from the upper left (the finishes' light), a
+// raised part casts a thin contact shadow down and to the right and
+// darkens the crevice all round where it meets the panel; a sunk part's
+// lip shades its upper left inside, and its seam darkens. Both are outer
+// or inset shadows of the material, so they are baked with it, identical
+// in any repaint rectangle, and drawn by every path that draws shadows.
+// The depth is a bas-relief's: at most maximum_seat_height, so a share of
+// a long bar's shorter side stays a seat and the shadows stay within the
+// material's outsets.
+inline constexpr double maximum_seat_height = 4.0;
+// The seat's shadow colour when the sheet gives none.
+inline constexpr Color default_seat_colour = Color::rgba(0, 0, 0, 77);
+// The run of the cast shadow per unit of height: the light stands 45
+// degrees above the panel, so the shadow falls half the height across and
+// half down.
+inline constexpr double seat_light_run = 0.5;
+
+// Appends the seat's shadows for a part `height` logical units above its
+// panel (negative: below it; resolved, not a share) in `colour` to
+// `shadows`: the cast shadow (a raised part's contact shadow, a sunk
+// part's lip shade) then the crevice, each while `shadows` holds fewer
+// than SurfaceMaterial::maximum_shadows; a seat with no room is dropped
+// (ornament gives way first). A height of 0 appends nothing.
+GUI_FORMS_API void seat_shadows(double height, Color colour, std::vector<MaterialShadow>& shadows);
 
 // Replaces `material` with `floor` and the declarations of `fields` (the
 // winning declaration of each field, by the field's position, null where
@@ -1021,7 +1014,7 @@ void set_material_current_colour(MaterialDeclaration& declaration, Color colour)
 // corners are fractions of its shorter side.
 // What a part gives its material's relative values (P8c): its em, and
 // its text colour, which CSS's currentcolor names.
-struct MaterialAssemblyContext final {
+struct GUI_FORMS_API MaterialAssemblyContext final {
     double em{};
     Color current_colour{};
 };
@@ -1030,27 +1023,28 @@ struct MaterialAssemblyContext final {
 // part's em (add_material_em) and its current colours set
 // (set_material_current_colour); the overload without it assembles at an
 // em of 0, its current colours as written.
-void assemble_material(const SurfaceMaterial& floor,
+GUI_FORMS_API void assemble_material(const SurfaceMaterial& floor,
                        const std::array<const MaterialDeclaration*, material_field_count>& fields, Size box,
                        MaterialAssemblyContext context, SurfaceMaterial& material);
-void assemble_material(const SurfaceMaterial& floor,
+GUI_FORMS_API void assemble_material(const SurfaceMaterial& floor,
                        const std::array<const MaterialDeclaration*, material_field_count>& fields, Size box,
                        SurfaceMaterial& material);
 
 // Whether assembling `fields` reads the part's em: a declaration with em
 // lengths.
-[[nodiscard]] bool material_fields_read_em(
+[[nodiscard]] GUI_FORMS_API bool material_fields_read_em(
     const std::array<const MaterialDeclaration*, material_field_count>& fields) noexcept;
 // Whether assembling `fields` reads the part's text colour: a declaration
 // with current colours.
-[[nodiscard]] bool material_fields_read_current_colour(
+[[nodiscard]] GUI_FORMS_API bool material_fields_read_current_colour(
     const std::array<const MaterialDeclaration*, material_field_count>& fields) noexcept;
 
-// Whether assembling `fields` reads the part's box: a relative corner, an
+// Whether assembling `fields` reads the part's box: a relative corner or
+// seat, an
 // authored gradient, of a fill or the mask, other than a fixed one
 // (authored_gradient_fixed), or an image size of the box (a fraction of
 // its side, cover or contain).
-[[nodiscard]] bool material_fields_read_box(
+[[nodiscard]] GUI_FORMS_API bool material_fields_read_box(
     const std::array<const MaterialDeclaration*, material_field_count>& fields) noexcept;
 
 // The fields of a control's own recipe (ControlVisualRecipe) beside its
@@ -1138,17 +1132,61 @@ enum class RecipeField : std::uint8_t {
     flare_colour,
     edge_shadow_width,
     edge_shadow_colour,
+    // A progress fill's stripe pattern (the barber pole; owner rulings of
+    // 2026-11-11), admitted on a named part (`progress-bar::part(fill)`,
+    // `::part(activity)`) and read by the stripe effect
+    // (ControlStripePattern): `stripe-pitch` (a length; 0 is `auto`, the
+    // fill's inner thickness), `stripe-ratio` (the pale band's share of the
+    // pitch), `stripe-angle` (degrees from the bar's cross axis),
+    // `stripe-lean` and `stripe-direction` (StripeSense), `stripe-speed`
+    // (pitches per second), `stripe-color` and `stripe-ground` (the fill
+    // band's and the pale band's colours), `stripe-gloss` (StripeGloss) and
+    // `stripe-reduced-motion` (StripeReducedMotion).
+    stripe_pitch,
+    stripe_ratio,
+    stripe_angle,
+    stripe_lean,
+    stripe_direction,
+    stripe_speed,
+    stripe_colour,
+    stripe_ground_colour,
+    stripe_gloss,
+    stripe_reduced_motion,
+    // The node canvas's part fields (NODE_GRAPH_SPEC gaps N2, 2 and 3;
+    // cp31), admitted on a named part and read by resolve_canvas_look
+    // (ControlCanvasPaint): `fill-color` and `stroke-color` (a part's area
+    // and line colours); `stroke-dash` (two lengths, the dash and the gap;
+    // both 0 is `none`); `halo` (a width and a colour: a wider stroke drawn
+    // under a link; width 0 is `none`); `corner-radius`; `grid-spacing` and
+    // `grid-band` (the canvas grid's world spacing and the smallest minor
+    // spacing in view units); `background-texture` (up to three baked
+    // procedural pattern layers under the grid, each multiplied at its own
+    // contrast; no layer is `none`); and `flow`, `flow-speed` and
+    // `flow-spacing` (the link flow effect's mark, speed and pitch).
+    fill_colour,
+    stroke_colour,
+    stroke_dash,
+    stroke_gap,
+    halo_width,
+    halo_colour,
+    corner_radius,
+    grid_spacing,
+    grid_band,
+    texture_layers,
+    flow_style,
+    flow_speed,
+    flow_spacing,
     count,
 };
 
 inline constexpr std::size_t recipe_field_count = static_cast<std::size_t>(RecipeField::count);
 
 // The field's snake_case name, as diagnostics name it; empty for `count`.
-[[nodiscard]] std::string_view recipe_field_name(RecipeField field) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view recipe_field_name(RecipeField field) noexcept;
 // Where the field's colour is drawn (EC4): the text, muted text and glyph
 // colours are text, and the outline and default outline colours edges;
 // every other field none.
-[[nodiscard]] ColourPosition recipe_field_colour_position(RecipeField field) noexcept;
+[[nodiscard]] GUI_FORMS_API ColourPosition recipe_field_colour_position(RecipeField field) noexcept;
 
 // How the focus ring is drawn (CSS `outline-style`): the theme's own ring
 // inside the control's bounds (CSS's `auto`), an outline outside them,
@@ -1162,6 +1200,51 @@ enum class RecipeOutlineStyle : std::uint8_t { ring, solid, none, dotted };
 // at the tip alone, with no hub (`dot`). A line and a blade have a round
 // hub one and a half stroke widths across.
 enum class NeedleShape : std::uint8_t { line, tapered, dot };
+
+// A stripe's sense along its bar (`stripe-lean`, `stripe-direction`): toward
+// the leading edge, where the fill grows (`forward`), or away from it
+// (`backward`). A band leaning `backward` has its top edge trailing behind
+// its bottom edge ("\" in a left-to-right bar); the owner's ruling of
+// 2026-11-11 is a backward lean travelling forward.
+enum class StripeSense : std::uint8_t { forward, backward };
+
+// Whether the stripe effect draws a gloss over opaque stripe colours
+// (`stripe-gloss: auto | none`).
+enum class StripeGloss : std::uint8_t { automatic, none };
+
+// What reduced motion shows of the stripes (`stripe-reduced-motion`): the
+// bands standing still, or no bands.
+enum class StripeReducedMotion : std::uint8_t { still, none };
+
+// What moves along a flowing link (`flow: none | dots | dashes`): nothing,
+// round dots, or dashes, one per `flow-spacing`.
+enum class CanvasFlowStyle : std::uint8_t { none, dots, dashes };
+
+// What the node canvas's part fields admit (RecipeField::fill_colour on):
+// a dash or gap of 0 to 64 logical units (not both 0 unless both are, which
+// is `none`), a halo 0 to 16 wide, a corner radius 0 to 64, a grid spacing
+// of 2 to 512 world units, a grid band starting at 2 to 128 view units, a
+// texture contrast of 0 to 0.03 (the design language's sub-3 % texture
+// rule: a declaration above it is refused, and the canvas clamps to it
+// again when it paints), a flow speed of 0 to 512 world units a second and
+// a flow spacing of 4 to 128.
+inline constexpr double maximum_canvas_dash = 64.0;
+inline constexpr double maximum_canvas_halo_width = 16.0;
+inline constexpr double maximum_canvas_corner_radius = 64.0;
+inline constexpr double minimum_canvas_grid_spacing = 2.0;
+inline constexpr double maximum_canvas_grid_spacing = 512.0;
+inline constexpr double minimum_canvas_grid_band = 2.0;
+inline constexpr double maximum_canvas_grid_band = 128.0;
+inline constexpr double maximum_canvas_texture_contrast = 0.03;
+// A texture layer's tile is 2 to 96 logical units, so that one tile with
+// the material's outsets bakes within the material bound at scale 3
+// (maximum_material_block_side, ThemeEngine::paint_material_blocks); at
+// most three layers.
+inline constexpr double maximum_canvas_texture_tile = 96.0;
+inline constexpr std::size_t maximum_canvas_texture_layers = 3U;
+inline constexpr double maximum_canvas_flow_speed = 512.0;
+inline constexpr double minimum_canvas_flow_spacing = 4.0;
+inline constexpr double maximum_canvas_flow_spacing = 128.0;
 
 // What a recipe admits (valid_recipe): an outline at most 16 logical units
 // wide, offset at most 64 either way; a text shadow offset at most 16 on
@@ -1178,6 +1261,16 @@ inline constexpr double maximum_text_shadow_offset = 16.0;
 inline constexpr double maximum_part_metric = 512.0;
 inline constexpr double maximum_part_margin = 64.0;
 inline constexpr double maximum_part_shape = 64.0;
+// What a stripe pattern admits (RecipeField::stripe_pitch to stripe_speed):
+// a pitch of 0 (auto) or 4 to 64 logical units, a pale share of 0.1 to 0.9,
+// an angle of 15 to 75 degrees and a speed of 0 to 3 pitches per second.
+inline constexpr double minimum_stripe_pitch = 4.0;
+inline constexpr double maximum_stripe_pitch = 64.0;
+inline constexpr double minimum_stripe_ratio = 0.1;
+inline constexpr double maximum_stripe_ratio = 0.9;
+inline constexpr double minimum_stripe_angle = 15.0;
+inline constexpr double maximum_stripe_angle = 75.0;
+inline constexpr double maximum_stripe_speed = 3.0;
 // What a font field admits (T4 fonts): a size of 4 to 96 logical units
 // once its em part is resolved, a weight of 100 to 900, and a letter
 // spacing valid_font_spec admits at the size.
@@ -1185,6 +1278,48 @@ inline constexpr double minimum_rule_font_size = 4.0;
 inline constexpr double maximum_rule_font_size = 96.0;
 inline constexpr double minimum_rule_font_weight = 100.0;
 inline constexpr double maximum_rule_font_weight = 900.0;
+
+// What a canvas texture layer draws: a built-in procedural pattern
+// (`procedural()`) or a surface finish (`finish()`).
+enum class CanvasTextureSource : std::uint8_t { procedural, finish };
+
+// One layer of the node canvas's texture (`background-texture`; cp31),
+// composited under the grid at `contrast`, a fraction in
+// [0, maximum_canvas_texture_contrast]:
+// - `procedural`: a built-in pattern (ProceduralFill's `pattern`, `seed`,
+//   `tile` in [minimum_procedural_tile, maximum_canvas_texture_tile]
+//   logical units and `strength` in [0, 1]); the canvas chooses its
+//   colours (resolve_canvas_look), so a theme sets its form only;
+// - `finish`: a surface finish (`finish`, any kind but the glint, in the
+//   colours the theme writes); the pattern fields are not read.
+struct GUI_FORMS_API CanvasTextureLayer final {
+    CanvasTextureSource source{CanvasTextureSource::procedural};
+    ProceduralPattern pattern{ProceduralPattern::felt};
+    std::uint32_t seed{};
+    double tile{64.0};
+    double strength{1.0};
+    FinishFill finish{};
+    double contrast{};
+    friend bool operator==(const CanvasTextureLayer& left, const CanvasTextureLayer& right) noexcept {
+        return left.source == right.source && left.pattern == right.pattern && left.seed == right.seed &&
+               left.tile == right.tile && left.strength == right.strength && left.finish == right.finish &&
+               left.contrast == right.contrast;
+    }
+};
+
+// The texture's layers, bottom first: capacity maximum_canvas_texture_layers,
+// `count` live (0 is `none`).
+struct GUI_FORMS_API CanvasTextureLayers final {
+    std::array<CanvasTextureLayer, maximum_canvas_texture_layers> items{};
+    std::size_t count{};
+    friend bool operator==(const CanvasTextureLayers& left, const CanvasTextureLayers& right) noexcept {
+        if (left.count != right.count) return false;
+        for (std::size_t index = 0U; index < left.count && index < left.items.size(); ++index) {
+            if (!(left.items[index] == right.items[index])) return false;
+        }
+        return true;
+    }
+};
 
 // One recipe field's declared value. `initial` is CSS's `initial`: the
 // floor's value, and the declaration still wins over those beneath it; its
@@ -1201,14 +1336,28 @@ inline constexpr double maximum_rule_font_weight = 900.0;
 //   family (FontSpec::family, zero for a role); font_style: `italic`;
 // - font_size (in logical units, with em_lengths in the control's own
 //   font size), font_weight and letter_spacing (logical units, with
-//   em_lengths in the resolved size): `number`.
-struct RecipeDeclaration final {
+//   em_lengths in the resolved size): `number`;
+// - the canvas fields: fill_colour, stroke_colour and halo_colour
+//   `colour`; stroke_dash, stroke_gap, halo_width, corner_radius,
+//   grid_spacing, grid_band and flow_spacing (logical units, em admitted),
+//   and flow_speed (world units a second) `number`; flow_style
+//   `flow_style`; texture_layers `texture`.
+struct GUI_FORMS_API RecipeDeclaration final {
     RecipeField field{RecipeField::text};
     bool initial{};
     Color colour{};
     double number{};
     RecipeOutlineStyle outline_style{RecipeOutlineStyle::ring};
     NeedleShape needle_shape{NeedleShape::tapered};
+    // The stripe pattern's keywords (stripe_lean and stripe_direction,
+    // stripe_gloss, stripe_reduced_motion).
+    StripeSense stripe_sense{StripeSense::forward};
+    StripeGloss stripe_gloss{StripeGloss::automatic};
+    StripeReducedMotion stripe_reduced_motion{StripeReducedMotion::still};
+    // The canvas's keyword and texture fields: flow_style's mark, and
+    // texture_layers' layers (none for `none`).
+    CanvasFlowStyle flow_style{CanvasFlowStyle::none};
+    CanvasTextureLayers texture{};
     bool shadowed{};
     Point shadow_offset{};
     double shadow_blur{};
@@ -1231,7 +1380,10 @@ struct RecipeDeclaration final {
                left.font_role == right.font_role && left.font_family == right.font_family &&
                left.italic == right.italic &&
                left.number == right.number && left.outline_style == right.outline_style &&
-               left.needle_shape == right.needle_shape &&
+               left.needle_shape == right.needle_shape && left.stripe_sense == right.stripe_sense &&
+               left.stripe_gloss == right.stripe_gloss &&
+               left.stripe_reduced_motion == right.stripe_reduced_motion &&
+               left.flow_style == right.flow_style && left.texture == right.texture &&
                left.shadowed == right.shadowed && left.shadow_offset == right.shadow_offset &&
                left.shadow_blur == right.shadow_blur && left.origin == right.origin &&
                left.em_lengths == right.em_lengths && left.inherit == right.inherit &&
@@ -1241,23 +1393,23 @@ struct RecipeDeclaration final {
 
 // The lengths of a recipe declaration, into `lengths` (cleared first): the
 // outline width's or offset's number; the text shadow's offset and blur.
-void recipe_declaration_lengths(const RecipeDeclaration& declaration, std::vector<double>& lengths);
-void set_recipe_declaration_lengths(RecipeDeclaration& declaration, std::span<const double> lengths) noexcept;
-void add_recipe_em(RecipeDeclaration& declaration, double em) noexcept;
+GUI_FORMS_API void recipe_declaration_lengths(const RecipeDeclaration& declaration, std::vector<double>& lengths);
+GUI_FORMS_API void set_recipe_declaration_lengths(RecipeDeclaration& declaration, std::span<const double> lengths) noexcept;
+GUI_FORMS_API void add_recipe_em(RecipeDeclaration& declaration, double em) noexcept;
 
 // Whether a declaration's current_colours are increasing positions among
 // its colours: the rules drop it otherwise.
-[[nodiscard]] bool current_colours_fit(const MaterialDeclaration& declaration);
+[[nodiscard]] GUI_FORMS_API bool current_colours_fit(const MaterialDeclaration& declaration);
 
 // Whether a declaration's em_lengths are empty, or one finite coefficient
 // for each of its lengths: the rules drop it otherwise
 // (material_field_invalid, recipe_field_invalid).
-[[nodiscard]] bool em_lengths_fit(const MaterialDeclaration& declaration);
-[[nodiscard]] bool em_lengths_fit(const RecipeDeclaration& declaration);
+[[nodiscard]] GUI_FORMS_API bool em_lengths_fit(const MaterialDeclaration& declaration);
+[[nodiscard]] GUI_FORMS_API bool em_lengths_fit(const RecipeDeclaration& declaration);
 
 // Whether `declaration` is one a recipe admits: a field below `count`, and
 // a finite value within its field's range.
-[[nodiscard]] bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept;
+[[nodiscard]] GUI_FORMS_API bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept;
 
 // One rule. `label` names it in diagnostics (T3: its source position).
 // `requires_engine`, when set, is the engine version the rule needs, in
@@ -1302,7 +1454,7 @@ inline constexpr std::size_t maximum_read_custom_properties = 1024U;
 // engine tells an inline definition's win apart.
 inline constexpr std::uint32_t inline_definition_base = 0x8000'0000U;
 
-struct ScopedDefinition final {
+struct GUI_FORMS_API ScopedDefinition final {
     std::string name{};
     std::uint32_t definition{};
 
@@ -1313,7 +1465,7 @@ struct ScopedDefinition final {
 
 // A copy's condition: the part's winning definition of `name` is
 // `definition`, or, for custom_property_undefined, no definition matches.
-struct ScopedCondition final {
+struct GUI_FORMS_API ScopedCondition final {
     std::string name{};
     std::uint32_t definition{custom_property_undefined};
 
@@ -1339,7 +1491,7 @@ enum class ThemeLayer : std::uint8_t {
     count,
 };
 
-[[nodiscard]] std::string_view theme_layer_name(ThemeLayer layer) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view theme_layer_name(ThemeLayer layer) noexcept;
 
 // Where a rule was written (T4 cascade spec, item 5), for an editor's
 // queries; paint never reads it. `layer` as above; `pack` and `pack_hash`
@@ -1350,7 +1502,7 @@ enum class ThemeLayer : std::uint8_t {
 // offset in the text compiled (a closure's combined sheets until the
 // package compiler places it); `setter` names the C++ setter of inline
 // code that is not a written style (empty otherwise).
-struct RuleProvenance final {
+struct GUI_FORMS_API RuleProvenance final {
     ThemeLayer layer{ThemeLayer::project_theme};
     std::string pack{};
     std::string pack_hash{};
@@ -1367,7 +1519,7 @@ struct RuleProvenance final {
     }
 };
 
-struct ThemeRule final {
+struct GUI_FORMS_API ThemeRule final {
     std::string label{};
     CascadeLevel level{CascadeLevel::theme_sheet};
     RuleSelector selector{};
@@ -1420,7 +1572,7 @@ struct ThemeRule final {
 // read at published_value_position(n). Each is 1 to 64 characters of lowercase
 // ASCII letters, digits, '-' and '_', the first a letter, and is listed
 // once; at most maximum_published_values.
-struct ThemeRuleSheet final {
+struct GUI_FORMS_API ThemeRuleSheet final {
     EngineVersion requires_engine{current_engine_version};
     std::vector<ThemeRule> rules{};
     std::vector<std::string> published_values{};
@@ -1553,7 +1705,7 @@ enum class RuleDiagnosticKind : std::uint8_t {
     user_opacity_raised,
 };
 
-[[nodiscard]] std::string_view rule_diagnostic_name(RuleDiagnosticKind kind) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view rule_diagnostic_name(RuleDiagnosticKind kind) noexcept;
 
 // The least opacity a user theme gives a part (USER_THEMES.md section 8,
 // decision 7), so that no user theme hides a control outright.
@@ -1563,7 +1715,7 @@ inline constexpr double user_theme_minimum_opacity = 0.5;
 // of its rules.
 inline constexpr std::size_t sheet_diagnostic = static_cast<std::size_t>(-1);
 
-struct RuleDiagnostic final {
+struct GUI_FORMS_API RuleDiagnostic final {
     RuleDiagnosticKind kind{RuleDiagnosticKind::rule_empty};
     // The rule's position in the sheet and its label (sheet_diagnostic and
     // empty for the sheet).
@@ -1580,7 +1732,7 @@ struct RuleDiagnostic final {
 // made; a ThemeEngine owns one. Compiling never fails as a whole: an invalid
 // declaration or rule is dropped with a diagnostic and the rest stands, so a
 // broken rule cannot take the theme's other rules down with it.
-class CompiledThemeRules final {
+class GUI_FORMS_API CompiledThemeRules final {
 public:
     CompiledThemeRules();
     CompiledThemeRules(const CompiledThemeRules& other);
@@ -1641,11 +1793,13 @@ public:
     // How many scoped custom property names the rules' conditions read
     // (P12).
     [[nodiscard]] std::size_t scoped_name_count() const noexcept { return scoped_names_.size(); }
-    [[nodiscard]] const std::vector<RuleDiagnostic>& diagnostics() const noexcept { return diagnostics_; }
+    [[nodiscard]] const std::vector<RuleDiagnostic>& diagnostics() const& noexcept { return diagnostics_; }
+    const std::vector<RuleDiagnostic>& diagnostics() const&& = delete;
 
     // The published values the sheet's expressions read, in position order
     // (an invalid name is kept empty, so later positions stay).
-    [[nodiscard]] const std::vector<std::string>& published_values() const noexcept { return published_values_; }
+    [[nodiscard]] const std::vector<std::string>& published_values() const& noexcept { return published_values_; }
+    const std::vector<std::string>& published_values() const&& = delete;
     // The position of the published value `name`, or none when the sheet
     // does not read it.
     [[nodiscard]] std::optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept;
@@ -1658,7 +1812,7 @@ public:
 
     // What a part is: the facts its selectors are matched against. The
     // views are borrowed for the call.
-    struct PartFacts final {
+    struct GUI_FORMS_API PartFacts final {
         std::string_view control_type{};
         std::string_view stable_id{};
         std::span<const std::string> classes{};
@@ -1694,6 +1848,11 @@ public:
         // (uses_ancestors). Borrowed for the call.
         std::span<const AncestorFacts> ancestors{};
         AncestorBloom ancestor_bloom{};
+        // The item the part is resolved for (cp31: a node canvas's node,
+        // port or link): its stable ID and classes, empty for a control's
+        // own part. Borrowed for the call.
+        std::string_view item_id{};
+        std::span<const std::string> item_classes{};
     };
 
     // Why a part resolved as it did.
@@ -1709,7 +1868,7 @@ public:
     };
 
     // One state of a compiled machine (see PresentationState).
-    struct CompiledPresentationState final {
+    struct GUI_FORMS_API CompiledPresentationState final {
         AnatomyStateSet when{};
         double target{};
         std::optional<double> enter_from{};
@@ -1722,7 +1881,7 @@ public:
     // `parameter`. `machine` numbers it among the compilation's machines,
     // so that a part can tell one machine from another (PresentationState:
     // a state of another machine is another state).
-    struct CompiledTransition final {
+    struct GUI_FORMS_API CompiledTransition final {
         PresentationProperty property{PresentationProperty::parameter};
         std::size_t parameter{};
         std::vector<CompiledPresentationState> states{};
@@ -1732,7 +1891,7 @@ public:
         bool reads_em{};
     };
 
-    struct Resolution final {
+    struct GUI_FORMS_API Resolution final {
         Outcome outcome{Outcome::no_rule};
         const EnginePrimitive* primitive{};
         PrimitiveParameterBlock parameters{};
@@ -1795,12 +1954,20 @@ public:
     // rules matching a control, by the field's position, or null where no
     // matching rule sets it; they belong to the compiled rules. `authored`
     // is whether any is set.
-    struct RecipeResolution final {
+    struct GUI_FORMS_API RecipeResolution final {
         std::array<const RecipeDeclaration*, recipe_field_count> fields{};
         // The cascade level of each winning declaration's rule, by the same
         // position; built_in where `fields` holds null. An authored colour
         // (PartPaint::authored_foreground) stands under the important ones.
         std::array<CascadeLevel, recipe_field_count> levels{};
+        // The winning declaration of each field among the matching rules
+        // that name a part (a `::part(...)` rule, not a role or family
+        // rule), by the same position, or null where none sets it. A field
+        // two consumers share (stroke_width: a dial's arc and a canvas
+        // part's line) is a canvas width only from a part rule, and
+        // `fields` may hold another rule's: `:family(progress)` counts as a
+        // class and outranks `node-canvas::part(lamp)` (two types).
+        std::array<const RecipeDeclaration*, recipe_field_count> named_part_fields{};
         bool authored{};
     };
 
@@ -1816,7 +1983,7 @@ public:
     // belong to the compiled rules (this table, or the facts' inline style
     // or user theme) and are null where no rule set the field; `origin` is
     // a colour's (ColourOrigin, none for a value that is not a colour).
-    struct FieldProvenance final {
+    struct GUI_FORMS_API FieldProvenance final {
         bool authored{};
         CascadeLevel level{CascadeLevel::built_in};
         ThemeLayer layer{ThemeLayer::built_in};
@@ -1831,7 +1998,7 @@ public:
     // primitive's, none when no rule selects one), its material fields and
     // its recipe fields (by their positions), as resolve(),
     // resolve_recipe_fields() and the primitive's parameters resolve them.
-    struct PartProvenance final {
+    struct GUI_FORMS_API PartProvenance final {
         std::array<FieldProvenance, maximum_primitive_parameters> parameters{};
         std::size_t parameter_count{};
         std::array<FieldProvenance, material_field_count> materials{};
@@ -1914,6 +2081,8 @@ private:
         // Position in the authored sheet; later wins among equals.
         std::size_t order{};
         RuleSelector selector{};
+        // The selector's standard and custom states as bits, set when the
+        // rule is compiled so that matching compares two masks.
         AnatomyStateSet states{};
         // The keys the selector's ancestor compounds name (selector step 4).
         AncestorBloom ancestor_keys{};
@@ -2073,6 +2242,6 @@ private:
 // The engine's built-in rules (E7), compiled below every theme's: the
 // docking drop tiles' fade (T2 GIVEN C2-1) and the ribbon's dithered rise
 // (D3-1, G4-1). Static storage, made once on first use.
-[[nodiscard]] const ThemeRuleSheet& built_in_theme_rules();
+[[nodiscard]] GUI_FORMS_API const ThemeRuleSheet& built_in_theme_rules();
 
 } // namespace gui_forms

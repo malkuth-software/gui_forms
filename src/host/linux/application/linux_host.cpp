@@ -1,4 +1,5 @@
 #include "linux_host_internal.hpp"
+#include "../../offscreen_font_lookup.hpp"
 #include "../../../core/failure/fail_fast.hpp"
 #if defined(GUI_FORMS_PREPARED_TEXT)
 #include "../../../core/text/prepared/prepared_storage.hpp"
@@ -145,8 +146,8 @@ bool window_state_fixed(NativeWindow& window) {
   if (data != nullptr) XFree(data);
   return fixed;
 }
-// Asks for a client area of `client_size` logical units (device pixels; the
-// X11 host runs at scale 1). The server or window manager answers with
+// Asks for a client area of `client_size` logical units (device_extent at
+// the window's scale). The server or window manager answers with
 // ConfigureNotify, which resizes the model on a later event.
 struct WindowClientSize final {
   std::weak_ptr<NativeWindow> owner{};
@@ -165,8 +166,8 @@ struct WindowClientSize final {
       if (native.fallback_fullscreen || window_state_fixed(native))
         return {HostServiceError::unsupported};
       XResizeWindow(native.runtime.display, native.xid,
-                    static_cast<unsigned>(std::lround(client_size.width)),
-                    static_cast<unsigned>(std::lround(client_size.height)));
+                    device_extent(client_size.width, native.scale),
+                    device_extent(client_size.height, native.scale));
       XFlush(native.runtime.display);
       return {};
     } catch (...) { return {HostServiceError::backend_failure}; }
@@ -369,7 +370,7 @@ const unsigned char* compose_invalidation_overlay(NativeWindow& window, Invalida
   window.overlay_regions.clear();
   if (overlay != nullptr) {
     (*overlay).expire(now);
-    (*overlay).fill_regions(1.0, width, height, window.overlay_regions);
+    (*overlay).fill_regions(window.scale, width, height, window.overlay_regions);
   }
   if (window.overlay_regions.empty() && window.overlay_drawn.empty()) return nullptr;
   window.overlay_present.assign(requested.begin(), requested.end());
@@ -411,7 +412,7 @@ const unsigned char* compose_invalidation_overlay(NativeWindow& window, Invalida
     target.width = width;
     target.height = height;
     target.row_bytes = row_bytes;
-    (*overlay).compose(target, 1.0, now, box);
+    (*overlay).compose(target, window.scale, now, box);
   }
   const unsigned char* const composed = reinterpret_cast<const unsigned char*>(window.overlay_scratch.data());
   return composed;
@@ -419,8 +420,9 @@ const unsigned char* compose_invalidation_overlay(NativeWindow& window, Invalida
 
 // Copies each rectangle of the raster's pixels to the window (stage DP partial
 // present): one native image for the raster, converted and submitted rectangle
-// by rectangle. Rectangles are clipped to the window and widened to whole
-// pixels. Returns false, copying nothing, when the raster or the native image
+// by rectangle. `requested` is in logical units; each rectangle is taken to
+// device pixels at the window's scale (the boundary conversion), clipped to
+// the window and widened to whole pixels. Returns false, copying nothing, when the raster or the native image
 // cannot be used; `copied` then stays empty. Source and native conversion
 // storage are disjoint, and both borrows end before the renderer can begin
 // another frame.
@@ -431,22 +433,31 @@ bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect>
   const std::uint32_t height = raster.pixel_height();
   const unsigned char* const source = static_cast<const unsigned char*>(raster.pixels());
   if (source == nullptr || width == 0 || height == 0 || width > 16384 || height > 16384) return false;
-  if (!std::isfinite(window.size.width) || !std::isfinite(window.size.height) ||
-      window.size.width <= 0.0 || window.size.height <= 0.0) return false;
-  const double visible_width = std::min(static_cast<double>(width), window.size.width);
-  const double visible_height = std::min(static_cast<double>(height), window.size.height);
+  if (window.device_width <= 0 || window.device_height <= 0) return false;
+  const double visible_width = std::min(static_cast<double>(width), static_cast<double>(window.device_width));
+  const double visible_height = std::min(static_cast<double>(height), static_cast<double>(window.device_height));
   const Rect extent{0.0, 0.0, visible_width, visible_height};
   NativePresentSource present{};
   present.pixels = source;
   present.row_bytes = raster.row_bytes();
+  // The logical rectangles in device pixels, into the window's reused list.
+  const double scale = window.scale;
+  window.present_device.clear();
+  window.present_device.reserve(requested.size());
+  for (std::size_t index = 0; index < requested.size(); ++index) {
+    const Rect logical = requested[index];
+    window.present_device.push_back(
+        Rect{logical.x * scale, logical.y * scale, logical.width * scale, logical.height * scale});
+  }
   // The invalidation overlay, while it is on or an outline was last shown:
   // the present copies the composited scratch frame, outlines included. Off,
   // this is one relaxed load and a size test.
-  std::span<const Rect> rectangles = requested;
+  std::span<const Rect> rectangles = window.present_device;
   InvalidationOverlay* const overlay = (*window.entry.model).invalidation_overlay();
   if (overlay != nullptr || !window.overlay_drawn.empty()) {
     const unsigned char* const composed =
-        compose_invalidation_overlay(window, overlay, requested, source, width, height, present.row_bytes);
+        compose_invalidation_overlay(window, overlay, window.present_device, source, width, height,
+                                     present.row_bytes);
     if (composed != nullptr) {
       present.pixels = composed;
       rectangles = window.overlay_present;
@@ -522,7 +533,7 @@ bool update_prepared_window(NativeWindow& window) {
   // presented front.
   const bool images_ready = raster.synchronize_images((*window.entry.model).image_resources());
   if (images_ready) {
-    const PreparedTextStatus begun = raster.begin_prepared_frame(window.size, 1.0, window.damage);
+    const PreparedTextStatus begun = raster.begin_prepared_frame(window.size, window.scale, window.damage);
     if (begun == PreparedTextStatus::success) {
       std::optional<PaintReceipt> receipt{};
       try {
@@ -539,7 +550,7 @@ bool update_prepared_window(NativeWindow& window) {
     } else raster.abort_prepared_frame();
   } else raster.abort_prepared_frame();
   const PaintReceipt front = raster.prepared_front_receipt();
-  if (!front || raster.prepared_front_scale() != 1.0) return false;
+  if (!front || raster.prepared_front_scale() != window.scale) return false;
   bool presented = false;
   PresentedArea copied;
   presented = present_raster_rectangles(window, window.damage.rectangles(), copied);
@@ -554,7 +565,7 @@ bool update_prepared_window(NativeWindow& window) {
     // that exact front is still the current, presented model surface.
     const PaintLeaseSnapshot lease = (*window.entry.model).paint_lease_snapshot();
     if (lease.surface_epoch == front.surface_epoch && lease.content_revision == front.rendered_revision &&
-        lease.presented_revision == front.rendered_revision && raster.prepared_front_matches(window.size, 1.0)) window.damage.clear();
+        lease.presented_revision == front.rendered_revision && raster.prepared_front_matches(window.size, window.scale)) window.damage.clear();
   }
   return window.damage.empty();
 }
@@ -916,6 +927,10 @@ Runtime::Runtime() {
     XRRSelectInput(display, DefaultRootWindow(display), RRScreenChangeNotifyMask);
   }
 #endif
+  // The monitors, at the desktop's scale, before any window opens on one.
+  HostMonitorResult monitors;
+  query_x11_monitors(*this, monitors);
+  device_monitors = std::move(monitors.monitors);
 }
 Runtime::~Runtime() {
   // Restored before the wake pipe closes, so the handler never writes to a
@@ -957,14 +972,27 @@ std::uint32_t Runtime::double_click_milliseconds() const noexcept {
 void Runtime::report_input_settings() {
   if (!input_settings)
     return;
-  const HostInputSettingsEvent input{(*input_settings).double_click_milliseconds(),
-                                     (*input_settings).double_click_origin(),
-                                     (*input_settings).pointer_settings(),
-                                     (*input_settings).caret_settings()};
   const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
-  for (std::size_t i = 0; i < snapshot.size(); ++i)
-    if ((*snapshot[i]).session)
-      static_cast<void>((*snapshot[i]).dispatch(input));
+  for (std::size_t i = 0; i < snapshot.size(); ++i) {
+    NativeWindow &window = *snapshot[i];
+    if (!window.session || window.closed)
+      continue;
+    const HostInputSettingsEvent input = window.input_settings_event();
+    static_cast<void>(window.dispatch(input));
+  }
+}
+double Runtime::desktop_scale() const noexcept {
+  if (!input_settings)
+    return 1.0;
+  const double scale = (*input_settings).scale();
+  return scale;
+}
+double Runtime::scale_at(DesktopDevicePoint point) const noexcept {
+  if (device_monitors.empty())
+    return desktop_scale();
+  const std::size_t index = nearest_device_monitor(device_monitors, point);
+  const double scale = device_monitors[index].scale;
+  return scale;
 }
 std::shared_ptr<NativeWindow> Runtime::add(LinuxApplicationWindow entry,
                                            ::Window owner,
@@ -1006,14 +1034,20 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
                ? *entry.options.capture_size
                : entry.options.initial_size) {
   const int screen = DefaultScreen(runtime.display);
-  size.height =
-      std::min(size.height, std::max(64.0, static_cast<double>(DisplayHeight(
-                                               runtime.display, screen)) -
-                                               48.0));
-  size.width =
-      std::min(size.width, std::max(64.0, static_cast<double>(DisplayWidth(
-                                              runtime.display, screen)) -
-                                              16.0));
+  // The scale of the monitor the window opens on (it is created at 60, 60
+  // device pixels), fixed before any native size is chosen.
+  scale = runtime.scale_at(DesktopDevicePoint{60.0, 60.0});
+  // The screen in logical units at that scale bounds the first size.
+  const double screen_width = static_cast<double>(DisplayWidth(runtime.display, screen)) / scale;
+  const double screen_height = static_cast<double>(DisplayHeight(runtime.display, screen)) / scale;
+  size.height = std::min(size.height, std::max(64.0, screen_height - 48.0));
+  size.width = std::min(size.width, std::max(64.0, screen_width - 16.0));
+  // The client area in whole device pixels, and the logical size they hold.
+  const unsigned created_width = device_extent(size.width, scale);
+  const unsigned created_height = device_extent(size.height, scale);
+  device_width = static_cast<int>(created_width);
+  device_height = static_cast<int>(created_height);
+  size = Size{static_cast<double>(device_width) / scale, static_cast<double>(device_height) / scale};
   visual = DefaultVisual(runtime.display, screen);
   depth = DefaultDepth(runtime.display, screen);
   const X11ArgbVisual &argb_visual = (*runtime.compositor).argb();
@@ -1036,7 +1070,7 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
     // program, never decorated or moved by a window manager.
     attributes.override_redirect = entry.popup.has_value() ? True : False;
     xid = XCreateWindow(runtime.display, RootWindow(runtime.display, screen), 60, 60,
-                        static_cast<unsigned>(size.width), static_cast<unsigned>(size.height), 0,
+                        created_width, created_height, 0,
                         argb_visual.depth, InputOutput, argb_visual.visual,
                         CWColormap | CWBorderPixel | CWBackPixel | CWOverrideRedirect, &attributes);
     visual = argb_visual.visual;
@@ -1045,8 +1079,7 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
     argb = true;
   } else {
     xid = XCreateSimpleWindow(runtime.display, RootWindow(runtime.display, screen),
-                              60, 60, static_cast<unsigned>(size.width),
-                              static_cast<unsigned>(size.height), 0, 0, 0xffffff);
+                              60, 60, created_width, created_height, 0, 0, 0xffffff);
   }
   XSelectInput(runtime.display, xid,
                ExposureMask | StructureNotifyMask | FocusChangeMask |
@@ -1077,10 +1110,11 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
   hints.flags = PMinSize | PPosition;
   hints.x = 60;
   hints.y = 60;
-  hints.min_width =
-      static_cast<int>(std::min(entry.options.minimum_size.width, size.width));
+  // The minimum in device pixels at the window's scale.
+  hints.min_width = static_cast<int>(
+      std::ceil(std::min(entry.options.minimum_size.width, size.width) * scale));
   hints.min_height = static_cast<int>(
-      std::min(entry.options.minimum_size.height, size.height));
+      std::ceil(std::min(entry.options.minimum_size.height, size.height) * scale));
   XSetWMNormalHints(runtime.display, xid, &hints);
   XWMHints wm{};
   wm.flags = InputHint;
@@ -1204,18 +1238,16 @@ void NativeWindow::attach() {
   // retained paint transactions and repaints scrolled viewports.
   (*entry.model).set_scroll_copies_supported(true);
 #endif
-  if (!dispatch(HostAttachEvent{size, 1.0}).accepted())
+  if (!dispatch(HostAttachEvent{size, scale}).accepted())
     throw std::runtime_error("Linux host attach rejected");
   report_compositor_state();
   report_window_state();
   if (runtime.input_settings) {
-    const HostInputSettingsEvent input{(*runtime.input_settings).double_click_milliseconds(),
-                                       (*runtime.input_settings).double_click_origin(),
-                                       (*runtime.input_settings).pointer_settings(),
-                                       (*runtime.input_settings).caret_settings()};
+    const HostInputSettingsEvent input = input_settings_event();
     static_cast<void>(dispatch(input));
   }
   accessibility = std::make_unique<LinuxAccessibility>(runtime.display, xid, *entry.model, entry.options.title);
+  (*accessibility).set_scale(scale);
   if (entry.options.initially_visible)
     action(ActionKind::show);
 }
@@ -1282,8 +1314,9 @@ void NativeWindow::action(ActionKind kind) {
         XTranslateCoordinates(runtime.display, xid,
                               DefaultRootWindow(runtime.display), 0, 0, &x, &y,
                               &child);
+        // Device pixels: the frame is restored natively.
         restored_frame = {static_cast<double>(x), static_cast<double>(y),
-                          size.width, size.height};
+                          static_cast<double>(device_width), static_cast<double>(device_height)};
       }
       fallback_fullscreen = !fallback_fullscreen;
       XUnmapWindow(runtime.display, xid);
@@ -1389,20 +1422,27 @@ void NativeWindow::event(XEvent &event) {
   if (closed)
     return;
   if (event.type == Expose) {
-    damage.add({static_cast<double>(event.xexpose.x),
-                static_cast<double>(event.xexpose.y),
-                static_cast<double>(event.xexpose.width),
-                static_cast<double>(event.xexpose.height)});
+    // Device pixels to logical units, here at the boundary.
+    damage.add({static_cast<double>(event.xexpose.x) / scale,
+                static_cast<double>(event.xexpose.y) / scale,
+                static_cast<double>(event.xexpose.width) / scale,
+                static_cast<double>(event.xexpose.height) / scale});
     return;
   }
   if (event.type == ConfigureNotify) {
-    const Size resized{static_cast<double>(event.xconfigure.width),
-                       static_cast<double>(event.xconfigure.height)};
+    device_width = event.xconfigure.width;
+    device_height = event.xconfigure.height;
+    const Size resized{static_cast<double>(device_width) / scale,
+                       static_cast<double>(device_height) / scale};
     if (resized != size) {
       size = resized;
       static_cast<void>(dispatch(HostResizeEvent{size}));
       damage.add({0, 0, size.width, size.height});
     }
+    // A move onto a monitor of another scale re-rasters there.
+    apply_scale(scale_here());
+    if (closed)
+      return;
     // Moves arrive here too: ICCCM 4.1.5 has a reparenting window manager
     // send a synthetic ConfigureNotify when it moves the frame.
     if (runtime.windowing)
@@ -1458,18 +1498,18 @@ void NativeWindow::event(XEvent &event) {
     unsigned state = 0;
     if (event.type == MotionNotify) {
       pointer.action = PointerAction::move;
-      pointer.position = {static_cast<double>(event.xmotion.x),
-                          static_cast<double>(event.xmotion.y)};
+      pointer.position = {static_cast<double>(event.xmotion.x) / scale,
+                          static_cast<double>(event.xmotion.y) / scale};
       state = event.xmotion.state;
     } else if (event.type == EnterNotify || event.type == LeaveNotify) {
       pointer.action = event.type == EnterNotify ? PointerAction::enter
                                                  : PointerAction::leave;
-      pointer.position = {static_cast<double>(event.xcrossing.x),
-                          static_cast<double>(event.xcrossing.y)};
+      pointer.position = {static_cast<double>(event.xcrossing.x) / scale,
+                          static_cast<double>(event.xcrossing.y) / scale};
       state = event.xcrossing.state;
     } else {
-      pointer.position = {static_cast<double>(event.xbutton.x),
-                          static_cast<double>(event.xbutton.y)};
+      pointer.position = {static_cast<double>(event.xbutton.x) / scale,
+                          static_cast<double>(event.xbutton.y) / scale};
       state = event.xbutton.state;
       const unsigned button = event.xbutton.button;
       if (button >= 4 && button <= 7) {
@@ -1491,13 +1531,14 @@ void NativeWindow::event(XEvent &event) {
                          : button == 3 ? PointerButton::secondary
                                        : PointerButton::middle;
         // X reports no click count: count it from the desktop's
-        // double-click time and distance (linux_input_rules.hpp). A
-        // release carries the count of the press it ends.
+        // double-click time and distance (linux_input_rules.hpp), the
+        // distance, in device pixels, taken to logical units. A release
+        // carries the count of the press it ends.
         if (event.type == ButtonPress) {
+          const double distance = runtime.double_click_distance() / scale;
           static_cast<void>(next_click_count(
               click_history, button, static_cast<std::uint32_t>(event.xbutton.time),
-              pointer.position, runtime.double_click_milliseconds(),
-              runtime.double_click_distance()));
+              pointer.position, runtime.double_click_milliseconds(), distance));
         }
         pointer.click_count = click_history.count;
       }
@@ -1511,7 +1552,7 @@ void NativeWindow::event(XEvent &event) {
     const Control::Ptr captured = (*entry.model).captured_control();
     const Control::Ptr target = captured ? captured : (*entry.model).hit_test(pointer.position);
     static_cast<void>((*services).set_custom_cursor(
-        target ? (*target).effective_cursor_images() : CursorImagesPtr{}, 1.0,
+        target ? (*target).effective_cursor_images() : CursorImagesPtr{}, scale,
         target ? (*target).effective_cursor() : CursorKind::arrow));
     return;
   }
@@ -1642,7 +1683,7 @@ void NativeWindow::update() {
   frame_capture_if_due(covers_window && prepared_presented);
   return;
 #else
-  raster.resize(size, 1.0);
+  raster.resize(size, scale);
   static_cast<void>(
       raster.synchronize_images((*entry.model).image_resources()));
   const std::chrono::steady_clock::time_point started =
@@ -1749,7 +1790,7 @@ bool NativeWindow::gather_live_frames() {
         changed = {};
       } else if (update.damage_limited && regions_usable) {
         changed = gui_forms::detail::live_damage_in_window(
-            taken.damage(), update.destination, taken.width(), taken.height(), 1.0);
+            taken.damage(), update.destination, taken.width(), taken.height(), scale);
       }
       live_frames.push_back(std::move(taken));
       changed_regions.push_back(changed);
@@ -1770,9 +1811,11 @@ bool NativeWindow::gather_live_frames() {
 #endif
     if (direct) live_regions[index] = region;
     else damage.add(region);
-    const Rect device = gui_forms::detail::align_damage_outward(region, 1.0);
-    live_frame_pixels[source] += static_cast<std::uint64_t>(device.width) *
-                                 static_cast<std::uint64_t>(device.height);
+    // The region on whole device pixels, counted in device pixels.
+    const Rect aligned = gui_forms::detail::align_damage_outward(region, scale);
+    const std::uint64_t columns = static_cast<std::uint64_t>(std::lround(aligned.width * scale));
+    const std::uint64_t rows = static_cast<std::uint64_t>(std::lround(aligned.height * scale));
+    live_frame_pixels[source] += columns * rows;
     ++live_frame_rectangles[source];
   }
   return regions_taken;
@@ -1787,7 +1830,7 @@ void NativeWindow::compose_live_frames() {
     raster.save();
     raster.clip_rect(region);
     const bool drawn = raster.draw_live_surface_frame(
-        live_frames[live_frame_sources[index]], live_updates[index].destination, 1.0);
+        live_frames[live_frame_sources[index]], live_updates[index].destination, scale);
     raster.restore();
     if (drawn) {
       (*entry.model).note_live_surface_presented(live_updates[index], region);
@@ -1859,10 +1902,18 @@ void NativeWindow::frame_capture_if_due(bool covers_window) {
 void Runtime::report_displays() {
   HostMonitorResult monitors;
   query_x11_monitors(*this, monitors);
+  device_monitors = monitors.monitors;
   const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
-  for (std::size_t i = 0; i < snapshot.size(); ++i)
-    if ((*snapshot[i]).session)
-      static_cast<void>((*snapshot[i]).dispatch(HostDisplayEvent{monitors.monitors}));
+  for (std::size_t i = 0; i < snapshot.size(); ++i) {
+    NativeWindow &window = *snapshot[i];
+    if (!window.session || window.closed)
+      continue;
+    static_cast<void>(window.dispatch(HostDisplayEvent{monitors.monitors}));
+    // The monitors' scales may have changed under the window: it moves to
+    // its monitor's scale, the path a move across monitors takes.
+    if (!window.closed)
+      window.apply_scale(window.scale_here());
+  }
 }
 void Runtime::dispatch(XEvent &event) {
 #if defined(GUI_FORMS_HAVE_XRANDR)
@@ -1900,6 +1951,10 @@ void Runtime::dispatch(XEvent &event) {
     selection_property(event.xproperty);
   if (input_settings && (*input_settings).settings_event(event)) {
     report_input_settings();
+    // A new Xft.dpi gives every monitor a new scale (audit N66).
+    const bool rescaled = device_monitors.empty() || device_monitors.front().scale != desktop_scale();
+    if (rescaled)
+      report_displays();
     return;
   }
   // Tray icon windows belong to a window's services, not to the window.
@@ -2023,8 +2078,9 @@ HostWindowFrame NativeWindow::frame() const {
                              DefaultRootWindow(runtime.display), 0, 0, &x, &y,
                              &child))
     return result;
-  result.content = {static_cast<double>(x), static_cast<double>(y), size.width,
-                    size.height};
+  const DesktopLogicalPoint origin = desktop_logical_point(
+      runtime.device_monitors, DesktopDevicePoint{static_cast<double>(x), static_cast<double>(y)});
+  result.content = {origin.x, origin.y, size.width, size.height};
   result.outer = result.content;
   // _NET_FRAME_EXTENTS: left, right, top, bottom, in pixels (EWMH).
   Atom type{};
@@ -2038,10 +2094,11 @@ HostWindowFrame NativeWindow::frame() const {
       type == XA_CARDINAL && format == 32 && count == 4 && data != nullptr) {
     // Format-32 properties arrive as an array of long (Xlib).
     const long *extents = reinterpret_cast<const long *>(data);
-    const double left = static_cast<double>(extents[0]);
-    const double right = static_cast<double>(extents[1]);
-    const double top = static_cast<double>(extents[2]);
-    const double bottom = static_cast<double>(extents[3]);
+    // The extents are device pixels around the client area.
+    const double left = static_cast<double>(extents[0]) / scale;
+    const double right = static_cast<double>(extents[1]) / scale;
+    const double top = static_cast<double>(extents[2]) / scale;
+    const double bottom = static_cast<double>(extents[3]) / scale;
     result.outer = {result.content.x - left, result.content.y - top,
                     result.content.width + left + right,
                     result.content.height + top + bottom};
@@ -2059,16 +2116,22 @@ HostServiceStatus NativeWindow::request_frame(Rect content) {
     return {HostServiceError::invalid_argument};
   if (fallback_fullscreen || window_state_fixed(*this))
     return {HostServiceError::unsupported};
+  // The logical origin on the device desktop, and the extent at the scale
+  // of the monitor it lands on (the window re-rasters there when its
+  // ConfigureNotify arrives).
+  double target_scale = 1.0;
+  const DesktopDevicePoint origin =
+      desktop_device_point(runtime.device_monitors, DesktopLogicalPoint{content.x, content.y}, target_scale);
   // Static gravity: the requested position is the client area's own, so
   // the window manager places its frame around it (ICCCM 4.1.2.3).
   XSizeHints hints{};
   hints.flags = PMinSize | USPosition | USSize | PWinGravity;
-  hints.x = static_cast<int>(std::lround(content.x));
-  hints.y = static_cast<int>(std::lround(content.y));
-  hints.width = static_cast<int>(std::lround(content.width));
-  hints.height = static_cast<int>(std::lround(content.height));
-  hints.min_width = static_cast<int>(minimum.width);
-  hints.min_height = static_cast<int>(minimum.height);
+  hints.x = static_cast<int>(std::lround(origin.x));
+  hints.y = static_cast<int>(std::lround(origin.y));
+  hints.width = static_cast<int>(device_extent(content.width, target_scale));
+  hints.height = static_cast<int>(device_extent(content.height, target_scale));
+  hints.min_width = static_cast<int>(std::ceil(minimum.width * target_scale));
+  hints.min_height = static_cast<int>(std::ceil(minimum.height * target_scale));
   hints.win_gravity = StaticGravity;
   XSetWMNormalHints(runtime.display, xid, &hints);
   XMoveResizeWindow(runtime.display, xid, hints.x, hints.y,
@@ -2077,9 +2140,90 @@ HostServiceStatus NativeWindow::request_frame(Rect content) {
   XFlush(runtime.display);
   return {};
 }
+double NativeWindow::scale_here() const {
+  int x{}, y{};
+  ::Window child{};
+  if (!XTranslateCoordinates(runtime.display, xid, DefaultRootWindow(runtime.display), 0, 0, &x, &y,
+                             &child))
+    return scale;
+  const DesktopDevicePoint centre{static_cast<double>(x) + static_cast<double>(device_width) / 2.0,
+                                  static_cast<double>(y) + static_cast<double>(device_height) / 2.0};
+  const double here = runtime.scale_at(centre);
+  return here;
+}
+void NativeWindow::apply_scale(double next) {
+  if (closed || !std::isfinite(next) || next <= 0.0 || next == scale)
+    return;
+  scale = next;
+  static_cast<void>(dispatch(HostScaleEvent{scale}));
+  if (closed)
+    return;
+  // Pixel distances follow the scale.
+  if (runtime.input_settings)
+    static_cast<void>(dispatch(input_settings_event()));
+  if (accessibility)
+    (*accessibility).set_scale(scale);
+  write_minimum_hint();
+  if (fallback_fullscreen || window_state_fixed(*this)) {
+    // The window manager holds the device size: the logical size changes.
+    const Size resized{static_cast<double>(device_width) / scale,
+                       static_cast<double>(device_height) / scale};
+    if (resized != size) {
+      size = resized;
+      static_cast<void>(dispatch(HostResizeEvent{size}));
+    }
+  } else {
+    // The logical size stays; the device size follows. Until the server's
+    // ConfigureNotify, the device size is the one asked for.
+    const unsigned width = device_extent(size.width, scale);
+    const unsigned height = device_extent(size.height, scale);
+    device_width = static_cast<int>(width);
+    device_height = static_cast<int>(height);
+    XResizeWindow(runtime.display, xid, width, height);
+    XFlush(runtime.display);
+  }
+  // The whole window re-rasters at the new scale on the next update.
+  damage.add({0, 0, size.width, size.height});
+  if (runtime.windowing)
+    (*runtime.windowing).report_native_frame(*this);
+}
+HostInputSettingsEvent NativeWindow::input_settings_event() const {
+  HostInputSettingsEvent input{};
+  if (!runtime.input_settings)
+    return input;
+  const XSettingsWatch &watch = *runtime.input_settings;
+  PointerSettings pointer = watch.pointer_settings();
+  // The desktop's drag rectangle is in device pixels; the defaults are
+  // logical already.
+  if (pointer.drag_origin == SettingOrigin::host) {
+    pointer.drag_width = pointer.drag_width / scale;
+    pointer.drag_height = pointer.drag_height / scale;
+  }
+  input.double_click_milliseconds = watch.double_click_milliseconds();
+  input.double_click_origin = watch.double_click_origin();
+  input.pointer = pointer;
+  input.caret = watch.caret_settings();
+  return input;
+}
+void NativeWindow::write_minimum_hint() {
+  const Size minimum = minimum_size();
+  XSizeHints hints{};
+  long supplied{};
+  XGetWMNormalHints(runtime.display, xid, &hints, &supplied);
+  hints.flags = hints.flags | PMinSize;
+  hints.min_width = static_cast<int>(std::ceil(minimum.width * scale));
+  hints.min_height = static_cast<int>(std::ceil(minimum.height * scale));
+  XSetWMNormalHints(runtime.display, xid, &hints);
+}
 #include "linux_splashscreen.inc"
 } // namespace gui_forms::host::linux_detail
 namespace gui_forms::host {
+
+// OffscreenRaster::create's lookup (offscreen_font_lookup.hpp): the windows' own places.
+std::filesystem::path offscreen_bundled_font_directory() {
+  const std::filesystem::path directory = linux_detail::fonts_directory();
+  return directory;
+}
 std::unique_ptr<gui_forms::detail::SplashscreenSurface> open_platform_splashscreen(const Size size) {
   std::unique_ptr<gui_forms::detail::SplashscreenSurface> surface = linux_detail::open_x11_splashscreen(size);
   return surface;
@@ -2089,8 +2233,8 @@ std::unique_ptr<gui_forms::detail::SplashscreenSurface> open_platform_splashscre
 // Gallery (stage A). ATK is a required dependency of this host.
 HostCapabilities linux_capabilities() {
   return {HostCapabilities::current_protocol_version, "linux-x11",
-          HostCapability::lifecycle | HostCapability::accessibility |
-              HostCapability::frame_capture |
+          HostCapability::lifecycle | HostCapability::scale_notifications |
+              HostCapability::accessibility | HostCapability::frame_capture |
               HostCapability::monitor_geometry |
               HostCapability::occlusion | HostCapability::scheduled_wake |
               HostCapability::pointer_input | HostCapability::keyboard_input |

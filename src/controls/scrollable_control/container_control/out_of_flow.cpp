@@ -5,10 +5,10 @@
 
 #include "out_of_flow.hpp"
 
-#include "gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp"
-#include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/block_panel.hpp"
+#include "gui_forms/controls/flex_panel.hpp"
+#include "gui_forms/controls/grid_panel.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
 
 #include <algorithm>
 #include <cmath>

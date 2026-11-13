@@ -1,4 +1,4 @@
-#include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/controls/dock_site.hpp"
 #include "dock_site_children.hpp"
 
 #include "dock_site_internal.hpp"
@@ -41,6 +41,10 @@ constexpr double glyph_side = 9.0;
 constexpr double label_gap = 4.0;
 // The active caption's accent line (DK-41, T4-3).
 constexpr double accent_height = 2.0;
+// The caption grip (cp29): two rows of the grip mark's two-unit dots on its
+// four-unit pitch, and no grip shorter than one pitch.
+constexpr double caption_grip_height = 7.0;
+constexpr double caption_grip_minimum = 4.0;
 constexpr double extent_tolerance = 1e-9;
 // The drag's motions, run on the window's motion clock: the stamp's is the
 // shared drag curve (drag_gesture.hpp, 220 ms, D1 as corrected); the tiles
@@ -253,6 +257,9 @@ std::vector<DockNodeId> DockSite::collapsed_stacks() const {
 // before its second, the document area's content in place.
 namespace {
 
+// Recurses once per dock node level: a committed tree is at most
+// dock_maximum_depth (32) deep, refused beyond by the invariant check;
+// a few hundred bytes of stack per level.
 void collect_main_stacks(const DockLayout& layout, DockNodeId node_id, std::vector<DockNodeId>& out) {
     const DockNode* const node = layout.find_node(node_id);
     if (node == nullptr) return;
@@ -869,6 +876,9 @@ Size DockSite::stack_minimum(const DockNode& node) const {
     return minimum;
 }
 
+// Recurses once per dock node level: a committed tree is at most
+// dock_maximum_depth (32) deep, refused beyond by the invariant check;
+// a few hundred bytes of stack per level.
 DockSite::Extent DockSite::extent_of(DockNodeId node_id, std::span<const DockNodeId> collapsed) const {
     Extent extent{};
     const DockNode* const node = (*workspace_).layout().find_node(node_id);
@@ -967,6 +977,9 @@ std::vector<DockNodeId> DockSite::plan_collapse(Size available) const {
     return collapsed;
 }
 
+// Recurses once per dock node level: a committed tree is at most
+// dock_maximum_depth (32) deep, refused beyond by the invariant check;
+// a few hundred bytes of stack per level.
 void DockSite::place(DockNodeId node_id, Rect bounds, std::span<const DockNodeId> collapsed) {
     const DockNode* const node = (*workspace_).layout().find_node(node_id);
     if (node == nullptr) return;
@@ -1232,6 +1245,17 @@ DockSite::CaptionGeometry DockSite::caption_geometry(Rect caption, bool pin, boo
     return placed;
 }
 
+Rect DockSite::caption_grip(const StackSlot& slot, const CaptionGeometry& placed) const {
+    const double scale = effective_text_scale();
+    const ResolvedTextLayout title = resolve_text_layout_utf8(slot.title, caption_font());
+    const double start = placed.label.x + title.logical_size.width + label_gap * scale;
+    const double end = placed.label.x + placed.label.width;
+    if (end - start < caption_grip_minimum * scale) return Rect{};
+    const double height = std::min(placed.caption.height, caption_grip_height * scale);
+    const Rect grip{start, placed.caption.y + (placed.caption.height - height) * 0.5, end - start, height};
+    return grip;
+}
+
 // -- states --------------------------------------------------------------------
 
 bool DockSite::focus_cue() const noexcept {
@@ -1397,9 +1421,20 @@ void DockSite::paint_caption(Painter& painter, const Control& surface, const Sta
     part.role = PartRole::caption;
     part.bounds = moved(placed.label, offset);
     part.key = PartKey{"caption_label", item, {}};
-    part.text = slot.title;
+    part.text = lend_paint_text(slot.title);
     paint_part(painter, surface, part);
     part.text = {};
+    // The grip (cp29: SDR#'s dotted caption grip), in every theme: the grip
+    // mark in the caption's muted ink. A sheet hides it with a transparent
+    // ink, `dock-site::part(caption-grip) { muted-color: transparent; }`
+    // (owner, 2026-11-11).
+    const Rect grip = caption_grip(slot, placed);
+    if (!grip.empty()) {
+        part.role = PartRole::grip;
+        part.bounds = moved(grip, offset);
+        part.key = PartKey{"caption_grip", item, {}};
+        paint_part(painter, surface, part);
+    }
     // The buttons: flat at rest with a plate when hot (the menu-item family,
     // as the tool strip's).
     const std::array<Zone, 3> zones{Zone::menu, Zone::pin, Zone::close};
@@ -1573,66 +1608,88 @@ void DockSite::on_pointer_preview(PointerEvent& event) {
     }
 }
 
-void DockSite::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::leave) {
-        if (!seam_captured_) set_hot({});
-        return;
-    }
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+void DockSite::on_mouse_leave() {
+    if (!seam_captured_) set_hot({});
+    Control::on_mouse_leave();
+}
+
+void DockSite::on_mouse_down(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void DockSite::on_mouse_up(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void DockSite::on_mouse_move(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void DockSite::on_mouse_wheel(MouseEventArgs& arguments) {
+    handle_mouse(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+// The site's press, release and move (by arguments.action); a wheel only
+// meets the settling drag.
+void DockSite::handle_mouse(MouseEventArgs& arguments) {
+    const Point local = arguments.location;
     // A floating window moved by its caption (phase D4).
     if (window_move_.active) {
         const Control::Ptr keep = shared_from_this();
-        if (event.action == PointerAction::move) {
-            continue_window_move(event.modifiers);
-            event.handled = true;
+        if (arguments.action == PointerAction::move) {
+            continue_window_move(arguments.modifiers);
+            arguments.handled = true;
             return;
         }
-        if (event.action == PointerAction::up && event.button == PointerButton::primary) {
+        if (arguments.action == PointerAction::up && arguments.button == PointerButton::primary) {
             end_window_move(false);
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
     }
     if ((drag_.phase == DockDragPhase::armed || drag_.phase == DockDragPhase::dragging) && !drag_.guest) {
         const Control::Ptr keep = shared_from_this();
-        if (event.action == PointerAction::move) {
-            update_drag_pointer(local, event.modifiers);
-            event.handled = true;
+        if (arguments.action == PointerAction::move) {
+            update_drag_pointer(local, arguments.modifiers);
+            arguments.handled = true;
             return;
         }
-        if (event.action == PointerAction::up && event.button == PointerButton::primary) {
+        if (arguments.action == PointerAction::up && arguments.button == PointerButton::primary) {
             if (drag_.phase == DockDragPhase::armed) {
                 reset_drag();
             } else {
-                update_drag_pointer(local, event.modifiers);
+                update_drag_pointer(local, arguments.modifiers);
                 // The drop's target may be this site's or another window's;
                 // end_drag decides.
                 end_drag(DockDragEnd::dropped);
             }
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
     }
     if (drag_.phase == DockDragPhase::settling) {
-        event.handled = true;
+        arguments.handled = true;
         return;
     }
-    if (event.action == PointerAction::move || event.action == PointerAction::enter) {
+    if (arguments.action == PointerAction::move) {
         if (seam_captured_) {
             continue_seam_drag(local);
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
         set_hot(hit_at(local));
         return;
     }
-    if (event.button != PointerButton::primary || workspace_ == nullptr) return;
-    if (event.action == PointerAction::up) {
+    if (arguments.button != PointerButton::primary || workspace_ == nullptr) return;
+    if (arguments.action == PointerAction::up) {
         if (seam_captured_) {
             seam_captured_ = false;
             invalidate(Dirty::paint);
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
         const Hit released = hit_at(local);
@@ -1640,16 +1697,16 @@ void DockSite::on_pointer(PointerEvent& event) {
         pressed_ = {};
         invalidate(Dirty::paint);
         if (pressed.zone == Zone::none) return;
-        event.handled = true;
+        arguments.handled = true;
         if (pressed != released) return;
         press_caption_button(pressed.index, pressed.zone);
         return;
     }
-    if (event.action != PointerAction::down) return;
+    if (arguments.action != PointerAction::down) return;
     const Hit hit = hit_at(local);
     if (hit.zone == Zone::none) return;
     const Control::Ptr keep = shared_from_this();
-    event.handled = true;
+    arguments.handled = true;
     if (hit.zone == Zone::seam) {
         begin_seam_drag(hit.index, local);
         return;
@@ -1659,13 +1716,13 @@ void DockSite::on_pointer(PointerEvent& event) {
     if (hit.zone == Zone::caption) {
         // A double-click on a floating caption docks the stack back (phase
         // D4).
-        if (event.click_count >= 2U && floating() && hit.index < stacks_.size()) {
+        if (arguments.clicks >= 2U && floating() && hit.index < stacks_.size()) {
             static_cast<void>((*workspace_).dock_back(DockSubject::of_stack(stacks_[hit.index].stack)));
             return;
         }
         static_cast<void>((*workspace_).activate_panel(*panel, DockActivationCause::pointer));
         // The press may become a drag of the whole stack (D7-1).
-        if (is_alive() && hit.index < stacks_.size()) arm_caption_drag(hit.index, local, event.pointer_id);
+        if (is_alive() && hit.index < stacks_.size()) arm_caption_drag(hit.index, local, arguments.pointer_id);
         return;
     }
     if (hit.zone == Zone::menu) {
@@ -1821,10 +1878,26 @@ void DockSite::on_context_menu_requested(ContextMenuRequest& request) {
     if (panel && show_position_menu(*panel, MenuOpenMode::keyboard)) request.handled = true;
 }
 
-void DockSite::on_key(KeyEvent& event) {
-    if (handle_seam_key(event)) return;
-    static_cast<void>(handle_docking_key(event));
-    pass_key_to_main_window(event);
+void DockSite::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    handle_key(arguments, KeyAction::down);
+}
+
+void DockSite::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    handle_key(arguments, KeyAction::up);
+}
+
+// A key no subscriber handled: the seam's keys, the docking keys, then the
+// main window's (a floating site passes keys on).
+void DockSite::handle_key(KeyEventArgs& arguments, KeyAction action) {
+    if (arguments.handled || arguments.released_by_deactivation) return;
+    KeyEvent event = key_event_of(arguments, action);
+    if (!handle_seam_key(event)) {
+        static_cast<void>(handle_docking_key(event));
+        pass_key_to_main_window(event);
+    }
+    arguments.handled = event.handled;
 }
 
 void DockSite::on_key_bubble(KeyEvent& event) {
@@ -2511,19 +2584,19 @@ constexpr std::array<AnatomyState, 1> drop_cue_states{AnatomyState::drop_rejecte
 constexpr std::array<AnatomyState, 2> flyout_grip_states{AnatomyState::hot, AnatomyState::captured};
 
 constexpr std::array<PartField<DockSite::Parts>, 11> site_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::region},
-    {.declaration = {.name = "document_area", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "document_area", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::document_area},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::focus},
     // The drag layer (phase D3).
-    {.declaration = {.name = "drag_stamp", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "drag_stamp", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::drag_stamp},
-    {.declaration = {.name = "drag_stamp_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "drag_stamp_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::drag_stamp_label},
     // The panel's picture: an image part; icon is the nearest role.
-    {.declaration = {.name = "drag_stamp_image", .role = PartRole::image, .composed_from = {}},
+    {.declaration = {.name = "drag_stamp_image", .role = PartRole::image, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::drag_stamp_image},
     {.declaration = {.name = "drop_area", .role = PartRole::drop, .composed_from = {},
                      .states = drop_area_states},
@@ -2535,9 +2608,9 @@ constexpr std::array<PartField<DockSite::Parts>, 11> site_part_fields{{
      .member = &DockSite::Parts::drop_cue},
     // The flyout's overlay shadow (RB-37, DK-41 T5-1), face and inner-edge
     // grip.
-    {.declaration = {.name = "flyout_shadow", .role = PartRole::shadow, .composed_from = {}},
+    {.declaration = {.name = "flyout_shadow", .role = PartRole::shadow, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::flyout_shadow},
-    {.declaration = {.name = "flyout_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "flyout_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::flyout_face},
     {.declaration = {.name = "flyout_grip", .role = PartRole::grip, .composed_from = {}, .states = flyout_grip_states},
      .member = &DockSite::Parts::flyout_grip},
@@ -2549,9 +2622,9 @@ constexpr std::array<AnatomyState, 5> site_states{
 };
 
 constexpr std::array<PartField<DockSite::SeamParts>, 2> seam_part_fields{{
-    {.declaration = {.name = "seam_bar", .role = PartRole::seam, .composed_from = {}},
+    {.declaration = {.name = "seam_bar", .role = PartRole::seam, .composed_from = {}, .states = {}},
      .member = &DockSite::SeamParts::seam_bar},
-    {.declaration = {.name = "seam_grip", .role = PartRole::grip, .composed_from = {}},
+    {.declaration = {.name = "seam_grip", .role = PartRole::grip, .composed_from = {}, .states = {}},
      .member = &DockSite::SeamParts::seam_grip},
 }};
 constexpr std::array<PartDeclaration, 2> seam_parts_declared = part_declarations(seam_part_fields);
@@ -2573,20 +2646,24 @@ constexpr std::array<AnatomyState, 3> close_button_states{AnatomyState::hot, Ana
 constexpr std::array<AnatomyState, 2> pin_glyph_states{AnatomyState::checked, AnatomyState::disabled};
 constexpr std::array<AnatomyState, 1> glyph_states{AnatomyState::disabled};
 
-constexpr std::array<PartField<DockSite::StackParts>, 11> stack_part_fields{{
-    {.declaration = {.name = "stack_area", .role = PartRole::region, .composed_from = "page_view"},
+constexpr std::array<PartField<DockSite::StackParts>, 12> stack_part_fields{{
+    {.declaration = {.name = "stack_area", .role = PartRole::region, .composed_from = "page_view", .states = {}},
      .member = &DockSite::StackParts::stack_area},
-    {.declaration = {.name = "caption", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DockSite::StackParts::caption},
     // The active caption's accent line (DK-41): no accent-line role exists;
     // keyline is the nearest atom.
-    {.declaration = {.name = "caption_accent", .role = PartRole::keyline, .composed_from = {}},
+    {.declaration = {.name = "caption_accent", .role = PartRole::keyline, .composed_from = {}, .states = {}},
      .member = &DockSite::StackParts::caption_accent},
     // The identity key: chip is the nearest atom for a small coloured mark.
-    {.declaration = {.name = "caption_key", .role = PartRole::chip, .composed_from = {}},
+    {.declaration = {.name = "caption_key", .role = PartRole::chip, .composed_from = {}, .states = {}},
      .member = &DockSite::StackParts::caption_key},
-    {.declaration = {.name = "caption_label", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption_label", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &DockSite::StackParts::caption_label},
+    // The dotted grip after the title (cp29), drawn in every theme; a
+    // transparent muted ink hides it.
+    {.declaration = {.name = "caption_grip", .role = PartRole::grip, .composed_from = {}, .states = {}},
+     .member = &DockSite::StackParts::caption_grip},
     {.declaration = {.name = "caption_menu", .role = PartRole::actuator, .composed_from = "button",
                      .states = menu_button_states},
      .member = &DockSite::StackParts::caption_menu},
@@ -2606,7 +2683,7 @@ constexpr std::array<PartField<DockSite::StackParts>, 11> stack_part_fields{{
                      .states = glyph_states},
      .member = &DockSite::StackParts::caption_close_glyph},
 }};
-constexpr std::array<PartDeclaration, 11> stack_parts_declared = part_declarations(stack_part_fields);
+constexpr std::array<PartDeclaration, 12> stack_parts_declared = part_declarations(stack_part_fields);
 constexpr std::array<StateField<DockSite::StackStates>, 2> stack_state_fields{{
     {AnatomyState::current, &DockSite::StackStates::current},
     {AnatomyState::disabled, &DockSite::StackStates::disabled},
@@ -2617,9 +2694,9 @@ constexpr std::array<AnatomyState, 2> stack_states_declared = state_declarations
 // restrictions refuse, expanding while the cross fades in) and its
 // dock-shape glyph (PartMark::dock_shape with the zone's region).
 constexpr std::array<PartField<DockSite::TileParts>, 2> tile_part_fields{{
-    {.declaration = {.name = "tile", .role = PartRole::actuator, .composed_from = {}},
+    {.declaration = {.name = "tile", .role = PartRole::actuator, .composed_from = {}, .states = {}},
      .member = &DockSite::TileParts::tile},
-    {.declaration = {.name = "tile_glyph", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "tile_glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &DockSite::TileParts::tile_glyph},
 }};
 constexpr std::array<PartDeclaration, 2> tile_parts_declared = part_declarations(tile_part_fields);
@@ -2726,6 +2803,7 @@ DockSite::StackParts DockSite::stack_parts(const StackSlot& slot, std::size_t in
     if (stack_current(slot)) record.caption_accent = PartGeometry::from_bounds(placed.accent);
     record.caption_key = PartGeometry::from_bounds(placed.key);
     record.caption_label = PartGeometry::from_bounds(placed.label);
+    record.caption_grip = PartGeometry::from_bounds(caption_grip(slot, placed));
     const AnatomyStateSet menu = button_states(index, Zone::menu);
     const AnatomyStateSet pin = button_states(index, Zone::pin);
     const AnatomyStateSet close = button_states(index, Zone::close);

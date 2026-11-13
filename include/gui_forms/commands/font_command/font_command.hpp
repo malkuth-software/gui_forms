@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/event.hpp"
@@ -12,7 +13,7 @@ namespace gui_forms {
 // A font as a font control shows and chooses it: a family name and a size
 // in points. An empty family or a zero size is unknown, as for a selection
 // whose text mixes fonts; the control shows that field empty.
-struct FontChoice final {
+struct GUI_FORMS_API FontChoice final {
     std::string family{};
     double size{};
 
@@ -28,7 +29,7 @@ struct FontChoice final {
 // program's change (value_changed, no invocation), commit the user's choice
 // (value_changed, then the Command executes with the source's ID); a commit
 // is refused while the Command is disabled. No live preview (decision 13).
-class FontCommand final : public Component {
+class GUI_FORMS_API FontCommand final : public Component {
 public:
     // The largest size accepted, in points.
     static constexpr double maximum_size = 1638.0;
@@ -37,7 +38,8 @@ public:
     explicit FontCommand(std::shared_ptr<Command> command);
 
     [[nodiscard]] const std::shared_ptr<Command>& command() const noexcept { return command_; }
-    [[nodiscard]] const std::string& stable_id() const noexcept { return (*command_).stable_id(); }
+    [[nodiscard]] const std::string& stable_id() const& noexcept { return (*command_).stable_id(); }
+    const std::string& stable_id() const&& = delete;
     [[nodiscard]] const CommandState& state() const noexcept { return (*command_).state(); }
 
     [[nodiscard]] const FontChoice& value() const noexcept { return value_; }

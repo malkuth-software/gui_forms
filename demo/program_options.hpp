@@ -31,7 +31,8 @@
 //                       base: gui-forms (the default) or
 //                       windows-professional, as its Theme settings page
 //                       does. Other programs ignore it.
-//   --scheme light|dark The window's colour-scheme override.
+//   --scheme light|dark The Gallery window's colour-scheme override.
+//                       Other programs ignore it.
 //   --reveal <id>       The Gallery scrolls its page so the control with
 //                       this stable id is at the top (capture staging).
 //                       Other programs ignore it.
@@ -41,6 +42,9 @@
 //                       menu at index <item> (0 by default), or a
 //                       ToolStrip's or a Ribbon's drop-down <item>. Other
 //                       programs ignore it.
+//
+// Every host's Gallery main applies --page, --reveal, --open-menu and
+// --scheme through gallery_staging.hpp.
 //
 // The user-theme options every GUI.Forms program takes (--theme
 // <name|built-in|path.css> and --export-themes [folder];

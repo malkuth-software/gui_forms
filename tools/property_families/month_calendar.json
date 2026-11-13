@@ -2,9 +2,9 @@
   "family": "MonthCalendar",
   "step": "B8",
   "declaring": "MonthCalendar",
-  "header": "include/gui_forms/controls/panel/month_calendar/month_calendar.hpp",
+  "header": "include/gui_forms/controls/month_calendar.hpp",
   "source": "src/controls/panel/month_calendar/month_calendar.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/month_calendar_capabilities.hpp",
   "shared": [
     "FontCapability"
   ],
@@ -231,10 +231,10 @@
   ],
   "test": {
     "type": "MonthCalendar",
-    "include": "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
+    "include": "gui_forms/controls/month_calendar.hpp"
   },
   "includes": [
-    "gui_forms/controls/panel/month_calendar/calendar_values/calendar_values.hpp",
-    "gui_forms/controls/panel/date_time_picker/date_time_format_provider/date_time_format_provider.hpp"
+    "gui_forms/controls/calendar_values.hpp",
+    "gui_forms/controls/date_time_format_provider.hpp"
   ]
 }

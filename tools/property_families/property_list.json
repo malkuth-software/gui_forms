@@ -2,9 +2,9 @@
   "family": "PropertyList",
   "step": "B6",
   "declaring": "PropertyList",
-  "header": "include/gui_forms/controls/panel/property_list/property_list.hpp",
+  "header": "include/gui_forms/controls/property_list.hpp",
   "source": "src/controls/panel/property_list/property_list.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/property_list/property_list_capabilities/property_list_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/property_list_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [
@@ -133,6 +133,6 @@
   ],
   "test": {
     "type": "PropertyList",
-    "include": "gui_forms/controls/panel/property_list/property_list.hpp"
+    "include": "gui_forms/controls/property_list.hpp"
   }
 }

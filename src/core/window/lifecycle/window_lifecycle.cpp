@@ -326,6 +326,8 @@ void SurfaceRoot::set_chrome_insets(Insets insets) {
 // that axis. Those controls, and only those, are marked for measure. The
 // reached set contains each reached control's ancestors, so their subtree
 // flags already cover it.
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::mark_resized_measure(Control& control, bool width_reaches, bool height_reaches) {
     // add_dirty advances the measure generation, so a reached control's
     // cached measure answers (measure_for_layout) are not answered again.
@@ -647,6 +649,9 @@ void SurfaceRoot::set_active(bool active) {
         if ((*lifetime).window != presenting) return;
     }
     active_ = active;
+    // A modal window over this one (or the platform taking the keyboard)
+    // ends the pointer sequences in progress (input order rule 5).
+    if (!active) break_pointer_sequences();
     // A drag does not survive the window's deactivation (DK's rule).
     if (!active && drag_engine_) (*drag_engine_).cancel(DragEnd::deactivated);
     // The window's backplane material follows activation (E9-B).

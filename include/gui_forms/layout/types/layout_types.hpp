@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/type_tag/type_tag.hpp"
 
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -12,7 +13,7 @@ namespace gui_forms {
 // A layout length in logical units (device-independent pixels), the unit of
 // every retained bound. Device pixels appear only where paint snaps edges, so
 // a layout length is never added to a device-pixel quantity by accident.
-class LogicalLength final {
+class GUI_FORMS_API LogicalLength final {
 public:
     explicit constexpr LogicalLength(double value = 0.0) noexcept : value_(value) {}
     [[nodiscard]] constexpr double value() const noexcept { return value_; }
@@ -44,7 +45,7 @@ enum class AvailableExtentKind : std::uint8_t {
 // One axis of a layout constraint. `extent` is read only for `definite` and
 // `at_most`, and must then be finite and nonnegative; the content kinds
 // carry a zero extent.
-struct AvailableExtent final {
+struct GUI_FORMS_API AvailableExtent final {
     AvailableExtentKind kind{AvailableExtentKind::at_most};
     LogicalLength extent{};
 
@@ -56,7 +57,7 @@ struct AvailableExtent final {
 
 // A measure query on both axes. Control::measure_for_layout answers it and
 // caches the answer under exactly this value.
-struct LayoutConstraint final {
+struct GUI_FORMS_API LayoutConstraint final {
     AvailableExtent width{};
     AvailableExtent height{};
 
@@ -95,12 +96,12 @@ inline constexpr double practical_unbounded_extent = 1.0e9;
 
 // True when every extent the constraint reads is finite and nonnegative and
 // every content kind carries a zero extent.
-[[nodiscard]] bool valid_layout_constraint(const LayoutConstraint& constraint) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_layout_constraint(const LayoutConstraint& constraint) noexcept;
 
 // The `available` argument of Control::measure(Size) for a constraint: a
 // definite or at-most axis passes its extent, a content axis the practical
 // unbounded extent.
-[[nodiscard]] Size measure_available_size(const LayoutConstraint& constraint) noexcept;
+[[nodiscard]] GUI_FORMS_API Size measure_available_size(const LayoutConstraint& constraint) noexcept;
 
 // The inline direction a control lays its children and text out in (stage
 // L, PLAN section 4): Windows Forms' RightToLeft with Inherit, CSS
@@ -111,6 +112,65 @@ enum class LayoutDirection : std::uint8_t {
     left_to_right,
     right_to_left,
 };
+
+// Windows Forms' RightToLeft values, in its order (No, Yes, Inherit): the
+// vocabulary of Control's `right_to_left` property, which names the same
+// authored value as `layout_direction` (owner ruling of 2026-11-11). There
+// is one stored direction; these convert between the two spellings.
+enum class RightToLeft : std::uint8_t {
+    no,
+    yes,
+    inherit,
+};
+
+// The RightToLeft spelling of an authored direction. A value outside the
+// enumeration reads as inherit.
+[[nodiscard]] constexpr RightToLeft right_to_left_of(LayoutDirection direction) noexcept {
+    switch (direction) {
+    case LayoutDirection::left_to_right: return RightToLeft::no;
+    case LayoutDirection::right_to_left: return RightToLeft::yes;
+    case LayoutDirection::inherit:
+    default: return RightToLeft::inherit;
+    }
+}
+
+// The authored direction a RightToLeft value stands for. A value outside
+// the enumeration reads as inherit.
+[[nodiscard]] constexpr LayoutDirection layout_direction_of(RightToLeft value) noexcept {
+    switch (value) {
+    case RightToLeft::no: return LayoutDirection::left_to_right;
+    case RightToLeft::yes: return LayoutDirection::right_to_left;
+    case RightToLeft::inherit:
+    default: return LayoutDirection::inherit;
+    }
+}
+
+// `bounds` mirrored about the vertical centre line of `frame`, both in the
+// same coordinates: how a directional control places a part laid out left
+// to right when it resolves right to left (Control::
+// effective_layout_direction). Mirroring twice gives `bounds` back.
+[[nodiscard]] constexpr Rect horizontally_mirrored(Rect bounds, Rect frame) noexcept {
+    Rect mirrored = bounds;
+    mirrored.x = frame.x + frame.width - (bounds.x - frame.x) - bounds.width;
+    return mirrored;
+}
+
+// `laid` as a control resolving `direction` places it: unchanged left to
+// right, horizontally_mirrored in `frame` right to left. For geometry laid
+// out left to right once and placed at output.
+[[nodiscard]] constexpr Rect directed_rect(Rect laid, Rect frame, LayoutDirection direction) noexcept {
+    if (direction != LayoutDirection::right_to_left) return laid;
+    const Rect placed = horizontally_mirrored(laid, frame);
+    return placed;
+}
+
+// The left-to-right x of a point at `x` in `frame` placed by `direction`:
+// directed_rect's inverse for hit testing (a mirror is its own inverse).
+[[nodiscard]] constexpr double directed_x(double x, Rect frame, LayoutDirection direction) noexcept {
+    if (direction != LayoutDirection::right_to_left) return x;
+    const double laid = frame.x + frame.width - (x - frame.x);
+    return laid;
+}
 
 namespace types {
 

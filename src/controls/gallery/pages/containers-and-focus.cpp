@@ -1,4 +1,12 @@
 #include "pages.hpp"
+#include "gui_forms/controls/dock_navigator.hpp"
+#include "gui_forms/controls/dock_site.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/scaled_group_box.hpp"
+#include "gui_forms/controls/split_container.hpp"
+#include "gui_forms/controls/splitter_panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/docking/types/dock_types.hpp"
 
 #include "containers-and-focus_form.hpp"
 

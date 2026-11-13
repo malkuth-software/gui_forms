@@ -4,9 +4,19 @@
 // if the process was not ended; CTest passes a mode when its report line
 // appears and "survived" does not.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 #include "../src/core/failure/fail_fast.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -48,6 +58,14 @@ int throw_injected(int value) {
     return value;
 }
 
+// Throws under one shadow frame, which unwinding closes before the boundary
+// catches; the report must still print it (the failure snapshot).
+int throw_in_frame(int value) {
+    const ShadowFrameScope frame(ShadowFrameKind::event_callback, "fail-fast.frame", "click", 0U);
+    if (value != 0) throw std::runtime_error("injected framed failure");
+    return value;
+}
+
 class ThrowingTick final {
 public:
     void operator()(FrameTime) const { throw std::runtime_error("injected timer failure"); }
@@ -63,16 +81,21 @@ public:
     MotionValue value;
 };
 
-class ThrowingProbe final : public Control {
+class ThrowingProbe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit ThrowingProbe(StableId stable_id) : Control(std::move(stable_id)) {}
+    explicit ThrowingProbe(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) {}
 
 protected:
-    void on_pointer(PointerEvent&) override { throw std::runtime_error("injected event failure"); }
+    void routed_pointer(PointerEvent&) override { throw std::runtime_error("injected event failure"); }
 };
 
 void direct_mode() {
     const int result = gui_forms::detail::call_failing_fast("test.direct", &throw_injected, 1);
+    std::printf("returned %d\n", result);
+}
+
+void shadow_frames_mode() {
+    const int result = gui_forms::detail::call_failing_fast("test.frames", &throw_in_frame, 1);
     std::printf("returned %d\n", result);
 }
 
@@ -112,7 +135,7 @@ void host_dispatch_mode() {
 
 int main(int argc, char** argv) {
     if (argc != 2) {
-        std::fprintf(stderr, "usage: gui_forms_fail_fast_tests direct|ui_timer|motion_listener|host_dispatch\n");
+        std::fprintf(stderr, "usage: gui_forms_fail_fast_tests direct|ui_timer|motion_listener|host_dispatch|shadow_frames\n");
         return EXIT_FAILURE;
     }
     quiet_crash_reporting();
@@ -121,6 +144,7 @@ int main(int argc, char** argv) {
     else if (mode == "ui_timer") ui_timer_mode();
     else if (mode == "motion_listener") motion_listener_mode();
     else if (mode == "host_dispatch") host_dispatch_mode();
+    else if (mode == "shadow_frames") shadow_frames_mode();
     else {
         std::fprintf(stderr, "unknown mode\n");
         return EXIT_FAILURE;

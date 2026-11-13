@@ -26,7 +26,21 @@
 #include "../../src/core/theme_language/syntax_tree/theme_syntax_tree.hpp"
 #include "../../src/core/theme_language/tokenizer/theme_tokenizer.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/engine/engine_expression/engine_expression.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <algorithm>
 #include <array>
@@ -161,6 +175,16 @@ std::string states_text(std::span<const AnatomyState> states) {
     return text;
 }
 
+// Custom states as their positions in the type's declarations (R2-13).
+std::string custom_states_text(const std::vector<CustomStateIndex>& states) {
+    std::string text{};
+    for (const CustomStateIndex state : states) {
+        if (!text.empty()) text += ",";
+        text += std::to_string(state.value);
+    }
+    return text;
+}
+
 std::string selector_text(const RuleSelector& selector) {
     std::string text{};
     if (selector.surface == SurfaceKind::window) text += "surface=window ";
@@ -171,6 +195,7 @@ std::string selector_text(const RuleSelector& selector) {
     if (!selector.part.empty()) text += "part=" + selector.part + " ";
     if (selector.role) text += "role=" + std::string(part_role_name(*selector.role)) + " ";
     if (!selector.states.empty()) text += "states=" + states_text(selector.states) + " ";
+    if (!selector.custom_states.empty()) text += "custom=" + custom_states_text(selector.custom_states) + " ";
     if (!selector.family.empty()) text += "family=" + selector.family + " ";
     for (const RuleExclusion& exclusion : selector.excluded) {
         text += "not(";
@@ -178,6 +203,7 @@ std::string selector_text(const RuleSelector& selector) {
         if (!exclusion.stable_id.empty()) text += "id=" + exclusion.stable_id + " ";
         for (const std::string& name : exclusion.classes) text += "class=" + name + " ";
         if (!exclusion.states.empty()) text += "states=" + states_text(exclusion.states) + " ";
+        if (!exclusion.custom_states.empty()) text += "custom=" + custom_states_text(exclusion.custom_states) + " ";
         if (!exclusion.family.empty()) text += "family=" + exclusion.family + " ";
         if (text.back() == ' ') text.pop_back();
         text += ") ";
@@ -319,6 +345,9 @@ std::string material_text(const MaterialDeclaration& declaration) {
         text += " reflection edge=" + std::to_string(static_cast<unsigned int>(reflection.edge)) + " opacities=" +
                 number_text(reflection.start_opacity) + "," + number_text(reflection.end_opacity);
         if (reflection.source == MaterialReflectionSource::backplane) text += " source=backplane";
+    }
+    if (declaration.dither != MaterialDither::none) {
+        text += " dither=" + std::to_string(static_cast<unsigned int>(declaration.dither));
     }
     if (declaration.number != 0.0) text += " number=" + number_text(declaration.number);
     if (declaration.relative) text += " relative";

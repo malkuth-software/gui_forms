@@ -145,3 +145,101 @@ gui_forms::FolderBrowserDialog
    .. cpp:function:: void reset()
 
       Restores every setting to its default and forgets the chosen folder.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``FolderBrowserDialog``. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 15 unclassified; 3 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``FolderBrowserDialog``
+     - ``FolderBrowserDialog``
+     - supported
+   * - property
+     - ``AddToRecent``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoUpgradeEnabled``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ClientGuid``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Description``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``InitialDirectory``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Multiselect``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``OkRequiresInteraction``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RootFolder``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedPath``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedPaths``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowHiddenFiles``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowNewFolderButton``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowPinnedPlaces``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseDescriptionForTitle``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``HelpRequest``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``status``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``read``
+     - supported
+   * - method
+     - ``CommonDialog.Reset``
+     - ``reset``
+     - supported
+   * - method
+     - ``CommonDialog.ShowDialog``
+     - ``show_dialog``
+     - supported

@@ -2,9 +2,9 @@
   "family": "TypographySpecimen",
   "step": "M-S2",
   "declaring": "TypographySpecimen",
-  "header": "include/gui_forms/controls/typography_specimen/typography_specimen.hpp",
-  "source": "src/controls/typography_specimen/typography_specimen.cpp",
-  "capabilities_header": "include/gui_forms/controls/typography_specimen/typography_specimen_capabilities/typography_specimen_capabilities.hpp",
+  "header": "demo/lab_controls/include/gui_forms_demo/typography_specimen.hpp",
+  "source": "demo/lab_controls/src/typography_specimen.cpp",
+  "capabilities_header": "demo/lab_controls/include/gui_forms_demo/typography_specimen_capabilities.hpp",
   "base": "Control",
   "shared": [
     "TextCapability"
@@ -160,6 +160,6 @@
   "not_properties": [],
   "test": {
     "type": "TypographySpecimen",
-    "include": "gui_forms/controls/typography_specimen/typography_specimen.hpp"
+    "include": "gui_forms_demo/typography_specimen.hpp"
   }
 }

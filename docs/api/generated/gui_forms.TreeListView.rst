@@ -9,7 +9,7 @@ gui_forms::TreeListView
 
 .. cpp:class:: TreeListView final : public Control, public TreeListViewCapabilities<TreeListView>
 
-   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
+   ``#include <gui_forms/controls/tree_list_view.hpp>``
 
    A tree with tabular columns: nodes in a hierarchy, each with cells beside it.
 
@@ -294,7 +294,7 @@ gui_forms::TreeListView
       and scrolling it into view), ``selected_id = std::nullopt`` selects
       nothing, and a write throws ``std::out_of_range`` for an unknown node.
 
-   .. cpp:function:: std::span<const TreeListColumn> columns() const noexcept
+   .. cpp:function:: std::span<const TreeListColumn> columns() const& noexcept
 
       The columns, column 0 first. :cpp:func:`set_columns <gui_forms::TreeListView::set_columns>` replaces them, resets the
       display order and throws ``std::invalid_argument`` for a repeated ID or one
@@ -306,12 +306,12 @@ gui_forms::TreeListView
 
       Sets :cpp:func:`columns <gui_forms::TreeListView::columns>`; see the property's description above.
 
-   .. cpp:function:: std::span<const std::size_t> column_order() const noexcept
+   .. cpp:function:: std::span<const std::size_t> column_order() const& noexcept
 
       The columns in display order: ``column_order()[position]`` is the column
       shown at that position. Position 0 always holds the tree column.
 
-   .. cpp:function:: std::span<const TreeListNode> nodes() const noexcept
+   .. cpp:function:: std::span<const TreeListNode> nodes() const& noexcept
 
       The nodes in the order given, whatever the sort. :cpp:func:`set_nodes <gui_forms::TreeListView::set_nodes>` replaces
       them, keeps the selection and the current node on their IDs, and throws
@@ -498,10 +498,6 @@ gui_forms::TreeListView
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_text_input(TextInputEvent& event) override
 
    .. cpp:function:: void on_focus_changed(bool focused) override
@@ -519,6 +515,30 @@ gui_forms::TreeListView
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -573,3 +593,161 @@ gui_forms::TreeListView
    .. cpp:member:: constexpr double maximum_indentation
 
       Default: ``96.0``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 31 supported, 0 deferred, 0 excluded, 5 unclassified; 36 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``column_order``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``columns``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``current_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``horizontal_offset``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``nodes``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_cells``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_columns``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_rows``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``row_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``sort_column``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``sort_order``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``top_row``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``virtual_mode``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``column_moved``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``column_width_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``expansion_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selection_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``sort_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``ensure_visible``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``expand_subtree``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``index_of``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``is_expanded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_column``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``node_id_at``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``refresh_rows``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``row_node_id``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``row_of``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_cell_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_width``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_expanded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_row_source``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_sort``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``splice_rows``
+     - supported

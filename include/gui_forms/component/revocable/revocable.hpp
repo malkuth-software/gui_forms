@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <memory>
 #include <cstdint>
 
@@ -8,7 +9,7 @@ class Component;
 
 namespace detail {
 
-class Revocable {
+class GUI_FORMS_API Revocable {
 public:
     virtual ~Revocable() = default;
     virtual void disconnect() noexcept = 0;

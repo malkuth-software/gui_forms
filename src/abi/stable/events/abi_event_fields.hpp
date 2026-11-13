@@ -20,6 +20,13 @@
 // storage (names, values, texts) is stable from publish() until the frame
 // ends, so the records it lends stay valid for the whole invoke.
 //
+// Checked build (GUI_FORMS_CHECKED_BORROWS, borrow sanitizer study section
+// 2.5): when the invoke is over (release), the scratch the records lent is
+// scribbled and, under AddressSanitizer, poisoned, so a C or C# caller that
+// kept a record, a value or its text reads poisoned memory and ASan reports
+// it in the caller's frame. The next emission (claim) or the destructor
+// unpoisons exactly what was poisoned before the storage is touched again.
+//
 // Reuse (N12): a subscription's forwarder keeps one EventFields for all of
 // its emissions. An emission claims it, builds, publishes and reads back,
 // then releases it: release() returns the lent identities and empties the
@@ -31,6 +38,7 @@
 #include "gui_forms/c/gf_abi.h"
 
 #include "../registry/abi_registry.hpp"
+#include "abi_lent_scratch.hpp"
 #include "../values/abi_values.hpp"
 
 #include "gui_forms/binding.hpp"
@@ -105,6 +113,13 @@ public:
                      EventFieldAccepts accepts);
     // Keeps a copy of text for the frame and returns a view of the copy.
     [[nodiscard]] std::string_view keep_text(std::string_view text);
+    // The text a text field lends the callback, valid only during the
+    // callback (the invoke). The plain build lends `text` itself (the
+    // payload's storage, which outlives the invoke's callbacks: zero copy);
+    // the checked build copies it through keep_text into the lent scratch,
+    // so it is scribbled and poisoned when the invoke returns and a caller
+    // that kept it reads poisoned memory.
+    [[nodiscard]] std::string_view lend_text(std::string_view text);
     // Records a collection's elements for the field just appended.
     void set_collection(const void* items, std::size_t count, EventElementReader reader) noexcept;
     // Lends object an identity for the frame: a control owned by a shared
@@ -167,15 +182,38 @@ private:
     // Stable pooled storage: a deque keeps its elements in place as it
     // grows, and release() keeps them. names_[i] and values_[i] belong to
     // fields_[i] for i < fields_.size(); entries past that are spare.
-    // texts_[0, texts_used_) are this emission's texts, the rest spare.
+    // texts_[0, texts_used_) are this emission's texts, the rest spare;
+    // each sits in its own granule block (abi_lent_scratch.hpp) so the
+    // checked build can poison even a short one.
     std::deque<std::string> names_;
     std::deque<gf_value> values_;
-    std::deque<std::string> texts_;
+    std::deque<LentTextBlock> texts_;
     std::size_t texts_used_ = 0U;
     std::vector<Field> fields_;
     std::vector<gf_event_field> records_;
     std::vector<gf_object> lent_;
     const gf_event* event_ = nullptr;
+
+#if GUI_FORMS_CHECKED_BORROWS
+    // One region of lent scratch retired by the last release().
+    struct RetiredRegion final {
+        void* address = nullptr;
+        std::size_t size = 0U;
+    };
+    // Scribbles and poisons this emission's names, values, texts and
+    // records (before release() empties the fields); records each value
+    // region (the name and text blocks keep their own state).
+    void retire_lent_scratch() noexcept;
+    // Unpoisons every recorded region and forgets them.
+    void reclaim_lent_scratch() noexcept;
+    // Records and poisons one region; regions past the reserved capacity
+    // are scribbled but left unpoisoned (retiring allocates nothing).
+    void retire_region(void* address, std::size_t size) noexcept;
+    std::vector<RetiredRegion> retired_;
+    // The names publish() lends, copied out of names_ into granule blocks:
+    // name_blocks_[i] is fields_[i]'s for i < fields_.size().
+    std::deque<LentTextBlock> name_blocks_;
+#endif
 };
 
 // ---------------------------------------------------------------------------
@@ -265,8 +303,10 @@ void append_field(EventFields& fields, std::string_view name, Enumeration value)
     gf_value& record = fields.append(name, GF_VALUE_KIND_ENUMERATION, GF_EVENT_FIELD_WRITABLE,
                                      &accepts_enumeration<Enumeration>);
     record.signed_integer = number;
-    const std::string_view text = enumeration_name(fields, EnumerationChoices<Enumeration>::choices,
-                                                   EnumerationChoices<Enumeration>::flags, number);
+    const std::string_view name_text = enumeration_name(fields, EnumerationChoices<Enumeration>::choices,
+                                                        EnumerationChoices<Enumeration>::flags, number);
+    // Valid only during the callback (EventFields::lend_text).
+    const std::string_view text = fields.lend_text(name_text);
     record.text.data = text.data();
     record.text.size = text.size();
 }
@@ -321,6 +361,16 @@ template <typename Element>
 void append_field(EventFields& fields, std::string_view name, std::span<const Element> value) {
     append_collection<Element>(fields, name, value);
 }
+
+#if GUI_FORMS_CHECKED_BORROWS
+// A payload's call-scope borrow (checked build; the ordinary build's is the
+// span above): its plain view, which the raise's scope keeps valid for the
+// whole invoke.
+template <typename Element>
+void append_field(EventFields& fields, std::string_view name, const BasicBorrowedSpan<const Element>& value) {
+    append_collection<Element>(fields, name, unchecked_view(value));
+}
+#endif
 
 template <typename Value>
 void append_field(EventFields& fields, std::string_view name, const std::optional<Value>& value) {
@@ -418,6 +468,15 @@ void read_field(EventFields& fields, std::string_view name, std::span<const Elem
     static_cast<void>(name);
     static_cast<void>(value);
 }
+
+#if GUI_FORMS_CHECKED_BORROWS
+template <typename Element>
+void read_field(EventFields& fields, std::string_view name, BasicBorrowedSpan<const Element>& value) {
+    static_cast<void>(fields);
+    static_cast<void>(name);
+    static_cast<void>(value);
+}
+#endif
 
 template <typename Value>
 void read_field(EventFields& fields, std::string_view name, std::optional<Value>& value) {

@@ -126,7 +126,7 @@ gui_forms::GalleryCommand
 
       The shared :cpp:class:`Command <gui_forms::Command>`.
 
-   .. cpp:function:: const std::string& stable_id() const noexcept
+   .. cpp:function:: const std::string& stable_id() const& noexcept
 
       The command's stable ID.
 
@@ -201,3 +201,65 @@ gui_forms::GalleryCommand
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 11 supported, 0 deferred, 0 excluded, 1 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``command``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``previewing``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``stable_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``state``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``value``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``preview_cancelled``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``preview_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cancel_preview``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``commit``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``commit_routed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``preview``
+     - supported

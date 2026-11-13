@@ -5,8 +5,27 @@
 // while firing, a throwing action), the one-condition spellings and their
 // one action per interaction (FD-6 Q2 and Q3).
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/component/component/component.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/event/event.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/events/mouse_events/mouse_events.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/rules/rule_set/rule_set.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/value/value.hpp"
+#include "gui_forms/window/window.hpp"
+#include "support/routed_input_probe.hpp"
 
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -70,10 +89,10 @@ void throw_now(Journal& journal, const RuleFiring& firing) {
 }
 
 // A control that counts the keys the control route gives it.
-class KeyProbe final : public Control {
+class KeyProbe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit KeyProbe(StableId id) : Control(std::move(id)) {}
-    void on_key(KeyEvent& event) override {
+    explicit KeyProbe(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {}
+    void routed_key(KeyEvent& event) override {
         ++keys;
         event.handled = true;
     }
@@ -511,8 +530,9 @@ void control_events_and_control_conditions() {
             "a mouse_click rule is armed");
     click_at(window, {50.0, 65.0});
     require(journal.entries.size() == 3U && journal.triggers[0] == RuleTriggerKind::mouse_down &&
-                journal.triggers[1] == RuleTriggerKind::mouse_click && journal.triggers[2] == RuleTriggerKind::mouse_up,
-            "the mouse rules fire in WinForms' order, with hover and press conditions holding on the press");
+                journal.triggers[1] == RuleTriggerKind::mouse_up && journal.triggers[2] == RuleTriggerKind::mouse_click,
+            "the mouse rules fire in the raisers' order (MouseUp at the release's target phase, then MouseClick), "
+            "with hover and press conditions holding on the press");
     require(journal.last_clicks == 1U, "the mouse payload carries the host's click count");
 
     // double_click on a control with standard_double_click (a panel).
@@ -650,7 +670,7 @@ void mouse_rules_run_before_subscribers() {
     require(journal.entries.size() == 1U && journal.subscriber_calls_at_fire == 0U,
             "the mouse_down rule fires before the control's MouseDown subscribers");
     require(journal.subscriber_calls == 3U && journal.activations == 1U,
-            "a rule that does not consume leaves MouseDown, Click, MouseUp and the activation to the control");
+            "a rule that does not consume leaves MouseDown, MouseUp, Click and the activation to the control");
 
     // A consuming Click rule: no Click subscriber and no activation; MouseUp
     // is its own event and still reaches its subscriber.
@@ -665,15 +685,22 @@ void mouse_rules_run_before_subscribers() {
     require(journal.subscriber_calls == 5U && journal.activations == 1U,
             "a consumed Click reaches neither its subscribers nor the activation; MouseDown and MouseUp do");
 
-    // A consuming MouseUp rule keeps MouseUp from its subscriber.
+    // A consuming MouseUp rule keeps MouseUp from its subscriber. Consuming
+    // is not suppress_click: the clicks still follow (input order rule 3),
+    // after the MouseUp (rules 1 and 2), so the click rule fires last.
     Rule up{};
     up.trigger = trigger::mouse_up(ok);
     up.actions.push_back(action(journal, &record_b));
     up.consume = true;
     require(rules.add(up).refusal == RuleRefusal::none, "a consuming mouse_up rule is armed");
     click_at(window, {50.0, 65.0});
-    require(journal.triggers.back() == RuleTriggerKind::mouse_up && journal.subscriber_calls == 6U,
-            "a consumed MouseUp reaches no subscriber");
+    const std::size_t fired = journal.triggers.size();
+    require(fired >= 3U && journal.triggers[fired - 3U] == RuleTriggerKind::mouse_down &&
+                journal.triggers[fired - 2U] == RuleTriggerKind::mouse_up &&
+                journal.triggers[fired - 1U] == RuleTriggerKind::click,
+            "rules 1 and 2: the mouse_up rule fires after mouse_down and before the click rule");
+    require(journal.subscriber_calls == 6U,
+            "a consumed MouseUp reaches no subscriber; only MouseDown's subscriber runs (Click stays consumed)");
     require(rules.statistics().consumed == 3U, "each consumption is counted (Click twice, MouseUp once)");
 }
 

@@ -27,6 +27,10 @@
 #   MODEL        the model a derived class binds (`a::Type`); implies DERIVED.
 #                Required when the document binds.
 #   MODEL_HEADER the header declaring MODEL, included by the generated one.
+#   COMPILER     the form compiler target that generates the header; default
+#                GUIForms::form_compiler. The GUI.Forms build passes
+#                gui_forms_form_compiler_lab for the Gallery's pages, which
+#                name the lab and demonstration controls (audit F9).
 # The header is regenerated when the document or the compiler changes; the
 # compiler writes it only when its bytes change.
 
@@ -35,15 +39,20 @@ if(COMMAND gui_forms_add_form)
 endif()
 
 function(gui_forms_add_form target document)
-    cmake_parse_arguments(PARSE_ARGV 2 FORM "DERIVED" "CLASS;NAMESPACE;OUTPUT;MODEL;MODEL_HEADER" "TYPES")
+    cmake_parse_arguments(PARSE_ARGV 2 FORM "DERIVED" "CLASS;NAMESPACE;OUTPUT;MODEL;MODEL_HEADER;COMPILER" "TYPES")
     if(FORM_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR "gui_forms_add_form: unknown arguments ${FORM_UNPARSED_ARGUMENTS}")
     endif()
     if(NOT FORM_CLASS)
         message(FATAL_ERROR "gui_forms_add_form: CLASS is required")
     endif()
-    if(NOT TARGET GUIForms::form_compiler)
-        message(FATAL_ERROR "gui_forms_add_form: GUIForms::form_compiler is not available "
+    if(FORM_COMPILER)
+        set(compiler "${FORM_COMPILER}")
+    else()
+        set(compiler GUIForms::form_compiler)
+    endif()
+    if(NOT TARGET ${compiler})
+        message(FATAL_ERROR "gui_forms_add_form: ${compiler} is not available "
                             "(build or install GUI.Forms with GUI_FORMS_BUILD_FORM_COMPILER)")
     endif()
     get_filename_component(source "${document}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -73,8 +82,8 @@ function(gui_forms_add_form target document)
     add_custom_command(
         OUTPUT "${output}"
         COMMAND "${CMAKE_COMMAND}" -E make_directory "${output_directory}"
-        COMMAND GUIForms::form_compiler ${arguments}
-        DEPENDS "${source}" "$<TARGET_FILE:GUIForms::form_compiler>"
+        COMMAND ${compiler} ${arguments}
+        DEPENDS "${source}" "$<TARGET_FILE:${compiler}>"
         COMMENT "Generating ${stem}_form.hpp from ${document}"
         VERBATIM)
     target_sources(${target} PRIVATE "${output}")

@@ -471,12 +471,17 @@ DragNodeIndex DragPlanBuilder::fallback(DragNodeIndex primary, DragNodeIndex sec
 }
 
 DragNodeIndex DragPlanBuilder::snap(DragNodeIndex child, double radius, DragChain chain) {
+    const DragNodeIndex made = snap(child, radius, chain, radius);
+    return made;
+}
+
+DragNodeIndex DragPlanBuilder::snap(DragNodeIndex child, double radius, DragChain chain, double release_radius) {
     if (!admit_operator()) return no_drag_node;
     if (!valid_child(child)) {
         refuse(DragPlanRefusal::bad_child);
         return no_drag_node;
     }
-    if (!(radius >= 0.0)) {
+    if (!(radius >= 0.0) || !(release_radius >= radius) || !std::isfinite(release_radius)) {
         refuse(DragPlanRefusal::bad_value);
         return no_drag_node;
     }
@@ -484,6 +489,7 @@ DragNodeIndex DragPlanBuilder::snap(DragNodeIndex child, double radius, DragChai
     record.kind = DragOperatorKind::snap;
     record.primary = child;
     record.distance = radius;
+    record.release = release_radius;
     record.chain = chain;
     const DragNodeIndex made = append(record);
     return made;
@@ -801,7 +807,36 @@ DragEngine::Evaluation DragEngine::evaluate(DragNodeIndex node, Point pointer, M
         return result;
     }
     case DragOperatorKind::snap: {
-        const Evaluation child = evaluate(record.primary, pointer, modifiers, sticky);
+        Evaluation child = evaluate(record.primary, pointer, modifiers, sticky);
+        // Hysteresis: the candidate this snap holds stays within the release
+        // radius, even where the child now prefers another one.
+        const bool holding = sticky && record.release > record.distance &&
+                             selection_.kind == DragSelectionKind::candidate &&
+                             selection_.landing < landings_.size() && selection_.decided_by == record.primary;
+        if (holding) {
+            const bool same = child.selection.kind == DragSelectionKind::candidate &&
+                              child.selection.landing == selection_.landing;
+            const DragOperator& inner = operators_[record.primary.value];
+            if (!same && inner.kind == DragOperatorKind::nearest) {
+                const DragLanding& held = landings_[selection_.landing];
+                const double distance = distance_to(held, adjusted(pointer), inner.metric);
+                const bool closer = child.selection.kind == DragSelectionKind::candidate &&
+                                    child.selection.distance <= record.distance;
+                if (!closer && distance <= record.release) {
+                    child = Evaluation{};
+                    child.selection = selection_;
+                    child.selection.distance = distance;
+                }
+            }
+            const bool held = child.selection.kind == DragSelectionKind::candidate &&
+                              child.selection.landing == selection_.landing &&
+                              child.selection.distance <= record.release;
+            if (held) {
+                result = child;
+                result.chain = record.chain == DragChain::on && !landings_[child.selection.landing].home;
+                return result;
+            }
+        }
         if (child.selection.kind != DragSelectionKind::candidate || child.selection.distance > record.distance) {
             return result;
         }
@@ -1503,15 +1538,30 @@ void DragEngine::end(DragEnd ending) {
     release_capture();
     record(DragTraceEvent::end, ending);
     if (alive) {
-        if (commits) (*client_).rewrite_drag_outcome(outcome);
+        DragEnd reported = ending;
+        if (commits) {
+            (*client_).rewrite_drag_outcome(outcome);
+            // A rewrite keeps a committing end or turns it into rejected (the
+            // candidate went away); any other end it writes is rejected too.
+            const bool still_commits = outcome.end == DragEnd::dropped || outcome.end == DragEnd::free;
+            if (!still_commits) {
+                outcome.end = DragEnd::rejected;
+                outcome.selection = DragSelection{};
+                selection_ = DragSelection{};
+                --statistics_.ends[end_index];
+                ++statistics_.ends[static_cast<std::size_t>(DragEnd::rejected)];
+            }
+            reported = outcome.end;
+        }
+        const bool reported_commits = reported == DragEnd::dropped || reported == DragEnd::free;
         if (serial == serial_) (*client_).end_drag(outcome);
         if (serial == serial_ && client_alive()) {
             DragFrame frame = frame_now();
-            frame.end = ending;
+            frame.end = reported;
             announce(frame);
         }
-        if (serial == serial_ && commits) raise(&DragInteractionEvents::dropped, ending);
-        if (serial == serial_) raise(&DragInteractionEvents::ended, ending);
+        if (serial == serial_ && reported_commits) raise(&DragInteractionEvents::dropped, reported);
+        if (serial == serial_) raise(&DragInteractionEvents::ended, reported);
     }
     if (serial == serial_ && phase_ == DragPhase::idle) reset_session();
     ending_ = false;
@@ -1525,6 +1575,54 @@ void DragEngine::cancel(DragEnd ending) {
     }
     if (phase_ != DragPhase::dragging && phase_ != DragPhase::planning) return;
     end(ending);
+}
+
+bool DragEngine::replan(const DragClient& client, Point moved) {
+    if (phase_ != DragPhase::dragging || mode_ != DragInputMode::pointer || client_ != &client) return false;
+    if (!finite_point(moved)) return false;
+    const std::size_t landings_capacity = landings_.capacity();
+    const std::size_t flags_capacity = reachable_.capacity();
+    const std::size_t trace_capacity = trace_.capacity();
+    const std::uint64_t serial = serial_;
+    press_ = Point{press_.x + moved.x, press_.y + moved.y};
+    source_ = Rect{source_.x + moved.x, source_.y + moved.y, source_.width, source_.height};
+    // plan() sets the selection to the new plan's; the one shown before is
+    // put back so that select() previews a change against what the client
+    // last saw.
+    const DragSelection shown = selection_;
+    ++statistics_.replans;
+    if (!plan()) return false;
+    if (!still(serial)) return false;
+    selection_ = shown;
+    const Evaluation evaluation = evaluate(root_node_, pointer_, modifiers_, false);
+    ++statistics_.evaluations;
+    if (evaluation.tied) ++statistics_.ties;
+    select(evaluation.selection, DragTraceEvent::move);
+    note_growth(landings_capacity, flags_capacity, trace_capacity);
+    const bool running = still(serial) && phase_ == DragPhase::dragging;
+    return running;
+}
+
+bool DragEngine::withdraw_keyboard_stop(const DragClient& client, DragCandidateToken token) noexcept {
+    if (phase_ != DragPhase::dragging || mode_ != DragInputMode::keyboard || client_ != &client) return false;
+    bool removed = false;
+    const std::size_t count = std::min(landings_.size(), reachable_.size());
+    for (std::size_t index = 0U; index < count; ++index) {
+        if (!(landings_[index].token == token) || reachable_[index] == 0U) continue;
+        reachable_[index] = 0U;
+        removed = true;
+    }
+    return removed;
+}
+
+bool DragEngine::set_announcement(const DragClient& client, std::string_view text) {
+    if (phase_ == DragPhase::idle || client_ != &client) return false;
+    const DragAnnouncement before = announcement_;
+    announcement_.assign(text);
+    if (announcement_.view() == before.view()) return true;
+    const Control::Ptr root = (*root_).root();
+    if (root) (*root).invalidate(Dirty::semantics);
+    return true;
 }
 
 void DragEngine::note_capture_lost(const Control& control) {

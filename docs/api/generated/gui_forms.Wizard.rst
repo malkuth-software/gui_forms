@@ -9,7 +9,7 @@ gui_forms::Wizard
 
 .. cpp:class:: Wizard final : public Control, public WizardCapabilities<Wizard>
 
-   ``#include <gui_forms/controls/wizard/wizard.hpp>``
+   ``#include <gui_forms/controls/wizard.hpp>``
 
    Guided sequence of WizardPage children shown one at a time, with the page's title and description, a step indicator, Back, Next or Finish and Cancel, and a cancellable page_changing.
 
@@ -215,3 +215,117 @@ gui_forms::Wizard
    .. cpp:member:: constexpr std::size_t wizard_property_count
 
       Wizard's property table: Control's entries, then its own. Default: ``Control::control_property_count + 6U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 11 supported, 0 deferred, 0 excluded, 14 unclassified; 25 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``back_button``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``back_text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``can_go_back``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``can_go_next``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``cancel_button``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``cancel_text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``current_page``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``finish_text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``next_button``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``next_text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``page_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``pages``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``show_step_indicator``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``step_indicator``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``cancelled``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``finished``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``page_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``page_changing``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cancel``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``go_back``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``go_next``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``go_to``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``page``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``wizard_property_entries``
+     - unclassified (untested)

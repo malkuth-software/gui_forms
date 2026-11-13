@@ -190,3 +190,77 @@ gui_forms::BindingContext
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``BindingContext``. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 7 unclassified; 2 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``BindingContext``
+     - ``BindingContext``
+     - supported
+   * - property
+     - ``IsReadOnly``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``this[]``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CollectionChanged``
+     - ``collection_changed``
+     - supported
+   * - method
+     - ``Add``
+     - ``add``
+     - supported
+   * - method
+     - ``AddCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Clear``
+     - ``clear``
+     - supported
+   * - method
+     - ``ClearCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Contains``
+     - ``contains``
+     - supported
+   * - method
+     - ``OnCollectionChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``Remove``
+     - ``remove``
+     - supported
+   * - method
+     - ``RemoveCore``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpdateBinding``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``size``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``manager``
+     - supported

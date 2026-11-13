@@ -9,7 +9,7 @@
 #include "../windows/abi_window_handle.hpp"
 
 #include "gui_forms/components/context_menu/context_menu.hpp"
-#include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
 
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
@@ -78,7 +78,7 @@ void collect_disposal_sources(const Component::Ptr& component, std::vector<const
     while (!pending.empty()) {
         const Control* control = pending.back();
         pending.pop_back();
-        const std::span<const Control::Ptr> children = (*control).children();
+        const Control::ChildView children = (*control).children();
         std::size_t index = 0U;
         for (index = 0U; index < children.size(); ++index) {
             const Control* child = children[index].get();
@@ -320,6 +320,9 @@ gf_status GF_CALL objects_insert_child(gf_object parent, gf_object child, std::u
         // The core counts from the top, as WinForms does: position index
         // among count + 1 children is top index count - index. One core
         // mutation, so a failure leaves the parent's children as they were.
+        // The core refuses a tree nested past maximum_control_tree_depth
+        // with ControlTreeDepthError, a std::length_error, which
+        // fail_with_current_exception reports as GF_STATUS_LIMIT_EXCEEDED.
         const std::size_t from_top = static_cast<std::size_t>(count - index);
         (*parent_control).insert_child(child_control, from_top);
         return GF_STATUS_OK;
@@ -385,7 +388,7 @@ gf_status GF_CALL objects_child_at(gf_object parent, std::uint64_t index, gf_obj
         if (entered != GF_STATUS_OK) {
             return entered;
         }
-        const std::span<const Control::Ptr> children = (*control).children();
+        const Control::ChildView children = (*control).children();
         if (index >= children.size()) {
             return fail(GF_STATUS_INVALID_ARGUMENT, child_at_slot, "the index is past the last child");
         }

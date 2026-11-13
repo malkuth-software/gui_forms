@@ -1,4 +1,4 @@
-#include "gui_forms/controls/help/help_print/help_print.hpp"
+#include "gui_forms/controls/help_print.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
@@ -40,7 +40,7 @@ void paint_sheet_text(Painter& painter, const HelpBook& book, std::string_view t
     part.family = ControlVisualRole::tool_tip;
     part.role = PartRole::label;
     part.font = book.text_font(FontSpec{FontRole::control, header_text_size, 400, false});
-    part.text = text;
+    part.text = lend_paint_text(text);
     part.tone = PartTextTone::secondary;
     part.key = PartKey{std::string(key), {}, {}};
     paint_text_part_at(painter, book, part, baseline, width);

@@ -1,4 +1,10 @@
 #include "support.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/dock_site.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/docking/types/dock_types.hpp"
 
 namespace gallery_pages_tests {
 

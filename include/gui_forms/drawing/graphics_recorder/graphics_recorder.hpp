@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/bitmap/bitmap.hpp"
 #include "gui_forms/drawing/brush/brush.hpp"
 #include "gui_forms/drawing/font/font.hpp"
@@ -17,7 +18,7 @@
 
 namespace gui_drawing {
 
-struct GraphicsState final {
+struct GUI_FORMS_API GraphicsState final {
     Matrix transform;
     std::optional<RectF> clip;
     SmoothingMode smoothing{SmoothingMode::default_mode};
@@ -27,7 +28,7 @@ struct GraphicsState final {
     CompositingQuality compositing_quality{CompositingQuality::default_mode};
 };
 
-struct GraphicsStateToken final {
+struct GUI_FORMS_API GraphicsStateToken final {
     std::uint64_t value{};
     friend constexpr bool operator==(const GraphicsStateToken& left,
                                      const GraphicsStateToken& right) noexcept {
@@ -63,7 +64,7 @@ enum class CommandKind : std::uint8_t {
     fill_proportion,
 };
 
-struct DrawingCommand final {
+struct GUI_FORMS_API DrawingCommand final {
     CommandKind kind{};
     GraphicsState state;
     GraphicsStateToken token;
@@ -93,7 +94,7 @@ struct DrawingCommand final {
     FillDirection direction{FillDirection::left_to_right};
 };
 
-class TextMetricsProvider {
+class GUI_FORMS_API TextMetricsProvider {
 public:
     virtual ~TextMetricsProvider() = default;
     [[nodiscard]] virtual SizeF measure(std::string_view utf8,
@@ -101,7 +102,7 @@ public:
                                         const StringFormatSnapshot& format) const = 0;
 };
 
-class GraphicsRecorder final : public DrawingObject {
+class GUI_FORMS_API GraphicsRecorder final : public DrawingObject {
 public:
     static constexpr std::size_t maximum_commands = 1'000'000;
     static constexpr std::size_t maximum_state_depth = 256;

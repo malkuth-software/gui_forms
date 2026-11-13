@@ -16,11 +16,13 @@
 # Each program is still its own process with its own main, so the tests
 # stay independent. A program that links anything else (another library,
 # a host, Skia, a system library) keeps its static libraries, so that no
-# program holds two copies of a library's state. The runtime exports every
-# symbol (on MinGW --export-all-symbols; ELF and Mach-O export by default),
-# as the Application library does for its consumers, so the programs reach
-# internal functions as before. On Windows the runtime lands beside the
-# programs, which find it first.
+# program holds two copies of a library's state. Unlike the Application
+# library, which exports only the declarations marked GUI_FORMS_API through
+# its export list (CMakeLists.txt, gui_forms_export_list), the runtime
+# exports everything the archives define with default visibility (and, on
+# MinGW, everything: --export-all-symbols, which CP29 handoff section 2.2
+# leaves to the test runtime), because the tests call private functions.
+# On Windows the runtime lands beside the programs, which find it first.
 #
 # GUI_FORMS_TEST_RUNTIME (default ON) turns it off: every program then links
 # its static libraries as before. It needs CMake 3.27 ($<COMPILE_ONLY>); an
@@ -136,6 +138,11 @@ function(gui_forms_link_tests_to_runtime)
         target_link_libraries(gui_forms_test_runtime PRIVATE
             "-Wl,--whole-archive" ${runtime_libraries} "-Wl,--no-whole-archive")
     endif()
+    # The programs import the marked declarations (dllimport on Windows);
+    # MinGW exports the rest as well, which the programs reach through
+    # automatic import.
+    target_compile_definitions(gui_forms_test_runtime PRIVATE GUI_FORMS_API_BUILD=1
+                               INTERFACE GUI_FORMS_API_IMPORT=1)
     if(MINGW)
         target_link_options(gui_forms_test_runtime PRIVATE "-Wl,--export-all-symbols")
     endif()

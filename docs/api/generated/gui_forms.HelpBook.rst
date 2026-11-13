@@ -9,7 +9,7 @@ gui_forms::HelpBook
 
 .. cpp:class:: HelpBook final : public ScrollableControl
 
-   ``#include <gui_forms/controls/help/help_book/help_book.hpp>``
+   ``#include <gui_forms/controls/help_book.hpp>``
 
    Paper pane showing one help page: title, markdown body with callouts and collapsible sections, topic, popup and external links, keyboard link stops, and a print layout.
 
@@ -205,10 +205,6 @@ gui_forms::HelpBook
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -224,6 +220,30 @@ gui_forms::HelpBook
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: bool paints_scrolled_content() const noexcept override
 
@@ -244,3 +264,121 @@ gui_forms::HelpBook
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 17 unclassified; 26 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``close_visible``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``content_height``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_stop``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``labels``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``page``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``close_requested``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``link_activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``section_toggled``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``activate_link``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``block_top``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``layout_for_print``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``link_bounds``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``mark_visited``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``move_focus``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``paint_print_band``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``print_break_positions``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``scroll_to_anchor``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``section_open``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_highlight``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_images``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_section_open``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_visited``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show_page``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show_record``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``topic_bar_bounds``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``visited``
+     - unclassified (untested)

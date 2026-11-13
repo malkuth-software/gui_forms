@@ -9,7 +9,7 @@ gui_forms::ObjectView
 
 .. cpp:class:: ObjectView final : public Panel, public ObjectViewCapabilities<ObjectView>
 
-   ``#include <gui_forms/controls/panel/object_view/object_view.hpp>``
+   ``#include <gui_forms/controls/object_view.hpp>``
 
    A view of many items, shown as a grid of icons or as rows with details columns.
 
@@ -23,8 +23,7 @@ gui_forms::ObjectView
    keyboard, activates an item by double-clicking it or pressing Enter, and
    asks for a context menu the platform's way (the host's context request). Only the items in view
    are painted and published, and no child control is created per item. Use a
-   :cpp:class:`TreeView <gui_forms::TreeView>` for a hierarchy, a :cpp:class:`ListBox <gui_forms::ListBox>` for plain text rows, and a
-   :cpp:class:`CorrespondenceView <gui_forms::CorrespondenceView>` for records that expand to show more detail.
+   :cpp:class:`TreeView <gui_forms::TreeView>` for a hierarchy and a :cpp:class:`ListBox <gui_forms::ListBox>` for plain text rows.
 
    *Status:* stable. *Windows Forms counterpart:* ``ListView``.
 
@@ -81,7 +80,7 @@ gui_forms::ObjectView
          reorders the items. A column that does not exist or is not sortable, or
          an invalid direction, throws ``std::invalid_argument``.
 
-      **items** : ``std::span<const ObjectViewItem>``
+      **items** : ``BorrowedSpan<ObjectViewItem>``
          The items in display order. Empty by default. :cpp:func:`set_items <gui_forms::ObjectView::set_items>` replaces the
          items and keeps the current :cpp:func:`details_columns <gui_forms::ObjectView::details_columns>`, so every item needs one
          cell per column. Item IDs must be unique and follow the
@@ -202,9 +201,6 @@ gui_forms::ObjectView
 
       :cpp:class:`TreeView <gui_forms::TreeView>`
          A hierarchy of items, such as the folders above these objects.
-
-      :cpp:class:`CorrespondenceView <gui_forms::CorrespondenceView>`
-         Records that expand to show matched evidence.
 
       :cpp:class:`ListBox <gui_forms::ListBox>`
          A plain list of text rows.
@@ -380,7 +376,7 @@ gui_forms::ObjectView
       reorders the items. A column that does not exist or is not sortable, or
       an invalid direction, throws ``std::invalid_argument``.
 
-   .. cpp:function:: std::span<const ObjectViewItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<ObjectViewItem> items() const& noexcept
 
       The items in display order. Empty by default. :cpp:func:`set_items <gui_forms::ObjectView::set_items>` replaces the
       items and keeps the current :cpp:func:`details_columns <gui_forms::ObjectView::details_columns>`, so every item needs one
@@ -398,7 +394,7 @@ gui_forms::ObjectView
 
       Sets :cpp:func:`items <gui_forms::ObjectView::items>`; see the property's description above.
 
-   .. cpp:function:: std::span<const ObjectDetailsColumn> details_columns() const noexcept
+   .. cpp:function:: std::span<const ObjectDetailsColumn> details_columns() const& noexcept
 
       The columns of the details mode, set together with the items by
       :cpp:func:`set_details_model <gui_forms::ObjectView::set_details_model>`. Empty by default; without columns, a details row
@@ -419,7 +415,7 @@ gui_forms::ObjectView
       Counts of rows, cells and text preparations in the last paint of the
       details columns, for diagnostics.
 
-   .. cpp:function:: std::span<const std::string> selected_ids() const noexcept
+   .. cpp:function:: std::span<const std::string> selected_ids() const& noexcept
 
       Every selected ID, in the order of :cpp:func:`items <gui_forms::ObjectView::items>`. :cpp:func:`set_selected_ids <gui_forms::ObjectView::set_selected_ids>` replaces
       the selection; its ``primary_id`` must be one of the IDs or empty, in
@@ -433,12 +429,12 @@ gui_forms::ObjectView
 
       Sets :cpp:func:`selected_ids <gui_forms::ObjectView::selected_ids>`; see the property's description above.
 
-   .. cpp:function:: std::string_view selection_anchor_id() const noexcept
+   .. cpp:function:: std::string_view selection_anchor_id() const& noexcept
 
       The item a Shift range starts from. Plain and toggling selections move
       it to the item selected.
 
-   .. cpp:function:: std::string_view focused_id() const noexcept
+   .. cpp:function:: std::string_view focused_id() const& noexcept
 
       The item with the keyboard focus rectangle, from which the arrow keys
       move. A click or key that selects an item focuses it, and Ctrl or
@@ -564,14 +560,6 @@ gui_forms::ObjectView
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-      Handles the pointer input described under Notes. The window calls it.
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
-      Handles the keyboard input described under Notes. The window calls it.
-
    .. cpp:function:: void on_context_menu_requested(ContextMenuRequest& request) override
 
    .. cpp:function:: void on_text_input(TextInputEvent& event) override
@@ -612,6 +600,40 @@ gui_forms::ObjectView
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
 
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+      Handles the pointer input described under Notes, with the other mouse
+      raisers the class overrides, then raises the event. The window calls it.
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Raises the event, then handles a key its subscribers left unhandled as
+      described under Notes. The window calls it.
+
+   .. cpp:function:: void on_key_up(KeyEventArgs& arguments) override
+
+      *Protected.*
+
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
@@ -641,3 +663,533 @@ gui_forms::ObjectView
    .. cpp:member:: constexpr std::size_t maximum_details_text_bytes
 
       Provisional development admission guard, not measured product capacity. Default: ``64U * 1024U * 1024U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supported, 0 deferred, 2 excluded, 107 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ListView``
+     - ``ObjectView``
+     - supported
+   * - property
+     - ``Activation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Alignment``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowColumnReorder``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoArrange``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BackgroundImageTiled``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BorderStyle``
+     - ``border_style``
+     - unclassified (untested)
+   * - property
+     - ``CheckBoxes``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CheckedIndices``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CheckedItems``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Columns``
+     - on ``ListView``
+     - unclassified (carried)
+   * - property
+     - ``FocusedItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FullRowSelect``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GridLines``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GroupImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Groups``
+     - on ``ListView``
+     - unclassified (carried)
+   * - property
+     - ``HeaderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HideSelection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HotTracking``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HoverSelection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``InsertionMark``
+     - on ``ListView``
+     - unclassified (carried)
+   * - property
+     - ``Items``
+     - ``items``
+     - supported
+   * - property
+     - ``LabelEdit``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LabelWrap``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LargeImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ListViewItemSorter``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MultiSelect``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``OwnerDraw``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``RightToLeftLayout``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Scrollable``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedIndices``
+     - on ``ListView``
+     - unclassified (carried)
+   * - property
+     - ``SelectedItems``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowGroups``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowItemToolTips``
+     - none
+     - excluded: Data items have no tooltips; the list reveals cut-off text in place (owner, 2026-10-28).
+   * - property
+     - ``SmallImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Sorting``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``StateImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TileSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TopItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseCompatibleStateImageBehavior``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``View``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``VirtualListSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``VirtualMode``
+     - on ``ListView``
+     - unclassified (carried)
+   * - event
+     - ``AfterLabelEdit``
+     - on ``ListView``
+     - unclassified (carried)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BeforeLabelEdit``
+     - on ``ListView``
+     - unclassified (carried)
+   * - event
+     - ``CacheVirtualItems``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnClick``
+     - on ``ListView``
+     - unclassified (carried)
+   * - event
+     - ``ColumnReordered``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ColumnWidthChanged``
+     - on ``ListView``
+     - unclassified (carried)
+   * - event
+     - ``ColumnWidthChanging``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DrawColumnHeader``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DrawItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DrawSubItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``GroupCollapsedStateChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``GroupTaskLinkClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemActivate``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemCheck``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemChecked``
+     - on ``ListView``
+     - unclassified (carried)
+   * - event
+     - ``ItemDrag``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemMouseHover``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemSelectionChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RetrieveVirtualItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RightToLeftLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SearchForVirtualItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SelectedIndexChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``VirtualItemsSelectionRangeChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ArrangeIcons``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AutoResizeColumn``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AutoResizeColumns``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``BeginUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Clear``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``EndUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``EnsureVisible``
+     - on ``ListView``
+     - unclassified (carried)
+   * - method
+     - ``FindItemWithText``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``FindNearestItem``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemAt``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemRect``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``HitTest``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnAfterLabelEdit``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnBeforeLabelEdit``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnCacheVirtualItems``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnReordered``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnWidthChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnColumnWidthChanging``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDrawColumnHeader``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDrawItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDrawSubItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnGroupCollapsedStateChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnGroupTaskLinkClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemActivate``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemCheck``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemChecked``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemDrag``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemMouseHover``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemSelectionChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRetrieveVirtualItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRightToLeftLayoutChanged``
+     - none
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
+   * - method
+     - ``OnSearchForVirtualItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnSelectedIndexChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnVirtualItemsSelectionRangeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``RealizeProperties``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RedrawItems``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Sort``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``UpdateExtendedStyles``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``details_columns``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``details_paint_work``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``horizontal_offset``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_columns``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selected_ids``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selection_anchor_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``top_row``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``context_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selection_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``sort_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_selection``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``item_id_at``
+     - supported
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``select_all``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_details_column_width``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_details_model``
+     - supported

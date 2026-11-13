@@ -1,4 +1,4 @@
-#include "gui_forms/controls/raster_canvas/raster_canvas.hpp"
+#include "gui_forms/controls/raster_canvas.hpp"
 
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"

@@ -2,6 +2,7 @@
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "../../core/surface_root/access/surface_lifetime_access.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
@@ -11,7 +12,7 @@
 
 namespace gui_forms {
 
-ToolTip::ToolTip(Window& window) : window_lifetime_(window.lifetime_) {
+ToolTip::ToolTip(Window& window) : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)) {
     window.verify_access("ToolTip construction");
     window_subscription_ = window.tool_tip_visibility_changed().subscribe(
         *this, Delegate<const ToolTipEvent&>::bind<ToolTip, &ToolTip::window_tool_tip_changed>(*this));

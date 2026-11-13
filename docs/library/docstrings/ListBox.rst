@@ -43,9 +43,6 @@ selection_mode : default ``ListSelectionMode::one``
     the first selected row), and raises `selection_changed`.
 selected_indices
     The indices of all selected rows, in ascending order.
-selected_index
-    The lowest selected index, or no value when nothing is selected. In
-    `one` mode this is the selected row.
 top_index : default ``0``
     The index of the first row shown at the top of the list. The mouse
     wheel moves it by three rows, and selecting a row scrolls it into view.
@@ -99,10 +96,12 @@ on_paint
 arrange
     Lays out the list, scrolls the active row into view and repaints the
     rows in view that edits of `items` reached since the last layout.
-on_pointer
-    Handles the pointer input described under Notes. The window calls it.
-on_key
-    Handles the keyboard input described under Notes. The window calls it.
+on_mouse_down
+    Handles the pointer input described under Notes, with the other mouse
+    raisers the class overrides, then raises the event. The window calls it.
+on_key_down
+    Raises the event, then handles a key its subscribers left unhandled as
+    described under Notes. The window calls it.
 semantic_descriptor
     Publishes the role `list`, the accessible name and description, and as
     value the text of the lowest selected row.

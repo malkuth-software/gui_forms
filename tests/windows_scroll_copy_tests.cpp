@@ -7,7 +7,7 @@
 // damage the host still holds moves with the second copy).
 // Exercises the Windows host in the same translation unit.
 #include "gui_forms/basic_controls.hpp"
-#include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/window.hpp"
 #include "../src/host/windows/application/windows_host.cpp"
 

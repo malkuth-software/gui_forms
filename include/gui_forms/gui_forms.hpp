@@ -1,10 +1,12 @@
 #pragma once
 
+#include "gui_forms/allocation.hpp"
 #include "gui_forms/animation.hpp"
 #include "gui_forms/background_worker/background_worker.hpp"
 #include "gui_forms/binding.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/canvas.hpp"
+#include "gui_forms/capture.hpp"
 #include "gui_forms/collection_controls.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/composition_controls.hpp"
@@ -26,6 +28,7 @@
 #include "gui_forms/display.hpp"
 #include "gui_forms/dispatcher.hpp"
 #include "gui_forms/docking.hpp"
+#include "gui_forms/drag.hpp"
 #include "gui_forms/drawing.hpp"
 #include "gui_forms/engine.hpp"
 #include "gui_forms/event.hpp"
@@ -48,6 +51,7 @@
 #include "gui_forms/metrics.hpp"
 #include "gui_forms/pages.hpp"
 #include "gui_forms/resources.hpp"
+#include "gui_forms/scene.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/scrolling.hpp"
 #include "gui_forms/semantics.hpp"
@@ -55,6 +59,9 @@
 #include "gui_forms/surface_material.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/text_shaping.hpp"
+// Not in text.hpp: it uses text_shaping.hpp's TextDirection, and
+// text_shaping.hpp includes text.hpp.
+#include "gui_forms/text/paragraph_layout/paragraph_layout.hpp"
 #include "gui_forms/timer.hpp"
 #include "gui_forms/tooltip.hpp"
 #include "gui_forms/typography.hpp"

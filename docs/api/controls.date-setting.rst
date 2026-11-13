@@ -104,7 +104,7 @@ Related types
 
 .. cpp:struct:: CalendarDateRange final
 
-   ``#include <gui_forms/controls/panel/month_calendar/calendar_values/calendar_values.hpp>``
+   ``#include <gui_forms/controls/calendar_values.hpp>``
 
    A run of whole days, first to last inclusive; the time of day is zero.
 
@@ -116,7 +116,7 @@ Related types
 
 .. cpp:struct:: CalendarDimensions final
 
-   ``#include <gui_forms/controls/panel/month_calendar/calendar_values/calendar_values.hpp>``
+   ``#include <gui_forms/controls/calendar_values.hpp>``
 
    How many months the calendar shows: columns by rows, at most twelve.
 
@@ -132,7 +132,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalendarDimensionsCapability
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+   ``#include <gui_forms/controls/month_calendar_capabilities.hpp>``
 
    The months shown, as columns by rows; one to twelve months in all.
 
@@ -147,7 +147,7 @@ Related types
 
 .. cpp:struct:: DateTimeFormatProvider final
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_format_provider/date_time_format_provider.hpp>``
+   ``#include <gui_forms/controls/date_time_format_provider.hpp>``
 
    DateTimeFormatProvider is an immutable caller-substitutable vocabulary and pattern bundle for DateTimePicker formatting. It separates locale-shaped presentation from civil-value authority without introducing a platform locale runtime dependency.
 
@@ -190,7 +190,7 @@ Related types
 
 .. cpp:struct:: DateTimePicker::Parts final
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker.hpp>``
+   ``#include <gui_forms/controls/date_time_picker.hpp>``
 
    Stage T1 anatomy, as dot members.
 
@@ -218,7 +218,7 @@ Related types
 
 .. cpp:struct:: DateTimePicker::States final
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker.hpp>``
+   ``#include <gui_forms/controls/date_time_picker.hpp>``
 
    .. cpp:member:: bool normal
 
@@ -244,7 +244,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerCapabilities : public DateTimePickerValueCapability<Declaring>, public DateTimePickerMinimumCapability<Declaring>, public DateTimePickerMaximumCapability<Declaring>, public DateTimePickerFormatPropertyCapability<Declaring>, public DateTimePickerCustomFormatCapability<Declaring>, public DateTimePickerFormatProviderCapability<Declaring>, public DateTimePickerShowCheckBoxCapability<Declaring>, public DateTimePickerCheckedCapability<Declaring>, public DateTimePickerShowUpDownCapability<Declaring>, public DateTimePickerDroppedDownCapability<Declaring>, public DateTimePickerDropDownAlignmentCapability<Declaring>, public FontCapability<Declaring>, public DateTimePickerStyleCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    Every DateTimePicker capability, in the order the declaring class takes them.
 
@@ -312,7 +312,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerCheckedCapability
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    Whether the value is set, shown by the check box (Checked). A change raises checked_changed (Windows Forms raises ValueChanged).
 
@@ -329,7 +329,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerCustomFormatCapability
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    The pattern used when format is custom (CustomFormat). Invalid UTF-8 throws std::invalid_argument.
 
@@ -346,7 +346,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerDropDownAlignmentCapability
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    Which edge the calendar aligns to (DropDownAlign). An undeclared alignment throws std::invalid_argument.
 
@@ -363,7 +363,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerDroppedDownCapability
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    Whether the calendar is open; a view, since the calendar closes itself on commit, cancel and dismissal. A write opens or closes it and raises drop_down_changed.
 
@@ -380,7 +380,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerFormatPropertyCapability
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    Which of the format provider's patterns shows the value, or custom_format (Format). An undeclared format throws std::invalid_argument.
 
@@ -397,7 +397,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerFormatProviderCapability
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    The month and day names and the patterns the value is shown with. An invalid provider throws std::invalid_argument; a change closes an open calendar.
 
@@ -414,7 +414,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerMaximumCapability
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    The latest value (MaxDate). A maximum before minimum moves minimum to it; value is then clamped into the range (raising value_changed) and an open calendar closes. An invalid date throws std::invalid_argument.
 
@@ -431,7 +431,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerMinimumCapability
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    The earliest value (MinDate). A minimum after maximum moves maximum to it; value is then clamped into the range (raising value_changed) and an open calendar closes. An invalid date throws std::invalid_argument.
 
@@ -448,7 +448,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerShowCheckBoxCapability
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    Whether a check box before the value lets the user mark it as not set (ShowCheckBox).
 
@@ -463,7 +463,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerShowUpDownCapability
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    Whether arrows replace the calendar button (ShowUpDown); turning them on closes an open calendar.
 
@@ -478,7 +478,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerStyleCapability
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    The field's colours; a view, since the theme's colours apply until it is written. A write's text colour then inks the value.
 
@@ -495,7 +495,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DateTimePickerValueCapability
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_capabilities/date_time_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_capabilities.hpp>``
 
    The shown date and time (Value), within minimum and maximum; an invalid or out-of-range value throws std::out_of_range. A change raises value_changed.
 
@@ -512,7 +512,7 @@ Related types
 
 .. cpp:struct:: DateTimeValue final
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_value/date_time_value.hpp>``
+   ``#include <gui_forms/controls/date_time_value.hpp>``
 
    DateTimeValue is DateTimePicker's timezone-free civil date/time value. Ordering is lexicographic across validated year-through-second fields so range constraint and calendar selection remain deterministic.
 
@@ -540,7 +540,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FirstDayOfWeekCapability
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+   ``#include <gui_forms/controls/month_calendar_capabilities.hpp>``
 
    The weekday each week row starts on.
 
@@ -557,7 +557,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaxSelectionCountCapability
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+   ``#include <gui_forms/controls/month_calendar_capabilities.hpp>``
 
    The most days a selection may hold; zero throws std::out_of_range.
 
@@ -574,7 +574,7 @@ Related types
 
 .. cpp:struct:: MonthCalendar::Day final
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
+   ``#include <gui_forms/controls/month_calendar.hpp>``
 
    .. cpp:member:: DateTimeValue date
 
@@ -588,7 +588,7 @@ Related types
 
 .. cpp:struct:: MonthCalendar::DayParts final
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
+   ``#include <gui_forms/controls/month_calendar.hpp>``
 
    .. cpp:member:: PartGeometry day_face
 
@@ -602,7 +602,7 @@ Related types
 
 .. cpp:struct:: MonthCalendar::DayStates final
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
+   ``#include <gui_forms/controls/month_calendar.hpp>``
 
    .. cpp:member:: bool hot
 
@@ -622,7 +622,7 @@ Related types
 
 .. cpp:struct:: MonthCalendar::MonthParts final
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
+   ``#include <gui_forms/controls/month_calendar.hpp>``
 
    Item part names are unique within the control, so each names its system.
 
@@ -634,7 +634,7 @@ Related types
 
 .. cpp:struct:: MonthCalendar::Parts final
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
+   ``#include <gui_forms/controls/month_calendar.hpp>``
 
    Stage T1 anatomy, as dot members; the control's states are Control's.
 
@@ -658,7 +658,7 @@ Related types
 
 .. cpp:struct:: MonthCalendar::WeekdayParts final
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
+   ``#include <gui_forms/controls/month_calendar.hpp>``
 
    .. cpp:member:: PartGeometry weekday_label
 
@@ -666,7 +666,7 @@ Related types
 
 .. cpp:struct:: MonthCalendar::WeekParts final
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar.hpp>``
+   ``#include <gui_forms/controls/month_calendar.hpp>``
 
    .. cpp:member:: PartGeometry week_label
 
@@ -674,7 +674,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MonthCalendarCapabilities : public ShowTodayCapability<Declaring>, public ShowTodayCircleCapability<Declaring>, public ShowWeekNumbersCapability<Declaring>, public FirstDayOfWeekCapability<Declaring>, public CalendarDimensionsCapability<Declaring>, public MaxSelectionCountCapability<Declaring>, public ScrollChangeCapability<Declaring>, public MonthCalendarFormatProviderCapability<Declaring>, public FontCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+   ``#include <gui_forms/controls/month_calendar_capabilities.hpp>``
 
    Every MonthCalendar capability, in the order the declaring class takes them.
 
@@ -726,7 +726,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MonthCalendarFormatProviderCapability
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+   ``#include <gui_forms/controls/month_calendar_capabilities.hpp>``
 
    Month and day names and the "Today:" date pattern.
 
@@ -743,7 +743,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ScrollChangeCapability
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+   ``#include <gui_forms/controls/month_calendar_capabilities.hpp>``
 
    Months an arrow scrolls; zero (the default) scrolls by the number of months shown.
 
@@ -758,7 +758,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ShowTodayCapability
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+   ``#include <gui_forms/controls/month_calendar_capabilities.hpp>``
 
    Whether the "Today:" line is shown below the months.
 
@@ -775,7 +775,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ShowTodayCircleCapability
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+   ``#include <gui_forms/controls/month_calendar_capabilities.hpp>``
 
    Whether today's day publishes the current state and its marker part.
 
@@ -792,7 +792,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ShowWeekNumbersCapability
 
-   ``#include <gui_forms/controls/panel/month_calendar/month_calendar_capabilities/month_calendar_capabilities.hpp>``
+   ``#include <gui_forms/controls/month_calendar_capabilities.hpp>``
 
    Week numbers beside each row: week 1 is the week that holds 1 January (Windows Forms' FirstDay rule), weeks starting on first_day_of_week.
 
@@ -810,7 +810,7 @@ Enumerations
 
 .. cpp:enum-class:: CalendarWeekday
 
-   ``#include <gui_forms/controls/panel/month_calendar/calendar_values/calendar_values.hpp>``
+   ``#include <gui_forms/controls/calendar_values.hpp>``
 
    .. cpp:enumerator:: sunday
 
@@ -830,7 +830,7 @@ Enumerations
 
 .. cpp:enum-class:: DateTimeDropDownAlignment
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_values/date_time_picker_values.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_values.hpp>``
 
    .. cpp:enumerator:: left
 
@@ -840,7 +840,7 @@ Enumerations
 
 .. cpp:enum-class:: DateTimePickerFormat
 
-   ``#include <gui_forms/controls/panel/date_time_picker/date_time_picker_values/date_time_picker_values.hpp>``
+   ``#include <gui_forms/controls/date_time_picker_values.hpp>``
 
    .. cpp:enumerator:: long_date
 
@@ -855,7 +855,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/panel/date_time_picker/date_time_value/date_time_value.hpp>``
+``#include <gui_forms/controls/date_time_value.hpp>``
 
 .. cpp:function:: bool valid_date_time(DateTimeValue value) noexcept
 

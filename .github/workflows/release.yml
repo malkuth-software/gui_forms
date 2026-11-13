@@ -335,7 +335,7 @@ jobs:
         id: stx-package
         with:
           path: .ci/stx-package
-          key: gui-stx-package-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/freetype/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
+          key: gui-stx-package-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/freetype/**', 'gui_forms/cmake/stx_text_allocation/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
       - name: Configure the programs
         run: |
           renderer="-DGUI_FORMS_ENABLE_SKIA=ON"
@@ -380,7 +380,9 @@ jobs:
           echo "A pull request: building $(wc -l < "$RUNNER_TEMP/targets.txt") outputs the tests run, not every program"
           if [ -s "$RUNNER_TEMP/targets.txt" ]; then
             # Windows' Python may end each line with CR; ninja would take it as part of the name.
-            tr -d '\r' < "$RUNNER_TEMP/targets.txt" | xargs cmake --build "$BUILD_DIR" --parallel 4 --target
+            # One target per line, split only at newlines: an output name may hold a space
+            # ("GUI.Forms Gallery"), which plain xargs would split. -0 works on BSD and GNU xargs.
+            tr -d '\r' < "$RUNNER_TEMP/targets.txt" | tr '\n' '\0' | xargs -0 cmake --build "$BUILD_DIR" --parallel 4 --target
           fi
       - name: Report cache statistics
         if: always()

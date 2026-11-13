@@ -1,4 +1,6 @@
 #include "support.hpp"
+#include "gui_forms/controls/progress_ring.hpp"
+#include "gui_forms/controls/spinner.hpp"
 
 namespace gallery_pages_tests {
 

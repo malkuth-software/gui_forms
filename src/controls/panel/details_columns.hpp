@@ -1,10 +1,14 @@
 #pragma once
 
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <string>
 #include <string_view>
@@ -118,6 +122,44 @@ inline void elide_to_width(Painter& painter, std::string_view text, FontSpec fon
     const std::size_t end = store.utf8_offset(GraphemeIndex(lower)).value();
     out.assign(text.substr(0U, end));
     out.append(ellipsis);
+}
+
+// Right to left (Control::right_to_left), a details view keeps its layout
+// in reading order and mirrors it once at its edges, as Windows Forms'
+// RightToLeftLayout does: every rectangle it paints, publishes or places a
+// child at goes through shown_rect, and every pointer position through
+// reading_point. `frame` is the view's whole local rectangle.
+
+// `reading` as drawn: mirrored about `frame` when `mirrored`.
+inline Rect shown_rect(Rect reading, Rect frame, bool mirrored) noexcept {
+    if (!mirrored || reading.empty()) return reading;
+    const Rect drawn = horizontally_mirrored(reading, frame);
+    return drawn;
+}
+
+// A drawn point in reading order (a mirror is its own inverse).
+inline Point reading_point(Point drawn, Rect frame, bool mirrored) noexcept {
+    if (!mirrored) return drawn;
+    const Point reading{frame.x + frame.x + frame.width - drawn.x, drawn.y};
+    return reading;
+}
+
+// Text alignment as drawn: start and end exchange right to left.
+inline PartTextAlignment shown_alignment(PartTextAlignment alignment, bool mirrored) noexcept {
+    if (!mirrored) return alignment;
+    if (alignment == PartTextAlignment::start) return PartTextAlignment::end;
+    if (alignment == PartTextAlignment::end) return PartTextAlignment::start;
+    return alignment;
+}
+
+// Mirrors each present part of `record` (an anatomy record laid out in
+// reading order) about `frame`, before it is published.
+template <typename Record, std::size_t Count>
+void mirror_record(const std::array<PartField<Record>, Count>& fields, Record& record, Rect frame) noexcept {
+    for (std::size_t index = 0; index < Count; ++index) {
+        PartGeometry& part = record.*(fields[index].member);
+        if (part.present) part.bounds = horizontally_mirrored(part.bounds, frame);
+    }
 }
 
 } // namespace gui_forms::details_detail

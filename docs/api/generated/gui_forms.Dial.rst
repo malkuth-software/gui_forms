@@ -9,7 +9,7 @@ gui_forms::Dial
 
 .. cpp:class:: Dial : public RangeControl, public DialCapabilities<Dial>
 
-   ``#include <gui_forms/controls/instruments/dial/dial.hpp>``
+   ``#include <gui_forms/controls/dial.hpp>``
 
    Rotary knob from the instruments package: a RangeControl value set by turning, dragging or the TrackBar keys over a 270-degree scale, a slider to assistive technology.
 
@@ -89,15 +89,31 @@ gui_forms::Dial
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
@@ -108,3 +124,37 @@ gui_forms::Dial
    .. cpp:member:: constexpr std::size_t dial_property_count
 
       Dial's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 2U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 4 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``knob_bounds``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``pointer_angle``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``show_arc``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``tick_frequency``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``dial_property_entries``
+     - unclassified (untested)

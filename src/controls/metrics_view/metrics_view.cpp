@@ -1,4 +1,4 @@
-#include "gui_forms/controls/metrics_view/metrics_view.hpp"
+#include "gui_forms/controls/metrics_view.hpp"
 
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"

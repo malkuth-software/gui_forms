@@ -420,9 +420,16 @@ void fill_progress_family(ControlRoleRecipes& result) {
 }
 
 // Tooltips: windows-professional's pale yellow plate (owner decision RB-38)
-// with this theme's text colours.
+// with this theme's glyph and muted colours and black text in every enabled
+// state (owner mandate 2026-11-11); disabled text stays the disabled ink.
 void fill_tool_tip_family(ControlRoleRecipes& result) {
     fill_stock_family(result, Color::rgba(255, 255, 225), Color::rgba(104, 111, 118), 0.0);
+    const Color black = Color::rgba(0, 0, 0);
+    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
+        if (static_cast<ControlSurfaceState>(index) == ControlSurfaceState::disabled) continue;
+        result.ordinary[index].text = black;
+        result.selected[index].text = black;
+    }
 }
 
 // Badges (T4, W-4): the accent blue chip with white text in every state
@@ -554,6 +561,10 @@ void print_difference(ControlVisualRole role, std::size_t state, bool selected, 
     if (evaluated.stroke_width != expected.stroke_width) std::cerr << " stroke_width";
     if (evaluated.needle_shape != expected.needle_shape) std::cerr << " needle_shape";
     if (evaluated.scrim != expected.scrim) std::cerr << " scrim";
+    if (!(evaluated.canvas == expected.canvas)) {
+        std::cerr << " canvas";
+        if (evaluated.canvas.stroke_width != expected.canvas.stroke_width) std::cerr << "(stroke_width)";
+    }
     if (evaluated.text_shadow != expected.text_shadow) std::cerr << " text_shadow";
     if (evaluated.focus_offset != expected.focus_offset) std::cerr << " focus_offset";
     if (evaluated.authored_focus_outline != expected.authored_focus_outline) std::cerr << " authored_focus_outline";

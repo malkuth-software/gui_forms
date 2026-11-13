@@ -1,8 +1,10 @@
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/live_surface.hpp"
+#include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/window.hpp"
 
 #include "../../display/chunk/display_chunk.hpp"
@@ -129,6 +131,18 @@ void SurfaceRoot::set_framebuffer_painter(Painter* const painter) {
     backplane_framebuffer_scale_ = 0.0;
 }
 
+SurfaceRoot::CapturePaintLease::CapturePaintLease(SurfaceRoot& root) noexcept : root_(root) {
+    root_.in_paint_ = true;
+}
+
+SurfaceRoot::CapturePaintLease::~CapturePaintLease() {
+    root_.in_paint_ = false;
+    // Fills an image atlas deferred during the capture, then the input
+    // deferred during it, as paint's end does (neither throws).
+    if (root_.resources_) (*root_.resources_).apply_deferred_image_fills();
+    root_.schedule_deferred_input_drain();
+}
+
 // Four stages: validate the request; record the subtree's planes into one
 // display chunk; replay that chunk into an offscreen framebuffer; copy the
 // pixels into the image registry as premultiplied BGRA.
@@ -145,6 +159,8 @@ std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr&
     // Record: the subtree's planes, each in order, into one command list in
     // the subtree's own coordinates, its materials baked at the snapshot's
     // scale.
+    // Painting from here to the return, as paint is for its pass.
+    const CapturePaintLease painting(*this);
     detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;
@@ -209,6 +225,8 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
     if (window_bounds.empty() || !window_bounds.finite()) return std::nullopt;
     const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
     if (!framebuffer) return std::nullopt;
+    // Painting from here to the return, as paint is for its pass.
+    const CapturePaintLease painting(*this);
     detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
     std::uint64_t visited_nodes = 0;
     std::uint64_t painted_controls = 0;
@@ -256,6 +274,73 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
         mark_subtree_dirty(*overlay, Dirty::paint);
     }
     if (!(*framebuffer).begin(image_resources(), window_bounds)) return std::nullopt;
+    static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
+    (*framebuffer).end();
+    WindowCapture capture{};
+    if (!detail::copy_framebuffer_bgra(*framebuffer, capture.bgra)) return std::nullopt;
+    capture.logical_size = logical;
+    capture.scale = scale;
+    capture.pixel_width = (*framebuffer).width();
+    capture.pixel_height = (*framebuffer).height();
+    return capture;
+}
+
+// capture_window's sequence over one subtree: validate; record the
+// backplane under the area and the subtree's planes; replay offscreen; copy
+// the pixels out.
+std::optional<WindowCapture> SurfaceRoot::capture_control(const Control::Ptr& control,
+                                                         const ControlCaptureOptions& options) {
+    require_root_thread("capture_control");
+    if (in_paint_ || framebuffer_painter_ == nullptr || !control) return std::nullopt;
+    const double scale = options.scale == 0.0 ? scale_ : options.scale;
+    if (!std::isfinite(scale) || scale <= 0.0 || scale > 8.0) return std::nullopt;
+    if (!std::isfinite(options.margin) || options.margin < 0.0) return std::nullopt;
+    ensure_layout(true);
+    if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).effectively_visible()) return std::nullopt;
+    const Rect bounds = absolute_bounds_of(*control);
+    if (bounds.empty() || !bounds.finite()) return std::nullopt;
+    // The control's bounds grown by the margin, clipped to the window.
+    const double left = std::max(0.0, bounds.x - options.margin);
+    const double top = std::max(0.0, bounds.y - options.margin);
+    const double right = std::min(client_size_.width, bounds.x + bounds.width + options.margin);
+    const double bottom = std::min(client_size_.height, bounds.y + bounds.height + options.margin);
+    if (right <= left || bottom <= top) return std::nullopt;
+    const Rect area{left, top, right - left, bottom - top};
+    const Size logical{area.width, area.height};
+    const std::unique_ptr<PaintFramebuffer> framebuffer = create_framebuffer(logical, scale);
+    if (!framebuffer) return std::nullopt;
+    // Painting from here to the return, as paint is for its pass.
+    const CapturePaintLease painting(*this);
+    detail::RecordingPainter candidate(text_metrics_provider_, DeviceScale{scale});
+    std::uint64_t visited_nodes = 0;
+    std::uint64_t painted_controls = 0;
+    std::uint64_t consumed_invalidations = 0;
+    std::uint64_t chunks_rebuilt = 0;
+    std::uint64_t chunks_reused = 0;
+    std::uint64_t commands_replayed = 0;
+    candidate.save();
+    candidate.translate({-area.x, -area.y});
+    if (options.include_backplane) {
+        ControlVisualContext backplane_context;
+        backplane_context.surface = active_ ? ControlSurfaceState::normal : ControlSurfaceState::deactivated;
+        backplane_context.high_contrast = presentation_settings_.high_contrast;
+        backplane_context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
+        const SurfaceMaterial backplane = backplane_base(backplane_context);
+        const bool starts_clear = backdrop_grant_.granted != WindowBackdrop::opaque;
+        paint_backplane_rectangle(candidate, area, backplane, starts_clear);
+    }
+    for (std::size_t index = 0; index < paint_plane_count; ++index) {
+        const PaintPlane plane = static_cast<PaintPlane>(index);
+        paint_recursive(control, parent_origin_of(*control), candidate, area, plane, visited_nodes, painted_controls,
+                        consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
+    }
+    candidate.restore();
+    const Rect local{0.0, 0.0, logical.width, logical.height};
+    const std::shared_ptr<const detail::DisplayChunk> recorded =
+        candidate.finish(display_generation_, PaintPlane::control, local);
+    // Rebuilt chunks consumed their paint dirt without reaching the screen.
+    if (consumed_invalidations > 0U && (*control).is_alive()) mark_subtree_dirty(*control, Dirty::paint);
+    if (!(*framebuffer).begin(image_resources(), local)) return std::nullopt;
     static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
     (*framebuffer).end();
     WindowCapture capture{};
@@ -327,6 +412,8 @@ void SurfaceRoot::abandon_paint(std::uint64_t generation_before) {
     dirty_after_render_ = true;
     in_paint_ = false;
     ++paint_leases_abandoned_;
+    // Fills an image atlas deferred during the pass (never throws).
+    if (resources_) (*resources_).apply_deferred_image_fills();
     update_display_cache_metrics();
     if (!root_ || !(*root_).is_alive()) {
         abandon_deferred_input();
@@ -472,6 +559,13 @@ PartRasterResult SurfaceRoot::engine_part_raster(PartRecordHandle handle, const 
     // A procedural pattern it asked for is generated in an idle frame (E10).
     if (engine_parts_.patterns_waiting()) arm_engine_idle();
     return result;
+}
+
+std::shared_ptr<const PartRaster> SurfaceRoot::engine_finish_tile(PartRecordHandle waiter, const FinishTileKey& key) {
+    std::shared_ptr<const PartRaster> tile = engine_parts_.finish_tile(key, waiter, paint_leases_completed_);
+    // A tile not held is painted in an idle frame.
+    if (engine_parts_.finish_tiles_waiting()) arm_engine_idle();
+    return tile;
 }
 
 void SurfaceRoot::engine_queue_keyframe(const PartRasterRequest& request) {
@@ -660,8 +754,16 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
     }
     if (occluded_) return std::nullopt;
     // The lease this paint starts, when it paints anything.
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::paint_pass, (*root_).stable_id().value(), std::string_view{},
-                                        paint_leases_started_ + 1U);
+    ShadowFrameCall shadow_frame(ShadowFrameKind::paint_pass, (*root_).stable_id().value(), std::string_view{},
+                                 paint_leases_started_ + 1U);
+    std::optional<PaintReceipt> receipt = paint_rectangles_in_frame(painter, rectangles, explicit_request);
+    shadow_frame.returned();
+    return receipt;
+}
+
+// The paint pass itself, inside paint_rectangles' frame.
+std::optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
+                                                                   bool explicit_request) {
     ensure_layout(true);
 
     if (!(*root_).is_alive()) {
@@ -851,6 +953,9 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
                           static_cast<std::uint64_t>(painted.size()), full_window);
     update_display_cache_metrics();
 
+    // Fills an image atlas deferred during the pass: written now that the
+    // pass is over, their damage requests the next frame (never throws).
+    if (resources_) (*resources_).apply_deferred_image_fills();
     schedule_deferred_input_drain();
     return PaintReceipt{lease_revision, lease_epoch};
 }
@@ -1056,6 +1161,8 @@ void Window::set_live_surface_idle_waiting(const bool waiting) {
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void Window::collect_visible_overlay_rectangles(
     const Control::Ptr& control, std::vector<Rect>& rectangles) const {
     if (!control || !(*control).is_alive() || (*control).surface_root_ != this ||
@@ -1073,6 +1180,8 @@ void Window::collect_visible_overlay_rectangles(
     }
 }
 
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
 void Window::collect_overlay_attachment_cover(const Control& control, const Rect root_cover,
                                               std::vector<Rect>& rectangles) const {
     for (const Control::Ptr& child : control.children_) {

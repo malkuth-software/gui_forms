@@ -45,8 +45,6 @@ sorted : default ``false``
 button_width : default ``18``
     The width of the spin buttons, from 12 to 64; a width outside that range
     throws `std::out_of_range`.
-editor
-    The `TextBox` that shows the text.
 
 Events
 ------

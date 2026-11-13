@@ -1,4 +1,10 @@
 #include "pages.hpp"
+#include "gui_forms/controls/calendar_values.hpp"
+#include "gui_forms/controls/command_bar.hpp"
+#include "gui_forms/controls/date_time_picker.hpp"
+#include "gui_forms/controls/date_time_picker_values.hpp"
+#include "gui_forms/controls/date_time_value.hpp"
+#include "gui_forms/controls/month_calendar.hpp"
 
 #include "dates-and-calendar_form.hpp"
 

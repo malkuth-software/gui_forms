@@ -1,4 +1,4 @@
-#include "gui_forms/controls/range_control/range_control.hpp"
+#include "gui_forms/controls/range_control.hpp"
 
 #include "range_control_rendering.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -37,6 +37,12 @@ RangeControl::RangeControl(StableId stable_id)
 
 double RangeControl::normalized_value() const noexcept {
     return (value_ - minimum_) / (maximum_ - minimum_);
+}
+
+bool RangeControl::mirrored_axis() const noexcept {
+    const bool mirrored = orientation.read() == Orientation::horizontal &&
+                          effective_layout_direction() == LayoutDirection::right_to_left;
+    return mirrored;
 }
 
 void RangeControl::set_range(double minimum_value, double maximum_value) {

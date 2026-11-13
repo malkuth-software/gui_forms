@@ -2,7 +2,18 @@
 
 #include "demo/gallery.hpp"
 #include "demo/gallery_page_specs.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 
 #include <cmath>

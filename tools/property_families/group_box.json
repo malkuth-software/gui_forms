@@ -2,9 +2,9 @@
   "family": "GroupBox",
   "step": "B2",
   "declaring": "GroupBox",
-  "header": "include/gui_forms/controls/panel/group_box/group_box.hpp",
+  "header": "include/gui_forms/controls/group_box.hpp",
   "source": "src/controls/panel/group_box/group_box.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/group_box/group_box_capabilities/group_box_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/group_box_capabilities.hpp",
   "base": "Panel",
   "shared": [
     "TextCapability",
@@ -99,6 +99,6 @@
   "not_properties": [],
   "test": {
     "type": "GroupBox",
-    "include": "gui_forms/controls/panel/group_box/group_box.hpp"
+    "include": "gui_forms/controls/group_box.hpp"
   }
 }

@@ -65,7 +65,7 @@ constexpr std::array<std::string_view, 25> refused_pseudo_classes{{
 
 // The language's functional pseudo-classes, an error written without
 // their arguments.
-constexpr std::array<std::string_view, 5> argument_pseudo_classes{{"is", "where", "not", "family", "state"}};
+constexpr std::array<std::string_view, 6> argument_pseudo_classes{{"is", "where", "not", "family", "state", "item"}};
 
 constexpr std::array<std::string_view, 9> refused_pseudo_elements{{
     "before", "after", "first-line", "first-letter", "marker", "placeholder", "selection", "backdrop",
@@ -95,8 +95,11 @@ template <std::size_t Count>
 // count (rule_specificity) for one of its kind.
 [[nodiscard]] RuleSpecificity specificity_of(SimpleKind kind) noexcept {
     RuleSpecificity one{};
-    if (kind == SimpleKind::stable_id) one.ids = 1U;
-    if (kind == SimpleKind::style_class || kind == SimpleKind::state || kind == SimpleKind::family) one.classes = 1U;
+    if (kind == SimpleKind::stable_id || kind == SimpleKind::item_id) one.ids = 1U;
+    const bool pseudo_class = kind == SimpleKind::style_class || kind == SimpleKind::state ||
+                              kind == SimpleKind::custom_state || kind == SimpleKind::family ||
+                              kind == SimpleKind::item_class;
+    if (pseudo_class) one.classes = 1U;
     if (kind == SimpleKind::control_type || kind == SimpleKind::surface) one.types = 1U;
     if (kind == SimpleKind::part || kind == SimpleKind::role) one.types = 1U;
     return one;
@@ -128,6 +131,36 @@ template <std::size_t Count>
         if (find_declared_part(system.parts, registered).has_value()) return true;
     }
     return false;
+}
+
+// The custom states a selector of `anatomy` reads (R2-13): those of the
+// item system declaring `part` when the part is an item part, else the
+// control type's own. A part of the control's own shares its states.
+[[nodiscard]] std::span<const CustomStateDeclaration> custom_state_scope(const ControlAnatomy& anatomy,
+                                                                         std::string_view part) noexcept {
+    if (part.empty() || find_declared_part(anatomy.parts, part).has_value()) return anatomy.custom_states;
+    for (const ItemSystemDeclaration& system : anatomy.item_systems) {
+        if (find_declared_part(system.parts, part).has_value()) return system.custom_states;
+    }
+    return anatomy.custom_states;
+}
+
+// The position of the custom state `registered` in `declared`, or none.
+[[nodiscard]] std::optional<CustomStateIndex> find_declared_custom_state(
+    std::span<const CustomStateDeclaration> declared, std::string_view registered) noexcept {
+    for (std::size_t index = 0U; index < declared.size(); ++index) {
+        if (declared[index].name != registered) continue;
+        const CustomStateIndex found{static_cast<std::uint8_t>(index)};
+        return found;
+    }
+    return std::nullopt;
+}
+
+// A registered name in the kebab case a sheet writes, for diagnostics.
+[[nodiscard]] std::string kebab_case_of(std::string_view registered) {
+    std::string written(registered);
+    std::replace(written.begin(), written.end(), '_', '-');
+    return written;
 }
 
 void reset_compound(Frame& frame) {
@@ -166,13 +199,25 @@ private:
     [[nodiscard]] bool open_group(std::uint32_t function_token, GroupKind group);
     [[nodiscard]] bool close_group(std::uint32_t closer);
     [[nodiscard]] bool read_family(std::uint32_t function_token);
+    [[nodiscard]] bool read_item(std::uint32_t function_token);
     [[nodiscard]] bool finish_compound(std::uint32_t at);
     [[nodiscard]] bool add_simple(const Simple& simple);
     // add_simple, counting `counted` toward the compound's specificity.
     [[nodiscard]] bool add_counted(const Simple& simple, RuleSpecificity counted);
     // A `:not()` argument's exclusion, appended to `selector` unless it holds
     // one already; false (reported) when it names a part, role or surface.
-    [[nodiscard]] bool add_exclusion(const Alternative& argument, RuleSelector& selector);
+    // Its custom states are resolved when `resolve` is set; one its
+    // control type (or the selector's) does not declare clears `declared`,
+    // reported (R2-13), and the exclusion is not appended.
+    [[nodiscard]] bool add_exclusion(const Alternative& argument, RuleSelector& selector, bool resolve,
+                                     bool& declared);
+    // Resolves the custom state written by `simple` (R2-13) against the
+    // custom states of `control_type` (or of the item system declaring
+    // `part`): its position, or none, reported (W106) with the element
+    // checked, once per state token.
+    [[nodiscard]] std::optional<CustomStateIndex> resolve_custom_state(const Simple& simple,
+                                                                       std::string_view control_type,
+                                                                       std::string_view part);
     // Ends the compound being read as an ancestor compound joined by
     // `combinator` to the next (selector step 4); false (reported) when it
     // is empty, expanded, or names more than a type, a stable ID and
@@ -211,6 +256,9 @@ private:
     // by note_unknown_part (zero for none: a part token never comes first).
     std::size_t appended_{};
     std::uint32_t reported_part_token_{};
+    // The custom state token last reported by resolve_custom_state (zero
+    // for none: a state token never comes first).
+    std::uint32_t reported_state_token_{};
 };
 
 SelectorPass::SelectorPass(const SelectorInput& input, const SelectorVocabulary& vocabulary, LoweringBudget budget,
@@ -444,6 +492,7 @@ bool SelectorPass::read_pseudo() {
         return open_group(next, GroupKind::negation);
     }
     if (equals_ascii_folded(name, "family")) return read_family(next);
+    if (equals_ascii_folded(name, "item")) return read_item(next);
     if (equals_ascii_folded(name, "state")) {
         const NameArgument argument = name_argument(next);
         if (!argument.found) {
@@ -454,16 +503,24 @@ bool SelectorPass::read_pseudo() {
         index_ = argument.after;
         const std::string_view written = token_text(argument.name);
         const std::string registered = registered_name_from_kebab(written);
-        const std::optional<AnatomyState> state =
-            registered.empty() ? std::optional<AnatomyState>{} : anatomy_state_from_name(registered);
-        if (!state) {
-            // A custom control's own state is unknown for now (R2-13).
+        // A name written with '_', upper case or any other character
+        // names nothing.
+        if (registered.empty()) {
             note_unknown(argument.name, written);
             return true;
         }
+        // Precedence (R2-13): a standard state first; otherwise a custom
+        // state of the selector's control type, resolved once the
+        // selector is expanded (materialize).
+        const std::optional<AnatomyState> state = anatomy_state_from_name(registered);
         Simple simple{};
-        simple.kind = SimpleKind::state;
         simple.token = argument.name;
+        simple.name = written;
+        if (!state) {
+            simple.kind = SimpleKind::custom_state;
+            return add_simple(simple);
+        }
+        simple.kind = SimpleKind::state;
         simple.state = *state;
         return add_simple(simple);
     }
@@ -647,6 +704,67 @@ bool SelectorPass::read_family(std::uint32_t function_token) {
     return add_simple(simple);
 }
 
+// `:item(<compound>)` (cp31): one compound of the item's stable ID
+// (`#id`, at most one) and classes (`.name`), written without spaces
+// between them, such as `:item(#n42)`, `:item(.socket-float)` or
+// `:item(#n42.warning)`. The part then matches only for an item that has
+// them; each counts as an ID or a class does.
+bool SelectorPass::read_item(std::uint32_t function_token) {
+    std::uint32_t index = function_token + 1U;
+    while (index < end_ && (tokens_[index].kind == TokenKind::whitespace || tokens_[index].kind == TokenKind::comment)) {
+        ++index;
+    }
+    std::size_t read = 0U;
+    while (index < end_) {
+        const Token& token = tokens_[index];
+        if (token.kind == TokenKind::hash) {
+            if ((token.flags & token_flag_hash_identifier) == 0U) {
+                report(DiagnosticCode::selector_syntax, index, "an item's stable ID must be a name");
+                return false;
+            }
+            Simple simple{};
+            simple.kind = SimpleKind::item_id;
+            simple.token = index;
+            simple.name = token_text(index).substr(1U);
+            if (!add_simple(simple)) return false;
+            read = read + 1U;
+            ++index;
+            continue;
+        }
+        const bool dot = token.kind == TokenKind::delim && token_text(index)[0] == '.';
+        if (!dot) break;
+        const std::uint32_t name_token = index + 1U;
+        if (name_token >= end_ || tokens_[name_token].kind != TokenKind::ident) {
+            report(DiagnosticCode::selector_syntax, index, "'.' without a class name");
+            return false;
+        }
+        const std::string_view name = token_text(name_token);
+        if (!valid_style_class_name(name)) {
+            report(DiagnosticCode::selector_syntax, name_token, "not a style class name");
+            return false;
+        }
+        Simple simple{};
+        simple.kind = SimpleKind::item_class;
+        simple.token = name_token;
+        simple.name = name;
+        if (!add_simple(simple)) return false;
+        read = read + 1U;
+        index = name_token + 1U;
+    }
+    while (index < end_ && (tokens_[index].kind == TokenKind::whitespace || tokens_[index].kind == TokenKind::comment)) {
+        ++index;
+    }
+    if (read == 0U || index >= end_ || tokens_[index].kind != TokenKind::right_paren) {
+        const std::uint32_t offending = index < end_ ? index : function_token;
+        report(DiagnosticCode::selector_syntax, offending, "':item()' takes an item's #id and .classes");
+        return false;
+    }
+    Frame& frame = workspace_.frames[depth_];
+    frame.compound_started = true;
+    index_ = index + 1U;
+    return true;
+}
+
 // Ends the compound being read at token `at` (a ',', the ')' of an
 // `:is()`, or the list's end): at the top level its alternatives are
 // appended to the output, inside an `:is()` to the arguments' union.
@@ -749,13 +867,14 @@ bool SelectorPass::push_ancestor(std::uint32_t at, AncestorCombinator combinator
     return true;
 }
 
-bool SelectorPass::add_exclusion(const Alternative& argument, RuleSelector& selector) {
+bool SelectorPass::add_exclusion(const Alternative& argument, RuleSelector& selector, bool resolve,
+                                 bool& declared) {
     RuleExclusion exclusion{};
     for (std::uint32_t position = 0U; position < argument.count; ++position) {
         const Simple& simple = workspace_.simples[argument.simples[position]];
         const bool local = simple.kind == SimpleKind::control_type || simple.kind == SimpleKind::stable_id ||
                            simple.kind == SimpleKind::style_class || simple.kind == SimpleKind::state ||
-                           simple.kind == SimpleKind::family;
+                           simple.kind == SimpleKind::custom_state || simple.kind == SimpleKind::family;
         if (!local) {
             report(DiagnosticCode::selector_syntax, simple.token, "':not()' takes no part, role or surface");
             return false;
@@ -770,14 +889,66 @@ bool SelectorPass::add_exclusion(const Alternative& argument, RuleSelector& sele
             if (std::find(exclusion.classes.begin(), exclusion.classes.end(), simple.name) == exclusion.classes.end()) {
                 exclusion.classes.push_back(std::string(simple.name));
             }
-        } else if (std::find(exclusion.states.begin(), exclusion.states.end(), simple.state) == exclusion.states.end()) {
-            exclusion.states.push_back(simple.state);
+        } else if (simple.kind == SimpleKind::state) {
+            if (std::find(exclusion.states.begin(), exclusion.states.end(), simple.state) == exclusion.states.end()) {
+                exclusion.states.push_back(simple.state);
+            }
         }
+    }
+    // The custom states once the argument's type is known: its own, else
+    // the selector's, whose part then chooses the item system.
+    const bool own_type = !exclusion.control_type.empty() && exclusion.control_type != selector.control_type;
+    const std::string_view scope_type = own_type ? std::string_view(exclusion.control_type)
+                                                 : std::string_view(selector.control_type);
+    const std::string_view scope_part = own_type ? std::string_view{} : std::string_view(selector.part);
+    for (std::uint32_t position = 0U; position < argument.count; ++position) {
+        const Simple& simple = workspace_.simples[argument.simples[position]];
+        if (simple.kind != SimpleKind::custom_state || !resolve) continue;
+        const std::optional<CustomStateIndex> found = resolve_custom_state(simple, scope_type, scope_part);
+        if (!found) {
+            declared = false;
+            return true;
+        }
+        const std::vector<CustomStateIndex>& held = exclusion.custom_states;
+        if (std::find(held.begin(), held.end(), *found) == held.end()) exclusion.custom_states.push_back(*found);
     }
     if (std::find(selector.excluded.begin(), selector.excluded.end(), exclusion) == selector.excluded.end()) {
         selector.excluded.push_back(std::move(exclusion));
     }
     return true;
+}
+
+std::optional<CustomStateIndex> SelectorPass::resolve_custom_state(const Simple& simple,
+                                                                   std::string_view control_type,
+                                                                   std::string_view part) {
+    const std::string registered = registered_name_from_kebab(simple.name);
+    // The type was found in the vocabulary when it was read.
+    const ControlAnatomy* anatomy = control_type.empty() ? nullptr : find_control(vocabulary_, control_type);
+    if (anatomy != nullptr) {
+        const std::span<const CustomStateDeclaration> declared = custom_state_scope(*anatomy, part);
+        const std::optional<CustomStateIndex> found = find_declared_custom_state(declared, registered);
+        if (found) return found;
+    }
+    if (reported_state_token_ == simple.token) return std::nullopt;
+    reported_state_token_ = simple.token;
+    // The element checked first: a detail is clipped to
+    // maximum_detail_bytes, and a long state name must not hide it.
+    std::string detail{};
+    if (anatomy == nullptr) {
+        detail = "no control type to declare ";
+    } else {
+        detail = kebab_case_of(control_type);
+        const bool item_part = !part.empty() && !find_declared_part((*anatomy).parts, part).has_value();
+        if (item_part) {
+            detail += "::part(";
+            detail += kebab_case_of(part);
+            detail += ") items";
+        }
+        detail += item_part ? " declare no custom state " : " declares no custom state ";
+    }
+    detail += simple.name;
+    report(DiagnosticCode::unknown_selector_name, simple.token, clipped_theme_detail(detail));
+    return std::nullopt;
 }
 
 // One expanded selector into the output. Two different control types, IDs,
@@ -792,9 +963,16 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
     RuleSelector& selector = lowered.selector;
     std::uint32_t part_token = 0U;
     std::uint32_t surface_token = 0U;
+    bool names_custom_state = false;
+    // Custom states and `:not()`s wait for the second walk below, once the
+    // expansion's control type and part are known.
     for (std::uint32_t position = 0U; position < alternative.count; ++position) {
         const Simple& simple = workspace_.simples[alternative.simples[position]];
-        if (simple.kind == SimpleKind::control_type || simple.kind == SimpleKind::part) {
+        if (simple.kind == SimpleKind::custom_state) {
+            names_custom_state = true;
+        } else if (simple.kind == SimpleKind::negation) {
+            continue;
+        } else if (simple.kind == SimpleKind::control_type || simple.kind == SimpleKind::part) {
             const std::string registered = registered_name_from_kebab(simple.name);
             std::string& field = simple.kind == SimpleKind::part ? selector.part : selector.control_type;
             if (!field.empty() && field != registered) {
@@ -835,10 +1013,18 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
                 return false;
             }
             selector.family = std::string(simple.name);
-        } else if (simple.kind == SimpleKind::negation) {
-            for (std::uint32_t argument = 0U; argument < simple.negated_count; ++argument) {
-                if (!add_exclusion(workspace_.negated[simple.negated_first + argument], selector)) return false;
+        } else if (simple.kind == SimpleKind::item_id) {
+            if (!selector.item_id.empty() && selector.item_id != simple.name) {
+                report(DiagnosticCode::selector_syntax, simple.token, "two item IDs");
+                return false;
             }
+            selector.item_id = std::string(simple.name);
+        } else if (simple.kind == SimpleKind::item_class) {
+            bool present = false;
+            for (const std::string& name : selector.item_classes) {
+                if (name == simple.name) present = true;
+            }
+            if (!present) selector.item_classes.push_back(std::string(simple.name));
         } else {
             bool present = false;
             for (const AnatomyState state : selector.states) {
@@ -857,7 +1043,8 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
     // only: its rules style no part of a control.
     const bool surface_with_more = selector.surface != SurfaceKind::none &&
                                    (!selector.control_type.empty() || !selector.part.empty() || selector.role ||
-                                    !selector.states.empty());
+                                    !selector.states.empty() || names_custom_state ||
+                                    !selector.item_id.empty() || !selector.item_classes.empty());
     if (surface_with_more) {
         report(DiagnosticCode::selector_syntax, surface_token,
                "a window or popup selector takes only classes and a stable ID");
@@ -884,6 +1071,31 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
             part_declared = false;
         }
     }
+    // The custom states and `:not()`s (R2-13). A custom state its type does
+    // not declare leaves out its own selector, as an unknown part does:
+    // CSS's `:state()` matches nothing on an element without the state.
+    // They are resolved only for a selector that may still be appended.
+    const bool resolve = !dropped_ && part_declared;
+    bool states_declared = true;
+    for (std::uint32_t position = 0U; position < alternative.count; ++position) {
+        const Simple& simple = workspace_.simples[alternative.simples[position]];
+        if (simple.kind == SimpleKind::negation) {
+            for (std::uint32_t argument = 0U; argument < simple.negated_count; ++argument) {
+                const Alternative& negated = workspace_.negated[simple.negated_first + argument];
+                if (!add_exclusion(negated, selector, resolve && states_declared, states_declared)) return false;
+            }
+            continue;
+        }
+        if (simple.kind != SimpleKind::custom_state || !resolve || !states_declared) continue;
+        const std::optional<CustomStateIndex> found =
+            resolve_custom_state(simple, selector.control_type, selector.part);
+        if (!found) {
+            states_declared = false;
+            continue;
+        }
+        const std::vector<CustomStateIndex>& held = selector.custom_states;
+        if (std::find(held.begin(), held.end(), *found) == held.end()) selector.custom_states.push_back(*found);
+    }
     // A dropped rule's selectors count too: each was built.
     const std::size_t bytes = lowered_selector_bytes(selector);
     if (bytes > budget_.bytes - emitted_bytes_) {
@@ -896,7 +1108,7 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
     // Every theme-sheet rule at one level, ordered there by its CSS
     // specificity alone (selector step 1).
     lowered.level = CascadeLevel::theme_sheet;
-    if (!dropped_ && part_declared) {
+    if (!dropped_ && part_declared && states_declared) {
         output_.push_back(std::move(lowered));
         ++appended_;
     }
@@ -991,11 +1203,13 @@ void SelectorPass::report(DiagnosticCode code, std::uint32_t token, std::string 
 
 std::size_t lowered_selector_bytes(const RuleSelector& selector) noexcept {
     std::size_t bytes = lowered_record_bytes + selector.control_type.size() + selector.stable_id.size() +
-                        selector.part.size() + selector.states.size() + selector.family.size();
+                        selector.part.size() + selector.states.size() + selector.custom_states.size() +
+                        selector.family.size() + selector.item_id.size();
     for (const std::string& name : selector.classes) bytes += name.size();
+    for (const std::string& name : selector.item_classes) bytes += name.size();
     for (const RuleExclusion& exclusion : selector.excluded) {
         bytes += lowered_record_bytes + exclusion.control_type.size() + exclusion.stable_id.size() +
-                 exclusion.states.size() + exclusion.family.size();
+                 exclusion.states.size() + exclusion.custom_states.size() + exclusion.family.size();
         for (const std::string& name : exclusion.classes) bytes += name.size();
     }
     for (const RuleAncestor& ancestor : selector.ancestors) {

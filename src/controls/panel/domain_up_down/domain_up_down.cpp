@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/domain_up_down/domain_up_down.hpp"
+#include "gui_forms/controls/domain_up_down.hpp"
 
 #include "../up_down/spin_buttons.hpp"
 #include "../panel_anatomy.hpp"
@@ -62,7 +62,7 @@ struct SortedItemOrder final {
 
 } // namespace
 
-DomainUpDown::DomainUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
+DomainUpDown::DomainUpDown(StableId stable_id) : UpDownBase(std::move(stable_id)) {
     // A field paints with the controls, not on the window's backplane as a
     // container panel does: a parent that paints its own face (a Ribbon
     // hosting it) would otherwise cover its border and spin buttons, which
@@ -296,7 +296,9 @@ void DomainUpDown::on_paint_overlay(Painter& painter, Rect local_damage) {
 void DomainUpDown::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     // The spin column takes button_width.read() (or the whole width, when narrower)
-    // at the right; the field takes the rest.
+    // at the right, or at the left when the control resolves right to left
+    // (Windows Forms' UpDownAlign follows RightToLeft); the field takes the
+    // rest.
     // Both sit inside the control's own border (the borderless editor
     // draws none of its own).
     const double inset = border_style.read() == BorderStyle::none ? 0.0 : 1.0;
@@ -304,8 +306,13 @@ void DomainUpDown::arrange(Rect final_bounds) {
     const double inner_height = std::max(0.0, final_bounds.height - 2.0 * inset);
     const double column_width = std::min(button_width.read(), inner_width);
     const double field_width = std::max(0.0, inner_width - column_width);
-    const Rect field{inset, inset, field_width, inner_height};
-    const Rect column{inset + field_width, inset, column_width, inner_height};
+    Rect field{inset, inset, field_width, inner_height};
+    Rect column{inset + field_width, inset, column_width, inner_height};
+    if (effective_layout_direction() == LayoutDirection::right_to_left) {
+        const Rect frame{0.0, 0.0, final_bounds.width, final_bounds.height};
+        field = horizontally_mirrored(field, frame);
+        column = horizontally_mirrored(column, frame);
+    }
     if (editor_) set_child_layout(editor_, field);
     if (spinner_) set_child_layout(spinner_, column);
 }

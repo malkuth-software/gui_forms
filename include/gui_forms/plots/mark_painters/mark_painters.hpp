@@ -23,6 +23,7 @@
 // | inf lines, grid   | none                           | stroke_segments |
 // | heatmap           | none (cells)                   | fill_rects_each |
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/colormap/colormap.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/plots/plot_transform/plot_transform.hpp"
@@ -53,7 +54,7 @@ enum class StairsMode : std::uint8_t {
 };
 
 // What one painter call drew.
-struct MarkStatistics final {
+struct GUI_FORMS_API MarkStatistics final {
     std::size_t points_in{};
     std::size_t points_drawn{};
     bool truncated{};
@@ -61,7 +62,7 @@ struct MarkStatistics final {
 
 enum class InfiniteLineOrientation : std::uint8_t { vertical, horizontal };
 
-class SeriesMarkPainter final {
+class GUI_FORMS_API SeriesMarkPainter final {
 public:
     // Reserves for a plot `columns` device columns wide and series of up to
     // `points` elements drawn without decimation (scatter, bars, error bars,

@@ -1,4 +1,9 @@
 #include "page_tests.hpp"
+#include "gui_forms/controls/color_value_editor.hpp"
+#include "gui_forms/controls/command_bar.hpp"
+#include "gui_forms/controls/flags_value_editor.hpp"
+#include "gui_forms/controls/property_list.hpp"
+#include "gui_forms_lab/instrument_rack.hpp"
 
 namespace gallery_pages_tests {
 

@@ -9,7 +9,7 @@ gui_forms::ScrollableControl
 
 .. cpp:class:: ScrollableControl : public Control, public ScrollableControlCapabilities<ScrollableControl>
 
-   ``#include <gui_forms/controls/scrollable_control/scrollable_control.hpp>``
+   ``#include <gui_forms/controls/scrollable_control.hpp>``
 
    The base class for controls whose children scroll inside a viewport.
 
@@ -437,8 +437,6 @@ gui_forms::ScrollableControl
       Lays out docked and anchored children as :cpp:class:`Control <gui_forms::Control>` does, inside the
       viewport, then moves every anchored child by the scroll position.
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: void on_pointer_bubble(PointerEvent& event) override
 
    .. cpp:function:: std::vector<SemanticNode> semantic_virtual_children() const override
@@ -448,6 +446,44 @@ gui_forms::ScrollableControl
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+      The scroll bars' pointer handling, then the event.
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void scroll_pointer(MouseEventArgs& arguments)
+
+      *Protected.*
+
+      The scroll bars' own pointer handling, which the mouse raisers run before raising the event: a press, release or move on a bar (by arguments.action), or a wheel turn that scrolls. A derived control that handles first calls them from its raisers and raises the event through Control.
+
+   .. cpp:function:: void scroll_pointer(PointerEvent& event)
+
+      *Protected.*
+
+      The same handling in the routed form, for a control whose own handling reads it.
+
+   .. cpp:function:: void scroll_pointer_left()
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -557,3 +593,161 @@ gui_forms::ScrollableControl
    .. cpp:member:: constexpr std::size_t scrollable_control_property_count
 
       ScrollableControl's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ScrollableControl``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 20 unclassified; 17 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ScrollableControl``
+     - ``ScrollableControl``
+     - supported
+   * - property
+     - ``AutoScroll``
+     - ``auto_scroll``
+     - unclassified (untested)
+   * - property
+     - ``AutoScrollMargin``
+     - ``auto_scroll_margin``
+     - unclassified (untested)
+   * - property
+     - ``AutoScrollMinSize``
+     - ``auto_scroll_min_size``
+     - unclassified (untested)
+   * - property
+     - ``AutoScrollPosition``
+     - ``auto_scroll_position``
+     - unclassified (untested)
+   * - property
+     - ``DockPadding``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HorizontalScroll``
+     - ``horizontal_scroll``
+     - supported
+   * - property
+     - ``HScroll``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``VerticalScroll``
+     - ``vertical_scroll``
+     - supported
+   * - property
+     - ``VScroll``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Scroll``
+     - ``scroll``
+     - supported
+   * - method
+     - ``AdjustFormScrollbars``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetScrollState``
+     - ``get_scroll_state``
+     - supported
+   * - method
+     - ``OnScroll``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``ScrollControlIntoView``
+     - ``scroll_control_into_view``
+     - supported
+   * - method
+     - ``ScrollToControl``
+     - ``scroll_to_control``
+     - unclassified (untested)
+   * - method
+     - ``SetAutoScrollMargin``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetDisplayRectLocation``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetScrollState``
+     - ``set_scroll_state``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``hscroll``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``last_scroll_event``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scroll_event_revision``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scroll_position``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scroll_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scroll_target``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scrolling_smoothly``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``viewport_rectangle``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``vscroll``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``wheel_scrolls``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``adjust_scrollbars``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_auto_scroll_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_scroll_position_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``paints_scrolled_content``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``scroll_by``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``scroll_to``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``scrollable_control_property_entries``
+     - unclassified (untested)

@@ -1,7 +1,7 @@
-#include "gui_forms/controls/panel/property_grid/property_grid.hpp"
+#include "gui_forms/controls/property_grid.hpp"
 
-#include "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
-#include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
+#include "gui_forms/controls/color_value_editor.hpp"
+#include "gui_forms/controls/flags_value_editor.hpp"
 #include "property_grid_utilities.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/text.hpp"

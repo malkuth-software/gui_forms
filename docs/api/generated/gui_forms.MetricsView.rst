@@ -9,7 +9,7 @@ gui_forms::MetricsView
 
 .. cpp:class:: MetricsView final : public Control, public MetricsViewCapabilities<MetricsView>
 
-   ``#include <gui_forms/controls/metrics_view/metrics_view.hpp>``
+   ``#include <gui_forms/controls/metrics_view.hpp>``
 
    A diagnostic panel that shows the window's runtime counters.
 
@@ -51,14 +51,6 @@ gui_forms::MetricsView
    :Inherited:
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
-
-   .. seealso::
-
-      :cpp:class:`VisualInspectorView <gui_forms::VisualInspectorView>`
-         Shows the layout and paint state of one control.
-
-      :cpp:class:`EasingPreview <gui_forms::EasingPreview>`
-         Compares easing curves under the current motion policy.
 
    .. rubric:: Notes
 
@@ -156,3 +148,21 @@ gui_forms::MetricsView
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 0 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``style``
+     - supported

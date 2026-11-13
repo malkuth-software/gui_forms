@@ -9,7 +9,7 @@ gui_forms::AnchoredOverlayLayer
 
 .. cpp:class:: AnchoredOverlayLayer final : public Panel, public AnchoredOverlayLayerCapabilities<AnchoredOverlayLayer>
 
-   ``#include <gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_layer.hpp>``
 
    A transparent full-window overlay that shows one overlay control next to an anchor control.
 
@@ -284,14 +284,46 @@ gui_forms::AnchoredOverlayLayer
 
    .. cpp:function:: bool hit_test_local(Point local_point) const override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 1 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``content``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``resolved_placement``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``dismiss_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_content``
+     - unclassified (untested)

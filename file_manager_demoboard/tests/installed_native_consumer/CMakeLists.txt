@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(GUIFormsInstalledNativeConsumer LANGUAGES CXX)
 
-find_package(GUIForms 0.2 REQUIRED CONFIG)
+find_package(GUIForms 0.6 REQUIRED CONFIG)
 
 if(NOT TARGET GUIForms::Application)
     message(FATAL_ERROR "Installed GUI.Forms package has no native Application target")

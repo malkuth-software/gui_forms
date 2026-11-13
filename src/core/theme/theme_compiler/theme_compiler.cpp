@@ -2,6 +2,7 @@
 
 #include "gui_forms/integrity/sha256/sha256.hpp"
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/theme/canvas_look/canvas_look.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
@@ -347,19 +348,38 @@ bool names_control(std::span<const ControlAnatomy> controls, std::string_view co
     return false;
 }
 
+// `controls`, or, where they lack the node canvas, their copy in `storage`
+// with its anatomy appended (cp31): the canvas's anatomy is the theme's
+// (node_canvas_anatomy), so the default sheet's `node-canvas::part(...)`
+// rules compile whether or not a canvas control is registered. Fills
+// `storage` only in that case.
+std::span<const ControlAnatomy> with_canvas_anatomy(std::span<const ControlAnatomy> controls,
+                                                    std::vector<ControlAnatomy>& storage) {
+    if (names_control(controls, node_canvas_control_id)) return controls;
+    storage.clear();
+    storage.reserve(controls.size() + 1U);
+    storage.insert(storage.end(), controls.begin(), controls.end());
+    storage.push_back(node_canvas_anatomy());
+    const std::span<const ControlAnatomy> merged(storage);
+    return merged;
+}
+
 // The anatomies a closure's selectors resolve against: the caller's, then,
 // onto windows-professional, each stock control the caller did not name,
 // since that base's parts sheet speaks the stock controls' vocabulary
-// whatever the caller compiles for. Fills `storage` only in that case.
+// whatever the caller compiles for; on either base the node canvas where
+// none is named (with_canvas_anatomy). Fills `storage` when it adds any.
 std::span<const ControlAnatomy> closure_vocabulary(const ThemeCompileOptions& options,
                                                    std::vector<ControlAnatomy>& storage) {
-    if (options.base == ThemeBase::gui_forms) return options.controls;
+    if (options.base == ThemeBase::gui_forms) return with_canvas_anatomy(options.controls, storage);
     const std::span<const ControlAnatomy> stock = stock_control_anatomies();
-    storage.reserve(options.controls.size() + stock.size());
+    storage.reserve(options.controls.size() + stock.size() + 1U);
     storage.insert(storage.end(), options.controls.begin(), options.controls.end());
     for (const ControlAnatomy& control : stock) {
         if (!names_control(options.controls, control.control_id)) storage.push_back(control);
     }
+    const std::span<const ControlAnatomy> gathered(storage);
+    if (!names_control(gathered, node_canvas_control_id)) storage.push_back(node_canvas_anatomy());
     const std::span<const ControlAnatomy> merged(storage);
     return merged;
 }
@@ -475,6 +495,12 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
     if (set == ThemeRuleSet::program && segments.size() > 1U) {
         base_origin_end = static_cast<std::uint32_t>(segments[1].start);
     }
+    // The base sheet is the colour authority under every set: a layered
+    // user theme's floor is the stock sheet, whose literal colours are not
+    // the user's to answer for (W201), though its rules stand at the user
+    // levels.
+    std::optional<std::uint32_t> colour_authority_end{};
+    if (segments.size() > 1U) colour_authority_end = static_cast<std::uint32_t>(segments[1].start);
     const theme_language::ThemeSource source{.file = closure_file, .text = text};
     const PrimitiveRegistry& registry = builtin_primitive_registry();
     std::vector<ControlAnatomy> vocabulary_storage{};
@@ -490,6 +516,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
                                                   .base_origin_end = base_origin_end,
                                                   .system_colours = options.system_colours,
                                                   .colour_authority = onto_gui_forms && roots.empty(),
+                                                  .colour_authority_end = colour_authority_end,
                                                   .effects = options.effects};
     // The base's recipes, some 100 KB held out of line.
     std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(
@@ -1476,8 +1503,10 @@ std::shared_ptr<const detail::ControlInlineStyle> detail::compile_inline_style(
 
 detail::BuiltInThemeCompilation detail::compile_built_in_theme(const ThemeDefinition& floor, std::string_view file,
                                                                std::string_view sheet,
-                                                               std::span<const ControlAnatomy> controls) {
+                                                               std::span<const ControlAnatomy> given) {
     BuiltInThemeCompilation result{};
+    std::vector<ControlAnatomy> controls_storage{};
+    const std::span<const ControlAnatomy> controls = with_canvas_anatomy(given, controls_storage);
     const theme_language::ThemeSource source{.file = file, .text = sheet};
     const PrimitiveRegistry& registry = builtin_primitive_registry();
     const theme_language::ThemeCompileInput input{.source = source,

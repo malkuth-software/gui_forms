@@ -9,7 +9,7 @@ gui_forms::DropDownButton
 
 .. cpp:class:: DropDownButton final : public Button, public DropDownButtonCapabilities<DropDownButton>
 
-   ``#include <gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp>``
+   ``#include <gui_forms/controls/drop_down_button.hpp>``
 
    A button with an arrow that asks the application to open a menu.
 
@@ -83,7 +83,7 @@ gui_forms::DropDownButton
 
    :Inherited:
 
-      From :cpp:class:`Button <gui_forms::Button>`: properties :cpp:member:`visual_style <gui_forms::Button::visual_style>`, :cpp:member:`flat_border_width <gui_forms::Button::flat_border_width>`, :cpp:member:`default_button <gui_forms::Button::default_button>`, :cpp:member:`dialog_result <gui_forms::Button::dialog_result>`, :cpp:member:`selected <gui_forms::Button::selected>`; events :cpp:func:`dialog_result_changed <gui_forms::Button::dialog_result_changed>`, :cpp:func:`selected_changed <gui_forms::Button::selected_changed>`; methods :cpp:func:`button_property_entries <gui_forms::Button::button_property_entries>`.
+      From :cpp:class:`Button <gui_forms::Button>`: properties :cpp:member:`visual_style <gui_forms::Button::visual_style>`, :cpp:member:`flat_border_width <gui_forms::Button::flat_border_width>`, :cpp:member:`default_button <gui_forms::Button::default_button>`, :cpp:member:`dialog_result <gui_forms::Button::dialog_result>`, :cpp:member:`selected <gui_forms::Button::selected>`, :cpp:member:`danger <gui_forms::Button::danger>`, :cpp:func:`danger_glow <gui_forms::Button::danger_glow>`, :cpp:func:`danger_glowing <gui_forms::Button::danger_glowing>`; events :cpp:func:`dialog_result_changed <gui_forms::Button::dialog_result_changed>`, :cpp:func:`selected_changed <gui_forms::Button::selected_changed>`; methods :cpp:func:`button_property_entries <gui_forms::Button::button_property_entries>`, :cpp:func:`danger_glow_level <gui_forms::Button::danger_glow_level>`.
 
       From :cpp:class:`ButtonBase <gui_forms::ButtonBase>`: properties :cpp:member:`text <gui_forms::ButtonBase::text>`, :cpp:member:`text_alignment <gui_forms::ButtonBase::text_alignment>`, :cpp:member:`font <gui_forms::ButtonBase::font>`, :cpp:member:`content_padding <gui_forms::ButtonBase::content_padding>`, :cpp:member:`text_line_spacing <gui_forms::ButtonBase::text_line_spacing>`, :cpp:member:`image_alignment <gui_forms::ButtonBase::image_alignment>`, :cpp:member:`text_image_relation <gui_forms::ButtonBase::text_image_relation>`, :cpp:member:`image_gap <gui_forms::ButtonBase::image_gap>`, :cpp:member:`use_mnemonic <gui_forms::ButtonBase::use_mnemonic>`, :cpp:member:`expanded_state <gui_forms::ButtonBase::expanded_state>`, :cpp:member:`image <gui_forms::ButtonBase::image>`, :cpp:func:`command_connected <gui_forms::ButtonBase::command_connected>`, :cpp:func:`style <gui_forms::ButtonBase::style>`, :cpp:func:`has_style_override <gui_forms::ButtonBase::has_style_override>`, :cpp:func:`visual_recipes_override <gui_forms::ButtonBase::visual_recipes_override>`, :cpp:func:`connection_topology <gui_forms::ButtonBase::connection_topology>`, :cpp:func:`image_list <gui_forms::ButtonBase::image_list>`, :cpp:func:`image_index <gui_forms::ButtonBase::image_index>`, :cpp:func:`image_key <gui_forms::ButtonBase::image_key>`, :cpp:func:`pressed_visual <gui_forms::ButtonBase::pressed_visual>`, :cpp:func:`focused_visual <gui_forms::ButtonBase::focused_visual>`, :cpp:func:`focus_cue_visible <gui_forms::ButtonBase::focus_cue_visible>`, :cpp:func:`hovered_visual <gui_forms::ButtonBase::hovered_visual>`; events :cpp:func:`expanded_changed <gui_forms::ButtonBase::expanded_changed>`, :cpp:func:`clicked <gui_forms::ButtonBase::clicked>`, :cpp:func:`text_changed <gui_forms::ButtonBase::text_changed>`; methods :cpp:func:`button_base_property_entries <gui_forms::ButtonBase::button_base_property_entries>`, :cpp:func:`clear_image <gui_forms::ButtonBase::clear_image>`, :cpp:func:`clear_style <gui_forms::ButtonBase::clear_style>`, :cpp:func:`clear_visual_recipes <gui_forms::ButtonBase::clear_visual_recipes>`, :cpp:func:`perform_click <gui_forms::ButtonBase::perform_click>`, :cpp:func:`set_visual_recipes <gui_forms::ButtonBase::set_visual_recipes>`, :cpp:func:`unbind_command <gui_forms::ButtonBase::unbind_command>`.
 
@@ -265,10 +265,6 @@ gui_forms::DropDownButton
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
@@ -276,6 +272,22 @@ gui_forms::DropDownButton
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_up(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -288,3 +300,113 @@ gui_forms::DropDownButton
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ToolStripSplitButton``. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 18 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ToolStripSplitButton``
+     - ``DropDownButton``
+     - supported
+   * - property
+     - ``AutoToolTip``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ButtonBounds``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ButtonPressed``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ButtonSelected``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DropDownButtonBounds``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DropDownButtonPressed``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DropDownButtonSelected``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DropDownButtonWidth``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SplitterBounds``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ButtonClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ButtonDoubleClick``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DefaultItemChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnButtonClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnButtonDoubleClick``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDefaultItemChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``PerformButtonClick``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ResetDropDownButtonWidth``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``drop_down_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drop_down_open``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_close_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``perform_drop_down``
+     - supported

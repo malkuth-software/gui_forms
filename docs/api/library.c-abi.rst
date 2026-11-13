@@ -18,6 +18,8 @@ Types
      - gf_application_table, negotiated as GF_TABLE_APPLICATION.
    * - :cpp:class:`BindingsTable <gui_forms::abi::BindingsTable>`
      - gf_bindings_table, negotiated as GF_TABLE_BINDINGS.
+   * - :cpp:class:`ClassesTable <gui_forms::abi::ClassesTable>`
+     - gf_classes_table, negotiated as GF_TABLE_CLASSES.
    * - :cpp:class:`ControlsTable <gui_forms::abi::ControlsTable>`
      - gf_controls_table, negotiated as GF_TABLE_CONTROLS.
    * - :cpp:class:`CustomControlsTable <gui_forms::abi::CustomControlsTable>`
@@ -96,9 +98,29 @@ Types
      -  
    * - :cpp:class:`gf_bindings_table <gf_bindings_table>`
      -  
+   * - :cpp:class:`gf_button_base_class <gf_button_base_class>`
+     -  
+   * - :cpp:class:`gf_button_class <gf_button_class>`
+     -  
    * - :cpp:class:`gf_bytes_view <gf_bytes_view>`
      -  
    * - :cpp:class:`gf_callback <gf_callback>`
+     -  
+   * - :cpp:class:`gf_card_class <gf_card_class>`
+     -  
+   * - :cpp:class:`gf_check_box_class <gf_check_box_class>`
+     -  
+   * - :cpp:class:`gf_check_box_hooks <gf_check_box_hooks>`
+     -  
+   * - :cpp:class:`gf_class_header <gf_class_header>`
+     -  
+   * - :cpp:class:`gf_classes_table <gf_classes_table>`
+     -  
+   * - :cpp:class:`gf_combo_box_hooks <gf_combo_box_hooks>`
+     -  
+   * - :cpp:class:`gf_container_control_class <gf_container_control_class>`
+     -  
+   * - :cpp:class:`gf_control_hooks <gf_control_hooks>`
      -  
    * - :cpp:class:`gf_controls_table <gf_controls_table>`
      -  
@@ -126,7 +148,13 @@ Types
      -  
    * - :cpp:class:`gf_data_grid_table <gf_data_grid_table>`
      -  
+   * - :cpp:class:`gf_data_grid_view_hooks <gf_data_grid_view_hooks>`
+     -  
+   * - :cpp:class:`gf_date_time_picker_hooks <gf_date_time_picker_hooks>`
+     -  
    * - :cpp:class:`gf_diagnostics_table <gf_diagnostics_table>`
+     -  
+   * - :cpp:class:`gf_dial_class <gf_dial_class>`
      -  
    * - :cpp:class:`gf_dialog_request <gf_dialog_request>`
      -  
@@ -138,9 +166,13 @@ Types
      -  
    * - :cpp:class:`gf_dock_location <gf_dock_location>`
      -  
+   * - :cpp:class:`gf_dock_navigator_class <gf_dock_navigator_class>`
+     -  
    * - :cpp:class:`gf_dock_options <gf_dock_options>`
      -  
    * - :cpp:class:`gf_dock_panel <gf_dock_panel>`
+     -  
+   * - :cpp:class:`gf_dock_site_class <gf_dock_site_class>`
      -  
    * - :cpp:class:`gf_docking_table <gf_docking_table>`
      -  
@@ -152,11 +184,17 @@ Types
      -  
    * - :cpp:class:`gf_events_table <gf_events_table>`
      -  
+   * - :cpp:class:`gf_failure_snapshot <gf_failure_snapshot>`
+     -  
    * - :cpp:class:`gf_file_filter <gf_file_filter>`
      -  
    * - :cpp:class:`gf_font <gf_font>`
      -  
    * - :cpp:class:`gf_fonts_table <gf_fonts_table>`
+     -  
+   * - :cpp:class:`gf_gauge_base_class <gf_gauge_base_class>`
+     -  
+   * - :cpp:class:`gf_group_box_class <gf_group_box_class>`
      -  
    * - :cpp:class:`gf_help_table <gf_help_table>`
      -  
@@ -164,7 +202,15 @@ Types
      -  
    * - :cpp:class:`gf_host_table <gf_host_table>`
      -  
+   * - :cpp:class:`gf_label_class <gf_label_class>`
+     -  
    * - :cpp:class:`gf_layout_transaction <gf_layout_transaction>`
+     -  
+   * - :cpp:class:`gf_link_label_class <gf_link_label_class>`
+     -  
+   * - :cpp:class:`gf_list_box_class <gf_list_box_class>`
+     -  
+   * - :cpp:class:`gf_list_control_class <gf_list_control_class>`
      -  
    * - :cpp:class:`gf_logical_insets <gf_logical_insets>`
      -  
@@ -174,17 +220,51 @@ Types
      -  
    * - :cpp:class:`gf_logical_size <gf_logical_size>`
      -  
+   * - :cpp:class:`gf_masked_text_box_hooks <gf_masked_text_box_hooks>`
+     -  
+   * - :cpp:class:`gf_material_panel_class <gf_material_panel_class>`
+     -  
+   * - :cpp:class:`gf_navigation_pane_class <gf_navigation_pane_class>`
+     -  
+   * - :cpp:class:`gf_node_canvas_class <gf_node_canvas_class>`
+     -  
+   * - :cpp:class:`gf_node_canvas_hooks <gf_node_canvas_hooks>`
+     -  
+   * - :cpp:class:`gf_numeric_up_down_hooks <gf_numeric_up_down_hooks>`
+     -  
    * - :cpp:class:`gf_objects_table <gf_objects_table>`
      -  
    * - :cpp:class:`gf_overlays_table <gf_overlays_table>`
      -  
    * - :cpp:class:`gf_owned_window_options <gf_owned_window_options>`
      -  
+   * - :cpp:class:`gf_page_strip_class <gf_page_strip_class>`
+     -  
+   * - :cpp:class:`gf_page_view_class <gf_page_view_class>`
+     -  
    * - :cpp:class:`gf_paint_target <gf_paint_target>`
+     -  
+   * - :cpp:class:`gf_panel_class <gf_panel_class>`
+     -  
+   * - :cpp:class:`gf_picture_box_class <gf_picture_box_class>`
+     -  
+   * - :cpp:class:`gf_picture_box_hooks <gf_picture_box_hooks>`
+     -  
+   * - :cpp:class:`gf_progress_bar_class <gf_progress_bar_class>`
      -  
    * - :cpp:class:`gf_properties_table <gf_properties_table>`
      -  
    * - :cpp:class:`gf_property_grid_table <gf_property_grid_table>`
+     -  
+   * - :cpp:class:`gf_radio_button_class <gf_radio_button_class>`
+     -  
+   * - :cpp:class:`gf_radio_button_hooks <gf_radio_button_hooks>`
+     -  
+   * - :cpp:class:`gf_range_control_class <gf_range_control_class>`
+     -  
+   * - :cpp:class:`gf_range_control_hooks <gf_range_control_hooks>`
+     -  
+   * - :cpp:class:`gf_raster_canvas_class <gf_raster_canvas_class>`
      -  
    * - :cpp:class:`gf_rule <gf_rule>`
      -  
@@ -198,6 +278,8 @@ Types
      -  
    * - :cpp:class:`gf_runtime_table <gf_runtime_table>`
      - gf_runtime_table (GF_TABLE_RUNTIME) reports the versions and copies out or clears the calling thread's error detail, from any thread.
+   * - :cpp:class:`gf_scaled_panel_class <gf_scaled_panel_class>`
+     -  
    * - :cpp:class:`gf_schema_choice <gf_schema_choice>`
      -  
    * - :cpp:class:`gf_schema_effect <gf_schema_effect>`
@@ -222,7 +304,13 @@ Types
      -  
    * - :cpp:class:`gf_scroll_axis <gf_scroll_axis>`
      -  
+   * - :cpp:class:`gf_scroll_bar_class <gf_scroll_bar_class>`
+     -  
    * - :cpp:class:`gf_scroll_snapshot <gf_scroll_snapshot>`
+     -  
+   * - :cpp:class:`gf_scrollable_control_class <gf_scrollable_control_class>`
+     -  
+   * - :cpp:class:`gf_segment_header <gf_segment_header>`
      -  
    * - :cpp:class:`gf_shadow_frame <gf_shadow_frame>`
      -  
@@ -233,6 +321,10 @@ Types
    * - :cpp:class:`gf_subsurface_content <gf_subsurface_content>`
      -  
    * - :cpp:class:`gf_subsurfaces_table <gf_subsurfaces_table>`
+     -  
+   * - :cpp:class:`gf_sweep_scope_class <gf_sweep_scope_class>`
+     -  
+   * - :cpp:class:`gf_text_box_base_class <gf_text_box_base_class>`
      -  
    * - :cpp:class:`gf_text_decoration <gf_text_decoration>`
      -  
@@ -247,6 +339,14 @@ Types
    * - :cpp:class:`gf_theme_report <gf_theme_report>`
      -  
    * - :cpp:class:`gf_themes_table <gf_themes_table>`
+     -  
+   * - :cpp:class:`gf_tool_strip_class <gf_tool_strip_class>`
+     -  
+   * - :cpp:class:`gf_track_bar_class <gf_track_bar_class>`
+     -  
+   * - :cpp:class:`gf_up_down_base_class <gf_up_down_base_class>`
+     -  
+   * - :cpp:class:`gf_user_control_class <gf_user_control_class>`
      -  
    * - :cpp:class:`gf_utf8_view <gf_utf8_view>`
      - gf_utf8_view (C ABI 1) borrows size bytes of UTF-8 text, not terminated; the callee copies what it keeps.
@@ -390,6 +490,39 @@ Types
    .. cpp:function:: gf_status set_sort(gf_object source, const gf_binding_sort_key* keys, uint64_t count) const noexcept
 
    .. cpp:function:: gf_status set_filter(gf_object source, const gf_binding_predicate* predicates, uint64_t count) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: ClassesTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_classes_table, negotiated as GF_TABLE_CLASSES.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ClassesTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_classes_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(ClassesTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static ClassesTable adopt(const gf_classes_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status create(const gf_class_header* table, gf_utf8_view stable_id, void* instance, gf_object* object) const noexcept
+
+   .. cpp:function:: gf_status base_raiser(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -592,6 +725,8 @@ Types
 
    .. cpp:function:: const gf_diagnostics_table& c_table() const noexcept
 
+   .. cpp:function:: gf_status clear_failure_snapshot() const noexcept
+
 
    .. rubric:: Methods
 
@@ -607,7 +742,15 @@ Types
 
    .. cpp:function:: gf_status invalidation_overlay(uint32_t* enabled) const noexcept
 
+   .. cpp:function:: gf_status failure_snapshot(gf_failure_snapshot* snapshot, gf_shadow_frame* frames, uint64_t frame_capacity, uint64_t* frames_required, char* message_buffer, uint64_t message_capacity, uint64_t* message_required) const noexcept
+
+   .. cpp:function:: gf_status exception_reflection(uint32_t* enabled) const noexcept
+
+   .. cpp:function:: gf_status raise_native_exception(gf_utf8_view message) const noexcept
+
    .. cpp:function:: gf_status set_invalidation_overlay(uint32_t enabled) const noexcept
+
+   .. cpp:function:: gf_status set_exception_reflection(uint32_t enabled) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -1572,6 +1715,26 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_button_base_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_button_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_bytes_view
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -1598,6 +1761,198 @@ Types
    .. cpp:member:: uint32_t reserved
 
    .. cpp:member:: void* context
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_card_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_check_box_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+   .. cpp:member:: const gf_check_box_hooks* check_box
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_check_box_hooks
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: gf_hook_entry on_appearance_changed
+
+   .. cpp:member:: gf_hook_entry on_checked_changed
+
+   .. cpp:member:: gf_hook_entry on_check_state_changed
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_class_header
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: void (*release)(void* instance)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: uint32_t segment_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_classes_table
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*create)(const gf_class_header* table, gf_utf8_view stable_id, void* instance, gf_object* object)
+
+   .. cpp:member:: gf_status (*base_raiser)(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_combo_box_hooks
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: gf_hook_entry on_drop_down_style_changed
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_container_control_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_control_hooks
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: gf_hook_entry on_auto_size_changed
+
+   .. cpp:member:: gf_hook_entry on_back_color_changed
+
+   .. cpp:member:: gf_hook_entry on_causes_validation_changed
+
+   .. cpp:member:: gf_hook_entry on_cursor_changed
+
+   .. cpp:member:: gf_hook_entry on_dock_changed
+
+   .. cpp:member:: gf_hook_entry on_enabled_changed
+
+   .. cpp:member:: gf_hook_entry on_fore_color_changed
+
+   .. cpp:member:: gf_hook_entry on_margin_changed
+
+   .. cpp:member:: gf_hook_entry on_padding_changed
+
+   .. cpp:member:: gf_hook_entry on_right_to_left_changed
+
+   .. cpp:member:: gf_hook_entry on_tab_index_changed
+
+   .. cpp:member:: gf_hook_entry on_tab_stop_changed
+
+   .. cpp:member:: gf_hook_entry on_visible_changed
+
+   .. cpp:member:: gf_hook_entry on_change_ui_cues
+
+   .. cpp:member:: gf_hook_entry on_click
+
+   .. cpp:member:: gf_hook_entry on_double_click
+
+   .. cpp:member:: gf_hook_entry on_drag_drop
+
+   .. cpp:member:: gf_hook_entry on_drag_enter
+
+   .. cpp:member:: gf_hook_entry on_drag_leave
+
+   .. cpp:member:: gf_hook_entry on_drag_over
+
+   .. cpp:member:: gf_hook_entry on_enter
+
+   .. cpp:member:: gf_hook_entry on_got_focus
+
+   .. cpp:member:: gf_hook_entry on_help_requested
+
+   .. cpp:member:: gf_hook_entry on_key_down
+
+   .. cpp:member:: gf_hook_entry on_key_press
+
+   .. cpp:member:: gf_hook_entry on_key_up
+
+   .. cpp:member:: gf_hook_entry on_layout
+
+   .. cpp:member:: gf_hook_entry on_leave
+
+   .. cpp:member:: gf_hook_entry on_lost_focus
+
+   .. cpp:member:: gf_hook_entry on_mouse_capture_changed
+
+   .. cpp:member:: gf_hook_entry on_mouse_click
+
+   .. cpp:member:: gf_hook_entry on_mouse_double_click
+
+   .. cpp:member:: gf_hook_entry on_mouse_down
+
+   .. cpp:member:: gf_hook_entry on_mouse_enter
+
+   .. cpp:member:: gf_hook_entry on_mouse_hover
+
+   .. cpp:member:: gf_hook_entry on_mouse_leave
+
+   .. cpp:member:: gf_hook_entry on_mouse_move
+
+   .. cpp:member:: gf_hook_entry on_mouse_up
+
+   .. cpp:member:: gf_hook_entry on_mouse_wheel
+
+   .. cpp:member:: gf_hook_entry on_paint_background
+
+   .. cpp:member:: gf_hook_entry on_preview_key_down
+
+   .. cpp:member:: gf_hook_entry on_validated
+
+   .. cpp:member:: gf_hook_entry on_validating
 
 .. cpp:namespace:: 0
 
@@ -1930,6 +2285,74 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_data_grid_view_hooks
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: gf_hook_entry on_allow_user_to_delete_rows_changed
+
+   .. cpp:member:: gf_hook_entry on_allow_user_to_order_columns_changed
+
+   .. cpp:member:: gf_hook_entry on_allow_user_to_resize_columns_changed
+
+   .. cpp:member:: gf_hook_entry on_allow_user_to_resize_rows_changed
+
+   .. cpp:member:: gf_hook_entry on_alternating_rows_default_cell_style_changed
+
+   .. cpp:member:: gf_hook_entry on_auto_size_columns_mode_changed
+
+   .. cpp:member:: gf_hook_entry on_auto_size_rows_mode_changed
+
+   .. cpp:member:: gf_hook_entry on_background_color_changed
+
+   .. cpp:member:: gf_hook_entry on_border_style_changed
+
+   .. cpp:member:: gf_hook_entry on_cell_border_style_changed
+
+   .. cpp:member:: gf_hook_entry on_column_headers_border_style_changed
+
+   .. cpp:member:: gf_hook_entry on_column_headers_default_cell_style_changed
+
+   .. cpp:member:: gf_hook_entry on_column_headers_height_changed
+
+   .. cpp:member:: gf_hook_entry on_default_cell_style_changed
+
+   .. cpp:member:: gf_hook_entry on_edit_mode_changed
+
+   .. cpp:member:: gf_hook_entry on_grid_color_changed
+
+   .. cpp:member:: gf_hook_entry on_multi_select_changed
+
+   .. cpp:member:: gf_hook_entry on_read_only_changed
+
+   .. cpp:member:: gf_hook_entry on_row_headers_border_style_changed
+
+   .. cpp:member:: gf_hook_entry on_row_headers_default_cell_style_changed
+
+   .. cpp:member:: gf_hook_entry on_row_headers_width_changed
+
+   .. cpp:member:: gf_hook_entry on_rows_default_cell_style_changed
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_date_time_picker_hooks
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: gf_hook_entry on_format_changed
+
+   .. cpp:member:: gf_hook_entry on_value_changed
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_diagnostics_table
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -1943,9 +2366,31 @@ Types
 
    .. cpp:member:: gf_status (*invalidation_overlay)(uint32_t* enabled)
 
+   .. cpp:member:: gf_status (*failure_snapshot)(gf_failure_snapshot* snapshot, gf_shadow_frame* frames, uint64_t frame_capacity, uint64_t* frames_required, char* message_buffer, uint64_t message_capacity, uint64_t* message_required)
+
+   .. cpp:member:: gf_status (*clear_failure_snapshot)(void)
+
+   .. cpp:member:: gf_status (*set_exception_reflection)(uint32_t enabled)
+
+   .. cpp:member:: gf_status (*exception_reflection)(uint32_t* enabled)
+
+   .. cpp:member:: gf_status (*raise_native_exception)(gf_utf8_view message)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_dial_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+   .. cpp:member:: const gf_range_control_hooks* range_control
 
 .. cpp:namespace:: 0
 
@@ -2082,6 +2527,16 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_dock_navigator_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_dock_options
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2127,6 +2582,16 @@ Types
    .. cpp:member:: gf_object content
 
    .. cpp:member:: uint64_t reserved
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_dock_site_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
 
 .. cpp:namespace:: 0
 
@@ -2250,6 +2715,32 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_failure_snapshot
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_status status
+
+   .. cpp:member:: gf_table_id table_id
+
+   .. cpp:member:: uint32_t slot_index
+
+   .. cpp:member:: uint64_t sequence
+
+   .. cpp:member:: uint32_t frame_count
+
+   .. cpp:member:: uint32_t depth
+
+   .. cpp:member:: uint32_t site_size
+
+   .. cpp:member:: uint32_t message_size
+
+   .. cpp:member:: uint8_t site[64]
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_file_filter
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2297,6 +2788,28 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_gauge_base_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+   .. cpp:member:: const gf_range_control_hooks* range_control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_group_box_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_help_table
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2321,6 +2834,18 @@ Types
    .. cpp:member:: gf_status (*enter_help_mode)(gf_object system, gf_object window, uint32_t* entered)
 
    .. cpp:member:: gf_status (*cancel_help_mode)(gf_object system)
+
+   .. cpp:member:: gf_status (*load_translation)(gf_object system, gf_utf8_view locale_xml)
+
+   .. cpp:member:: gf_status (*load_user_overrides)(gf_object system, gf_utf8_view locale_xml)
+
+   .. cpp:member:: gf_status (*clear_user_overrides)(gf_object system)
+
+   .. cpp:member:: gf_status (*use_built_in_language)(gf_object system, uint32_t built_in_only)
+
+   .. cpp:member:: gf_status (*export_template)(gf_object system, gf_utf8_view language, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*read_field)(gf_object system, gf_utf8_view stable_id, gf_locale_field field, char* buffer, uint64_t capacity, uint64_t* required, gf_locale_origin* origin)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2375,6 +2900,16 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_label_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_layout_transaction
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2390,6 +2925,36 @@ Types
    .. cpp:member:: uint64_t requested_revision
 
    .. cpp:member:: uint64_t committed_revision
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_link_label_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_list_box_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_list_control_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
 
 .. cpp:namespace:: 0
 
@@ -2438,6 +3003,84 @@ Types
    .. cpp:member:: double width
 
    .. cpp:member:: double height
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_masked_text_box_hooks
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: gf_hook_entry on_mask_changed
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_material_panel_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_navigation_pane_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_node_canvas_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+   .. cpp:member:: const gf_node_canvas_hooks* node_canvas
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_node_canvas_hooks
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: gf_hook_entry on_edit_ended
+
+   .. cpp:member:: gf_hook_entry on_graph_edited
+
+   .. cpp:member:: gf_hook_entry on_link_connected
+
+   .. cpp:member:: gf_hook_entry on_palette_requested
+
+   .. cpp:member:: gf_hook_entry on_selection_changed
+
+   .. cpp:member:: gf_hook_entry on_view_changed
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_numeric_up_down_hooks
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: gf_hook_entry on_value_changed
 
 .. cpp:namespace:: 0
 
@@ -2535,6 +3178,26 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_page_strip_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_page_view_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_paint_target
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2554,6 +3217,52 @@ Types
    .. cpp:member:: double scale
 
    .. cpp:member:: gf_logical_rect damage
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_panel_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_picture_box_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+   .. cpp:member:: const gf_picture_box_hooks* picture_box
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_picture_box_hooks
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: gf_hook_entry on_size_mode_changed
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_progress_bar_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+   .. cpp:member:: const gf_range_control_hooks* range_control
 
 .. cpp:namespace:: 0
 
@@ -2604,6 +3313,64 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_radio_button_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+   .. cpp:member:: const gf_radio_button_hooks* radio_button
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_radio_button_hooks
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: gf_hook_entry on_checked_changed
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_range_control_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+   .. cpp:member:: const gf_range_control_hooks* range_control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_range_control_hooks
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
+
+   .. cpp:member:: gf_hook_entry on_value_changed
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_raster_canvas_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
 
 .. cpp:namespace:: 0
 
@@ -2742,6 +3509,16 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_scaled_panel_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
 
 .. cpp:namespace:: 0
 
@@ -3054,6 +3831,18 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_scroll_bar_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+   .. cpp:member:: const gf_range_control_hooks* range_control
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_scroll_snapshot
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -3085,6 +3874,26 @@ Types
    .. cpp:member:: double event_old_value
 
    .. cpp:member:: double event_new_value
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_scrollable_control_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_segment_header
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_class_id class_id
 
 .. cpp:namespace:: 0
 
@@ -3178,6 +3987,28 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_sweep_scope_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+   .. cpp:member:: const gf_range_control_hooks* range_control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_text_box_base_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
 
 .. cpp:namespace:: 0
 
@@ -3349,6 +4180,48 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_tool_strip_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_track_bar_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+   .. cpp:member:: const gf_range_control_hooks* range_control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_up_down_base_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_user_control_class
+
+   ``#include <gui_forms/c/gf_abi_classes.h>``
+
+   .. cpp:member:: gf_class_header header
+
+   .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_utf8_view
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -3513,6 +4386,18 @@ Types
    .. cpp:function:: gf_status enter_help_mode(gf_object system, gf_object window, uint32_t* entered) const noexcept
 
    .. cpp:function:: gf_status cancel_help_mode(gf_object system) const noexcept
+
+   .. cpp:function:: gf_status load_translation(gf_object system, gf_utf8_view locale_xml) const noexcept
+
+   .. cpp:function:: gf_status load_user_overrides(gf_object system, gf_utf8_view locale_xml) const noexcept
+
+   .. cpp:function:: gf_status clear_user_overrides(gf_object system) const noexcept
+
+   .. cpp:function:: gf_status use_built_in_language(gf_object system, uint32_t built_in_only) const noexcept
+
+   .. cpp:function:: gf_status export_template(gf_object system, gf_utf8_view language, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status read_field(gf_object system, gf_utf8_view stable_id, gf_locale_field field, char* buffer, uint64_t capacity, uint64_t* required, gf_locale_origin* origin) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 

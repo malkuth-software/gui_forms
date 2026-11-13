@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/feedback/types/feedback_types.hpp"
@@ -15,16 +16,17 @@ namespace gui_forms {
 
 class Window;
 
-class SemanticFeedback final : public Component {
+class GUI_FORMS_API SemanticFeedback final : public Component {
 public:
     using Clock = std::function<std::uint64_t()>;
 
     explicit SemanticFeedback(Window& window, Clock clock = {});
 
     [[nodiscard]] SemanticFeedbackRecord emit(SemanticFeedbackKind kind);
-    [[nodiscard]] std::span<const SemanticFeedbackRecord> records() const noexcept {
-        return records_;
+    [[nodiscard]] std::span<const SemanticFeedbackRecord> records() const& noexcept {
+        return std::span<const SemanticFeedbackRecord>(records_.data(), records_.size());
     }
+    std::span<const SemanticFeedbackRecord> records() const&& = delete;
     [[nodiscard]] std::uint64_t dropped_record_count() const noexcept {
         return dropped_record_count_;
     }

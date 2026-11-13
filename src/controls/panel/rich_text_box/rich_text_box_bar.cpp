@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
+#include "gui_forms/controls/rich_text_box.hpp"
 
 #include "../text_editing/text_editing_engine.hpp"
 #include "gui_forms/commands/command/command.hpp"
@@ -170,7 +170,7 @@ void RichTextBox::paint_bar(Painter& painter) const {
         part.alignment = PartTextAlignment::center;
         const double arrow = kind == RichTextBarButton::heading ? arrow_width : 0.0;
         part.bounds = {button.x, button.y, button.width - arrow, button.height};
-        part.text = bar_button_texts[index].label;
+        part.text = lend_paint_text(bar_button_texts[index].label);
         paint_part(painter, *this, part);
         part.text = {};
         if (kind == RichTextBarButton::heading) {

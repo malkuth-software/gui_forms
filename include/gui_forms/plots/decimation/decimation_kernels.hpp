@@ -3,6 +3,7 @@
 // The decimation templates' definitions (decimation.hpp declares and
 // documents them). Included at the end of decimation.hpp only.
 
+#include "gui_forms/export/application_export.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -16,7 +17,7 @@ namespace detail {
 
 // Appends one point to a caller's buffer; false (and nothing written) when
 // it is full.
-struct PointWriter final {
+struct GUI_FORMS_API PointWriter final {
     std::span<Point> out{};
     std::size_t written{};
     bool truncated{};
@@ -47,7 +48,7 @@ inline Point gap_point() noexcept {
 // indices of its first, minimum, maximum and last (data y extremes, the
 // earliest on ties; the y mapping is monotone, so these are the device
 // extremes too).
-struct EnvelopeColumn final {
+struct GUI_FORMS_API EnvelopeColumn final {
     std::size_t first{};
     std::size_t minimum{};
     std::size_t maximum{};

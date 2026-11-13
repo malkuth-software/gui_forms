@@ -4,7 +4,14 @@
 // candidate here: the look's resolved form is private to the bake, so this
 // is the baseline FS10 lacked.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 #include "../src/core/engine/primitives/material/material_primitive.hpp"
 
 #include <algorithm>

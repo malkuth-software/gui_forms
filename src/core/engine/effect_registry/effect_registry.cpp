@@ -2,7 +2,9 @@
 
 #include "../../text/localizable/gui_forms_notes.hpp"
 #include "../primitives/kernel/box_blur.hpp"
+#include "../../surface_root/access/surface_engine_access.hpp"
 
+#include "gui_forms/allocation/statistics/allocation_statistics.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
@@ -298,7 +300,12 @@ std::size_t EffectRegistry::unverified_count() const noexcept {
 }
 
 void effect_detail::StorageRelease::operator()(std::byte* storage) const noexcept {
+    if (storage == nullptr) return;
+    // The unsized aligned delete matches the aligned new in instantiate();
+    // libraries built without sized deallocation (MinGW clang64's libc++)
+    // do not declare the sized form.
     ::operator delete(storage, std::align_val_t(alignment));
+    detail::count_release(AllocationSubsystem::effects, size);
 }
 
 void effect_detail::BlurWorkRelease::operator()(engine_primitives::BoxBlurWork* work) const noexcept {
@@ -320,10 +327,13 @@ void EffectInstance::attach(const EffectEntry& entry, std::uint64_t seed, FrameT
     detach();
     // Effects are trivially destructible (EffectProgram), so releasing the
     // storage ends the state's lifetime.
+    // Counted under AllocationSubsystem::effects; StorageRelease counts the
+    // release with the same size.
     std::byte* const storage =
         static_cast<std::byte*>(::operator new(entry.size, std::align_val_t(entry.alignment)));
+    detail::count_allocation(AllocationSubsystem::effects, entry.size);
     storage_ = std::unique_ptr<std::byte, effect_detail::StorageRelease>(
-        storage, effect_detail::StorageRelease{entry.alignment});
+        storage, effect_detail::StorageRelease{entry.size, entry.alignment});
     state_ = (*entry.construct)(storage);
     entry_ = &entry;
     seed_ = seed;
@@ -471,7 +481,7 @@ std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& paint
     // within its own surface (design note section 14).
     SurfaceRoot* const root = host.attached_surface_root();
     if (root == nullptr) return {};
-    const SurfaceRoot::EnginePaintPlace place = (*root).engine_paint_place(host, painter);
+    const detail::SurfaceEngineAccess::PaintPlace place = detail::SurfaceEngineAccess::paint_place(*root, host, painter);
     // A part recorded in the backplane plane would sample itself.
     if (place.painted_by == nullptr || (*place.painted_by).paint_plane() == PaintPlane::backplane) return {};
     const EffectDeclaration& declaration = *(*entry_).declaration;
@@ -480,11 +490,12 @@ std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& paint
     if (declaration.time_model != EffectTimeModel::ambient) {
         PartKey key{};
         key.part = declaration.name;
-        const std::optional<PartRecordHandle> record = (*root).note_engine_part(host, key, AnatomyStateSet{});
+        const std::optional<PartRecordHandle> record =
+            detail::SurfaceEngineAccess::note_part(*root, host, key, AnatomyStateSet{});
         if (record) {
             const Rect extent{layer.x + place.origin.x, layer.y + place.origin.y, layer.width, layer.height};
-            (*root).note_engine_paint(*record, 0U, *place.painted_by, extent);
-            (*root).note_engine_backplane_reader(*record, true);
+            detail::SurfaceEngineAccess::note_paint(*root, *record, 0U, *place.painted_by, extent);
+            detail::SurfaceEngineAccess::note_backplane_reader(*root, *record, true);
         }
     }
     const std::optional<std::uint32_t> width = device_side(layer.width, scale);
@@ -496,7 +507,8 @@ std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& paint
     const std::uint32_t half = flattened ? 0U : effect_backdrop_half(declaration.backdrop_margin, scale);
     const std::uint32_t margin = half * 3U;
     const Point raster_origin{place.window_origin.x + layer.x, place.window_origin.y + layer.y};
-    const SurfaceRoot::EngineBackplane lent = (*root).engine_backplane(raster_origin, extent, DeviceScale{scale}, margin);
+    const detail::SurfaceEngineAccess::Backplane lent =
+        detail::SurfaceEngineAccess::backplane(*root, raster_origin, extent, DeviceScale{scale}, margin);
     if (!lent.image) return {};
     BackdropKey key{};
     key.generation = lent.generation;
@@ -619,6 +631,23 @@ std::uint64_t EffectInstance::state_checksum() const noexcept {
     const std::span<const std::byte> bytes(static_cast<const std::byte*>(state_), (*entry_).size);
     const std::uint64_t hash = fnv1a(bytes);
     return hash;
+}
+
+namespace {
+
+// The process's installed registry (install_effect_registry), owned by its
+// installer; null while none is installed.
+std::atomic<const EffectRegistry*> installed_registry{nullptr};
+
+} // namespace
+
+void install_effect_registry(const EffectRegistry* registry) noexcept {
+    installed_registry.store(registry, std::memory_order_release);
+}
+
+const EffectRegistry* installed_effect_registry() noexcept {
+    const EffectRegistry* const registry = installed_registry.load(std::memory_order_acquire);
+    return registry;
 }
 
 } // namespace gui_forms

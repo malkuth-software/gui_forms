@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/document_view/types/document_view_types.hpp"
 
 #include <array>
@@ -10,7 +11,7 @@ namespace gui_forms {
 // Tokens are scoped to this instance: never route them to another model.
 // Before destruction, cancel/drain dispatch, complete workers and release their
 // payloads. Neither a producer nor deferred work may retain a model borrow.
-class DocumentViewState final {
+class GUI_FORMS_API DocumentViewState final {
 public:
     DocumentViewState() = default;
     DocumentViewState(const DocumentViewState&) = delete;

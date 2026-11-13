@@ -629,10 +629,34 @@ def out_of_line_member(method: Method) -> bool:
     return "::" in declarator
 
 
+# What a function directive declares, as Sphinx's C++ domain identifies it:
+# `inline`, `constexpr` and the exception specification do not make a second
+# declaration. The two branches of a build-mode #if (the checked-borrows build
+# and the ordinary one) often differ only there, and the parser reads both.
+DECLARATION_ONLY_SPECIFIERS = re.compile(r"\b(?:inline|constexpr)\s+|\s*\bnoexcept\b(?:\s*\([^()]*\))?")
+
+
+def function_identity(namespace: str, method: Method) -> str:
+    plain = DECLARATION_ONLY_SPECIFIERS.sub(" ", function_directive(method))
+    return namespace + " " + re.sub(r"\s+", " ", plain).strip()
+
+
+def documented_as_type(namespace: str, item: Declaration, linker: Linker) -> bool:
+    """Whether an alias names a type the reference already declares as a class:
+    the other branch of a build-mode #if (BorrowedText is a class in the
+    checked-borrows build and an alias of std::string_view otherwise)."""
+    alias = re.match(r"^using\s+([A-Za-z_]\w*)\s*=", clean_signature(item.text))
+    if alias is None:
+        return False
+    qualified = (namespace + "::" if namespace else "") + alias.group(1)
+    return linker.types.get(alias.group(1)) == qualified
+
+
 def scope_entries(scopes: list[HeaderScope], linker: Linker) -> list[str]:
     lines: list[str] = []
     # One page's scopes: a function a second header defines (a template
-    # declared in one header, defined in its kernels header) is declared once.
+    # declared in one header, defined in its kernels header), or one each
+    # branch of a build-mode #if declares, is declared once.
     emitted: set[str] = set()
     for scope in scopes:
         lines += [namespace_directive(scope.namespace), "",
@@ -640,15 +664,17 @@ def scope_entries(scopes: list[HeaderScope], linker: Linker) -> list[str]:
         for function in scope.functions:
             if is_deleted(function) or out_of_line_member(function):
                 continue
-            directive = scope.namespace + " " + function_directive(function)
-            if directive in emitted:
+            identity = function_identity(scope.namespace, function)
+            if identity in emitted:
                 continue
-            emitted.add(directive)
+            emitted.add(identity)
             lines.append(function_directive(function))
             if function.comment:
                 lines += ["", indent(linker.prose(function.comment))]
             lines.append("")
         for item in scope.declarations:
+            if documented_as_type(scope.namespace, item, linker):
+                continue
             directive, default = member_directive(item)
             if directive.startswith(".. cpp:member::"):
                 directive = directive.replace(".. cpp:member::", ".. cpp:var::", 1)

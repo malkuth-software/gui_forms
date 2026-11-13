@@ -2,13 +2,13 @@
   "family": "ResponsiveTrackPanel",
   "step": "M-S5",
   "declaring": "ResponsiveTrackPanel",
-  "header": "include/gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp",
+  "header": "include/gui_forms/controls/responsive_track_panel.hpp",
   "source": "src/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.cpp",
-  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel_capabilities/responsive_track_panel_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/responsive_track_panel_capabilities.hpp",
   "base": "Control",
   "includes": [
-    "gui_forms/controls/scrollable_control/container_control/container_control.hpp",
-    "gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel_values/responsive_track_panel_values.hpp"
+    "gui_forms/controls/container_control.hpp",
+    "gui_forms/controls/responsive_track_panel_values.hpp"
   ],
   "properties": [
     {
@@ -81,7 +81,7 @@
   "not_properties": [],
   "test": {
     "type": "ResponsiveTrackPanel",
-    "include": "gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp"
+    "include": "gui_forms/controls/responsive_track_panel.hpp"
   },
   "extra_entries": [
     "{\"track_specs\", &describe_responsive_track_panel_track_specs,\n         &read_member_entry<ResponsiveTrackPanel, decltype(&ResponsiveTrackPanel::track_specs_property), &ResponsiveTrackPanel::track_specs_property>,\n         &write_member_entry<ResponsiveTrackPanel, decltype(&ResponsiveTrackPanel::set_track_specs_property), &ResponsiveTrackPanel::set_track_specs_property>,\n         nullptr, nullptr, nullptr,\n         nullptr}"

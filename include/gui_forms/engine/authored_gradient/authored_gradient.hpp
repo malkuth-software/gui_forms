@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
@@ -20,7 +21,7 @@ namespace gui_forms {
 // A length along one axis of the part's box: `fraction` of the box's
 // extent on that axis plus `units` logical units, as CSS's
 // <length-percentage> (a percentage, a length, or the calc() of both).
-struct BoxLength final {
+struct GUI_FORMS_API BoxLength final {
     double fraction{};
     double units{};
 
@@ -43,7 +44,7 @@ enum class RadialExtent : std::uint8_t { lengths, closest_side, farthest_side, c
 //   logical units along it;
 // - conic: a fraction of a turn (`units` is 0).
 // A stop without a position is placed as CSS places it.
-struct AuthoredGradientStop final {
+struct GUI_FORMS_API AuthoredGradientStop final {
     Color colour{};
     bool positioned{};
     BoxLength position{};
@@ -68,7 +69,7 @@ inline constexpr std::size_t maximum_authored_gradient_stops = maximum_gradient_
 //   and size; with `lengths`, an ellipse's radii, each along its own axis,
 //   or a circle's radius, radius_x's units;
 // - `stops`: at least one, at most maximum_authored_gradient_stops.
-struct AuthoredGradient final {
+struct GUI_FORMS_API AuthoredGradient final {
     MaterialFillKind kind{MaterialFillKind::linear_gradient};
     bool repeating{};
     double angle_degrees{180.0};
@@ -94,14 +95,14 @@ struct AuthoredGradient final {
 // maximum_authored_gradient_stops stops; finite numbers; radii not
 // negative; a circle's radius a length, without a fraction; a conic stop
 // without units.
-[[nodiscard]] bool valid_authored_gradient(const AuthoredGradient& gradient) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_authored_gradient(const AuthoredGradient& gradient) noexcept;
 
 // Whether a valid `gradient` resolves to the same layer for every box: no
 // corner and no units anywhere, no circle (whose radius is the same in
 // both directions, so a different fraction of each), and, for a repeating
 // linear gradient, stops that run from 0 to 1 once placed. Such a layer
 // is in normalized coordinates or a CSS angle.
-[[nodiscard]] bool authored_gradient_fixed(const AuthoredGradient& gradient) noexcept;
+[[nodiscard]] GUI_FORMS_API bool authored_gradient_fixed(const AuthoredGradient& gradient) noexcept;
 
 // Writes a valid `gradient`, for a part's box `box` in logical units, into
 // `layer`, which is reset first: its kind, geometry, spread and stops, the
@@ -121,6 +122,6 @@ struct AuthoredGradient final {
 //   gradient, which the layer's validity requires: under a tenth of a
 //   device pixel on a gradient shorter than 100,000 device pixels;
 // - is a solid for a single stop.
-void resolve_authored_gradient(const AuthoredGradient& gradient, Size box, MaterialFillLayer& layer);
+GUI_FORMS_API void resolve_authored_gradient(const AuthoredGradient& gradient, Size box, MaterialFillLayer& layer);
 
 } // namespace gui_forms

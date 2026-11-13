@@ -63,7 +63,8 @@ class CorrespondenceModel final {
 public:
     CorrespondenceModel();
 
-    [[nodiscard]] std::span<const Message> messages() const noexcept { return messages_; }
+    [[nodiscard]] std::span<const Message> messages() const& noexcept { return messages_; }
+    std::span<const Message> messages() const&& = delete;
     [[nodiscard]] const Message* find(std::uint32_t id) const noexcept;
 
     [[nodiscard]] Folder selected_folder() const noexcept { return folder_; }
@@ -89,7 +90,8 @@ public:
     [[nodiscard]] std::size_t unread_count(Folder folder) const noexcept;
     [[nodiscard]] std::size_t total_count() const noexcept { return messages_.size(); }
 
-    [[nodiscard]] const std::string& search() const noexcept { return search_; }
+    [[nodiscard]] const std::string& search() const& noexcept { return search_; }
+    const std::string& search() const&& = delete;
     // Filters the current folder on correspondent, subject, and preview. A
     // selected message that stops matching is deselected.
     bool set_search(std::string text);

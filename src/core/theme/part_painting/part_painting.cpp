@@ -4,6 +4,8 @@
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
+#include "gui_forms/layout/types/layout_types.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/types/painter/painter.hpp"
@@ -41,6 +43,11 @@ bool surface_role(PartRole role) noexcept {
     case PartRole::plot:
     case PartRole::legend:
     case PartRole::color_scale:
+    case PartRole::node:
+    case PartRole::header:
+    case PartRole::port:
+    case PartRole::lamp:
+    case PartRole::marquee:
         return true;
     case PartRole::region:
     case PartRole::shadow:
@@ -80,6 +87,7 @@ bool surface_role(PartRole role) noexcept {
     case PartRole::needle:
     case PartRole::beak:
     case PartRole::scrim:
+    case PartRole::link:
     case PartRole::count:
         return false;
     }
@@ -471,6 +479,13 @@ void paint_mark(Painter& painter, const PartPaint& part, const ControlVisualReci
         const Point middle{box.x + box.width * 0.5 + side * 0.25, box.y + box.height * 0.5};
         painter.draw_line({middle.x - side * 0.5, middle.y - side * 0.5}, middle, ink, 1.5);
         painter.draw_line(middle, {middle.x - side * 0.5, middle.y + side * 0.5}, ink, 1.5);
+        return;
+    }
+    case PartMark::chevron_left: {
+        const double side = std::min(box.width, box.height) * 0.5;
+        const Point middle{box.x + box.width * 0.5 - side * 0.25, box.y + box.height * 0.5};
+        painter.draw_line({middle.x + side * 0.5, middle.y - side * 0.5}, middle, ink, 1.5);
+        painter.draw_line(middle, {middle.x + side * 0.5, middle.y + side * 0.5}, ink, 1.5);
         return;
     }
     case PartMark::close: {
@@ -982,6 +997,7 @@ std::string_view part_mark_name(PartMark mark) noexcept {
     case PartMark::arrow_right: return "arrow_right";
     case PartMark::chevron_down: return "chevron_down";
     case PartMark::chevron_right: return "chevron_right";
+    case PartMark::chevron_left: return "chevron_left";
     case PartMark::close: return "close";
     case PartMark::grip_dots: return "grip_dots";
     case PartMark::dialog_launcher: return "dialog_launcher";
@@ -1041,21 +1057,28 @@ void paint_pointed_part(Painter& painter, const Control& control, const PartPain
     PartPaint whole = part;
     whole.point.reset();
     const Rect bounds = part.bounds;
-    const double shoulder = bounds.x + bounds.width - length;
+    // The shape is laid out with the nose at the right and mirrored about
+    // the bounds for a leading nose (point_leading).
+    const bool leading = part.point_leading;
+    const double shoulder = leading ? bounds.x + length : bounds.x + bounds.width - length;
     std::array<Rect, pointed_face_strips + 1U> clips{};
-    clips[0] = Rect{bounds.x, bounds.y, bounds.width - length, bounds.height};
+    const Rect body{bounds.x, bounds.y, bounds.width - length, bounds.height};
+    clips[0] = leading ? horizontally_mirrored(body, bounds) : body;
     for (std::size_t strip = 0U; strip < pointed_face_strips; ++strip) {
         const double left = length * static_cast<double>(strip) / static_cast<double>(pointed_face_strips);
         const double right = length * static_cast<double>(strip + 1U) / static_cast<double>(pointed_face_strips);
         const double inset = bounds.height * 0.5 * left / length;
-        clips[strip + 1U] = Rect{shoulder + left, bounds.y + inset, right - left, bounds.height - inset * 2.0};
+        const double trailing_shoulder = bounds.x + bounds.width - length;
+        const Rect strip_rect{trailing_shoulder + left, bounds.y + inset, right - left, bounds.height - inset * 2.0};
+        clips[strip + 1U] = leading ? horizontally_mirrored(strip_rect, bounds) : strip_rect;
     }
     paint_part_clipped(painter, control, whole, clips);
     const ControlVisualContext context = part_visual_context(control, part.states);
     const ControlVisualRecipe& recipe = control.effective_theme().resolve(part.family, context);
     if (part.frame == PartFrame::none || !recipe.material.border) return;
     const Color edge = (*recipe.material.border).color;
-    const Point tip{bounds.x + bounds.width - 0.5, bounds.y + bounds.height * 0.5};
+    const double tip_x = leading ? bounds.x + 0.5 : bounds.x + bounds.width - 0.5;
+    const Point tip{tip_x, bounds.y + bounds.height * 0.5};
     painter.draw_line({shoulder, bounds.y + 0.5}, tip, edge, 1.0);
     painter.draw_line(tip, {shoulder, bounds.y + bounds.height - 0.5}, edge, 1.0);
 }
@@ -1239,6 +1262,13 @@ bool pointed_face_contains(Rect bounds, double point, Point position) noexcept {
     return inside;
 }
 
+bool leading_pointed_face_contains(Rect bounds, double point, Point position) noexcept {
+    // The mirror of the trailing face: a point mirrored about the bounds.
+    const Point mirrored{bounds.x + bounds.x + bounds.width - position.x, position.y};
+    const bool inside = pointed_face_contains(bounds, point, mirrored);
+    return inside;
+}
+
 namespace {
 
 // The provisional accent (design language §8.5) over a surface part a
@@ -1289,11 +1319,68 @@ void paint_primitive_accent_clipped(Painter& painter, const Control& control, co
 
 namespace {
 
+// Draws a light-plane part's composite at the part's origin, clipped to its
+// shape where it has a corner radius.
+void draw_light_plane_raster(Painter& painter, const PartPaint& part, const std::shared_ptr<const PartRaster>& raster) {
+    const Point origin{part.bounds.x, part.bounds.y};
+    if (!part.corner_radius) {
+        painter.draw_part_raster(raster, origin, 1.0);
+        return;
+    }
+    painter.save();
+    painter.clip_rounded_rect(part.bounds, std::max(0.0, *part.corner_radius));
+    painter.draw_part_raster(raster, origin, 1.0);
+    painter.restore();
+}
+
+// A part with light planes (PartPaint::light_planes): composited by its
+// control's kept raster over the part's bounds at the window's scale, and
+// drawn once, or under each of `clips`. False, drawing nothing, where the
+// recipe draws the part instead: forced high contrast, no bake or kept
+// raster, a part outside a surface root or too small for a device pixel,
+// or no raster of its size made.
+bool paint_light_plane_part(Painter& painter, const Control& control, const PartPaint& part,
+                            const std::span<const Rect> clips) {
+    const PartLightPlanes& light = *part.light_planes;
+    if (!light.planes || light.raster == nullptr || !paintable(part.bounds)) return false;
+    if (part_visual_context(control, part.states).high_contrast) return false;
+    const SurfaceRoot* const root = control.attached_surface_root();
+    if (root == nullptr) return false;
+    const double scale = (*root).scale();
+    const double device_width = std::round(part.bounds.width * scale);
+    const double device_height = std::round(part.bounds.height * scale);
+    // Checked before the conversion: PartRaster::create refuses a side past
+    // the bound in any case.
+    const double largest = static_cast<double>(maximum_part_raster_side);
+    if (!(device_width >= 1.0 && device_height >= 1.0 && device_width <= largest && device_height <= largest)) {
+        return false;
+    }
+    const DeviceExtent extent{static_cast<std::uint32_t>(device_width), static_cast<std::uint32_t>(device_height)};
+    const engine_light::LightComposite settings{};
+    const std::shared_ptr<const PartRaster> raster =
+        (*light.raster).composite(light.planes, light.drive, settings, extent, DeviceScale{scale});
+    if (!raster) return false;
+    if (clips.empty()) {
+        draw_light_plane_raster(painter, part, raster);
+        return true;
+    }
+    for (const Rect clip : clips) {
+        painter.save();
+        painter.clip_rect(clip);
+        draw_light_plane_raster(painter, part, raster);
+        painter.restore();
+    }
+    return true;
+}
+
 // paint_part with what it draws repeated under each of `clips` (N91). A
 // pointed or profiled part, which cuts itself by clips of its own, is
 // painted whole under each clip.
 void paint_part_clipped(Painter& painter, const Control& control, const PartPaint& part,
                         const std::span<const Rect> clips) {
+    // A bake carries the part's whole look; where it cannot be shown the
+    // part goes on to its recipe.
+    if (part.light_planes && paint_light_plane_part(painter, control, part, clips)) return;
     // Drawn in GUI.Forms' own theme in place of the application's (T4
     // theme variants): colours chosen against the other theme are not
     // applied, the part's own included.
@@ -1375,7 +1462,8 @@ void paint_text_part_at(Painter& painter, const Control& control, PartPaint part
     paint_part(painter, control, part);
 }
 
-void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part) {
+void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part,
+                                     const SurfaceMaterial* resolved_material) {
     if (!paintable(part.bounds)) return;
     const ControlVisualContext context = part_visual_context(control, part.states);
     const Theme& theme = control.effective_theme();
@@ -1391,13 +1479,19 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
         return;
     }
     // Authored colours (owner decision T4-1) stand in a copy of the recipe,
-    // made only for a part that carries them, and never in high contrast.
+    // made only for a part that carries them, and never in high contrast;
+    // so does the engine's resolved material, made only for a part that has
+    // one.
     const bool authored = (part.authored_background || part.authored_foreground) && !context.high_contrast;
+    const bool resolved_ground = resolved_material != nullptr;
     bool opaque_face = false;
-    if (authored) {
+    if (authored || resolved_ground) {
         ControlVisualRecipe styled = recipe;
+        if (resolved_ground) styled.material = *resolved_material;
         const bool disabled = context.surface == ControlSurfaceState::disabled;
-        apply_authored_colours(part, disabled, resolved.important_text(), resolved.important_glyph(), styled);
+        if (authored) {
+            apply_authored_colours(part, disabled, resolved.important_text(), resolved.important_glyph(), styled);
+        }
         paint_part_from_recipe(painter, part, styled, context);
         opaque_face = opaque_surface_part(part, styled.material);
     } else {
@@ -1452,6 +1546,11 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::plot:
     case PartRole::legend:
     case PartRole::color_scale:
+    case PartRole::node:
+    case PartRole::header:
+    case PartRole::port:
+    case PartRole::lamp:
+    case PartRole::marquee:
         paint_surface(painter, part, recipe);
         return;
     case PartRole::indicator:
@@ -1474,6 +1573,7 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::grid_major:
     case PartRole::grid_minor:
     case PartRole::crosshair:
+    case PartRole::link:
         paint_rule(painter, part.bounds, recipe);
         return;
     case PartRole::arc:
@@ -1532,5 +1632,40 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     // A role outside the enumeration paints nothing.
     return;
 }
+
+#if GUI_FORMS_CHECKED_BORROWS
+namespace {
+
+// The innermost paint scope on this thread, or null outside any paint call.
+// Each thread paints its own windows, so the stack is per thread.
+thread_local const detail::PaintScope* innermost_paint_scope = nullptr;
+
+} // namespace
+
+detail::PaintScope::PaintScope() noexcept : scope_(), outer_(innermost_paint_scope) {
+    innermost_paint_scope = this;
+}
+
+detail::PaintScope::~PaintScope() {
+    innermost_paint_scope = outer_;
+}
+
+BorrowedText detail::PaintScope::lend_text(std::string_view text) const {
+    const BorrowedText lent = scope_.lend_text(text);
+    return lent;
+}
+
+BorrowedText lend_paint_text(std::string_view text) {
+    const detail::PaintScope* const scope = innermost_paint_scope;
+    if (scope == nullptr) {
+        // No paint call to tie the text to: an empty stamp, which every
+        // check accepts.
+        const BorrowedText untracked(text.data(), text.size(), detail::BorrowStamp{});
+        return untracked;
+    }
+    const BorrowedText lent = (*scope).lend_text(text);
+    return lent;
+}
+#endif
 
 } // namespace gui_forms

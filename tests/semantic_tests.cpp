@@ -950,6 +950,84 @@ void test_virtual_node_ids_follow_the_segment_rule() {
     require(snapshot_refused("", ""), "an empty virtual ID is refused");
 }
 
+// A control that publishes one chain of virtual children `levels` deep
+// below its own node.
+class DeepVirtualChildren final : public Control {
+public:
+    DeepVirtualChildren(StableId stable_id, std::size_t levels)
+        : Control(std::move(stable_id)), levels_(levels) {}
+    [[nodiscard]] SemanticDescriptor semantic_descriptor() const override {
+        SemanticDescriptor descriptor;
+        descriptor.role = SemanticRole::group;
+        descriptor.exposed = true;
+        return descriptor;
+    }
+    [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override {
+        SemanticNode current;
+        current.stable_id = "deep.owner.level-" + std::to_string(levels_);
+        for (std::size_t level = levels_ - 1U; level >= 1U; --level) {
+            SemanticNode parent;
+            parent.stable_id = "deep.owner.level-" + std::to_string(level);
+            parent.children.push_back(std::move(current));
+            current = std::move(parent);
+        }
+        std::vector<SemanticNode> nodes;
+        nodes.push_back(std::move(current));
+        return nodes;
+    }
+
+private:
+    std::size_t levels_;
+};
+
+// The deepest virtual node found below `nodes`, counting `nodes` as level 1.
+std::size_t deepest_virtual_level(const std::vector<SemanticNode>& nodes) {
+    std::size_t deepest = 0U;
+    const std::vector<SemanticNode>* level_nodes = &nodes;
+    while (!(*level_nodes).empty()) {
+        ++deepest;
+        level_nodes = &(*level_nodes).front().children;
+    }
+    return deepest;
+}
+
+// The window takes virtual children nested maximum_virtual_semantic_depth
+// levels deep and refuses one level more, naming the control.
+void test_virtual_children_depth_limit() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("deep.root"));
+    std::shared_ptr<DeepVirtualChildren> owner =
+        make_control<DeepVirtualChildren>(StableId("deep.owner"), maximum_virtual_semantic_depth);
+    (*owner).set_requested_bounds({0.0, 0.0, 80.0, 40.0});
+    (*root).add_child(owner);
+    {
+        Window window(root, {100.0, 60.0});
+        const SemanticSnapshot snapshot = window.semantic_snapshot();
+        const SemanticNode* published = nullptr;
+        const std::vector<SemanticNode>* level_nodes = &snapshot.roots;
+        while (published == nullptr && !(*level_nodes).empty()) {
+            const SemanticNode& first = (*level_nodes).front();
+            if (first.stable_id == "deep.owner") published = &first;
+            level_nodes = &first.children;
+        }
+        require(published != nullptr &&
+                    deepest_virtual_level((*published).children) == maximum_virtual_semantic_depth,
+                "virtual children at the depth limit are published whole");
+    }
+    std::shared_ptr<Panel> deeper_root = make_control<Panel>(StableId("deeper.root"));
+    std::shared_ptr<DeepVirtualChildren> deeper =
+        make_control<DeepVirtualChildren>(StableId("deep.owner"), maximum_virtual_semantic_depth + 1U);
+    (*deeper).set_requested_bounds({0.0, 0.0, 80.0, 40.0});
+    (*deeper_root).add_child(deeper);
+    Window window(deeper_root, {100.0, 60.0});
+    bool refused = false;
+    try {
+        static_cast<void>(window.semantic_snapshot());
+    } catch (const std::invalid_argument& error) {
+        refused = std::string_view(error.what()).find("deep.owner") != std::string_view::npos;
+    }
+    require(refused, "virtual children one level past the limit are refused, naming the control");
+}
+
 } // namespace
 
 int main() {
@@ -964,6 +1042,7 @@ int main() {
         test_trees_sharing_item_identities_route_by_owner();
         test_unnumbered_virtual_children_get_runtime_ids();
         test_virtual_node_ids_follow_the_segment_rule();
+        test_virtual_children_depth_limit();
         test_semantic_focus_reaches_composites();
         test_hidden_focus_is_published_on_the_composite();
         test_stage_a_vocabulary_reaches_the_snapshot();

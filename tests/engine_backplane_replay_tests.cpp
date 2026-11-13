@@ -12,7 +12,26 @@
 // blue fill and the text, nothing is skipped, and the framebuffer is made
 // once and reused. Without it, the part rasters alone are composited, as
 // E9-B option 1 does (engine_glass_tests keeps those hashes).
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/display/types/display_types.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/part_table/engine_part_table.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "support/rgba_order.hpp"
@@ -138,7 +157,8 @@ public:
         for_each_pixel(area, {}, raster.get(), Point{origin.x + state_.offset.x, origin.y + state_.offset.y});
     }
 
-    [[nodiscard]] std::span<std::uint8_t> pixels() noexcept { return pixels_; }
+    [[nodiscard]] std::span<std::uint8_t> pixels() & noexcept { return pixels_; }
+    std::span<std::uint8_t> pixels() && = delete;
     [[nodiscard]] std::uint32_t width() const noexcept { return width_; }
     [[nodiscard]] std::uint32_t height() const noexcept { return height_; }
 
@@ -207,9 +227,10 @@ public:
     }
     void end() override { ++ended; }
     Painter& painter() noexcept override { return painter_; }
-    std::span<std::byte> pixels() noexcept override {
+    BorrowedMutableSpan<std::byte> pixels() noexcept override {
         const std::span<std::uint8_t> bytes = painter_.pixels();
-        const std::span<std::byte> view{reinterpret_cast<std::byte*>(bytes.data()), bytes.size()};
+        std::byte* const first = reinterpret_cast<std::byte*>(bytes.data());
+        BorrowedMutableSpan<std::byte> view = detail::lend_mutable_view(first, bytes.size(), lender_);
         return view;
     }
     std::size_t row_bytes() const noexcept override { return static_cast<std::size_t>(painter_.width()) * 4U; }
@@ -219,6 +240,7 @@ public:
     std::size_t begun{};
     std::size_t ended{};
     FillPainter painter_{};
+    detail::BorrowLender lender_;
 };
 
 // The window's framebuffer painter: makes FillFramebuffers, counting them;

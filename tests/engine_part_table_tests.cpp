@@ -85,14 +85,14 @@ public:
         PartPaint named = face;
         named.role = PartRole::label;
         named.bounds = {0.0, 24.0, 60.0, 14.0};
-        named.text = "Named";
+        named.text = lend_paint_text("Named");
         named.key.reset();
         if (keyed) named.key = PartKey{"item_label", "item.alpha", item_position};
         paint_part(painter, *this, named);
 
         PartPaint indexed = named;
         indexed.bounds = {0.0, 40.0, 60.0, 14.0};
-        indexed.text = "Indexed";
+        indexed.text = lend_paint_text("Indexed");
         indexed.key.reset();
         if (keyed) indexed.key = PartKey{"item_label", {}, item_position};
         paint_part(painter, *this, indexed);
@@ -473,7 +473,7 @@ void test_plot_roles_draw_as_their_stand_ins() {
         PartPaint part{};
         part.family = ControlVisualRole::editor;
         part.bounds = {4.0, 6.0, 120.0, 40.0};
-        part.text = "1.5";
+        part.text = lend_paint_text("1.5");
         const std::string drawn = inked(*root, part, pair.role);
         require(!drawn.empty(), "a plot role draws with the built-in recipe");
         require(drawn == inked(*root, part, pair.stand_in), "a plot role draws as its stand-in");
@@ -544,7 +544,7 @@ public:
             PartPaint label{};
             label.role = PartRole::label;
             label.bounds = {0.0, static_cast<double>(offset) * 2.0, 60.0, 2.0};
-            label.text = "row";
+            label.text = lend_paint_text("row");
             label.key = PartKey{"row_label", stable ? std::string_view(row_id) : std::string_view{}, row};
             paint_part(painter, *this, label);
         }

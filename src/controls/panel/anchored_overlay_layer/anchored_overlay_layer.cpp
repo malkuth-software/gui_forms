@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/anchored_overlay_layer.hpp"
 
 #include "anchored_overlay_placement_utilities.hpp"
 #include "gui_forms/window.hpp"
@@ -86,9 +86,19 @@ void AnchoredOverlayLayer::arrange(Rect final_bounds) {
         resolved_ = {};
         return;
     }
+    // Near is the anchor's start edge: its right under RightToLeft, so a
+    // drop-down list or calendar lines up with a right-to-left anchor's
+    // right edge (Windows Forms).
+    AnchoredOverlayPlacement directed = placement.read();
+    if ((*anchor).effective_layout_direction() == LayoutDirection::right_to_left) {
+        if (directed.horizontal_alignment == OverlayHorizontalAlignment::near) {
+            directed.horizontal_alignment = OverlayHorizontalAlignment::far;
+        } else if (directed.horizontal_alignment == OverlayHorizontalAlignment::far) {
+            directed.horizontal_alignment = OverlayHorizontalAlignment::near;
+        }
+    }
     resolved_ = resolve_anchored_overlay(
-        (*anchor).absolute_bounds(), {layer_bounds.width, layer_bounds.height},
-        placement.read());
+        (*anchor).absolute_bounds(), {layer_bounds.width, layer_bounds.height}, directed);
     set_child_layout(content_, resolved_.bounds);
 }
 
@@ -103,12 +113,12 @@ bool AnchoredOverlayLayer::hit_test_local(Point local_point) const {
     return Panel::hit_test_local(local_point);
 }
 
-void AnchoredOverlayLayer::on_pointer(PointerEvent& event) {
-    if (dismiss_on_click_away.read() && event.action == PointerAction::down &&
-        event.button == PointerButton::primary) {
+void AnchoredOverlayLayer::on_mouse_down(MouseEventArgs& arguments) {
+    if (dismiss_on_click_away.read() && arguments.button == PointerButton::primary) {
         dismiss_requested_.emit(OverlayDismissReason::click_away);
-        event.handled = true;
+        arguments.handled = true;
     }
+    Control::on_mouse_down(arguments);
 }
 
 void AnchoredOverlayLayer::on_key_preview(KeyEvent& event) {

@@ -15,11 +15,21 @@ namespace {
 
 // One thread's stack. It is zero-initialized thread storage, made with the
 // thread, so no push allocates.
+//
+// The unwind mark: unwind_depth is the depth at the first pop of the latest
+// unwinding (the depth the exception was thrown at, as far as frames go).
+// unwind_pushed and unwind_next_depth are pushed and the depth just after
+// that unwinding's latest pop; while both still equal the stack's, no frame
+// has been opened or closed by a return since, so the records up to
+// unwind_depth are intact and belong to that exception.
 struct ShadowStack final {
     std::array<ShadowFrame, shadow_stack_capacity> frames{};
     std::uint32_t depth = 0U;
     std::uint64_t pushed = 0U;
     std::uint64_t dropped = 0U;
+    std::uint32_t unwind_depth = 0U;
+    std::uint32_t unwind_next_depth = 0U;
+    std::uint64_t unwind_pushed = 0U;
 };
 
 thread_local ShadowStack thread_stack;
@@ -52,10 +62,9 @@ ShadowFrame* open_frame() noexcept {
     return &stack.frames[index];
 }
 
-} // namespace
-
-ShadowFrameScope::ShadowFrameScope(const ShadowFrameKind kind, const std::string_view subject,
-                                   const std::string_view name, const std::uint64_t sequence) noexcept {
+// Opens a frame of kind with subject and name (each cut to its capacity).
+void open_described_frame(const ShadowFrameKind kind, const std::string_view subject, const std::string_view name,
+                          const std::uint64_t sequence) noexcept {
     ShadowFrame* frame = open_frame();
     if (frame == nullptr) {
         return;
@@ -84,6 +93,31 @@ ShadowFrameScope::ShadowFrameScope(const ShadowFrameKind kind, const std::string
     }
 }
 
+// Pops the innermost frame. An unwinding pop keeps the failure's story: the
+// first such pop of an unwinding marks the depth; later pops of the same
+// unwinding find the mark current (nothing pushed, the depth where the last
+// pop left it) and only move it along.
+void pop_frame(const bool unwinding) noexcept {
+    ShadowStack& stack = thread_stack;
+    if (unwinding) {
+        const bool continuing = stack.unwind_pushed == stack.pushed && stack.unwind_next_depth == stack.depth;
+        if (!continuing) {
+            stack.unwind_depth = stack.depth;
+            stack.unwind_pushed = stack.pushed;
+        }
+        // Scopes nest strictly, so the stack is never empty here.
+        stack.unwind_next_depth = stack.depth - 1U;
+    }
+    --stack.depth;
+}
+
+} // namespace
+
+ShadowFrameScope::ShadowFrameScope(const ShadowFrameKind kind, const std::string_view subject,
+                                   const std::string_view name, const std::uint64_t sequence) noexcept {
+    open_described_frame(kind, subject, name, sequence);
+}
+
 ShadowFrameScope::ShadowFrameScope(const std::uint32_t interface_id, const std::uint32_t function_index) noexcept {
     ShadowFrame* frame = open_frame();
     if (frame == nullptr) {
@@ -98,22 +132,49 @@ ShadowFrameScope::ShadowFrameScope(const std::uint32_t interface_id, const std::
     (*frame).name_size = 0U;
 }
 
-ShadowFrameScope::~ShadowFrameScope() {
-    // Scopes nest strictly, so the stack is never empty here.
-    --thread_stack.depth;
+void ShadowFrameScope::close_frame(const bool unwinding) noexcept {
+    pop_frame(unwinding);
 }
 
-std::size_t copy_shadow_frames(const std::span<ShadowFrame> frames, ShadowStackState& state) noexcept {
-    const ShadowStack& stack = thread_stack;
-    const std::size_t recorded = std::min<std::size_t>(stack.depth, shadow_stack_capacity);
+ShadowFrameCall::ShadowFrameCall(const ShadowFrameKind kind, const std::string_view subject,
+                                 const std::string_view name, const std::uint64_t sequence) noexcept {
+    open_described_frame(kind, subject, name, sequence);
+}
+
+ShadowFrameCall::~ShadowFrameCall() {
+    const bool unwinding = !returned_;
+    pop_frame(unwinding);
+}
+
+namespace {
+
+// Copies the outermost recorded frames below depth and fills state.
+std::size_t copy_frames_below(const ShadowStack& stack, const std::uint32_t depth, const std::span<ShadowFrame> frames,
+                              ShadowStackState& state) noexcept {
+    const std::size_t recorded = std::min<std::size_t>(depth, shadow_stack_capacity);
     const std::size_t copied = std::min(recorded, frames.size());
     for (std::size_t index = 0U; index < copied; ++index) {
         frames[index] = stack.frames[index];
     }
-    state.depth = stack.depth;
+    state.depth = depth;
     state.pushed = stack.pushed;
     state.dropped = stack.dropped;
     return recorded;
+}
+
+} // namespace
+
+std::size_t copy_shadow_frames(const std::span<ShadowFrame> frames, ShadowStackState& state) noexcept {
+    const ShadowStack& stack = thread_stack;
+    return copy_frames_below(stack, stack.depth, frames, state);
+}
+
+std::size_t copy_failure_shadow_frames(const std::span<ShadowFrame> frames, ShadowStackState& state) noexcept {
+    const ShadowStack& stack = thread_stack;
+    const bool mark_current = stack.unwind_pushed == stack.pushed && stack.unwind_next_depth == stack.depth &&
+        stack.unwind_depth > stack.depth;
+    const std::uint32_t depth = mark_current ? stack.unwind_depth : stack.depth;
+    return copy_frames_below(stack, depth, frames, state);
 }
 
 } // namespace gui_forms

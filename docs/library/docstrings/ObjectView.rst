@@ -10,8 +10,7 @@ to resize. The user selects one or several items with the pointer and
 keyboard, activates an item by double-clicking it or pressing Enter, and
 asks for a context menu the platform's way (the host's context request). Only the items in view
 are painted and published, and no child control is created per item. Use a
-`TreeView` for a hierarchy, a `ListBox` for plain text rows, and a
-`CorrespondenceView` for records that expand to show more detail.
+`TreeView` for a hierarchy and a `ListBox` for plain text rows.
 
 Parameters
 ----------
@@ -161,10 +160,12 @@ select_all
 arrange
     Lays out the view, keeping the first item in view when the number of
     icon columns changes.
-on_pointer
-    Handles the pointer input described under Notes. The window calls it.
-on_key
-    Handles the keyboard input described under Notes. The window calls it.
+on_mouse_down
+    Handles the pointer input described under Notes, with the other mouse
+    raisers the class overrides, then raises the event. The window calls it.
+on_key_down
+    Raises the event, then handles a key its subscribers left unhandled as
+    described under Notes. The window calls it.
 on_text_input
     Selects by typed prefix, as described under Notes. The window calls
     it.
@@ -189,7 +190,6 @@ on_semantic_child_action
 See Also
 --------
 TreeView : A hierarchy of items, such as the folders above these objects.
-CorrespondenceView : Records that expand to show matched evidence.
 ListBox : A plain list of text rows.
 ImageList : Shared images looked up by key.
 ContextMenu : An overlay menu for the target of `context_requested`.

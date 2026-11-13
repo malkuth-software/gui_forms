@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/group_box/group_box.hpp"
+#include "gui_forms/controls/group_box.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -103,10 +103,11 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     // The `caption` part, so a theme's `::part(caption) { color }` colours it.
     label.key = PartKey{"caption", {}, {}};
     label.states = states;
-    label.text = caption;
+    label.text = lend_paint_text(caption);
     label.font = caption_font;
-    const Point caption_origin{13.0, std::max(caption_font.size, rule_y + caption_font.size * 0.36)};
-    paint_text_part_at(painter, *this, label, caption_origin, std::max(0.0, gap_right - 13.0));
+    // Four units into the caption's gap, which caption_bounds mirrors.
+    const Point caption_origin{gap.x + 4.0, std::max(caption_font.size, rule_y + caption_font.size * 0.36)};
+    paint_text_part_at(painter, *this, label, caption_origin, std::max(0.0, gap.width - 4.0));
 }
 
 bool GroupBox::mnemonic_matches(char32_t character) const noexcept {
@@ -154,6 +155,12 @@ Rect GroupBox::caption_bounds() const {
         std::max(0.0, bounds.width - 18.0),
         estimated_text_width(caption_text(), caption_font) + 12.0);
     const Rect caption{9.0, 1.0, caption_width, caption_height};
+    // At the right under RightToLeft (Windows Forms): the frame's rules
+    // break around wherever the caption is.
+    if (effective_layout_direction() == LayoutDirection::right_to_left) {
+        const Rect mirrored = horizontally_mirrored(caption, bounds);
+        return mirrored;
+    }
     return caption;
 }
 

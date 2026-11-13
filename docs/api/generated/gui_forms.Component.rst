@@ -223,3 +223,97 @@ gui_forms::Component
       its state. :cpp:func:`dispose <gui_forms::Component::dispose>` and the destructor call it.
 
    .. cpp:type:: Ptr = std::shared_ptr<Component>
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Component``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 11 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``Component``
+     - ``Component``
+     - supported
+   * - property
+     - ``CanRaiseEvents``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Container``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DesignMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Events``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Site``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Disposed``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Dispose``
+     - ``dispose``
+     - supported
+   * - method
+     - ``GetService``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``component_state``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``interactions``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``is_alive``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``is_disposed``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``owned_subscription_count``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``append_interactions``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_dispose``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``own_revocable``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``own_subscription``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``property_table``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``verify_dispose_thread``
+     - unclassified (untested)

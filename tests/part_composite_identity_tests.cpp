@@ -1,4 +1,4 @@
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
 #include "skia_raster.hpp"
 #include "part_composite_scene.hpp"
 #include "compositor_presentation_scene.hpp"

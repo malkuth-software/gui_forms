@@ -48,13 +48,16 @@ struct SharedFontSet final {
 };
 SharedFontSet shared_font_set{};
 
-// The process's font lookups (bundled_font_diagnostics). The refusal text is guarded by
-// font_refusal_mutex, as a host may read it from another thread.
+// The process's font lookups (bundled_font_diagnostics). The refusal and notice texts are
+// guarded by font_refusal_mutex, as a host may read them from another thread.
 std::atomic<std::uint64_t> font_lookups{0U};
 std::atomic<std::uint64_t> font_lookups_without_source{0U};
 std::atomic<std::uint8_t> last_font_source{static_cast<std::uint8_t>(BundledFontSource::none)};
+std::atomic<std::uint32_t> fallback_faces_found{0U};
+std::atomic<std::uint32_t> fallback_faces_expected{0U};
 std::mutex font_refusal_mutex;
 std::string font_refusal{};
+std::string font_notice{};
 
 // Appends `directory` to `text` as UTF-8.
 void append_directory(std::string& text, const std::filesystem::path& directory) {
@@ -78,6 +81,55 @@ std::string refusal_text(std::span<const BundledFontCandidate> candidates) {
     }
     if (tried == 0U) text.append(" no directory (the host could not find its own location)");
     text.append(". Set GUI_FORMS_FONT_DIR, or place the fonts folder beside the GUI.Forms library.");
+    return text;
+}
+
+// Whether `use` is a bundled fallback face: optional, and serving any role.
+[[nodiscard]] bool is_fallback_face(const BundledFaceUse& use) noexcept {
+    const bool fallback = !use.role && !use.required;
+    return fallback;
+}
+
+// The fallback faces of face_uses.
+[[nodiscard]] std::uint32_t fallback_face_total() noexcept {
+    std::uint32_t total{};
+    for (const BundledFaceUse& use : face_uses) {
+        if (is_fallback_face(use)) ++total;
+    }
+    return total;
+}
+
+// Counts the fallback faces `directory` holds as regular files, and appends each absent one's
+// name to `absent`, comma-separated.
+[[nodiscard]] std::uint32_t count_fallback_faces(const std::filesystem::path& directory, std::string& absent) {
+    std::uint32_t found{};
+    for (const BundledFaceUse& use : face_uses) {
+        if (!is_fallback_face(use)) continue;
+        std::error_code error;
+        const bool present = std::filesystem::is_regular_file(directory / use.file_name, error);
+        if (present && !error) {
+            ++found;
+            continue;
+        }
+        if (!absent.empty()) absent.append(", ");
+        absent.append(use.file_name);
+    }
+    return found;
+}
+
+// The notice for a directory lacking the fallback faces named in `absent`.
+std::string fallback_notice_text(const std::filesystem::path& directory, std::uint32_t found,
+                                 std::uint32_t expected, const std::string& absent) {
+    std::string text = "GUI.Forms: the bundled fallback faces are not all installed (";
+    text.append(std::to_string(found));
+    text.append(" of ");
+    text.append(std::to_string(expected));
+    text.append(" in ");
+    append_directory(text, directory);
+    text.append("; absent: ");
+    text.append(absent);
+    text.append("), so text only they cover draws as missing glyphs. Install the fallback_fonts component "
+                "(GUI_FORMS_INSTALL_FALLBACK_FONTS) or package the program with fallback_fonts.");
     return text;
 }
 
@@ -164,16 +216,28 @@ BundledFontLocation locate_bundled_fonts(std::span<const BundledFontCandidate> c
     }
     font_lookups.fetch_add(1U, std::memory_order_relaxed);
     last_font_source.store(static_cast<std::uint8_t>(location.source), std::memory_order_relaxed);
+    const std::uint32_t expected = fallback_face_total();
+    fallback_faces_expected.store(expected, std::memory_order_relaxed);
     if (location.source != BundledFontSource::none) {
+        // The fallback faces are optional (an install or package may leave them out): count
+        // them and keep a notice, but accept the directory either way.
+        std::string absent{};
+        const std::uint32_t found = count_fallback_faces(location.directory, absent);
+        fallback_faces_found.store(found, std::memory_order_relaxed);
+        std::string notice{};
+        if (found != expected) notice = fallback_notice_text(location.directory, found, expected, absent);
         const std::lock_guard<std::mutex> lock(font_refusal_mutex);
         font_refusal.clear();
+        font_notice = std::move(notice);
         return location;
     }
+    fallback_faces_found.store(0U, std::memory_order_relaxed);
     const std::string refusal = refusal_text(candidates);
     const std::uint64_t before = font_lookups_without_source.fetch_add(1U, std::memory_order_relaxed);
     if (before == 0U) std::fprintf(stderr, "%s\n", refusal.c_str());
     const std::lock_guard<std::mutex> lock(font_refusal_mutex);
     font_refusal = refusal;
+    font_notice.clear();
     return location;
 }
 
@@ -333,12 +397,20 @@ BundledFontDiagnostics bundled_font_diagnostics() noexcept {
     result.lookups = detail::font_lookups.load(std::memory_order_relaxed);
     result.lookups_without_source = detail::font_lookups_without_source.load(std::memory_order_relaxed);
     result.last_source = static_cast<BundledFontSource>(detail::last_font_source.load(std::memory_order_relaxed));
+    result.fallback_faces_found = detail::fallback_faces_found.load(std::memory_order_relaxed);
+    result.fallback_faces_expected = detail::fallback_faces_expected.load(std::memory_order_relaxed);
     return result;
 }
 
 std::string bundled_font_refusal() {
     const std::lock_guard<std::mutex> lock(detail::font_refusal_mutex);
     std::string copy = detail::font_refusal;
+    return copy;
+}
+
+std::string bundled_font_notice() {
+    const std::lock_guard<std::mutex> lock(detail::font_refusal_mutex);
+    std::string copy = detail::font_notice;
     return copy;
 }
 

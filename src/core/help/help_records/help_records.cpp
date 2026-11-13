@@ -2,10 +2,9 @@
 
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/text/types/text_types.hpp"
-#include "gui_forms/xml/xml_reader/xml_reader.hpp"
-#include "gui_forms/xml/xml_writer/xml_writer.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <stdexcept>
 #include <utility>
 
@@ -19,11 +18,6 @@ namespace {
     return validation.valid();
 }
 
-// Whether `segment` is one stable-ID segment (no '.').
-[[nodiscard]] bool valid_segment(std::string_view segment) noexcept {
-    return segment.find('.') == std::string_view::npos && valid_stable_id(segment);
-}
-
 [[nodiscard]] std::string_view trim_spaces(std::string_view text) noexcept {
     std::size_t begin = 0U;
     std::size_t end = text.size();
@@ -32,133 +26,92 @@ namespace {
     return text.substr(begin, end - begin);
 }
 
-[[nodiscard]] std::size_t field_limit(const HelpFieldLimits& limits, HelpField field) noexcept {
+// The deepest locale document read: <locale>, <controls>, one <control>
+// per stable-ID segment and a <help> child. Stable IDs mirror the control
+// tree, whose nesting is limited to 64 levels (maximum_control_tree_depth),
+// so 2 + 64 + 1.
+constexpr std::uint32_t help_locale_maximum_depth = 67U;
+
+// The language-file field a help field is.
+[[nodiscard]] LocaleField locale_field_of(HelpField field) noexcept {
     switch (field) {
     case HelpField::title:
-        return limits.maximum_title_bytes;
+        return LocaleField::text;
     case HelpField::help_line:
-        return limits.maximum_help_line_bytes;
+        return LocaleField::help_line;
     case HelpField::help:
-        return limits.maximum_help_bytes;
+        return LocaleField::help;
     case HelpField::keywords:
-        return limits.maximum_keywords_bytes;
+        return LocaleField::keywords;
     }
-    return 0U;
+    return LocaleField::text;
 }
 
-// The reader's working state for one file: the path of segments down to
-// the element being read, the records found and the rejections.
-struct LocaleWalk final {
-    const HelpFieldLimits* limits{};
-    std::vector<std::string_view> path{};
-    std::string joined{};
-    HelpRecordLayer* records{};
-    std::vector<HelpEntryRejection>* rejections{};
-    std::vector<std::string> seen{};
-    bool too_many{};
-};
-
-void join_path(LocaleWalk& walk) {
-    walk.joined.clear();
-    for (std::size_t index = 0U; index < walk.path.size(); ++index) {
-        if (index > 0U) walk.joined.push_back('.');
-        walk.joined.append(walk.path[index]);
+// The help field a language-file field is, or nothing for the others.
+[[nodiscard]] std::optional<HelpField> help_field_of(LocaleField field) noexcept {
+    switch (field) {
+    case LocaleField::text:
+        return HelpField::title;
+    case LocaleField::help_line:
+        return HelpField::help_line;
+    case LocaleField::help:
+        return HelpField::help;
+    case LocaleField::keywords:
+        return HelpField::keywords;
+    case LocaleField::tool_tip:
+    case LocaleField::access_key:
+    case LocaleField::title:
+    case LocaleField::placeholder:
+    case LocaleField::header:
+    case LocaleField::accessible_name:
+    case LocaleField::accessible_description:
+        return std::nullopt;
     }
+    return std::nullopt;
 }
 
-void reject(LocaleWalk& walk, HelpField field, HelpEntryRefusal reason, std::string_view detail) {
-    HelpEntryRejection rejection{};
-    rejection.stable_id = walk.joined;
-    rejection.field = field;
-    rejection.reason = reason;
-    rejection.detail = std::string(detail);
-    (*walk.rejections).push_back(std::move(rejection));
+[[nodiscard]] HelpEntryRefusal help_refusal_of(LocaleRefusal refusal) noexcept {
+    switch (refusal) {
+    case LocaleRefusal::invalid_stable_id:
+        return HelpEntryRefusal::invalid_stable_id;
+    case LocaleRefusal::too_long:
+        return HelpEntryRefusal::too_long;
+    case LocaleRefusal::invalid_text:
+        return HelpEntryRefusal::invalid_text;
+    case LocaleRefusal::control_character:
+        return HelpEntryRefusal::control_character;
+    case LocaleRefusal::unbalanced_bidi:
+        return HelpEntryRefusal::unbalanced_bidi;
+    case LocaleRefusal::invalid_keywords:
+        return HelpEntryRefusal::invalid_keywords;
+    case LocaleRefusal::duplicate_record:
+        return HelpEntryRefusal::duplicate_record;
+    case LocaleRefusal::invalid_access_key:
+        return HelpEntryRefusal::invalid_text;
+    }
+    return HelpEntryRefusal::invalid_text;
 }
 
-// Checks one field's value and stores it in `entry`, or rejects it.
-void accept_field(LocaleWalk& walk, HelpRecordEntry& entry, HelpField field, std::string value) {
-    if (!valid_help_text(value)) {
-        reject(walk, field, HelpEntryRefusal::invalid_text, {});
-        return;
+[[nodiscard]] HelpLocaleError help_error_of(LocaleFileError error) noexcept {
+    switch (error) {
+    case LocaleFileError::none:
+        return HelpLocaleError::none;
+    case LocaleFileError::xml:
+        return HelpLocaleError::xml;
+    case LocaleFileError::wrong_root:
+        return HelpLocaleError::wrong_root;
+    case LocaleFileError::no_language:
+        return HelpLocaleError::no_language;
+    case LocaleFileError::invalid_language:
+        return HelpLocaleError::invalid_language;
+    case LocaleFileError::invalid_direction:
+        return HelpLocaleError::invalid_direction;
+    case LocaleFileError::too_many_records:
+        return HelpLocaleError::too_many_records;
+    case LocaleFileError::language_mismatch:
+        return HelpLocaleError::no_language;
     }
-    if (value.size() > field_limit(*walk.limits, field)) {
-        reject(walk, field, HelpEntryRefusal::too_long, {});
-        return;
-    }
-    if (field == HelpField::keywords) {
-        std::vector<HelpKeyword> parsed;
-        if (!parse_help_keywords(value, parsed)) {
-            reject(walk, field, HelpEntryRefusal::invalid_keywords, value);
-            return;
-        }
-    }
-    help_entry_field(entry, field) = std::move(value);
-}
-
-void read_control(LocaleWalk& walk, const XmlElement& element);
-
-void read_children(LocaleWalk& walk, const XmlElement& element) {
-    for (const XmlElement& child : element.children) {
-        if (walk.too_many) return;
-        if (child.name == "control") read_control(walk, child);
-    }
-}
-
-void read_control(LocaleWalk& walk, const XmlElement& element) {
-    const XmlAttribute* name = element.find_attribute("name");
-    const std::string_view segment = name != nullptr ? std::string_view((*name).value) : std::string_view{};
-    if (!valid_segment(segment)) {
-        join_path(walk);
-        reject(walk, HelpField::title, HelpEntryRefusal::invalid_stable_id, segment);
-        return;
-    }
-    walk.path.push_back(segment);
-    join_path(walk);
-    HelpRecordEntry entry{};
-    entry.stable_id = walk.joined;
-    if (const XmlAttribute* title = element.find_attribute("text")) {
-        accept_field(walk, entry, HelpField::title, (*title).value);
-    }
-    if (const XmlAttribute* line = element.find_attribute("help-line")) {
-        accept_field(walk, entry, HelpField::help_line, (*line).value);
-    }
-    for (const XmlElement& child : element.children) {
-        if (child.name != "help") continue;
-        std::string body;
-        normalize_help_body(child.text, body);
-        accept_field(walk, entry, HelpField::help, std::move(body));
-        if (const XmlAttribute* keywords = child.find_attribute("keywords")) {
-            accept_field(walk, entry, HelpField::keywords, (*keywords).value);
-        }
-        break;
-    }
-    const bool has_field = entry.title.has_value() || entry.help_line.has_value() || entry.help.has_value() ||
-                           entry.keywords.has_value();
-    if (has_field) {
-        if ((*walk.records).find(entry.stable_id) != nullptr) {
-            reject(walk, HelpField::title, HelpEntryRefusal::duplicate_record, {});
-        } else if ((*walk.records).size() >= (*walk.limits).maximum_records) {
-            walk.too_many = true;
-        } else {
-            (*walk.records).put(std::move(entry));
-        }
-    }
-    read_children(walk, element);
-    walk.path.pop_back();
-}
-
-// Finds or makes the `<control name="segment">` child of `parent`.
-XmlElement& control_child(XmlElement& parent, std::string_view segment) {
-    for (XmlElement& child : parent.children) {
-        if (child.name != "control") continue;
-        const XmlAttribute* name = child.find_attribute("name");
-        if (name != nullptr && (*name).value == segment) return child;
-    }
-    XmlElement made{};
-    made.name = "control";
-    made.attributes.push_back(XmlAttribute{"name", std::string(segment)});
-    parent.children.push_back(std::move(made));
-    return parent.children.back();
+    return HelpLocaleError::xml;
 }
 
 } // namespace
@@ -195,6 +148,10 @@ std::string_view help_entry_refusal_name(HelpEntryRefusal refusal) noexcept {
         return "broken_link";
     case HelpEntryRefusal::missing_image:
         return "missing_image";
+    case HelpEntryRefusal::control_character:
+        return "control_character";
+    case HelpEntryRefusal::unbalanced_bidi:
+        return "unbalanced_bidi";
     }
     return {};
 }
@@ -211,6 +168,10 @@ std::string_view help_locale_error_name(HelpLocaleError error) noexcept {
         return "no_language";
     case HelpLocaleError::too_many_records:
         return "too_many_records";
+    case HelpLocaleError::invalid_language:
+        return "invalid_language";
+    case HelpLocaleError::invalid_direction:
+        return "invalid_direction";
     }
     return {};
 }
@@ -352,135 +313,82 @@ bool parse_help_keywords(std::string_view field, std::vector<HelpKeyword>& keywo
     return true;
 }
 
-void normalize_help_body(std::string_view raw, std::string& body) {
-    body.clear();
-    // Line ends become LF, so the indentation scan sees one kind.
-    std::string unified;
-    unified.reserve(raw.size());
-    for (std::size_t index = 0U; index < raw.size(); ++index) {
-        const char character = raw[index];
-        if (character == '\r') {
-            unified.push_back('\n');
-            if (index + 1U < raw.size() && raw[index + 1U] == '\n') ++index;
-            continue;
-        }
-        unified.push_back(character);
-    }
-    std::string_view text(unified);
-    // The leading blank lines and the trailing white space go.
-    while (true) {
-        const std::size_t line_end = text.find('\n');
-        if (line_end == std::string_view::npos) break;
-        if (!trim_spaces(text.substr(0U, line_end)).empty()) break;
-        text.remove_prefix(line_end + 1U);
-    }
-    while (!text.empty() && (text.back() == ' ' || text.back() == '\t' || text.back() == '\n')) text.remove_suffix(1U);
-    // The indentation every non-blank line shares, in spaces and tabs as
-    // written (a tab counts as one column here).
-    std::size_t shared = std::string_view::npos;
-    std::size_t begin = 0U;
-    while (begin <= text.size()) {
-        std::size_t end = text.find('\n', begin);
-        if (end == std::string_view::npos) end = text.size();
-        const std::string_view line = text.substr(begin, end - begin);
-        if (!trim_spaces(line).empty()) {
-            std::size_t indent = 0U;
-            while (indent < line.size() && (line[indent] == ' ' || line[indent] == '\t')) ++indent;
-            shared = std::min(shared, indent);
-        }
-        if (end == text.size()) break;
-        begin = end + 1U;
-    }
-    if (shared == std::string_view::npos) shared = 0U;
-    body.reserve(text.size());
-    begin = 0U;
-    while (begin <= text.size()) {
-        std::size_t end = text.find('\n', begin);
-        if (end == std::string_view::npos) end = text.size();
-        const std::string_view line = text.substr(begin, end - begin);
-        if (line.size() > shared) body.append(line.substr(shared));
-        if (end == text.size()) break;
-        body.push_back('\n');
-        begin = end + 1U;
-    }
-}
+void normalize_help_body(std::string_view raw, std::string& body) { normalize_locale_help_body(raw, body); }
 
 // --- Locale files ---------------------------------------------------------------
 
+void project_help_fields(const LocaleLayer& source, HelpRecordLayer& target) {
+    target.clear();
+    for (const LocaleRecord& record : source.entries()) {
+        HelpRecordEntry entry{};
+        entry.stable_id = record.stable_id;
+        entry.title = locale_record_field(record, LocaleField::text);
+        entry.help_line = locale_record_field(record, LocaleField::help_line);
+        entry.help = locale_record_field(record, LocaleField::help);
+        entry.keywords = locale_record_field(record, LocaleField::keywords);
+        const bool any = entry.title.has_value() || entry.help_line.has_value() || entry.help.has_value() ||
+                         entry.keywords.has_value();
+        // The source is sorted with each ID once, so each put appends.
+        if (any) target.put(std::move(entry));
+    }
+}
+
 HelpLocaleReadResult read_help_locale(std::string_view utf8, const HelpFieldLimits& limits,
                                       const XmlLimits& xml_limits) {
+    LocaleLimits locale_limits{};
+    locale_limits.maximum_field_bytes[static_cast<std::size_t>(LocaleField::text)] = limits.maximum_title_bytes;
+    locale_limits.maximum_field_bytes[static_cast<std::size_t>(LocaleField::help_line)] =
+        limits.maximum_help_line_bytes;
+    locale_limits.maximum_field_bytes[static_cast<std::size_t>(LocaleField::help)] = limits.maximum_help_bytes;
+    locale_limits.maximum_field_bytes[static_cast<std::size_t>(LocaleField::keywords)] =
+        limits.maximum_keywords_bytes;
+    locale_limits.maximum_records = limits.maximum_records;
+    // read_locale recurses once per <control> level, so the document's
+    // depth is capped before it is read (HOUSE_STYLE section 1): the
+    // caller's limit, at most help_locale_maximum_depth.
+    XmlLimits bounded_limits = xml_limits;
+    bounded_limits.maximum_depth = std::min(xml_limits.maximum_depth, help_locale_maximum_depth);
+    const LocaleReadResult read = read_locale(utf8, locale_limits, bounded_limits);
     HelpLocaleReadResult result{};
-    const XmlReadResult document = read_xml(utf8, xml_limits);
-    if (!document) {
-        result.error = HelpLocaleError::xml;
-        result.xml_error = document.error;
-        result.position = document.position;
+    if (!read) {
+        result.error = help_error_of(read.error);
+        result.xml_error = read.xml_error;
+        result.position = read.position;
         return result;
     }
-    const XmlElement& root = document.root;
-    if (root.name != "locale") {
-        result.error = HelpLocaleError::wrong_root;
-        return result;
+    result.language = read.info.language;
+    project_help_fields(read.records, result.records);
+    for (const LocaleRejection& rejection : read.rejections) {
+        const std::optional<HelpField> field = help_field_of(rejection.field);
+        if (!field.has_value()) continue;
+        HelpEntryRejection kept{};
+        kept.stable_id = rejection.stable_id;
+        kept.field = *field;
+        kept.reason = help_refusal_of(rejection.reason);
+        kept.detail = rejection.detail;
+        result.rejections.push_back(std::move(kept));
     }
-    const XmlAttribute* language = root.find_attribute("xml:lang");
-    if (language == nullptr || (*language).value.empty()) {
-        result.error = HelpLocaleError::no_language;
-        return result;
-    }
-    LocaleWalk walk{};
-    walk.limits = &limits;
-    walk.records = &result.records;
-    walk.rejections = &result.rejections;
-    for (const XmlElement& section : root.children) {
-        if (section.name == "controls") read_children(walk, section);
-    }
-    if (walk.too_many) {
-        HelpLocaleReadResult refused{};
-        refused.error = HelpLocaleError::too_many_records;
-        return refused;
-    }
-    result.language = (*language).value;
     return result;
 }
 
 XmlWriteResult write_help_locale(const HelpRecordLayer& records, std::string_view language,
                                  const XmlLimits& xml_limits) {
-    XmlElement root{};
-    root.name = "locale";
-    root.attributes.push_back(XmlAttribute{"xml:lang", std::string(language)});
-    XmlElement controls{};
-    controls.name = "controls";
-    root.children.push_back(std::move(controls));
-    std::vector<std::string_view> segments;
+    std::vector<LocaleRecord> converted;
+    converted.reserve(records.size());
     for (const HelpRecordEntry& entry : records.entries()) {
-        segments.clear();
-        std::string_view rest(entry.stable_id);
-        while (!rest.empty()) {
-            const std::size_t dot = rest.find('.');
-            if (dot == std::string_view::npos) {
-                segments.push_back(rest);
-                break;
-            }
-            segments.push_back(rest.substr(0U, dot));
-            rest.remove_prefix(dot + 1U);
-        }
-        // Each segment's element is found again from the root: a pointer
-        // kept across control_child would dangle when a sibling is added.
-        XmlElement* element = &root.children.front();
-        for (const std::string_view segment : segments) element = &control_child(*element, segment);
-        XmlElement& target = *element;
-        if (entry.title.has_value()) target.attributes.push_back(XmlAttribute{"text", *entry.title});
-        if (entry.help_line.has_value()) target.attributes.push_back(XmlAttribute{"help-line", *entry.help_line});
-        if (entry.help.has_value() || entry.keywords.has_value()) {
-            XmlElement help{};
-            help.name = "help";
-            if (entry.keywords.has_value()) help.attributes.push_back(XmlAttribute{"keywords", *entry.keywords});
-            if (entry.help.has_value()) help.text = *entry.help;
-            // The help element goes before the nested controls.
-            target.children.insert(target.children.begin(), std::move(help));
-        }
+        LocaleRecord record{};
+        record.stable_id = entry.stable_id;
+        locale_record_field(record, locale_field_of(HelpField::title)) = entry.title;
+        locale_record_field(record, locale_field_of(HelpField::help_line)) = entry.help_line;
+        locale_record_field(record, locale_field_of(HelpField::help)) = entry.help;
+        locale_record_field(record, locale_field_of(HelpField::keywords)) = entry.keywords;
+        converted.push_back(std::move(record));
     }
-    const XmlWriteResult written = write_xml(root, XmlWriteOptions{}, xml_limits);
+    LocaleLayer layer;
+    layer.assign_sorted(std::move(converted));
+    LocaleFileInfo info{};
+    info.language = std::string(language);
+    const XmlWriteResult written = write_locale(layer, info, xml_limits);
     return written;
 }
 
@@ -511,6 +419,18 @@ void HelpCatalog::set_translation(HelpRecordLayer records, std::string language)
 
 void HelpCatalog::set_user_overrides(HelpRecordLayer records) {
     user_ = std::move(records);
+    ++revision_;
+}
+
+void HelpCatalog::adopt_locale(const LocaleCatalog& locale) {
+    project_help_fields(locale.layer(LocaleLayerKind::built_in), built_in_);
+    HelpRecordLayer program;
+    project_help_fields(locale.layer(LocaleLayerKind::program), program);
+    built_in_.merge_over(program);
+    project_help_fields(locale.layer(LocaleLayerKind::translation), translation_);
+    project_help_fields(locale.layer(LocaleLayerKind::user), user_);
+    language_ = locale.translation_info().language;
+    built_in_only_ = locale.built_in_only();
     ++revision_;
 }
 

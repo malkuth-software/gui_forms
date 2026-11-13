@@ -1,4 +1,4 @@
-#include "gui_forms/controls/docking/dock_navigator/dock_navigator.hpp"
+#include "gui_forms/controls/dock_navigator.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
@@ -210,10 +210,10 @@ void DockNavigator::on_paint(Painter& painter, Rect) {
     part.font = heading_font();
     part.role = PartRole::caption;
     part.bounds = placed.tool_heading;
-    part.text = tool_heading_text;
+    part.text = lend_paint_text(tool_heading_text);
     paint_part(painter, *this, part);
     part.bounds = placed.document_heading;
-    part.text = document_heading_text;
+    part.text = lend_paint_text(document_heading_text);
     paint_part(painter, *this, part);
     part.font = row_font();
     part.family = ControlVisualRole::menu_item;
@@ -229,7 +229,7 @@ void DockNavigator::on_paint(Painter& painter, Rect) {
             paint_part(painter, *this, part);
             part.role = PartRole::label;
             part.bounds = entry_label_bounds(row);
-            part.text = held[index].title;
+            part.text = lend_paint_text(held[index].title);
             paint_part(painter, *this, part);
         }
     }
@@ -260,58 +260,69 @@ void DockNavigator::set_hot(std::optional<Row> row) {
     invalidate(Dirty::paint);
 }
 
-void DockNavigator::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::leave) {
-        set_hot(std::nullopt);
-        return;
-    }
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
-    const std::optional<Row> row = row_at(local);
-    if (event.action == PointerAction::move || event.action == PointerAction::enter) {
-        set_hot(row);
-        return;
-    }
-    if (event.button != PointerButton::primary) return;
-    // A press makes its row current; the release over the same row chooses.
-    if (event.action == PointerAction::down) {
-        if (row) static_cast<void>(select((*row).list, (*row).index));
-        event.handled = true;
-        return;
-    }
-    if (event.action != PointerAction::up) return;
-    event.handled = true;
-    if (row && current_ && (*row).list == list_ && (*row).index == *current_) static_cast<void>(choose());
+void DockNavigator::on_mouse_leave() {
+    set_hot(std::nullopt);
+    Control::on_mouse_leave();
 }
 
-void DockNavigator::on_key(KeyEvent& event) {
-    if (event.action == KeyAction::up) {
-        // The release modifier was let go: every host reports a key-up whose
-        // modifiers no longer hold it.
-        if (release_modifier.read() == Modifier::none || has_modifier(event.modifiers, release_modifier.read())) return;
-        event.handled = true;
-        if (!choose()) cancel();
-        return;
+// The hot row follows the pointer's moves (the move that enters the
+// navigator sets it).
+void DockNavigator::on_mouse_move(MouseEventArgs& arguments) {
+    set_hot(row_at(arguments.location));
+    Control::on_mouse_move(arguments);
+}
+
+// A press makes its row current; the release over the same row chooses.
+void DockNavigator::on_mouse_down(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary) {
+        const std::optional<Row> row = row_at(arguments.location);
+        if (row) static_cast<void>(select((*row).list, (*row).index));
+        arguments.handled = true;
     }
-    const bool shifted = has_modifier(event.modifiers, Modifier::shift);
-    if (event.physical_key == PhysicalKey::tab) {
+    Control::on_mouse_down(arguments);
+}
+
+void DockNavigator::on_mouse_up(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary) {
+        const std::optional<Row> row = row_at(arguments.location);
+        arguments.handled = true;
+        if (row && current_ && (*row).list == list_ && (*row).index == *current_) static_cast<void>(choose());
+    }
+    Control::on_mouse_up(arguments);
+}
+
+// The release modifier was let go: every host reports a key-up whose
+// modifiers no longer hold it.
+void DockNavigator::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    if (arguments.handled || arguments.released_by_deactivation) return;
+    if (release_modifier.read() == Modifier::none || has_modifier(arguments.modifiers, release_modifier.read())) return;
+    arguments.handled = true;
+    if (!choose()) cancel();
+}
+
+void DockNavigator::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    const bool shifted = has_modifier(arguments.modifiers, Modifier::shift);
+    if (arguments.physical_key == PhysicalKey::tab) {
         static_cast<void>(step(shifted ? -1 : 1));
-    } else if (event.physical_key == PhysicalKey::down) {
+    } else if (arguments.physical_key == PhysicalKey::down) {
         static_cast<void>(step(1));
-    } else if (event.physical_key == PhysicalKey::up) {
+    } else if (arguments.physical_key == PhysicalKey::up) {
         static_cast<void>(step(-1));
-    } else if (event.physical_key == PhysicalKey::left) {
+    } else if (arguments.physical_key == PhysicalKey::left) {
         if (list_ == DockNavigatorList::documents) static_cast<void>(switch_list());
-    } else if (event.physical_key == PhysicalKey::right) {
+    } else if (arguments.physical_key == PhysicalKey::right) {
         if (list_ == DockNavigatorList::tools) static_cast<void>(switch_list());
-    } else if (event.physical_key == PhysicalKey::enter) {
+    } else if (arguments.physical_key == PhysicalKey::enter) {
         if (!choose()) cancel();
-    } else if (event.physical_key == PhysicalKey::escape) {
+    } else if (arguments.physical_key == PhysicalKey::escape) {
         cancel();
     } else {
         return;
     }
-    event.handled = true;
+    arguments.handled = true;
 }
 
 // -- semantics -----------------------------------------------------------------

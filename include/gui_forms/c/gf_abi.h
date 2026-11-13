@@ -68,9 +68,10 @@ extern "C" {
 /* The ABI version this header describes. 1.1 is the seal (checkpoint
  * cp24); 1.2 (owner decision D9, cp28) adds the window, focus, decoration,
  * anchored overlay, data grid, docking and fonts surfaces and the slots
- * marked since 1.2, additions only. */
+ * marked since 1.2, additions only; 1.3 adds the class tables
+ * (gf_abi_classes.h, GF_TABLE_CLASSES), additions only. */
 #define GF_ABI_MAJOR 1u
-#define GF_ABI_MINOR 2u
+#define GF_ABI_MINOR 3u
 
 /* gf_status: the result of every call. Zero is success; failures are
  * positive and the list only grows. */
@@ -91,6 +92,13 @@ typedef int32_t gf_status;
 #define GF_STATUS_LIMIT_EXCEEDED 13
 #define GF_STATUS_CANCELLED 14
 #define GF_STATUS_REMOVED 15
+/* Since 1.2. An exception inside the library reached the function's
+ * boundary while exception reflection is on (gf_diagnostics_table
+ * set_exception_reflection): the function did nothing more, and the
+ * calling thread's failure snapshot holds the failure and the shadow frames
+ * it was thrown under. With reflection off the same failure is
+ * GF_STATUS_INTERNAL, also with a snapshot. */
+#define GF_STATUS_NATIVE_EXCEPTION 16
 
 /* gf_table_id: names one function table for gf_abi_get_table. */
 typedef uint32_t gf_table_id;
@@ -117,6 +125,8 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_DOCKING 21u
 #define GF_TABLE_FONTS 22u
 #define GF_TABLE_HELP 23u
+/* Since 1.3: objects made from class tables (gf_abi_classes.h). */
+#define GF_TABLE_CLASSES 24u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -633,7 +643,10 @@ typedef struct gf_objects_table {
                                    uint64_t* required);
     /* Puts child, which has no parent, under parent at index (at most the
      * child count; the count appends). Children are ordered back to front:
-     * the last one paints on top. A child cannot be its own ancestor. This
+     * the last one paints on top. A child cannot be its own ancestor. A
+     * tree nests at most 64 levels, the root counted as one: a child whose
+     * subtree would end deeper gives GF_STATUS_LIMIT_EXCEEDED, changing
+     * nothing. This
      * is the ABI's one child order (K4), painter order: index 0 is the
      * bottom-most child. A Windows Forms binding, whose Controls collection
      * puts index 0 on top (z-order), reverses the index at its boundary. */
@@ -1743,8 +1756,9 @@ typedef struct gf_host_table {
 
 /*
  * GF_TABLE_DIAGNOSTICS: what a thread is doing. Its functions may be called
- * from any thread and read only the calling thread's state; they open no
- * shadow frame of their own.
+ * from any thread and read only the calling thread's state (the switches
+ * are the process's); they open no shadow frame of their own, except
+ * raise_native_exception (since 1.2).
  *
  * Shadow frames. Each thread keeps a stack of logical frames, which a
  * debugger or a crash report reads where the native frames say nothing a
@@ -1824,6 +1838,60 @@ typedef struct gf_shadow_stack_info {
     uint64_t dropped;
 } gf_shadow_stack_info;
 
+/*
+ * Failure snapshots (since 1.2). When an exception inside the library
+ * reaches a boundary, the library copies, on the failing thread, the
+ * failure and the shadow frames it was thrown under: at a function of these
+ * tables whose call it refuses, and at a native callback entry (a window
+ * procedure, an AppKit or AT-SPI method), which ends the process (the
+ * fail-fast boundary) after its report prints the snapshot. The frames are
+ * those open where the exception was thrown, the frames it unwound
+ * included; a thread's snapshot is replaced by its next one and is read
+ * with failure_snapshot, as copies, after the refused call has returned.
+ *
+ * Exception reflection is a process switch, off at start. Off, a refused
+ * call reports an exception the library has no status for as
+ * GF_STATUS_INTERNAL; on, as GF_STATUS_NATIVE_EXCEPTION, which a binding
+ * raises as its language's exception carrying the snapshot's frames. An
+ * exception the library maps to a status of its own (GF_STATUS_OUT_OF_MEMORY,
+ * GF_STATUS_INVALID_ARGUMENT, GF_STATUS_INVALID_STATE, ...) keeps it either
+ * way, and also leaves a snapshot. The fail-fast boundary ends the process
+ * either way: its caller is foreign code, which takes no status.
+ */
+
+/* The bytes a snapshot keeps of its site. */
+#define GF_FAILURE_SITE_CAPACITY 64u
+/* The bytes a snapshot keeps of its message (as gf_error_detail's). */
+#define GF_FAILURE_MESSAGE_CAPACITY 512u
+
+/*
+ * The calling thread's last failure snapshot. An output record, as
+ * gf_abi_version_info. status is the status the failing call returned
+ * (GF_STATUS_NATIVE_EXCEPTION for the fail-fast boundary), GF_STATUS_OK
+ * when the thread has no snapshot. table_id and slot_index name the
+ * refusing function, as in gf_error_detail; both are zero at a native
+ * callback entry. sequence counts the thread's snapshots from 1. depth
+ * counts the frames open where the exception was thrown, recorded or not;
+ * frame_count the recorded ones (at most GF_SHADOW_STACK_CAPACITY), which
+ * failure_snapshot copies. site holds site_size bytes of UTF-8 naming the
+ * boundary ("c_abi" for a function of these tables, else the callback
+ * entry, such as "windows.window_procedure"), not terminated, the bytes
+ * after it zero. message_size is the byte length of the message.
+ */
+typedef struct gf_failure_snapshot {
+    uint32_t struct_size;
+    gf_status status;
+    gf_table_id table_id;
+    uint32_t slot_index;
+    uint64_t sequence;
+    uint32_t frame_count;
+    uint32_t depth;
+    uint32_t site_size;
+    uint32_t message_size;
+    /* GF_FAILURE_SITE_CAPACITY bytes. */
+    uint8_t site[64];
+} gf_failure_snapshot;
+
 typedef struct gf_diagnostics_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -1854,6 +1922,43 @@ typedef struct gf_diagnostics_table {
      */
     gf_status (GF_CALL* set_invalidation_overlay)(uint32_t enabled);
     gf_status (GF_CALL* invalidation_overlay)(uint32_t* enabled);
+    /*
+     * Since 1.2. Copies the calling thread's last failure snapshot into
+     * snapshot, its frames, outermost first, into frames and its message
+     * into message_buffer (not terminated). frames_required and
+     * message_required receive the frame count and the message size. When
+     * frame_capacity or message_capacity is smaller, nothing else is
+     * written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames and
+     * message_buffer may be null when their capacity is zero. A thread with
+     * no snapshot reads status GF_STATUS_OK and no frames. The snapshot
+     * stays until the thread's next one or clear_failure_snapshot; the
+     * frames and text are copies, and nothing is lent.
+     */
+    gf_status (GF_CALL* failure_snapshot)(gf_failure_snapshot* snapshot, gf_shadow_frame* frames,
+                                          uint64_t frame_capacity, uint64_t* frames_required,
+                                          char* message_buffer, uint64_t message_capacity,
+                                          uint64_t* message_required);
+    /* Since 1.2. Forgets the calling thread's failure snapshot. */
+    gf_status (GF_CALL* clear_failure_snapshot)(void);
+    /*
+     * Since 1.2. Exception reflection's process switch (enabled 0 or 1), off
+     * at start; exception_reflection reads it into enabled. Any thread.
+     * GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null
+     * output.
+     */
+    gf_status (GF_CALL* set_exception_reflection)(uint32_t enabled);
+    gf_status (GF_CALL* exception_reflection)(uint32_t* enabled);
+    /*
+     * Since 1.2, a debugging aid with which a binding tests its reflection:
+     * throws an exception with message (UTF-8, at most
+     * GF_FAILURE_MESSAGE_CAPACITY bytes) inside the library, under a frame
+     * of this call (the one diagnostics function that opens one), and
+     * refuses the call as any other exception would: GF_STATUS_NATIVE_EXCEPTION
+     * with reflection on, GF_STATUS_INTERNAL off, a snapshot either way.
+     * GF_STATUS_INVALID_ARGUMENT, with no snapshot, for a message that is
+     * not UTF-8 or too long.
+     */
+    gf_status (GF_CALL* raise_native_exception)(gf_utf8_view message);
 } gf_diagnostics_table;
 
 /*
@@ -3653,6 +3758,32 @@ typedef uint32_t gf_help_navigator;
 #define GF_HELP_NAVIGATOR_INDEX 1u
 #define GF_HELP_NAVIGATOR_SEARCH 2u
 
+/* gf_locale_field (since 1.2): a field of a language file's text record,
+ * as help.read_field names it; the values are the C++ LocaleField's. */
+typedef uint32_t gf_locale_field;
+#define GF_LOCALE_FIELD_TEXT 0u
+#define GF_LOCALE_FIELD_TOOL_TIP 1u
+#define GF_LOCALE_FIELD_ACCESS_KEY 2u
+#define GF_LOCALE_FIELD_TITLE 3u
+#define GF_LOCALE_FIELD_PLACEHOLDER 4u
+#define GF_LOCALE_FIELD_HEADER 5u
+#define GF_LOCALE_FIELD_ACCESSIBLE_NAME 6u
+#define GF_LOCALE_FIELD_ACCESSIBLE_DESCRIPTION 7u
+#define GF_LOCALE_FIELD_HELP_LINE 8u
+#define GF_LOCALE_FIELD_HELP 9u
+#define GF_LOCALE_FIELD_KEYWORDS 10u
+
+/* gf_locale_origin (since 1.2): the layer a field read by help.read_field
+ * came from: none (no layer gives it), the built-in locale file, a value
+ * the program set on a control in code, the translation, or the user's
+ * override. */
+typedef uint32_t gf_locale_origin;
+#define GF_LOCALE_ORIGIN_NONE 0u
+#define GF_LOCALE_ORIGIN_BUILT_IN 1u
+#define GF_LOCALE_ORIGIN_PROGRAM 2u
+#define GF_LOCALE_ORIGIN_TRANSLATION 3u
+#define GF_LOCALE_ORIGIN_USER 4u
+
 /*
  * GF_TABLE_HELP (since 1.2; roadmap row 3.7): a help book system's viewer,
  * popup, F1 resolution and What's This mode. system is a help_book_system
@@ -3681,6 +3812,31 @@ typedef uint32_t gf_help_navigator;
  *   BUFFER_TOO_SMALL rule) and home 1 when it is the home page.
  * - enter_help_mode starts What's This on window (entered 1 when it
  *   started); cancel_help_mode ends it, if active.
+ *
+ * Since 1.2 as well, the language files (roadmap row 2.13, help H1). A
+ * control's help fields are the ordinary text properties help_line, help
+ * and keywords (properties.set and get); the program values the attached
+ * windows' controls hold join the built-in text.
+ * - load_translation reads locale_xml as the shipped translation of its
+ *   language, replacing an earlier one (user overrides for another
+ *   language go); load_user_overrides reads the user's own file for the
+ *   language in force, which wins per field. A refused file, or a user
+ *   file for another language, gives GF_STATUS_INVALID_ARGUMENT and changes
+ *   nothing. clear_user_overrides drops the user's file.
+ * - use_built_in_language is the untranslatable way back: while
+ *   built_in_only is 1 only the built-in text shows; 0 restores the rest.
+ *   Any other value is GF_STATUS_INVALID_ARGUMENT.
+ * - export_template writes the template a translator starts from (every
+ *   record's built-in text and, when language is the translation's, its
+ *   translations over it; never the user's overrides; an empty language is
+ *   the built-in one) as a locale file into buffer (the BUFFER_TOO_SMALL
+ *   rule). A language that is not a language tag is
+ *   GF_STATUS_INVALID_ARGUMENT; a template past the locale file's bounds
+ *   GF_STATUS_LIMIT_EXCEEDED.
+ * - read_field writes one field of record stable_id as it shows now into
+ *   buffer (the BUFFER_TOO_SMALL rule) and the layer it came from into
+ *   origin (GF_LOCALE_ORIGIN_NONE with an empty text when no layer gives
+ *   it). A field past GF_LOCALE_FIELD_KEYWORDS is GF_STATUS_INVALID_ARGUMENT.
  */
 typedef struct gf_help_table {
     uint32_t struct_size;
@@ -3696,6 +3852,14 @@ typedef struct gf_help_table {
                                  uint64_t* required, uint32_t* home);
     gf_status (GF_CALL* enter_help_mode)(gf_object system, gf_object window, uint32_t* entered);
     gf_status (GF_CALL* cancel_help_mode)(gf_object system);
+    gf_status (GF_CALL* load_translation)(gf_object system, gf_utf8_view locale_xml);
+    gf_status (GF_CALL* load_user_overrides)(gf_object system, gf_utf8_view locale_xml);
+    gf_status (GF_CALL* clear_user_overrides)(gf_object system);
+    gf_status (GF_CALL* use_built_in_language)(gf_object system, uint32_t built_in_only);
+    gf_status (GF_CALL* export_template)(gf_object system, gf_utf8_view language, char* buffer, uint64_t capacity,
+                                         uint64_t* required);
+    gf_status (GF_CALL* read_field)(gf_object system, gf_utf8_view stable_id, gf_locale_field field, char* buffer,
+                                    uint64_t capacity, uint64_t* required, gf_locale_origin* origin);
 } gf_help_table;
 
 /*
@@ -3762,6 +3926,11 @@ typedef struct gf_windows_paint_endpoint_table {
     gf_status (GF_CALL* begin_write)(uint64_t device_context, gf_paint_write_lease* lease);
     gf_status (GF_CALL* end_write)(gf_paint_write_lease lease, uint32_t publish);
 } gf_windows_paint_endpoint_table;
+
+/* The class tables (since 1.3): Windows Forms' protected On* hooks as
+ * per-class C tables, and gf_classes_table. Generated by
+ * tools/abi_class_tables.py; read as part of this header. */
+#include "gui_forms/c/gf_abi_classes.h"
 
 /*
  * Fills table (table_capacity bytes, a multiple of 8 and at least 8) with

@@ -9,7 +9,7 @@ gui_forms::Ribbon
 
 .. cpp:class:: Ribbon final : public Control, public RibbonCapabilities<Ribbon>
 
-   ``#include <gui_forms/controls/ribbon/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>``
 
    A ribbon: the File tab and core tabs over a command plane of groups.
 
@@ -133,7 +133,7 @@ gui_forms::Ribbon
          :cpp:class:`RibbonScalingCounters <gui_forms::RibbonScalingCounters>`: ladders built, the last ladder's entries and
          folded steps, ladder lookups and the ribbon's own text measurements.
 
-      **application_menu** : ``std::vector<MenuItemSpec>``
+      **application_menu** : ``BorrowedSpan<MenuItemSpec>``
          The File tab's menu. :cpp:func:`set_application_menu <gui_forms::Ribbon::set_application_menu>` throws
          ``std::invalid_argument`` for an invalid menu, or for items other than
          commands and separators beside recent items.
@@ -490,7 +490,7 @@ gui_forms::Ribbon
       Whether a tab is selected when the pointer is released over the tab it
       was pressed on, instead of on the press (Office's way, the default).
 
-   .. cpp:function:: std::span<const RibbonTabSpec> tabs() const noexcept
+   .. cpp:function:: std::span<const RibbonTabSpec> tabs() const& noexcept
 
       The tabs, each with its groups and their commands: the core tabs, then
       the contextual tabs, each set's together in the sets' order.
@@ -521,7 +521,7 @@ gui_forms::Ribbon
 
       Sets :cpp:func:`tabs <gui_forms::Ribbon::tabs>`; see the property's description above.
 
-   .. cpp:function:: std::span<const RibbonTabSetSpec> tab_sets() const noexcept
+   .. cpp:function:: std::span<const RibbonTabSetSpec> tab_sets() const& noexcept
 
       The contextual tab sets (:cpp:class:`RibbonTabSetSpec <gui_forms::RibbonTabSetSpec>`: ID and caption).
 
@@ -549,7 +549,7 @@ gui_forms::Ribbon
       :cpp:class:`RibbonScalingCounters <gui_forms::RibbonScalingCounters>`: ladders built, the last ladder's entries and
       folded steps, ladder lookups and the ribbon's own text measurements.
 
-   .. cpp:function:: const std::vector<MenuItemSpec>& application_menu() const noexcept
+   .. cpp:function:: BorrowedSpan<MenuItemSpec> application_menu() const& noexcept
 
       The File tab's menu. :cpp:func:`set_application_menu <gui_forms::Ribbon::set_application_menu>` throws
       ``std::invalid_argument`` for an invalid menu, or for items other than
@@ -559,7 +559,7 @@ gui_forms::Ribbon
 
       Sets :cpp:func:`application_menu <gui_forms::Ribbon::application_menu>`; see the property's description above.
 
-   .. cpp:function:: std::span<const RibbonRecentItem> recent_items() const noexcept
+   .. cpp:function:: std::span<const RibbonRecentItem> recent_items() const& noexcept
 
       The application menu's recent pane (:cpp:class:`RibbonRecentItem <gui_forms::RibbonRecentItem>`: ID, text and a
       description such as its folder), numbered under :cpp:member:`recent_caption <gui_forms::Ribbon::recent_caption>`. While
@@ -742,11 +742,7 @@ gui_forms::Ribbon
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: void on_pointer_preview(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
 
    .. cpp:function:: void on_focus_changed(bool focused) override
 
@@ -767,6 +763,26 @@ gui_forms::Ribbon
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -843,3 +859,193 @@ gui_forms::Ribbon
    .. cpp:member:: constexpr std::size_t maximum_recent_items
 
       The application menu's recent pane (phase 6): its items and caption ("Recent documents"). While there are recent items the application menu takes only command and separator items. Throws std::invalid_argument for an empty or repeated ID, invalid or multi-line UTF-8, more than maximum_recent_items, or recent items beside an application menu with other kinds (and set_application_menu likewise for such items beside recent ones). Default: ``50U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 38 supported, 0 deferred, 0 excluded, 6 unclassified; 44 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``application_menu``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``application_menu_overlay``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``backstage_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``first_visible_group``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``group_overlay``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``ladder_step``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``menu_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overlay_group``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``plane_hidden``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_commands``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_groups``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_overlay_commands``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_overlay_groups``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_tabs``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``recent_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scaling_counters``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scrolling``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tab_sets``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``tabs``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``application_menu_item_invoked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``backstage_open_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``command_clicked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``dialog_launcher_clicked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_item_invoked``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``minimized_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``recent_item_invoked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selected_tab_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``check_box``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_backstage``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_group_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_menus``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``combo_box``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``group_layouts``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``numeric_up_down``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reduction_ladder``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_tab_set_availability``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_application_menu``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_backstage``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_drop_down``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_group_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``tab_set_accent``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``tab_set_availability``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``tab_shown``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``text_box``
+     - supported

@@ -1,4 +1,4 @@
-#include "gui_forms/controls/spinner/spinner.hpp"
+#include "gui_forms/controls/spinner.hpp"
 
 #include "../progress_ring/ring_dots.hpp"
 

@@ -1,4 +1,29 @@
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/application/application.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/components/tool_tip/tool_tip.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/combo_box_values.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/controls/rich_text_box.hpp"
+#include "gui_forms/controls/tab_control.hpp"
+#include "gui_forms/controls/tab_page.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
+#include "gui_forms/window/tool_tips/tool_tips.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <chrono>
 #include <exception>
@@ -739,6 +764,66 @@ void test_typed_text_fields_show_hints() {
             "resting the pointer on a field still shows its bubble");
 }
 
+// The colours a tooltip bubble drew: its text ink and whether it filled a
+// plate in `forbidden` (the bubble is the control whose stable ID ends in
+// ".bubble").
+struct BubbleColours final {
+    bool found{};
+    bool text_drawn{};
+    bool text_black{};
+    bool forbidden_fill{};
+};
+
+BubbleColours bubble_colours(Window& window, Color forbidden) {
+    window.perform_layout();
+    NullPainter painter;
+    const Size client = window.client_size();
+    static_cast<void>(window.paint(painter, Rect{0.0, 0.0, client.width, client.height}));
+    VisualInspectionOptions options{};
+    options.include_text = true;
+    const VisualInspectionSnapshot snapshot = window.visual_inspection_snapshot(options);
+    BubbleColours colours{};
+    const std::string_view suffix = ".bubble";
+    for (const VisualControlInspection& control : snapshot.controls) {
+        const std::string_view id = control.stable_id;
+        if (id.size() < suffix.size() || id.substr(id.size() - suffix.size()) != suffix) continue;
+        colours.found = true;
+        colours.text_black = true;
+        for (const VisualPaintOperationSnapshot& operation : control.display_operations) {
+            if (operation.operation == VisualPaintOperation::draw_text) {
+                colours.text_drawn = true;
+                colours.text_black = colours.text_black && operation.color == Color::rgba(0, 0, 0);
+            }
+            const bool fill = operation.operation == VisualPaintOperation::fill_rect ||
+                              operation.operation == VisualPaintOperation::fill_rounded_rect;
+            if (fill && operation.color == forbidden) colours.forbidden_fill = true;
+        }
+    }
+    return colours;
+}
+
+// cp29 (owner mandate 2026-11-11): tooltip text is black on the light
+// plate, and a tooltip ignores the ForeColor and BackColor the window or
+// its panels authored: its ink and plate are the tool_tip role's.
+void test_tooltip_ink_is_black_and_ignores_inherited_colours() {
+    Fixture fixture;
+    const Color white = Color::rgba(255, 255, 255);
+    const Color night = Color::rgba(32, 34, 40);
+    (*fixture.root).fore_color = white;
+    (*fixture.root).back_color = night;
+    ToolTip tips(fixture.window);
+    tips.initial_delay = 30ms;
+    tips.auto_pop_delay = 2000ms;
+    tips.set_tool_tip(fixture.button, "Sample rate");
+    hover(fixture.window, {60.0, 60.0});
+    fire_next(fixture.window);
+    require(tips.visible(), "a due hover opens the tooltip");
+    const BubbleColours colours = bubble_colours(fixture.window, night);
+    require(colours.found && colours.text_drawn, "the tooltip bubble draws its text");
+    require(colours.text_black, "tooltip text is black, not the window's authored white ForeColor");
+    require(!colours.forbidden_fill, "the tooltip plate is not the window's authored BackColor");
+}
+
 } // namespace
 
 int main() {
@@ -758,6 +843,7 @@ int main() {
         test_strip_item_tooltips();
         test_tab_header_tooltips();
         test_typed_text_fields_show_hints();
+        test_tooltip_ink_is_black_and_ignores_inherited_colours();
         std::cout << "tooltip tests passed\n";
         return 0;
     } catch (const std::exception& error) {

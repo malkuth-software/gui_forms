@@ -9,7 +9,7 @@
 
 #include "gui_forms/control.hpp"
 #include "support/theme_definition_heap.hpp"
-#include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel.hpp"
 #include "gui_forms/engine.hpp"
 #include "gui_forms/theme.hpp"
 #include "gui_forms/window.hpp"
@@ -94,6 +94,10 @@ void test_field_names() {
         "fill_text", "stroke_width", "needle_shape", "scrim_colour",
         "block_size", "minimum_inline_size", "padding_inline", "gap", "margin_block_start", "margin_block_end",
         "taper", "taper_colour", "flare", "flare_colour", "edge_shadow_width", "edge_shadow_colour",
+        "stripe_pitch", "stripe_ratio", "stripe_angle", "stripe_lean", "stripe_direction", "stripe_speed",
+        "stripe_colour", "stripe_ground_colour", "stripe_gloss", "stripe_reduced_motion",
+        "fill_colour", "stroke_colour", "stroke_dash", "stroke_gap", "halo_width", "halo_colour", "corner_radius",
+        "grid_spacing", "grid_band", "texture_layers", "flow_style", "flow_speed", "flow_spacing",
     };
     require(names.size() == recipe_field_count, "every recipe field is named");
     for (std::size_t index = 0U; index < names.size(); ++index) {
@@ -199,6 +203,45 @@ void test_cascade() {
     require(!plain.resolve_recipe_fields(facts).authored, "the built-in rules set no recipe field");
 }
 
+// A family rule and a part rule may both set stroke_width (a dial's arc, a
+// canvas part's line). The family rule outranks the part rule (a class
+// against two types) and wins `fields`; the part rule's declaration is
+// kept apart in `named_part_fields`, so a family's arc width is never a
+// canvas part's line width.
+void test_named_part_winners() {
+    ThemeRuleSheet sheet{};
+    ThemeRule family = control_rule("family", {});
+    family.selector.family = "progress";
+    family.recipe_fields.push_back(number_field(RecipeField::stroke_width, 6.0));
+    sheet.rules.push_back(family);
+    ThemeRule part = control_rule("part", {});
+    part.selector.control_type = "pad";
+    part.selector.part = "lamp";
+    part.recipe_fields.push_back(number_field(RecipeField::stroke_width, 1.0));
+    sheet.rules.push_back(part);
+    const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    require(rules.diagnostics().empty(), "a family stroke width and a part stroke width compile cleanly");
+    const std::size_t width = static_cast<std::size_t>(RecipeField::stroke_width);
+
+    CompiledThemeRules::PartFacts facts{};
+    facts.family = "progress";
+    CompiledThemeRules::RecipeResolution resolved = rules.resolve_recipe_fields(facts);
+    require(resolved.fields[width] != nullptr && (*resolved.fields[width]).number == 6.0 &&
+                resolved.named_part_fields[width] == nullptr,
+            "a family record's stroke width comes from a rule naming no part");
+    facts.control_type = "pad";
+    facts.part = "lamp";
+    resolved = rules.resolve_recipe_fields(facts);
+    require(resolved.fields[width] != nullptr && (*resolved.fields[width]).number == 6.0,
+            "the family rule outranks the part rule for the shared field");
+    require(resolved.named_part_fields[width] != nullptr && (*resolved.named_part_fields[width]).number == 1.0,
+            "a part's stroke width comes from the rule naming it");
+    facts.part = "other";
+    resolved = rules.resolve_recipe_fields(facts);
+    require(resolved.fields[width] != nullptr && resolved.named_part_fields[width] == nullptr,
+            "a part no part rule names takes only the family's width, which is no part's");
+}
+
 // -- the theme's resolution ------------------------------------------------------------
 
 class Labelled final : public Control {
@@ -210,7 +253,7 @@ public:
         part.role = PartRole::label;
         part.family = ControlVisualRole::button;
         part.bounds = Rect{10.0, 10.0, 60.0, 20.0};
-        part.text = "Label";
+        part.text = lend_paint_text("Label");
         return part;
     }
 };
@@ -501,6 +544,7 @@ int main() {
     test_field_names();
     test_compile();
     test_cascade();
+    test_named_part_winners();
     test_floor();
     test_resolve();
     test_part_text_colour();

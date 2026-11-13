@@ -1,4 +1,4 @@
-#include "gui_forms/controls/collections/expandable_sections.hpp"
+#include "gui_forms/controls/expandable_sections.hpp"
 #include "gui_forms/text.hpp"
 #include "../panel/panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -40,6 +40,8 @@ struct ExpandableSections::Entry final {
 struct ExpandableSections::Revision final {
     std::vector<SectionItem> items{};
     std::vector<std::shared_ptr<Entry>> entries{};
+    // Stamps items(): replacing the revision ends the views lent from it.
+    detail::BorrowLender lender{};
 };
 struct ExpandableSections::HeadingChange final {
     ExpandableSections& sections;
@@ -52,9 +54,11 @@ ExpandableSections::ExpandableSections(StableId id) : Panel(std::move(id)) {
     tab_stop = false;
 }
 ExpandableSections::~ExpandableSections() = default;
-std::span<const SectionItem> ExpandableSections::items() const noexcept {
-    if (!revision_) return {};
-    return (*revision_).items;
+BorrowedSpan<SectionItem> ExpandableSections::items() const noexcept {
+    if (!revision_) return BorrowedSpan<SectionItem>();
+    const std::vector<SectionItem>& current = (*revision_).items;
+    BorrowedSpan<SectionItem> view = detail::lend_view(current.data(), current.size(), (*revision_).lender);
+    return view;
 }
 ExpandableSections::Entry& ExpandableSections::entry(const int index) const {
     if (!revision_ || index < 0 || static_cast<std::size_t>(index) >= (*revision_).entries.size()) {
@@ -141,6 +145,9 @@ void ExpandableSections::set_items(std::vector<SectionItem> items) {
     replacing_ = true;
     try {
         const std::shared_ptr<Revision> previous = std::exchange(revision_, next);
+        // The items lent from the previous revision end here, even while a
+        // callback still holds that revision.
+        if (previous) (*previous).lender.invalidate();
         if (previous) {
             for (const std::shared_ptr<Entry>& item : (*previous).entries) {
                 (*item).change.disconnect();

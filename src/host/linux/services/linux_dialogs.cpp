@@ -1,9 +1,9 @@
 #include "../application/linux_host_internal.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
-#include "gui_forms/controls/panel/combo_box/combo_box.hpp"
-#include "gui_forms/controls/panel/list_box/list_box.hpp"
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include <algorithm>
 #include <cctype>
 #include <filesystem>

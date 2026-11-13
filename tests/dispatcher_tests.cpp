@@ -1,7 +1,23 @@
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/dispatcher/operation/dispatch_operation.hpp"
+#include "gui_forms/dispatcher/types/dispatcher_types.hpp"
+#include "gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "headless_host.hpp"
 #include "support/named_callbacks.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -37,10 +53,10 @@ public:
     void draw_image(ImageId, Rect, double) override {}
 };
 
-class DispatchPhaseProbe final : public Control {
+class DispatchPhaseProbe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
     DispatchPhaseProbe(StableId stable_id, std::vector<std::string>& trace)
-        : Control(std::move(stable_id)), trace_(trace) {}
+        : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)), trace_(trace) {}
 
     Size measure(Size available) override {
         if (recording) trace_.push_back("measure");
@@ -56,7 +72,7 @@ public:
         if (recording) trace_.push_back("paint");
     }
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         if (!recording || event.action != PointerAction::down) return;
         trace_.push_back("input");
         static_cast<void>(begin_invoke(detail::BoundMemberFunction<

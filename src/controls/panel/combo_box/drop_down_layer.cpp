@@ -46,15 +46,44 @@ void DropDownList::scroll_changed(double value) {
     if (!synchronizing_) top_index = static_cast<std::size_t>(std::round(value));
 }
 
-void DropDownList::on_pointer(PointerEvent& event) {
-    if ((*scrollbar_).visible.read() && (*scrollbar_).absolute_bounds().contains(event.position) &&
-        event.action != PointerAction::wheel) return;
-    ListBox::on_pointer(event);
+// A press, release or move on the visible scroll bar is the bar's (a
+// child); the rest is ListBox's, then the scroll bar follows the rows. The
+// event is raised through Control after either.
+void DropDownList::drop_down_pointer(MouseEventArgs& arguments) {
+    if ((*scrollbar_).visible.read() && (*scrollbar_).absolute_bounds().contains(arguments.window_position) &&
+        arguments.action != PointerAction::wheel) return;
+    list_pointer(arguments);
     synchronize_scroll();
 }
 
-void DropDownList::on_key(KeyEvent& event) {
-    ListBox::on_key(event);
+void DropDownList::on_mouse_down(MouseEventArgs& arguments) {
+    drop_down_pointer(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void DropDownList::on_mouse_up(MouseEventArgs& arguments) {
+    drop_down_pointer(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void DropDownList::on_mouse_move(MouseEventArgs& arguments) {
+    drop_down_pointer(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void DropDownList::on_mouse_wheel(MouseEventArgs& arguments) {
+    drop_down_pointer(arguments);
+    Control::on_mouse_wheel(arguments);
+}
+
+void DropDownList::on_mouse_leave() {
+    list_pointer_left();
+    synchronize_scroll();
+    Control::on_mouse_leave();
+}
+
+void DropDownList::on_key_down(KeyEventArgs& arguments) {
+    ListBox::on_key_down(arguments);
     synchronize_scroll();
 }
 
@@ -181,12 +210,12 @@ DropDownLayer::DropDownLayer(StableId stable_id) : Panel(std::move(stable_id)) {
     set_background(Color::rgba(0, 0, 0, 0));
 }
 
-void DropDownLayer::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::down &&
-        event.button == PointerButton::primary) {
+void DropDownLayer::on_mouse_down(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary) {
         dismissed_.emit();
-        event.handled = true;
+        arguments.handled = true;
     }
+    Control::on_mouse_down(arguments);
 }
 
 void DropDownLayer::on_key_preview(KeyEvent& event) {

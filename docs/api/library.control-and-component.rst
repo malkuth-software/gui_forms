@@ -62,6 +62,8 @@ Related types
      - One axis of a layout constraint.
    * - :cpp:class:`BackColorCapability <gui_forms::BackColorCapability>`
      - The own background colour; empty takes the parent's.
+   * - :cpp:class:`BasicBorrowedSpan <gui_forms::BasicBorrowedSpan>`
+     - A checked view of Element values (const-qualified for BorrowedSpan): the pointer and live length of the lender's storage and the stamp.
    * - :cpp:class:`BlockFlowContainerInput <gui_forms::BlockFlowContainerInput>`
      -  
    * - :cpp:class:`BlockFlowItemInput <gui_forms::BlockFlowItemInput>`
@@ -72,6 +74,10 @@ Related types
      - Caller-owned storage solve_block_flow fills, reused from layout to layout (house style section 1): ``items`` has one record per input item, in input order; ``lines`` the line boxes in order.
    * - :cpp:class:`BlockFlowLine <gui_forms::BlockFlowLine>`
      - One line box, its items being items[first, first + count).
+   * - :cpp:class:`BorrowedPointer <gui_forms::BorrowedPointer>`
+     - A checked borrowed pointer: the address and the stamp of the link it was read from.
+   * - :cpp:class:`BorrowedText <gui_forms::BorrowedText>`
+     - A checked view of UTF-8 text: the pointer and length of the lender's characters and the stamp.
    * - :cpp:class:`BoxAlignment <gui_forms::BoxAlignment>`
      - CSS Box Alignment's six properties, shared by flex and grid containers and their items.
    * - :cpp:class:`BoxSides <gui_forms::BoxSides>`
@@ -100,6 +106,8 @@ Related types
      - Every Control capability, in the order the declaring class takes them.
    * - :cpp:class:`ControlFactory <gui_forms::ControlFactory>`
      - ControlFactory maps explicit type names to construction callbacks, rejects duplicates/unknown types, and recursively creates retained trees without a bundled scripting runtime.
+   * - :cpp:class:`ControlTreeDepthError <gui_forms::ControlTreeDepthError>`
+     - Thrown, before any change, when an attachment would nest a control tree deeper than maximum_control_tree_depth (control.hpp).
    * - :cpp:class:`ControlValidationEvent <gui_forms::ControlValidationEvent>`
      - ControlValidationEvent carries source, destination, bulk-validation intent, and mutable cancellation through one validation turn.
    * - :cpp:class:`CursorCapability <gui_forms::CursorCapability>`
@@ -188,6 +196,10 @@ Related types
      - A grid-template-columns or -rows value.
    * - :cpp:class:`GridTrackSize <gui_forms::GridTrackSize>`
      - A track size: one breadth (both ends equal, except that a lone ``<n>fr`` is CSS's ``minmax(auto, <n>fr)``), ``minmax(minimum, maximum)``, or ``fit-content(<length-percentage>)``, whose limit is ``fit_content_limit`` with minimum ``auto`` and maximum ``max-content``.
+   * - :cpp:class:`HelpCapability <gui_forms::HelpCapability>`
+     - The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links.
+   * - :cpp:class:`HelpLineCapability <gui_forms::HelpLineCapability>`
+     - The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents.
    * - :cpp:class:`HitTestTransparentCapability <gui_forms::HitTestTransparentCapability>`
      - Whether pointer hit testing passes through the control to what is under it.
    * - :cpp:class:`HoldsGridSpans <gui_forms::HoldsGridSpans>`
@@ -204,6 +216,8 @@ Related types
      - Position of an item system in its control type's declaration list.
    * - :cpp:class:`JustifySelfCapability <gui_forms::JustifySelfCapability>`
      - Where the control sits across its layout region's inline axis (CSS justify-self).
+   * - :cpp:class:`KeywordsCapability <gui_forms::KeywordsCapability>`
+     - The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword.
    * - :cpp:class:`LayoutConstraint <gui_forms::LayoutConstraint>`
      - A measure query on both axes.
    * - :cpp:class:`LayoutDiagnostic <gui_forms::LayoutDiagnostic>`
@@ -234,6 +248,8 @@ Related types
      -  
    * - :cpp:class:`PaddingCapability <gui_forms::PaddingCapability>`
      - The space kept inside the control around its content (Padding).
+   * - :cpp:class:`PaintEventArgs <gui_forms::PaintEventArgs>`
+     - What Control::on_paint_background receives (Windows Forms' PaintEventArgs for OnPaintBackground): the painter the window records the control into and the local area being painted.
    * - :cpp:class:`PartDeclaration <gui_forms::PartDeclaration>`
      - One declared part.
    * - :cpp:class:`PartField <gui_forms::PartField>`
@@ -565,6 +581,79 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: template <typename Element> BasicBorrowedSpan final
+
+   ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+
+   A checked view of Element values (const-qualified for BorrowedSpan): the pointer and live length of the lender's storage and the stamp. Made only by detail::lend_view and the subviews.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: BasicBorrowedSpan() noexcept
+
+      A view of nothing.
+
+   .. cpp:function:: BasicBorrowedSpan(Element* data, std::size_t size, detail::BorrowStamp stamp) noexcept
+
+      :cpp:func:`size <gui_forms::BasicBorrowedSpan::size>` elements at :cpp:func:`data <gui_forms::BasicBorrowedSpan::data>`, lent at ``stamp``.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t size() const noexcept
+
+   .. cpp:function:: std::size_t size_bytes() const noexcept
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:function:: Element* data() const noexcept
+
+   .. cpp:function:: Element& front() const noexcept
+
+   .. cpp:function:: Element& back() const noexcept
+
+   .. cpp:function:: iterator begin() const noexcept
+
+   .. cpp:function:: iterator end() const noexcept
+
+   .. cpp:function:: reverse_iterator rbegin() const noexcept
+
+   .. cpp:function:: reverse_iterator rend() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: BasicBorrowedSpan subspan(std::size_t offset, std::size_t count = std::dynamic_extent) const noexcept
+
+      The ``count`` elements from ``offset`` (to the end with dynamic_extent).
+
+   .. cpp:function:: BasicBorrowedSpan first(std::size_t count) const noexcept
+
+   .. cpp:function:: BasicBorrowedSpan last(std::size_t count) const noexcept
+
+   .. cpp:function:: template <typename Other> requires std::is_convertible_v<Element (*)[], Other (*)[]> operator std::span<Other>() const noexcept
+
+      The plain view, untracked from here on: the stamp is checked once. A mutable view also converts to the plain const view (as std::span<T> to std::span<const T>).
+
+   .. cpp:type:: element_type = Element
+
+   .. cpp:type:: value_type = std::remove_cv_t<Element>
+
+   .. cpp:type:: size_type = std::size_t
+
+   .. cpp:type:: difference_type = std::ptrdiff_t
+
+   .. cpp:type:: pointer = Element*
+
+   .. cpp:type:: reference = Element&
+
+   .. cpp:type:: iterator = detail::BorrowedIterator<Element>
+
+   .. cpp:type:: reverse_iterator = std::reverse_iterator<iterator>
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: BlockFlowContainerInput final
 
    ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
@@ -658,9 +747,9 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const BlockFlowItemResult> items() const& noexcept
+   .. cpp:function:: BorrowedSpan<BlockFlowItemResult> items() const& noexcept
 
-   .. cpp:function:: std::span<const BlockFlowLine> lines() const& noexcept
+   .. cpp:function:: BorrowedSpan<BlockFlowLine> lines() const& noexcept
 
    .. cpp:function:: double content_height() const noexcept
 
@@ -710,6 +799,67 @@ Related types
       The items' margin boxes' summed width, and the inline offset text-align gave them, from the line's start edge.
 
    .. cpp:member:: double offset
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: template <typename Target> BorrowedPointer final
+
+   ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+
+   A checked borrowed pointer: the address and the stamp of the link it was read from. Converts to the plain pointer (checking the stamp) for comparisons and calls; ``*pointer`` checks the stamp and that it is not null. Made only by detail::lend_pointer, or null.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: BorrowedPointer() noexcept
+
+   .. cpp:function:: BorrowedPointer(std::nullptr_t) noexcept
+
+   .. cpp:function:: BorrowedPointer(Target* pointer, detail::BorrowStamp stamp) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Target* get() const noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: BorrowedText final
+
+   ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+
+   A checked view of UTF-8 text: the pointer and length of the lender's characters and the stamp.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: BorrowedText() noexcept
+
+   .. cpp:function:: BorrowedText(const char* data, std::size_t size, detail::BorrowStamp stamp) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t size() const noexcept
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:function:: const char* data() const noexcept
+
+   .. cpp:function:: iterator begin() const noexcept
+
+   .. cpp:function:: iterator end() const noexcept
+
+   .. cpp:function:: std::size_t length() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: BorrowedText substr(std::size_t offset, std::size_t count = std::string_view::npos) const noexcept
+
+      The ``count`` bytes from ``offset`` (to the end with npos).
+
+   .. cpp:type:: iterator = detail::BorrowedIterator<const char>
 
 .. cpp:namespace:: gui_forms
 
@@ -852,7 +1002,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const Component::Ptr> components() const noexcept
+   .. cpp:function:: std::span<const Component::Ptr> components() const& noexcept
 
       Returns the current ordered ownership view.
 
@@ -980,7 +1130,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>, public CeremonialCapability<Declaring>, public TagCapability<Declaring>, public FocusableCapability<Declaring>, public DoubleBufferedCapability<Declaring>, public ClassesCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>, public HelpLineCapability<Declaring>, public HelpCapability<Declaring>, public KeywordsCapability<Declaring>, public CeremonialCapability<Declaring>, public TagCapability<Declaring>, public FocusableCapability<Declaring>, public DoubleBufferedCapability<Declaring>, public ClassesCapability<Declaring>
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
 
@@ -1089,6 +1239,18 @@ Related types
 
       The description assistive technology announces.
 
+   .. cpp:member:: std::string help_line
+
+      The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents. A program value a language file's help-line translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+   .. cpp:member:: std::string help
+
+      The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links. A program value a language file's help translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+   .. cpp:member:: std::string keywords
+
+      The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword. A program value a language file's keywords translate. A malformed list throws std::invalid_argument, changing nothing.
+
    .. cpp:member:: bool ceremonial
 
       Whether the control is a ceremonial surface (GIVEN B3-1): on it and its descendants the theme engine's ambient effects may cover more than 10 % of the window. A theme never sets it; a change repaints the subtree.
@@ -1125,6 +1287,19 @@ Related types
    .. cpp:function:: Control::Ptr create(std::string_view type, StableId stable_id) const
 
    .. cpp:type:: Creator = std::function<Control::Ptr(StableId)>
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ControlTreeDepthError final : public std::length_error
+
+   ``#include <gui_forms/component/failures/component_failures.hpp>``
+
+   Thrown, before any change, when an attachment would nest a control tree deeper than maximum_control_tree_depth (control.hpp). A limit, so a std::length_error, which is also the std::logic_error the cycle refusal throws; the C ABI reports it as GF_STATUS_LIMIT_EXCEEDED.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit ControlTreeDepthError(const std::string& message)
 
 .. cpp:namespace:: gui_forms
 
@@ -1460,11 +1635,11 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const FlexItemResult> items() const& noexcept
+   .. cpp:function:: BorrowedSpan<FlexItemResult> items() const& noexcept
 
-   .. cpp:function:: std::span<const FlexLine> lines() const& noexcept
+   .. cpp:function:: BorrowedSpan<FlexLine> lines() const& noexcept
 
-   .. cpp:function:: std::span<const std::uint32_t> order() const& noexcept
+   .. cpp:function:: BorrowedSpan<std::uint32_t> order() const& noexcept
 
    .. cpp:function:: double content_main() const noexcept
 
@@ -1786,11 +1961,11 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const GridItemResult> items() const& noexcept
+   .. cpp:function:: BorrowedSpan<GridItemResult> items() const& noexcept
 
-   .. cpp:function:: std::span<const GridTrack> columns() const& noexcept
+   .. cpp:function:: BorrowedSpan<GridTrack> columns() const& noexcept
 
-   .. cpp:function:: std::span<const GridTrack> rows() const& noexcept
+   .. cpp:function:: BorrowedSpan<GridTrack> rows() const& noexcept
 
    .. cpp:function:: std::uint32_t leading_implicit_columns() const noexcept
 
@@ -1999,6 +2174,40 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> HelpCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links. A program value a language file's help translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(HelpCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const HelpCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, HelpCapability<Declaring>> help
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> HelpLineCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents. A program value a language file's help-line translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(HelpLineCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const HelpLineCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, HelpLineCapability<Declaring>> help_line
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> HitTestTransparentCapability
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
@@ -2113,6 +2322,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> KeywordsCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword. A program value a language file's keywords translate. A malformed list throws std::invalid_argument, changing nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(KeywordsCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const KeywordsCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, KeywordsCapability<Declaring>> keywords
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: LayoutConstraint final
 
    ``#include <gui_forms/layout/types/layout_types.hpp>``
@@ -2139,7 +2365,7 @@ Related types
 
    .. cpp:member:: std::string child
 
-      The stable identities of the child the pass placed and of the ancestor whose box it was placed in (the window's root control for its client area).
+      The stable identities of the child the pass placed and of the ancestor whose box it was placed in (the window's root control for its client area); for arrange_outside_slot, of the control arranged directly and of the control the pass was arranging.
 
    .. cpp:member:: std::string ancestor
 
@@ -2397,6 +2623,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PaintEventArgs final
+
+   ``#include <gui_forms/control/control/control.hpp>``
+
+   What Control::on_paint_background receives (Windows Forms' PaintEventArgs for OnPaintBackground): the painter the window records the control into and the local area being painted. Both are borrowed for the call; the painter is valid only until the raiser returns.
+
+   .. cpp:member:: Painter& painter
+
+   .. cpp:member:: Rect local_damage
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PartDeclaration final
 
    ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
@@ -2587,7 +2825,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: constexpr std::string_view value() const noexcept
+   .. cpp:function:: constexpr std::string_view value() const& noexcept
 
 .. cpp:namespace:: gui_forms
 
@@ -2608,6 +2846,21 @@ Related types
    ``#include <gui_forms/control/static_tree/control_factory/control_factory.hpp>``
 
    StaticNode is an inert declarative node containing a registered type name, stable ID, and owned child descriptions.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: StaticNode() = default
+
+   .. cpp:function:: StaticNode(std::string node_type, std::string node_stable_id, Rect node_requested_bounds, std::vector<StaticNode> node_children = {})
+
+      Brace-initializable as the aggregate it was: StaticNode{"panel", "main.panel", bounds, {{"button", "main.ok", ok}}}.
+
+   .. cpp:function:: StaticNode(const StaticNode& other)
+
+      A deep copy, level by level in a work list. On failure (allocation) the partial copy is destroyed and the exception propagates.
+
+   .. cpp:function:: StaticNode(StaticNode&& other) noexcept = default
 
    .. cpp:member:: std::string type
 
@@ -3352,6 +3605,8 @@ Enumerations
 
    .. cpp:enumerator:: containing_block_not_parent
 
+   .. cpp:enumerator:: arrange_outside_slot
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: LayoutDiagnosticSeverity
@@ -3492,6 +3747,18 @@ Enumerations
 
    .. cpp:enumerator:: scrim
 
+   .. cpp:enumerator:: node
+
+   .. cpp:enumerator:: header
+
+   .. cpp:enumerator:: port
+
+   .. cpp:enumerator:: link
+
+   .. cpp:enumerator:: lamp
+
+   .. cpp:enumerator:: marquee
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -3529,6 +3796,18 @@ Enumerations
    .. cpp:enumerator:: vertical
 
    .. cpp:enumerator:: both
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: RightToLeft
+
+   ``#include <gui_forms/layout/types/layout_types.hpp>``
+
+   .. cpp:enumerator:: no
+
+   .. cpp:enumerator:: yes
+
+   .. cpp:enumerator:: inherit
 
 .. cpp:namespace:: gui_forms
 
@@ -3737,6 +4016,26 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+
+.. cpp:function:: template <typename Element> std::span<Element> unchecked_view(const BasicBorrowedSpan<Element>& view) noexcept
+
+   The plain view of ``view``, valid in both builds: the checked build checks the stamp once here and the result is not tracked. For a callee that takes the plain view and returns before the owner can change.
+
+.. cpp:function:: inline std::string_view unchecked_view(const BorrowedText& view) noexcept
+
+.. cpp:function:: template <typename Target> Target* unchecked_view(const BorrowedPointer<Target>& pointer) noexcept
+
+.. cpp:function:: template <typename Element> inline std::span<Element> unchecked_view(std::span<Element> view) noexcept
+
+   The plain view (the identity here; see the checked build).
+
+.. cpp:function:: inline std::string_view unchecked_view(std::string_view view) noexcept
+
+.. cpp:function:: template <typename Target> inline Target* unchecked_view(Target* pointer) noexcept
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/control/control/control.hpp>``
 
 .. cpp:function:: constexpr bool has_validation_constraint(ValidationConstraints value, ValidationConstraints flag) noexcept
@@ -3754,6 +4053,10 @@ Functions, constants and aliases
 .. cpp:function:: constexpr bool has_child_skip(GetChildAtPointSkip value, GetChildAtPointSkip flag) noexcept
 
 .. cpp:function:: template <typename ControlType, typename... Arguments> std::shared_ptr<ControlType> make_control(StableId stable_id, Arguments&&... arguments)
+
+.. cpp:var:: constexpr std::size_t maximum_control_tree_depth
+
+   The deepest a control tree may nest, in levels, the root counted as one: a root with one child is two levels deep. Control::add_child and Control::insert_child (and through them the form loader, the static-tree builder and the C ABI's insert_child) refuse with ControlTreeDepthError, before changing anything, an attachment whose target's depth plus the attached subtree's height would pass it. A window or overlay root is attached at level one, so every tree it can take is within the limit. The stack budget (house rule, owner 2026-11-11: recursion over runtime-shaped data needs an enforced depth): the walks over the tree that still recurse once per level (layout, paint, hit testing, semantic publication, focus order, disposal) run on the window's root thread. The smallest such stack the supported hosts give is a macOS secondary thread's 512 KiB; Windows' main thread reserves 1 MiB, macOS and Linux main threads 8 MiB. Half of 512 KiB, 256 KiB, is given to the deepest recursive walk, at 4 KiB per level: layout recurses through several frames per level (the root's measure pass, the container's layout engine, the child's measure override), each a few hundred bytes, and 4 KiB leaves room for an application override's own frame. 256 KiB at 4 KiB per level is 64 levels. (A sanitizer build's larger frames run on the 8 MiB main threads of macOS and Linux.) Win32 itself copes badly with child windows nested past about 50, so no Windows Forms layout relies on deeper trees. Destruction does not recurse per level (Control::release_children_iteratively). Value: ``64U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3990,6 +4293,26 @@ Functions, constants and aliases
 .. cpp:function:: Size measure_available_size(const LayoutConstraint& constraint) noexcept
 
    The ``available`` argument of Control::measure(Size) for a constraint: a definite or at-most axis passes its extent, a content axis the practical unbounded extent.
+
+.. cpp:function:: constexpr RightToLeft right_to_left_of(LayoutDirection direction) noexcept
+
+   The RightToLeft spelling of an authored direction. A value outside the enumeration reads as inherit.
+
+.. cpp:function:: constexpr LayoutDirection layout_direction_of(RightToLeft value) noexcept
+
+   The authored direction a RightToLeft value stands for. A value outside the enumeration reads as inherit.
+
+.. cpp:function:: constexpr Rect horizontally_mirrored(Rect bounds, Rect frame) noexcept
+
+   ``bounds`` mirrored about the vertical centre line of ``frame``, both in the same coordinates: how a directional control places a part laid out left to right when it resolves right to left (Control:: effective_layout_direction). Mirroring twice gives ``bounds`` back.
+
+.. cpp:function:: constexpr Rect directed_rect(Rect laid, Rect frame, LayoutDirection direction) noexcept
+
+   ``laid`` as a control resolving ``direction`` places it: unchanged left to right, horizontally_mirrored in ``frame`` right to left. For geometry laid out left to right once and placed at output.
+
+.. cpp:function:: constexpr double directed_x(double x, Rect frame, LayoutDirection direction) noexcept
+
+   The left-to-right x of a point at ``x`` in ``frame`` placed by ``direction``: directed_rect's inverse for hit testing (a mirror is its own inverse).
 
 .. cpp:var:: constexpr double practical_unbounded_extent
 

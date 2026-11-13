@@ -6,7 +6,7 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
         message(FATAL_ERROR "GUI.Forms supports Apple silicon arm64 only")
     endif()
 endif()
-project(GUIForms VERSION 0.2.0 LANGUAGES C CXX)
+project(GUIForms VERSION 0.6.0 LANGUAGES C CXX)
 
 if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
    NOT CMAKE_CXX_COMPILER_VERSION MATCHES "^22\\.1\\.")
@@ -34,6 +34,15 @@ option(GUI_FORMS_BUILD_TESTS "Build automated proving-slice tests" ${PROJECT_IS_
 # so it builds with the tests; the programs (GUI_FORMS_BUILD_GALLERY) link it.
 option(GUI_FORMS_BUILD_GALLERY_MODEL "Build the Gallery model and the tests that read it" ${GUI_FORMS_BUILD_TESTS})
 option(GUI_FORMS_INSTALL_GALLERY_MODEL "Install the Gallery model as the GalleryModel package component" OFF)
+# Checked borrowed views (borrow sanitizer, gui_forms/borrow/borrowed_view/
+# borrowed_view.hpp; owner rulings 2026-11-11): the sanitizer tree turns it
+# on (tools/ci_build.py --sanitize). It changes the borrowed and lending
+# types, so the whole program, consumers included, is built one way: the
+# definition is public on gui_forms_core and every target here sees it.
+option(GUI_FORMS_CHECKED_BORROWS "Check borrowed views against their owners (the sanitizer tree)" OFF)
+if(GUI_FORMS_CHECKED_BORROWS)
+    add_compile_definitions(GUI_FORMS_CHECKED_BORROWS=1)
+endif()
 
 # Tests that open native windows which take focus, capture or activation fall
 # in two groups, by what they need from the desktop:
@@ -183,6 +192,10 @@ include(CMakePackageConfigHelpers)
 # carries none) compiled with GUI.Forms' options. Imported targets' headers are
 # system headers here.
 include(cmake/Stx.cmake)
+# stx_btree's header-only sequence tree from malkuth-software/stx_auxlib at
+# stx_auxlib.lock's commit, which the controls' row height index adapts
+# (cmake/StxAuxlib.cmake).
+include(cmake/StxAuxlib.cmake)
 include(cmake/FuzzTargets.cmake)
 
 if(GUI_FORMS_ENABLE_MACOS_HOST AND NOT APPLE)
@@ -212,11 +225,117 @@ target_include_directories(gui_forms_threading PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 target_compile_features(gui_forms_threading PUBLIC cxx_std_20)
 target_link_libraries(gui_forms_threading PRIVATE Threads::Threads)
+# Exports only what gui_forms/threading.hpp marks GUI_FORMS_THREADING_API
+# (gui_forms/export/threading_export.hpp; CP29 handoff section 2.2): through
+# the generated export list at the link on ELF and Mach-O
+# (gui_forms_export_list below), dllexport on Windows. Inline functions are
+# hidden: each consumer compiles its own copy, and the exceptions crossing
+# the boundary (a worker entry's failure, rethrown by join, and
+# std::logic_error) carry the typeinfo of their own image or of the C++
+# runtime, never of an inline function here.
+target_compile_definitions(gui_forms_threading PRIVATE GUI_FORMS_THREADING_BUILD=1)
+set_target_properties(gui_forms_threading PROPERTIES VISIBILITY_INLINES_HIDDEN YES)
 if(WIN32)
     target_compile_definitions(gui_forms_threading PUBLIC _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     target_link_libraries(gui_forms_threading PRIVATE winpthread)
-    target_link_options(gui_forms_threading PRIVATE "-Wl,--export-all-symbols")
 endif()
+
+# A shipped shared library exports only the declarations its macro marks
+# (CP29 handoff section 2.2; coordinator, 2026-11-12): on ELF and Mach-O
+# through the export list tools/export_annotations.py generates from the
+# marks (cmake/exports/<library>.map, a version script, and
+# cmake/exports/<library>.exports, an -exported_symbols_list; `check`
+# fails when a list and the marks differ), on Windows through the macro's
+# dllexport. The archives are compiled with default visibility, because the
+# shared test runtime (cmake/TestRuntime.cmake) holds the same archives and
+# exports everything to the tests, which call private functions; hidden
+# visibility is fixed per object at compile time and would hide them from
+# it as well. The list leaves everything else local, so -dead_strip and
+# --gc-sections still drop what no export reaches.
+function(gui_forms_export_list target)
+    set(list_stem ${CMAKE_CURRENT_SOURCE_DIR}/cmake/exports/${target})
+    if(APPLE)
+        target_link_options(${target} PRIVATE "LINKER:-exported_symbols_list,${list_stem}.exports")
+        set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS ${list_stem}.exports)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_options(${target} PRIVATE "LINKER:--version-script=${list_stem}.map")
+        set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS ${list_stem}.map)
+    endif()
+endfunction()
+gui_forms_export_list(gui_forms_threading)
+
+# The archives the Application library (and the shared test runtime) holds
+# whole, compiled with GUI_FORMS_API_BUILD (dllexport on Windows). Inline
+# functions are hidden: each consumer compiles its own copy, no first-party
+# code compares the address of an inline function across images, and a
+# static local of an inline function keeps default visibility (Clang's
+# -fvisibility-inlines-hidden-static-local-var is not used). Hiding them
+# keeps the many inline definitions out of the test runtime's dynamic
+# symbol table and spares dyld their weak-definition coalescing at load; on
+# ELF the compiler also calls them directly instead of through the PLT. On
+# ELF each function and datum gets its own section, so the Application
+# library's --gc-sections drops what no export reaches (Mach-O's -dead_strip
+# needs no flag; MinGW Release has the sections already, above).
+function(gui_forms_application_archive target)
+    target_compile_definitions(${target} PRIVATE GUI_FORMS_API_BUILD=1)
+    set_target_properties(${target} PROPERTIES VISIBILITY_INLINES_HIDDEN YES)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_compile_options(${target} PRIVATE
+            $<$<CONFIG:Release>:-ffunction-sections> $<$<CONFIG:Release>:-fdata-sections>)
+    endif()
+endfunction()
+
+# The usage requirement of a shipped shared library holding those archives:
+# its consumers import the marked declarations (dllimport on Windows), it
+# exports only them (its export list on ELF and Mach-O), and the linker drops
+# the sections no export reaches.
+function(gui_forms_application_library target)
+    gui_forms_application_archive(${target})
+    target_compile_definitions(${target} INTERFACE GUI_FORMS_API_IMPORT=1)
+    gui_forms_export_list(${target})
+    if(APPLE)
+        target_link_options(${target} PRIVATE $<$<CONFIG:Release>:LINKER:-dead_strip>)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_options(${target} PRIVATE $<$<CONFIG:Release>:LINKER:--gc-sections>)
+    endif()
+endfunction()
+
+# The bundled fallback faces (owner ruling 2026-11-11): the seven Noto faces and their OFL texts
+# form their own install component, fallback_fonts, installed when GUI_FORMS_INSTALL_FALLBACK_FONTS
+# is ON (the default, so the SDK carries them). An app package chooses for itself
+# ("fallback_fonts" per program in packaging/programs.json). The runtime works without them: they
+# are optional faces, so text only they cover falls back as for any missing face, and
+# bundled_font_diagnostics reports how many the font directory holds. Every other face and notice
+# is the fonts component. gui_forms_install_bundled_fonts() is the one install rule the hosts use.
+option(GUI_FORMS_INSTALL_FALLBACK_FONTS
+       "Install the bundled Noto fallback faces and their licences (install component fallback_fonts)" ON)
+set(GUI_FORMS_FALLBACK_FONT_FILES
+    NotoSansCJKjp-Regular.otf
+    NotoEmoji-Regular.ttf
+    NotoSansArabic-Regular.ttf
+    NotoSansHebrew-Regular.ttf
+    NotoSansDevanagari-Regular.ttf
+    NotoSansBengali-Regular.ttf
+    NotoSansGurmukhi-Regular.ttf)
+set(GUI_FORMS_FALLBACK_FONT_NOTICES
+    OFL-Noto.txt
+    OFL-NotoSansCJKjp.txt
+    OFL-NotoEmoji.txt)
+function(gui_forms_install_bundled_fonts)
+    set(_gf_font_source ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts)
+    set(_gf_font_destination ${CMAKE_INSTALL_DATADIR}/GUIForms/fonts)
+    set(_gf_excluded)
+    set(_gf_fallback)
+    foreach(_gf_name IN LISTS GUI_FORMS_FALLBACK_FONT_FILES GUI_FORMS_FALLBACK_FONT_NOTICES)
+        list(APPEND _gf_excluded PATTERN ${_gf_name} EXCLUDE)
+        list(APPEND _gf_fallback ${_gf_font_source}/${_gf_name})
+    endforeach()
+    install(DIRECTORY ${_gf_font_source}/ DESTINATION ${_gf_font_destination}
+            COMPONENT fonts ${_gf_excluded})
+    if(GUI_FORMS_INSTALL_FALLBACK_FONTS)
+        install(FILES ${_gf_fallback} DESTINATION ${_gf_font_destination} COMPONENT fallback_fonts)
+    endif()
+endfunction()
 
 # The runtime font set's manifest table (src/core/resources/fonts/bundled_font_set.cpp): one
 # record per face of assets/fonts/bundled-fonts.sha256, with its size; regenerated when the
@@ -272,6 +391,8 @@ add_library(gui_forms_core STATIC
     src/core/types/painter/painter.cpp
     src/core/types/painter/painter_marks.cpp
     src/core/types/paint_marks/paint_marks.cpp
+    src/core/scene/spatial_index/spatial_index.cpp
+    src/core/scene/scene_view/scene_view.cpp
     src/core/types/paint_recipes/paint_recipes.cpp
     src/core/types/rect/rect.cpp
     src/core/theme/theme/theme.cpp
@@ -280,6 +401,7 @@ add_library(gui_forms_core STATIC
     src/core/theme/familiar_themes/familiar_themes.cpp
     src/core/theme/gui_forms_theme/gui_forms_theme.cpp
     src/core/theme/stock_anatomies/stock_anatomies.cpp
+    src/core/theme/canvas_look/canvas_look.cpp
     src/core/theme/theme_compiler/theme_compiler.cpp
     src/core/theme/part_painting/part_painting.cpp
     src/core/theme/owner_draw/owner_draw.cpp
@@ -296,6 +418,9 @@ add_library(gui_forms_core STATIC
     src/core/engine/primitives/material/material_primitive.cpp
     src/core/engine/primitives/material/material_raster.cpp
     src/core/engine/primitives/material/overlay_shadow_primitive.cpp
+    src/core/engine/primitives/finish/finish_kernel.cpp
+    src/core/engine/primitives/finish/finish_world.cpp
+    src/core/engine/light_planes/light_planes.cpp
     src/core/engine/primitives/procedural/procedural_pattern.cpp
     src/core/engine/primitives/light/sheen_primitive.cpp
     src/core/engine/primitives/light/glass_primitive.cpp
@@ -307,6 +432,7 @@ add_library(gui_forms_core STATIC
     src/core/window/backplane/window_backplane.cpp
     src/core/engine/primitives/kernel/box_blur.cpp
     src/core/engine/primitives/kernel/pixel_kernel.cpp
+    src/core/engine/primitives/kernel/dither.cpp
     src/core/engine/part_shape/part_shape.cpp
     src/core/engine/part_table/engine_part_table.cpp
     src/core/engine/part_table/slice_assembly.cpp
@@ -318,7 +444,10 @@ add_library(gui_forms_core STATIC
     src/core/engine/motion_value/motion_value.cpp
     src/core/engine/motion_clock/motion_clock.cpp
     src/core/failure/fail_fast.cpp
+    src/core/failure/failure_snapshot.cpp
+    src/core/borrow/borrowed_view/borrowed_view.cpp
     src/core/drag_engine/drag_engine.cpp
+    src/core/drag_engine/drag_tracker.cpp
     src/core/drag_engine/scrub_gesture.cpp
     src/core/engine/effect_canvas/effect_canvas.cpp
     src/core/engine/effect_registry/effect_registry.cpp
@@ -337,6 +466,8 @@ add_library(gui_forms_core STATIC
     src/core/text/prepared/prepared_storage.cpp
     src/core/text/composite/text_composite.cpp
     src/core/text/localizable/localizable.cpp
+    src/core/text/locale_file/locale_file.cpp
+    src/core/text/paragraph_layout/paragraph_layout.cpp
     src/core/document_view/document_view_state.cpp
     src/core/pages/page_set/page_set.cpp
     src/core/events/key_commands/key_commands.cpp
@@ -359,7 +490,9 @@ add_library(gui_forms_core STATIC
     src/core/metrics/snapshot/metrics_snapshot.cpp
     src/core/visual_inspection/snapshot/visual_inspection_snapshot.cpp
     src/core/window/inspection/window_visual_inspection.cpp
+    src/core/allocation/statistics/allocation_statistics.cpp
     src/core/resources/image_registry/image_registry.cpp
+    src/core/resources/image_atlas/image_atlas.cpp
     src/core/resources/application_resources/application_resources.cpp
     src/runtime/user_themes/theme_files.cpp
     src/runtime/user_themes/user_themes.cpp
@@ -456,6 +589,7 @@ add_library(gui_forms_core STATIC
     src/core/window/typography/window_typography.cpp
     src/core/window/update_scope/update_scope.cpp
     src/core/window/presentation/window_presentation.cpp
+    src/core/capture/specimen_states/specimen_states.cpp
     src/core/window/scheduler/window_scheduler.cpp
     src/core/window/engine_inputs/window_engine_inputs.cpp
     src/core/window/engine_motion/window_engine_motion.cpp
@@ -505,6 +639,14 @@ set_property(TARGET gui_forms_core APPEND PROPERTY COMPATIBLE_INTERFACE_STRING G
 # This contributes no linker option to valid Core or Application consumers.
 target_link_options(gui_forms_core INTERFACE
     "$<$<STREQUAL:$<TARGET_PROPERTY:GUI_FORMS_CORE_LINKAGE>,application>:$<TARGET_PROPERTY:GUIForms::ERROR_do_not_link_static_Core_with_Application,TYPE>>")
+if(GUI_FORMS_CHECKED_BORROWS)
+    target_compile_definitions(gui_forms_core PUBLIC GUI_FORMS_CHECKED_BORROWS=1)
+endif()
+# dladdr names the code addresses in the fail-fast and borrow reports
+# (src/core/failure/fail_fast.cpp; glibc before 2.34 keeps it in libdl).
+if(UNIX)
+    target_link_libraries(gui_forms_core PRIVATE ${CMAKE_DL_LIBS})
+endif()
 if(WIN32)
     target_compile_definitions(gui_forms_core PUBLIC _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     target_link_libraries(gui_forms_core PUBLIC winpthread)
@@ -557,6 +699,7 @@ if(GUI_FORMS_ENABLE_HARFBUZZ_TEXT)
     add_library(gui_forms_text_engine STATIC
         src/render/text/harfbuzz/harfbuzz_font_engine.cpp
         src/render/text/harfbuzz/bounded_shape_workspace.cpp
+        src/render/text/harfbuzz/reusable_shape_workspace.cpp
         src/render/text/glyph_run/glyph_run_raster.cpp
     )
     target_include_directories(gui_forms_text_engine
@@ -806,6 +949,7 @@ add_library(gui_forms_controls STATIC
     src/controls/label/label.cpp
     src/controls/text_block/text_block.cpp
     src/controls/badge/badge.cpp
+    src/controls/indicator_lamp/indicator_lamp.cpp
     src/controls/info_banner/info_banner.cpp
     src/controls/empty_state/empty_state.cpp
     src/controls/spinner/spinner.cpp
@@ -826,12 +970,11 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/object_view/object_view.cpp
     src/controls/panel/list_view/list_view.cpp
     src/controls/panel/tree_list_view/tree_list_view.cpp
-    src/controls/panel/correspondence_view/correspondence_view.cpp
     src/controls/panel/card/card.cpp
-    src/controls/panel/card/review_card/review_card.cpp
     src/controls/container/master_detail_view/master_detail_view.cpp
     src/controls/collections/expandable_sections.cpp
     src/controls/collections/row_height_index.cpp
+    src/controls/virtual_rows_view/virtual_rows_view.cpp
     src/controls/collections/choice_group.cpp
     src/controls/collections/command_bar.cpp
     src/controls/commands/command/command.cpp
@@ -924,7 +1067,11 @@ add_library(gui_forms_controls STATIC
     src/controls/scrollable_control/container_control/split_container/split_container.cpp
     src/controls/splitter/splitter.cpp
     src/controls/node_canvas/node_graph/node_graph.cpp
+    src/controls/node_canvas/node_graph/node_graph_document.cpp
     src/controls/node_canvas/link_router/link_router.cpp
+    src/controls/node_canvas/node_canvas.cpp
+    src/controls/node_canvas/node_canvas_input.cpp
+    src/controls/node_canvas/node_canvas_paint.cpp
     src/controls/panel/date_time_picker/date_time_utilities.cpp
     src/controls/panel/date_time_picker/calendar_grid/calendar_grid.cpp
     src/controls/panel/date_time_picker/date_time_value/date_time_value.cpp
@@ -935,9 +1082,8 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/month_calendar/month_calendar.cpp
     src/controls/drawing_surface/drawing_surface.cpp
     src/controls/metrics_view/metrics_view.cpp
-    src/controls/visual_inspector_view/visual_inspector_view.cpp
-    src/controls/typography_specimen/typography_specimen.cpp
-    src/controls/easing_preview/easing_preview.cpp
+    src/controls/specimen/stock_specimens/stock_specimens.cpp
+    src/controls/panel/text_box_base/text_box_base.cpp
     src/controls/panel/text_box/text_box.cpp
     src/controls/panel/text_editing/text_editing_engine.cpp
     src/controls/panel/rich_text_box/rich_text_box.cpp
@@ -949,11 +1095,13 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/text_box/text_box_decorations.cpp
     src/controls/panel/text_box/text_decorations/text_decorations.cpp
     src/controls/panel/text_box/auto_complete/auto_complete.cpp
+    src/controls/panel/list_control/list_control.cpp
     src/controls/panel/list_box/list_box.cpp
     src/controls/panel/list_box/checked_list_box/checked_list_box.cpp
     src/controls/panel/combo_box/drop_down_layer.cpp
     src/controls/panel/combo_box/combo_box.cpp
     src/controls/panel/up_down/spin_buttons.cpp
+    src/controls/panel/up_down/up_down_base.cpp
     src/controls/panel/domain_up_down/domain_up_down.cpp
     src/controls/panel/token_box/token_box.cpp
     src/controls/search_field/search_field.cpp
@@ -969,8 +1117,6 @@ add_library(gui_forms_controls STATIC
     src/controls/inspection/property_editor_registry/property_editor_registry.cpp
     src/controls/panel/property_list/property_list.cpp
     src/controls/panel/property_grid/property_grid.cpp
-    src/controls/panel/instrument_rack/rack_module_panel/rack_module_panel.cpp
-    src/controls/panel/instrument_rack/instrument_rack.cpp
     src/core/resources/image_list/image_list/image_list.cpp
     src/controls/guidance/error_layer/error_layer.cpp
     src/controls/guidance/error_glyph/error_glyph.cpp
@@ -990,6 +1136,7 @@ add_library(gui_forms_controls STATIC
     src/controls/range_control/progress_bar/progress_bar.cpp
     src/controls/instruments/sweep_scope/sweep_scope.cpp
     src/controls/instruments/sweep_scope/sweep_scope_effects.cpp
+    src/controls/link_flow/link_flow_effects.cpp
     src/controls/instruments/sparkline/sparkline.cpp
     src/controls/plots/plot_axis_item/plot_axis_item.cpp
     src/controls/plots/plot_series_item/plot_series_item.cpp
@@ -1012,6 +1159,9 @@ target_include_directories(gui_forms_controls PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+# stx_btree's headers reach only the controls' private row height index; no
+# public header includes them.
+target_include_directories(gui_forms_controls SYSTEM PRIVATE "${GUI_FORMS_STX_BTREE_INCLUDE_DIR}")
 # The plots package's controls (PlotView, its items, Sparkline) draw through
 # the public plot primitives.
 target_link_libraries(gui_forms_controls PUBLIC gui_forms_core gui_drawing_core gui_forms_plot_primitives)
@@ -1021,7 +1171,64 @@ set_target_properties(gui_forms_controls gui_forms_host_headless PROPERTIES
 # pass (cmake/LocalizablePlugin.cmake, gui_forms_verify_effects).
 gui_forms_verify_effects(gui_forms_controls
     SOURCES src/controls/range_control/progress_bar/progress_bar_effects.cpp
-            src/controls/instruments/sweep_scope/sweep_scope_effects.cpp)
+            src/controls/instruments/sweep_scope/sweep_scope_effects.cpp
+            src/controls/link_flow/link_flow_effects.cpp)
+
+# The lab library (audit F9): controls a product uses that are not part of
+# the installed library. CorrespondenceView, ReviewCard and InstrumentRack
+# (with its private RackModulePanel and the sort kernels, F10) serve the File
+# Manager demoboard; their headers are lab/include/gui_forms_lab/<name>.hpp.
+# Always built with the tree; installed only with GUI_FORMS_INSTALL_LAB, as
+# GUIForms::Lab in its own export set and component. Its sources reach the
+# controls library's private helpers (src/controls), so it links that
+# library; installed, it names no GUI.Forms library (the SDK's linking rule,
+# as for the Gallery model): the program links GUIForms::Application or
+# GUIForms::Controls, so a process holds one engine.
+option(GUI_FORMS_INSTALL_LAB "Install the optional gui_forms_lab library (GUIForms::Lab)" OFF)
+add_library(gui_forms_lab STATIC
+    lab/src/correspondence_view.cpp
+    lab/src/review_card.cpp
+    lab/src/rack_module_panel.cpp
+    lab/src/instrument_rack.cpp
+)
+target_include_directories(gui_forms_lab PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/lab/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_include_directories(gui_forms_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/controls)
+target_link_libraries(gui_forms_lab PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
+set_target_properties(gui_forms_lab PROPERTIES POSITION_INDEPENDENT_CODE ON EXPORT_NAME Lab)
+add_library(GUIForms::Lab ALIAS gui_forms_lab)
+if(GUI_FORMS_INSTALL_LAB)
+    install(TARGETS gui_forms_lab EXPORT GUIFormsLabTargets
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT lab)
+    install(DIRECTORY lab/include/gui_forms_lab DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT lab)
+    install(EXPORT GUIFormsLabTargets
+            FILE GUIFormsLabTargets.cmake
+            NAMESPACE GUIForms::
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms
+            COMPONENT lab)
+endif()
+
+# The demonstration controls (audit F9): EasingPreview, TypographySpecimen,
+# VisualInspectorView and VisualInspectorOverlay, which no product uses. They
+# serve the Gallery, the lab programs and their tests; headers are
+# demo/lab_controls/include/gui_forms_demo/<name>.hpp. Installed only with
+# the Gallery model (GUI_FORMS_INSTALL_GALLERY_MODEL), in the demo_controls
+# component, never with the core library; installed, it names no GUI.Forms
+# library, like the model.
+add_library(gui_forms_demo_controls STATIC
+    demo/lab_controls/src/easing_preview.cpp
+    demo/lab_controls/src/typography_specimen.cpp
+    demo/lab_controls/src/visual_inspector_view.cpp
+)
+target_include_directories(gui_forms_demo_controls PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/demo/lab_controls/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+target_include_directories(gui_forms_demo_controls PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/controls)
+target_link_libraries(gui_forms_demo_controls PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
+set_target_properties(gui_forms_demo_controls PROPERTIES POSITION_INDEPENDENT_CODE ON EXPORT_NAME DemoControls)
 
 if(GUI_FORMS_BUILD_FORM_COMPILER)
     # The form compiler (stage FD5): a form document's C++ header, generated
@@ -1029,6 +1236,7 @@ if(GUI_FORMS_BUILD_FORM_COMPILER)
     add_executable(gui_forms_form_compiler
         tools/form_compiler/form_compiler.cpp
         tools/form_compiler/form_catalog.cpp
+        tools/form_compiler/form_core_catalog.cpp
     )
     target_link_libraries(gui_forms_form_compiler PRIVATE gui_forms_controls)
     set_target_properties(gui_forms_form_compiler PROPERTIES EXPORT_NAME form_compiler)
@@ -1040,6 +1248,15 @@ if(GUI_FORMS_BUILD_FORM_COMPILER)
             FILE GUIFormsFormCompilerTargets.cmake
             NAMESPACE GUIForms::
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+    # The Gallery's form compiler (audit F9): the installed compiler's
+    # program with the lab and demonstration controls as extension types
+    # (form_lab_catalog.cpp), for the pages that name them. Never installed.
+    add_executable(gui_forms_form_compiler_lab
+        tools/form_compiler/form_compiler.cpp
+        tools/form_compiler/form_catalog.cpp
+        tools/form_compiler/form_lab_catalog.cpp
+    )
+    target_link_libraries(gui_forms_form_compiler_lab PRIVATE gui_forms_lab gui_forms_demo_controls)
     # The theme check (owner request 2026-11-09): a program's theme packages
     # compiled at build time (gui_forms_add_theme_check), so a bad sheet
     # fails the build, not Application::create. Built and installed with
@@ -1125,8 +1342,10 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
     )
     target_include_directories(gui_forms_file_manager_demoboard_model PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/file_manager_demoboard/include)
+    # CorrespondenceView, ReviewCard and InstrumentRack are the lab
+    # library's (audit F9).
     target_link_libraries(gui_forms_file_manager_demoboard_model
-        PUBLIC GUIForms::Controls)
+        PUBLIC GUIForms::Controls GUIForms::Lab)
 
     set(GUI_FORMS_DEMOBOARD_FONTS
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf
@@ -1175,7 +1394,7 @@ if(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD)
         set_target_properties(gui_forms_file_manager_demoboard PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "File Manager Demoboard"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.file-manager-demoboard"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "File Manager Demoboard")
     endif()
@@ -1218,6 +1437,9 @@ if(GUI_FORMS_ENABLE_SKIA)
     add_library(gui_forms_skia STATIC
         src/render/skia/raster/skia_raster.cpp
         src/render/skia/raster/skia_splash_bake.cpp
+        # OffscreenRaster's renderer half (capture/offscreen_raster); its
+        # font lookup half is src/runtime/offscreen, in the application.
+        src/render/skia/offscreen/offscreen_raster.cpp
     )
     target_include_directories(gui_forms_skia
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/raster
@@ -1282,6 +1504,15 @@ if(GUI_FORMS_ENABLE_SKIA)
             ${GUI_FORMS_CORETEXT}
         )
     endif()
+
+    # The lamps' and lit keys' baker (skeudoindustrial surfaces), ported from
+    # the industrial-surfaces study: an offline tool the integrator runs to
+    # make the light-plane bakes, its legends drawn by GUI.Drawing's text
+    # engine in the bundled Portsmouth Mono (gui_forms_lamp_keys_legend_tests).
+    add_executable(gui_forms_lamp_keys tools/industrial_surfaces/lamp_keys.cpp)
+    target_link_libraries(gui_forms_lamp_keys PRIVATE gui_drawing_skia gui_forms_core)
+    target_compile_definitions(gui_forms_lamp_keys PRIVATE
+        GUI_FORMS_LEGEND_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthMono.ttf")
 
     add_library(gui_drawing_raster_c_api SHARED
         src/abi/drawing_skia_c_api.cpp
@@ -1348,6 +1579,22 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     find_library(GUI_FORMS_UNIFORMTYPEIDENTIFIERS UniformTypeIdentifiers REQUIRED)
     add_library(gui_forms_host_macos STATIC
         src/host/macos/application/macos_host.mm
+        src/host/macos/application/macos_application_run.mm
+        src/host/macos/application/macos_window_delegates.mm
+        src/host/macos/application/macos_window_requests.mm
+        src/host/macos/application/macos_main_work.mm
+        src/host/macos/application/macos_values.mm
+        src/host/macos/application/macos_bundled_fonts.mm
+        src/host/macos/application/macos_splashscreen.mm
+        src/host/macos/application/live_surface_damage.cpp
+        src/host/macos/view/macos_view.mm
+        src/host/macos/view/macos_view_scheduling.mm
+        src/host/macos/view/macos_view_drawing.mm
+        src/host/macos/view/macos_view_input.mm
+        src/host/macos/view/macos_view_accessibility.mm
+        src/host/macos/view/macos_view_diagnostics.mm
+        src/host/macos/accessibility/macos_accessibility_element.mm
+        src/host/macos/accessibility/macos_accessibility_text.mm
         src/host/macos/application/application_menu.mm
         src/host/macos/services/appkit_host_services.mm
         src/host/macos/services/appkit_clipboard_image.mm
@@ -1373,6 +1620,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     add_library(gui_forms_application SHARED
         src/runtime/application_bundle.cpp
         src/runtime/application/application.cpp
+        src/runtime/offscreen/offscreen_raster_create.cpp
     )
     add_library(GUIForms::Application ALIAS gui_forms_application)
     set_target_properties(gui_forms_application PROPERTIES
@@ -1421,8 +1669,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
             FILE GUIFormsApplicationTargets.cmake
             NAMESPACE GUIForms::
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
-    install(DIRECTORY assets/fonts/
-            DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/fonts)
+    gui_forms_install_bundled_fonts()
 endif()
 
 if(GUI_FORMS_ENABLE_LINUX_HOST)
@@ -1475,7 +1722,8 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xext)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XSHM=1)
     endif()
-    add_library(gui_forms_application SHARED src/runtime/application_bundle.cpp src/runtime/application/application.cpp)
+    add_library(gui_forms_application SHARED src/runtime/application_bundle.cpp src/runtime/application/application.cpp
+        src/runtime/offscreen/offscreen_raster_create.cpp)
     add_library(GUIForms::Application ALIAS gui_forms_application)
     set_target_properties(gui_forms_application PROPERTIES EXPORT_NAME Application OUTPUT_NAME gui_forms_application VERSION 0.1.0 SOVERSION 0)
     target_include_directories(gui_forms_application PUBLIC
@@ -1502,7 +1750,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(EXPORT GUIFormsApplicationTargets FILE GUIFormsApplicationTargets.cmake
         NAMESPACE GUIForms:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
-    install(DIRECTORY assets/fonts/ DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/fonts)
+    gui_forms_install_bundled_fonts()
 endif()
 
 if(GUI_FORMS_ENABLE_WINDOWS_HOST)
@@ -1560,7 +1808,8 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     if(MINGW)
         add_library(gui_forms_application SHARED
             src/runtime/application_bundle.cpp
-            src/runtime/application/application.cpp)
+            src/runtime/application/application.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp)
         add_library(GUIForms::Application ALIAS gui_forms_application)
         set_target_properties(gui_forms_application PROPERTIES
             EXPORT_NAME Application OUTPUT_NAME gui_forms_application
@@ -1579,14 +1828,13 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
             $<TARGET_NAME_IF_EXISTS:gui_drawing_skia> "-Wl,--no-whole-archive"
             gui_forms_text_engine stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi
             user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32)
-        target_link_options(gui_forms_application PRIVATE "-Wl,--export-all-symbols")
         install(TARGETS gui_forms_application EXPORT GUIFormsApplicationTargets
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         install(EXPORT GUIFormsApplicationTargets FILE GUIFormsApplicationTargets.cmake
             NAMESPACE GUIForms:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
-        install(DIRECTORY assets/fonts/ DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/fonts)
+        gui_forms_install_bundled_fonts()
     endif()
     add_library(gui_forms_win32_compat SHARED
         src/host/windows/win32_compat_shim.cpp
@@ -1649,6 +1897,24 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         add_test(NAME gui_forms_windows_gdi_compat_shim_tests
                  COMMAND gui_forms_windows_gdi_compat_shim_tests)
     endif()
+endif()
+
+# Export annotations (CP29 handoff section 2.2): every archive the
+# Application library or the shared test runtime holds whole, and the
+# Application library itself. gui_forms_application_archive and
+# gui_forms_application_library are defined beside the Threading library.
+foreach(_gf_archive IN ITEMS
+        gui_forms_core gui_drawing_core gui_forms_controls gui_forms_plot_primitives
+        gui_forms_host_headless gui_forms_text_engine gui_forms_prepared_text_impl
+        gui_forms_text_masks_impl gui_forms_sealed_pages_objects gui_forms_dib_frame_store_objects
+        gui_forms_skia gui_drawing_skia gui_forms_host_macos gui_forms_host_linux
+        gui_forms_windows_host_objects gui_forms_host_windows)
+    if(TARGET ${_gf_archive})
+        gui_forms_application_archive(${_gf_archive})
+    endif()
+endforeach()
+if(TARGET gui_forms_application)
+    gui_forms_application_library(gui_forms_application)
 endif()
 
 if(GUI_FORMS_BUILD_GALLERY OR (GUI_FORMS_BUILD_TESTS AND GUI_FORMS_ENABLE_MACOS_HOST))
@@ -1728,6 +1994,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/instruments.cpp
         src/controls/gallery/pages/guided-tasks.cpp
         src/controls/gallery/pages/help-book.cpp
+        src/controls/gallery/pages/industrial-surfaces.cpp
+        src/controls/gallery/pages/node-graphs.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -1743,12 +2011,19 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/controls>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/gui_forms_gallery>
     )
+    # The industrial-surfaces page reads the lamps' light-plane bakes from
+    # the source tree (or GUI_FORMS_LIGHT_PLANES); none are shipped yet.
     target_compile_definitions(gui_forms_gallery_model PRIVATE
-        GUI_FORMS_VERSION_STRING="${PROJECT_VERSION}")
+        GUI_FORMS_VERSION_STRING="${PROJECT_VERSION}"
+        GUI_FORMS_LIGHT_PLANE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/light_planes")
     # Installed, the model names no GUI.Forms library: a program links it with
     # GUIForms::Application and a headless test with GUIForms::Controls, so a
     # process holds one engine (the SDK's linking rule).
     target_link_libraries(gui_forms_gallery_model PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
+    # The lab and demonstration controls its pages show (audit F9).
+    # Installed, the model names GUIForms::Lab (GUI_FORMS_INSTALL_LAB) and
+    # GUIForms::DemoControls (installed beside it).
+    target_link_libraries(gui_forms_gallery_model PUBLIC gui_forms_lab gui_forms_demo_controls)
     # The Gallery's window (stage B): demo/gallery.form, compiled into
     # gallery_window.hpp, the GalleryWindow class bound to its GalleryModel
     # (demo/gallery_model.hpp); gallery_context.hpp includes it, so its
@@ -1771,9 +2046,9 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             "gallery_instrument,gui_forms::gallery::Instrument,user_control,gallery_instrument.hpp")
     # The pages converted to form documents (FD6.3), one class each.
     gui_forms_add_form(gui_forms_gallery_model demo/pages/typography-and-inspection.form
-        CLASS TypographyDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS TypographyDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/animation-laboratory.form
-        CLASS AnimationDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS AnimationDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/collections-and-overlays.form
         CLASS CollectionsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/images-and-drawing.form
@@ -1783,9 +2058,9 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/checked-collections.form
         CLASS CheckedCollectionsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/choices-and-sections.form
-        CLASS ChoicesDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS ChoicesDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/tree-and-object-views.form
-        CLASS TreeAndObjectViewsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS TreeAndObjectViewsDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/text-and-input.form
         CLASS TextAndInputDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/states-and-diagnostics.form
@@ -1797,7 +2072,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/values-and-spinners.form
         CLASS ValuesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/value-editors.form
-        CLASS ValueEditorsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS ValueEditorsDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/dialogs-and-host-services.form
         CLASS HostServicesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/semantic-feedback.form
@@ -1814,6 +2089,10 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS InstrumentsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/guided-tasks.form
         CLASS GuidedTasksDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/industrial-surfaces.form
+        CLASS IndustrialSurfacesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/node-graphs.form
+        CLASS NodeGraphsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/help-book.form
         CLASS HelpBookPageDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
@@ -1860,7 +2139,16 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             demo/pages/dock-and-anchor.form demo/pages/docking-workspace.form
             demo/pages/containers-and-focus.form demo/pages/tabs-and-pages.form
             demo/pages/anchored-overlays.form demo/pages/commands-and-menus.form
-            demo/pages/live-surfaces.form)
+            demo/pages/live-surfaces.form demo/pages/industrial-surfaces.form
+            demo/pages/node-graphs.form)
+    # The industrial-surfaces page's theme and the GOST palette it imports
+    # (skeudoindustrial surfaces, phases 4 and 5). Unchecked here: the
+    # industrial package needs the palette in its library, which
+    # gui_forms_theme_gost_palette_tests supplies and checks.
+    gui_forms_add_theme(gui_forms_gallery_model demo/themes/gost_paints
+        FUNCTION gost_paints_theme_package NAMESPACE gui_forms::gallery)
+    gui_forms_add_theme(gui_forms_gallery_model demo/themes/industrial
+        FUNCTION industrial_theme_package NAMESPACE gui_forms::gallery)
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own
@@ -1876,6 +2164,21 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
                 EXPORT GUIFormsGalleryModelTargets
                 ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
         install(FILES demo/gallery.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gui_forms_gallery)
+        # The demonstration controls the pages show (audit F9), in their
+        # own component; the lab controls come from GUIForms::Lab.
+        install(TARGETS gui_forms_demo_controls
+                EXPORT GUIFormsGalleryModelTargets
+                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT demo_controls)
+        install(DIRECTORY demo/lab_controls/include/gui_forms_demo
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT demo_controls)
+        # The Gallery's form compiler (GUIForms::form_compiler_lab), which
+        # knows the lab and demonstration controls the pages name: an SDK
+        # consumer that generates the page documents passes it as
+        # gui_forms_add_form's COMPILER (examples/reference).
+        set_target_properties(gui_forms_form_compiler_lab PROPERTIES EXPORT_NAME form_compiler_lab)
+        install(TARGETS gui_forms_form_compiler_lab
+                EXPORT GUIFormsGalleryModelTargets
+                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT demo_controls)
         install(EXPORT GUIFormsGalleryModelTargets
                 FILE GUIFormsGalleryModelTargets.cmake
                 NAMESPACE GUIForms::
@@ -1884,6 +2187,13 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
 endif()
 if(GUI_FORMS_INSTALL_GALLERY_MODEL AND NOT TARGET gui_forms_gallery_model)
     message(FATAL_ERROR "GUI_FORMS_INSTALL_GALLERY_MODEL needs GUI_FORMS_BUILD_GALLERY_MODEL")
+endif()
+# The installed Gallery model's pages show CorrespondenceView, ReviewCard and
+# InstrumentRack, which only the lab library installs (audit F9): no page is
+# dropped to make the install work.
+if(GUI_FORMS_INSTALL_GALLERY_MODEL AND NOT GUI_FORMS_INSTALL_LAB)
+    message(FATAL_ERROR "GUI_FORMS_INSTALL_GALLERY_MODEL needs GUI_FORMS_INSTALL_LAB=ON: the installed "
+                        "Gallery model links the lab controls (GUIForms::Lab) its pages show")
 endif()
 
 if(GUI_FORMS_BUILD_GALLERY)
@@ -1902,7 +2212,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_visual_inspector_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     add_library(gui_forms_layered_material_lab_model STATIC
         demo/layered_material_lab.cpp
@@ -1911,7 +2221,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_layered_material_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     # Stage T5's compositor lab (phase C8): a declared window with glass,
     # reflections and the backdrop named by --backdrop.
@@ -1931,7 +2241,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_custom_chrome_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     add_library(gui_forms_typography_scale_lab_model STATIC
         demo/typography_scale_lab.cpp
@@ -1940,7 +2250,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_typography_scale_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     add_library(gui_forms_responsive_tracks_lab_model STATIC
         demo/responsive_tracks_lab.cpp
@@ -1949,7 +2259,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_responsive_tracks_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     add_library(gui_forms_connected_controls_lab_model STATIC
         demo/connected_controls_lab.cpp
@@ -1958,7 +2268,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_connected_controls_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     add_library(gui_forms_seam_proximity_lab_model STATIC
         demo/seam_proximity_lab.cpp
@@ -1967,7 +2277,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         ${CMAKE_CURRENT_SOURCE_DIR}/demo
     )
     target_link_libraries(gui_forms_seam_proximity_lab_model PUBLIC
-        gui_forms_controls)
+        gui_forms_controls gui_forms_demo_controls)
 
     if(GUI_FORMS_ENABLE_MACOS_HOST)
         set_source_files_properties(
@@ -1989,7 +2299,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_gallery PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Gallery"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.gallery"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Gallery"
         )
@@ -2007,7 +2317,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_vsync_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms VSync + Waterfall Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.vsync-waterfall-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms VSync + Waterfall Lab"
         )
@@ -2025,7 +2335,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_visual_inspector_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Visual Inspector Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.visual-inspector-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Visual Inspector Lab"
         )
@@ -2043,7 +2353,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_layered_material_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Layered Material Fidelity Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.layered-material-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Layered Material Fidelity Lab"
         )
@@ -2061,7 +2371,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_compositor_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Compositor Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.compositor-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Compositor Lab"
         )
@@ -2079,7 +2389,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_custom_chrome_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Custom Chrome Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.custom-chrome-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Custom Chrome Lab"
         )
@@ -2097,7 +2407,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_typography_scale_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Typography + Scale Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.typography-scale-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Typography + Scale Lab"
         )
@@ -2115,7 +2425,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_responsive_tracks_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Responsive Tracks Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.responsive-tracks-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Responsive Tracks Lab"
         )
@@ -2133,7 +2443,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_connected_controls_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Connected Controls Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.connected-controls-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Connected Controls Lab"
         )
@@ -2151,7 +2461,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_seam_proximity_lab PROPERTIES
             MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Physical Seam + Proximity Lab"
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.seam-proximity-lab"
-            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Physical Seam + Proximity Lab"
         )
@@ -2508,6 +2818,9 @@ endif()
 
 if(GUI_FORMS_BUILD_TESTS)
     enable_testing()
+    if(TARGET gui_forms_lamp_keys)
+        add_test(NAME gui_forms_lamp_keys_legend_tests COMMAND gui_forms_lamp_keys --legend-test)
+    endif()
     if(TARGET gui_forms_text_masks_impl)
         add_executable(gui_forms_text_mask_cost_probe EXCLUDE_FROM_ALL tests/text_mask_cost_probe.cpp)
         target_link_libraries(gui_forms_text_mask_cost_probe PRIVATE gui_forms_text_masks_impl)
@@ -2774,9 +3087,11 @@ if(GUI_FORMS_BUILD_TESTS)
                          ${CMAKE_CURRENT_BINARY_DIR})
             set_tests_properties(gui_forms_macos_open_files_probe_tests PROPERTIES RUN_SERIAL TRUE TIMEOUT 120)
             # Quit, logout and restart checks (Mac handoff 2026-11-09, item
-            # 2e): a window whose close is refused while /tmp/gf_term_refuse
-            # exists; it logs to /tmp/gf_term.log. Started by hand with
-            # `open -n -a`, never by ctest.
+            # 2e; cp29 row 14): a primary and a secondary window whose closes
+            # are refused while /tmp/gf_term_refuse and
+            # /tmp/gf_term_secondary_refuse exist; it logs to /tmp/gf_term.log.
+            # The driver test covers the quit Apple Event (Cmd-Q); logout and
+            # restart are started by hand with `open -n -a`.
             add_executable(gui_forms_macos_termination_fixture MACOSX_BUNDLE
                 tests/macos_termination_fixture.mm
                 ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
@@ -2784,6 +3099,10 @@ if(GUI_FORMS_BUILD_TESTS)
             target_link_libraries(gui_forms_macos_termination_fixture PRIVATE gui_forms_application ${GUI_FORMS_APPKIT})
             set_target_properties(gui_forms_macos_termination_fixture PROPERTIES
                 MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.termination-fixture")
+            add_test(NAME gui_forms_macos_termination_fixture_tests
+                     COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_macos_termination_fixture.sh
+                         $<TARGET_BUNDLE_DIR:gui_forms_macos_termination_fixture>)
+            set_tests_properties(gui_forms_macos_termination_fixture_tests PROPERTIES RUN_SERIAL TRUE TIMEOUT 120)
         endif()
         # Stage DK W0 measurement (notes:results/2026-10-18-dk-w0-capture-drag/): it
         # puts windows on the desktop, so it is built but never run by ctest.
@@ -2795,6 +3114,13 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_linux_host_tests PRIVATE gui_forms_host_linux X11::X11)
         add_test(NAME gui_forms_linux_host_tests COMMAND gui_forms_linux_host_tests)
         set_tests_properties(gui_forms_linux_host_tests PROPERTIES TIMEOUT 45)
+        # Audit N66, option a: the host at Xft.dpi 192 under Xvfb, then at 96
+        # and 144 during the run. Serial: it rewrites the display's
+        # RESOURCE_MANAGER, which every other runtime on the display reads.
+        add_executable(gui_forms_linux_hidpi_tests tests/linux_hidpi_tests.cpp)
+        target_link_libraries(gui_forms_linux_hidpi_tests PRIVATE gui_forms_host_linux X11::X11)
+        add_test(NAME gui_forms_linux_hidpi_tests COMMAND gui_forms_linux_hidpi_tests)
+        set_tests_properties(gui_forms_linux_hidpi_tests PROPERTIES RUN_SERIAL TRUE TIMEOUT 45)
         if(TARGET gui_forms_prepared_text_impl)
             add_executable(gui_forms_linux_prepared_text_host_tests
                 tests/linux_prepared_text_host_tests.cpp)
@@ -3134,6 +3460,11 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_user_layer_tests tests/theme_user_layer_tests.cpp)
     target_link_libraries(gui_forms_theme_user_layer_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_theme_user_layer_tests COMMAND gui_forms_theme_user_layer_tests)
+
+    add_executable(gui_forms_theme_user_fill_selection_tests tests/theme_user_fill_selection_tests.cpp)
+    target_link_libraries(gui_forms_theme_user_fill_selection_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_user_fill_selection_tests COMMAND gui_forms_theme_user_fill_selection_tests)
+
     add_executable(gui_forms_effect_program_tests tests/effect_program_tests.cpp)
     target_link_libraries(gui_forms_effect_program_tests PRIVATE gui_forms_controls)
     if(GUI_FORMS_EFFECTS_VERIFIED)
@@ -3208,6 +3539,27 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_engine_procedural_tests tests/engine_procedural_tests.cpp)
     target_link_libraries(gui_forms_engine_procedural_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_engine_procedural_tests COMMAND gui_forms_engine_procedural_tests)
+    # Surface finishes (skeudoindustrial surfaces, phase 1): the kernel's
+    # bytes against the JavaScript reference, damage invariance, the
+    # material layer and finish(); --measure and --preview <dir>.
+    add_executable(gui_forms_engine_finish_tests tests/engine_finish_tests.cpp)
+    target_link_libraries(gui_forms_engine_finish_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_engine_finish_tests COMMAND gui_forms_engine_finish_tests)
+    add_executable(gui_forms_engine_finish_tile_tests tests/engine_finish_tile_tests.cpp)
+    target_link_libraries(gui_forms_engine_finish_tile_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_engine_finish_tile_tests COMMAND gui_forms_engine_finish_tile_tests)
+    # Gradient dithering (MaterialDither): the tables, banding metrics,
+    # determinism, damage invariance at scales 1 to 3, no swimming under a
+    # scroll, slices and spans keeping the pattern, gradient-dither and the
+    # metallic-fade recipe; --preview <dir> writes the fade as PNG files.
+    add_executable(gui_forms_engine_dither_tests tests/engine_dither_tests.cpp)
+    target_link_libraries(gui_forms_engine_dither_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_engine_dither_tests COMMAND gui_forms_engine_dither_tests)
+    # Lamps and lit keys as baked light planes (phase 3): the bake file,
+    # the composite, the envelopes and the cache; --preview <out> <bakes>.
+    add_executable(gui_forms_engine_light_planes_tests tests/engine_light_planes_tests.cpp)
+    target_link_libraries(gui_forms_engine_light_planes_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_engine_light_planes_tests COMMAND gui_forms_engine_light_planes_tests)
     add_executable(gui_forms_engine_slice_tests tests/engine_slice_tests.cpp)
     target_link_libraries(gui_forms_engine_slice_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_engine_slice_tests COMMAND gui_forms_engine_slice_tests)
@@ -3296,7 +3648,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_property_capability_tests COMMAND gui_forms_property_capability_tests)
     # Written by tools/property_codemod.py tests from tools/property_families/.
     add_executable(gui_forms_property_family_generated_tests tests/property_family_generated_tests.cpp)
-    target_link_libraries(gui_forms_property_family_generated_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_property_family_generated_tests PRIVATE gui_forms_lab gui_forms_demo_controls)
     add_test(NAME gui_forms_property_family_generated_tests COMMAND gui_forms_property_family_generated_tests)
 
     add_executable(gui_forms_damage_rectangles_tests tests/damage_rectangles_tests.cpp)
@@ -3388,7 +3740,8 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_live_surface_tests tests/live_surface_tests.cpp)
     target_link_libraries(gui_forms_live_surface_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_live_surface_tests COMMAND gui_forms_live_surface_tests)
-    add_executable(gui_forms_opaque_live_surface_tests tests/opaque_live_surface_tests.cpp)
+    add_executable(gui_forms_opaque_live_surface_tests tests/opaque_live_surface_tests.cpp
+        src/host/macos/application/live_surface_damage.cpp)
     target_link_libraries(gui_forms_opaque_live_surface_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_opaque_live_surface_tests COMMAND gui_forms_opaque_live_surface_tests)
 
@@ -3422,6 +3775,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_help_system_core_tests tests/help_system_core_tests.cpp)
     target_link_libraries(gui_forms_help_system_core_tests PRIVATE gui_forms_controls gui_forms_core)
     add_test(NAME gui_forms_help_system_core_tests COMMAND gui_forms_help_system_core_tests)
+    add_executable(gui_forms_locale_file_tests tests/locale_file_tests.cpp)
+    target_link_libraries(gui_forms_locale_file_tests PRIVATE gui_forms_controls gui_forms_core)
+    add_test(NAME gui_forms_locale_file_tests COMMAND gui_forms_locale_file_tests)
     gui_forms_add_fuzz_test(helpbook_section SOURCE fuzz/helpbook_section_fuzz.cpp LIBRARIES gui_forms_core)
 
     add_executable(gui_forms_xml_tests tests/xml_tests.cpp)
@@ -3461,8 +3817,8 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_form_editor_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_form_editor_tests COMMAND gui_forms_form_editor_tests)
     add_executable(gui_forms_form_generator_tests tests/form_language/form_generator_tests.cpp
-        tools/form_compiler/form_catalog.cpp)
-    target_link_libraries(gui_forms_form_generator_tests PRIVATE gui_forms_controls)
+        tools/form_compiler/form_catalog.cpp tools/form_compiler/form_lab_catalog.cpp)
+    target_link_libraries(gui_forms_form_generator_tests PRIVATE gui_forms_lab gui_forms_demo_controls)
     target_compile_definitions(gui_forms_form_generator_tests PRIVATE
         GUI_FORMS_FORM_GENERATED_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language/generated")
     add_test(NAME gui_forms_form_generator_tests COMMAND gui_forms_form_generator_tests)
@@ -3484,7 +3840,8 @@ if(GUI_FORMS_BUILD_TESTS)
             # gui_forms_add_form end to end: a header generated at build time,
             # naming an application type.
             add_executable(gui_forms_form_application_type_tests
-                tests/form_language/form_application_type_tests.cpp tools/form_compiler/form_catalog.cpp)
+                tests/form_language/form_application_type_tests.cpp tools/form_compiler/form_catalog.cpp
+                tools/form_compiler/form_core_catalog.cpp)
             target_link_libraries(gui_forms_form_application_type_tests PRIVATE gui_forms_controls)
             target_include_directories(gui_forms_form_application_type_tests PRIVATE
                 ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language)
@@ -3581,7 +3938,7 @@ if(GUI_FORMS_BUILD_TESTS)
             COMMAND gui_forms_theme_check "${CMAKE_CURRENT_SOURCE_DIR}/demo/themes/gallery")
     endif()
     add_executable(gui_forms_theme_variant_tests tests/theme_variant_tests.cpp)
-    target_link_libraries(gui_forms_theme_variant_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_theme_variant_tests PRIVATE gui_forms_lab gui_forms_demo_controls)
     add_test(NAME gui_forms_theme_variant_tests COMMAND gui_forms_theme_variant_tests)
     add_executable(gui_forms_theme_sheet_package_tests tests/theme_sheet_package_tests.cpp)
     target_link_libraries(gui_forms_theme_sheet_package_tests PRIVATE gui_forms_controls)
@@ -3607,6 +3964,13 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_package_compile_tests tests/theme_language/theme_package_compile_tests.cpp)
     target_link_libraries(gui_forms_theme_package_compile_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_package_compile_tests COMMAND gui_forms_theme_package_compile_tests)
+    # The GOST paint palette package (skeudoindustrial surfaces, phase 4).
+    add_executable(gui_forms_theme_gost_palette_tests tests/theme_language/theme_gost_palette_tests.cpp)
+    target_link_libraries(gui_forms_theme_gost_palette_tests PRIVATE gui_forms_controls)
+    target_compile_definitions(gui_forms_theme_gost_palette_tests PRIVATE
+        GUI_FORMS_GOST_PALETTE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/demo/themes/gost_paints"
+        GUI_FORMS_INDUSTRIAL_THEME_DIR="${CMAKE_CURRENT_SOURCE_DIR}/demo/themes/industrial")
+    add_test(NAME gui_forms_theme_gost_palette_tests COMMAND gui_forms_theme_gost_palette_tests)
     add_executable(gui_forms_theme_user_theme_tests tests/theme_language/theme_user_theme_tests.cpp)
     target_link_libraries(gui_forms_theme_user_theme_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_user_theme_tests COMMAND gui_forms_theme_user_theme_tests)
@@ -3691,6 +4055,10 @@ if(GUI_FORMS_BUILD_TESTS)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${GUI_FORMS_THEME_REQUEST_FIXTURES}/harbour.css"
             "$<TARGET_FILE_DIR:gui_forms_theme_request_app>/themes/harbour.css")
     gui_forms_theme_request_cases(gui_forms_theme_request_app gui_forms_theme_request_app)
+    # A user sheet naming an effect the built-in registry does not hold is
+    # refused (E417), as a program package naming one is.
+    gui_forms_theme_request_case(gui_forms_theme_request_app_misspelt_effect PROGRAM gui_forms_theme_request_app
+        EXPECT refused ARGS --theme "${GUI_FORMS_THEME_REQUEST_FIXTURES}/misspelt-effect.css")
 
     add_executable(gui_forms_dock_layout_tests tests/dock_layout_tests.cpp)
     target_link_libraries(gui_forms_dock_layout_tests PRIVATE gui_forms_core)
@@ -3833,7 +4201,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_instrument_controls_tests
         tests/instrument_controls_tests.cpp)
     target_link_libraries(gui_forms_instrument_controls_tests PRIVATE
-        gui_forms_controls)
+        gui_forms_lab)
     add_test(NAME gui_forms_instrument_controls_tests
              COMMAND gui_forms_instrument_controls_tests)
 
@@ -3851,7 +4219,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_collection_controls_tests
         tests/collection_controls_tests.cpp)
     target_link_libraries(gui_forms_collection_controls_tests PRIVATE
-        gui_forms_controls)
+        gui_forms_lab)
     add_test(NAME gui_forms_collection_controls_tests
              COMMAND gui_forms_collection_controls_tests)
 
@@ -3884,7 +4252,7 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_domain_up_down_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_domain_up_down_tests COMMAND gui_forms_domain_up_down_tests)
     add_executable(gui_forms_editor_composite_capabilities_tests tests/editor_composite_capabilities_tests.cpp)
-    target_link_libraries(gui_forms_editor_composite_capabilities_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_editor_composite_capabilities_tests PRIVATE gui_forms_lab)
     add_test(NAME gui_forms_editor_composite_capabilities_tests COMMAND gui_forms_editor_composite_capabilities_tests)
     add_executable(gui_forms_item_view_capabilities_tests tests/item_view_capabilities_tests.cpp)
     target_link_libraries(gui_forms_item_view_capabilities_tests PRIVATE gui_forms_controls)
@@ -3929,11 +4297,18 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_sweep_scope_tests tests/sweep_scope_tests.cpp)
     target_link_libraries(gui_forms_sweep_scope_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_sweep_scope_tests COMMAND gui_forms_sweep_scope_tests)
+
+    # The node canvas's look, theme side (cp31): anatomy, recipes in light,
+    # dark and high contrast, grid variants, the texture clamp, the paint
+    # commands and the link_flow effect.
+    add_executable(gui_forms_canvas_look_tests tests/canvas_look_tests.cpp)
+    target_link_libraries(gui_forms_canvas_look_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_canvas_look_tests COMMAND gui_forms_canvas_look_tests)
     add_executable(gui_forms_plot_view_tests tests/plot_view_tests.cpp)
     target_link_libraries(gui_forms_plot_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_plot_view_tests COMMAND gui_forms_plot_view_tests)
     add_executable(gui_forms_event_payload_lifetime_tests tests/event_payload_lifetime_tests.cpp)
-    target_link_libraries(gui_forms_event_payload_lifetime_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_event_payload_lifetime_tests PRIVATE gui_forms_lab)
     add_test(NAME gui_forms_event_payload_lifetime_tests COMMAND gui_forms_event_payload_lifetime_tests)
     add_executable(gui_forms_page_strip_tests tests/page_strip_tests.cpp)
     target_link_libraries(gui_forms_page_strip_tests PRIVATE gui_forms_controls)
@@ -3959,6 +4334,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_mouse_event_order_tests tests/mouse_event_order_tests.cpp)
     target_link_libraries(gui_forms_mouse_event_order_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_mouse_event_order_tests COMMAND gui_forms_mouse_event_order_tests)
+    add_executable(gui_forms_control_raiser_tests tests/control_raiser_tests.cpp)
+    target_link_libraries(gui_forms_control_raiser_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_control_raiser_tests COMMAND gui_forms_control_raiser_tests)
     add_executable(gui_forms_key_commands_tests tests/key_commands_tests.cpp)
     target_link_libraries(gui_forms_key_commands_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_key_commands_tests COMMAND gui_forms_key_commands_tests)
@@ -3967,12 +4345,18 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_xsettings_parse_tests
         tests/xsettings_parse_tests.cpp src/host/linux/settings/xsettings_parse.cpp)
     target_include_directories(gui_forms_xsettings_parse_tests PRIVATE include)
+    # The public headers it includes refer to the checked-borrows link
+    # marker in a checked build, which only the core library defines.
+    target_link_libraries(gui_forms_xsettings_parse_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_xsettings_parse_tests COMMAND gui_forms_xsettings_parse_tests)
     # The X11 host's computed click counts and context keys take plain
     # values and no Xlib, so they are tested on every platform.
     add_executable(gui_forms_linux_input_rules_tests
         tests/linux_input_rules_tests.cpp src/host/linux/application/linux_input_rules.cpp)
     target_include_directories(gui_forms_linux_input_rules_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    # The public headers it includes refer to the checked-borrows link
+    # marker in a checked build, which only the core library defines.
+    target_link_libraries(gui_forms_linux_input_rules_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_linux_input_rules_tests COMMAND gui_forms_linux_input_rules_tests)
     add_executable(gui_forms_page_view_document_tests tests/page_view_document_tests.cpp)
     target_link_libraries(gui_forms_page_view_document_tests PRIVATE gui_forms_controls)
@@ -3995,7 +4379,12 @@ if(GUI_FORMS_BUILD_TESTS)
 
     add_executable(gui_forms_row_height_index_tests tests/row_height_index_tests.cpp)
     target_link_libraries(gui_forms_row_height_index_tests PRIVATE gui_forms_controls)
+    target_include_directories(gui_forms_row_height_index_tests SYSTEM PRIVATE "${GUI_FORMS_STX_BTREE_INCLUDE_DIR}")
     add_test(NAME gui_forms_row_height_index_tests COMMAND gui_forms_row_height_index_tests)
+
+    add_executable(gui_forms_virtual_rows_view_tests tests/virtual_rows_view_tests.cpp)
+    target_link_libraries(gui_forms_virtual_rows_view_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_virtual_rows_view_tests COMMAND gui_forms_virtual_rows_view_tests)
 
     add_executable(gui_forms_list_view_tests tests/list_view_tests.cpp)
     target_link_libraries(gui_forms_list_view_tests PRIVATE gui_forms_controls)
@@ -4125,7 +4514,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_message_box_tests COMMAND gui_forms_message_box_tests)
 
     add_executable(gui_forms_anatomy_tests tests/anatomy_tests.cpp)
-    target_link_libraries(gui_forms_anatomy_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_anatomy_tests PRIVATE gui_forms_lab)
     add_test(NAME gui_forms_anatomy_tests COMMAND gui_forms_anatomy_tests)
 
     add_executable(gui_forms_material_tests tests/material_tests.cpp)
@@ -4140,7 +4529,7 @@ if(GUI_FORMS_BUILD_TESTS)
         tests/composition_controls_tests.cpp
     )
     target_link_libraries(gui_forms_composition_controls_tests
-        PRIVATE gui_forms_controls
+        PRIVATE gui_forms_lab
     )
     add_test(NAME gui_forms_composition_controls_tests
         COMMAND gui_forms_composition_controls_tests)
@@ -4157,12 +4546,25 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_node_graph_tests tests/node_graph_tests.cpp)
     target_link_libraries(gui_forms_node_graph_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_node_graph_tests COMMAND gui_forms_node_graph_tests)
+    add_executable(gui_forms_node_graph_history_tests tests/node_graph_history_tests.cpp)
+    target_link_libraries(gui_forms_node_graph_history_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_node_graph_history_tests COMMAND gui_forms_node_graph_history_tests)
     add_executable(gui_forms_link_router_tests tests/link_router_tests.cpp)
     target_link_libraries(gui_forms_link_router_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_link_router_tests COMMAND gui_forms_link_router_tests)
+    # The graph-space scene pieces (gap G8) and the public NodeCanvas (N1).
+    add_executable(gui_forms_scene_tests tests/scene_tests.cpp)
+    target_link_libraries(gui_forms_scene_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_scene_tests COMMAND gui_forms_scene_tests)
+    add_executable(gui_forms_node_canvas_tests tests/node_canvas_tests.cpp)
+    target_link_libraries(gui_forms_node_canvas_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_node_canvas_tests COMMAND gui_forms_node_canvas_tests)
     add_executable(gui_forms_drag_engine_tests tests/drag_engine_tests.cpp)
     target_link_libraries(gui_forms_drag_engine_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_drag_engine_tests COMMAND gui_forms_drag_engine_tests)
+    add_executable(gui_forms_drag_tracker_tests tests/drag_tracker_tests.cpp)
+    target_link_libraries(gui_forms_drag_tracker_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_drag_tracker_tests COMMAND gui_forms_drag_tracker_tests)
     add_executable(gui_forms_scrub_gesture_tests tests/scrub_gesture_tests.cpp)
     target_link_libraries(gui_forms_scrub_gesture_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_scrub_gesture_tests COMMAND gui_forms_scrub_gesture_tests)
@@ -4220,6 +4622,25 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_text_block_engine_tests PRIVATE gui_forms_controls gui_forms_text_engine)
         add_test(NAME gui_forms_text_block_engine_tests
                  COMMAND gui_forms_text_block_engine_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+    endif()
+
+    # Paragraph layout into caller storage (chat_stress gap A1): wrapping
+    # against TextBlock's lines and the shared greedy wrapper, the storage
+    # results, counted allocations, long words and emoji clusters; and the
+    # same against the bundled engine.
+    add_executable(gui_forms_paragraph_layout_tests
+        tests/paragraph_layout_tests.cpp
+    )
+    target_link_libraries(gui_forms_paragraph_layout_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_paragraph_layout_tests
+             COMMAND gui_forms_paragraph_layout_tests)
+    if(TARGET gui_forms_text_engine)
+        add_executable(gui_forms_paragraph_layout_engine_tests
+            tests/paragraph_layout_engine_tests.cpp
+        )
+        target_link_libraries(gui_forms_paragraph_layout_engine_tests PRIVATE gui_forms_controls gui_forms_text_engine)
+        add_test(NAME gui_forms_paragraph_layout_engine_tests
+                 COMMAND gui_forms_paragraph_layout_engine_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
     endif()
 
     # Stage L, phase L5: absolute and relative positioning in the three CSS
@@ -4312,6 +4733,13 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_layout_direction_tests
              COMMAND gui_forms_layout_direction_tests)
 
+    add_executable(gui_forms_right_to_left_tests
+        tests/right_to_left_tests.cpp
+    )
+    target_link_libraries(gui_forms_right_to_left_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_right_to_left_tests
+             COMMAND gui_forms_right_to_left_tests)
+
     # The layout fixture corpus against checked-in Chromium references
     # (notes:planning/stages/L-layout/PLAN.md section 6). The corpus path on the
     # command line also selects this test when the corpus changes.
@@ -4364,10 +4792,14 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_focus_scope_tests
              COMMAND gui_forms_focus_scope_tests)
 
+    add_executable(gui_forms_control_depth_tests tests/control_depth_tests.cpp)
+    target_link_libraries(gui_forms_control_depth_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_control_depth_tests COMMAND gui_forms_control_depth_tests)
+
     add_executable(gui_forms_animation_tests
         tests/animation_tests.cpp
     )
-    target_link_libraries(gui_forms_animation_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_animation_tests PRIVATE gui_forms_demo_controls)
     add_test(NAME gui_forms_animation_tests
              COMMAND gui_forms_animation_tests)
 
@@ -4503,6 +4935,47 @@ if(GUI_FORMS_BUILD_TESTS)
                          "-DEXPECTED=GUI.Forms: fatal exception at ${_gui_fail_fast_site}: ${_gui_fail_fast_text}"
                          -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
     endforeach()
+    # The report prints the failure snapshot's shadow frames: the event frame
+    # the target threw in, closed by unwinding before the boundary caught it.
+    add_test(NAME gui_forms_fail_fast_shadow_frames
+             COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_fail_fast_tests> -DMODE=shadow_frames
+                     "-DEXPECTED=GUI.Forms: shadow frames \\(1 open, 1 recorded\\):[^#]*#0 kind 3 fail-fast.frame click 0"
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
+
+    # Borrowed views (borrow sanitizer): `plain` uses fresh views and passes
+    # in both builds; in the checked build each death mode must end the
+    # process with its report and never print "survived". The modes cover
+    # each fault on the child list, a collection read, a back link and a
+    # call-scope payload (tests/borrowed_view_tests.cpp), then stage 3.
+    add_executable(gui_forms_borrowed_view_tests tests/borrowed_view_tests.cpp)
+    target_link_libraries(gui_forms_borrowed_view_tests PRIVATE gui_forms_controls gui_forms_core Threads::Threads)
+    add_test(NAME gui_forms_borrowed_view_plain COMMAND gui_forms_borrowed_view_tests plain)
+    set_tests_properties(gui_forms_borrowed_view_plain PROPERTIES PASS_REGULAR_EXPRESSION "borrowed views: ok")
+    if(GUI_FORMS_CHECKED_BORROWS)
+        set(_gui_borrow_stale "a borrowed view was used after a structural change of its owner")
+        set(_gui_borrow_dead "a borrowed view was used after its owner was destroyed")
+        set(_gui_borrow_thread "a borrowed view was used on another thread than the one it was lent on")
+        set(_gui_borrow_range "a borrowed view was indexed past its end")
+        set(_gui_borrow_null "a null borrowed pointer was dereferenced")
+        foreach(_gui_borrow_case IN ITEMS
+                "children|stale" "owner_death|dead" "children_thread|thread" "children_range|range"
+                "collection|stale" "collection_death|dead" "collection_thread|thread" "collection_range|range"
+                "back_link|stale" "back_link_death|dead" "back_link_thread|thread" "back_link_null|null"
+                "payload_death|dead" "payload_thread|thread" "payload_range|range"
+                "list_items|stale" "text_store|stale" "layout_workspace|stale" "write_lease|stale"
+                "raster_death|dead" "tool_strip_items|stale"
+                "inline_style|stale" "paint_text|dead")
+            string(REPLACE "|" ";" _gui_borrow_fields "${_gui_borrow_case}")
+            list(GET _gui_borrow_fields 0 _gui_borrow_mode)
+            list(GET _gui_borrow_fields 1 _gui_borrow_fault)
+            # Each mode ends in fail_borrow's abort (cmake/expect_fail_fast.cmake).
+            add_test(NAME gui_forms_borrowed_view_${_gui_borrow_mode}
+                     COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_borrowed_view_tests>
+                             -DMODE=${_gui_borrow_mode}
+                             "-DEXPECTED=GUI.Forms borrow sanitizer: ${_gui_borrow_${_gui_borrow_fault}}"
+                             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
+        endforeach()
+    endif()
 
     add_executable(gui_forms_program_options_tests tests/program_options_tests.cpp)
     target_link_libraries(gui_forms_program_options_tests PRIVATE gui_forms_core)
@@ -4515,6 +4988,10 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_timer_tests tests/timer_tests.cpp)
     target_link_libraries(gui_forms_timer_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_timer_tests COMMAND gui_forms_timer_tests)
+
+    add_executable(gui_forms_surface_capability_tests tests/surface_capability_tests.cpp)
+    target_link_libraries(gui_forms_surface_capability_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_surface_capability_tests COMMAND gui_forms_surface_capability_tests)
 
     add_executable(gui_forms_dispatcher_tests tests/dispatcher_tests.cpp)
     target_link_libraries(gui_forms_dispatcher_tests PRIVATE
@@ -4601,6 +5078,12 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_shared_resources_tests tests/shared_resources_tests.cpp)
     target_link_libraries(gui_forms_shared_resources_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_shared_resources_tests COMMAND gui_forms_shared_resources_tests)
+    add_executable(gui_forms_image_atlas_tests tests/image_atlas_tests.cpp)
+    target_link_libraries(gui_forms_image_atlas_tests PRIVATE gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_image_atlas_tests COMMAND gui_forms_image_atlas_tests)
+    add_executable(gui_forms_allocation_statistics_tests tests/allocation_statistics_tests.cpp)
+    target_link_libraries(gui_forms_allocation_statistics_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_allocation_statistics_tests COMMAND gui_forms_allocation_statistics_tests)
     add_executable(gui_forms_dock_floating_tests tests/dock_floating_tests.cpp)
     target_link_libraries(gui_forms_dock_floating_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_dock_floating_tests COMMAND gui_forms_dock_floating_tests)
@@ -4690,6 +5173,8 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/instruments_tests.cpp
             tests/gallery_pages/guided-tasks_tests.cpp
             tests/gallery_pages/help-book_tests.cpp
+            tests/gallery_pages/industrial-surfaces_tests.cpp
+            tests/gallery_pages/node-graphs_tests.cpp
             tests/gallery_pages/anatomy_coverage_tests.cpp
             tests/gallery_pages/schema_export_tests.cpp
         )
@@ -4995,6 +5480,12 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_macos_text_input_caret_tests COMMAND gui_forms_macos_text_input_caret_tests)
         set_tests_properties(gui_forms_macos_text_input_caret_tests PROPERTIES TIMEOUT 15)
 
+        add_executable(gui_forms_macos_text_composition_tests tests/macos_text_composition_tests.mm)
+        target_compile_options(gui_forms_macos_text_composition_tests PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_macos_text_composition_tests PRIVATE gui_forms_host_macos gui_forms_controls)
+        add_test(NAME gui_forms_macos_text_composition_tests COMMAND gui_forms_macos_text_composition_tests)
+        set_tests_properties(gui_forms_macos_text_composition_tests PROPERTIES TIMEOUT 15)
+
         add_executable(gui_forms_macos_idle_visibility_tests tests/macos_idle_visibility_tests.mm)
         target_compile_options(gui_forms_macos_idle_visibility_tests PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_macos_idle_visibility_tests PRIVATE
@@ -5035,7 +5526,7 @@ if(GUI_FORMS_BUILD_TESTS)
         target_include_directories(gui_forms_macos_accessibility_tests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/tests)
         target_link_libraries(gui_forms_macos_accessibility_tests PRIVATE
-            gui_forms_host_macos gui_forms_controls)
+            gui_forms_host_macos gui_forms_lab gui_forms_demo_controls)
         add_test(NAME gui_forms_macos_accessibility_tests
                  COMMAND gui_forms_macos_accessibility_tests)
         set_tests_properties(gui_forms_macos_accessibility_tests PROPERTIES TIMEOUT 60)
@@ -5050,7 +5541,7 @@ if(GUI_FORMS_BUILD_TESTS)
         target_include_directories(gui_forms_macos_accessibility_fixture_app PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/tests)
         target_link_libraries(gui_forms_macos_accessibility_fixture_app PRIVATE
-            gui_forms_host_macos gui_forms_controls)
+            gui_forms_host_macos gui_forms_lab gui_forms_demo_controls)
         set_target_properties(gui_forms_macos_accessibility_fixture_app PROPERTIES
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.ax-fixture")
         find_library(GUI_FORMS_APPLICATION_SERVICES ApplicationServices REQUIRED)
@@ -5182,6 +5673,13 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_CONTROL_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-Regular.ttf"
             GUI_FORMS_TEST_FALLBACK_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/NotoEmoji-Regular.ttf")
         add_test(NAME gui_forms_retained_draw_cache_raster_tests COMMAND gui_forms_retained_draw_cache_raster_tests)
+        if(TARGET gui_forms_text_engine)
+            add_executable(gui_forms_paragraph_glyph_tests tests/paragraph_glyph_tests.cpp)
+            target_link_libraries(gui_forms_paragraph_glyph_tests PRIVATE
+                gui_forms_controls gui_forms_skia gui_forms_text_engine)
+            add_test(NAME gui_forms_paragraph_glyph_tests
+                     COMMAND gui_forms_paragraph_glyph_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        endif()
         add_executable(gui_forms_skia_smoke src/render/skia/skia_raster_smoke.cpp
             $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
         target_compile_definitions(gui_forms_skia_smoke PRIVATE
@@ -5210,6 +5708,54 @@ if(GUI_FORMS_BUILD_TESTS)
             target_link_libraries(gui_forms_specimen_sheet PRIVATE gui_forms_gallery_model gui_forms_skia)
             add_test(NAME gui_forms_specimen_sheet_tests COMMAND gui_forms_specimen_sheet --smoke)
         endif()
+
+        # Windowless capture (owner request 2026-11-11, the theme palette):
+        # OffscreenRaster with the bundled fonts named, Window::capture_control,
+        # specimen states, and the stock specimen catalogue's completeness
+        # against stock_control_anatomies().
+        add_executable(gui_forms_offscreen_capture_tests tests/offscreen_capture_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_offscreen_capture_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_offscreen_capture_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_offscreen_capture_tests COMMAND gui_forms_offscreen_capture_tests)
+
+        # Skeudoindustrial surfaces follow-ups 4 and 5: the indicator lamp
+        # and the danger key, their timing, and that each lights only its
+        # own lens or face (offscreen raster). GUI_FORMS_PREVIEW_DIR, when
+        # set, receives preview shots.
+        add_executable(gui_forms_indicator_lamp_tests tests/indicator_lamp_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_indicator_lamp_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_indicator_lamp_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_indicator_lamp_tests COMMAND gui_forms_indicator_lamp_tests)
+        add_executable(gui_forms_danger_key_tests tests/danger_key_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_danger_key_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_danger_key_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_danger_key_tests COMMAND gui_forms_danger_key_tests)
+        # The node canvas's look in pixels (cp31), and its preview set:
+        # gui_forms_canvas_look_raster_tests --preview <directory>.
+        add_executable(gui_forms_canvas_look_raster_tests tests/canvas_look_raster_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_canvas_look_raster_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_canvas_look_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_canvas_look_raster_tests COMMAND gui_forms_canvas_look_raster_tests)
+
+        add_executable(gui_forms_node_canvas_raster_tests tests/node_canvas_raster_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_node_canvas_raster_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_node_canvas_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_node_canvas_raster_tests COMMAND gui_forms_node_canvas_raster_tests)
 
         add_executable(gui_forms_canvas_raster_tests tests/canvas_raster_tests.cpp)
         target_link_libraries(gui_forms_canvas_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
@@ -5407,6 +5953,11 @@ if(TARGET gui_forms_form_compiler AND NOT GUI_FORMS_INSTALLED_LIBRARY_RPATH STRE
     set_target_properties(gui_forms_form_compiler PROPERTIES
         INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}/${GUI_FORMS_BIN_TO_LIB}")
 endif()
+if(TARGET gui_forms_form_compiler_lab AND NOT GUI_FORMS_INSTALLED_LIBRARY_RPATH STREQUAL "")
+    file(RELATIVE_PATH GUI_FORMS_BIN_TO_LIB "/${CMAKE_INSTALL_BINDIR}" "/${CMAKE_INSTALL_LIBDIR}")
+    set_target_properties(gui_forms_form_compiler_lab PROPERTIES
+        INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}/${GUI_FORMS_BIN_TO_LIB}")
+endif()
 
 if(TARGET gui_forms_application)
     target_link_libraries(gui_forms_application PUBLIC GUIForms::Threading)
@@ -5440,6 +5991,8 @@ install(FILES ${gui_forms_stx_licenses}/stx_rtf2md/PROVENANCE.md DESTINATION ${C
 install(FILES ${gui_forms_stx_licenses}/stx_png/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_png-PROVENANCE.md)
 install(FILES ${gui_forms_stx_licenses}/stx_conv/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-LICENSE.txt)
 install(FILES ${gui_forms_stx_licenses}/stx_conv/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-PROVENANCE.md)
+install(FILES "${GUI_FORMS_STX_AUXLIB_SOURCE_DIR}/btree/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-LICENSE.txt)
+install(FILES "${GUI_FORMS_STX_AUXLIB_SOURCE_DIR}/btree/NOTICE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-NOTICE.txt)
 install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
 # Every third-party component the SDK and the programs ship, with its licence
 # and the FreeType credit (THIRD_PARTY_NOTICES.md).

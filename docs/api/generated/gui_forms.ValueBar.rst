@@ -9,7 +9,7 @@ gui_forms::ValueBar
 
 .. cpp:class:: ValueBar final : public RangeControl, public ValueBarCapabilities<ValueBar>
 
-   ``#include <gui_forms/controls/range_control/value_bar/value_bar.hpp>``
+   ``#include <gui_forms/controls/value_bar.hpp>``
 
    Blender-style value bar over RangeControl: a fill or field style, drag-to-scrub within a soft range, click-to-type bounded arithmetic with units within the hard range, snapping and step arrows.
 
@@ -289,11 +289,7 @@ gui_forms::ValueBar
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
 
    .. cpp:function:: void on_focus_changed(bool focused) override
 
@@ -302,6 +298,26 @@ gui_forms::ValueBar
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value_text) override
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
@@ -316,3 +332,165 @@ gui_forms::ValueBar
    .. cpp:member:: constexpr std::size_t value_bar_property_count
 
       ValueBar's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 9U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 19 unclassified; 37 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``content_bounds``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``decrement_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``default_value``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``edit_defect``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``editing``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_soft_maximum``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``effective_soft_minimum``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``fill_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``fill_text_contrast``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``formatted_value``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``increment_bounds``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``label``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``overrange``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overrange_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``precision``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presentation``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scrub_rate``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scrubbing``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``snap_step``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``soft_maximum``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``soft_minimum``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``soft_proportion``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``track_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``unit``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``value_committed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``apply_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_edit``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cancel_edit``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``commit_edit``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``copy_value``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``negate``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``paste_value``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``reset_to_default``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``step_by``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``value_bar_property_entries``
+     - unclassified (untested)

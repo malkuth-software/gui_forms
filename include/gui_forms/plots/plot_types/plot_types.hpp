@@ -6,6 +6,7 @@
 // coordinates become Point (logical units, the painter's coordinates) only
 // at the painter boundary.
 
+#include "gui_forms/export/application_export.hpp"
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -15,7 +16,7 @@ namespace gui_forms::plots {
 // A closed interval of data values on one axis. `minimum` may exceed
 // `maximum` only in an inverted range the caller builds on purpose; the
 // primitives keep minimum < maximum and carry inversion separately.
-struct PlotRange final {
+struct GUI_FORMS_API PlotRange final {
     double minimum{};
     double maximum{1.0};
 
@@ -41,7 +42,7 @@ struct PlotRange final {
 // An element's position in a series, counted from the oldest live element
 // (a ring's oldest survivor is 0). Kept apart from device columns and from
 // absolute sequence numbers, which it is easily confused with.
-struct ElementIndex final {
+struct GUI_FORMS_API ElementIndex final {
     std::size_t value{};
 
     friend constexpr bool operator==(ElementIndex left, ElementIndex right) noexcept {
@@ -55,7 +56,7 @@ struct ElementIndex final {
 // An element's absolute sequence number: how many elements were ever
 // written before it. A growable column's sequence equals its index; a
 // ring's index is its sequence minus the elements it has dropped.
-struct ElementSequence final {
+struct GUI_FORMS_API ElementSequence final {
     std::uint64_t value{};
 
     friend constexpr bool operator==(ElementSequence left, ElementSequence right) noexcept {
@@ -69,7 +70,7 @@ struct ElementSequence final {
 // A series' identity inside one plot: its position in the plot's series
 // list when the plot was last laid out, plus the generation that list had,
 // so a pick result kept across a change of series is recognised as stale.
-struct SeriesIdentity final {
+struct GUI_FORMS_API SeriesIdentity final {
     std::uint32_t position{};
     std::uint32_t generation{};
 
@@ -85,7 +86,7 @@ enum class XOrder : std::uint8_t { monotone, unordered };
 
 // A device pixel column of a plot, counted from the plot's left device
 // edge.
-struct DeviceColumn final {
+struct GUI_FORMS_API DeviceColumn final {
     std::int64_t value{};
 
     friend constexpr bool operator==(DeviceColumn left, DeviceColumn right) noexcept {

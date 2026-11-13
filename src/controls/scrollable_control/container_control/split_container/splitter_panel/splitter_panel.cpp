@@ -1,4 +1,4 @@
-#include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
+#include "gui_forms/controls/splitter_panel.hpp"
 #include "../../../scrollable_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"

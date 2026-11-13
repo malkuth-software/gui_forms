@@ -1,5 +1,6 @@
 // Application-scope windowing on X11 (stage DK phase W0, decisions 6 and 7).
-// Desktop logical units are X pixels: this host runs at scale 1.
+// The X desktop is in device pixels; desktop logical units map through each
+// monitor's scale (desktop_coordinates.hpp, Runtime::device_monitors).
 #include "linux_host_internal.hpp"
 
 #include <X11/Xatom.h>
@@ -192,7 +193,9 @@ HostScreenPointResult X11Windowing::pointer_position_impl() {
     result.status.error = HostServiceError::unsupported;
     return result;
   }
-  result.position = {static_cast<double>(root_x), static_cast<double>(root_y)};
+  result.position = desktop_logical_point(
+      runtime_.device_monitors,
+      DesktopDevicePoint{static_cast<double>(root_x), static_cast<double>(root_y)});
   return result;
 }
 
@@ -222,6 +225,9 @@ HostWindowAtResult X11Windowing::window_at_impl(DesktopLogicalPoint point) {
   HostWindowAtResult result;
   Display *display = runtime_.display;
   const ::Window root = DefaultRootWindow(display);
+  // The point on the device desktop, where the root's children are.
+  double point_scale = 1.0;
+  const DesktopDevicePoint device = desktop_device_point(runtime_.device_monitors, point, point_scale);
   // The run's windows by the root child that holds each (bounded by the
   // windowing table).
   std::vector<OwnTopLevel> own;
@@ -253,8 +259,8 @@ HostWindowAtResult X11Windowing::window_at_impl(DesktopLogicalPoint point) {
                       static_cast<double>(attributes.y),
                       static_cast<double>(attributes.width + 2 * attributes.border_width),
                       static_cast<double>(attributes.height + 2 * attributes.border_width)};
-    // Logical units are X pixels here (scale 1).
-    if (!bounds.contains(Point{point.x, point.y}))
+    // Device bounds against the device point.
+    if (!bounds.contains(Point{device.x, device.y}))
       continue;
     for (std::size_t i = 0; i < own.size(); ++i) {
       if (own[i].top_level == child) {
@@ -399,10 +405,12 @@ HostMonitorResult X11Windowing::query_monitors_impl() {
   return result;
 }
 
-// The monitors, written into `result` in place: a repeated query reuses
-// its storage.
+// The monitors in desktop logical units, written into `result` in place: a
+// repeated query reuses its storage.
 void X11Windowing::query_monitors_into_impl(HostMonitorResult &result) {
   query_x11_monitors(runtime_, result);
+  for (std::size_t i = 0; i < result.monitors.size(); ++i)
+    make_logical_monitor(result.monitors[i]);
 }
 
 namespace {
@@ -491,8 +499,9 @@ bool randr_monitors(const Runtime &runtime, const std::optional<Rect> &desktop,
     monitor.frame = Rect{static_cast<double>(info.x), static_cast<double>(info.y),
                          static_cast<double>(info.width), static_cast<double>(info.height)};
     monitor.work_area = monitor_work_area(monitor.frame, desktop);
-    // The X11 host renders at scale 1 (docs/user/hosts-and-capabilities.md).
-    monitor.scale = 1.0;
+    // X11 states one density, Xft.dpi, for the whole desktop (audit N66,
+    // option a; docs/user/hosts-and-capabilities.md).
+    monitor.scale = runtime.desktop_scale();
     monitor.primary = info.primary != 0 && !primary_seen;
     if (monitor.primary)
       primary_seen = true;
@@ -523,7 +532,7 @@ void query_x11_monitors(const Runtime &runtime, HostMonitorResult &result) {
   monitor.id.assign("x11-screen");
   monitor.frame = frame;
   monitor.work_area = desktop ? *desktop : frame;
-  monitor.scale = 1.0;
+  monitor.scale = runtime.desktop_scale();
   monitor.primary = true;
 }
 

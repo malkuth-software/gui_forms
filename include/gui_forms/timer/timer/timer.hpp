@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/scheduler.hpp"
@@ -14,7 +15,7 @@ class Window;
 // A renderer-free timer whose callbacks are serialized with input, layout,
 // and paint on the owning Window's UI thread. Late ticks are coalesced rather
 // than replayed in a burst.
-class Timer final : public Component {
+class GUI_FORMS_API Timer final : public Component {
 public:
     explicit Timer(Window& window,
                    std::chrono::milliseconds interval =

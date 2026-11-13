@@ -2,15 +2,15 @@
   "family": "ListBox",
   "step": "B5",
   "declaring": "ListBox",
-  "header": "include/gui_forms/controls/panel/list_box/list_box.hpp",
+  "header": "include/gui_forms/controls/list_box.hpp",
   "source": "src/controls/panel/list_box/list_box.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/list_box/list_box_capabilities/list_box_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/list_box_capabilities.hpp",
   "base": "Panel",
   "shared": [
     "FontCapability"
   ],
   "includes": [
-    "gui_forms/controls/panel/list_box/list_box_values/list_box_values.hpp",
+    "gui_forms/controls/list_box_values.hpp",
     "gui_forms/types.hpp"
   ],
   "properties": [
@@ -132,7 +132,7 @@
   ],
   "test": {
     "type": "ListBox",
-    "include": "gui_forms/controls/panel/list_box/list_box.hpp"
+    "include": "gui_forms/controls/list_box.hpp"
   },
   "extra_entries": [
     "{\"items\", &describe_list_box_items,\n         &read_member_entry<ListBox, decltype(&ListBox::items_property_value), &ListBox::items_property_value>,\n         &write_member_entry<ListBox, decltype(&ListBox::set_items_property), &ListBox::set_items_property>,\n         &reset_member_entry<ListBox, decltype(&ListBox::reset_items_property), &ListBox::reset_items_property>, &should_serialize_member_entry<ListBox, decltype(&ListBox::should_serialize_items_property), &ListBox::should_serialize_items_property>, nullptr,\n         nullptr}"

@@ -1,4 +1,5 @@
 #include "pages.hpp"
+#include "gui_forms/controls/splitter.hpp"
 
 #include "dock-and-anchor_form.hpp"
 

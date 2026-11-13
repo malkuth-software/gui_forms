@@ -8,7 +8,7 @@
 
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
-#include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/docking.hpp"
 
@@ -371,6 +371,9 @@ gf_status read_edit(const DockWorkspace& workspace, const gf_dock_edit* record, 
 
 // Whether target is node or under it (a split's children, the document
 // area's content). Bounded by the tree's depth.
+// Recurses once per dock node level: a committed tree is at most
+// dock_maximum_depth (32) deep, refused beyond by the invariant check;
+// a few hundred bytes of stack per level.
 bool contains(const DockLayout& layout, DockNodeId node_id, DockNodeId target) {
     if (node_id == DockNodeId{}) return false;
     if (node_id == target) return true;

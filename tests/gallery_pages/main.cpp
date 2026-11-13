@@ -92,6 +92,8 @@ void test_registry_pages_gallery() {
     test_instruments(window);
     test_guided_tasks(window);
     test_help_book(window);
+    test_industrial_surfaces(window);
+    test_node_graphs(window);
     test_retained_layout_panels(window);
     test_css_layout_panels(window);
     test_control_spectrum(window);
@@ -128,6 +130,7 @@ int main(int argc, char** argv) {
         test_every_page_scrolls_to_its_end();
         test_catalog_pages_resolve_and_headers_describe_pages();
         test_gallery_semantic_surface();
+        test_basics_card_dark_contrast();
         test_ranges_containers_and_animation();
         test_text_collections_and_overlay_lifecycle();
         test_timing_and_tooltip_runtime();

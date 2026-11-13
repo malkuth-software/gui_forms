@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "../session/headless_host.hpp"
 #include "gui_forms/application.hpp"
 #include "gui_forms/host/windowing/host_windowing.hpp"
@@ -38,7 +39,7 @@ enum class HeadlessOpenFault : std::uint8_t {
 // monitors, native window rectangles, visibility, a z-order and a pointer.
 // Every native operation appends one line to trace(), so tests can read the
 // order in which the portable seam asked for things.
-class HeadlessWindowing final : public HostWindowing {
+class GUI_FORMS_API HeadlessWindowing final : public HostWindowing {
 public:
     // Decorations the simulated desktop draws around every window, in
     // logical units: a title bar above the client area and a border on
@@ -88,7 +89,8 @@ public:
     void set_deferred_frame_reports(bool enabled) noexcept { deferred_reports_ = enabled; }
     void flush_frame_reports();
 
-    [[nodiscard]] const std::string& trace() const noexcept { return trace_; }
+    [[nodiscard]] const std::string& trace() const& noexcept { return trace_; }
+    const std::string& trace() const&& = delete;
     void clear_trace() noexcept { trace_.clear(); }
     // Whether showing, hiding, framing and raising a window append to the
     // trace (on by default). An allocation count of those operations turns
@@ -172,7 +174,7 @@ private:
 // calls each ready callback; the test then drives windows through host()
 // and the simulate_* operations. Programs reach the windowing through
 // ApplicationWindowHandle::windows(), exactly as on a native host.
-class HeadlessApplication final {
+class GUI_FORMS_API HeadlessApplication final {
 public:
     // Throws std::invalid_argument when Application::validate refuses the
     // entries (a test fixture error).
@@ -227,9 +229,10 @@ public:
     void inject_open_fault(HeadlessOpenFault fault) noexcept { open_fault_ = fault; }
     // Models of runtime opens refused by refuse_and_keep, in refusal order;
     // owned here until the application ends.
-    [[nodiscard]] const std::vector<std::unique_ptr<Window>>& refused_models() const noexcept {
+    [[nodiscard]] const std::vector<std::unique_ptr<Window>>& refused_models() const& noexcept {
         return refused_models_;
     }
+    const std::vector<std::unique_ptr<Window>>& refused_models() const&& = delete;
     // Releases the models and protocol adapters of windows closed earlier.
     // A test calls it between steps, as a native host does at the end of a
     // loop turn, so a window is never released inside one of its own

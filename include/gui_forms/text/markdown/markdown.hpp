@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
 #include <cstddef>
@@ -24,13 +25,13 @@ namespace gui_forms {
 // image.
 
 // An sRGB colour without alpha, as an attribute span gives it.
-struct MarkdownRgb final {
+struct GUI_FORMS_API MarkdownRgb final {
     std::uint8_t red{};
     std::uint8_t green{};
     std::uint8_t blue{};
 };
 
-[[nodiscard]] bool operator==(const MarkdownRgb& left, const MarkdownRgb& right) noexcept;
+[[nodiscard]] GUI_FORMS_API bool operator==(const MarkdownRgb& left, const MarkdownRgb& right) noexcept;
 
 enum class MarkdownBlockKind : std::uint8_t { paragraph, heading, list_item, code_block, rule };
 enum class MarkdownListMarker : std::uint8_t { bullet, ordered };
@@ -48,7 +49,7 @@ inline constexpr std::int8_t maximum_markdown_size_step = 4;
 // from a code span or a code block; the rest from attribute spans.
 // size_step counts steps from the body size, minimum_markdown_size_step to
 // maximum_markdown_size_step.
-struct MarkdownSpanStyle final {
+struct GUI_FORMS_API MarkdownSpanStyle final {
     bool bold{};
     bool italic{};
     bool underline{};
@@ -60,7 +61,7 @@ struct MarkdownSpanStyle final {
     std::int8_t size_step{};
 };
 
-[[nodiscard]] bool operator==(const MarkdownSpanStyle& left, const MarkdownSpanStyle& right) noexcept;
+[[nodiscard]] GUI_FORMS_API bool operator==(const MarkdownSpanStyle& left, const MarkdownSpanStyle& right) noexcept;
 
 // A piece of a block's text in one style.
 //
@@ -77,7 +78,7 @@ struct MarkdownSpanStyle final {
 // stands. Source bytes no span covers are markup: emphasis delimiters,
 // heading and list markers, quote markers, escapes' backslashes, link
 // destinations, attribute lists and fences.
-struct MarkdownSpan final {
+struct GUI_FORMS_API MarkdownSpan final {
     MarkdownSpanKind kind{MarkdownSpanKind::text};
     std::string text{};
     Utf8Range source{};
@@ -92,7 +93,7 @@ struct MarkdownSpan final {
 
 // A link's destination, decoded. Every link of the source has its own
 // entry, in source order.
-struct MarkdownLink final {
+struct GUI_FORMS_API MarkdownLink final {
     std::string target{};
     // The link title (`[text](target "title")`), decoded; empty without one.
     std::string title{};
@@ -101,7 +102,7 @@ struct MarkdownLink final {
 // An image's source and title, decoded. Every image of the source has its
 // own entry, in source order; its spans are its alternative text. Parsing
 // records the source only and never opens it.
-struct MarkdownImage final {
+struct GUI_FORMS_API MarkdownImage final {
     std::string source{};
     std::string title{};
 };
@@ -121,7 +122,7 @@ struct MarkdownImage final {
 // line or a setext underline. A block with no text (a rule, an empty
 // heading or code block) has an empty source at the end of the block
 // before it.
-struct MarkdownBlock final {
+struct GUI_FORMS_API MarkdownBlock final {
     MarkdownBlockKind kind{MarkdownBlockKind::paragraph};
     std::size_t level{};
     std::size_t quote_depth{};
@@ -137,7 +138,7 @@ struct MarkdownBlock final {
 
 // A parsed source: blocks in source order over one span table and one link
 // table. A document holds no borrow of the source it was parsed from.
-class MarkdownDocument final {
+class GUI_FORMS_API MarkdownDocument final {
 public:
     std::vector<MarkdownBlock> blocks{};
     std::vector<MarkdownSpan> spans{};
@@ -151,7 +152,7 @@ public:
 // Bounds on one parse. source_bytes bounds the input; blocks and spans
 // bound the tables; text_bytes bounds the span texts, link targets and
 // titles, and image sources and titles together.
-struct MarkdownLimits final {
+struct GUI_FORMS_API MarkdownLimits final {
     std::size_t source_bytes = 16U * 1024U * 1024U;
     std::size_t blocks = 100000U;
     std::size_t spans = 250000U;
@@ -171,7 +172,7 @@ enum class MarkdownParseError : std::uint8_t {
 
 // The result of parse_markdown: parsed, or failed with an error and, for
 // invalid_utf8, the offset of the first invalid byte.
-class MarkdownParseResult final {
+class GUI_FORMS_API MarkdownParseResult final {
 public:
     [[nodiscard]] static MarkdownParseResult parsed() noexcept;
     [[nodiscard]] static MarkdownParseResult failed(MarkdownParseError error, Utf8Offset offset) noexcept;
@@ -197,13 +198,13 @@ private:
 // empty. source is only read and must not change during the call; document
 // keeps no borrow of it. Cancellation is observed between the parser's
 // callbacks.
-[[nodiscard]] MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& document,
+[[nodiscard]] GUI_FORMS_API MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& document,
                                                  const MarkdownLimits& limits = MarkdownLimits{},
                                                  std::stop_token cancellation = std::stop_token{});
 
 // Writes the document's plain text into text, which is replaced: the
 // blocks' span texts joined by line feeds, a line break span as a line
 // feed, a rule as an empty line. This is the text with the markup removed.
-void markdown_plain_text(const MarkdownDocument& document, std::string& text);
+GUI_FORMS_API void markdown_plain_text(const MarkdownDocument& document, std::string& text);
 
 } // namespace gui_forms

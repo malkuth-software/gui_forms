@@ -2,9 +2,9 @@
   "family": "RasterCanvas",
   "step": "M-S8",
   "declaring": "RasterCanvas",
-  "header": "include/gui_forms/controls/raster_canvas/raster_canvas.hpp",
+  "header": "include/gui_forms/controls/raster_canvas.hpp",
   "source": "src/controls/raster_canvas/raster_canvas.cpp",
-  "capabilities_header": "include/gui_forms/controls/raster_canvas/raster_canvas_capabilities/raster_canvas_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/raster_canvas_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
@@ -15,7 +15,7 @@
   ],
   "test": {
     "type": "RasterCanvas",
-    "include": "gui_forms/controls/raster_canvas/raster_canvas.hpp"
+    "include": "gui_forms/controls/raster_canvas.hpp"
   },
   "properties": [
     {

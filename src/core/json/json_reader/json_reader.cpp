@@ -1,6 +1,10 @@
 #include "json_reader.hpp"
 
+#include "../../algorithm/tree_teardown.hpp"
+
+#include <cstddef>
 #include <utility>
+#include <vector>
 
 namespace gui_forms::detail {
 
@@ -441,9 +445,82 @@ const JsonValue* JsonValue::find(std::string_view name) const& noexcept {
     return nullptr;
 }
 
-bool operator==(const JsonValue& left, const JsonValue& right) noexcept {
+namespace {
+
+// A source value and the copy being filled from it.
+struct JsonCopyStep final {
+    const JsonValue* source{nullptr};
+    JsonValue* destination{nullptr};
+};
+
+// Two values whose items are still to be compared.
+struct JsonComparePair final {
+    const JsonValue* left{nullptr};
+    const JsonValue* right{nullptr};
+};
+
+// One value's own fields, without its items' contents.
+[[nodiscard]] bool same_fields(const JsonValue& left, const JsonValue& right) {
     return left.kind == right.kind && left.boolean == right.boolean && left.text == right.text &&
-           left.items == right.items && left.names == right.names;
+           left.names == right.names && left.items.size() == right.items.size();
+}
+
+} // namespace
+
+JsonValue::JsonValue(const JsonValue& other)
+    : kind(other.kind), boolean(other.boolean), text(other.text), names(other.names) {
+    // Each step fills one destination's items with copies of the source's
+    // own fields, then queues each item pair. A destination's item list is
+    // reserved before it is filled, so the queued pointers stay valid.
+    std::vector<JsonCopyStep> pending{};
+    pending.push_back(JsonCopyStep{&other, this});
+    while (!pending.empty()) {
+        const JsonCopyStep step = pending.back();
+        pending.pop_back();
+        const std::vector<JsonValue>& source_items = (*step.source).items;
+        std::vector<JsonValue>& destination_items = (*step.destination).items;
+        destination_items.reserve(source_items.size());
+        for (const JsonValue& source_item : source_items) {
+            JsonValue shallow{};
+            shallow.kind = source_item.kind;
+            shallow.boolean = source_item.boolean;
+            shallow.text = source_item.text;
+            shallow.names = source_item.names;
+            destination_items.push_back(std::move(shallow));
+        }
+        for (std::size_t index = 0U; index < source_items.size(); ++index) {
+            if (source_items[index].items.empty()) continue;
+            pending.push_back(JsonCopyStep{&source_items[index], &destination_items[index]});
+        }
+    }
+}
+
+JsonValue& JsonValue::operator=(const JsonValue& other) {
+    JsonValue copy(other);
+    *this = std::move(copy);
+    return *this;
+}
+
+JsonValue::~JsonValue() {
+    if (!items.empty()) release_children_iteratively<JsonValue, &JsonValue::items>(items);
+}
+
+bool operator==(const JsonValue& left, const JsonValue& right) {
+    if (!same_fields(left, right)) return false;
+    std::vector<JsonComparePair> pending{};
+    pending.push_back(JsonComparePair{&left, &right});
+    while (!pending.empty()) {
+        const JsonComparePair pair = pending.back();
+        pending.pop_back();
+        const std::vector<JsonValue>& left_items = (*pair.left).items;
+        const std::vector<JsonValue>& right_items = (*pair.right).items;
+        for (std::size_t index = 0U; index < left_items.size(); ++index) {
+            if (!same_fields(left_items[index], right_items[index])) return false;
+            if (left_items[index].items.empty()) continue;
+            pending.push_back(JsonComparePair{&left_items[index], &right_items[index]});
+        }
+    }
+    return true;
 }
 
 JsonReadResult read_json(std::string_view utf8, const JsonLimits& limits) {

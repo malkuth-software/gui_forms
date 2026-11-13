@@ -9,7 +9,7 @@ gui_forms::PictureBox
 
 .. cpp:class:: PictureBox : public Panel, public PictureBoxCapabilities<PictureBox>
 
-   ``#include <gui_forms/controls/panel/picture_box/picture_box.hpp>``
+   ``#include <gui_forms/controls/picture_box.hpp>``
 
    A box that displays one image from its window's image registry.
 
@@ -223,3 +223,181 @@ gui_forms::PictureBox
    .. cpp:member:: constexpr std::size_t picture_box_property_count
 
       PictureBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``PictureBox``. Members declared here and by the counterpart: 6 supported, 0 deferred, 2 excluded, 33 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``PictureBox``
+     - ``PictureBox``
+     - supported
+   * - property
+     - ``BorderStyle``
+     - ``border_style``
+     - unclassified (untested)
+   * - property
+     - ``CausesValidation``
+     - ``causes_validation``
+     - unclassified (untested)
+   * - property
+     - ``ErrorImage``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Image``
+     - ``image``
+     - unclassified (untested)
+   * - property
+     - ``ImageLocation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``InitialImage``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SizeMode``
+     - ``size_mode``
+     - unclassified (untested)
+   * - property
+     - ``TabIndex``
+     - ``tab_index``
+     - unclassified (untested)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - property
+     - ``WaitOnLoad``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CausesValidationChanged``
+     - ``causes_validation_changed``
+     - unclassified (untested)
+   * - event
+     - ``Enter``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FontChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ForeColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ImeModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``KeyDown``
+     - ``key_down``
+     - unclassified (untested)
+   * - event
+     - ``KeyPress``
+     - ``key_press``
+     - unclassified (untested)
+   * - event
+     - ``KeyUp``
+     - ``key_up``
+     - unclassified (untested)
+   * - event
+     - ``Leave``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``LoadCompleted``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``LoadProgressChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RightToLeftChanged``
+     - ``right_to_left_changed``
+     - unclassified (untested)
+   * - event
+     - ``SizeModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabIndexChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabStopChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CancelAsync``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Load``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``LoadAsync``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnLoadCompleted``
+     - none
+     - excluded: no asynchronous URL loading: images are PNG resources (On\* hooks (d) list)
+   * - method
+     - ``OnLoadProgressChanged``
+     - none
+     - excluded: no asynchronous URL loading: images are PNG resources (On\* hooks (d) list)
+   * - method
+     - ``OnSizeModeChanged``
+     - ``on_size_mode_changed``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``has_valid_image``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``image_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``image_opacity``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``image_size``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``image_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_image``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``picture_box_property_entries``
+     - unclassified (untested)

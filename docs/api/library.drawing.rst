@@ -1327,7 +1327,7 @@ Types
 
       Returns storage stride or zero.
 
-   .. cpp:function:: std::span<const std::byte> pixels() const noexcept
+   .. cpp:function:: std::span<const std::byte> pixels() const& noexcept
 
       Returns const storage bytes or an empty span.
 
@@ -1544,7 +1544,7 @@ Types
 
       The producer's label given at publish (LiveSurfaceWriteLease::publish).
 
-   .. cpp:function:: std::span<const std::byte> pixels() const noexcept
+   .. cpp:function:: BorrowedSpan<std::byte> pixels() const noexcept
 
       Returns a const byte span whose lifetime is protected by the retained shared buffer.
 
@@ -1695,7 +1695,7 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: std::span<std::byte> pixels() noexcept
+   .. cpp:function:: BorrowedMutableSpan<std::byte> pixels() noexcept
 
       Returns the mutable candidate byte span; these bytes remain invisible until publish succeeds.
 
@@ -1860,7 +1860,7 @@ Types
 
    ``#include <gui_forms/paint_framebuffer.hpp>``
 
-   Offscreen instance of the host's renderer, made on the UI thread (SurfaceRoot::create_framebuffer). One thread uses it at a time: the maker, or the one it hands it to whole, which then alone uses and destroys it (a sub-surface's thread, SubSurfaceConfiguration). Pixels are premultiplied sRGB BGRA8 on every host: blue, green, red and alpha bytes in memory order, the one format of every surface and raster. The buffer survives begin/end; callers may restore cached pixels before drawing damage. A painter and pixel span are borrowed only for this object's lifetime.
+   Offscreen instance of the host's renderer, made on the UI thread (SurfaceRoot::create_framebuffer). One thread uses it at a time: the maker, or the one it hands it to whole, which then alone uses and destroys it (a sub-surface's thread, SubSurfaceConfiguration). Pixels are premultiplied sRGB BGRA8 on every host: blue, green, red and alpha bytes in memory order, the one format of every surface and raster. The buffer survives begin/end; callers may restore cached pixels before drawing damage. A painter and pixel span are borrowed only for this object's lifetime; pixels() is a borrowed view stamped by the framebuffer (an implementation lends it from a detail::BorrowLender it keeps), so the sanitizer tree reports a use after the framebuffer died.
 
 
    .. rubric:: Extension points
@@ -1871,7 +1871,7 @@ Types
 
    .. cpp:function:: virtual Painter& painter() noexcept = 0
 
-   .. cpp:function:: virtual std::span<std::byte> pixels() noexcept = 0
+   .. cpp:function:: virtual BorrowedMutableSpan<std::byte> pixels() noexcept = 0
 
    .. cpp:function:: virtual std::size_t row_bytes() const noexcept = 0
 

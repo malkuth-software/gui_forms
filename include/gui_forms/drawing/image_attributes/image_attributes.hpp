@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/object/drawing_object.hpp"
 #include "gui_forms/drawing/types/drawing_types.hpp"
 
@@ -11,10 +12,10 @@
 
 namespace gui_drawing {
 
-struct ImageAttributesSnapshot final {
+struct GUI_FORMS_API ImageAttributesSnapshot final {
     // The colour matrix as set_color_matrix took it; absent when none is set.
     std::optional<std::array<double, 25>> color_matrix{};
-    struct ColorRemap final {
+    struct GUI_FORMS_API ColorRemap final {
         Color old_color;
         Color new_color;
         friend constexpr bool operator==(const ColorRemap& left,
@@ -26,7 +27,7 @@ struct ImageAttributesSnapshot final {
     std::vector<ColorRemap> remap_table;
 };
 
-class ImageAttributes final : public DrawingObject {
+class GUI_FORMS_API ImageAttributes final : public DrawingObject {
 public:
     void set_color_matrix(std::span<const double, 25> matrix);
     void reset_color_matrix();

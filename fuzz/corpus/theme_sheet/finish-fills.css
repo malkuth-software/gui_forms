@@ -1,0 +1,3 @@
+/* forms: property.finish-fill */
+button::part(face) { background-image: finish(hammertone, #4d676d, #bdb6a8, 11, 2) }
+track-bar::part(thumb) { background-image: finish(cloth-weave, #8a6f4a, #c8b98f) }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/resources/types/image_resource_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
@@ -27,7 +28,7 @@ class SplashscreenSurface;
 // 2026-11-08: Q-S1 (a)); a minimal paint path of its own draws them with
 // the bundled control face through the host's CPU raster (no theme,
 // controls or layout), so that it shows before the theme is compiled.
-struct SplashscreenOptions final {
+struct GUI_FORMS_API SplashscreenOptions final {
     static constexpr std::size_t maximum_text_bytes = 512U;
     static constexpr std::uint32_t minimum_extent = 160U;
     static constexpr std::uint32_t maximum_extent = 1600U;
@@ -57,7 +58,7 @@ enum class SplashscreenError : std::uint8_t {
 
 class Splashscreen;
 
-struct SplashscreenResult final {
+struct GUI_FORMS_API SplashscreenResult final {
     SplashscreenError error{SplashscreenError::none};
     std::unique_ptr<Splashscreen> splashscreen{};
 
@@ -73,7 +74,7 @@ struct SplashscreenResult final {
 // text and do nothing more. Each setter presents the new frame at once,
 // without a run loop. Main thread only (the thread that later runs the
 // application). Link GUIForms::Application for show.
-class Splashscreen final {
+class GUI_FORMS_API Splashscreen final {
 public:
     [[nodiscard]] static SplashscreenResult show(SplashscreenOptions options);
 

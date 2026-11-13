@@ -29,7 +29,7 @@ it:
 | `background` | a flat ground under the text, under the selection band. It is left out in high contrast |
 
 ```cpp
-#include <gui_forms/controls/panel/text_box/text_box.hpp>
+#include <gui_forms/controls/text_box.hpp>
 
 #include <cstddef>
 #include <span>

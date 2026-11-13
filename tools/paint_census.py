@@ -91,9 +91,11 @@ class FileCensus:
 def painter_drawing_methods(header: Path) -> list[str]:
     """The Painter's drawing methods: its virtual members less the state ones."""
     text = header.read_text(encoding="utf-8")
-    start = text.find("class Painter ")
-    if start < 0:
+    # The class head may carry the export macro (class GUI_FORMS_API Painter).
+    head = re.search(r"\bclass (?:GUI_FORMS_API )?Painter\b", text)
+    if head is None:
         raise SystemExit(f"paint_census: no `class Painter` in {header}")
+    start = head.start()
     names: set[str] = set()
     for match in VIRTUAL_METHOD.finditer(text, start):
         name = match.group(1)
@@ -111,9 +113,10 @@ def effect_canvas_methods(header: Path) -> frozenset[str]:
     if not header.is_file():
         return frozenset()
     text = header.read_text(encoding="utf-8")
-    start = text.find("class EffectCanvas ")
-    if start < 0:
+    head = re.search(r"\bclass (?:GUI_FORMS_API )?EffectCanvas\b", text)
+    if head is None:
         raise SystemExit(f"paint_census: no `class EffectCanvas` in {header}")
+    start = head.start()
     names: set[str] = set()
     for match in VOCABULARY_METHOD.finditer(text, start):
         name = match.group(1)

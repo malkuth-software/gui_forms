@@ -157,6 +157,52 @@ bool valid_procedural_fill(const ProceduralFill& fill) noexcept {
     return false;
 }
 
+// A finish fill's parameters (skeudoindustrial surfaces, phase 1): a
+// built-in finish, a finite grain within [minimum_finish_grain,
+// maximum_finish_grain], a light whose elevation is within [0, 90]
+// degrees (any whole azimuth, read modulo 360), a finite ambient in
+// [0, 1], and finite relief and gloss scales within [0,
+// maximum_finish_scale].
+bool valid_glint_preset(GlintPreset preset) noexcept {
+    switch (preset) {
+    case GlintPreset::bead_blast:
+    case GlintPreset::sand_blast:
+    case GlintPreset::iridescent:
+    case GlintPreset::coarse_grit:
+    case GlintPreset::painted_sand: return true;
+    }
+    // A preset outside the enumeration is not fitted.
+    return false;
+}
+
+bool valid_finish_fill(const FinishFill& fill) noexcept {
+    switch (fill.kind) {
+    case FinishKind::dusty_matte:
+    case FinishKind::orange_peel:
+    case FinishKind::hammertone:
+    case FinishKind::wrinkle:
+    case FinishKind::bead_blast:
+    case FinishKind::sand_cast:
+    case FinishKind::flat:
+    case FinishKind::cloth_weave:
+    case FinishKind::glint: {
+        const bool grain = std::isfinite(fill.grain) && fill.grain >= minimum_finish_grain &&
+                           fill.grain <= maximum_finish_grain;
+        const bool light = fill.light_elevation_degrees >= 0 &&
+                           fill.light_elevation_degrees <= maximum_finish_elevation_degrees;
+        const bool ambient = std::isfinite(fill.ambient) && fill.ambient >= 0.0 && fill.ambient <= 1.0;
+        const bool scales = std::isfinite(fill.relief) && fill.relief >= 0.0 && fill.relief <= maximum_finish_scale &&
+                            std::isfinite(fill.gloss) && fill.gloss >= 0.0 && fill.gloss <= maximum_finish_scale;
+        // The glint reads its preset, which every other finish ignores.
+        const bool preset = fill.kind != FinishKind::glint || valid_glint_preset(fill.glint);
+        const bool valid = grain && light && ambient && scales && preset;
+        return valid;
+    }
+    }
+    // A kind outside the enumeration is not built in.
+    return false;
+}
+
 // An overlay shadow: at most SurfaceMaterial::maximum_shadows valid layers,
 // none of them inset (an overlay shadow falls outside its surface).
 bool valid_overlay_shadow(const std::vector<MaterialShadow>& layers) noexcept {
@@ -724,6 +770,9 @@ ControlVisualRecipe derived_high_contrast(const ControlVisualRecipe& ordinary, C
     result.scrim = Color::rgba(plate.red, plate.green, plate.blue, 255);
     result.stroke_width = std::max(ordinary.stroke_width, 2.0);
     result.needle_shape = NeedleShape::line;
+    // A node canvas part's colours are not set here: resolve_canvas_look
+    // reads this record's plate, edge and focus colour (cp31), so every
+    // family's derived record stays the hand-authored one.
     return result;
 }
 
@@ -848,6 +897,20 @@ void paint_fill_layer(Painter& painter, Rect bounds, const MaterialFillLayer& fi
             painter.fill_rounded_rect(bounds, corner_radius, ground);
         } else {
             painter.fill_rect(bounds, ground);
+        }
+        return;
+    }
+    case MaterialFillKind::finish: {
+        // The painter path never paints a finish: it draws the fill's
+        // paint as a solid, as the engine does when the finish's storage
+        // cannot be had.
+        Color paint = fill.finish.paint;
+        const double alpha = static_cast<double>(paint.alpha) * std::clamp(fill.opacity, 0.0, 1.0);
+        paint.alpha = static_cast<std::uint8_t>(std::floor(alpha + 0.5));
+        if (clipped) {
+            painter.fill_rounded_rect(bounds, corner_radius, paint);
+        } else {
+            painter.fill_rect(bounds, paint);
         }
         return;
     }
@@ -1002,6 +1065,15 @@ bool valid_fill_layer(const MaterialFillLayer& fill) noexcept {
             return false;
         }
         break;
+    case MaterialFillKind::finish:
+        if (fill.linear_geometry != MaterialLinearGeometry::endpoints ||
+            fill.spread != GradientSpreadMode::pad ||
+            !valid_finish_fill(fill.finish) ||
+            !std::isfinite(fill.opacity) || fill.opacity < 0.0 ||
+            fill.opacity > 1.0) {
+            return false;
+        }
+        break;
     default:
         return false;
     }
@@ -1086,12 +1158,16 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
         if (!derivable || material.keylines.size() >= SurfaceMaterial::maximum_keylines) return false;
     }
     // A mask (E9.6) is a solid, gradient or image layer; a procedural
-    // pattern is not a mask.
+    // pattern or a finish is not a mask.
     if (material.mask) {
         const MaterialFillLayer& mask = *material.mask;
-        if (mask.kind == MaterialFillKind::procedural || !valid_fill_layer(mask)) return false;
+        const bool textured = mask.kind == MaterialFillKind::procedural || mask.kind == MaterialFillKind::finish;
+        if (textured || !valid_fill_layer(mask)) return false;
     }
     if (material.reflection && !valid_material_reflection(*material.reflection)) return false;
+    if (static_cast<std::uint8_t>(material.dither) > static_cast<std::uint8_t>(MaterialDither::blue_noise)) {
+        return false;
+    }
     return true;
 }
 
@@ -1242,6 +1318,9 @@ bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
 
 std::optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept {
     if (!valid_surface_material(material) || material.finish != 0.0) return std::nullopt;
+    // A dithered material's pixels follow the dither's pattern all along
+    // the face, not only near its edges.
+    if (material.dither != MaterialDither::none) return std::nullopt;
     if (material.corner_radii) return std::nullopt;
     if (!material.shadows.empty() || !material.glows.empty() || !material.keylines.empty()) return std::nullopt;
     if (!material.border_edges.empty()) return std::nullopt;
@@ -1412,8 +1491,10 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
         case MaterialField::drop_shadow:
         case MaterialField::filter_blur:
         case MaterialField::finish:
+        case MaterialField::gradient_dither:
         case MaterialField::mask:
         case MaterialField::reflection:
+        case MaterialField::seat:
         case MaterialField::count:
         default: break; // Not drawn under the pass.
         }
@@ -1773,6 +1854,68 @@ void apply_part_metrics(const CompiledThemeRules::RecipeResolution& fields, Cont
     if (shadow_width != nullptr) metrics.edge_shadow_width = (*shadow_width).number;
     const RecipeDeclaration* const shadow_colour = set_recipe_field(fields, RecipeField::edge_shadow_colour);
     if (shadow_colour != nullptr) metrics.edge_shadow_colour = (*shadow_colour).colour;
+    ControlStripePattern& stripes = metrics.stripes;
+    const RecipeDeclaration* const pitch = set_recipe_field(fields, RecipeField::stripe_pitch);
+    if (pitch != nullptr) stripes.pitch = (*pitch).number;
+    const RecipeDeclaration* const ratio = set_recipe_field(fields, RecipeField::stripe_ratio);
+    if (ratio != nullptr) stripes.ratio = (*ratio).number;
+    const RecipeDeclaration* const angle = set_recipe_field(fields, RecipeField::stripe_angle);
+    if (angle != nullptr) stripes.angle_degrees = (*angle).number;
+    const RecipeDeclaration* const lean = set_recipe_field(fields, RecipeField::stripe_lean);
+    if (lean != nullptr) stripes.lean = (*lean).stripe_sense;
+    const RecipeDeclaration* const direction = set_recipe_field(fields, RecipeField::stripe_direction);
+    if (direction != nullptr) stripes.direction = (*direction).stripe_sense;
+    const RecipeDeclaration* const speed = set_recipe_field(fields, RecipeField::stripe_speed);
+    if (speed != nullptr) stripes.speed = (*speed).number;
+    const RecipeDeclaration* const stripe_colour = set_recipe_field(fields, RecipeField::stripe_colour);
+    if (stripe_colour != nullptr) stripes.colour = (*stripe_colour).colour;
+    const RecipeDeclaration* const ground = set_recipe_field(fields, RecipeField::stripe_ground_colour);
+    if (ground != nullptr) stripes.ground = (*ground).colour;
+    const RecipeDeclaration* const gloss = set_recipe_field(fields, RecipeField::stripe_gloss);
+    if (gloss != nullptr) stripes.gloss = (*gloss).stripe_gloss;
+    const RecipeDeclaration* const reduced = set_recipe_field(fields, RecipeField::stripe_reduced_motion);
+    if (reduced != nullptr) stripes.reduced_motion = (*reduced).stripe_reduced_motion;
+}
+
+// The node canvas fields `fields` sets (RecipeField::fill_colour on; cp31),
+// over `canvas`, in place, with the stroke width (which the dial parts also
+// read as ControlVisualRecipe::stroke_width), so a canvas part can tell a
+// set width from the floor's. Only a rule naming a part sets the canvas's
+// width, the last such rule to match (RecipeResolution::named_part_fields):
+// a family rule's `stroke-width` is the dial arc's (the floor's
+// `:family(progress)` 6 units), which neither a family record nor the
+// lamp (a progress part) takes as a canvas width, even where it outranks
+// the part's own rule. A texture of no layers is `none`.
+void apply_canvas_paint(const CompiledThemeRules::RecipeResolution& fields, ControlCanvasPaint& canvas) noexcept {
+    const RecipeDeclaration* const fill = set_recipe_field(fields, RecipeField::fill_colour);
+    if (fill != nullptr) canvas.fill = (*fill).colour;
+    const RecipeDeclaration* const stroke = set_recipe_field(fields, RecipeField::stroke_colour);
+    if (stroke != nullptr) canvas.stroke = (*stroke).colour;
+    const RecipeDeclaration* const width =
+        fields.named_part_fields[static_cast<std::size_t>(RecipeField::stroke_width)];
+    if (width != nullptr && !(*width).initial) canvas.stroke_width = (*width).number;
+    const RecipeDeclaration* const dash = set_recipe_field(fields, RecipeField::stroke_dash);
+    if (dash != nullptr) canvas.dash = (*dash).number;
+    const RecipeDeclaration* const gap = set_recipe_field(fields, RecipeField::stroke_gap);
+    if (gap != nullptr) canvas.gap = (*gap).number;
+    const RecipeDeclaration* const halo_width = set_recipe_field(fields, RecipeField::halo_width);
+    if (halo_width != nullptr) canvas.halo_width = (*halo_width).number;
+    const RecipeDeclaration* const halo = set_recipe_field(fields, RecipeField::halo_colour);
+    if (halo != nullptr) canvas.halo = (*halo).colour;
+    const RecipeDeclaration* const corner = set_recipe_field(fields, RecipeField::corner_radius);
+    if (corner != nullptr) canvas.corner_radius = (*corner).number;
+    const RecipeDeclaration* const spacing = set_recipe_field(fields, RecipeField::grid_spacing);
+    if (spacing != nullptr) canvas.grid_spacing = (*spacing).number;
+    const RecipeDeclaration* const band = set_recipe_field(fields, RecipeField::grid_band);
+    if (band != nullptr) canvas.grid_band = (*band).number;
+    const RecipeDeclaration* const texture = set_recipe_field(fields, RecipeField::texture_layers);
+    if (texture != nullptr) canvas.texture = (*texture).texture;
+    const RecipeDeclaration* const flow = set_recipe_field(fields, RecipeField::flow_style);
+    if (flow != nullptr) canvas.flow = (*flow).flow_style;
+    const RecipeDeclaration* const speed = set_recipe_field(fields, RecipeField::flow_speed);
+    if (speed != nullptr) canvas.flow_speed = (*speed).number;
+    const RecipeDeclaration* const flow_spacing = set_recipe_field(fields, RecipeField::flow_spacing);
+    if (flow_spacing != nullptr) canvas.flow_spacing = (*flow_spacing).number;
 }
 
 // The recipe fields `fields` sets, over `recipe` (the floor's copy), in
@@ -1827,6 +1970,7 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
     const RecipeDeclaration* const offset = set_recipe_field(fields, RecipeField::outline_offset);
     if (offset != nullptr && recipe.authored_focus_outline) recipe.focus_offset = (*offset).number;
     apply_part_metrics(fields, recipe.part_metrics);
+    apply_canvas_paint(fields, recipe.canvas);
     const RecipeDeclaration* const shadow = set_recipe_field(fields, RecipeField::text_shadow);
     if (shadow == nullptr) return;
     if (!(*shadow).shadowed) {
@@ -1902,10 +2046,12 @@ void Theme::provenance(const Control& control, ControlVisualRole role, ControlVi
     CompiledThemeRules::FieldProvenance pass{};
     pass.level = CascadeLevel::forced_high_contrast;
     pass.layer = ThemeLayer::forced_high_contrast;
-    const std::array<RecipeField, 8> pass_colours{RecipeField::text,        RecipeField::outline_colour,
-                                                  RecipeField::text_shadow, RecipeField::muted_text,
-                                                  RecipeField::glyph,       RecipeField::default_outline_colour,
-                                                  RecipeField::fill_text, RecipeField::scrim_colour};
+    const std::array<RecipeField, 12> pass_colours{RecipeField::text,        RecipeField::outline_colour,
+                                                   RecipeField::text_shadow, RecipeField::muted_text,
+                                                   RecipeField::glyph,       RecipeField::default_outline_colour,
+                                                   RecipeField::fill_text,   RecipeField::scrim_colour,
+                                                   RecipeField::fill_colour, RecipeField::stroke_colour,
+                                                   RecipeField::halo_colour, RecipeField::texture_layers};
     for (const RecipeField field : pass_colours) result.recipe_fields[static_cast<std::size_t>(field)] = pass;
     for (CompiledThemeRules::FieldProvenance& field : result.recipe_fields) {
         if (!field.authored) field = pass;
@@ -2068,7 +2214,7 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     }
     bool reads_ancestor_states = false;
     ResolvedControlRecipe resolved =
-        resolve_from_rules(control, role, context, states, part, control_type, reads_ancestor_states);
+        resolve_from_rules(control, role, context, states, part, control_type, ThemeItem{}, reads_ancestor_states);
     if (kept.recipes.size() >= detail::maximum_kept_recipes) kept.recipes.clear();
     detail::KeptRecipe entry{this,
                              placement,
@@ -2085,10 +2231,23 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     return resolved;
 }
 
+ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role, ControlVisualContext context,
+                                     AnatomyStateSet states, std::string_view part, std::string_view control_type,
+                                     const ThemeItem& item) const {
+    if (item.id.empty() && item.classes.empty()) {
+        ResolvedControlRecipe plain = resolve(control, role, context, states, part, control_type);
+        return plain;
+    }
+    bool reads_ancestor_states = false;
+    ResolvedControlRecipe resolved =
+        resolve_from_rules(control, role, context, states, part, control_type, item, reads_ancestor_states);
+    return resolved;
+}
+
 ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlVisualRole role,
                                                 ControlVisualContext context, AnatomyStateSet states,
                                                 std::string_view part, std::string_view control_type,
-                                                bool& reads_ancestor_states) const {
+                                                const ThemeItem& item, bool& reads_ancestor_states) const {
     reads_ancestor_states = false;
     const ControlVisualRecipe& floor = resolve(role, context);
     // Forced high contrast is the engine's own pass (E1): the built-in
@@ -2105,6 +2264,8 @@ ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlV
     facts.states = states;
     facts.forced_high_contrast = forced;
     facts.family = control_visual_role_name(role);
+    facts.item_id = item.id;
+    facts.item_classes = item.classes;
     const SurfaceRoot* const window = control.attached_surface_root();
     if (window != nullptr) facts.media = window_media_facts(*window);
     if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
@@ -2128,6 +2289,16 @@ ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlV
         fields.fields[static_cast<std::size_t>(RecipeField::taper_colour)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::flare_colour)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::scrim_colour)] = nullptr;
+        // The stripes take the pass's colours too: no authored band or
+        // ground colour.
+        fields.fields[static_cast<std::size_t>(RecipeField::stripe_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::stripe_ground_colour)] = nullptr;
+        // A canvas part takes the pass's plate, edge and focus colour, and
+        // draws no texture.
+        fields.fields[static_cast<std::size_t>(RecipeField::fill_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::stroke_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::halo_colour)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::texture_layers)] = nullptr;
         bool any = false;
         for (const RecipeDeclaration* field : fields.fields) any = any || field != nullptr;
         fields.authored = any;
@@ -2141,10 +2312,11 @@ ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlV
     if (written != nullptr) text = (*written).inherit ? inherited_text(control, floor.text) : (*written).colour;
     // The fields relative to the control, copied: an inherited text colour,
     // currentcolor, and lengths in em at the control's em.
-    // At most two copies per field (darkened, then made relative): the
-    // reserve keeps every pointer into the copies valid.
+    // At most two copies per field (darkened, then made relative), and one
+    // per part rule's winner (named_part_fields, scaled to em): the reserve
+    // keeps every pointer into the copies valid.
     std::vector<RecipeDeclaration> scaled{};
-    scaled.reserve(recipe_field_count * 2U);
+    scaled.reserve(recipe_field_count * 3U);
     // A theme that derives its dark variant writes its rules in light terms:
     // in dark, a dark ink a rule authors for text (a named part's, such as a
     // selected Ribbon tab's label) turns to the dark variant's ink by the
@@ -2201,6 +2373,14 @@ ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlV
         copy.current_colour = false;
         if (!copy.em_lengths.empty()) reads_em = true;
         field = &copy;
+    }
+    // A part rule's winner (a canvas part's stroke width) in em, copied
+    // likewise; the copy is a number and darkens with nothing.
+    for (const RecipeDeclaration*& field : fields.named_part_fields) {
+        if (field == nullptr || (*field).initial || (*field).em_lengths.empty()) continue;
+        scaled.push_back(*field);
+        field = &scaled.back();
+        reads_em = true;
     }
     if (reads_em) {
         const FontDeclaration font = engine_.rules().resolve(facts).font;
@@ -2303,14 +2483,15 @@ ThemeDefinition windows_professional_theme_definition() {
         selected.muted_text = Color::rgba(255, 255, 255, 130);
     }
     // Tooltips (owner decision RB-38): the face and edge ToolTip drew before
-    // it had a family, a pale yellow square plate with a grey line and
-    // near-black text. A tooltip takes no input, so its hot and pressed
-    // recipes are never reached.
+    // it had a family, a pale yellow square plate with a grey line; the text
+    // is black (owner mandate 2026-11-11: tooltip text is black on the light
+    // tooltip plate in every stock theme). A tooltip takes no input, so its
+    // hot and pressed recipes are never reached.
     fill_professional_role(result.roles[static_cast<std::size_t>(ControlVisualRole::tool_tip)],
         Color::rgba(255, 255, 225),
                           Color::rgba(255, 255, 225),
                           Color::rgba(104, 111, 118),
-                          Color::rgba(24, 31, 38), 0.0);
+                          Color::rgba(0, 0, 0), 0.0);
     fill_link_role(result.roles[static_cast<std::size_t>(ControlVisualRole::link)],
                    result.compatibility.link, result.compatibility.disabled_text);
     fill_link_role(result.roles[static_cast<std::size_t>(ControlVisualRole::visited_link)],

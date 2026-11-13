@@ -1,9 +1,25 @@
 #pragma once
 
 #include "gallery_pages.hpp"
+#include "gui_forms/binding/binding_source/binding_source.hpp"
+#include "gui_forms/components/error_provider/error_provider.hpp"
+#include "gui_forms/components/help_provider/help_provider.hpp"
+#include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
+#include "gui_forms/components/tool_tip/tool_tip.hpp"
+#include "gui_forms/controls/binding_navigator.hpp"
+#include "gui_forms/controls/date_time_format_provider.hpp"
+#include "gui_forms/controls/drawing_surface.hpp"
+#include "gui_forms/controls/metrics_view.hpp"
+#include "gui_forms/controls/progress_bar.hpp"
+#include "gui_forms/controls/scaled_group_box.hpp"
+#include "gui_forms/controls/scaled_panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/track_bar.hpp"
+#include "gui_forms/timer/timer/timer.hpp"
 
 #include "gallery.hpp"
 #include "gallery_page_specs.hpp"
+#include "gui_forms_demo/easing_preview.hpp"
 
 #include <algorithm>
 #include <any>

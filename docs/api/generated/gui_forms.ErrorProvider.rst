@@ -379,3 +379,141 @@ gui_forms::ErrorProvider
    .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ErrorProvider``. Members declared here and by the counterpart: 14 supported, 0 deferred, 0 excluded, 17 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ErrorProvider``
+     - ``ErrorProvider``
+     - supported
+   * - property
+     - ``BlinkRate``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BlinkStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ContainerControl``
+     - ``container_control``
+     - supported
+   * - property
+     - ``DataMember``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DataSource``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HasErrors``
+     - ``has_errors``
+     - supported
+   * - property
+     - ``Icon``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RightToLeft``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Tag``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RightToLeftChanged``
+     - ``right_to_left_changed``
+     - supported
+   * - method
+     - ``BindToDataAndErrors``
+     - ``bind_to_data_and_errors``
+     - supported
+   * - method
+     - ``CanExtend``
+     - ``can_extend``
+     - supported
+   * - method
+     - ``Clear``
+     - ``clear``
+     - supported
+   * - method
+     - ``GetError``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetIconAlignment``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetIconPadding``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnRightToLeftChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``SetError``
+     - ``set_error``
+     - supported
+   * - method
+     - ``SetIconAlignment``
+     - ``set_icon_alignment``
+     - supported
+   * - method
+     - ``SetIconPadding``
+     - ``set_icon_padding``
+     - supported
+   * - method
+     - ``UpdateBinding``
+     - ``update_binding``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``snapshot``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``data_member_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``data_source_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``error_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``error``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``icon_alignment``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``icon_padding``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``read``
+     - supported

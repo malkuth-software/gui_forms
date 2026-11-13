@@ -2,9 +2,9 @@
   "family": "Wizard",
   "step": "2.5",
   "declaring": "Wizard",
-  "header": "include/gui_forms/controls/wizard/wizard.hpp",
+  "header": "include/gui_forms/controls/wizard.hpp",
   "source": "src/controls/wizard/wizard.cpp",
-  "capabilities_header": "include/gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/wizard_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [],
@@ -213,6 +213,6 @@
     "type": "Wizard",
     "configure": ["(*control).add_child(make_control<WizardPage>(StableId(\"generated.wizard.first\")));",
                   "(*control).add_child(make_control<WizardPage>(StableId(\"generated.wizard.second\")));"],
-    "include": "gui_forms/controls/wizard/wizard.hpp"
+    "include": "gui_forms/controls/wizard.hpp"
   }
 }

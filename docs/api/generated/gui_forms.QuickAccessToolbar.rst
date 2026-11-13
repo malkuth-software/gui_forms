@@ -9,7 +9,7 @@ gui_forms::QuickAccessToolbar
 
 .. cpp:class:: QuickAccessToolbar final : public ToolStrip, public QuickAccessToolbarCapabilities<QuickAccessToolbar>
 
-   ``#include <gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp>``
+   ``#include <gui_forms/controls/quick_access_toolbar.hpp>``
 
    The Quick Access Toolbar of a ribbon window: a small strip of command buttons the user chooses.
 
@@ -169,7 +169,7 @@ gui_forms::QuickAccessToolbar
       value changes and throws ``std::invalid_argument`` for a value outside the
       enumeration.
 
-   .. cpp:function:: const std::vector<QuickAccessToolbarCommand>& commands() const noexcept
+   .. cpp:function:: const std::vector<QuickAccessToolbarCommand>& commands() const& noexcept
 
       The declared commands, in toolbar order, as given to :cpp:func:`set_commands <gui_forms::QuickAccessToolbar::set_commands>`.
       Each has its :cpp:class:`Command <gui_forms::Command>`, an optional image (a command with an image shows
@@ -184,7 +184,7 @@ gui_forms::QuickAccessToolbar
 
       Sets :cpp:func:`commands <gui_forms::QuickAccessToolbar::commands>`; see the property's description above.
 
-   .. cpp:function:: const std::vector<std::string>& shown_command_ids() const noexcept
+   .. cpp:function:: const std::vector<std::string>& shown_command_ids() const& noexcept
 
       The IDs of the commands the toolbar shows, in toolbar order.
       :cpp:func:`set_shown_command_ids <gui_forms::QuickAccessToolbar::set_shown_command_ids>` shows exactly the given IDs in the given order,
@@ -254,10 +254,6 @@ gui_forms::QuickAccessToolbar
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -267,6 +263,30 @@ gui_forms::QuickAccessToolbar
    .. cpp:function:: bool on_semantic_child_action(std::string_view stable_id, SemanticAction action, std::string_view value) override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void validate_items(const std::vector<ToolStripItemSpec>& items) const override
 
@@ -287,3 +307,57 @@ gui_forms::QuickAccessToolbar
    .. cpp:member:: constexpr std::size_t maximum_commands
 
       The most commands the toolbar may declare. Default: ``20U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 0 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``commands``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``customize_menu_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``customize_menu_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``shown_command_ids``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``customized``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``placement_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_customize_menu``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``command_shown``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_command_shown``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_customize_menu``
+     - supported

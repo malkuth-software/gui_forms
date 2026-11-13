@@ -4,7 +4,27 @@
 // position-in-set, set-size and has-popup node fields, through to semantic
 // snapshots.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/drop_down_button.hpp"
+#include "gui_forms/controls/drop_down_button_values.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 #include "support/theme_definition_heap.hpp"
 
 #include <algorithm>
@@ -134,7 +154,7 @@ void accents() {
     PartPaint label;
     label.role = PartRole::label;
     label.bounds = {0.0, 0.0, 60.0, 24.0};
-    label.text = "Format";
+    label.text = lend_paint_text("Format");
     label.accent = AccentIndex{2U};
     RecordingPainter text;
     paint_part(text, *control, label);

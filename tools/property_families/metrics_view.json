@@ -2,9 +2,9 @@
   "family": "MetricsView",
   "step": "M-S8",
   "declaring": "MetricsView",
-  "header": "include/gui_forms/controls/metrics_view/metrics_view.hpp",
+  "header": "include/gui_forms/controls/metrics_view.hpp",
   "source": "src/controls/metrics_view/metrics_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/metrics_view/metrics_view_capabilities/metrics_view_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/metrics_view_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [
@@ -12,7 +12,7 @@
   ],
   "test": {
     "type": "MetricsView",
-    "include": "gui_forms/controls/metrics_view/metrics_view.hpp"
+    "include": "gui_forms/controls/metrics_view.hpp"
   },
   "properties": [
     {

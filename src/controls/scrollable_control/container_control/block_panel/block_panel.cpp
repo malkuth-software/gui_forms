@@ -6,8 +6,9 @@
 // unchanged answers from its cache), asks a nested BlockPanel for the
 // margins its content shares with this one, and runs the solver.
 
-#include "gui_forms/controls/scrollable_control/container_control/block_panel/block_panel.hpp"
+#include "gui_forms/controls/block_panel.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 
 #include "../../scrollable_anatomy.hpp"
 #include "../layout_style_property.hpp"
@@ -322,7 +323,7 @@ bool BlockPanel::percentage_heights_definite() const noexcept {
 }
 
 void BlockPanel::gather_children() {
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     children_.clear();
     children_.reserve(all.size());
     absolute_children_.clear();
@@ -418,7 +419,7 @@ void BlockPanel::resolve_item_inputs(const SolveRequest& request) {
 
 void BlockPanel::publish_slots(const BlockFlowLayoutWorkspace& workspace, Size content_box) {
     const LayoutDirection direction = effective_layout_direction();
-    const std::span<const BlockFlowItemResult> results = workspace.items();
+    const BorrowedSpan<BlockFlowItemResult> results = workspace.items();
     const Insets inset = padding.read();
     const Point offset = scroll_position();
     arranged_ids_.clear();

@@ -37,6 +37,7 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | `GUI_FORMS_BUILD_AUDIO` | OFF | Build `GUIForms::Audio` |
 | `GUI_FORMS_AUDIO_VORBIS_BACKEND` | `stx` | Ogg decoder: `stx` or `stb` |
 | `GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD` | OFF | Build the fixture-backed explorer consumer |
+| `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Install the seven Noto fallback faces and their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
 | `GUI_FORMS_BUILD_BENCHMARKS`, `GUI_FORMS_BUILD_FUZZERS` | OFF | Measurement harnesses and libFuzzer entry points |
 | `GUI_FORMS_HARDENING` | ON | Stack protector, `_FORTIFY_SOURCE=2` (outside Debug and sanitized builds), CET or branch protection, Control Flow Guard on Windows, and full RELRO on Linux, for every first-party library and program |
 | `GUI_FORMS_WARNINGS` | ON | Compile first-party code with `-Wall -Wextra`; `tools/warning_baseline.py` holds the count of warning sites per directory and fails a build that raises one |
@@ -306,6 +307,34 @@ font directory under `CMAKE_INSTALL_PREFIX`. The exact contents are listed in
 [Installation](../user/install.md#what-gets-installed). CI installs into a scratch prefix and
 then builds `examples/reference/` against it, so the installed package is
 tested on every platform, not only the build tree.
+
+### Fallback fonts
+
+The bundled font set has two install components. `fonts` holds the faces every
+window needs (Portsmouth Rapids, Carlito, Cousine, Selawik) and their licences.
+`fallback_fonts` holds the seven Noto fallback faces (CJK Japanese, Emoji,
+Arabic, Bengali, Devanagari, Gurmukhi, Hebrew) and their OFL texts
+(`OFL-Noto.txt`, `OFL-NotoSansCJKjp.txt`, `OFL-NotoEmoji.txt`), about 18 MB.
+
+- **SDK install.** `GUI_FORMS_INSTALL_FALLBACK_FONTS` is ON by default, so
+  `cmake --install build` installs both. Configure with
+  `-DGUI_FORMS_INSTALL_FALLBACK_FONTS=OFF` to leave the fallback faces out, or
+  install the components one at a time with
+  `cmake --install build --component fonts` and
+  `--component fallback_fonts`. The installed package sets
+  `GUIForms_FALLBACK_FONTS` to the producer's choice.
+- **App packages.** Each program in `packaging/programs.json` sets
+  `"fallback_fonts": true` or `false`, and `tools/package_programs.py` stages
+  the faces and notices to match. A package without them also drops the copies
+  the build placed in a macOS bundle's `Resources/fonts` or the Windows
+  `fonts/` folder. Every in-tree program currently sets `true`.
+- **Without them.** The runtime does not need the fallback faces. They are
+  optional faces, so the font directory is accepted without them, and text that
+  only they cover falls back as it does for any missing face: it draws as
+  missing glyphs. `bundled_font_diagnostics()` reports `fallback_faces_found`
+  out of `fallback_faces_expected` for the most recent lookup, and
+  `bundled_font_notice()` names the absent faces. The notice is recorded, not
+  written to stderr, because leaving the faces out is a deliberate choice.
 
 ## Compiler cache
 

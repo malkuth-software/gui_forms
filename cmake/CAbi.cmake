@@ -96,6 +96,9 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_docking.cpp
     src/abi/stable/tables/abi_fonts.cpp
     src/abi/stable/tables/abi_help.cpp
+    src/abi/stable/tables/abi_classes.cpp
+    src/abi/stable/classes/abi_class_bridge.cpp
+    src/abi/stable/classes/generated/abi_class_registry.cpp
     src/abi/stable/tables/abi_splashscreen.cpp
     src/abi/stable/custom/abi_custom_control.cpp
     src/abi/stable/windows/abi_windows_paint_endpoint.cpp
@@ -198,6 +201,7 @@ find_package(Threads REQUIRED)
 add_library(gui_forms_abi_conformance_kit STATIC
     tests/abi/conformance/gf_conformance_bindings.c
     tests/abi/conformance/gf_conformance_callbacks.c
+    tests/abi/conformance/gf_conformance_classes.c
     tests/abi/conformance/gf_conformance_create.c
     tests/abi/conformance/gf_conformance_custom.c
     tests/abi/conformance/gf_conformance_diagnostics.c
@@ -336,11 +340,31 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_abi_event_fields PRIVATE gui_forms_abi_objects gui_forms_application)
     target_compile_features(gui_forms_abi_event_fields PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_event_fields COMMAND gui_forms_abi_event_fields)
+    # The checked sanitizer tree poisons an invoke's lent scratch when it
+    # returns: a callback's kept text is reported by AddressSanitizer.
+    if(GUI_FORMS_CHECKED_BORROWS)
+        add_test(NAME gui_forms_abi_event_fields_kept_record
+                 COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_abi_event_fields> -DMODE=kept_record
+                         "-DEXPECTED=AddressSanitizer: use-after-poison"
+                         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
+    endif()
     # A custom control's paint callback fills the pixels a window presents.
     add_executable(gui_forms_abi_custom_paint tests/abi/custom/gf_abi_custom_paint.cpp)
     target_link_libraries(gui_forms_abi_custom_paint PRIVATE gui_forms_abi_objects gui_forms_application)
     target_compile_features(gui_forms_abi_custom_paint PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_custom_paint COMMAND gui_forms_abi_custom_paint)
+    # A set_property callback's kept value text, likewise poisoned in the
+    # checked sanitizer tree when the callback returns.
+    if(GUI_FORMS_CHECKED_BORROWS)
+        add_test(NAME gui_forms_abi_custom_kept_set_text
+                 COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_abi_custom_paint> -DMODE=kept_set_text
+                         "-DEXPECTED=AddressSanitizer: use-after-poison"
+                         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
+        add_test(NAME gui_forms_abi_custom_kept_short_set_text
+                 COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_abi_custom_paint> -DMODE=kept_short_set_text
+                         "-DEXPECTED=AddressSanitizer: use-after-poison"
+                         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
+    endif()
     add_test(NAME gui_forms_abi_event_catalog_current
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_event_catalog.py --check)
 
@@ -416,8 +440,16 @@ if(GUI_FORMS_BUILD_TESTS)
     # preinstalled SDK of version 10 or later and otherwise skips with a
     # notice in the log; nothing is downloaded or installed for it.
     find_program(GUI_FORMS_DOTNET NAMES dotnet HINTS "$ENV{ProgramFiles}/dotnet" "$ENV{DOTNET_ROOT}")
+    # In an AddressSanitizer tree the ASan runtime would be dlopen'ed into the
+    # dotnet process, where its interceptors cannot work; the C# checks run in
+    # the plain tree, and here the test reports itself skipped.
+    set(_gf_abi_csharp_sanitized OFF)
+    if(CMAKE_CXX_FLAGS MATCHES "-fsanitize=[^ ]*address")
+        set(_gf_abi_csharp_sanitized ON)
+    endif()
     add_test(NAME gui_forms_abi_csharp
         COMMAND ${CMAKE_COMMAND} -DDOTNET=${GUI_FORMS_DOTNET} -DPYTHON=${Python3_EXECUTABLE}
+            -DSANITIZED=${_gf_abi_csharp_sanitized}
             -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DLIBRARY_DIR=$<TARGET_FILE_DIR:gui_forms_abi>
             -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/gf_abi_csharp
             -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/csharp/gf_abi_csharp.cmake)

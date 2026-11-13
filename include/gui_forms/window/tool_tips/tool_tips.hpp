@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <chrono>
 #include <string>
 #include <string_view>
@@ -10,7 +11,7 @@ namespace gui_forms {
 // holds only white space (ASCII spaces, tabs and line breaks, no-break
 // space U+00A0 and ideographic space U+3000) never shows, whoever asks:
 // the pointer, keyboard focus, show_tool_tip or a request.
-[[nodiscard]] bool tool_tip_text_shows(std::string_view text) noexcept;
+[[nodiscard]] GUI_FORMS_API bool tool_tip_text_shows(std::string_view text) noexcept;
 
 // How a window's one tooltip presenter behaves (owner, 2026-10-28). Every
 // window has one presenter; it shows the plain tooltip text of controls
@@ -30,7 +31,7 @@ namespace gui_forms {
 //   keyboard focus, show tooltips.
 // - show_when_disabled: whether a disabled control's or item's tooltip
 //   shows.
-struct ToolTipSettings final {
+struct GUI_FORMS_API ToolTipSettings final {
     std::chrono::milliseconds initial_delay{500};
     std::chrono::milliseconds reshow_delay{100};
     std::chrono::milliseconds auto_pop_delay{5000};
@@ -45,7 +46,7 @@ struct ToolTipSettings final {
 // stable ID or a tab header's semantic ID), or is empty for the control
 // itself. `text` is what it shows. `keyboard_initiated` is true when
 // keyboard focus showed it.
-struct ToolTipEvent final {
+struct GUI_FORMS_API ToolTipEvent final {
     std::string target_stable_id{};
     std::string item_id{};
     std::string text{};

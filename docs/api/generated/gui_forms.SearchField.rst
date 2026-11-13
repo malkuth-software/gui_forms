@@ -9,7 +9,7 @@ gui_forms::SearchField
 
 .. cpp:class:: SearchField final : public Control, public SearchFieldCapabilities<SearchField>
 
-   ``#include <gui_forms/controls/search_field/search_field.hpp>``
+   ``#include <gui_forms/controls/search_field.hpp>``
 
    A text field for a query, such as the search box above a list of messages.
 
@@ -197,8 +197,6 @@ gui_forms::SearchField
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
@@ -210,6 +208,22 @@ gui_forms::SearchField
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -244,3 +258,65 @@ gui_forms::SearchField
    .. cpp:member:: constexpr std::size_t search_field_property_count
 
       SearchField's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 6 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``busy``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``placeholder_text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``text``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``cleared``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``search_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``text_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_text_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``search_field_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``search_now``
+     - unclassified (untested)

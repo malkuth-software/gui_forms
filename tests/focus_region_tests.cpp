@@ -3,7 +3,15 @@
 // had focus in it or at its first Tab stop; refusals; and a control that
 // handles F6 itself keeping it.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/drawing/region/region.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/window/window.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -22,10 +30,10 @@ void require(bool condition, const char* message) {
 
 // A focusable control that keeps F6 for itself, as ObjectView's details
 // header does.
-class KeepsF6 final : public Control {
+class KeepsF6 final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit KeepsF6(StableId stable_id) : Control(std::move(stable_id)) { focusable = true; }
-    void on_key(KeyEvent& event) override {
+    explicit KeepsF6(StableId stable_id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)) { focusable = true; }
+    void routed_key(KeyEvent& event) override {
         if (event.action == KeyAction::down && event.physical_key == PhysicalKey::f6) {
             ++kept;
             event.handled = true;

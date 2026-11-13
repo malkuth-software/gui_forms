@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/text.hpp"
 
 #include <compare>
@@ -10,7 +11,7 @@
 
 namespace gui_forms {
 
-struct FontFaceId final {
+struct GUI_FORMS_API FontFaceId final {
     std::uint64_t value{};
     [[nodiscard]] constexpr bool valid() const noexcept { return value != 0; }
     friend constexpr bool operator==(const FontFaceId& left,
@@ -22,7 +23,7 @@ struct FontFaceId final {
         return left.value <=> right.value;
     }
 };
-struct GlyphId final {
+struct GUI_FORMS_API GlyphId final {
     std::uint32_t value{};
     friend constexpr bool operator==(const GlyphId& left,
                                      const GlyphId& right) noexcept {
@@ -33,7 +34,7 @@ struct GlyphId final {
         return left.value <=> right.value;
     }
 };
-struct OpenTypeTag final {
+struct GUI_FORMS_API OpenTypeTag final {
     std::uint32_t value{};
     [[nodiscard]] constexpr bool valid() const noexcept { return value != 0; }
     friend constexpr bool operator==(const OpenTypeTag& left,
@@ -56,7 +57,7 @@ struct OpenTypeTag final {
 
 enum class TextDirection : std::uint8_t { left_to_right, right_to_left };
 
-struct ShapingFeature final {
+struct GUI_FORMS_API ShapingFeature final {
     OpenTypeTag tag{};
     std::uint32_t value{};
     Utf8Range range{};
@@ -66,7 +67,7 @@ struct ShapingFeature final {
                left.range == right.range;
     }
 };
-struct ShapingRequest final {
+struct GUI_FORMS_API ShapingRequest final {
     std::string_view utf8_text;
     Utf8Range range{};
     FontFaceId face{};
@@ -76,7 +77,7 @@ struct ShapingRequest final {
     std::string_view language;
     std::span<const ShapingFeature> features;
 };
-struct GlyphPlacement final {
+struct GUI_FORMS_API GlyphPlacement final {
     GlyphId glyph{};
     Utf8Offset cluster{};
     float advance_x{};
@@ -92,7 +93,7 @@ struct GlyphPlacement final {
                left.offset_y == right.offset_y;
     }
 };
-struct GlyphRun final {
+struct GUI_FORMS_API GlyphRun final {
     Utf8Range source_range{};
     FontFaceId face{};
     TextDirection direction{TextDirection::left_to_right};
@@ -110,22 +111,22 @@ enum class GlyphRunError : std::uint8_t {
     nonmonotonic_clusters, nonfinite_placement,
 };
 
-[[nodiscard]] ShapingRequestError validate_shaping_request(
+[[nodiscard]] GUI_FORMS_API ShapingRequestError validate_shaping_request(
     const ShapingRequest& request);
-[[nodiscard]] GlyphRunError validate_glyph_run(
+[[nodiscard]] GUI_FORMS_API GlyphRunError validate_glyph_run(
     const ShapingRequest& request, const GlyphRun& run);
-[[nodiscard]] std::string_view to_string(
+[[nodiscard]] GUI_FORMS_API std::string_view to_string(
     ShapingRequestError error) noexcept;
-[[nodiscard]] std::string_view to_string(GlyphRunError error) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view to_string(GlyphRunError error) noexcept;
 
-struct FontFallbackRequest final {
+struct GUI_FORMS_API FontFallbackRequest final {
     FontFaceId primary_face{};
     std::span<const FontFaceId> attempted_faces;
     std::span<const char32_t> cluster;
     std::string_view language;
     OpenTypeTag script{};
 };
-struct FontFallbackMatch final {
+struct GUI_FORMS_API FontFallbackMatch final {
     FontFaceId face{};
     std::size_t covered_scalars{};
 };

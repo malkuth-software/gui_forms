@@ -45,7 +45,7 @@
     },
     {
       "path": "src/controls/collections/choice_group.cpp",
-      "function": "gui_forms::on_key",
+      "function": "gui_forms::handle_key",
       "condition": "backward",
       "decision": "keep",
       "reason": "steps through a few items with wrap-around; the direction decides each step"
@@ -59,7 +59,7 @@
     },
     {
       "path": "src/controls/collections/command_bar.cpp",
-      "function": "gui_forms::on_key",
+      "function": "gui_forms::handle_key",
       "condition": "backward",
       "decision": "keep",
       "reason": "steps through a few items with wrap-around; the direction decides each step"
@@ -261,7 +261,7 @@
       "reason": "formats one pattern token per iteration; the value decides the hour and designator"
     },
     {
-      "path": "src/controls/panel/instrument_rack/rack_module_panel/rack_module_panel.cpp",
+      "path": "lab/src/rack_module_panel.cpp",
       "function": "gui_forms::detail::arrange",
       "condition": "total_weight > 0.0",
       "decision": "keep",

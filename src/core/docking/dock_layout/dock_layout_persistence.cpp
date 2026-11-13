@@ -225,6 +225,8 @@ void add_unknown_fields(const DockLayoutState& state, const DockUnknownOwner& ow
     }
 }
 
+// Recurses once per node level: a committed tree is at most
+// dock_maximum_depth deep (the invariant check).
 [[nodiscard]] XmlElement node_element(const DockLayoutState& state, DockNodeId id) {
     const DockNode& node = *detail::find_dock_node(state, id);
     XmlElement element{};
@@ -353,6 +355,8 @@ void add_unknown_fields(const DockLayoutState& state, const DockUnknownOwner& ow
 // Format 1 spelled a stack as <stack kind="tool|document">; format 2 names
 // the two kinds of stack. A stack with another kind is left as it is and is
 // then dropped as an unknown element.
+// Recurses once per element level: at most dock_layout_maximum_xml_depth,
+// enforced by the read.
 void migrate_format_1(XmlElement& element) {
     if (element.name == "stack") {
         const XmlAttribute* kind = element.find_attribute("kind");
@@ -486,6 +490,8 @@ private:
         }
     }
 
+    // Recurses once per element level: at most dock_layout_maximum_xml_depth,
+    // enforced by the read.
     [[nodiscard]] static bool holds_panels(const XmlElement& element) {
         if (element.name == "panel") return true;
         for (const XmlElement& child : element.children) {
@@ -510,6 +516,8 @@ private:
         fields_of(owner).children.push_back(std::move(child));
     }
 
+    // Recurses once per element level: at most dock_layout_maximum_xml_depth,
+    // enforced by the read.
     void harvest_panels(const XmlElement& element) {
         if (element.name == "panel") {
             const XmlAttribute* id = element.find_attribute("id");
@@ -609,6 +617,9 @@ private:
     // Reads one node and its subtree (element names a node: is_node_name);
     // node is none when it was dropped (an empty stack, or a split left with
     // nothing). A split left with one child is replaced by it.
+    // load_node, load_split, load_document_area and load_children recurse
+    // once per element level: at most dock_layout_maximum_xml_depth,
+    // enforced by the read, about 1 KiB of stack per level.
     bool load_node(const XmlElement& element, DockNodeId& node) {
         node = DockNodeId{};
         if (element.name == "split") {
@@ -977,7 +988,7 @@ void place_frame(Rect& frame, std::string& monitor_id, std::string_view what, co
 
 XmlLimits dock_layout_xml_limits() noexcept {
     XmlLimits limits{};
-    limits.maximum_depth = 256;
+    limits.maximum_depth = dock_layout_maximum_xml_depth;
     return limits;
 }
 
@@ -1073,8 +1084,12 @@ DockRestoreResult DockLayout::restore_xml(std::string_view xml, const DockRestor
     DockRestoreResult result{};
     std::vector<DockRestoreDiagnostic>& diagnostics = result.diagnostics;
 
-    // 1. Read and validate the whole record before changing anything.
-    XmlReadResult read = read_xml(xml, options.limits);
+    // 1. Read and validate the whole record before changing anything. The
+    // loader below recurses once per element level, so the depth is capped
+    // before the read (HOUSE_STYLE section 1).
+    XmlLimits limits = options.limits;
+    limits.maximum_depth = std::min(options.limits.maximum_depth, dock_layout_maximum_xml_depth);
+    XmlReadResult read = read_xml(xml, limits);
     if (!read) {
         report(diagnostics, DockRestoreDiagnosticKind::unreadable_xml,
                std::string(xml_error_name(read.error)) + " at line " + std::to_string(read.position.line) +

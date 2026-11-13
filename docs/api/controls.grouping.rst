@@ -88,6 +88,10 @@ Related types
      - How focus changes validate the controls they leave (Windows Forms' AutoValidate); inherit takes the nearest container's policy (effective_auto_validate resolves it).
    * - :cpp:class:`ContainerControlCapabilities <gui_forms::ContainerControlCapabilities>`
      - Every ContainerControl capability, in the order the declaring class takes them.
+   * - :cpp:class:`ExpandableSectionsCapabilities <gui_forms::ExpandableSectionsCapabilities>`
+     - Every ExpandableSections capability, in the order the declaring class takes them.
+   * - :cpp:class:`ExpandableSectionsSingleOpenCapability <gui_forms::ExpandableSectionsSingleOpenCapability>`
+     - Whether at most one section is open (an accordion).
    * - :cpp:class:`GroupBox::Parts <gui_forms::GroupBox::Parts>`
      - Stage T1 anatomy, as dot members: a face, the frame and the caption.
    * - :cpp:class:`GroupBoxCapabilities <gui_forms::GroupBoxCapabilities>`
@@ -194,6 +198,8 @@ Related types
      - Every ScaledGroupBox capability, in the order the declaring class takes them.
    * - :cpp:class:`ScaledGroupBoxDesignSizeCapability <gui_forms::ScaledGroupBoxDesignSizeCapability>`
      - The coordinate space the children's design bounds are written in; it scales to the arranged size.
+   * - :cpp:class:`SectionItem <gui_forms::SectionItem>`
+     -  
    * - :cpp:class:`TabControl::Item <gui_forms::TabControl::Item>`
      -  
    * - :cpp:class:`TabControl::ItemParts <gui_forms::TabControl::ItemParts>`
@@ -267,7 +273,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BorderStyleCapability
 
-   ``#include <gui_forms/controls/panel/panel_capabilities/panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/panel_capabilities.hpp>``
 
    The panel's border: none, a line, sunken or raised (BorderStyle).
 
@@ -284,7 +290,7 @@ Related types
 
 .. cpp:struct:: Card::States final
 
-   ``#include <gui_forms/controls/panel/card/card.hpp>``
+   ``#include <gui_forms/controls/card.hpp>``
 
    Stage T1 states, as dot members; Card's parts are Panel's.
 
@@ -310,7 +316,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CardCapabilities : public CardCardLayoutCapability<Declaring>, public CardInteractiveCapability<Declaring>, public CardSelectedCapability<Declaring>, public CardSelectionBehaviorPropertyCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+   ``#include <gui_forms/controls/card_capabilities.hpp>``
 
    Every Card capability, in the order the declaring class takes them.
 
@@ -337,7 +343,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CardCardLayoutCapability
 
-   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+   ``#include <gui_forms/controls/card_capabilities.hpp>``
 
    The padding, section gap and header and footer extents; a view. Until written the card follows its theme's layout (effective_card_layout); a write overrides it, and reset_card_layout_to_theme returns to the theme's. Values that are not finite or are unbounded throw std::invalid_argument.
 
@@ -354,7 +360,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CardInteractiveCapability
 
-   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+   ``#include <gui_forms/controls/card_capabilities.hpp>``
 
    Whether the card takes focus, the pointer and activation. Turning it off clears the hot, pressed and focused visuals.
 
@@ -369,7 +375,7 @@ Related types
 
 .. cpp:struct:: CardLayout final
 
-   ``#include <gui_forms/controls/panel/card/card_values/card_values.hpp>``
+   ``#include <gui_forms/controls/card_values.hpp>``
 
    CardLayout defines validated logical padding, section gaps, and footer/header allocation used by Card measurement and arrangement.
 
@@ -393,7 +399,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CardSelectedCapability
 
-   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+   ``#include <gui_forms/controls/card_capabilities.hpp>``
 
    Whether the card is selected; a change raises selected_changed. selection_behavior decides whether activation writes it.
 
@@ -408,7 +414,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CardSelectionBehaviorPropertyCapability
 
-   ``#include <gui_forms/controls/panel/card/card_capabilities/card_capabilities.hpp>``
+   ``#include <gui_forms/controls/card_capabilities.hpp>``
 
    Whether activation only notifies (manual, the default) or also selects or toggles the card before activated is raised. An undeclared value throws std::invalid_argument.
 
@@ -425,7 +431,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ContainerControlAutoValidateCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/container_control_capabilities/container_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/container_control_capabilities.hpp>``
 
    How focus changes validate the controls they leave (Windows Forms' AutoValidate); inherit takes the nearest container's policy (effective_auto_validate resolves it). A change raises auto_validate_changed. A value outside the AutoValidate choices throws std::invalid_argument.
 
@@ -442,7 +448,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ContainerControlCapabilities : public ContainerControlAutoValidateCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/container_control_capabilities/container_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/container_control_capabilities.hpp>``
 
    Every ContainerControl capability, in the order the declaring class takes them.
 
@@ -455,9 +461,39 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ExpandableSectionsCapabilities : public ExpandableSectionsSingleOpenCapability<Declaring>
+
+   ``#include <gui_forms/controls/expandable_sections_capabilities.hpp>``
+
+   Every ExpandableSections capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool single_open
+
+      Whether at most one section is open (an accordion). Turning it on keeps the first open section and closes the others.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ExpandableSectionsSingleOpenCapability
+
+   ``#include <gui_forms/controls/expandable_sections_capabilities.hpp>``
+
+   Whether at most one section is open (an accordion). Turning it on keeps the first open section and closes the others.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ExpandableSectionsSingleOpenCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ExpandableSectionsSingleOpenCapability<Declaring>> single_open
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: GroupBox::Parts final
 
-   ``#include <gui_forms/controls/panel/group_box/group_box.hpp>``
+   ``#include <gui_forms/controls/group_box.hpp>``
 
    Stage T1 anatomy, as dot members: a face, the frame and the caption.
 
@@ -473,7 +509,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GroupBoxCapabilities : public TextCapability<Declaring>, public FontCapability<Declaring>, public GroupBoxUseMnemonicCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/group_box/group_box_capabilities/group_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/group_box_capabilities.hpp>``
 
    Every GroupBox capability, in the order the declaring class takes them.
 
@@ -501,7 +537,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> GroupBoxUseMnemonicCapability
 
-   ``#include <gui_forms/controls/panel/group_box/group_box_capabilities/group_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/group_box_capabilities.hpp>``
 
    Whether an ampersand in the caption marks the access key (UseMnemonic); the access key moves the focus to the group's first focusable child.
 
@@ -518,7 +554,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaterialPanelCapabilities : public MaterialPanelMaterialCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/material_panel/material_panel_capabilities/material_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/material_panel_capabilities.hpp>``
 
    Every MaterialPanel capability, in the order the declaring class takes them.
 
@@ -533,7 +569,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaterialPanelMaterialCapability
 
-   ``#include <gui_forms/controls/panel/material_panel/material_panel_capabilities/material_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/material_panel_capabilities.hpp>``
 
    The surface recipe painted behind the content; a change repaints and raises material_changed. An invalid or unbounded recipe, or an image the attached window does not hold, throws std::invalid_argument.
 
@@ -548,7 +584,7 @@ Related types
 
 .. cpp:struct:: NavigationPane::Item final
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
+   ``#include <gui_forms/controls/navigation_pane.hpp>``
 
    .. cpp:member:: NavigationPaneItemKind kind
 
@@ -572,7 +608,7 @@ Related types
 
 .. cpp:struct:: NavigationPane::ItemStates final
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
+   ``#include <gui_forms/controls/navigation_pane.hpp>``
 
    .. cpp:member:: bool hot
 
@@ -586,7 +622,7 @@ Related types
 
 .. cpp:struct:: NavigationPane::PageButtonParts final
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
+   ``#include <gui_forms/controls/navigation_pane.hpp>``
 
    Item system nav_page: a large button.
 
@@ -600,7 +636,7 @@ Related types
 
 .. cpp:struct:: NavigationPane::PageIconParts final
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
+   ``#include <gui_forms/controls/navigation_pane.hpp>``
 
    Item system nav_overflow: an icon. A page without an image shows the first character of its title in nav_overflow_label instead.
 
@@ -614,7 +650,7 @@ Related types
 
 .. cpp:struct:: NavigationPane::Parts final
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
+   ``#include <gui_forms/controls/navigation_pane.hpp>``
 
    Stage T1 anatomy, as dot members; its states are Control's. The overlay parts are in the pane's coordinates although the overlay lies outside it, and are present only while it is open.
 
@@ -664,7 +700,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NavigationPaneButtonCountCapability
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+   ``#include <gui_forms/controls/navigation_pane_capabilities.hpp>``
 
    The number of large buttons the user chose; 4 by default. A count above PageSetLimits::maximum_capacity throws std::out_of_range.
 
@@ -681,7 +717,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NavigationPaneCapabilities : public NavigationPaneCollapsedCapability<Declaring>, public NavigationPaneButtonCountCapability<Declaring>, public NavigationPaneExpandedWidthCapability<Declaring>, public NavigationPaneImageListCapability<Declaring>, public NavigationPaneFocusRegionCapability<Declaring>
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+   ``#include <gui_forms/controls/navigation_pane_capabilities.hpp>``
 
    Every NavigationPane capability, in the order the declaring class takes them.
 
@@ -712,7 +748,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NavigationPaneCollapsedCapability
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+   ``#include <gui_forms/controls/navigation_pane_capabilities.hpp>``
 
    Whether the pane shows only its collapsed bar. Collapsing closes the configure menu; expanding closes the overlay.
 
@@ -729,7 +765,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NavigationPaneExpandedWidthCapability
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+   ``#include <gui_forms/controls/navigation_pane_capabilities.hpp>``
 
    The width the pane asks for while expanded, and the overlay's width; 220 by default. A width outside 80 to 1024 throws std::out_of_range.
 
@@ -746,7 +782,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NavigationPaneFocusRegionCapability
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+   ``#include <gui_forms/controls/navigation_pane_capabilities.hpp>``
 
    Whether the pane registers itself as an F6 region of its window while attached (owner decision RB-17); on by default.
 
@@ -763,7 +799,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NavigationPaneImageListCapability
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane_capabilities/navigation_pane_capabilities.hpp>``
+   ``#include <gui_forms/controls/navigation_pane_capabilities.hpp>``
 
    Images for the pages' image_keys, or null. A disposed list or one bound to another window throws std::invalid_argument.
 
@@ -778,7 +814,7 @@ Related types
 
 .. cpp:struct:: NavigationPaneOptionsRequest final
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
+   ``#include <gui_forms/controls/navigation_pane.hpp>``
 
    "Navigation pane options..." was chosen from the configure menu. The pane has no options dialog of its own (owner decision DK-39, question P30); the program shows its own.
 
@@ -788,7 +824,7 @@ Related types
 
 .. cpp:struct:: NavigationPaneRestore final
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
+   ``#include <gui_forms/controls/navigation_pane.hpp>``
 
    What applying a saved state found: identities the pane's set does not hold (a page the program no longer adds), which were skipped.
 
@@ -798,7 +834,7 @@ Related types
 
 .. cpp:struct:: NavigationPaneState final
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
+   ``#include <gui_forms/controls/navigation_pane.hpp>``
 
    The part of a navigation pane's state a program saves with its settings (owner decision DK-33: the framework never saves on its own). Pages are named by identity; ``page_order`` is the pane's page order and ``hidden_pages`` the pages the user hid from the buttons, in page order. ``button_count`` is the number of large buttons the user chose, which the pane shows as far as its height allows.
 
@@ -814,7 +850,7 @@ Related types
 
 .. cpp:struct:: PageCloseRequest final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    A request to close a closable page. The strip never removes a page itself: whoever owns the set decides (owner decision DK-38). A handler that acts on the request, or refuses it (a document that asks to save and is cancelled), sets ``handled``. A PageView whose close policy is ``remove_when_unhandled`` removes the page after the handlers when none set it; a docking owner only requests.
 
@@ -830,7 +866,7 @@ Related types
 
 .. cpp:struct:: PageContentRequest final
 
-   ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
+   ``#include <gui_forms/controls/page_view.hpp>``
 
    A selected page has no content yet (owner decision DK-16). A handler supplies it with ``set_page_content`` (or the set's ``set_content``); a page left without content shows an empty content area and is not asked again.
 
@@ -840,7 +876,7 @@ Related types
 
 .. cpp:struct:: PageContextMenuRequest final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    A request for a tab's context menu (PageView study I11). The strip shows no menu of its own; a handler that shows one sets ``handled``. ``anchor`` is in window coordinates: the pointer, or for the keyboard the corner of the tab on the content's side where reading starts (a tab scrolled out of view is scrolled back first; one that cannot be shown anchors at the list button, or the strip, the same way).
 
@@ -858,7 +894,7 @@ Related types
 
 .. cpp:class:: PageControlContent final : public PageContent
 
-   ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
+   ``#include <gui_forms/controls/page_view.hpp>``
 
    The content of one page of a PageView: the application's control, shown in the view's content area while its page is selected. The set owns this record and the record holds the control; the view makes the control a child of the page's panel while the page is in the view's set, so ``take`` and ``put`` move a page's control between views with its state, and removing the page releases it.
 
@@ -878,7 +914,7 @@ Related types
 
 .. cpp:struct:: PageDoubleClick final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    The second press of a double click landed on a tab's body (not its close button or pin), after the press selected the page (PageView study I12).
 
@@ -888,7 +924,7 @@ Related types
 
 .. cpp:struct:: PageDragStart final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    A press on a tab moved past the drag threshold (owner decision DK-39, PageView study I9). An owner that takes the drag over (a docking workspace) sets ``claimed``: the strip then gives up the pointer capture, unless the owner has already taken it, and does nothing more with this press; it never reorders. Unclaimed, the strip reorders live when reordering is enabled. Both points are in window coordinates.
 
@@ -904,7 +940,7 @@ Related types
 
 .. cpp:struct:: PageInvocation final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    A tab was clicked, chosen with the keyboard, by its mnemonic, from the page list or through accessibility, and its page is now selected (it may have been selected already). Raised after the selection and its ``selected_page_changed``; never for a programmatic selection and never when a ``selecting`` handler cancelled. Whoever decides activation (a docking workspace) listens to it; the strip attaches no meaning (owner decision DK-37).
 
@@ -918,7 +954,7 @@ Related types
 
 .. cpp:struct:: PageItemWidths final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
+   ``#include <gui_forms/controls/page_strip_values.hpp>``
 
    Tab widths in logical units at text scale 1. 0 < minimum <= maximum <= ``maximum_width``, and 0 < fixed <= ``maximum_width``.
 
@@ -942,7 +978,7 @@ Related types
 
 .. cpp:struct:: PagePinRequest final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    A request to pin or unpin a page: a click on a pinned tab's pin glyph asks to unpin it. When no handler sets ``handled``, the strip applies it to the set (PageSet::set_pinned).
 
@@ -956,7 +992,7 @@ Related types
 
 .. cpp:struct:: PageStrip::Item final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    .. cpp:member:: PagePosition position
 
@@ -974,7 +1010,7 @@ Related types
 
 .. cpp:struct:: PageStrip::ItemParts final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    Item part names start with tab: an item part may not repeat one of the strip's own part names. The close button, the pin and the modified dot share one slot after the label; at most one of them is present.
 
@@ -1008,7 +1044,7 @@ Related types
 
 .. cpp:struct:: PageStrip::ItemStates final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    .. cpp:member:: bool hot
 
@@ -1034,7 +1070,7 @@ Related types
 
 .. cpp:struct:: PageStrip::Parts final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -1070,7 +1106,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageStripActivationPropertyCapability
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_strip_capabilities.hpp>``
 
    Whether moving the keyboard between tabs selects (automatic, the default) or only moves the focus (manual). An invalid value throws std::invalid_argument.
 
@@ -1087,7 +1123,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageStripCapabilities : public PageStripPlacementPropertyCapability<Declaring>, public PageStripItemSizingCapability<Declaring>, public PageStripItemWidthsCapability<Declaring>, public PageStripActivationPropertyCapability<Declaring>, public PageStripOverflowPropertyCapability<Declaring>, public PageStripCloseButtonsCapability<Declaring>, public PageStripMnemonicsEnabledCapability<Declaring>, public PageStripReorderEnabledCapability<Declaring>, public FontCapability<Declaring>, public PageStripImageListCapability<Declaring>, public PageStripDrawModeCapability<Declaring>
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_strip_capabilities.hpp>``
 
    Every PageStrip capability, in the order the declaring class takes them.
 
@@ -1147,7 +1183,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageStripCloseButtonsCapability
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_strip_capabilities.hpp>``
 
    Which closable tabs show their close button; see PageCloseButtons. An invalid value throws std::invalid_argument.
 
@@ -1164,7 +1200,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageStripDrawModeCapability
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_strip_capabilities.hpp>``
 
    Content-only owner drawing (owner decision W-Q6; TabControl's OwnerDrawFixed with DrawItem): in owner_draw the strip raises draw_item_content for each painted tab's content; the plate, close button, pin, modified mark and focus cue stay painted by role. An unknown mode throws std::invalid_argument.
 
@@ -1181,7 +1217,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageStripImageListCapability
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_strip_capabilities.hpp>``
 
    The images a page's ``image_key`` names, or null. A disposed list or one belonging to another window throws std::invalid_argument.
 
@@ -1196,7 +1232,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageStripItemSizingCapability
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_strip_capabilities.hpp>``
 
    How wide each tab is (default content); see PageItemSizing. An invalid sizing throws std::invalid_argument.
 
@@ -1213,7 +1249,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageStripItemWidthsCapability
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_strip_capabilities.hpp>``
 
    The tab widths the sizing uses. Widths outside the bounds stated on PageItemWidths throw std::invalid_argument, leaving the old widths.
 
@@ -1228,7 +1264,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageStripMnemonicsEnabledCapability
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_strip_capabilities.hpp>``
 
    Whether ``&`` in a title marks a mnemonic that selects the page (on for strips; the document preset turns it off, DK-38). When off, a title is shown as written.
 
@@ -1245,7 +1281,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageStripOverflowPropertyCapability
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_strip_capabilities.hpp>``
 
    What the strip does when its tabs do not fit (default scroll); see PageStripOverflow. An invalid value throws std::invalid_argument.
 
@@ -1262,7 +1298,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageStripPlacementPropertyCapability
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_strip_capabilities.hpp>``
 
    The edge of its content the strip sits on (default top); see PageStripPlacement. An invalid placement throws std::invalid_argument.
 
@@ -1279,7 +1315,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageStripReorderEnabledCapability
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_strip_capabilities.hpp>``
 
    Whether an unclaimed drag reorders tabs live (owner decision DK-39): off by default, the strip preset; PageView's document preset turns it on. Turning it off cancels a drag under way.
 
@@ -1294,7 +1330,7 @@ Related types
 
 .. cpp:struct:: PageView::Parts final
 
-   ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
+   ``#include <gui_forms/controls/page_view.hpp>``
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -1314,7 +1350,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageViewCapabilities : public PageViewClosePolicyPropertyCapability<Declaring>, public PageViewCtrlTabPropertyCapability<Declaring>, public PageViewFocusRegionCapability<Declaring>
 
-   ``#include <gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_view_capabilities.hpp>``
 
    Every PageView capability, in the order the declaring class takes them.
 
@@ -1337,7 +1373,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageViewClosePolicyPropertyCapability
 
-   ``#include <gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_view_capabilities.hpp>``
 
    What the view does with a close request no handler took (see PageViewClosePolicy). An unknown policy throws std::invalid_argument.
 
@@ -1354,7 +1390,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageViewCtrlTabPropertyCapability
 
-   ``#include <gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_view_capabilities.hpp>``
 
    What Ctrl+Tab and Ctrl+Shift+Tab do while focus is inside the view (see PageViewCtrlTab). An unknown policy throws std::invalid_argument.
 
@@ -1371,7 +1407,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PageViewFocusRegionCapability
 
-   ``#include <gui_forms/controls/pages/page_view/page_view_capabilities/page_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/page_view_capabilities.hpp>``
 
    Whether the view registers itself as an F6 region of its window (owner decision RB-17), off by default. A view nested in another region is not registered.
 
@@ -1388,7 +1424,7 @@ Related types
 
 .. cpp:struct:: PageViewOptions final
 
-   ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
+   ``#include <gui_forms/controls/page_view.hpp>``
 
    .. cpp:member:: PageViewPreset preset
 
@@ -1406,7 +1442,7 @@ Related types
 
 .. cpp:struct:: Panel::Parts final
 
-   ``#include <gui_forms/controls/panel/panel.hpp>``
+   ``#include <gui_forms/controls/panel.hpp>``
 
    Stage T1 anatomy, as dot members: the scrollable parts, a face and an edge.
 
@@ -1420,7 +1456,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PanelCapabilities : public BorderStyleCapability<Declaring>, public VisualRoleCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/panel_capabilities/panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/panel_capabilities.hpp>``
 
    Every Panel capability, in the order the declaring class takes them.
 
@@ -1439,7 +1475,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ScaledGroupBoxCapabilities : public ScaledGroupBoxDesignSizeCapability<Declaring>
 
-   ``#include <gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box_capabilities/scaled_group_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/scaled_group_box_capabilities.hpp>``
 
    Every ScaledGroupBox capability, in the order the declaring class takes them.
 
@@ -1454,7 +1490,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ScaledGroupBoxDesignSizeCapability
 
-   ``#include <gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box_capabilities/scaled_group_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/scaled_group_box_capabilities.hpp>``
 
    The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
 
@@ -1469,9 +1505,25 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: SectionItem final
+
+   ``#include <gui_forms/controls/expandable_sections.hpp>``
+
+   .. cpp:member:: int id
+
+   .. cpp:member:: std::string label
+
+   .. cpp:member:: Control::Ptr content
+
+   .. cpp:member:: Value<bool>* expanded
+
+      Borrowed; a missing model uses retained local state.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TabControl::Item final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/tab_control.hpp>``
 
    .. cpp:member:: std::size_t index
 
@@ -1485,7 +1537,7 @@ Related types
 
 .. cpp:struct:: TabControl::ItemParts final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/tab_control.hpp>``
 
    A tab's parts, in the control's coordinates: the strip's tab, label, focus, seam and icon parts of the same names (the strip paints them).
 
@@ -1503,7 +1555,7 @@ Related types
 
 .. cpp:struct:: TabControl::ItemStates final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/tab_control.hpp>``
 
    .. cpp:member:: bool selected
 
@@ -1511,7 +1563,7 @@ Related types
 
 .. cpp:struct:: TabControl::Parts final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/tab_control.hpp>``
 
    Stage T1 anatomy, as dot members.
 
@@ -1525,7 +1577,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabControlAlignmentCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/tab_control_capabilities.hpp>``
 
    The edge the tabs sit on (Windows Forms' Alignment; default top). An unknown alignment throws std::invalid_argument.
 
@@ -1542,7 +1594,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabControlAppearanceCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/tab_control_capabilities.hpp>``
 
    How the tabs are drawn (see TabAppearance; default normal). An unknown appearance throws std::invalid_argument.
 
@@ -1559,7 +1611,7 @@ Related types
 
 .. cpp:struct:: TabControlCancelEvent final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/tab_control.hpp>``
 
    A page about to be left or chosen (Windows Forms' TabControlCancelEventArgs): ``page`` at ``index``. A handler sets ``cancel`` to keep the selected page.
 
@@ -1577,7 +1629,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabControlCapabilities : public TabControlAlignmentCapability<Declaring>, public TabControlAppearanceCapability<Declaring>, public TabControlSizeModeCapability<Declaring>, public TabControlItemSizeCapability<Declaring>, public TabControlImageListCapability<Declaring>, public TabControlDrawModeCapability<Declaring>, public TabControlSelectedIndexCapability<Declaring>, public TabControlSelectedTabCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/tab_control_capabilities.hpp>``
 
    Every TabControl capability, in the order the declaring class takes them.
 
@@ -1620,7 +1672,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabControlDrawModeCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/tab_control_capabilities.hpp>``
 
    Content-only owner drawing of the tabs (owner decision W-Q6; Windows Forms' DrawMode with DrawItem), the strip's: in ItemDrawMode::owner_draw draw_item_content is raised for each painted tab's icon and label, with the tab's index and its page's stable ID; the tab's plate and focus cue stay painted by role. See PageStrip::draw_item_content.
 
@@ -1637,7 +1689,7 @@ Related types
 
 .. cpp:struct:: TabControlEvent final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/tab_control.hpp>``
 
    A page left or chosen (Windows Forms' TabControlEventArgs).
 
@@ -1653,7 +1705,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabControlImageListCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/tab_control_capabilities.hpp>``
 
    The images the pages' image_key and image_index name (Windows Forms' ImageList), or null; a tab shows its image before its text. A disposed list or one belonging to another window throws std::invalid_argument and keeps the old list.
 
@@ -1668,7 +1720,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabControlItemSizeCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/tab_control_capabilities.hpp>``
 
    A tab's size: its height across the row, and its width along it in TabSizeMode::fixed (default 120 by 30). A size that is not finite, under 24 by 18 or over 1024 by 1024 throws std::invalid_argument.
 
@@ -1685,7 +1737,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabControlSelectedIndexCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/tab_control_capabilities.hpp>``
 
    The selected page's index, or none without pages. A write past the end throws std::out_of_range, none throws std::invalid_argument; deselecting and selecting may cancel it (see selected_index_changed). A view onto the selected page.
 
@@ -1702,7 +1754,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabControlSelectedTabCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/tab_control_capabilities.hpp>``
 
    The selected page, or null. A write selects a page of this control as selected_index does; a page that is not this control's, or null, throws std::invalid_argument. A view onto the selected page.
 
@@ -1719,7 +1771,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabControlSizeModeCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_capabilities/tab_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/tab_control_capabilities.hpp>``
 
    How wide each tab is (see TabSizeMode; default normal). An unknown mode throws std::invalid_argument.
 
@@ -1736,7 +1788,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabPageCapabilities : public TextCapability<Declaring>, public TabPageImageKeyCapability<Declaring>, public TabPageImageIndexCapability<Declaring>
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page_capabilities/tab_page_capabilities.hpp>``
+   ``#include <gui_forms/controls/tab_page_capabilities.hpp>``
 
    Every TabPage capability, in the order the declaring class takes them.
 
@@ -1759,7 +1811,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabPageImageIndexCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page_capabilities/tab_page_capabilities.hpp>``
+   ``#include <gui_forms/controls/tab_page_capabilities.hpp>``
 
    The tab's image in the TabControl's image list, by index (Windows Forms' ImageIndex). A write clears image_key; -1 (the default) shows no image, and so does an index the list does not have. An index below -1 throws std::out_of_range.
 
@@ -1776,7 +1828,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabPageImageKeyCapability
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page_capabilities/tab_page_capabilities.hpp>``
+   ``#include <gui_forms/controls/tab_page_capabilities.hpp>``
 
    The tab's image in the TabControl's image list, by key (Windows Forms' ImageKey). A write clears image_index, as in Windows Forms; an empty key shows no image, and so does a key the list does not have. A key that is not valid UTF-8 or is longer than 256 bytes throws std::invalid_argument.
 
@@ -1793,7 +1845,7 @@ Related types
 
 .. cpp:struct:: TabSelectionChange final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/tab_control.hpp>``
 
    TabSelectionChange reports previous/current tab indices and stable page identities after one accepted selection.
 
@@ -1805,7 +1857,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextItemsCapability
 
-   ``#include <gui_forms/controls/panel/text_items_capability/text_items_capability.hpp>``
+   ``#include <gui_forms/controls/text_items_capability.hpp>``
 
    An ordered list of text items edited in place (in-place collections design, owner 2026-11-07; the ListBox pilot): ``(*list).items.read()``, ``(*list).items[i]``, ``(*list).items = {...}``, ``items.insert(i, x)``, ``items.erase(i, n)``, ``items.replace(i, x)`` and ``items.clear()``. A standard-layout struct whose only member is the cell, taken by the declaring class as a base. Each edit runs the declaring class's prepare_edit hook (it may refuse by throwing: nothing changes), the store, then its written hook. The declaring class takes the pending damage at its flush through take_dirty.
 
@@ -1837,7 +1889,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> VisualRoleCapability
 
-   ``#include <gui_forms/controls/panel/panel_capabilities/panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/panel_capabilities.hpp>``
 
    The recipe family the panel paints with: window, panel, card, editor (the recessed field ground of the Panel-derived editors such as NumericUpDown and TreeView), or notice (a staged InstrumentRack module).
 
@@ -1854,7 +1906,7 @@ Related types
 
 .. cpp:struct:: Wizard::Parts final
 
-   ``#include <gui_forms/controls/wizard/wizard.hpp>``
+   ``#include <gui_forms/controls/wizard.hpp>``
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -1870,7 +1922,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WizardBackTextCapability
 
-   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+   ``#include <gui_forms/controls/wizard_capabilities.hpp>``
 
    The Back button's text. Must be valid UTF-8 (std::invalid_argument).
 
@@ -1887,7 +1939,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WizardCancelTextCapability
 
-   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+   ``#include <gui_forms/controls/wizard_capabilities.hpp>``
 
    The Cancel button's text. Must be valid UTF-8 (std::invalid_argument).
 
@@ -1904,7 +1956,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WizardCapabilities : public WizardCurrentPageCapability<Declaring>, public WizardShowStepIndicatorCapability<Declaring>, public WizardBackTextCapability<Declaring>, public WizardNextTextCapability<Declaring>, public WizardFinishTextCapability<Declaring>, public WizardCancelTextCapability<Declaring>
 
-   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+   ``#include <gui_forms/controls/wizard_capabilities.hpp>``
 
    Every Wizard capability, in the order the declaring class takes them.
 
@@ -1939,7 +1991,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WizardCurrentPageCapability
 
-   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+   ``#include <gui_forms/controls/wizard_capabilities.hpp>``
 
    The page shown, counted from zero among the WizardPage children. A write moves there at once and raises page_changed, without page_changing; past the last page throws std::invalid_argument (zero is always accepted).
 
@@ -1956,7 +2008,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WizardFinishTextCapability
 
-   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+   ``#include <gui_forms/controls/wizard_capabilities.hpp>``
 
    The Next button's text on the last page. Must be valid UTF-8 (std::invalid_argument).
 
@@ -1973,7 +2025,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WizardNextTextCapability
 
-   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+   ``#include <gui_forms/controls/wizard_capabilities.hpp>``
 
    The Next button's text before the last page. Must be valid UTF-8 (std::invalid_argument).
 
@@ -1990,7 +2042,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WizardPageCanAdvanceCapability
 
-   ``#include <gui_forms/controls/wizard/wizard_page/wizard_page_capabilities/wizard_page_capabilities.hpp>``
+   ``#include <gui_forms/controls/wizard_page_capabilities.hpp>``
 
    Whether Next (or Finish) is available on this page: the page's validation gate.
 
@@ -2007,7 +2059,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WizardPageCapabilities : public WizardPageTitleCapability<Declaring>, public WizardPageDescriptionCapability<Declaring>, public WizardPageCanAdvanceCapability<Declaring>
 
-   ``#include <gui_forms/controls/wizard/wizard_page/wizard_page_capabilities/wizard_page_capabilities.hpp>``
+   ``#include <gui_forms/controls/wizard_page_capabilities.hpp>``
 
    Every WizardPage capability, in the order the declaring class takes them.
 
@@ -2030,7 +2082,7 @@ Related types
 
 .. cpp:struct:: WizardPageChangingEvent final
 
-   ``#include <gui_forms/controls/wizard/wizard.hpp>``
+   ``#include <gui_forms/controls/wizard.hpp>``
 
    The argument of Wizard::page_changing: the page shown, the page asked for, and whether a handler refuses the move.
 
@@ -2050,7 +2102,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WizardPageDescriptionCapability
 
-   ``#include <gui_forms/controls/wizard/wizard_page/wizard_page_capabilities/wizard_page_capabilities.hpp>``
+   ``#include <gui_forms/controls/wizard_page_capabilities.hpp>``
 
    The line under the title in the wizard's header; empty for none. Must be valid UTF-8 (std::invalid_argument).
 
@@ -2065,7 +2117,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WizardPageTitleCapability
 
-   ``#include <gui_forms/controls/wizard/wizard_page/wizard_page_capabilities/wizard_page_capabilities.hpp>``
+   ``#include <gui_forms/controls/wizard_page_capabilities.hpp>``
 
    The page's title, shown in the wizard's header and as its step's name. Must be valid UTF-8 (std::invalid_argument).
 
@@ -2080,7 +2132,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> WizardShowStepIndicatorCapability
 
-   ``#include <gui_forms/controls/wizard/wizard_capabilities/wizard_capabilities.hpp>``
+   ``#include <gui_forms/controls/wizard_capabilities.hpp>``
 
    Whether the step indicator shows above the page, naming every page by its title.
 
@@ -2100,7 +2152,7 @@ Enumerations
 
 .. cpp:enum-class:: BorderStyle
 
-   ``#include <gui_forms/controls/panel/border_style/border_style.hpp>``
+   ``#include <gui_forms/controls/border_style.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -2114,7 +2166,7 @@ Enumerations
 
 .. cpp:enum-class:: CardSelectionBehavior
 
-   ``#include <gui_forms/controls/panel/card/card_values/card_values.hpp>``
+   ``#include <gui_forms/controls/card_values.hpp>``
 
    .. cpp:enumerator:: manual
 
@@ -2126,7 +2178,7 @@ Enumerations
 
 .. cpp:enum-class:: NavigationPaneItemKind
 
-   ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
+   ``#include <gui_forms/controls/navigation_pane.hpp>``
 
    .. cpp:enumerator:: large_button
 
@@ -2136,7 +2188,7 @@ Enumerations
 
 .. cpp:enum-class:: PageCloseButtons
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
+   ``#include <gui_forms/controls/page_strip_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -2148,7 +2200,7 @@ Enumerations
 
 .. cpp:enum-class:: PageCloseCause
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    .. cpp:enumerator:: pointer
 
@@ -2162,7 +2214,7 @@ Enumerations
 
 .. cpp:enum-class:: PageContextMenuCause
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    .. cpp:enumerator:: pointer
 
@@ -2172,7 +2224,7 @@ Enumerations
 
 .. cpp:enum-class:: PageItemSizing
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
+   ``#include <gui_forms/controls/page_strip_values.hpp>``
 
    .. cpp:enumerator:: content
 
@@ -2184,7 +2236,7 @@ Enumerations
 
 .. cpp:enum-class:: PageStrip::DragState::Phase
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/page_strip.hpp>``
 
    .. cpp:enumerator:: idle
 
@@ -2198,7 +2250,7 @@ Enumerations
 
 .. cpp:enum-class:: PageStripActivation
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
+   ``#include <gui_forms/controls/page_strip_values.hpp>``
 
    .. cpp:enumerator:: automatic
 
@@ -2208,7 +2260,7 @@ Enumerations
 
 .. cpp:enum-class:: PageStripOverflow
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
+   ``#include <gui_forms/controls/page_strip_values.hpp>``
 
    .. cpp:enumerator:: scroll
 
@@ -2218,7 +2270,7 @@ Enumerations
 
 .. cpp:enum-class:: PageStripPlacement
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
+   ``#include <gui_forms/controls/page_strip_values.hpp>``
 
    .. cpp:enumerator:: top
 
@@ -2232,7 +2284,7 @@ Enumerations
 
 .. cpp:enum-class:: PageViewClosePolicy
 
-   ``#include <gui_forms/controls/pages/page_view/page_view_values/page_view_values.hpp>``
+   ``#include <gui_forms/controls/page_view_values.hpp>``
 
    .. cpp:enumerator:: remove_when_unhandled
 
@@ -2242,7 +2294,7 @@ Enumerations
 
 .. cpp:enum-class:: PageViewCtrlTab
 
-   ``#include <gui_forms/controls/pages/page_view/page_view_values/page_view_values.hpp>``
+   ``#include <gui_forms/controls/page_view_values.hpp>``
 
    .. cpp:enumerator:: select_next
 
@@ -2252,7 +2304,7 @@ Enumerations
 
 .. cpp:enum-class:: PageViewPreset
 
-   ``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
+   ``#include <gui_forms/controls/page_view.hpp>``
 
    .. cpp:enumerator:: strip
 
@@ -2262,7 +2314,7 @@ Enumerations
 
 .. cpp:enum-class:: TabAlignment
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp>``
+   ``#include <gui_forms/controls/tab_control_values.hpp>``
 
    .. cpp:enumerator:: top
 
@@ -2276,7 +2328,7 @@ Enumerations
 
 .. cpp:enum-class:: TabAppearance
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp>``
+   ``#include <gui_forms/controls/tab_control_values.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -2288,7 +2340,7 @@ Enumerations
 
 .. cpp:enum-class:: TabControlAction
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp>``
+   ``#include <gui_forms/controls/tab_control.hpp>``
 
    .. cpp:enumerator:: deselecting
 
@@ -2302,7 +2354,7 @@ Enumerations
 
 .. cpp:enum-class:: TabSizeMode
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/tab_control/tab_control_values/tab_control_values.hpp>``
+   ``#include <gui_forms/controls/tab_control_values.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -2315,7 +2367,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+``#include <gui_forms/controls/page_strip.hpp>``
 
 .. cpp:var:: constexpr double page_drag_threshold
 
@@ -2323,7 +2375,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/pages/page_view/page_view.hpp>``
+``#include <gui_forms/controls/page_view.hpp>``
 
 .. cpp:function:: PageSetOptions page_set_options(const PageViewOptions& options) noexcept
 

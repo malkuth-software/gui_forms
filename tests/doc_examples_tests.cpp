@@ -1014,59 +1014,6 @@ void example() {
 }
 }  // namespace doc_example_Control_2
 
-namespace doc_example_CorrespondenceView_1 {
-void example() {
-    std::shared_ptr<gf::CorrespondenceView> results =
-        gf::make_control<gf::CorrespondenceView>(gf::StableId("search.results"));
-    std::vector<gf::CorrespondenceItem> records(2);
-    records[0].stable_id = "mail.1041";
-    records[0].title = "Welcome aboard";
-    records[0].secondary_text = "team@example.com";
-    records[1].stable_id = "mail.1042";
-    records[1].title = "Invoice 1042";
-    records[1].secondary_text = "accounts@example.com";
-    records[1].metric = "92%";
-    records[1].excerpt = "Payment for invoice 1042 is due on Friday.";
-    records[1].emphasis_terms = {"invoice"};
-    (*results).set_items(records);
-    (*results).pinned_id = "mail.1042";
-    // (*results).expanded("mail.1042") is now true
-}
-}  // namespace doc_example_CorrespondenceView_1
-
-namespace doc_example_CorrespondenceView_2 {
-struct ResultsPane final : gf::Component {
-    std::shared_ptr<gf::CorrespondenceView> results =
-        gf::make_control<gf::CorrespondenceView>(gf::StableId("search.results"));
-    std::string pinned;
-    bool expanded_by_pin = false;
-
-    ResultsPane() {
-        gf::on((*results).pin_changed(), *this, &ResultsPane::on_pin);
-        gf::on((*results).expansion_changed(), *this, &ResultsPane::on_expansion);
-    }
-    void on_pin(const gf::CorrespondencePinChange& change) {
-        pinned = change.current_id;
-    }
-    void on_expansion(const gf::CorrespondenceExpansionChange& change) {
-        expanded_by_pin = change.expanded &&
-            change.reason == gf::CorrespondenceExpansionReason::pin;
-    }
-};
-
-void example() {
-    ResultsPane pane;
-    std::vector<gf::CorrespondenceItem> records(2);
-    records[0].stable_id = "mail.1";
-    records[0].title = "Welcome aboard";
-    records[1].stable_id = "mail.2";
-    records[1].title = "Invoice 1042";
-    (*pane.results).set_items(records);
-    (*pane.results).pinned_id = "mail.2";
-    // pane.pinned is "mail.2", and then pane.expanded_by_pin is true
-}
-}  // namespace doc_example_CorrespondenceView_2
-
 namespace doc_example_DataGridView_1 {
 void example() {
     std::shared_ptr<gf::DataGridView> grid =
@@ -1419,27 +1366,6 @@ void example() {
     (*run.button).perform_drop_down();   // run.menu_requests is now 1
 }
 }  // namespace doc_example_DropDownButton_1
-
-namespace doc_example_EasingPreview_1 {
-void example() {
-    std::shared_ptr<gf::EasingPreview> preview =
-        gf::make_control<gf::EasingPreview>(gf::StableId("motion.preview"));
-    (*preview).set_requested_bounds({0.0, 0.0, 480.0, 160.0});
-    std::vector<gf::EasingPreviewTrack> tracks;
-    tracks.push_back({gf::EasingCurve::ease_out, "Panel slide", gf::Color::rgba(38, 114, 185)});
-    tracks.push_back({gf::EasingCurve::back_out, "Badge pop", gf::Color::rgba(211, 121, 42)});
-    (*preview).set_tracks(tracks);
-    gf::AnimationSpec specification;
-    specification.duration = std::chrono::milliseconds(600);
-    specification.infinite = true;
-    (*preview).specification = specification;
-    gf::Window window(preview, gf::Size{480.0, 160.0});   // starts the timeline
-
-    gf::MotionPolicy paused;
-    paused.paused = true;
-    (*preview).motion_policy = paused;   // stops its animation timer
-}
-}  // namespace doc_example_EasingPreview_1
 
 namespace doc_example_EmptyState_1 {
 void example() {
@@ -1962,6 +1888,15 @@ void example() {
 }
 }  // namespace doc_example_ImageList_2
 
+namespace doc_example_IndicatorLamp_1 {
+void example() {
+    std::shared_ptr<gf::IndicatorLamp> fault =
+        gf::make_control<gf::IndicatorLamp>(gf::StableId("panel.fault"), "Fault");
+    (*fault).state = gf::IndicatorLampState::error;
+    // fault->semantic_descriptor().value is "error"
+}
+}  // namespace doc_example_IndicatorLamp_1
+
 namespace doc_example_InfoBanner_1 {
 void example() {
     std::shared_ptr<gf::InfoBanner> offline = gf::make_control<gf::InfoBanner>(gf::StableId("sync.offline"));
@@ -1972,69 +1907,6 @@ void example() {
     // previous is null: the banner had no action before
 }
 }  // namespace doc_example_InfoBanner_1
-
-namespace doc_example_InstrumentRack_1 {
-void example() {
-    gf::InstrumentFieldSpec kind{.stable_id = "value", .name = "Kind",
-                                 .value = "Images",
-                                 .editor = gf::InstrumentFieldEditor::choice,
-                                 .choices = {"Images", "Documents"}};
-    gf::InstrumentFieldSpec words{.stable_id = "value", .name = "Contains",
-                                  .value = "Facade",
-                                  .editor = gf::InstrumentFieldEditor::text,
-                                  .required = true};
-    gf::InstrumentModuleSpec by_kind{.stable_id = "search.kind",
-                                     .name = "Kind criterion",
-                                     .fields = {kind}, .status_text = "live"};
-    gf::InstrumentModuleSpec by_content{.stable_id = "search.content",
-                                        .name = "Content criterion",
-                                        .fields = {words},
-                                        .status_text = "staged · not applied",
-                                        .state = gf::InstrumentModuleState::staged};
-    std::shared_ptr<gf::InstrumentRack> rack =
-        gf::make_control<gf::InstrumentRack>(gf::StableId("search.rack"));
-    (*rack).set_modules({by_kind, by_content});
-}
-}  // namespace doc_example_InstrumentRack_1
-
-namespace doc_example_InstrumentRack_2 {
-struct Search final : gf::Component {
-    std::shared_ptr<gf::InstrumentRack> rack =
-        gf::make_control<gf::InstrumentRack>(gf::StableId("search.rack"));
-    std::string kind = "Images";
-
-    Search() {
-        gf::InstrumentFieldSpec value{.stable_id = "value", .name = "Kind",
-                                      .value = "Images",
-                                      .editor = gf::InstrumentFieldEditor::choice,
-                                      .choices = {"Images", "Documents"}};
-        gf::InstrumentModuleSpec criterion{.stable_id = "search.kind",
-                                           .name = "Kind criterion",
-                                           .fields = {value},
-                                           .status_text = "live"};
-        (*rack).set_modules({criterion});
-        gf::on((*rack).field_committed(), *this, &Search::on_field);
-        gf::on((*rack).remove_requested(), *this, &Search::on_remove);
-    }
-    void on_field(const gf::InstrumentFieldChange& change) {
-        if (change.module_id == "search.kind") kind = change.current_value;
-    }
-    void on_remove(const gf::InstrumentModuleRequest& request) {
-        std::vector<gf::InstrumentModuleSpec> kept;
-        for (const gf::InstrumentModuleSpec& criterion : (*rack).modules()) {
-            if (criterion.stable_id != request.module_id) kept.push_back(criterion);
-        }
-        (*rack).set_modules(kept);
-    }
-};
-
-void example() {
-    Search search;
-    std::shared_ptr<gf::ComboBox> value = std::dynamic_pointer_cast<gf::ComboBox>(
-        (*search.rack).field_editor("search.kind", "value"));
-    if (value) (*value).selected_index = std::size_t{1U};   // kind is "Documents"
-}
-}  // namespace doc_example_InstrumentRack_2
 
 namespace doc_example_Label_1 {
 void example() {
@@ -2909,10 +2781,16 @@ class PencilCanvas final : public gf::RasterCanvas {
 public:
     explicit PencilCanvas(gf::StableId id) : gf::RasterCanvas(std::move(id)) {}
 
-    void on_pointer(gf::PointerEvent& event) override {
-        if (event.action != gf::PointerAction::down || !bitmap.read()) return;
+protected:
+    void on_mouse_down(gf::MouseEventArgs& arguments) override {
+        if (bitmap.read()) draw_at(arguments);
+        gf::RasterCanvas::on_mouse_down(arguments);
+    }
+
+private:
+    void draw_at(gf::MouseEventArgs& arguments) {
         const gui_drawing::PointF at =
-            client_to_bitmap(point_from_window(event.position));
+            client_to_bitmap(point_from_window(arguments.window_position));
         if (at.x < 0.0 || at.y < 0.0 ||
             at.x >= static_cast<double>((*bitmap.read()).width()) ||
             at.y >= static_cast<double>((*bitmap.read()).height())) {
@@ -2922,7 +2800,7 @@ public:
                               static_cast<std::uint32_t>(at.y),
                               gui_drawing::Color::from_rgb(0, 0, 0));
         static_cast<void>(synchronize_bitmap());
-        event.handled = true;
+        arguments.handled = true;
     }
 };
 
@@ -2981,52 +2859,6 @@ void example() {
     // still true and (*inspector).layout_collapsed() is true.
 }
 }  // namespace doc_example_ResponsiveTrackPanel_1
-
-namespace doc_example_ReviewCard_1 {
-void example() {
-    std::shared_ptr<gf::ReviewCard> card =
-        gf::make_control<gf::ReviewCard>(gf::StableId("review.render"));
-    (*card).record = gf::ReviewRecord{
-        .key = "render-pipeline",
-        .title = "Render pipeline",
-        .summary = "Painting records renderer-neutral commands before host replay.",
-        .verdict = "Measured, partial",
-        .disposition = gf::ReviewDisposition::pending};
-    // (*card).visual_status() is now gf::ControlVisualStatus::pending
-}
-}  // namespace doc_example_ReviewCard_1
-
-namespace doc_example_ReviewCard_2 {
-struct Reviews final : gf::Component {
-    std::shared_ptr<gf::ReviewCard> card =
-        gf::make_control<gf::ReviewCard>(gf::StableId("review.fonts"));
-    std::string opened;
-
-    Reviews() {
-        (*card).record = gf::ReviewRecord{.key = "fonts",
-                                            .title = "Bundled fonts",
-                                            .summary = "Control faces ship with the library.",
-                                            .verdict = "Accepted",
-                                            .disposition = gf::ReviewDisposition::accepted};
-        (*card).interactive = true;
-        (*card).selection_behavior = gf::CardSelectionBehavior::select_on_activation;
-        gf::on((*card).activated(), *this, &Reviews::on_open);
-    }
-    void on_open() { opened = (*card).record.read().key; }
-};
-
-void example() {
-    Reviews reviews;
-    (*reviews.card).set_requested_bounds({0.0, 0.0, 320.0, 140.0});
-    gf::Window window(reviews.card, gf::Size{320.0, 140.0});
-    window.perform_layout();
-    window.dispatch_pointer(gf::PointerEvent{gf::PointerAction::down,
-                                             gf::PointerButton::primary, gf::Point{40.0, 70.0}});
-    window.dispatch_pointer(gf::PointerEvent{gf::PointerAction::up,
-                                             gf::PointerButton::primary, gf::Point{40.0, 70.0}});
-    // the card is now selected, and reviews.opened is "fonts"
-}
-}  // namespace doc_example_ReviewCard_2
 
 namespace doc_example_Ribbon_1 {
 void example() {
@@ -3980,24 +3812,6 @@ void example() {
 }
 }  // namespace doc_example_TreeView_2
 
-namespace doc_example_TypographySpecimen_1 {
-void example() {
-    std::shared_ptr<gf::TypographySpecimen> specimen =
-        gf::make_control<gf::TypographySpecimen>(
-            gf::StableId("review.body"), "The quick brown fox jumps over the lazy dog");
-    gf::FontSpec body;
-    body.role = gf::FontRole::content;
-    body.size = 14.0;
-    (*specimen).font = body;
-    (*specimen).caption = "Body: content, 14 / 400";
-    (*specimen).wrap_text = true;
-    gf::Window window(specimen, gf::Size{240.0, 120.0});
-
-    gf::ResolvedTextLayout layout = (*specimen).resolved_layout();
-    // without a native host, layout.status is TextResolutionStatus::estimated
-}
-}  // namespace doc_example_TypographySpecimen_1
-
 namespace doc_example_UpdateScope_1 {
 void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("root"));
@@ -4141,47 +3955,6 @@ void example() {
     // volume.get() == 80
 }
 }  // namespace doc_example_Value_2
-
-namespace doc_example_VisualInspectorOverlay_1 {
-void example() {
-    std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("lab"));
-    std::shared_ptr<gf::Button> apply =
-        gf::make_control<gf::Button>(gf::StableId("lab.apply"), "Apply");
-    std::shared_ptr<gf::VisualInspectorOverlay> overlay =
-        gf::make_control<gf::VisualInspectorOverlay>(gf::StableId("lab.overlay"), "lab.apply");
-    (*apply).set_requested_bounds({20.0, 20.0, 96.0, 32.0});
-    (*overlay).set_requested_bounds({0.0, 0.0, 320.0, 120.0});
-    (*root).add_child(apply);
-    (*root).add_child(overlay);
-    gf::Window window(root, gf::Size{320.0, 120.0});   // presses still reach the button
-    window.perform_layout();
-
-    (*apply).set_requested_bounds({40.0, 20.0, 96.0, 32.0});
-    window.perform_layout();
-    (*overlay).refresh();   // redraw the outlines at the button's new place
-}
-}  // namespace doc_example_VisualInspectorOverlay_1
-
-namespace doc_example_VisualInspectorView_1 {
-void example() {
-    std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("lab"));
-    std::shared_ptr<gf::Button> apply =
-        gf::make_control<gf::Button>(gf::StableId("lab.apply"), "Apply");
-    std::shared_ptr<gf::VisualInspectorView> inspector =
-        gf::make_control<gf::VisualInspectorView>(gf::StableId("lab.inspector"), "lab.apply");
-    (*apply).set_requested_bounds({20.0, 20.0, 96.0, 32.0});
-    (*inspector).set_requested_bounds({140.0, 0.0, 320.0, 460.0});
-    (*root).add_child(apply);
-    (*root).add_child(inspector);
-    gf::Window window(root, gf::Size{460.0, 460.0});
-    window.perform_layout();
-
-    (*apply).enabled = false;
-    (*inspector).refresh();
-    gf::SemanticDescriptor summary = (*inspector).semantic_descriptor();
-    // summary.value begins "lab.apply; visible · disabled"
-}
-}  // namespace doc_example_VisualInspectorView_1
 
 namespace doc_example_Window_1 {
 struct Dialog final : gf::Component {
@@ -4385,8 +4158,6 @@ int main() {
     failures += run("ContextMenu example 1", &doc_example_ContextMenu_1::example);
     failures += run("Control example 1", &doc_example_Control_1::example);
     failures += run("Control example 2", &doc_example_Control_2::example);
-    failures += run("CorrespondenceView example 1", &doc_example_CorrespondenceView_1::example);
-    failures += run("CorrespondenceView example 2", &doc_example_CorrespondenceView_2::example);
     failures += run("DataGridView example 1", &doc_example_DataGridView_1::example);
     failures += run("DataGridView example 2", &doc_example_DataGridView_2::example);
     failures += run("DateTimePicker example 1", &doc_example_DateTimePicker_1::example);
@@ -4402,7 +4173,6 @@ int main() {
     failures += run("DrawingSurface example 1", &doc_example_DrawingSurface_1::example);
     failures += run("DrawingSurface example 2", &doc_example_DrawingSurface_2::example);
     failures += run("DropDownButton example 1", &doc_example_DropDownButton_1::example);
-    failures += run("EasingPreview example 1", &doc_example_EasingPreview_1::example);
     failures += run("EmptyState example 1", &doc_example_EmptyState_1::example);
     failures += run("ErrorProvider example 1", &doc_example_ErrorProvider_1::example);
     failures += run("ErrorProvider example 2", &doc_example_ErrorProvider_2::example);
@@ -4428,9 +4198,8 @@ int main() {
     failures += run("HelpProvider example 1", &doc_example_HelpProvider_1::example);
     failures += run("ImageList example 1", &doc_example_ImageList_1::example);
     failures += run("ImageList example 2", &doc_example_ImageList_2::example);
+    failures += run("IndicatorLamp example 1", &doc_example_IndicatorLamp_1::example);
     failures += run("InfoBanner example 1", &doc_example_InfoBanner_1::example);
-    failures += run("InstrumentRack example 1", &doc_example_InstrumentRack_1::example);
-    failures += run("InstrumentRack example 2", &doc_example_InstrumentRack_2::example);
     failures += run("Label example 1", &doc_example_Label_1::example);
     failures += run("Label example 2", &doc_example_Label_2::example);
     failures += run("LinkLabel example 1", &doc_example_LinkLabel_1::example);
@@ -4477,8 +4246,6 @@ int main() {
     failures += run("RasterCanvas example 1", &doc_example_RasterCanvas_1::example);
     failures += run("RasterCanvas example 2", &doc_example_RasterCanvas_2::example);
     failures += run("ResponsiveTrackPanel example 1", &doc_example_ResponsiveTrackPanel_1::example);
-    failures += run("ReviewCard example 1", &doc_example_ReviewCard_1::example);
-    failures += run("ReviewCard example 2", &doc_example_ReviewCard_2::example);
     failures += run("Ribbon example 1", &doc_example_Ribbon_1::example);
     failures += run("RibbonColorPicker example 1", &doc_example_RibbonColorPicker_1::example);
     failures += run("RibbonFontControl example 1", &doc_example_RibbonFontControl_1::example);
@@ -4530,7 +4297,6 @@ int main() {
     failures += run("TreeListView example 1", &doc_example_TreeListView_1::example);
     failures += run("TreeView example 1", &doc_example_TreeView_1::example);
     failures += run("TreeView example 2", &doc_example_TreeView_2::example);
-    failures += run("TypographySpecimen example 1", &doc_example_TypographySpecimen_1::example);
     failures += run("UpdateScope example 1", &doc_example_UpdateScope_1::example);
     failures += run("UpdateScope example 2", &doc_example_UpdateScope_2::example);
     failures += run("UserControl example 1", &doc_example_UserControl_1::example);
@@ -4538,8 +4304,6 @@ int main() {
     failures += run("VScrollBar example 1", &doc_example_VScrollBar_1::example);
     failures += run("Value example 1", &doc_example_Value_1::example);
     failures += run("Value example 2", &doc_example_Value_2::example);
-    failures += run("VisualInspectorOverlay example 1", &doc_example_VisualInspectorOverlay_1::example);
-    failures += run("VisualInspectorView example 1", &doc_example_VisualInspectorView_1::example);
     failures += run("Window example 1", &doc_example_Window_1::example);
     failures += run("Window example 2", &doc_example_Window_2::example);
     failures += run("Worker example 1", &doc_example_Worker_1::example);

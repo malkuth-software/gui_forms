@@ -2,7 +2,7 @@
 // decisions 14, 22, 25; RIBBON_STUDY.md §5.4): which tabs and groups show,
 // the sets' accents from the theme's ramp, and the built-in selection rules.
 
-#include "gui_forms/controls/ribbon/ribbon.hpp"
+#include "gui_forms/controls/ribbon.hpp"
 
 #include <algorithm>
 #include <stdexcept>

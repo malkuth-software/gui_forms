@@ -3,6 +3,7 @@
 // SeriesMarkPainter's template members (mark_painters.hpp declares and
 // documents them). Included at the end of mark_painters.hpp only.
 
+#include "gui_forms/export/application_export.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -14,7 +15,7 @@ namespace detail {
 
 // Saves the painter and clips to the plot for one batch; restores when
 // destroyed.
-class PlotClip final {
+class GUI_FORMS_API PlotClip final {
 public:
     PlotClip(Painter& painter, const PlotTransform& transform) : painter_(painter) {
         painter_.save();

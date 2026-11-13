@@ -9,7 +9,7 @@ gui_forms::TokenBox
 
 .. cpp:class:: TokenBox final : public Control, public TokenBoxCapabilities<TokenBox>
 
-   ``#include <gui_forms/controls/panel/token_box/token_box.hpp>``
+   ``#include <gui_forms/controls/token_box.hpp>``
 
    A text field that turns each accepted entry into a removable token.
 
@@ -203,7 +203,7 @@ gui_forms::TokenBox
 
       The editor's custom source collection, shared as :cpp:class:`TextBox <gui_forms::TextBox>`'s is.
 
-   .. cpp:function:: std::span<const Token> tokens() const noexcept
+   .. cpp:function:: std::span<const Token> tokens() const& noexcept
 
       The tokens, first to last, each a :cpp:class:`Token <gui_forms::Token>` with its :cpp:class:`TokenId <gui_forms::TokenId>` and text.
 
@@ -290,8 +290,6 @@ gui_forms::TokenBox
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -311,6 +309,26 @@ gui_forms::TokenBox
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -337,3 +355,73 @@ gui_forms::TokenBox
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 2 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selected_token``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tokens``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selected_token_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``token_added``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``token_removed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_token``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_tokens``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``remove_token``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``select_token``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``token_index``
+     - supported

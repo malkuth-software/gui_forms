@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui_forms/controls/panel/date_time_picker/date_time_format_provider/date_time_format_provider.hpp"
+#include "gui_forms/controls/date_time_format_provider.hpp"
 #include "gui_forms/events.hpp"
 
 #include <cstdint>

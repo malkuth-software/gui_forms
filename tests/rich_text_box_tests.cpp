@@ -4,7 +4,20 @@
 // span and line commands and their keys, list continuation, links and
 // Ctrl+click, RTF in and out, read-only, limits, semantics and the anatomy.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/rich_text_box.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/text/markdown/rtf_conversion.hpp"
+#include "gui_forms/text/types/text_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 #include "support/typography_painter.hpp"
 #include "support/clip_tracking_painter.hpp"

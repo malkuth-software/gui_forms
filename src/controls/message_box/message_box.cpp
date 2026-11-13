@@ -3,6 +3,7 @@
 #include "../file_dialog/file_dialog_support.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
 #include "gui_forms/window.hpp"
+#include "../../core/surface_root/access/surface_lifetime_access.hpp"
 
 #include <array>
 #include <cstddef>
@@ -23,7 +24,7 @@ namespace detail {
 class MessageBoxHelpRoute final {
 public:
     MessageBoxHelpRoute(Window& owner, std::uint64_t request_id, std::exception_ptr& failure) noexcept
-        : window_(owner.lifetime_), request_id_(request_id), failure_(&failure) {}
+        : window_(SurfaceLifetimeAccess::observe(owner)), request_id_(request_id), failure_(&failure) {}
 
     void operator()(const HostDialogHelpEvent& event) const {
         if (event.request_id != request_id_) return;

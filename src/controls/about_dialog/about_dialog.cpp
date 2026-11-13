@@ -1,6 +1,6 @@
 #include "gui_forms/components/about_dialog/about_dialog.hpp"
 
-#include "gui_forms/controls/task_dialog/task_dialog.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
 
 #include <array>
 #include <stdexcept>

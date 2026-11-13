@@ -1,8 +1,9 @@
-#include "gui_forms/controls/info_banner/info_banner.hpp"
+#include "gui_forms/controls/info_banner.hpp"
 
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 
 #include <algorithm>
 #include <array>
@@ -255,7 +256,7 @@ void InfoBanner::on_paint(Painter& painter, Rect) {
     if (!heading.empty()) {
         PartPaint caption{.role = PartRole::caption, .bounds = placed.caption, .states = states,
                           .family = ControlVisualRole::notice};
-        caption.text = heading;
+        caption.text = lend_paint_text(heading);
         caption.font = title_font();
         paint_part(painter, *this, caption);
     }
@@ -263,7 +264,7 @@ void InfoBanner::on_paint(Painter& painter, Rect) {
     if (!body.empty()) {
         PartPaint label{.role = PartRole::label, .bounds = placed.label, .states = states,
                         .family = ControlVisualRole::notice};
-        label.text = body;
+        label.text = lend_paint_text(body);
         label.font = message_font();
         paint_part(painter, *this, label);
     }
@@ -277,40 +278,61 @@ void InfoBanner::on_paint(Painter& painter, Rect) {
 
 // The close mark acts on release over it, as a button does; moving off it
 // while pressed keeps the capture, and a release elsewhere closes nothing.
-void InfoBanner::on_pointer(PointerEvent& event) {
-    if (!eligible_for_input() || !closable.read()) return;
+// The close actuator's placement is compared with the window position, as
+// before the raisers.
+bool InfoBanner::over_close(Point window_position) const {
     const Rect client = client_rectangle();
     const Placement placed = placement(Size{client.width, client.height});
-    const bool over = placed.actuator.contains(event.position);
-    if (event.action == PointerAction::move || event.action == PointerAction::leave) {
-        const bool hot = event.action == PointerAction::move && over;
+    const bool over = placed.actuator.contains(window_position);
+    return over;
+}
+
+void InfoBanner::on_mouse_move(MouseEventArgs& arguments) {
+    if (eligible_for_input() && closable.read()) {
+        const bool hot = over_close(arguments.window_position);
         if (hot != hot_close_) {
             hot_close_ = hot;
             invalidate(Dirty::paint);
         }
-        return;
     }
-    if (event.button != PointerButton::primary) return;
-    if (event.action == PointerAction::down && over) {
+    Control::on_mouse_move(arguments);
+}
+
+void InfoBanner::on_mouse_leave() {
+    if (eligible_for_input() && closable.read() && hot_close_) {
+        hot_close_ = false;
+        invalidate(Dirty::paint);
+    }
+    Control::on_mouse_leave();
+}
+
+void InfoBanner::on_mouse_down(MouseEventArgs& arguments) {
+    if (eligible_for_input() && closable.read() && arguments.button == PointerButton::primary &&
+        over_close(arguments.window_position)) {
         pressed_close_ = true;
         set_pointer_capture(true);
         invalidate(Dirty::paint);
-        event.handled = true;
-        return;
+        arguments.handled = true;
     }
-    if (event.action == PointerAction::up && pressed_close_) {
+    Control::on_mouse_down(arguments);
+}
+
+void InfoBanner::on_mouse_up(MouseEventArgs& arguments) {
+    if (eligible_for_input() && closable.read() && arguments.button == PointerButton::primary && pressed_close_) {
+        const bool over = over_close(arguments.window_position);
         pressed_close_ = false;
         set_pointer_capture(false);
         invalidate(Dirty::paint);
-        event.handled = true;
+        arguments.handled = true;
         if (over) close();
     }
+    Control::on_mouse_up(arguments);
 }
 
-void InfoBanner::on_key(KeyEvent& event) {
-    if (!closable.read() || event.action != KeyAction::down) return;
-    if (event.physical_key != PhysicalKey::escape) return;
-    event.handled = true;
+void InfoBanner::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled || !closable.read() || arguments.physical_key != PhysicalKey::escape) return;
+    arguments.handled = true;
     close();
 }
 

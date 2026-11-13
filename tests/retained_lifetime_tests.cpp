@@ -1,5 +1,20 @@
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/component/component/component.hpp"
+#include "gui_forms/component/component_container/component_container.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/event/event.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 #include "support/named_callbacks.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <cstdlib>
 #include <exception>
@@ -48,17 +63,17 @@ private:
     std::uint64_t& disposal_count_;
 };
 
-class ProbeControl : public Control {
+class ProbeControl : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit ProbeControl(StableId id) : Control(std::move(id)) {}
+    explicit ProbeControl(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {}
 
-    void on_pointer(PointerEvent&) override {
+    void routed_pointer(PointerEvent&) override {
         ++pointer_events;
         if (pointer_action) {
             pointer_action();
         }
     }
-    void on_key(KeyEvent&) override { ++key_events; }
+    void routed_key(KeyEvent&) override { ++key_events; }
     void on_text_input(TextInputEvent&) override { ++text_events; }
     void on_focus_changed(bool focused) override {
         focus_state = focused;

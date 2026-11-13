@@ -9,7 +9,7 @@ gui_forms::RibbonGallery
 
 .. cpp:class:: RibbonGallery final : public Control, public RibbonGalleryCapabilities<RibbonGallery>
 
-   ``#include <gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery.hpp>``
 
    A ribbon gallery: a grid of image items in categories, in the ribbon or as a drop-down.
 
@@ -67,7 +67,7 @@ gui_forms::RibbonGallery
       **categories** : ``std::span<const RibbonGalleryCategory>``, read-only
          The categories in display order.
 
-      **items** : ``std::span<const RibbonGalleryItem>``
+      **items** : ``BorrowedSpan<RibbonGalleryItem>``
          The items. :cpp:func:`set_items <gui_forms::RibbonGallery::set_items>` replaces the categories and items: items without a
          category show first, then category by category in category order. A
          repeated ID or one that breaks the :cpp:class:`StableId <gui_forms::StableId>` segment rule, an item
@@ -258,11 +258,11 @@ gui_forms::RibbonGallery
 
       The form, fixed at construction.
 
-   .. cpp:function:: std::span<const RibbonGalleryCategory> categories() const noexcept
+   .. cpp:function:: std::span<const RibbonGalleryCategory> categories() const& noexcept
 
       The categories in display order.
 
-   .. cpp:function:: std::span<const RibbonGalleryItem> items() const noexcept
+   .. cpp:function:: BorrowedSpan<RibbonGalleryItem> items() const& noexcept
 
       The items. :cpp:func:`set_items <gui_forms::RibbonGallery::set_items>` replaces the categories and items: items without a
       category show first, then category by category in category order. A
@@ -383,10 +383,6 @@ gui_forms::RibbonGallery
 
    .. cpp:function:: void on_pointer_preview(PointerEvent& event) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -402,6 +398,30 @@ gui_forms::RibbonGallery
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -426,3 +446,117 @@ gui_forms::RibbonGallery
    .. cpp:member:: constexpr std::chrono::milliseconds preview_dwell
 
       How long the pointer or keyboard focus rests on an item before it is previewed (owner decision RB-13, E1-1). Default: ``{300}``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 7 unclassified; 25 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``can_scroll_down``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``can_scroll_up``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``categories``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``drop_down_columns``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``drop_down_rows``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``first_visible_line``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``form``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``line_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``maximum_columns``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``minimum_columns``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``more_gallery``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overlay_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_categories``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``overlay_open_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selection_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``scroll_to_line``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_range``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_drop_down_size``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_more``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``width_for_columns``
+     - unclassified (untested)

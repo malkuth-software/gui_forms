@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/host/services/host_services.hpp"
@@ -24,7 +25,7 @@ class Window;
 // HostServices::maximum_dialog_text_bytes; anything else throws
 // std::invalid_argument and changes nothing. The dialog is used on the UI
 // thread of the window it is shown over.
-class FolderBrowserDialog final : public Component, public FolderBrowserDialogCapabilities<FolderBrowserDialog> {
+class GUI_FORMS_API FolderBrowserDialog final : public Component, public FolderBrowserDialogCapabilities<FolderBrowserDialog> {
 public:
     FolderBrowserDialog();
     ~FolderBrowserDialog() override;

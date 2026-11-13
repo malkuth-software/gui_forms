@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/numeric_up_down/numeric_up_down.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
 
 #include "../up_down/spin_buttons.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
@@ -119,7 +119,7 @@ void NumericUpDownScrub::end_scrub(ScrubEnd end, double value) {
     numeric.invalidate(Dirty::paint);
 }
 
-NumericUpDown::NumericUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
+NumericUpDown::NumericUpDown(StableId stable_id) : UpDownBase(std::move(stable_id)) {
     // A field paints with the controls, not on the window's backplane as a
     // container panel does: a parent that paints its own face (a Ribbon
     // hosting it) would otherwise cover its border and spin buttons, which
@@ -294,6 +294,18 @@ void NumericUpDown::commit_editor_text() {
     committing_ = false;
 }
 
+void NumericUpDown::up_button() {
+    require_mutable();
+    const double next = std::clamp(value.read() + increment.read(), minimum.read(), maximum.read());
+    if (next != value.read()) value = next;
+}
+
+void NumericUpDown::down_button() {
+    require_mutable();
+    const double next = std::clamp(value.read() - increment.read(), minimum.read(), maximum.read());
+    if (next != value.read()) value = next;
+}
+
 void NumericUpDown::step(int direction) {
     const double next = std::clamp(value.read() + static_cast<double>(direction) * increment.read(),
                                    minimum.read(), maximum.read());
@@ -321,8 +333,18 @@ void NumericUpDown::arrange(Rect final_bounds) {
     const double inner_height = std::max(0.0, final_bounds.height - 2.0 * inset);
     const double column_width = std::min(button_width.read(), inner_width);
     const double field_width = std::max(0.0, inner_width - column_width);
-    if (editor_) set_child_layout(editor_, {inset, inset, field_width, inner_height});
-    if (spinner_) set_child_layout(spinner_, {inset + field_width, inset, column_width, inner_height});
+    // The spin column is at the right, or at the left when the control
+    // resolves right to left (Windows Forms' UpDownAlign follows
+    // RightToLeft).
+    Rect field{inset, inset, field_width, inner_height};
+    Rect column{inset + field_width, inset, column_width, inner_height};
+    if (effective_layout_direction() == LayoutDirection::right_to_left) {
+        const Rect frame{0.0, 0.0, final_bounds.width, final_bounds.height};
+        field = horizontally_mirrored(field, frame);
+        column = horizontally_mirrored(column, frame);
+    }
+    if (editor_) set_child_layout(editor_, field);
+    if (spinner_) set_child_layout(spinner_, column);
 }
 
 void NumericUpDown::on_key_preview(KeyEvent& event) {

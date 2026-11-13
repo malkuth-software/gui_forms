@@ -1,4 +1,14 @@
 #include "support.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/color_value_editor.hpp"
+#include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/command_bar.hpp"
+#include "gui_forms/controls/flags_value_editor.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/controls/property_grid.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/controls/track_bar.hpp"
 
 namespace gallery_pages_tests {
 

@@ -25,7 +25,7 @@
 #include "gui_forms/control.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "support/rgba_order.hpp"
-#include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel.hpp"
 #include "gui_forms/engine.hpp"
 #include "gui_forms/surface_material/presets/material_presets.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"

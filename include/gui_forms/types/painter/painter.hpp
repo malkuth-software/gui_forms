@@ -1,9 +1,11 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_marks/paint_marks.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/typography.hpp"
+#include "gui_forms/typography/shaping_workspace/shaping_workspace.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -25,12 +27,12 @@ struct SurfaceMaterial;
 // The command's recording owns it: a Window creates it when a control
 // records the command and releases it when that control's display chunk is
 // rebuilt or retired. A renderer fills, validates and replaces the memo.
-class RetainedDrawMemo {
+class GUI_FORMS_API RetainedDrawMemo {
 public:
     virtual ~RetainedDrawMemo() = default;
 };
 
-struct RetainedDrawCache final {
+struct GUI_FORMS_API RetainedDrawCache final {
     std::unique_ptr<RetainedDrawMemo> memo;
 };
 
@@ -73,7 +75,7 @@ enum class PaintGroupComposite : std::uint8_t { source_over, plus, multiply, scr
 //   is isolated at any opacity: a group holding a plus group must be, so
 //   that the sum is formed before it meets what lies beneath. A painter
 //   that cannot isolate (no storage) draws the group directly.
-struct PaintGroup final {
+struct GUI_FORMS_API PaintGroup final {
     Rect bounds{};
     double opacity{1.0};
     PaintGroupComposite composite{PaintGroupComposite::source_over};
@@ -88,7 +90,7 @@ inline constexpr std::size_t maximum_paint_group_depth = 4;
 // The most cells Painter::fill_checker draws one by one.
 inline constexpr std::size_t maximum_checker_cells = 65536U;
 
-class Painter : public TextMetricsProvider {
+class GUI_FORMS_API Painter : public TextMetricsProvider {
 public:
     virtual ~Painter() = default;
     // Paint groups (see PaintGroup). begin_group and end_group pair like save
@@ -233,6 +235,17 @@ public:
     // recording and Skia painters turn it.
     virtual void draw_turned_text_utf8(Point origin, std::string_view text, FontSpec font,
                                        Color color, TextOrientation orientation);
+    // One line of glyph runs a provider shaped earlier (GlyphRunsView, as a
+    // paragraph layout fills them), drawn at `origin` (the start of the
+    // baseline, as for draw_text_utf8) in `font`'s size and colour without
+    // shaping again. A painter whose own engine shaped them, in its current
+    // face table (view.source), draws exactly the pixels draw_text_utf8
+    // draws for view.text; for any other source, or runs whose glyph
+    // indices fall outside view.glyphs, it draws view.text with
+    // draw_text_utf8. That fallback is the base implementation, which the
+    // recording painter keeps (a recorded line is shaped again on replay);
+    // the Skia painter draws the runs.
+    virtual void draw_glyph_runs(Point origin, const GlyphRunsView& view, FontSpec font, Color color);
     // Text controls need the same metrics used by the painter for caret hit
     // testing, selection geometry, and horizontal viewport maintenance.  The
     // renderer owns those metrics; controls must not guess a fixed glyph width.

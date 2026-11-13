@@ -93,6 +93,18 @@ def identifier(name: str) -> str:
     return name
 
 
+# The manifest's callback typedefs (since 1.3, the class tables' gf_hook_entry
+# and gf_base_raiser), by name: C# spells each as its unmanaged function
+# pointer type, having no typedef. Filled by use_callbacks before rendering.
+CALLBACK_SIGNATURES: dict[str, dict] = {}
+
+
+def use_callbacks(manifest: dict) -> None:
+    CALLBACK_SIGNATURES.clear()
+    for callback in manifest.get("callbacks", []):
+        CALLBACK_SIGNATURES[callback["name"]] = callback
+
+
 def type_name(c_type: str, known: set[str]) -> str:
     """A C type (no arrays, no function slots) as its C# spelling."""
     text = c_type.replace("const ", "").strip()
@@ -102,6 +114,8 @@ def type_name(c_type: str, known: set[str]) -> str:
         text = text[:-1].strip()
     if text in PRIMITIVES:
         base = PRIMITIVES[text]
+    elif text in CALLBACK_SIGNATURES:
+        base = slot_type(CALLBACK_SIGNATURES[text], known)
     elif text in known:
         base = text
     else:
@@ -371,6 +385,7 @@ def cpp_table_class(struct: dict, constant: str) -> list[str]:
 
 
 def render_cpp(manifest: dict) -> str:
+    use_callbacks(manifest)
     lines = [CPP_PREAMBLE]
     for struct_name, constant in table_ids(manifest):
         lines += cpp_table_class(table_struct(manifest, struct_name), constant)
@@ -428,6 +443,7 @@ def cpp_write_or_check(manifest: dict, output: pathlib.Path, check: bool) -> int
     return failed
 
 def csharp_files(manifest: dict) -> dict[str, str]:
+    use_callbacks(manifest)
     return {
         "Aliases.g.cs": render_aliases(manifest),
         "Types.g.cs": render_types(manifest),

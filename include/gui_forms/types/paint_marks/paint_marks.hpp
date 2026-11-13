@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
@@ -32,7 +33,7 @@ inline constexpr std::size_t maximum_dash_intervals = 8U;
 // lengths; 0 (or an odd count, which is refused as solid) draws solid.
 // `dash_phase` shifts the pattern's start along the stroke (an effect moving
 // it on the motion clock animates the dashes, piece C13).
-struct StrokeStyle final {
+struct GUI_FORMS_API StrokeStyle final {
     Color color{};
     double width{1.0};
     StrokeJoin join{StrokeJoin::miter};
@@ -59,10 +60,10 @@ struct StrokeStyle final {
 // limit of at least 1, at most maximum_dash_intervals dashes, an even dash
 // count whose entries are finite, non-negative and not all zero, and a
 // finite phase.
-[[nodiscard]] bool valid_stroke_style(const StrokeStyle& style) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_stroke_style(const StrokeStyle& style) noexcept;
 
 // One independent segment of stroke_segments (no joins between segments).
-struct PaintSegment final {
+struct GUI_FORMS_API PaintSegment final {
     Point from{};
     Point to{};
 
@@ -94,7 +95,7 @@ enum class MarkerShape : std::uint8_t {
 // inside (ignored by the stroked shapes), `edge` its outline (or its lines,
 // for the stroked shapes) `edge_width` wide. A transparent colour or a zero
 // edge width draws nothing of that part.
-struct MarkerStyle final {
+struct GUI_FORMS_API MarkerStyle final {
     MarkerShape shape{MarkerShape::circle};
     double size{6.0};
     Color fill{};
@@ -107,7 +108,7 @@ struct MarkerStyle final {
     }
 };
 
-[[nodiscard]] bool valid_marker_style(const MarkerStyle& style) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_marker_style(const MarkerStyle& style) noexcept;
 
 // The most vertices a filled marker's outline has (the diamond's and the
 // square's four, the triangles' three).
@@ -117,7 +118,7 @@ inline constexpr std::size_t maximum_marker_vertices = 4U;
 // `size` centred on `center`, clockwise in y-down coordinates, and returns
 // how many it wrote; 0 for the circle and the stroked shapes, or when
 // `size` is not finite and positive.
-[[nodiscard]] std::size_t marker_outline(MarkerShape shape, Point center, double size,
+[[nodiscard]] GUI_FORMS_API std::size_t marker_outline(MarkerShape shape, Point center, double size,
                                          std::array<Point, maximum_marker_vertices>& vertices) noexcept;
 
 // The most lines a stroked marker draws (the asterisk's three).
@@ -125,13 +126,13 @@ inline constexpr std::size_t maximum_marker_lines = 3U;
 
 // Fills `lines` with the strokes of a stroked marker (cross, plus,
 // asterisk) and returns how many it wrote; 0 for the filled shapes.
-[[nodiscard]] std::size_t marker_lines(MarkerShape shape, Point center, double size,
+[[nodiscard]] GUI_FORMS_API std::size_t marker_lines(MarkerShape shape, Point center, double size,
                                        std::array<PaintSegment, maximum_marker_lines>& lines) noexcept;
 
 // An alpha checkerboard (piece C7): square cells `cell` units wide,
 // alternating `first` and `second`, with the corner of a `first` cell at
 // `anchor`, so the pattern stays put while the filled rectangle moves.
-struct CheckerPattern final {
+struct GUI_FORMS_API CheckerPattern final {
     double cell{8.0};
     Color first{};
     Color second{};
@@ -149,7 +150,7 @@ struct CheckerPattern final {
 // a pan; every `major_every`-th line counted from the origin (1: every
 // line) is a major line in `major`, the others are minor lines in `minor`.
 // Lines are `line_width` wide, centred on their positions.
-struct GridPattern final {
+struct GUI_FORMS_API GridPattern final {
     Point origin{};
     double spacing{16.0};
     std::uint32_t major_every{4U};
@@ -169,13 +170,13 @@ struct GridPattern final {
 // this squared.
 inline constexpr double minimum_grid_spacing = 2.0;
 
-[[nodiscard]] bool valid_grid_pattern(const GridPattern& pattern) noexcept;
+[[nodiscard]] GUI_FORMS_API bool valid_grid_pattern(const GridPattern& pattern) noexcept;
 
 // Seamless deep zoom for the grid (NODE_ENGINE_AND_VALUE_BAR_STUDY 2.10):
 // the grid has levels of world spacing `world_spacing * 4^k`; the level
 // shown is the one whose spacing in view units (times `zoom`) lies in
 // [minimum_spacing, maximum_spacing), which must span exactly the factor 4.
-struct GridLevelBand final {
+struct GUI_FORMS_API GridLevelBand final {
     double minimum_spacing{12.0};
     double maximum_spacing{48.0};
 };
@@ -185,7 +186,7 @@ inline constexpr double grid_level_ratio = 4.0;
 // The level chosen for one zoom: `level` is k, `minor_spacing` the level's
 // spacing in view units, and `fade` the spacing's position across the band,
 // 0 at its minimum and 1 at its maximum (linear in the spacing).
-struct GridLevel final {
+struct GUI_FORMS_API GridLevel final {
     std::int32_t level{};
     double minor_spacing{};
     double fade{};
@@ -196,7 +197,7 @@ struct GridLevel final {
 // times its minimum; otherwise, or where no level within 64 steps of 0
 // fits, the result is level 0 at `world_spacing * zoom` with fade 1. Exact:
 // a level's spacing is `world_spacing * zoom` times a power of 4.
-[[nodiscard]] GridLevel select_grid_level(double world_spacing, double zoom, GridLevelBand band) noexcept;
+[[nodiscard]] GUI_FORMS_API GridLevel select_grid_level(double world_spacing, double zoom, GridLevelBand band) noexcept;
 
 // The pattern for a chosen level, majors every 4 minor lines, so a level's
 // major lines are the next coarser level's minor lines. Minor lines fade in
@@ -204,7 +205,7 @@ struct GridLevel final {
 // toward `major` over the second (colour interpolated by 2 × fade − 1), so
 // at fade 1 they look as the majors they become at the next level: nothing
 // pops as the zoom crosses a level.
-[[nodiscard]] GridPattern grid_pattern_at_level(const GridLevel& level, Point origin, Color minor, Color major,
+[[nodiscard]] GUI_FORMS_API GridPattern grid_pattern_at_level(const GridLevel& level, Point origin, Color minor, Color major,
                                                 double line_width) noexcept;
 
 } // namespace gui_forms

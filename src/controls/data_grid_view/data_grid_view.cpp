@@ -1,4 +1,4 @@
-#include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/data_grid_view.hpp"
 #include "gui_forms/window/window.hpp"
 
 #include "../panel/input_control_utilities.hpp"
@@ -3464,7 +3464,7 @@ void DataGridView::written(const decltype(row_headers_border_style)&) {
 
 // -- input ---------------------------------------------------------------------
 
-void DataGridView::on_pointer(PointerEvent& event) {
+void DataGridView::handle_pointer(PointerEvent& event) {
     const Control::Ptr lifetime = shared_from_this();
     const Point local = point_from_window(event.position);
     const GridLayout layout = grid_layout();
@@ -3493,7 +3493,10 @@ void DataGridView::on_pointer(PointerEvent& event) {
     if (resizing_column_) {
         if (event.action == PointerAction::move) {
             const DataGridViewColumn& column = columns_[*resizing_column_];
-            const double delta = (local.x - resize_start_x_) / layout.scale;
+            // Right to left the divider is at the column's left edge, so
+            // dragging it left widens the column.
+            const double moved = layout.mirrored ? resize_start_x_ - local.x : local.x - resize_start_x_;
+            const double delta = moved / layout.scale;
             const double width = std::max(column.minimum_width, resize_start_width_ + delta);
             set_column_width(*resizing_column_, width);
         } else if (event.action == PointerAction::up) {
@@ -3693,6 +3696,48 @@ void DataGridView::on_pointer(PointerEvent& event) {
     }
 }
 
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void DataGridView::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void DataGridView::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void DataGridView::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void DataGridView::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void DataGridView::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
 void DataGridView::on_key_preview(KeyEvent& event) {
     // Keys for a text edit in progress, before the editor sees them.
     if (!editing_ || edit_kind_ != EditKind::text || event.action != KeyAction::down) return;
@@ -3725,7 +3770,7 @@ void DataGridView::on_key_preview(KeyEvent& event) {
     static_cast<void>(navigation_key(event));
 }
 
-void DataGridView::on_key(KeyEvent& event) {
+void DataGridView::handle_key(KeyEvent& event) {
     if (event.action != KeyAction::down || editing_ || !focused_) return;
     const std::uint32_t key = event.physical_key;
     const bool alt = has_modifier(event.modifiers, Modifier::alt);
@@ -3789,6 +3834,17 @@ void DataGridView::on_key(KeyEvent& event) {
     if (navigation_key(event)) event.handled = true;
 }
 
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void DataGridView::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
+}
+
 bool DataGridView::tab_key(bool backward) {
     const std::size_t count = row_count();
     const std::size_t columns = shown_order_.size();
@@ -3831,7 +3887,15 @@ bool DataGridView::navigation_key(KeyEvent& event) {
     const std::size_t count = row_count();
     const std::size_t columns = shown_order_.size();
     if (count == 0U || columns == 0U) return false;
-    const std::uint32_t key = event.physical_key;
+    // Right to left the columns read from the right: Left moves to the next
+    // column and Right to the previous one.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    std::uint32_t key = event.physical_key;
+    if (mirrored && key == PhysicalKey::left) {
+        key = PhysicalKey::right;
+    } else if (mirrored && key == PhysicalKey::right) {
+        key = PhysicalKey::left;
+    }
     const bool control = has_modifier(event.modifiers, Modifier::control);
     const bool shift = has_modifier(event.modifiers, Modifier::shift);
     const bool full_row = selection_mode.read() == DataGridViewSelectionMode::full_row_select;

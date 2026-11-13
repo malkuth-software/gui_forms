@@ -3,6 +3,7 @@
 #include "gui_forms/metrics/font_sources/bundled_font_sources.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <cstdio>
 
 namespace gui_forms {
@@ -233,11 +234,62 @@ void Metrics::record_effect_ambient_frame() noexcept {
 void Metrics::record_engine_primitive_refusal() noexcept {
     values_.engine_primitive_refusals = values_.engine_primitive_refusals + 1U;
 }
+void Metrics::record_engine_dither_degradations(std::uint64_t steps) noexcept {
+    values_.engine_dither_degradations = values_.engine_dither_degradations + steps;
+}
 void Metrics::record_engine_material_assembly() noexcept {
     values_.engine_material_assemblies = values_.engine_material_assemblies + 1U;
 }
 void Metrics::record_paint_group_refusals(std::uint64_t refusals) noexcept {
     values_.paint_group_refusals = values_.paint_group_refusals + refusals;
+}
+
+namespace {
+
+// The longest stable identity a refusal line prints; a longer one is cut
+// there, so the printed length always fits printf's int.
+constexpr std::size_t maximum_reported_identity_bytes = 256U;
+
+int reported_length(std::string_view text) noexcept {
+    const std::size_t shown = std::min(text.size(), maximum_reported_identity_bytes);
+    return static_cast<int>(shown);
+}
+
+// Whether a count going from `before` to `after` reached a new power of
+// two (1, 2, 4, 8...): the refusals a diagnostic line is printed for.
+bool reached_power_of_two(std::uint64_t before, std::uint64_t after) noexcept {
+    const bool reached = std::bit_width(after) > std::bit_width(before);
+    return reached;
+}
+
+} // namespace
+
+void Metrics::record_layout_arrange_refusal(std::string_view arranged, std::string_view arranging) noexcept {
+    const std::uint64_t before = values_.layout_arrange_refusals;
+    values_.layout_arrange_refusals = before + 1U;
+    if (!reached_power_of_two(before, values_.layout_arrange_refusals)) return;
+    std::fprintf(stderr,
+                 "gui-forms-diagnostic=arrange_outside_slot|arranged:%.*s|arranging:%.*s|refusals:%llu|"
+                 "a custom layout publishes a child's slot with set_child_layout and arranges only itself "
+                 "(arrange_self); the arrangement was refused\n",
+                 reported_length(arranged), arranged.data(), reported_length(arranging), arranging.data(),
+                 static_cast<unsigned long long>(values_.layout_arrange_refusals));
+    std::fflush(stderr);
+}
+
+void Metrics::record_stale_image_refusals(std::string_view operation, std::uint64_t image,
+                                          std::uint64_t refusals) noexcept {
+    if (refusals == 0U) return;
+    const std::uint64_t before = values_.stale_image_refusals;
+    values_.stale_image_refusals = before + refusals;
+    if (!reached_power_of_two(before, values_.stale_image_refusals)) return;
+    std::fprintf(stderr,
+                 "gui-forms-diagnostic=stale_image_id|operation:%.*s|image:%llu|refusals:%llu|"
+                 "a replace or a generation-advancing patch returns the image id that replaces the one "
+                 "passed in; the old id was refused\n",
+                 reported_length(operation), operation.data(), static_cast<unsigned long long>(image),
+                 static_cast<unsigned long long>(values_.stale_image_refusals));
+    std::fflush(stderr);
 }
 namespace {
 

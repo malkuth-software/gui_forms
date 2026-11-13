@@ -1,4 +1,10 @@
 #include "pages.hpp"
+#include "gui_forms/controls/command_bar.hpp"
+#include "gui_forms/controls/command_overflow_panel.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/master_detail_view.hpp"
+#include "gui_forms/controls/master_detail_view_values.hpp"
+#include "gui_forms/controls/track_bar.hpp"
 
 #include "responsive-layouts_form.hpp"
 

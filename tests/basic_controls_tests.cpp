@@ -1,6 +1,6 @@
 #include "gui_forms/basic_controls.hpp"
-#include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
-#include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
+#include "gui_forms/controls/scaled_group_box.hpp"
+#include "gui_forms/controls/scaled_panel.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/diagnostic_controls.hpp"
@@ -9,6 +9,7 @@
 #include "../src/controls/basic/basic_control_rendering.hpp"
 #include "support/named_callbacks.hpp"
 #include "support/professional_theme.hpp"
+#include "../src/core/control/control/control_input_access.hpp"
 
 #include <algorithm>
 #include <array>
@@ -533,7 +534,7 @@ void test_button_authored_state_recipes_are_owned_and_retained() {
 
     PointerEvent enter{};
     enter.action = PointerAction::enter;
-    (*button).on_pointer(enter);
+    gui_forms::detail::ControlInputAccess::on_pointer(*button, enter);
     RecordingPainter hot_painter{};
     (*button).on_paint(hot_painter, (*button).absolute_bounds());
     require(hot_painter.last_fill_color == hot_color,
@@ -543,7 +544,7 @@ void test_button_authored_state_recipes_are_owned_and_retained() {
     down.action = PointerAction::down;
     down.button = PointerButton::primary;
     down.position = center(button);
-    (*button).on_pointer(down);
+    gui_forms::detail::ControlInputAccess::on_pointer(*button, down);
     RecordingPainter pressed_painter{};
     (*button).on_paint(pressed_painter, (*button).absolute_bounds());
     require(pressed_painter.last_fill_color == pressed_color,
@@ -1895,7 +1896,7 @@ void test_image_list_state_density_ownership_and_button_layout() {
 
     PointerEvent enter{};
     enter.action = PointerAction::enter;
-    (*button).on_pointer(enter);
+    gui_forms::detail::ControlInputAccess::on_pointer(*button, enter);
     RecordingPainter hot{};
     (*button).on_paint(hot, {0.0, 0.0, 150.0, 36.0});
     require(hot.images.size() == 1U && hot.images.front() == hot_1x,
@@ -1903,7 +1904,7 @@ void test_image_list_state_density_ownership_and_button_layout() {
 
     PointerEvent leave{};
     leave.action = PointerAction::leave;
-    (*button).on_pointer(leave);
+    gui_forms::detail::ControlInputAccess::on_pointer(*button, leave);
     window.set_scale(2.0);
     RecordingPainter dense{};
     (*button).on_paint(dense, {0.0, 0.0, 150.0, 36.0});

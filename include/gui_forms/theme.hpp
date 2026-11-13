@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
+#include "gui_forms/theme/canvas_look/canvas_look.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/familiar_themes/familiar_themes.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"

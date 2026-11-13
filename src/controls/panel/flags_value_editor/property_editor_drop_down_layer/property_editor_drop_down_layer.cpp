@@ -11,12 +11,12 @@ PropertyEditorDropDownLayer::PropertyEditorDropDownLayer(StableId stable_id)
     set_background(Color::rgba(0, 0, 0, 0));
 }
 
-void PropertyEditorDropDownLayer::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::down &&
-        event.button == PointerButton::primary) {
+void PropertyEditorDropDownLayer::on_mouse_down(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary) {
         dismissed_.emit();
-        event.handled = true;
+        arguments.handled = true;
     }
+    Control::on_mouse_down(arguments);
 }
 
 void PropertyEditorDropDownLayer::on_key_preview(KeyEvent& event) {

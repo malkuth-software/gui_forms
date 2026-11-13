@@ -1,4 +1,4 @@
-#include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
+#include "gui_forms/controls/help_book_system.hpp"
 
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
@@ -32,21 +32,22 @@ public:
         focusable = true;
     }
 
-    void on_pointer(PointerEvent& event) override {
-        if (event.action != PointerAction::down) return;
-        event.handled = true;
-        if (event.button != PointerButton::primary) {
+    void on_mouse_down(MouseEventArgs& arguments) override {
+        arguments.handled = true;
+        if (arguments.button != PointerButton::primary) {
             (*system_).cancel_help_mode();
-            return;
+        } else {
+            // The layer covers the client from its origin: its points are
+            // the window's.
+            (*system_).on_pick(*window_, arguments.window_position);
         }
-        // The layer covers the client from its origin: its points are the
-        // window's.
-        (*system_).on_pick(*window_, event.position);
+        Control::on_mouse_down(arguments);
     }
 
-    void on_key(KeyEvent& event) override {
-        if (event.action != KeyAction::down || event.physical_key != PhysicalKey::escape) return;
-        event.handled = true;
+    void on_key_down(KeyEventArgs& arguments) override {
+        Control::on_key_down(arguments);
+        if (arguments.handled || arguments.physical_key != PhysicalKey::escape) return;
+        arguments.handled = true;
         (*system_).cancel_help_mode();
     }
 
@@ -171,7 +172,7 @@ bool HelpKeyCallback::operator()() const {
 }
 
 HelpBookSystem::HelpBookSystem(HelpBookSystemOptions options)
-    : options_(std::move(options)), window_(options_.stable_id + ".window") {
+    : options_(std::move(options)), locale_(options_.built_in_language), window_(options_.stable_id + ".window") {
     on(window_.created(), *this, &HelpBookSystem::on_window_viewer_created);
 }
 
@@ -182,27 +183,72 @@ HelpBookSystem::~HelpBookSystem() {
     window_.close();
 }
 
-HelpLocaleReadResult HelpBookSystem::load_built_in(std::string_view locale_xml) {
-    HelpLocaleReadResult result = read_help_locale(locale_xml);
-    if (!result) return result;
-    catalog_.built_in().merge_over(result.records);
+void HelpBookSystem::refresh_catalog() { catalog_.adopt_locale(locale_); }
+
+bool HelpBookSystem::refresh_program_values() {
+    LocaleLayer program;
+    for (const Attachment& attachment : attachments_) append_control_help_fields(*attachment.window, program);
+    const bool changed = locale_.set_program_values(std::move(program));
+    if (changed) refresh_catalog();
+    return changed;
+}
+
+LocaleReadResult HelpBookSystem::load_built_in(std::string_view locale_xml) {
+    LocaleReadResult result = locale_.load_built_in(locale_xml);
+    if (result) refresh_catalog();
     return result;
 }
 
-HelpLocaleReadResult HelpBookSystem::load_translation(std::string_view locale_xml) {
-    HelpLocaleReadResult result = read_help_locale(locale_xml);
-    if (!result) return result;
-    catalog_.set_translation(result.records, result.language);
+LocaleReadResult HelpBookSystem::load_translation(std::string_view locale_xml) {
+    LocaleReadResult result = locale_.load_translation(locale_xml);
+    if (result) refresh_catalog();
     return result;
+}
+
+LocaleReadResult HelpBookSystem::load_user_overrides(std::string_view locale_xml) {
+    LocaleReadResult result = locale_.load_user_overrides(locale_xml);
+    if (result) refresh_catalog();
+    return result;
+}
+
+void HelpBookSystem::clear_user_overrides() {
+    locale_.clear_user_overrides();
+    refresh_catalog();
 }
 
 void HelpBookSystem::use_built_in_language(bool built_in_only) {
-    catalog_.set_built_in_only(built_in_only);
+    locale_.set_built_in_only(built_in_only);
+    refresh_catalog();
     external_section_ = false;
     compile();
 }
 
+XmlWriteResult HelpBookSystem::export_template(std::string_view language) {
+    static_cast<void>(refresh_program_values());
+    LocaleLayer records;
+    put_declared_topics(records);
+    LocaleLayer authored;
+    locale_template_records(locale_, language, authored);
+    records.merge_over(authored);
+    LocaleFileInfo info{};
+    info.language = language.empty() ? locale_.built_in_language() : std::string(language);
+    const LocaleFileInfo& translation = locale_.translation_info();
+    if (info.language == translation.language) {
+        info.name = translation.name;
+        info.direction = translation.direction;
+    }
+    const XmlWriteResult written = write_locale(records, info);
+    return written;
+}
+
+LocaleResolvedField HelpBookSystem::resolve_field(std::string_view stable_id, LocaleField field) {
+    static_cast<void>(refresh_program_values());
+    LocaleResolvedField resolved = locale_.resolve(stable_id, field);
+    return resolved;
+}
+
 const HelpBookCompileResult& HelpBookSystem::compile() {
+    static_cast<void>(refresh_program_values());
     std::vector<HelpSkeletonNode> skeleton;
     for (const Attachment& attachment : attachments_) append_help_skeleton(*attachment.window, skeleton);
     std::vector<HelpTopicPlacement> topics;
@@ -230,6 +276,7 @@ void HelpBookSystem::set_section(std::shared_ptr<const HelpBookSection> section)
 }
 
 std::shared_ptr<const HelpBookSection> HelpBookSystem::section() {
+    if (!external_section_) static_cast<void>(refresh_program_values());
     if (!external_section_ && (!compiled_once_ || catalog_.revision() != compiled_revision_)) compile();
     return section_;
 }

@@ -34,6 +34,7 @@
 // published_value_invalid (E606), and more than maximum_imports imports
 // is too_many_imports (E506).
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/integrity/sha256/sha256.hpp"
 #include "../../json/json_reader/json_reader.hpp"
 #include "../diagnostics/theme_diagnostics.hpp"
@@ -132,9 +133,9 @@ enum class ThemeManifestOutcome : std::uint8_t { read, refused };
                                                        ThemeManifest& manifest, ThemeManifestProblem& problem);
 
 // The SHA-256 of `bytes` (main's first-party implementation).
-[[nodiscard]] Sha256Digest package_sha256(std::string_view bytes) noexcept;
+[[nodiscard]] GUI_FORMS_API Sha256Digest package_sha256(std::string_view bytes) noexcept;
 // A digest as the manifest writes it: 64 lowercase hexadecimal digits.
-[[nodiscard]] std::string package_sha256_hex(const Sha256Digest& digest);
+[[nodiscard]] GUI_FORMS_API std::string package_sha256_hex(const Sha256Digest& digest);
 
 // `>=X.Y`: X and Y decimal, without a sign or a leading zero, each at most
 // 65535; none for anything else (C8: a lower bound only).

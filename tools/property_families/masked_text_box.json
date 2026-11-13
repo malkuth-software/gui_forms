@@ -2,13 +2,13 @@
   "family": "MaskedTextBox",
   "step": "B3",
   "declaring": "MaskedTextBox",
-  "header": "include/gui_forms/controls/panel/masked_text_box/masked_text_box.hpp",
+  "header": "include/gui_forms/controls/masked_text_box.hpp",
   "source": "src/controls/panel/masked_text_box/masked_text_box.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/masked_text_box/masked_text_box_capabilities/masked_text_box_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/masked_text_box_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [
-    "gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp"
+    "gui_forms/controls/masked_text_provider.hpp"
   ],
   "properties": [
     {
@@ -296,6 +296,6 @@
   ],
   "test": {
     "type": "MaskedTextBox",
-    "include": "gui_forms/controls/panel/masked_text_box/masked_text_box.hpp"
+    "include": "gui_forms/controls/masked_text_box.hpp"
   }
 }

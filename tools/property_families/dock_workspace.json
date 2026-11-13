@@ -2,13 +2,13 @@
   "family": "DockWorkspace",
   "step": "M-S8",
   "declaring": "DockWorkspace",
-  "header": "include/gui_forms/controls/docking/dock_workspace/dock_workspace.hpp",
+  "header": "include/gui_forms/controls/dock_workspace.hpp",
   "source": "src/controls/docking/dock_workspace/dock_workspace.cpp",
-  "capabilities_header": "include/gui_forms/controls/docking/dock_workspace/dock_workspace_capabilities/dock_workspace_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/dock_workspace_capabilities.hpp",
   "shared": [],
   "mutation_check": null,
   "includes": [
-    "gui_forms/controls/docking/dock_workspace/dock_workspace_values/dock_workspace_values.hpp"
+    "gui_forms/controls/dock_workspace_values.hpp"
   ],
   "properties": [
     {

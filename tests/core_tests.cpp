@@ -1,4 +1,31 @@
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/component/component/component.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/control_layout_styles/control_layout_styles.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/control/static_tree/control_factory/control_factory.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/display/types/display_types.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
+#include "gui_forms/feedback/types/feedback_types.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/value/value.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/update_scope/update_scope.hpp"
+#include "gui_forms/window/window.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <cstdlib>
 #include <exception>
@@ -42,9 +69,9 @@ public:
     std::vector<Color> fill_colors;
 };
 
-class ProbeControl : public Control {
+class ProbeControl : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    explicit ProbeControl(StableId id) : Control(std::move(id)) {}
+    explicit ProbeControl(StableId id) : gui_forms::tests::RoutedInputProbe<Control>(std::move(id)) {}
 
     Size measure(Size available) override {
         ++measure_count;
@@ -68,7 +95,7 @@ public:
         }
     }
 
-    void on_pointer(PointerEvent& event) override {
+    void routed_pointer(PointerEvent& event) override {
         phases.push_back(event.phase);
         if (event.action == PointerAction::up && release_callback) {
             release_callback();
@@ -83,7 +110,7 @@ public:
         focus_state = focused;
     }
 
-    void on_key(KeyEvent& event) override {
+    void routed_key(KeyEvent& event) override {
         if (handle_key) event.handled = true;
     }
 
@@ -997,12 +1024,12 @@ static_assert(!valid_stable_id("") && !valid_stable_id("list_view") && !valid_st
               !valid_stable_id("a.-b") && !valid_stable_id("a b") && !valid_stable_id("caf\xc3\xa9"));
 
 void test_stable_id_rule() {
-    require(StableId(std::string("list-view.item.7")).value() == "list-view.item.7",
-            "a valid runtime stable ID keeps its spelling");
+    const StableId runtime_string(std::string("list-view.item.7"));
+    require(runtime_string.value() == "list-view.item.7", "a valid runtime stable ID keeps its spelling");
     require(StableId("paint.editor") == StableId(std::string("paint.editor")),
             "a literal and a runtime string with one spelling are one stable ID");
-    require(StableId(std::string_view("tab-page.panel")).value() == "tab-page.panel",
-            "a runtime std::string_view is checked like a std::string");
+    const StableId runtime_view(std::string_view("tab-page.panel"));
+    require(runtime_view.value() == "tab-page.panel", "a runtime std::string_view is checked like a std::string");
     for (const char* invalid : {"", "list_view", "Upper", "a..b", "trailing.", "a--b", "tab\tid"}) {
         bool refused = false;
         try {
@@ -1034,6 +1061,27 @@ void test_static_tree_factory() {
     Window window(root, {100.0, 50.0});
     require(window.find("static.child") != nullptr,
             "compiled static description must retain stable child ID");
+}
+
+// A description built in code is copied and destroyed without recursing
+// per level (HOUSE_STYLE section 1): a chain deep enough that a recursive
+// teardown would exhaust an 8 MiB stack.
+void test_static_node_deep_copy_and_teardown() {
+    constexpr std::size_t deep = 200000U;
+    StaticNode current{"probe", "static.deep", {0.0, 0.0, 10.0, 10.0}};
+    for (std::size_t level = 1U; level < deep; ++level) {
+        StaticNode parent{"probe", "static.deep", {0.0, 0.0, 10.0, 10.0}};
+        parent.children.push_back(std::move(current));
+        current = std::move(parent);
+    }
+    const StaticNode copy = current;
+    std::size_t copied_levels = 0U;
+    const StaticNode* walk = &copy;
+    while (walk != nullptr) {
+        ++copied_levels;
+        walk = (*walk).children.empty() ? nullptr : &(*walk).children.front();
+    }
+    require(copied_levels == deep, "a deep description copies every level");
 }
 
 void test_cursor_inheritance_and_override() {
@@ -1476,6 +1524,7 @@ int main() {
         test_stable_ids_and_detached_lifetime();
         test_stable_id_rule();
         test_static_tree_factory();
+        test_static_node_deep_copy_and_teardown();
         test_cursor_inheritance_and_override();
         test_control_identity_geometry_constraints_and_z_order();
         test_damage_and_idle_metrics();

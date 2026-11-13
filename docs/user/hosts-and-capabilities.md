@@ -20,7 +20,7 @@ whole record for logs.
 | Capability | Meaning | macOS | Windows | Linux X11 |
 |---|---|:-:|:-:|:-:|
 | `lifecycle` | attach, activation, close, shutdown events | yes | yes | yes |
-| `scale_notifications` | logical scale changes at run time | yes | yes | no |
+| `scale_notifications` | logical scale changes at run time | yes | yes | yes |
 | `monitor_geometry` | monitor and work-area records and change events | yes | yes | yes |
 | `occlusion` | window hidden/exposed notifications that gate painting | yes | no | yes |
 | `scheduled_wake` | timed wake for frames and timers | yes | yes | yes |
@@ -349,12 +349,26 @@ Linux (X11)
   whole; editable text ranges are not implemented.
   The CPU raster is presented through X11 images. There is no Wayland adapter;
   Wayland sessions run the X11 host through XWayland.
-  The host renders at scale 1: it reads no `Xft.dpi` or per-monitor scale,
-  so on a high-density X11 display the interface draws at its 96 DPI size
-  (audit N66, open). Monitors come from RandR 1.5 (`XRRGetMonitors`) where
-  the build found libXrandr and the server offers it, one record per
-  monitor named by its output (`DP-1`), each with scale 1 and its work area
-  clipped to `_NET_WORKAREA`; otherwise the default screen is one monitor.
+  The device scale comes from `Xft.dpi` (audit N66, option a): the
+  XSETTINGS manager's `Xft/DPI` first, then the resource database's
+  `Xft.dpi` (the root window's `RESOURCE_MANAGER`, as `xrdb` writes it),
+  else 96. The scale is that density divided by 96, never below 1 and at
+  most 4, as on Windows; `Xft.dpi: 192` is scale 2, 144 is 1.5. X11 states
+  one density for the whole desktop, so every monitor carries the same
+  scale; a window takes the scale of the monitor holding its centre. The
+  window's raster, native size, frame and accessibility extents are in
+  device pixels at that scale, and pointer, expose and drop positions are
+  converted to logical units where they arrive. A changed density (a new
+  `Xft/DPI` from the manager, or `xrdb -merge`) reports the monitors again
+  and sends each window a scale notification: the native window is resized
+  to keep its logical size and the whole window re-rasters, the path a move
+  onto a monitor of another scale takes. The splashscreen shown before the
+  run reads the same scale once when it opens and presents at the logical
+  size times it. Monitors come from RandR 1.5
+  (`XRRGetMonitors`) where the build found libXrandr and the server offers
+  it, one record per monitor named by its output (`DP-1`), each with the
+  desktop's scale and its work area clipped to `_NET_WORKAREA`; otherwise
+  the default screen is one monitor.
   One loop turn takes at most 32 X events or 4 ms before the windows update,
   as the Windows host's turn does, and drops a pointer motion that a later
   queued motion for the same window replaces (audit N68).

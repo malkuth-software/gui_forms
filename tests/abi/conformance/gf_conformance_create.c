@@ -6,9 +6,11 @@
 
 /* The types create refuses: those that need another object (create_with
  * makes them), the components a window owns, the service, the abstract
- * gauge base, and the window (windows.create makes it). */
+ * bases (the gauges', the text, list and up-down controls'), and the window
+ * (windows.create makes it). */
 static const char* const refused_by_create[] = {
     "anchored_overlay_layer", "dock_site", "page_strip", "gauge_base",
+    "text_box_base", "list_control", "up_down_base",
     "color_command", "font_command", "gallery_command",
     "background_worker", "binding", "binding_context", "binding_source", "error_provider",
     "help_provider", "image_list", "notify_icon", "ribbon_tool_tip", "semantic_feedback",
@@ -18,13 +20,16 @@ static const char* const refused_by_create[] = {
 };
 
 /* Of those, the ones neither slot makes: a binding (bindings.bind makes
- * one), the service, a toast (it needs its content) and the gauge base (its
- * gauges are made instead). */
+ * one), the service, a toast (it needs its content) and the abstract bases
+ * (their derived controls are made instead). */
 static const char* const made_by_neither[] = {
     "binding",
     "gauge_base",
+    "list_control",
     "live_surface",
+    "text_box_base",
     "toast",
+    "up_down_base",
 };
 
 /* Of those, the components bound to a window. */

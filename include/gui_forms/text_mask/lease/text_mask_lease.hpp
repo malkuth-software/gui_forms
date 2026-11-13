@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/text_mask/types/text_mask_types.hpp"
 #include <memory>
 #include <span>
@@ -8,7 +9,7 @@ namespace gui_forms {
 namespace detail { struct TextMaskStorage; struct TextMaskAccess; }
 
 // Copying retains immutable storage; all views require a surviving owner.
-class TextMaskLease final {
+class GUI_FORMS_API TextMaskLease final {
 public:
     [[nodiscard]] bool has_value() const noexcept;
     [[nodiscard]] std::span<const std::uint8_t> coverage() const noexcept;

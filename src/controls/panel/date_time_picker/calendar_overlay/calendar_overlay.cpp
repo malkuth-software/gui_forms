@@ -47,7 +47,7 @@ void CalendarOverlay::on_paint(Painter& painter, Rect) {
     label.bounds = {40.0 * s, 8.0 * s, std::max(0.0, body.width - 80.0 * s), 24.0 * s};
     const std::string title = provider_.month_names[display_month_ - 1U] + " " +
                               std::to_string(display_year_);
-    label.text = title;
+    label.text = lend_paint_text(title);
     paint_part(painter, *this, label);
     label.text = {};
 
@@ -79,7 +79,7 @@ void CalendarOverlay::on_paint(Painter& painter, Rect) {
     for (std::size_t column = 0U; column < narrow_days.size(); ++column) {
         const Rect cell = calendar_detail::month_grid_cell_bounds(calendar_overlay_grid, column, s);
         label.bounds = {cell.x, 44.0 * s, cell.width, 18.0 * s};
-        label.text = narrow_days[column];
+        label.text = lend_paint_text(narrow_days[column]);
         paint_part(painter, *this, label);
     }
     label.text = {};
@@ -108,7 +108,7 @@ void CalendarOverlay::on_paint(Painter& painter, Rect) {
         day.font = selected ? selected_font : day_font;
         day.tone = in_month || selected ? PartTextTone::ordinary : PartTextTone::secondary;
         const std::string number = std::to_string(date.day);
-        day.text = number;
+        day.text = lend_paint_text(number);
         paint_part(painter, *this, day);
         day.text = {};
         if (focused_ && selected) {
@@ -125,7 +125,7 @@ void CalendarOverlay::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, rule);
     label.alignment = PartTextAlignment::start;
     label.font = effective_font({FontRole::content, 9.0, 400, false});
-    label.text = "Arrows move · Enter selects · Esc cancels";
+    label.text = lend_paint_text("Arrows move · Enter selects · Esc cancels");
     paint_text_part_at(painter, *this, label, {10.0 * s, 248.0 * s}, std::max(0.0, body.width - 20.0 * s));
 }
 

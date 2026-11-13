@@ -121,6 +121,16 @@ if(GUI_FORMS_STX_PACKAGE_TEXT)
     set(HB_BUILD_GPU OFF CACHE BOOL "" FORCE)
     add_subdirectory("${_stx_third_party}/harfbuzz" third_party/harfbuzz)
     unset(SKIP_INSTALL_ALL)
+    # HarfBuzz's heap calls go through counting functions linked into its own
+    # archive (cmake/stx_text_allocation/stx_text_allocation.h): the C heap,
+    # counted per thread, so the text engine's tests can show a shaping that
+    # allocates nothing (paragraph layout's zero-allocation test).
+    set(_stx_text_allocation "${_stx_gui_cmake}/stx_text_allocation")
+    target_sources(harfbuzz PRIVATE "${_stx_text_allocation}/stx_harfbuzz_allocation.c")
+    target_include_directories(harfbuzz PRIVATE "${_stx_text_allocation}")
+    target_compile_definitions(harfbuzz PRIVATE
+        hb_malloc_impl=stx_text_hb_malloc hb_calloc_impl=stx_text_hb_calloc
+        hb_realloc_impl=stx_text_hb_realloc hb_free_impl=stx_text_hb_free)
 
     # FreeType's headers: the source include tree without its internal headers,
     # then the configured ftconfig.h and ftoption.h the build generated (the
@@ -151,14 +161,20 @@ if(GUI_FORMS_STX_PACKAGE_TEXT)
     list(REMOVE_DUPLICATES _stx_harfbuzz_headers)
     install(FILES ${_stx_harfbuzz_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/harfbuzz)
 
-    # SheenBidi, the text engine's bidirectional algorithm.
-    add_library(stx_text_sheenbidi STATIC "${_stx_third_party}/sheenbidi/Source/SheenBidi.c")
+    # SheenBidi, the text engine's bidirectional algorithm: its unmodified
+    # unity build, compiled through a unit that sends its heap calls to an
+    # arena a caller may install, or to the C heap, counted per thread
+    # (stx_text_allocation.h, installed beside SheenBidi's headers).
+    add_library(stx_text_sheenbidi STATIC "${_stx_text_allocation}/stx_sheenbidi_allocation.c")
     target_include_directories(stx_text_sheenbidi PUBLIC
         $<BUILD_INTERFACE:${_stx_third_party}/sheenbidi/Headers>
+        $<BUILD_INTERFACE:${_stx_text_allocation}>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+    target_include_directories(stx_text_sheenbidi PRIVATE "${_stx_third_party}/sheenbidi/Source")
     target_compile_definitions(stx_text_sheenbidi PRIVATE SB_CONFIG_UNITY)
     set_target_properties(stx_text_sheenbidi PROPERTIES EXPORT_NAME sheenbidi POSITION_INDEPENDENT_CODE ON)
     install(DIRECTORY "${_stx_third_party}/sheenbidi/Headers/" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install(FILES "${_stx_text_allocation}/stx_text_allocation.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
     # UAX #14 line breaking (libunibreak 8.0): the line-break subset the text
     # engine links, and the upstream conformance driver, which also needs the

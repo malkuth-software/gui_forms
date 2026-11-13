@@ -272,7 +272,7 @@ void PlotLiveFrame::report(const PlotEngineOutcome& outcome) {
     }
 }
 
-void PlotLiveFrame::on_pointer(PointerEvent& event) {
+void PlotLiveFrame::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     gather();
     const Rect absolute = absolute_bounds();
@@ -288,7 +288,49 @@ void PlotLiveFrame::on_pointer(PointerEvent& event) {
     report(outcome);
 }
 
-void PlotLiveFrame::on_key(KeyEvent& event) {
+// The mouse raisers hand the target phase to handle_pointer, whose
+// handling predates the raisers and reads the routed form.
+void PlotLiveFrame::on_mouse_down(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_down(arguments);
+}
+
+void PlotLiveFrame::on_mouse_up(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_up(arguments);
+}
+
+void PlotLiveFrame::on_mouse_move(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_move(arguments);
+}
+
+void PlotLiveFrame::on_mouse_wheel(MouseEventArgs& arguments) {
+    PointerEvent event = pointer_event_of(arguments);
+    handle_pointer(event);
+    arguments.handled = event.handled;
+    if (!is_alive()) return;
+    Control::on_mouse_wheel(arguments);
+}
+
+void PlotLiveFrame::on_mouse_leave() {
+    PointerEvent leave{};
+    leave.action = PointerAction::leave;
+    handle_pointer(leave);
+    if (!is_alive()) return;
+    Control::on_mouse_leave();
+}
+
+void PlotLiveFrame::handle_key(KeyEvent& event) {
     if (!eligible_for_input()) return;
     gather();
     const PlotEngineOutcome outcome = engine_.key(event, gathered_);
@@ -296,6 +338,25 @@ void PlotLiveFrame::on_key(KeyEvent& event) {
     event.handled = true;
     if (outcome.repaint) invalidate(Dirty::paint);
     report(outcome);
+}
+
+// The key raisers raise the event first; an unhandled key reaches
+// handle_key, whose handling predates the raisers and reads the routed
+// form.
+void PlotLiveFrame::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (arguments.handled) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::down);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
+}
+
+void PlotLiveFrame::on_key_up(KeyEventArgs& arguments) {
+    Control::on_key_up(arguments);
+    if (arguments.handled || arguments.released_by_deactivation) return;
+    KeyEvent event = key_event_of(arguments, KeyAction::up);
+    handle_key(event);
+    if (event.handled) arguments.handled = true;
 }
 
 // -- content ---------------------------------------------------------------------------

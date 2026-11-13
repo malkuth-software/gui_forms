@@ -1,4 +1,9 @@
 #include "page_tests.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/drop_down_button.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/ribbon.hpp"
 
 namespace gallery_pages_tests {
 

@@ -86,7 +86,7 @@ struct ApplicationHandleAccess final {
 // native popups owned by it (Window::open_native_popup). The model
 // keeps only a weak reference. Called by every adapter when the window
 // becomes ready, before its ready callback.
-void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept;
+GUI_FORMS_API void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept;
 
 // ApplicationWindowHandle::show and hide for a floating window: the request
 // goes to the run's floating policy (HostWindowing::set_visible), which

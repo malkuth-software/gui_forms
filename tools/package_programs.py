@@ -141,6 +141,10 @@ class Program:
     automation_flag: str | None
     smoke: dict[str, Any]
     platforms: dict[str, PlatformEntry]
+    # Whether the package carries the Noto fallback faces and their licences
+    # (fonts.fallback_files / fallback_notices): each program chooses. The
+    # runtime works without them, falling back as for any missing face.
+    fallback_fonts: bool
 
 
 @dataclass(frozen=True)
@@ -154,6 +158,20 @@ class Manifest:
             if program.id == identifier:
                 return program
         raise KeyError(identifier)
+
+    def font_files(self, program: Program) -> list[str]:
+        """The faces `program`'s package carries."""
+        fallback = self.fonts["fallback_files"] if program.fallback_fonts else []
+        return self.fonts["files"] + fallback
+
+    def font_notices(self, program: Program) -> list[str]:
+        """The font notices `program`'s package carries."""
+        fallback = self.fonts["fallback_notices"] if program.fallback_fonts else []
+        return self.fonts["notices"] + fallback
+
+    def fallback_font_names(self) -> list[str]:
+        """Every fallback face and notice, which a package without them must not hold."""
+        return self.fonts["fallback_files"] + self.fonts["fallback_notices"]
 
 
 @dataclass(frozen=True)
@@ -193,10 +211,13 @@ def validate_manifest(data: dict[str, Any]) -> Manifest:
     fonts = data.get("fonts")
     _require(isinstance(fonts, dict), "manifest: 'fonts' must be an object")
     _string(fonts, "source", "fonts")
-    for key in ("files", "notices"):
+    for key in ("files", "notices", "fallback_files", "fallback_notices"):
         files = fonts.get(key)
         _require(isinstance(files, list) and files and all(isinstance(name, str) and name for name in files),
                  f"fonts: '{key}' must be a non-empty list of file names")
+    primary = set(fonts["files"]) | set(fonts["notices"])
+    _require(not primary & (set(fonts["fallback_files"]) | set(fonts["fallback_notices"])),
+             "fonts: a fallback face or notice is also listed as a primary one")
     programs_data = data.get("programs")
     _require(isinstance(programs_data, list) and programs_data, "manifest: 'programs' must be a non-empty list")
     programs: list[Program] = []
@@ -213,6 +234,8 @@ def validate_manifest(data: dict[str, Any]) -> Manifest:
         display = _string(record, "display_name", where) or ""
         description = _string(record, "description", where) or ""
         _require(isinstance(record.get("enabled"), bool), where + ": 'enabled' must be a boolean")
+        _require(isinstance(record.get("fallback_fonts"), bool),
+                 where + ": 'fallback_fonts' must be a boolean (whether the package carries the fallback faces)")
         status = _string(record, "status", where, optional=True) or ""
         required = record.get("required_platforms", [])
         _require(isinstance(required, list) and all(name in PLATFORMS for name in required),
@@ -257,9 +280,11 @@ def validate_manifest(data: dict[str, Any]) -> Manifest:
             _require(name in entries, f"{where}: required platform {name} has no platform entry")
             _require(not entries[name].planned, f"{where}: required platform {name} cannot be a planned target")
         programs.append(Program(identifier, display, description, bool(record["enabled"]), status,
-                                tuple(required), automation, dict(smoke), entries))
+                                tuple(required), automation, dict(smoke), entries, bool(record["fallback_fonts"])))
     return Manifest({key: str(value) for key, value in vendor.items()},
-                    {"source": [fonts["source"]], "files": list(fonts["files"]), "notices": list(fonts["notices"])},
+                    {"source": [fonts["source"]], "files": list(fonts["files"]), "notices": list(fonts["notices"]),
+                     "fallback_files": list(fonts["fallback_files"]),
+                     "fallback_notices": list(fonts["fallback_notices"])},
                     tuple(programs))
 
 
@@ -353,6 +378,46 @@ STX_PREFIX: str = "$STX"
 STX_PACKAGE_VARIABLES: tuple[str, ...] = ("GUI_FORMS_STX_PREFIX", "GUI_FORMS_STX_PACKAGE_DIR")
 STX_LOCK_PATH: Path = ROOT / "stx.lock"
 STX_OVERRIDE_VARIABLE: str = "FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX"
+
+
+# stx_btree's notices ($STX_AUXLIB/btree/...) come from the stx_auxlib source the
+# build took its headers from (stx_auxlib.lock; cmake/StxAuxlib.cmake).
+STX_AUXLIB_PREFIX: str = "$STX_AUXLIB"
+STX_AUXLIB_SOURCE_VARIABLES: tuple[str, ...] = ("FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX_AUXLIB", "GUI_FORMS_STX_AUXLIB_SOURCE_DIR")
+
+
+def _is_stx_auxlib_source(directory: Path) -> bool:
+    marker: Path = directory / "btree" / "include" / "stx_btree" / "row_height_index.hpp"
+    return marker.is_file()
+
+
+def stx_auxlib_source_directory(build_dir: Path | None) -> Path | None:
+    """The stx_auxlib source whose stx_btree notices a package ships, or None.
+
+    In order: the GUI_FORMS_STX_AUXLIB_SOURCE_DIR environment variable, then
+    for the build directory and its toolkit/ subdirectory the local checkout
+    the build was configured with, the source cmake/StxAuxlib.cmake recorded
+    and the fetched source (_deps/gui_forms_stx_auxlib-src). A named
+    directory without the stx_btree headers raises.
+    """
+    if os.environ.get("GUI_FORMS_STX_AUXLIB_SOURCE_DIR"):
+        named: Path = Path(os.environ["GUI_FORMS_STX_AUXLIB_SOURCE_DIR"])
+        if not _is_stx_auxlib_source(named):
+            raise RuntimeError(f"{named} is not an stx_auxlib source (no btree/include/stx_btree/row_height_index.hpp)")
+        return named
+    if build_dir is None:
+        return None
+    build: Path
+    for build in (build_dir, build_dir / "toolkit"):
+        variable: str
+        for variable in STX_AUXLIB_SOURCE_VARIABLES:
+            value: str = _cached_value(build, variable)
+            if value and _is_stx_auxlib_source(Path(value)):
+                return Path(value)
+        fetched: Path = build / "_deps" / "gui_forms_stx_auxlib-src"
+        if _is_stx_auxlib_source(fetched):
+            return fetched
+    return None
 
 
 def _is_stx_checkout(directory: Path) -> bool:
@@ -488,17 +553,28 @@ class Packager:
     def stage_root(self) -> Path:
         return self.out / "stage"
 
-    def copy_fonts(self, destination: Path) -> None:
+    def copy_fonts(self, destination: Path, program: Program) -> None:
+        """Stage `program`'s faces and notices in `destination`.
+
+        A program packaged without the fallback faces also loses any copy of
+        them the build put there (a macOS bundle's resources, the Windows
+        post-build fonts/), so the package holds exactly its choice.
+        """
         source = ROOT / self.manifest.fonts["source"][0]
         destination.mkdir(parents=True, exist_ok=True)
-        for name in self.manifest.fonts["files"] + self.manifest.fonts["notices"]:
+        files = self.manifest.font_files(program)
+        for name in files + self.manifest.font_notices(program):
             if (destination / name).is_file():
                 continue
             origin = source / name
             if not origin.is_file():
                 raise FileNotFoundError(f"font resource {name} missing from {source}")
             shutil.copy2(origin, destination / name)
-        missing = [name for name in self.manifest.fonts["files"] if not (destination / name).is_file()]
+        if not program.fallback_fonts:
+            for name in self.manifest.fallback_font_names():
+                (destination / name).unlink(missing_ok=True)
+            self.log("  fallback faces left out (fallback_fonts: false)")
+        missing = [name for name in files if not (destination / name).is_file()]
         if missing:
             raise RuntimeError("fonts missing after staging: " + ", ".join(missing))
 
@@ -509,6 +585,7 @@ class Packager:
             "$GUI_FORMS_LLVM_RUNTIME": self.runtime,
             "$MSYS_PREFIX": (self.runtime_dir.parent if self.runtime_dir else None),
             STX_PREFIX: stx_source_directory(self.build_dir, self.stx_source),
+            STX_AUXLIB_PREFIX: stx_auxlib_source_directory(self.build_dir),
         }
         for notice in data["notices"]:
             platforms = notice.get("platforms")
@@ -517,7 +594,8 @@ class Packager:
             source_text: str = notice["source"]
             source: Path | None = ROOT / source_text
             for prefix, base in prefix_env.items():
-                if source_text.startswith(prefix):
+                # The separator keeps $STX from matching $STX_AUXLIB paths.
+                if source_text.startswith(prefix + "/"):
                     source = (base / source_text[len(prefix) + 1:]) if base else None
             if source is None or not source.is_file():
                 if notice.get("optional"):
@@ -528,7 +606,7 @@ class Packager:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
 
-    def check_notices(self, root: Path) -> None:
+    def check_notices(self, root: Path, program: Program) -> None:
         """Fail unless the package at `root` is covered by THIRD_PARTY_NOTICES.md.
 
         `root` holds licenses/ and fonts/ (a bundle, or a macOS app's
@@ -540,7 +618,7 @@ class Packager:
         containing "GPL".
         """
         check_package_notices(root, self.platform, json.loads(LICENSES_PATH.read_text(encoding="utf-8")),
-                              self.manifest.fonts["notices"])
+                              self.manifest.font_notices(program))
         self.log(f"  notices checked: {NOTICES_NAME}, FreeType credit, licence files named, no GPL text")
 
     def write_readme(self, destination: Path, program: Program, launch: str) -> None:
@@ -558,7 +636,8 @@ class Packager:
             if path.is_file() and path.name != "package-manifest.json":
                 files[path.relative_to(root).as_posix()] = sha256_file(path)
         record = {"program": program.id, "display_name": program.display_name, "version": self.version,
-                  "platform": self.platform, "source_revision": self.revision, "status": program.status, "files": files}
+                  "platform": self.platform, "source_revision": self.revision, "status": program.status,
+                  "fallback_fonts": program.fallback_fonts, "files": files}
         (destination / "package-manifest.json").write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
 
     # -- macOS ----------------------------------------------------------------
@@ -674,10 +753,10 @@ class Packager:
             raise FileNotFoundError(f"bundle executable missing: {executable}")
         images = self.bundle_macos_dependencies(app, executable, original_executable)
         resources = app / "Contents/Resources"
-        self.copy_fonts(resources / "fonts")
+        self.copy_fonts(resources / "fonts", program)
         self.copy_notices(resources / "licenses")
         self.write_readme(resources, program, f"open \"{program.display_name}.app\"")
-        self.check_notices(resources)
+        self.check_notices(resources, program)
         plist_path = app / "Contents/Info.plist"
         plist = plistlib.loads(plist_path.read_bytes())
         plist["CFBundleShortVersionString"] = self.version
@@ -839,10 +918,10 @@ class Packager:
         built_fonts = plan.built.parent / "fonts"
         if built_fonts.is_dir():
             shutil.copytree(built_fonts, bundle / "fonts", dirs_exist_ok=True)
-        self.copy_fonts(bundle / "fonts")
+        self.copy_fonts(bundle / "fonts", program)
         self.copy_notices(bundle / "licenses")
         self.write_readme(bundle, program, entry.executable)
-        self.check_notices(bundle)
+        self.check_notices(bundle, program)
         self.write_package_manifest(bundle, program, bundle)
         archive = self.out / names["archive"]
         archive.unlink(missing_ok=True)
@@ -913,10 +992,10 @@ class Packager:
         shutil.copy2(plan.built, executable)
         executable.chmod(0o755)
         binaries = self.linux_closure(bundle, executable)
-        self.copy_fonts(bundle / "fonts")
+        self.copy_fonts(bundle / "fonts", program)
         self.copy_notices(bundle / "licenses")
         self.write_readme(bundle, program, "./" + entry.executable + " (X11 display required)")
-        self.check_notices(bundle)
+        self.check_notices(bundle, program)
         self.write_package_manifest(bundle, program, bundle)
         archive = self.out / names["archive"]
         archive.unlink(missing_ok=True)

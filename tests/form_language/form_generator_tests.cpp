@@ -16,9 +16,37 @@
 
 #include "generated/sample_dialog_form.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/form_binding/form_binding.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/commands/types/command_types.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/control_layout_styles/control_layout_styles.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/flow_layout_panel_compat.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/controls/radio_button.hpp"
+#include "gui_forms/controls/scaled_group_box.hpp"
+#include "gui_forms/controls/scaled_panel.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
+#include "gui_forms/controls/user_control.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/value/value.hpp"
+#include "gui_forms/window/window.hpp"
+#include "gui_forms_demo/typography_specimen.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
@@ -346,9 +374,9 @@ FormSchema sample_schema(bool spelled) {
     schema.types.push_back(gui_forms::form_language::form_control_type<gui_forms::Button>("button"));
     if (spelled) {
         schema.types[0].cpp_type = "gui_forms::UserControl";
-        schema.types[0].header = "gui_forms/controls/panel/user_control/user_control.hpp";
+        schema.types[0].header = "gui_forms/controls/user_control.hpp";
         schema.types[1].cpp_type = "gui_forms::Button";
-        schema.types[1].header = "gui_forms/controls/button_base/button/button.hpp";
+        schema.types[1].header = "gui_forms/controls/button.hpp";
     }
     return schema;
 }
@@ -921,9 +949,32 @@ void test_member_names() {
             "member names: '.-' spells a reserved double underscore");
 }
 
+// The Gallery's compiler's schema (form_lab_catalog.cpp, audit F9): the
+// seven lab and demonstration controls follow the registry's types, each
+// with the header the generated code includes, and the form root stays last.
+void test_lab_extension_types() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::array<std::string_view, 7> names{"review_card", "correspondence_view", "instrument_rack",
+                                                "easing_preview", "typography_specimen", "visual_inspector_view",
+                                                "visual_inspector_overlay"};
+    std::size_t found = 0U;
+    for (const std::string_view name : names) {
+        for (const FormSchemaType& type : schema.types) {
+            if (type.name != name) continue;
+            const bool lab_header = type.header.starts_with("gui_forms_lab/") ||
+                                    type.header.starts_with("gui_forms_demo/");
+            if (lab_header) ++found;
+        }
+    }
+    require(found == names.size(), "lab extension: every lab and demonstration control, with its header");
+    require(!schema.types.empty() && schema.types.back().name == gui_forms::form_language::form_root_type_name,
+            "lab extension: the form root stays last");
+}
+
 } // namespace
 
 int main() {
+    test_lab_extension_types();
     test_generated_matches_loader();
     test_bindings();
     test_value_bindings();

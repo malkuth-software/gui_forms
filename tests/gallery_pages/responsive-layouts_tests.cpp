@@ -1,4 +1,12 @@
 #include "support.hpp"
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/command_overflow_panel.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/master_detail_view.hpp"
+#include "gui_forms/controls/master_detail_view_values.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/responsive_track_panel.hpp"
+#include "gui_forms/controls/track_bar.hpp"
 
 namespace gallery_pages_tests {
 

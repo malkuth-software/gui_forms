@@ -5,7 +5,25 @@
 // the tab-to-panel relation and the tab-list orientation, through to
 // semantic snapshots; and tabs that no longer publish press.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/ribbon.hpp"
+#include "gui_forms/controls/tab_control.hpp"
+#include "gui_forms/controls/tab_control_values.hpp"
+#include "gui_forms/controls/tab_page.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <algorithm>
 #include <array>
@@ -186,7 +204,7 @@ PartPaint side_label(TextOrientation orientation, PartTextAlignment alignment) {
     PartPaint label;
     label.role = PartRole::label;
     label.bounds = {10.0, 20.0, 24.0, 120.0};
-    label.text = "Toolbox";
+    label.text = lend_paint_text("Toolbox");
     label.font = FontSpec{FontRole::control, 12.0, 400, false, 0.0};
     label.orientation = orientation;
     label.alignment = alignment;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
 #include "gui_forms/host/types/host_lifecycle_phase/host_lifecycle_phase.hpp"
 
@@ -8,7 +9,7 @@
 
 namespace gui_forms {
 
-struct HostSessionSnapshot final {
+struct GUI_FORMS_API HostSessionSnapshot final {
     HostCapabilities capabilities;
     HostLifecyclePhase phase{HostLifecyclePhase::constructed};
     std::uint64_t last_sequence{};

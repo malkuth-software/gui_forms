@@ -32,6 +32,7 @@ namespace gui_forms::abi1 {
 [[nodiscard]] const gf_docking_table& docking_table() noexcept;
 [[nodiscard]] const gf_fonts_table& fonts_table() noexcept;
 [[nodiscard]] const gf_help_table& help_table() noexcept;
+[[nodiscard]] const gf_classes_table& classes_table() noexcept;
 
 // GF_TABLE_RUNTIME's splashscreen slots (since 1.1, abi_splashscreen.cpp);
 // the runtime table itself is the entry's.

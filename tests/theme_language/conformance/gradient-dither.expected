@@ -1,0 +1,13 @@
+compiled
+rule 0 theme_sheet type=button
+  label button
+  decl primitive = name material
+  material gradient_dither dither=2 colours=[#000000ff]
+rule 1 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name material
+  material gradient_dither dither=1 colours=[#000000ff]
+rule 2 theme_sheet type=track_bar
+  label track-bar
+  decl primitive = name material
+  material gradient_dither colours=[#000000ff]

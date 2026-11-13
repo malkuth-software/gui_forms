@@ -2,13 +2,13 @@
   "family": "ValueBar",
   "step": "value bar study V1",
   "declaring": "ValueBar",
-  "header": "include/gui_forms/controls/range_control/value_bar/value_bar.hpp",
+  "header": "include/gui_forms/controls/value_bar.hpp",
   "source": "src/controls/range_control/value_bar/value_bar.cpp",
-  "capabilities_header": "include/gui_forms/controls/range_control/value_bar/value_bar_capabilities/value_bar_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/value_bar_capabilities.hpp",
   "base": "RangeControl",
   "includes": [
-    "gui_forms/controls/range_control/range_control.hpp",
-    "gui_forms/controls/range_control/value_bar/value_bar_values/value_bar_values.hpp"
+    "gui_forms/controls/range_control.hpp",
+    "gui_forms/controls/value_bar_values.hpp"
   ],
   "properties": [
     {
@@ -312,6 +312,6 @@
   "not_properties": [],
   "test": {
     "type": "ValueBar",
-    "include": "gui_forms/controls/range_control/value_bar/value_bar.hpp"
+    "include": "gui_forms/controls/value_bar.hpp"
   }
 }

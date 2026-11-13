@@ -2,15 +2,15 @@
   "family": "ToolStripContainer",
   "step": "M-S8",
   "declaring": "ToolStripContainer",
-  "header": "include/gui_forms/controls/tool_strip_container/tool_strip_container.hpp",
+  "header": "include/gui_forms/controls/tool_strip_container.hpp",
   "source": "src/controls/tool_strip_container/tool_strip_container.cpp",
-  "capabilities_header": "include/gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/tool_strip_container_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [],
   "test": {
     "type": "ToolStripContainer",
-    "include": "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
+    "include": "gui_forms/controls/tool_strip_container.hpp"
   },
   "properties": [
     {

@@ -1,0 +1,7 @@
+{
+  "format": "gui-forms-theme/1",
+  "name": "gost-paints",
+  "version": "1.0.0",
+  "engine": ">=0.3",
+  "sheet": {"path": "gost-paints.theme.css", "sha256": "2d7a7862286a85b3846a69b77491724c9167c8bd0511fd609c2969838af752fa"}
+}

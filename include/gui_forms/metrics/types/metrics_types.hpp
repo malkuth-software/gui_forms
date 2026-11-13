@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 #include <string>
 
@@ -29,13 +30,13 @@ enum class HousekeepingExpectation : std::uint8_t {
 
 // What each expectation allows. Defaults are generous: they flag a stall,
 // not an ordinary busy frame.
-struct ExpectationThresholds final {
+struct GUI_FORMS_API ExpectationThresholds final {
     std::uint64_t late_wake_nanoseconds{100'000'000U};
     std::uint64_t paint_budget_nanoseconds{50'000'000U};
     std::uint64_t live_drain_skipped_frames{8U};
 };
 
-struct MetricsSnapshot {
+struct GUI_FORMS_API MetricsSnapshot {
     std::uint64_t control_count{};
     std::uint64_t stable_id_count{};
     std::uint64_t mutations{};
@@ -208,6 +209,13 @@ struct MetricsSnapshot {
     // built-in recipe instead. Counted when a keyed part's refusal begins,
     // and at every paint of a part without a key.
     std::uint64_t engine_primitive_refusals{};
+    // Steps a dithered material's dither gave way so that its part stays
+    // within the bake budget (EnginePrimitive::affordable_dither): one
+    // for blue noise to the ordered table or the ordered table to none,
+    // two for blue noise to none. Counted at every paint that lends the
+    // lowered material, so a face keeps its material and loses only the
+    // dither, never falling back to the built-in look for it.
+    std::uint64_t engine_dither_degradations{};
     // Materials assembled from a recipe's material and the material fields
     // a theme's rules set (T3 EC1): once per distinct assembly for a keyed
     // part (AssembledPartMaterial), and at every paint of a part without a
@@ -216,6 +224,16 @@ struct MetricsSnapshot {
     // Paint groups begun deeper than maximum_paint_group_depth, drawn
     // without isolation (Painter::begin_group).
     std::uint64_t paint_group_refusals{};
+    // Arrangements refused because the layout pass was arranging another
+    // control (LayoutDiagnosticCode::arrange_outside_slot): a custom layout
+    // that arranged a child directly instead of set_child_layout.
+    std::uint64_t layout_arrange_refusals{};
+    // Uses of a stale image identity refused: a window's scoped patch,
+    // replace or update given one, and draws recorded with one (counted
+    // when the control's paint is recorded, and drawn as nothing). A
+    // replace or a generation-advancing patch returns the identity that
+    // replaces the one passed in.
+    std::uint64_t stale_image_refusals{};
     // Host font lookups in this process that found no bundled font directory
     // (bundled_font_diagnostics, read when the snapshot is taken): nonzero
     // means some window drew no bundled text; bundled_font_refusal says why.

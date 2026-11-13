@@ -9,7 +9,7 @@ gui_forms::FlagsValueEditor
 
 .. cpp:class:: FlagsValueEditor final : public Panel, public FlagsValueEditorCapabilities<FlagsValueEditor>
 
-   ``#include <gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp>``
+   ``#include <gui_forms/controls/flags_value_editor.hpp>``
 
    A drop-down field that edits a flags enumeration as a list of check boxes.
 
@@ -256,10 +256,6 @@ gui_forms::FlagsValueEditor
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -269,6 +265,18 @@ gui_forms::FlagsValueEditor
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -287,3 +295,45 @@ gui_forms::FlagsValueEditor
    .. cpp:member:: constexpr std::size_t flags_value_editor_property_count
 
       FlagsValueEditor's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 4U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 1 supported, 0 deferred, 0 excluded, 6 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``checked_flags``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``enumeration_name``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``flag_names``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``none_name``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``flags_value_editor_property_entries``
+     - unclassified (untested)

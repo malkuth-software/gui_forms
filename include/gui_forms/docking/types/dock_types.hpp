@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 
@@ -19,7 +20,7 @@ namespace gui_forms {
 // is the default group. Node and site IDs are numbers the layout assigns; they
 // are saved with the layout and stay stable across edits and restores. Zero
 // means "none".
-struct DockPanelId final {
+struct GUI_FORMS_API DockPanelId final {
     std::string value;
 
     DockPanelId() = default;
@@ -33,7 +34,7 @@ struct DockPanelId final {
     }
 };
 
-struct DockGroupId final {
+struct GUI_FORMS_API DockGroupId final {
     std::string value;
 
     DockGroupId() = default;
@@ -44,7 +45,7 @@ struct DockGroupId final {
     }
 };
 
-struct DockNodeId final {
+struct GUI_FORMS_API DockNodeId final {
     std::uint32_t value{};
 
     friend bool operator==(DockNodeId left, DockNodeId right) noexcept {
@@ -55,7 +56,7 @@ struct DockNodeId final {
     }
 };
 
-struct DockSiteId final {
+struct GUI_FORMS_API DockSiteId final {
     std::uint32_t value{};
 
     friend bool operator==(DockSiteId left, DockSiteId right) noexcept {
@@ -80,7 +81,7 @@ enum class DockPlacementKind : std::uint8_t { docked, floating, auto_hidden, hid
 
 // What a panel permits (the first of the three restriction layers). Each
 // field defaults to permitted.
-struct DockAllowedPlacements final {
+struct GUI_FORMS_API DockAllowedPlacements final {
     // In a tool stack of the main site, outside the document area.
     bool docked{true};
     // In the document area; a tool panel also needs dock_as_document.
@@ -120,7 +121,7 @@ struct DockAllowedPlacements final {
 // always goes to the document area; for a tool panel, docked means against
 // the main site's outer edge at side with ratio, auto_hidden means on edge
 // side with extent, floating means frame on monitor_id.
-struct DockDefaultPlacement final {
+struct GUI_FORMS_API DockDefaultPlacement final {
     DockPlacementKind kind{DockPlacementKind::docked};
     DockSide side{DockSide::right};
     // The new item's share of the split it creates, in (0, 1).
@@ -132,7 +133,7 @@ struct DockDefaultPlacement final {
     std::string monitor_id{};
 };
 
-struct DockPanelDescriptor final {
+struct GUI_FORMS_API DockPanelDescriptor final {
     DockPanelId id{};
     DockPanelKind kind{DockPanelKind::tool};
     // A tool panel that may also stand in a document stack (DK decision 20).
@@ -156,14 +157,14 @@ struct DockPanelDescriptor final {
 // (the second restriction layer). Two panels may share a stack when their
 // groups are equal or either group's descriptor lists the other. A group
 // without a descriptor admits only itself.
-struct DockGroupDescriptor final {
+struct GUI_FORMS_API DockGroupDescriptor final {
     DockGroupId id{};
     std::vector<DockGroupId> admits{};
 };
 
 // What one site accepts (the third restriction layer). The main site has one
 // record; every floating site shares another.
-struct DockSiteRestrictions final {
+struct GUI_FORMS_API DockSiteRestrictions final {
     bool accepts_tools{true};
     bool accepts_documents{true};
     // Empty: every group.
@@ -172,7 +173,7 @@ struct DockSiteRestrictions final {
 
 // Remembered placements (DK decision 22). Each is written when a panel
 // leaves that kind of place, and read by show() to put it back.
-struct DockDockedMemory final {
+struct GUI_FORMS_API DockDockedMemory final {
     // The stack the panel was in, and its index there.
     DockNodeId stack{};
     std::uint32_t index{};
@@ -189,7 +190,7 @@ struct DockDockedMemory final {
     }
 };
 
-struct DockFloatingMemory final {
+struct GUI_FORMS_API DockFloatingMemory final {
     DockSiteId site{};
     Rect frame{};
     std::string monitor_id{};
@@ -201,7 +202,7 @@ struct DockFloatingMemory final {
     }
 };
 
-struct DockAutoHideMemory final {
+struct GUI_FORMS_API DockAutoHideMemory final {
     DockNodeId stack{};
     DockSide edge{DockSide::left};
     double extent{240.0};
@@ -217,7 +218,7 @@ struct DockAutoHideMemory final {
 // it is hidden (then it is the placeholder), including for panel IDs no
 // descriptor is registered for (a removed plugin's panel, kept so that its
 // return restores it; DK decision 34).
-struct DockPanelRecord final {
+struct GUI_FORMS_API DockPanelRecord final {
     DockPanelId id{};
     DockPanelKind kind{DockPanelKind::tool};
     // Where show() returns a hidden panel: docked, floating or auto_hidden.
@@ -235,7 +236,7 @@ struct DockPanelRecord final {
 
 // One node of a site's tree. Fields that do not apply to a node's kind keep
 // their defaults (the invariant check verifies this).
-struct DockNode final {
+struct GUI_FORMS_API DockNode final {
     DockNodeId id{};
     DockNodeKind kind{DockNodeKind::tool_stack};
     // The node containing this one; none for a site root and for an
@@ -263,7 +264,7 @@ struct DockNode final {
 
 // The main window's frame, recorded by the program before it saves so that a
 // restore can place the window again; the layout never moves a window.
-struct DockWindowFrame final {
+struct GUI_FORMS_API DockWindowFrame final {
     Rect frame{};
     std::string monitor_id{};
     bool maximized{false};
@@ -274,7 +275,7 @@ struct DockWindowFrame final {
     }
 };
 
-struct DockFloatingSite final {
+struct GUI_FORMS_API DockFloatingSite final {
     DockSiteId id{};
     DockNodeId root{};
     // In screen logical units.
@@ -294,7 +295,7 @@ struct DockFloatingSite final {
 // neighbour recreates the split the stack stood in with its old identity and
 // ratio, and neither edit writes the panels' remembered places, so a pin
 // followed by an unpin leaves the layout exactly as it was.
-struct DockAutoHideEntry final {
+struct GUI_FORMS_API DockAutoHideEntry final {
     DockNodeId stack{};
     DockSide edge{DockSide::left};
     // The flyout's extent, in logical units.
@@ -345,7 +346,7 @@ enum class DockUnknownOwnerKind : std::uint8_t {
     auto_hidden_memory,
 };
 
-struct DockUnknownOwner final {
+struct GUI_FORMS_API DockUnknownOwner final {
     DockUnknownOwnerKind kind{DockUnknownOwnerKind::layout};
     // floating_site: the site's ID; auto_hidden: its stack's; node: the
     // node's; otherwise zero.
@@ -361,7 +362,7 @@ struct DockUnknownOwner final {
 // One unknown child element, whole, and how many of its parent's known
 // children came before it in the file; it is written back after that many
 // known children (or last, when there are fewer now).
-struct DockUnknownChild final {
+struct GUI_FORMS_API DockUnknownChild final {
     std::size_t after_known{};
     XmlElement element{};
 
@@ -372,7 +373,7 @@ struct DockUnknownChild final {
 
 // The unknown attributes (in file order; written after the known ones) and
 // child elements of one known element.
-struct DockUnknownFields final {
+struct GUI_FORMS_API DockUnknownFields final {
     DockUnknownOwner owner{};
     std::vector<XmlAttribute> attributes{};
     std::vector<DockUnknownChild> children{};
@@ -385,7 +386,7 @@ struct DockUnknownFields final {
 // The whole layout as plain records: one main site (its root is the
 // document area or a split that contains it), floating sites, auto-hidden
 // stacks and panel records. nodes and panels are kept sorted by ID.
-struct DockLayoutState final {
+struct GUI_FORMS_API DockLayoutState final {
     std::vector<DockNode> nodes{};
     DockNodeId main_root{};
     std::optional<DockWindowFrame> main_window{};
@@ -417,6 +418,15 @@ struct DockLayoutState final {
 
 // The most floating sites a layout holds (DK decision 6).
 inline constexpr std::size_t dock_maximum_floating_sites = 32;
+// The deepest a site's node tree may nest, its root at level one; the main
+// site counts through its document area into the document tree. Every
+// split adds a level, and 32 levels of halving leave a pane far below any
+// minimum size, so no usable layout reaches it. The invariant check
+// (DockLayout::check_invariants) refuses a deeper tree, so a transaction
+// or a restore that would build one changes nothing. The walks over a
+// committed tree (minimum sizes, writing, the dock site's placement) may
+// recurse once per level: a few hundred bytes each, at most about 32 KiB.
+inline constexpr std::size_t dock_maximum_depth = 32;
 // Node and site IDs are below this value. An edit that needs a new ID once
 // next_id has reached it is refused (identities_exhausted); IDs are never
 // reused, so the count never wraps to the null ID.
@@ -428,7 +438,7 @@ inline constexpr std::uint32_t dock_append_index = 0xFFFFFFFFU;
 // stack, a tab drag one panel; DK decision 26).
 enum class DockSubjectKind : std::uint8_t { panel, stack };
 
-struct DockSubject final {
+struct GUI_FORMS_API DockSubject final {
     DockSubjectKind kind{DockSubjectKind::panel};
     DockPanelId panel{};
     DockNodeId stack{};
@@ -465,7 +475,7 @@ enum class DockEditKind : std::uint8_t {
 
 // One primitive edit. Build edits with the named factories; each sets the
 // fields its kind reads and leaves the rest at their defaults.
-struct DockEdit final {
+struct GUI_FORMS_API DockEdit final {
     DockEditKind kind{DockEditKind::show};
     DockSubject subject{};
     // dock_into: a stack or a document area. dock_beside: any node of a
@@ -521,7 +531,7 @@ enum class DockEditOrigin : std::uint8_t { program, user };
 
 // Primitive edits applied together: validated first, then applied all or
 // nothing, publishing one change (DOCKING_STUDY.md section 5.3).
-struct DockTransaction final {
+struct GUI_FORMS_API DockTransaction final {
     DockEditOrigin origin{DockEditOrigin::program};
     std::vector<DockEdit> edits{};
 };
@@ -560,7 +570,7 @@ enum class DockRefusalReason : std::uint8_t {
     user_docking_locked,
 };
 
-struct DockRefusal final {
+struct GUI_FORMS_API DockRefusal final {
     DockRefusalReason reason{DockRefusalReason::none};
     DockRefusalLayer layer{DockRefusalLayer::none};
     // The refused edit's position in the transaction.
@@ -569,7 +579,7 @@ struct DockRefusal final {
     DockPanelId panel{};
 };
 
-struct DockTransactionResult final {
+struct GUI_FORMS_API DockTransactionResult final {
     bool applied{false};
     DockRefusal refusal{};
     // The layout's generation after the transaction.
@@ -583,7 +593,7 @@ struct DockTransactionResult final {
 };
 
 // Published once per applied transaction, after the model is committed.
-struct DockLayoutChange final {
+struct GUI_FORMS_API DockLayoutChange final {
     std::uint64_t generation{};
     DockEditOrigin origin{DockEditOrigin::program};
     std::size_t edit_count{};
@@ -596,7 +606,7 @@ struct DockLayoutChange final {
 };
 
 // One node's rectangle from DockLayout::arrange.
-struct DockArrangedNode final {
+struct GUI_FORMS_API DockArrangedNode final {
     DockNodeId node{};
     Rect bounds{};
     // False when this node is a split too small for both children's minimums.
@@ -606,14 +616,14 @@ struct DockArrangedNode final {
 // A panel in a stack, as the realizing controls need it: lazy creation
 // builds only panels that are selected in a docked or floating stack, and
 // the rest on first show (DK decision 34).
-struct DockVisiblePanel final {
+struct GUI_FORMS_API DockVisiblePanel final {
     DockPanelId panel{};
     DockNodeId stack{};
     DockPlacementKind placement{DockPlacementKind::docked};
     bool selected{false};
 };
 
-struct DockPanelLocation final {
+struct GUI_FORMS_API DockPanelLocation final {
     DockPlacementKind placement{DockPlacementKind::absent};
     // The stack holding the panel, when it is docked, floating or
     // auto-hidden, with its index there.
@@ -623,7 +633,7 @@ struct DockPanelLocation final {
     DockSiteId site{};
 };
 
-struct DockInvariantResult final {
+struct GUI_FORMS_API DockInvariantResult final {
     bool valid{true};
     // The first broken rule, in words, when not valid.
     std::string problem{};

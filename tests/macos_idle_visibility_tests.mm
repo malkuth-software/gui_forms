@@ -1,6 +1,16 @@
 #import <AppKit/AppKit.h>
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/platform/macos_host.hpp"
 
 #include <array>

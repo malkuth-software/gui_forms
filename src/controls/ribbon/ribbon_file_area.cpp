@@ -2,7 +2,7 @@
 // application menu's recent pane, shown as a two-pane menu below the File
 // tab, and Backstage, a BackstageView over everything below the tab row.
 
-#include "gui_forms/controls/ribbon/ribbon.hpp"
+#include "gui_forms/controls/ribbon.hpp"
 
 #include "ribbon_application_menu.hpp"
 

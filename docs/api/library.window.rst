@@ -5,12 +5,14 @@
 Window, scheduling and dispatch
 ===============================
 
-The retained window model, update scopes, damage, frame scheduling, the UI-thread dispatcher, per-window instrumentation and each thread's shadow frames.
+The retained window model, update scopes, damage, frame scheduling, the UI-thread dispatcher, per-window instrumentation, the counters of GUI.Forms' own allocations and each thread's shadow frames.
 
 .. list-table::
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`AllocationScope <gui_forms::AllocationScope>`
+     - Counts what GUI.Forms' own counted paths allocate on one thread around a workload.
    * - :cpp:class:`SurfaceRoot <gui_forms::SurfaceRoot>`
      - The root of one retained control tree and the thread that owns it.
    * - :cpp:class:`UpdateScope <gui_forms::UpdateScope>`
@@ -21,6 +23,7 @@ The retained window model, update scopes, damage, frame scheduling, the UI-threa
 .. toctree::
    :hidden:
 
+   generated/gui_forms.AllocationScope
    generated/gui_forms.SurfaceRoot
    generated/gui_forms.UpdateScope
    generated/gui_forms.Window
@@ -38,6 +41,10 @@ Related types
      - AcceleratorToken is the move-only revocation handle for one Window accelerator registration whose lifetime is also bounded by its Component owner.
    * - :cpp:class:`AlertRequest <gui_forms::AlertRequest>`
      - One alert: a message the user acknowledges by choosing one of its buttons, its content as data.
+   * - :cpp:class:`AllocationCounts <gui_forms::AllocationCounts>`
+     - One subsystem's counts.
+   * - :cpp:class:`AllocationStatistics <gui_forms::AllocationStatistics>`
+     -  
    * - :cpp:class:`BackdropChain <gui_forms::BackdropChain>`
      - The chain: ``length`` live operations, applied in order, in a fixed array.
    * - :cpp:class:`BackdropChainResolution <gui_forms::BackdropChainResolution>`
@@ -50,6 +57,8 @@ Related types
      - The colour schemes a theme has variants for (T4 theme variants): a theme sheet declares them with ``:root { color-scheme: light dark }``, a definition built in code sets them.
    * - :cpp:class:`ControlAvailabilityChange <gui_forms::ControlAvailabilityChange>`
      - ControlAvailabilityChange carries authoritative runtime/stable identity and effective visibility/enabled state after retained lifecycle change.
+   * - :cpp:class:`ControlCaptureOptions <gui_forms::ControlCaptureOptions>`
+     - What Window::capture_control draws (owner request 2026-11-11, the theme palette): one control and its descendants as the window lays them out.
    * - :cpp:class:`ControlLookup <gui_forms::ControlLookup>`
      - What SurfaceRoot::control found: the one control with the ID, or why there is none (then ``control`` is null).
    * - :cpp:class:`ControlSnapshot <gui_forms::ControlSnapshot>`
@@ -106,6 +115,16 @@ Related types
      -  
    * - :cpp:class:`NativePopupToken <gui_forms::NativePopupToken>`
      - Keeps one popup open (Window::open_native_popup).
+   * - :cpp:class:`OffscreenAttachment <gui_forms::OffscreenAttachment>`
+     - While it lives, ``window`` measures text with ``raster`` and draws captures through it: it is the window's text metrics provider and framebuffer painter.
+   * - :cpp:class:`OffscreenCaptureOptions <gui_forms::OffscreenCaptureOptions>`
+     - What OffscreenAttachment's captures draw.
+   * - :cpp:class:`OffscreenRaster <gui_forms::OffscreenRaster>`
+     - A CPU raster with the bundled fonts registered and no host window.
+   * - :cpp:class:`OffscreenRasterCreateResult <gui_forms::OffscreenRasterCreateResult>`
+     - OffscreenRaster::create's outcome: the raster, or why there is none.
+   * - :cpp:class:`OffscreenRasterOptions <gui_forms::OffscreenRasterOptions>`
+     -  
    * - :cpp:class:`OverlayOptions <gui_forms::OverlayOptions>`
      - OverlayOptions distinguishes interactive overlays that require an enabled owner from passive providers that require only live visible attachment.
    * - :cpp:class:`OverlayToken <gui_forms::OverlayToken>`
@@ -136,10 +155,14 @@ Related types
      - A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels it holds inside ``clip`` by ``offset``, both in window coordinates and whole device pixels, before painting the damage taken with it.
    * - :cpp:class:`ShadowFrame <gui_forms::ShadowFrame>`
      - One frame.
+   * - :cpp:class:`ShadowFrameCall <gui_forms::ShadowFrameCall>`
+     - A frame around an entry that calls into code another module may hold (an application's handlers and controls, under a window's input, layout and paint).
    * - :cpp:class:`ShadowFrameScope <gui_forms::ShadowFrameScope>`
      - Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included.
    * - :cpp:class:`ShadowStackState <gui_forms::ShadowStackState>`
      - The calling thread's stack beside its frames.
+   * - :cpp:class:`SpecimenStateResult <gui_forms::SpecimenStateResult>`
+     -  
    * - :cpp:class:`SurfaceRequestAnswer <gui_forms::SurfaceRequestAnswer>`
      - Where a request's answers go: posted through the requesting root's dispatcher and called on its thread, in the order they were given.
    * - :cpp:class:`SurfaceRequestOutcome <gui_forms::SurfaceRequestOutcome>`
@@ -194,6 +217,8 @@ Related types
      - The whole window's opacity (Form.Opacity), from 0 (invisible) to 1 (opaque); outside that range or not finite is std::invalid_argument.
    * - :cpp:class:`WindowOverrides <gui_forms::WindowOverrides>`
      - What one window overrides of what it would otherwise read from its owner (APP_WINDOW_RULES_DESIGN K.1): its application, or for a popup or floating window the window that opened it, which shares its table.
+   * - :cpp:class:`WindowRef <gui_forms::WindowRef>`
+     - The root of one retained control tree and the thread that owns it (the threaded sub-surfaces design, stage S1): the control table, the dirty structure, update scopes and flushes, layout, paint, focus, input routing, the motion clock, the dispatcher queue its thread drains, and the counters its work reports into.
    * - :cpp:class:`WindowShowInTaskbarCapability <gui_forms::WindowShowInTaskbarCapability>`
      - Whether the window has a taskbar button (Form.ShowInTaskbar).
    * - :cpp:class:`WindowStartPositionCapability <gui_forms::WindowStartPositionCapability>`
@@ -277,6 +302,50 @@ Related types
    .. cpp:member:: HostDialogChoice default_choice
 
       The button Enter chooses, one of ``buttons``; none for the first. Default: ``{HostDialogChoice::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AllocationCounts final
+
+   ``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>``
+
+   One subsystem's counts. allocated_bytes - released_bytes is the bytes the subsystem holds now, when the counts are process-wide and read from a quiet process; over a scope it is the net change on one thread.
+
+   .. cpp:member:: std::uint64_t allocations
+
+   .. cpp:member:: std::uint64_t releases
+
+   .. cpp:member:: std::uint64_t allocated_bytes
+
+   .. cpp:member:: std::uint64_t released_bytes
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AllocationStatistics final
+
+   ``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>``
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: AllocationCounts total() const noexcept
+
+      The sum over every subsystem: still only GUI.Forms' counted paths.
+
+   .. cpp:function:: std::string to_json() const
+
+      {"scope":"gui_forms_counted_paths","total":{...},"image_resources":{...}, "image_atlas":{...},"effects":{...},"display_chunks":{...}, "damage_lists":{...},"text_layout":{...}}: every subsystem by name, in enumeration order, even at zero, with allocations, releases, allocated_bytes and released_bytes in each object. The "scope" member names what is counted, so that a record carrying it is not read as a process figure.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: AllocationCounts of(AllocationSubsystem subsystem) const noexcept
+
+      The counts of ``subsystem``; zero counts for a value outside the enumeration.
+
+   .. cpp:member:: std::array<AllocationCounts, allocation_subsystem_count> subsystems
+
+      Indexed by AllocationSubsystem.
 
 .. cpp:namespace:: gui_forms
 
@@ -410,6 +479,26 @@ Related types
    .. cpp:member:: bool effectively_visible
 
    .. cpp:member:: bool effectively_enabled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ControlCaptureOptions final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   What Window::capture_control draws (owner request 2026-11-11, the theme palette): one control and its descendants as the window lays them out.
+
+   .. cpp:member:: double scale
+
+      Device pixels per logical unit; 0 takes the window's own scale.
+
+   .. cpp:member:: double margin
+
+      Logical units added around the control's bounds on every side, for what it draws outside them (focus and default rings, shadows); the area is clipped to the window. Negative or not finite is refused.
+
+   .. cpp:member:: bool include_backplane
+
+      The window's backplane (the theme's window material) under the control, as capture_window draws it, so the picture is what the window shows there; off, what the subtree does not paint stays transparent, as snapshot_control leaves it. Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -898,7 +987,7 @@ Related types
 
    .. cpp:function:: bool empty() const noexcept
 
-   .. cpp:function:: std::span<const InvalidationOutline> outlines() const noexcept
+   .. cpp:function:: std::span<const InvalidationOutline> outlines() const& noexcept
 
       Oldest first.
 
@@ -1058,6 +1147,142 @@ Related types
    .. cpp:function:: Event<>* closed_event() noexcept
 
       Raised once, on the UI thread, when the popup closes, whatever closed it (this token, the opener's death, the host closing the window, or for an overlay its owner leaving the window). Null for an empty token. A subscriber that disconnects the token itself should unsubscribe first if it does not want to hear its own close.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: OffscreenAttachment final
+
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+
+   While it lives, :cpp:func:`window <gui_forms::OffscreenAttachment::window>` measures text with ``raster`` and draws captures through it: it is the window's text metrics provider and framebuffer painter. Its end puts back the provider the window had and removes the painter. Attach only a window with no host (a window an application run shows keeps its host's raster). Declare it after the raster and the window, so that it ends before both. std::logic_error off the window's thread (which must be the raster's). Not copyable or movable.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: OffscreenAttachment(OffscreenRaster& raster, Window& window)
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Window& window() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::optional<WindowCapture> capture_window(const OffscreenCaptureOptions& options)
+
+      The whole window (Window::capture_window) at ``options``. None as capture_window, or for a refused scale; the window's settings are put back either way.
+
+   .. cpp:function:: std::optional<WindowCapture> capture_control(const Control::Ptr& control, const OffscreenCaptureOptions& options)
+
+      One control and its descendants (Window::capture_control) at ``options``. None as capture_control.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: OffscreenCaptureOptions final
+
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+
+   What OffscreenAttachment's captures draw. The settings apply for the capture alone: the window's own scale and presentation are put back after it (a scale change relays the window out, both ways).
+
+   .. cpp:member:: double scale
+
+      Device pixels per logical unit, in (0, 8]. The window is laid out at this scale for the capture, as a host lays it out on such a display. Default: ``{1.0}``.
+
+   .. cpp:member:: std::optional<ColourScheme> colour_scheme
+
+      The colour scheme drawn; none keeps the window's.
+
+   .. cpp:member:: std::optional<bool> high_contrast
+
+      Forced high contrast; none keeps the window's.
+
+   .. cpp:member:: bool include_overlays
+
+      capture_window: the window's in-surface overlays. Default: ``{true}``.
+
+   .. cpp:member:: double margin
+
+      capture_control: logical units around the control (ControlCaptureOptions::margin).
+
+   .. cpp:member:: bool include_backplane
+
+      capture_control: the window's backplane under the control. Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: OffscreenRaster final
+
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+
+   A CPU raster with the bundled fonts registered and no host window. A window borrows it through an OffscreenAttachment; captures make their own framebuffers, so one raster serves windows of any size and scale, one at a time or together. One thread: the one that made it, which is the UI thread of every window attached to it. Not copyable or movable: windows hold its address. Destroy it after every attachment to it has ended (its destructor stops the program otherwise, since a window would keep a dangling painter).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const std::filesystem::path& font_directory() const noexcept
+
+      The directory its faces came from.
+
+   .. cpp:function:: std::size_t attachments() const noexcept
+
+      How many attachments to it are alive.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static OffscreenRasterCreateResult create(const OffscreenRasterOptions& options = {})
+
+      Finds the bundled faces (OffscreenRasterOptions), reads and seals them once for the process (the hosts' shared set) and makes the raster. On the UI thread.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: OffscreenRasterCreateResult final
+
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+
+   OffscreenRaster::create's outcome: the raster, or why there is none. Made only through :cpp:func:`created <gui_forms::OffscreenRasterCreateResult::created>` and :cpp:func:`refused <gui_forms::OffscreenRasterCreateResult::refused>`.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: OffscreenRasterCreateResult(OffscreenRasterCreateResult&&) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool succeeded() const noexcept
+
+      Whether a raster was made (true still after take_raster).
+
+   .. cpp:function:: OffscreenRasterError error() const noexcept
+
+      none when a raster was made.
+
+   .. cpp:function:: std::string detail() const
+
+      For a refusal, what was refused and where it looked; empty otherwise.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static OffscreenRasterCreateResult created(std::unique_ptr<OffscreenRaster> raster)
+
+   .. cpp:function:: static OffscreenRasterCreateResult refused(OffscreenRasterError error, std::string detail)
+
+   .. cpp:function:: std::unique_ptr<OffscreenRaster> take_raster() noexcept
+
+      The raster, moved out to the caller; null after a refusal or a second take.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: OffscreenRasterOptions final
+
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+
+   .. cpp:member:: std::filesystem::path font_directory
+
+      The bundled font directory (assets/fonts, installed as share/GUIForms/fonts); empty looks where the hosts look.
 
 .. cpp:namespace:: gui_forms
 
@@ -1451,6 +1676,26 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: ShadowFrameCall final
+
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+
+   A frame around an entry that calls into code another module may hold (an application's handlers and controls, under a window's input, layout and paint). The entry opens the frame, calls its body (a named function), then calls returned(); a frame destroyed before returned() is being unwound, whichever module threw, so no runtime is asked. The body's own early returns cannot skip the mark, because the mark follows the body's return. Writes the same stack as ShadowFrameScope (the library's), and never throws or allocates.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ShadowFrameCall(ShadowFrameKind kind, std::string_view subject, std::string_view name, std::uint64_t sequence) noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void returned() noexcept
+
+      The body returned: the frame closes as a return closes it.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: ShadowFrameScope final
 
    ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
@@ -1487,6 +1732,20 @@ Related types
    .. cpp:member:: std::uint64_t dropped
 
       Default: ``0U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SpecimenStateResult final
+
+   ``#include <gui_forms/capture/specimen_states/specimen_states.hpp>``
+
+   .. cpp:member:: SpecimenStateRoute route
+
+      Default: ``{SpecimenStateRoute::rest}``.
+
+   .. cpp:member:: std::string detail
+
+      The property written ("checked"), or for refused the refusal's text; empty otherwise.
 
 .. cpp:namespace:: gui_forms
 
@@ -2087,6 +2346,35 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: WindowRef final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   The root of one retained control tree and the thread that owns it (the threaded sub-surfaces design, stage S1): the control table, the dirty structure, update scopes and flushes, layout, paint, focus, input routing, the motion clock, the dispatcher queue its thread drains, and the counters its work reports into. A Window is a SurfaceRoot with a native host (the host cluster: cursor, presentation declaration, live-surface composition, host key-map seeding, resize and scale); a sub-surface (stage S2) is one whose output is a LiveSurface. The root is bound to the thread that constructs it and never changes thread. A weak handle on a Window, for a holder that keeps it across callbacks (borrow sanitizer study, section 2.5: retention is not a borrow). Built on the root's lifetime record (detail::WindowLifetime), which the Window clears in its destructor and releases with itself, so a holder never reads a freed window. Made by SurfaceRoot::window_ref(); UI thread only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: WindowRef() noexcept
+
+   .. cpp:function:: explicit WindowRef(std::weak_ptr<detail::WindowLifetime> lifetime) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Window* get() const noexcept
+
+      The window while it lives, else null. A borrow for the current call: read it again after any callback rather than keeping the pointer.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void reset() noexcept
+
+      Forgets the window.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> WindowShowInTaskbarCapability
 
    ``#include <gui_forms/window/chrome/window_capabilities.hpp>``
@@ -2170,6 +2458,24 @@ Related types
 
 Enumerations
 ------------
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: AllocationSubsystem
+
+   ``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>``
+
+   .. cpp:enumerator:: image_resources
+
+   .. cpp:enumerator:: image_atlas
+
+   .. cpp:enumerator:: effects
+
+   .. cpp:enumerator:: display_chunks
+
+   .. cpp:enumerator:: damage_lists
+
+   .. cpp:enumerator:: text_layout
 
 .. cpp:namespace:: gui_forms
 
@@ -2379,6 +2685,20 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: OffscreenRasterError
+
+   ``#include <gui_forms/capture/offscreen_raster/offscreen_raster.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: fonts_not_found
+
+   .. cpp:enumerator:: fonts_refused
+
+   .. cpp:enumerator:: raster_refused
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PaintLeaseState
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>``
@@ -2460,6 +2780,24 @@ Enumerations
    .. cpp:enumerator:: paint_pass
 
    .. cpp:enumerator:: posted_callback
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SpecimenStateRoute
+
+   ``#include <gui_forms/capture/specimen_states/specimen_states.hpp>``
+
+   .. cpp:enumerator:: rest
+
+   .. cpp:enumerator:: value
+
+   .. cpp:enumerator:: presentation
+
+   .. cpp:enumerator:: environment
+
+   .. cpp:enumerator:: not_declared
+
+   .. cpp:enumerator:: refused
 
 .. cpp:namespace:: gui_forms
 
@@ -2576,6 +2914,42 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/allocation/statistics/allocation_statistics.hpp>``
+
+.. cpp:function:: std::string_view allocation_subsystem_name(AllocationSubsystem subsystem) noexcept
+
+   The name of ``subsystem`` as the JSON form spells it; "unknown" for a value outside the enumeration.
+
+.. cpp:function:: AllocationStatistics allocation_statistics() noexcept
+
+   The process-wide counters: every thread's counted allocations since the process started. Never reset.
+
+.. cpp:function:: AllocationStatistics thread_allocation_statistics() noexcept
+
+   The calling thread's counters since the thread started. Never reset.
+
+.. cpp:var:: constexpr std::size_t allocation_subsystem_count
+
+   The number of AllocationSubsystem values. Value: ``6U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/capture/specimen_states/specimen_states.hpp>``
+
+.. cpp:function:: SpecimenStateResult show_specimen_state(Control& control, AnatomyState state)
+
+   Shows ``state`` on ``control`` by its route, above. Never throws for a state the control cannot take: that is not_declared or refused.
+
+.. cpp:function:: SpecimenStateResult show_specimen_custom_state(Control& control, CustomStateIndex state)
+
+   Shows custom state ``state`` (a position in anatomy().custom_states) by presentation; not_declared past the declaration.
+
+.. cpp:function:: std::string_view specimen_state_route_name(SpecimenStateRoute route) noexcept
+
+   The route name ("value") for manifests and logs.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>``
 
 .. cpp:function:: InvalidationOutlineStyle invalidation_outline_style(InvalidationCause cause) noexcept
@@ -2625,6 +2999,10 @@ Functions, constants and aliases
 .. cpp:function:: std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept
 
    Copies the calling thread's recorded frames, outermost first, into the leading elements of frames (at most frames.size()), and its state into state. Returns the number of recorded frames, which may exceed the number copied. Never throws or allocates.
+
+.. cpp:function:: std::size_t copy_failure_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept
+
+   As copy_shadow_frames, but for a boundary that has just caught an exception: the frames open where the exception was thrown, the frames it unwound included, when no frame has been opened or closed by a return since its last unwinding pop; otherwise (no exception unwound a frame, or the thread has moved on) the frames open now. state.depth is the depth copied from; pushed and dropped are the thread's. Never throws or allocates. The mark cannot tell two unwindings apart when nothing opens or closes a frame between them: an exception caught and handled inside a frame, then another thrown from that frame or an outer one, shows the first's deeper frames above the second's. The outer frames are the second's either way.
 
 .. cpp:var:: constexpr std::size_t shadow_frame_subject_capacity
 

@@ -2,17 +2,17 @@
   "family": "QuickAccessToolbar",
   "step": "M-S8",
   "declaring": "QuickAccessToolbar",
-  "header": "include/gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp",
+  "header": "include/gui_forms/controls/quick_access_toolbar.hpp",
   "source": "src/controls/quick_access_toolbar/quick_access_toolbar.cpp",
-  "capabilities_header": "include/gui_forms/controls/quick_access_toolbar/quick_access_toolbar_capabilities/quick_access_toolbar_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/quick_access_toolbar_capabilities.hpp",
   "base": "ToolStrip",
   "shared": [],
   "includes": [
-    "gui_forms/controls/quick_access_toolbar/quick_access_toolbar_values/quick_access_toolbar_values.hpp"
+    "gui_forms/controls/quick_access_toolbar_values.hpp"
   ],
   "test": {
     "type": "QuickAccessToolbar",
-    "include": "gui_forms/controls/quick_access_toolbar/quick_access_toolbar.hpp"
+    "include": "gui_forms/controls/quick_access_toolbar.hpp"
   },
   "properties": [
     {

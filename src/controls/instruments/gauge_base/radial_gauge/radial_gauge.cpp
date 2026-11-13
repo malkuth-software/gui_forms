@@ -1,4 +1,4 @@
-#include "gui_forms/controls/instruments/gauge_base/radial_gauge/radial_gauge.hpp"
+#include "gui_forms/controls/radial_gauge.hpp"
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -199,7 +199,7 @@ void RadialGauge::on_paint(Painter& painter, Rect) {
         const std::string shown = value_text();
         PartPaint caption{.role = PartRole::caption, .bounds = caption_box, .states = states,
                           .family = ControlVisualRole::panel};
-        caption.text = shown;
+        caption.text = lend_paint_text(shown);
         caption.font = value_font(caption_font_size(placed.plot.width));
         caption.alignment = PartTextAlignment::center;
         paint_part(painter, *this, caption);

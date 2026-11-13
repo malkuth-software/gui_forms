@@ -7,10 +7,13 @@
 
 #include "gui_forms/binding.hpp"
 #include "gui_forms/components/about_dialog/about_dialog.hpp"
-#include "gui_forms/controls/button_base/button_base.hpp"
-#include "gui_forms/controls/instruments/gauge_base/gauge_base.hpp"
-#include "gui_forms/controls/label/label.hpp"
-#include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/gauge_base.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/list_control.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
+#include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/pages.hpp"
 #include "gui_forms/window.hpp"
 
@@ -95,6 +98,30 @@ public:
     explicit SampleGauge(StableId stable_id) : GaugeBase(std::move(stable_id)) {}
 };
 
+// The text, list and up-down controls' bases, likewise.
+class SampleTextBoxBase final : public TextBoxBase {
+public:
+    explicit SampleTextBoxBase(StableId stable_id) : TextBoxBase(std::move(stable_id)) {}
+
+protected:
+    // A sample has no editing engine: the editing surface does nothing.
+    [[nodiscard]] detail::TextEditingEngine* editing_engine() const noexcept override { return nullptr; }
+    void apply_selection(TextSelection) override {}
+};
+
+class SampleListControl final : public ListControl {
+public:
+    explicit SampleListControl(StableId stable_id) : ListControl(std::move(stable_id)) {}
+};
+
+class SampleUpDownBase final : public UpDownBase {
+public:
+    explicit SampleUpDownBase(StableId stable_id) : UpDownBase(std::move(stable_id)) {}
+    // A sample has no steps.
+    void up_button() override {}
+    void down_button() override {}
+};
+
 } // namespace
 
 template <>
@@ -112,6 +139,24 @@ Component::Ptr create_type<AboutDialog>(StableId stable_id) {
 template <>
 void describe_type<GaugeBase>(SchemaSample& sample) {
     const Control::Ptr control = make_control<SampleGauge>(sample_id());
+    record_control(*control, sample);
+}
+
+template <>
+void describe_type<TextBoxBase>(SchemaSample& sample) {
+    const Control::Ptr control = make_control<SampleTextBoxBase>(sample_id());
+    record_control(*control, sample);
+}
+
+template <>
+void describe_type<ListControl>(SchemaSample& sample) {
+    const Control::Ptr control = make_control<SampleListControl>(sample_id());
+    record_control(*control, sample);
+}
+
+template <>
+void describe_type<UpDownBase>(SchemaSample& sample) {
+    const Control::Ptr control = make_control<SampleUpDownBase>(sample_id());
     record_control(*control, sample);
 }
 

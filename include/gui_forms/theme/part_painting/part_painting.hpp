@@ -1,5 +1,8 @@
 #pragma once
+#include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/engine/light_planes/light_planes.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
@@ -7,6 +10,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string_view>
 
@@ -75,13 +79,15 @@ enum class PartMark : std::uint8_t {
     information,
     warning,
     success,
+    // A right-to-left menu's submenu chevron (the mirror of chevron_right).
+    chevron_left,
     count,
 };
 
 inline constexpr std::size_t part_mark_count = static_cast<std::size_t>(PartMark::count);
 
 // Registered (snake_case) name of a mark, as the schema's vocabulary lists it.
-[[nodiscard]] std::string_view part_mark_name(PartMark mark) noexcept;
+[[nodiscard]] GUI_FORMS_API std::string_view part_mark_name(PartMark mark) noexcept;
 
 // The values admitted to the vocabulary beside states and marks (design
 // language 12.7), as the schema lists them: they have no enum, so this is
@@ -98,7 +104,7 @@ enum class PartTextAlignment : std::uint8_t { start, center, end };
 // arc runs from `start` through `sweep` (negative sweeps anticlockwise; at
 // most one turn either way is drawn); a needle points at `start` and reads
 // no sweep.
-struct PartArc final {
+struct GUI_FORMS_API PartArc final {
     double start{};
     double sweep{};
 };
@@ -133,7 +139,7 @@ enum class DockShapeRegion : std::uint8_t { top, bottom, left, right, tab_into }
 // A tapered part is cut to its shape, its outer shadows with it; the edge
 // shadow then draws its cast. Each is bounded: the taper by the part's
 // width, the flare by its height, all by maximum_part_shape.
-struct PartProfile final {
+struct GUI_FORMS_API PartProfile final {
     double taper{};
     std::optional<Color> taper_colour{};
     double flare{};
@@ -142,21 +148,81 @@ struct PartProfile final {
     Color edge_shadow_colour{};
 };
 
+// A part composited from baked light planes (skeudoindustrial surfaces;
+// engine/light_planes): the bake, the one drive every lamp of it takes, and
+// the composite its control keeps between paints. See
+// PartPaint::light_planes.
+struct GUI_FORMS_API PartLightPlanes final {
+    std::shared_ptr<const engine_light::LightPlanes> planes{};
+    engine_light::LampDrive drive{};
+    // The control's kept composite (a member of the control), borrowed for
+    // the call; with none the part takes its recipe.
+    engine_light::LightPlaneRaster* raster{};
+};
+
+// PartPaint::text is lent for one paint call (borrow sanitizer study,
+// section 2.5, row 7). lend_paint_text stamps `text` from the innermost
+// paint scope on the calling thread; the window opens one around each
+// control's on_paint, so in the checked build a record (or a view taken from
+// it) kept past that call fails at its next read, and so does one whose
+// owner's text was replaced during the call by a nested scope's end. Outside
+// any paint scope (a test or a bake painting a part directly) the text is
+// not tracked. The ordinary build returns `text` unchanged.
+#if GUI_FORMS_CHECKED_BORROWS
+[[nodiscard]] GUI_FORMS_API BorrowedText lend_paint_text(std::string_view text);
+#else
+[[nodiscard]] inline BorrowedText lend_paint_text(std::string_view text) noexcept {
+    return text;
+}
+#endif
+
+namespace detail {
+
+// The owner of the text one paint call lends (lend_paint_text). Declared
+// before the call it covers and destroyed after it; scopes nest (a nested
+// window paint), the innermost lending. One thread: the painting one.
+#if GUI_FORMS_CHECKED_BORROWS
+class GUI_FORMS_API PaintScope final {
+public:
+    PaintScope() noexcept;
+    ~PaintScope();
+    PaintScope(const PaintScope&) = delete;
+    PaintScope& operator=(const PaintScope&) = delete;
+
+    [[nodiscard]] BorrowedText lend_text(std::string_view text) const;
+
+private:
+    BorrowScope scope_;
+    // The scope this one hides, restored when it ends.
+    const PaintScope* outer_;
+};
+#else
+class GUI_FORMS_API PaintScope final {
+public:
+    PaintScope() noexcept {}
+    PaintScope(const PaintScope&) = delete;
+    PaintScope& operator=(const PaintScope&) = delete;
+};
+#endif
+
+} // namespace detail
+
 // One part to paint, in the control's local coordinates. `text`, `image` and
 // `mark` are read only by roles that show them (label, caption and content;
-// icon and image; glyph and indicator). `text` is borrowed for the call. `font` is an
+// icon and image; glyph and indicator). `text` is lent for the call
+// (lend_paint_text). `font` is an
 // effective font (Control::effective_font). `corner_radius`, when set, gives
 // a surface part its shape; the theme (T4) will own shapes, so a control sets
 // it only where today's recipe has no shape for the part. `orientation` and
 // `alignment` are read with `text`; `dock_region` only by the dock_shape
 // mark.
-struct PartPaint final {
+struct GUI_FORMS_API PartPaint final {
     PartRole role{PartRole::region};
     Rect bounds{};
     AnatomyStateSet states{};
     ControlVisualRole family{ControlVisualRole::panel};
     PartMark mark{PartMark::none};
-    std::string_view text{};
+    BorrowedText text{};
     FontSpec font{};
     PartTextAlignment alignment{PartTextAlignment::start};
     // The text's reading direction (§8.5; owner decision DK-35, J4). A
@@ -179,6 +245,10 @@ struct PartPaint final {
     // surface roles read it; none is a rectangle. Hit testing uses the same
     // shape (pointed_face_contains).
     std::optional<double> point{};
+    // The nose is at the left edge instead, its tip at the middle of the
+    // left edge: a right-to-left breadcrumb segment's (Control::
+    // right_to_left). Read only with `point`.
+    bool point_leading{};
     // The part's profile beside its rectangle (PartProfile), or none. Only
     // surface roles read it; a pointed face ignores it.
     std::optional<PartProfile> profile{};
@@ -259,6 +329,18 @@ struct PartPaint final {
     // The arc and needle roles' angles (PartArc), or none, when neither
     // draws. Every other role ignores them.
     std::optional<PartArc> arc{};
+    // The baked light planes the part is composited from (PartLightPlanes),
+    // or none. Such a part is drawn as the bake's light, room · R +
+    // Σ colour · power · L_i toned (engine_light::composite_light_planes),
+    // stretched over `bounds` at the window's scale, in place of its recipe
+    // and of any primitive a rule would choose: the bake carries the part's
+    // whole look, its body included. The composite is transparent where the
+    // bake's coverage is 0, so its light never reaches past the part; a
+    // part with a corner radius is clipped to that shape as well. The
+    // recipe draws the part instead in forced high contrast, where the
+    // role's colours stand, and when no raster of the part's size can be
+    // made (ornament gives way first).
+    std::optional<PartLightPlanes> light_planes{};
 };
 
 // The theme context a part's states select: hot, pressed or captured,
@@ -266,7 +348,7 @@ struct PartPaint final {
 // cue and preselect. The control supplies what the part does not carry: its
 // enabled, invalid and pending status, window activity and high contrast. A
 // part that is itself disabled or unavailable is drawn disabled.
-[[nodiscard]] ControlVisualContext part_visual_context(
+[[nodiscard]] GUI_FORMS_API ControlVisualContext part_visual_context(
     const Control& control, AnatomyStateSet states) noexcept;
 
 // Paints one part of `control` by its role (see PartPaint), through the
@@ -302,7 +384,7 @@ struct PartPaint final {
 // (Control::set_back_color and set_fore_color): the control's own or
 // inherited foreground, and its own background, or an inherited one on any
 // role but a well.
-void paint_part(Painter& painter, const Control& control, const PartPaint& part);
+GUI_FORMS_API void paint_part(Painter& painter, const Control& control, const PartPaint& part);
 
 // A text part (label, caption or content) placed by its baseline, as
 // controls that lay out text by baseline draw it: `part`'s bounds become
@@ -312,25 +394,28 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
 // so the text lands on `origin` exactly. A part without text draws nothing.
 // A part that carries its text's measurement (PartPaint::measured_text) is
 // not measured again.
-void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,
+GUI_FORMS_API void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,
                         double width);
 
 // Whether `position` lies in the pointed face of `bounds` whose nose is
 // `point` units long (PartPaint::point): inside the bounds and left of the
 // nose's edges. A point of zero or less is the whole rectangle.
-[[nodiscard]] bool pointed_face_contains(Rect bounds, double point, Point position) noexcept;
+[[nodiscard]] GUI_FORMS_API bool pointed_face_contains(Rect bounds, double point, Point position) noexcept;
+// The same for a face whose nose is at its left edge (PartPaint::
+// point_leading): inside the bounds and right of the nose's edges.
+[[nodiscard]] GUI_FORMS_API bool leading_pointed_face_contains(Rect bounds, double point, Point position) noexcept;
 
 // How far `control`'s theme's overlay shadow reaches outside the casting
 // surface's rect, in the control's presentation (ordinary or high
 // contrast). Zero on every side when the theme casts none.
-[[nodiscard]] Insets overlay_shadow_outsets(const Control& control) noexcept;
+[[nodiscard]] GUI_FORMS_API Insets overlay_shadow_outsets(const Control& control) noexcept;
 
 // paint_part's drawing, with the recipe and context already resolved. For
 // helpers that resolve a recipe themselves (the existing controls' focus and
 // default cues), so that every part is drawn by one implementation. The
 // shadow role paints nothing here: the overlay shadow is the theme's value,
 // not the recipe's, so it is drawn only through paint_part.
-void paint_part_from_recipe(Painter& painter, const PartPaint& part,
+GUI_FORMS_API void paint_part_from_recipe(Painter& painter, const PartPaint& part,
                             const ControlVisualRecipe& recipe, ControlVisualContext context);
 
 } // namespace gui_forms

@@ -2,9 +2,9 @@
   "family": "TabPage",
   "step": "M-S8",
   "declaring": "TabPage",
-  "header": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp",
+  "header": "include/gui_forms/controls/tab_page.hpp",
   "source": "src/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.cpp",
-  "capabilities_header": "include/gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page_capabilities/tab_page_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/tab_page_capabilities.hpp",
   "base": "Panel",
   "shared": [
     "TextCapability"
@@ -12,7 +12,7 @@
   "includes": [],
   "test": {
     "type": "TabPage",
-    "include": "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
+    "include": "gui_forms/controls/tab_page.hpp"
   },
   "properties": [
     {

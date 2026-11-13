@@ -7,9 +7,9 @@ gui_forms::ListBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ListBox : public Panel, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox>
+.. cpp:class:: ListBox : public ListControl, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox>
 
-   ``#include <gui_forms/controls/panel/list_box/list_box.hpp>``
+   ``#include <gui_forms/controls/list_box.hpp>``
 
    A scrolling list of text rows from which the user selects one row or several.
 
@@ -75,10 +75,6 @@ gui_forms::ListBox
       **selected_indices** : ``std::span<const std::size_t>``, read-only
          The indices of all selected rows, in ascending order.
 
-      **selected_index** : ``std::optional<std::size_t>``, read-only
-         The lowest selected index, or no value when nothing is selected. In
-         ``one`` mode this is the selected row.
-
       **parts** : ``Parts``, read-only
 
       **realized_items** : ``std::vector<Item>``, read-only
@@ -100,6 +96,8 @@ gui_forms::ListBox
          caused, if any. Selection methods never raise it.
 
    :Inherited:
+
+      From :cpp:class:`ListControl <gui_forms::ListControl>`: properties :cpp:func:`selected_index <gui_forms::ListControl::selected_index>`; events :cpp:func:`selected_index_changed <gui_forms::ListControl::selected_index_changed>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
@@ -255,14 +253,9 @@ gui_forms::ListBox
       The font of the row text. An invalid specification throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: std::span<const std::size_t> selected_indices() const noexcept
+   .. cpp:function:: std::span<const std::size_t> selected_indices() const& noexcept
 
       The indices of all selected rows, in ascending order.
-
-   .. cpp:function:: std::optional<std::size_t> selected_index() const noexcept
-
-      The lowest selected index, or no value when nothing is selected. In
-      ``one`` mode this is the selected row.
 
    .. cpp:function:: Parts parts() const
 
@@ -333,14 +326,6 @@ gui_forms::ListBox
       Lays out the list, scrolls the active row into view and repaints the
       rows in view that edits of :cpp:member:`items <gui_forms::ListBox::items>` reached since the last layout.
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-      Handles the pointer input described under Notes. The window calls it.
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
-      Handles the keyboard input described under Notes. The window calls it.
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -365,6 +350,50 @@ gui_forms::ListBox
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+      Handles the pointer input described under Notes, with the other mouse
+      raisers the class overrides, then raises the event. The window calls it.
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Raises the event, then handles a key its subscribers left unhandled as
+      described under Notes. The window calls it.
+
+   .. cpp:function:: void list_pointer(MouseEventArgs& arguments)
+
+      *Protected.*
+
+      ListBox's own pointer and key handling, which its raisers run before raising the event. A derived list that handles first calls them in its own raisers and then raises the event through Control (mouse) or ListControl (keys), not through ListBox's raisers. list_pointer takes a press, release, move or wheel (by arguments.action).
+
+   .. cpp:function:: void list_pointer_left()
+
+      *Protected.*
+
+   .. cpp:function:: void list_key_down(KeyEventArgs& arguments)
+
+      *Protected.*
 
    .. cpp:function:: virtual void on_items_changing(const CollectionEdit& edit)
 
@@ -439,3 +468,269 @@ gui_forms::ListBox
    .. cpp:member:: constexpr std::size_t list_box_property_count
 
       ListBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 2U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ListBox``. Members declared here and by the counterpart: 14 supported, 0 deferred, 1 excluded, 48 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ListBox``
+     - ``ListBox``
+     - supported
+   * - property
+     - ``BorderStyle``
+     - ``border_style``
+     - unclassified (untested)
+   * - property
+     - ``ColumnWidth``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CustomTabOffsets``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DrawMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HorizontalExtent``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HorizontalScrollbar``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IntegralHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ItemHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Items``
+     - ``items``
+     - supported
+   * - property
+     - ``MultiColumn``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``PreferredHeight``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ScrollAlwaysVisible``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedIndices``
+     - ``selected_indices``
+     - supported
+   * - property
+     - ``SelectedItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectedItems``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SelectionMode``
+     - ``selection_mode``
+     - supported
+   * - property
+     - ``Sorted``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TopIndex``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseCustomTabOffsets``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseTabStops``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Click``
+     - ``click``
+     - supported
+   * - event
+     - ``DrawItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MeasureItem``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseClick``
+     - ``mouse_click``
+     - unclassified (untested)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``SelectedIndexChanged``
+     - ``selected_index_changed``
+     - supported
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``AddItemsCore``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - method
+     - ``BeginUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ClearSelected``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreateItemCollection``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``EndUpdate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``FindString``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``FindStringExact``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemHeight``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetItemRectangle``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetSelected``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``IndexFromPoint``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnDrawItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMeasureItem``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``SetSelected``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Sort``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``WmReflectCommand``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_activated``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selection_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_selection``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``item_stable_id``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``list_box_property_entries``
+     - unclassified (untested)
+   * - method
+     - ``Control.OnFontChanged``
+     - ``on_font_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_items_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_items_changing``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``paint_row_adornment``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``prepare_edit``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``row_text_left``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``select_index``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_item_stable_ids``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``written``
+     - unclassified (untested)

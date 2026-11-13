@@ -20,7 +20,7 @@
       "reviewed": false,
       "summary": "Constructs a focusable hierarchical selector with stable selection, expansion, type-selection, and virtual accessibility state."
     },
-    "gui_forms::TreeView::items|std::span<const TreeViewItem> () const noexcept": {
+    "gui_forms::TreeView::items|BorrowedSpan<TreeViewItem> () const & noexcept": {
       "reviewed": false,
       "summary": "Returns the authored flat hierarchy records in caller order."
     },
@@ -28,7 +28,7 @@
       "reviewed": false,
       "summary": "Validates stable identities and parent relationships, rebuilds the visible preorder, and reconciles selection, focus, and scrolling."
     },
-    "gui_forms::TreeView::active_id|std::string_view () const noexcept": {
+    "gui_forms::TreeView::active_id|std::string_view () const & noexcept": {
       "reviewed": false,
       "summary": "Returns the keyboard-active visible item independently of selection."
     },
@@ -68,13 +68,29 @@
       "reviewed": false,
       "summary": "Records visible hierarchy rows, depth guides, optional expanders, imagery, selection, hover, and focus."
     },
-    "gui_forms::TreeView::on_pointer|void (PointerEvent &)": {
+    "gui_forms::TreeView::on_mouse_down|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Handles row hit testing, disclosure toggling, selection, capture qualification, and activation."
+      "summary": "The press's target phase: handles row hit testing, disclosure toggling, selection, capture qualification, and activation, then raises the event."
     },
-    "gui_forms::TreeView::on_key|void (KeyEvent &)": {
+    "gui_forms::TreeView::on_mouse_up|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Implements tree navigation, parent/child disclosure, paging, activation, and selection."
+      "summary": "The release's target phase: handles row hit testing, disclosure toggling, selection, capture qualification, and activation, then raises the event."
+    },
+    "gui_forms::TreeView::on_mouse_move|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "The move's target phase: handles row hit testing, disclosure toggling, selection, capture qualification, and activation, then raises the event."
+    },
+    "gui_forms::TreeView::on_mouse_wheel|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "The wheel turn's target phase: handles row hit testing, disclosure toggling, selection, capture qualification, and activation, then raises the event."
+    },
+    "gui_forms::TreeView::on_mouse_leave|void ()": {
+      "reviewed": false,
+      "summary": "Clears the hover state the pointer left, then raises MouseLeave."
+    },
+    "gui_forms::TreeView::on_key_down|void (KeyEventArgs &)": {
+      "reviewed": false,
+      "summary": "Raises the event, then for an unhandled key: implements tree navigation, parent/child disclosure, paging, activation, and selection."
     },
     "gui_forms::TreeView::on_text_input|void (TextInputEvent &)": {
       "reviewed": false,

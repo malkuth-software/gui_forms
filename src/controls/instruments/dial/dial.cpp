@@ -1,4 +1,4 @@
-#include "gui_forms/controls/instruments/dial/dial.hpp"
+#include "gui_forms/controls/dial.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -232,38 +232,54 @@ void Dial::on_paint(Painter& painter, Rect) {
     }
 }
 
-void Dial::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::wheel) {
-        if (event.wheel_delta.y != 0.0) {
-            const bool incrementing = event.wheel_delta.y > 0.0;
-            set_value_from_input(value.read() + (incrementing ? small_change.read() : -small_change.read()),
-                                 incrementing ? RangeAction::small_increment : RangeAction::small_decrement);
-            event.handled = true;
-        }
-        return;
+void Dial::on_mouse_wheel(MouseEventArgs& arguments) {
+    if (arguments.wheel_delta.y != 0.0) {
+        const bool incrementing = arguments.wheel_delta.y > 0.0;
+        set_value_from_input(value.read() + (incrementing ? small_change.read() : -small_change.read()),
+                             incrementing ? RangeAction::small_increment : RangeAction::small_decrement);
+        arguments.handled = true;
     }
-    if (event.button == PointerButton::primary && event.action == PointerAction::down) {
-        tracking_ = true;
-        set_value_from_input(value_from_window_point(event.position, value.read()), RangeAction::thumb_track);
-        invalidate(Dirty::paint);
-        event.handled = true;
-    } else if (event.action == PointerAction::move && tracking_) {
-        set_value_from_input(value_from_window_point(event.position, value.read()), RangeAction::thumb_track);
-        event.handled = true;
-    } else if (event.button == PointerButton::primary && event.action == PointerAction::up && tracking_) {
-        tracking_ = false;
-        set_value_from_input(value_from_window_point(event.position, value.read()), RangeAction::thumb_position);
-        invalidate(Dirty::paint);
-        event.handled = true;
-    }
+    RangeControl::on_mouse_wheel(arguments);
 }
 
-void Dial::on_key(KeyEvent& event) {
-    if (event.action != KeyAction::down) return;
+void Dial::on_mouse_down(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary) {
+        tracking_ = true;
+        set_value_from_input(value_from_window_point(arguments.window_position, value.read()),
+                             RangeAction::thumb_track);
+        invalidate(Dirty::paint);
+        arguments.handled = true;
+    }
+    RangeControl::on_mouse_down(arguments);
+}
+
+void Dial::on_mouse_move(MouseEventArgs& arguments) {
+    if (tracking_) {
+        set_value_from_input(value_from_window_point(arguments.window_position, value.read()),
+                             RangeAction::thumb_track);
+        arguments.handled = true;
+    }
+    RangeControl::on_mouse_move(arguments);
+}
+
+void Dial::on_mouse_up(MouseEventArgs& arguments) {
+    if (arguments.button == PointerButton::primary && tracking_) {
+        tracking_ = false;
+        set_value_from_input(value_from_window_point(arguments.window_position, value.read()),
+                             RangeAction::thumb_position);
+        invalidate(Dirty::paint);
+        arguments.handled = true;
+    }
+    RangeControl::on_mouse_up(arguments);
+}
+
+void Dial::on_key_down(KeyEventArgs& arguments) {
+    RangeControl::on_key_down(arguments);
+    if (arguments.handled) return;
     double next = value.read();
     RangeAction action = RangeAction::thumb_position;
     bool recognized = true;
-    switch (event.physical_key) {
+    switch (arguments.physical_key) {
     case PhysicalKey::left:
     case PhysicalKey::down:
         next -= small_change.read();
@@ -296,7 +312,7 @@ void Dial::on_key(KeyEvent& event) {
     }
     if (recognized) {
         set_value_from_input(next, action);
-        event.handled = true;
+        arguments.handled = true;
     }
 }
 

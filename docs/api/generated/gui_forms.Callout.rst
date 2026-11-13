@@ -9,7 +9,7 @@ gui_forms::Callout
 
 .. cpp:class:: Callout final : public Control, public CalloutCapabilities<Callout>
 
-   ``#include <gui_forms/controls/callout/callout.hpp>``
+   ``#include <gui_forms/controls/callout.hpp>``
 
    Non-modal teaching callout at a target control: a card with a beak pointing at the target, a title, wrapped text, a close mark and an optional action, placed below or above the target in an overlay, with optional light dismiss.
 
@@ -152,12 +152,6 @@ gui_forms::Callout
 
    .. cpp:function:: Insets visual_outsets() const noexcept override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
-      Escape closes a shown callout, whether focus is on the callout itself (on_key; the bubble phase passes over the focused control) or within it.
-
    .. cpp:function:: void on_key_bubble(KeyEvent& event) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -169,6 +163,32 @@ gui_forms::Callout
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
 
    .. cpp:function:: bool hit_test_local(Point local) const override
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Escape closes a shown callout, whether focus is on the callout itself (on_key_down; the bubble phase passes over the focused control) or within it.
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
@@ -187,3 +207,73 @@ gui_forms::Callout
    .. cpp:member:: constexpr std::size_t callout_property_count
 
       Callout's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 8 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``action_button``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``action_text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``is_shown``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``light_dismiss``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``prefers_above``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``target``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``text``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``title``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``action_clicked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``closed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``callout_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show``
+     - supported

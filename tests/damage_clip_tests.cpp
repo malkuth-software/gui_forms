@@ -2,7 +2,15 @@
 // A control whose visual outsets reach past the window edge used to leave a
 // rectangle the paint could never contain, so every later paint was a full
 // window paint and localized mutations never produced partial paints.
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <cstdlib>
 #include <exception>

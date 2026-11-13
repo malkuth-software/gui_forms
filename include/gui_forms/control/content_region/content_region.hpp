@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/dirty.hpp"
 
 #include <cstddef>
@@ -14,7 +15,7 @@ class Control;
 // One item of a content region, such as a DataGridView cell: two numbers
 // the owning control gives meaning to (for the grid, a row position and a
 // column index).
-struct ContentItemKey final {
+struct GUI_FORMS_API ContentItemKey final {
     std::uint64_t major{};
     std::uint64_t minor{};
 
@@ -36,7 +37,7 @@ struct ContentItemKey final {
 //
 // The owning control holds the region as a member; the region observes its
 // owner and is used only on the owner's UI thread.
-class ContentRegion final {
+class GUI_FORMS_API ContentRegion final {
 public:
     // Up to `capacity` items are kept pending (at least one); the storage
     // is reserved at the first note, the region's only allocation. Past the

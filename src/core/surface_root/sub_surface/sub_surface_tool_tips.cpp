@@ -1,4 +1,5 @@
 #include "sub_surface_tool_tips.hpp"
+#include "../access/surface_request_access.hpp"
 
 #include "sub_surface_channel.hpp"
 #include "sub_surface_request_posts.hpp"
@@ -12,6 +13,9 @@ namespace {
 
 // The node among `nodes` and their children whose stable ID is `stable_id`,
 // or null. The pointer is borrowed from `nodes`.
+// Recurses once per semantic level: at most the control nesting limit
+// (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
+// before a snapshot is published (semantic_types.hpp).
 [[nodiscard]] const SemanticNode* node_with_id(const std::vector<SemanticNode>& nodes, std::string_view stable_id) {
     for (const SemanticNode& node : nodes) {
         if (node.stable_id == stable_id) return &node;
@@ -274,7 +278,7 @@ void SubSurfaceToolTipRequester::request(const Control::Ptr& owner, std::uint64_
     if (!program_) {
         explicit_request_ = 0U;
         explicit_item_.clear();
-        root_.answer_tool_tip_request(id, SurfaceRequestResult::declined);
+        SurfaceRequestAccess::answer_tool_tip_request(root_, id, SurfaceRequestResult::declined);
     }
 }
 
@@ -293,7 +297,7 @@ void SubSurfaceToolTipRequester::hide() {
         const std::uint64_t id = explicit_request_;
         explicit_request_ = 0U;
         explicit_item_.clear();
-        root_.answer_tool_tip_request(id, SurfaceRequestResult::closed);
+        SurfaceRequestAccess::answer_tool_tip_request(root_, id, SurfaceRequestResult::closed);
     }
     revoke(program_);
 }
@@ -319,7 +323,7 @@ bool SubSurfaceToolTipRequester::receive_outcome(const SurfaceRequestOutcome& ou
     // stale one is asked again with the next configuration instead.
     const std::uint64_t root_request = slot == &program_ ? explicit_request_ : 0U;
     if (root_request != 0U && outcome.result != SurfaceRequestResult::stale) {
-        root_.answer_tool_tip_request(root_request, outcome.result);
+        SurfaceRequestAccess::answer_tool_tip_request(root_, root_request, outcome.result);
     }
     switch (outcome.result) {
     case SurfaceRequestResult::shown:

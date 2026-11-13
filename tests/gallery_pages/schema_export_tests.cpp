@@ -1,21 +1,50 @@
 #include "support.hpp"
 
 #include "gui_forms/components/about_dialog/about_dialog.hpp"
-#include "gui_forms/controls/callout/callout.hpp"
-#include "gui_forms/controls/help/help_book/help_book.hpp"
-#include "gui_forms/controls/help/help_book_system/help_book_system.hpp"
-#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
-#include "gui_forms/controls/instruments/gauge_base/gauge_base.hpp"
-#include "gui_forms/controls/modal_layer/modal_layer.hpp"
-#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
-#include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
-#include "gui_forms/controls/plots/plot_annotation_item/plot_annotation_item.hpp"
-#include "gui_forms/controls/plots/plot_axis_item/plot_axis_item.hpp"
-#include "gui_forms/controls/plots/plot_series_item/plot_series_item.hpp"
-#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
-#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
+#include "gui_forms/controls/callout.hpp"
+#include "gui_forms/controls/help_book.hpp"
+#include "gui_forms/controls/help_book_system.hpp"
+#include "gui_forms/controls/help_book_viewer.hpp"
+#include "gui_forms/controls/gauge_base.hpp"
+#include "gui_forms/controls/list_control.hpp"
+#include "gui_forms/controls/text_box_base.hpp"
+#include "gui_forms/controls/up_down_base.hpp"
+#include "gui_forms/controls/modal_layer.hpp"
+#include "gui_forms/controls/virtual_rows_view.hpp"
+#include "gui_forms/controls/wizard_page.hpp"
+#include "gui_forms/controls/sparkline.hpp"
+#include "gui_forms/controls/plot_annotation_item.hpp"
+#include "gui_forms/controls/plot_axis_item.hpp"
+#include "gui_forms/controls/plot_series_item.hpp"
+#include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/value_bar.hpp"
+#include "gui_forms/background_worker/background_worker.hpp"
+#include "gui_forms/binding/binding/binding.hpp"
+#include "gui_forms/binding/binding_context/binding_context.hpp"
+#include "gui_forms/binding/binding_source/binding_source.hpp"
+#include "gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp"
+#include "gui_forms/commands/color_command/color_command.hpp"
+#include "gui_forms/commands/font_command/font_command.hpp"
+#include "gui_forms/commands/gallery_command/gallery_command.hpp"
+#include "gui_forms/components/color_dialog/color_dialog.hpp"
+#include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/components/error_provider/error_provider.hpp"
+#include "gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp"
+#include "gui_forms/components/help_provider/help_provider.hpp"
+#include "gui_forms/components/notify_icon/notify_icon.hpp"
+#include "gui_forms/components/open_file_dialog/open_file_dialog.hpp"
+#include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
+#include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
+#include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
+#include "gui_forms/components/tool_tip/tool_tip.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/scroll_bar.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
+#include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
+#include "gui_forms/timer/timer/timer.hpp"
 
-#include "gui_forms/controls/toast/toast.hpp"
+#include "gui_forms/controls/toast.hpp"
 #include "gui_forms/engine.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/schema.hpp"
@@ -676,6 +705,30 @@ public:
     explicit SchemaGauge(StableId stable_id) : GaugeBase(std::move(stable_id)) {}
 };
 
+// The text, list and up-down controls' bases, likewise.
+class SchemaTextBoxBase final : public TextBoxBase {
+public:
+    explicit SchemaTextBoxBase(StableId stable_id) : TextBoxBase(std::move(stable_id)) {}
+
+protected:
+    // A sample has no editing engine: the editing surface does nothing.
+    [[nodiscard]] detail::TextEditingEngine* editing_engine() const noexcept override { return nullptr; }
+    void apply_selection(TextSelection) override {}
+};
+
+class SchemaListControl final : public ListControl {
+public:
+    explicit SchemaListControl(StableId stable_id) : ListControl(std::move(stable_id)) {}
+};
+
+class SchemaUpDownBase final : public UpDownBase {
+public:
+    explicit SchemaUpDownBase(StableId stable_id) : UpDownBase(std::move(stable_id)) {}
+    // A sample has no steps.
+    void up_button() override {}
+    void down_button() override {}
+};
+
 void record_control(const Control& control, std::vector<TypeRecord>& records) {
     const ControlAnatomy& anatomy = control.anatomy();
     const std::size_t position = catalog_position(anatomy.control_id);
@@ -874,7 +927,8 @@ void test_schema_export() {
     const std::shared_ptr<Toast> toast = make_control<Toast>(StableId("schema.toast"), std::move(toast_content));
     record_control(*toast, records);
     // Types no Gallery page shows yet: the plots and instruments packages'
-    // PlotView with its item children and Sparkline, and the ValueBar. The
+    // PlotView with its item children and Sparkline, the ValueBar and the
+    // VirtualRowsView (the NodeCanvas is on node-graphs). The
     // items have no anatomy of their own: they are recorded by their ids
     // with the base anatomy, as the C ABI describes them.
     const std::shared_ptr<PlotView> plot_view = make_control<PlotView>(StableId("schema.plot-view"));
@@ -885,16 +939,26 @@ void test_schema_export() {
         make_control<PlotAnnotationItem>(StableId("schema.plot-annotation"));
     const std::shared_ptr<Sparkline> sparkline = make_control<Sparkline>(StableId("schema.sparkline"));
     const std::shared_ptr<ValueBar> value_bar = make_control<ValueBar>(StableId("schema.value-bar"));
+    const std::shared_ptr<VirtualRowsView> virtual_rows =
+        make_control<VirtualRowsView>(StableId("schema.virtual-rows"));
     record_control(*plot_view, records);
     record_control_as("plot_axis_item", *plot_axis, records);
     record_control_as("plot_series_item", *plot_series, records);
     record_control_as("plot_annotation_item", *plot_annotation, records);
     record_control(*sparkline, records);
     record_control(*value_bar, records);
+    record_control(*virtual_rows, records);
     // The final controls and the help system shown only inside another or
     // on demand. WizardPage and HelpBookViewer have no anatomy of their own
-    // yet and GaugeBase is a base: they are recorded by their ids.
+    // yet and GaugeBase, TextBoxBase, ListControl and UpDownBase are bases:
+    // they are recorded by their ids.
     const std::shared_ptr<SchemaGauge> gauge_base = make_control<SchemaGauge>(StableId("schema.gauge-base"));
+    const std::shared_ptr<SchemaTextBoxBase> text_box_base =
+        make_control<SchemaTextBoxBase>(StableId("schema.text-box-base"));
+    const std::shared_ptr<SchemaListControl> list_control =
+        make_control<SchemaListControl>(StableId("schema.list-control"));
+    const std::shared_ptr<SchemaUpDownBase> up_down_base =
+        make_control<SchemaUpDownBase>(StableId("schema.up-down-base"));
     const std::shared_ptr<WizardPage> wizard_page = make_control<WizardPage>(StableId("schema.wizard-page"));
     const std::shared_ptr<Callout> callout = make_control<Callout>(StableId("schema.callout"));
     const std::shared_ptr<ModalLayer> modal_layer = make_control<ModalLayer>(StableId("schema.modal-layer"));
@@ -902,6 +966,9 @@ void test_schema_export() {
         make_control<HelpBookViewer>(StableId("schema.help-viewer"));
     const std::shared_ptr<HelpBook> help_book = make_control<HelpBook>(StableId("schema.help-book"));
     record_control_as("gauge_base", *gauge_base, records);
+    record_control_as("text_box_base", *text_box_base, records);
+    record_control_as("list_control", *list_control, records);
+    record_control_as("up_down_base", *up_down_base, records);
     record_control_as("wizard_page", *wizard_page, records);
     record_control(*callout, records);
     record_control(*modal_layer, records);

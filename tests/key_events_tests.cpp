@@ -6,7 +6,17 @@
 // modifiers as keys, the key-state query, the releases on deactivation,
 // and the portable Keys codes.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/events/key_events/key_events.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
+#include "support/routed_input_probe.hpp"
 
 #include <cstdint>
 #include <cstdlib>
@@ -28,10 +38,10 @@ using Log = std::vector<std::string>;
 
 // A focusable control that logs its own key and text handling and handles
 // nothing unless told to.
-class Probe final : public Control {
+class Probe final : public gui_forms::tests::RoutedInputProbe<Control> {
 public:
-    Probe(StableId stable_id, Log& log) : Control(std::move(stable_id)), log_(log) { focusable = true; }
-    void on_key(KeyEvent& event) override {
+    Probe(StableId stable_id, Log& log) : gui_forms::tests::RoutedInputProbe<Control>(std::move(stable_id)), log_(log) { focusable = true; }
+    void routed_key(KeyEvent& event) override {
         log_.push_back(event.action == KeyAction::down ? "on_key:down" : "on_key:up");
         event.handled = handles_keys;
     }
@@ -188,6 +198,41 @@ void test_composition_and_text() {
     require(f.log == Log{"press:ab:0", "on_text:ab"}, "text of several characters has no key_char");
 }
 
+// Input order rule 3: suppress_key_press on KeyDown cancels its KeyPress
+// and text; handled does not (it only ends the route). A composition's
+// commit is kept even after a suppressed KeyDown.
+void test_suppress_key_press_cancels_key_press() {
+    Fixture f;
+    Window& window = *f.window;
+    std::vector<SubscriptionToken> tokens;
+    tokens.push_back((*f.first).key_down().subscribe(NoteKey{&f.log, "control_down", true}));
+    tokens.push_back((*f.first).key_press().subscribe(NotePress{&f.log, "control_press"}));
+    require(window.dispatch_key(key(KeyAction::down, PhysicalKey::e)) && f.log == Log{"control_down"},
+            "the control's key_down handles the key");
+    static_cast<void>(window.dispatch_text(text("e")));
+    require(f.log == Log{"control_down", "control_press:e:101", "on_text:e"},
+            "a handled KeyDown still raises KeyPress and delivers the text");
+    tokens.clear();
+
+    f.log.clear();
+    tokens.push_back(window.key_down().subscribe(NoteKey{&f.log, "window_down", false, true}));
+    tokens.push_back((*f.first).key_press().subscribe(NotePress{&f.log, "control_press"}));
+    static_cast<void>(window.dispatch_key(key(KeyAction::down, PhysicalKey::f)));
+    static_cast<void>(window.dispatch_text(text("f")));
+    require(f.log == Log{"window_down"}, "suppress_key_press on the window's KeyDown cancels the KeyPress");
+    tokens.clear();
+
+    f.log.clear();
+    static_cast<void>(window.dispatch_text(text("ka", true)));
+    tokens.push_back((*f.first).key_down().subscribe(NoteKey{&f.log, "control_down", false, true}));
+    tokens.push_back((*f.first).key_press().subscribe(NotePress{&f.log, "control_press"}));
+    static_cast<void>(window.dispatch_key(key(KeyAction::down, PhysicalKey::enter)));
+    static_cast<void>(window.dispatch_text(text("\xE3\x81\x8B")));
+    require(f.log == Log{"on_text:composing:ka", "control_down", "control_press:\xE3\x81\x8B:12363",
+                         "on_text:\xE3\x81\x8B"},
+            "suppress_key_press during a composition keeps the IME's commit");
+}
+
 void test_input_key_and_dialog_keys() {
     Fixture f;
     Window& window = *f.window;
@@ -270,6 +315,7 @@ int main() {
         test_order_of_one_key();
         test_handled_and_suppress();
         test_composition_and_text();
+        test_suppress_key_press_cancels_key_press();
         test_input_key_and_dialog_keys();
         test_repeat_simultaneous_and_state();
         test_key_codes();

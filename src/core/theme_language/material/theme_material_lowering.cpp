@@ -38,7 +38,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 69> material_properties{{
+constexpr std::array<NamedMaterialProperty, 92> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -46,6 +46,7 @@ constexpr std::array<NamedMaterialProperty, 69> material_properties{{
     {.name = "background-position", .property = MaterialProperty::background_position},
     {.name = "background-repeat", .property = MaterialProperty::background_repeat},
     {.name = "background-size", .property = MaterialProperty::background_size},
+    {.name = "background-texture", .property = MaterialProperty::background_texture},
     {.name = "border", .property = MaterialProperty::border},
     {.name = "border-bottom", .property = MaterialProperty::border_bottom},
     {.name = "border-bottom-color", .property = MaterialProperty::border_bottom_color},
@@ -74,11 +75,16 @@ constexpr std::array<NamedMaterialProperty, 69> material_properties{{
     {.name = "border-width", .property = MaterialProperty::border_width},
     {.name = "box-shadow", .property = MaterialProperty::box_shadow},
     {.name = "color", .property = MaterialProperty::color},
+    {.name = "corner-radius", .property = MaterialProperty::corner_radius},
     {.name = "default-outline", .property = MaterialProperty::default_outline},
     {.name = "edge-shadow", .property = MaterialProperty::edge_shadow},
+    {.name = "fill-color", .property = MaterialProperty::fill_color},
     {.name = "fill-text-color", .property = MaterialProperty::fill_text_color},
     {.name = "filter", .property = MaterialProperty::filter},
     {.name = "flare", .property = MaterialProperty::flare},
+    {.name = "flow", .property = MaterialProperty::flow},
+    {.name = "flow-spacing", .property = MaterialProperty::flow_spacing},
+    {.name = "flow-speed", .property = MaterialProperty::flow_speed},
     {.name = "font-family", .property = MaterialProperty::font_family},
     {.name = "font-size", .property = MaterialProperty::font_size},
     {.name = "font-style", .property = MaterialProperty::font_style},
@@ -87,6 +93,10 @@ constexpr std::array<NamedMaterialProperty, 69> material_properties{{
     {.name = "glow", .property = MaterialProperty::glow},
     {.name = "glow-placement", .property = MaterialProperty::glow_placement},
     {.name = "glyph-color", .property = MaterialProperty::glyph_color},
+    {.name = "gradient-dither", .property = MaterialProperty::gradient_dither},
+    {.name = "grid-band", .property = MaterialProperty::grid_band},
+    {.name = "grid-spacing", .property = MaterialProperty::grid_spacing},
+    {.name = "halo", .property = MaterialProperty::halo},
     {.name = "height", .property = MaterialProperty::height},
     {.name = "keylines", .property = MaterialProperty::keylines},
     {.name = "letter-spacing", .property = MaterialProperty::letter_spacing},
@@ -104,6 +114,19 @@ constexpr std::array<NamedMaterialProperty, 69> material_properties{{
     {.name = "padding-inline", .property = MaterialProperty::padding_inline},
     {.name = "reflection", .property = MaterialProperty::reflection},
     {.name = "scrim-color", .property = MaterialProperty::scrim_color},
+    {.name = "seat", .property = MaterialProperty::seat},
+    {.name = "stripe-angle", .property = MaterialProperty::stripe_angle},
+    {.name = "stripe-color", .property = MaterialProperty::stripe_color},
+    {.name = "stripe-direction", .property = MaterialProperty::stripe_direction},
+    {.name = "stripe-gloss", .property = MaterialProperty::stripe_gloss},
+    {.name = "stripe-ground", .property = MaterialProperty::stripe_ground},
+    {.name = "stripe-lean", .property = MaterialProperty::stripe_lean},
+    {.name = "stripe-pitch", .property = MaterialProperty::stripe_pitch},
+    {.name = "stripe-ratio", .property = MaterialProperty::stripe_ratio},
+    {.name = "stripe-reduced-motion", .property = MaterialProperty::stripe_reduced_motion},
+    {.name = "stripe-speed", .property = MaterialProperty::stripe_speed},
+    {.name = "stroke-color", .property = MaterialProperty::stroke_color},
+    {.name = "stroke-dash", .property = MaterialProperty::stroke_dash},
     {.name = "stroke-width", .property = MaterialProperty::stroke_width},
     {.name = "surface-finish", .property = MaterialProperty::surface_finish},
     {.name = "taper", .property = MaterialProperty::taper},
@@ -116,7 +139,7 @@ struct RecipeLonghand final {
     RecipeField field{RecipeField::text};
 };
 
-constexpr std::array<RecipeLonghand, 23> recipe_longhands{{
+constexpr std::array<RecipeLonghand, 41> recipe_longhands{{
     {.property = MaterialProperty::height, .field = RecipeField::block_size},
     {.property = MaterialProperty::min_width, .field = RecipeField::minimum_inline_size},
     {.property = MaterialProperty::padding_inline, .field = RecipeField::padding_inline},
@@ -140,6 +163,24 @@ constexpr std::array<RecipeLonghand, 23> recipe_longhands{{
     {.property = MaterialProperty::needle_shape, .field = RecipeField::needle_shape},
     {.property = MaterialProperty::scrim_color, .field = RecipeField::scrim_colour},
     {.property = MaterialProperty::stroke_width, .field = RecipeField::stroke_width},
+    {.property = MaterialProperty::stripe_pitch, .field = RecipeField::stripe_pitch},
+    {.property = MaterialProperty::stripe_ratio, .field = RecipeField::stripe_ratio},
+    {.property = MaterialProperty::stripe_angle, .field = RecipeField::stripe_angle},
+    {.property = MaterialProperty::stripe_lean, .field = RecipeField::stripe_lean},
+    {.property = MaterialProperty::stripe_direction, .field = RecipeField::stripe_direction},
+    {.property = MaterialProperty::stripe_speed, .field = RecipeField::stripe_speed},
+    {.property = MaterialProperty::stripe_color, .field = RecipeField::stripe_colour},
+    {.property = MaterialProperty::stripe_ground, .field = RecipeField::stripe_ground_colour},
+    {.property = MaterialProperty::stripe_gloss, .field = RecipeField::stripe_gloss},
+    {.property = MaterialProperty::stripe_reduced_motion, .field = RecipeField::stripe_reduced_motion},
+    {.property = MaterialProperty::fill_color, .field = RecipeField::fill_colour},
+    {.property = MaterialProperty::stroke_color, .field = RecipeField::stroke_colour},
+    {.property = MaterialProperty::corner_radius, .field = RecipeField::corner_radius},
+    {.property = MaterialProperty::grid_spacing, .field = RecipeField::grid_spacing},
+    {.property = MaterialProperty::grid_band, .field = RecipeField::grid_band},
+    {.property = MaterialProperty::flow, .field = RecipeField::flow_style},
+    {.property = MaterialProperty::flow_speed, .field = RecipeField::flow_speed},
+    {.property = MaterialProperty::flow_spacing, .field = RecipeField::flow_spacing},
 }};
 
 // CSS blend modes the engine does not composite (CSS_COVERAGE section 7).
@@ -184,6 +225,60 @@ constexpr std::array<NamedPattern, 6> pattern_names{{
 }};
 
 constexpr std::string_view pattern_function_name = "pattern";
+
+// The surface finishes `finish()` names (FinishKind; skeudoindustrial
+// surfaces, phases 1 and 2): the finishes, and the glint in each of its
+// presets.
+struct NamedFinish final {
+    std::string_view name{};
+    FinishKind kind{FinishKind::orange_peel};
+    GlintPreset glint{GlintPreset::sand_blast};
+};
+
+constexpr std::array<NamedFinish, 13> finish_names{{
+    {.name = "dusty-matte", .kind = FinishKind::dusty_matte},
+    {.name = "orange-peel", .kind = FinishKind::orange_peel},
+    {.name = "hammertone", .kind = FinishKind::hammertone},
+    {.name = "wrinkle", .kind = FinishKind::wrinkle},
+    {.name = "bead-blast", .kind = FinishKind::bead_blast},
+    {.name = "sand-cast", .kind = FinishKind::sand_cast},
+    {.name = "flat", .kind = FinishKind::flat},
+    {.name = "cloth-weave", .kind = FinishKind::cloth_weave},
+    {.name = "bead-blast-glint", .kind = FinishKind::glint, .glint = GlintPreset::bead_blast},
+    {.name = "sand-blast-glint", .kind = FinishKind::glint, .glint = GlintPreset::sand_blast},
+    {.name = "iridescent-glint", .kind = FinishKind::glint, .glint = GlintPreset::iridescent},
+    {.name = "coarse-grit-glint", .kind = FinishKind::glint, .glint = GlintPreset::coarse_grit},
+    {.name = "painted-sand-glint", .kind = FinishKind::glint, .glint = GlintPreset::painted_sand},
+}};
+
+constexpr std::string_view finish_function_name = "finish";
+
+// The largest seed `finish()` admits: the finish's seed is a 32-bit signed
+// integer, written non-negative.
+constexpr double maximum_finish_seed = 2147483647.0;
+
+// The patterns a canvas texture layer names in `procedural()`
+// (`background-texture`), every tiled built-in pattern: the fresco covers
+// a box and does not tile. A layer may instead be a surface finish,
+// written as `finish()` is in a fill (finish_names).
+struct CanvasTextureKind final {
+    std::string_view name{};
+    ProceduralPattern pattern{ProceduralPattern::felt};
+};
+
+constexpr std::array<CanvasTextureKind, 6> canvas_texture_kinds{{
+    {.name = "felt", .pattern = ProceduralPattern::felt},
+    {.name = "wood-grain", .pattern = ProceduralPattern::wood_grain},
+    {.name = "paper-fibre", .pattern = ProceduralPattern::paper_fibre},
+    {.name = "pinstripe", .pattern = ProceduralPattern::pinstripe},
+    {.name = "brushed-metal", .pattern = ProceduralPattern::brushed_metal},
+    {.name = "checker", .pattern = ProceduralPattern::checker},
+}};
+
+constexpr std::string_view procedural_function_name = "procedural";
+
+// The largest seed a texture layer admits: ProceduralFill::seed's range.
+constexpr double maximum_texture_seed = 4294967295.0;
 
 [[nodiscard]] const NamedGradient* gradient_function(std::string_view name) noexcept {
     for (const NamedGradient& gradient : gradient_functions) {
@@ -360,7 +455,7 @@ public:
 
 private:
     bool fail(DiagnosticCode code, std::uint32_t token, std::string detail);
-    bool drop_unknown_functions();
+    bool drop_unknown_functions(MaterialProperty property);
     [[nodiscard]] std::size_t next(std::size_t index) const noexcept;
     [[nodiscard]] std::size_t count(ComponentRange range) const noexcept;
     void split(ComponentRange range, std::vector<ComponentRange>& parts) const;
@@ -384,6 +479,9 @@ private:
     bool read_conic_configuration(ComponentRange range, AuthoredGradient& gradient, bool& configured);
     bool read_gradient(std::size_t index, AuthoredGradient& gradient);
     bool read_pattern(std::size_t index, MaterialFillLayer& layer);
+    bool read_finish(std::size_t index, MaterialFillLayer& layer);
+    bool read_procedural(std::size_t index, CanvasTextureLayer& layer);
+    bool read_texture_layer(ComponentRange range, CanvasTextureLayer& layer);
     bool read_image(std::size_t index, WrittenLayer& layer);
     bool read_resource_image(std::size_t index, MaterialFillLayer& layer);
     bool push_fills(std::span<const WrittenLayer> written);
@@ -422,6 +520,8 @@ private:
     bool lower_shadows();
     bool lower_filter();
     bool lower_finish();
+    bool lower_seat();
+    bool lower_gradient_dither();
     bool lower_glows();
     bool lower_glow_placements();
     bool lower_mask();
@@ -441,6 +541,16 @@ private:
     bool lower_outline_width();
     bool lower_outline_offset();
     bool lower_part_length(RecipeField field, double minimum, double maximum);
+    bool lower_stripe_pitch();
+    bool lower_stripe_number(RecipeField field, double minimum, double maximum);
+    bool lower_stripe_angle();
+    bool lower_stripe_sense(RecipeField field);
+    bool lower_stripe_gloss();
+    bool lower_stripe_reduced_motion();
+    bool lower_stroke_dash();
+    bool lower_halo();
+    bool lower_flow_style();
+    bool lower_background_texture();
     bool lower_part_shape(RecipeField length_field, RecipeField colour_field, bool colour_required);
     bool lower_text_shadow();
     bool lower_font_family();
@@ -467,12 +577,16 @@ bool MaterialReader::fail(DiagnosticCode code, std::uint32_t token, std::string 
 }
 
 // A function the material properties do not know is dropped with a warning
-// (B2: an unknown function), as it is anywhere in a sheet.
-bool MaterialReader::drop_unknown_functions() {
+// (B2: an unknown function), as it is anywhere in a sheet. `procedural` is
+// known to `background-texture` alone.
+bool MaterialReader::drop_unknown_functions(MaterialProperty property) {
+    const bool textured = property == MaterialProperty::background_texture;
     for (const ValueComponent& component : value_.components) {
         if (component.kind != ValueComponentKind::function) continue;
         if (gradient_function(component.text) != nullptr || filter_function(component.text) != nullptr) continue;
         if (equals_ascii_folded(component.text, pattern_function_name)) continue;
+        if (equals_ascii_folded(component.text, finish_function_name)) continue;
+        if (textured && equals_ascii_folded(component.text, procedural_function_name)) continue;
         return fail(DiagnosticCode::unknown_function, component.token, clipped_theme_detail(component.text));
     }
     return true;
@@ -832,7 +946,8 @@ bool MaterialReader::read_gradient(std::size_t index, AuthoredGradient& gradient
     case MaterialFillKind::conic_gradient: read = read_conic_configuration(arguments[0], gradient, configured); break;
     case MaterialFillKind::solid:
     case MaterialFillKind::image:
-    case MaterialFillKind::procedural: break;
+    case MaterialFillKind::procedural:
+    case MaterialFillKind::finish: break;
     // A value outside the enumeration names no gradient function: nothing
     // is read.
     default: break;
@@ -892,6 +1007,63 @@ bool MaterialReader::read_pattern(std::size_t index, MaterialFillLayer& layer) {
     return true;
 }
 
+// `finish(<name>, <paint>, <secondary> [, <seed> [, <grain>]])`: a surface
+// finish (finish_names) in its paint and second colour (the dust's, or the
+// cloth's weft), its seed a whole number from 0 to 2^31 - 1 (7, the
+// study's, by default) and its grain a number from 0.5 to 4 (1 by
+// default), with the study's light, ambient, relief and gloss. The engine
+// paints it per device pixel as it bakes the part (skeudoindustrial
+// surfaces, phase 1). A finish layer, like a pattern, takes no position,
+// size or repetition.
+bool MaterialReader::read_finish(std::size_t index, MaterialFillLayer& layer) {
+    const ValueComponent& function = value_.components[index];
+    std::vector<ComponentRange> arguments{};
+    split(ComponentRange{index + 1U, function.subtree_end}, arguments);
+    if (arguments.size() < 3U || arguments.size() > 5U) {
+        return fail(DiagnosticCode::value_syntax, function.token,
+                    "a finish, two colours, and an optional seed and grain");
+    }
+    for (const ComponentRange& argument : arguments) {
+        if (count(argument) != 1U) return fail(DiagnosticCode::value_syntax, function.token, "one value per argument");
+    }
+    const NamedFinish* named = nullptr;
+    for (const NamedFinish& candidate : finish_names) {
+        if (keyword(arguments[0].first, candidate.name)) named = &candidate;
+    }
+    if (named == nullptr) {
+        return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
+                    "dusty-matte, orange-peel, hammertone, wrinkle, bead-blast, sand-cast, flat, cloth-weave "
+                    "or a glint");
+    }
+    FinishFill finish{};
+    finish.kind = (*named).kind;
+    finish.glint = (*named).glint;
+    if (!read_colour(arguments[1].first, finish.paint)) return false;
+    if (!read_colour(arguments[2].first, finish.secondary)) return false;
+    if (arguments.size() >= 4U) {
+        const ValueComponent& seed = value_.components[arguments[3].first];
+        const bool number = seed.kind == ValueComponentKind::number && seed.unit == ValueUnit::none;
+        if (!number) return fail(DiagnosticCode::value_wrong_kind, seed.token, "a whole number seed");
+        const bool whole = seed.number >= 0.0 && seed.number <= maximum_finish_seed &&
+                           std::floor(seed.number) == seed.number;
+        if (!whole) {
+            return fail(DiagnosticCode::value_out_of_range, seed.token, "a seed from 0 to 2147483647");
+        }
+        finish.seed = static_cast<std::int32_t>(seed.number);
+    }
+    if (arguments.size() == 5U) {
+        const ValueComponent& grain = value_.components[arguments[4].first];
+        const bool number = grain.kind == ValueComponentKind::number && grain.unit == ValueUnit::none;
+        if (!number) return fail(DiagnosticCode::value_wrong_kind, grain.token, "a number grain");
+        if (!(grain.number >= minimum_finish_grain && grain.number <= maximum_finish_grain)) {
+            return fail(DiagnosticCode::value_out_of_range, grain.token, "a grain from 0.5 to 4");
+        }
+        finish.grain = grain.number;
+    }
+    layer = MaterialFillLayer::finish_fill(finish);
+    return true;
+}
+
 bool MaterialReader::read_image(std::size_t index, WrittenLayer& layer) {
     layer = WrittenLayer{};
     const ValueComponent& component = value_.components[index];
@@ -904,6 +1076,15 @@ bool MaterialReader::read_image(std::size_t index, WrittenLayer& layer) {
         layer.imaged = true;
         layer.patterned = true;
         return read_pattern(index, layer.image);
+    }
+    const bool finish_written =
+        component.kind == ValueComponentKind::function && equals_ascii_folded(component.text, finish_function_name);
+    if (finish_written) {
+        // A finish covers its box as a pattern does: no position, size
+        // or repetition.
+        layer.imaged = true;
+        layer.patterned = true;
+        return read_finish(index, layer.image);
     }
     if (component.kind == ValueComponentKind::resource) {
         layer.imaged = true;
@@ -1778,6 +1959,56 @@ bool MaterialReader::lower_finish() {
     return true;
 }
 
+// `seat: none | <height> [<colour>]`: the part's height above its panel, a
+// length (negative: sunk into it) or a percentage of its shorter side,
+// and its shadow's colour (default_seat_colour). The height is clamped to
+// maximum_seat_height when the material is assembled.
+bool MaterialReader::lower_seat() {
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::seat;
+    declaration.colour = default_seat_colour;
+    const std::size_t values = count(ComponentRange{0U, value_.components.size()});
+    if (values == 1U && keyword(0U, "none")) {
+        lowering_.declarations.push_back(std::move(declaration));
+        return true;
+    }
+    if (values != 1U && values != 2U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[0].token, "a height and a colour");
+    }
+    BoxLength height{};
+    if (!read_length(0U, true, true, height)) return false;
+    declaration.relative = height.units == 0.0 && height.fraction != 0.0;
+    declaration.number = declaration.relative ? height.fraction : height.units;
+    if (values == 2U && !read_colour(next(0U), declaration.colour)) return false;
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
+// `gradient-dither`: how the material's finished pixels are quantized to
+// 8 bits (MaterialDither): `none` rounds, `ordered` dithers by the 8 x 8
+// Bayer matrix, `blue-noise` by the 64 x 64 blue-noise table.
+bool MaterialReader::lower_gradient_dither() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one dither");
+    }
+    const ValueComponent& component = value_.components[0];
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::gradient_dither;
+    if (keyword(0U, "none")) {
+        declaration.dither = MaterialDither::none;
+    } else if (keyword(0U, "ordered")) {
+        declaration.dither = MaterialDither::ordered;
+    } else if (keyword(0U, "blue-noise")) {
+        declaration.dither = MaterialDither::blue_noise;
+    } else if (component.kind == ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    } else {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "none, ordered or blue-noise");
+    }
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
 // One glow: a colour and one or two lengths, its blur and its spread.
 bool MaterialReader::read_glow(ComponentRange range, MaterialGlow& glow) {
     glow = MaterialGlow{};
@@ -2469,6 +2700,359 @@ bool MaterialReader::lower_part_length(RecipeField field, double minimum, double
     return true;
 }
 
+// `stripe-pitch`: `auto` (lowered as 0: the fill's inner thickness) or one
+// length from minimum_stripe_pitch to maximum_stripe_pitch.
+bool MaterialReader::lower_stripe_pitch() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "auto or one length");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::stripe_pitch);
+    if (keyword(0U, "auto")) {
+        declaration.number = 0.0;
+        lowering_.recipe_fields.push_back(declaration);
+        return true;
+    }
+    BoxLength length{};
+    if (!read_length(0U, false, false, length)) return false;
+    if (length.units < minimum_stripe_pitch || length.units > maximum_stripe_pitch) {
+        const ValueComponent& component = value_.components[0U];
+        return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+    }
+    declaration.number = length.units;
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `stripe-ratio` and `stripe-speed`: one plain number within the field's
+// range.
+bool MaterialReader::lower_stripe_number(RecipeField field, double minimum, double maximum) {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one number");
+    }
+    const ValueComponent& component = value_.components[0U];
+    const bool plain = component.kind == ValueComponentKind::number && component.unit == ValueUnit::none;
+    if (!plain) return fail(DiagnosticCode::value_wrong_kind, component.token, "a number");
+    if (!(component.number >= minimum && component.number <= maximum)) {
+        return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+    }
+    RecipeDeclaration declaration = recipe_declaration(field);
+    declaration.number = component.number;
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `stripe-angle`: one angle from minimum_stripe_angle to
+// maximum_stripe_angle degrees.
+bool MaterialReader::lower_stripe_angle() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one angle");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::stripe_angle);
+    if (!read_angle(0U, declaration.number)) return false;
+    if (!(declaration.number >= minimum_stripe_angle && declaration.number <= maximum_stripe_angle)) {
+        const ValueComponent& component = value_.components[0U];
+        return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `stripe-lean` and `stripe-direction`: `forward` or `backward`
+// (StripeSense).
+bool MaterialReader::lower_stripe_sense(RecipeField field) {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "forward or backward");
+    }
+    const ValueComponent& component = value_.components[0U];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "forward or backward");
+    }
+    RecipeDeclaration declaration = recipe_declaration(field);
+    if (keyword(0U, "forward")) {
+        declaration.stripe_sense = StripeSense::forward;
+    } else if (keyword(0U, "backward")) {
+        declaration.stripe_sense = StripeSense::backward;
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `stripe-gloss`: `auto` or `none` (StripeGloss).
+bool MaterialReader::lower_stripe_gloss() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "auto or none");
+    }
+    const ValueComponent& component = value_.components[0U];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "auto or none");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::stripe_gloss);
+    if (keyword(0U, "auto")) {
+        declaration.stripe_gloss = StripeGloss::automatic;
+    } else if (keyword(0U, "none")) {
+        declaration.stripe_gloss = StripeGloss::none;
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `stripe-reduced-motion`: `still` or `none` (StripeReducedMotion).
+bool MaterialReader::lower_stripe_reduced_motion() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "still or none");
+    }
+    const ValueComponent& component = value_.components[0U];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "still or none");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::stripe_reduced_motion);
+    if (keyword(0U, "still")) {
+        declaration.stripe_reduced_motion = StripeReducedMotion::still;
+    } else if (keyword(0U, "none")) {
+        declaration.stripe_reduced_motion = StripeReducedMotion::none;
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `stroke-dash` (the node canvas, cp31): `none`, or two lengths, the dash
+// and the gap, each at most maximum_canvas_dash. A dash of 0 with a gap
+// would draw nothing and is refused; a gap of 0 draws solid.
+bool MaterialReader::lower_stroke_dash() {
+    RecipeDeclaration dash = recipe_declaration(RecipeField::stroke_dash);
+    RecipeDeclaration gap = recipe_declaration(RecipeField::stroke_gap);
+    const ValueComponent& first = value_.components[0U];
+    const std::size_t second_index = next(0U);
+    const bool one = second_index >= value_.components.size();
+    if (one && keyword(0U, "none")) {
+        lowering_.recipe_fields.push_back(dash);
+        lowering_.recipe_fields.push_back(gap);
+        return true;
+    }
+    if (one || next(second_index) < value_.components.size()) {
+        return fail(DiagnosticCode::value_syntax, first.token, "none or a dash and a gap");
+    }
+    BoxLength dash_length{};
+    BoxLength gap_length{};
+    if (!read_length(0U, false, false, dash_length)) return false;
+    if (!read_length(second_index, false, false, gap_length)) return false;
+    if (dash_length.units > maximum_canvas_dash) {
+        return fail(DiagnosticCode::value_out_of_range, first.token, clipped_theme_detail(first.text));
+    }
+    const ValueComponent& second = value_.components[second_index];
+    if (gap_length.units > maximum_canvas_dash) {
+        return fail(DiagnosticCode::value_out_of_range, second.token, clipped_theme_detail(second.text));
+    }
+    if (dash_length.units == 0.0 && gap_length.units > 0.0) {
+        return fail(DiagnosticCode::value_out_of_range, first.token, "a dash of 0 draws nothing");
+    }
+    dash.number = dash_length.units;
+    gap.number = gap_length.units;
+    lowering_.recipe_fields.push_back(dash);
+    lowering_.recipe_fields.push_back(gap);
+    return true;
+}
+
+// `halo` (the node canvas, cp31): `none`, or a width (at most
+// maximum_canvas_halo_width) and a colour, each once, in any order.
+bool MaterialReader::lower_halo() {
+    RecipeDeclaration width = recipe_declaration(RecipeField::halo_width);
+    RecipeDeclaration colour = recipe_declaration(RecipeField::halo_colour);
+    const bool one = next(0U) >= value_.components.size();
+    if (one && keyword(0U, "none")) {
+        colour.colour = Color::rgba(0, 0, 0, 0);
+        lowering_.recipe_fields.push_back(width);
+        lowering_.recipe_fields.push_back(colour);
+        return true;
+    }
+    bool sized = false;
+    bool coloured = false;
+    for (std::size_t index = 0U; index < value_.components.size(); index = next(index)) {
+        const ValueComponent& component = value_.components[index];
+        if (component.kind == ValueComponentKind::number) {
+            if (sized) return fail(DiagnosticCode::value_syntax, component.token, "one width");
+            sized = true;
+            BoxLength read{};
+            if (!read_length(index, false, false, read)) return false;
+            if (read.units > maximum_canvas_halo_width) {
+                return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+            }
+            width.number = read.units;
+            continue;
+        }
+        if (coloured) return fail(DiagnosticCode::value_syntax, component.token, "one colour");
+        coloured = true;
+        if (!read_colour(index, colour.colour)) return false;
+    }
+    if (!sized || !coloured) {
+        return fail(DiagnosticCode::value_syntax, value_.components[0U].token, "none or a width and a colour");
+    }
+    lowering_.recipe_fields.push_back(width);
+    lowering_.recipe_fields.push_back(colour);
+    return true;
+}
+
+// `flow` (the node canvas, cp31): `none`, `dots` or `dashes`
+// (CanvasFlowStyle).
+bool MaterialReader::lower_flow_style() {
+    if (next(0U) < value_.components.size()) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "none, dots or dashes");
+    }
+    const ValueComponent& component = value_.components[0U];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "none, dots or dashes");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::flow_style);
+    if (keyword(0U, "none")) {
+        declaration.flow_style = CanvasFlowStyle::none;
+    } else if (keyword(0U, "dots")) {
+        declaration.flow_style = CanvasFlowStyle::dots;
+    } else if (keyword(0U, "dashes")) {
+        declaration.flow_style = CanvasFlowStyle::dashes;
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `background-texture` (NODE_GRAPH_SPEC gap 2; cp31): `none`, or one to
+// maximum_canvas_texture_layers comma-separated layers, bottom first, each
+// `procedural(<kind>, <seed>, <tile>, <strength>) multiply <percentage>`
+// (read_texture_layer). The layers are baked procedural surfaces, never an
+// image: the engine generates each pattern per display scale in an idle
+// frame (E10) and the canvas composites them under its grid. A contrast
+// above 3 % (the design language's sub-3 % texture rule,
+// maximum_canvas_texture_contrast) is out of range: the declaration is
+// dropped, never clamped silently. `multiply` is the only blend, and is
+// written; the canvas screens instead on a dark well.
+bool MaterialReader::lower_background_texture() {
+    RecipeDeclaration texture = recipe_declaration(RecipeField::texture_layers);
+    const ValueComponent& first = value_.components[0U];
+    if (next(0U) >= value_.components.size() && keyword(0U, "none")) {
+        lowering_.recipe_fields.push_back(texture);
+        return true;
+    }
+    std::vector<ComponentRange> layers{};
+    split(ComponentRange{0U, value_.components.size()}, layers);
+    if (layers.size() > maximum_canvas_texture_layers) {
+        return fail(DiagnosticCode::value_out_of_range, first.token, "at most three texture layers");
+    }
+    for (const ComponentRange& range : layers) {
+        CanvasTextureLayer& layer = texture.texture.items[texture.texture.count];
+        if (!read_texture_layer(range, layer)) return false;
+        texture.texture.count = texture.texture.count + 1U;
+    }
+    lowering_.recipe_fields.push_back(texture);
+    return true;
+}
+
+// One texture layer: `procedural(...)` (read_procedural) or `finish(...)`
+// (read_finish, as a fill writes it; any finish but a glint), then
+// `multiply` and a percentage from 0% to 3%.
+bool MaterialReader::read_texture_layer(ComponentRange range, CanvasTextureLayer& layer) {
+    const std::uint32_t token = range.first < range.end ? value_.components[range.first].token : start_;
+    if (count(range) != 3U) {
+        return fail(DiagnosticCode::value_syntax, token,
+                    "none, or procedural(...) or finish(...), multiply <percentage>");
+    }
+    const std::size_t function_index = range.first;
+    const std::size_t blend_index = next(function_index);
+    const std::size_t contrast_index = next(blend_index);
+    const ValueComponent& function = value_.components[function_index];
+    const bool written = function.kind == ValueComponentKind::function;
+    const bool procedural = written && equals_ascii_folded(function.text, procedural_function_name);
+    const bool finished = written && equals_ascii_folded(function.text, finish_function_name);
+    if (!procedural && !finished) {
+        return fail(DiagnosticCode::value_wrong_kind, function.token, "procedural(...) or finish(...)");
+    }
+    if (procedural) {
+        layer.source = CanvasTextureSource::procedural;
+        if (!read_procedural(function_index, layer)) return false;
+    } else {
+        MaterialFillLayer read{};
+        if (!read_finish(function_index, read)) return false;
+        if (read.finish.kind == FinishKind::glint) {
+            const std::size_t kind_index = function_index + 1U;
+            return fail(DiagnosticCode::value_wrong_kind, value_.components[kind_index].token,
+                        "a finish other than a glint");
+        }
+        layer.source = CanvasTextureSource::finish;
+        layer.finish = read.finish;
+    }
+    const ValueComponent& blend = value_.components[blend_index];
+    if (blend.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, blend.token, "multiply");
+    }
+    if (!keyword(blend_index, "multiply")) {
+        return fail(DiagnosticCode::keyword_unknown, blend.token, clipped_theme_detail(blend.text));
+    }
+    const ValueComponent& amount = value_.components[contrast_index];
+    const bool percentage = amount.kind == ValueComponentKind::number && amount.unit == ValueUnit::percent;
+    if (!percentage) return fail(DiagnosticCode::value_wrong_kind, amount.token, "a percentage");
+    const double fraction = amount.number / 100.0;
+    if (!(fraction >= 0.0 && fraction <= maximum_canvas_texture_contrast)) {
+        return fail(DiagnosticCode::value_out_of_range, amount.token, clipped_theme_detail(amount.text));
+    }
+    layer.contrast = fraction;
+    return true;
+}
+
+// `procedural(<kind>, <seed>, <tile>, <strength>)`: a tiled built-in
+// pattern (canvas_texture_kinds), a whole seed from 0 to 4294967295, a tile
+// length from 2px to 96px (maximum_canvas_texture_tile) and a strength
+// from 0 to 1.
+bool MaterialReader::read_procedural(std::size_t index, CanvasTextureLayer& layer) {
+    const ValueComponent& function = value_.components[index];
+    std::vector<ComponentRange> arguments{};
+    split(ComponentRange{index + 1U, function.subtree_end}, arguments);
+    if (arguments.size() != 4U) {
+        return fail(DiagnosticCode::value_syntax, function.token, "a kind, a seed, a tile and a strength");
+    }
+    for (const ComponentRange& argument : arguments) {
+        if (count(argument) != 1U) return fail(DiagnosticCode::value_syntax, function.token, "one value per argument");
+    }
+    const CanvasTextureKind* named = nullptr;
+    for (const CanvasTextureKind& candidate : canvas_texture_kinds) {
+        if (keyword(arguments[0].first, candidate.name)) named = &candidate;
+    }
+    if (named == nullptr) {
+        return fail(DiagnosticCode::value_wrong_kind, value_.components[arguments[0].first].token,
+                    "felt, wood-grain, paper-fibre, pinstripe, brushed-metal or checker");
+    }
+    const ValueComponent& seed = value_.components[arguments[1].first];
+    const bool whole = seed.kind == ValueComponentKind::number && seed.unit == ValueUnit::none &&
+                       std::isfinite(seed.number) && std::floor(seed.number) == seed.number;
+    if (!whole) return fail(DiagnosticCode::value_wrong_kind, seed.token, "a whole seed");
+    if (!(seed.number >= 0.0 && seed.number <= maximum_texture_seed)) {
+        return fail(DiagnosticCode::value_out_of_range, seed.token, clipped_theme_detail(seed.text));
+    }
+    BoxLength tile{};
+    if (!read_length(arguments[2].first, false, false, tile)) return false;
+    if (!(tile.units >= minimum_procedural_tile && tile.units <= maximum_canvas_texture_tile)) {
+        return fail(DiagnosticCode::value_out_of_range, value_.components[arguments[2].first].token,
+                    "a tile from 2px to 96px");
+    }
+    const ValueComponent& strength = value_.components[arguments[3].first];
+    if (strength.kind != ValueComponentKind::number || strength.unit != ValueUnit::none) {
+        return fail(DiagnosticCode::value_wrong_kind, strength.token, "a strength from 0 to 1");
+    }
+    if (!(strength.number >= 0.0 && strength.number <= 1.0)) {
+        return fail(DiagnosticCode::value_out_of_range, strength.token, clipped_theme_detail(strength.text));
+    }
+    layer.pattern = (*named).pattern;
+    layer.seed = static_cast<std::uint32_t>(seed.number);
+    layer.tile = tile.units;
+    layer.strength = strength.number;
+    return true;
+}
+
 // A part's shape: `taper` and `flare` (a length and an optional colour) and
 // `edge-shadow` (a length and a colour), each at most once and in any
 // order. An omitted colour takes its `initial` (none: the part's own).
@@ -2724,7 +3308,7 @@ void MaterialReader::lower(MaterialProperty property) {
         fail(DiagnosticCode::value_syntax, start_, "a value");
         return;
     }
-    if (!drop_unknown_functions()) return;
+    if (!drop_unknown_functions(property)) return;
     switch (property) {
     case MaterialProperty::background: static_cast<void>(lower_background()); return;
     case MaterialProperty::background_color: static_cast<void>(lower_background_colour()); return;
@@ -2766,6 +3350,8 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::mask_image: static_cast<void>(lower_mask()); return;
     case MaterialProperty::reflection: static_cast<void>(lower_reflection()); return;
     case MaterialProperty::surface_finish: static_cast<void>(lower_finish()); return;
+    case MaterialProperty::seat: static_cast<void>(lower_seat()); return;
+    case MaterialProperty::gradient_dither: static_cast<void>(lower_gradient_dither()); return;
     case MaterialProperty::keylines: static_cast<void>(lower_keylines()); return;
     case MaterialProperty::muted_color: static_cast<void>(lower_recipe_colour(RecipeField::muted_text)); return;
     case MaterialProperty::glyph_color: static_cast<void>(lower_recipe_colour(RecipeField::glyph)); return;
@@ -2812,6 +3398,47 @@ void MaterialReader::lower(MaterialProperty property) {
         return;
     case MaterialProperty::edge_shadow:
         static_cast<void>(lower_part_shape(RecipeField::edge_shadow_width, RecipeField::edge_shadow_colour, true));
+        return;
+    case MaterialProperty::stripe_pitch: static_cast<void>(lower_stripe_pitch()); return;
+    case MaterialProperty::stripe_ratio:
+        static_cast<void>(lower_stripe_number(RecipeField::stripe_ratio, minimum_stripe_ratio, maximum_stripe_ratio));
+        return;
+    case MaterialProperty::stripe_angle: static_cast<void>(lower_stripe_angle()); return;
+    case MaterialProperty::stripe_lean: static_cast<void>(lower_stripe_sense(RecipeField::stripe_lean)); return;
+    case MaterialProperty::stripe_direction:
+        static_cast<void>(lower_stripe_sense(RecipeField::stripe_direction));
+        return;
+    case MaterialProperty::stripe_speed:
+        static_cast<void>(lower_stripe_number(RecipeField::stripe_speed, 0.0, maximum_stripe_speed));
+        return;
+    case MaterialProperty::stripe_color: static_cast<void>(lower_recipe_colour(RecipeField::stripe_colour)); return;
+    case MaterialProperty::stripe_ground:
+        static_cast<void>(lower_recipe_colour(RecipeField::stripe_ground_colour));
+        return;
+    case MaterialProperty::stripe_gloss: static_cast<void>(lower_stripe_gloss()); return;
+    case MaterialProperty::stripe_reduced_motion: static_cast<void>(lower_stripe_reduced_motion()); return;
+    case MaterialProperty::fill_color: static_cast<void>(lower_recipe_colour(RecipeField::fill_colour)); return;
+    case MaterialProperty::stroke_color: static_cast<void>(lower_recipe_colour(RecipeField::stroke_colour)); return;
+    case MaterialProperty::stroke_dash: static_cast<void>(lower_stroke_dash()); return;
+    case MaterialProperty::halo: static_cast<void>(lower_halo()); return;
+    case MaterialProperty::corner_radius:
+        static_cast<void>(lower_part_length(RecipeField::corner_radius, 0.0, maximum_canvas_corner_radius));
+        return;
+    case MaterialProperty::grid_spacing:
+        static_cast<void>(
+            lower_part_length(RecipeField::grid_spacing, minimum_canvas_grid_spacing, maximum_canvas_grid_spacing));
+        return;
+    case MaterialProperty::grid_band:
+        static_cast<void>(lower_part_length(RecipeField::grid_band, minimum_canvas_grid_band, maximum_canvas_grid_band));
+        return;
+    case MaterialProperty::background_texture: static_cast<void>(lower_background_texture()); return;
+    case MaterialProperty::flow: static_cast<void>(lower_flow_style()); return;
+    case MaterialProperty::flow_speed:
+        static_cast<void>(lower_stripe_number(RecipeField::flow_speed, 0.0, maximum_canvas_flow_speed));
+        return;
+    case MaterialProperty::flow_spacing:
+        static_cast<void>(
+            lower_part_length(RecipeField::flow_spacing, minimum_canvas_flow_spacing, maximum_canvas_flow_spacing));
         return;
     // A value outside the enumeration names no property: nothing is lowered.
     default: return;
@@ -2910,6 +3537,8 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::mask_image: fields.push_back(MaterialField::mask); return;
     case MaterialProperty::reflection: fields.push_back(MaterialField::reflection); return;
     case MaterialProperty::surface_finish: fields.push_back(MaterialField::finish); return;
+    case MaterialProperty::seat: fields.push_back(MaterialField::seat); return;
+    case MaterialProperty::gradient_dither: fields.push_back(MaterialField::gradient_dither); return;
     case MaterialProperty::keylines: fields.push_back(MaterialField::keylines); return;
     case MaterialProperty::muted_color:
     case MaterialProperty::glyph_color:
@@ -2938,7 +3567,28 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::margin_bottom:
     case MaterialProperty::taper:
     case MaterialProperty::flare:
-    case MaterialProperty::edge_shadow: return;
+    case MaterialProperty::edge_shadow:
+    case MaterialProperty::stripe_angle:
+    case MaterialProperty::stripe_color:
+    case MaterialProperty::stripe_direction:
+    case MaterialProperty::stripe_gloss:
+    case MaterialProperty::stripe_ground:
+    case MaterialProperty::stripe_lean:
+    case MaterialProperty::stripe_pitch:
+    case MaterialProperty::stripe_ratio:
+    case MaterialProperty::stripe_reduced_motion:
+    case MaterialProperty::stripe_speed:
+    case MaterialProperty::background_texture:
+    case MaterialProperty::corner_radius:
+    case MaterialProperty::fill_color:
+    case MaterialProperty::flow:
+    case MaterialProperty::flow_spacing:
+    case MaterialProperty::flow_speed:
+    case MaterialProperty::grid_band:
+    case MaterialProperty::grid_spacing:
+    case MaterialProperty::halo:
+    case MaterialProperty::stroke_color:
+    case MaterialProperty::stroke_dash: return;
     // A value outside the enumeration names no property: it sets no field.
     default: return;
     }
@@ -2947,6 +3597,43 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
 bool recipe_property(MaterialProperty property) noexcept {
     const RecipePropertyFields fields = recipe_property_fields(property);
     return fields.count != 0U;
+}
+
+bool stripe_property(MaterialProperty property) noexcept {
+    switch (property) {
+    case MaterialProperty::stripe_angle:
+    case MaterialProperty::stripe_color:
+    case MaterialProperty::stripe_direction:
+    case MaterialProperty::stripe_gloss:
+    case MaterialProperty::stripe_ground:
+    case MaterialProperty::stripe_lean:
+    case MaterialProperty::stripe_pitch:
+    case MaterialProperty::stripe_ratio:
+    case MaterialProperty::stripe_reduced_motion:
+    case MaterialProperty::stripe_speed: return true;
+    // Every other property, and a value outside the enumeration, is not a
+    // stripe property.
+    default: return false;
+    }
+}
+
+bool canvas_property(MaterialProperty property) noexcept {
+    switch (property) {
+    case MaterialProperty::background_texture:
+    case MaterialProperty::corner_radius:
+    case MaterialProperty::fill_color:
+    case MaterialProperty::flow:
+    case MaterialProperty::flow_spacing:
+    case MaterialProperty::flow_speed:
+    case MaterialProperty::grid_band:
+    case MaterialProperty::grid_spacing:
+    case MaterialProperty::halo:
+    case MaterialProperty::stroke_color:
+    case MaterialProperty::stroke_dash: return true;
+    // Every other property, and a value outside the enumeration, is not a
+    // canvas property.
+    default: return false;
+    }
 }
 
 RecipePropertyFields recipe_property_fields(MaterialProperty property) noexcept {
@@ -2974,6 +3661,21 @@ RecipePropertyFields recipe_property_fields(MaterialProperty property) noexcept 
     if (property == MaterialProperty::edge_shadow) {
         result.fields = {RecipeField::edge_shadow_width, RecipeField::edge_shadow_colour};
         result.count = 2U;
+        return result;
+    }
+    if (property == MaterialProperty::stroke_dash) {
+        result.fields = {RecipeField::stroke_dash, RecipeField::stroke_gap};
+        result.count = 2U;
+        return result;
+    }
+    if (property == MaterialProperty::halo) {
+        result.fields = {RecipeField::halo_width, RecipeField::halo_colour};
+        result.count = 2U;
+        return result;
+    }
+    if (property == MaterialProperty::background_texture) {
+        result.fields[0] = RecipeField::texture_layers;
+        result.count = 1U;
         return result;
     }
     for (const RecipeLonghand& longhand : recipe_longhands) {

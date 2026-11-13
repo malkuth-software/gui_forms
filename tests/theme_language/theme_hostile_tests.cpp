@@ -12,7 +12,12 @@
 #include "../../src/core/theme_language/selector/theme_selector.hpp"
 #include "../../src/core/theme_language/source_text/theme_source_text.hpp"
 #include "../../src/core/theme_language/syntax_tree/theme_syntax_tree.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/engine/engine_expression/engine_expression.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/plots/series_column/series_column.hpp"
 
 #include <array>
 #include <cstddef>

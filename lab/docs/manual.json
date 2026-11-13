@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "types": {
+    "ReviewCard": {
+      "status": "OBSERVED: bundle 001 split; M4 build and focused tests pass",
+      "capture": "captures/review_card.png",
+      "capture_note": "Screen Sharing crop from the M4 File Manager Demoboard showing the title, wrapping summary, verdict footer, selection fill, border, and focus treatment.",
+      "summary": "ReviewCard is a typed Card specialization that owns title, summary, and verdict Labels and atomically projects a bounded UTF-8 ReviewRecord into text, visual status, and semantics.",
+      "methods": {
+        "ReviewCard": "Constructs the three retained Label roles with theme-aware heading, body, and caption policies; attachment remains lazy and idempotent.",
+        "initialize_control_tree": "Attaches the three owned Labels to Card roles exactly once, allowing construction before shared ownership is established.",
+        "title_label": "Returns the owned header Label for ordinary Label-level customization.",
+        "summary_label": "Returns the owned wrapping body Label for ordinary Label-level customization.",
+        "verdict_label": "Returns the owned footer Label for ordinary Label-level customization.",
+        "record_changed": "Returns the event published after the complete record projection commits.",
+        "measure": "Ensures the internal tree exists, then uses Card's section measurement law.",
+        "arrange": "Ensures the internal tree exists, then uses Card's section arrangement law.",
+        "semantic_descriptor": "Projects title, summary, verdict, pending, and rejected state from the same committed record used by the visible Labels."
+      }
+    },
+    "CorrespondenceView": {
+      "status": "OBSERVED: bundle 005 split and status-rail enhancement; M4 build, focused tests, and Screen Sharing pass",
+      "capture": "captures/correspondence_view.png",
+      "capture_note": "M4 File Manager Demoboard crop showing compact correspondence rows, an expanded matched excerpt, status rails, focus, and virtualization.",
+      "summary": "CorrespondenceView is a virtualized search/result correspondence surface whose stable rows can expand in response to explicit pinning or hover intent. It separates focus, selection, hover, and pin authority; preserves scroll anchors while variable row heights change; bounds realization; and exposes exact virtual semantics.",
+      "methods": {
+        "CorrespondenceView": "Constructs a focusable variable-height result surface with hover-intent scheduling and stable anchoring.",
+        "items": "Returns the authored correspondence records in ranking order.",
+        "set_items": "Validates stable identities, replaces the result model, and reconciles selection, focus, hover, pinning, and scroll anchoring.",
+        "focused_id": "Returns the keyboard-focused result independently of selection.",
+        "hovered_id": "Returns the result currently under hover intent, if any.",
+        "expanded": "Reports whether a result is expanded by pin or active hover intent.",
+        "content_height": "Returns total logical height of compact and expanded rows.",
+        "realized_count": "Returns the number of rows intersecting the current virtualization window.",
+        "item_bounds": "Returns a result's logical viewport-relative bounds when its identity exists.",
+        "selection_changed": "Returns the event published after authoritative result selection changes.",
+        "pin_changed": "Returns the event carrying the old and new explicitly pinned identities.",
+        "expansion_changed": "Returns the event describing rows entering or leaving expanded projection.",
+        "item_activated": "Returns the event carrying the qualified activated result.",
+        "context_requested": "Returns the event carrying result identity and position for owned context UI.",
+        "arrange": "Commits viewport size, clamps offset, and maintains the selected/focused result's reachability.",
+        "on_paint": "Records only realized compact or expanded rows, status rails, matched excerpts, hover, selection, and focus.",
+        "on_pointer": "Handles hover intent, selection, pin toggling, context requests, capture qualification, and activation.",
+        "on_key": "Implements variable-height navigation, paging, expansion/pinning, activation, and context request.",
+        "on_focus_changed": "Commits focus appearance and restores a usable focused result on entry.",
+        "semantic_descriptor": "Projects a result list with total and realized counts plus current selection.",
+        "semantic_virtual_children": "Exposes stable result nodes with correspondence descriptions, expanded/selected state, and actions.",
+        "on_semantic_child_action": "Routes virtual selection, expansion, collapse, and press through ordinary retained transitions."
+      }
+    },
+    "RackModulePanel": {
+      "status": "OBSERVED: bundle 006 source-private responsive-control split; M4 build, focused tests, and Screen Sharing pass",
+      "capture": "captures/instrument_rack.png",
+      "capture_note": "M4 File Manager Demoboard crop showing RackModulePanel instances arranging enable, fields, status, and remove roles across the rack.",
+      "summary": "RackModulePanel is InstrumentRack's source-private retained module shell. It owns responsive horizontal/compact child arrangement and reorder semantics while InstrumentRack retains model, event, focus, scrolling, and reconciliation authority.",
+      "methods": {
+        "RackModulePanel": "Constructs a bordered module shell with reorder accessibility guidance.",
+        "set_compact": "Commits responsive stacked-field mode and invalidates child layout.",
+        "compact": "Reports whether fields are arranged vertically for a narrow slot.",
+        "arrange": "Arranges enable/remove edges, weighted horizontal fields or compact stacked fields, and status text.",
+        "semantic_descriptor": "Projects a named group with descendant inclusion and increment/decrement reorder actions.",
+        "on_semantic_action": "Maps decrement/increment to the rack-owned move callback."
+      }
+    },
+    "InstrumentRack": {
+      "status": "OBSERVED: bundle 006 split with source-private module control; M4 build, focused tests, and Screen Sharing pass",
+      "capture": "captures/instrument_rack.png",
+      "capture_note": "M4 File Manager Demoboard crop showing live and staged criteria modules, real choice controls, enable/remove actions, status text, and the Apply action subtree.",
+      "summary": "InstrumentRack is a bounded retained editor rack that reconciles stable module/field identities across model replacements, owns real choice/text/check/button/status controls, preserves surviving focus and overlay state, responsively wraps or compacts modules, scrolls one plane, emits typed commit/toggle/remove/reorder events, and hosts an optional caller-owned action subtree.",
+      "methods": {
+        "InstrumentRack": "Constructs the rack coordinator, source-private module shells, and default layout policy.",
+        "~InstrumentRack": "Releases reconciled module state and owned subscriptions after normal Control disposal.",
+        "modules": "Returns the normalized caller-facing module model in current order.",
+        "set_modules": "Validates bounded UTF-8 identities/fields, reconciles surviving controls by stable ID, disposes removed shells, preserves useful focus, and refreshes layout.",
+        "field_editor": "Returns the real retained editor for a stable module/field pair.",
+        "module_bounds": "Returns the last logical rack bounds for a stable module.",
+        "set_module_enabled": "Commits module enabled state and synchronizes descendants and public model.",
+        "set_module_state": "Commits live/staged/pending/invalid state and status text, then refreshes presentation.",
+        "set_field_value": "Synchronizes one real editor and public model without emitting a user commit.",
+        "set_field_validation": "Commits validation text and refreshes module/accessibility presentation.",
+        "set_action_content": "Validates and assumes ownership of an unparented action subtree plus its minimum slot width.",
+        "action_content": "Returns the optional caller-owned retained action subtree.",
+        "content_height": "Returns the last computed wrapped content height.",
+        "preferred_height": "Computes bounded wrapped height for a positive available width without arranging.",
+        "field_changed": "Returns the event for live text/choice transitions.",
+        "field_committed": "Returns the event for qualified field commits.",
+        "module_toggled": "Returns the event for committed enable-state changes.",
+        "remove_requested": "Returns the event requesting consumer-authorized module removal.",
+        "move_requested": "Returns the event requesting a stable module reorder.",
+        "measure": "Computes desired height from the responsive slot algorithm and available viewport.",
+        "arrange": "Commits bounds and arranges reconciled module/action slots against current scroll origin.",
+        "on_pointer": "Consumes wheel input to scroll the rack through its clamped state machine.",
+        "on_pointer_bubble": "Accepts unhandled descendant wheel input into the same rack scroll path.",
+        "on_key_preview": "Maps Alt+Left/Right from a focused module descendant to typed reorder requests.",
+        "semantic_descriptor": "Projects a named group, module count, and included real descendants."
+      }
+    },
+    "CorrespondenceItem": {"status": "OBSERVED: bundle 011 correspondence value review", "summary": "CorrespondenceItem owns stable identity, primary/secondary text, status, hierarchy, pinned/expanded policy, and optional command data for one correspondence row."},
+    "CorrespondenceSelectionChange": {"status": "OBSERVED: bundle 011 correspondence event review", "summary": "CorrespondenceSelectionChange reports old/new optional stable identities and the initiating interaction."},
+    "CorrespondencePinChange": {"status": "OBSERVED: bundle 011 correspondence event review", "summary": "CorrespondencePinChange reports the exact row and resulting pinned state."},
+    "CorrespondenceExpansionChange": {"status": "OBSERVED: bundle 011 correspondence event review", "summary": "CorrespondenceExpansionChange reports the exact hierarchical row and resulting expanded state."},
+    "ReviewRecord": {"status": "OBSERVED: bundle 011 review-card value review", "summary": "ReviewRecord owns the stable author, timestamp, score/status, title, body, and metadata projected by ReviewCard."},
+    "ScrollAnchor": {"status": "OBSERVED: bundle 011 correspondence scroll-state review", "summary": "ScrollAnchor preserves a stable row identity plus intra-row offset so refreshes restore semantic rather than index-only position."}
+  }
+}

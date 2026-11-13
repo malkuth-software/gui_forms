@@ -9,7 +9,7 @@ gui_forms::PropertyList
 
 .. cpp:class:: PropertyList final : public Panel, public PropertyListCapabilities<PropertyList>
 
-   ``#include <gui_forms/controls/panel/property_list/property_list.hpp>``
+   ``#include <gui_forms/controls/property_list.hpp>``
 
    A scrolling list of named settings in collapsible groups, each with a value and an optional editor.
 
@@ -148,9 +148,6 @@ gui_forms::PropertyList
 
       :cpp:class:`PropertyGrid <gui_forms::PropertyGrid>`
          Edits the registered properties of one or more controls.
-
-      :cpp:class:`InstrumentRack <gui_forms::InstrumentRack>`
-         A row of compact editing modules for criteria or settings.
 
       :cpp:class:`ExpandableSections <gui_forms::ExpandableSections>`
          Collapsible sections with arbitrary content.
@@ -430,10 +427,6 @@ gui_forms::PropertyList
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: std::vector<SemanticNode> semantic_virtual_children() const override
@@ -447,6 +440,26 @@ gui_forms::PropertyList
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -469,3 +482,101 @@ gui_forms::PropertyList
       *Protected.*
 
       on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 5 unclassified; 21 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``content_height``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``groups``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``header_content``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``group_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``reset_requested``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``row_expansion_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``value_committed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``on_font_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``replace_editor``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reset_button``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``row_expanded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_description``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_group_expanded``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_reset_enabled``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_row_expanded``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_validation``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``value``
+     - supported

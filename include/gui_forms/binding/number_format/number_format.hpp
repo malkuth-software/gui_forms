@@ -19,6 +19,7 @@
 // integer ("E2", "G3"), a tie rounds away from zero, as .NET rounds
 // integers.
 
+#include "gui_forms/export/application_export.hpp"
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -51,7 +52,7 @@ enum class NumberFormatKind : std::uint8_t {
 // The largest precision a format string can state, as in .NET Framework.
 constexpr std::uint32_t number_format_maximum_precision = 99U;
 
-struct NumberFormat final {
+struct GUI_FORMS_API NumberFormat final {
     NumberFormatKind kind{NumberFormatKind::general};
     // Empty for the kind's default: 2 for F, N, P and C; 6 for E. For G an
     // empty or zero precision gives a double's shortest text that parses
@@ -71,13 +72,13 @@ struct NumberFormat final {
 // in either case, then at most two decimal digits. Empty for any other
 // text, the empty string included (an empty format string means "no
 // format" to its callers, not a format).
-[[nodiscard]] std::optional<NumberFormat> parse_number_format(std::string_view text) noexcept;
+[[nodiscard]] GUI_FORMS_API std::optional<NumberFormat> parse_number_format(std::string_view text) noexcept;
 
 // Appends `value` under `format` to `output`; nothing else of `output`
 // changes.
-void append_formatted_number(std::string& output, double value, const NumberFormat& format);
-void append_formatted_number(std::string& output, std::int64_t value, const NumberFormat& format);
-void append_formatted_number(std::string& output, std::uint64_t value, const NumberFormat& format);
+GUI_FORMS_API void append_formatted_number(std::string& output, double value, const NumberFormat& format);
+GUI_FORMS_API void append_formatted_number(std::string& output, std::int64_t value, const NumberFormat& format);
+GUI_FORMS_API void append_formatted_number(std::string& output, std::uint64_t value, const NumberFormat& format);
 
 // The plain number in `text` written under `format`: the group separators,
 // the currency sign and a percent sign removed, parentheses turned into a
@@ -87,6 +88,6 @@ void append_formatted_number(std::string& output, std::uint64_t value, const Num
 // text shows. Spaces at either end are ignored. Empty for text that is not
 // a number under the format; a text this returns can still be refused by
 // the parser (an integer kind refuses a fraction).
-[[nodiscard]] std::optional<std::string> plain_number_text(std::string_view text, const NumberFormat& format);
+[[nodiscard]] GUI_FORMS_API std::optional<std::string> plain_number_text(std::string_view text, const NumberFormat& format);
 
 } // namespace gui_forms

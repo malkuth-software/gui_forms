@@ -50,6 +50,24 @@ Types
      - A bundled font family a theme names in place of a role's faces (theme-language ``font-family: Selawik``).
    * - :cpp:class:`CachedPartRaster <gui_forms::CachedPartRaster>`
      - A part's cached raster and what drew it: the primitive, every parameter (animated ones included, since they change the pixels), the target with its states restricted to those the primitive reads, and the extent.
+   * - :cpp:class:`CanvasArea <gui_forms::CanvasArea>`
+     - A filled and outlined canvas part (the background, a node, its header, a port, a lamp, the marquee): its area, its line, the line's width and its corner radius, in view units.
+   * - :cpp:class:`CanvasFlow <gui_forms::CanvasFlow>`
+     - What moves along a flowing link (the link part at rest): the mark, its speed in world units a second and its pitch in view units.
+   * - :cpp:class:`CanvasGrid <gui_forms::CanvasGrid>`
+     - The world grid: minor and major colours, one line width (view units), the minor spacing in world units at zoom 1, and the band of view spacings the shown level keeps to (select_grid_level; its maximum is exactly grid_level_ratio times its minimum).
+   * - :cpp:class:`CanvasItem <gui_forms::CanvasItem>`
+     - One item of the canvas (a node, a port or a link) as theme rules address it with ``:item()``: its stable ID (``:item(#n42)``) and classes (``:item(.warning)``).
+   * - :cpp:class:`CanvasLine <gui_forms::CanvasLine>`
+     - A link's stroke: its colour and width, its dash and gap (a dash of 0 is solid), and its halo, a wider stroke ``halo_width`` beyond each side drawn under it (0 draws none).
+   * - :cpp:class:`CanvasLook <gui_forms::CanvasLook>`
+     - Every canvas part in every state, as one theme draws them in one colour scheme and contrast.
+   * - :cpp:class:`CanvasTextureLayer <gui_forms::CanvasTextureLayer>`
+     - One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1]); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
+   * - :cpp:class:`CanvasTextureLayers <gui_forms::CanvasTextureLayers>`
+     - The texture's layers, bottom first: capacity maximum_canvas_texture_layers, ``count`` live (0 is ``none``).
+   * - :cpp:class:`CanvasView <gui_forms::CanvasView>`
+     - Where the canvas lies in the painter's coordinates: ``origin`` is world (0, 0) and ``zoom`` view units per world unit (finite and positive; the background draws no grid otherwise).
    * - :cpp:class:`CheckerPattern <gui_forms::CheckerPattern>`
      - An alpha checkerboard (piece C7): square cells ``cell`` units wide, alternating ``first`` and ``second``, with the corner of a ``first`` cell at ``anchor``, so the pattern stays put while the filled rectangle moves.
    * - :cpp:class:`Color <gui_forms::Color>`
@@ -78,14 +96,18 @@ Types
      -  
    * - :cpp:class:`ConnectedControlVisualGeometry <gui_forms::ConnectedControlVisualGeometry>`
      - The resolved recipe owns no renderer object.
+   * - :cpp:class:`ControlCanvasPaint <gui_forms::ControlCanvasPaint>`
+     - A node canvas part's paint as a theme sets it (RecipeField::fill_colour to flow_spacing, and RecipeField::stroke_width as ``stroke_width``; cp31), each unset where no rule sets it: resolve_canvas_look (gui_forms/theme/canvas_look) then takes the stock value it states for the part.
    * - :cpp:class:`ControlPartMetrics <gui_forms::ControlPartMetrics>`
-     - A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle.
+     -  
    * - :cpp:class:`ControlRoleRecipes <gui_forms::ControlRoleRecipes>`
      - ControlRoleRecipes stores complete ordinary, selected, high-contrast, and high-contrast-selected recipes across the closed surface-state axis.
    * - :cpp:class:`ControlRoleTable <gui_forms::ControlRoleTable>`
      - The recipes of every control visual role, indexed by ControlVisualRole, held out of line.
    * - :cpp:class:`ControlStateRecipes <gui_forms::ControlStateRecipes>`
      -  
+   * - :cpp:class:`ControlStripePattern <gui_forms::ControlStripePattern>`
+     - A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle.
    * - :cpp:class:`ControlTextShadow <gui_forms::ControlTextShadow>`
      - A text shadow (E9.6, CSS ``text-shadow``): the text's glyphs, moved by ``offset`` logical units (each axis within ±maximum_text_shadow_offset), blurred by ``blur_radius`` (the shadows' blur-radius convention, 0 to maximum_text_shadow_blur; both limits are the theme rules') and drawn in ``color`` under the glyphs.
    * - :cpp:class:`ControlVisualContext <gui_forms::ControlVisualContext>`
@@ -172,6 +194,12 @@ Types
      -  
    * - :cpp:class:`FamiliarThemeBuild <gui_forms::FamiliarThemeBuild>`
      - A built theme and what building it measured.
+   * - :cpp:class:`FinishFill <gui_forms::FinishFill>`
+     - One finish's parameters.
+   * - :cpp:class:`FinishTileKey <gui_forms::FinishTileKey>`
+     -  
+   * - :cpp:class:`FinishTiles <gui_forms::FinishTiles>`
+     - A surface finish over an area, in world coordinates (ThemeEngine::paint_finish_tiles; cp31, the node canvas's finish texture): - ``key`` names the part's record (borrowed for the call); - ``finish`` is borrowed for the call; - ``anchor`` is world (0, 0) in the painter's coordinates and ``zoom`` the view units per world unit, so the finish is a property of the world: it pans with it and grows with the zoom; - ``area`` is where it is drawn, clipped to it (the painter's coordinates).
    * - :cpp:class:`FontDeclaration <gui_forms::FontDeclaration>`
      - A part's font as the cascade resolved it: a text role, or, with ``inherit`` (D7), the parent control's, which the caller resolves at paint.
    * - :cpp:class:`FontSpec <gui_forms::FontSpec>`
@@ -200,12 +228,30 @@ Types
      - One item's content to paint (owner decision W-Q6), raised while the control paints, after the item's plate and selection and before its focus cue.
    * - :cpp:class:`JoinedSegmentsStyle <gui_forms::JoinedSegmentsStyle>`
      - How a joined row or column is outlined: one outer edge round the whole group with ``radius`` corners, and one shared seam between neighbours, both ``edge_width`` wide.
+   * - :cpp:class:`LampColour <gui_forms::engine_light::LampColour>`
+     - A lamp's colour, linear RGB at unit power.
+   * - :cpp:class:`LampDrive <gui_forms::engine_light::LampDrive>`
+     - A lamp as composited: its colour and its power (0 off, 1 the baked unit; the strike envelope passes through, lamp_power).
    * - :cpp:class:`LentImageVariants <gui_forms::LentImageVariants>`
      - The variants lent for one bake, by fill layer; null where none is lent.
+   * - :cpp:class:`LightComposite <gui_forms::engine_light::LightComposite>`
+     - The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3.
+   * - :cpp:class:`LightPlaneCache <gui_forms::engine_light::LightPlaneCache>`
+     - The bakes in one directory, each read the first time it is asked for (``<directory>/<name>.f32``) and kept: a missing or defective file is remembered and not read again.
+   * - :cpp:class:`LightPlaneRaster <gui_forms::engine_light::LightPlaneRaster>`
+     - -- a part's kept composite ----------------------------------------------------------------- A part composited from a bake (PartPaint::light_planes, such as IndicatorLamp's lens) keeps its last composite in one of these, owned by the part's control, so that a repaint with nothing changed (a lamp repainted for a neighbour's damage) draws the kept raster again instead of compositing.
+   * - :cpp:class:`LightPlaneRect <gui_forms::engine_light::LightPlaneRect>`
+     - A rectangle of device pixels the planes are stretched over.
+   * - :cpp:class:`LightPlanes <gui_forms::engine_light::LightPlanes>`
+     - One bake's planes, ``width`` × ``height`` pixels: - ``room``: the room's light, three floats a pixel (red, green, blue), premultiplied by coverage; - ``lamps``: ``lamp_count`` planes of the same shape, one after another, each lamp alone at unit white power; - ``coverage``: one float a pixel in [0, 1], the share of the pixel the key covers.
+   * - :cpp:class:`LitKeyBake <gui_forms::engine_light::LitKeyBake>`
+     - -- the lit keys' bake ------------------------------------------------------------------ One lit key's bake parameters, and the values the study baked its dialog keys with (lamp_keys.cpp, the dialog family): - height above the panel as a share of the key's short side: 0.57 there, an early test value.
    * - :cpp:class:`MarkerStyle <gui_forms::MarkerStyle>`
      - A marker drawn centred on each point: ``size`` its full width, ``fill`` its inside (ignored by the stroked shapes), ``edge`` its outline (or its lines, for the stroked shapes) ``edge_width`` wide.
    * - :cpp:class:`MaterialAssemblyContext <gui_forms::MaterialAssemblyContext>`
      - Replaces ``material`` with ``floor`` and the declarations of ``fields`` (the winning declaration of each field, by the field's position, null where none) in place: a part's assembled material (EC1); an ``initial`` declaration keeps the floor's value.
+   * - :cpp:class:`MaterialBlocks <gui_forms::MaterialBlocks>`
+     - A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
    * - :cpp:class:`MaterialBorder <gui_forms::MaterialBorder>`
      - MaterialBorder pairs an authored color and logical stroke width.
    * - :cpp:class:`MaterialBorderEdges <gui_forms::MaterialBorderEdges>`
@@ -270,6 +316,8 @@ Types
      - A part's hit region (T1's hand-off): its shape in its bounds, never less than the minimum target.
    * - :cpp:class:`PartKey <gui_forms::PartKey>`
      - A painted part's identity from frame to frame (T2 GIVEN H3-1), which lets the engine keep a record for it: its states and when it entered them, its transitions, its preparation and its cached raster.
+   * - :cpp:class:`PartLightPlanes <gui_forms::PartLightPlanes>`
+     - A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, and the composite its control keeps between paints.
    * - :cpp:class:`PartMotion <gui_forms::PartMotion>`
      - A part's running transitions (E7; T2 plan, "How motion is driven").
    * - :cpp:class:`PartPaint <gui_forms::PartPaint>`
@@ -347,7 +395,7 @@ Types
    * - :cpp:class:`RuleSelector <gui_forms::RuleSelector>`
      - ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family).
    * - :cpp:class:`RuleSpecificity <gui_forms::RuleSpecificity>`
-     - A selector's specificity, CSS's three columns compared in order: the stable ID; the classes, the states and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
+     - A selector's specificity, CSS's three columns compared in order: the stable ID and the item's ID; the classes, the item's classes, the states (standard and custom) and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
    * - :cpp:class:`ScopedCondition <gui_forms::ScopedCondition>`
      - A copy's condition: the part's winning definition of ``name`` is ``definition``, or, for custom_property_undefined, no definition matches.
    * - :cpp:class:`ScopedDefinition <gui_forms::ScopedDefinition>`
@@ -378,6 +426,8 @@ Types
      -  
    * - :cpp:class:`ThemeGeometryTokens <gui_forms::ThemeGeometryTokens>`
      - ThemeGeometryTokens centralizes control heights, touch targets, splitter geometry, navigation extents, and compact breakpoint.
+   * - :cpp:class:`ThemeItem <gui_forms::ThemeItem>`
+     - An application colour role's colours where some media facts hold (Theme::application_role, Control::theme_role_colours): its foreground, its background for a pair (the foreground's plate for a single role), the built-in role it falls back to and whether it is a pair.
    * - :cpp:class:`ThemeLibrary <gui_forms::ThemeLibrary>`
      - The installed theme packages an ``@import`` may name (D2): each verified whole when installed (its manifest, every file's hash, and every ``@import`` of its sheet listed in its manifest), and found by its name.
    * - :cpp:class:`ThemeMotionTokens <gui_forms::ThemeMotionTokens>`
@@ -389,7 +439,7 @@ Types
    * - :cpp:class:`ThemePackageFile <gui_forms::ThemePackageFile>`
      - One file of a theme package: its path inside the package, as the manifest lists it, and its bytes.
    * - :cpp:class:`ThemeRoleColours <gui_forms::ThemeRoleColours>`
-     - An application colour role's colours where some media facts hold (Theme::application_role, Control::theme_role_colours): its foreground, its background for a pair (the foreground's plate for a single role), the built-in role it falls back to and whether it is a pair.
+     -  
    * - :cpp:class:`ThemeRule <gui_forms::ThemeRule>`
      -  
    * - :cpp:class:`ThemeRuleSheet <gui_forms::ThemeRuleSheet>`
@@ -802,6 +852,214 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: CanvasArea final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   A filled and outlined canvas part (the background, a node, its header, a port, a lamp, the marquee): its area, its line, the line's width and its corner radius, in view units. A transparent colour or a zero width draws nothing of that half.
+
+   .. cpp:member:: Color fill
+
+   .. cpp:member:: Color stroke
+
+   .. cpp:member:: double stroke_width
+
+   .. cpp:member:: double corner_radius
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasFlow final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   What moves along a flowing link (the link part at rest): the mark, its speed in world units a second and its pitch in view units.
+
+   .. cpp:member:: CanvasFlowStyle style
+
+      Default: ``{CanvasFlowStyle::none}``.
+
+   .. cpp:member:: double speed
+
+      Default: ``{48.0}``.
+
+   .. cpp:member:: double spacing
+
+      Default: ``{16.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasGrid final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   The world grid: minor and major colours, one line width (view units), the minor spacing in world units at zoom 1, and the band of view spacings the shown level keeps to (select_grid_level; its maximum is exactly grid_level_ratio times its minimum). ``minor_shown`` is false in forced high contrast, which draws the major lines alone, with no fade.
+
+   .. cpp:member:: Color minor
+
+   .. cpp:member:: Color major
+
+   .. cpp:member:: double line_width
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double spacing
+
+      Default: ``{16.0}``.
+
+   .. cpp:member:: GridLevelBand band
+
+   .. cpp:member:: bool minor_shown
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasItem final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   One item of the canvas (a node, a port or a link) as theme rules address it with ``:item()``: its stable ID (``:item(#n42)``) and classes (``:item(.warning)``). A socket's data type is an item class on its port and on the links it carries, conventionally ``socket-<type>`` (``node-canvas::part(port):item(.socket-float)``), so a theme colours by data type. Both views are borrowed for the call.
+
+   .. cpp:member:: std::string_view id
+
+   .. cpp:member:: std::span<const std::string> classes
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasLine final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   A link's stroke: its colour and width, its dash and gap (a dash of 0 is solid), and its halo, a wider stroke ``halo_width`` beyond each side drawn under it (0 draws none). Lengths in view units.
+
+   .. cpp:member:: Color colour
+
+   .. cpp:member:: double width
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double dash
+
+   .. cpp:member:: double gap
+
+   .. cpp:member:: Color halo
+
+   .. cpp:member:: double halo_width
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasLook final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   Every canvas part in every state, as one theme draws them in one colour scheme and contrast. ``texture`` holds the theme's procedural and finish layers, bottom first, each with its contrast clamped (layers of contrast 0 are dropped); none where the theme sets none, and always in forced high contrast. ``titles`` are the header's title ink by node state. The marquee is its area (``marquee``) and its dashed outline (``marquee_outline``; no halo). A plain value: copy it, keep it, compare it.
+
+   .. cpp:member:: CanvasArea background
+
+   .. cpp:member:: CanvasGrid grid
+
+   .. cpp:member:: CanvasTextureLayers texture
+
+   .. cpp:member:: CanvasTextureBlend texture_blend
+
+      Default: ``{CanvasTextureBlend::multiply}``.
+
+   .. cpp:member:: std::array<CanvasArea, canvas_node_state_count> nodes
+
+   .. cpp:member:: std::array<CanvasArea, canvas_node_state_count> headers
+
+   .. cpp:member:: std::array<Color, canvas_node_state_count> titles
+
+   .. cpp:member:: CanvasArea selection
+
+   .. cpp:member:: std::array<CanvasArea, canvas_port_state_count> ports
+
+   .. cpp:member:: std::array<CanvasLine, canvas_link_state_count> links
+
+   .. cpp:member:: std::array<CanvasLine, canvas_link_state_count> dashed_links
+
+   .. cpp:member:: std::array<CanvasArea, canvas_lamp_state_count> lamps
+
+   .. cpp:member:: CanvasArea marquee
+
+   .. cpp:member:: CanvasLine marquee_outline
+
+   .. cpp:member:: CanvasFlow flow
+
+   .. cpp:member:: std::array<Color, canvas_port_state_count> port_labels
+
+      A port's label ink, by port state.
+
+   .. cpp:member:: CanvasArea focus
+
+      The focus ring: its line colour, width (at least minimum_canvas_focus_width) and the radius it adds to the item's corners; its fill is clear.
+
+   .. cpp:member:: CanvasLine knife
+
+      The knife stroke that cuts links.
+
+   .. cpp:member:: std::array<CanvasLine, canvas_preview_state_count> link_previews
+
+      The link being dragged, by preview state.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasTextureLayer final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   One layer of the node canvas's texture (``background-texture``; cp31), composited under the grid at ``contrast``, a fraction in [0, maximum_canvas_texture_contrast]: - ``procedural``: a built-in pattern (ProceduralFill's ``pattern``, ``seed``, ``tile`` in [minimum_procedural_tile, maximum_canvas_texture_tile] logical units and ``strength`` in [0, 1]); the canvas chooses its colours (resolve_canvas_look), so a theme sets its form only; - ``finish``: a surface finish (``finish``, any kind but the glint, in the colours the theme writes); the pattern fields are not read.
+
+   .. cpp:member:: CanvasTextureSource source
+
+      Default: ``{CanvasTextureSource::procedural}``.
+
+   .. cpp:member:: ProceduralPattern pattern
+
+      Default: ``{ProceduralPattern::felt}``.
+
+   .. cpp:member:: std::uint32_t seed
+
+   .. cpp:member:: double tile
+
+      Default: ``{64.0}``.
+
+   .. cpp:member:: double strength
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: FinishFill finish
+
+   .. cpp:member:: double contrast
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasTextureLayers final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   The texture's layers, bottom first: capacity maximum_canvas_texture_layers, ``count`` live (0 is ``none``).
+
+   .. cpp:member:: std::array<CanvasTextureLayer, maximum_canvas_texture_layers> items
+
+   .. cpp:member:: std::size_t count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CanvasView final
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   Where the canvas lies in the painter's coordinates: ``origin`` is world (0, 0) and ``zoom`` view units per world unit (finite and positive; the background draws no grid otherwise).
+
+   .. cpp:member:: Point origin
+
+   .. cpp:member:: double zoom
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CheckerPattern final
 
    ``#include <gui_forms/types/paint_marks/paint_marks.hpp>``
@@ -911,9 +1169,9 @@ Types
 
       How many scoped custom property names the rules' conditions read (P12).
 
-   .. cpp:function:: const std::vector<RuleDiagnostic>& diagnostics() const noexcept
+   .. cpp:function:: const std::vector<RuleDiagnostic>& diagnostics() const& noexcept
 
-   .. cpp:function:: const std::vector<std::string>& published_values() const noexcept
+   .. cpp:function:: const std::vector<std::string>& published_values() const& noexcept
 
       The published values the sheet's expressions read, in position order (an invalid name is kept empty, so later positions stay).
 
@@ -1092,6 +1350,12 @@ Types
 
    .. cpp:member:: AncestorBloom ancestor_bloom
 
+   .. cpp:member:: std::string_view item_id
+
+      The item the part is resolved for (cp31: a node canvas's node, port or link): its stable ID and classes, empty for a control's own part. Borrowed for the call.
+
+   .. cpp:member:: std::span<const std::string> item_classes
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: CompiledThemeRules::PartProvenance final
@@ -1121,6 +1385,10 @@ Types
    .. cpp:member:: std::array<CascadeLevel, recipe_field_count> levels
 
       The cascade level of each winning declaration's rule, by the same position; built_in where ``fields`` holds null. An authored colour (PartPaint::authored_foreground) stands under the important ones.
+
+   .. cpp:member:: std::array<const RecipeDeclaration*, recipe_field_count> named_part_fields
+
+      The winning declaration of each field among the matching rules that name a part (a ``::part(...)`` rule, not a role or family rule), by the same position, or null where none sets it. A field two consumers share (stroke_width: a dial's arc and a canvas part's line) is a canvas width only from a part rule, and ``fields`` may hold another rule's: ``:family(progress)`` counts as a class and outranks ``node-canvas::part(lamp)`` (two types).
 
    .. cpp:member:: bool authored
 
@@ -1252,11 +1520,45 @@ Types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: ControlPartMetrics final
+.. cpp:struct:: ControlCanvasPaint final
 
    ``#include <gui_forms/theme/types/theme_types.hpp>``
 
-   A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle. Lengths are logical units; a taper, flare or edge shadow of zero draws nothing.
+   A node canvas part's paint as a theme sets it (RecipeField::fill_colour to flow_spacing, and RecipeField::stroke_width as ``stroke_width``; cp31), each unset where no rule sets it: resolve_canvas_look (gui_forms/theme/canvas_look) then takes the stock value it states for the part. Lengths are logical units, the grid's spacing world units, the flow's speed world units a second. The forced high-contrast records set the colours: the plate, the state's edge and the focus colour. ``texture`` holds no layer for ``background-texture: none``.
+
+   .. cpp:member:: std::optional<Color> fill
+
+   .. cpp:member:: std::optional<Color> stroke
+
+   .. cpp:member:: std::optional<double> stroke_width
+
+   .. cpp:member:: std::optional<double> dash
+
+   .. cpp:member:: std::optional<double> gap
+
+   .. cpp:member:: std::optional<double> halo_width
+
+   .. cpp:member:: std::optional<Color> halo
+
+   .. cpp:member:: std::optional<double> corner_radius
+
+   .. cpp:member:: std::optional<double> grid_spacing
+
+   .. cpp:member:: std::optional<double> grid_band
+
+   .. cpp:member:: std::optional<CanvasTextureLayers> texture
+
+   .. cpp:member:: std::optional<CanvasFlowStyle> flow
+
+   .. cpp:member:: std::optional<double> flow_speed
+
+   .. cpp:member:: std::optional<double> flow_spacing
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ControlPartMetrics final
+
+   ``#include <gui_forms/theme/types/theme_types.hpp>``
 
    .. cpp:member:: std::optional<double> block_size
 
@@ -1281,6 +1583,8 @@ Types
    .. cpp:member:: double edge_shadow_width
 
    .. cpp:member:: Color edge_shadow_colour
+
+   .. cpp:member:: ControlStripePattern stripes
 
 .. cpp:namespace:: gui_forms
 
@@ -1356,6 +1660,34 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ControlStripePattern final
+
+   ``#include <gui_forms/theme/types/theme_types.hpp>``
+
+   A part's metrics and shape as a theme sets them (RecipeField::block_size to edge_shadow_colour), each unset where no rule sets it: the control then keeps its own metric and the part its rectangle. Lengths are logical units; a taper, flare or edge shadow of zero draws nothing. A part's stripe pattern (RecipeField::stripe_pitch to stripe_reduced_motion; the barber pole, owner rulings of 2026-11-11), each unset where no rule sets it, when the stripe effect keeps its own value: pitch auto (the fill's inner thickness, at least 8), a pale share of 0.4, 45 degrees, a backward lean travelling forward at 0.8 pitches a second, the fill as the theme paints it under translucent pale bands, a gloss over opaque stripe colours, and still bands under reduced motion. A pitch of 0 is ``auto``.
+
+   .. cpp:member:: std::optional<double> pitch
+
+   .. cpp:member:: std::optional<double> ratio
+
+   .. cpp:member:: std::optional<double> angle_degrees
+
+   .. cpp:member:: std::optional<StripeSense> lean
+
+   .. cpp:member:: std::optional<StripeSense> direction
+
+   .. cpp:member:: std::optional<double> speed
+
+   .. cpp:member:: std::optional<Color> colour
+
+   .. cpp:member:: std::optional<Color> ground
+
+   .. cpp:member:: std::optional<StripeGloss> gloss
+
+   .. cpp:member:: std::optional<StripeReducedMotion> reduced_motion
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ControlTextShadow final
 
    ``#include <gui_forms/theme/types/theme_types.hpp>``
@@ -1374,7 +1706,7 @@ Types
 
 .. cpp:struct:: ControlVisualContext final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
 
    ControlVisualContext selects a role recipe from surface state plus selected, focused, defaulted, and high-contrast axes.
 
@@ -1470,6 +1802,10 @@ Types
 
       Default: ``{Color::rgba(16, 24, 32, 96)}``.
 
+   .. cpp:member:: ControlCanvasPaint canvas
+
+      A node canvas part's paint, where a rule naming the part sets it.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: CursorImage final
@@ -1499,7 +1835,7 @@ Types
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::vector<CursorImage>& images() const noexcept
+   .. cpp:function:: const std::vector<CursorImage>& images() const& noexcept
 
    .. cpp:function:: double normalized_x() const noexcept
 
@@ -1531,7 +1867,7 @@ Types
 
    .. cpp:function:: bool empty() const noexcept
 
-   .. cpp:function:: std::span<const Rect> rectangles() const noexcept
+   .. cpp:function:: std::span<const Rect> rectangles() const& noexcept
 
    .. cpp:function:: std::size_t rectangle_count() const noexcept
 
@@ -1702,6 +2038,10 @@ Types
    .. cpp:function:: void clip_rect(Rect rect) noexcept
 
       Narrows the clip to ``rect`` (in the current offset's coordinates).
+
+   .. cpp:function:: void clip_rounded_rect(Rect rect, double radius) noexcept
+
+      Narrows the clip to ``rect`` with every corner rounded by ``radius`` (clamped to half the shorter side; 0 is a plain clip_rect), in the current offset's coordinates: a fill's inner shape, inside its rim.
 
    .. cpp:function:: void translate(Point offset) noexcept
 
@@ -2283,6 +2623,8 @@ Types
 
    .. cpp:function:: bool patterns_waiting() const noexcept
 
+   .. cpp:function:: bool finish_tiles_waiting() const noexcept
+
    .. cpp:function:: RasterCacheStatistics cache_statistics() const noexcept
 
 
@@ -2323,6 +2665,16 @@ Types
    .. cpp:function:: bool awaits_pattern(const CachedPartRaster& cached) const noexcept
 
       Whether ``cached`` drew a ground for a pattern made since.
+
+   .. cpp:function:: std::shared_ptr<const PartRaster> finish_tile(const FinishTileKey& key, PartRecordHandle waiter, std::uint64_t paint_sequence)
+
+      World finish tiles (cp31). finish_tile returns the tile held for ``key``, marked used by ``paint_sequence``, or null after queueing it (unless queued already or the queue is full) and noting ``waiter``, the part that asked, to be repainted. Nothing is painted inside a paint. generate_finish_tiles paints queued tiles, oldest first, until an idle frame's effort (finish_tile_idle_effort) is spent, at least one; it returns true when it held a tile and the queue is then empty: the waiters are to be repainted (take_finish_tile_waiters), once for the whole queue rather than once a tile. Allocation failure propagates as std::bad_alloc and leaves the tile being painted unheld.
+
+   .. cpp:function:: bool generate_finish_tiles(std::uint64_t paint_sequence)
+
+   .. cpp:function:: void take_finish_tile_waiters(std::vector<PartRecordHandle>& waiters)
+
+      Moves the parts waiting for finish tiles into ``waiters`` (cleared first) and forgets them.
 
    .. cpp:function:: PartRasterResult raster_without_record(const PartRasterRequest& request, std::uint64_t paint_sequence)
 
@@ -2423,6 +2775,10 @@ Types
    .. cpp:function:: virtual bool accepts(const PrimitiveParameterBlock& parameters, const PrimitiveTarget& target) const noexcept
 
       Whether the primitive will draw this target with ``parameters``, such as a material whose bake would exceed its bound. A primitive that refuses is drawn by the built-in recipe instead, and the engine counts the refusal. True unless the primitive says otherwise. Called only with a target in range and parameters that match the declarations.
+
+   .. cpp:function:: virtual MaterialDither affordable_dither(const PrimitiveParameterBlock& parameters, const PrimitiveTarget& target) const noexcept
+
+      The strongest dither, no stronger than the lent material's own (blue noise, then the ordered table, then none), at which this primitive's bake of the target stays within its budget: a dither gives way before the material does, so a face never falls back to the built-in recipe for its dither alone. The engine lends the material with that dither in place of its own, for this paint only, and counts the steps (MetricsSnapshot::engine_dither_degradations); the part's raster and any slice reference it is assembled from then bake with the same dither. The lent material's own dither, or none when the target lends no material, unless the primitive says otherwise. Called as accepts() is.
 
    .. cpp:function:: virtual PrimitiveSlicePlan slice_plan(const PrimitiveParameterBlock& parameters, const PrimitiveTarget& target, DeviceExtent extent) const noexcept
 
@@ -2595,6 +2951,98 @@ Types
    .. cpp:member:: std::chrono::nanoseconds build_time
 
       Wall time of the build, on the first call's thread.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FinishFill final
+
+   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+
+   One finish's parameters. The defaults are the study's: its paint (#2f6e6c, a teal), its dust (#bdb6a8), a light from 125 degrees (counter-clockwise from the right) at 38 degrees above the surface, and ambient 0.32. - ``seed`` chooses the noise; equal parameters give equal bytes. - ``grain`` multiplies every feature's size, and the relief with it, so that a coarser finish keeps its slopes; within [0.5, 4]. - ``paint`` is the finish's colour; ``secondary`` the dust's (dusty matte, sand cast) or the weft's (cloth). Both are drawn opaque: their alpha is not read; the fill layer's opacity composites the finish. - For the glint, ``secondary`` is the metal's colour (the presets' own are listed with them), ``paint`` the coat's (painted sand alone draws it), ``gloss`` scales the glints' energy and ``grain`` the facets and specks; the light, ambient and relief are the preset's fitted geometry. - The light's azimuth is a whole number of degrees in [0, 359] and its elevation one in [0, 90]: the kernel reads each degree's cosine and sine from a table, never libm. - ``ambient`` in [0, 1]; ``relief`` and ``gloss`` scale the finish's own relief and sheen, within [0, 4].
+
+   .. cpp:member:: FinishKind kind
+
+      Default: ``{FinishKind::orange_peel}``.
+
+   .. cpp:member:: std::int32_t seed
+
+      Default: ``{7}``.
+
+   .. cpp:member:: double grain
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: Color paint
+
+      Default: ``{Color::rgba(0x2f, 0x6e, 0x6c)}``.
+
+   .. cpp:member:: Color secondary
+
+      Default: ``{Color::rgba(0xbd, 0xb6, 0xa8)}``.
+
+   .. cpp:member:: std::int32_t light_azimuth_degrees
+
+      Default: ``{125}``.
+
+   .. cpp:member:: std::int32_t light_elevation_degrees
+
+      Default: ``{38}``.
+
+   .. cpp:member:: double ambient
+
+      Default: ``{0.32}``.
+
+   .. cpp:member:: double relief
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double gloss
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: GlintPreset glint
+
+      Default: ``{GlintPreset::sand_blast}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FinishTileKey final
+
+   ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
+
+   .. cpp:member:: FinishFill finish
+
+   .. cpp:member:: double display_scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: std::int64_t column
+
+   .. cpp:member:: std::int64_t row
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FinishTiles final
+
+   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
+
+   A surface finish over an area, in world coordinates (ThemeEngine::paint_finish_tiles; cp31, the node canvas's finish texture): - ``key`` names the part's record (borrowed for the call); - ``finish`` is borrowed for the call; - ``anchor`` is world (0, 0) in the painter's coordinates and ``zoom`` the view units per world unit, so the finish is a property of the world: it pans with it and grows with the zoom; - ``area`` is where it is drawn, clipped to it (the painter's coordinates).
+
+   .. cpp:member:: PartKey key
+
+   .. cpp:member:: const FinishFill* finish
+
+   .. cpp:member:: Point anchor
+
+   .. cpp:member:: double zoom
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: Rect area
 
 .. cpp:namespace:: gui_forms
 
@@ -2886,6 +3334,32 @@ Types
 
       Default: ``{1.0}``.
 
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LampColour final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   A lamp's colour, linear RGB at unit power. The study's lamps (panel_lamps.html, C): amber, warm white, red (the owner's: [1, 0.12, 0.04]), green, blue and cyan.
+
+   .. cpp:member:: double red
+
+   .. cpp:member:: double green
+
+   .. cpp:member:: double blue
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LampDrive final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   A lamp as composited: its colour and its power (0 off, 1 the baked unit; the strike envelope passes through, lamp_power).
+
+   .. cpp:member:: LampColour colour
+
+   .. cpp:member:: double power
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: LentImageVariants final
@@ -2895,6 +3369,135 @@ Types
    The variants lent for one bake, by fill layer; null where none is lent.
 
    .. cpp:member:: std::array<std::shared_ptr<const PartRaster>, maximum_image_variants> layers
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LightComposite final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3. ``press_mix`` mixes the up bake (0) toward the down bake (1).
+
+   .. cpp:member:: double room
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double exposure
+
+      Default: ``{1.3}``.
+
+   .. cpp:member:: double press_mix
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:class:: LightPlaneCache final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   The bakes in one directory, each read the first time it is asked for (``<directory>/<name>.f32``) and kept: a missing or defective file is remembered and not read again. Names are lower-case letters, digits and '_' (the baker's stems, such as dialog_ok_up), so a name never leaves the directory. One thread: the UI thread that asks.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit LightPlaneCache(std::filesystem::path directory)
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t reads() const noexcept
+
+      Files read so far (each at most once).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::shared_ptr<const LightPlanes> lend(std::string_view name)
+
+      The bake named ``name``, or null when it is missing, defective, or the name is not one. Throws std::bad_alloc when a read's storage cannot be had (nothing is remembered then).
+
+   .. cpp:function:: LightPlanesDefect defect(std::string_view name) const noexcept
+
+      The defect of the last read of ``name``; none for a name not read.
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:class:: LightPlaneRaster final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   -- a part's kept composite ----------------------------------------------------------------- A part composited from a bake (PartPaint::light_planes, such as IndicatorLamp's lens) keeps its last composite in one of these, owned by the part's control, so that a repaint with nothing changed (a lamp repainted for a neighbour's damage) draws the kept raster again instead of compositing. Every lamp of the bake takes the one drive. It holds the bake it composited, so a bake released elsewhere is never mistaken for a new one at the same address. One thread: the painting one.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t composites() const noexcept
+
+      Composites made so far: one for each change of the inputs.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::shared_ptr<const PartRaster> composite(const std::shared_ptr<const LightPlanes>& planes, LampDrive drive, const LightComposite& settings, DeviceExtent extent, DeviceScale scale)
+
+      The composite of ``planes`` over ``extent`` device pixels at ``scale``, every lamp driven by ``drive``: the kept raster when the bake, drive, settings, extent and scale are those it was made with, else a new one, then kept. Null, and nothing kept, when ``planes`` is null, the extent is empty, or no raster of that extent and scale can be made (PartRaster::create). Throws std::bad_alloc when a new raster cannot be stored (what was kept stays).
+
+   .. cpp:function:: void release() noexcept
+
+      Releases the kept raster and bake (a control leaving its window).
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LightPlaneRect final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   A rectangle of device pixels the planes are stretched over.
+
+   .. cpp:member:: std::int64_t x
+
+   .. cpp:member:: std::int64_t y
+
+   .. cpp:member:: std::int64_t width
+
+   .. cpp:member:: std::int64_t height
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LightPlanes final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   One bake's planes, ``width`` × ``height`` pixels: - ``room``: the room's light, three floats a pixel (red, green, blue), premultiplied by coverage; - ``lamps``: ``lamp_count`` planes of the same shape, one after another, each lamp alone at unit white power; - ``coverage``: one float a pixel in [0, 1], the share of the pixel the key covers. Rows run top to bottom, pixels left to right.
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+   .. cpp:member:: std::uint32_t lamp_count
+
+   .. cpp:member:: std::vector<float> room
+
+   .. cpp:member:: std::vector<float> lamps
+
+   .. cpp:member:: std::vector<float> coverage
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LitKeyBake final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   -- the lit keys' bake ------------------------------------------------------------------ One lit key's bake parameters, and the values the study baked its dialog keys with (lamp_keys.cpp, the dialog family): - height above the panel as a share of the key's short side: 0.57 there, an early test value. Relief is contextual (owner, 2026-11-12): each role takes its own height, a theme parameter, so the baker is given the role's share and a bake is made per role; nothing here fixes one; - the sides lean in by 3° + 17° × clamp((share − 0.25) / 0.75, 0, 1); - the sides are the key's own plastic; - the control camera tilted 16° toward the viewer; - OK lit as the ANTI-ICE caption: clear acrylic, its one coil just above a frosted back, so the coil is neither invisible nor plainly visible; CANCEL in white opaque plastic with its lamps deep in the shell; - renders 240 pixels wide, shown 180 logical units wide; - composited with the room at 1 (panel_lamps' colouring). Light is never local (owner, 2026-11-12): a lamp lights its own lens and legend only. The composite keeps it so, writing nothing where the key's coverage is 0, so a bake's spill onto the panel never shows. The baker is run by the integrator (``lamps <dir> 240 dialog``); nothing at run time reads these but the display width.
+
+   .. cpp:member:: double height_share
+
+   .. cpp:member:: double camera_tilt_degrees
+
+   .. cpp:member:: std::uint32_t bake_width
+
+   .. cpp:member:: double display_width
+
+   .. cpp:member:: double room
 
 .. cpp:namespace:: gui_forms
 
@@ -2931,6 +3534,24 @@ Types
    .. cpp:member:: double em
 
    .. cpp:member:: Color current_colour
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialBlocks final
+
+   ``#include <gui_forms/engine/theme_engine/theme_engine.hpp>``
+
+   A material repeated over an area (ThemeEngine::paint_material_blocks): - ``key`` names the part's record (borrowed for the call); - ``material`` is borrowed for the call; - ``period`` is the material's repeat in logical units (a procedural fill's tile), within [minimum_procedural_tile, maximum_procedural_tile]; - the blocks lie on the lattice of whole periods through ``anchor``, so that they stay where the caller anchors them as it pans, and are drawn where they meet ``area``, clipped to it (the painter's coordinates).
+
+   .. cpp:member:: PartKey key
+
+   .. cpp:member:: const SurfaceMaterial* material
+
+   .. cpp:member:: double period
+
+   .. cpp:member:: Point anchor
+
+   .. cpp:member:: Rect area
 
 .. cpp:namespace:: gui_forms
 
@@ -3080,7 +3701,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7). ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
+   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7); - seat: ``number``, the part's height above its panel in logical units (negative: sunk into it), or, with ``relative``, a fraction of the box's shorter side, and ``colour``, its shadow's; 0 for none. Resolved when the material is assembled (seat_shadows). - gradient_dither: ``dither`` (MaterialDither, ``gradient-dither``). ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
 
    .. cpp:member:: MaterialField field
 
@@ -3129,6 +3750,10 @@ Types
    .. cpp:member:: std::optional<MaterialFillLayer> mask
 
    .. cpp:member:: std::optional<MaterialReflection> reflection
+
+   .. cpp:member:: MaterialDither dither
+
+      Default: ``{MaterialDither::none}``.
 
    .. cpp:member:: ColourOrigin origin
 
@@ -3225,6 +3850,8 @@ Types
 
    .. cpp:function:: static MaterialFillLayer procedural_pattern(const ProceduralFill& pattern, double opacity = 1.0)
 
+   .. cpp:function:: static MaterialFillLayer finish_fill(const FinishFill& finish, double opacity = 1.0)
+
    .. cpp:member:: MaterialFillKind kind
 
       Default: ``{MaterialFillKind::solid}``.
@@ -3300,6 +3927,10 @@ Types
    .. cpp:member:: ProceduralFill procedural
 
       Read only by a procedural fill, with ``opacity``.
+
+   .. cpp:member:: FinishFill finish
+
+      Read only by a finish fill, with ``opacity``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3451,7 +4082,7 @@ Types
 
 .. cpp:struct:: MediaFacts final
 
-   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+   ``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>``
 
    What a window is, as a rule's media condition reads it (T3 EC3): its presentation settings and its scale. Every window evaluates a theme's conditions against its own facts, so windows sharing a theme may differ.
 
@@ -3874,6 +4505,10 @@ Types
 
       One line of text turned a quarter about ``origin`` (see TextOrientation). ``origin`` is the start of the baseline, as for draw_text_utf8; the run advances up the surface (bottom_to_top) or down it (top_to_bottom), so the measured width of the text becomes its height. ``horizontal`` draws as draw_text_utf8. The base implementation is a minimal painter's fallback that draws the run horizontally from ``origin``, unturned; the recording and Skia painters turn it.
 
+   .. cpp:function:: virtual void draw_glyph_runs(Point origin, const GlyphRunsView& view, FontSpec font, Color color)
+
+      One line of glyph runs a provider shaped earlier (GlyphRunsView, as a paragraph layout fills them), drawn at ``origin`` (the start of the baseline, as for draw_text_utf8) in ``font``'s size and colour without shaping again. A painter whose own engine shaped them, in its current face table (view.source), draws exactly the pixels draw_text_utf8 draws for view.text; for any other source, or runs whose glyph indices fall outside view.glyphs, it draws view.text with draw_text_utf8. That fallback is the base implementation, which the recording painter keeps (a recorded line is shaped again on replay); the Skia painter draws the runs.
+
    .. cpp:function:: virtual Size measure_text_utf8(std::string_view text, FontSpec font)
 
       Text controls need the same metrics used by the painter for caret hit testing, selection geometry, and horizontal viewport maintenance. The renderer owns those metrics; controls must not guess a fixed glyph width.
@@ -4029,6 +4664,22 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PartLightPlanes final
+
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+
+   A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, and the composite its control keeps between paints. See PartPaint::light_planes.
+
+   .. cpp:member:: std::shared_ptr<const engine_light::LightPlanes> planes
+
+   .. cpp:member:: engine_light::LampDrive drive
+
+   .. cpp:member:: engine_light::LightPlaneRaster* raster
+
+      The control's kept composite (a member of the control), borrowed for the call; with none the part takes its recipe.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: PartMotion final
 
    ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
@@ -4062,7 +4713,7 @@ Types
 
    ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
 
-   One part to paint, in the control's local coordinates. ``text``, ``image`` and ``mark`` are read only by roles that show them (label, caption and content; icon and image; glyph and indicator). ``text`` is borrowed for the call. ``font`` is an effective font (Control::effective_font). ``corner_radius``, when set, gives a surface part its shape; the theme (T4) will own shapes, so a control sets it only where today's recipe has no shape for the part. ``orientation`` and ``alignment`` are read with ``text``; ``dock_region`` only by the dock_shape mark.
+   One part to paint, in the control's local coordinates. ``text``, ``image`` and ``mark`` are read only by roles that show them (label, caption and content; icon and image; glyph and indicator). ``text`` is lent for the call (lend_paint_text). ``font`` is an effective font (Control::effective_font). ``corner_radius``, when set, gives a surface part its shape; the theme (T4) will own shapes, so a control sets it only where today's recipe has no shape for the part. ``orientation`` and ``alignment`` are read with ``text``; ``dock_region`` only by the dock_shape mark.
 
    .. cpp:member:: PartRole role
 
@@ -4080,7 +4731,7 @@ Types
 
       Default: ``{PartMark::none}``.
 
-   .. cpp:member:: std::string_view text
+   .. cpp:member:: BorrowedText text
 
    .. cpp:member:: FontSpec font
 
@@ -4109,6 +4760,10 @@ Types
    .. cpp:member:: std::optional<double> point
 
       A pointed face (design language §8.5; owner decision 2026-11-02): the surface's trailing end is a nose this many units long, its tip at the middle of the right edge, as a raised breadcrumb segment's. Only surface roles read it; none is a rectangle. Hit testing uses the same shape (pointed_face_contains).
+
+   .. cpp:member:: bool point_leading
+
+      The nose is at the left edge instead, its tip at the middle of the left edge: a right-to-left breadcrumb segment's (Control:: right_to_left). Read only with ``point``.
 
    .. cpp:member:: std::optional<PartProfile> profile
 
@@ -4152,6 +4807,10 @@ Types
 
       The arc and needle roles' angles (PartArc), or none, when neither draws. Every other role ignores them.
 
+   .. cpp:member:: std::optional<PartLightPlanes> light_planes
+
+      The baked light planes the part is composited from (PartLightPlanes), or none. Such a part is drawn as the bake's light, room · R + Σ colour · power · L_i toned (engine_light::composite_light_planes), stretched over ``bounds`` at the window's scale, in place of its recipe and of any primitive a rule would choose: the bake carries the part's whole look, its body included. The composite is transparent where the bake's coverage is 0, so its light never reaches past the part; a part with a corner radius is clipped to that shape as well. The recipe draws the part instead in forced high contrast, where the role's colours stand, and when no raster of the part's size can be made (ornament gives way first).
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: PartProfile final
@@ -4187,7 +4846,9 @@ Types
 
       Whether record_opacity found every pixel opaque since the last view().
 
-   .. cpp:function:: std::span<const std::uint8_t> pixels() const noexcept
+   .. cpp:function:: BorrowedSpan<std::uint8_t> pixels() const& noexcept
+
+      Borrowed from the raster: the sanitizer tree reports a use after the raster died (the last shared owner let it go).
 
    .. cpp:function:: DeviceExtent extent() const noexcept
 
@@ -4736,13 +5397,31 @@ Types
 
       Bakes whose image mask's variant was asked for and not lent (E9.6): the part, or the backplane region, was drawn unmasked, as the built-in path draws it.
 
+   .. cpp:member:: std::uint64_t finish_tile_bakes
+
+      World finish tiles (cp31): painted in idle frames, lent from those held, asked for before they were ready (nothing drawn there yet), evicted to keep within finish_tile_budget_bytes, and not held for want of room among tiles the latest paint used; held now, their bytes, and queued now.
+
+   .. cpp:member:: std::uint64_t finish_tile_hits
+
+   .. cpp:member:: std::uint64_t finish_tile_misses
+
+   .. cpp:member:: std::uint64_t finish_tile_evictions
+
+   .. cpp:member:: std::uint64_t finish_tile_refusals
+
+   .. cpp:member:: std::size_t finish_tiles
+
+   .. cpp:member:: std::size_t finish_tile_bytes
+
+   .. cpp:member:: std::size_t finish_tiles_queued
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: RecipeDeclaration final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, and ``font_family`` for a numbered bundled family (FontSpec::family, zero for a role); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
+   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text, outline_colour, muted_text, glyph, default_outline_colour and fill_text: ``colour``; - outline_style: ``outline_style``; - outline_width and default_outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``, and ``font_family`` for a numbered bundled family (FontSpec::family, zero for a role); font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``; - the canvas fields: fill_colour, stroke_colour and halo_colour ``colour``; stroke_dash, stroke_gap, halo_width, corner_radius, grid_spacing, grid_band and flow_spacing (logical units, em admitted), and flow_speed (world units a second) ``number``; flow_style ``flow_style``; texture_layers ``texture``.
 
    .. cpp:member:: RecipeField field
 
@@ -4761,6 +5440,24 @@ Types
    .. cpp:member:: NeedleShape needle_shape
 
       Default: ``{NeedleShape::tapered}``.
+
+   .. cpp:member:: StripeSense stripe_sense
+
+      The stripe pattern's keywords (stripe_lean and stripe_direction, stripe_gloss, stripe_reduced_motion). Default: ``{StripeSense::forward}``.
+
+   .. cpp:member:: StripeGloss stripe_gloss
+
+      Default: ``{StripeGloss::automatic}``.
+
+   .. cpp:member:: StripeReducedMotion stripe_reduced_motion
+
+      Default: ``{StripeReducedMotion::still}``.
+
+   .. cpp:member:: CanvasFlowStyle flow_style
+
+      The canvas's keyword and texture fields: flow_style's mark, and texture_layers' layers (none for ``none``). Default: ``{CanvasFlowStyle::none}``.
+
+   .. cpp:member:: CanvasTextureLayers texture
 
    .. cpp:member:: bool shadowed
 
@@ -4872,7 +5569,7 @@ Types
 
 .. cpp:struct:: ResolvedFont final
 
-   ``#include <gui_forms/theme/theme/theme.hpp>``
+   ``#include <gui_forms/theme/theme/resolved_font.hpp>``
 
    A control's primary text font as resolved (Theme::resolve_font, Control::resolved_text_font), before the window's text scale: the font the control holds with the theme's font fields over it. ``levels`` says, per FontField, the cascade level of the rule that set the field (built_in where none did, the control's own value). ``from_code`` is set where code set the font (set_font): inline code, which wins over every theme field, so no level applies.
 
@@ -5003,6 +5700,10 @@ Types
 
    .. cpp:member:: std::vector<AnatomyState> states
 
+   .. cpp:member:: std::vector<CustomStateIndex> custom_states
+
+      Custom states (RuleSelector::custom_states), positions in the custom states of the exclusion's control type, or of its selector's when it names none.
+
    .. cpp:member:: std::string family
 
 .. cpp:namespace:: gui_forms
@@ -5037,7 +5738,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its ``:not()`` selectors: it matches no part any of them matches.
+   ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its ``:not()`` selectors: it matches no part any of them matches. ``custom_states`` (R2-13) are the custom states its ``:state()`` names: each a position in its control type's ControlAnatomy::custom_states, or, when its part is an item part, in the custom states of the item system declaring that part. A position means something only for one control type, so a selector with custom states names its control type (an inline style's rules, which apply to their own control alone, need not). They match the part's AnatomyStateSet custom bits.
 
    .. cpp:member:: std::string control_type
 
@@ -5051,6 +5752,8 @@ Types
 
    .. cpp:member:: std::vector<AnatomyState> states
 
+   .. cpp:member:: std::vector<CustomStateIndex> custom_states
+
    .. cpp:member:: SurfaceKind surface
 
       Default: ``{SurfaceKind::none}``.
@@ -5063,13 +5766,19 @@ Types
 
       The selector's ancestor compounds, nearest first (selector step 4).
 
+   .. cpp:member:: std::string item_id
+
+      The item the part belongs to (``:item(#id.class)``; cp31): its stable ID and classes, each optional. A selector with either matches only a part resolved for an item that has them (PartFacts::item_id and item_classes), never a control's own part.
+
+   .. cpp:member:: std::vector<std::string> item_classes
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: RuleSpecificity final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   A selector's specificity, CSS's three columns compared in order: the stable ID; the classes, the states and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements). A ``:not()`` adds its most specific argument's, and each ancestor compound its own.
+   A selector's specificity, CSS's three columns compared in order: the stable ID and the item's ID; the classes, the item's classes, the states (standard and custom) and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements). A ``:not()`` adds its most specific argument's, and each ancestor compound its own.
 
    .. cpp:member:: std::uint32_t ids
 
@@ -5119,7 +5828,7 @@ Types
 
    ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
 
-   One axis of a slice plan. For a sliced axis, the destination's first ``start`` and last ``end`` device pixels are the reference's own; every pixel between them is the reference's pixel ``start``.
+   One axis of a slice plan. For a sliced axis, the destination's first ``start`` and last ``end`` device pixels are the reference's own; every pixel i between them is the reference's pixel start + (i − start) mod ``period``. The period is 1, one repeated pixel, unless the raster carries a pattern anchored to the part that repeats every ``period`` pixels (a dithered material, MaterialDither): then the reference holds a whole period past ``start`` and differs from the part's length by whole periods, so the copies keep the pattern.
 
    .. cpp:member:: SliceAxisOutcome outcome
 
@@ -5128,6 +5837,10 @@ Types
    .. cpp:member:: std::uint32_t start
 
    .. cpp:member:: std::uint32_t end
+
+   .. cpp:member:: std::uint32_t period
+
+      Default: ``{1U}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -5246,6 +5959,10 @@ Types
 
       A reflection of the finished face (MaterialReflection), drawn after the mask; none by default.
 
+   .. cpp:member:: MaterialDither dither
+
+      The final quantization (MaterialDither); none by default. Default: ``{MaterialDither::none}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: Theme final
@@ -5257,7 +5974,7 @@ Types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::string_view id() const noexcept
+   .. cpp:function:: std::string_view id() const& noexcept
 
       Returns the immutable theme identity.
 
@@ -5301,6 +6018,10 @@ Types
       Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
 
    .. cpp:function:: ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role, ControlVisualContext context, AnatomyStateSet states, std::string_view part, std::string_view control_type) const
+
+      Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
+
+   .. cpp:function:: ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role, ControlVisualContext context, AnatomyStateSet states, std::string_view part, std::string_view control_type, const ThemeItem& item) const
 
       Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
 
@@ -5557,6 +6278,14 @@ Types
 
       As paint, with what it draws repeated under each of ``clips`` (each in a save, clip_rect and restore; none for an empty span), the part planned, noted and baked once (N91): a pointed part's body and the strips of its nose.
 
+   .. cpp:function:: bool paint_material_blocks(Painter& painter, const Control& control, const MaterialBlocks& blocks) const
+
+      Paints ``blocks.material`` repeated over ``blocks.area`` of ``control`` (the node canvas's texture layers; cp31), through the material primitive and the window's caches as a keyed part is: - The block is square, a whole number of periods across: as many as fit maximum_material_block_side device pixels at the window's scale, and at least one. The primitive bakes it once into the record ``blocks.key`` names, and again only when the material, the scale or the block changes; panning bakes nothing. - A procedural fill's pattern is generated in an idle frame, never here (E10): until then the block shows the fill's ground, and the window repaints the area once the pattern is made. - The raster is then drawn at every block of the lattice that meets the area, in one save, clip_rect and restore. Draws nothing and returns false for a control in no window, an empty or non-finite area or anchor, a period outside its range, no material, a material the primitive refuses (its bake over the material bound) or no raster. Allocation failure propagates as std::bad_alloc, as paint's does. Not reentrant, as paint is not.
+
+   .. cpp:function:: bool paint_finish_tiles(Painter& painter, const Control& control, const FinishTiles& tiles) const
+
+      Paints ``tiles.finish`` over ``tiles.area`` of ``control`` from the window's world finish tiles (EnginePartTable::finish_tile; cp31): - The finish is evaluated at world device pixels, at the window's scale times the zoom, on the lattice of finish_tile_side-pixel tiles through world (0, 0) (snapped to the nearest device pixel, so tiles land on whole pixels). Each tile is the kernel at those pixels, so adjacent tiles join exactly: no period, and no seam. - A tile not held is queued for an idle frame and its place left bare; once the queue is painted the window repaints the area (the record ``tiles.key`` names). Panning reuses the tiles held; a new zoom or scale names new tiles, painted again in idle frames. - Cost: one draw_part_raster per tile meeting the area, inside one save, clip_rect and restore; nothing is painted inside the paint. Draws nothing and returns false for a control in no window, an empty or non-finite area, anchor or zoom, or no finish; otherwise returns whether every tile was held. Not reentrant, as paint is not.
+
    .. cpp:function:: PartHitRegion hit_region(const Control& control, const PartPaint& part) const noexcept
 
       The hit region of one part of ``control`` (E8, T1's hand-off): the part's bounds and the shape its primitive draws there, as plan() decides it. A part the built-in recipe draws, for any reason, has a rectangle. Themes choose a primitive's shape; they never set a hit region (design language §7.4 rule 1). Test a point with part_hit.
@@ -5634,6 +6363,18 @@ Types
    .. cpp:member:: bool scroll_arrows
 
       Whether scroll bars draw their arrow buttons: false gives the track the whole bar, as a macOS scroller (ScrollBar and the scroll bars of a ScrollableControl; their button extent then reads as zero). Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ThemeItem final
+
+   ``#include <gui_forms/theme/theme/theme.hpp>``
+
+   An application colour role's colours where some media facts hold (Theme::application_role, Control::theme_role_colours): its foreground, its background for a pair (the foreground's plate for a single role), the built-in role it falls back to and whether it is a pair. The item a part is resolved for (cp31; Theme::resolve's item form): its stable ID and classes, as ``:item(#id.class)`` selects them. Both views are borrowed for the call. An empty ID and no classes is no item.
+
+   .. cpp:member:: std::string_view id
+
+   .. cpp:member:: std::span<const std::string> classes
 
 .. cpp:namespace:: gui_forms
 
@@ -5733,8 +6474,6 @@ Types
 .. cpp:struct:: ThemeRoleColours final
 
    ``#include <gui_forms/theme/theme/theme.hpp>``
-
-   An application colour role's colours where some media facts hold (Theme::application_role, Control::theme_role_colours): its foreground, its background for a pair (the foreground's plate for a single role), the built-in role it falls back to and whether it is a pair.
 
    .. cpp:member:: Color foreground
 
@@ -5999,7 +6738,7 @@ Types
 
 .. cpp:struct:: VisualInteraction final
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
 
    A control's interaction state as it asks for its visual context (Control::visual_context, audit A13): named fields, all false by default.
 
@@ -6050,9 +6789,127 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:enum-class:: CascadeLevel
+.. cpp:enum-class:: CanvasFlowStyle
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: dots
+
+   .. cpp:enumerator:: dashes
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasLampState
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: off
+
+   .. cpp:enumerator:: on
+
+   .. cpp:enumerator:: error
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasLinkState
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: hot
+
+   .. cpp:enumerator:: selected
+
+   .. cpp:enumerator:: invalid
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasLinkStyle
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: plain
+
+   .. cpp:enumerator:: dashed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasNodeState
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: hot
+
+   .. cpp:enumerator:: selected
+
+   .. cpp:enumerator:: disabled
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasPortState
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: hot
+
+   .. cpp:enumerator:: drop_accepted
+
+   .. cpp:enumerator:: drop_rejected
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasPreviewState
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: seeking
+
+   .. cpp:enumerator:: accepted
+
+   .. cpp:enumerator:: refused
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasTextureBlend
+
+   ``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+   .. cpp:enumerator:: multiply
+
+   .. cpp:enumerator:: screen
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CanvasTextureSource
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: procedural
+
+   .. cpp:enumerator:: finish
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: CascadeLevel
+
+   ``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>``
 
    .. cpp:enumerator:: built_in
 
@@ -6218,7 +7075,7 @@ Enumerations
 
 .. cpp:enum-class:: ControlSurfaceState
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -6240,7 +7097,7 @@ Enumerations
 
 .. cpp:enum-class:: ControlVisualRole
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
 
    .. cpp:enumerator:: window
 
@@ -6280,7 +7137,7 @@ Enumerations
 
 .. cpp:enum-class:: ControlVisualStatus
 
-   ``#include <gui_forms/theme/types/theme_types.hpp>``
+   ``#include <gui_forms/theme/types/control_visual_types.hpp>``
 
    .. cpp:enumerator:: normal
 
@@ -6558,9 +7415,33 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: FinishKind
+
+   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+
+   .. cpp:enumerator:: dusty_matte
+
+   .. cpp:enumerator:: orange_peel
+
+   .. cpp:enumerator:: hammertone
+
+   .. cpp:enumerator:: wrinkle
+
+   .. cpp:enumerator:: bead_blast
+
+   .. cpp:enumerator:: sand_cast
+
+   .. cpp:enumerator:: flat
+
+   .. cpp:enumerator:: cloth_weave
+
+   .. cpp:enumerator:: glint
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: FontField
 
-   ``#include <gui_forms/theme/theme/theme.hpp>``
+   ``#include <gui_forms/theme/theme/resolved_font.hpp>``
 
    .. cpp:enumerator:: family
 
@@ -6585,6 +7466,22 @@ Enumerations
    .. cpp:enumerator:: content
 
    .. cpp:enumerator:: monospace
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: GlintPreset
+
+   ``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+
+   .. cpp:enumerator:: bead_blast
+
+   .. cpp:enumerator:: sand_blast
+
+   .. cpp:enumerator:: iridescent
+
+   .. cpp:enumerator:: coarse_grit
+
+   .. cpp:enumerator:: painted_sand
 
 .. cpp:namespace:: gui_forms
 
@@ -6666,6 +7563,30 @@ Enumerations
 
    .. cpp:enumerator:: last
 
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:enum-class:: LightPlanesDefect
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: unreadable
+
+   .. cpp:enumerator:: short_header
+
+   .. cpp:enumerator:: empty_size
+
+   .. cpp:enumerator:: too_large
+
+   .. cpp:enumerator:: too_many_lamps
+
+   .. cpp:enumerator:: length_mismatch
+
+   .. cpp:enumerator:: not_finite
+
+   .. cpp:enumerator:: coverage_out_of_range
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: MarkerShape
@@ -6725,6 +7646,18 @@ Enumerations
    .. cpp:enumerator:: normalized
 
    .. cpp:enumerator:: logical
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MaterialDither
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: ordered
+
+   .. cpp:enumerator:: blue_noise
 
 .. cpp:namespace:: gui_forms
 
@@ -6826,6 +7759,10 @@ Enumerations
 
    .. cpp:enumerator:: reflection
 
+   .. cpp:enumerator:: seat
+
+   .. cpp:enumerator:: gradient_dither
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -6845,6 +7782,8 @@ Enumerations
    .. cpp:enumerator:: conic_gradient
 
    .. cpp:enumerator:: procedural
+
+   .. cpp:enumerator:: finish
 
 .. cpp:namespace:: gui_forms
 
@@ -7132,6 +8071,8 @@ Enumerations
 
    .. cpp:enumerator:: success
 
+   .. cpp:enumerator:: chevron_left
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -7396,6 +8337,52 @@ Enumerations
 
    .. cpp:enumerator:: edge_shadow_colour
 
+   .. cpp:enumerator:: stripe_pitch
+
+   .. cpp:enumerator:: stripe_ratio
+
+   .. cpp:enumerator:: stripe_angle
+
+   .. cpp:enumerator:: stripe_lean
+
+   .. cpp:enumerator:: stripe_direction
+
+   .. cpp:enumerator:: stripe_speed
+
+   .. cpp:enumerator:: stripe_colour
+
+   .. cpp:enumerator:: stripe_ground_colour
+
+   .. cpp:enumerator:: stripe_gloss
+
+   .. cpp:enumerator:: stripe_reduced_motion
+
+   .. cpp:enumerator:: fill_colour
+
+   .. cpp:enumerator:: stroke_colour
+
+   .. cpp:enumerator:: stroke_dash
+
+   .. cpp:enumerator:: stroke_gap
+
+   .. cpp:enumerator:: halo_width
+
+   .. cpp:enumerator:: halo_colour
+
+   .. cpp:enumerator:: corner_radius
+
+   .. cpp:enumerator:: grid_spacing
+
+   .. cpp:enumerator:: grid_band
+
+   .. cpp:enumerator:: texture_layers
+
+   .. cpp:enumerator:: flow_style
+
+   .. cpp:enumerator:: flow_speed
+
+   .. cpp:enumerator:: flow_spacing
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -7555,6 +8542,36 @@ Enumerations
    .. cpp:enumerator:: fractional
 
    .. cpp:enumerator:: too_small
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: StripeGloss
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: automatic
+
+   .. cpp:enumerator:: none
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: StripeReducedMotion
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: still
+
+   .. cpp:enumerator:: none
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: StripeSense
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: forward
+
+   .. cpp:enumerator:: backward
 
 .. cpp:namespace:: gui_forms
 
@@ -7853,6 +8870,16 @@ Functions, constants and aliases
 
    The registry of the toolkit's own effects, filled on first use (defined with the controls that host them).
 
+.. cpp:function:: void install_effect_registry(const EffectRegistry* registry) noexcept
+
+   The process's installed effect registry: the one a theme compiled without a registry of its own checks ``effect`` names against (E417), such as the user theme a process is started with (--theme, GUI_FORMS_THEME_SHEET), settled at its first window. gui_forms_core holds only the address and never names a registry: the installer owns the registry, which must stay alive until it is uninstalled (null) or the process ends, and the core reads it when a held request is settled, not when it is held. None is installed until a program installs one; with none, ``effect`` names are checked for their form only and E417 is skipped, which the request's report says. Replacing or uninstalling does not reach a compile already done. Any thread; settling reads it on the UI thread.
+
+.. cpp:function:: const EffectRegistry* installed_effect_registry() noexcept
+
+.. cpp:function:: void install_built_in_effect_registry()
+
+   Installs built_in_effect_registry() as the process's registry (install_effect_registry), which lives until the process ends (defined with the controls, so only a program linking them can call it). A program using the stock controls calls it once while it sets up, before its first window. Repeating it changes nothing.
+
 .. cpp:function:: bool effect_verification_recorded(std::string_view name, std::size_t state_size, const void* run_thunk) noexcept
 
    Whether the effect pass of the gui_forms Clang plugin verified the effect named ``name``, of ``state_size`` bytes, whose run thunk is ``run_thunk``: a record naming it with that state size is in the binary holding that code (design note §2). A record of another size (another build's effect of the same name) does not count.
@@ -7966,6 +8993,102 @@ Functions, constants and aliases
 .. cpp:function:: double engine_arctangent2(double y, double x) noexcept
 
    The angle of the point (x, y) from the positive x axis, in radians in [−π, π], as std::atan2(y, x) (E9.6's conic gradient). Exact cases: (0, 0) gives 0, and a point on an axis gives 0, ±π/2 or π. NaN in either argument gives NaN. The ratio of the smaller to the larger magnitude is reduced twice (by π/4 and by the half-angle formula) to at most 0.2, where a 13-term series converges past 2^-60.
+
+.. cpp:namespace:: gui_forms::engine_light
+
+``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+.. cpp:function:: LampColour lamp_colour_from_srgb(Color colour) noexcept
+
+   A colour given as sRGB, such as a control's lamp colour property, as a lamp's linear colour at unit power: each channel decoded by the sRGB curve (through engine_power, so every host decodes alike). Alpha is ignored.
+
+.. cpp:function:: LightPlanesDefect read_light_planes(std::span<const std::byte> bytes, LightPlanes& planes)
+
+   Reads the study's bake file (lamp_keys.cpp, write_buffers): three little-endian int32 (width, height, lamp count), then the room plane, each lamp's plane and the coverage plane as little-endian IEEE binary32. The whole buffer is validated before ``planes`` is replaced; on a defect ``planes`` is left as it was. Throws std::bad_alloc when the planes cannot be stored (``planes`` left as it was).
+
+.. cpp:function:: std::size_t composite_light_planes(const LightPlanes& up, const LightPlanes& down, std::span<const LampDrive> drives, const LightComposite& settings, LightPlaneRect rect, const PartRasterView& destination) noexcept
+
+   Composites ``up`` and ``down`` (the same bake for a key that is not pressed) with one drive per lamp over ``rect`` in ``destination`` (premultiplied BGRA8), writing every pixel of ``rect`` inside the destination: the key's pixels with their coverage as alpha, transparent where it covers nothing. The planes are sampled bilinearly in linear, premultiplied light, so a 240-pixel bake shown 180 units wide (the owner's choice) is filtered before it is toned; a rectangle the bake's own size reads each plane pixel exactly. Returns the pixels written; none when the two bakes' shapes or lamp counts differ, ``drives`` holds fewer than the lamp count, or ``rect`` is empty.
+
+.. cpp:function:: double lamp_power(bool on, double seconds, bool reduced_motion) noexcept
+
+   A lamp's power ``seconds`` after it was switched: 0 when off, the strike envelope when on (1 from lamp_strike_seconds, or at once under reduced motion). A lamp switched off while lit cools instead (lamp_cooling_power).
+
+.. cpp:function:: double lamp_cooling_power(double from, double seconds, bool reduced_motion) noexcept
+
+   A lamp's power ``seconds`` after it was switched off at power ``from``: from · (1 − u)², u = seconds / lamp_cool_seconds, and 0 from lamp_cool_seconds on, or at once under reduced motion.
+
+.. cpp:function:: double key_press_mix(double from, double to, double seconds, bool reduced_motion) noexcept
+
+   A key's press mix ``seconds`` after its press or release began from mix ``from`` toward ``to`` (0 up, 1 down): eased, reaching ``to`` at key_press_seconds, or at once under reduced motion.
+
+.. cpp:function:: bool lamp_settled(double seconds) noexcept
+
+   Whether a lamp switched on ``seconds`` ago and a press begun ``seconds`` ago have settled: the frames after it change nothing.
+
+.. cpp:function:: bool key_press_settled(double seconds) noexcept
+
+.. cpp:function:: bool lamp_cooled(double seconds) noexcept
+
+   Whether a lamp switched off ``seconds`` ago has cooled: it is fully off.
+
+.. cpp:function:: double lit_key_lean_degrees(double height_share) noexcept
+
+   The sides' lean in degrees for a key ``height_share`` of its short side tall (lamp_keys.cpp, shape_key).
+
+.. cpp:function:: bool light_plane_name_valid(std::string_view name) noexcept
+
+   Whether ``name`` names a bake: 1 to 64 lower-case ASCII letters, digits and '_' (the baker's stems, such as dialog_ok_up), so that a name never leaves its directory.
+
+.. cpp:var:: constexpr LampColour lamp_amber
+
+   Value: ``{1.0, 0.50, 0.08}``.
+
+.. cpp:var:: constexpr LampColour lamp_white
+
+   Value: ``{1.0, 0.92, 0.78}``.
+
+.. cpp:var:: constexpr LampColour lamp_red
+
+   Value: ``{1.0, 0.12, 0.04}``.
+
+.. cpp:var:: constexpr LampColour lamp_green
+
+   Value: ``{0.16, 1.0, 0.25}``.
+
+.. cpp:var:: constexpr LampColour lamp_blue
+
+   Value: ``{0.10, 0.35, 1.0}``.
+
+.. cpp:var:: constexpr LampColour lamp_cyan
+
+   Value: ``{0.15, 0.85, 1.0}``.
+
+.. cpp:var:: constexpr std::uint32_t maximum_light_plane_side
+
+   The largest bake read: a side of 2048 pixels (the baker's own clamp) and eight lamps. Value: ``2048U``.
+
+.. cpp:var:: constexpr std::uint32_t maximum_light_plane_lamps
+
+   Value: ``8U``.
+
+.. cpp:var:: constexpr double lamp_strike_seconds
+
+   Value: ``0.06``.
+
+.. cpp:var:: constexpr double lamp_strike_start
+
+   Value: ``0.4``.
+
+.. cpp:var:: constexpr double key_press_seconds
+
+   Value: ``0.07``.
+
+.. cpp:var:: constexpr double lamp_cool_seconds
+
+   Value: ``0.12``.
+
+.. cpp:var:: constexpr LitKeyBake dialog_key_study_bake
 
 .. cpp:namespace:: gui_forms
 
@@ -8089,6 +9212,26 @@ Functions, constants and aliases
 
    The most procedural patterns queued for idle frames at once (E10). A pattern that does not fit is queued again when a paint next asks for it. Value: ``32U``.
 
+.. cpp:var:: constexpr std::uint32_t finish_tile_side
+
+   World finish tiles (cp31; the node canvas's finish texture): squares of finish_tile_side device pixels of a surface finish evaluated at world device pixels (engine_primitives::paint_world_finish), so that held tiles join with no seam. A tile is named by its finish, the display scale its raster is drawn at, the kernel's scale (device pixels per world unit: the display scale times the canvas's zoom), and its column and row on the lattice of tiles through the world's origin: tile (c, r) covers world device pixels [c * side, (c + 1) * side) by [r * side, (r + 1) * side). A paint takes the tiles held and queues the rest; idle frames paint them (EnginePartTable::generate_finish_tiles). Value: ``128U``.
+
+.. cpp:var:: constexpr std::size_t finish_tile_budget_bytes
+
+   The most bytes of finish tiles one window keeps: 512 tiles of 64 KiB, a 2900-pixel square of one layer. The least recently used tile is evicted first, never one the latest paint used: a tile that finds no room is not held (counted as a refusal) and its place stays bare. A proposed default. Value: ``32U * 1024U * 1024U``.
+
+.. cpp:var:: constexpr std::size_t maximum_queued_finish_tiles
+
+   The most finish tiles queued for idle frames at once; a tile that does not fit is queued again when a paint next asks for it. Value: ``256U``.
+
+.. cpp:var:: constexpr std::uint64_t finish_tile_idle_effort
+
+   The effort one idle frame spends painting finish tiles, in the material bake's effort units (finish_effort_weight per device pixel): four orange-peel tiles, one of hammertone. At least one tile is painted whatever its cost. Value: ``16'000'000U``.
+
+.. cpp:var:: constexpr std::size_t maximum_finish_tile_waiters
+
+   The most parts waiting for finish tiles at once; a part beyond it is repainted when the window next repaints it. Value: ``32U``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
@@ -8159,11 +9302,19 @@ Functions, constants and aliases
 
    The em of text in ``role`` on ``control`` (D5): the role's size in the control's theme's typography tokens times its window's text scale.
 
+.. cpp:var:: constexpr double maximum_material_block_side
+
+   The side, in device pixels, that paint_material_blocks fits whole periods into. With the material's outsets (8 logical units each side) a block of one composited pattern stays within the material bake bound (maximum_material_bake_effort, at 135 units a pixel) up to a 96-unit period at scale 3; a larger period or scale may be refused, and is then not drawn. Value: ``256.0``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/engine/theme_rules/cascade_facts.hpp>``
+
+.. cpp:function:: std::string_view cascade_level_name(CascadeLevel level) noexcept
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
-
-.. cpp:function:: std::string_view cascade_level_name(CascadeLevel level) noexcept
 
 .. cpp:function:: bool valid_style_class_name(std::string_view name) noexcept
 
@@ -8245,6 +9396,10 @@ Functions, constants and aliases
 
    Sets each of the declaration's current_colours to ``colour``.
 
+.. cpp:function:: void seat_shadows(double height, Color colour, std::vector<MaterialShadow>& shadows)
+
+   Appends the seat's shadows for a part ``height`` logical units above its panel (negative: below it; resolved, not a share) in ``colour`` to ``shadows``: the cast shadow (a raised part's contact shadow, a sunk part's lip shade) then the crevice, each while ``shadows`` holds fewer than SurfaceMaterial::maximum_shadows; a seat with no room is dropped (ornament gives way first). A height of 0 appends nothing.
+
 .. cpp:function:: void assemble_material(const SurfaceMaterial& floor, const std::array<const MaterialDeclaration*, material_field_count>& fields, Size box, MaterialAssemblyContext context, SurfaceMaterial& material)
 
    With ``context``, each declaration's em lengths are first added at the part's em (add_material_em) and its current colours set (set_material_current_colour); the overload without it assembles at an em of 0, its current colours as written.
@@ -8261,7 +9416,7 @@ Functions, constants and aliases
 
 .. cpp:function:: bool material_fields_read_box(const std::array<const MaterialDeclaration*, material_field_count>& fields) noexcept
 
-   Whether assembling ``fields`` reads the part's box: a relative corner, an authored gradient, of a fill or the mask, other than a fixed one (authored_gradient_fixed), or an image size of the box (a fraction of its side, cover or contain).
+   Whether assembling ``fields`` reads the part's box: a relative corner or seat, an authored gradient, of a fill or the mask, other than a fixed one (authored_gradient_fixed), or an image size of the box (a fraction of its side, cover or contain).
 
 .. cpp:function:: std::string_view recipe_field_name(RecipeField field) noexcept
 
@@ -8425,9 +9580,73 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(MaterialField::count)``.
 
+.. cpp:var:: constexpr double maximum_seat_height
+
+   -- the seat ------------------------------------------------------------------------------ A part seated in its panel (skeudoindustrial surfaces; the theme's "object presence"): a key, a well or a plate that stands proud of the panel, or sinks into it, by a height a theme sets per role (``seat``). Under the one fixed light from the upper left (the finishes' light), a raised part casts a thin contact shadow down and to the right and darkens the crevice all round where it meets the panel; a sunk part's lip shades its upper left inside, and its seam darkens. Both are outer or inset shadows of the material, so they are baked with it, identical in any repaint rectangle, and drawn by every path that draws shadows. The depth is a bas-relief's: at most maximum_seat_height, so a share of a long bar's shorter side stays a seat and the shadows stay within the material's outsets. Value: ``4.0``.
+
+.. cpp:var:: constexpr Color default_seat_colour
+
+   The seat's shadow colour when the sheet gives none. Value: ``Color::rgba(0, 0, 0, 77)``.
+
+.. cpp:var:: constexpr double seat_light_run
+
+   The run of the cast shadow per unit of height: the light stands 45 degrees above the panel, so the shadow falls half the height across and half down. Value: ``0.5``.
+
 .. cpp:var:: constexpr std::size_t recipe_field_count
 
    Value: ``static_cast<std::size_t>(RecipeField::count)``.
+
+.. cpp:var:: constexpr double maximum_canvas_dash
+
+   What the node canvas's part fields admit (RecipeField::fill_colour on): a dash or gap of 0 to 64 logical units (not both 0 unless both are, which is ``none``), a halo 0 to 16 wide, a corner radius 0 to 64, a grid spacing of 2 to 512 world units, a grid band starting at 2 to 128 view units, a texture contrast of 0 to 0.03 (the design language's sub-3 % texture rule: a declaration above it is refused, and the canvas clamps to it again when it paints), a flow speed of 0 to 512 world units a second and a flow spacing of 4 to 128. Value: ``64.0``.
+
+.. cpp:var:: constexpr double maximum_canvas_halo_width
+
+   Value: ``16.0``.
+
+.. cpp:var:: constexpr double maximum_canvas_corner_radius
+
+   Value: ``64.0``.
+
+.. cpp:var:: constexpr double minimum_canvas_grid_spacing
+
+   Value: ``2.0``.
+
+.. cpp:var:: constexpr double maximum_canvas_grid_spacing
+
+   Value: ``512.0``.
+
+.. cpp:var:: constexpr double minimum_canvas_grid_band
+
+   Value: ``2.0``.
+
+.. cpp:var:: constexpr double maximum_canvas_grid_band
+
+   Value: ``128.0``.
+
+.. cpp:var:: constexpr double maximum_canvas_texture_contrast
+
+   Value: ``0.03``.
+
+.. cpp:var:: constexpr double maximum_canvas_texture_tile
+
+   A texture layer's tile is 2 to 96 logical units, so that one tile with the material's outsets bakes within the material bound at scale 3 (maximum_material_block_side, ThemeEngine::paint_material_blocks); at most three layers. Value: ``96.0``.
+
+.. cpp:var:: constexpr std::size_t maximum_canvas_texture_layers
+
+   Value: ``3U``.
+
+.. cpp:var:: constexpr double maximum_canvas_flow_speed
+
+   Value: ``512.0``.
+
+.. cpp:var:: constexpr double minimum_canvas_flow_spacing
+
+   Value: ``4.0``.
+
+.. cpp:var:: constexpr double maximum_canvas_flow_spacing
+
+   Value: ``128.0``.
 
 .. cpp:var:: constexpr double maximum_recipe_outline_width
 
@@ -8460,6 +9679,34 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double maximum_part_shape
 
    Value: ``64.0``.
+
+.. cpp:var:: constexpr double minimum_stripe_pitch
+
+   What a stripe pattern admits (RecipeField::stripe_pitch to stripe_speed): a pitch of 0 (auto) or 4 to 64 logical units, a pale share of 0.1 to 0.9, an angle of 15 to 75 degrees and a speed of 0 to 3 pitches per second. Value: ``4.0``.
+
+.. cpp:var:: constexpr double maximum_stripe_pitch
+
+   Value: ``64.0``.
+
+.. cpp:var:: constexpr double minimum_stripe_ratio
+
+   Value: ``0.1``.
+
+.. cpp:var:: constexpr double maximum_stripe_ratio
+
+   Value: ``0.9``.
+
+.. cpp:var:: constexpr double minimum_stripe_angle
+
+   Value: ``15.0``.
+
+.. cpp:var:: constexpr double maximum_stripe_angle
+
+   Value: ``75.0``.
+
+.. cpp:var:: constexpr double maximum_stripe_speed
+
+   Value: ``3.0``.
 
 .. cpp:var:: constexpr double minimum_rule_font_size
 
@@ -8559,6 +9806,26 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/surface_material/finish_fill/finish_fill.hpp>``
+
+.. cpp:var:: constexpr double minimum_finish_grain
+
+   The bounds valid_surface_material holds a finish to. Value: ``0.5``.
+
+.. cpp:var:: constexpr double maximum_finish_grain
+
+   Value: ``4.0``.
+
+.. cpp:var:: constexpr double maximum_finish_scale
+
+   Value: ``4.0``.
+
+.. cpp:var:: constexpr std::int32_t maximum_finish_elevation_degrees
+
+   Value: ``90``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/surface_material/painting/surface_material_painting.hpp>``
 
 .. cpp:function:: bool valid_surface_material(const SurfaceMaterial& material) noexcept
@@ -8626,6 +9893,112 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double maximum_procedural_tile
 
    Value: ``256.0``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/theme/canvas_look/canvas_look.hpp>``
+
+.. cpp:function:: const ControlAnatomy& node_canvas_anatomy() noexcept
+
+.. cpp:function:: CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, ControlVisualContext context)
+
+   Resolves every canvas part of ``canvas`` from ``theme`` (Theme::resolve with the part's name and node_canvas_control_id as the control type, so the rules match the canvas's classes and stable ID: the grid variants ``paper``, ``blue``, ``green`` and ``grey`` are classes). ``context`` carries the canvas's colour scheme and contrast (Control::visual_context); each part is resolved in its own states over it. - A field no rule sets takes the stock value the part table states, coloured from the theme's basic style. - Dark: where the theme derives its dark variant (ThemeDarkVariant:: derived), every colour is mapped by the dark colour rule by what it paints (the canvas as a well, nodes and ports as stock faces, headers as chrome, lines as lines, selection cues as cues, titles as ink, and the colours that carry state as signals, which keep their hue: a lamp on stays green, in error red, off neutral; an accepted drop green, a rejected one red; an invalid link red); a theme with an authored dark variant keeps its rules' colours and maps only the stock values. The texture screens instead of multiplying (CanvasTextureBlend). - Forced high contrast: no rule applies (the engine's pass); areas take the plate, lines the state's edge, a selected link a two-unit halo in the focus colour; minor grid lines and the marquee's fill are clear and there is no texture. Reads the theme only; the result owns everything it holds.
+
+.. cpp:function:: CanvasLook resolve_canvas_look(const Theme& theme, const Control& canvas, ControlVisualContext context, const CanvasItem& item)
+
+   The look of one item: as resolve_canvas_look above, with ``item``'s ID and classes matched by ``:item()`` rules, so every part an item draws (node, header, selection, port, port label, link, dashed link, link preview, lamp and focus ring) takes the rules written for it. A canvas paints the item's parts from this look and the canvas-wide parts (region, grid, marquee, knife, texture) from its own; it resolves one per distinct ID and class set it shows, on the same triggers, and keeps them. With no ID and no classes it is the canvas's look. Reads the theme only; runs the cascade on every call (Theme::resolve's item form keeps nothing).
+
+.. cpp:function:: double clamp_canvas_texture_contrast(double contrast) noexcept
+
+   The contrast a canvas texture is multiplied at: ``contrast`` clamped to [0, maximum_canvas_texture_contrast] (the design language's sub-3 % texture rule; the compiler already refuses more), 0 when not finite.
+
+.. cpp:function:: ProceduralFill canvas_texture_fill(const CanvasTextureLayer& layer, CanvasTextureBlend blend) noexcept
+
+   The procedural fill a texture layer bakes (canvas_texture_fill): the layer's pattern, seed, tile and strength, over the ground that leaves the canvas unchanged under the blend (white under multiply, black under screen), its figure the other extreme. So a pattern not yet generated (its ground drawn meanwhile, E10) changes nothing, and a generated one darkens or lightens by at most its strength times the layer's contrast.
+
+.. cpp:function:: void paint_canvas_background(Painter& painter, const Control& canvas, const CanvasLook& look, Rect area, CanvasView view)
+
+   The canvas background of ``canvas`` over ``area``: the region's colour, then each texture layer, then the grid (the level select_grid_level chooses for ``view.zoom``, one fill_grid_pattern pass with the level's fade). - A procedural layer is a baked pattern, never an image: a material of the one procedural fill canvas_texture_fill makes, baked by the theme engine (ThemeEngine::paint_material_blocks, record ``texture.<index>``). Its tiles are anchored at world (0, 0) and stay at the tile's logical size at every zoom, so the grain stays sharp. - A finish layer is the layer's finish, in its theme's colours, as a property of the world: evaluated at world device pixels at the window's scale times the zoom, from the window's world finish tiles (ThemeEngine::paint_finish_tiles, record ``texture.<index>``), so it is continuous everywhere, with no period and no seam between tiles, and pans and zooms with the canvas. - Each layer is drawn in one multiply or screen group, as the look's texture_blend says, at the layer's clamped contrast. - Cost: a procedural layer is baked once per change of the look or the window's scale, its pattern generated in an idle frame; a finish tile is painted in an idle frame, once per tile, scale and zoom, and kept while the window's finish tile budget allows (panning reuses them, a new zoom paints new ones; until then the place shows no finish). Each paint draws, per layer, one raster per block or tile meeting the area. A view that is not placed (a non-finite origin or zoom, or a zoom not above 0) draws the colour alone.
+
+.. cpp:function:: void paint_canvas_node(Painter& painter, const CanvasLook& look, Rect body, double header_height, CanvasNodeState state)
+
+   A node's body ``body`` with its header band, the top ``header_height`` view units (0 for none, clamped to the body), in ``state``: the body's area, the header's area clipped to the band and a line under it, then the body's outline over both.
+
+.. cpp:function:: void paint_canvas_node_selection(Painter& painter, const CanvasLook& look, Rect body)
+
+   The selection ring around a node's ``body``: the selection part's line, two view units outside the body plus half its width, with its corners.
+
+.. cpp:function:: void paint_canvas_port(Painter& painter, const CanvasLook& look, Point centre, double radius, CanvasPortState state)
+
+   A port: a disc of ``radius`` at ``centre`` in ``state``'s area.
+
+.. cpp:function:: void paint_canvas_link(Painter& painter, const CanvasLook& look, std::span<const Point> points, CanvasLinkState state, CanvasLinkStyle style)
+
+   A link through ``points`` (2 or more, finite; a NaN breaks it as Painter::stroke_polyline does), as ``style``'s part in ``state``: its halo first, solid, then its stroke with round joins and caps and its dashes. Fewer than 2 points draw nothing.
+
+.. cpp:function:: void paint_canvas_lamp(Painter& painter, const CanvasLook& look, Point centre, double radius, CanvasLampState state)
+
+   A lamp: a disc of ``radius`` at ``centre`` in ``state``'s area.
+
+.. cpp:function:: void paint_canvas_marquee(Painter& painter, const CanvasLook& look, Rect rect)
+
+   The marquee over ``rect``: its area, then its outline with its dashes.
+
+.. cpp:function:: void paint_canvas_focus(Painter& painter, const CanvasLook& look, Rect target, double target_radius)
+
+   The keyboard focus ring around a focused node's body or port's disc ``target`` whose corners are ``target_radius`` (a port's radius for a disc): the focus part's line, canvas_focus_gap outside the target plus half its width, its corners the target's grown by the same reach plus the part's corner radius. Draws nothing for an empty target or a clear line; the width is never below minimum_canvas_focus_width.
+
+.. cpp:function:: void paint_canvas_overview(Painter& painter, const CanvasLook& look, std::span<const Rect> bodies, CanvasNodeState state)
+
+   Node silhouettes at the overview level of detail: each of ``bodies`` filled flat in the node part's fill for ``state`` (no header, outline or corners at that distance). Draws nothing for no bodies or a clear fill.
+
+.. cpp:function:: void paint_canvas_node_title(Painter& painter, const CanvasLook& look, Rect band, Point baseline, std::string_view text, FontSpec font, CanvasNodeState state)
+
+   A node's title ``text`` at ``baseline`` in ``font``, in the header part's ink (CanvasLook::titles) for ``state``, clipped to ``band`` (the header band less its corners). Draws nothing for empty text, an empty band or a clear ink.
+
+.. cpp:function:: void paint_canvas_port_label(Painter& painter, const CanvasLook& look, Point baseline, std::string_view text, FontSpec font, CanvasPortState state)
+
+   A port's label ``text`` at ``baseline`` in ``font``, in the label ink of the port's ``state``. Draws nothing for empty text or a clear ink.
+
+.. cpp:function:: void paint_canvas_knife(Painter& painter, const CanvasLook& look, std::span<const Point> points)
+
+   The knife stroke through ``points`` (as paint_canvas_link's), with its dashes. Fewer than 2 points draw nothing.
+
+.. cpp:function:: void paint_canvas_link_preview(Painter& painter, const CanvasLook& look, std::span<const Point> points, CanvasPreviewState state)
+
+   The link being dragged through ``points``, in ``state``: its halo, then its stroke with its dashes, as paint_canvas_link. Fewer than 2 points draw nothing.
+
+.. cpp:var:: constexpr std::string_view node_canvas_control_id
+
+   The node canvas's control id and anatomy (the part table in docs/user/theme-language.md, "node canvas"). The anatomy is the theme's, so the default theme's ``node-canvas::part(...)`` rules compile before a canvas control is registered: the theme compilers add it to the selector vocabulary when the controls they are given lack it. A canvas control returns it from Control::anatomy(). Static storage. Value: ``{"node_canvas"}``.
+
+.. cpp:var:: constexpr std::size_t canvas_node_state_count
+
+   Value: ``static_cast<std::size_t>(CanvasNodeState::count)``.
+
+.. cpp:var:: constexpr std::size_t canvas_port_state_count
+
+   Value: ``static_cast<std::size_t>(CanvasPortState::count)``.
+
+.. cpp:var:: constexpr std::size_t canvas_link_state_count
+
+   Value: ``static_cast<std::size_t>(CanvasLinkState::count)``.
+
+.. cpp:var:: constexpr std::size_t canvas_lamp_state_count
+
+   Value: ``static_cast<std::size_t>(CanvasLampState::count)``.
+
+.. cpp:var:: constexpr std::size_t canvas_preview_state_count
+
+   Value: ``static_cast<std::size_t>(CanvasPreviewState::count)``.
+
+.. cpp:var:: constexpr double minimum_canvas_focus_width
+
+   The keyboard focus cue (the ``focus`` part) is a shape, not only a colour: a ring at least minimum_canvas_focus_width units wide, drawn canvas_focus_gap units outside the focused node or port, so it shows where a hue difference alone would not (forced high contrast, colour blindness, a theme whose focus colour is near its line colour). Value: ``2.0``.
+
+.. cpp:var:: constexpr double canvas_focus_gap
+
+   Value: ``2.0``.
 
 .. cpp:namespace:: gui_forms
 
@@ -8699,6 +10072,10 @@ Functions, constants and aliases
 
    Registered (snake_case) name of a mark, as the schema's vocabulary lists it.
 
+.. cpp:function:: BorrowedText lend_paint_text(std::string_view text)
+
+   PartPaint::text is lent for one paint call (borrow sanitizer study, section 2.5, row 7). lend_paint_text stamps ``text`` from the innermost paint scope on the calling thread; the window opens one around each control's on_paint, so in the checked build a record (or a view taken from it) kept past that call fails at its next read, and so does one whose owner's text was replaced during the call by a nested scope's end. Outside any paint scope (a test or a bake painting a part directly) the text is not tracked. The ordinary build returns ``text`` unchanged.
+
 .. cpp:function:: ControlVisualContext part_visual_context(const Control& control, AnatomyStateSet states) noexcept
 
    The theme context a part's states select: hot, pressed or captured, selection (selected, checked, current, open, active_tool), the visible focus cue and preselect. The control supplies what the part does not carry: its enabled, invalid and pending status, window activity and high contrast. A part that is itself disabled or unavailable is drawn disabled.
@@ -8714,6 +10091,10 @@ Functions, constants and aliases
 .. cpp:function:: bool pointed_face_contains(Rect bounds, double point, Point position) noexcept
 
    Whether ``position`` lies in the pointed face of ``bounds`` whose nose is ``point`` units long (PartPaint::point): inside the bounds and left of the nose's edges. A point of zero or less is the whole rectangle.
+
+.. cpp:function:: bool leading_pointed_face_contains(Rect bounds, double point, Point position) noexcept
+
+   The same for a face whose nose is at its left edge (PartPaint:: point_leading): inside the bounds and right of the nose's edges.
 
 .. cpp:function:: Insets overlay_shadow_outsets(const Control& control) noexcept
 
@@ -8741,6 +10122,14 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/theme/theme/resolved_font.hpp>``
+
+.. cpp:var:: constexpr std::size_t font_field_count
+
+   Value: ``static_cast<std::size_t>(FontField::count)``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/theme/theme/theme.hpp>``
 
 .. cpp:function:: ThemeDefinition windows_professional_theme_definition()
@@ -8750,10 +10139,6 @@ Functions, constants and aliases
 .. cpp:function:: std::shared_ptr<const Theme> default_theme()
 
    The built-in default theme: GUI.Forms' own, ``gui-forms`` (gui_forms_theme()), built once on the first call (thread-safe). It seeds ApplicationResources, a SurfaceRoot without resources and the C ABI's theme reset.
-
-.. cpp:var:: constexpr std::size_t font_field_count
-
-   Value: ``static_cast<std::size_t>(FontField::count)``.
 
 .. cpp:namespace:: gui_forms
 

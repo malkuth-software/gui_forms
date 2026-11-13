@@ -1,4 +1,4 @@
-#include "gui_forms/controls/pages/page_view/page_view.hpp"
+#include "gui_forms/controls/page_view.hpp"
 
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -43,7 +43,7 @@ public:
     void arrange(Rect final_bounds) override {
         arrange_self(final_bounds);
         const Rect fill{0.0, 0.0, final_bounds.width, final_bounds.height};
-        const std::span<const Control::Ptr> hosted = children();
+        const Control::ChildView hosted = children();
         for (const Control::Ptr& child : hosted) set_child_layout(child, fill);
     }
 
@@ -391,10 +391,14 @@ void PageView::arrange(Rect final_bounds) {
 void PageView::on_paint(Painter& painter, Rect) {
     const Rect surface = client_rectangle();
     const Areas areas = areas_for(Size{surface.width, surface.height});
+    // The content well carries its anatomy name (cp29), so a
+    // `page-view::part(content)` rule reaches it; rules naming no part
+    // reach it as before.
     PartPaint part{};
     part.family = ControlVisualRole::panel;
     part.role = PartRole::well;
     part.bounds = areas.content;
+    part.key = PartKey{"content", {}, {}};
     paint_part(painter, *this, part);
 }
 

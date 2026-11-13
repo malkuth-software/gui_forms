@@ -33,6 +33,9 @@ gf::SplashscreenResult splash = gf::Splashscreen::show(std::move(splash_options)
   never take the keyboard focus from their owner.
 - Tooltips take no input. Turn them off with `Window::set_tool_tips_shown`
   or `Application::set_tool_tips_shown`.
+- A tooltip's colours are the theme's `tool-tip` family (black text on a
+  light plate in every stock theme); an authored `fore_color` or
+  `back_color` on the window or its panels does not reach it.
 - The splashscreen shows the program's artwork, a status line and an
   optional progress bar, and closes when the first window of the run is
   ready.

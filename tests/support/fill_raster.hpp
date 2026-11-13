@@ -5,7 +5,12 @@
 // FillRaster makes FillFramebuffers (moved out of sub_surface_tests.cpp for
 // the S7 cell-region tests).
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 
 #include <algorithm>
@@ -94,7 +99,9 @@ public:
     bool begin(const ImageRegistry&, Rect) override { return true; }
     void end() override {}
     Painter& painter() noexcept override { return painter_; }
-    std::span<std::byte> pixels() noexcept override { return pixels_; }
+    BorrowedMutableSpan<std::byte> pixels() noexcept override {
+        return detail::lend_mutable_view(pixels_.data(), pixels_.size(), lender_);
+    }
     std::size_t row_bytes() const noexcept override { return static_cast<std::size_t>(width_) * 4U; }
     std::uint32_t width() const noexcept override { return width_; }
     std::uint32_t height() const noexcept override { return height_; }
@@ -104,6 +111,7 @@ private:
     std::uint32_t height_{};
     std::vector<std::byte> pixels_;
     FillPainter painter_;
+    detail::BorrowLender lender_;
 };
 
 // The window's framebuffer painter: makes FillFramebuffers. It keeps no

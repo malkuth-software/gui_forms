@@ -2,9 +2,9 @@
   "family": "ColorValueEditor",
   "step": "B8",
   "declaring": "ColorValueEditor",
-  "header": "include/gui_forms/controls/panel/color_value_editor/color_value_editor.hpp",
+  "header": "include/gui_forms/controls/color_value_editor.hpp",
   "source": "src/controls/panel/color_value_editor/color_value_editor.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/color_value_editor/color_value_editor_capabilities/color_value_editor_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/color_value_editor_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [
@@ -59,6 +59,6 @@
   ],
   "test": {
     "type": "ColorValueEditor",
-    "include": "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
+    "include": "gui_forms/controls/color_value_editor.hpp"
   }
 }

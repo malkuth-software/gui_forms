@@ -33,14 +33,38 @@
 #include "gallery.hpp"
 #include "gallery_catalog.hpp"
 #include "gallery_page_specs.hpp"
-#include "gui_forms/controls/instruments/sparkline/sparkline.hpp"
-#include "gui_forms/controls/range_control/value_bar/value_bar.hpp"
-#include "gui_forms/controls/plots/plot_view/plot_view.hpp"
-#include "gui_forms/controls/wizard/wizard_page/wizard_page.hpp"
-#include "gui_forms/controls/callout/callout.hpp"
-#include "gui_forms/controls/modal_layer/modal_layer.hpp"
-#include "gui_forms/controls/help/help_book_viewer/help_book_viewer.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/controls/sparkline.hpp"
+#include "gui_forms/controls/value_bar.hpp"
+#include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/wizard_page.hpp"
+#include "gui_forms/controls/callout.hpp"
+#include "gui_forms/controls/modal_layer.hpp"
+#include "gui_forms/controls/help_book_viewer.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/commands/types/command_types.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/property_grid.hpp"
+#include "gui_forms/controls/range_control.hpp"
+#include "gui_forms/controls/ribbon_color_picker.hpp"
+#include "gui_forms/controls/scaled_panel.hpp"
+#include "gui_forms/controls/scroll_bar.hpp"
+#include "gui_forms/controls/splitter_panel.hpp"
+#include "gui_forms/controls/task_dialog.hpp"
+#include "gui_forms/controls/tool_strip_panel.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <array>
 #include <cstddef>
@@ -73,7 +97,7 @@ constexpr std::string_view off_tree_page = "off-tree-controls";
 
 // Registry entries that are not controls (nonvisual components and the
 // LiveSurface service type), as the anatomy coverage test lists them.
-constexpr std::array<std::string_view, 30> nonvisual_entries{
+constexpr std::array<std::string_view, 33> nonvisual_entries{
     "command", "gallery_command", "font_command", "color_command", "context_menu",
     "tool_tip", "ribbon_tool_tip", "timer", "background_worker", "notify_icon",
     "thread_exception_dialog", "image_list", "error_provider", "help_provider", "semantic_feedback", "binding",
@@ -83,9 +107,12 @@ constexpr std::array<std::string_view, 30> nonvisual_entries{
     "folder_browser_dialog",
     // A PlotView's item children, which it paints as its own parts; the
     // About box and the help system, components shown through their
-    // dialog and viewer; and GaugeBase, the gauges' abstract base.
+    // dialog and viewer; and the abstract bases: GaugeBase, the gauges',
+    // and TextBoxBase, ListControl and UpDownBase, the text, list and
+    // up-down controls'.
     "plot_axis_item", "plot_series_item", "plot_annotation_item",
     "about_dialog", "help_book_system", "gauge_base",
+    "text_box_base", "list_control", "up_down_base",
 };
 
 // Registry controls that publish no node of their own: presentational
@@ -95,10 +122,9 @@ constexpr std::array<std::string_view, 30> nonvisual_entries{
 // whose subclasses (track bar, scroll bars) publish their own roles. The
 // test fails when this list and the published tree disagree in either
 // direction.
-constexpr std::array<std::string_view, 11> unexposed_entries{
+constexpr std::array<std::string_view, 10> unexposed_entries{
     "scaled_panel", "splitter_panel", "tool_strip_panel", "property_grid",
-    "scrollable_control", "anchored_overlay_layer", "visual_inspector_overlay",
-    "range_control",
+    "scrollable_control", "anchored_overlay_layer", "range_control",
     // A wizard page and the help viewer, containers whose content publishes
     // in their place, and the modal layer, which hosts its dialog.
     "wizard_page", "help_book_viewer", "modal_layer",

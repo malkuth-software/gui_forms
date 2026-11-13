@@ -9,7 +9,7 @@ gui_forms::TrackBar
 
 .. cpp:class:: TrackBar : public RangeControl, public TrackBarCapabilities<TrackBar>
 
-   ``#include <gui_forms/controls/range_control/track_bar/track_bar.hpp>``
+   ``#include <gui_forms/controls/track_bar.hpp>``
 
    A slider the user drags, clicks or steps with the keyboard to pick a value in a range.
 
@@ -248,15 +248,31 @@ gui_forms::TrackBar
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
@@ -267,3 +283,185 @@ gui_forms::TrackBar
    .. cpp:member:: constexpr std::size_t track_bar_property_count
 
       TrackBar's property table: RangeControl's entries, then its own. Default: ``RangeControl::range_control_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``TrackBar``. Members declared here and by the counterpart: 12 supported, 0 deferred, 1 excluded, 29 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``TrackBar``
+     - ``TrackBar``
+     - supported
+   * - property
+     - ``ImeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LargeChange``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Maximum``
+     - ``maximum``
+     - unclassified (untested)
+   * - property
+     - ``Minimum``
+     - ``minimum``
+     - unclassified (untested)
+   * - property
+     - ``Orientation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Padding``
+     - ``padding``
+     - unclassified (untested)
+   * - property
+     - ``RightToLeftLayout``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SmallChange``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TickFrequency``
+     - ``tick_frequency``
+     - unclassified (untested)
+   * - property
+     - ``TickStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Value``
+     - ``value``
+     - supported
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``BackgroundImageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``BackgroundImageLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Click``
+     - ``click``
+     - supported
+   * - event
+     - ``DoubleClick``
+     - ``double_click``
+     - unclassified (untested)
+   * - event
+     - ``FontChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ForeColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ImeModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MouseClick``
+     - ``mouse_click``
+     - unclassified (untested)
+   * - event
+     - ``MouseDoubleClick``
+     - ``mouse_double_click``
+     - unclassified (untested)
+   * - event
+     - ``PaddingChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Paint``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RightToLeftLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Scroll``
+     - ``scroll``
+     - supported
+   * - event
+     - ``TextChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ValueChanged``
+     - ``value_changed``
+     - supported
+   * - method
+     - ``BeginInit``
+     - ``begin_init``
+     - supported
+   * - method
+     - ``EndInit``
+     - ``end_init``
+     - supported
+   * - method
+     - ``OnRightToLeftLayoutChanged``
+     - none
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
+   * - method
+     - ``OnScroll``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnValueChanged``
+     - ``on_value_changed``
+     - unclassified (untested)
+   * - method
+     - ``SetRange``
+     - ``set_range``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``fill_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``thumb_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``thumb_extent``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``ticks_bounds``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``track_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``value_span_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``visual_style``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``track_bar_property_entries``
+     - unclassified (untested)

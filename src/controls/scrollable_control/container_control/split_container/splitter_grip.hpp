@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/animation.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
+#include "gui_forms/controls/split_container.hpp"
 #include "gui_forms/scheduler.hpp"
 
 #include <chrono>
@@ -34,7 +34,6 @@ public:
     [[nodiscard]] SplitSeamState seam_state() const noexcept;
     [[nodiscard]] Rect actuator_bounds() const noexcept;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
-    void on_pointer(PointerEvent& event) override;
     // The grip holds focus, so the rule action reaches it; the container
     // runs the drag.
     bool begin_keyboard_drag() override;
@@ -43,10 +42,18 @@ public:
     void on_paint(Painter& painter, Rect local_damage) override;
 
 protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_wheel(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+
     void on_attached_to_window() override;
     void on_detached_from_window() noexcept override;
 
 private:
+    // The target phase in the routed form, from the mouse raisers.
+    void handle_pointer(PointerEvent& event);
     // The actuator transition timer's target. Observes the grip.
     struct TransitionTick final {
         std::weak_ptr<SplitterGrip> grip;

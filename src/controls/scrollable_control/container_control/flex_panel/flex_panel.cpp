@@ -5,7 +5,7 @@
 // publishes the slots. Measurements go through measure_for_layout, so a
 // child whose constraint is unchanged answers from its cache.
 
-#include "gui_forms/controls/scrollable_control/container_control/flex_panel/flex_panel.hpp"
+#include "gui_forms/controls/flex_panel.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include "../../scrollable_anatomy.hpp"
@@ -335,7 +335,7 @@ void FlexPanel::forget_departed_children() {
 }
 
 void FlexPanel::gather_children() {
-    const std::span<const Control::Ptr> all = children();
+    const Control::ChildView all = children();
     children_.clear();
     children_.reserve(all.size());
     absolute_children_.clear();
@@ -484,7 +484,7 @@ void FlexPanel::measure_item_crosses(const SolveRequest& request, const FlexLayo
     crosses_.resize(count);
     const bool horizontal = horizontal_main(flex_direction.read());
     const FlexAvailableExtent& cross_basis = horizontal ? request.height : request.width;
-    const std::span<const FlexItemResult> results = workspace.items();
+    const BorrowedSpan<FlexItemResult> results = workspace.items();
     for (std::size_t index = 0U; index < count; ++index) {
         Control& child = *children_[index];
         const FlexItemLayout& layout = record_for(child);
@@ -535,7 +535,7 @@ void FlexPanel::measure_item_crosses(const SolveRequest& request, const FlexLayo
 
 void FlexPanel::publish_slots(const FlexLayoutWorkspace& workspace, Size content_box) {
     const LayoutDirection direction = effective_layout_direction();
-    const std::span<const FlexItemResult> results = workspace.items();
+    const BorrowedSpan<FlexItemResult> results = workspace.items();
     const Insets inset = padding.read();
     const Point offset = scroll_position();
     arranged_ids_.clear();
@@ -553,7 +553,7 @@ void FlexPanel::publish_slots(const FlexLayoutWorkspace& workspace, Size content
 }
 
 Rect FlexPanel::content_margin_bounds(const FlexLayoutWorkspace& workspace) const noexcept {
-    const std::span<const FlexItemResult> results = workspace.items();
+    const BorrowedSpan<FlexItemResult> results = workspace.items();
     const std::size_t count = std::min(results.size(), inputs_.size());
     if (count == 0U) return Rect{};
     // Every item counts, an empty one too: its position still extends the

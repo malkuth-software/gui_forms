@@ -143,7 +143,7 @@ gui_forms::Window
 
    :Inherited:
 
-      From :cpp:class:`SurfaceRoot <gui_forms::SurfaceRoot>`: properties :cpp:func:`check_access <gui_forms::SurfaceRoot::check_access>`, :cpp:func:`invoke_required <gui_forms::SurfaceRoot::invoke_required>`, :cpp:func:`dispatcher <gui_forms::SurfaceRoot::dispatcher>`, :cpp:func:`dispatcher_snapshot <gui_forms::SurfaceRoot::dispatcher_snapshot>`, :cpp:func:`metrics_snapshot <gui_forms::SurfaceRoot::metrics_snapshot>`, :cpp:func:`root <gui_forms::SurfaceRoot::root>`, :cpp:func:`client_size <gui_forms::SurfaceRoot::client_size>`, :cpp:func:`root_slot <gui_forms::SurfaceRoot::root_slot>`, :cpp:func:`content_rect <gui_forms::SurfaceRoot::content_rect>`, :cpp:func:`chrome_insets <gui_forms::SurfaceRoot::chrome_insets>`, :cpp:func:`scale <gui_forms::SurfaceRoot::scale>`, :cpp:func:`presentation_settings <gui_forms::SurfaceRoot::presentation_settings>`, :cpp:func:`presentation_base <gui_forms::SurfaceRoot::presentation_base>`, :cpp:func:`presentation_overrides <gui_forms::SurfaceRoot::presentation_overrides>`, :cpp:func:`overrides <gui_forms::SurfaceRoot::overrides>`, :cpp:func:`invalidation_overlay_setting <gui_forms::SurfaceRoot::invalidation_overlay_setting>`, :cpp:func:`text_metrics_provider <gui_forms::SurfaceRoot::text_metrics_provider>`, :cpp:func:`theme <gui_forms::SurfaceRoot::theme>`, :cpp:func:`application_theme <gui_forms::SurfaceRoot::application_theme>`, :cpp:func:`theme_fallback <gui_forms::SurfaceRoot::theme_fallback>`, :cpp:func:`user_theme_rules <gui_forms::SurfaceRoot::user_theme_rules>`, :cpp:func:`theme_ptr <gui_forms::SurfaceRoot::theme_ptr>`, :cpp:func:`inline_with_theme_reported <gui_forms::SurfaceRoot::inline_with_theme_reported>`, :cpp:func:`resources <gui_forms::SurfaceRoot::resources>`, :cpp:func:`active <gui_forms::SurfaceRoot::active>`, :cpp:func:`non_opaque_declared <gui_forms::SurfaceRoot::non_opaque_declared>`, :cpp:func:`content_surface_declared <gui_forms::SurfaceRoot::content_surface_declared>`, :cpp:func:`compositor_state <gui_forms::SurfaceRoot::compositor_state>`, :cpp:func:`backdrop_request <gui_forms::SurfaceRoot::backdrop_request>`, :cpp:func:`backdrop_grant <gui_forms::SurfaceRoot::backdrop_grant>`, :cpp:func:`backdrop_chain <gui_forms::SurfaceRoot::backdrop_chain>`, :cpp:func:`backdrop_chain_resolution <gui_forms::SurfaceRoot::backdrop_chain_resolution>`, :cpp:func:`host_services <gui_forms::SurfaceRoot::host_services>`, :cpp:func:`key_map <gui_forms::SurfaceRoot::key_map>`, :cpp:func:`key_bindings <gui_forms::SurfaceRoot::key_bindings>`, :cpp:func:`paint_lease_snapshot <gui_forms::SurfaceRoot::paint_lease_snapshot>`, :cpp:func:`scroll_copies_supported <gui_forms::SurfaceRoot::scroll_copies_supported>`, :cpp:func:`needs_frame <gui_forms::SurfaceRoot::needs_frame>`, :cpp:func:`next_wake <gui_forms::SurfaceRoot::next_wake>`, :cpp:func:`occluded <gui_forms::SurfaceRoot::occluded>`, :cpp:func:`image_resources <gui_forms::SurfaceRoot::image_resources>`, :cpp:func:`image_resource_snapshot <gui_forms::SurfaceRoot::image_resource_snapshot>`, :cpp:func:`focused_control <gui_forms::SurfaceRoot::focused_control>`, :cpp:func:`active_control <gui_forms::SurfaceRoot::active_control>`, :cpp:func:`focus_cue_visible <gui_forms::SurfaceRoot::focus_cue_visible>`, :cpp:func:`validation_snapshot <gui_forms::SurfaceRoot::validation_snapshot>`, :cpp:func:`focus_scope_depth <gui_forms::SurfaceRoot::focus_scope_depth>`, :cpp:func:`active_focus_scope_root <gui_forms::SurfaceRoot::active_focus_scope_root>`, :cpp:func:`focus_regions <gui_forms::SurfaceRoot::focus_regions>`, :cpp:func:`accept_button <gui_forms::SurfaceRoot::accept_button>`, :cpp:func:`cancel_button <gui_forms::SurfaceRoot::cancel_button>`, :cpp:func:`dialog_key_snapshot <gui_forms::SurfaceRoot::dialog_key_snapshot>`, :cpp:func:`dialog_result <gui_forms::SurfaceRoot::dialog_result>`, :cpp:func:`captured_control <gui_forms::SurfaceRoot::captured_control>`, :cpp:func:`captured_pointer_id <gui_forms::SurfaceRoot::captured_pointer_id>`, :cpp:func:`tool_tips_shown_setting <gui_forms::SurfaceRoot::tool_tips_shown_setting>`, :cpp:func:`tool_tips_shown <gui_forms::SurfaceRoot::tool_tips_shown>`, :cpp:func:`tool_tip_settings <gui_forms::SurfaceRoot::tool_tip_settings>`, :cpp:func:`tool_tip_visible <gui_forms::SurfaceRoot::tool_tip_visible>`, :cpp:func:`tool_tip_target <gui_forms::SurfaceRoot::tool_tip_target>`, :cpp:func:`tool_tip_item_id <gui_forms::SurfaceRoot::tool_tip_item_id>`, :cpp:func:`tool_tip_text <gui_forms::SurfaceRoot::tool_tip_text>`, :cpp:func:`pressed_control <gui_forms::SurfaceRoot::pressed_control>`, :cpp:func:`hovered_control <gui_forms::SurfaceRoot::hovered_control>`, :cpp:func:`interaction_snapshot <gui_forms::SurfaceRoot::interaction_snapshot>`, :cpp:func:`deferred_input_snapshot <gui_forms::SurfaceRoot::deferred_input_snapshot>`, :cpp:func:`engine_parts <gui_forms::SurfaceRoot::engine_parts>`, :cpp:func:`motion_clock <gui_forms::SurfaceRoot::motion_clock>`, :cpp:func:`drag_engine_if_made <gui_forms::SurfaceRoot::drag_engine_if_made>`, :cpp:func:`layout_diagnostics <gui_forms::SurfaceRoot::layout_diagnostics>`, :cpp:func:`dropped_layout_diagnostics <gui_forms::SurfaceRoot::dropped_layout_diagnostics>`, :cpp:func:`control_table <gui_forms::SurfaceRoot::control_table>`, :cpp:func:`containing_block_watch_count <gui_forms::SurfaceRoot::containing_block_watch_count>`, :cpp:func:`containing_block_subtree_arranges <gui_forms::SurfaceRoot::containing_block_subtree_arranges>`, :cpp:func:`semantic_generation <gui_forms::SurfaceRoot::semantic_generation>`, :cpp:func:`layout_pass_sequence <gui_forms::SurfaceRoot::layout_pass_sequence>`; events :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`, :cpp:func:`theme_changed <gui_forms::SurfaceRoot::theme_changed>`, :cpp:func:`active_changed <gui_forms::SurfaceRoot::active_changed>`, :cpp:func:`frame_moved <gui_forms::SurfaceRoot::frame_moved>`, :cpp:func:`menu_opening <gui_forms::SurfaceRoot::menu_opening>`, :cpp:func:`backdrop_changed <gui_forms::SurfaceRoot::backdrop_changed>`, :cpp:func:`focused_control_changed <gui_forms::SurfaceRoot::focused_control_changed>`, :cpp:func:`help_requested <gui_forms::SurfaceRoot::help_requested>`, :cpp:func:`key_down <gui_forms::SurfaceRoot::key_down>`, :cpp:func:`key_press <gui_forms::SurfaceRoot::key_press>`, :cpp:func:`key_state_changed <gui_forms::SurfaceRoot::key_state_changed>`, :cpp:func:`key_up <gui_forms::SurfaceRoot::key_up>`, :cpp:func:`dialog_result_changed <gui_forms::SurfaceRoot::dialog_result_changed>`, :cpp:func:`focus_scope_changed <gui_forms::SurfaceRoot::focus_scope_changed>`, :cpp:func:`pointer_capture_changed <gui_forms::SurfaceRoot::pointer_capture_changed>`, :cpp:func:`control_availability_changed <gui_forms::SurfaceRoot::control_availability_changed>`, :cpp:func:`tool_tip_visibility_changed <gui_forms::SurfaceRoot::tool_tip_visibility_changed>`; methods :cpp:func:`add_focus_region <gui_forms::SurfaceRoot::add_focus_region>`, :cpp:func:`announce_menu_opening <gui_forms::SurfaceRoot::announce_menu_opening>`, :cpp:func:`append_interactions <gui_forms::SurfaceRoot::append_interactions>`, :cpp:func:`begin_focus_scope <gui_forms::SurfaceRoot::begin_focus_scope>`, :cpp:func:`begin_invoke <gui_forms::SurfaceRoot::begin_invoke>`, :cpp:func:`begin_update <gui_forms::SurfaceRoot::begin_update>`, :cpp:func:`cancel_drag <gui_forms::SurfaceRoot::cancel_drag>`, :cpp:func:`cancel_frame_requests <gui_forms::SurfaceRoot::cancel_frame_requests>`, :cpp:func:`capture_pointer <gui_forms::SurfaceRoot::capture_pointer>`, :cpp:func:`capture_window <gui_forms::SurfaceRoot::capture_window>`, :cpp:func:`clear_key_bindings <gui_forms::SurfaceRoot::clear_key_bindings>`, :cpp:func:`clear_layout_diagnostics <gui_forms::SurfaceRoot::clear_layout_diagnostics>`, :cpp:func:`command_target <gui_forms::SurfaceRoot::command_target>`, :cpp:func:`containing_block_dependent_count <gui_forms::SurfaceRoot::containing_block_dependent_count>`, :cpp:func:`control <gui_forms::SurfaceRoot::control>`, :cpp:func:`control_focused <gui_forms::SurfaceRoot::control_focused>`, :cpp:func:`create_framebuffer <gui_forms::SurfaceRoot::create_framebuffer>`, :cpp:func:`declare_content_surface <gui_forms::SurfaceRoot::declare_content_surface>`, :cpp:func:`declare_non_opaque <gui_forms::SurfaceRoot::declare_non_opaque>`, :cpp:func:`dispatch_context_request <gui_forms::SurfaceRoot::dispatch_context_request>`, :cpp:func:`dispatch_drag <gui_forms::SurfaceRoot::dispatch_drag>`, :cpp:func:`dispatch_host_hover <gui_forms::SurfaceRoot::dispatch_host_hover>`, :cpp:func:`dispatch_key <gui_forms::SurfaceRoot::dispatch_key>`, :cpp:func:`dispatch_pointer <gui_forms::SurfaceRoot::dispatch_pointer>`, :cpp:func:`dispatch_text <gui_forms::SurfaceRoot::dispatch_text>`, :cpp:func:`drag_engine <gui_forms::SurfaceRoot::drag_engine>`, :cpp:func:`drain_posted_work <gui_forms::SurfaceRoot::drain_posted_work>`, :cpp:func:`end_focus_scope <gui_forms::SurfaceRoot::end_focus_scope>`, :cpp:func:`fill_line_break_opportunities_utf8 <gui_forms::SurfaceRoot::fill_line_break_opportunities_utf8>`, :cpp:func:`find <gui_forms::SurfaceRoot::find>`, :cpp:func:`flush <gui_forms::SurfaceRoot::flush>`, :cpp:func:`focus_target_of <gui_forms::SurfaceRoot::focus_target_of>`, :cpp:func:`hide_tool_tip <gui_forms::SurfaceRoot::hide_tool_tip>`, :cpp:func:`hit_test <gui_forms::SurfaceRoot::hit_test>`, :cpp:func:`invalidation_overlay <gui_forms::SurfaceRoot::invalidation_overlay>`, :cpp:func:`invalidation_overlay_enabled <gui_forms::SurfaceRoot::invalidation_overlay_enabled>`, :cpp:func:`invoke <gui_forms::SurfaceRoot::invoke>`, :cpp:func:`is_key_down <gui_forms::SurfaceRoot::is_key_down>`, :cpp:func:`load_bgra32_premultiplied <gui_forms::SurfaceRoot::load_bgra32_premultiplied>`, :cpp:func:`load_png <gui_forms::SurfaceRoot::load_png>`, :cpp:func:`measure_text_extent_utf8 <gui_forms::SurfaceRoot::measure_text_extent_utf8>`, :cpp:func:`metrics <gui_forms::SurfaceRoot::metrics>`, :cpp:func:`metrics_snapshot <gui_forms::SurfaceRoot::metrics_snapshot>`, :cpp:func:`motion_clock <gui_forms::SurfaceRoot::motion_clock>`, :cpp:func:`move_focus <gui_forms::SurfaceRoot::move_focus>`, :cpp:func:`move_focus_region <gui_forms::SurfaceRoot::move_focus_region>`, :cpp:func:`notify_presented <gui_forms::SurfaceRoot::notify_presented>`, :cpp:func:`offer_accelerators <gui_forms::SurfaceRoot::offer_accelerators>`, :cpp:func:`open_overlay <gui_forms::SurfaceRoot::open_overlay>`, :cpp:func:`paint <gui_forms::SurfaceRoot::paint>`, :cpp:func:`patch_bgra32_premultiplied <gui_forms::SurfaceRoot::patch_bgra32_premultiplied>`, :cpp:func:`perform_layout <gui_forms::SurfaceRoot::perform_layout>`, :cpp:func:`perform_semantic_action <gui_forms::SurfaceRoot::perform_semantic_action>`, :cpp:func:`poll_frame_schedule <gui_forms::SurfaceRoot::poll_frame_schedule>`, :cpp:func:`publish_value <gui_forms::SurfaceRoot::publish_value>`, :cpp:func:`published_value <gui_forms::SurfaceRoot::published_value>`, :cpp:func:`raise_alert <gui_forms::SurfaceRoot::raise_alert>`, :cpp:func:`rebind_key_command <gui_forms::SurfaceRoot::rebind_key_command>`, :cpp:func:`record_presented_area <gui_forms::SurfaceRoot::record_presented_area>`, :cpp:func:`register_accelerator <gui_forms::SurfaceRoot::register_accelerator>`, :cpp:func:`release_control_snapshot <gui_forms::SurfaceRoot::release_control_snapshot>`, :cpp:func:`release_pointer <gui_forms::SurfaceRoot::release_pointer>`, :cpp:func:`remove_image <gui_forms::SurfaceRoot::remove_image>`, :cpp:func:`replace_bgra32_premultiplied <gui_forms::SurfaceRoot::replace_bgra32_premultiplied>`, :cpp:func:`replace_png <gui_forms::SurfaceRoot::replace_png>`, :cpp:func:`report_frame_moved <gui_forms::SurfaceRoot::report_frame_moved>`, :cpp:func:`request_backdrop <gui_forms::SurfaceRoot::request_backdrop>`, :cpp:func:`request_content_scroll <gui_forms::SurfaceRoot::request_content_scroll>`, :cpp:func:`request_focus <gui_forms::SurfaceRoot::request_focus>`, :cpp:func:`request_help <gui_forms::SurfaceRoot::request_help>`, :cpp:func:`request_scroll_copy <gui_forms::SurfaceRoot::request_scroll_copy>`, :cpp:func:`request_tool_tip <gui_forms::SurfaceRoot::request_tool_tip>`, :cpp:func:`reset_activity_metrics <gui_forms::SurfaceRoot::reset_activity_metrics>`, :cpp:func:`resolve_command <gui_forms::SurfaceRoot::resolve_command>`, :cpp:func:`resolve_text_layout_utf8 <gui_forms::SurfaceRoot::resolve_text_layout_utf8>`, :cpp:func:`restore_focus <gui_forms::SurfaceRoot::restore_focus>`, :cpp:func:`restore_key_command <gui_forms::SurfaceRoot::restore_key_command>`, :cpp:func:`route_command <gui_forms::SurfaceRoot::route_command>`, :cpp:func:`rules <gui_forms::SurfaceRoot::rules>`, :cpp:func:`schedule_paint <gui_forms::SurfaceRoot::schedule_paint>`, :cpp:func:`schedule_ui_timer <gui_forms::SurfaceRoot::schedule_ui_timer>`, :cpp:func:`semantic_snapshot <gui_forms::SurfaceRoot::semantic_snapshot>`, :cpp:func:`semantic_text_layout <gui_forms::SurfaceRoot::semantic_text_layout>`, :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`, :cpp:func:`set_dispatch_wake_handler <gui_forms::SurfaceRoot::set_dispatch_wake_handler>`, :cpp:func:`set_framebuffer_painter <gui_forms::SurfaceRoot::set_framebuffer_painter>`, :cpp:func:`set_input_time_source <gui_forms::SurfaceRoot::set_input_time_source>`, :cpp:func:`set_invalidation_overlay <gui_forms::SurfaceRoot::set_invalidation_overlay>`, :cpp:func:`set_paint_wake_handler <gui_forms::SurfaceRoot::set_paint_wake_handler>`, :cpp:func:`set_semantic_text_selection <gui_forms::SurfaceRoot::set_semantic_text_selection>`, :cpp:func:`set_text_scale <gui_forms::SurfaceRoot::set_text_scale>`, :cpp:func:`set_theme_override <gui_forms::SurfaceRoot::set_theme_override>`, :cpp:func:`share_key_bindings <gui_forms::SurfaceRoot::share_key_bindings>`, :cpp:func:`shares_resources_with <gui_forms::SurfaceRoot::shares_resources_with>`, :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>`, :cpp:func:`shutdown_dispatcher <gui_forms::SurfaceRoot::shutdown_dispatcher>`, :cpp:func:`snapshot_control <gui_forms::SurfaceRoot::snapshot_control>`, :cpp:func:`take_damage <gui_forms::SurfaceRoot::take_damage>`, :cpp:func:`take_scroll_copies <gui_forms::SurfaceRoot::take_scroll_copies>`, :cpp:func:`text_input_caret <gui_forms::SurfaceRoot::text_input_caret>`, :cpp:func:`update_bgra32_premultiplied <gui_forms::SurfaceRoot::update_bgra32_premultiplied>`, :cpp:func:`validate_children <gui_forms::SurfaceRoot::validate_children>`, :cpp:func:`validate_control <gui_forms::SurfaceRoot::validate_control>`, :cpp:func:`verify_access <gui_forms::SurfaceRoot::verify_access>`, :cpp:func:`visual_inspection_snapshot <gui_forms::SurfaceRoot::visual_inspection_snapshot>`, :cpp:func:`withdraw_alert <gui_forms::SurfaceRoot::withdraw_alert>`, :cpp:func:`withdraw_tool_tip_request <gui_forms::SurfaceRoot::withdraw_tool_tip_request>`, :cpp:func:`withdraw_value <gui_forms::SurfaceRoot::withdraw_value>`.
+      From :cpp:class:`SurfaceRoot <gui_forms::SurfaceRoot>`: properties :cpp:func:`check_access <gui_forms::SurfaceRoot::check_access>`, :cpp:func:`invoke_required <gui_forms::SurfaceRoot::invoke_required>`, :cpp:func:`presenting_window <gui_forms::SurfaceRoot::presenting_window>`, :cpp:func:`window_ref <gui_forms::SurfaceRoot::window_ref>`, :cpp:func:`dispatcher <gui_forms::SurfaceRoot::dispatcher>`, :cpp:func:`dispatcher_snapshot <gui_forms::SurfaceRoot::dispatcher_snapshot>`, :cpp:func:`metrics_snapshot <gui_forms::SurfaceRoot::metrics_snapshot>`, :cpp:func:`root <gui_forms::SurfaceRoot::root>`, :cpp:func:`client_size <gui_forms::SurfaceRoot::client_size>`, :cpp:func:`root_slot <gui_forms::SurfaceRoot::root_slot>`, :cpp:func:`content_rect <gui_forms::SurfaceRoot::content_rect>`, :cpp:func:`chrome_insets <gui_forms::SurfaceRoot::chrome_insets>`, :cpp:func:`scale <gui_forms::SurfaceRoot::scale>`, :cpp:func:`presentation_settings <gui_forms::SurfaceRoot::presentation_settings>`, :cpp:func:`presentation_base <gui_forms::SurfaceRoot::presentation_base>`, :cpp:func:`presentation_overrides <gui_forms::SurfaceRoot::presentation_overrides>`, :cpp:func:`overrides <gui_forms::SurfaceRoot::overrides>`, :cpp:func:`invalidation_overlay_setting <gui_forms::SurfaceRoot::invalidation_overlay_setting>`, :cpp:func:`text_metrics_provider <gui_forms::SurfaceRoot::text_metrics_provider>`, :cpp:func:`theme <gui_forms::SurfaceRoot::theme>`, :cpp:func:`application_theme <gui_forms::SurfaceRoot::application_theme>`, :cpp:func:`theme_fallback <gui_forms::SurfaceRoot::theme_fallback>`, :cpp:func:`user_theme_rules <gui_forms::SurfaceRoot::user_theme_rules>`, :cpp:func:`theme_ptr <gui_forms::SurfaceRoot::theme_ptr>`, :cpp:func:`inline_with_theme_reported <gui_forms::SurfaceRoot::inline_with_theme_reported>`, :cpp:func:`resources <gui_forms::SurfaceRoot::resources>`, :cpp:func:`active <gui_forms::SurfaceRoot::active>`, :cpp:func:`non_opaque_declared <gui_forms::SurfaceRoot::non_opaque_declared>`, :cpp:func:`content_surface_declared <gui_forms::SurfaceRoot::content_surface_declared>`, :cpp:func:`compositor_state <gui_forms::SurfaceRoot::compositor_state>`, :cpp:func:`backdrop_request <gui_forms::SurfaceRoot::backdrop_request>`, :cpp:func:`backdrop_grant <gui_forms::SurfaceRoot::backdrop_grant>`, :cpp:func:`backdrop_chain <gui_forms::SurfaceRoot::backdrop_chain>`, :cpp:func:`backdrop_chain_resolution <gui_forms::SurfaceRoot::backdrop_chain_resolution>`, :cpp:func:`host_services <gui_forms::SurfaceRoot::host_services>`, :cpp:func:`key_map <gui_forms::SurfaceRoot::key_map>`, :cpp:func:`key_bindings <gui_forms::SurfaceRoot::key_bindings>`, :cpp:func:`paint_lease_snapshot <gui_forms::SurfaceRoot::paint_lease_snapshot>`, :cpp:func:`scroll_copies_supported <gui_forms::SurfaceRoot::scroll_copies_supported>`, :cpp:func:`needs_frame <gui_forms::SurfaceRoot::needs_frame>`, :cpp:func:`next_wake <gui_forms::SurfaceRoot::next_wake>`, :cpp:func:`occluded <gui_forms::SurfaceRoot::occluded>`, :cpp:func:`image_resources <gui_forms::SurfaceRoot::image_resources>`, :cpp:func:`image_resource_snapshot <gui_forms::SurfaceRoot::image_resource_snapshot>`, :cpp:func:`focused_control <gui_forms::SurfaceRoot::focused_control>`, :cpp:func:`active_control <gui_forms::SurfaceRoot::active_control>`, :cpp:func:`focus_cue_visible <gui_forms::SurfaceRoot::focus_cue_visible>`, :cpp:func:`validation_snapshot <gui_forms::SurfaceRoot::validation_snapshot>`, :cpp:func:`focus_scope_depth <gui_forms::SurfaceRoot::focus_scope_depth>`, :cpp:func:`active_focus_scope_root <gui_forms::SurfaceRoot::active_focus_scope_root>`, :cpp:func:`focus_regions <gui_forms::SurfaceRoot::focus_regions>`, :cpp:func:`accept_button <gui_forms::SurfaceRoot::accept_button>`, :cpp:func:`cancel_button <gui_forms::SurfaceRoot::cancel_button>`, :cpp:func:`dialog_key_snapshot <gui_forms::SurfaceRoot::dialog_key_snapshot>`, :cpp:func:`dialog_result <gui_forms::SurfaceRoot::dialog_result>`, :cpp:func:`captured_control <gui_forms::SurfaceRoot::captured_control>`, :cpp:func:`captured_pointer_id <gui_forms::SurfaceRoot::captured_pointer_id>`, :cpp:func:`tool_tips_shown_setting <gui_forms::SurfaceRoot::tool_tips_shown_setting>`, :cpp:func:`tool_tips_shown <gui_forms::SurfaceRoot::tool_tips_shown>`, :cpp:func:`tool_tip_settings <gui_forms::SurfaceRoot::tool_tip_settings>`, :cpp:func:`tool_tip_visible <gui_forms::SurfaceRoot::tool_tip_visible>`, :cpp:func:`tool_tip_target <gui_forms::SurfaceRoot::tool_tip_target>`, :cpp:func:`tool_tip_item_id <gui_forms::SurfaceRoot::tool_tip_item_id>`, :cpp:func:`tool_tip_text <gui_forms::SurfaceRoot::tool_tip_text>`, :cpp:func:`pressed_control <gui_forms::SurfaceRoot::pressed_control>`, :cpp:func:`hovered_control <gui_forms::SurfaceRoot::hovered_control>`, :cpp:func:`interaction_snapshot <gui_forms::SurfaceRoot::interaction_snapshot>`, :cpp:func:`deferred_input_snapshot <gui_forms::SurfaceRoot::deferred_input_snapshot>`, :cpp:func:`engine_parts <gui_forms::SurfaceRoot::engine_parts>`, :cpp:func:`motion_clock <gui_forms::SurfaceRoot::motion_clock>`, :cpp:func:`drag_engine_if_made <gui_forms::SurfaceRoot::drag_engine_if_made>`, :cpp:func:`layout_diagnostics <gui_forms::SurfaceRoot::layout_diagnostics>`, :cpp:func:`dropped_layout_diagnostics <gui_forms::SurfaceRoot::dropped_layout_diagnostics>`, :cpp:func:`control_table <gui_forms::SurfaceRoot::control_table>`, :cpp:func:`containing_block_watch_count <gui_forms::SurfaceRoot::containing_block_watch_count>`, :cpp:func:`containing_block_subtree_arranges <gui_forms::SurfaceRoot::containing_block_subtree_arranges>`, :cpp:func:`semantic_generation <gui_forms::SurfaceRoot::semantic_generation>`, :cpp:func:`layout_pass_sequence <gui_forms::SurfaceRoot::layout_pass_sequence>`; events :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`, :cpp:func:`theme_changed <gui_forms::SurfaceRoot::theme_changed>`, :cpp:func:`active_changed <gui_forms::SurfaceRoot::active_changed>`, :cpp:func:`frame_moved <gui_forms::SurfaceRoot::frame_moved>`, :cpp:func:`menu_opening <gui_forms::SurfaceRoot::menu_opening>`, :cpp:func:`backdrop_changed <gui_forms::SurfaceRoot::backdrop_changed>`, :cpp:func:`focused_control_changed <gui_forms::SurfaceRoot::focused_control_changed>`, :cpp:func:`help_requested <gui_forms::SurfaceRoot::help_requested>`, :cpp:func:`key_down <gui_forms::SurfaceRoot::key_down>`, :cpp:func:`key_press <gui_forms::SurfaceRoot::key_press>`, :cpp:func:`key_state_changed <gui_forms::SurfaceRoot::key_state_changed>`, :cpp:func:`key_up <gui_forms::SurfaceRoot::key_up>`, :cpp:func:`dialog_result_changed <gui_forms::SurfaceRoot::dialog_result_changed>`, :cpp:func:`focus_scope_changed <gui_forms::SurfaceRoot::focus_scope_changed>`, :cpp:func:`pointer_capture_changed <gui_forms::SurfaceRoot::pointer_capture_changed>`, :cpp:func:`control_availability_changed <gui_forms::SurfaceRoot::control_availability_changed>`, :cpp:func:`tool_tip_visibility_changed <gui_forms::SurfaceRoot::tool_tip_visibility_changed>`; methods :cpp:func:`add_focus_region <gui_forms::SurfaceRoot::add_focus_region>`, :cpp:func:`announce_menu_opening <gui_forms::SurfaceRoot::announce_menu_opening>`, :cpp:func:`append_interactions <gui_forms::SurfaceRoot::append_interactions>`, :cpp:func:`begin_focus_scope <gui_forms::SurfaceRoot::begin_focus_scope>`, :cpp:func:`begin_invoke <gui_forms::SurfaceRoot::begin_invoke>`, :cpp:func:`begin_update <gui_forms::SurfaceRoot::begin_update>`, :cpp:func:`cancel_drag <gui_forms::SurfaceRoot::cancel_drag>`, :cpp:func:`cancel_frame_requests <gui_forms::SurfaceRoot::cancel_frame_requests>`, :cpp:func:`capture_control <gui_forms::SurfaceRoot::capture_control>`, :cpp:func:`capture_pointer <gui_forms::SurfaceRoot::capture_pointer>`, :cpp:func:`capture_window <gui_forms::SurfaceRoot::capture_window>`, :cpp:func:`clear_key_bindings <gui_forms::SurfaceRoot::clear_key_bindings>`, :cpp:func:`clear_layout_diagnostics <gui_forms::SurfaceRoot::clear_layout_diagnostics>`, :cpp:func:`command_target <gui_forms::SurfaceRoot::command_target>`, :cpp:func:`containing_block_dependent_count <gui_forms::SurfaceRoot::containing_block_dependent_count>`, :cpp:func:`control <gui_forms::SurfaceRoot::control>`, :cpp:func:`control_focused <gui_forms::SurfaceRoot::control_focused>`, :cpp:func:`create_framebuffer <gui_forms::SurfaceRoot::create_framebuffer>`, :cpp:func:`declare_content_surface <gui_forms::SurfaceRoot::declare_content_surface>`, :cpp:func:`declare_non_opaque <gui_forms::SurfaceRoot::declare_non_opaque>`, :cpp:func:`dispatch_context_request <gui_forms::SurfaceRoot::dispatch_context_request>`, :cpp:func:`dispatch_drag <gui_forms::SurfaceRoot::dispatch_drag>`, :cpp:func:`dispatch_host_hover <gui_forms::SurfaceRoot::dispatch_host_hover>`, :cpp:func:`dispatch_key <gui_forms::SurfaceRoot::dispatch_key>`, :cpp:func:`dispatch_pointer <gui_forms::SurfaceRoot::dispatch_pointer>`, :cpp:func:`dispatch_text <gui_forms::SurfaceRoot::dispatch_text>`, :cpp:func:`drag_engine <gui_forms::SurfaceRoot::drag_engine>`, :cpp:func:`drain_posted_work <gui_forms::SurfaceRoot::drain_posted_work>`, :cpp:func:`end_focus_scope <gui_forms::SurfaceRoot::end_focus_scope>`, :cpp:func:`fill_line_break_opportunities_utf8 <gui_forms::SurfaceRoot::fill_line_break_opportunities_utf8>`, :cpp:func:`find <gui_forms::SurfaceRoot::find>`, :cpp:func:`flush <gui_forms::SurfaceRoot::flush>`, :cpp:func:`focus_target_of <gui_forms::SurfaceRoot::focus_target_of>`, :cpp:func:`hide_tool_tip <gui_forms::SurfaceRoot::hide_tool_tip>`, :cpp:func:`hit_test <gui_forms::SurfaceRoot::hit_test>`, :cpp:func:`invalidation_overlay <gui_forms::SurfaceRoot::invalidation_overlay>`, :cpp:func:`invalidation_overlay_enabled <gui_forms::SurfaceRoot::invalidation_overlay_enabled>`, :cpp:func:`invoke <gui_forms::SurfaceRoot::invoke>`, :cpp:func:`is_key_down <gui_forms::SurfaceRoot::is_key_down>`, :cpp:func:`load_bgra32_premultiplied <gui_forms::SurfaceRoot::load_bgra32_premultiplied>`, :cpp:func:`load_png <gui_forms::SurfaceRoot::load_png>`, :cpp:func:`measure_text_extent_utf8 <gui_forms::SurfaceRoot::measure_text_extent_utf8>`, :cpp:func:`metrics <gui_forms::SurfaceRoot::metrics>`, :cpp:func:`metrics_snapshot <gui_forms::SurfaceRoot::metrics_snapshot>`, :cpp:func:`motion_clock <gui_forms::SurfaceRoot::motion_clock>`, :cpp:func:`move_focus <gui_forms::SurfaceRoot::move_focus>`, :cpp:func:`move_focus_region <gui_forms::SurfaceRoot::move_focus_region>`, :cpp:func:`notify_presented <gui_forms::SurfaceRoot::notify_presented>`, :cpp:func:`offer_accelerators <gui_forms::SurfaceRoot::offer_accelerators>`, :cpp:func:`open_overlay <gui_forms::SurfaceRoot::open_overlay>`, :cpp:func:`paint <gui_forms::SurfaceRoot::paint>`, :cpp:func:`patch_bgra32_premultiplied <gui_forms::SurfaceRoot::patch_bgra32_premultiplied>`, :cpp:func:`perform_layout <gui_forms::SurfaceRoot::perform_layout>`, :cpp:func:`perform_semantic_action <gui_forms::SurfaceRoot::perform_semantic_action>`, :cpp:func:`poll_frame_schedule <gui_forms::SurfaceRoot::poll_frame_schedule>`, :cpp:func:`publish_value <gui_forms::SurfaceRoot::publish_value>`, :cpp:func:`published_value <gui_forms::SurfaceRoot::published_value>`, :cpp:func:`raise_alert <gui_forms::SurfaceRoot::raise_alert>`, :cpp:func:`rebind_key_command <gui_forms::SurfaceRoot::rebind_key_command>`, :cpp:func:`record_presented_area <gui_forms::SurfaceRoot::record_presented_area>`, :cpp:func:`register_accelerator <gui_forms::SurfaceRoot::register_accelerator>`, :cpp:func:`release_control_snapshot <gui_forms::SurfaceRoot::release_control_snapshot>`, :cpp:func:`release_pointer <gui_forms::SurfaceRoot::release_pointer>`, :cpp:func:`remove_image <gui_forms::SurfaceRoot::remove_image>`, :cpp:func:`replace_bgra32_premultiplied <gui_forms::SurfaceRoot::replace_bgra32_premultiplied>`, :cpp:func:`replace_png <gui_forms::SurfaceRoot::replace_png>`, :cpp:func:`report_frame_moved <gui_forms::SurfaceRoot::report_frame_moved>`, :cpp:func:`request_backdrop <gui_forms::SurfaceRoot::request_backdrop>`, :cpp:func:`request_content_scroll <gui_forms::SurfaceRoot::request_content_scroll>`, :cpp:func:`request_focus <gui_forms::SurfaceRoot::request_focus>`, :cpp:func:`request_help <gui_forms::SurfaceRoot::request_help>`, :cpp:func:`request_scroll_copy <gui_forms::SurfaceRoot::request_scroll_copy>`, :cpp:func:`request_tool_tip <gui_forms::SurfaceRoot::request_tool_tip>`, :cpp:func:`reset_activity_metrics <gui_forms::SurfaceRoot::reset_activity_metrics>`, :cpp:func:`resolve_command <gui_forms::SurfaceRoot::resolve_command>`, :cpp:func:`resolve_text_layout_utf8 <gui_forms::SurfaceRoot::resolve_text_layout_utf8>`, :cpp:func:`restore_focus <gui_forms::SurfaceRoot::restore_focus>`, :cpp:func:`restore_key_command <gui_forms::SurfaceRoot::restore_key_command>`, :cpp:func:`route_command <gui_forms::SurfaceRoot::route_command>`, :cpp:func:`rules <gui_forms::SurfaceRoot::rules>`, :cpp:func:`schedule_paint <gui_forms::SurfaceRoot::schedule_paint>`, :cpp:func:`schedule_ui_timer <gui_forms::SurfaceRoot::schedule_ui_timer>`, :cpp:func:`semantic_snapshot <gui_forms::SurfaceRoot::semantic_snapshot>`, :cpp:func:`semantic_text_layout <gui_forms::SurfaceRoot::semantic_text_layout>`, :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`, :cpp:func:`set_dispatch_wake_handler <gui_forms::SurfaceRoot::set_dispatch_wake_handler>`, :cpp:func:`set_framebuffer_painter <gui_forms::SurfaceRoot::set_framebuffer_painter>`, :cpp:func:`set_input_time_source <gui_forms::SurfaceRoot::set_input_time_source>`, :cpp:func:`set_invalidation_overlay <gui_forms::SurfaceRoot::set_invalidation_overlay>`, :cpp:func:`set_paint_wake_handler <gui_forms::SurfaceRoot::set_paint_wake_handler>`, :cpp:func:`set_semantic_text_selection <gui_forms::SurfaceRoot::set_semantic_text_selection>`, :cpp:func:`set_text_scale <gui_forms::SurfaceRoot::set_text_scale>`, :cpp:func:`set_theme_override <gui_forms::SurfaceRoot::set_theme_override>`, :cpp:func:`share_key_bindings <gui_forms::SurfaceRoot::share_key_bindings>`, :cpp:func:`shares_resources_with <gui_forms::SurfaceRoot::shares_resources_with>`, :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>`, :cpp:func:`shutdown_dispatcher <gui_forms::SurfaceRoot::shutdown_dispatcher>`, :cpp:func:`snapshot_control <gui_forms::SurfaceRoot::snapshot_control>`, :cpp:func:`take_damage <gui_forms::SurfaceRoot::take_damage>`, :cpp:func:`take_scroll_copies <gui_forms::SurfaceRoot::take_scroll_copies>`, :cpp:func:`text_input_caret <gui_forms::SurfaceRoot::text_input_caret>`, :cpp:func:`update_bgra32_premultiplied <gui_forms::SurfaceRoot::update_bgra32_premultiplied>`, :cpp:func:`validate_children <gui_forms::SurfaceRoot::validate_children>`, :cpp:func:`validate_control <gui_forms::SurfaceRoot::validate_control>`, :cpp:func:`verify_access <gui_forms::SurfaceRoot::verify_access>`, :cpp:func:`visual_inspection_snapshot <gui_forms::SurfaceRoot::visual_inspection_snapshot>`, :cpp:func:`withdraw_alert <gui_forms::SurfaceRoot::withdraw_alert>`, :cpp:func:`withdraw_tool_tip_request <gui_forms::SurfaceRoot::withdraw_tool_tip_request>`, :cpp:func:`withdraw_value <gui_forms::SurfaceRoot::withdraw_value>`.
 
    .. rubric:: Methods
 
@@ -258,18 +258,23 @@ gui_forms::Window
    from the root down to the target; a handler that sets ``handled`` stops it
    there. A primary press then focuses the target if it is focusable; if that
    focus change is refused, for example by validation, the press goes no
-   further. Otherwise the target captures the pointer. The target's
-   ``Control::on_pointer`` runs next, then ``Control::on_pointer_bubble`` on its
-   ancestors up to the root.
-   Releasing the primary button over the control it was pressed on calls that
-   control's ``Control::on_activate``, which is how a button raises ``clicked``.
+   further. Otherwise the target captures the pointer. The target's mouse
+   raiser runs next (``Control::on_mouse_down``, ``on_mouse_up``, ``on_mouse_move``
+   or ``on_mouse_wheel``: the control's own handling, then the event's
+   subscribers), then ``Control::on_pointer_bubble`` on its ancestors up to the
+   root, unless the raiser set ``handled``.
+   Releasing a button over the control it was pressed on then raises Click and
+   MouseClick (or DoubleClick and MouseDoubleClick) on that control, and for
+   the primary button ``Control::on_activate``, which is how a button raises
+   ``clicked``.
    The target is the control holding capture, or else the result of ``hit_test``.
    Pointer moves raise enter and leave events on the control under the pointer.
 
    A key event goes first to accelerators registered to run before the focused
    control (when no focus scope is open), then through the focused control's
-   route: ``Control::on_key_preview`` from the root down, ``Control::on_key`` on the
-   focused control, and ``Control::on_key_bubble`` back up. If nothing handled
+   route: ``Control::on_key_preview`` from the root down, ``Control::on_key_down``
+   or ``Control::on_key_up`` on the focused control, and ``Control::on_key_bubble``
+   back up. If nothing handled
    it, the window tries the other accelerators; then Alt with a letter or digit
    activates the matching mnemonic, Enter the ``accept_button`` and Escape the
    ``cancel_button``; finally Tab and Shift+Tab move focus.
@@ -581,3 +586,1505 @@ gui_forms::Window
    .. cpp:member:: constexpr std::size_t picker_popup_window_slot
 
       The slot drop-downs and pickers lift their lists and panels into (PopupLift; owner, 2026-11-08: Part S scope for 0.5). Menus use the slots below it, one per depth. Default: ``maximum_popup_windows - 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``Form``. Members declared here and by the counterpart: 220 supported, 10 deferred, 10 excluded, 132 unclassified; 232 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``Form``
+     - ``Window``
+     - supported
+   * - property
+     - ``AcceptButton``
+     - ``accept_button``
+     - supported
+   * - property
+     - ``ActiveForm``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ActiveMdiChild``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - property
+     - ``AllowTransparency``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoScale``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - property
+     - ``AutoScaleBaseSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoSizeMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CancelButton``
+     - ``cancel_button``
+     - supported
+   * - property
+     - ``ClientSize``
+     - ``client_size``
+     - supported
+   * - property
+     - ``ControlBox``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DesktopBounds``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DesktopLocation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DialogResult``
+     - ``dialog_result``
+     - supported
+   * - property
+     - ``FormBorderColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormBorderStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormCaptionBackColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormCaptionTextColor``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormCornerPreference``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormScreenCaptureMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HelpButton``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Icon``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsMdiChild``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - property
+     - ``IsMdiContainer``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - property
+     - ``IsRestrictedWindow``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``KeyPreview``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Location``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MainMenuStrip``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Margin``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaximizeBox``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaximizedBounds``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MdiChildren``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - property
+     - ``MdiChildrenMinimizedAnchorBottom``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - property
+     - ``MdiParent``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - property
+     - ``Menu``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 10.0:WFDEV006.
+   * - property
+     - ``MergedMenu``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 10.0:WFDEV006.
+   * - property
+     - ``MinimizeBox``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Modal``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Opacity``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``OwnedForms``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Owner``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RestoreBounds``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RightToLeftLayout``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowIcon``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowInTaskbar``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowWithoutActivation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Size``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SizeGripStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``StartPosition``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabIndex``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabStop``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TopLevel``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TopMost``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TransparencyKey``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``WindowState``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Activated``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoSizeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AutoValidateChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Closed``
+     - on ``ThreadExceptionDialog``
+     - unclassified (carried)
+   * - event
+     - ``Closing``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Deactivate``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``DpiChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormBorderColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormCaptionBackColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormCaptionTextColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormClosed``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormClosing``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``FormCornerPreferenceChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``HelpButtonClicked``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``InputLanguageChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``InputLanguageChanging``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Load``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MarginChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MaximizedBoundsChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MaximumSizeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MdiChildActivate``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - event
+     - ``MenuComplete``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MenuStart``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MinimumSizeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ResizeBegin``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ResizeEnd``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RightToLeftLayoutChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``Shown``
+     - on ``ThreadExceptionDialog``
+     - unclassified (carried)
+   * - event
+     - ``TabIndexChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TabStopChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Activate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ActivateMdiChild``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - method
+     - ``AddOwnedForm``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ApplyAutoScaling``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - method
+     - ``CenterToParent``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CenterToScreen``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Close``
+     - on ``ThreadExceptionDialog``
+     - unclassified (carried)
+   * - method
+     - ``GetAutoScaleSize``
+     - none
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - method
+     - ``LayoutMdi``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - method
+     - ``OnActivated``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnClosed``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnClosing``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDeactivate``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnDpiChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormBorderColorChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormCaptionBackColorChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormCaptionTextColorChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormClosed``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormClosing``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnFormCornerPreferenceChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnGetDpiScaledSize``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnHelpButtonClicked``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnInputLanguageChanged``
+     - none
+     - excluded: Win32 keyboard-layout notification; no portable host capability (On\* hooks (d) list)
+   * - method
+     - ``OnInputLanguageChanging``
+     - none
+     - excluded: Win32 keyboard-layout notification; no portable host capability (On\* hooks (d) list)
+   * - method
+     - ``OnLoad``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMaximizedBoundsChanged``
+     - none
+     - excluded: window placement belongs to the host (On\* hooks (d) list)
+   * - method
+     - ``OnMaximumSizeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMdiChildActivate``
+     - none
+     - deferred: MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.
+   * - method
+     - ``OnMenuComplete``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMenuStart``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMinimumSizeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnResizeBegin``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnResizeEnd``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnRightToLeftLayoutChanged``
+     - none
+     - excluded: RightToLeftLayout folds into the control-wide right_to_left (owner, 2026-11-11) (On\* hooks (d) list)
+   * - method
+     - ``OnShown``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``RemoveOwnedForm``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetDesktopBounds``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetDesktopLocation``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Show``
+     - on ``ThreadExceptionDialog``
+     - unclassified (carried)
+   * - method
+     - ``ShowAsync``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ShowDialog``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``ShowDialogAsync``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``active``
+     - supported
+   * - property
+     - ``ContainerControl.ActiveControl``
+     - ``active_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_focus_scope_root``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``application``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``application_theme``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``applied_chrome``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``backdrop_chain``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``backdrop_chain_resolution``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``backdrop_grant``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``backdrop_request``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``band_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``captured_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``captured_pointer_id``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``check_access``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``chrome``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``chrome_insets``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``compositor_state``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``containing_block_subtree_arranges``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``containing_block_watch_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``content_rect``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``content_surface_declared``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``control_table``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``corner_preference``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``cursor_capabilities``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``cursor_metrics``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``deferred_input_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``dialog_key_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``dispatcher``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``dispatcher_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drag_engine_if_made``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``dropped_layout_diagnostics``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``engine_parts``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focus_cue_visible``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focus_regions``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focus_scope_depth``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``has_live_surface_presentations``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``host_close_reason``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``host_services``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``hovered_control``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``image_resource_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``image_resources``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``inline_with_theme_reported``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``interaction_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``invalidation_overlay_setting``
+     - unclassified (untested)
+   * - property
+     - ``Control.InvokeRequired``
+     - ``invoke_required``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``key_bindings``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``key_map``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``layout_diagnostics``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``layout_pass_sequence``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``metrics_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``motion_clock``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``needs_frame``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``next_wake``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``non_opaque_declared``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``occluded``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``overrides``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``paint_lease_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``popup_windows_available``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``popup_windows_translucent``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presentation_availability``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presentation_base``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presentation_overrides``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presentation_settings``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``presenting_window``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``pressed_control``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``resources``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``root``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``root_slot``
+     - supported
+   * - method
+     - ``Control.Scale``
+     - ``scale``
+     - excluded: Out of scope in the stage W catalogue: obsolete in every listing version: 8.0:obsolete, 9.0:obsolete, 10.0:obsolete.
+   * - property
+     - GUI.Forms-only
+     - ``scroll_copies_supported``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``semantic_generation``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``supported_chrome``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``text_metrics_provider``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``theme``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``theme_fallback``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``theme_ptr``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``toast_content``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``toast_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``toast_visible``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tip_item_id``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tip_settings``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tip_target``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tip_text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tip_visible``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tips_shown``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``tool_tips_shown_setting``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``user_theme_rules``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``validation_snapshot``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``window_ref``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``written_chrome``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``active_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``backdrop_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``control_availability_changed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``dialog_result_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``focus_scope_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``focused_control_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``frame_moved``
+     - unclassified (untested)
+   * - event
+     - ``Control.HelpRequested``
+     - ``help_requested``
+     - supported
+   * - event
+     - ``Control.KeyDown``
+     - ``key_down``
+     - supported
+   * - event
+     - ``Control.KeyPress``
+     - ``key_press``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``key_state_changed``
+     - supported
+   * - event
+     - ``Control.KeyUp``
+     - ``key_up``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``menu_opening``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``pointer_capture_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``popup_window_closed``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``presentation_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``theme_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``toast_dismissed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``tool_tip_visibility_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``add_focus_region``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``announce_menu_opening``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``append_interactions``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``assign``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_cursor_hidden``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_focus_scope``
+     - supported
+   * - method
+     - ``Control.BeginInvoke``
+     - ``begin_invoke``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``begin_update``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cancel_drag``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``cancel_frame_requests``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``capture_control``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``capture_pointer``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``capture_window``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_key_bindings``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_layout_diagnostics``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``command_target``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``containing_block_dependent_count``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``control``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``control_focused``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``create_framebuffer``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``declare_band``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``declare_content_surface``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``declare_non_opaque``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``declare_presentation``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dismiss_toast``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispatch_context_request``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispatch_drag``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispatch_host_hover``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispatch_key``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispatch_pointer``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``dispatch_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``drag_engine``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``drain_posted_work``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``end_focus_scope``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``fill_line_break_opportunities_utf8``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``find``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``flush``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``focus_target_of``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``forward_input_to_popup_window``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``hide_popup_window``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``hide_toast``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``hide_tool_tip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``hit_test``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``invalidation_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``invalidation_overlay_enabled``
+     - supported
+   * - method
+     - ``Control.Invoke``
+     - ``invoke``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``is_key_down``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``load_bgra32_premultiplied``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``load_png``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``measure_text_extent_utf8``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``metrics``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_focus``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_focus_region``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_popup_window``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``note_live_surface_presented``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``notify_live_presented``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``notify_presented``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``offer_accelerators``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``open_native_popup``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open_overlay``
+     - supported
+   * - event
+     - ``Control.Paint``
+     - ``paint``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``patch_bgra32_premultiplied``
+     - supported
+   * - method
+     - ``Control.PerformLayout``
+     - ``perform_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``perform_semantic_action``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``poll_frame_schedule``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``popup_window_model``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``popup_work_area``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``prepare_popup_window``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``publish_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``published_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``queue_live_surface_presentation``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``raise_alert``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``rebind_key_command``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``record_presented_area``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``register_accelerator``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``release_control_snapshot``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``release_pointer``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``remove_image``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``replace_bgra32_premultiplied``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``replace_png``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``report_frame_moved``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``report_full_screen``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_backdrop``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_content_scroll``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``request_focus``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_help``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_scroll_copy``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``request_tool_tip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``require_live_surface_content``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``reset_activity_metrics``
+     - supported
+   * - event
+     - ``Control.Resize``
+     - ``resize``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``resolve_command``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``resolve_text_layout_utf8``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``restore_focus``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``restore_key_command``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``route_command``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``rules``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``schedule_paint``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``schedule_ui_timer``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``semantic_snapshot``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``semantic_text_layout``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_band_appearance``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_command_target``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_dispatch_wake_handler``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_framebuffer_painter``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_input_time_source``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_invalidation_overlay``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_live_surface_idle_waiting``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_live_surface_idle_wake_handler``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_live_surface_pairing_listener``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_paint_wake_handler``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_semantic_text_selection``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_text_scale``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_theme_override``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``share_key_bindings``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``shares_resources_with``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_popup_window``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show_toast``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_tool_tip``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``shutdown_dispatcher``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``snapshot_control``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``take_damage``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``take_live_surface_presentations``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``take_scroll_copies``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``text_input_caret``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``undeclare_band``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``update_bgra32_premultiplied``
+     - supported
+   * - method
+     - ``ContainerControl.ValidateChildren``
+     - ``validate_children``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``validate_control``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``verify_access``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``visual_inspection_snapshot``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``warp_cursor``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``withdraw_alert``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``withdraw_tool_tip_request``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``withdraw_value``
+     - supported

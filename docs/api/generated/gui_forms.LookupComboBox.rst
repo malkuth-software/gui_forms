@@ -9,7 +9,7 @@ gui_forms::LookupComboBox
 
 .. cpp:class:: LookupComboBox final : public Control, public LookupComboBoxCapabilities<LookupComboBox>
 
-   ``#include <gui_forms/controls/lookup_combo_box/lookup_combo_box.hpp>``
+   ``#include <gui_forms/controls/lookup_combo_box.hpp>``
 
    Multi-column lookup: a drop-down field choosing a row by key and showing one of its cells, with a headed list of every column filtered by typing.
 
@@ -30,9 +30,9 @@ gui_forms::LookupComboBox
       **max_drop_down_rows** : ``std::uint32_t``
          The rows the open list shows before it scrolls, from 1 to 64 (std::invalid_argument).
 
-      **columns** : ``std::vector<LookupColumn>``
+      **columns** : ``BorrowedSpan<LookupColumn>``
 
-      **rows** : ``std::vector<LookupRow>``
+      **rows** : ``BorrowedSpan<LookupRow>``
 
       **shown_text** : ``std::string``, read-only
          The text the field shows: the filter while open and typed into, else the chosen row's display cell.
@@ -42,7 +42,7 @@ gui_forms::LookupComboBox
       **filter** : ``std::string``, read-only
          The typed filter while open (empty when closed).
 
-      **filtered_rows** : ``std::vector<std::size_t>``, read-only
+      **filtered_rows** : ``BorrowedSpan<std::size_t>``, read-only
          The rows the open list shows, as indices into rows(), in order.
 
       **highlighted** : ``std::optional<std::size_t>``, read-only
@@ -95,13 +95,13 @@ gui_forms::LookupComboBox
 
       The rows the open list shows before it scrolls, from 1 to 64 (std::invalid_argument).
 
-   .. cpp:function:: const std::vector<LookupColumn>& columns() const noexcept
+   .. cpp:function:: BorrowedSpan<LookupColumn> columns() const& noexcept
 
    .. cpp:function:: void set_columns(std::vector<LookupColumn> columns)
 
       The columns; a header must be valid UTF-8 and a width finite and positive (std::invalid_argument, changing nothing).
 
-   .. cpp:function:: const std::vector<LookupRow>& rows() const noexcept
+   .. cpp:function:: BorrowedSpan<LookupRow> rows() const& noexcept
 
    .. cpp:function:: void set_rows(std::vector<LookupRow> rows)
 
@@ -113,11 +113,11 @@ gui_forms::LookupComboBox
 
    .. cpp:function:: bool is_dropped_down() const noexcept
 
-   .. cpp:function:: const std::string& filter() const noexcept
+   .. cpp:function:: const std::string& filter() const& noexcept
 
       The typed filter while open (empty when closed).
 
-   .. cpp:function:: const std::vector<std::size_t>& filtered_rows() const noexcept
+   .. cpp:function:: BorrowedSpan<std::size_t> filtered_rows() const& noexcept
 
       The rows the open list shows, as indices into rows(), in order.
 
@@ -156,10 +156,6 @@ gui_forms::LookupComboBox
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_text_input(TextInputEvent& event) override
 
    .. cpp:function:: void on_focus_changed(bool focused) override
@@ -171,6 +167,22 @@ gui_forms::LookupComboBox
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: AnatomyStateSet anatomy_states() const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
@@ -185,3 +197,81 @@ gui_forms::LookupComboBox
    .. cpp:member:: constexpr std::size_t lookup_combo_box_property_count
 
       LookupComboBox's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 7 unclassified; 16 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``columns``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``display_column``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``filter``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``filtered_rows``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``highlighted``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``is_dropped_down``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``max_drop_down_rows``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``rows``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selected_key``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``shown_text``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selected_key_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close_drop_down``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``lookup_combo_box_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``open_drop_down``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``row_of``
+     - unclassified (untested)

@@ -2,7 +2,9 @@
 
 #include "macos_host.hpp"
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/host/types/host_services_snapshot/host_services_snapshot.hpp"
+#include "gui_forms/host/types/host_types.hpp"
 
 #include <array>
 #include <cstddef>

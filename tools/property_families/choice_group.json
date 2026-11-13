@@ -2,13 +2,13 @@
   "family": "ChoiceGroup",
   "step": "W-4",
   "declaring": "ChoiceGroup",
-  "header": "include/gui_forms/controls/collections/choice_group.hpp",
+  "header": "include/gui_forms/controls/choice_group.hpp",
   "source": "src/controls/collections/choice_group.cpp",
-  "capabilities_header": "include/gui_forms/controls/collections/choice_group_capabilities/choice_group_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/choice_group_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [
-    "gui_forms/controls/collections/choice_group_values/choice_group_values.hpp"
+    "gui_forms/controls/choice_group_values.hpp"
   ],
   "properties": [
     {
@@ -72,6 +72,6 @@
   ],
   "test": {
     "type": "ChoiceGroup",
-    "include": "gui_forms/controls/collections/choice_group.hpp"
+    "include": "gui_forms/controls/choice_group.hpp"
   }
 }

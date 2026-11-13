@@ -9,7 +9,7 @@ gui_forms::MenuStrip
 
 .. cpp:class:: MenuStrip final : public Control, public MenuStripCapabilities<MenuStrip>
 
-   ``#include <gui_forms/controls/menu_strip/menu_strip.hpp>``
+   ``#include <gui_forms/controls/menu_strip.hpp>``
 
    A window's menu bar: a row of top-level menus such as File, Edit and View.
 
@@ -237,7 +237,7 @@ gui_forms::MenuStrip
       name a visible item, or ``std::out_of_range`` is thrown; an empty ID
       clears the selection.
 
-   .. cpp:function:: const std::vector<MenuStripItemSpec>& items() const noexcept
+   .. cpp:function:: const std::vector<MenuStripItemSpec>& items() const& noexcept
 
       The top-level menus, empty by default. Each :cpp:class:`MenuStripItemSpec <gui_forms::MenuStripItemSpec>` has a
       stable ID, the text shown on the bar, its menu's :cpp:class:`MenuItemSpec <gui_forms::MenuItemSpec>` items, and
@@ -306,10 +306,6 @@ gui_forms::MenuStrip
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -325,6 +321,22 @@ gui_forms::MenuStrip
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -355,3 +367,89 @@ gui_forms::MenuStrip
       *Protected.*
 
       The model position of a realized (visible) top-level item.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``MenuStrip``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 9 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``MenuStrip``
+     - ``MenuStrip``
+     - supported
+   * - property
+     - ``CanOverflow``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GripStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MdiWindowListItem``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowItemToolTips``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Stretch``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MenuActivate``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MenuDeactivate``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnMenuActivate``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMenuDeactivate``
+     - none
+     - unclassified (hook)
+   * - property
+     - GUI.Forms-only
+     - ``active_index``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``is_open``
+     - supported
+   * - property
+     - ``ToolStrip.Items``
+     - ``items``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``item_invoked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``open_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``close``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``open``
+     - supported

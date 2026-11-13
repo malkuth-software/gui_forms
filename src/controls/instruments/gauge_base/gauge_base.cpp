@@ -1,4 +1,4 @@
-#include "gui_forms/controls/instruments/gauge_base/gauge_base.hpp"
+#include "gui_forms/controls/gauge_base.hpp"
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"

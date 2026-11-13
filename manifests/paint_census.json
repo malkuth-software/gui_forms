@@ -45,7 +45,6 @@
     "button_base/button_base.cpp": "the authored-colour path: paint_flat_button paints FlatStyle.Flat (WinForms FlatStyle and FlatAppearance) from the application's own colours, the control's back and fore colours or its style override, which the theme engine does not draw (owner decision, 2026-11-09, on the authored-recipe precedent)",
     "connected_controls/connected_controls.cpp": "the authored-recipe path: the public paint_connected_surface_material paints an application's own recipe, which the theme engine does not draw (owner decision, 2026-11-03)",
     "drawing_surface/drawing_surface.cpp": "draws the application's own drawing (DrawingSurface), not chrome",
-    "easing_preview/easing_preview.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
     "instruments/sparkline/sparkline.cpp": "draws application content: the sparkline's data markers, in the series colours the application gives (as metrics_view, owner decision T4-4); its frame and background go through the theme",
     "metrics_view/metrics_view.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
     "panel/material_panel/material_panel.cpp": "authored material: MaterialPanel paints the material its application gives it, as content (owner decision, 2026-11-03)",
@@ -53,13 +52,12 @@
     "panel/text_box/text_box_decorations.cpp": "content paint (owner ruling, 2026-11-09): the backgrounds and underlines of a TextBox's styled runs are application content authored by the producer (a syntax highlighter, a spell checker), like the text itself, not chrome; the inks a decoration takes from the theme still resolve through the theme",
     "plots/plot_view/plot_engine.cpp": "draws application content: plotted markers and legend swatches in the series colours the application gives (as metrics_view, owner decision T4-4). Pending review: the zoom and selection boxes (four calls) are chrome in the recipe's focus colour and should move to a theme part",
     "raster_canvas/raster_canvas.cpp": "draws the application's raster (RasterCanvas), not chrome",
-    "typography_specimen/typography_specimen.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme; its line boxes are diagnostic inspection content (as VisualInspectorView's, owner-agreed exemption)",
-    "visual_inspector_view/visual_inspector_view.cpp": "a diagnostic instrument: the inspector's dark panel stays fixed under every theme so that it reads the same while inspecting any of them (owner decision, 2026-11-03)"
+    "specimen/stock_specimens/stock_specimens.cpp": "the DrawingSurface stock specimen's sample picture (paint_sample_drawing): application content painted through the specimen's own paint handler, not chrome, as drawing_surface/drawing_surface.cpp (integrator, cp29 block 3; on the T4-4 precedent, for the owner to confirm)"
   },
   "totals": {
     "exempt": {
-      "files": 14,
-      "calls": 55
+      "files": 12,
+      "calls": 38
     },
     "demo": {
       "files": 2,
@@ -67,7 +65,7 @@
     },
     "effect": {
       "files": 2,
-      "calls": 19
+      "calls": 21
     }
   },
   "files": {
@@ -86,10 +84,6 @@
     "drawing_surface/drawing_surface.cpp": {
       "category": "exempt",
       "calls": 1
-    },
-    "easing_preview/easing_preview.cpp": {
-      "category": "exempt",
-      "calls": 8
     },
     "gallery/pages/live-surfaces.cpp": {
       "category": "demo",
@@ -131,19 +125,15 @@
     "range_control/progress_bar/progress_bar_effects.cpp": {
       "category": "stock",
       "calls": 0,
-      "effect_calls": 16
+      "effect_calls": 18
     },
     "raster_canvas/raster_canvas.cpp": {
       "category": "exempt",
       "calls": 4
     },
-    "typography_specimen/typography_specimen.cpp": {
+    "specimen/stock_specimens/stock_specimens.cpp": {
       "category": "exempt",
       "calls": 7
-    },
-    "visual_inspector_view/visual_inspector_view.cpp": {
-      "category": "exempt",
-      "calls": 9
     }
   }
 }

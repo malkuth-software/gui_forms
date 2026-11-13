@@ -10,6 +10,7 @@
 #include "../../text/harfbuzz/bundled_face_loader.hpp"
 #include "../../../core/resources/fonts/bundled_font_families.hpp"
 #include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
+#include "../../text/harfbuzz/reusable_shape_workspace.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
 #include "../../../core/text/composite/text_composite.hpp"
 #include "../../../core/image/resource_pixels.hpp"
@@ -622,6 +623,9 @@ public:
     // The result for text that is not kept, so shaped_text can return a reference.
     text::ShapedText unkept_shape;
     ResolvedTextLayout unkept_layout;
+    // draw_glyph_runs's runs in the rasterizer's form, refilled per call (its
+    // vectors keep their capacity while the run count holds).
+    text::ShapedText glyph_line;
     // Draws the run's shared-rasterizer coverage through Skia as an alpha
     // mask. Used only when the canvas pixels cannot be composited directly;
     // Skia then blends, so the bytes may differ from the shared rule.
@@ -924,6 +928,9 @@ bool SkiaRaster::register_bundled_fonts(std::shared_ptr<gui_forms::detail::Bundl
 class SkiaFramebuffer final : public PaintFramebuffer {
 public:
     SkiaRaster raster;
+    // Stamps pixels(): the raster's buffer keeps its place for the
+    // framebuffer's life, so only the framebuffer's death ends the views.
+    gui_forms::detail::BorrowLender lender;
     bool begin(const ImageRegistry& images, Rect damage) override {
         if (!raster.synchronize_images(images)) return false;
         DamageRegion region;
@@ -933,8 +940,10 @@ public:
     }
     void end() override { raster.end_frame(); }
     Painter& painter() noexcept override { return raster; }
-    std::span<std::byte> pixels() noexcept override {
-        return {static_cast<std::byte*>(const_cast<void*>(raster.pixels())), raster.byte_size()};
+    BorrowedMutableSpan<std::byte> pixels() noexcept override {
+        std::byte* const bytes = static_cast<std::byte*>(const_cast<void*>(raster.pixels()));
+        BorrowedMutableSpan<std::byte> view = gui_forms::detail::lend_mutable_view(bytes, raster.byte_size(), lender);
+        return view;
     }
     std::size_t row_bytes() const noexcept override { return raster.row_bytes(); }
     std::uint32_t width() const noexcept override { return raster.pixel_width(); }
@@ -2257,6 +2266,64 @@ TextResolutionStatus SkiaRaster::fill_line_break_opportunities_utf8(
     const TextResolutionStatus status =
         text::HarfBuzzFontEngine::fill_line_break_opportunities_utf8(text, opportunities);
     return status;
+}
+
+TextResolutionStatus SkiaRaster::fill_cluster_advances_utf8(
+    std::string_view text, FontSpec font_spec, std::span<double> advances) {
+    const TextResolutionStatus status = (*impl_).text_engine.fill_cluster_advances_utf8(text, font_spec, advances);
+    return status;
+}
+
+std::unique_ptr<ShapingWorkspace> SkiaRaster::create_shaping_workspace() {
+    std::unique_ptr<ShapingWorkspace> workspace = (*impl_).text_engine.create_reusable_workspace();
+    return workspace;
+}
+
+TextExtent SkiaRaster::shape_in_workspace_utf8(ShapingWorkspace& workspace, std::string_view text,
+                                               FontSpec font_spec) {
+    text::ReusableShapeWorkspace* const own = dynamic_cast<text::ReusableShapeWorkspace*>(&workspace);
+    if (own == nullptr) {
+        const TextExtent refused = Painter::shape_in_workspace_utf8(workspace, text, font_spec);
+        return refused;
+    }
+    const TextExtent extent = (*impl_).text_engine.shape_in_workspace(text, font_spec, *own);
+    return extent;
+}
+
+void SkiaRaster::draw_glyph_runs(const Point origin, const GlyphRunsView& view, const FontSpec font_spec,
+                                 const Color color) {
+    SkCanvas* const canvas = (*impl_).canvas();
+    if (canvas == nullptr || view.text.empty()) return;
+    // Runs of another engine or face table, or naming glyphs outside the
+    // view, are drawn as their text.
+    bool drawable = view.source == (*impl_).text_engine.glyph_source();
+    for (const GlyphRunRecord& run : view.runs) {
+        if (!drawable) break;
+        drawable = run.first_glyph <= view.glyphs.size() && run.glyph_count <= view.glyphs.size() - run.first_glyph;
+    }
+    if (!drawable) {
+        draw_text_utf8(origin, view.text, font_spec, color);
+        return;
+    }
+    // The rasterizer reads each run's face and each glyph's id and position,
+    // which are the values shape gives for the line; ranges and clusters are
+    // carried as they are (in the view's offsets) and not read.
+    text::ShapedText& line = (*impl_).glyph_line;
+    line.runs.resize(view.runs.size());
+    for (std::size_t index = 0U; index < view.runs.size(); ++index) {
+        const GlyphRunRecord& record = view.runs[index];
+        text::ShapedFontRun& run = line.runs[index];
+        run.face = record.face;
+        run.source_range = record.source_range;
+        run.glyphs.clear();
+        const std::span<const PositionedGlyph> glyphs = view.glyphs.subspan(record.first_glyph, record.glyph_count);
+        for (const PositionedGlyph& glyph : glyphs) {
+            const text::ShapedGlyph shaped{glyph.glyph, glyph.cluster, glyph.x, glyph.y, 0.0F, 0.0F};
+            run.glyphs.push_back(shaped);
+        }
+    }
+    if ((*impl_).composite_run(*canvas, line, font_spec, origin, color, nullptr, nullptr, nullptr)) return;
+    (*impl_).draw_shaped_text(*canvas, line, origin, font_spec, color);
 }
 
 // Below 1x on either axis (and no larger on the other) the image is drawn

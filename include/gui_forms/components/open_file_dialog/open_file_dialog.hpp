@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
 #include "gui_forms/control/control/control.hpp"
@@ -30,16 +31,22 @@ class Window;
 // parse (parse_file_dialog_filter); anything else throws
 // std::invalid_argument and changes nothing. The dialog is used on the UI
 // thread of the window it is shown over.
-class OpenFileDialog final : public Component, public OpenFileDialogCapabilities<OpenFileDialog> {
+class GUI_FORMS_API OpenFileDialog final : public Component, public OpenFileDialogCapabilities<OpenFileDialog> {
 public:
     OpenFileDialog();
     ~OpenFileDialog() override;
 
     // The host filters parsed from filter.
-    [[nodiscard]] std::span<const HostFileDialogFilter> filters() const noexcept { return filters_; }
+    [[nodiscard]] std::span<const HostFileDialogFilter> filters() const& noexcept {
+        return std::span<const HostFileDialogFilter>(filters_.data(), filters_.size());
+    }
+    std::span<const HostFileDialogFilter> filters() const&& = delete;
 
     // Every chosen path, in the host's order.
-    [[nodiscard]] std::span<const std::string> file_names() const noexcept { return file_names_; }
+    [[nodiscard]] std::span<const std::string> file_names() const& noexcept {
+        return std::span<const std::string>(file_names_.data(), file_names_.size());
+    }
+    std::span<const std::string> file_names() const&& = delete;
     // The first chosen file's name without its directory, and every chosen
     // file's (file_dialog_name_part).
     [[nodiscard]] std::string safe_file_name() const;

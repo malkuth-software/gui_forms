@@ -23,7 +23,8 @@ struct BuiltInThemeCompilation final {
 
 // Compiles `sheet`, named `file` in its diagnostics, at the program
 // theme's levels onto `floor` (its recipes, structure and other fields),
-// against the control types `controls`, and makes the theme, which keeps
+// against the control types `controls` (with the node canvas's anatomy
+// where they lack it; cp31), and makes the theme, which keeps
 // the sheet as its source for inline styles (T3 P12b) as a compiled
 // package's does. `floor` is read, never changed; a refused sheet makes no
 // theme. The built-in theme `gui-forms` is made this way (stage T4,

@@ -112,13 +112,18 @@ void exercise(const std::span<const std::byte> bytes) {
     window.update();
     require_preserved(window, initial_pixels, initial, lease.presented_revision);
 
+    // The host's device size moves with the logical one (scale 1 here).
     window.size = {16384, 16384};
+    window.device_width = 16384;
+    window.device_height = 16384;
     window.damage.add({0, 0, 16384, 16384});
     window.update();
     require_preserved(window, initial_pixels, initial, lease.presented_revision);
     require(capture(window, 180, 96) == initial_server, "oversized refused candidate uses bounded old-front presentation");
 
     window.size = {300, 120};
+    window.device_width = 300;
+    window.device_height = 120;
     XResizeWindow(runtime.display, window.xid, 300, 120);
     XSync(runtime.display, False);
     const HostDispatchResult resized = window.dispatch(HostResizeEvent{window.size});

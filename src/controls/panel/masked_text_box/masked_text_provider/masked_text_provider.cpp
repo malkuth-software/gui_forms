@@ -1,4 +1,4 @@
-#include "gui_forms/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.hpp"
+#include "gui_forms/controls/masked_text_provider.hpp"
 
 #include "../../input_control_utilities.hpp"
 

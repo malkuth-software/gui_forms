@@ -9,7 +9,7 @@ gui_forms::ScaledPanel
 
 .. cpp:class:: ScaledPanel : public Panel, public ScaledPanelCapabilities<ScaledPanel>
 
-   ``#include <gui_forms/controls/panel/scaled_panel/scaled_panel.hpp>``
+   ``#include <gui_forms/controls/scaled_panel.hpp>``
 
    A panel that places its children in a fixed design space and scales them with the panel.
 
@@ -161,3 +161,37 @@ gui_forms::ScaledPanel
    .. cpp:member:: constexpr std::size_t scaled_panel_property_count
 
       ScaledPanel's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 2 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``design_size``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``add_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``design_bounds``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``scaled_panel_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_design_bounds``
+     - supported

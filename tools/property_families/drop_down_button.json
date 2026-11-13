@@ -2,17 +2,17 @@
   "family": "DropDownButton",
   "step": "M-S8",
   "declaring": "DropDownButton",
-  "header": "include/gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp",
+  "header": "include/gui_forms/controls/drop_down_button.hpp",
   "source": "src/controls/button_base/button/drop_down_button/drop_down_button.cpp",
-  "capabilities_header": "include/gui_forms/controls/button_base/button/drop_down_button/drop_down_button_capabilities/drop_down_button_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/drop_down_button_capabilities.hpp",
   "base": "Button",
   "shared": [],
   "includes": [
-    "gui_forms/controls/button_base/button/drop_down_button/drop_down_button_values/drop_down_button_values.hpp"
+    "gui_forms/controls/drop_down_button_values.hpp"
   ],
   "test": {
     "type": "DropDownButton",
-    "include": "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
+    "include": "gui_forms/controls/drop_down_button.hpp"
   },
   "properties": [
     {

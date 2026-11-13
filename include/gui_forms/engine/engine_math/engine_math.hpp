@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
+
 namespace gui_forms {
 
 // Deterministic elementary functions for engine kernels (T2 plan, "Numerics
@@ -22,16 +24,16 @@ namespace gui_forms {
 
 // Natural logarithm of `x`. Requires x > 0 and finite; returns NaN for
 // x < 0 or NaN, −infinity for 0, and +infinity for +infinity.
-[[nodiscard]] double engine_logarithm(double x) noexcept;
+[[nodiscard]] GUI_FORMS_API double engine_logarithm(double x) noexcept;
 
 // e raised to `x`. Returns 0 below about −745, +infinity above about 709.8,
 // and NaN for NaN.
-[[nodiscard]] double engine_exponential(double x) noexcept;
+[[nodiscard]] GUI_FORMS_API double engine_exponential(double x) noexcept;
 
 // `base` raised to `exponent`, for base ≥ 0. Exact cases: base^0 is 1,
 // 1^exponent is 1, and 0^exponent is 0 for exponent > 0. Returns NaN for a
 // negative or NaN base and for a NaN exponent.
-[[nodiscard]] double engine_power(double base, double exponent) noexcept;
+[[nodiscard]] GUI_FORMS_API double engine_power(double base, double exponent) noexcept;
 
 // The sine and cosine of `x` radians, computed together (E3's springs). For
 // x of magnitude at most 2^20 the absolute error of each is at most 2^-50; beyond that,
@@ -39,11 +41,11 @@ namespace gui_forms {
 // and cosine 1. The argument is reduced by the nearest multiple of π/2,
 // with π/2 split in three parts (Cody and Waite) so that the reduction is
 // exact to about 2^-100 relative.
-struct EngineSineCosine final {
+struct GUI_FORMS_API EngineSineCosine final {
     double sine{};
     double cosine{};
 };
-[[nodiscard]] EngineSineCosine engine_sine_cosine(double x) noexcept;
+[[nodiscard]] GUI_FORMS_API EngineSineCosine engine_sine_cosine(double x) noexcept;
 
 // The angle of the point (x, y) from the positive x axis, in radians in
 // [−π, π], as std::atan2(y, x) (E9.6's conic gradient). Exact cases: (0, 0)
@@ -51,6 +53,6 @@ struct EngineSineCosine final {
 // argument gives NaN. The ratio of the smaller to the larger magnitude is
 // reduced twice (by π/4 and by the half-angle formula) to at most 0.2,
 // where a 13-term series converges past 2^-60.
-[[nodiscard]] double engine_arctangent2(double y, double x) noexcept;
+[[nodiscard]] GUI_FORMS_API double engine_arctangent2(double y, double x) noexcept;
 
 } // namespace gui_forms

@@ -2,9 +2,9 @@
   "family": "RichTextBox",
   "step": "B3",
   "declaring": "RichTextBox",
-  "header": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
+  "header": "include/gui_forms/controls/rich_text_box.hpp",
   "source": "src/controls/panel/rich_text_box/rich_text_box.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/rich_text_box/rich_text_box_capabilities/rich_text_box_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/rich_text_box_capabilities.hpp",
   "base": "Panel",
   "shared": [
     "FontCapability"
@@ -167,6 +167,6 @@
   ],
   "test": {
     "type": "RichTextBox",
-    "include": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp"
+    "include": "gui_forms/controls/rich_text_box.hpp"
   }
 }

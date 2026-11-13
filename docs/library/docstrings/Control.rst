@@ -405,13 +405,19 @@ on_paint
 hit_test_local
     Override to refine which local points hit the control. The base version
     accepts the whole client rectangle.
-on_pointer
-    Override to handle a pointer event when this control is the target. Set
-    `handled` to stop it bubbling. `on_pointer_preview` runs before it from
-    the root down, and `on_pointer_bubble` after it from the parent up.
-on_key
-    Override to handle a key while this control has focus. Set `handled` to
-    stop it bubbling and to keep it from accelerators, dialog keys and Tab
+on_mouse_down
+    Override to handle a press when this control is the pointer event's
+    target; `on_mouse_up`, `on_mouse_move` and `on_mouse_wheel` take the
+    release, a move and a wheel turn the same way. Do the control's own
+    handling, then call the base, which raises the event to its
+    subscribers. Set `handled` in the arguments to stop the event bubbling.
+    `on_pointer_preview` runs before it from the root down, and
+    `on_pointer_bubble` after it from the parent up.
+on_key_down
+    Override to handle a key while this control has focus; `on_key_up`
+    takes the release. Call the base first, which raises the event to its
+    subscribers, and skip a key they handled. Set `handled` to stop the key
+    bubbling and to keep it from accelerators, dialog keys and Tab
     traversal. `on_key_preview` and `on_key_bubble` run around it.
 on_text_input
     Override to receive committed or composing text while this control has

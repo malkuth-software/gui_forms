@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/prepared_text/layout/prepared_text_layout.hpp"
 
 namespace gui_forms {
@@ -9,13 +10,13 @@ namespace detail { struct PreparedServiceState; struct PreparedSessionState; }
 // must only enqueue a wake, never execute consumer/UI work or reenter session
 // control. The target must survive until begin_close returns. The wake carries
 // no payload: UI subsequently calls inspect_ready/adopt_ready.
-class PreparedTextWakeTarget {
+class GUI_FORMS_API PreparedTextWakeTarget {
 public:
     virtual ~PreparedTextWakeTarget() = default;
     virtual void post_prepared_text_wake() noexcept = 0;
 };
 
-class PreparedTextSession final {
+class GUI_FORMS_API PreparedTextSession final {
 public:
     ~PreparedTextSession();
     PreparedTextSession(const PreparedTextSession&) = delete;
@@ -37,7 +38,7 @@ private:
     std::shared_ptr<detail::PreparedSessionState> state_{};
 };
 
-class PreparedTextService final {
+class GUI_FORMS_API PreparedTextService final {
 public:
     PreparedTextService();
     ~PreparedTextService();

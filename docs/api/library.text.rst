@@ -67,12 +67,34 @@ Related types
      - GlyphPlacement correlates one glyph to a UTF-8 cluster and finite two-axis advance/offset values.
    * - :cpp:class:`GlyphRun <gui_forms::GlyphRun>`
      - GlyphRun owns ordered placements for one source range, face, and direction.
+   * - :cpp:class:`GlyphRunRecord <gui_forms::GlyphRunRecord>`
+     - One run of glyphs shaped in one face and one direction, in visual order within its sequence: the bytes it shapes, its face (the engine's identity), its direction, and its glyphs, glyph_count elements from first_glyph of the glyph array its sequence is stored with.
+   * - :cpp:class:`GlyphRunsView <gui_forms::GlyphRunsView>`
+     - One line's glyph runs as a painter draws them (Painter::draw_glyph_runs), borrowed for the call: - source: the engine that shaped them; - runs: the line's runs in visual order; each names its glyphs in ``glyphs`` by index; - text: the line's text, which a painter that cannot draw the runs draws with draw_text_utf8 instead; - text_offset: where ``text`` begins in the offsets the runs' ranges and the glyphs' clusters use (the paragraph's, for a paragraph's line).
+   * - :cpp:class:`GlyphSource <gui_forms::GlyphSource>`
+     - Which engine shaped a set of glyphs, and in which state of its face table: a face identity means nothing to another engine, and a glyph id nothing to another face.
    * - :cpp:class:`GrayTextMask <gui_forms::GrayTextMask>`
      -  
    * - :cpp:class:`LayoutAuthority <gui_forms::LayoutAuthority>`
      -  
    * - :cpp:class:`LineBoxMetrics <gui_forms::LineBoxMetrics>`
      - One line box of CSS text in a primary face (CSS 2.1 section 10.8 with ``line-height: normal`` as browsers compute it): its height, its baseline from its top, and the face's x-height.
+   * - :cpp:class:`LocaleCatalog <gui_forms::LocaleCatalog>`
+     - The text store of one program: its four layers, the language in force and the untranslatable way back.
+   * - :cpp:class:`LocaleFileInfo <gui_forms::LocaleFileInfo>`
+     - The ``<locale>`` element's attributes.
+   * - :cpp:class:`LocaleLayer <gui_forms::LocaleLayer>`
+     - The records of one layer, sorted by stable ID with each ID once.
+   * - :cpp:class:`LocaleLimits <gui_forms::LocaleLimits>`
+     - The bounds on one file's fields.
+   * - :cpp:class:`LocaleReadResult <gui_forms::LocaleReadResult>`
+     -  
+   * - :cpp:class:`LocaleRecord <gui_forms::LocaleRecord>`
+     - One text record as one layer gives it.
+   * - :cpp:class:`LocaleRejection <gui_forms::LocaleRejection>`
+     -  
+   * - :cpp:class:`LocaleResolvedField <gui_forms::LocaleResolvedField>`
+     - One resolved field: its text and the layer it came from.
    * - :cpp:class:`LocalizableLiteral <gui_forms::LocalizableLiteral>`
      - One string literal the GUI.Forms Clang plugin found passed to a localizable property (a parameter or field marked GUI_FORMS_LOCALIZABLE).
    * - :cpp:class:`MarkdownBlock <gui_forms::MarkdownBlock>`
@@ -95,6 +117,26 @@ Related types
      - How a span is set.
    * - :cpp:class:`OpenTypeTag <gui_forms::OpenTypeTag>`
      - OpenTypeTag stores one big-endian four-byte script or feature tag.
+   * - :cpp:class:`ParagraphBuffers <gui_forms::ParagraphBuffers>`
+     - Owned storage for repeated calls, sized once and reused: reserve for the largest text and line count expected, then pass storage() to every call.
+   * - :cpp:class:`ParagraphGlyphRuns <gui_forms::ParagraphGlyphRuns>`
+     - A laid-out paragraph's glyph runs (ParagraphGlyphOutput::runs), borrowed from the storage it was laid out into: its metrics' glyph_source, and the leading glyph_run_count runs and glyph_count glyphs of the storage's arrays (ParagraphBuffers::glyph_runs gives them).
+   * - :cpp:class:`ParagraphLayoutResult <gui_forms::ParagraphLayoutResult>`
+     - The result of lay_out_paragraph and measure_paragraph: laid out with its metrics; storage too small, with what it needs; or a refused request.
+   * - :cpp:class:`ParagraphLine <gui_forms::ParagraphLine>`
+     - One laid-out line, positioned in the paragraph's box (its top left is the origin, y down).
+   * - :cpp:class:`ParagraphMetrics <gui_forms::ParagraphMetrics>`
+     - A laid-out paragraph's size and what it cost.
+   * - :cpp:class:`ParagraphPaint <gui_forms::ParagraphPaint>`
+     - How paint_paragraph places a paragraph: ``origin`` is its box's top left in the painter's coordinates, ``visible`` the part of those coordinates worth drawing (lines whose line box misses it vertically are skipped without being visited), and each baseline is snapped to ``device_scale``'s pixels with snap_text_baseline, as controls snap theirs.
+   * - :cpp:class:`ParagraphStorage <gui_forms::ParagraphStorage>`
+     - The caller's storage for one call, borrowed for the call only; nothing is retained.
+   * - :cpp:class:`ParagraphStorageRequirement <gui_forms::ParagraphStorageRequirement>`
+     - What a call needs.
+   * - :cpp:class:`ParagraphStyle <gui_forms::ParagraphStyle>`
+     - What one call lays out.
+   * - :cpp:class:`PositionedGlyph <gui_forms::PositionedGlyph>`
+     - One glyph as the engine placed it: its id in its run's face, the byte offset of the first byte of its cluster (in the text the offsets of its run index), and its pen position in logical pixels from the run sequence's origin on the baseline (x right, y down), offsets and letter spacing included.
    * - :cpp:class:`PreparedFontSource <gui_forms::PreparedFontSource>`
      -  
    * - :cpp:class:`PreparedParagraphProof <gui_forms::PreparedParagraphProof>`
@@ -129,10 +171,14 @@ Related types
      -  
    * - :cpp:class:`RtfBodySize <gui_forms::RtfBodySize>`
      -  
+   * - :cpp:class:`ShapedGlyphCounts <gui_forms::ShapedGlyphCounts>`
+     - The runs and glyphs one shaping produced.
    * - :cpp:class:`ShapingFeature <gui_forms::ShapingFeature>`
      - ShapingFeature applies one OpenType tag/value to a validated UTF-8 subrange.
    * - :cpp:class:`ShapingRequest <gui_forms::ShapingRequest>`
      - ShapingRequest is a non-owning, bounded shaping transaction with text, range, face, size, direction, script, language, and features.
+   * - :cpp:class:`ShapingWorkspace <gui_forms::ShapingWorkspace>`
+     - A text metrics provider's reusable shaping state (TextMetricsProvider::create_shaping_workspace): the provider creates it, the caller owns it (ParagraphBuffers holds one), and the provider shapes into it (TextMetricsProvider::shape_in_workspace_utf8) without allocating once it holds the text's size.
    * - :cpp:class:`SourceByteOffset <gui_forms::SourceByteOffset>`
      -  
    * - :cpp:class:`SourceByteRange <gui_forms::SourceByteRange>`
@@ -556,6 +602,61 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: GlyphRunRecord final
+
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+
+   One run of glyphs shaped in one face and one direction, in visual order within its sequence: the bytes it shapes, its face (the engine's identity), its direction, and its glyphs, glyph_count elements from first_glyph of the glyph array its sequence is stored with.
+
+   .. cpp:member:: Utf8Range source_range
+
+   .. cpp:member:: FontFaceId face
+
+   .. cpp:member:: TextDirection direction
+
+      Default: ``{TextDirection::left_to_right}``.
+
+   .. cpp:member:: std::size_t first_glyph
+
+   .. cpp:member:: std::size_t glyph_count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GlyphRunsView final
+
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+
+   One line's glyph runs as a painter draws them (Painter::draw_glyph_runs), borrowed for the call: - source: the engine that shaped them; - runs: the line's runs in visual order; each names its glyphs in ``glyphs`` by index; - text: the line's text, which a painter that cannot draw the runs draws with draw_text_utf8 instead; - text_offset: where ``text`` begins in the offsets the runs' ranges and the glyphs' clusters use (the paragraph's, for a paragraph's line).
+
+   .. cpp:member:: GlyphSource source
+
+   .. cpp:member:: std::span<const GlyphRunRecord> runs
+
+   .. cpp:member:: std::span<const PositionedGlyph> glyphs
+
+   .. cpp:member:: std::string_view text
+
+   .. cpp:member:: Utf8Offset text_offset
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GlyphSource final
+
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+
+   Which engine shaped a set of glyphs, and in which state of its face table: a face identity means nothing to another engine, and a glyph id nothing to another face. ``engine`` is a process-unique number the engine was given when it was created (never zero); ``generation`` changes whenever a face is registered with it, since registration can change which face shapes a cluster. A painter draws glyph runs only when their source is its own engine's current one, and otherwise draws their text (Painter:: draw_glyph_runs). The zero source is no engine's.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: constexpr bool valid() const noexcept
+
+   .. cpp:member:: std::uint64_t engine
+
+   .. cpp:member:: std::uint64_t generation
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: GrayTextMask final
 
    ``#include <gui_forms/prepared_text/layout/prepared_text_layout.hpp>``
@@ -584,9 +685,9 @@ Related types
 
    .. cpp:function:: PreparedTextMetrics metrics() const noexcept
 
-   .. cpp:function:: std::span<const std::uint8_t> pixels() const noexcept
+   .. cpp:function:: BorrowedSpan<std::uint8_t> pixels() const noexcept
 
-      Top-left gray8, tightly packed rows; borrow ends at release/replacement.
+      Top-left gray8, tightly packed rows; borrow ends at release/replacement (the sanitizer tree reports a later use).
 
 .. cpp:namespace:: gui_forms
 
@@ -613,6 +714,243 @@ Related types
    .. cpp:member:: double baseline
 
    .. cpp:member:: double x_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: LocaleCatalog final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   The text store of one program: its four layers, the language in force and the untranslatable way back. The program owns it. One execution context (the UI thread); a refused load changes nothing. On an accepted load the result's records are in the catalog and the result's own are left empty; its info, rejections and ignored names stay.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit LocaleCatalog(std::string built_in_language = "en")
+
+      :cpp:func:`built_in_language <gui_forms::LocaleCatalog::built_in_language>` is the built-in file's language tag (std::invalid_argument when it is not a tag).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const std::string& built_in_language() const& noexcept
+
+   .. cpp:function:: const LocaleFileInfo& translation_info() const noexcept
+
+   .. cpp:function:: const std::string& current_language() const noexcept
+
+      The translation's language while one is set, else the built-in one.
+
+   .. cpp:function:: bool built_in_only() const noexcept
+
+   .. cpp:function:: void set_built_in_only(bool built_in_only) noexcept
+
+      The untranslatable way back (translation design 8): while set, only the built-in and program layers resolve, whatever the translation and the user's file say.
+
+   .. cpp:function:: std::uint64_t revision() const noexcept
+
+      Grows by one on every change.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: const LocaleLayer& layer(LocaleLayerKind which) const& noexcept
+
+   .. cpp:function:: LocaleReadResult load_built_in(std::string_view utf8)
+
+      Reads ``utf8`` as (part of) the built-in file and merges its fields over the built-in layer. A file for another language than built_in_language() is refused (language_mismatch).
+
+   .. cpp:function:: LocaleReadResult load_translation(std::string_view utf8)
+
+      Replaces the translation with ``utf8``'s records and info. User overrides for another language are dropped.
+
+   .. cpp:function:: void clear_translation()
+
+      Removes the translation, and user overrides for its language.
+
+   .. cpp:function:: LocaleReadResult load_user_overrides(std::string_view utf8)
+
+      Replaces the user layer with ``utf8``'s records. A file for another language than current_language() is refused (language_mismatch).
+
+   .. cpp:function:: void clear_user_overrides()
+
+   .. cpp:function:: LocaleResolvedField resolve(std::string_view stable_id, LocaleField field) const
+
+      Resolves one field of ``stable_id`` from the highest layer in force that gives it.
+
+   .. cpp:function:: void collect_ids(std::vector<std::string>& ids) const
+
+      Fills ``ids`` (cleared first) with every ID a layer in force holds, sorted and unique.
+
+   .. cpp:function:: bool set_program_values(LocaleLayer records)
+
+      Replaces the program layer. Returns whether it changed; an equal layer changes nothing, not even the revision.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocaleFileInfo final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   The ``<locale>`` element's attributes.
+
+   .. cpp:member:: std::string language
+
+      ``xml:lang``: a language tag, 2 to 8 letters then ``-`` and 1 to 8 letters or digits per subtag ("fr", "es-mx", "zh-hant-tw").
+
+   .. cpp:member:: std::string name
+
+      ``name``: the language's own name for the language list; may be empty.
+
+   .. cpp:member:: std::string version
+
+      ``version``: the file's own version text; may be empty.
+
+   .. cpp:member:: LocaleDirection direction
+
+      ``direction``: "ltr" (the default) or "rtl". Default: ``{LocaleDirection::left_to_right}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: LocaleLayer final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   The records of one layer, sorted by stable ID with each ID once. Owns its records. Not thread-safe; one owner mutates it.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::span<const LocaleRecord> entries() const& noexcept
+
+   .. cpp:function:: std::size_t size() const noexcept
+
+   .. cpp:function:: bool empty() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: const LocaleRecord* find(std::string_view stable_id) const& noexcept
+
+      The record with this ID, or null. The pointer borrows this layer and is invalidated by any change to it; a temporary layer is refused.
+
+   .. cpp:function:: void set(std::string_view stable_id, LocaleField field, std::string value)
+
+      Sets one field of the record ``stable_id``, creating the record. Throws std::invalid_argument, changing nothing, for an ID that is not a stable ID or a value check_locale_value refuses under default limits.
+
+   .. cpp:function:: bool reset(std::string_view stable_id, LocaleField field)
+
+      Removes one field; a record with no field left is removed. Returns whether the field was present.
+
+   .. cpp:function:: void put(LocaleRecord record)
+
+      Puts ``record`` in, replacing a record with the same ID. Throws std::invalid_argument, changing nothing, when its ID is not a stable ID. An empty record removes the ID.
+
+   .. cpp:function:: void assign_sorted(std::vector<LocaleRecord> records)
+
+      Replaces every record with ``records``, which must be sorted by stable ID with each ID once and each a stable ID (std::invalid_argument, changing nothing, otherwise). Empty records are dropped.
+
+   .. cpp:function:: void merge_over(const LocaleLayer& over)
+
+      Every field ``over`` gives replaces this layer's; the others stay. One pass over both sorted layers.
+
+   .. cpp:function:: void clear() noexcept
+
+      Ends every record's lifetime; capacity remains.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocaleLimits final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   The bounds on one file's fields. A value past its field's bound rejects that field (LocaleRefusal::too_long), not the file; more records than maximum_records refuse the file. Lengths are bytes of UTF-8.
+
+   .. cpp:member:: std::array<std::size_t, locale_field_count> maximum_field_bytes
+
+      Indexed by LocaleField, in its order.
+
+   .. cpp:member:: std::size_t maximum_records
+
+      Default: ``{20000U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocaleReadResult final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:member:: LocaleFileError error
+
+      Default: ``{LocaleFileError::none}``.
+
+   .. cpp:member:: XmlError xml_error
+
+      Default: ``{XmlError::none}``.
+
+   .. cpp:member:: XmlSourcePosition position
+
+   .. cpp:member:: LocaleFileInfo info
+
+   .. cpp:member:: LocaleLayer records
+
+      The records the file gives. Empty on a refused file.
+
+   .. cpp:member:: std::vector<LocaleRejection> rejections
+
+      The fields that were rejected one by one. Empty on a refused file.
+
+   .. cpp:member:: std::vector<std::string> ignored
+
+      Attributes and elements the reader does not know, as "<record>@<name>" (the record's ID, empty above the first control), at most locale_maximum_ignored_diagnostics of them. They change nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocaleRecord final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   One text record as one layer gives it. An absent field lets a lower layer's value show; a present field, even empty, hides it.
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::array<std::optional<std::string>, locale_field_count> fields
+
+      Indexed by LocaleField.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocaleRejection final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: LocaleField field
+
+      Default: ``{LocaleField::text}``.
+
+   .. cpp:member:: LocaleRefusal reason
+
+      Default: ``{LocaleRefusal::invalid_text}``.
+
+   .. cpp:member:: std::string detail
+
+      What was wrong, for logs (the offending segment or keyword list); empty when the reason says it all.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocaleResolvedField final
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   One resolved field: its text and the layer it came from. ``fallback`` is set when a translation is in force and the field came from the built-in or program layer, so a page can mark it.
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: std::optional<LocaleLayerKind> origin
+
+   .. cpp:member:: bool fallback
 
 .. cpp:namespace:: gui_forms
 
@@ -872,6 +1210,290 @@ Related types
       Reports a nonzero packed tag.
 
    .. cpp:member:: std::uint32_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ParagraphBuffers final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   Owned storage for repeated calls, sized once and reused: reserve for the largest text and line count expected, then pass storage() to every call. A call never grows it; on storage_too_small, reserve the requirement and call again. Its arrays are counted under AllocationSubsystem::text_layout. It also owns a shaping workspace once reserved with a provider: reserve with the provider the calls go through, so that their shaping allocates nothing either. Single-threaded, like the calls it serves.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ParagraphBuffers() = default
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void reserve(std::size_t per_byte, std::size_t lines)
+
+      Grows the line and per-byte arrays to at least these sizes (never shrinks them), and the workspace, if there is one, to per_byte. Lines already written are kept; scratch contents are not.
+
+   .. cpp:function:: void reserve(const ParagraphStorageRequirement& required)
+
+      As above, with the glyph arrays grown to the requirement's.
+
+   .. cpp:function:: void reserve(const ParagraphStorageRequirement& required, TextMetricsProvider* provider)
+
+      As above, and with a shaping workspace from ``provider`` (TextMetricsProvider::create_shaping_workspace) reserved for required.per_byte bytes: created on the first reserve with a provider, and created again when the provider differs from the one that created it (``provider`` is compared, never kept for use). A provider without workspaces, or null, leaves none. Throws as the workspace's reserve does, with the arrays grown and the old workspace kept.
+
+   .. cpp:function:: void release() noexcept
+
+      Frees all the storage, the workspace with it.
+
+   .. cpp:function:: ParagraphStorage storage() noexcept
+
+      Spans over the whole arrays and the workspace; valid until the next reserve or release.
+
+   .. cpp:function:: std::span<const ParagraphLine> lines(std::size_t line_count) const noexcept
+
+      The lines a successful lay_out_paragraph with storage() wrote, given its metrics' line_count; valid until the next reserve or release.
+
+   .. cpp:function:: std::string_view collapsed_text(std::size_t laid_out_bytes) const noexcept
+
+      The collapsed text a collapse layout wrote, given its metrics' laid_out_bytes; valid until the next reserve, release or call.
+
+   .. cpp:function:: ParagraphGlyphRuns glyph_runs(const ParagraphMetrics& metrics) const noexcept
+
+      The glyph runs a successful lay_out_paragraph with storage() wrote, given its metrics; valid until the next reserve, release or call.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphGlyphRuns final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   A laid-out paragraph's glyph runs (ParagraphGlyphOutput::runs), borrowed from the storage it was laid out into: its metrics' glyph_source, and the leading glyph_run_count runs and glyph_count glyphs of the storage's arrays (ParagraphBuffers::glyph_runs gives them).
+
+   .. cpp:member:: GlyphSource source
+
+   .. cpp:member:: std::span<const GlyphRunRecord> runs
+
+   .. cpp:member:: std::span<const PositionedGlyph> glyphs
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ParagraphLayoutResult final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   The result of lay_out_paragraph and measure_paragraph: laid out with its metrics; storage too small, with what it needs; or a refused request. On storage_too_small the lines array holds the first lines it could hold (partial) when the per-byte arrays were large enough, and nothing was written otherwise. A refused request writes nothing.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool succeeded() const noexcept
+
+   .. cpp:function:: const ParagraphMetrics* metrics() const noexcept
+
+      The metrics of a laid-out paragraph; null otherwise. Valid while the result lives.
+
+   .. cpp:function:: const ParagraphStorageRequirement* required_storage() const noexcept
+
+      What a call whose storage was too small needs; null otherwise.
+
+   .. cpp:function:: std::optional<ParagraphRequestError> error() const noexcept
+
+      The error of a refused request; none otherwise.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static ParagraphLayoutResult laid_out(const ParagraphMetrics& metrics) noexcept
+
+   .. cpp:function:: static ParagraphLayoutResult storage_too_small(const ParagraphStorageRequirement& required) noexcept
+
+   .. cpp:function:: static ParagraphLayoutResult refused(ParagraphRequestError error) noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphLine final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   One laid-out line, positioned in the paragraph's box (its top left is the origin, y down).
+
+   .. cpp:member:: Utf8Range bytes
+
+      The line's text: the bytes and the characters (Unicode scalar values) it shows, its hanging trailing spaces and line end excluded. Offsets index the laid-out text: the caller's text, or the collapsed text under ParagraphWhiteSpace::collapse.
+
+   .. cpp:member:: ScalarRange characters
+
+   .. cpp:member:: Utf8Offset next_line_start
+
+      Where the next line's text begins: after this line's hanging spaces and line end. Equal to the text's size on the last line.
+
+   .. cpp:member:: double width
+
+      The line's width in logical pixels (see ParagraphFit), its left edge from the box's left edge (alignment applied; negative when a line overflows a right, end or centre alignment), and its baseline from the box's top.
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double baseline
+
+   .. cpp:member:: std::size_t first_glyph_run
+
+      The line's glyph runs under ParagraphGlyphOutput::runs: glyph_run_count records from first_glyph_run of ParagraphStorage::glyph_runs, in visual order, their ranges and clusters in the laid-out text's offsets and their positions from the line's origin. Zero otherwise.
+
+   .. cpp:member:: std::size_t glyph_run_count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphMetrics final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   A laid-out paragraph's size and what it cost.
+
+   .. cpp:member:: std::size_t line_count
+
+   .. cpp:member:: double height
+
+      line_count line boxes: zero for an empty text, which has no line.
+
+   .. cpp:member:: double widest_line
+
+   .. cpp:member:: TextResolutionStatus status
+
+      The least exact status the provider answered for the break opportunities, the cluster advances and every measurement (exact, estimated or a missing face), in TextResolutionStatus's order. It describes the text engine's answers only, never the fit: a provider using the white-space estimate for breaks (estimate_line_break_opportunities_utf8, TextMetricsProvider's default) makes it estimated at any width. Default: ``{TextResolutionStatus::exact}``.
+
+   .. cpp:member:: std::size_t overflowing_lines
+
+      The lines wider than ParagraphStyle::width (beyond the fit tolerance). When nothing fits (a width of zero, or narrower than a cluster) each line holds the smallest unit the overflow rule allows, a word under ParagraphOverflowWrap::normal and a cluster under break_word, and every line with visible text overflows. Zero when every line fits.
+
+   .. cpp:member:: std::uint64_t shaping_calls
+
+      Provider shaping calls (the cluster advances, each whole-run measurement and, under ParagraphGlyphOutput::runs, each line shaped for its glyphs) and the bytes they shaped: what the layout cost. A measurement of the run the workspace has just shaped (a one-line paragraph's line) is read from it and not counted.
+
+   .. cpp:member:: std::uint64_t shaped_bytes
+
+   .. cpp:member:: std::size_t laid_out_bytes
+
+      The size of the laid-out text (the collapsed size under collapse).
+
+   .. cpp:member:: GlyphSource glyph_source
+
+      Under ParagraphGlyphOutput::runs, the engine that shaped the glyph runs and the runs and glyphs written (ParagraphGlyphRuns); the zero source when none were filled (no glyph output, no workspace the provider accepts, or a line the workspace could not stage).
+
+   .. cpp:member:: std::size_t glyph_run_count
+
+   .. cpp:member:: std::size_t glyph_count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphPaint final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   How paint_paragraph places a paragraph: ``origin`` is its box's top left in the painter's coordinates, ``visible`` the part of those coordinates worth drawing (lines whose line box misses it vertically are skipped without being visited), and each baseline is snapped to ``device_scale``'s pixels with snap_text_baseline, as controls snap theirs.
+
+   .. cpp:member:: Point origin
+
+   .. cpp:member:: Color color
+
+   .. cpp:member:: double device_scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: Rect visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphStorage final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   The caller's storage for one call, borrowed for the call only; nothing is retained. The arrays must not overlap each other or the text. - lines (output): one record per line, in order; only lay_out_paragraph writes it. - collapsed_text (output, collapse only): the collapsed text, which the line ranges index and which paint_paragraph must be given. - opportunities and advances (scratch): one element per laid-out byte; their contents after a call are unspecified. - glyph_runs and glyphs (output, ParagraphGlyphOutput::runs only): every line's runs, then every line's glyphs, line after line; only lay_out_paragraph writes them. - workspace (borrowed, optional): the provider's shaping workspace (TextMetricsProvider::create_shaping_workspace), holding at least the laid-out size; every shaping of the call goes through it. Null uses the provider's plain calls, and no glyph runs are filled. The call uses the leading elements it needs and leaves the rest as they were.
+
+   .. cpp:member:: std::span<ParagraphLine> lines
+
+   .. cpp:member:: std::span<char> collapsed_text
+
+   .. cpp:member:: std::span<LineBreakOpportunity> opportunities
+
+   .. cpp:member:: std::span<double> advances
+
+   .. cpp:member:: std::span<GlyphRunRecord> glyph_runs
+
+   .. cpp:member:: std::span<PositionedGlyph> glyphs
+
+   .. cpp:member:: ShapingWorkspace* workspace
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphStorageRequirement final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   What a call needs. per_byte is the size of the laid-out text (the collapsed size under collapse): the element count opportunities and advances need, the bytes a workspace must hold, and collapsed_text too under collapse (zero otherwise). lines is exact when the per-byte arrays were large enough to lay the text out, and otherwise per_byte, the most lines a text of that size can have (every line holds at least one byte), so storage of these sizes always succeeds on the next call. Under ParagraphGlyphOutput::runs, glyph_runs and glyphs are the runs and glyphs of every line: exact after a call that laid the text out, and otherwise per_byte each, which bounds the runs (each holds a byte of its line) and holds the glyphs of any text shaped into at most one glyph a byte (a call that needs more says so). Zero for ParagraphGlyphOutput::none.
+
+   .. cpp:member:: std::size_t per_byte
+
+   .. cpp:member:: std::size_t collapsed_bytes
+
+   .. cpp:member:: std::size_t lines
+
+   .. cpp:member:: std::size_t glyph_runs
+
+   .. cpp:member:: std::size_t glyphs
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ParagraphStyle final
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   What one call lays out. ``font`` is the effective font, already scaled (Control::text_font, or the font and text scale a window applies), and ``line_box`` is paragraph_line_box's answer for it: computing it once per font keeps that resolution out of every row.
+
+   .. cpp:member:: FontSpec font
+
+   .. cpp:member:: LineBoxMetrics line_box
+
+   .. cpp:member:: double width
+
+      The line width in logical pixels: finite and not negative.
+
+   .. cpp:member:: ParagraphWhiteSpace white_space
+
+      Default: ``{ParagraphWhiteSpace::preserve_line_ends}``.
+
+   .. cpp:member:: ParagraphOverflowWrap overflow_wrap
+
+      Default: ``{ParagraphOverflowWrap::normal}``.
+
+   .. cpp:member:: ParagraphFit fit
+
+      Default: ``{ParagraphFit::verified}``.
+
+   .. cpp:member:: ParagraphGlyphOutput glyph_output
+
+      Default: ``{ParagraphGlyphOutput::none}``.
+
+   .. cpp:member:: TextAlignment alignment
+
+      Where each line sits in ``width``, as TextBlock's ``text_align``; start and end follow ``direction``. Default: ``{TextAlignment::start}``.
+
+   .. cpp:member:: TextDirection direction
+
+      Default: ``{TextDirection::left_to_right}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PositionedGlyph final
+
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+
+   One glyph as the engine placed it: its id in its run's face, the byte offset of the first byte of its cluster (in the text the offsets of its run index), and its pen position in logical pixels from the run sequence's origin on the baseline (x right, y down), offsets and letter spacing included. These are the positions Painter::draw_text_utf8 draws the same text at.
+
+   .. cpp:member:: GlyphId glyph
+
+   .. cpp:member:: Utf8Offset cluster
+
+   .. cpp:member:: float x
+
+   .. cpp:member:: float y
 
 .. cpp:namespace:: gui_forms
 
@@ -1300,6 +1922,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ShapedGlyphCounts final
+
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+
+   The runs and glyphs one shaping produced.
+
+   .. cpp:member:: std::size_t runs
+
+   .. cpp:member:: std::size_t glyphs
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ShapingFeature final
 
    ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
@@ -1337,6 +1971,41 @@ Related types
    .. cpp:member:: std::string_view language
 
    .. cpp:member:: std::span<const ShapingFeature> features
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ShapingWorkspace
+
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+
+   A text metrics provider's reusable shaping state (TextMetricsProvider::create_shaping_workspace): the provider creates it, the caller owns it (ParagraphBuffers holds one), and the provider shapes into it (TextMetricsProvider::shape_in_workspace_utf8) without allocating once it holds the text's size. It keeps the last shaping until the next one, which the reads below answer from. Use it with the provider that created it, on one thread at a time; a provider refuses a workspace of another (invalid_request).
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual std::size_t capacity_bytes() const noexcept = 0
+
+      The longest text, in bytes, one shaping takes without allocating.
+
+   .. cpp:function:: virtual void reserve(std::size_t text_bytes) = 0
+
+      Grows to shape texts of ``text_bytes`` bytes (never shrinks). It may allocate, and throws std::bad_alloc or std::length_error with the workspace unchanged when it cannot; it forgets the last shaping.
+
+   .. cpp:function:: virtual ShapedGlyphCounts shaped_counts() const noexcept = 0
+
+      The last shaping's runs and glyphs; zero when there is none (none yet, or the last one was refused).
+
+   .. cpp:function:: virtual GlyphSource glyph_source() const noexcept = 0
+
+      The engine and face table of the last shaping; the zero source when there is none.
+
+   .. cpp:function:: virtual bool fill_cluster_advances(std::span<double> advances) const noexcept = 0
+
+      Fills ``advances`` with the last shaping's cluster advances, under TextMetricsProvider::fill_cluster_advances_utf8's contract; its size must equal the shaped text's. False, writing nothing, when it does not or there is no shaping.
+
+   .. cpp:function:: virtual bool copy_glyphs(Utf8Offset text_offset, std::size_t first_glyph, std::span<GlyphRunRecord> runs, std::span<PositionedGlyph> glyphs) const noexcept = 0
+
+      Copies the last shaping's runs into ``runs`` and its glyphs into ``glyphs`` (at least shaped_counts() of each; the rest is left as it was), with ``text_offset`` added to every range and cluster and ``first_glyph`` to every run's first_glyph, so that a run's glyphs are found at its first_glyph in the array ``glyphs`` begins at element first_glyph of. False, writing nothing, when either span is too short or there is no shaping.
 
 .. cpp:namespace:: gui_forms
 
@@ -1823,6 +2492,18 @@ Related types
 
       Fills ``opportunities``, whose size must equal utf8.size(), with the line-break opportunity after each byte. Line breaking depends on the text only, not on a font. Returns invalid_request, with ``opportunities`` unchanged, for invalid UTF-8 or a size mismatch. The default is estimate_line_break_opportunities_utf8; the bundled text engine answers UAX #14's opportunities and returns exact.
 
+   .. cpp:function:: virtual TextResolutionStatus fill_cluster_advances_utf8(std::string_view utf8, FontSpec effective_font, std::span<double> advances)
+
+      Fills ``advances``, whose size must equal utf8.size(), from one shaping of the whole text in ``effective_font`` (the shaping resolve_text_layout_utf8 measures): each cluster's horizontal advance in logical pixels at the byte that begins it, and zero at every other byte. A cluster's advance includes the font's letter spacing, except for the text's last cluster in visual order. The advances' sum is the text's width; the sum over a range estimates that range shaped alone, without the kerning and contextual shaping across its ends (paragraph layout, include/gui_forms/text/paragraph_layout/). Returns the resolution's status, or invalid_request with ``advances`` unchanged for invalid UTF-8, an invalid font or a size mismatch. The default measures each scalar value alone with measure_text_extent_utf8, so its clusters are scalar values and it omits shaping between them; the bundled engine's painters answer from one shaping, with its clusters.
+
+   .. cpp:function:: virtual std::unique_ptr<ShapingWorkspace> create_shaping_workspace()
+
+      A reusable shaping workspace for shape_in_workspace_utf8 (include/gui_forms/typography/shaping_workspace/), empty of capacity; the caller owns it and reserves it before use. Null when the provider has none, which is the default: callers then use the calls above. The bundled engine's painters create one. May allocate.
+
+   .. cpp:function:: virtual TextExtent shape_in_workspace_utf8(ShapingWorkspace& workspace, std::string_view utf8, FontSpec effective_font)
+
+      One shaping of ``utf8`` in ``effective_font`` into ``workspace``, which this provider created and which holds at least utf8.size() bytes: the shaping measure_text_extent_utf8 measures and Painter::draw_text_utf8 draws, answered with the same extent and status, and kept in the workspace (its glyphs, runs and cluster advances) until the next shaping into it. With a reserved workspace the bundled engine allocates nothing here once each face the text needs has been opened. The status is invalid_request, with the workspace holding no shaping, for invalid UTF-8, an invalid font, a workspace of another provider or one too small, or (the default) a provider without workspaces.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: template <typename Position> TextRange final
@@ -1875,7 +2556,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::string_view utf8() const noexcept
+   .. cpp:function:: BorrowedText utf8() const& noexcept
 
       Returns the current contiguous UTF-8 view until the next mutation.
 
@@ -1907,7 +2588,7 @@ Related types
 
       Returns immutable byte and style-span limits.
 
-   .. cpp:function:: std::span<const TextStyleSpan> style_spans() const noexcept
+   .. cpp:function:: BorrowedSpan<TextStyleSpan> style_spans() const& noexcept
 
       Returns normalized nonoverlapping retained style spans.
 
@@ -2212,6 +2893,102 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: LocaleDirection
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:enumerator:: left_to_right
+
+   .. cpp:enumerator:: right_to_left
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: LocaleField
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:enumerator:: text
+
+   .. cpp:enumerator:: tool_tip
+
+   .. cpp:enumerator:: access_key
+
+   .. cpp:enumerator:: title
+
+   .. cpp:enumerator:: placeholder
+
+   .. cpp:enumerator:: header
+
+   .. cpp:enumerator:: accessible_name
+
+   .. cpp:enumerator:: accessible_description
+
+   .. cpp:enumerator:: help_line
+
+   .. cpp:enumerator:: help
+
+   .. cpp:enumerator:: keywords
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: LocaleFileError
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: xml
+
+   .. cpp:enumerator:: wrong_root
+
+   .. cpp:enumerator:: no_language
+
+   .. cpp:enumerator:: invalid_language
+
+   .. cpp:enumerator:: invalid_direction
+
+   .. cpp:enumerator:: too_many_records
+
+   .. cpp:enumerator:: language_mismatch
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: LocaleLayerKind
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:enumerator:: built_in
+
+   .. cpp:enumerator:: program
+
+   .. cpp:enumerator:: translation
+
+   .. cpp:enumerator:: user
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: LocaleRefusal
+
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+   .. cpp:enumerator:: invalid_stable_id
+
+   .. cpp:enumerator:: too_long
+
+   .. cpp:enumerator:: invalid_text
+
+   .. cpp:enumerator:: control_character
+
+   .. cpp:enumerator:: unbalanced_bidi
+
+   .. cpp:enumerator:: invalid_keywords
+
+   .. cpp:enumerator:: invalid_access_key
+
+   .. cpp:enumerator:: duplicate_record
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: MarkdownAlignment
 
    ``#include <gui_forms/text/markdown/markdown.hpp>``
@@ -2337,6 +3114,60 @@ Enumerations
    .. cpp:enumerator:: text
 
    .. cpp:enumerator:: line_break
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ParagraphFit
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   .. cpp:enumerator:: verified
+
+   .. cpp:enumerator:: estimated
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ParagraphGlyphOutput
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: runs
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ParagraphOverflowWrap
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: break_word
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ParagraphRequestError
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   .. cpp:enumerator:: invalid_utf8
+
+   .. cpp:enumerator:: invalid_font
+
+   .. cpp:enumerator:: invalid_width
+
+   .. cpp:enumerator:: invalid_line_box
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ParagraphWhiteSpace
+
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+   .. cpp:enumerator:: preserve_line_ends
+
+   .. cpp:enumerator:: collapse
 
 .. cpp:namespace:: gui_forms
 
@@ -2657,6 +3488,76 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/text/locale_file/locale_file.hpp>``
+
+.. cpp:function:: std::string_view locale_field_name(LocaleField field) noexcept
+
+   The field's name in the locale XML: "text", "tool-tip", "access-key", "title", "placeholder", "header", "accessible-name", "accessible-description", "help-line", "help" or "keywords". Static storage.
+
+.. cpp:function:: std::optional<LocaleField> find_locale_field(std::string_view name) noexcept
+
+   The field a locale XML name names, or nothing.
+
+.. cpp:function:: XmlLimits locale_xml_limits() noexcept
+
+   The XML reader's bounds for a locale file (translation design, revision B): 1 MiB, depth 256, 65,536 elements, 64 attributes, 256-byte names and 64 KiB values. The reader enforces the depth while it parses, before any walk of the tree, so every walk over a read file is bounded by it.
+
+.. cpp:function:: const std::optional<std::string>& locale_record_field(const LocaleRecord& record, LocaleField field) noexcept
+
+   The field of ``record`` named by ``field``. The reference borrows ``record``.
+
+.. cpp:function:: std::optional<std::string>& locale_record_field(LocaleRecord& record, LocaleField field) noexcept
+
+.. cpp:function:: bool locale_record_empty(const LocaleRecord& record) noexcept
+
+   Whether no field is present.
+
+.. cpp:function:: std::string_view locale_refusal_name(LocaleRefusal refusal) noexcept
+
+.. cpp:function:: std::optional<LocaleRefusal> check_locale_value(LocaleField field, std::string_view value, const LocaleLimits& limits = {})
+
+   Checks one value against its field's rules and bound: the refusal, or nothing when the value is acceptable. Display text only: no C0 controls but tab and line feed, balanced bidirectional controls, a well-formed keyword list for ``keywords`` and one grapheme for ``access-key``.
+
+.. cpp:function:: bool valid_language_tag(std::string_view tag) noexcept
+
+   Whether ``tag`` has the language tag shape LocaleFileInfo::language states.
+
+.. cpp:function:: std::string_view locale_file_error_name(LocaleFileError error) noexcept
+
+.. cpp:function:: void normalize_locale_help_body(std::string_view raw, std::string& body)
+
+   The ``<help>`` element's character data as a help body: a leading line end and the trailing white space go, and the indentation every non-blank line shares is removed, so a body indented to sit under its ``<control>`` reads as written. ``body`` is replaced.
+
+.. cpp:function:: LocaleReadResult read_locale(std::string_view utf8, const LocaleLimits& limits = {}, const XmlLimits& xml_limits = locale_xml_limits())
+
+   Reads a ``locales-<tag>.xml`` file. Expected faults never throw: a refused file gives its error, rejected fields are listed and left out. The walk over ``<control>`` elements recurses once per nesting level and is bounded by xml_limits.maximum_depth, which the XML reader enforced before the walk began.
+
+.. cpp:function:: XmlWriteResult write_locale(const LocaleLayer& records, const LocaleFileInfo& info, const XmlLimits& xml_limits = locale_xml_limits())
+
+   Writes ``records`` as a file read_locale accepts: ``<control>`` elements nested by segment, in segment order. The result's error is the XML writer's (an ID with more segments than the depth bound gives XmlError::depth_exceeded). A record whose ``help`` is present but empty and has no ``keywords`` writes no ``<help>``: an empty ``<help>`` element gives no body when read.
+
+.. cpp:function:: void locale_template_records(const LocaleCatalog& catalog, std::string_view language, LocaleLayer& records)
+
+   The template export (translation design 7, help system study section 4): every record of the built-in and program layers with the built-in text as values and, when ``language`` is the translation's, its translations over them, so a translator continues an existing translation. User overrides are never exported. Fills ``records`` (cleared first).
+
+.. cpp:function:: XmlWriteResult export_locale_template(const LocaleCatalog& catalog, std::string_view language, const XmlLimits& xml_limits = locale_xml_limits())
+
+   locale_template_records written as a locale file for ``language`` (the built-in language when empty).
+
+.. cpp:function:: bool locale_rescue_requested(std::span<const std::string_view> arguments, std::string_view environment_value) noexcept
+
+   The way back from outside the program (translation design 8): whether the command line holds ``--gui-forms-locale=builtin`` (or ``--gui-forms-locale builtin``), or the GUI_FORMS_LOCALE environment value the caller read is "builtin". The caller then sets LocaleCatalog::set_built_in_only.
+
+.. cpp:var:: constexpr std::size_t locale_field_count
+
+   Value: ``11U``.
+
+.. cpp:var:: constexpr std::size_t locale_maximum_ignored_diagnostics
+
+   The most ignored-name diagnostics one read keeps. Value: ``256U``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/text/localizable/localizable.hpp>``
 
 .. cpp:function:: std::vector<LocalizableLiteral> localizable_literals()
@@ -2713,6 +3614,34 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+
+.. cpp:function:: LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font, std::optional<double> line_height)
+
+   The line box every line of a paragraph in ``font`` shares, as TextBlock's: the provider's resolution of a space in the effective font, then line_box_metrics with ``line_height`` (a used line height in logical pixels, already scaled; none for ``line-height: normal``). A null provider uses estimate_text_layout_utf8. Resolving may allocate in the provider; call it once per font and keep the answer in ParagraphStyle.
+
+.. cpp:function:: ParagraphStorageRequirement paragraph_storage_bound(std::string_view text, ParagraphWhiteSpace white_space, ParagraphGlyphOutput glyph_output = ParagraphGlyphOutput::none) noexcept
+
+   The storage lay_out_paragraph needs for ``text`` before the line count is known: per_byte and collapsed_bytes exact, lines the bound per_byte, and under ``glyph_output`` runs glyph_runs and glyphs per_byte (see ParagraphStorageRequirement). It reads the text only (counting the collapsed size under collapse) and allocates nothing.
+
+.. cpp:function:: ParagraphLayoutResult lay_out_paragraph(TextMetricsProvider* provider, std::string_view text, const ParagraphStyle& style, const ParagraphStorage& storage)
+
+   Lays ``text`` out in ``style`` into ``storage``, through ``provider`` (a window's text_metrics_provider() or a Painter; null uses the renderer-free estimates). Inputs are read only; storage is written as ParagraphStorage states. The checks come first and change nothing: a refused request, then per-byte arrays (or a workspace) shorter than the text. Allocates nothing of its own. A workspace the provider refuses (one another provider made) is not used: the call goes on with the provider's plain calls. Not thread-safe with other calls into the same provider or workspace.
+
+.. cpp:function:: ParagraphLayoutResult measure_paragraph(TextMetricsProvider* provider, std::string_view text, const ParagraphStyle& style, const ParagraphStorage& storage)
+
+   The same layout without line records: the line count, height and widest line, for estimating rows (with ParagraphFit::estimated, one shaping per paragraph). storage.lines is ignored; the per-byte arrays (and collapsed_text under collapse) are required as for lay_out_paragraph.
+
+.. cpp:function:: std::size_t paint_paragraph(Painter& painter, std::string_view text, std::span<const ParagraphLine> lines, const ParagraphStyle& style, const ParagraphPaint& paint)
+
+   Draws laid-out lines with Painter::draw_text_utf8, one call per non-empty visible line at (origin.x + line.x, snapped origin.y + line.baseline), in style.font. ``text`` is the text the lines were laid out from (the collapsed text under collapse) and ``lines`` their records, unchanged since. A line whose range lies outside ``text`` stops the drawing. Returns the lines drawn. A theme part draws a line the same way: its text is text.substr(line.bytes) and paint_text_part_at takes the same origin and line.width.
+
+.. cpp:function:: std::size_t paint_paragraph(Painter& painter, std::string_view text, std::span<const ParagraphLine> lines, const ParagraphGlyphRuns& glyphs, const ParagraphStyle& style, const ParagraphPaint& paint)
+
+   As paint_paragraph above, drawing each line's glyph runs with Painter::draw_glyph_runs instead of shaping its text again, at the same origin: the same pixels with a painter of the engine that shaped them, and the text drawn otherwise. A line whose runs lie outside ``glyphs.runs`` is drawn as text; with the zero source every line is.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/text/types/text_types.hpp>``
 
 .. cpp:function:: Utf8ValidationResult validate_utf8(std::string_view text) noexcept
@@ -2766,6 +3695,10 @@ Functions, constants and aliases
 .. cpp:function:: TextResolutionStatus estimate_line_break_opportunities_utf8(std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept
 
    Deterministic renderer-free line breaking: a line may end after a run of spaces or tabs and must end after a line feed, or a carriage return not followed by one. Returns estimated, or invalid_request with ``opportunities`` unchanged as TextMetricsProvider's query does.
+
+.. cpp:function:: TextResolutionStatus estimate_cluster_advances_utf8(std::string_view utf8, FontSpec effective_font, std::span<double> advances) noexcept
+
+   The cluster advances matching estimate_text_layout_utf8: every scalar value a cluster of the estimate's width, the letter spacing after each but the last. Returns estimated, or invalid_request with ``advances`` unchanged as TextMetricsProvider's query does. Allocates nothing.
 
 .. cpp:function:: ResolvedTextLayout estimate_text_layout_utf8(std::string_view utf8, FontSpec effective_font) noexcept
 

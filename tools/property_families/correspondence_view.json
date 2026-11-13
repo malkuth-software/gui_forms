@@ -2,9 +2,9 @@
   "family": "CorrespondenceView",
   "step": "B6",
   "declaring": "CorrespondenceView",
-  "header": "include/gui_forms/controls/panel/correspondence_view/correspondence_view.hpp",
-  "source": "src/controls/panel/correspondence_view/correspondence_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/correspondence_view/correspondence_view_capabilities/correspondence_view_capabilities.hpp",
+  "header": "lab/include/gui_forms_lab/correspondence_view.hpp",
+  "source": "lab/src/correspondence_view.cpp",
+  "capabilities_header": "lab/include/gui_forms_lab/correspondence_view_capabilities.hpp",
   "base": "Panel",
   "shared": [
     "FontCapability"
@@ -200,6 +200,6 @@
   ],
   "test": {
     "type": "CorrespondenceView",
-    "include": "gui_forms/controls/panel/correspondence_view/correspondence_view.hpp"
+    "include": "gui_forms_lab/correspondence_view.hpp"
   }
 }

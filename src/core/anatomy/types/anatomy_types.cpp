@@ -59,6 +59,12 @@ constexpr std::array<std::string_view, part_role_count> part_role_names{
     "needle",
     "beak",
     "scrim",
+    "node",
+    "header",
+    "port",
+    "link",
+    "lamp",
+    "marquee",
 };
 static_assert(part_role_names.size() == part_role_count);
 

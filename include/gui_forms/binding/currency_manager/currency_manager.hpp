@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/binding_manager_base/binding_manager_base.hpp"
 
 
@@ -7,7 +8,7 @@ namespace gui_forms {
 
 class BindingSource;
 
-class CurrencyManager final : public BindingManagerBase {
+class GUI_FORMS_API CurrencyManager final : public BindingManagerBase {
 public:
     [[nodiscard]] std::size_t count() const noexcept override;
     [[nodiscard]] std::string current_stable_id() const override;

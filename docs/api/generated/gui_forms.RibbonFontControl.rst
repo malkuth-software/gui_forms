@@ -9,7 +9,7 @@ gui_forms::RibbonFontControl
 
 .. cpp:class:: RibbonFontControl final : public Control, public RibbonFontControlCapabilities<RibbonFontControl>
 
-   ``#include <gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp>``
+   ``#include <gui_forms/controls/ribbon_font_control.hpp>``
 
    A ribbon font control: a family list and a size list choosing one font.
 
@@ -138,7 +138,7 @@ gui_forms::RibbonFontControl
       The value shown: the command's, or the control's own. ``set_value`` sets it
       as the program does (the command's ``set_value`` when there is one).
 
-   .. cpp:function:: std::span<const std::string> families() const noexcept
+   .. cpp:function:: std::span<const std::string> families() const& noexcept
 
       The families offered, in order. :cpp:func:`set_families <gui_forms::RibbonFontControl::set_families>` throws
       ``std::invalid_argument`` for an empty, repeated, multi-line or invalid
@@ -148,7 +148,7 @@ gui_forms::RibbonFontControl
 
       Sets :cpp:func:`families <gui_forms::RibbonFontControl::families>`; see the property's description above.
 
-   .. cpp:function:: std::span<const double> sizes() const noexcept
+   .. cpp:function:: std::span<const double> sizes() const& noexcept
 
       The sizes offered, ascending. :cpp:func:`set_sizes <gui_forms::RibbonFontControl::set_sizes>` throws ``std::invalid_argument``
       for sizes that do not ascend or lie outside :cpp:class:`FontCommand <gui_forms::FontCommand>`'s range, or more
@@ -230,3 +230,57 @@ gui_forms::RibbonFontControl
    .. cpp:member:: constexpr std::size_t maximum_sizes
 
       Default: ``64U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 1 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``families``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``family_box``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``family_width``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``natural_size``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``size_box``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``size_width``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``sizes``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``set_field_widths``
+     - supported

@@ -2,7 +2,7 @@
 #include "../src/core/host/image/host_image_pixels.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/basic_controls.hpp"
-#include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>

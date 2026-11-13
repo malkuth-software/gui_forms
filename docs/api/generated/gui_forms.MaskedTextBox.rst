@@ -7,9 +7,9 @@ gui_forms::MaskedTextBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: MaskedTextBox final : public Panel, public MaskedTextBoxCapabilities<MaskedTextBox>
+.. cpp:class:: MaskedTextBox final : public TextBoxBase, public MaskedTextBoxCapabilities<MaskedTextBox>
 
-   ``#include <gui_forms/controls/panel/masked_text_box/masked_text_box.hpp>``
+   ``#include <gui_forms/controls/masked_text_box.hpp>``
 
    A text box that takes input through a mask.
 
@@ -130,6 +130,8 @@ gui_forms::MaskedTextBox
          Raised after the validation hook runs, with its :cpp:class:`MaskValidation <gui_forms::MaskValidation>` record.
 
    :Inherited:
+
+      From :cpp:class:`TextBoxBase <gui_forms::TextBoxBase>`: properties :cpp:func:`selection <gui_forms::TextBoxBase::selection>`, :cpp:func:`selected_text <gui_forms::TextBoxBase::selected_text>`, :cpp:func:`can_undo <gui_forms::TextBoxBase::can_undo>`; methods :cpp:func:`clear_undo_history <gui_forms::TextBoxBase::clear_undo_history>`, :cpp:func:`copy <gui_forms::TextBoxBase::copy>`, :cpp:func:`cut <gui_forms::TextBoxBase::cut>`, :cpp:func:`paste <gui_forms::TextBoxBase::paste>`, :cpp:func:`select <gui_forms::TextBoxBase::select>`, :cpp:func:`select_all <gui_forms::TextBoxBase::select_all>`, :cpp:func:`undo <gui_forms::TextBoxBase::undo>`.
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
 
@@ -389,6 +391,16 @@ gui_forms::MaskedTextBox
 
       *Protected.*
 
+   .. cpp:function:: detail::TextEditingEngine* editing_engine() const noexcept override
+
+      *Protected.*
+
+      TextBoxBase's hooks: the field's engine (null before initialize_control_tree), and the field's own select.
+
+   .. cpp:function:: void apply_selection(TextSelection selection) override
+
+      *Protected.*
+
    .. cpp:function:: virtual void on_mask_changed()
 
       *Protected.*
@@ -402,3 +414,233 @@ gui_forms::MaskedTextBox
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 38 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``MaskedTextBox``
+     - ``MaskedTextBox``
+     - supported
+   * - property
+     - ``AcceptsTab``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowPromptAsInput``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AsciiOnly``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``BeepOnError``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CanUndo``
+     - ``can_undo``
+     - supported
+   * - property
+     - ``Culture``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CutCopyMaskFormat``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``FormatProvider``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HidePromptOnLeave``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``InsertKeyMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsOverwriteMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Lines``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Mask``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaskCompleted``
+     - ``mask_completed``
+     - supported
+   * - property
+     - ``MaskedTextProvider``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaskFull``
+     - ``mask_full``
+     - supported
+   * - property
+     - ``PasswordChar``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``PromptChar``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ReadOnly``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RejectInputOnFirstFailure``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ResetOnPrompt``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ResetOnSpace``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``SkipLiterals``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TextAlign``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TextMaskFormat``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``UseSystemPasswordChar``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ValidatingType``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``WordWrap``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``AcceptsTabChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``IsOverwriteModeChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``MaskChanged``
+     - ``mask_changed``
+     - supported
+   * - event
+     - ``MaskInputRejected``
+     - ``mask_input_rejected``
+     - supported
+   * - event
+     - ``MultilineChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TextAlignChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``TypeValidationCompleted``
+     - ``type_validation_completed``
+     - supported
+   * - method
+     - ``ClearUndo``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetFirstCharIndexFromLine``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetFirstCharIndexOfCurrentLine``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnIsOverwriteModeChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnMaskChanged``
+     - ``on_mask_changed``
+     - unclassified (untested)
+   * - method
+     - ``OnTextAlignChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``ScrollToCaret``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``Undo``
+     - ``undo``
+     - supported
+   * - method
+     - ``ValidateText``
+     - ``validate_text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``provider``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``overwrite_mode_changed``
+     - supported
+   * - event
+     - ``Control.TextChanged``
+     - ``text_changed``
+     - supported
+   * - method
+     - ``TextBoxBase.Clear``
+     - ``clear``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``on_read_only_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``place_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_validator``
+     - supported

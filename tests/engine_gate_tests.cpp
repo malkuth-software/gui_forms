@@ -37,9 +37,44 @@
 // whose cost cannot be bounded is drawn by the built-in recipe) and
 // reduced motion.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/ribbon.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/part_shape/part_shape.hpp"
+#include "gui_forms/engine/part_table/engine_part_table.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
+#include "gui_forms/resources/types/image_resource_types.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
+#include "gui_forms/surface_material/presets/material_presets.hpp"
+#include "gui_forms/surface_material/procedural_fill/procedural_fill.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include "../src/core/engine/feature_samples/engine_feature_samples.hpp"
+#include "../src/core/engine/primitives/material/material_bake_policy.hpp"
+#include "../src/core/engine/primitives/material/material_primitive.hpp"
 #include "../src/core/image/png_writer.hpp"
 #include "../src/core/text/composite/text_composite.hpp"
 #include "support/rgba_order.hpp"
@@ -669,6 +704,31 @@ struct DrawnSample final {
     std::uint64_t signature{};
 };
 
+// Whether the bake budget refuses `sample` at `scale` by design: an
+// ornament gives way first (coordinator ruling, cp31 fold B). The glint's
+// face is past its cost bound (finish_kernel.hpp) at scale 2, so the
+// built-in recipe draws it there instead.
+bool gives_way(const EngineFeatureSample& sample, double scale) {
+    const bool glint = sample.name == std::string_view("finish_glint");
+    const bool past_bound = glint && scale >= 2.0;
+    return past_bound;
+}
+
+// The bake effort the material primitive charges `sample`'s part at
+// `scale`: its recipe's material over the sample's part box.
+std::uint64_t sample_bake_effort(const EngineFeatureSample& sample, double scale) {
+    const std::unique_ptr<ThemeDefinition> definition = sample_definition(sample, ImageId{});
+    const ControlRoleRecipes& button = (*definition).roles[static_cast<std::size_t>(ControlVisualRole::button)];
+    const SurfaceMaterial& material = button.ordinary.front().material;
+    PrimitiveTarget target{};
+    target.logical_size = Size{engine_samples::feature_sample_bounds.width, engine_samples::feature_sample_bounds.height};
+    target.scale = DeviceScale{scale};
+    target.material = &material;
+    target.corner_radius = engine_samples::feature_sample_corner_radius;
+    const engine_primitives::BakeEffort effort = engine_primitives::material_bake_effort(material, target);
+    return effort.units;
+}
+
 void every_feature_sample() {
     std::vector<DrawnSample> drawn_samples{};
     const std::span<const EngineFeatureSample> samples = engine_samples::builtin_feature_samples();
@@ -693,12 +753,26 @@ void every_feature_sample() {
             Window& window = *made.window;
             const MetricsSnapshot metrics = window.metrics_snapshot();
             const RasterCacheStatistics cache = window.engine_parts().cache_statistics();
-            require(metrics.engine_primitive_refusals == 0U, subject + ": the primitive draws it (nothing refused)");
+            const bool refused_by_design = gives_way(sample, scale);
+            if (refused_by_design) {
+                const std::uint64_t effort = sample_bake_effort(sample, scale);
+                const std::uint64_t budget = engine_primitives::maximum_material_bake_effort.units;
+                require(effort > budget, subject + ": its bake effort is past the budget");
+                require(metrics.engine_primitive_refusals > 0U, subject + ": the primitive gives way (refused)");
+                for (const SampleImage& image : images) {
+                    require(image.painter_calls > 0U, subject + " " + image.frame + ": the built-in recipe draws it");
+                }
+                manifest_lines.push_back("refused\t" + name + '\t' + scale_text.str() + '\t' + std::to_string(effort) +
+                                         '\t' + std::to_string(budget));
+                std::cout << subject << ": refused by design, bake effort " << effort << " of " << budget << '\n';
+            } else {
+                require(metrics.engine_primitive_refusals == 0U, subject + ": the primitive draws it (nothing refused)");
+                for (const SampleImage& image : images) {
+                    require(image.rasters > 0U, subject + " " + image.frame + ": a part raster is composited");
+                }
+            }
             require(cache.image_mask_fallbacks == 0U, subject + ": every image mask is drawn");
             require(cache.procedural_queued == 0U, subject + ": every procedural pattern is generated");
-            for (const SampleImage& image : images) {
-                require(image.rasters > 0U, subject + " " + image.frame + ": a part raster is composited");
-            }
             if (sample.drive != FeatureSampleDrive::rest) {
                 require(shows_drive(images), subject + ": its images show the drive");
             }
@@ -743,6 +817,7 @@ std::string_view fill_kind_name(MaterialFillKind kind) {
     case MaterialFillKind::image: return "image";
     case MaterialFillKind::conic_gradient: return "conic_gradient";
     case MaterialFillKind::procedural: return "procedural";
+    case MaterialFillKind::finish: return "finish";
     }
     return {};
 }
@@ -778,6 +853,21 @@ std::string_view linear_geometry_name(MaterialLinearGeometry geometry) {
     switch (geometry) {
     case MaterialLinearGeometry::endpoints: return "endpoints";
     case MaterialLinearGeometry::css_angle: return "css_angle";
+    }
+    return {};
+}
+
+std::string_view finish_kind_name(FinishKind kind) {
+    switch (kind) {
+    case FinishKind::dusty_matte: return "dusty_matte";
+    case FinishKind::orange_peel: return "orange_peel";
+    case FinishKind::hammertone: return "hammertone";
+    case FinishKind::wrinkle: return "wrinkle";
+    case FinishKind::bead_blast: return "bead_blast";
+    case FinishKind::sand_cast: return "sand_cast";
+    case FinishKind::flat: return "flat";
+    case FinishKind::cloth_weave: return "cloth_weave";
+    case FinishKind::glint: return "glint";
     }
     return {};
 }
@@ -907,6 +997,7 @@ std::vector<std::string> required_features() {
     add_values(keys, "space", coordinate_space_name);
     add_values(keys, "linear", linear_geometry_name);
     add_values(keys, "procedural", pattern_name);
+    add_values(keys, "finish", finish_kind_name);
     add_values(keys, "fill_blend", fill_blend_name);
     add_values(keys, "border", border_style_name);
     add_values(keys, "glow", glow_placement_name);
@@ -954,6 +1045,9 @@ void add_fill_features(std::vector<std::string>& keys, const MaterialFillLayer& 
     }
     if (fill.kind == MaterialFillKind::procedural) {
         add_key(keys, "procedural." + std::string(pattern_name(fill.procedural.pattern)));
+    }
+    if (fill.kind == MaterialFillKind::finish) {
+        add_key(keys, "finish." + std::string(finish_kind_name(fill.finish.kind)));
     }
 }
 
@@ -1259,10 +1353,11 @@ public:
     }
 
     // The composited image: premultiplied BGRA bytes, row after row.
-    [[nodiscard]] std::span<const std::byte> image_bytes() const {
+    [[nodiscard]] std::span<const std::byte> image_bytes() const& {
         const std::vector<std::uint32_t>& pixels = layers_.front().pixels;
         return std::as_bytes(std::span<const std::uint32_t>(pixels.data(), pixels.size()));
     }
+    std::span<const std::byte> image_bytes() const&& = delete;
 
 private:
     struct State final {

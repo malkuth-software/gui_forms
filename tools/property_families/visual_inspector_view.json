@@ -2,9 +2,9 @@
   "family": "VisualInspectorView",
   "step": "M-S6",
   "declaring": "VisualInspectorView",
-  "header": "include/gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp",
-  "source": "src/controls/visual_inspector_view/visual_inspector_view.cpp",
-  "capabilities_header": "include/gui_forms/controls/visual_inspector_view/visual_inspector_view_capabilities/visual_inspector_view_capabilities.hpp",
+  "header": "demo/lab_controls/include/gui_forms_demo/visual_inspector_view.hpp",
+  "source": "demo/lab_controls/src/visual_inspector_view.cpp",
+  "capabilities_header": "demo/lab_controls/include/gui_forms_demo/visual_inspector_view_capabilities.hpp",
   "base": "Control",
   "includes": [
     "gui_forms/basic_controls.hpp"
@@ -47,6 +47,6 @@
   "not_properties": [],
   "test": {
     "type": "VisualInspectorView",
-    "include": "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
+    "include": "gui_forms_demo/visual_inspector_view.hpp"
   }
 }

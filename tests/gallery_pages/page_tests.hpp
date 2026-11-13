@@ -10,6 +10,7 @@ namespace gallery_pages_tests {
 void test_catalog_pages_resolve_and_headers_describe_pages();
 void test_page_contract_and_rendering();
 void test_gallery_semantic_surface();
+void test_basics_card_dark_contrast();
 void test_anatomy_coverage();
 void test_schema_export();
 void test_every_page_scrolls_to_its_end();
@@ -52,6 +53,8 @@ void test_control_spectrum(gui_forms::Window& window);
 void test_input_and_rules(gui_forms::Window& window);
 void test_theme_settings(gui_forms::Window& window);
 void test_spinners_and_rings(gui_forms::Window& window);
+void test_industrial_surfaces(gui_forms::Window& window);
+void test_node_graphs(gui_forms::Window& window);
 void test_instruments(gui_forms::Window& window);
 void test_guided_tasks(gui_forms::Window& window);
 void test_help_book(gui_forms::Window& window);

@@ -5,7 +5,7 @@
 // is not a registry type (it is not made by id, has no schema entry and
 // borrows the grid's anatomy ID for its theme rules).
 
-#include "gui_forms/controls/data_grid_view/data_grid_view_cells.hpp"
+#include "gui_forms/controls/data_grid_view_cells.hpp"
 
 #include <cstdint>
 

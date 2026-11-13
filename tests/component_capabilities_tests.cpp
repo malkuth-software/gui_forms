@@ -6,7 +6,21 @@
 // window-bound components, that a write from another thread is refused before
 // anything is compared or stored.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/components/color_dialog/color_dialog.hpp"
+#include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp"
+#include "gui_forms/components/notify_icon/notify_icon.hpp"
+#include "gui_forms/components/open_file_dialog/open_file_dialog.hpp"
+#include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
+#include "gui_forms/components/tool_tip/tool_tip.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/host/image/host_image.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/tool_tips/tool_tips.hpp"
+#include "gui_forms/window/window.hpp"
 #include "headless_host.hpp"
 
 #include <chrono>

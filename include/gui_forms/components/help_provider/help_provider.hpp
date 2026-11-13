@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/types.hpp"
@@ -40,7 +41,7 @@ enum class HelpNavigator : std::uint8_t {
     keyword_index,
 };
 
-struct HelpRequestEvent final {
+struct GUI_FORMS_API HelpRequestEvent final {
     std::string target_stable_id;
     Point position{};
     std::string help_namespace;
@@ -51,7 +52,7 @@ struct HelpRequestEvent final {
     bool handled{};
 };
 
-struct HelpProviderSnapshot final {
+struct GUI_FORMS_API HelpProviderSnapshot final {
     std::size_t mappings{};
     std::size_t effective_mappings{};
     std::uint64_t requests{};
@@ -60,12 +61,19 @@ struct HelpProviderSnapshot final {
 
 // Help resolution is intentionally policy-free. The provider retains authored
 // metadata and routes F1/mouse requests, but never opens a browser, help file,
-// or network resource. Consumers or capability-gated plugins handle the event.
+// or network resource. It is a view onto the text record (help system study,
+// section 4): set_help_string writes the target's help_line and
+// set_help_keyword its keywords, and the getters read them, so a value set
+// on the control or through any provider is one value, a program value a
+// language file translates. clear() and disposal drop the provider's own
+// settings (navigator, show-help, its semantic description) and leave the
+// controls' fields. A value the target's field refuses (check_locale_value)
+// throws std::invalid_argument and changes nothing. Consumers or capability-gated plugins handle the event.
 // It is also offered the window's own help requests (a message box's Help
 // button or F1, Window::request_help) that no window handler took, after the
 // window's earlier-created providers, with its namespace and the root's
 // mapping where it has one.
-class HelpProvider final : public Component, public HelpProviderCapabilities<HelpProvider> {
+class GUI_FORMS_API HelpProvider final : public Component, public HelpProviderCapabilities<HelpProvider> {
 public:
     explicit HelpProvider(Window& window);
     ~HelpProvider() override;
@@ -89,7 +97,7 @@ public:
     [[nodiscard]] Event<HelpRequestEvent&>& help_requested() noexcept {
         return help_requested_;
     }
-    [[nodiscard]] HelpProviderSnapshot snapshot() const noexcept;
+    [[nodiscard]] HelpProviderSnapshot snapshot() const;
 
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
@@ -114,7 +122,7 @@ private:
     [[nodiscard]] Entry* find_entry(const Control& target);
     [[nodiscard]] const Entry* find_entry(const Control& target) const;
     [[nodiscard]] Entry& require_entry(const std::shared_ptr<Control>& target);
-    [[nodiscard]] bool entry_effective(const Entry& entry) const noexcept;
+    [[nodiscard]] bool entry_effective(const Entry& entry) const;
     void publish_semantics(Entry& entry);
     void erase_if_empty(std::uint64_t runtime_id);
     bool request_focused_help();

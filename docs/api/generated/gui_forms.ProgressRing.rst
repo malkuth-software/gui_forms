@@ -9,7 +9,7 @@ gui_forms::ProgressRing
 
 .. cpp:class:: ProgressRing final : public Control, public ProgressRingCapabilities<ProgressRing>
 
-   ``#include <gui_forms/controls/progress_ring/progress_ring.hpp>``
+   ``#include <gui_forms/controls/progress_ring.hpp>``
 
    Circular progress indicator of forty dots: lit in proportion to value over maximum, or a turning run while indeterminate, on the window's frame clock with reduced motion honoured.
 
@@ -146,3 +146,49 @@ gui_forms::ProgressRing
    .. cpp:member:: constexpr std::size_t progress_ring_property_count
 
       ProgressRing's property table: Control's entries, then its own. Default: ``Control::control_property_count + 3U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 3 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``fraction``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``indeterminate``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``lit_dots``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``maximum``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``moving``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``phase``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``progress_ring_property_entries``
+     - unclassified (untested)

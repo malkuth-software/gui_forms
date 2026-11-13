@@ -1,4 +1,4 @@
-#include "gui_forms/controls/button_base/link_label/link_label.hpp"
+#include "gui_forms/controls/link_label.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -162,7 +162,7 @@ void LinkLabel::on_paint(Painter& painter, Rect) {
     label.role = PartRole::label;
     label.family = family;
     label.states = states;
-    label.text = display;
+    label.text = lend_paint_text(display);
     label.font = text_font;
     label.bounds = {2.0, baseline - box_ascent, std::max(measured.width, bounds.width - 2.0), box_height};
     label.authored_foreground = foreground;

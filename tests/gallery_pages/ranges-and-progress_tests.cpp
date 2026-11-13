@@ -1,4 +1,10 @@
 #include "support.hpp"
+#include "gui_forms/controls/h_scroll_bar.hpp"
+#include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/progress_bar.hpp"
+#include "gui_forms/controls/sweep_scope.hpp"
+#include "gui_forms/controls/track_bar.hpp"
+#include "gui_forms/controls/v_scroll_bar.hpp"
 
 namespace gallery_pages_tests {
 

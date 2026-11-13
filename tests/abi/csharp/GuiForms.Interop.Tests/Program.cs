@@ -1,6 +1,7 @@
 // The C# interop against the built library: the generated layout against the
 // manifest, negotiation, an object handle's life, a refusal as an exception,
-// and the callback thunks. A handler that throws is caught by its thunk under
+// the callback thunks, and a native exception reflected as a NativeException
+// with its frames (C ABI 1.2). A handler that throws is caught by its thunk under
 // the library's frames, which it snapshots, and the thread's depth is as it
 // was once the call returns (the C kit checks the same balance for C
 // callbacks; tests/shadow_frames_tests.cpp for C++ unwinding).
@@ -226,6 +227,104 @@ internal static unsafe class Program
                        frames[1].subject == "csharp.posted",
                    "a posted callback's failure holds dispatch.run_pending and the posted frame");
         }
+    }
+
+    // Exception reflection (since 1.2): a handler that calls into the library
+    // and catches the native exception it raises there.
+    private static NativeException? caught_native;
+
+    private static void raising_handler(gf_event* @event)
+    {
+        try
+        {
+            fixed (byte* message = "thrown inside the library"u8)
+            {
+                Abi.check(Abi.diagnostics.raise_native_exception(Utf8.view(message, 25)));
+            }
+        }
+        catch (NativeException native)
+        {
+            caught_native = native;
+        }
+    }
+
+    // Off, a native exception is GF_STATUS_INTERNAL; on, Abi.check throws a
+    // NativeException that carries the frames it was thrown under, three deep
+    // here (dispatch.run_pending, the posted callback, the raise), through
+    // the named thunks.
+    private static void native_exception_reflection()
+    {
+        expect(!NativeException.reflection, "exception reflection is off until a program turns it on");
+        gf_status unreflected;
+        fixed (byte* message = "unreflected"u8)
+        {
+            unreflected = Abi.diagnostics.raise_native_exception(Utf8.view(message, 11));
+        }
+        expect(unreflected == Constants.GF_STATUS_INTERNAL, "without reflection a native exception is internal");
+        try
+        {
+            Abi.check(unreflected);
+            expect(false, "an internal failure is refused");
+        }
+        catch (NativeException)
+        {
+            expect(false, "without reflection no NativeException is raised");
+        }
+        catch (GuiFormsException refused)
+        {
+            expect(refused.status == Constants.GF_STATUS_INTERNAL && refused.Message == "unreflected",
+                   "without reflection the refusal carries the exception's text (" + refused.Message + ")");
+        }
+
+        NativeException.reflection = true;
+        try
+        {
+            expect(NativeException.reflection, "exception reflection reads on");
+            using ObjectHandle label = ObjectHandle.create("label"u8, "csharp.native"u8);
+            gf_callback callback = Callbacks.to_native(raising_handler);
+            gf_status posted = Abi.dispatch.begin_invoke(label.value, &callback);
+            if (posted != Constants.GF_STATUS_OK)
+            {
+                Callbacks.free_unregistered(callback);
+            }
+            Abi.check(posted);
+            ulong invoked = 0;
+            Abi.check(Abi.dispatch.run_pending(&invoked));
+            expect(invoked == 1u, "the raising callback ran");
+        }
+        finally
+        {
+            NativeException.reflection = false;
+        }
+        NativeException? native = caught_native;
+        expect(native != null, "the handler caught a NativeException");
+        if (native == null)
+        {
+            return;
+        }
+        expect(native.status == Constants.GF_STATUS_NATIVE_EXCEPTION && native.Message == "thrown inside the library" &&
+                   native.site == "c_abi" && native.table_id == Constants.GF_TABLE_DIAGNOSTICS &&
+                   native.slot_index == 7u,
+               "the exception carries the snapshot's status, text, site and function (" + native.Message + ")");
+        ShadowFrame[] frames = native.frames;
+        expect(frames.Length == 3 && native.depth == 3u, "the exception carries the three frames of the throw");
+        if (frames.Length == 3)
+        {
+            expect(frames[0].kind == Constants.GF_SHADOW_FRAME_KIND_LIBRARY_CALL &&
+                       frames[0].table_id == Constants.GF_TABLE_DISPATCH,
+                   "the outermost frame is dispatch.run_pending");
+            expect(frames[1].kind == Constants.GF_SHADOW_FRAME_KIND_POSTED_CALLBACK && frames[1].subject == "csharp.native",
+                   "the middle frame is the posted callback on its target (" + frames[1] + ")");
+            expect(frames[2].kind == Constants.GF_SHADOW_FRAME_KIND_LIBRARY_CALL &&
+                       frames[2].table_id == Constants.GF_TABLE_DIAGNOSTICS && frames[2].slot_index == 7u,
+                   "the innermost frame is the raise the exception unwound");
+        }
+        string trace = native.StackTrace ?? string.Empty;
+        expect(trace.Contains("NativeFrames.posted_callback") && trace.Contains("NativeFrames.library_call"),
+               "the stack trace reads the library's frames as named thunks");
+        expect(native.Data["shadow_frames"] is string, "the exception's data carries the frames as text");
+        expect(CallbackFailure.take_pending().Length == 0, "a caught native exception leaves no callback failure");
+        expect(ShadowStack.depth() == 0u, "no frame is left open after the reflected failure");
     }
 
     // GF_TABLE_SUBSURFACES (since 1.1) without a window: a host's state, a
@@ -536,6 +635,109 @@ internal static unsafe class Program
         expect(listening.id == 0u, "set_provider with no callbacks releases the provider");
     }
 
+    // GF_TABLE_HELP's language files (since 1.2, roadmap row 2.13): a help
+    // field set as a property, the template export, a user override read
+    // back with its origin, and the way back.
+    private const string help_built_in =
+        "<locale xml:lang=\"en\"><controls><control name=\"csharp\"><control name=\"help\" text=\"Help\" " +
+        "help-line=\"The C# help panel.\"><help keywords=\"help; csharp\">The panel C# reads.</help>" +
+        "</control></control></controls></locale>";
+
+    private const string help_user =
+        "<locale xml:lang=\"en\"><controls><control name=\"csharp\"><control name=\"help\" " +
+        "help-line=\"The user's own words.\"/></control></controls></locale>";
+
+    private static gf_status help_load(delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_status> load,
+                                       gf_object system, string xml)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(xml);
+        fixed (byte* data = bytes)
+        {
+            return load(system, Utf8.view(data, bytes.Length));
+        }
+    }
+
+    private static string help_field(in gf_help_table table, gf_object system, string stable_id,
+                                     gf_locale_field field, out gf_locale_origin origin)
+    {
+        byte[] id = Encoding.UTF8.GetBytes(stable_id);
+        byte[] text = new byte[512];
+        ulong required = 0;
+        gf_locale_origin found = 99u;
+        fixed (byte* id_data = id)
+        fixed (byte* text_data = text)
+        {
+            Abi.check(table.read_field(system, Utf8.view(id_data, id.Length), field, text_data, (ulong)text.Length,
+                                       &required, &found));
+        }
+        origin = found;
+        return Encoding.UTF8.GetString(text, 0, checked((int)required));
+    }
+
+    private static void help_language_files()
+    {
+        Abi.check(Exports.get_help_table(out gf_help_table table));
+        expect(table.struct_size >= (uint)sizeof(gf_help_table), "the help table carries the language-file slots");
+        using ObjectHandle system = ObjectHandle.create("help_book_system"u8, "csharp.help.system"u8);
+        using ObjectHandle root = ObjectHandle.create("panel"u8, "csharp.help"u8);
+        using ObjectHandle label = ObjectHandle.create("label"u8, "csharp.help.caption"u8);
+        Abi.check(Abi.objects.insert_child(root.value, label.value, 0u));
+        gf_object made = 0;
+        Abi.check(Abi.windows.create(root.value, &made));
+        using ObjectHandle window = ObjectHandle.adopt(made);
+        Abi.check(table.attach(system.value, window.value));
+        Abi.check(help_load(table.load_built_in, system.value, help_built_in));
+
+        byte[] line = Encoding.UTF8.GetBytes("Set from C#.");
+        gf_value value = default;
+        value.struct_size = (uint)sizeof(gf_value);
+        value.kind = Constants.GF_VALUE_KIND_TEXT;
+        fixed (byte* line_data = line)
+        fixed (byte* property = "help_line"u8)
+        {
+            value.text = Utf8.view(line_data, line.Length);
+            Abi.check(Abi.properties.set(label.value, Utf8.view(property, 9), &value));
+        }
+        string caption = help_field(table, system.value, "csharp.help.caption", Constants.GF_LOCALE_FIELD_HELP_LINE,
+                                    out gf_locale_origin caption_origin);
+        expect(caption == "Set from C#." && caption_origin == Constants.GF_LOCALE_ORIGIN_PROGRAM,
+               "a help line set as a property is the program's value (" + caption + ")");
+
+        ulong required = 0;
+        byte[] empty = Array.Empty<byte>();
+        fixed (byte* none = empty)
+        {
+            gf_status sized = table.export_template(system.value, Utf8.view(none, 0), null, 0u, &required);
+            expect(sized == Constants.GF_STATUS_BUFFER_TOO_SMALL && required > 0u, "the template's size comes first");
+        }
+        byte[] exported = new byte[checked((int)required)];
+        fixed (byte* none = empty)
+        fixed (byte* data = exported)
+        {
+            Abi.check(table.export_template(system.value, Utf8.view(none, 0), data, required, &required));
+        }
+        string template = Encoding.UTF8.GetString(exported);
+        expect(template.Contains("help-line=\"The C# help panel.\"") && template.Contains("Set from C#.") &&
+                   template.Contains("keywords=\"help; csharp\""),
+               "the template lists the built-in and program help fields");
+
+        Abi.check(help_load(table.load_user_overrides, system.value, help_user));
+        string overridden = help_field(table, system.value, "csharp.help", Constants.GF_LOCALE_FIELD_HELP_LINE,
+                                       out gf_locale_origin user_origin);
+        expect(overridden == "The user's own words." && user_origin == Constants.GF_LOCALE_ORIGIN_USER,
+               "the user's override reads back");
+        Abi.check(table.use_built_in_language(system.value, 1u));
+        string rescued = help_field(table, system.value, "csharp.help", Constants.GF_LOCALE_FIELD_HELP_LINE,
+                                    out gf_locale_origin rescued_origin);
+        expect(rescued == "The C# help panel." && rescued_origin == Constants.GF_LOCALE_ORIGIN_BUILT_IN,
+               "the way back shows the built-in text");
+        Abi.check(table.use_built_in_language(system.value, 0u));
+        Abi.check(table.clear_user_overrides(system.value));
+        gf_status refused = help_load(table.load_translation, system.value, "<locale/>");
+        expect(refused == Constants.GF_STATUS_INVALID_ARGUMENT, "a translation without a language is refused");
+        Abi.check(table.detach(system.value, window.value));
+    }
+
     private static int Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -549,9 +751,11 @@ internal static unsafe class Program
         window_help();
         posted_thunk();
         refused_call_carries_failures();
+        native_exception_reflection();
         subsurfaces();
         binding_list();
         binding_moves_and_filters();
+        help_language_files();
         expect(unhandled_raised == 0, "no failure in these checks ran under an event loop");
         Console.WriteLine(failures == 0 ? "gui_forms_abi_csharp: all checks passed" :
                                           $"gui_forms_abi_csharp: {failures} checks failed");

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/delegate.hpp"
@@ -28,7 +29,7 @@ struct BackgroundWorkerDelivery;
 // The one object the work function may touch on the worker thread: the
 // argument, the result, the cancellation request and progress reports. It
 // lives for one run; a run's work must not keep it after returning.
-class BackgroundWorkerTask final {
+class GUI_FORMS_API BackgroundWorkerTask final {
 public:
     BackgroundWorkerTask(const BackgroundWorkerTask&) = delete;
     BackgroundWorkerTask& operator=(const BackgroundWorkerTask&) = delete;
@@ -58,7 +59,7 @@ private:
 };
 
 // One progress report, delivered on the UI thread.
-struct BackgroundWorkerProgress final {
+struct GUI_FORMS_API BackgroundWorkerProgress final {
     int percent{};
     BindingValue user_state{};
 };
@@ -66,7 +67,7 @@ struct BackgroundWorkerProgress final {
 // The end of a run, delivered on the UI thread. `error` holds the exception
 // the work threw, if any, and `error_message` its what() text; `result` is
 // then empty. `cancelled` is true when the work acknowledged a cancellation.
-struct BackgroundWorkerCompleted final {
+struct GUI_FORMS_API BackgroundWorkerCompleted final {
     BindingValue result{};
     std::exception_ptr error{};
     std::string error_message{};
@@ -84,7 +85,7 @@ struct BackgroundWorkerCompleted final {
 // Execution contexts: every member function except the task's belongs to the
 // UI thread of the window given at construction. The work runs on the worker
 // thread and touches only its task and its own data.
-class BackgroundWorker final : public Component {
+class GUI_FORMS_API BackgroundWorker final : public Component {
 public:
     using Work = Delegate<BackgroundWorkerTask&>;
 

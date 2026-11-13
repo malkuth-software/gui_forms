@@ -16,10 +16,10 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/component/failures/component_failures.hpp"
 #include "gui_forms/control.hpp"
-#include "gui_forms/controls/panel/list_box/list_box.hpp"
-#include "gui_forms/controls/panel/list_view/list_view.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
-#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
+#include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/controls/list_view.hpp"
+#include "gui_forms/controls/tab_control.hpp"
+#include "gui_forms/controls/tab_page.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/window.hpp"
 
@@ -382,6 +382,54 @@ void optional_text(const Tables& tables) {
     require_ok(tables.objects.release(view), "release the list view");
 }
 
+// The checked build's lent scratch (borrow sanitizer study section 2.5): a
+// callback that keeps a field's text past its invoke. Mode `kept_record`
+// reads the kept text after the emission; under AddressSanitizer the
+// library poisoned it when the invoke returned, so the read is reported and
+// the process ends before it prints "survived" (registered only in the
+// checked sanitizer tree).
+struct KeptText final {
+    const char* text = nullptr;
+    std::uint64_t size = 0U;
+};
+
+void GF_CALL keep_text_invoke(void* context, gf_event* event) {
+    KeptText& kept = *static_cast<KeptText*>(context);
+    for (std::uint64_t index = 0U; index < (*event).field_count; ++index) {
+        const gf_value& value = *(*event).fields[index].value;
+        if (value.kind == GF_VALUE_KIND_TEXT && value.text.size != 0U) {
+            kept.text = value.text.data;
+            kept.size = value.text.size;
+            return;
+        }
+    }
+}
+
+int kept_record_mode() {
+    const Tables tables = load_tables();
+    const gf_object view = create(tables, "list_view", "fields.kept");
+    const std::shared_ptr<ListView> control = control_of<ListView>(view);
+    KeptText kept;
+    gf_callback callback{};
+    callback.struct_size = sizeof(gf_callback);
+    callback.invoke = &keep_text_invoke;
+    callback.context = &kept;
+    gf_subscription subscription = 0U;
+    require_ok(tables.events.subscribe(view, text_view("before_label_edit"), &callback, &subscription),
+               "subscribe before_label_edit");
+    ListViewLabelEdit edit{"list", 0U, "item", std::nullopt, false};
+    (*control).before_label_edit().emit(edit);
+    if (kept.text == nullptr) {
+        std::cerr << "FAIL: no text field was lent\n";
+        return 1;
+    }
+    // The invoke is over: this read is the caller's defect the checked
+    // build exposes.
+    const char first = kept.text[0];
+    std::cout << "read " << static_cast<int>(first) << "\nsurvived\n";
+    return 0;
+}
+
 // initialization_completed: two arguments, one a combination of flags.
 void GF_CALL two_arguments_invoke(void* context, gf_event* event) {
     Probe& probe = *static_cast<Probe*>(context);
@@ -613,7 +661,10 @@ void failure_statuses() {
 
 } // namespace
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc == 2 && std::string_view(argv[1]) == "kept_record") {
+        return kept_record_mode();
+    }
     try {
         const Tables tables = load_tables();
         cancellable_selection(tables);

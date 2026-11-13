@@ -9,7 +9,7 @@ gui_forms::PlotView
 
 .. cpp:class:: PlotView final : public Control, public PlotViewCapabilities<PlotView>
 
-   ``#include <gui_forms/controls/plots/plot_view/plot_view.hpp>``
+   ``#include <gui_forms/controls/plot_view.hpp>``
 
    Retained declarative plot from the plots package: axes, series and annotations declared as item children, with pan, zoom, box zoom, query and point picking, a keyboard point cursor, a figure node with a summary and a table view, and an optional live sub-surface.
 
@@ -269,11 +269,31 @@ gui_forms::PlotView
 
       *Protected.*
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
 
       *Protected.*
 
-   .. cpp:function:: void on_key(KeyEvent& event) override
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_up(KeyEventArgs& arguments) override
 
       *Protected.*
 
@@ -286,3 +306,133 @@ gui_forms::PlotView
    .. cpp:member:: constexpr std::size_t plot_view_property_count
 
       PlotView's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 11 unclassified; 29 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``crosshair``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``frames_run``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``live``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``live_column_copies``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``live_host``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``plot_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``query``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``series_items``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``show_grid``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``show_legend``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``summary``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``table_row_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``table_text``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``title``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``view_model``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``legend_toggled``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``point_picked``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``selection_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``view_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_query``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``fit_view``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``plot_view_property_entries``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``reset_view``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_x_range``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_y_range``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``take_live_notice``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``toggle_series``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``x_range``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``y_range``
+     - supported

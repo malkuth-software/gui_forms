@@ -1,8 +1,19 @@
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/resources/types/image_resource_types.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <optional>
+#include <string_view>
 #include <span>
 #include <stdexcept>
 #include <thread>
@@ -445,6 +456,99 @@ void scoped_window_replacement_damage() {
             "scoped raw-surface patch did not retain exact local damage");
 }
 
+// Draws `image` over its client area at every paint.
+class ImageProbe final : public Control {
+public:
+    explicit ImageProbe(StableId id) : Control(std::move(id)) {}
+
+    void on_paint(Painter& painter, Rect local_damage) override {
+        Control::on_paint(painter, local_damage);
+        painter.draw_image(image, client_rectangle(), 1.0);
+    }
+
+    ImageId image{};
+};
+
+// Counts the image draws a paint pass replays.
+class ImageCountingPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId image, Rect, double) override {
+        ++images;
+        last_image = image;
+    }
+
+    std::uint64_t images{};
+    ImageId last_image{};
+};
+
+// A generation-advancing patch returns the identity that replaces the one
+// passed in. The old identity is then refused by a patch and a live update
+// (stale_image_id, nothing changed) and by a draw (recorded as nothing),
+// each refusal counted in stale_image_refusals; the returned identity
+// patches and draws.
+void stale_image_identity_refusals() {
+    std::shared_ptr<gui_forms::Control> root = make_control<Control>(StableId("resource.stale.root"));
+    std::shared_ptr<ImageProbe> probe = make_control<ImageProbe>(StableId("resource.stale.probe"));
+    (*root).set_requested_bounds({0.0, 0.0, 32.0, 32.0});
+    (*probe).set_requested_bounds({4.0, 4.0, 8.0, 8.0});
+    (*root).add_child(probe);
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{32.0, 32.0});
+    Window& window = *held_window;
+    window.perform_layout();
+
+    const std::array<std::byte, 16> raw{};
+    const ImageLoadResult loaded = window.load_bgra32_premultiplied(2, 2, 8, raw);
+    require(static_cast<bool>(loaded), "the raw surface loads");
+    (*probe).image = loaded.image;
+    ImageCountingPainter painter;
+    require(window.paint(painter).has_value(), "the first frame paints");
+    require(painter.images == 1U && painter.last_image == loaded.image &&
+                window.metrics_snapshot().stale_image_refusals == 0U,
+            "a held identity draws and refuses nothing");
+
+    const std::array<std::byte, 4> pixel{std::byte{255}, std::byte{0}, std::byte{0}, std::byte{255}};
+    const ImageLoadResult patched = window.patch_bgra32_premultiplied(
+        loaded.image, 0, 0, 1, 1, 4, pixel, *probe, {0.0, 0.0, 8.0, 8.0});
+    require(static_cast<bool>(patched) && !(patched.image == loaded.image),
+            "a patch returns the identity that replaces the old one");
+    require(!window.image_resources().find(loaded.image).has_value(), "the old identity is stale");
+
+    const ImageLoadResult stale_patch = window.patch_bgra32_premultiplied(
+        loaded.image, 1, 1, 1, 1, 4, pixel, *probe, {0.0, 0.0, 8.0, 8.0});
+    require(!stale_patch && stale_patch.error == ImageResourceError::stale_image_id,
+            "a patch of the old identity is refused as stale");
+    require(window.metrics_snapshot().stale_image_refusals == 1U, "the stale patch is counted");
+    const ImageLoadResult stale_update = window.update_bgra32_premultiplied(loaded.image, 2, 2, 8, raw, *probe);
+    require(!stale_update && stale_update.error == ImageResourceError::stale_image_id &&
+                window.metrics_snapshot().stale_image_refusals == 2U,
+            "an update of the old identity is refused and counted");
+    const std::optional<ImageResourceView> kept = window.image_resources().find(patched.image);
+    require(kept.has_value() && static_cast<std::uint8_t>((*kept).encoded[0]) == 255U &&
+                static_cast<std::uint8_t>((*kept).encoded[4 * 2 + 4]) == 0U,
+            "the refusals changed nothing");
+
+    // The probe, damaged by the patch, records its paint again with the old
+    // identity: the draw is refused and counted.
+    require(window.paint(painter).has_value(), "the frame after the patch paints");
+    require(painter.images == 1U && window.metrics_snapshot().stale_image_refusals == 3U,
+            "a draw of the old identity is refused and counted");
+
+    (*probe).image = patched.image;
+    (*probe).invalidate(Dirty::paint);
+    require(window.paint(painter).has_value(), "the frame with the new identity paints");
+    require(painter.images == 2U && painter.last_image == patched.image &&
+                window.metrics_snapshot().stale_image_refusals == 3U,
+            "the returned identity draws and refuses nothing");
+}
+
 } // namespace
 
 // A moved-from registry is empty with zero accounting and can be reused up
@@ -499,5 +603,6 @@ int main() {
     bounded_patch_stride_and_revision_contract();
     window_thread_boundary();
     scoped_window_replacement_damage();
+    stale_image_identity_refusals();
     return 0;
 }

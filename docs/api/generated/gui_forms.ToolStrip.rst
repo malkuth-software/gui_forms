@@ -9,7 +9,7 @@ gui_forms::ToolStrip
 
 .. cpp:class:: ToolStrip : public Control, public ToolStripCapabilities<ToolStrip>
 
-   ``#include <gui_forms/controls/tool_strip/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>``
 
    A command strip of buttons, labels, separators and drop-down buttons.
 
@@ -54,7 +54,7 @@ gui_forms::ToolStrip
       **end_reserve** : ``double``
          For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it. Zero by default. A width that is negative, not finite or over 64 throws std::invalid_argument.
 
-      **items** : ``std::vector<ToolStripItemSpec>``
+      **items** : ``BorrowedSpan<ToolStripItemSpec>``
          The items, in strip order. :cpp:func:`set_items <gui_forms::ToolStrip::set_items>` replaces them and throws
          ``std::invalid_argument`` for a repeated ID or one that breaks the
          :cpp:class:`StableId <gui_forms::StableId>` segment rule (hosted controls and overflow menu rows are named
@@ -245,7 +245,7 @@ gui_forms::ToolStrip
 
       For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it. Zero by default. A width that is negative, not finite or over 64 throws std::invalid_argument.
 
-   .. cpp:function:: const std::vector<ToolStripItemSpec>& items() const noexcept
+   .. cpp:function:: BorrowedSpan<ToolStripItemSpec> items() const& noexcept
 
       The items, in strip order. :cpp:func:`set_items <gui_forms::ToolStrip::set_items>` replaces them and throws
       ``std::invalid_argument`` for a repeated ID or one that breaks the
@@ -355,10 +355,6 @@ gui_forms::ToolStrip
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
-
-   .. cpp:function:: void on_key(KeyEvent& event) override
-
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -374,6 +370,40 @@ gui_forms::ToolStrip
    .. cpp:function:: std::string realized_item_stable_id(std::size_t item) const override
 
    .. cpp:function:: AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void strip_pointer(MouseEventArgs& arguments)
+
+      *Protected.*
+
+      ToolStrip's own pointer and key handling, which its raisers run before raising the event. A derived strip that handles first calls them from its raisers and raises the event through Control. strip_pointer takes a press, release, move or wheel (by arguments.action).
+
+   .. cpp:function:: void strip_pointer_left()
+
+      *Protected.*
+
+   .. cpp:function:: void strip_key_down(KeyEventArgs& arguments)
+
+      *Protected.*
 
    .. cpp:function:: const Layout& layout() const
 
@@ -420,3 +450,389 @@ gui_forms::ToolStrip
       *Protected.*
 
       The strip's own parts, as ToolStrip publishes them.
+
+.. rubric:: Windows Forms correspondence
+
+Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 15 supported, 0 deferred, 2 excluded, 76 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - constructor
+     - ``ToolStrip``
+     - ``ToolStrip``
+     - supported
+   * - property
+     - ``AllowClickThrough``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowItemReorder``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AllowMerge``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``AutoScrollMargin``
+     - on ``CommandBar``
+     - unclassified (carried)
+   * - property
+     - ``AutoScrollMinSize``
+     - on ``CommandBar``
+     - unclassified (carried)
+   * - property
+     - ``AutoScrollPosition``
+     - on ``CommandBar``
+     - unclassified (carried)
+   * - property
+     - ``BackColor``
+     - ``back_color``
+     - unclassified (untested)
+   * - property
+     - ``CanOverflow``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``CausesValidation``
+     - ``causes_validation``
+     - unclassified (untested)
+   * - property
+     - ``Controls``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultDock``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultDropDownDirection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultGripMargin``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DefaultShowItemToolTips``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``DisplayedItems``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ForeColor``
+     - ``fore_color``
+     - unclassified (untested)
+   * - property
+     - ``GripDisplayStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GripMargin``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GripRectangle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``GripStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HasChildren``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``HorizontalScroll``
+     - on ``CommandBar``
+     - unclassified (carried)
+   * - property
+     - ``ImageList``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ImageScalingSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsCurrentlyDragging``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``IsDropDown``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Items``
+     - ``items``
+     - supported
+   * - property
+     - ``LayoutSettings``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``LayoutStyle``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``MaxItemSize``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Orientation``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``OverflowButton``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Renderer``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``RenderMode``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``ShowItemToolTips``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``Stretch``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``TabStop``
+     - ``tab_stop``
+     - unclassified (untested)
+   * - property
+     - ``TextDirection``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - ``VerticalScroll``
+     - on ``CommandBar``
+     - unclassified (carried)
+   * - event
+     - ``AutoSizeChanged``
+     - ``auto_size_changed``
+     - unclassified (untested)
+   * - event
+     - ``BeginDrag``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CausesValidationChanged``
+     - ``causes_validation_changed``
+     - unclassified (untested)
+   * - event
+     - ``ControlAdded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ControlRemoved``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``CursorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``EndDrag``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ForeColorChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemAdded``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``ItemClicked``
+     - ``item_clicked``
+     - supported
+   * - event
+     - ``ItemRemoved``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``LayoutCompleted``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``LayoutStyleChanged``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``PaintGrip``
+     - none
+     - unclassified (unmatched)
+   * - event
+     - ``RendererChanged``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreateDefaultItem``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``CreateLayoutSettings``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetChildAtPoint``
+     - ``get_child_at_point``
+     - unclassified (untested)
+   * - method
+     - ``GetItemAt``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``GetNextItem``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``OnBeginDrag``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnEndDrag``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemAdded``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemClicked``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnItemRemoved``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnLayoutCompleted``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnLayoutStyleChanged``
+     - none
+     - unclassified (hook)
+   * - method
+     - ``OnPaintGrip``
+     - none
+     - excluded: the grip is painted by role (T4); no renderer hook (On\* hooks (d) list)
+   * - method
+     - ``OnRendererChanged``
+     - none
+     - excluded: ToolStripRenderer is replaced by the theme engine; there is no renderer object (On\* hooks (d) list)
+   * - method
+     - ``ResetMinimumSize``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``RestoreFocus``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetAutoScrollMargin``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetDisplayedItems``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetItemLocation``
+     - none
+     - unclassified (unmatched)
+   * - method
+     - ``SetItemParent``
+     - none
+     - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``content_length``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``drop_down_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``focused_item_id``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``overflow_item_ids``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``realized_items``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``drop_down_item_invoked``
+     - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``item_focus_changed``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``close_drop_down``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``combo_box``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``item_checked``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``item_id_at``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``progress_bar``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_item_checked``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_item_text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``show_drop_down``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``show_overflow``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``text_box``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``validate_items``
+     - unclassified (untested)

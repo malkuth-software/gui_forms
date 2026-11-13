@@ -50,10 +50,6 @@ font : default content role, 12 points
     The body font. Headings scale it and are set bold; code is set in the
     monospace role at its size. An invalid `FontSpec` throws
     `std::invalid_argument`.
-selection
-    The selection as byte offsets into the source on grapheme boundaries.
-selected_text
-    The selected source.
 selection_format
     The formatting at the selection, as the bar shows it, each format on,
     off or mixed (`RichTextFormatState`): a span style is on when every
@@ -88,11 +84,6 @@ rtf
     report counts what the conversion could not carry.
 clear
     Empties the document and clears the history.
-select
-    Sets the selection from an anchor and a caret offset. Both must lie on
-    grapheme boundaries of the source, or it throws `std::out_of_range`.
-select_all
-    Selects the whole source.
 toggle_bold
     Wraps the selection's text on each line it covers in ``**``, or removes
     the delimiters that already wrap it; with an empty selection it inserts
@@ -121,18 +112,8 @@ replace_selection
     source would pass `maximum_bytes`.
 delete_selection
     Removes the selection as one undoable edit.
-undo
-    Restores the source and selection before the last edit or command.
 redo
     Reapplies the last undone step.
-clear_undo_history
-    Forgets every undo and redo step.
-copy
-    Copies the selected source to the clipboard.
-cut
-    Copies the selection and then deletes it.
-paste
-    Replaces the selection with the clipboard's text, as source.
 visual_line_count
     The number of displayed lines after wrapping.
 

@@ -67,9 +67,10 @@ std::uint32_t GrayTextMask::height() const noexcept { if (!storage_) return 0; r
 std::int32_t GrayTextMask::left() const noexcept { if (!storage_) return 0; return (*storage_).left; }
 std::int32_t GrayTextMask::top() const noexcept { if (!storage_) return 0; return (*storage_).top; }
 PreparedTextMetrics GrayTextMask::metrics() const noexcept { if (!storage_) return {}; return (*storage_).metrics; }
-std::span<const std::uint8_t> GrayTextMask::pixels() const noexcept {
-    if (!storage_) return {};
-    const std::span<const std::uint8_t> view((*storage_).pixels.get(), (*storage_).pixel_count);
+BorrowedSpan<std::uint8_t> GrayTextMask::pixels() const noexcept {
+    if (!storage_) return BorrowedSpan<std::uint8_t>();
+    const std::uint8_t* const first = (*storage_).pixels.get();
+    BorrowedSpan<std::uint8_t> view = detail::lend_view(first, (*storage_).pixel_count, (*storage_).lender);
     return view;
 }
 

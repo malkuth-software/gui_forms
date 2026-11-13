@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <concepts>
 #include <cstddef>
 #include <string>
@@ -35,12 +36,12 @@ namespace gui_forms {
 namespace detail {
 // Not constexpr: calling it from StableIdLiteral's constructor makes an
 // invalid literal fail to compile.
-void stable_id_literal_is_not_dot_separated_lowercase_dash_segments() noexcept;
+GUI_FORMS_API void stable_id_literal_is_not_dot_separated_lowercase_dash_segments() noexcept;
 } // namespace detail
 
 // A stable ID written as a string literal, checked when the program is
 // compiled. It borrows the literal's static storage.
-class StableIdLiteral final {
+class GUI_FORMS_API StableIdLiteral final {
 public:
     template <std::size_t Size>
     consteval StableIdLiteral(const char (&literal)[Size]) : value_(literal, Size - 1U) {
@@ -48,7 +49,8 @@ public:
             detail::stable_id_literal_is_not_dot_separated_lowercase_dash_segments();
         }
     }
-    [[nodiscard]] constexpr std::string_view value() const noexcept { return value_; }
+    [[nodiscard]] constexpr std::string_view value() const& noexcept { return value_; }
+    std::string_view value() const&& = delete;
 
 private:
     std::string_view value_;
@@ -58,7 +60,7 @@ private:
 // and public construction seams. Runtime identity remains a separate concern.
 // Every stable ID satisfies valid_stable_id: a literal is checked when the
 // program is compiled, and a std::string when it is constructed.
-class StableId final {
+class GUI_FORMS_API StableId final {
 public:
     explicit StableId(StableIdLiteral literal) : value_(literal.value()) {}
     // A std::string or std::string_view built at run time. Throws
@@ -72,7 +74,8 @@ public:
     explicit StableId(Text&& value) : value_(std::forward<Text>(value)) {
         require_valid();
     }
-    [[nodiscard]] std::string_view value() const noexcept { return value_; }
+    [[nodiscard]] std::string_view value() const& noexcept { return value_; }
+    std::string_view value() const&& = delete;
     friend bool operator==(const StableId& left,
                            const StableId& right) noexcept {
         return left.value_ == right.value_;

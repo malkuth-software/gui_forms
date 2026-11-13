@@ -17,6 +17,7 @@
 // end. A handler may cancel the drag or start another; the engine raises
 // nothing further for a session that has ended.
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/event/event/event.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
@@ -53,7 +54,7 @@ enum class DragInputMode : std::uint8_t { pointer, keyboard };
 // restores carries neither (zero and false). `pointer` is in the
 // window's coordinates (the virtual pointer for a keyboard drag). `end` is
 // none except in drag_dropped and drag_ended.
-struct DragInteraction final {
+struct GUI_FORMS_API DragInteraction final {
     DragInputMode mode{DragInputMode::pointer};
     bool has_candidate{};
     std::uint32_t candidate{};
@@ -66,7 +67,7 @@ struct DragInteraction final {
 // The four events of a drag client, held by the control and raised by the
 // window's drag engine on the window's thread. The control exposes each by
 // its schema name.
-struct DragInteractionEvents final {
+struct GUI_FORMS_API DragInteractionEvents final {
     Event<const DragInteraction&> started;
     Event<const DragInteraction&> target_changed;
     Event<const DragInteraction&> dropped;

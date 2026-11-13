@@ -2,9 +2,9 @@
   "family": "SevenSegmentDisplay",
   "step": "2.5",
   "declaring": "SevenSegmentDisplay",
-  "header": "include/gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp",
+  "header": "include/gui_forms/controls/seven_segment_display.hpp",
   "source": "src/controls/instruments/seven_segment_display/seven_segment_display.cpp",
-  "capabilities_header": "include/gui_forms/controls/instruments/seven_segment_display/seven_segment_display_capabilities/seven_segment_display_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/seven_segment_display_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [],
@@ -109,6 +109,6 @@
   ],
   "test": {
     "type": "SevenSegmentDisplay",
-    "include": "gui_forms/controls/instruments/seven_segment_display/seven_segment_display.hpp"
+    "include": "gui_forms/controls/seven_segment_display.hpp"
   }
 }

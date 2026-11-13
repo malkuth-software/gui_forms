@@ -9,7 +9,29 @@
 
 #include "../../src/core/theme_language/compiler/theme_compiler.hpp"
 #include "../support/theme_definition_heap.hpp"
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/engine/authored_gradient/authored_gradient.hpp"
+#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
+#include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/resources/types/image_resource_types.hpp"
+#include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
+#include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
+#include "gui_forms/surface_material/painting/surface_material_painting.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <array>
 #include <cmath>
@@ -569,6 +591,19 @@ void test_filter_lowering() {
     const MaterialDeclaration* const finish = field_of(only_rule(finished, finish_sheet), MaterialField::finish);
     require(finish != nullptr && (*finish).number == 0.25, "surface-finish reads a percentage");
 
+    // gradient-dither (MaterialDither): each keyword, in any case.
+    const std::array<std::string_view, 3> dither_sheets{"#pad::part(face) { gradient-dither: none }",
+                                                         "#pad::part(face) { gradient-dither: ordered }",
+                                                         "#pad::part(face) { gradient-dither: Blue-Noise }"};
+    const std::array<MaterialDither, 3> dithers{MaterialDither::none, MaterialDither::ordered,
+                                                MaterialDither::blue_noise};
+    for (std::size_t index = 0U; index < dither_sheets.size(); ++index) {
+        const Compilation dithered = compile(dither_sheets[index]);
+        const MaterialDeclaration* const dither =
+            field_of(only_rule(dithered, dither_sheets[index]), MaterialField::gradient_dither);
+        require(dither != nullptr && (*dither).dither == dithers[index], "gradient-dither reads its keyword");
+    }
+
     const std::string_view glow_sheet = "#pad::part(face) { glow: red 2px, 1px 3px blue; glow-placement: over }";
     const Compilation glowing = compile(glow_sheet);
     const ThemeRule& glow_rule = only_rule(glowing, glow_sheet);
@@ -709,8 +744,76 @@ void test_reflection_lowering() {
     require(cleared != nullptr && !(*cleared).reflection, "reflection: none clears it");
 }
 
+// The seat (skeudoindustrial surfaces): `seat` lowers to its height, as a
+// length or a share of the shorter side, and its colour; the material is
+// assembled with a raised part's contact shadow and crevice, or a sunk
+// part's inset lip shade and seam, under the light from the upper left;
+// the depth is clamped to a bas-relief's, a share resolves at the part's
+// size, and a seat with no room among four shadows gives way.
+void test_seat() {
+    const std::string_view raised_sheet = "#pad::part(face) { seat: 2px }";
+    const Compilation raised = compile(raised_sheet);
+    const MaterialDeclaration* const height = field_of(only_rule(raised, raised_sheet), MaterialField::seat);
+    require(height != nullptr && (*height).number == 2.0 && !(*height).relative &&
+                (*height).colour == default_seat_colour,
+            "seat: 2px lowers to a height of 2 in the default colour");
+    const std::string_view sunk_sheet = "#pad::part(face) { seat: -6% #102030 }";
+    const Compilation sunk = compile(sunk_sheet);
+    const MaterialDeclaration* const share = field_of(only_rule(sunk, sunk_sheet), MaterialField::seat);
+    require(share != nullptr && (*share).relative && std::abs((*share).number + 0.06) < 1e-12 &&
+                (*share).colour == Color::rgba(0x10, 0x20, 0x30),
+            "seat: -6% #102030 lowers to a sunk share and its colour");
+    const std::string_view none_sheet = "#pad::part(face) { seat: none }";
+    const Compilation none = compile(none_sheet);
+    const MaterialDeclaration* const cleared = field_of(only_rule(none, none_sheet), MaterialField::seat);
+    require(cleared != nullptr && (*cleared).number == 0.0, "seat: none seats nothing");
+    require(compile("#pad::part(face) { seat: 2px 3px }").outcome != CompileOutcome::compiled,
+            "a second length is not a colour");
+
+    const Color shade = Color::rgba(0, 0, 0, 100);
+    std::vector<MaterialShadow> standing{};
+    seat_shadows(2.0, shade, standing);
+    require(standing.size() == 2U, "a raised part casts a contact shadow and darkens its crevice");
+    if (standing.size() == 2U) {
+        require(!standing[0].inset && standing[0].offset == Point{1.0, 1.0} && standing[0].blur_radius == 2.0 &&
+                    standing[0].spread == -0.5 && standing[0].color == shade,
+                "the contact shadow falls half the height down and to the right, narrower than the part");
+        require(!standing[1].inset && standing[1].offset == Point{0.0, 0.0} && standing[1].blur_radius == 1.0 &&
+                    standing[1].color == Color::rgba(0, 0, 0, 80),
+                "the crevice darkens all round, softer");
+    }
+    std::vector<MaterialShadow> well{};
+    seat_shadows(-3.0, shade, well);
+    require(well.size() == 2U && well[0].inset && well[1].inset && well[0].offset == Point{1.5, 1.5},
+            "a sunk part's lip shades its upper left inside");
+    std::vector<MaterialShadow> tall{};
+    seat_shadows(10.0, shade, tall);
+    require(!tall.empty() && tall[0].offset == Point{2.0, 2.0}, "the depth is clamped to maximum_seat_height");
+    std::vector<MaterialShadow> flat{};
+    seat_shadows(0.0, shade, flat);
+    require(flat.empty(), "a height of 0 seats nothing");
+    std::vector<MaterialShadow> crowded(3U);
+    seat_shadows(2.0, shade, crowded);
+    require(crowded.size() == SurfaceMaterial::maximum_shadows && !crowded.back().inset &&
+                crowded.back().offset == Point{1.0, 1.0},
+            "with room for one, the contact shadow stays and the crevice gives way");
+
+    MaterialDeclaration relative{};
+    relative.field = MaterialField::seat;
+    relative.relative = true;
+    relative.number = 0.25;
+    relative.colour = shade;
+    std::array<const MaterialDeclaration*, material_field_count> fields{};
+    fields[static_cast<std::size_t>(MaterialField::seat)] = &relative;
+    require(material_fields_read_box(fields), "a share of the shorter side reads the box");
+    SurfaceMaterial assembled{};
+    assemble_material(SurfaceMaterial{}, fields, Size{40.0, 8.0}, assembled);
+    require(assembled.shadows.size() == 2U && assembled.shadows[0].offset == Point{1.0, 1.0},
+            "a quarter of an 8-unit side seats the part 2 units proud");
+}
+
 void test_refusals() {
-    const std::array<Refusal, 78> refusals{{
+    const std::array<Refusal, 81> refusals{{
         {"#a { reflection: below backplane 1px }", DiagnosticCode::value_syntax},
         {"#a { reflection: below 1px mirror }", DiagnosticCode::keyword_unknown},
         {"#a { reflection: below 4px 6px }", DiagnosticCode::value_out_of_range},
@@ -763,6 +866,9 @@ void test_refusals() {
         {"#a { filter: red }", DiagnosticCode::value_wrong_kind},
         {"#a { surface-finish: 2 }", DiagnosticCode::value_out_of_range},
         {"#a { surface-finish: 1px }", DiagnosticCode::value_wrong_kind},
+        {"#a { gradient-dither: dots }", DiagnosticCode::keyword_unknown},
+        {"#a { gradient-dither: 2 }", DiagnosticCode::value_wrong_kind},
+        {"#a { gradient-dither: ordered blue-noise }", DiagnosticCode::value_syntax},
         {"#a { glow: red }", DiagnosticCode::value_syntax},
         {"#a { glow: red 1px, red 1px, red 1px }", DiagnosticCode::too_many_layers},
         {"#a { glow: red 8px }", DiagnosticCode::value_out_of_range},
@@ -1026,6 +1132,12 @@ std::vector<GateRow> gate_rows(const GateImages& images) {
     finished.material.fills = {MaterialFillLayer::solid(blue)};
     finished.material.finish = 0.5;
     rows.push_back(finished);
+    GateRow dithered{};
+    dithered.declarations = "background: linear-gradient(blue, white); gradient-dither: blue-noise";
+    dithered.material.fills = {
+        MaterialFillLayer::linear_css_angle(180.0, stops_of({{0.0, blue}, {1.0, Color::rgba(255, 255, 255)}}))};
+    dithered.material.dither = MaterialDither::blue_noise;
+    rows.push_back(dithered);
     GateRow glowing{};
     glowing.declarations = "background: blue; glow: red 2px 1px, white 1px; glow-placement: over, under";
     glowing.material.fills = {MaterialFillLayer::solid(blue)};
@@ -1185,6 +1297,7 @@ int main() {
     test_filter_lowering();
     test_image_lowering();
     test_reflection_lowering();
+    test_seat();
     test_refusals();
     test_gate();
     if (failures != 0) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/event.hpp"
@@ -22,7 +23,7 @@ namespace gui_forms {
 // (value_changed, then the Command executes); a commit is refused while the
 // Command is disabled. A committed colour joins the recent colours, most
 // recent first, which every picker bound to the command shows.
-class ColorCommand final : public Component {
+class GUI_FORMS_API ColorCommand final : public Component {
 public:
     static constexpr std::size_t maximum_recent_colors = 10U;
 
@@ -30,7 +31,8 @@ public:
     explicit ColorCommand(std::shared_ptr<Command> command);
 
     [[nodiscard]] const std::shared_ptr<Command>& command() const noexcept { return command_; }
-    [[nodiscard]] const std::string& stable_id() const noexcept { return (*command_).stable_id(); }
+    [[nodiscard]] const std::string& stable_id() const& noexcept { return (*command_).stable_id(); }
+    const std::string& stable_id() const&& = delete;
     [[nodiscard]] const CommandState& state() const noexcept { return (*command_).state(); }
 
     // The colour, or none for Automatic.
@@ -42,7 +44,10 @@ public:
     bool commit(std::optional<Color> value, std::string_view source_id);
 
     // Recently committed colours, most recent first, without repeats.
-    [[nodiscard]] std::span<const Color> recent_colors() const noexcept { return recent_; }
+    [[nodiscard]] std::span<const Color> recent_colors() const& noexcept {
+        return std::span<const Color>(recent_.data(), recent_.size());
+    }
+    std::span<const Color> recent_colors() const&& = delete;
     void clear_recent_colors() noexcept { recent_.clear(); }
 
     [[nodiscard]] Event<const std::optional<Color>&>& value_changed() noexcept { return value_changed_; }

@@ -1,6 +1,6 @@
-#include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
+#include "gui_forms/controls/sweep_scope.hpp"
 
-#include "gui_forms/controls/instruments/sweep_scope/sweep_scope_effects.hpp"
+#include "gui_forms/controls/sweep_scope_effects.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -281,7 +281,7 @@ void SweepScope::on_paint(Painter& painter, Rect) {
     part.family = ControlVisualRole::panel;
     part.role = PartRole::caption;
     part.bounds = Rect{scope_inset, caption_top, plot.width, caption_height};
-    part.text = caption_line;
+    part.text = lend_paint_text(caption_line);
     part.font = effective_font(FontSpec{FontRole::monospace, 12.0, 600, false});
     paint_part(painter, *this, part);
 

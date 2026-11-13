@@ -14,16 +14,12 @@
 
 namespace gui_forms {
 
-namespace detail {
-
 // The hover wake's target: the window whose pending hover is due.
-struct InteractionHoverWake final {
+struct SurfaceRoot::InteractionHoverWake final {
     SurfaceRoot* root{};
 
     void operator()(FrameTime now) const { (*root).interaction_hover_due(now); }
 };
-
-} // namespace detail
 
 FrameRequestToken SurfaceRoot::request_one_shot_wake(FrameTime deadline, std::function<void(FrameTime)> callback) {
     compact_frame_requests();
@@ -68,7 +64,7 @@ void SurfaceRoot::sync_hover_wake() {
     // an earlier deadline finds the hover not yet due and re-arms then, so
     // a move allocates no new wake.
     if (hover_wake_.connected()) return;
-    hover_wake_ = request_one_shot_wake((*interaction_).hover_deadline(), detail::InteractionHoverWake{this});
+    hover_wake_ = request_one_shot_wake((*interaction_).hover_deadline(), InteractionHoverWake{this});
 }
 
 void SurfaceRoot::interaction_hover_due(FrameTime now) {
@@ -83,7 +79,7 @@ void SurfaceRoot::interaction_hover_due(FrameTime now) {
 void SurfaceRoot::raise_mouse_hover(const Control::Ptr& control) {
     if (!control || !eligible(control) || !(*control).mouse_events_) return;
     metrics_.record_callback_emitted();
-    (*(*control).mouse_events_).hover.emit();
+    (*control).on_mouse_hover();
 }
 
 void SurfaceRoot::dispatch_host_hover(Point position) {

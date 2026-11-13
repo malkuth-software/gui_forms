@@ -1,8 +1,10 @@
 #pragma once
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/surface_root/control_table/control_table.hpp"
 #include "gui_forms/types/cursor_image/cursor_image.hpp"
 
 #include "gui_forms/anatomy.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/binding_types.hpp"
@@ -12,13 +14,17 @@
 #include "gui_forms/display.hpp"
 #include "gui_forms/dispatcher.hpp"
 #include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/theme_rules/cascade_facts.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/events.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/semantics.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/types.hpp"
-#include "gui_forms/theme.hpp"
+#include "gui_forms/theme/theme/resolved_font.hpp"
+#include "gui_forms/theme/types/control_visual_types.hpp"
+#include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <atomic>
@@ -48,6 +54,14 @@ class SurfaceRoot;
 class Control;
 class Painter;
 struct PartPaint;
+// The theme, named here and defined in gui_forms/theme.hpp: control.hpp
+// takes them by reference, pointer or shared pointer only, so a unit that
+// reads a theme includes the theme's headers itself.
+class Theme;
+struct ThemeRoleColours;
+class InlineStyleResult;
+struct ThemeCompileDiagnostic;
+class CompiledThemeRules;
 class ContainerControl;
 class CommandTarget;
 class ErrorProvider;
@@ -58,16 +72,25 @@ class PropertyLink;
 struct HelpRequestEvent;
 
 namespace detail {
+class ControlInputAccess;
 class DisplayChunk;
 class KeptResolutions;
 // The control's kept cascade results (src/core/theme/theme/kept_resolutions.hpp).
-[[nodiscard]] KeptResolutions& kept_resolutions_of(const Control& control);
+[[nodiscard]] GUI_FORMS_API KeptResolutions& kept_resolutions_of(const Control& control);
 // Whether controls keep their layouts (S5); on by default. Off, every
 // layout is made afresh: for tests that compare kept layouts with fresh ones.
-void set_layout_keeping(bool keeping) noexcept;
+GUI_FORMS_API void set_layout_keeping(bool keeping) noexcept;
 struct DispatcherState;
 struct ControlInlineStyle;
 struct InlineRestyle;
+// A control's help fields (Control::help_line, help and keywords), made on
+// the first non-empty write and released when all three are empty again,
+// so a control without help pays one pointer.
+struct GUI_FORMS_API ControlHelpFields final {
+    std::string help_line{};
+    std::string help{};
+    std::string keywords{};
+};
 
 template <typename EventType, typename... Values>
 class DeferredEventPublication final {
@@ -90,7 +113,7 @@ private:
 };
 }
 
-struct RuntimeId {
+struct GUI_FORMS_API RuntimeId {
     std::uint64_t value{};
     friend constexpr bool operator==(const RuntimeId& left,
                                      const RuntimeId& right) noexcept {
@@ -128,7 +151,7 @@ enum class OwnerDecorationLayer : std::uint8_t {
     after_content,
 };
 
-struct OwnerDecorationRecipe final {
+struct GUI_FORMS_API OwnerDecorationRecipe final {
     OwnerDecorationLayer layer{OwnerDecorationLayer::after_content};
     Size size{};
     std::optional<double> left;
@@ -148,6 +171,15 @@ struct OwnerDecorationRecipe final {
                left_value.rotation_degrees == right_value.rotation_degrees &&
                left_value.border_edges == right_value.border_edges;
     }
+};
+
+// What Control::on_paint_background receives (Windows Forms'
+// PaintEventArgs for OnPaintBackground): the painter the window records the
+// control into and the local area being painted. Both are borrowed for the
+// call; the painter is valid only until the raiser returns.
+struct GUI_FORMS_API PaintEventArgs final {
+    Painter& painter;
+    Rect local_damage{};
 };
 
 enum class AutoValidate : std::int8_t {
@@ -205,7 +237,7 @@ constexpr ValidationConstraints& operator|=(ValidationConstraints& left,
     return (value & flag) != ValidationConstraints::none;
 }
 
-struct ControlValidationEvent final {
+struct GUI_FORMS_API ControlValidationEvent final {
     Control* control{};
     Control* destination{};
     bool bulk{};
@@ -215,7 +247,7 @@ struct ControlValidationEvent final {
 // Renderer-neutral snapshot of a WinForms-style per-control layout
 // transaction. Requested and committed revisions make deferred work
 // observable without exposing a platform layout engine.
-struct LayoutTransactionState final {
+struct GUI_FORMS_API LayoutTransactionState final {
     std::uint32_t suspend_depth{};
     bool deferred{};
     std::uint64_t requested_revision{};
@@ -227,16 +259,16 @@ struct LayoutTransactionState final {
 // ampersand. Matching currently applies Unicode identity plus ASCII case
 // folding, which covers the desktop command vocabulary without importing a
 // locale-dependent platform text API into the core.
-struct MnemonicText final {
+struct GUI_FORMS_API MnemonicText final {
     std::string display_text;
     std::optional<char32_t> mnemonic;
 };
 
-[[nodiscard]] MnemonicText parse_mnemonic_text(std::string_view text);
+[[nodiscard]] GUI_FORMS_API MnemonicText parse_mnemonic_text(std::string_view text);
 // The character the first '&' marks, as UTF-8 (a semantic node's
 // access_key, 12.13), or empty when `text` marks none.
-[[nodiscard]] std::string mnemonic_access_key(std::string_view text);
-[[nodiscard]] bool is_mnemonic(char32_t character,
+[[nodiscard]] GUI_FORMS_API std::string mnemonic_access_key(std::string_view text);
+[[nodiscard]] GUI_FORMS_API bool is_mnemonic(char32_t character,
                                std::string_view text) noexcept;
 
 // Where a control's plain tooltip (Control::tool_tip_text) shows. Its
@@ -323,7 +355,33 @@ constexpr ControlStyles& operator|=(ControlStyles& left,
     return (value & flag) != GetChildAtPointSkip::none;
 }
 
-class Control : public Component,
+// The deepest a control tree may nest, in levels, the root counted as one:
+// a root with one child is two levels deep. Control::add_child and
+// Control::insert_child (and through them the form loader, the static-tree
+// builder and the C ABI's insert_child) refuse with ControlTreeDepthError,
+// before changing anything, an attachment whose target's depth plus the
+// attached subtree's height would pass it. A window or overlay root is
+// attached at level one, so every tree it can take is within the limit.
+//
+// The stack budget (house rule, owner 2026-11-11: recursion over
+// runtime-shaped data needs an enforced depth): the walks over the tree
+// that still recurse once per level (layout, paint, hit testing, semantic
+// publication, focus order, disposal) run on the window's root thread.
+// The smallest such stack the supported hosts give is a macOS secondary
+// thread's 512 KiB; Windows' main thread reserves 1 MiB, macOS and Linux
+// main threads 8 MiB. Half of 512 KiB, 256 KiB, is given to the deepest
+// recursive walk, at 4 KiB per level: layout recurses through several
+// frames per level (the root's measure pass, the container's layout
+// engine, the child's measure override), each a few hundred bytes, and
+// 4 KiB leaves room for an application override's own frame. 256 KiB at
+// 4 KiB per level is 64 levels. (A sanitizer build's larger frames run on
+// the 8 MiB main threads of macOS and Linux.) Win32 itself copes badly
+// with child windows nested past about 50, so no Windows Forms layout
+// relies on deeper trees. Destruction does not recurse per level
+// (Control::release_children_iteratively).
+inline constexpr std::size_t maximum_control_tree_depth = 64U;
+
+class GUI_FORMS_API Control : public Component,
                 public std::enable_shared_from_this<Control>,
                 public ControlCapabilities<Control> {
 public:
@@ -349,20 +407,54 @@ public:
     [[nodiscard]] Event<bool>& enabled_changed() noexcept {
         return enabled_changed_;
     }
+    // Windows Forms' RightToLeftChanged: raised on every control whose
+    // resolved direction (effective_layout_direction) changes, by a write
+    // of its own or an ancestor's layout_direction (right_to_left) or by a
+    // reparenting; the payload is true when it now resolves right to left.
+    // Every affected control's resolved value is updated first; then the
+    // events run an ancestor before its descendants and siblings in painter
+    // order, each after that control is marked arrange, paint and hit-test
+    // dirty. A handler may write directions or move controls: the nested
+    // change announces its own controls, and a control it already
+    // announced is not announced again.
+    [[nodiscard]] Event<bool>& right_to_left_changed() noexcept {
+        return right_to_left_changed_;
+    }
     [[nodiscard]] Ptr parent() const noexcept { return parent_.lock(); }
     // Back to front (painter order, as the C ABI's insert_child and
     // child_at count): index 0 paints first, the last child paints on top.
-    [[nodiscard]] std::span<const Ptr> children() const noexcept { return children_; }
+    // A borrowed view: in the sanitizer tree (GUI_FORMS_CHECKED_BORROWS) it
+    // reports a use after the child list changed or this control died.
+    // Spell ChildView to keep the check; a walk that calls out to code that
+    // may edit the tree (measure, arrange, events) walks child_count() and
+    // child_at() instead.
+    using ChildView = BorrowedSpan<Ptr>;
+    [[nodiscard]] ChildView children() const& noexcept { return detail::lend_view(children_); }
+    ChildView children() const&& = delete;
+    // The number of children, and the child at `index` in children()'s order
+    // as a shared copy (null past the end). The copy keeps the child alive
+    // across a callback; re-read child_count() after one, since the list may
+    // have changed (children_revision() tells).
+    [[nodiscard]] std::size_t child_count() const noexcept { return children_.size(); }
+    [[nodiscard]] Ptr child_at(std::size_t index) const {
+        if (index >= children_.size()) return Ptr();
+        Ptr child = children_[index];
+        return child;
+    }
     // Advances whenever the child list changes (an add, a removal, a new
     // order, a disposal), so a walk that indexes the live list instead of
     // copying it can tell that a callback changed it meanwhile (audit N84).
     [[nodiscard]] std::uint64_t children_revision() const noexcept { return children_revision_; }
     [[nodiscard]] bool attached() const noexcept { return surface_root_ != nullptr; }
 
+    // Refuses, before any change, a null child, this control, a disposed
+    // child, a cycle, a child of another window, and (ControlTreeDepthError)
+    // a child whose subtree would end deeper than maximum_control_tree_depth.
     void add_child(Ptr child);
     // Adds child at index counted from the top (zero is topmost), in one
     // validated mutation; a child already here moves as
     // set_child_index_from_top moves it. On failure the tree is unchanged.
+    // The refusals are add_child's.
     void insert_child(Ptr child, std::size_t index);
     [[nodiscard]] Ptr remove_child(RuntimeId child);
     // Windows Forms' z-order index, counted from the top (index 0 is the
@@ -415,10 +507,14 @@ public:
     [[nodiscard]] Ptr get_next_control(const Ptr& control, bool forward) const;
     void bring_to_front();
     void send_to_back();
-    [[nodiscard]] Window* attached_window() const noexcept { return window_; }
+    // Borrowed back links: checked in the sanitizer tree, plain pointers
+    // otherwise. A detach (or this control's death) ends the copies lent.
+    [[nodiscard]] BorrowedPointer<Window> attached_window() const noexcept { return detail::lend_pointer(window_); }
     // The surface root whose table holds this control (null while detached).
     // Inside a sub-surface attached_window() is null and this is not.
-    [[nodiscard]] SurfaceRoot* attached_surface_root() const noexcept { return surface_root_; }
+    [[nodiscard]] BorrowedPointer<SurfaceRoot> attached_surface_root() const noexcept {
+        return detail::lend_pointer(surface_root_);
+    }
     // Resolves the authored font against the attached window's presentation
     // text scale. Custom controls should use this for both measurement and
     // painting so text, wrapping, hit geometry, and carets remain coherent.
@@ -530,9 +626,10 @@ public:
     [[nodiscard]] std::optional<Color> ambient_back_color() const noexcept;
     [[nodiscard]] std::optional<Color> ambient_fore_color() const noexcept;
     [[nodiscard]] std::span<const OwnerDecorationRecipe>
-    owned_decorations() const noexcept {
-        return owned_decorations_;
+    owned_decorations() const& noexcept {
+        return std::span<const OwnerDecorationRecipe>(owned_decorations_.data(), owned_decorations_.size());
     }
+    std::span<const OwnerDecorationRecipe> owned_decorations() const&& = delete;
     void set_owned_decorations(const OwnerDecorationRecipe* decorations,
                                std::size_t decoration_count);
     void clear_owned_decorations();
@@ -540,6 +637,27 @@ public:
         return visual_status_;
     }
     void set_visual_status(ControlVisualStatus status);
+    // Specimen states (theme palettes and tests only; owner request
+    // 2026-11-11): shows `shown` among the control's published states
+    // (base_anatomy_states, so anatomy_states and the parts' states, and
+    // visual_context) on top of what its input, focus and values give it,
+    // so that a palette can draw a control hot, pressed or focused without
+    // sending input. Nothing else changes: no event is raised; focus,
+    // pointer capture, values and semantics stay as they are; and real
+    // input still adds its own states. A shown disabled replaces enabled,
+    // and a shown focus_visible adds focused. Every standard state in
+    // `shown` must be one anatomy().states declares and every custom index
+    // one anatomy().custom_states declares; otherwise std::invalid_argument
+    // naming the first other, changing nothing. An empty set ends the
+    // presentation. Repaints the control. UI thread.
+    //
+    // A palette reaches value states (checked, selected, read_only,
+    // invalid, disabled) through the control's real values instead:
+    // show_specimen_state (gui_forms/capture/specimen_states) chooses the
+    // route per state. A control whose paint reads its own flags rather
+    // than its published states draws a shown state as its rest state.
+    void set_specimen_states(AnatomyStateSet shown);
+    [[nodiscard]] AnatomyStateSet specimen_states() const noexcept { return specimen_states_; }
     [[nodiscard]] ControlVisualContext visual_context(VisualInteraction interaction = {}) const noexcept;
     [[nodiscard]] bool invoke_required() const noexcept;
     [[nodiscard]] DispatchOperation begin_invoke(std::function<void()> callback);
@@ -617,8 +735,10 @@ public:
     // theme compiles it again (ApplicationResources::set_theme,
     // set_theme_override, attachment).
     [[nodiscard]] InlineStyleResult set_inline_style(std::string_view text);
-    // The inline style's text in force; empty without one.
-    [[nodiscard]] std::string_view inline_style() const noexcept;
+    // The inline style's text in force; empty without one. Valid until the
+    // style is set, cleared or recompiled for a theme change (checked
+    // builds fail fast on a later read).
+    [[nodiscard]] BorrowedText inline_style() const noexcept;
     // Its compiled rules (CompiledThemeRules::compile_inline), or null
     // without one; the cascade reads them for this control alone.
     [[nodiscard]] const CompiledThemeRules* inline_style_rules() const noexcept;
@@ -744,14 +864,14 @@ public:
     // pointer; MouseCaptureChanged is raised on the control losing the
     // capture. The events are kept in a record made by the first accessor
     // called, so a control nobody listens to stores none.
-    [[nodiscard]] Event<const MouseEventArgs&>& mouse_down() { return mouse_events().down; }
-    [[nodiscard]] Event<const MouseEventArgs&>& mouse_up() { return mouse_events().up; }
-    [[nodiscard]] Event<const MouseEventArgs&>& mouse_move() { return mouse_events().move; }
-    [[nodiscard]] Event<const MouseEventArgs&>& mouse_wheel() { return mouse_events().wheel; }
-    [[nodiscard]] Event<>& mouse_enter() { return mouse_events().enter; }
-    [[nodiscard]] Event<>& mouse_hover() { return mouse_events().hover; }
-    [[nodiscard]] Event<>& mouse_leave() { return mouse_events().leave; }
-    [[nodiscard]] Event<>& mouse_capture_changed() { return mouse_events().capture_changed; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_down() { return mouse_events().mouse_down; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_up() { return mouse_events().mouse_up; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_move() { return mouse_events().mouse_move; }
+    [[nodiscard]] Event<const MouseEventArgs&>& mouse_wheel() { return mouse_events().mouse_wheel; }
+    [[nodiscard]] Event<>& mouse_enter() { return mouse_events().mouse_enter; }
+    [[nodiscard]] Event<>& mouse_hover() { return mouse_events().mouse_hover; }
+    [[nodiscard]] Event<>& mouse_leave() { return mouse_events().mouse_leave; }
+    [[nodiscard]] Event<>& mouse_capture_changed() { return mouse_events().mouse_capture_changed; }
     [[nodiscard]] Event<>& click() { return mouse_events().click; }
     [[nodiscard]] Event<const MouseEventArgs&>& mouse_click() { return mouse_events().mouse_click; }
     [[nodiscard]] Event<>& double_click() { return mouse_events().double_click; }
@@ -789,7 +909,7 @@ public:
     void adopt_property_link(std::unique_ptr<PropertyLink> link);
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 29U;
+    static constexpr std::size_t control_property_count = 33U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -844,6 +964,16 @@ public:
     [[nodiscard]] bool should_serialize_child_property(const Control& child, std::string_view name) const;
 
     [[nodiscard]] virtual Size measure(Size available);
+    // Places this control and, by default, its docked and anchored
+    // children. The window's layout pass calls it; a program may call it on
+    // a detached control, or on an attached one outside a pass. While the
+    // pass arranges one control, arranging any other control of that window
+    // (a custom layout calling a child's arrange) is refused: Control::arrange
+    // and arrange_self then change nothing, and the window records
+    // LayoutDiagnosticCode::arrange_outside_slot and counts it in
+    // MetricsSnapshot::layout_arrange_refusals. A custom layout arranges
+    // only itself (arrange_self) and publishes each child's slot with
+    // set_child_layout; the pass then arranges the child in that slot.
     virtual void arrange(Rect final_bounds);
     // The measure entry layout solvers call (stage L). It answers from this
     // control's measure cache when an entry was stored under exactly this
@@ -910,11 +1040,19 @@ public:
     // callback). False by default, which keeps every existing container's
     // measure pass unchanged.
     [[nodiscard]] virtual bool measures_children_in_arrange() const noexcept;
-    // layout_direction is the authored inline direction, `inherit` by
-    // default (stage L, PLAN section 4); writing it invalidates this
-    // subtree's arrangement.
+    // layout_direction stores the authored inline direction, `inherit` by
+    // default (stage L, PLAN section 4): Windows Forms' RightToLeft. The
+    // registry, the property grid and forms spell it `right_to_left` (No,
+    // Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of
+    // 2026-11-11); the `layout_direction` name is hidden there and refused
+    // in forms. Writing it re-arranges and repaints every control whose
+    // resolved direction changes.
     // The direction this control lays out in: its own when not `inherit`,
-    // otherwise the nearest ancestor's, and left to right at a root.
+    // otherwise the nearest ancestor's, and left to right at a root (the
+    // top-level window's default, No). Kept resolved: a read walks nothing;
+    // a write or a reparenting refreshes the affected subtree once.
+    // Directional controls (progress and scroll bars, track bars, up-downs,
+    // combo boxes, check boxes) mirror when it is right_to_left.
     [[nodiscard]] LayoutDirection effective_layout_direction() const noexcept;
     virtual void on_paint(Painter& painter, Rect local_damage);
     // Bounded decoration may paint outside arranged bounds without changing
@@ -951,11 +1089,12 @@ public:
     [[nodiscard]] virtual ResizeAxes layout_resize_response() const noexcept;
     [[nodiscard]] virtual bool hit_test_local(Point local_point) const;
 
+    // The pointer and key routes' preview (root to target) and bubble
+    // (target to root) phases. The target phase is the interaction raisers
+    // (on_mouse_down, on_key_down and the rest, below).
     virtual void on_pointer_preview(PointerEvent& event);
-    virtual void on_pointer(PointerEvent& event);
     virtual void on_pointer_bubble(PointerEvent& event);
     virtual void on_key_preview(KeyEvent& event);
-    virtual void on_key(KeyEvent& event);
     virtual void on_key_bubble(KeyEvent& event);
     virtual void on_text_input(TextInputEvent& event);
     // Dialog characters are routed by Window only after the focused key route
@@ -1073,11 +1212,11 @@ public:
     // that declares its own anatomy hides these with records of its own.
     // Every record reads the control's published geometry and states, so a
     // record read through a base type agrees with the dynamic type.
-    struct Parts final {
+    struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry focus;
     };
-    struct States final {
+    struct GUI_FORMS_API States final {
         bool normal{};
         bool enabled{};
         bool disabled{};
@@ -1125,10 +1264,130 @@ protected:
     virtual void on_padding_changed();
     virtual void on_dock_changed();
     virtual void on_layout_direction_changed();
+    // Called on each control whose resolved direction changed, in the
+    // order right_to_left_changed() states, after its invalidation; the
+    // base raises right_to_left_changed. An override that keeps
+    // direction-dependent state drops it and calls the base.
+    virtual void on_right_to_left_changed();
     virtual void on_tab_index_changed();
     virtual void on_tab_stop_changed();
 
+    // The interaction raisers (Windows Forms' OnClick, OnMouseDown, OnKeyDown
+    // and the rest; projects:desks/coordinator/ON_HOOKS_PLAN.md, step 4). The
+    // window calls each one on the UI thread at a fixed point of the event's
+    // dispatch, so subscribers see the order the event headers state
+    // (mouse_events.hpp, key_events.hpp). The base raises the event; an
+    // override places its code before or after the base call, and one that
+    // does not call the base keeps the event from its subscribers. A raiser
+    // is called whether or not anything subscribes; MouseHover is the
+    // exception: the window arms its hover timer only for a control whose
+    // MouseHover has a subscriber or a rule, so on_mouse_hover runs only
+    // then.
+    //
+    // The mouse. on_mouse_down, on_mouse_move, on_mouse_wheel and
+    // on_mouse_up are the target phase of the pointer route: they run on
+    // the target after the preview route, and setting handled ends the
+    // route there (no bubble). A control's own pointer handling runs in its
+    // override before the base call, so the subscribers see the state it
+    // left; the window's rules for MouseDown and MouseUp run in the base,
+    // before the subscribers, and a rule that consumes one keeps it from
+    // them only. After the route of a release over the control the same
+    // button pressed: on_click and on_mouse_click (or on_double_click and
+    // on_mouse_double_click), whose rules the window offers first. The
+    // owner's input order (ADR-003 amendment, 2026-11-12) differs from
+    // Windows Forms, which raises MouseUp last: physical events come first
+    // (rule 1), so on_mouse_up comes before on_click; the derived events
+    // follow on the same target only (rule 2); a MouseUp that sets
+    // suppress_click cancels on_click, on_mouse_click and on_activate
+    // (rule 3; handled only ends the route, so a control's own release
+    // handling keeps its clicks); at on_mouse_up the button is up and the
+    // capture released
+    // (rule 4); and when a handler disposes the control, opens a modal
+    // window or layer, or the capture is lost, the sequence's remaining
+    // derived events are dropped (rule 5). The second press of a
+    // double-click raises on_double_click and on_mouse_double_click only.
+    // on_mouse_enter and on_mouse_leave follow the pointer (the window's
+    // hover tracking, not the route); on_mouse_capture_changed runs on the
+    // control losing the capture, after the release's on_click.
+    virtual void on_mouse_down(MouseEventArgs& arguments);
+    virtual void on_mouse_up(MouseEventArgs& arguments);
+    virtual void on_mouse_move(MouseEventArgs& arguments);
+    virtual void on_mouse_wheel(MouseEventArgs& arguments);
+    virtual void on_mouse_enter();
+    virtual void on_mouse_hover();
+    virtual void on_mouse_leave();
+    virtual void on_mouse_capture_changed();
+    virtual void on_click();
+    virtual void on_double_click();
+    virtual void on_mouse_click(MouseEventArgs& arguments);
+    virtual void on_mouse_double_click(MouseEventArgs& arguments);
+    // The keys, on the focused control. on_preview_key_down runs first for
+    // a key down; setting is_input_key keeps the key from dialog
+    // processing. on_key_down and on_key_up are the target phase of the
+    // key route, after the window's own key_down and key_up and the preview
+    // route: the base raises the event and turns suppress_key_press into
+    // handled; a control's own key handling runs in its override after the
+    // base call, and only when handled is still clear, so a subscriber that
+    // sets handled keeps the key from the control as well as from the
+    // bubble route. on_key_press runs for the committed text a key
+    // produced, after the window's key_press; suppress_key_press on a
+    // key_down cancels it and the text and handled does not (input order
+    // rule 3, as in Windows Forms), except for an IME's commit while a
+    // composition is open. A key_up the window raises
+    // because it lost activation (released_by_deactivation) also runs
+    // on_key_up; a control's handling skips it.
+    virtual void on_preview_key_down(PreviewKeyDownEventArgs& arguments);
+    virtual void on_key_down(KeyEventArgs& arguments);
+    virtual void on_key_press(KeyPressEventArgs& arguments);
+    virtual void on_key_up(KeyEventArgs& arguments);
+    // Focus. When the control gains focus: on_enter, on_focus_changed(true),
+    // then on_got_focus, whose base raises focus_observed(true). When it
+    // loses focus: on_focus_changed(false), on_lost_focus (whose base
+    // raises focus_observed(false)), then on_leave. Validation
+    // (on_validating, on_validated) runs before the change, from
+    // perform_validation. on_enter and on_leave run on the focused control
+    // only: a container whose subtree gains or loses focus is not told yet,
+    // and they raise no event yet.
+    virtual void on_enter();
+    virtual void on_got_focus();
+    virtual void on_lost_focus();
+    virtual void on_leave();
+    virtual void on_validating(ControlValidationEvent& event);
+    virtual void on_validated();
+    // HelpProvider's request for this control (F1 or the help button),
+    // before the provider's own help_requested.
+    virtual void on_help_requested(HelpRequestEvent& request);
+    // A drag over a control that allows drops, by its action, after
+    // on_drag has seen it at the target phase. They raise no event yet;
+    // an override may set accepted_effect and handled as on_drag does.
+    virtual void on_drag_enter(DragEvent& event);
+    virtual void on_drag_over(DragEvent& event);
+    virtual void on_drag_drop(DragEvent& event);
+    virtual void on_drag_leave(DragEvent& event);
+    // Runs in the window's layout pass right after arrange placed the
+    // control and its children, under the same rules as arrange. It raises
+    // no event yet.
+    virtual void on_layout();
+    // Paints the control's background, before its owned decorations and
+    // on_paint: the base paints the back colour and the authored surface.
+    // An override that does not call the base leaves the background
+    // unpainted. No event.
+    virtual void on_paint_background(PaintEventArgs& arguments);
+    // The window's focus cue appeared (visible) or went away, on the
+    // focused control after on_focus_cue_changed (Windows Forms'
+    // OnChangeUICues). It raises no event yet.
+    virtual void on_change_ui_cues(bool visible);
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
+    // Stops the application colours an ancestor authored (back_color and
+    // fore_color, the ambient colours paint_part applies) at this control:
+    // it and its descendants then take only their own authored colours and
+    // the theme's. For a layer drawn over the window rather than in it, such
+    // as a tooltip's (cp29: a tooltip's ink and plate are the tool_tip
+    // role's, as a Windows Forms ToolTip, which is no child control,
+    // inherits no ForeColor). Called from the layer's constructor; it
+    // advances the inherited-value generation, so a later call also holds.
+    void stop_inherited_colours();
     // Whether code set the control's primary font (T4 fonts): a control's
     // set_font marks it, after validating the font, and a clear_font that
     // returns to the control's default unmarks it. Marked, text_font is
@@ -1169,10 +1428,12 @@ protected:
     // The base states every control shares: normal, enabled or disabled,
     // focused and focus-visible. Overrides start from this and add their own.
     [[nodiscard]] AnatomyStateSet base_anatomy_states() const;
-    [[nodiscard]] Window* window() const noexcept { return window_; }
+    [[nodiscard]] BorrowedPointer<Window> window() const noexcept { return detail::lend_pointer(window_); }
     // The surface root whose control table holds this control; null while
     // detached. Set and cleared together with window().
-    [[nodiscard]] SurfaceRoot* surface_root() const noexcept { return surface_root_; }
+    [[nodiscard]] BorrowedPointer<SurfaceRoot> surface_root() const noexcept {
+        return detail::lend_pointer(surface_root_);
+    }
     // Chooses where this type's tooltip shows (ToolTipPresentation); bubble
     // by default. Call it from the constructor, or when the control changes
     // what it is (a ComboBox gaining or losing its edit field).
@@ -1225,6 +1486,8 @@ protected:
     // Custom retained layout controls establish their own child slots after
     // arranging only themselves. Calling the public base arrange would also
     // run the default Dock/Anchor engine and create competing layout owners.
+    // Refused like arrange when called on a control other than the one the
+    // window's layout pass is arranging.
     void arrange_self(Rect final_bounds) noexcept;
     // Framework chrome is recorded after application paint. Descendant replay
     // and hit testing are clipped to the local child viewport, letting a
@@ -1283,7 +1546,7 @@ protected:
     // invalidation of the control and by advance_layout_revision), its
     // client rectangle and its text scale. A kept layout whose key differs
     // from the current one is made again.
-    struct LayoutKey final {
+    struct GUI_FORMS_API LayoutKey final {
         std::uint64_t property_epoch{};
         std::uint64_t revision{};
         Rect client{};
@@ -1344,6 +1607,9 @@ private:
     friend detail::KeptResolutions& detail::kept_resolutions_of(const Control& control);
     friend class Window;
     friend class SurfaceRoot;
+    // Raises the target phase's raisers for an event handed to one control
+    // (src/core/control/control/control_input_access.hpp).
+    friend class detail::ControlInputAccess;
     friend class ContentRegion;
     // A content region's first pending item since its last gather: asks the
     // window to gather this control's regions after its next layout. False,
@@ -1375,6 +1641,9 @@ private:
     friend struct HitTestTransparentCapability<Control>;
     friend struct AccessibleNameCapability<Control>;
     friend struct AccessibleDescriptionCapability<Control>;
+    friend struct HelpLineCapability<Control>;
+    friend struct HelpCapability<Control>;
+    friend struct KeywordsCapability<Control>;
     friend struct CeremonialCapability<Control>;
     friend struct TagCapability<Control>;
     friend struct FocusableCapability<Control>;
@@ -1437,6 +1706,20 @@ private:
     void written(const decltype(accessible_name)& cell);
     void prepare_write(const decltype(accessible_description)& cell, std::string& value);
     void written(const decltype(accessible_description)& cell);
+    // The help fields are views onto help_fields_: each write checks the
+    // value as the locale reader does (check_locale_value; refused, it
+    // throws std::invalid_argument and changes nothing), then stores it and
+    // invalidates semantics; reads return the program's value, never a
+    // translation (translation design: getters return program values).
+    void write_view(const decltype(help_line)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(help_line)& cell) const;
+    void write_view(const decltype(help)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(help)& cell) const;
+    void write_view(const decltype(keywords)& cell, std::string incoming);
+    [[nodiscard]] std::string read_view(const decltype(keywords)& cell) const;
+    // Stores one help field through `slot` (a member of ControlHelpFields),
+    // making or releasing help_fields_.
+    void write_help_field(std::string detail::ControlHelpFields::* slot, LocaleField field, std::string incoming);
     void prepare_write(const decltype(ceremonial)& cell, bool& value);
     void written(const decltype(ceremonial)& cell);
     void write_view(const decltype(tag)& cell, std::any incoming);
@@ -1449,7 +1732,8 @@ private:
     void written(const decltype(classes)& cell);
     friend class ContainerControl;
     // Reports an opaque engine face's cover (report_opaque_cover).
-    friend void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part);
+    friend GUI_FORMS_API void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part,
+                                                const SurfaceMaterial* resolved_material);
     friend class ErrorProvider;
     friend class HelpProvider;
     friend class Binding;
@@ -1465,7 +1749,7 @@ private:
     void advance_measure_generation() noexcept;
     void set_provider_error(std::uint64_t provider_id, std::string error);
     void clear_provider_error(std::uint64_t provider_id);
-    void set_provider_help(std::uint64_t provider_id, std::string help);
+    void set_provider_help(std::uint64_t provider_id, std::string description);
     void clear_provider_help(std::uint64_t provider_id);
     [[nodiscard]] bool perform_validation(Control* destination, bool bulk);
     [[nodiscard]] virtual AutoValidate authored_auto_validate() const noexcept {
@@ -1503,6 +1787,28 @@ private:
     void disconnect_control_events() noexcept;
     static void restore_to_previous_parent(const Ptr& child, const Ptr& previous_parent,
                                            std::optional<std::size_t> previous_index) noexcept;
+    // attach_child's depth check, after its cycle check and before any
+    // change: throws ControlTreeDepthError when `child`'s subtree, put
+    // under this control at `depth` levels (this control's own level, the
+    // root being one), would pass maximum_control_tree_depth.
+    void require_nesting_room(Control& child, std::size_t depth);
+    // The exact height of `root`'s subtree, in levels (a leaf is one),
+    // walked in fixed storage of one frame per level; refreshes every
+    // visited control's subtree_height_bound_ to its exact height. A
+    // subtree deeper than the storage (which attach_child never builds)
+    // reports maximum_control_tree_depth + 1.
+    [[nodiscard]] static std::size_t measure_subtree_height(Control& root) noexcept;
+    // After a child of height `child_height` joins this control: raises
+    // this control's and its ancestors' subtree_height_bound_ where the
+    // child makes it higher, stopping at the first that already covers it.
+    void raise_height_bounds(std::size_t child_height) noexcept;
+    // A vector that ends the views lent from it at each change (a plain
+    // std::vector outside the sanitizer tree).
+    using ChildList = detail::LendingVector<Ptr>;
+    // The destructor's teardown of `children`, a dying control's child
+    // list, one level at a time in fixed storage, so destroying a tree
+    // never nests a destructor call per level (control.cpp).
+    static void release_children_iteratively(ChildList& children) noexcept;
     [[nodiscard]] static bool tab_order_less(const Ptr& left,
                                              const Ptr& right) noexcept;
     static void collect_tab_order_controls(const Control& owner,
@@ -1521,6 +1827,12 @@ private:
         auto_size_mode_property_enum();
     [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
         layout_direction_property_enum();
+    [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
+        right_to_left_property_enum();
+    // The right_to_left property: layout_direction in RightToLeft's
+    // spelling. Setting it writes layout_direction.
+    [[nodiscard]] BindingValue right_to_left_property_value() const;
+    void set_right_to_left_property_value(const BindingValue& value);
     // The classes property: a collection of text, one item per class in
     // order. Setting it refuses an invalid name as the classes capability does.
     [[nodiscard]] BindingValue classes_property_value() const;
@@ -1542,7 +1854,6 @@ private:
         const void* event_key{};
         std::function<void()> publication;
     };
-    using ChildList = std::vector<Ptr>;
     using ProviderTextMap = std::map<std::uint64_t, std::string>;
     using BindablePropertyMap = std::map<std::string, BindableProperty>;
     using DeferredInitializationChangeList =
@@ -1561,6 +1872,9 @@ private:
     RuntimeId runtime_id_;
     StableId stable_id_;
     std::any tag_;
+    // The help fields' storage (ControlHelpFields), absent while all three
+    // are empty. Owned; released with the control.
+    std::unique_ptr<detail::ControlHelpFields> help_fields_;
     WeakPtr parent_;
     // The parent as an observing pointer (audit A7), set and cleared with
     // parent_: the parent owns this control through children_, so the
@@ -1568,6 +1882,15 @@ private:
     // no callbacks step through it instead of locking parent_ per level.
     Control* parent_link_{};
     ChildList children_;
+    // An upper bound on this control's subtree height in levels (a leaf is
+    // one), so attach_child can check the depth limit without walking the
+    // child's subtree. Written on the control's thread only, by
+    // attach_child (raise_height_bounds raises the new parent's chain) and
+    // by measure_subtree_height (exact, for the subtree it walks). A
+    // removal, a disposal or a re-parent leaves the old chain's bounds
+    // high rather than walking it; a stale bound only sends the next
+    // attachment's check to the exact measurement, never past the limit.
+    std::size_t subtree_height_bound_{1U};
     // See children_revision(); advanced with every change of children_.
     std::uint64_t children_revision_{};
     // The parent's children_revision_ at this control's add_child: a child
@@ -1577,7 +1900,7 @@ private:
     // The inherited values (audit N87), kept as of `generation`, a value of
     // the process-wide inherited-value generation (control.cpp), which
     // every write of an input advances: visible, enabled, cursor, colours,
-    // layout direction, ceremonial, a theme override, layout collapse, a
+    // ceremonial, a theme override, layout collapse, a
     // disposal and every change of a parent. A read whose generation is
     // older computes them again from the parent's, so a read costs one
     // step, not a walk to the root. `theme_override` is the nearest theme
@@ -1589,16 +1912,45 @@ private:
         std::optional<Color> back_color{};
         std::optional<Color> fore_color{};
         CursorKind cursor{CursorKind::arrow};
-        LayoutDirection direction{LayoutDirection::left_to_right};
         bool visible{};
         bool enabled{};
         bool ceremonial{};
     };
     // Written only by inherited_values(), on the control's thread.
     mutable InheritedValues inherited_{};
+    // Set by stop_inherited_colours: the parent's back_color and fore_color
+    // are not inherited here.
+    bool stops_inherited_colours_{};
     [[nodiscard]] const InheritedValues& inherited_values() const noexcept;
-    Window* window_{};
-    SurfaceRoot* surface_root_{};
+    // The resolved direction (effective_layout_direction), kept eagerly:
+    // refresh_resolved_direction updates it for a subtree whenever
+    // layout_direction is written or the control's ancestors change, so it
+    // is always the value the tree gives. announced_direction_ is the
+    // value the last right_to_left_changed told; the two differ only
+    // between a refresh and its announcement, or while a reparenting holds
+    // the announcement (holds_direction_announcement_: the removal from
+    // the previous parent announces nothing, the attachment announces the
+    // net change). A new control resolves left to right.
+    LayoutDirection resolved_direction_{LayoutDirection::left_to_right};
+    LayoutDirection announced_direction_{LayoutDirection::left_to_right};
+    bool holds_direction_announcement_{};
+    // How far refresh_resolved_direction walks: only below controls whose
+    // resolved value changed, or the whole subtree (a reparenting, whose
+    // held removal may have left descendants unannounced).
+    enum class DirectionWalk : std::uint8_t {
+        changed_branches,
+        whole_subtree,
+    };
+    // Refreshes resolved_direction_ for this control and its descendants,
+    // preorder on an explicit stack (no recursion per level), and appends
+    // each control whose resolved and announced values differ to
+    // `announcements`, in announcement order. Runs no callbacks.
+    void refresh_resolved_direction(DirectionWalk walk, std::vector<Ptr>& announcements);
+    // Invalidates and announces (on_right_to_left_changed) each control of
+    // `announcements` that is alive and still unannounced, in order.
+    static void announce_direction_changes(const std::vector<Ptr>& announcements);
+    detail::LendingPointer<Window> window_{};
+    detail::LendingPointer<SurfaceRoot> surface_root_{};
     // This control's slot in its surface root's control table while it is
     // attached (assigned and released with surface_root_); unassigned
     // otherwise.
@@ -1645,6 +1997,8 @@ private:
                           ControlStyles::standard_double_click |
                           ControlStyles::selectable};
     std::shared_ptr<const detail::ControlInlineStyle> inline_style_;
+    // Ends inline_style() views whenever inline_style_ is replaced.
+    [[no_unique_address]] detail::BorrowLender inline_style_lender_{};
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
     std::optional<SurfaceMaterial> authored_surface_material_;
@@ -1679,6 +2033,8 @@ private:
     bool font_from_code_{};
     std::vector<OwnerDecorationRecipe> owned_decorations_;
     ControlVisualStatus visual_status_{ControlVisualStatus::normal};
+    // set_specimen_states: empty unless a palette or test shows states.
+    AnatomyStateSet specimen_states_{};
     ToolTipPresentation tool_tip_presentation_{ToolTipPresentation::bubble};
     bool publishes_item_tool_tips_{};
     std::shared_ptr<CommandTarget> command_target_;
@@ -1691,6 +2047,7 @@ private:
     Event<const std::string&> tool_tip_text_changed_;
     Event<bool> visible_changed_;
     Event<bool> enabled_changed_;
+    Event<bool> right_to_left_changed_;
     Event<bool> causes_validation_changed_;
     Event<bool> auto_size_changed_;
     Event<ControlValidationEvent&> validating_;
@@ -1700,14 +2057,14 @@ private:
     // The WinForms mouse events (mouse_down and the rest), made on first
     // access; null while nobody has asked for one.
     struct MouseEvents final {
-        Event<const MouseEventArgs&> down;
-        Event<const MouseEventArgs&> up;
-        Event<const MouseEventArgs&> move;
-        Event<const MouseEventArgs&> wheel;
-        Event<> enter;
-        Event<> hover;
-        Event<> leave;
-        Event<> capture_changed;
+        Event<const MouseEventArgs&> mouse_down;
+        Event<const MouseEventArgs&> mouse_up;
+        Event<const MouseEventArgs&> mouse_move;
+        Event<const MouseEventArgs&> mouse_wheel;
+        Event<> mouse_enter;
+        Event<> mouse_hover;
+        Event<> mouse_leave;
+        Event<> mouse_capture_changed;
         Event<> click;
         Event<const MouseEventArgs&> mouse_click;
         Event<> double_click;
@@ -1795,12 +2152,16 @@ private:
         hit_test_transparent,
         accessible_name,
         accessible_description,
+        help_line,
+        help,
+        keywords,
         tool_tip_text,
         cursor,
         classes,
         back_color,
         fore_color,
         focusable,
+        right_to_left,
     };
 
     // Control's table operations over the adapters below (study section
@@ -1894,6 +2255,12 @@ private:
             } else if constexpr (
                 Property == RegisteredProperty::tool_tip_text) {
                 return BindingValue{(*control).tool_tip_text.read()};
+            } else if constexpr (Property == RegisteredProperty::help_line) {
+                return BindingValue{(*control).help_line.read()};
+            } else if constexpr (Property == RegisteredProperty::help) {
+                return BindingValue{(*control).help.read()};
+            } else if constexpr (Property == RegisteredProperty::keywords) {
+                return BindingValue{(*control).keywords.read()};
             } else if constexpr (Property == RegisteredProperty::cursor) {
                 return (*control).cursor_property_value();
             } else if constexpr (Property == RegisteredProperty::classes) {
@@ -1902,6 +2269,8 @@ private:
                 return (*control).back_color_property_value();
             } else if constexpr (Property == RegisteredProperty::fore_color) {
                 return (*control).fore_color_property_value();
+            } else if constexpr (Property == RegisteredProperty::right_to_left) {
+                return (*control).right_to_left_property_value();
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);
@@ -2006,6 +2375,12 @@ private:
                         "ToolTipText binding requires text");
                 }
                 (*control).tool_tip_text = std::get<std::string>(*converted);
+            } else if constexpr (Property == RegisteredProperty::help_line) {
+                (*control).help_line = std::get<std::string>(value);
+            } else if constexpr (Property == RegisteredProperty::help) {
+                (*control).help = std::get<std::string>(value);
+            } else if constexpr (Property == RegisteredProperty::keywords) {
+                (*control).keywords = std::get<std::string>(value);
             } else if constexpr (Property == RegisteredProperty::cursor) {
                 (*control).set_cursor_property_value(value);
             } else if constexpr (Property == RegisteredProperty::classes) {
@@ -2014,6 +2389,8 @@ private:
                 (*control).set_back_color_property_value(value);
             } else if constexpr (Property == RegisteredProperty::fore_color) {
                 (*control).set_fore_color_property_value(value);
+            } else if constexpr (Property == RegisteredProperty::right_to_left) {
+                (*control).set_right_to_left_property_value(value);
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);

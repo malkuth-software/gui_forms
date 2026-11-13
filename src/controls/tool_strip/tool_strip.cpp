@@ -1,4 +1,4 @@
-#include "gui_forms/controls/tool_strip/tool_strip.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
 
 #include "../menu/menu_utilities.hpp"
 #include "strip_merge.hpp"
@@ -70,6 +70,14 @@ Rect axis_rect(bool vertical, double position, double extent, double cross_start
     }
     const Rect result{position, cross_start, extent, cross_extent};
     return result;
+}
+
+// `laid` within `frame`, mirrored across it when `mirror` (a horizontal
+// strip under a resolved right-to-left direction).
+Rect strip_side(Rect laid, Rect frame, bool mirror) noexcept {
+    if (!mirror || laid.empty()) return laid;
+    const Rect side = horizontally_mirrored(laid, frame);
+    return side;
 }
 
 // A square glyph of `side` centred in `area`, on whole units.
@@ -536,6 +544,18 @@ ToolStrip::Layout ToolStrip::layout_for(Rect surface) const {
         last -= widths[index];
         result.items[index] = axis_rect(along_height, last, widths[index], inset, item_cross);
     }
+    // A horizontal strip under a resolved right-to-left direction runs from
+    // the right: start items and the grip change sides with the end items
+    // and the overflow button (WinForms' ToolStrip and StatusStrip under
+    // RightToLeft). The sizing grip stays at the bottom right: it resizes
+    // the window from that corner, which the host owns. A vertical strip is
+    // not directional.
+    if (!along_height && effective_layout_direction() == LayoutDirection::right_to_left) {
+        for (Rect& item : result.items) item = strip_side(item, surface, true);
+        result.grip = strip_side(result.grip, surface, true);
+        result.overflow_button = strip_side(result.overflow_button, surface, true);
+        result.end_reserve = strip_side(result.end_reserve, surface, true);
+    }
     return result;
 }
 
@@ -570,6 +590,9 @@ ToolStrip::ItemParts ToolStrip::item_parts(std::size_t index, Rect bounds) const
         parts.item_separator = PartGeometry::from_bounds(rule);
         return parts;
     }
+    // Within a right-to-left item the arrow is at its left and the image
+    // follows the text from the right; laid out left to right, then mirrored.
+    const bool mirror = !vertical() && effective_layout_direction() == LayoutDirection::right_to_left;
     double arrow_width = 0.0;
     if (item.kind == ToolStripItemKind::drop_down_button) arrow_width = drop_down_arrow_width * scale;
     if (item.kind == ToolStripItemKind::split_button) arrow_width = split_arrow_width * scale;
@@ -578,12 +601,16 @@ ToolStrip::ItemParts ToolStrip::item_parts(std::size_t index, Rect bounds) const
     if (item.kind != ToolStripItemKind::label) {
         // A drop-down button is one actuator; a split button's face is its
         // main part, beside its arrow actuator.
-        parts.item_face = PartGeometry::from_bounds(item.kind == ToolStripItemKind::split_button ? content : bounds);
+        const Rect face = item.kind == ToolStripItemKind::split_button ? content : bounds;
+        parts.item_face = PartGeometry::from_bounds(strip_side(face, bounds, mirror));
         parts.item_focus = PartGeometry::from_bounds(bounds);
     }
-    if (item.kind == ToolStripItemKind::split_button) parts.item_arrow = PartGeometry::from_bounds(arrow);
+    if (item.kind == ToolStripItemKind::split_button) {
+        parts.item_arrow = PartGeometry::from_bounds(strip_side(arrow, bounds, mirror));
+    }
     if (has_menu(item.kind)) {
-        parts.item_arrow_glyph = PartGeometry::from_bounds(centred_glyph(arrow, arrow_glyph_size * scale));
+        const Rect glyph = centred_glyph(arrow, arrow_glyph_size * scale);
+        parts.item_arrow_glyph = PartGeometry::from_bounds(strip_side(glyph, bounds, mirror));
     }
     const bool shows_image = item.image.value != 0U && item.display != ToolStripItemDisplay::text;
     const std::string text = item_text(item);
@@ -595,13 +622,13 @@ ToolStrip::ItemParts ToolStrip::item_parts(std::size_t index, Rect bounds) const
         // An image-only item centres its image.
         if (!shows_text) x = std::floor(content.x + (content.width - side) * 0.5);
         const Rect icon{x, std::floor(bounds.y + (bounds.height - side) * 0.5), side, side};
-        parts.item_icon = PartGeometry::from_bounds(Rect::intersection(icon, content));
+        parts.item_icon = PartGeometry::from_bounds(strip_side(Rect::intersection(icon, content), bounds, mirror));
         x += side + image_text_gap * scale;
     }
     if (shows_text) {
         const ResolvedTextLayout measured = resolve_text_layout_utf8(text, text_font(font.read()));
         const Rect label{x, bounds.y, measured.logical_size.width, bounds.height};
-        parts.item_label = PartGeometry::from_bounds(Rect::intersection(label, content));
+        parts.item_label = PartGeometry::from_bounds(strip_side(Rect::intersection(label, content), bounds, mirror));
     }
     return parts;
 }
@@ -694,7 +721,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
         part.bounds = parts.item_label.bounds;
         part.key = PartKey{"item_label", item.stable_id, index};
         const std::string text = item_text(item);
-        part.text = text;
+        part.text = lend_paint_text(text);
         paint_part(painter, *this, part);
         part.text = {};
     }
@@ -844,19 +871,40 @@ void ToolStrip::click(std::size_t index) {
     item_clicked_.emit(clicked);
 }
 
-void ToolStrip::on_pointer(PointerEvent& event) {
-    if (event.action == PointerAction::leave) {
-        set_hot(std::nullopt, ItemZone::none);
-        if (overflow_hot_) {
-            overflow_hot_ = false;
-            invalidate(Dirty::paint);
-        }
-        return;
+void ToolStrip::on_mouse_down(MouseEventArgs& arguments) {
+    strip_pointer(arguments);
+    Control::on_mouse_down(arguments);
+}
+
+void ToolStrip::on_mouse_up(MouseEventArgs& arguments) {
+    strip_pointer(arguments);
+    Control::on_mouse_up(arguments);
+}
+
+void ToolStrip::on_mouse_move(MouseEventArgs& arguments) {
+    strip_pointer(arguments);
+    Control::on_mouse_move(arguments);
+}
+
+void ToolStrip::on_mouse_leave() {
+    strip_pointer_left();
+    Control::on_mouse_leave();
+}
+
+void ToolStrip::strip_pointer_left() {
+    set_hot(std::nullopt, ItemZone::none);
+    if (overflow_hot_) {
+        overflow_hot_ = false;
+        invalidate(Dirty::paint);
     }
+}
+
+// The move that enters the strip sets the hot item.
+void ToolStrip::strip_pointer(MouseEventArgs& arguments) {
     ItemZone zone{ItemZone::none};
-    const std::optional<std::size_t> index = index_at(event.position, zone);
-    const bool on_overflow = overflow_at(event.position);
-    if (event.action == PointerAction::move || event.action == PointerAction::enter) {
+    const std::optional<std::size_t> index = index_at(arguments.window_position, zone);
+    const bool on_overflow = overflow_at(arguments.window_position);
+    if (arguments.action == PointerAction::move) {
         set_hot(index && item_interactive(*index) ? index : std::nullopt, zone);
         if (overflow_hot_ != on_overflow) {
             overflow_hot_ = on_overflow;
@@ -864,12 +912,12 @@ void ToolStrip::on_pointer(PointerEvent& event) {
         }
         return;
     }
-    if (event.button != PointerButton::primary) return;
-    if (event.action == PointerAction::down) {
+    if (arguments.button != PointerButton::primary) return;
+    if (arguments.action == PointerAction::down) {
         if (on_overflow) {
             if (overflow_open_) close_drop_down();
             else static_cast<void>(show_overflow(MenuOpenMode::pointer));
-            event.handled = true;
+            arguments.handled = true;
             return;
         }
         if (!index || !item_interactive(*index)) return;
@@ -884,8 +932,8 @@ void ToolStrip::on_pointer(PointerEvent& event) {
             pressed_index_.reset();
         }
         invalidate(Dirty::paint | Dirty::semantics);
-        event.handled = true;
-    } else if (event.action == PointerAction::up) {
+        arguments.handled = true;
+    } else if (arguments.action == PointerAction::up) {
         const std::optional<std::size_t> pressed = pressed_index_;
         const ItemZone pressed_zone = pressed_zone_;
         pressed_index_.reset();
@@ -893,12 +941,17 @@ void ToolStrip::on_pointer(PointerEvent& event) {
         invalidate(Dirty::paint | Dirty::semantics);
         // A click is a press and release on the same part of the same item.
         if (pressed && pressed == index && pressed_zone == zone) click(*pressed);
-        event.handled = pressed.has_value();
+        arguments.handled = pressed.has_value();
     }
 }
 
-void ToolStrip::on_key(KeyEvent& event) {
-    if (!focused_ || event.action != KeyAction::down) return;
+void ToolStrip::on_key_down(KeyEventArgs& arguments) {
+    Control::on_key_down(arguments);
+    if (!arguments.handled) strip_key_down(arguments);
+}
+
+void ToolStrip::strip_key_down(KeyEventArgs& arguments) {
+    if (!focused_) return;
     std::optional<std::size_t> current = hot_index_;
     if (!current) current = next_interactive(items_.size() == 0U ? 0U : items_.size() - 1U, 1);
     if (!current) return;
@@ -906,28 +959,34 @@ void ToolStrip::on_key(KeyEvent& event) {
     // The arrows along the strip move between items; the arrow away from
     // it (Down, or Right on a vertical strip) opens a menu.
     const bool along_height = vertical();
-    const std::uint32_t previous_key = along_height ? PhysicalKey::up : PhysicalKey::left;
-    const std::uint32_t next_key = along_height ? PhysicalKey::down : PhysicalKey::right;
+    // Right to left, Left moves on along a horizontal strip.
+    const bool reversed = !along_height && effective_layout_direction() == LayoutDirection::right_to_left;
+    std::uint32_t previous_key = along_height ? PhysicalKey::up : PhysicalKey::left;
+    std::uint32_t next_key = along_height ? PhysicalKey::down : PhysicalKey::right;
+    if (reversed) {
+        previous_key = PhysicalKey::right;
+        next_key = PhysicalKey::left;
+    }
     const std::uint32_t open_key = along_height ? PhysicalKey::right : PhysicalKey::down;
-    if (event.physical_key == previous_key || event.physical_key == next_key) {
+    if (arguments.physical_key == previous_key || arguments.physical_key == next_key) {
         const std::optional<std::size_t> next =
-            next_interactive(*current, event.physical_key == next_key ? 1 : -1);
+            next_interactive(*current, arguments.physical_key == next_key ? 1 : -1);
         if (next) focus_item(next);
-    } else if (event.physical_key == PhysicalKey::enter || event.physical_key == PhysicalKey::space) {
+    } else if (arguments.physical_key == PhysicalKey::enter || arguments.physical_key == PhysicalKey::space) {
         set_hot(current, ItemZone::main);
         if (item.kind == ToolStripItemKind::drop_down_button) {
             static_cast<void>(show_drop_down(item.stable_id));
         } else {
             click(*current);
         }
-    } else if (event.physical_key == open_key && has_menu(item.kind)) {
+    } else if (arguments.physical_key == open_key && has_menu(item.kind)) {
         static_cast<void>(show_drop_down(item.stable_id));
-    } else if (event.physical_key == PhysicalKey::escape) {
+    } else if (arguments.physical_key == PhysicalKey::escape) {
         close_drop_down();
     } else {
         return;
     }
-    event.handled = true;
+    arguments.handled = true;
 }
 
 void ToolStrip::on_focus_changed(bool focused) {
@@ -962,7 +1021,10 @@ bool ToolStrip::show_drop_down(std::string_view item_id, MenuOpenMode mode) {
     (*overlay_).set_items(std::move(menu));
     const Rect absolute = absolute_bounds();
     // A menu opens below an item, or beside it on a vertical strip.
-    Point anchor{absolute.x + bounds.x, absolute.y + bounds.y + bounds.height};
+    // Right to left it hangs leftward from the item's right edge.
+    const bool right_to_left = effective_layout_direction() == LayoutDirection::right_to_left;
+    const double drop_x = right_to_left ? bounds.x + bounds.width : bounds.x;
+    Point anchor{absolute.x + drop_x, absolute.y + bounds.y + bounds.height};
     if (vertical()) anchor = {absolute.x + bounds.x + bounds.width, absolute.y + bounds.y};
     (*overlay_).show(shared_from_this(), anchor, mode);
     open_index_ = index;
@@ -1021,6 +1083,11 @@ bool ToolStrip::show_overflow(MenuOpenMode mode) {
     const double right = absolute.x + placed.overflow_button.x + placed.overflow_button.width;
     Point anchor{std::max(absolute.x, right - (*overlay_).preferred_width.read()),
                  absolute.y + placed.overflow_button.y + placed.overflow_button.height};
+    // Right to left the button is at the strip's left; the menu hangs
+    // leftward from its right edge and the overlay keeps it on screen.
+    if (effective_layout_direction() == LayoutDirection::right_to_left) {
+        anchor = {right, absolute.y + placed.overflow_button.y + placed.overflow_button.height};
+    }
     if (vertical()) anchor = {right, absolute.y + placed.overflow_button.y};
     (*overlay_).show(shared_from_this(), anchor, mode);
     overflow_open_ = true;

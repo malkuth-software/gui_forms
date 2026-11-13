@@ -1,4 +1,4 @@
-#include "gui_forms/controls/quick_access_toolbar/ribbon_state.hpp"
+#include "gui_forms/controls/ribbon_state.hpp"
 
 #include "gui_forms/text.hpp"
 

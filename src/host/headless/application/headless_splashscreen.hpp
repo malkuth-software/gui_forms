@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "../../../core/application/splashscreen_surface.hpp"
 #include "../../../core/display/recording_painter/recording_painter.hpp"
 
@@ -12,7 +13,7 @@ namespace gui_forms::host {
 
 // What a headless splashscreen showed, kept by the test that made it and
 // shared with the surface.
-struct HeadlessSplashscreenRecord final {
+struct GUI_FORMS_API HeadlessSplashscreenRecord final {
     std::uint64_t presented{};
     std::string status{};
     std::optional<double> progress{};
@@ -23,7 +24,7 @@ struct HeadlessSplashscreenRecord final {
 // with paint_splashscreen into a recording painter (no pixels) and notes
 // what it showed in the shared record; its destruction is the window's
 // close.
-class HeadlessSplashscreenSurface final : public detail::SplashscreenSurface {
+class GUI_FORMS_API HeadlessSplashscreenSurface final : public detail::SplashscreenSurface {
 public:
     explicit HeadlessSplashscreenSurface(std::shared_ptr<HeadlessSplashscreenRecord> record) noexcept
         : record_(std::move(record)) {}

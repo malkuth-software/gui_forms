@@ -2,9 +2,9 @@
   "family": "MaterialPanel",
   "step": "B6",
   "declaring": "MaterialPanel",
-  "header": "include/gui_forms/controls/panel/material_panel/material_panel.hpp",
+  "header": "include/gui_forms/controls/material_panel.hpp",
   "source": "src/controls/panel/material_panel/material_panel.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/material_panel/material_panel_capabilities/material_panel_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/material_panel_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [
@@ -36,6 +36,6 @@
   ],
   "test": {
     "type": "MaterialPanel",
-    "include": "gui_forms/controls/panel/material_panel/material_panel.hpp"
+    "include": "gui_forms/controls/material_panel.hpp"
   }
 }

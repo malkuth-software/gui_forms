@@ -200,13 +200,35 @@ gui_forms::SubSurfaceHost
 
       *Protected.*
 
-   .. cpp:function:: void on_pointer(PointerEvent& event) override
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
 
       *Protected.*
 
-      Forward to the sub-surface while it runs and mark the event handled.
+      Forward to the sub-surface while it runs and mark the event handled. Forward the mouse to the sub-surface while it runs and mark it handled, then raise the event. The window's enter is not forwarded: the move that caused it starts the sub-surface's own hover.
 
-   .. cpp:function:: void on_key(KeyEvent& event) override
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_leave() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Forward a key no subscriber handled to the sub-surface.
+
+   .. cpp:function:: void on_key_up(KeyEventArgs& arguments) override
 
       *Protected.*
 
@@ -223,3 +245,77 @@ gui_forms::SubSurfaceHost
       *Protected.*
 
       The sub-surface's published caret: its coordinates are the host's.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 14 supported, 0 deferred, 0 excluded, 1 unclassified; 15 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``content_epoch``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``dispatcher``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``failure``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``live_surface``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``opaque``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``publishes_semantics``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``returned_keys_discarded``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``started``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``state``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``statistics``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``pairing_missed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``stopped``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``adopt_content``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``request_statistics``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_content``
+     - supported

@@ -9,7 +9,7 @@ gui_forms::ColorValueEditor
 
 .. cpp:class:: ColorValueEditor final : public Panel, public ColorValueEditorCapabilities<ColorValueEditor>
 
-   ``#include <gui_forms/controls/panel/color_value_editor/color_value_editor.hpp>``
+   ``#include <gui_forms/controls/color_value_editor.hpp>``
 
    A colour field: a swatch beside a text box that edits the colour as hexadecimal text.
 
@@ -264,3 +264,41 @@ gui_forms::ColorValueEditor
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Default: ``true``.
+
+.. rubric:: Windows Forms correspondence
+
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 3 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+
+.. list-table::
+   :class: longtable
+   :header-rows: 1
+   :widths: 12 26 26 36
+
+   * - Kind
+     - Windows Forms
+     - GUI.Forms
+     - Status
+   * - property
+     - GUI.Forms-only
+     - ``editor``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``edit_failed``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``value_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``format_value``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``parse_value``
+     - unclassified (untested)

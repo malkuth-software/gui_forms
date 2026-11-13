@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/window.hpp"
+#include "../../surface_root/access/surface_handle_access.hpp"
 
 namespace gui_forms::detail {
 
@@ -19,7 +20,7 @@ public:
 
     void disconnect() noexcept override {
         if (connected_ && window_ != nullptr) {
-            (*window_).close_overlay(*this);
+            SurfaceHandleAccess::close_overlay(*window_, *this);
         }
     }
     [[nodiscard]] bool connected() const noexcept override { return connected_; }

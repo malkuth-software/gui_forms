@@ -2,9 +2,9 @@
   "family": "Callout",
   "step": "2.5",
   "declaring": "Callout",
-  "header": "include/gui_forms/controls/callout/callout.hpp",
+  "header": "include/gui_forms/controls/callout.hpp",
   "source": "src/controls/callout/callout.cpp",
-  "capabilities_header": "include/gui_forms/controls/callout/callout_capabilities/callout_capabilities.hpp",
+  "capabilities_header": "include/gui_forms/controls/callout_capabilities.hpp",
   "base": "Control",
   "shared": [],
   "includes": [],
@@ -172,6 +172,6 @@
   ],
   "test": {
     "type": "Callout",
-    "include": "gui_forms/controls/callout/callout.hpp"
+    "include": "gui_forms/controls/callout.hpp"
   }
 }

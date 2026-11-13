@@ -10,6 +10,11 @@ left out. Descriptions come only from reviewed sources, in priority order:
 3. the reviewed contracts in docs/reference/contracts/*.json;
 4. the ``//`` comment directly above a declaration in its header.
 
+Each control page ends with its Windows Forms correspondence: every property,
+event and method against the Windows Forms counterpart, with its status, read
+from the member manifest (manifests/members.json, written by
+``tools/control_registry.py members``).
+
 Nothing is inferred from a signature. A docstring may only describe parameters,
 properties, events and methods the header declares; anything else is an error.
 
@@ -52,6 +57,7 @@ GUI_FORMS: Path = Path(__file__).resolve().parents[1]
 MANUAL_PATH: Path = GUI_FORMS / "docs" / "library" / "manual.json"
 DOCSTRINGS: Path = GUI_FORMS / "docs" / "library" / "docstrings"
 REGISTRY_PATH: Path = GUI_FORMS / "manifests" / "controls.json"
+MEMBER_MANIFEST_PATH: Path = GUI_FORMS / "manifests" / "members.json"
 CONTRACTS: Path = GUI_FORMS / "docs" / "reference" / "contracts"
 API: Path = GUI_FORMS / "docs" / "api"
 EXAMPLES: Path = GUI_FORMS / "tests" / "doc_examples_tests.cpp"
@@ -79,16 +85,17 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           ("application", "platform", "host")),
     Group("window", "Window, scheduling and dispatch",
           "The retained window model, update scopes, damage, frame scheduling, "
-          "the UI-thread dispatcher, per-window instrumentation and each "
-          "thread's shadow frames.",
-          ("window", "surface_root", "scheduler", "dispatcher", "display", "dirty", "metrics", "diagnostics")),
+          "the UI-thread dispatcher, per-window instrumentation, the counters "
+          "of GUI.Forms' own allocations and each thread's shadow frames.",
+          ("window", "surface_root", "scheduler", "dispatcher", "display", "dirty", "metrics", "allocation",
+           "diagnostics", "capture")),
     Group("control-and-component", "Control and component",
           "The base classes every control and nonvisual component derives from, "
           "with layout, docking, anchoring and validation vocabularies (layout "
           "constraints, intrinsic sizes and layout direction among them), and the "
           "anatomy each control publishes: named parts, part roles and states, "
           "and the interactions each type raises.",
-          ("control", "component", "anatomy", "schema", "layout")),
+          ("control", "component", "anatomy", "schema", "layout", "borrow")),
     Group("events-values-and-commands", "Events, values and commands",
           "Retained events and owned handlers, application-owned `Value` state, "
           "command bindings, a window's rules (a trigger, conditions and "
@@ -101,9 +108,10 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "with its content between sets.",
           ("pages",)),
     Group("input-and-semantics", "Input and semantics",
-          "Pointer, keyboard, text and drag event records, and the semantic tree "
-          "published to accessibility and automation.",
-          ("events", "semantics")),
+          "Pointer, keyboard, text and drag event records, the public drag "
+          "client, and the semantic tree published to accessibility and "
+          "automation.",
+          ("events", "drag", "semantics")),
     Group("data-binding", "Data binding",
           "Bindings between control properties and data sources, currency "
           "management and binding events.",
@@ -139,7 +147,8 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "for its own files, such as saved docking layouts.",
           ("xml",)),
     Group("images-and-resources", "Images and resources",
-          "The window-owned image registry, its PNG resource records, and "
+          "The window-owned image registry, its PNG resource records, the "
+          "image atlas of fixed-size slots, and "
           "SHA-256 (one-shot and streaming) for resource and theme package "
           "integrity.",
           ("resources", "integrity")),
@@ -168,16 +177,41 @@ AREA_TO_CATEGORY: dict[str, str] = {
     "inspection": "Value setting",
     "instrument": "Value setting",
     "metrics": "Diagnostics",
+    # The graph-space scene (world geometry, the spatial index, the view
+    # transform and level of detail) sits beside NodeCanvas.
+    "scene": "Drawing",
     "visual_inspection": "Diagnostics",
 }
 
-# Control-family directories whose headers precede their registered control
-# (the node canvas's graph model and link router arrive before NodeCanvas
-# itself); remove an entry once the directory's control is registered.
-DIRECTORY_TO_CATEGORY: dict[str, str] = {
-    "include/gui_forms/controls/node_canvas": "Drawing",
-    # The help system's support headers (printing) sit beside its controls.
-    "include/gui_forms/controls/help": "Information display",
+# The flat controls directory (audit F2): every control header is
+# include/gui_forms/controls/<name>.hpp. A header there that a registry
+# record does not name belongs to the control whose header stem is the
+# longest prefix of its own (card_capabilities.hpp to card.hpp); the support
+# headers below share no stem with their control and are listed.
+CONTROLS_DIRECTORY: str = "include/gui_forms/controls"
+HEADER_TO_CATEGORY: dict[str, str] = {
+    # The node canvas's graph model and link router precede NodeCanvas.
+    "include/gui_forms/controls/link_router.hpp": "Drawing",
+    "include/gui_forms/controls/node_graph.hpp": "Drawing",
+    # The node canvas's link flow effect precedes NodeCanvas too.
+    "include/gui_forms/controls/link_flow_effects.hpp": "Drawing",
+    # The help system's printing sits beside its controls.
+    "include/gui_forms/controls/help_print.hpp": "Information display",
+    # The stock specimens (one per anatomy, for captures and the theme
+    # editor's palette) are a catalogue, not a control.
+    "include/gui_forms/controls/stock_specimens.hpp": "Diagnostics",
+    "include/gui_forms/controls/notice_values.hpp": "Information display",
+    "include/gui_forms/controls/plot_values.hpp": "Information display",
+    "include/gui_forms/controls/anchored_overlay_placement.hpp": "Dialogs and overlays",
+    "include/gui_forms/controls/border_style.hpp": "Grouping",
+    "include/gui_forms/controls/text_items_capability.hpp": "Grouping",
+    "include/gui_forms/controls/date_time_format_provider.hpp": "Date setting",
+    "include/gui_forms/controls/date_time_value.hpp": "Date setting",
+    "include/gui_forms/controls/calendar_values.hpp": "Date setting",
+    "include/gui_forms/controls/masked_text_provider.hpp": "Text editing",
+    "include/gui_forms/controls/auto_complete.hpp": "Text editing",
+    "include/gui_forms/controls/text_decorations.hpp": "Text editing",
+    "include/gui_forms/controls/scroll_properties.hpp": "Scrolling",
 }
 
 CATEGORY_DESCRIPTIONS: dict[str, str] = {
@@ -202,6 +236,63 @@ CATEGORY_DESCRIPTIONS: dict[str, str] = {
                   "timers and semantic feedback.",
 }
 
+
+
+def load_member_manifest() -> dict[str, dict]:
+    """The member manifest's entries for GUI.Forms types, by type name."""
+    manifest: dict = json.loads(MEMBER_MANIFEST_PATH.read_text(encoding="utf-8"))
+    return {entry["type"]: entry for entry in manifest.get("controls", []) if entry.get("type")}
+
+
+def manifest_text(text: str) -> str:
+    """Manifest prose safe in a reStructuredText table cell: no inline markup."""
+    return re.sub(r"([*`|\\]|_(?=\W|$))", r"\\\1", " ".join(text.split()))
+
+
+def member_status(row: dict) -> str:
+    status: str = row["status"]
+    if status in ("deferred", "excluded") and row.get("reason"):
+        return f"{status}: {manifest_text(row['reason'])}"
+    if status == "unclassified" and row.get("question"):
+        return f"{status} ({manifest_text(row['question'].split(':', 1)[0])})"
+    return status
+
+
+def correspondence_section(entry: dict) -> list[str]:
+    """A control page's Windows Forms correspondence, from its member manifest entry."""
+    rows: list[dict] = entry.get("members", [])
+    lines: list[str] = [".. rubric:: Windows Forms correspondence", ""]
+    counterpart: str | None = entry.get("winforms")
+    totals: dict[str, int] = {}
+    for row in rows:
+        totals[row["status"]] = totals.get(row["status"], 0) + 1
+    only: int = sum(1 for row in rows if row.get("gui_forms_only"))
+    counted: str = ", ".join(f"{totals.get(status, 0)} {status}"
+                             for status in ("supported", "deferred", "excluded", "unclassified"))
+    if counterpart:
+        lead = f"Counterpart: ``{counterpart}``. "
+    else:
+        lead = "No Windows Forms counterpart. "
+    lines += [lead + f"Members declared here and by the counterpart: {counted}; {only} GUI.Forms-only. "
+              "Generated from ``manifests/members.json``; inherited members are on the base's page.", ""]
+    if not rows:
+        return lines
+    lines += [".. list-table::", f"{rst.INDENT}:class: longtable", f"{rst.INDENT}:header-rows: 1",
+              f"{rst.INDENT}:widths: 12 26 26 36", "",
+              f"{rst.INDENT}* - Kind", f"{rst.INDENT}  - Windows Forms", f"{rst.INDENT}  - GUI.Forms",
+              f"{rst.INDENT}  - Status"]
+    for row in rows:
+        winforms: str = f"``{row['winforms']}``" if row.get("winforms") else "GUI.Forms-only"
+        if row.get("gui_forms"):
+            ours: str = f"``{row['gui_forms']}``"
+        elif row.get("carried_by"):
+            ours = "on " + ", ".join(f"``{name}``" for name in row["carried_by"])
+        else:
+            ours = "none"
+        lines += [f"{rst.INDENT}* - {row['kind']}", f"{rst.INDENT}  - {winforms}", f"{rst.INDENT}  - {ours}",
+                  f"{rst.INDENT}  - {member_status(row)}"]
+    lines.append("")
+    return lines
 
 
 def category_slug(category: str) -> str:
@@ -286,7 +377,13 @@ def page_resolver(registry: list[dict]):
              for entry in registry}
     control_dirs = sorted(
         {(posixpath.dirname("include/" + entry["header"]), entry["category"])
-         for entry in registry},
+         for entry in registry
+         if posixpath.dirname("include/" + entry["header"]) != CONTROLS_DIRECTORY},
+        key=lambda item: (-len(item[0]), item[0], item[1]))
+    control_stems = sorted(
+        {(posixpath.basename(entry["header"])[:-len(".hpp")], entry["category"])
+         for entry in registry
+         if posixpath.dirname("include/" + entry["header"]) == CONTROLS_DIRECTORY},
         key=lambda item: (-len(item[0]), item[0], item[1]))
     area_groups = {area: group.slug for group in LIBRARY_GROUPS for area in group.areas}
 
@@ -294,11 +391,15 @@ def page_resolver(registry: list[dict]):
         if (name, header) in exact:
             return category_slug(exact[(name, header)])
         directory = posixpath.dirname(header)
+        if directory == CONTROLS_DIRECTORY:
+            stem = posixpath.basename(header)[:-len(".hpp")]
+            for control_stem, category in control_stems:
+                if stem == control_stem or stem.startswith(control_stem + "_"):
+                    return category_slug(category)
+            if header in HEADER_TO_CATEGORY:
+                return category_slug(HEADER_TO_CATEGORY[header])
         for control_dir, category in control_dirs:
             if directory == control_dir or directory.startswith(control_dir + "/"):
-                return category_slug(category)
-        for family_dir, category in DIRECTORY_TO_CATEGORY.items():
-            if directory == family_dir or directory.startswith(family_dir + "/"):
                 return category_slug(category)
         area = area_of(header)
         if area in AREA_TO_CATEGORY:
@@ -518,12 +619,17 @@ def render(output: Path, examples_path: Path) -> dict[str, int]:
         entry = registry_by_key.get((record.name, record.header))
         return rst.first_sentence(sources(record).summary(entry, record.comment))
 
+    members = load_member_manifest()
     pages: dict[str, str] = {}
     for record in own_page:
         chain = [(base, rst.shape_of(base)) for base in base_chain(record, by_name)]
         entry = registry_by_key.get((record.name, record.header))
-        pages[page_name(record) + ".rst"] = NOTICE + "\n\n" + rst.type_page(
+        page = NOTICE + "\n\n" + rst.type_page(
             record, sources(record), entry, chain, linker, label_of(record.qualified_name))
+        manifest_entry = members.get(record.name) if by_name.get(record.name) is record else None
+        if manifest_entry is not None:
+            page += "\n" + "\n".join(correspondence_section(manifest_entry))
+        pages[page_name(record) + ".rst"] = page
 
     grouped: dict[str, list[TypeRecord | EnumRecord]] = {}
     for record in [*model.types, *model.enums]:

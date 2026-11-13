@@ -11,10 +11,11 @@
 #include "gui_forms/collection_controls.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/container_controls.hpp"
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/menu_controls.hpp"
 #include "gui_forms/tooltip.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms_lab/correspondence_view.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -103,9 +104,10 @@ public:
     [[nodiscard]] std::shared_ptr<ContextMenu> context_menu() const noexcept {
         return context_menu_;
     }
-    [[nodiscard]] std::span<const std::shared_ptr<Command>> commands() const noexcept {
+    [[nodiscard]] std::span<const std::shared_ptr<Command>> commands() const& noexcept {
         return commands_;
     }
+    std::span<const std::shared_ptr<Command>> commands() const&& = delete;
     [[nodiscard]] std::string about_text() const;
 
 private:

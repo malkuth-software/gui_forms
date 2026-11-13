@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
@@ -38,7 +40,7 @@ namespace gui_forms {
 inline constexpr std::size_t maximum_flex_items = 65'536U;
 
 // One margin as the solver reads it: a resolved length, or `auto`.
-struct FlexMargin final {
+struct GUI_FORMS_API FlexMargin final {
     double length{};
     bool automatic{};
 
@@ -48,7 +50,7 @@ struct FlexMargin final {
 };
 
 // One item's inputs to both calls.
-struct FlexItemInput final {
+struct GUI_FORMS_API FlexItemInput final {
     FlexFactor grow{0.0};
     FlexFactor shrink{1.0};
     std::int32_t order{};
@@ -70,7 +72,7 @@ struct FlexItemInput final {
 };
 
 // One item's measurement for the second call, at its resolved main size.
-struct FlexItemCross final {
+struct GUI_FORMS_API FlexItemCross final {
     // The cross size the item takes at its main size, before stretching.
     double hypothetical_cross{};
     // Its first baseline, from the top of its border box; NaN for none, in
@@ -80,12 +82,12 @@ struct FlexItemCross final {
 
 // One axis of the container's content box: a definite extent, or
 // indefinite (sized from the items: the main axis never wraps then).
-struct FlexAvailableExtent final {
+struct GUI_FORMS_API FlexAvailableExtent final {
     double extent{};
     bool definite{};
 };
 
-struct FlexContainerInput final {
+struct GUI_FORMS_API FlexContainerInput final {
     FlexDirection direction{FlexDirection::row};
     FlexWrap wrap{FlexWrap::nowrap};
     LayoutAlignment justify_content{LayoutAlignment::normal};
@@ -115,7 +117,7 @@ enum class FlexFreezeReason : std::uint8_t {
 };
 
 // One item's results.
-struct FlexItemResult final {
+struct GUI_FORMS_API FlexItemResult final {
     double flex_base_size{};
     double hypothetical_main{};
     double main_size{};
@@ -127,7 +129,7 @@ struct FlexItemResult final {
 };
 
 // One flex line, its items being order[first, first + count).
-struct FlexLine final {
+struct GUI_FORMS_API FlexLine final {
     std::uint32_t first{};
     std::uint32_t count{};
     // The sum of its items' outer main sizes and gaps.
@@ -150,14 +152,20 @@ enum class FlexSolveOutcome : std::uint8_t {
 // style section 1): `items` has one record per input item, in input order;
 // `order` the input positions in (order, position) order; `lines` the lines
 // in order. Its storage grows only when the item count does.
-class FlexLayoutWorkspace final {
+class GUI_FORMS_API FlexLayoutWorkspace final {
 public:
-    [[nodiscard]] std::span<const FlexItemResult> items() const& noexcept { return items_; }
-    std::span<const FlexItemResult> items() const&& = delete;
-    [[nodiscard]] std::span<const FlexLine> lines() const& noexcept { return lines_; }
-    std::span<const FlexLine> lines() const&& = delete;
-    [[nodiscard]] std::span<const std::uint32_t> order() const& noexcept { return order_; }
-    std::span<const std::uint32_t> order() const&& = delete;
+    [[nodiscard]] BorrowedSpan<FlexItemResult> items() const& noexcept {
+        return detail::lend_view(items_.data(), items_.size(), solve_lender_);
+    }
+    BorrowedSpan<FlexItemResult> items() const&& = delete;
+    [[nodiscard]] BorrowedSpan<FlexLine> lines() const& noexcept {
+        return detail::lend_view(lines_.data(), lines_.size(), solve_lender_);
+    }
+    BorrowedSpan<FlexLine> lines() const&& = delete;
+    [[nodiscard]] BorrowedSpan<std::uint32_t> order() const& noexcept {
+        return detail::lend_view(order_.data(), order_.size(), solve_lender_);
+    }
+    BorrowedSpan<std::uint32_t> order() const&& = delete;
     // The content's extent: the longest line's main extent, and the lines'
     // cross sizes with the gaps between them; filled by each call.
     [[nodiscard]] double content_main() const noexcept { return content_main_; }
@@ -167,10 +175,10 @@ public:
     void reserve(std::size_t count);
 
 private:
-    friend FlexSolveOutcome resolve_flex_main_sizes(const FlexContainerInput& container,
+    friend GUI_FORMS_API FlexSolveOutcome resolve_flex_main_sizes(const FlexContainerInput& container,
                                                     std::span<const FlexItemInput> items,
                                                     FlexLayoutWorkspace& workspace);
-    friend FlexSolveOutcome place_flex_items(const FlexContainerInput& container,
+    friend GUI_FORMS_API FlexSolveOutcome place_flex_items(const FlexContainerInput& container,
                                              std::span<const FlexItemInput> items,
                                              std::span<const FlexItemCross> crosses,
                                              FlexLayoutWorkspace& workspace);
@@ -184,18 +192,22 @@ private:
     std::vector<double> unclamped_{};
     double content_main_{};
     double content_cross_{};
+    // Stamps the views above per solve (borrow sanitizer, stage 3): the
+    // next solve or reserve ends the views lent so far, and the sanitizer
+    // tree reports a later use. Empty in the ordinary build.
+    [[no_unique_address]] detail::BorrowLender solve_lender_{};
 };
 
 // The first call. Fills each item's flex_base_size, hypothetical_main,
 // main_size, line and freeze_reason, the order and the lines, and
 // content_main. `items` is borrowed for the call.
-FlexSolveOutcome resolve_flex_main_sizes(const FlexContainerInput& container, std::span<const FlexItemInput> items,
+GUI_FORMS_API FlexSolveOutcome resolve_flex_main_sizes(const FlexContainerInput& container, std::span<const FlexItemInput> items,
                                          FlexLayoutWorkspace& workspace);
 
 // The second call, after the first with the same container and items;
 // `crosses` has one record per item. Fills each item's cross_size and
 // bounds, the lines' cross sizes and positions, and content_cross.
-FlexSolveOutcome place_flex_items(const FlexContainerInput& container, std::span<const FlexItemInput> items,
+GUI_FORMS_API FlexSolveOutcome place_flex_items(const FlexContainerInput& container, std::span<const FlexItemInput> items,
                                   std::span<const FlexItemCross> crosses, FlexLayoutWorkspace& workspace);
 
 } // namespace gui_forms

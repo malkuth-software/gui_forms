@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include "gui_forms/binding/types/binding_contract_types.hpp"
 #include "gui_forms/event.hpp"
 
@@ -9,7 +10,7 @@
 namespace gui_forms {
 
 // Renderer-neutral currency contract shared by list and property surfaces.
-class BindingManagerBase {
+class GUI_FORMS_API BindingManagerBase {
 public:
     virtual ~BindingManagerBase() = default;
     [[nodiscard]] virtual std::size_t count() const noexcept = 0;

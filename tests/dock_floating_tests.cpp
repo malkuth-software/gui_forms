@@ -11,7 +11,32 @@
 // reaches the active document; a restored floating window lands inside a
 // work area; the close button hides the panels.
 
-#include "gui_forms/gui_forms.hpp"
+#include "gui_forms/application/application.hpp"
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/commands/command_route/command_route.hpp"
+#include "gui_forms/commands/types/command_types.hpp"
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/controls/dock_site.hpp"
+#include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/dirty.hpp"
+#include "gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp"
+#include "gui_forms/docking/dock_layout/dock_layout.hpp"
+#include "gui_forms/docking/types/dock_types.hpp"
+#include "gui_forms/event/delegate/delegate.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/host/windowing/desktop_coordinates.hpp"
+#include "gui_forms/host/windowing/host_windowing.hpp"
+#include "gui_forms/rules/rule/rule.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/text/markdown/markdown.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/window.hpp"
 #include "application/headless_application.hpp"
 
 #include <cmath>

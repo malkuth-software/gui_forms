@@ -28,11 +28,11 @@
       "reviewed": false,
       "summary": "Returns the durable semantic identity for a valid row."
     },
-    "gui_forms::ListBox::selected_indices|std::span<const std::size_t> () const noexcept": {
+    "gui_forms::ListBox::selected_indices|std::span<const std::size_t> () const & noexcept": {
       "reviewed": false,
       "summary": "Returns selected row indexes in ascending order."
     },
-    "gui_forms::ListBox::selected_index|std::optional<std::size_t> () const noexcept": {
+    "gui_forms::ListControl::selected_index|std::optional<std::size_t> () const noexcept": {
       "reviewed": false,
       "summary": "Returns the active selected row or no value when selection is empty."
     },
@@ -60,13 +60,29 @@
       "reviewed": false,
       "summary": "Updates viewport geometry and vertical scroll extent from row count and fixed height."
     },
-    "gui_forms::ListBox::on_pointer|void (PointerEvent &)": {
+    "gui_forms::ListBox::on_mouse_down|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Maps pointer gestures to rows, focus, selection-mode modifiers, scrolling, and activation."
+      "summary": "The press's target phase: maps pointer gestures to rows, focus, selection-mode modifiers, scrolling, and activation, then raises the event."
     },
-    "gui_forms::ListBox::on_key|void (KeyEvent &)": {
+    "gui_forms::ListBox::on_mouse_up|void (MouseEventArgs &)": {
       "reviewed": false,
-      "summary": "Implements navigation, home/end/page movement, range extension, toggling, activation, and type-independent selection."
+      "summary": "The release's target phase: maps pointer gestures to rows, focus, selection-mode modifiers, scrolling, and activation, then raises the event."
+    },
+    "gui_forms::ListBox::on_mouse_move|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "The move's target phase: maps pointer gestures to rows, focus, selection-mode modifiers, scrolling, and activation, then raises the event."
+    },
+    "gui_forms::ListBox::on_mouse_wheel|void (MouseEventArgs &)": {
+      "reviewed": false,
+      "summary": "The wheel turn's target phase: maps pointer gestures to rows, focus, selection-mode modifiers, scrolling, and activation, then raises the event."
+    },
+    "gui_forms::ListBox::on_mouse_leave|void ()": {
+      "reviewed": false,
+      "summary": "Clears the hover state the pointer left, then raises MouseLeave."
+    },
+    "gui_forms::ListBox::on_key_down|void (KeyEventArgs &)": {
+      "reviewed": false,
+      "summary": "Raises the event, then for an unhandled key: implements navigation, home/end/page movement, range extension, toggling, activation, and type-independent selection."
     },
     "gui_forms::ListBox::on_focus_changed|void (bool)": {
       "reviewed": false,

@@ -18,8 +18,15 @@ template_harness, checked out beside this repository at the commit
   and their header coverage, `render` writes the control indexes under
   `docs/controls/generated/`, `readme-table` prints or splices
   (`--write README.md`) the README control table, and `emit-cpp` writes or,
-  with `--check`, verifies `demo/gallery_catalog.inc`.
+  with `--check`, verifies `demo/gallery_catalog.inc`. `members` writes the
+  member manifest `manifests/members.json` (`tools/member_manifest.py`): every
+  control's properties, events and methods against Windows Forms, supported,
+  deferred, excluded or unclassified; `--catalogue` reads stage W's Windows
+  Forms catalogue again, `--runtime` dotnet/runtime's reference sources for
+  `Component` and `BackgroundWorker`, and `--check` fails when the manifest and the
+  registry, schema or headers disagree.
   `python3 tools/control_registry.py check`
+  `python3 tools/control_registry.py members --check`
 
 `tools/winforms_divergences.py`
 : Checks `manifests/winforms-divergences.json`, the record of every difference
@@ -56,8 +63,21 @@ template_harness, checked out beside this repository at the commit
 `tools/check_lifetime_rules.py`
 : The borrow and foreign-type checks the `house-style` job runs (house style
   sections 1 and 2). Heuristics over masked source, like the spelling
-  scanner; they do not check destruction order.
+  scanner; they do not check destruction order. After the harness's rules
+  the shim applies GUI.Forms' member-accessor rule
+  (`tools/check_member_views.py`): an inline accessor returning a view of a
+  data member (`std::span`, `std::string_view`, `BorrowedSpan`,
+  `BorrowedText`) is qualified `const&` and has a deleted `&&` overload.
   `python3 -B tools/check_lifetime_rules.py tests/semantic_tests.cpp`
+
+`tools/lifetime_lint.py`
+: Clang's experimental lifetime-safety analysis over the whole tree, in a
+  build tree of its own (`gui-forms-lifetime-lint` beside the plain tree),
+  report-only: it prints the findings, marks the six known false positives
+  of the cp28 run (a pointer taken through a local `std::unique_ptr` that
+  then moves into a container) and always exits 0. The checkpoint verify on
+  the M4 runs it; `--stx-prefix` links an stx package already built.
+  `python3 -B tools/lifetime_lint.py --jobs 4 --stx-prefix <stx-package>`
 
 `tools/check_state_machines.py`
 : The state-machine checker (house style sections 2 and 3). With
@@ -73,8 +93,9 @@ template_harness, checked out beside this repository at the commit
 : Lists the native entries under `src/host/` (Windows `CALLBACK` and COM
   methods, Linux ATK and GLib callbacks, AppKit selectors) and fails on any
   that neither calls `call_failing_fast` nor is `noexcept`, unless it is in
-  `tools/native_boundary_baseline.txt`, which may only shrink. ctest runs it
-  and its `--self-test`.
+  `tools/native_boundary_baseline.txt`, which may only shrink and has been
+  empty since cp29 (every entry is routed). ctest runs it and its
+  `--self-test`.
   `python3 -B tools/check_native_boundaries.py --root .`
 
 `tools/sanitizer/lsan.supp`
@@ -123,7 +144,7 @@ template_harness, checked out beside this repository at the commit
   installer on Windows, a `tar.gz` and Debian package on Linux, plus
   `SHA256SUMS.txt` and a `packages-<platform>.json` receipt. `--dry-run`
   prints the plan; `--no-installer` writes archives only.
-  `python3 tools/package_programs.py --build-dir build --version 0.2.0 --out dist`
+  `python3 tools/package_programs.py --build-dir build --version 0.6.0 --out dist`
 
 `tools/smoke_package.py`
 : Extracts each packaged program, launches it with `--smoke-test` and the

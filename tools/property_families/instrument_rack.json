@@ -2,9 +2,9 @@
   "family": "InstrumentRack",
   "step": "B6",
   "declaring": "InstrumentRack",
-  "header": "include/gui_forms/controls/panel/instrument_rack/instrument_rack.hpp",
-  "source": "src/controls/panel/instrument_rack/instrument_rack.cpp",
-  "capabilities_header": "include/gui_forms/controls/panel/instrument_rack/instrument_rack_capabilities/instrument_rack_capabilities.hpp",
+  "header": "lab/include/gui_forms_lab/instrument_rack.hpp",
+  "source": "lab/src/instrument_rack.cpp",
+  "capabilities_header": "lab/include/gui_forms_lab/instrument_rack_capabilities.hpp",
   "base": "Panel",
   "shared": [],
   "includes": [],
@@ -106,6 +106,6 @@
   ],
   "test": {
     "type": "InstrumentRack",
-    "include": "gui_forms/controls/panel/instrument_rack/instrument_rack.hpp"
+    "include": "gui_forms_lab/instrument_rack.hpp"
   }
 }
