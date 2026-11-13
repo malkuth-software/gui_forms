@@ -850,6 +850,37 @@ void test_sparkline() {
     require(!(*line).hit_test_local(Point{1.0, 1.0}), "a sparkline takes no input");
 }
 
+void test_paint_sparkline_without_control() {
+    const std::array<double, 4> values{1.0, std::nan(""), 3.0, 2.0};
+    plots::SeriesSpans<double> spans{};
+    spans.first = values;
+    SparklineStyle style{};
+    style.line = Color{10U, 20U, 30U, 255U};
+    SparklineWorkspace workspace{};
+    RecordingPainter painter;
+    paint_sparkline(painter, Rect{0.0, 0.0, 60.0, 16.0}, spans, 8U, 1.0, style, workspace);
+    require(painter.polylines >= 1 && painter.bands == 0 && painter.markers == 1U,
+            "paint_sparkline draws the line and the newest dot, no band unless asked");
+    require(painter.saves == painter.restores && workspace.reserved_columns > 0U,
+            "paint_sparkline restores the painter and reserves its workspace");
+    const std::size_t reserved = workspace.reserved_columns;
+    style.fill = true;
+    style.newest_marker_size = 0.0;
+    RecordingPainter filled;
+    paint_sparkline(filled, Rect{0.0, 0.0, 60.0, 16.0}, spans, 8U, 1.0, style, workspace);
+    require(filled.bands == 1 && filled.markers == 0U && workspace.reserved_columns == reserved,
+            "fill shades the band, a zero dot size draws no dot, and the workspace is reused");
+    RecordingPainter refused;
+    paint_sparkline(refused, Rect{0.0, 0.0, 60.0, 16.0}, spans, 3U, 1.0, style, workspace);
+    const std::array<double, 2> gaps{std::nan(""), std::nan("")};
+    plots::SeriesSpans<double> empty{};
+    empty.first = gaps;
+    paint_sparkline(refused, Rect{0.0, 0.0, 60.0, 16.0}, empty, 8U, 1.0, style, workspace);
+    paint_sparkline(refused, Rect{0.0, 0.0, 0.0, 16.0}, spans, 8U, 1.0, style, workspace);
+    require(refused.polylines == 0 && refused.bands == 0 && refused.markers == 0U && refused.saves == 0,
+            "too few slots, no finite value or an empty plot draws nothing");
+}
+
 } // namespace
 
 int main() {
@@ -869,6 +900,7 @@ int main() {
     test_plot_palette();
     test_custom_series();
     test_sparkline();
+    test_paint_sparkline_without_control();
     std::cout << "gui_forms_plot_view_tests passed\n";
     return 0;
 }

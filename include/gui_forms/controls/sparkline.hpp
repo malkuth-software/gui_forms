@@ -7,6 +7,7 @@
 // under the line shaded. Drawn through the plots primitives
 // (plots::SeriesMarkPainter: the envelope decimation keeps any capacity to
 // about four points per device column). Read-only: no input, no focus.
+// paint_sparkline draws the same marks from any values, without the control.
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
@@ -20,6 +21,41 @@
 #include <span>
 
 namespace gui_forms {
+
+// The look of one sparkline drawn by paint_sparkline.
+struct GUI_FORMS_API SparklineStyle final {
+    // The line's colour; the band and the newest dot take it too.
+    Color line{};
+    // The line's width in local units (finite and positive).
+    double line_width{1.0};
+    // Whether the band under the line is shaded, and its alpha.
+    bool fill{};
+    std::uint8_t band_alpha{72U};
+    // The dot on the newest finite value; 0 draws none.
+    double newest_marker_size{4.0};
+};
+
+// The storage paint_sparkline reuses from paint to paint: one per drawn
+// sparkline (a grid cell keeps one per column, reused across rows). It
+// grows when a wider plot is drawn and never shrinks.
+struct GUI_FORMS_API SparklineWorkspace final {
+    plots::SeriesMarkPainter marks{};
+    std::size_t reserved_columns{};
+};
+
+// Draws `values` (oldest first; NaN is a gap) the way Sparkline draws its
+// ring, inside `plot` (local units, clipped to it), so that a grid cell, a
+// list item or an owner-drawn control can draw a word-sized trend without
+// a Sparkline control (the D3 demonstrator's I5). The x axis spans `slots`
+// positions with the newest value at the right; `slots` is at least 2 and
+// at least values.size(), otherwise nothing is drawn. The y axis is the
+// values' finite extent (a flat run sits in the middle). `scale` is the
+// paint scale (device pixels per local unit, finite and positive). Draws
+// nothing when no value is finite or the plot is empty. Allocates only
+// when the workspace grows; the painter is saved and restored around it.
+GUI_FORMS_API void paint_sparkline(Painter& painter, Rect plot, plots::SeriesSpans<double> values,
+                                   std::size_t slots, double scale, const SparklineStyle& style,
+                                   SparklineWorkspace& workspace);
 
 class GUI_FORMS_API Sparkline final : public Control, public SparklineCapabilities<Sparkline> {
 public:
@@ -69,8 +105,7 @@ private:
     void resize_ring(std::size_t capacity);
 
     plots::SeriesColumn<double> values_{};
-    plots::SeriesMarkPainter marks_{};
-    std::size_t reserved_columns_{};
+    SparklineWorkspace workspace_{};
     // property_codemod begin Sparkline (tools/property_families/sparkline.json; generated, do not edit)
 public:
     // Sparkline's property table: Control's entries, then its own.

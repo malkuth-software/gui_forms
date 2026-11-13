@@ -437,6 +437,10 @@ Related types
      - How many of the newest values the line keeps, 2 to 100000 (std::invalid_argument outside them); a smaller capacity drops the oldest.
    * - :cpp:class:`SparklineFillCapability <gui_forms::SparklineFillCapability>`
      - Whether the band under the line is shaded.
+   * - :cpp:class:`SparklineStyle <gui_forms::SparklineStyle>`
+     - The look of one sparkline drawn by paint_sparkline.
+   * - :cpp:class:`SparklineWorkspace <gui_forms::SparklineWorkspace>`
+     - The storage paint_sparkline reuses from paint to paint: one per drawn sparkline (a grid cell keeps one per column, reused across rows).
    * - :cpp:class:`Spinner::Parts <gui_forms::Spinner::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`SpinnerActiveCapability <gui_forms::SpinnerActiveCapability>`
@@ -3982,6 +3986,46 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: SparklineStyle final
+
+   ``#include <gui_forms/controls/sparkline.hpp>``
+
+   The look of one sparkline drawn by paint_sparkline.
+
+   .. cpp:member:: Color line
+
+      The line's colour; the band and the newest dot take it too.
+
+   .. cpp:member:: double line_width
+
+      The line's width in local units (finite and positive). Default: ``{1.0}``.
+
+   .. cpp:member:: bool fill
+
+      Whether the band under the line is shaded, and its alpha.
+
+   .. cpp:member:: std::uint8_t band_alpha
+
+      Default: ``{72U}``.
+
+   .. cpp:member:: double newest_marker_size
+
+      The dot on the newest finite value; 0 draws none. Default: ``{4.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SparklineWorkspace final
+
+   ``#include <gui_forms/controls/sparkline.hpp>``
+
+   The storage paint_sparkline reuses from paint to paint: one per drawn sparkline (a grid cell keeps one per column, reused across rows). It grows when a wider plot is drawn and never shrinks.
+
+   .. cpp:member:: plots::SeriesMarkPainter marks
+
+   .. cpp:member:: std::size_t reserved_columns
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: Spinner::Parts final
 
    ``#include <gui_forms/controls/spinner.hpp>``
@@ -4778,6 +4822,14 @@ Functions, constants and aliases
 .. cpp:function:: std::uint8_t seven_segment_pattern(char32_t character) noexcept
 
    The segments ``character`` lights (a Unicode scalar value): the digits, the hexadecimal letters and the other letters a seven-segment cell can form (in whichever case it can), '-', '_', '=', the degree sign (U+00B0) and space; zero for anything else.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/sparkline.hpp>``
+
+.. cpp:function:: void paint_sparkline(Painter& painter, Rect plot, plots::SeriesSpans<double> values, std::size_t slots, double scale, const SparklineStyle& style, SparklineWorkspace& workspace)
+
+   Draws ``values`` (oldest first; NaN is a gap) the way Sparkline draws its ring, inside ``plot`` (local units, clipped to it), so that a grid cell, a list item or an owner-drawn control can draw a word-sized trend without a Sparkline control (the D3 demonstrator's I5). The x axis spans ``slots`` positions with the newest value at the right; ``slots`` is at least 2 and at least values.size(), otherwise nothing is drawn. The y axis is the values' finite extent (a flat run sits in the middle). ``scale`` is the paint scale (device pixels per local unit, finite and positive). Draws nothing when no value is finite or the plot is empty. Allocates only when the workspace grows; the painter is saved and restored around it.
 
 .. cpp:namespace:: gui_forms
 

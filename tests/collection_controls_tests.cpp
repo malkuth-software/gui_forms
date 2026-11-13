@@ -389,6 +389,49 @@ void test_tree_visibility_identity_and_navigation() {
             "TreeView expansion and selection events must be deterministic");
 }
 
+void test_tree_bulk_expansion() {
+    std::shared_ptr<gui_forms::TreeView> tree = make_control<TreeView>(StableId("tree.bulk"));
+    (*tree).set_requested_bounds({0.0, 0.0, 240.0, 40.0});
+    (*tree).set_items({
+        {"a", "A", 0, true, false},
+        {"a.b", "B", 1, true, false},
+        {"a.b.c", "C", 2},
+        {"d", "D", 0, true, false},
+        {"d.e", "E", 1},
+    });
+    Window window(tree, {240.0, 40.0});
+    window.perform_layout();
+    std::string trace{};
+    SubscriptionToken expansion = (*tree).expansion_changed().subscribe(AppendTreeExpansion(trace));
+    SubscriptionToken selection = (*tree).selection_changed().subscribe(AppendTreeSelection(trace));
+    (*tree).expand_to("a.b.c");
+    require((*tree).expanded("a") && (*tree).expanded("a.b") && !(*tree).expanded("d"),
+            "expand_to expands exactly the item's ancestors");
+    require(trace == "a:open\na.b:open\n", "expand_to raises one event per ancestor, outermost first");
+    require((*tree).top_row() > 0U, "expand_to scrolls the item's row into view");
+    trace.clear();
+    (*tree).expand_to("a.b.c");
+    require(trace.empty(), "expand_to of a revealed item raises nothing");
+    (*tree).selected_id = "a.b.c";
+    trace.clear();
+    (*tree).collapse_all();
+    require(!(*tree).expanded("a") && !(*tree).expanded("a.b"), "collapse_all collapses every item");
+    require(trace == "a:closed\na.b:closed\na:selected\n",
+            "collapse_all raises its events in model order, then moves the hidden selection to a visible ancestor");
+    trace.clear();
+    (*tree).expand_all();
+    require((*tree).expanded("a") && (*tree).expanded("a.b") && (*tree).expanded("d"),
+            "expand_all expands every expandable item");
+    require(trace == "a:open\na.b:open\nd:open\n", "expand_all raises one event per changed item");
+    bool rejected{};
+    try {
+        (*tree).expand_to("missing");
+    } catch (const std::out_of_range&) {
+        rejected = true;
+    }
+    require(rejected, "expand_to rejects an unknown ID");
+}
+
 void test_tree_model_validation() {
     std::shared_ptr<gui_forms::TreeView> tree = make_control<TreeView>(StableId("tree.invalid"));
     bool rejected{};
@@ -1843,6 +1886,7 @@ int main() {
         test_breadcrumb_readable_raised_geometry();
         test_tree_visibility_identity_and_navigation();
         test_tree_model_validation();
+        test_tree_bulk_expansion();
         test_tree_and_object_view_consume_keyed_image_list();
         test_object_label_wrapping_focus_and_full_name_inspection();
         test_object_virtualization_view_preservation_and_input();

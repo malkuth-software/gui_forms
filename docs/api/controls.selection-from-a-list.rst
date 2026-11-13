@@ -2348,6 +2348,10 @@ Related types
 
       Whether the grid shows the column (Windows Forms' Visible). A hidden column keeps its index, display index, width and values; layout, painting, hit testing, keyboard movement, selection ranges and the semantic tree pass over it. Default: ``{true}``.
 
+   .. cpp:member:: bool owner_draw
+
+      Whether the column's cells are owner drawn while the grid's draw_mode is normal: each raises draw_item_content as every cell does under owner_draw, and the other columns draw as usual (the ImGui-class demonstrator's gap I4). Under owner_draw every column is raised whatever this says. A grid with an owner-drawn column paints its cells on the UI thread, as under owner_draw.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: template <typename Declaring> DataGridViewColumnHeadersBorderStyleCapability
