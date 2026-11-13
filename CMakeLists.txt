@@ -3817,6 +3817,25 @@ if(GUI_FORMS_BUILD_TESTS)
     endif()
     add_test(NAME gui_forms_hosted_content_tests COMMAND gui_forms_hosted_content_tests)
     set_tests_properties(gui_forms_hosted_content_tests PROPERTIES TIMEOUT 120)
+    # The content boundary's examples (examples/content_boundary,
+    # docs/user/content-surfaces.md): a renderer that freezes everywhere, a
+    # hosted program that crashes on macOS and Linux. Each runs headless as a
+    # test.
+    add_executable(gui_forms_example_freezing_renderer examples/content_boundary/freezing_renderer.cpp)
+    target_link_libraries(gui_forms_example_freezing_renderer PRIVATE gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_example_freezing_renderer COMMAND gui_forms_example_freezing_renderer)
+    set_tests_properties(gui_forms_example_freezing_renderer PROPERTIES TIMEOUT 60)
+    if(NOT WIN32)
+        add_executable(gui_forms_example_crashing_program examples/content_boundary/crashing_program.cpp)
+        target_link_libraries(gui_forms_example_crashing_program PRIVATE gui_forms_hosted_client)
+        add_executable(gui_forms_example_hosted_crash examples/content_boundary/hosted_crash.cpp)
+        target_link_libraries(gui_forms_example_hosted_crash PRIVATE gui_forms_controls gui_forms_host_headless)
+        add_dependencies(gui_forms_example_hosted_crash gui_forms_example_crashing_program)
+        target_compile_definitions(gui_forms_example_hosted_crash PRIVATE
+            "GUI_FORMS_CRASHING_PROGRAM=\"$<TARGET_FILE:gui_forms_example_crashing_program>\"")
+        add_test(NAME gui_forms_example_hosted_crash COMMAND gui_forms_example_hosted_crash)
+        set_tests_properties(gui_forms_example_hosted_crash PROPERTIES TIMEOUT 60)
+    endif()
     # No shared GUI.Forms library exports a symbol of the pinned text stack
     # (cmake/CheckForeignTextSymbols.cmake), so a consumer's own HarfBuzz and
     # FreeType never meet ours.

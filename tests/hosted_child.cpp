@@ -1,5 +1,5 @@
-// The hosted program the hosted-content tests start (gui_forms_hosted_content_tests,
-// and the content-boundary example). Its first argument picks how it behaves:
+// The hosted program the hosted-content tests start
+// (gui_forms_hosted_content_tests). Its first argument picks how it behaves:
 //
 //   frames    publishes frames until asked to stop, then says goodbye and
 //             exits 0; answers each key with semantic text "key <code>"
