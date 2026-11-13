@@ -109,13 +109,13 @@ gd_color executed_pixel(const gd_api_v0& api, gd_handle recorder, std::uint32_t 
     return pixel;
 }
 
-// ABI 0.4 (exhibit gap E7): a ring of two Bezier circles filled even-odd
+// ABI 0.6 (exhibit gap E7): a ring of two Bezier circles filled even-odd
 // leaves its hole and filled non-zero covers it; a quadratic curve stroked
 // with a pen lands on the curve's midpoint.
 void curved_paths_fill_and_stroke() {
     gd_api_v0 api{};
     api.struct_size = sizeof(api);
-    CHECK(gd_get_api_v0(GD_ABI_VERSION_0_4, &api) == GD_OK);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_0_6, &api) == GD_OK);
     CHECK(api.graphics_path_add_beziers != nullptr);
     const gd_color white{UINT32_C(0xffffffff), 0};
     const gd_color black{UINT32_C(0xff000000), 0};

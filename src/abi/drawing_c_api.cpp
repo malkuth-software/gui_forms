@@ -2491,8 +2491,44 @@ gd_result api_graphics_path_fill_mode(gd_handle handle, std::uint32_t* fill_mode
                                                       fill_mode);
 }
 
+// The 0.4 and 0.5 slots (claude/cp32-demonstrator-gaps) ahead of the 0.6
+// curves. On this branch alone they are placeholders that refuse every call
+// and gd_get_api_v0 refuses versions 0.4 and 0.5; the fold that lands
+// demonstrator-gaps replaces this block and these table entries with its
+// implementations (decision 1 of the drawing ABI inventory: 0.4 and 0.5 as
+// demonstrator-gaps defines them, the curves as 0.6).
+gd_result pending_slot(const char* entry) {
+    return fail(GD_ERROR_UNSUPPORTED_VERSION, std::string(entry) + " arrives with the ABI 0.4 and 0.5 fold");
+}
+
+gd_result pending_recorder_fill_band(gd_handle, gd_handle, const gd_point*, const gd_point*, std::uint64_t) {
+    return pending_slot("recorder_fill_band");
+}
+
+gd_result pending_recorder_draw_polyline_runs(gd_handle, gd_handle, const gd_point*, std::uint64_t) {
+    return pending_slot("recorder_draw_polyline_runs");
+}
+
+gd_result pending_recorder_fill_rectangles_each(gd_handle, const gd_rect*, const gd_color*, std::uint64_t) {
+    return pending_slot("recorder_fill_rectangles_each");
+}
+
+gd_result pending_recorder_draw_string_in_rect(gd_handle, gd_string_view, gd_handle, gd_handle, gd_rect, gd_handle) {
+    return pending_slot("recorder_draw_string_in_rect");
+}
+
+gd_result pending_recorder_draw_strings(gd_handle, gd_handle, gd_handle, const gd_text_item*, std::uint64_t) {
+    return pending_slot("recorder_draw_strings");
+}
+
+gd_result pending_recorder_reset(gd_handle) { return pending_slot("recorder_reset"); }
+
+gd_result pending_measure_string_fitted(gd_string_view, gd_handle, gd_handle, double, std::uint64_t*, double*) {
+    return pending_slot("measure_string_fitted");
+}
+
 const gd_api_v0 api_table{
-    sizeof(gd_api_v0), GD_ABI_VERSION_0_4,
+    sizeof(gd_api_v0), GD_ABI_VERSION_0_6,
     &api_last_error, &api_retain, &api_release, &api_dispose,
     &api_object_state, &api_object_kind,
     &api_solid_brush_create, &api_pen_create, &api_pen_set_width,
@@ -2560,6 +2596,10 @@ const gd_api_v0 api_table{
     &api_recorder_draw_string_over_fill,
     &api_contrast_ratio, &api_contrasting_text_color,
     &api_graphics_path_add_rounded_rectangle,
+    &pending_recorder_fill_band, &pending_recorder_draw_polyline_runs,
+    &pending_recorder_fill_rectangles_each,
+    &pending_recorder_draw_string_in_rect, &pending_recorder_draw_strings,
+    &pending_recorder_reset, &pending_measure_string_fitted,
     &api_graphics_path_add_quadratic, &api_graphics_path_add_bezier,
     &api_graphics_path_add_beziers, &api_graphics_path_add_polygon,
     &api_graphics_path_add_pie,
@@ -2577,7 +2617,7 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
     if (requested_version != GD_ABI_VERSION_0_1 &&
         requested_version != GD_ABI_VERSION_0_2 &&
         requested_version != GD_ABI_VERSION_0_3 &&
-        requested_version != GD_ABI_VERSION_0_4) {
+        requested_version != GD_ABI_VERSION_0_6) {
         return fail(GD_ERROR_UNSUPPORTED_VERSION,
                     "requested GUI.Drawing ABI version is unsupported");
     }
@@ -2589,7 +2629,7 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
     } else if (requested_version == GD_ABI_VERSION_0_2) {
         available = offsetof(gd_api_v0, pen_set_line_join);
     } else if (requested_version == GD_ABI_VERSION_0_3) {
-        available = offsetof(gd_api_v0, graphics_path_add_quadratic);
+        available = offsetof(gd_api_v0, recorder_fill_band);
     }
     const std::size_t copied = std::min<std::size_t>(caller_size, available);
     std::memcpy(table, &api_table, copied);

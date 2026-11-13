@@ -23,7 +23,7 @@ static gd_string_view view_of(const char* text) {
 
 /* The drawing-primitives append: every entry records, validates before it
    mutates, and traces. */
-/* ABI 0.4, curved paths: each verb is accepted and kept, refusals leave the
+/* ABI 0.6, curved paths: each verb is accepted and kept, refusals leave the
    path as it was, and the fill mode round-trips. */
 static int check_curved_paths(const gd_api_v0* api) {
     gd_handle path = {0};
@@ -278,15 +278,23 @@ int main(void) {
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_0_3, &api) == GD_OK);
-    CHECK(api.struct_size == offsetof(gd_api_v0, graphics_path_add_quadratic));
+    CHECK(api.struct_size == offsetof(gd_api_v0, recorder_fill_band));
     CHECK(api.abi_version == GD_ABI_VERSION_0_3);
     CHECK(api.graphics_path_add_rounded_rectangle != NULL);
+    CHECK(api.recorder_fill_band == NULL);
     CHECK(api.graphics_path_add_quadratic == NULL);
+    /* The curves are 0.6, after 0.5's measure_string_fitted: their slots
+       follow the 0.4 and 0.5 entries, whatever a fold adds before them. */
+    CHECK(offsetof(gd_api_v0, graphics_path_add_quadratic) ==
+          offsetof(gd_api_v0, measure_string_fitted) + sizeof(api.measure_string_fitted));
+    CHECK(offsetof(gd_api_v0, recorder_draw_string_in_rect) ==
+          offsetof(gd_api_v0, recorder_fill_band) + 3U * sizeof(api.recorder_fill_band));
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
-    CHECK(gd_get_api_v0(GD_ABI_VERSION_0_4, &api) == GD_OK);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_0_6, &api) == GD_OK);
     CHECK(api.struct_size == sizeof(api));
-    CHECK(api.abi_version == GD_ABI_VERSION_0_4);
+    CHECK(api.abi_version == GD_ABI_VERSION_0_6);
+    CHECK(api.graphics_path_add_quadratic != NULL);
     CHECK(api.graphics_path_fill_mode != NULL);
     CHECK(api.recorder_trace != NULL);
     CHECK(api.graphics_path_create != NULL);

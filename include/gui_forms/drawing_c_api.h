@@ -27,9 +27,15 @@ extern "C" {
    version exposes the table prefix it introduced; a newer version only
    appends. */
 #define GD_ABI_VERSION_0_3 UINT32_C(0x00000003)
-/* 0.4 appends the curved path vocabulary (graphics_path_add_quadratic
-   onwards), for consumers drawing their own curves (exhibit gap E7). */
+/* 0.4 appends the gapped and per-element marks (recorder_fill_band
+   onwards). */
 #define GD_ABI_VERSION_0_4 UINT32_C(0x00000004)
+/* 0.5 appends text in a box, batched strings, recorder reuse and the fitted
+   measure (recorder_draw_string_in_rect onwards). */
+#define GD_ABI_VERSION_0_5 UINT32_C(0x00000005)
+/* 0.6 appends the curved path vocabulary (graphics_path_add_quadratic
+   onwards), for consumers drawing their own curves (exhibit gap E7). */
+#define GD_ABI_VERSION_0_6 UINT32_C(0x00000006)
 
 typedef struct gd_handle {
     uint32_t slot;
@@ -62,6 +68,14 @@ typedef struct gd_rect {
     double width;
     double height;
 } gd_rect;
+
+/* One string of recorder_draw_strings: UTF-8 text (borrowed for the call),
+   its origin and its colour. */
+typedef struct gd_text_item {
+    gd_string_view text;
+    gd_point origin;
+    gd_color color;
+} gd_text_item;
 
 typedef struct gd_rect_i {
     int32_t x;
@@ -628,7 +642,67 @@ typedef struct gd_api_v0 {
     gd_result (*graphics_path_add_rounded_rectangle)(gd_handle path, gd_rect rectangle,
                                                      gd_corner_radii radii);
     /*
-     * ABI 0.4, curved paths. Each curve appends to the current figure as
+     * ABI 0.4, the gapped and per-element marks (the plot demonstrator's
+     * gaps). Each records the 0.3 commands (fill_polygon, draw_lines,
+     * fill_rectangles), so a trace names those. A break is a point with a
+     * NaN coordinate; an infinite coordinate is refused. Each validates its
+     * whole input before it records; a refusal records nothing.
+     *
+     * The area between two polylines sampled at the same positions: upper
+     * and lower each hold count points, 2 through 500,000. A break at index
+     * i in either array breaks the band; each run of 2 or more unbroken
+     * indices records one fill_polygon (winding), and a run of one records
+     * nothing.
+     */
+    gd_result (*recorder_fill_band)(gd_handle recorder, gd_handle brush,
+                                    const gd_point* upper, const gd_point* lower,
+                                    uint64_t count);
+    /* An open polyline through count (2 through 1,000,000) points that breaks
+       at each break: each run of 2 or more unbroken points records one
+       draw_lines, and a run of one records nothing. Unlike
+       recorder_draw_lines, which refuses a NaN point. */
+    gd_result (*recorder_draw_polyline_runs)(gd_handle recorder, gd_handle pen,
+                                             const gd_point* points, uint64_t count);
+    /* Each of count (1 through 1,000,000) finite rectangles filled in its own
+       colour, colors[i] for rects[i]; each run of equal colours records one
+       fill_rectangles with a solid brush. */
+    gd_result (*recorder_fill_rectangles_each)(gd_handle recorder, const gd_rect* rects,
+                                               const gd_color* colors, uint64_t count);
+    /*
+     * ABI 0.5, text in a box, batched strings, reuse and the fitted measure
+     * (the flame graph demonstrator's gaps D2 to D4). Each validates its
+     * whole input before it records; a refusal records nothing.
+     *
+     * The string laid out in layout (finite, non-negative size): lines break
+     * at newlines only; each line is placed across the box by the format's
+     * alignment and the block down it by its line alignment; a line wider
+     * than the box is trimmed by the format's trimming (the ellipsis forms
+     * add U+2026; ellipsis path is taken as ellipsis character; none lets it
+     * run on); the text is clipped to the box unless the format has the
+     * no-clip flag (0x4000). One draw_string command.
+     */
+    gd_result (*recorder_draw_string_in_rect)(gd_handle recorder, gd_string_view text,
+                                              gd_handle font, gd_handle brush,
+                                              gd_rect layout, gd_handle format);
+    /* count (1 through 65,536) strings in one font and format, items[i] at its
+       origin in its colour: one draw_string command each, in order. */
+    gd_result (*recorder_draw_strings)(gd_handle recorder, gd_handle font,
+                                       gd_handle format, const gd_text_item* items,
+                                       uint64_t count);
+    /* Empties the recording for reuse: the commands, the saved states (their
+       tokens become invalid) and the state in force are cleared and a closed
+       recorder reopens; the command storage is kept. */
+    gd_result (*recorder_reset)(gd_handle recorder);
+    /* The longest prefix of text, in whole code points, whose one-line
+       measured width (measure_string with no layout width) is at most
+       max_width (finite, non-negative): its byte count and that width. Text
+       that fits whole reports its size; none fitting reports 0 and 0. A zero
+       format handle means defaults. Needs the raster service. */
+    gd_result (*measure_string_fitted)(gd_string_view text, gd_handle font,
+                                       gd_handle format, double max_width,
+                                       uint64_t* bytes_fitted, double* fitted_width);
+    /*
+     * ABI 0.6, curved paths. Each curve appends to the current figure as
      * graphics_path_add_line does. recorder_fill_path fills by the path's fill mode
      * (0 alternate, even-odd; 1 winding, non-zero) and recorder_draw_path
      * strokes with the pen's width, joins, caps and dashes. Every point is
