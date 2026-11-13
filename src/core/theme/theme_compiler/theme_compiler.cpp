@@ -101,6 +101,19 @@ bool sheet_has_dark_rules(const ThemeRuleSheet& sheet) noexcept {
     return false;
 }
 
+// Whether a rule the packages of a closure wrote holds only under
+// `prefers-color-scheme: dark`: a rule of the combined text (provenance
+// file closure_file, offsets not yet placed) at or after `package_start`,
+// where the base sheet ends. The base's own rules, the sheet's and those
+// its definition already holds, are not the packages' to answer for.
+bool packages_have_dark_rules(const ThemeRuleSheet& sheet, std::size_t package_start) noexcept {
+    for (const ThemeRule& rule : sheet.rules) {
+        const bool written = rule.provenance.file == closure_file && rule.provenance.offset >= package_start;
+        if (written && rule.media.dark_scheme == true) return true;
+    }
+    return false;
+}
+
 ThemeDiagnostic problem_of(DiagnosticCode code, std::string file, std::string detail) {
     ThemeDiagnostic problem{};
     problem.code = code;
@@ -533,12 +546,18 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
         found.push_back(public_diagnostic(placed));
     }
     if (outcome != theme_language::CompileOutcome::compiled) return ThemeCompileResult::refused(std::move(found));
+    // The dark rules W402 answers for, read before placing moves the
+    // offsets into each sheet: with packages, theirs alone (the base's
+    // dark rules are not the package's); the base compiled alone is the
+    // program's own sheet, and every rule counts.
+    const bool dark_rules = segments.size() > 1U ? packages_have_dark_rules((*definition).rules, segments[1].start)
+                                                 : sheet_has_dark_rules((*definition).rules);
     place_rules((*definition).rules, segments, roots, &base_pack, set);
     // A program theme with rules for the dark scheme but no dark variant
     // (T4 theme variants): a dark window shows GUI.Forms' own dark theme,
     // so the rules apply nowhere. A user theme is layered, and has none.
     const bool dark_declared = (*definition).rules.colour_schemes && (*(*definition).rules.colour_schemes).dark;
-    if (set == ThemeRuleSet::program && !dark_declared && sheet_has_dark_rules((*definition).rules)) {
+    if (set == ThemeRuleSet::program && !dark_declared && dark_rules) {
         found.push_back(public_diagnostic(
             problem_of(DiagnosticCode::scheme_rules_without_variant, sheet_file(root), "color-scheme: light dark")));
     }

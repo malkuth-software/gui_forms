@@ -342,6 +342,12 @@ void test_dark_rules_without_variant() {
         package("unvaried", ":root { color-scheme: light } @media (prefers-color-scheme: dark) { #pad { opacity: 0.5 } }"),
         library, images, professional);
     require(unvaried.succeeded() && warns(unvaried, "W402"), "dark rules without a dark variant warn");
+    // A light-only package of no dark rules of its own: the base's dark
+    // rules are not the package's, so it does not warn (conformance gap 3).
+    const ThemeCompileResult light_only = compile_theme_package(
+        package("light-only", ":root { color-scheme: light } #pad { opacity: 0.5 }"), library, images, professional);
+    require(light_only.succeeded() && !warns(light_only, "W402"),
+            "a light-only package over a base with dark rules does not warn");
     const ThemeCompileResult varied = compile_theme_package(
         package("varied", ":root { color-scheme: light dark } @media (prefers-color-scheme: dark) { #pad { opacity: 0.5 } }"),
         library, images, professional);
