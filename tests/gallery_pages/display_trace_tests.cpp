@@ -642,6 +642,11 @@ struct PageDigest final {
 // by the integrator (cp31 folds C-E, 2026-11-12) on the stack head: every
 // page, in both tables; node-graphs for the first time.
 //
+// cp32 fold A (stock icons, Heroicons v2.2.0): ErrorGlyph draws the stock
+// exclamation-circle icon, baked per window scale, as one part raster in place
+// of the plate, rings and mark strokes. Recorded again by the integrator
+// (2026-11-13): timing-and-tooltips, in both tables; no other page moved.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
@@ -661,7 +666,7 @@ constexpr std::array<PageDigest, 41> expected_digests{{
     {"images-and-drawing", 0x5fab7ec36abae898ULL},
     {"tabs-and-pages", 0xfaad145f1cfa3617ULL},
     {"checked-collections", 0xad8e32146e49106cULL},
-    {"timing-and-tooltips", 0xd2c29e62f417485cULL},
+    {"timing-and-tooltips", 0x3f67d185563ae2cfULL},
     {"dates-and-calendar", 0x65bd27373952d65bULL},
     {"dialogs-and-host-services", 0x5f7b3680de569e28ULL},
     {"css-layout-panels", 0x53b1cb225517f95bULL},
@@ -718,7 +723,7 @@ constexpr std::array<PageDigest, 41> professional_digests{{
     {"images-and-drawing", 0xcd017ae4187ac65eULL},
     {"tabs-and-pages", 0x1c12ee132f56c330ULL},
     {"checked-collections", 0xc07862cd9e2888abULL},
-    {"timing-and-tooltips", 0x7be4f5ad4d8437f8ULL},
+    {"timing-and-tooltips", 0xd08086808cc811c2ULL},
     {"dates-and-calendar", 0x67cb900d8709713bULL},
     {"dialogs-and-host-services", 0xf0e0be7fd9657d65ULL},
     {"css-layout-panels", 0x951f64c4d75f4639ULL},
