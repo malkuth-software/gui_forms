@@ -87,6 +87,11 @@ struct RecordClick final {
     void operator()(const RibbonCommandClick& click) const { (*seen).push_back(click.command_id); }
 };
 
+struct RecordHelp final {
+    std::vector<std::string>* seen{};
+    void operator()(const RibbonHelpRequest& request) const { (*seen).push_back(request.tab_id); }
+};
+
 struct RecordLaunch final {
     std::vector<std::string>* seen{};
     void operator()(const RibbonDialogLaunch& launch) const { (*seen).push_back(launch.group_id); }
@@ -719,6 +724,54 @@ void refusals() {
     require(threw && (*ribbon).tabs().empty(), "a large command may not drop its label, and nothing changes");
 }
 
+// The help button (owner ruling N4): hidden by default; shown, a square at the
+// tab row's right end, painted as a plate and a question mark; a click, and
+// accessibility's press, raise help_requested with the selected tab.
+void help_button() {
+    const Commands commands;
+    std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
+    Window window(ribbon, {900.0, 115.0}, commands.resources);
+    window.perform_layout();
+    require(!(*ribbon).help_button_visible.read() && !(*ribbon).parts().help_button.present,
+            "the help button is hidden by default");
+    std::vector<std::string> requests;
+    SubscriptionToken requested = (*ribbon).help_requested().subscribe(RecordHelp{&requests});
+    (*ribbon).help_button_visible = true;
+    window.perform_layout();
+    const Ribbon::Parts parts = (*ribbon).parts();
+    const Rect help = parts.help_button.bounds;
+    const Rect rail = parts.tab_rail.bounds;
+    require(parts.help_button.present && parts.help_label.present && help.width == help.height &&
+                help.x + help.width == rail.x + rail.width && help.y >= rail.y &&
+                help.y + help.height <= rail.y + rail.height,
+            "the help button is a square at the tab row's right end");
+    RecordingPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 900.0, 115.0}));
+    require(painted(painter, "?"), "the help button paints its question mark");
+    click(window, centre(help));
+    require(requests.size() == 1U && requests[0] == "home", "a click raises help_requested with the selected tab");
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, centre(help)}));
+    require((*ribbon).parts().help_button.states.contains(AnatomyState::pressed), "the press shows pressed");
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, Point{rail.x + 1.0, 60.0}}));
+    require(requests.size() == 1U && !(*ribbon).parts().help_button.states.contains(AnatomyState::pressed),
+            "a release away from the button raises nothing");
+    const std::vector<SemanticNode> nodes = (*ribbon).semantic_virtual_children();
+    bool published = false;
+    for (const SemanticNode& node : nodes) {
+        if (node.stable_id == "ribbon.help" && node.role == SemanticRole::button) published = true;
+    }
+    require(published, "the help button is published as a button");
+    require((*ribbon).on_semantic_child_action("ribbon.help", SemanticAction::press, {}) && requests.size() == 2U,
+            "accessibility's press raises help_requested");
+    (*ribbon).help_button_visible = false;
+    window.perform_layout();
+    require(!(*ribbon).parts().help_button.present &&
+                !(*ribbon).on_semantic_child_action("ribbon.help", SemanticAction::press, {}),
+            "hidden again, the button is gone and its press refused");
+    (*ribbon).request_help();
+    require(requests.size() == 3U, "request_help raises help_requested without the button (an F1 binding)");
+}
+
 } // namespace
 
 int main() {
@@ -735,6 +788,7 @@ int main() {
     menus_take_the_ribbon_theme();
     refusals();
     labels_and_rows();
+    help_button();
     std::cout << "Ribbon: geometry, one command path, item repaint, minimizing, hosted controls, menus, launchers, "
                  "semantics, F6 region and refusals passed\n";
     return 0;

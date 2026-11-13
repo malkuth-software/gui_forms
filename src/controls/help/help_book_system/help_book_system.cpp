@@ -2,6 +2,7 @@
 
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
+#include "gui_forms/controls/ribbon.hpp"
 #include "gui_forms/help/help_page/help_page.hpp"
 #include "gui_forms/window/window.hpp"
 
@@ -334,6 +335,10 @@ void HelpBookSystem::attach_ribbon_tool_tip(RibbonToolTip& tool_tip) {
     on(tool_tip.help_requested(), *this, &HelpBookSystem::on_ribbon_help);
 }
 
+void HelpBookSystem::attach_ribbon(Ribbon& ribbon) {
+    on(ribbon.help_requested(), *this, &HelpBookSystem::on_ribbon_button_help);
+}
+
 void HelpBookSystem::wire_viewer(HelpBookViewer& viewer) {
     on(viewer.external_link(), *this, &HelpBookSystem::on_viewer_external);
     on(viewer.popup_requested(), *this, &HelpBookSystem::on_viewer_popup);
@@ -454,13 +459,15 @@ bool HelpBookSystem::show_popup(std::string_view stable_id, const Control::Ptr& 
     return open_popup(std::move(page), anchor);
 }
 
-bool HelpBookSystem::show_card(const Control::Ptr& anchor) {
+bool HelpBookSystem::show_card(const Control::Ptr& anchor) { return show_card_for(anchor, anchor); }
+
+bool HelpBookSystem::show_card_for(const Control::Ptr& subject, const Control::Ptr& anchor) {
     const std::shared_ptr<const HelpBookSection> held = section();
-    if (!held || !anchor) return false;
-    const HelpTarget target = resolve(*anchor);
-    // The help line: the control's own, else the nearest one above it.
+    if (!held || !subject || !anchor) return false;
+    const HelpTarget target = resolve(*subject);
+    // The help line: the subject's own, else the nearest one above it.
     const HelpBookRecord* line_record = nullptr;
-    Control::Ptr current = anchor;
+    Control::Ptr current = subject;
     std::size_t steps = 0U;
     while (current && steps < maximum_resolve_depth && line_record == nullptr) {
         const std::optional<std::size_t> record = (*held).find((*current).stable_id().value());
@@ -659,6 +666,16 @@ void HelpBookSystem::on_ribbon_help(const RibbonToolTipHelpRequest& request) {
         return;
     }
     show(request.target_stable_id);
+}
+
+void HelpBookSystem::on_ribbon_button_help(const RibbonHelpRequest& request) {
+    ++counters_.requests;
+    for (const Attachment& attachment : attachments_) {
+        const Control::Ptr ribbon = (*attachment.window).find(request.ribbon_id);
+        if (!ribbon) continue;
+        static_cast<void>(show_card_for((*attachment.window).root(), ribbon));
+        return;
+    }
 }
 
 // --- Viewer events ---------------------------------------------------------------------------------------

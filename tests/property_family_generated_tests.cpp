@@ -2364,6 +2364,11 @@ void test_ribbon_properties() {
         (*control).tabs_activate_on_release = sample;
         expect((*control).tabs_activate_on_release.read() == sample, "Ribbon.tabs_activate_on_release: a write stores");
     }
+    {
+        const bool sample = true;
+        (*control).help_button_visible = sample;
+        expect((*control).help_button_visible.read() == sample, "Ribbon.help_button_visible: a write stores");
+    }
 }
 
 void test_ribbon_color_picker_properties() {

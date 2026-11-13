@@ -294,6 +294,13 @@ struct GUI_FORMS_API RibbonDialogLaunch final {
     std::string group_id{};
 };
 
+// A click on the help button (help_button_visible): the ribbon and the tab
+// selected then (empty when none is).
+struct GUI_FORMS_API RibbonHelpRequest final {
+    std::string ribbon_id{};
+    std::string tab_id{};
+};
+
 // The selected tab after it changed.
 struct GUI_FORMS_API RibbonTabChange final {
     std::string ribbon_id{};
@@ -480,6 +487,11 @@ public:
         return dialog_launcher_clicked_;
     }
     [[nodiscard]] Event<const RibbonTabChange&>& selected_tab_changed() noexcept { return selected_tab_changed_; }
+    // Raised by a click on the help button and by request_help.
+    [[nodiscard]] Event<const RibbonHelpRequest&>& help_requested() noexcept { return help_requested_; }
+    // Raises help_requested, as a click on the help button does, whether or
+    // not the button shows (an F1 binding may call it).
+    void request_help();
     [[nodiscard]] Event<bool>& minimized_changed() noexcept { return minimized_changed_; }
     [[nodiscard]] Event<const MenuItemInvocation&>& application_menu_item_invoked() noexcept {
         return application_menu_item_invoked_;
@@ -517,8 +529,10 @@ public:
         PartGeometry scroll_left_glyph;
         PartGeometry scroll_right;
         PartGeometry scroll_right_glyph;
-        // Reserved for the help button (owner, N4); never present yet.
+        // The help button at the right end of the tab row and its question
+        // mark (owner ruling N4); present while help_button_visible holds.
         PartGeometry help_button;
+        PartGeometry help_label;
         PartGeometry focus;
     };
     [[nodiscard]] Parts parts() const;
@@ -664,6 +678,7 @@ private:
             group_button,
             scroll_left,
             scroll_right,
+            help,
         } kind{Kind::none};
         std::size_t index{};
         CommandAddress command{};
@@ -677,6 +692,8 @@ private:
         Rect tab_rail{};
         Rect application{};
         std::vector<Rect> tabs;
+        // The help button at the tab row's right end (empty while hidden).
+        Rect help{};
         Rect plane{};
         // The part of the plane between its scroll buttons, where groups show.
         Rect groups_area{};
@@ -1043,6 +1060,8 @@ private:
     std::optional<std::size_t> pressed_group_{};
     Hit::Kind pressed_scroll_{Hit::Kind::none};
     bool application_pressed_{};
+    // The help button was pressed and the release has not come yet.
+    bool help_pressed_{};
     std::optional<Stop> stop_{};
     bool focused_{};
 
@@ -1079,6 +1098,7 @@ private:
     Event<const RibbonDropDownInvocation&> drop_down_item_invoked_{};
     Event<const RibbonDialogLaunch&> dialog_launcher_clicked_{};
     Event<const RibbonTabChange&> selected_tab_changed_{};
+    Event<const RibbonHelpRequest&> help_requested_{};
     Event<bool> minimized_changed_{};
     Event<const MenuItemInvocation&> application_menu_item_invoked_{};
 
@@ -1134,6 +1154,7 @@ private:
     friend struct FontCapability<Ribbon>;
     friend struct RibbonSelectedTabCapability<Ribbon>;
     friend struct RibbonTabsActivateOnReleaseCapability<Ribbon>;
+    friend struct RibbonHelpButtonVisibleCapability<Ribbon>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(application_modes)& cell, std::uint32_t& incoming);
     void written(const decltype(application_modes)& cell);
@@ -1155,6 +1176,8 @@ private:
     [[nodiscard]] std::optional<std::size_t> read_view(const decltype(selected_tab)& cell) const;
     void prepare_write(const decltype(tabs_activate_on_release)& cell, bool& incoming);
     void written(const decltype(tabs_activate_on_release)& cell);
+    void prepare_write(const decltype(help_button_visible)& cell, bool& incoming);
+    void written(const decltype(help_button_visible)& cell);
     // property_codemod end Ribbon
 };
 

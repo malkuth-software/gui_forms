@@ -761,6 +761,15 @@ Ribbon::Layout Ribbon::layout_for(Rect client) const {
         x += width;
         previous_width = width;
     }
+    // The help button: a square as tall as a tab at rest, at the row's right
+    // end (owner ruling N4). It paints and hit-tests over a tab that would
+    // run under it, so it stays reachable on a narrow row.
+    if (help_button_visible.read()) {
+        const TabMargins margins = row_widths.rest;
+        const double side = std::max(1.0, row - margins.top - margins.bottom);
+        const double left = std::max(client.x, client.x + client.width - side);
+        placed.help = {left, client.y + margins.top, std::min(side, client.width), side};
+    }
     if (!selected_tab_) return placed;
     reset_layout_groups(placed);
     if (minimized.read() || plane_hidden_) return placed;

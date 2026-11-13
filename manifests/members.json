@@ -3912,6 +3912,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "group_layouts", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_scaling_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "numeric_up_down", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_scale_raster_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "reduction_ladder", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_contextual_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "request_help", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_tab_set_availability", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_contextual_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "show_application_menu", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/menu_popup_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "show_backstage", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
@@ -4692,7 +4693,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "help_navigator", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "help_string", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/guidance_provider_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "read", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "request_help", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/message_box_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "request_help", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "show_help", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/guidance_provider_tests.cpp"}
     ]},
     {"type": "HelpBook", "winforms": null, "gui_forms_base": "ScrollableControl", "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/display_trace_tests.cpp", "members": [
@@ -4783,6 +4784,7 @@
       {"kind": "event", "winforms": null, "gui_forms": "external_link", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "print_requested", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "attach", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "attach_ribbon", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "attach_ribbon_tool_tip", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "cancel_help_mode", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "catalog", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
@@ -4798,6 +4800,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "on_help_key", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "on_help_mode_key", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "on_help_requested", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "on_ribbon_button_help", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "on_ribbon_help", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "resolve", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "resolve_field", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},

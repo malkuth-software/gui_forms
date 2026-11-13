@@ -147,6 +147,19 @@ struct RibbonTabsActivateOnReleaseCapability {
     }
 };
 
+// Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_requested; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
+template <typename Declaring>
+struct RibbonHelpButtonVisibleCapability {
+    PropertyCell<bool, RibbonHelpButtonVisibleCapability<Declaring>> help_button_visible{false};
+
+    static void assign(RibbonHelpButtonVisibleCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.help_button_visible), incoming);
+        if (!capability.help_button_visible.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.help_button_visible));
+    }
+};
+
 // Every Ribbon capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>,
@@ -158,7 +171,8 @@ struct RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>,
                             public RibbonFocusRegionCapability<Declaring>,
                             public FontCapability<Declaring>,
                             public RibbonSelectedTabCapability<Declaring>,
-                            public RibbonTabsActivateOnReleaseCapability<Declaring> {
+                            public RibbonTabsActivateOnReleaseCapability<Declaring>,
+                            public RibbonHelpButtonVisibleCapability<Declaring> {
     RibbonCapabilities() : FontCapability<Declaring>(FontSpec{FontRole::control, 10.5, 400, false, 0.12}) {}
 };
 

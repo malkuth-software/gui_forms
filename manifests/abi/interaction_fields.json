@@ -121,6 +121,7 @@
     "RibbonCommandClick": "ribbon_id: text, command_id: text",
     "RibbonDialogLaunch": "ribbon_id: text, group_id: text",
     "RibbonDropDownInvocation": "ribbon_id: text, command_id: text, choice.menu_id: text, choice.item_id: text, choice.command_id: text, choice.source_id: text",
+    "RibbonHelpRequest": "ribbon_id: text, tab_id: text",
     "RibbonRecentItemInvocation": "ribbon_id: text, item_id: text",
     "RibbonTabChange": "ribbon_id: text, tab: unsigned_integer, tab_id: text",
     "RibbonToolTipEvent": "target_stable_id: text, item_id: text, content.shortcut: text, content.image.value: unsigned_integer, content.help_topic: text, content.command: object, shown: boolean, keyboard_initiated: boolean",

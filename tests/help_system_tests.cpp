@@ -17,6 +17,7 @@
 #include "gui_forms/controls/help_book_viewer.hpp"
 #include "gui_forms/controls/help_print.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/ribbon.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/tree_view.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
@@ -336,6 +337,42 @@ void system_routes() {
     help.detach(*program.window);
 }
 
+// The ribbon's help button (owner ruling N4): attach_ribbon answers it with the
+// window card, the window's help line and More to the window's page, beside
+// the ribbon; a ribbon in no attached window shows nothing.
+void ribbon_help_card() {
+    Program program = make_program();
+    std::shared_ptr<Ribbon> ribbon = make_control<Ribbon>(StableId("app.ribbon"));
+    (*ribbon).set_requested_bounds({0.0, 400.0, 300.0, 115.0});
+    (*ribbon).help_button_visible = true;
+    (*program.root).add_child(ribbon);
+    HelpBookSystem help{};
+    static_cast<void>(help.load_built_in(program_locale));
+    help.attach(*program.window);
+    help.attach_ribbon(*ribbon);
+    (*program.window).perform_layout();
+    const std::uint64_t requests = help.snapshot().requests;
+    (*ribbon).request_help();
+    require(help.snapshot().requests == requests + 1U && help.popup_open(), "the help button opens a card");
+    const std::shared_ptr<HelpBook> card = help.popup_book();
+    require(card != nullptr && (*card).page().stable_id == "app" && !(*card).page().runs.empty() &&
+                (*card).page().runs[0].text == "The drawing window.",
+            "the card is the window's help line");
+    require((*card).page().links.size() == 1U && (*card).page().links[0].target == "app",
+            "More goes to the window's page");
+    help.close_popup();
+    const RibbonHelpRequest routed{"app.ribbon", {}};
+    help.on_ribbon_button_help(routed);
+    require(help.popup_open() && (*help.popup_book()).page().stable_id == "app",
+            "the program may route the request itself");
+    help.close_popup();
+    std::shared_ptr<Ribbon> stray = make_control<Ribbon>(StableId("stray.ribbon"));
+    help.attach_ribbon(*stray);
+    (*stray).request_help();
+    require(!help.popup_open(), "a ribbon in no attached window shows nothing");
+    help.detach(*program.window);
+}
+
 void printing() {
     Program program = make_program();
     HelpBookSystem help{};
@@ -468,6 +505,7 @@ int main() {
     paper_pane();
     viewer();
     system_routes();
+    ribbon_help_card();
     printing();
     language_files();
     std::cout << "help system tests passed\n";

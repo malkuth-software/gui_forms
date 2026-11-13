@@ -25,6 +25,9 @@ using namespace ribbon_detail;
 
 namespace {
 
+// The help button's mark; a label part, so the theme's font draws it.
+constexpr std::string_view help_mark_text{"?"};
+
 std::string node_identity(std::string_view ribbon_id, std::string_view kind, std::string_view id) {
     std::string identity(ribbon_id);
     identity.append(".");
@@ -1197,6 +1200,13 @@ Ribbon::Parts Ribbon::control_parts(const Layout& placed) const {
     record.scroll_left_glyph.states = left;
     record.scroll_right.states = right;
     record.scroll_right_glyph.states = right;
+    record.help_button = PartGeometry::from_bounds(placed.help);
+    record.help_label = PartGeometry::from_bounds(placed.help);
+    AnatomyStateSet help;
+    if (hot_.kind == Hit::Kind::help) help.insert(AnatomyState::hot);
+    if (help_pressed_) help.insert(AnatomyState::pressed);
+    record.help_button.states = help;
+    record.help_label.states = help;
     record.focus = PartGeometry::from_bounds(client_rectangle());
     return record;
 }
@@ -1291,6 +1301,26 @@ void Ribbon::on_paint(Painter& painter, Rect) {
         const std::size_t tab = index - 1U;
         if (!shown(tab) || selected_tab_ == tab) continue;
         paint_tab(painter, part, placed, tab);
+    }
+    // The help button over the row's right end: a menu-item plate (flat at
+    // rest) with a centred question mark.
+    if (own.help_button.present) {
+        part.family = ControlVisualRole::menu_item;
+        part.role = PartRole::actuator;
+        part.states = own.help_button.states;
+        part.bounds = own.help_button.bounds;
+        part.text = {};
+        part.mark = PartMark::none;
+        part.key = PartKey{"help_button", {}, {}};
+        paint_part(painter, *this, part);
+        part.role = PartRole::label;
+        part.text = lend_paint_text(help_mark_text);
+        part.alignment = PartTextAlignment::center;
+        part.bounds = own.help_label.bounds;
+        part.key = PartKey{"help_label", {}, {}};
+        paint_part(painter, *this, part);
+        part.text = {};
+        part.key.reset();
     }
     part.alignment = PartTextAlignment::start;
     part.font = label_font;
@@ -1594,6 +1624,10 @@ void Ribbon::overlay_paint(Painter& painter, Rect panel) const {
 
 Ribbon::Hit Ribbon::hit_test(const Layout& placed, Point local) const {
     Hit hit;
+    if (placed.help.contains(local)) {
+        hit.kind = Hit::Kind::help;
+        return hit;
+    }
     if (placed.application.contains(local)) {
         hit.kind = Hit::Kind::application;
         return hit;
@@ -1696,6 +1730,9 @@ void Ribbon::repaint_part(Hit::Kind kind, std::size_t index, CommandAddress comm
     case Hit::Kind::scroll_right:
         bounds = placed.scroll_right;
         break;
+    case Hit::Kind::help:
+        bounds = placed.help;
+        break;
     case Hit::Kind::none:
         return;
     default:
@@ -1783,6 +1820,13 @@ void Ribbon::click_command(CommandAddress address) {
     if (is_alive() && overlay_group_ == address.group) close_group_overlay();
 }
 
+void Ribbon::request_help() {
+    const Control::Ptr lifetime = shared_from_this();
+    const RibbonHelpRequest request{std::string(stable_id().value()),
+                                    selected_tab_ ? tabs_[*selected_tab_].stable_id : std::string{}};
+    help_requested_.emit(request);
+}
+
 void Ribbon::launch(std::size_t group) {
     const RibbonGroupSpec* const found = selected_group(group);
     if (found == nullptr || !(*found).dialog_launcher || !effectively_enabled()) return;
@@ -1811,6 +1855,9 @@ void Ribbon::press(const Hit& hit, PointerEvent& event) {
         } else {
             click_tab(hit.index);
         }
+    } else if (hit.kind == Hit::Kind::help) {
+        help_pressed_ = true;
+        repaint_part(hit.kind, hit.index, hit.command);
     } else if (hit.kind == Hit::Kind::launcher) {
         pressed_launcher_ = hit.index;
         repaint_part(hit.kind, hit.index, hit.command);
@@ -1865,6 +1912,13 @@ void Ribbon::release(const Hit& hit, PointerEvent& event) {
     if (tab) {
         event.handled = true;
         if (hit.kind == Hit::Kind::tab && hit.index == *tab) click_tab(*tab);
+        return;
+    }
+    if (help_pressed_) {
+        help_pressed_ = false;
+        event.handled = true;
+        repaint_part(Hit::Kind::help, 0U, {});
+        if (hit.kind == Hit::Kind::help && effectively_enabled()) request_help();
         return;
     }
     if (!pressed && !launcher && !group && !scroll) return;
@@ -2689,6 +2743,16 @@ std::vector<SemanticNode> Ribbon::semantic_virtual_children() const {
         row.children.push_back(std::move(node));
     }
     nodes.push_back(std::move(row));
+    if (!placed.help.empty()) {
+        SemanticNode help{};
+        help.stable_id = ribbon_id + ".help";
+        help.role = SemanticRole::button;
+        help.name = "Help";
+        help.bounds = to_window(absolute, placed.help);
+        help.states = base;
+        help.actions = {SemanticAction::press};
+        nodes.push_back(std::move(help));
+    }
     if (!selected_tab_) return nodes;
 
     // The command plane is published while minimized too, collapsed, so that
@@ -2769,6 +2833,10 @@ bool Ribbon::on_semantic_child_action(std::string_view id, SemanticAction action
         minimized = action == SemanticAction::collapse;
         return true;
     }
+    if (action == SemanticAction::press && id == ribbon_id + ".help" && help_button_visible.read()) {
+        request_help();
+        return true;
+    }
     if (action == SemanticAction::press && (id == ribbon_id + ".scroll-left" || id == ribbon_id + ".scroll-right")) {
         scroll_groups(id == ribbon_id + ".scroll-right");
         return true;
@@ -2837,7 +2905,7 @@ constexpr std::array<AnatomyState, 2> arrow_states{{AnatomyState::hot, AnatomySt
 constexpr std::array<AnatomyState, 4> group_button_part_states{
     {AnatomyState::hot, AnatomyState::pressed, AnatomyState::open, AnatomyState::focus_visible}};
 
-constexpr std::array<PartField<Ribbon::Parts>, 11> ribbon_part_fields{{
+constexpr std::array<PartField<Ribbon::Parts>, 12> ribbon_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
      .member = &Ribbon::Parts::region},
     {.declaration = {.name = "tab_rail", .role = PartRole::face, .composed_from = {}},
@@ -2862,13 +2930,14 @@ constexpr std::array<PartField<Ribbon::Parts>, 11> ribbon_part_fields{{
     {.declaration = {.name = "scroll_right_glyph", .role = PartRole::glyph, .composed_from = {},
                      .states = arrow_states},
      .member = &Ribbon::Parts::scroll_right_glyph},
-    // Reserved (owner, N4, 2026-11-09): the help button at the tab row's
-    // right end. Declared so that themes may style it now; the Ribbon
-    // neither places nor draws it until the help system's design wires it,
-    // so it is never present.
+    // The help button at the tab row's right end and its question mark
+    // (owner ruling N4), present while help_button_visible holds.
     {.declaration = {.name = "help_button", .role = PartRole::actuator, .composed_from = "button",
                      .states = launcher_states},
      .member = &Ribbon::Parts::help_button},
+    {.declaration = {.name = "help_label", .role = PartRole::label, .composed_from = {},
+                     .states = launcher_states},
+     .member = &Ribbon::Parts::help_label},
     {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
      .member = &Ribbon::Parts::focus},
 }};
@@ -2965,7 +3034,7 @@ constexpr std::array<StateField<Ribbon::CommandStates>, 6> ribbon_command_state_
     {.state = AnatomyState::focus_visible, .member = &Ribbon::CommandStates::focus_visible},
 }};
 
-constexpr std::array<PartDeclaration, 11> ribbon_parts = part_declarations(ribbon_part_fields);
+constexpr std::array<PartDeclaration, 12> ribbon_parts = part_declarations(ribbon_part_fields);
 constexpr std::array<PartDeclaration, 4> ribbon_tab_parts = part_declarations(ribbon_tab_part_fields);
 constexpr std::array<AnatomyState, 4> ribbon_tab_states = state_declarations(ribbon_tab_state_fields);
 constexpr std::array<PartDeclaration, 11> ribbon_group_parts = part_declarations(ribbon_group_part_fields);
@@ -3191,7 +3260,7 @@ std::vector<Ribbon::CommandItem> Ribbon::realized_overlay_commands() const {
 namespace {
 
 // The events Ribbon adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 8> ribbon_interactions{{
+constexpr std::array<InteractionDeclaration, 9> ribbon_interactions{{
     {.name = "command_clicked", .payload = "RibbonCommandClick", .mutable_payload = false},
     {.name = "drop_down_item_invoked", .payload = "RibbonDropDownInvocation", .mutable_payload = false},
     {.name = "dialog_launcher_clicked", .payload = "RibbonDialogLaunch", .mutable_payload = false},
@@ -3200,6 +3269,7 @@ constexpr std::array<InteractionDeclaration, 8> ribbon_interactions{{
     {.name = "application_menu_item_invoked", .payload = "MenuItemInvocation", .mutable_payload = false},
     {.name = "recent_item_invoked", .payload = "RibbonRecentItemInvocation", .mutable_payload = false},
     {.name = "backstage_open_changed", .payload = "bool", .mutable_payload = false},
+    {.name = "help_requested", .payload = "RibbonHelpRequest", .mutable_payload = false},
 }};
 
 } // namespace
@@ -3237,6 +3307,14 @@ void Ribbon::prepare_write(const decltype(tabs_activate_on_release)&, bool&) {
 }
 
 void Ribbon::written(const decltype(tabs_activate_on_release)&) {}
+
+void Ribbon::prepare_write(const decltype(help_button_visible)&, bool&) {
+    require_mutable();
+}
+
+void Ribbon::written(const decltype(help_button_visible)&) {
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
 
 // property_codemod end Ribbon
 

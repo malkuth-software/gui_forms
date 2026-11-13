@@ -239,6 +239,26 @@
       "getter": "tabs_activate_on_release",
       "setter": "set_tabs_activate_on_release",
       "field": "tabs_activate_on_release_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "name": "help_button_visible",
+      "capability": "RibbonHelpButtonVisible",
+      "value": "bool",
+      "initial": "false",
+      "hooks": "generated",
+      "hand": [],
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "comment": "Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_requested; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.",
+      "sample": "true",
+      "getter": "help_button_visible",
+      "setter": "set_help_button_visible",
+      "field": "help_button_visible_"
     }
   ],
   "not_properties": [
