@@ -27,7 +27,10 @@ build. `.github/workflows/native.yml` runs one job per platform (`macos-15`,
 
 1. reuses an earlier successful result for the identical tree if one exists;
 2. otherwise restores the closest object cache, compiles only what changed,
-   and runs every native, installed-SDK and development-profile test;
+   and runs every native, installed-SDK and development-profile test (on a
+   pull request, `--test-targets-only --changed-from HEAD^1`: the tests the
+   change can affect, built without installing anything; a pull request
+   that changes only documentation builds nothing);
 3. uploads its tested cache archive and a validation receipt;
 4. on `main`, publishes that archive to the `build-<sha>` pre-release at
    once, without waiting for the other platforms.
@@ -84,9 +87,9 @@ layout, so nothing in the job names an absolute directory:
 ├── .ccache/                               CCACHE_DIR
 ├── cache-manifest.json                    written beside a cache archive
 └── .build/
-    ├── native-<platform>/gui-forms/       toolkit build tree
+    ├── native-<platform>/gui-forms/       toolkit build tree (with stx-package/)
     ├── native-<platform>/gui-forms-sdk/   install prefix
-    ├── native-<platform>/skia/            Skia build output
+    ├── native-<platform>/gui-forms-sanitize/  the sanitizer tree
     └── toolchain/llvm-22.1.8-macos14/     macOS runtime prefix
 ```
 
@@ -145,6 +148,8 @@ echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
 echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
 echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
 ```
+
+(The sanitizer job uses `CCACHE_MAXSIZE=1G`.)
 
 `CCACHE_COMPILERCHECK=content` hashes the compiler binary itself, not its
 path or timestamp. The only sloppiness options are the two a precompiled header

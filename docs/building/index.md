@@ -29,7 +29,7 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 |---|---|---|
 | `GUI_FORMS_BUILD_GALLERY` | ON when top level | Build the control gallery demonstration |
 | `GUI_FORMS_BUILD_TESTS` | ON when top level | Build the automated tests |
-| `GUI_FORMS_ENABLE_SKIA` | ON | Build the private CPU-only Skia painter (macOS and Linux) |
+| `GUI_FORMS_ENABLE_SKIA` | ON | Link the private CPU-only renderer (`stx_skia`), the renderer on every host |
 | `GUI_FORMS_ENABLE_MACOS_HOST` | ON on macOS | Build the AppKit host and `GUIForms::Application` |
 | `GUI_FORMS_ENABLE_WINDOWS_HOST` | ON on Windows | Build the Win32 DIB host |
 | `GUI_FORMS_ENABLE_LINUX_HOST` | OFF | Build the X11 host; requires Linux and Skia |
@@ -44,6 +44,15 @@ the gallery needs `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` and an X11 display
 | `GUI_FORMS_HARDENING` | ON | Stack protector, `_FORTIFY_SOURCE=2` (outside Debug and sanitized builds), CET or branch protection, Control Flow Guard on Windows, and full RELRO on Linux, for every first-party library and program |
 | `GUI_FORMS_WARNINGS` | ON | Compile first-party code with `-Wall -Wextra`; `tools/warning_baseline.py` holds the count of warning sites per directory and fails a build that raises one |
 | `GUI_FORMS_TEST_RUNTIME` | ON | Link the test programs that use only the toolkit's own libraries to one shared test runtime, so a library change relinks one library instead of every program (CMake 3.27 or later) |
+| `GUI_FORMS_TEST_PRECOMPILED_HEADER` | ON | Share one precompiled header among the test programs; the daily CI build turns it off so that each test includes what it uses |
+| `GUI_FORMS_CHECKED_BORROWS` | OFF | Check borrowed views against their owners; the sanitizer tree (`ci_build.py --sanitize`) turns it on. It changes the borrowed types, so a program and its consumers are built one way |
+| `GUI_FORMS_BUILD_FORM_COMPILER` | ON (OFF when cross-compiling) | Build and install the form compiler that `gui_forms_add_form` runs |
+| `GUI_FORMS_BUILD_GENERATED_FORM_TESTS` | ON | Build the tests whose form header is generated at build time |
+| `GUI_FORMS_BUILD_GALLERY_MODEL` | as `GUI_FORMS_BUILD_TESTS` | Build the Gallery model (the control specimen catalogue) and the tests that read it |
+| `GUI_FORMS_INSTALL_GALLERY_MODEL`, `GUI_FORMS_INSTALL_LAB` | OFF | Install the Gallery model and the lab controls (`GalleryModel`, `Lab`, `DemoControls` components); `tools/build_sdk.py --features all` sets them |
+| `GUI_FORMS_INSTALL_TEXT_STACK` | OFF | Install and export the pinned FreeType and HarfBuzz (`FreeType`, `HarfBuzz` components) |
+| `GUI_FORMS_LOCALIZABLE_PLUGIN`, `GUI_FORMS_EFFECT_VERIFY` | ON | Build the Clang plugin that records localizable literals and verifies effect programs; without it effects build unverified, with a warning |
+| `GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB` | OFF | Bounded transactional DIB frames in the Windows host (development) |
 
 The remaining `GUI_FORMS_BUILD_TEXT_*` and `GUI_FORMS_BUILD_PREPARED_TEXT` /
 `GUI_FORMS_BUILD_TEXT_MASKS` options build development-only text services and
@@ -67,6 +76,14 @@ checkout, whose edits each build brings into the package. The package holds:
 | `third_party/harfbuzz/`, `third_party/freetype/` | HarfBuzz (without `test/` and `perf/`) and FreeType |
 | `third_party/libunibreak/` | libunibreak (UAX #14 line breaking) |
 | `third_party/md4c/`, `third_party/sheenbidi/`, `third_party/unicode/` | MD4C, SheenBidi and the Unicode data |
+| `stx_zlib/`, `stx_png/`, `stx_conv/`, `stx_rtf2md/`, `stx_vorbis/` | the first-party compression, PNG, CONV interpolation, rich-text and Ogg Vorbis libraries |
+
+The row height index of the virtual row views adapts `stx_btree`'s
+header-only sequence tree, taken from stx_auxlib at the commit
+`stx_auxlib.lock` names (`cmake/StxAuxlib.cmake`; a local checkout replaces
+it with `FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX_AUXLIB`). Nothing else of
+stx_auxlib is built. STXlib, which replaces stx_auxlib, is planned to take
+this over before 1.0.
 
 Audio pulls miniaudio through `FetchContent` with digest checks. No package
 manager is consulted at configure time.
@@ -129,8 +146,9 @@ documented refusal only when it is not on the input desktop
 `python3 -B tools/ci_build.py --sanitize [--tests REGEX]` is the standard
 sanitized tree on every platform: AddressSanitizer and
 UndefinedBehaviorSanitizer everywhere, LeakSanitizer on Linux and macOS,
-every report stopping its test ([Contributing](../dev/contributing.md) has
-the details). On macOS the sanitizer flags reach CMake through `CFLAGS`,
+every report stopping its test, with borrowed views checked
+(`GUI_FORMS_CHECKED_BORROWS`); [Contributing](../dev/contributing.md) has
+the details. On macOS the sanitizer flags reach CMake through `CFLAGS`,
 `CXXFLAGS`, `OBJCXXFLAGS` and `LDFLAGS` rather than `-DCMAKE_<LANG>_FLAGS`.
 `cmake/llvm22.cmake` puts the pinned libc++ headers and runtime link flags
 in `CMAKE_<LANG>_FLAGS_INIT`, which a command-line `-DCMAKE_<LANG>_FLAGS`
