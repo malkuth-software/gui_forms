@@ -648,6 +648,7 @@ void DataGridView::reset_row_state() {
     clear_selection_state();
     anchor_.reset();
     pressed_content_.reset();
+    pressed_cell_.reset();
     visited_links_.clear();
     own_row_heights_.clear();
     row_heights_stale_ = true;
@@ -815,6 +816,7 @@ void DataGridView::drop_missing_rows(std::optional<std::size_t> former_current) 
     }
     if (anchor_ && !find_row((*anchor_).row_id)) anchor_.reset();
     if (pressed_content_ && !find_row((*pressed_content_).row_id)) pressed_content_.reset();
+    if (pressed_cell_ && !find_row((*pressed_cell_).row_id)) pressed_cell_.reset();
     SelectedCells::iterator visited = visited_links_.begin();
     while (visited != visited_links_.end()) {
         if (find_row((*visited).first)) {
@@ -887,7 +889,7 @@ void DataGridView::validate_column(const DataGridViewColumn& column) const {
     if (contains_dot(column.name) || !valid_stable_id(column.name) ||
         !validate_utf8(column.header_text).valid() || !validate_utf8(column.button_text).valid() ||
         !validate_utf8(column.image_description).valid() || !validate_utf8(column.link_text).valid() ||
-        !validate_utf8(column.data_property_name).valid()) {
+        !validate_utf8(column.data_property_name).valid() || !validate_utf8(column.tool_tip_text).valid()) {
         throw std::invalid_argument(
             "DataGridView columns require a name that is one StableId segment, and valid UTF-8");
     }
@@ -1425,6 +1427,7 @@ void DataGridView::remove_virtual_rows(std::vector<DataGridViewRowId> ids) {
         }
         if (anchor_ && (*anchor_).row_id == row.value) anchor_.reset();
         if (pressed_content_ && (*pressed_content_).row_id == row.value) pressed_content_.reset();
+        if (pressed_cell_ && (*pressed_cell_).row_id == row.value) pressed_cell_.reset();
         visited_links_.erase(row.value);
         own_row_heights_.erase(row.value);
     }
@@ -1736,6 +1739,7 @@ void DataGridView::apply_row_order(const std::vector<std::size_t>& order) {
     // the positions change.
     rebuild_row_index();
     pressed_content_.reset();
+    pressed_cell_.reset();
 }
 
 void DataGridView::require_not_sorting() const {
@@ -2986,6 +2990,7 @@ void DataGridView::rekey_row(const std::string& from, const std::string& to) {
     if (current_ && (*current_).row_id == from) (*current_).row_id = to;
     if (anchor_ && (*anchor_).row_id == from) (*anchor_).row_id = to;
     if (pressed_content_ && (*pressed_content_).row_id == from) (*pressed_content_).row_id = to;
+    if (pressed_cell_ && (*pressed_cell_).row_id == from) (*pressed_cell_).row_id = to;
     const RowIdSet::iterator row = selected_rows_.find(from);
     if (row != selected_rows_.end()) {
         selected_rows_.erase(row);
@@ -3195,6 +3200,14 @@ std::string DataGridView::cell_error_text(DataGridViewRowPosition row, std::size
     cell_error_text_needed_.emit(needed);
     if (!validate_utf8(needed.error_text).valid()) return held;
     return needed.error_text;
+}
+
+std::string DataGridView::cell_tool_tip_text(DataGridViewRowPosition row, std::size_t column) const {
+    if (!show_cell_tool_tips.read()) return {};
+    DataGridViewCellToolTipTextNeededEvent needed{DataGridViewRowId{row_id_text(row)}, row, column, std::string{}};
+    cell_tool_tip_text_needed_.emit(needed);
+    if (!validate_utf8(needed.tool_tip_text).valid()) return {};
+    return needed.tool_tip_text;
 }
 
 std::string DataGridView::held_cell_error_text(DataGridViewRowPosition row, std::size_t column) const {
@@ -3654,12 +3667,20 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             return;
         }
         if (hit.zone == HitZone::row_header) {
-            static_cast<void>(click_row_header(hit.row, gesture));
+            const std::string row_id = row_id_text(hit.row);
+            if (!click_row_header(hit.row, gesture) || !is_alive() || !find_row(row_id)) return;
+            row_header_click_.emit(row_event(row_id));
             return;
         }
         if (hit.zone != HitZone::cell) return;
         const DataGridViewCellAddress cell{hit.row, hit.column};
-        if (!move_current(cell, gesture) || gesture != SelectionGesture::replace) return;
+        if (!move_current(cell, gesture)) return;
+        // move_current ran the program's handlers, which may have moved or
+        // removed the row: the cell is kept by identity until the release.
+        if (!is_alive()) return;
+        pressed_cell_ = key_of(cell);
+        pressed_cell_double_ = event.click_count >= 2U;
+        if (gesture != SelectionGesture::replace) return;
         const CellParts placed = cell_parts(cell.row, cell.column, grid_layout());
         const DataGridViewColumnKind kind = columns_[cell.column].kind;
         if (kind == DataGridViewColumnKind::check_box && placed.cell_check_well.bounds.contains(local)) {
@@ -3717,8 +3738,60 @@ void DataGridView::handle_pointer(PointerEvent& event) {
                 click_content(*at);
             }
             event.handled = true;
+            if (!is_alive()) return;
+        }
+        if (pressed_cell_) {
+            const CellKey pressed = *pressed_cell_;
+            const bool twice = pressed_cell_double_;
+            pressed_cell_.reset();
+            pressed_cell_double_ = false;
+            // Read again: click_content ran the program's handlers.
+            const HitResult released = hit_test(local);
+            const std::optional<DataGridViewCellAddress> at = address_of(pressed);
+            if (!at || released.zone != HitZone::cell || !(released.row == (*at).row) || released.column != (*at).column) {
+                return;
+            }
+            cell_click_.emit(cell_event(pressed));
+            if (!is_alive() || !twice || !find_row(pressed.row_id) || pressed.column >= columns_.size()) return;
+            cell_double_click_.emit(cell_event(pressed));
         }
     }
+}
+
+DataGridViewHitTestInfo DataGridView::hit_test_at(Point local) const {
+    const HitResult hit = hit_test(local);
+    DataGridViewHitTestInfo info{};
+    switch (hit.zone) {
+        case HitZone::cell:
+            info.type = DataGridViewHitTestType::cell;
+            info.row = hit.row;
+            info.column = hit.column;
+            break;
+        case HitZone::column_header:
+            info.type = DataGridViewHitTestType::column_header;
+            info.column = hit.column;
+            break;
+        case HitZone::column_divider:
+            info.type = DataGridViewHitTestType::column_divider;
+            info.column = hit.column;
+            break;
+        case HitZone::row_header:
+            info.type = DataGridViewHitTestType::row_header;
+            info.row = hit.row;
+            break;
+        case HitZone::row_divider:
+            info.type = DataGridViewHitTestType::row_divider;
+            info.row = hit.row;
+            break;
+        case HitZone::top_left:
+            info.type = DataGridViewHitTestType::top_left;
+            break;
+        case HitZone::none:
+        default:
+            info.type = DataGridViewHitTestType::none;
+            break;
+    }
+    return info;
 }
 
 // The mouse raisers hand the target phase to handle_pointer, whose
@@ -4145,6 +4218,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             node.role = SemanticRole::column_header;
             node.column_index = display + 1U;
             node.name = columns_[column].header_text.empty() ? columns_[column].name : columns_[column].header_text;
+            if (show_cell_tool_tips.read()) node.tool_tip = columns_[column].tool_tip_text;
             node.bounds = {absolute.x + placed.column_header.bounds.x, absolute.y + placed.column_header.bounds.y,
                            placed.column_header.bounds.width, placed.column_header.bounds.height};
             node.states = SemanticState::visible | SemanticState::enabled;
@@ -4216,6 +4290,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             const bool cell_is_read_only = cell_read_only(row, column);
             if (cell_is_read_only) cell.states |= SemanticState::read_only;
             cell.description = cell_error_text(row, column);
+            cell.tool_tip = cell_tool_tip_text(row, column);
             if ((current && edit_invalid_) || !cell.description.empty()) cell.states |= SemanticState::invalid;
             cell.actions = {SemanticAction::focus, SemanticAction::select};
             // Every cell is a cell, placed by its row and column; its kind's
@@ -4288,7 +4363,9 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
         if (!row || columns_.empty() || action != SemanticAction::press) return false;
         Window* const host = window();
         if (host != nullptr) static_cast<void>((*host).request_focus(shared_from_this()));
+        const std::string row_id(id.substr(header_prefix.size()));
         const bool clicked = click_row_header(DataGridViewRowPosition{*row}, SelectionGesture::replace);
+        if (clicked && is_alive() && find_row(row_id)) row_header_click_.emit(row_event(row_id));
         return clicked;
     }
     const std::optional<DataGridViewCellAddress> cell = cell_from_stable_id(id);
@@ -4518,6 +4595,14 @@ void DataGridView::written(const decltype(allow_user_to_delete_rows)&) {
 }
 
 void DataGridView::on_allow_user_to_delete_rows_changed() {}
+
+void DataGridView::prepare_write(const decltype(show_cell_tool_tips)&, bool&) {
+    require_mutable();
+}
+
+void DataGridView::written(const decltype(show_cell_tool_tips)&) {
+    invalidate(Dirty::semantics);
+}
 
 void DataGridView::prepare_write(const decltype(show_cell_errors)&, bool&) {
     require_mutable();

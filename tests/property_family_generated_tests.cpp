@@ -671,6 +671,11 @@ void test_data_grid_view_properties() {
     }
     {
         const bool sample = false;
+        (*control).show_cell_tool_tips = sample;
+        expect((*control).show_cell_tool_tips.read() == sample, "DataGridView.show_cell_tool_tips: a write stores");
+    }
+    {
+        const bool sample = false;
         (*control).show_cell_errors = sample;
         expect((*control).show_cell_errors.read() == sample, "DataGridView.show_cell_errors: a write stores");
     }

@@ -160,6 +160,24 @@
       "sample": "false"
     },
     {
+      "name": "show_cell_tool_tips",
+      "capability": "DataGridViewShowCellToolTips",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether cells and column headers publish their tooltips (ShowCellToolTips): a cell's from cell_tool_tip_text_needed, a header's from its column's tool_tip_text.",
+      "getter": "show_cell_tool_tips",
+      "setter": "set_show_cell_tool_tips",
+      "clear": null,
+      "field": "show_cell_tool_tips_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": "Dirty::semantics",
+      "sample": "false"
+    },
+    {
       "name": "show_cell_errors",
       "capability": "DataGridViewShowCellErrors",
       "value": "bool",

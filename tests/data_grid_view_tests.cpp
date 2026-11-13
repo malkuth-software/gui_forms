@@ -3525,6 +3525,121 @@ void bound_identity_follows_list_changes() {
 
 } // namespace
 
+struct RecordRow final {
+    std::vector<DataGridViewRowEvent>* seen{};
+    void operator()(const DataGridViewRowEvent& event) const { (*seen).push_back(event); }
+};
+
+// Tips column 0 of each row with its row ID, and counts the calls.
+struct GiveCellTip final {
+    int* calls{};
+    void operator()(DataGridViewCellToolTipTextNeededEvent& event) const {
+        ++*calls;
+        if (event.column == 0U) event.tool_tip_text = "Tip " + event.row_id.value;
+    }
+};
+
+// The semantic node with `stable_id` among the grid's nodes and their
+// children, or null; it borrows from `nodes`.
+const SemanticNode* find_node(const std::vector<SemanticNode>& nodes, std::string_view stable_id) {
+    for (const SemanticNode& node : nodes) {
+        if (node.stable_id == stable_id) return &node;
+        for (const SemanticNode& child : node.children) {
+            if (child.stable_id == stable_id) return &child;
+        }
+    }
+    return nullptr;
+}
+const SemanticNode* find_node(std::vector<SemanticNode>&& nodes, std::string_view stable_id) = delete;
+
+struct AddBadTipColumn final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).add_column({.name = "tipped", .tool_tip_text = std::string("\xff")}); }
+};
+
+// Windows Forms' CellClick, CellDoubleClick, RowHeaderMouseClick,
+// CellToolTipTextNeeded, column ToolTipText and HitTest.
+void clicks_tool_tips_and_hit_tests() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.clicks");
+    Window window(grid, {360.0, 200.0});
+    window.perform_layout();
+    std::vector<DataGridViewCellEvent> clicked;
+    std::vector<DataGridViewCellEvent> double_clicked;
+    std::vector<DataGridViewRowEvent> headers;
+    SubscriptionToken click_token = (*grid).cell_click().subscribe(RecordCell{&clicked});
+    SubscriptionToken double_token = (*grid).cell_double_click().subscribe(RecordCell{&double_clicked});
+    SubscriptionToken header_token = (*grid).row_header_click().subscribe(RecordRow{&headers});
+
+    const std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
+    const DataGridView::Cell* first = find_cell(cells, 0U, 0U);
+    const DataGridView::Cell* second = find_cell(cells, 1U, 0U);
+    require(first != nullptr && second != nullptr, "the name cells are realized");
+    const Point first_point = centre(*grid, (*first).parts.cell.bounds);
+    const Point second_point = centre(*grid, (*second).parts.cell.bounds);
+    click(window, first_point);
+    require(clicked.size() == 1U && clicked.back().row_id == id("alpha") && clicked.back().column == 0U &&
+                double_clicked.empty() && (*grid).current_cell() == cell_at(0U, 0U),
+            "a press and release on a cell raises cell_click once");
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, first_point}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, second_point}));
+    require(clicked.size() == 1U, "a release over another cell raises no cell_click");
+
+    // Read-only, so that the second click opens no editor to take the release.
+    (*grid).read_only = true;
+    click(window, second_point, Modifier::none, 2U);
+    require(clicked.size() == 2U && clicked.back().row_id == id("bravo") && double_clicked.size() == 1U &&
+                double_clicked.back().row_id == id("bravo") && double_clicked.back().column == 0U,
+            "a second click raises cell_click, then cell_double_click");
+    (*grid).read_only = false;
+
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    require(rows.size() == 3U, "the three rows are realized");
+    click(window, centre(*grid, rows[2].parts.row_header.bounds));
+    require(headers.size() == 1U && headers.back().row_id == id("charlie") && headers.back().row == row_at(2U) &&
+                (*grid).current_cell() && (*(*grid).current_cell()).row == row_at(2U) && clicked.size() == 2U,
+            "a row header press raises row_header_click and no cell_click");
+
+    // The grid is the window's root, so its own coordinates are the window's.
+    const DataGridViewHitTestInfo on_cell = (*grid).hit_test_at(second_point);
+    require(on_cell.type == DataGridViewHitTestType::cell && on_cell.row && *on_cell.row == row_at(1U) &&
+                on_cell.column && *on_cell.column == 0U,
+            "hit_test_at finds a cell's row and column");
+    const DataGridViewHitTestInfo on_header = (*grid).hit_test_at(centre(*grid, rows[0].parts.row_header.bounds));
+    require(on_header.type == DataGridViewHitTestType::row_header && on_header.row && *on_header.row == row_at(0U) &&
+                !on_header.column,
+            "hit_test_at finds a row header's row and no column");
+    const DataGridViewHitTestInfo outside = (*grid).hit_test_at(Point{359.0, 199.0});
+    require(outside.type == DataGridViewHitTestType::none && !outside.row && !outside.column,
+            "hit_test_at finds nothing past the last row and column");
+
+    std::vector<DataGridViewColumn> columns = sample_columns();
+    columns[0].tool_tip_text = "The station's name";
+    (*grid).set_columns(columns);
+    int calls = 0;
+    SubscriptionToken tip_token = (*grid).cell_tool_tip_text_needed().subscribe(GiveCellTip{&calls});
+    window.perform_layout();
+    const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
+    const SemanticNode* header = find_node(nodes, "grid.clicks.column.name");
+    const SemanticNode* plain_header = find_node(nodes, "grid.clicks.column.active");
+    const SemanticNode* tipped = find_node(nodes, "alpha.name");
+    const SemanticNode* untipped = find_node(nodes, "alpha.active");
+    require(header != nullptr && (*header).tool_tip == "The station's name" && plain_header != nullptr &&
+                (*plain_header).tool_tip.empty(),
+            "a column's tooltip text tips its header");
+    require(tipped != nullptr && (*tipped).tool_tip == "Tip alpha" && untipped != nullptr &&
+                (*untipped).tool_tip.empty() && calls > 0,
+            "cell_tool_tip_text_needed tips cells in unbound rows");
+    (*grid).show_cell_tool_tips = false;
+    const int before = calls;
+    const std::vector<SemanticNode> hidden = (*grid).semantic_virtual_children();
+    const SemanticNode* hidden_header = find_node(hidden, "grid.clicks.column.name");
+    const SemanticNode* hidden_cell = find_node(hidden, "alpha.name");
+    require(hidden_header != nullptr && (*hidden_header).tool_tip.empty() && hidden_cell != nullptr &&
+                (*hidden_cell).tool_tip.empty() && calls == before,
+            "show_cell_tool_tips off publishes no tooltips and asks for none");
+    require(throws<std::invalid_argument>(AddBadTipColumn{grid.get()}), "a column's tooltip text must be valid UTF-8");
+}
+
 int main() {
     columns_and_rows();
     layout_and_parts();
@@ -3570,6 +3685,7 @@ int main() {
     error_glyph_tool_tips();
     million_row_heights();
     bound_identity_follows_list_changes();
+    clicks_tool_tips_and_hit_tests();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";

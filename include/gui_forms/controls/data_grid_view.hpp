@@ -99,6 +99,10 @@ struct GUI_FORMS_API DataGridViewColumn final {
     // whatever this says. A grid with an owner-drawn column paints its cells
     // on the UI thread, as under owner_draw.
     bool owner_draw{};
+    // The column header's tooltip (Windows Forms' ToolTipText), published on
+    // the header's semantic node while show_cell_tool_tips holds; valid
+    // UTF-8, and empty for none.
+    std::string tool_tip_text{};
 };
 
 // A column's place in the order the grid shows its columns (Windows Forms'
@@ -251,6 +255,39 @@ struct GUI_FORMS_API DataGridViewCellErrorTextNeededEvent final {
     DataGridViewRowPosition row{};
     std::size_t column{};
     std::string error_text{};
+};
+
+// Raised when the grid reads a cell's tooltip while show_cell_tool_tips
+// holds (Windows Forms' CellToolTipTextNeeded), in every row source:
+// `tool_tip_text` starts empty and a handler may set valid UTF-8 (other text
+// is ignored). Raised from const reads (semantics); handlers may not change
+// the grid.
+struct GUI_FORMS_API DataGridViewCellToolTipTextNeededEvent final {
+    DataGridViewRowId row_id{};
+    DataGridViewRowPosition row{};
+    std::size_t column{};
+    std::string tool_tip_text{};
+};
+
+// Where a point falls on the grid (Windows Forms' DataGridViewHitTestType,
+// with the dividers a resize grip takes apart).
+enum class DataGridViewHitTestType : std::uint8_t {
+    none,
+    cell,
+    column_header,
+    column_divider,
+    row_header,
+    row_divider,
+    top_left,
+};
+
+// What hit_test_at found (Windows Forms' HitTestInfo): the row for cells,
+// row headers and row dividers, the column for cells, column headers and
+// column dividers, and neither elsewhere.
+struct GUI_FORMS_API DataGridViewHitTestInfo final {
+    DataGridViewHitTestType type{DataGridViewHitTestType::none};
+    std::optional<DataGridViewRowPosition> row{};
+    std::optional<std::size_t> column{};
 };
 
 // As DataGridViewCellErrorTextNeededEvent, for a row's own error text
@@ -772,6 +809,24 @@ public:
     [[nodiscard]] Event<const DataGridViewCellEvent&>& cell_content_click() noexcept {
         return cell_content_click_;
     }
+    // Raised when the pointer is pressed and released over the same cell
+    // after the press made it current (Windows Forms' CellClick), after any
+    // cell_content_click; a release an editor takes raises none.
+    [[nodiscard]] Event<const DataGridViewCellEvent&>& cell_click() noexcept { return cell_click_; }
+    // Raised after cell_click when the press was a second or later click
+    // (Windows Forms' CellDoubleClick).
+    [[nodiscard]] Event<const DataGridViewCellEvent&>& cell_double_click() noexcept { return cell_double_click_; }
+    // Raised after a pointer press on a row header, or its semantic press,
+    // made the row current (Windows Forms' RowHeaderMouseClick).
+    [[nodiscard]] Event<const DataGridViewRowEvent&>& row_header_click() noexcept { return row_header_click_; }
+    // Raised for each cell tooltip the semantic tree reads; see
+    // DataGridViewCellToolTipTextNeededEvent.
+    [[nodiscard]] Event<DataGridViewCellToolTipTextNeededEvent&>& cell_tool_tip_text_needed() noexcept {
+        return cell_tool_tip_text_needed_;
+    }
+    // Where a point in the grid's own coordinates falls (Windows Forms'
+    // HitTest), against the layout the grid last arranged.
+    [[nodiscard]] DataGridViewHitTestInfo hit_test_at(Point local) const;
     // Raised after the virtual row order switched mode, with the reason.
     [[nodiscard]] Event<const DataGridViewRowOrderModeChange&>& row_order_mode_changed() noexcept {
         return row_order_mode_changed_;
@@ -1158,6 +1213,9 @@ private:
     // for a row being removed is the position it had.
     [[nodiscard]] DataGridViewRowPosition event_position(std::string_view row_id) const;
     [[nodiscard]] DataGridViewCellEvent cell_event(const CellKey& cell) const;
+    // The cell's tooltip: empty unless show_cell_tool_tips holds and a
+    // cell_tool_tip_text_needed handler set valid UTF-8.
+    [[nodiscard]] std::string cell_tool_tip_text(DataGridViewRowPosition row, std::size_t column) const;
     [[nodiscard]] CellKey key_of(DataGridViewCellAddress cell) const;
     [[nodiscard]] std::optional<DataGridViewCellAddress> address_of(const CellKey& cell) const;
     [[nodiscard]] std::optional<std::size_t> current_position() const;
@@ -1519,6 +1577,10 @@ private:
     std::optional<CellKey> current_{};
     std::optional<CellKey> anchor_{};
     std::optional<CellKey> pressed_content_{};
+    // The cell a press made current, and whether that press was a second
+    // or later click, until the release raises cell_click.
+    std::optional<CellKey> pressed_cell_{};
+    bool pressed_cell_double_{};
     // Cell-mode selections by row ID; a row with no selected cell has no
     // entry.
     SelectedCells selected_cells_{};
@@ -1637,6 +1699,9 @@ private:
     Event<DataGridViewCellValidatingEvent&> cell_validating_{};
     Event<const DataGridViewCellEvent&> cell_value_changed_{};
     Event<const DataGridViewCellEvent&> cell_content_click_{};
+    Event<const DataGridViewCellEvent&> cell_click_{};
+    Event<const DataGridViewCellEvent&> cell_double_click_{};
+    Event<const DataGridViewRowEvent&> row_header_click_{};
     Event<const DataGridViewRowOrderModeChange&> row_order_mode_changed_{};
     Event<std::size_t> column_header_click_{};
     Event<std::size_t> column_width_changed_{};
@@ -1667,6 +1732,7 @@ private:
     Event<const DataGridViewRowEvent&> row_error_text_changed_{};
     // Raised from const reads, as cell_formatting_ is.
     mutable Event<DataGridViewCellErrorTextNeededEvent&> cell_error_text_needed_{};
+    mutable Event<DataGridViewCellToolTipTextNeededEvent&> cell_tool_tip_text_needed_{};
     mutable Event<DataGridViewRowErrorTextNeededEvent&> row_error_text_needed_{};
     friend struct DataGridViewRowsCapability<DataGridView>;
     // The rows' hooks (data_grid_view_rows.cpp): require_mutable, not
@@ -1688,6 +1754,10 @@ private:
     void prepare_rows_erasure(const CollectionEdit& edit);
     void prepare_rows_replacement(const CollectionEdit& edit, std::span<DataGridViewRow> incoming);
     void cancel_edit_before_row_edit();
+    // The routed form of a key the raisers left unhandled.
+    void handle_key(KeyEvent& event);
+    // The target phase in the routed form, from the mouse raisers.
+    void handle_pointer(PointerEvent& event);
     // property_codemod begin DataGridView (tools/property_families/data_grid_view.json; generated, do not edit)
 public:
     // DataGridView's property table: Control's entries, then its own.
@@ -1724,16 +1794,13 @@ protected:
     virtual void on_edit_mode_changed();
 
 private:
-    // The routed form of a key the raisers left unhandled.
-    void handle_key(KeyEvent& event);
-    // The target phase in the routed form, from the mouse raisers.
-    void handle_pointer(PointerEvent& event);
     friend struct DataGridViewAutoSizeColumnsModeCapability<DataGridView>;
     friend struct DataGridViewAutoSizeRowsModeCapability<DataGridView>;
     friend struct DataGridViewClipboardCopyModeCapability<DataGridView>;
     friend struct DataGridViewRowOrderPolicyCapability<DataGridView>;
     friend struct DataGridViewRowOrderThresholdsCapability<DataGridView>;
     friend struct DataGridViewAllowUserToDeleteRowsCapability<DataGridView>;
+    friend struct DataGridViewShowCellToolTipsCapability<DataGridView>;
     friend struct DataGridViewShowCellErrorsCapability<DataGridView>;
     friend struct DataGridViewShowRowErrorsCapability<DataGridView>;
     friend struct DataGridViewShowEditingIconCapability<DataGridView>;
@@ -1779,6 +1846,8 @@ private:
     void written(const decltype(row_order_thresholds)& cell);
     void prepare_write(const decltype(allow_user_to_delete_rows)& cell, bool& incoming);
     void written(const decltype(allow_user_to_delete_rows)& cell);
+    void prepare_write(const decltype(show_cell_tool_tips)& cell, bool& incoming);
+    void written(const decltype(show_cell_tool_tips)& cell);
     void prepare_write(const decltype(show_cell_errors)& cell, bool& incoming);
     void written(const decltype(show_cell_errors)& cell);
     void prepare_write(const decltype(show_row_errors)& cell, bool& incoming);

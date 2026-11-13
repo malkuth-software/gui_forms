@@ -108,6 +108,19 @@ struct DataGridViewAllowUserToDeleteRowsCapability {
     }
 };
 
+// Whether cells and column headers publish their tooltips (ShowCellToolTips): a cell's from cell_tool_tip_text_needed, a header's from its column's tool_tip_text.
+template <typename Declaring>
+struct DataGridViewShowCellToolTipsCapability {
+    PropertyCell<bool, DataGridViewShowCellToolTipsCapability<Declaring>> show_cell_tool_tips{true};
+
+    static void assign(DataGridViewShowCellToolTipsCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.show_cell_tool_tips), incoming);
+        if (!capability.show_cell_tool_tips.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.show_cell_tool_tips));
+    }
+};
+
 // Whether cells show their error glyphs (ShowCellErrors).
 template <typename Declaring>
 struct DataGridViewShowCellErrorsCapability {
@@ -535,6 +548,7 @@ struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapabili
                                   public DataGridViewRowOrderPolicyCapability<Declaring>,
                                   public DataGridViewRowOrderThresholdsCapability<Declaring>,
                                   public DataGridViewAllowUserToDeleteRowsCapability<Declaring>,
+                                  public DataGridViewShowCellToolTipsCapability<Declaring>,
                                   public DataGridViewShowCellErrorsCapability<Declaring>,
                                   public DataGridViewShowRowErrorsCapability<Declaring>,
                                   public DataGridViewShowEditingIconCapability<Declaring>,

@@ -1070,6 +1070,8 @@ void append_field(EventFields& fields, std::string_view name, const DataGridView
 void read_field(EventFields& fields, std::string_view name, DataGridViewCellParsingEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellStyle& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewCellStyle& value);
+void append_field(EventFields& fields, std::string_view name, const DataGridViewCellToolTipTextNeededEvent& value);
+void read_field(EventFields& fields, std::string_view name, DataGridViewCellToolTipTextNeededEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellValidatingEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewCellValidatingEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewDataErrorEvent& value);
@@ -1588,6 +1590,24 @@ inline void read_field(EventFields& fields, std::string_view name, DataGridViewC
     read_field(fields, "fore_color", value.fore_color);
     read_field(fields, "selection_back_color", value.selection_back_color);
     read_field(fields, "selection_fore_color", value.selection_fore_color);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const DataGridViewCellToolTipTextNeededEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "row_id", value.row_id);
+    append_field(fields, "row", value.row);
+    append_field(fields, "column", value.column);
+    append_field(fields, "tool_tip_text", value.tool_tip_text);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, DataGridViewCellToolTipTextNeededEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "row_id", value.row_id);
+    read_field(fields, "row", value.row);
+    read_field(fields, "column", value.column);
+    read_field(fields, "tool_tip_text", value.tool_tip_text);
     fields.leave(prefix);
 }
 
@@ -3465,12 +3485,30 @@ inline SubscriptionToken connect_data_grid_view_cell_begin_edit(Component& sourc
     return token;
 }
 
+inline SubscriptionToken connect_data_grid_view_cell_click(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cell_click(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_data_grid_view_cell_content_click(Component& source, const EventSink& sink) {
     DataGridView* typed = dynamic_cast<DataGridView*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).cell_content_click(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_cell_double_click(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cell_double_click(), sink);
     return token;
 }
 
@@ -3534,6 +3572,15 @@ inline SubscriptionToken connect_data_grid_view_cell_parsing(Component& source, 
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).cell_parsing(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_cell_tool_tip_text_needed(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cell_tool_tip_text_needed(), sink);
     return token;
 }
 
@@ -5468,6 +5515,15 @@ inline SubscriptionToken connect_property_list_row_expansion_changed(Component& 
     return token;
 }
 
+inline SubscriptionToken connect_data_grid_view_row_header_click(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).row_header_click(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_data_grid_view_row_height_changed(Component& source, const EventSink& sink) {
     DataGridView* typed = dynamic_cast<DataGridView*>(&source);
     if (typed == nullptr) {
@@ -6342,7 +6398,9 @@ inline constexpr std::array<EventConnector, 343> event_connectors{{
     {"cancelled", "Wizard", &connect_wizard_cancelled},
     {"causes_validation_changed", "Control", &connect_control_causes_validation_changed},
     {"cell_begin_edit", "DataGridView", &connect_data_grid_view_cell_begin_edit},
+    {"cell_click", "DataGridView", &connect_data_grid_view_cell_click},
     {"cell_content_click", "DataGridView", &connect_data_grid_view_cell_content_click},
+    {"cell_double_click", "DataGridView", &connect_data_grid_view_cell_double_click},
     {"cell_end_edit", "DataGridView", &connect_data_grid_view_cell_end_edit},
     {"cell_enter", "DataGridView", &connect_data_grid_view_cell_enter},
     {"cell_error_text_changed", "DataGridView", &connect_data_grid_view_cell_error_text_changed},
@@ -6350,6 +6408,7 @@ inline constexpr std::array<EventConnector, 343> event_connectors{{
     {"cell_formatting", "DataGridView", &connect_data_grid_view_cell_formatting},
     {"cell_leave", "DataGridView", &connect_data_grid_view_cell_leave},
     {"cell_parsing", "DataGridView", &connect_data_grid_view_cell_parsing},
+    {"cell_tool_tip_text_needed", "DataGridView", &connect_data_grid_view_cell_tool_tip_text_needed},
     {"cell_validated", "DataGridView", &connect_data_grid_view_cell_validated},
     {"cell_validating", "DataGridView", &connect_data_grid_view_cell_validating},
     {"cell_value_changed", "DataGridView", &connect_data_grid_view_cell_value_changed},
@@ -6561,6 +6620,7 @@ inline constexpr std::array<EventConnector, 343> event_connectors{{
     {"row_error_text_changed", "DataGridView", &connect_data_grid_view_row_error_text_changed},
     {"row_error_text_needed", "DataGridView", &connect_data_grid_view_row_error_text_needed},
     {"row_expansion_changed", "PropertyList", &connect_property_list_row_expansion_changed},
+    {"row_header_click", "DataGridView", &connect_data_grid_view_row_header_click},
     {"row_height_changed", "DataGridView", &connect_data_grid_view_row_height_changed},
     {"row_leave", "DataGridView", &connect_data_grid_view_row_leave},
     {"row_order_mode_changed", "DataGridView", &connect_data_grid_view_row_order_mode_changed},
