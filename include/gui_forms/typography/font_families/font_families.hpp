@@ -132,6 +132,42 @@ inline constexpr std::array<FontFamilyRecord, 4> bundled_font_families{{
     return nullptr;
 }
 
+// A CSS generic family name and the bundled family it draws. The mapping
+// is GUI.Forms' choice (owner, 2026-11-13: the theme language follows CSS
+// closely), not a CSS rule: CSS leaves a generic's face to the user agent.
+// Until a serif, cursive or fantasy face is bundled, those generics draw the
+// content family. `emoji` names no family (zero): the bundled emoji
+// fallback face already draws emoji for every font. A generic is matched
+// only unquoted, as CSS does (a quoted "serif" is a family name).
+struct GUI_FORMS_API GenericFontFamily final {
+    std::string_view name{};
+    FontFamilyId family{};
+};
+
+inline constexpr std::array<GenericFontFamily, 13> generic_font_families{{
+    {"sans-serif", carlito_font_family},
+    {"serif", carlito_font_family},
+    {"monospace", cousine_font_family},
+    {"cursive", carlito_font_family},
+    {"fantasy", carlito_font_family},
+    {"system-ui", carlito_font_family},
+    {"ui-sans-serif", carlito_font_family},
+    {"ui-serif", carlito_font_family},
+    {"ui-monospace", cousine_font_family},
+    {"ui-rounded", carlito_font_family},
+    {"math", carlito_font_family},
+    {"fangsong", carlito_font_family},
+    {"emoji", FontFamilyId{}},
+}};
+
+// The generic family called `name` (ASCII case ignored), or null.
+[[nodiscard]] constexpr const GenericFontFamily* generic_font_family(std::string_view name) noexcept {
+    for (const GenericFontFamily& generic : generic_font_families) {
+        if (same_font_family_name(generic.name, name)) return &generic;
+    }
+    return nullptr;
+}
+
 // Whether `family` is zero or a family the registry has.
 [[nodiscard]] constexpr bool valid_font_family(FontFamilyId family) noexcept {
     const bool valid = family.value == 0U || font_family_record(family) != nullptr;

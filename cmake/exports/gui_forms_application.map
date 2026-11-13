@@ -736,6 +736,7 @@
     _ZGVZN9gui_forms17FontFallbackMatch*;
     _ZGVZN9gui_forms17FontFamilyStackId*;
     _ZGVZN9gui_forms17FrameRequestToken*;
+    _ZGVZN9gui_forms17GenericFontFamily*;
     _ZGVZN9gui_forms17GridTemplateAreas*;
     _ZGVZN9gui_forms17HelpResolvedField*;
     _ZGVZN9gui_forms17HelpSearchOptions*;
@@ -2263,6 +2264,7 @@
     _ZGVZNK9gui_forms17FontFallbackMatch*;
     _ZGVZNK9gui_forms17FontFamilyStackId*;
     _ZGVZNK9gui_forms17FrameRequestToken*;
+    _ZGVZNK9gui_forms17GenericFontFamily*;
     _ZGVZNK9gui_forms17GridTemplateAreas*;
     _ZGVZNK9gui_forms17HelpResolvedField*;
     _ZGVZNK9gui_forms17HelpSearchOptions*;
@@ -4094,6 +4096,7 @@
     _ZN9gui_forms17FontFallbackMatch*;
     _ZN9gui_forms17FontFamilyStackId*;
     _ZN9gui_forms17FrameRequestToken*;
+    _ZN9gui_forms17GenericFontFamily*;
     _ZN9gui_forms17GridTemplateAreas*;
     _ZN9gui_forms17HelpResolvedField*;
     _ZN9gui_forms17HelpSearchOptions*;
@@ -6739,6 +6742,7 @@
     _ZNK[RO]9gui_forms17FontFallbackMatch*;
     _ZNK[RO]9gui_forms17FontFamilyStackId*;
     _ZNK[RO]9gui_forms17FrameRequestToken*;
+    _ZNK[RO]9gui_forms17GenericFontFamily*;
     _ZNK[RO]9gui_forms17GridTemplateAreas*;
     _ZNK[RO]9gui_forms17HelpResolvedField*;
     _ZNK[RO]9gui_forms17HelpSearchOptions*;
@@ -8266,6 +8270,7 @@
     _ZN[KRO]9gui_forms17FontFallbackMatch*;
     _ZN[KRO]9gui_forms17FontFamilyStackId*;
     _ZN[KRO]9gui_forms17FrameRequestToken*;
+    _ZN[KRO]9gui_forms17GenericFontFamily*;
     _ZN[KRO]9gui_forms17GridTemplateAreas*;
     _ZN[KRO]9gui_forms17HelpResolvedField*;
     _ZN[KRO]9gui_forms17HelpSearchOptions*;
@@ -9793,6 +9798,7 @@
     _ZT[VIST]N9gui_forms17FontFallbackMatch*E;
     _ZT[VIST]N9gui_forms17FontFamilyStackId*E;
     _ZT[VIST]N9gui_forms17FrameRequestToken*E;
+    _ZT[VIST]N9gui_forms17GenericFontFamily*E;
     _ZT[VIST]N9gui_forms17GridTemplateAreas*E;
     _ZT[VIST]N9gui_forms17HelpResolvedField*E;
     _ZT[VIST]N9gui_forms17HelpSearchOptions*E;
@@ -11320,6 +11326,7 @@
     _ZT[hvc]*9gui_forms17FontFallbackMatch*;
     _ZT[hvc]*9gui_forms17FontFamilyStackId*;
     _ZT[hvc]*9gui_forms17FrameRequestToken*;
+    _ZT[hvc]*9gui_forms17GenericFontFamily*;
     _ZT[hvc]*9gui_forms17GridTemplateAreas*;
     _ZT[hvc]*9gui_forms17HelpResolvedField*;
     _ZT[hvc]*9gui_forms17HelpSearchOptions*;
@@ -12847,6 +12854,7 @@
     _ZZN9gui_forms17FontFallbackMatch*;
     _ZZN9gui_forms17FontFamilyStackId*;
     _ZZN9gui_forms17FrameRequestToken*;
+    _ZZN9gui_forms17GenericFontFamily*;
     _ZZN9gui_forms17GridTemplateAreas*;
     _ZZN9gui_forms17HelpResolvedField*;
     _ZZN9gui_forms17HelpSearchOptions*;
@@ -14374,6 +14382,7 @@
     _ZZNK9gui_forms17FontFallbackMatch*;
     _ZZNK9gui_forms17FontFamilyStackId*;
     _ZZNK9gui_forms17FrameRequestToken*;
+    _ZZNK9gui_forms17GenericFontFamily*;
     _ZZNK9gui_forms17GridTemplateAreas*;
     _ZZNK9gui_forms17HelpResolvedField*;
     _ZZNK9gui_forms17HelpSearchOptions*;

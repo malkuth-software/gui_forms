@@ -734,6 +734,7 @@ __ZGVZN9gui_forms17FocusScopeOptions*
 __ZGVZN9gui_forms17FontFallbackMatch*
 __ZGVZN9gui_forms17FontFamilyStackId*
 __ZGVZN9gui_forms17FrameRequestToken*
+__ZGVZN9gui_forms17GenericFontFamily*
 __ZGVZN9gui_forms17GridTemplateAreas*
 __ZGVZN9gui_forms17HelpResolvedField*
 __ZGVZN9gui_forms17HelpSearchOptions*
@@ -2261,6 +2262,7 @@ __ZGVZNK9gui_forms17FocusScopeOptions*
 __ZGVZNK9gui_forms17FontFallbackMatch*
 __ZGVZNK9gui_forms17FontFamilyStackId*
 __ZGVZNK9gui_forms17FrameRequestToken*
+__ZGVZNK9gui_forms17GenericFontFamily*
 __ZGVZNK9gui_forms17GridTemplateAreas*
 __ZGVZNK9gui_forms17HelpResolvedField*
 __ZGVZNK9gui_forms17HelpSearchOptions*
@@ -4092,6 +4094,7 @@ __ZN9gui_forms17FocusScopeOptions*
 __ZN9gui_forms17FontFallbackMatch*
 __ZN9gui_forms17FontFamilyStackId*
 __ZN9gui_forms17FrameRequestToken*
+__ZN9gui_forms17GenericFontFamily*
 __ZN9gui_forms17GridTemplateAreas*
 __ZN9gui_forms17HelpResolvedField*
 __ZN9gui_forms17HelpSearchOptions*
@@ -6737,6 +6740,7 @@ __ZNK[RO]9gui_forms17FocusScopeOptions*
 __ZNK[RO]9gui_forms17FontFallbackMatch*
 __ZNK[RO]9gui_forms17FontFamilyStackId*
 __ZNK[RO]9gui_forms17FrameRequestToken*
+__ZNK[RO]9gui_forms17GenericFontFamily*
 __ZNK[RO]9gui_forms17GridTemplateAreas*
 __ZNK[RO]9gui_forms17HelpResolvedField*
 __ZNK[RO]9gui_forms17HelpSearchOptions*
@@ -8264,6 +8268,7 @@ __ZN[KRO]9gui_forms17FocusScopeOptions*
 __ZN[KRO]9gui_forms17FontFallbackMatch*
 __ZN[KRO]9gui_forms17FontFamilyStackId*
 __ZN[KRO]9gui_forms17FrameRequestToken*
+__ZN[KRO]9gui_forms17GenericFontFamily*
 __ZN[KRO]9gui_forms17GridTemplateAreas*
 __ZN[KRO]9gui_forms17HelpResolvedField*
 __ZN[KRO]9gui_forms17HelpSearchOptions*
@@ -9791,6 +9796,7 @@ __ZT[VIST]N9gui_forms17FocusScopeOptions*E
 __ZT[VIST]N9gui_forms17FontFallbackMatch*E
 __ZT[VIST]N9gui_forms17FontFamilyStackId*E
 __ZT[VIST]N9gui_forms17FrameRequestToken*E
+__ZT[VIST]N9gui_forms17GenericFontFamily*E
 __ZT[VIST]N9gui_forms17GridTemplateAreas*E
 __ZT[VIST]N9gui_forms17HelpResolvedField*E
 __ZT[VIST]N9gui_forms17HelpSearchOptions*E
@@ -11318,6 +11324,7 @@ __ZT[hvc]*9gui_forms17FocusScopeOptions*
 __ZT[hvc]*9gui_forms17FontFallbackMatch*
 __ZT[hvc]*9gui_forms17FontFamilyStackId*
 __ZT[hvc]*9gui_forms17FrameRequestToken*
+__ZT[hvc]*9gui_forms17GenericFontFamily*
 __ZT[hvc]*9gui_forms17GridTemplateAreas*
 __ZT[hvc]*9gui_forms17HelpResolvedField*
 __ZT[hvc]*9gui_forms17HelpSearchOptions*
@@ -12845,6 +12852,7 @@ __ZZN9gui_forms17FocusScopeOptions*
 __ZZN9gui_forms17FontFallbackMatch*
 __ZZN9gui_forms17FontFamilyStackId*
 __ZZN9gui_forms17FrameRequestToken*
+__ZZN9gui_forms17GenericFontFamily*
 __ZZN9gui_forms17GridTemplateAreas*
 __ZZN9gui_forms17HelpResolvedField*
 __ZZN9gui_forms17HelpSearchOptions*
@@ -14372,6 +14380,7 @@ __ZZNK9gui_forms17FocusScopeOptions*
 __ZZNK9gui_forms17FontFallbackMatch*
 __ZZNK9gui_forms17FontFamilyStackId*
 __ZZNK9gui_forms17FrameRequestToken*
+__ZZNK9gui_forms17GenericFontFamily*
 __ZZNK9gui_forms17GridTemplateAreas*
 __ZZNK9gui_forms17HelpResolvedField*
 __ZZNK9gui_forms17HelpSearchOptions*

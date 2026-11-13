@@ -385,6 +385,16 @@ bool family_names_resolve_bundled_faces_only() {
     if (!require(semibold == selawik, "a face file does not find its family")) return false;
     if (!require(gui_forms::font_family_with_face("Arimo-Regular.ttf") == nullptr, "an unbundled face has a family"))
         return false;
+    for (const gui_forms::GenericFontFamily& generic : gui_forms::generic_font_families) {
+        if (!require(gui_forms::valid_font_family(generic.family), "a generic draws an unknown family")) return false;
+    }
+    const gui_forms::GenericFontFamily* const sans = gui_forms::generic_font_family("Sans-Serif");
+    const gui_forms::GenericFontFamily* const mono = gui_forms::generic_font_family("ui-monospace");
+    if (!require(sans != nullptr && (*sans).family == gui_forms::carlito_font_family && mono != nullptr &&
+                     (*mono).family == gui_forms::cousine_font_family &&
+                     gui_forms::generic_font_family("Selawik") == nullptr,
+                 "the generic mapping is not ours"))
+        return false;
     const bool passed = require(!gui_forms::valid_font_family(gui_forms::FontFamilyId{200U}) &&
                                     gui_forms::valid_font_family(gui_forms::FontFamilyId{}),
                                 "an unlisted family number is valid, or zero is not");

@@ -25,6 +25,7 @@
 #include "../../../core/text/composite/text_composite.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
 #include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
+#include "gui_forms/typography/font_families/font_families.hpp"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -900,6 +901,8 @@ struct FaceRecord final {
 // over the same bytes (ADR-004). Declared in that order so the rasterizer is
 // destroyed before the engine it borrows.
 struct TextFamily final {
+    // The registry family these faces are, or zero for a family outside the registry.
+    gui_forms::FontFamilyId id{};
     std::array<std::optional<FaceRecord>, 4> faces;
     std::unique_ptr<text::HarfBuzzFontEngine> engine;
     std::unique_ptr<text::GlyphRunRasterizer> rasterizer;
@@ -1004,11 +1007,57 @@ private:
 class SkiaExecutor::Impl final {
 public:
     FreeTypeLibrary library;
-    // Keyed by ASCII-lowercased family name.
-    std::unordered_map<std::string, std::unique_ptr<TextFamily>> families;
+    // The families of the font family registry
+    // (gui_forms/typography/font_families/font_families.hpp), one slot per
+    // registry entry in its order, so a registry family has one identity
+    // here as in interface text. Empty until its faces are registered.
+    std::array<std::unique_ptr<TextFamily>, gui_forms::bundled_font_families.size()> registry_families;
+    // Families outside the registry, keyed by ASCII-lowercased name: the
+    // faces only GUI.Drawing loads (the substitution table's Arimo, Tinos,
+    // Portsmouth Mono and Selawik Semibold, which are not staged with every
+    // program) and host faces under their own names (decision 10).
+    std::unordered_map<std::string, std::unique_ptr<TextFamily>> named_families;
     // Requested family to the registered family drawn for it, both
     // ASCII-lowercased (stage F substitution).
     std::unordered_map<std::string, std::string> aliases;
+
+    // The registry family called `name`, as its position in the registry, or none.
+    [[nodiscard]] static std::optional<std::size_t> registry_position(std::string_view name) noexcept {
+        std::optional<std::size_t> result{};
+        const gui_forms::FontFamilyRecord* const record = gui_forms::font_family_named(name);
+        if (record == nullptr) return result;
+        result = static_cast<std::size_t>(record - gui_forms::bundled_font_families.data());
+        return result;
+    }
+
+    // The storage for the family called `name`: its registry slot, else its named entry, made
+    // empty when absent.
+    [[nodiscard]] std::unique_ptr<TextFamily>& family_entry(std::string_view name) {
+        const std::optional<std::size_t> position = registry_position(name);
+        if (position) return registry_families[*position];
+        std::unique_ptr<TextFamily>& entry = named_families[ascii_lower(name)];
+        return entry;
+    }
+
+    // The family registered under `name` itself, without following an alias; null when none.
+    [[nodiscard]] TextFamily* direct(std::string_view name) {
+        const std::optional<std::size_t> position = registry_position(name);
+        if (position) return registry_families[*position].get();
+        using FamilyMap = std::unordered_map<std::string, std::unique_ptr<TextFamily>>;
+        const FamilyMap::iterator found = named_families.find(ascii_lower(name));
+        TextFamily* const result = found == named_families.end() ? nullptr : (*found).second.get();
+        return result;
+    }
+
+    // Drops the faces registered under `name` itself.
+    void forget(std::string_view name) {
+        const std::optional<std::size_t> position = registry_position(name);
+        if (position) {
+            registry_families[*position].reset();
+            return;
+        }
+        named_families.erase(ascii_lower(name));
+    }
 
     // Chooses the collection face best matching family and weight, scanning
     // at most 64 faces. Nullopt when the bytes hold no usable face.
@@ -1040,10 +1089,12 @@ public:
 
     // Stores a face in one of a family's four slots and rebuilds the
     // family's engine from its records, so a replaced face takes effect.
-    void install(const std::string& key, const std::size_t slot, FaceRecord record) {
-        std::unique_ptr<TextFamily>& entry = families[key];
+    void install(std::string_view name, const std::size_t slot, FaceRecord record) {
+        std::unique_ptr<TextFamily>& entry = family_entry(name);
         if (!entry) entry = std::make_unique<TextFamily>();
         TextFamily& family = *entry;
+        const gui_forms::FontFamilyRecord* const record = gui_forms::font_family_named(name);
+        if (record != nullptr) family.id = (*record).id;
         family.faces[slot] = std::move(record);
         family.rasterizer.reset();
         family.engine = std::make_unique<text::HarfBuzzFontEngine>();
@@ -1062,24 +1113,25 @@ public:
 
     // The family registered under a name, following its alias if it has one.
     [[nodiscard]] TextFamily* registered(std::string_view family) {
-        using FamilyMap =
-            std::unordered_map<std::string, std::unique_ptr<TextFamily>>;
         using AliasMap = std::unordered_map<std::string, std::string>;
         std::string key = ascii_lower(family);
         const AliasMap::const_iterator alias = aliases.find(key);
         if (alias != aliases.end()) key = (*alias).second;
-        const FamilyMap::iterator found = families.find(key);
-        TextFamily* const result = found == families.end() ? nullptr : (*found).second.get();
+        TextFamily* const result = direct(key);
         return result;
     }
 
-    // The registered family, else Portsmouth Rapids. The requested slot's
-    // face draws as it is; otherwise the nearest registered face is
-    // emboldened or sheared toward the request.
+    // The registered family, else the registry's Portsmouth Rapids. The
+    // requested slot's face draws as it is; otherwise the nearest registered
+    // face is emboldened or sheared toward the request.
     [[nodiscard]] std::optional<ResolvedFont> resolve(const FontSnapshot& spec) {
         const std::size_t requested = static_cast<std::size_t>(spec.style & 3U);
         TextFamily* family = registered(spec.family);
-        if (family == nullptr) family = registered("Portsmouth Rapids");
+        if (family == nullptr) {
+            const gui_forms::FontFamilyRecord& rapids =
+                *gui_forms::font_family_record(gui_forms::portsmouth_rapids_font_family);
+            family = direct(rapids.name);
+        }
         std::optional<ResolvedFont> result;
         if (family == nullptr) return result;
         std::size_t slot = requested;
@@ -1097,6 +1149,11 @@ public:
         resolved.family = family;
         resolved.spec = gui_forms::FontSpec{gui_forms::FontRole::control, size,
                                             face_bold ? bold_weight : regular_weight, face_italic};
+        resolved.spec.family = (*family).id;
+        // OPEN (owner, 2026-11-13; queue entry claude/cp32-font-family): GUI.Drawing still
+        // synthesizes bold and oblique here for GDI+ compatibility, unlike interface text,
+        // which draws the nearest face and never synthesizes (stage F decision 7). Whether
+        // GUI.Drawing stops synthesizing is the owner's decision; keep this as it is until then.
         resolved.synthesis.embolden = (requested & bold_slot_bit) != 0U && !face_bold;
         resolved.synthesis.oblique = (requested & italic_slot_bit) != 0U && !face_italic;
         resolved.metrics = (*(*family).faces[slot]).metrics;
@@ -1193,7 +1250,7 @@ bool SkiaExecutor::register_typeface(std::string_view family,
         const std::string key = ascii_lower(family);
         // A face registered under its own name replaces an alias of it.
         (*impl_).aliases.erase(key);
-        (*impl_).install(key, slot, std::move(*record));
+        (*impl_).install(family, slot, std::move(*record));
     } catch (const std::exception&) {
         return false;
     }
@@ -1207,11 +1264,11 @@ bool SkiaExecutor::alias_family(std::string_view requested, std::string_view fam
     }
     try {
         const std::string target = ascii_lower(family);
-        if ((*impl_).families.find(target) == (*impl_).families.end()) return false;
+        if ((*impl_).direct(target) == nullptr) return false;
         const std::string key = ascii_lower(requested);
         if (key == target) return true;
         // The alias replaces faces registered under the requested name.
-        (*impl_).families.erase(key);
+        (*impl_).forget(key);
         (*impl_).aliases.insert_or_assign(key, target);
     } catch (const std::exception&) {
         return false;

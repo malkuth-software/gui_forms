@@ -377,10 +377,18 @@ order, and the role's faces draw whatever no family covers. A role's
 family written alone stands for its role (`Portsmouth Rapids` is
 `control`, `Carlito` is `content`, `Cousine` is `monospace`); without a
 written role, a list beginning with a role's family takes that role, and
-any other the content role. A name no bundled family has (a host font such
-as Arial, a generic family such as `sans-serif`) is passed over with
-warning W113 (`font_family_unavailable`), and the next family or the role
-draws; when no family in the list is available and no role is written, the
+any other the content role. CSS generic families, unquoted, may appear
+anywhere in the list and draw bundled families. The mapping is GUI.Forms'
+choice, not a CSS rule (CSS leaves a generic's face to the browser):
+`sans-serif`, `system-ui`, `ui-sans-serif` and `ui-rounded` draw Carlito;
+`serif`, `ui-serif`, `cursive`, `fantasy`, `math` and `fangsong` draw
+Carlito too, until a serif or display face is bundled; `monospace` and
+`ui-monospace` draw Cousine; `emoji` names no family, since the bundled
+emoji face already draws emoji in every font. `monospace` as the last entry
+is the monospace role, as before. A name no bundled family has that is not
+a generic (a host font such as Arial, or a quoted `"serif"`) is passed over
+with warning W113 (`font_family_unavailable`), and the next family or the
+role draws; when no family in the list is available and no role is written, the
 declaration is dropped with that warning. A list holds at most five
 families. They belong to rules that match a control:
 a rule naming a part, or a state such as `:hover`, may not declare them,

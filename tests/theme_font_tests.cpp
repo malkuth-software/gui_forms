@@ -124,6 +124,14 @@ void test_lowering() {
         "#a { font-family: Selawik, content }",
         "#a { font-family: Selawik, Cousine, monospace }",
         "#a { font-family: 'Portsmouth Rapids', Carlito }",
+        "#a { font-family: sans-serif }",
+        "#a { font-family: serif }",
+        "#a { font-family: system-ui }",
+        "#a { font-family: ui-monospace }",
+        "#a { font-family: cursive, fantasy }",
+        "#a { font-family: Selawik, sans-serif, monospace }",
+        "#a { font-family: monospace, Selawik }",
+        "#a { font-family: emoji, Selawik }",
         "#a { font-size: 18px }",
         "#a { font-size: 1.25em }",
         "#a { font-weight: bold }",
@@ -146,7 +154,7 @@ void test_lowering() {
     const char* const warned[] = {
         "#a { font-family: Arial }",
         "#a { font-family: \"Lucida Grande\" }",
-        "#a { font-family: sans-serif }",
+        "#a { font-family: \"sans-serif\" }",
         "#a { font-family: Arimo }",
         "#a { font-family: \"Segoe UI\" }",
         "#a { font-family: Comic Sans }",
@@ -161,7 +169,7 @@ void test_lowering() {
     }
     const char* const refused[] = {
         "#a { font-family: control, content }",
-        "#a { font-family: monospace, Selawik }",
+        "#a { font-family: control, Selawik }",
         "#a { font-family: Selawik, , Carlito }",
         "#a { font-family: Selawik, Carlito, Cousine, Portsmouth Rapids, Selawik, Carlito }",
         "#a { font-family: 12px }",
@@ -182,7 +190,7 @@ void test_lowering() {
     require(has_code(misplaced, DiagnosticCode::value_form_not_admitted), "a role is admitted only last");
     // With no family available and no role, the declaration is dropped: the
     // rule keeps its other declarations.
-    const Compilation dropped = compile("#a { font-family: serif; font-weight: bold }");
+    const Compilation dropped = compile("#a { font-family: \"Comic Sans\"; font-weight: bold }");
     bool family_declared = false;
     bool weight_declared = false;
     for (const ThemeRule& rule : dropped.sheet.rules) {
@@ -278,6 +286,20 @@ void test_named_family() {
     require(ended.font.family == carlito_font_family && ended.font.role == FontRole::monospace &&
                 font_family_stack(ended.font.stack).count == 1U,
             "a role written last is the final fallback, and a role's family in a list is a family");
+    // CSS generics draw the bundled families our mapping chooses
+    // (generic_font_families): sans-serif alone is the content role, a
+    // generic in a list is a family, and monospace last is still the role.
+    window.set_theme(theme_of("label { font-family: sans-serif }", "fonts-generic"));
+    const ResolvedFont generic = (*label).resolved_text_font(own);
+    require(generic.font.role == FontRole::content && generic.font.family.value == 0U,
+            "sans-serif alone is the content family's role");
+    window.set_theme(theme_of("label { font-family: Selawik, ui-monospace, serif, monospace }", "fonts-generic-list"));
+    const ResolvedFont generics = (*label).resolved_text_font(own);
+    const FontFamilyStack generic_rest = font_family_stack(generics.font.stack);
+    require(generics.font.family == selawik_font_family && generics.font.role == FontRole::monospace &&
+                generic_rest.count == 2U && generic_rest.families[0] == cousine_font_family &&
+                generic_rest.families[1] == carlito_font_family,
+            "generics in a list are their families, in order, before the role");
     // The stock Windows-familiar theme writes its text in Selawik (owner, 2026-11-10).
     window.set_theme(familiar_theme(FamiliarTheme::windows_professional));
     const ResolvedFont professional = (*label).resolved_text_font(own);

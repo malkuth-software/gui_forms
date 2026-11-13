@@ -3090,21 +3090,25 @@ bool MaterialReader::lower_part_shape(RecipeField length_field, RecipeField colo
 }
 
 // `font-family` (T4 fonts; named families, owner decision of 2026-11-10;
-// stacks, owner decisions of 2026-11-13): a comma-separated list of bundled
-// family names (gui_forms/typography/font_families/font_families.hpp),
-// each quoted or written as words, in any ASCII case, optionally ended by a
-// role, `control`, `content` or `monospace`:
-// `Selawik`, `"Portsmouth Rapids", Carlito`, `Selawik, monospace`.
-// The first named family the registry has is the font's family; the others
-// form a registered stack drawn after it; the role draws last. A name the
-// registry does not have (a host font, a generic family, a face only
-// GUI.Drawing ships) is passed over with a warning (W113), never refused:
-// GUI.Forms draws its bundled faces, never a host font. When no named
-// family is available and no role is written, the declaration is dropped
-// with that warning. Without a written role, a role's family as the first
-// family brings its role (Carlito: content), and any other family the
-// content role. A role's family written alone stands for its role, with no
-// family (`font-family: Cousine` is the monospace role, as before stacks).
+// stacks and generics, owner decisions of 2026-11-13): a comma-separated
+// list of bundled family names (gui_forms/typography/font_families/font_families.hpp),
+// each quoted or written as words, in any ASCII case, and CSS generic
+// families, unquoted (`sans-serif`, `serif`, `monospace`, `system-ui`, the
+// `ui-*` names and the rest of generic_font_families, each drawing the
+// bundled family that table chooses), optionally ended by a role,
+// `control`, `content` or `monospace`:
+// `Selawik`, `"Portsmouth Rapids", Carlito`, `Selawik, sans-serif, monospace`.
+// The first available family is the font's family; the others form a
+// registered stack drawn after it; the role draws last. `monospace` last is
+// the role, elsewhere the generic. A name the registry does not have that is
+// not a generic (a host font, a face only GUI.Drawing ships) is passed over
+// with a warning (W113), never refused: GUI.Forms draws its bundled faces,
+// never a host font. When no named family is available and no role is
+// written, the declaration is dropped with that warning. Without a written
+// role, a role's family as the first family brings its role (Carlito and
+// sans-serif: content), and any other family the content role. A role's
+// family written alone stands for its role, with no family
+// (`font-family: Cousine` is the monospace role, as before stacks).
 bool MaterialReader::lower_font_family() {
     RecipeDeclaration declaration = recipe_declaration(RecipeField::font_family);
     std::vector<ComponentRange> entries{};
@@ -3135,7 +3139,8 @@ bool MaterialReader::lower_font_family() {
                 written_role = FontRole::control;
             } else if (keyword(entry.first, "content")) {
                 written_role = FontRole::content;
-            } else if (keyword(entry.first, "monospace")) {
+            } else if (keyword(entry.first, "monospace") && entry_index + 1U == entries.size()) {
+                // Last, `monospace` is the role (as before generics); elsewhere the generic.
                 written_role = FontRole::monospace;
             }
             if (written_role) continue;
@@ -3158,7 +3163,13 @@ bool MaterialReader::lower_font_family() {
         if (named_count > maximum_named) {
             return fail(DiagnosticCode::value_form_not_admitted, first.token, "at most five font families");
         }
-        const FontFamilyRecord* const family = font_family_named(name);
+        // A CSS generic, unquoted, draws its bundled family (generic_font_families: our
+        // mapping); `emoji` names none, since the emoji fallback face serves every font.
+        const GenericFontFamily* const generic =
+            words == 1U && first.kind == ValueComponentKind::keyword ? generic_font_family(name) : nullptr;
+        if (generic != nullptr && (*generic).family.value == 0U) continue;
+        const FontFamilyRecord* const family =
+            generic != nullptr ? font_family_record((*generic).family) : font_family_named(name);
         if (family == nullptr) {
             std::string detail = clipped_theme_detail(name);
             if (first_unavailable.empty()) {
@@ -3178,6 +3189,8 @@ bool MaterialReader::lower_font_family() {
         available_count = available_count + 1U;
     }
     if (available_count == 0U) {
+        // Only `emoji`: nothing to set, and nothing to warn about.
+        if (!written_role && first_unavailable.empty()) return true;
         if (!written_role) {
             return fail(DiagnosticCode::font_family_unavailable, first_unavailable_token, first_unavailable);
         }

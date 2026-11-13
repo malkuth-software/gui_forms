@@ -606,6 +606,12 @@ void italic_faces_and_aliases_draw_registered_faces() {
     const StringFormat format;
     CHECK(faced.measure_string("Hamburgefonstiv", aliased.snapshot(), format.snapshot()).width ==
           faced.measure_string("Hamburgefonstiv", font.snapshot(), format.snapshot()).width);
+    // One registry (cp32): a registry family is one family whatever the case of its name, and
+    // an unknown name falls back to the registry's Portsmouth Rapids.
+    const Font shouted("PORTSMOUTH RAPIDS", 16.0, FontStyle::regular, GraphicsUnit::pixel);
+    const Font unknown("GUI Forms Absent Family", 16.0, FontStyle::regular, GraphicsUnit::pixel);
+    CHECK(draw_ink(faced, shouted, shifted) == draw_ink(faced, font, shifted));
+    CHECK(draw_ink(faced, unknown, shifted) == draw_ink(faced, font, shifted));
 }
 
 #if defined(__APPLE__)

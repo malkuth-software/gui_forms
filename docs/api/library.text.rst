@@ -69,6 +69,8 @@ Related types
      - A stack's families in order; ``count`` of ``families`` are live, the rest zero.
    * - :cpp:class:`FontVerticalMetrics <gui_forms::FontVerticalMetrics>`
      - A face's vertical design metrics at a size, in logical pixels: its ascender, descender (positive below the baseline) and line gap from the face's tables, scaled by size over units per em and not rounded.
+   * - :cpp:class:`GenericFontFamily <gui_forms::GenericFontFamily>`
+     - A CSS generic family name and the bundled family it draws.
    * - :cpp:class:`GlyphId <gui_forms::GlyphId>`
      - GlyphId is the ordered font-local glyph identity.
    * - :cpp:class:`GlyphPlacement <gui_forms::GlyphPlacement>`
@@ -623,6 +625,18 @@ Related types
    .. cpp:member:: double x_height
 
       The height of a lowercase x (OS/2 sxHeight), or zero when the face does not record one.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GenericFontFamily final
+
+   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+
+   A CSS generic family name and the bundled family it draws. The mapping is GUI.Forms' choice (owner, 2026-11-13: the theme language follows CSS closely), not a CSS rule: CSS leaves a generic's face to the user agent. Until a serif, cursive or fantasy face is bundled, those generics draw the content family. ``emoji`` names no family (zero): the bundled emoji fallback face already draws emoji for every font. A generic is matched only unquoted, as CSS does (a quoted "serif" is a family name).
+
+   .. cpp:member:: std::string_view name
+
+   .. cpp:member:: FontFamilyId family
 
 .. cpp:namespace:: gui_forms
 
@@ -3780,6 +3794,10 @@ Functions, constants and aliases
 
    The family numbered ``family``, or null for zero or a number no family has.
 
+.. cpp:function:: constexpr const GenericFontFamily* generic_font_family(std::string_view name) noexcept
+
+   The generic family called ``name`` (ASCII case ignored), or null.
+
 .. cpp:function:: constexpr bool valid_font_family(FontFamilyId family) noexcept
 
    Whether ``family`` is zero or a family the registry has.
@@ -3845,6 +3863,8 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::array<FontFamilyRecord, 4> bundled_font_families{
 
    The bundled families, in the order of their numbers.
+
+.. cpp:var:: constexpr std::array<GenericFontFamily, 13> generic_font_families{
 
 .. cpp:var:: constexpr std::size_t maximum_font_stack_families
 
