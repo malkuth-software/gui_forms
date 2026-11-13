@@ -294,6 +294,24 @@ struct GUI_FORMS_API DataGridViewHitTestInfo final {
     std::optional<std::size_t> column{};
 };
 
+// A pointer event over a cell or header (Windows Forms'
+// DataGridViewCellMouseEventArgs): `area` is cell, column_header,
+// row_header or top_left (a divider counts as its header); `row_id` and
+// `row` name the row of a cell or row header (`row` empty for a row gone
+// since), `column` the column of a cell or column header. `location` is the
+// pointer relative to the cell's or header's top-left corner, in the grid's
+// layout units; `click_count` counts a press's clicks (zero for moves).
+struct GUI_FORMS_API DataGridViewCellMouseEvent final {
+    DataGridViewHitTestType area{DataGridViewHitTestType::none};
+    DataGridViewRowId row_id{};
+    std::optional<DataGridViewRowPosition> row{};
+    std::optional<std::size_t> column{};
+    Point location{};
+    PointerButton button{PointerButton::none};
+    std::uint32_t click_count{};
+    Modifier modifiers{Modifier::none};
+};
+
 // As DataGridViewCellErrorTextNeededEvent, for a row's own error text
 // (Windows Forms' RowErrorTextNeeded).
 struct GUI_FORMS_API DataGridViewRowErrorTextNeededEvent final {
@@ -842,6 +860,27 @@ public:
     // Raised after a pointer press on a row header, or its semantic press,
     // made the row current (Windows Forms' RowHeaderMouseClick).
     [[nodiscard]] Event<const DataGridViewRowEvent&>& row_header_click() noexcept { return row_header_click_; }
+    // The pointer over cells and headers (Windows Forms' CellMouseEnter,
+    // CellMouseLeave, CellMouseMove, CellMouseDown, CellMouseUp,
+    // CellMouseClick and CellMouseDoubleClick), for every button. Order: a
+    // move onto another cell or header raises leave for the old one, then
+    // enter for the new one, then move; a press raises down; a release
+    // raises up, then click when it is over what was pressed, then
+    // double_click when the press was a second or later click. Each is
+    // raised before the grid acts on the pointer event (selection, editing,
+    // resizing); a handler that disposes of the grid ends the event. Not
+    // raised while a column or row is resized or a column is dragged.
+    // (cell_enter and cell_leave are Windows Forms' CellEnter and
+    // CellLeave: the current cell's moves.)
+    [[nodiscard]] Event<const DataGridViewCellMouseEvent&>& cell_mouse_enter() noexcept { return cell_mouse_enter_; }
+    [[nodiscard]] Event<const DataGridViewCellMouseEvent&>& cell_mouse_leave() noexcept { return cell_mouse_leave_; }
+    [[nodiscard]] Event<const DataGridViewCellMouseEvent&>& cell_mouse_move() noexcept { return cell_mouse_move_; }
+    [[nodiscard]] Event<const DataGridViewCellMouseEvent&>& cell_mouse_down() noexcept { return cell_mouse_down_; }
+    [[nodiscard]] Event<const DataGridViewCellMouseEvent&>& cell_mouse_up() noexcept { return cell_mouse_up_; }
+    [[nodiscard]] Event<const DataGridViewCellMouseEvent&>& cell_mouse_click() noexcept { return cell_mouse_click_; }
+    [[nodiscard]] Event<const DataGridViewCellMouseEvent&>& cell_mouse_double_click() noexcept {
+        return cell_mouse_double_click_;
+    }
     // Raised for each cell tooltip the semantic tree reads; see
     // DataGridViewCellToolTipTextNeededEvent.
     [[nodiscard]] Event<DataGridViewCellToolTipTextNeededEvent&>& cell_tool_tip_text_needed() noexcept {
@@ -1236,6 +1275,14 @@ private:
     // for a row being removed is the position it had.
     [[nodiscard]] DataGridViewRowPosition event_position(std::string_view row_id) const;
     [[nodiscard]] DataGridViewCellEvent cell_event(const CellKey& cell) const;
+    // The cell or header at a local point, and the cell_mouse_* payload for
+    // one at the pointer event's point.
+    [[nodiscard]] MouseTarget mouse_target_at(Point local) const;
+    [[nodiscard]] DataGridViewCellMouseEvent cell_mouse_event(const MouseTarget& target, const PointerEvent& event,
+                                                              Point local) const;
+    // Raises the cell_mouse_* events for a pointer event before the grid
+    // acts on it; false when a handler disposed of the grid.
+    [[nodiscard]] bool raise_cell_mouse(const PointerEvent& event, Point local);
     // The cell's tooltip: empty unless show_cell_tool_tips holds and a
     // cell_tool_tip_text_needed handler set valid UTF-8.
     [[nodiscard]] std::string cell_tool_tip_text(DataGridViewRowPosition row, std::size_t column) const;
@@ -1670,6 +1717,20 @@ private:
     // or later click, until the release raises cell_click.
     std::optional<CellKey> pressed_cell_{};
     bool pressed_cell_double_{};
+    // The cell or header under the pointer, and the one a press went down
+    // on with its click count, for the cell_mouse_* events; rows by ID.
+    struct MouseTarget final {
+        DataGridViewHitTestType area{DataGridViewHitTestType::none};
+        std::string row_id{};
+        std::size_t column{};
+        friend bool operator==(const MouseTarget& left, const MouseTarget& right) noexcept {
+            const bool equal = left.area == right.area && left.row_id == right.row_id && left.column == right.column;
+            return equal;
+        }
+    };
+    MouseTarget hovered_target_{};
+    MouseTarget pressed_target_{};
+    std::uint32_t pressed_target_clicks_{};
     // Cell-mode selections by row ID; a row with no selected cell has no
     // entry.
     SelectedCells selected_cells_{};
@@ -1795,6 +1856,13 @@ private:
     Event<const DataGridViewCellEvent&> cell_click_{};
     Event<const DataGridViewCellEvent&> cell_double_click_{};
     Event<const DataGridViewRowEvent&> row_header_click_{};
+    Event<const DataGridViewCellMouseEvent&> cell_mouse_enter_{};
+    Event<const DataGridViewCellMouseEvent&> cell_mouse_leave_{};
+    Event<const DataGridViewCellMouseEvent&> cell_mouse_move_{};
+    Event<const DataGridViewCellMouseEvent&> cell_mouse_down_{};
+    Event<const DataGridViewCellMouseEvent&> cell_mouse_up_{};
+    Event<const DataGridViewCellMouseEvent&> cell_mouse_click_{};
+    Event<const DataGridViewCellMouseEvent&> cell_mouse_double_click_{};
     Event<const DataGridViewRowOrderModeChange&> row_order_mode_changed_{};
     Event<std::size_t> column_header_click_{};
     Event<std::size_t> column_width_changed_{};

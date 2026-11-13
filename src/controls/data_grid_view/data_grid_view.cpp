@@ -3645,6 +3645,7 @@ void DataGridView::written(const decltype(row_headers_border_style)&) {
 void DataGridView::handle_pointer(PointerEvent& event) {
     const Control::Ptr lifetime = shared_from_this();
     const Point local = point_from_window(event.position);
+    if (!raise_cell_mouse(event, local)) return;
     const GridLayout layout = grid_layout();
     if (resizing_column_ && !has_pointer_capture()) resizing_column_.reset();
     if (resizing_row_ && !has_pointer_capture() && event.action != PointerAction::up) resizing_row_.reset();
@@ -3906,6 +3907,126 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             cell_double_click_.emit(cell_event(pressed));
         }
     }
+}
+
+DataGridView::MouseTarget DataGridView::mouse_target_at(Point local) const {
+    const DataGridViewHitTestInfo hit = hit_test_at(local);
+    MouseTarget target{};
+    switch (hit.type) {
+        case DataGridViewHitTestType::cell:
+            target.area = DataGridViewHitTestType::cell;
+            target.row_id = row_id_text(*hit.row);
+            target.column = *hit.column;
+            break;
+        case DataGridViewHitTestType::column_header:
+        case DataGridViewHitTestType::column_divider:
+            target.area = DataGridViewHitTestType::column_header;
+            target.column = *hit.column;
+            break;
+        case DataGridViewHitTestType::row_header:
+        case DataGridViewHitTestType::row_divider:
+            target.area = DataGridViewHitTestType::row_header;
+            target.row_id = row_id_text(*hit.row);
+            break;
+        case DataGridViewHitTestType::top_left:
+            target.area = DataGridViewHitTestType::top_left;
+            break;
+        case DataGridViewHitTestType::none:
+        default:
+            target.area = DataGridViewHitTestType::none;
+            break;
+    }
+    return target;
+}
+
+DataGridViewCellMouseEvent DataGridView::cell_mouse_event(const MouseTarget& target, const PointerEvent& event,
+                                                          Point local) const {
+    DataGridViewCellMouseEvent raised{};
+    raised.area = target.area;
+    raised.button = event.button;
+    raised.click_count = event.action == PointerAction::down ? event.click_count : 0U;
+    raised.modifiers = event.modifiers;
+    const GridLayout layout = grid_layout();
+    Point origin{layout.client.x, layout.client.y};
+    std::optional<std::size_t> position{};
+    if (!target.row_id.empty()) {
+        raised.row_id.value = target.row_id;
+        position = find_row(target.row_id);
+        if (position) raised.row = DataGridViewRowPosition{*position};
+    }
+    const bool column_known = target.column < columns_.size();
+    if (target.area == DataGridViewHitTestType::cell || target.area == DataGridViewHitTestType::column_header) {
+        raised.column = target.column;
+    }
+    if (target.area == DataGridViewHitTestType::cell && position && column_known) {
+        const Rect bounds = cell_bounds(DataGridViewRowPosition{*position}, target.column, layout);
+        origin = Point{bounds.x, bounds.y};
+    } else if (target.area == DataGridViewHitTestType::row_header && position) {
+        const Rect bounds = row_header_bounds(DataGridViewRowPosition{*position}, layout);
+        origin = Point{bounds.x, bounds.y};
+    } else if (target.area == DataGridViewHitTestType::column_header && column_known) {
+        const Rect bounds = column_header_bounds(target.column, layout);
+        origin = Point{bounds.x, bounds.y};
+    } else if (target.area == DataGridViewHitTestType::top_left) {
+        origin = Point{layout.top_left.x, layout.top_left.y};
+    }
+    raised.location = Point{local.x - origin.x, local.y - origin.y};
+    return raised;
+}
+
+bool DataGridView::raise_cell_mouse(const PointerEvent& event, Point local) {
+    const PointerAction action = event.action;
+    const bool tracked = action == PointerAction::move || action == PointerAction::enter ||
+                         action == PointerAction::leave || action == PointerAction::down || action == PointerAction::up;
+    if (!tracked) return true;
+    // A resize or column drag owns the pointer.
+    if (resizing_column_ || resizing_row_ || ordering_) return true;
+    MouseTarget target{};
+    if (action != PointerAction::leave) target = mouse_target_at(local);
+    if (!(target == hovered_target_)) {
+        const MouseTarget left = hovered_target_;
+        hovered_target_ = target;
+        if (left.area != DataGridViewHitTestType::none) {
+            cell_mouse_leave_.emit(cell_mouse_event(left, event, local));
+            if (!is_alive()) return false;
+        }
+        if (target.area != DataGridViewHitTestType::none) {
+            cell_mouse_enter_.emit(cell_mouse_event(target, event, local));
+            if (!is_alive()) return false;
+        }
+    }
+    if (target.area == DataGridViewHitTestType::none) {
+        if (action == PointerAction::up) pressed_target_ = MouseTarget{};
+        return true;
+    }
+    switch (action) {
+        case PointerAction::move:
+            cell_mouse_move_.emit(cell_mouse_event(target, event, local));
+            break;
+        case PointerAction::down:
+            pressed_target_ = target;
+            pressed_target_clicks_ = event.click_count;
+            cell_mouse_down_.emit(cell_mouse_event(target, event, local));
+            break;
+        case PointerAction::up: {
+            const MouseTarget pressed = pressed_target_;
+            const std::uint32_t clicks = pressed_target_clicks_;
+            pressed_target_ = MouseTarget{};
+            pressed_target_clicks_ = 0U;
+            cell_mouse_up_.emit(cell_mouse_event(target, event, local));
+            if (!is_alive() || !(pressed == target)) break;
+            cell_mouse_click_.emit(cell_mouse_event(target, event, local));
+            if (!is_alive() || clicks < 2U) break;
+            cell_mouse_double_click_.emit(cell_mouse_event(target, event, local));
+            break;
+        }
+        case PointerAction::enter:
+        case PointerAction::leave:
+        default:
+            break;
+    }
+    const bool alive = is_alive();
+    return alive;
 }
 
 DataGridViewHitTestInfo DataGridView::hit_test_at(Point local) const {

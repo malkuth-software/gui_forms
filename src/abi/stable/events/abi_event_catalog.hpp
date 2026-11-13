@@ -318,6 +318,20 @@ struct EnumerationChoices<DataGridViewDataErrorContext> {
 };
 
 template <>
+struct EnumerationChoices<DataGridViewHitTestType> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 7> choices{{
+        {"none", static_cast<std::int64_t>(DataGridViewHitTestType::none)},
+        {"cell", static_cast<std::int64_t>(DataGridViewHitTestType::cell)},
+        {"column_header", static_cast<std::int64_t>(DataGridViewHitTestType::column_header)},
+        {"column_divider", static_cast<std::int64_t>(DataGridViewHitTestType::column_divider)},
+        {"row_header", static_cast<std::int64_t>(DataGridViewHitTestType::row_header)},
+        {"row_divider", static_cast<std::int64_t>(DataGridViewHitTestType::row_divider)},
+        {"top_left", static_cast<std::int64_t>(DataGridViewHitTestType::top_left)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<DataGridViewRowOrderMode> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 2> choices{{
@@ -1066,6 +1080,7 @@ void read_field(EventFields& fields, std::string_view name, DataGridViewCellErro
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellFormattingEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewCellFormattingEvent& value);
+void append_field(EventFields& fields, std::string_view name, const DataGridViewCellMouseEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellParsingEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewCellParsingEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellStyle& value);
@@ -1534,6 +1549,19 @@ inline void read_field(EventFields& fields, std::string_view name, DataGridViewC
     read_field(fields, "cell_style", value.cell_style);
     read_field(fields, "formatted_value", value.formatted_value);
     read_field(fields, "formatting_applied", value.formatting_applied);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const DataGridViewCellMouseEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "area", value.area);
+    append_field(fields, "row_id", value.row_id);
+    append_field(fields, "row", value.row);
+    append_field(fields, "column", value.column);
+    append_field(fields, "location", value.location);
+    append_field(fields, "button", value.button);
+    append_field(fields, "click_count", value.click_count);
+    append_field(fields, "modifiers", value.modifiers);
     fields.leave(prefix);
 }
 
@@ -3563,6 +3591,69 @@ inline SubscriptionToken connect_data_grid_view_cell_leave(Component& source, co
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).cell_leave(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_cell_mouse_click(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cell_mouse_click(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_cell_mouse_double_click(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cell_mouse_double_click(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_cell_mouse_down(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cell_mouse_down(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_cell_mouse_enter(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cell_mouse_enter(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_cell_mouse_leave(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cell_mouse_leave(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_cell_mouse_move(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cell_mouse_move(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_cell_mouse_up(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cell_mouse_up(), sink);
     return token;
 }
 
@@ -6366,7 +6457,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 343> event_connectors{{
+inline constexpr std::array<EventConnector, 350> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6407,6 +6498,13 @@ inline constexpr std::array<EventConnector, 343> event_connectors{{
     {"cell_error_text_needed", "DataGridView", &connect_data_grid_view_cell_error_text_needed},
     {"cell_formatting", "DataGridView", &connect_data_grid_view_cell_formatting},
     {"cell_leave", "DataGridView", &connect_data_grid_view_cell_leave},
+    {"cell_mouse_click", "DataGridView", &connect_data_grid_view_cell_mouse_click},
+    {"cell_mouse_double_click", "DataGridView", &connect_data_grid_view_cell_mouse_double_click},
+    {"cell_mouse_down", "DataGridView", &connect_data_grid_view_cell_mouse_down},
+    {"cell_mouse_enter", "DataGridView", &connect_data_grid_view_cell_mouse_enter},
+    {"cell_mouse_leave", "DataGridView", &connect_data_grid_view_cell_mouse_leave},
+    {"cell_mouse_move", "DataGridView", &connect_data_grid_view_cell_mouse_move},
+    {"cell_mouse_up", "DataGridView", &connect_data_grid_view_cell_mouse_up},
     {"cell_parsing", "DataGridView", &connect_data_grid_view_cell_parsing},
     {"cell_tool_tip_text_needed", "DataGridView", &connect_data_grid_view_cell_tool_tip_text_needed},
     {"cell_validated", "DataGridView", &connect_data_grid_view_cell_validated},

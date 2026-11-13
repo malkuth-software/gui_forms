@@ -3774,6 +3774,90 @@ void column_selection_modes() {
             "columns are not selected outside the column modes");
 }
 
+// Records each cell_mouse_* event as "<label> <area> <row> <column>".
+struct RecordCellMouse final {
+    std::vector<std::string>* seen{};
+    const char* label{};
+    std::vector<DataGridViewCellMouseEvent>* events{};
+    void operator()(const DataGridViewCellMouseEvent& event) const {
+        std::string entry(label);
+        entry += event.area == DataGridViewHitTestType::cell ? " cell" : " other";
+        entry += " " + event.row_id.value;
+        entry += event.column ? " " + std::to_string(*event.column) : std::string(" -");
+        (*seen).push_back(entry);
+        (*events).push_back(event);
+    }
+};
+
+// Windows Forms' CellMouseEnter, CellMouseLeave, CellMouseMove,
+// CellMouseDown, CellMouseUp, CellMouseClick and CellMouseDoubleClick.
+void cell_mouse_events() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.cell.mouse");
+    (*grid).read_only = true;
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    std::vector<std::string> seen;
+    std::vector<DataGridViewCellMouseEvent> events;
+    SubscriptionToken enter = (*grid).cell_mouse_enter().subscribe(RecordCellMouse{&seen, "enter", &events});
+    SubscriptionToken leave = (*grid).cell_mouse_leave().subscribe(RecordCellMouse{&seen, "leave", &events});
+    SubscriptionToken move = (*grid).cell_mouse_move().subscribe(RecordCellMouse{&seen, "move", &events});
+    SubscriptionToken down = (*grid).cell_mouse_down().subscribe(RecordCellMouse{&seen, "down", &events});
+    SubscriptionToken up = (*grid).cell_mouse_up().subscribe(RecordCellMouse{&seen, "up", &events});
+    SubscriptionToken click_token = (*grid).cell_mouse_click().subscribe(RecordCellMouse{&seen, "click", &events});
+    SubscriptionToken twice = (*grid).cell_mouse_double_click().subscribe(RecordCellMouse{&seen, "double", &events});
+    const std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
+    const DataGridView::Cell* first = find_cell(cells, 0U, 0U);
+    const DataGridView::Cell* second = find_cell(cells, 1U, 0U);
+    require(first != nullptr && second != nullptr, "the name cells are realized");
+    const Rect first_bounds = (*first).parts.cell.bounds;
+    const Point first_point = centre(*grid, Rect{first_bounds.x + 3.0, first_bounds.y + 4.0, 0.0, 0.0});
+    const Point second_point = centre(*grid, (*second).parts.cell.bounds);
+
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, first_point}));
+    require(seen == std::vector<std::string>{"enter cell alpha 0", "move cell alpha 0"},
+            "moving onto a cell raises enter, then move");
+    require(events.back().location.x == 3.0 && events.back().location.y == 4.0 && events.back().row == row_at(0U),
+            "the location is relative to the cell's corner");
+    seen.clear();
+    events.clear();
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, second_point}));
+    require(seen == std::vector<std::string>{"leave cell alpha 0", "enter cell bravo 0", "move cell bravo 0"},
+            "moving to another cell raises leave, enter, then move");
+    seen.clear();
+    events.clear();
+    click(window, second_point);
+    require(seen == std::vector<std::string>{"down cell bravo 0", "up cell bravo 0", "click cell bravo 0"},
+            "a click raises down, up, then click");
+    seen.clear();
+    events.clear();
+    click(window, second_point, Modifier::none, 2U);
+    require(seen == std::vector<std::string>{"down cell bravo 0", "up cell bravo 0", "click cell bravo 0",
+                                             "double cell bravo 0"},
+            "a second click adds double_click");
+    require(events[0].click_count == 2U && events[0].button == PointerButton::primary, "down carries its clicks");
+    seen.clear();
+    events.clear();
+    PointerEvent secondary_down{PointerAction::down, PointerButton::secondary, second_point};
+    static_cast<void>(window.dispatch_pointer(secondary_down));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::secondary, first_point}));
+    require(seen == std::vector<std::string>{"down cell bravo 0", "leave cell bravo 0", "enter cell alpha 0",
+                                             "up cell alpha 0"},
+            "every button raises the events, and a release elsewhere is no click");
+    seen.clear();
+    events.clear();
+    const std::vector<DataGridView::Column> headers = (*grid).realized_columns();
+    static_cast<void>(window.dispatch_pointer(
+        {PointerAction::move, PointerButton::none, centre(*grid, headers[1].parts.column_label.bounds)}));
+    require(seen.size() == 3U && seen[1] == "enter other  1", "column headers raise the events with their column");
+    seen.clear();
+    events.clear();
+    const Rect corner = (*grid).parts().top_left_header.bounds;
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, centre(*grid, corner)}));
+    require(seen == std::vector<std::string>{"leave other  1", "enter other  -", "move other  -"} &&
+                events.back().area == DataGridViewHitTestType::top_left,
+            "the top-left header raises the events with neither row nor column");
+}
+
 int main() {
     columns_and_rows();
     layout_and_parts();
@@ -3822,6 +3906,7 @@ int main() {
     clicks_tool_tips_and_hit_tests();
     frozen_columns_and_rows();
     column_selection_modes();
+    cell_mouse_events();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";
