@@ -187,6 +187,29 @@ bool DockWorkspace::register_panel(DockPanelRegistration registration) {
     return true;
 }
 
+DockPanelsAdded DockWorkspace::add_panels(std::vector<DockPanelRegistration> panels) {
+    DockPanelsAdded result{};
+    for (std::size_t index = 0U; index < panels.size(); ++index) {
+        const DockPanelId& panel = panels[index].descriptor.id;
+        if (panel.value.empty() || find_entry(panel) != nullptr) return result;
+        for (std::size_t earlier = 0U; earlier < index; ++earlier) {
+            if (panels[earlier].descriptor.id == panel) return result;
+        }
+    }
+    std::vector<DockPanelId> identities;
+    identities.reserve(panels.size());
+    for (std::size_t index = 0U; index < panels.size(); ++index) {
+        identities.push_back(panels[index].descriptor.id);
+        // Checked above, so the layout takes it.
+        if (register_panel(std::move(panels[index]))) result.registered = result.registered + 1U;
+    }
+    for (std::size_t index = 0U; index < identities.size(); ++index) {
+        const DockTransactionResult shown = show_panel(identities[index], DockEditOrigin::program);
+        if (shown.applied) result.shown = result.shown + 1U;
+    }
+    return result;
+}
+
 const DockPanelRegistration* DockWorkspace::find_registration(const DockPanelId& panel) const noexcept {
     const PanelEntry* const entry = find_entry(panel);
     if (entry == nullptr) return nullptr;

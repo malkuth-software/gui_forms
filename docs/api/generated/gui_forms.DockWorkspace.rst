@@ -143,6 +143,8 @@ gui_forms::DockWorkspace
         - The layout.
       * - :cpp:func:`register_panel <gui_forms::DockWorkspace::register_panel>`
         - Registers a panel's descriptor with the layout and keeps its title and factory; registering places nothing.
+      * - :cpp:func:`add_panels <gui_forms::DockWorkspace::add_panels>`
+        - Registers each panel, then shows each in the list's order (register_panel, then show_panel with the program origin): a tool panel goes to its descriptor's default placement, a document to the document area, and the last panel shown is active.
       * - :cpp:func:`find_registration <gui_forms::DockWorkspace::find_registration>`
         - The registration of a panel, or null.
       * - :cpp:func:`update_panel <gui_forms::DockWorkspace::update_panel>`
@@ -469,6 +471,10 @@ gui_forms::DockWorkspace
       Registers a panel's descriptor with the layout and keeps its title and
       factory; registering places nothing. False, changing nothing, for an
       empty or repeated identity.
+
+   .. cpp:function:: DockPanelsAdded add_panels(std::vector<DockPanelRegistration> panels)
+
+      Registers each panel, then shows each in the list's order (register_panel, then show_panel with the program origin): a tool panel goes to its descriptor's default placement, a document to the document area, and the last panel shown is active. The list is checked first: an empty identity, one repeated within the list or one already registered refuses the whole list, changing nothing and returning zeroes. A show the layout refuses (a default placement the panel's own restrictions forbid) leaves that panel registered and not placed, and the rest go on.
 
    .. cpp:function:: const DockPanelRegistration* find_registration(const DockPanelId& panel) const noexcept
 

@@ -78,6 +78,8 @@ Related types
      - A factory's request: build the content of ``panel`` and store it in ``content``.
    * - :cpp:class:`DockPanelRegistration <gui_forms::DockPanelRegistration>`
      -  
+   * - :cpp:class:`DockPanelsAdded <gui_forms::DockPanelsAdded>`
+     - What DockWorkspace::add_panels did: how many panels it registered and how many of those the layout then placed.
    * - :cpp:class:`DockWorkspaceCapabilities <gui_forms::DockWorkspaceCapabilities>`
      - Every DockWorkspace capability, in the order the declaring class takes them.
    * - :cpp:class:`DockWorkspaceClosePromptCapability <gui_forms::DockWorkspaceClosePromptCapability>`
@@ -288,6 +290,18 @@ Related types
    .. cpp:member:: std::string title
 
    .. cpp:member:: Delegate<DockPanelCreation&> factory
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DockPanelsAdded final
+
+   ``#include <gui_forms/controls/dock_workspace.hpp>``
+
+   What DockWorkspace::add_panels did: how many panels it registered and how many of those the layout then placed.
+
+   .. cpp:member:: std::size_t registered
+
+   .. cpp:member:: std::size_t shown
 
 .. cpp:namespace:: gui_forms
 

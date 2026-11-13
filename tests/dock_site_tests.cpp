@@ -1346,8 +1346,40 @@ void load_ends_a_waiting_close() {
 
 } // namespace
 
+void add_panels_docked_only() {
+    SaveJournal journal;
+    PanelFactory factory{journal};
+    DockWorkspace workspace("simple");
+    std::vector<DockPanelRegistration> panels;
+    panels.push_back(tool(factory, "files", "Files", DockSide::left, 0, {100.0, 80.0}));
+    panels.push_back(tool(factory, "log", "Log", DockSide::bottom, 0, {100.0, 60.0}));
+    panels.push_back(document(factory, "page", "Page"));
+    std::vector<DockPanelRegistration> repeated;
+    repeated.push_back(tool(factory, "files", "Files", DockSide::left, 0, {100.0, 80.0}));
+    repeated.push_back(tool(factory, "files", "Again", DockSide::right, 0, {100.0, 80.0}));
+    const DockPanelsAdded refused = workspace.add_panels(std::move(repeated));
+    require(refused.registered == 0U && refused.shown == 0U && workspace.find_registration(DockPanelId("files")) == nullptr,
+            "a list repeating an identity is refused whole");
+    const DockPanelsAdded added = workspace.add_panels(std::move(panels));
+    require(added.registered == 3U && added.shown == 3U, "every panel registers and is placed");
+    require(workspace.layout().locate(DockPanelId("files")).placement == DockPlacementKind::docked &&
+                workspace.layout().locate(DockPanelId("log")).placement == DockPlacementKind::docked,
+            "the tool panels dock at their default edges");
+    require(workspace.active_document().has_value() && (*workspace.active_document()).value == "page",
+            "the document is in the document area and active");
+    std::vector<DockPanelRegistration> again;
+    again.push_back(document(factory, "page", "Page"));
+    require(workspace.add_panels(std::move(again)).registered == 0U, "an identity already registered is refused");
+    // No attach_windows: a site in a headless window realizes the layout.
+    std::shared_ptr<DockSite> site = make_control<DockSite>(StableId("simple.site"), workspace);
+    Window window(site, {640.0, 400.0});
+    window.perform_layout();
+    require(workspace.created_panel_count() == 3U, "the docked-only site creates every shown panel's content");
+}
+
 int main() {
     anatomy_and_parts();
+    add_panels_docked_only();
     lazy_creation();
     seam_keyboard_and_pointer();
     collapse_by_priority();

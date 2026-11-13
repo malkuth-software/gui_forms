@@ -52,6 +52,13 @@ struct GUI_FORMS_API DockPanelRegistration final {
     Delegate<DockPanelCreation&> factory{};
 };
 
+// What DockWorkspace::add_panels did: how many panels it registered and how
+// many of those the layout then placed.
+struct GUI_FORMS_API DockPanelsAdded final {
+    std::size_t registered{};
+    std::size_t shown{};
+};
+
 // Why documents are asked to close (stage DK phase D6, owner decision
 // DK-31): one document's own close (its tab, its caption or its position
 // menu), Close All Documents, Close Other Documents, or the close button of
@@ -137,6 +144,12 @@ struct GUI_FORMS_API DockActivationChange final {
 // nothing. One main DockSite and one DockSite per floating site may be bound
 // at a time.
 //
+// Docked only (the ImGui-class demonstrator's I1): a workspace whose panels
+// all stay docked or auto-hidden needs no host windows. A DockSite bound to
+// it and set as a Window's root realizes the main site, headless runs and
+// offscreen captures included; attach_windows is needed only once a panel
+// floats. add_panels registers and places a list of panels in one call.
+//
 // Floating windows (stage DK phase D4; owner decisions DK-1, DK-6 to DK-12,
 // DK-41, DK-44): once attach_windows binds the run's main window, the
 // workspace keeps one owned floating window per floating site of the layout.
@@ -185,6 +198,16 @@ public:
     // nothing, when the layout refuses the descriptor (an empty or repeated
     // identity).
     bool register_panel(DockPanelRegistration registration);
+    // Registers each panel, then shows each in the list's order
+    // (register_panel, then show_panel with the program origin): a tool
+    // panel goes to its descriptor's default placement, a document to the
+    // document area, and the last panel shown is active. The list is
+    // checked first: an empty identity, one repeated within the list or one
+    // already registered refuses the whole list, changing nothing and
+    // returning zeroes. A show the layout refuses (a default placement the
+    // panel's own restrictions forbid) leaves that panel registered and
+    // not placed, and the rest go on.
+    DockPanelsAdded add_panels(std::vector<DockPanelRegistration> panels);
     [[nodiscard]] const DockPanelRegistration* find_registration(const DockPanelId& panel) const noexcept;
     // Retitles a registered panel's caption, tab and navigator row. False
     // for an unregistered panel.
