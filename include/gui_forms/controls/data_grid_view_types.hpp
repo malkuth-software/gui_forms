@@ -168,6 +168,16 @@ enum class DataGridViewAutoSizeColumnMode : std::uint8_t {
     fill,
 };
 
+// How the column header band's height is set (Windows Forms'
+// DataGridViewColumnHeadersHeightSizeMode): by column_headers_height and the
+// user's drag of the band's bottom edge, by column_headers_height alone, or
+// from the shown headers' preferred height at each layout.
+enum class DataGridViewColumnHeadersHeightSizeMode : std::uint8_t {
+    enable_resizing,
+    disable_resizing,
+    auto_size,
+};
+
 // The grid's default for columns whose mode is not_set (Windows Forms'
 // DataGridViewAutoSizeColumnsMode): the same choices less not_set.
 enum class DataGridViewAutoSizeColumnsMode : std::uint8_t {

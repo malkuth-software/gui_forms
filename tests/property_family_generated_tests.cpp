@@ -770,6 +770,11 @@ void test_data_grid_view_properties() {
         expect((*control).column_headers_height.read() == sample, "DataGridView.column_headers_height: a write stores");
     }
     {
+        const DataGridViewColumnHeadersHeightSizeMode sample = DataGridViewColumnHeadersHeightSizeMode::auto_size;
+        (*control).column_headers_height_size_mode = sample;
+        expect((*control).column_headers_height_size_mode.read() == sample, "DataGridView.column_headers_height_size_mode: a write stores");
+    }
+    {
         const double sample = 50.0;
         (*control).row_headers_width = sample;
         expect((*control).row_headers_width.read() == sample, "DataGridView.row_headers_width: a write stores");
@@ -847,6 +852,11 @@ void test_data_grid_view_properties() {
         const bool sample = true;
         (*control).auto_generate_columns = sample;
         expect((*control).auto_generate_columns.read() == sample, "DataGridView.auto_generate_columns: a write stores");
+    }
+    {
+        const bool sample = true;
+        (*control).standard_tab = sample;
+        expect((*control).standard_tab.read() == sample, "DataGridView.standard_tab: a write stores");
     }
 }
 

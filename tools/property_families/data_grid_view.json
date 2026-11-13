@@ -547,6 +547,26 @@
       "sample": "30.0"
     },
     {
+      "name": "column_headers_height_size_mode",
+      "capability": "DataGridViewColumnHeadersHeightSizeMode",
+      "value": "DataGridViewColumnHeadersHeightSizeMode",
+      "initial": "DataGridViewColumnHeadersHeightSizeMode::enable_resizing",
+      "comment": "Whether the user drags the column header band's bottom edge, may not, or the band takes its headers' preferred height (ColumnHeadersHeightSizeMode).",
+      "getter": "column_headers_height_size_mode",
+      "setter": "set_column_headers_height_size_mode",
+      "clear": null,
+      "field": "column_headers_height_size_mode_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare checks the grid is mutable; written calls structure_changed() (the grid's layout, damage and semantics)"
+      ],
+      "sample": "DataGridViewColumnHeadersHeightSizeMode::auto_size"
+    },
+    {
       "name": "row_headers_width",
       "capability": "DataGridViewRowHeadersWidth",
       "value": "double",
@@ -886,6 +906,24 @@
       "setter": "set_auto_generate_columns",
       "clear": null,
       "field": "auto_generate_columns_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": null,
+      "sample": "true"
+    },
+    {
+      "name": "standard_tab",
+      "capability": "DataGridViewStandardTab",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether Tab moves the focus out of the grid and Ctrl+Tab moves between cells (StandardTab); off, Tab moves between cells and Ctrl+Tab leaves the grid.",
+      "getter": "standard_tab",
+      "setter": "set_standard_tab",
+      "clear": null,
+      "field": "standard_tab_",
       "event": null,
       "on_changed": false,
       "localizable": null,

@@ -368,6 +368,19 @@ struct DataGridViewColumnHeadersHeightCapability {
     }
 };
 
+// Whether the user drags the column header band's bottom edge, may not, or the band takes its headers' preferred height (ColumnHeadersHeightSizeMode).
+template <typename Declaring>
+struct DataGridViewColumnHeadersHeightSizeModeCapability {
+    PropertyCell<DataGridViewColumnHeadersHeightSizeMode, DataGridViewColumnHeadersHeightSizeModeCapability<Declaring>> column_headers_height_size_mode{DataGridViewColumnHeadersHeightSizeMode::enable_resizing};
+
+    static void assign(DataGridViewColumnHeadersHeightSizeModeCapability& capability, DataGridViewColumnHeadersHeightSizeMode incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.column_headers_height_size_mode), incoming);
+        if (!capability.column_headers_height_size_mode.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.column_headers_height_size_mode));
+    }
+};
+
 // The row header band's width, 4 to 1024 logical units (RowHeadersWidth).
 template <typename Declaring>
 struct DataGridViewRowHeadersWidthCapability {
@@ -554,6 +567,19 @@ struct DataGridViewAutoGenerateColumnsCapability {
     }
 };
 
+// Whether Tab moves the focus out of the grid and Ctrl+Tab moves between cells (StandardTab); off, Tab moves between cells and Ctrl+Tab leaves the grid.
+template <typename Declaring>
+struct DataGridViewStandardTabCapability {
+    PropertyCell<bool, DataGridViewStandardTabCapability<Declaring>> standard_tab{false};
+
+    static void assign(DataGridViewStandardTabCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.standard_tab), incoming);
+        if (!capability.standard_tab.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.standard_tab));
+    }
+};
+
 // The BindingSource the grid's rows show (data_property_name names the fields); null returns to unbound rows. Every write resets the rows and the row state, even an equal one. A view onto the grid's source.
 template <typename Declaring>
 struct DataGridViewDataSourceCapability {
@@ -607,6 +633,7 @@ struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapabili
                                   public DataGridViewColumnHeadersVisibleCapability<Declaring>,
                                   public DataGridViewRowHeadersVisibleCapability<Declaring>,
                                   public DataGridViewColumnHeadersHeightCapability<Declaring>,
+                                  public DataGridViewColumnHeadersHeightSizeModeCapability<Declaring>,
                                   public DataGridViewRowHeadersWidthCapability<Declaring>,
                                   public DataGridViewRowHeightCapability<Declaring>,
                                   public DataGridViewMinimumRowHeightCapability<Declaring>,
@@ -622,6 +649,7 @@ struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapabili
                                   public DataGridViewCellsOnSubSurfaceCapability<Declaring>,
                                   public DataGridViewAllowUserToAddRowsCapability<Declaring>,
                                   public DataGridViewAutoGenerateColumnsCapability<Declaring>,
+                                  public DataGridViewStandardTabCapability<Declaring>,
                                   public DataGridViewDataSourceCapability<Declaring> {
     DataGridViewCapabilities() : FontCapability<Declaring>(FontSpec{FontSpec{FontRole::content, 11.0, 400, false}}) {}
 };

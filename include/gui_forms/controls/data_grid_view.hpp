@@ -297,11 +297,14 @@ enum class DataGridViewHitTestType : std::uint8_t {
     row_header,
     row_divider,
     top_left,
+    // The column header band's bottom edge, while the user may resize it.
+    column_headers_divider,
 };
 
 // What hit_test_at found (Windows Forms' HitTestInfo): the row for cells,
 // row headers and row dividers, the column for cells, column headers and
-// column dividers, and neither elsewhere.
+// column dividers (and for the header band's edge, the header under it),
+// and neither elsewhere.
 struct GUI_FORMS_API DataGridViewHitTestInfo final {
     DataGridViewHitTestType type{DataGridViewHitTestType::none};
     std::optional<DataGridViewRowPosition> row{};
@@ -793,6 +796,13 @@ public:
     // GetPreferredHeight).
     [[nodiscard]] double preferred_cell_height(DataGridViewRowPosition row, std::size_t column) const;
     [[nodiscard]] double preferred_row_header_height(DataGridViewRowPosition row) const;
+    // The height the shown column headers' text and padding want, in
+    // logical units (Windows Forms' GetPreferredHeight for the header band);
+    // column_headers_height when no column is shown.
+    [[nodiscard]] double preferred_column_headers_height() const;
+    // Sets column_headers_height to the preferred height, within 4 to 256
+    // (AutoResizeColumnHeadersHeight).
+    void auto_resize_column_headers_height();
 
     // -- column order ------------------------------------------------------
     // The grid shows its columns in display order: index order once the
@@ -1252,11 +1262,15 @@ private:
         row_header,
         row_divider,
         top_left,
+        column_headers_divider,
     };
     struct HitResult final {
         HitZone zone{HitZone::none};
         DataGridViewRowPosition row{};
         std::size_t column{};
+        // column_headers_divider: whether `column` names the header under
+        // the strip.
+        bool edge_column{};
     };
     // How a key or click moves the current cell and the selection.
     enum class SelectionGesture : std::uint8_t { replace, extend, toggle };
@@ -1342,6 +1356,9 @@ private:
     // arrange after the columns' widths (apply_row_auto_sizes).
     [[nodiscard]] std::optional<double> automatic_height(std::size_t position, DataGridViewAutoSizeRowMode mode) const;
     void apply_row_auto_sizes();
+    // column_headers_height_size_mode auto_size: the band takes the
+    // preferred height at each layout.
+    void apply_column_headers_auto_size();
     [[nodiscard]] bool column_resizable(std::size_t column) const;
     [[nodiscard]] bool row_resizable() const noexcept;
     void values_changed();
@@ -1740,6 +1757,9 @@ private:
 
     // Navigation.
     [[nodiscard]] bool navigation_key(KeyEvent& event);
+    // Whether Tab with these modifiers moves between cells (standard_tab
+    // swaps Tab and Ctrl+Tab); otherwise the Tab is left to the window.
+    [[nodiscard]] bool tabs_between_cells(Modifier modifiers) const;
     [[nodiscard]] bool tab_key(bool backward);
 
     // Semantics.
@@ -1968,6 +1988,9 @@ private:
     std::optional<std::size_t> resizing_row_{};
     double resize_start_y_{};
     double resize_start_height_{};
+    // A drag of the column header band's bottom edge; it shares the start
+    // point and height above with the row drag (one drag at a time).
+    bool resizing_headers_{};
 
     Event<> selection_changed_{};
     Event<std::optional<DataGridViewCellAddress>> current_cell_changed_{};
@@ -2112,6 +2135,7 @@ private:
     friend struct DataGridViewColumnHeadersVisibleCapability<DataGridView>;
     friend struct DataGridViewRowHeadersVisibleCapability<DataGridView>;
     friend struct DataGridViewColumnHeadersHeightCapability<DataGridView>;
+    friend struct DataGridViewColumnHeadersHeightSizeModeCapability<DataGridView>;
     friend struct DataGridViewRowHeadersWidthCapability<DataGridView>;
     friend struct DataGridViewRowHeightCapability<DataGridView>;
     friend struct DataGridViewMinimumRowHeightCapability<DataGridView>;
@@ -2127,6 +2151,7 @@ private:
     friend struct DataGridViewCellsOnSubSurfaceCapability<DataGridView>;
     friend struct DataGridViewAllowUserToAddRowsCapability<DataGridView>;
     friend struct DataGridViewAutoGenerateColumnsCapability<DataGridView>;
+    friend struct DataGridViewStandardTabCapability<DataGridView>;
     friend struct DataGridViewDataSourceCapability<DataGridView>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(auto_size_columns_mode)& cell, DataGridViewAutoSizeColumnsMode& incoming);
@@ -2181,6 +2206,8 @@ private:
     void written(const decltype(row_headers_visible)& cell);
     void prepare_write(const decltype(column_headers_height)& cell, double& incoming);
     void written(const decltype(column_headers_height)& cell);
+    void prepare_write(const decltype(column_headers_height_size_mode)& cell, DataGridViewColumnHeadersHeightSizeMode& incoming);
+    void written(const decltype(column_headers_height_size_mode)& cell);
     void prepare_write(const decltype(row_headers_width)& cell, double& incoming);
     void written(const decltype(row_headers_width)& cell);
     void prepare_write(const decltype(row_height)& cell, double& incoming);
@@ -2211,6 +2238,8 @@ private:
     [[nodiscard]] bool read_view(const decltype(allow_user_to_add_rows)& cell) const;
     void prepare_write(const decltype(auto_generate_columns)& cell, bool& incoming);
     void written(const decltype(auto_generate_columns)& cell);
+    void prepare_write(const decltype(standard_tab)& cell, bool& incoming);
+    void written(const decltype(standard_tab)& cell);
     void write_view(const decltype(data_source)& cell, std::shared_ptr<BindingSource> incoming);
     [[nodiscard]] std::shared_ptr<BindingSource> read_view(const decltype(data_source)& cell) const;
     // property_codemod end DataGridView

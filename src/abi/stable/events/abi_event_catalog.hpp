@@ -332,7 +332,7 @@ struct EnumerationChoices<DataGridViewEditingControlKind> {
 template <>
 struct EnumerationChoices<DataGridViewHitTestType> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 7> choices{{
+    static constexpr std::array<EnumerationChoice, 8> choices{{
         {"none", static_cast<std::int64_t>(DataGridViewHitTestType::none)},
         {"cell", static_cast<std::int64_t>(DataGridViewHitTestType::cell)},
         {"column_header", static_cast<std::int64_t>(DataGridViewHitTestType::column_header)},
@@ -340,6 +340,7 @@ struct EnumerationChoices<DataGridViewHitTestType> {
         {"row_header", static_cast<std::int64_t>(DataGridViewHitTestType::row_header)},
         {"row_divider", static_cast<std::int64_t>(DataGridViewHitTestType::row_divider)},
         {"top_left", static_cast<std::int64_t>(DataGridViewHitTestType::top_left)},
+        {"column_headers_divider", static_cast<std::int64_t>(DataGridViewHitTestType::column_headers_divider)},
     }};
 };
 

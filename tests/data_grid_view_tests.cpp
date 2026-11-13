@@ -4076,6 +4076,68 @@ void row_paint_hooks() {
             "with no handlers every row paints as before");
 }
 
+// Windows Forms' StandardTab: Tab leaves the grid and Ctrl+Tab moves
+// between cells; off, the other way round.
+void standard_tab() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.standard.tab");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require(window.request_focus(grid), "the grid takes focus");
+    require((*grid).set_current_cell(cell_at(0U, 0U)), "a cell becomes current");
+    require(!(*grid).standard_tab.read(), "Tab moves between cells by default");
+    static_cast<void>(key(window, PhysicalKey::tab, Modifier::control));
+    require((*grid).current_cell() == cell_at(0U, 0U), "Ctrl+Tab leaves the cells alone by default");
+    (*grid).standard_tab = true;
+    static_cast<void>(key(window, PhysicalKey::tab));
+    require((*grid).current_cell() == cell_at(0U, 0U), "with standard_tab, Tab does not move between cells");
+    require(key(window, PhysicalKey::tab, Modifier::control) && (*grid).current_cell() == cell_at(0U, 1U),
+            "with standard_tab, Ctrl+Tab moves to the next cell");
+    require(key(window, PhysicalKey::tab, Modifier::control | Modifier::shift) &&
+                (*grid).current_cell() == cell_at(0U, 0U),
+            "with standard_tab, Ctrl+Shift+Tab moves to the previous cell");
+    require((*grid).begin_edit(true), "a text edit begins");
+    static_cast<void>(key(window, PhysicalKey::tab));
+    require(!(*grid).is_current_cell_in_edit_mode() && (*grid).current_cell() == cell_at(0U, 0U),
+            "with standard_tab, Tab commits the edit and does not move between cells");
+}
+
+// Windows Forms' ColumnHeadersHeightSizeMode and AutoResizeColumnHeadersHeight.
+void column_headers_height_size_mode() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.header.height");
+    Window window(grid, {360.0, 200.0});
+    window.perform_layout();
+    require((*grid).column_headers_height_size_mode.read() == DataGridViewColumnHeadersHeightSizeMode::enable_resizing,
+            "the user resizes the header band by default");
+    const Rect band = (*grid).parts().column_header_band.bounds;
+    const Point edge{(*grid).absolute_bounds().x + band.x + 30.0,
+                     (*grid).absolute_bounds().y + band.y + band.height - 1.0};
+    const DataGridViewHitTestInfo on_edge = (*grid).hit_test_at(Point{band.x + 30.0, band.y + band.height - 1.0});
+    require(on_edge.type == DataGridViewHitTestType::column_headers_divider, "the band's bottom edge is a divider");
+    require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, edge}), "the edge takes the press");
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, {edge.x, edge.y + 17.0}}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, {edge.x, edge.y + 17.0}}));
+    window.perform_layout();
+    require((*grid).column_headers_height.read() == 40.0, "dragging the edge sets the header height");
+    require(!(*grid).current_cell() || (*(*grid).current_cell()).row == row_at(0U), "a header resize moves no row");
+
+    (*grid).column_headers_height_size_mode = DataGridViewColumnHeadersHeightSizeMode::disable_resizing;
+    window.perform_layout();
+    const Rect fixed = (*grid).parts().column_header_band.bounds;
+    const DataGridViewHitTestInfo off_edge = (*grid).hit_test_at(Point{fixed.x + 30.0, fixed.y + fixed.height - 1.0});
+    require(off_edge.type == DataGridViewHitTestType::column_header, "without resizing the edge is header");
+
+    const double preferred = (*grid).preferred_column_headers_height();
+    require(preferred > 4.0 && preferred < 40.0, "the headers want a height of one text line");
+    (*grid).column_headers_height_size_mode = DataGridViewColumnHeadersHeightSizeMode::auto_size;
+    window.perform_layout();
+    window.perform_layout();
+    require((*grid).column_headers_height.read() == preferred, "auto_size gives the band the preferred height");
+    (*grid).column_headers_height_size_mode = DataGridViewColumnHeadersHeightSizeMode::disable_resizing;
+    (*grid).column_headers_height = 60.0;
+    (*grid).auto_resize_column_headers_height();
+    require((*grid).column_headers_height.read() == preferred, "auto_resize_column_headers_height fits the band once");
+}
+
 // Windows Forms' AutoGenerateColumns.
 void auto_generated_columns() {
     std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.generated"));
@@ -4184,6 +4246,8 @@ int main() {
     auto_generated_columns();
     first_displayed_scrolling_column();
     row_paint_hooks();
+    standard_tab();
+    column_headers_height_size_mode();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";

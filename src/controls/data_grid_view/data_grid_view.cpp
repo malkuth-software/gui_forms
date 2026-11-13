@@ -1958,6 +1958,15 @@ void DataGridView::written(const decltype(column_headers_height)&) {
     on_column_headers_height_changed();
 }
 
+void DataGridView::prepare_write(const decltype(column_headers_height_size_mode)&,
+                                 DataGridViewColumnHeadersHeightSizeMode&) {
+    require_mutable();
+}
+
+void DataGridView::written(const decltype(column_headers_height_size_mode)&) {
+    structure_changed();
+}
+
 void DataGridView::prepare_write(const decltype(row_headers_width)&, double& incoming) {
     require_mutable();
     if (!std::isfinite(incoming) || incoming < 4.0 || incoming > 1024.0) {
@@ -2156,6 +2165,7 @@ void DataGridView::arrange(Rect final_bounds) {
     // then automatic heights, which wrapped cells take from the widths.
     apply_auto_sizes();
     apply_row_auto_sizes();
+    apply_column_headers_auto_size();
     const GridLayout layout = grid_layout();
     // The first scrolling row stays past the frozen rows and no further
     // than the last full viewport.
@@ -3779,6 +3789,20 @@ void DataGridView::handle_pointer(PointerEvent& event) {
     const GridLayout layout = grid_layout();
     if (resizing_column_ && !has_pointer_capture()) resizing_column_.reset();
     if (resizing_row_ && !has_pointer_capture() && event.action != PointerAction::up) resizing_row_.reset();
+    if (resizing_headers_ && !has_pointer_capture() && event.action != PointerAction::up) resizing_headers_ = false;
+    if (resizing_headers_) {
+        if (event.action == PointerAction::move) {
+            const double delta = (local.y - resize_start_y_) / layout.scale;
+            column_headers_height = std::clamp(resize_start_height_ + delta, 4.0, 256.0);
+        } else if (event.action == PointerAction::up) {
+            resizing_headers_ = false;
+            Window* const host = window();
+            if (host != nullptr && has_pointer_capture()) (*host).release_pointer();
+            invalidate(Dirty::paint | Dirty::semantics);
+        }
+        event.handled = true;
+        return;
+    }
     if (resizing_row_) {
         if (event.action == PointerAction::move && *resizing_row_ < row_count()) {
             const double delta = (local.y - resize_start_y_) / layout.scale;
@@ -3855,7 +3879,9 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             over_link = placed.cell_link.present && placed.cell_link.bounds.contains(local);
         }
         CursorKind wanted = over_link ? CursorKind::hand : CursorKind::arrow;
-        if (hit.zone == HitZone::row_divider) wanted = CursorKind::resize_vertical;
+        if (hit.zone == HitZone::row_divider || hit.zone == HitZone::column_headers_divider) {
+            wanted = CursorKind::resize_vertical;
+        }
         if (hit.zone == HitZone::column_divider && column_resizable(hit.column)) {
             wanted = CursorKind::resize_horizontal;
         }
@@ -3911,6 +3937,15 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             resize_start_x_ = local.x;
             resize_start_width_ = columns_[hit.column].width;
             // Read again: the focus change above ran the program's handlers.
+            Window* const capture_host = window();
+            if (capture_host != nullptr) (*capture_host).capture_pointer(lifetime, event.pointer_id);
+            invalidate(Dirty::paint | Dirty::semantics);
+            return;
+        }
+        if (hit.zone == HitZone::column_headers_divider) {
+            resizing_headers_ = true;
+            resize_start_y_ = local.y;
+            resize_start_height_ = column_headers_height.read();
             Window* const capture_host = window();
             if (capture_host != nullptr) (*capture_host).capture_pointer(lifetime, event.pointer_id);
             invalidate(Dirty::paint | Dirty::semantics);
@@ -4053,6 +4088,12 @@ DataGridView::MouseTarget DataGridView::mouse_target_at(Point local) const {
             target.area = DataGridViewHitTestType::column_header;
             target.column = *hit.column;
             break;
+        case DataGridViewHitTestType::column_headers_divider:
+            // The header band's edge belongs to the header under it.
+            if (!hit.column) break;
+            target.area = DataGridViewHitTestType::column_header;
+            target.column = *hit.column;
+            break;
         case DataGridViewHitTestType::row_header:
         case DataGridViewHitTestType::row_divider:
             target.area = DataGridViewHitTestType::row_header;
@@ -4110,7 +4151,7 @@ bool DataGridView::raise_cell_mouse(const PointerEvent& event, Point local) {
                          action == PointerAction::leave || action == PointerAction::down || action == PointerAction::up;
     if (!tracked) return true;
     // A resize or column drag owns the pointer.
-    if (resizing_column_ || resizing_row_ || ordering_) return true;
+    if (resizing_column_ || resizing_row_ || resizing_headers_ || ordering_) return true;
     MouseTarget target{};
     if (action != PointerAction::leave) target = mouse_target_at(local);
     if (!(target == hovered_target_)) {
@@ -4187,6 +4228,10 @@ DataGridViewHitTestInfo DataGridView::hit_test_at(Point local) const {
         case HitZone::top_left:
             info.type = DataGridViewHitTestType::top_left;
             break;
+        case HitZone::column_headers_divider:
+            info.type = DataGridViewHitTestType::column_headers_divider;
+            if (hit.edge_column) info.column = hit.column;
+            break;
         case HitZone::none:
         default:
             info.type = DataGridViewHitTestType::none;
@@ -4256,8 +4301,15 @@ void DataGridView::on_key_preview(KeyEvent& event) {
         return;
     }
     if (key == PhysicalKey::tab) {
+        const bool between_cells = tabs_between_cells(event.modifiers);
+        if (!end_edit()) {
+            event.handled = true;
+            return;
+        }
+        // A Tab that leaves the grid stays unhandled once the edit is
+        // committed, so the window moves the focus.
+        if (!between_cells) return;
         event.handled = true;
-        if (!end_edit()) return;
         static_cast<void>(tab_key(has_modifier(event.modifiers, Modifier::shift)));
         return;
     }
@@ -4327,6 +4379,7 @@ void DataGridView::handle_key(KeyEvent& event) {
         return;
     }
     if (key == PhysicalKey::tab) {
+        if (!tabs_between_cells(event.modifiers)) return;
         if (tab_key(has_modifier(event.modifiers, Modifier::shift))) event.handled = true;
         return;
     }
@@ -4342,6 +4395,13 @@ void DataGridView::on_key_down(KeyEventArgs& arguments) {
     KeyEvent event = key_event_of(arguments, KeyAction::down);
     handle_key(event);
     if (event.handled) arguments.handled = true;
+}
+
+bool DataGridView::tabs_between_cells(Modifier modifiers) const {
+    // StandardTab swaps the roles of Tab and Ctrl+Tab.
+    const bool control = has_modifier(modifiers, Modifier::control);
+    const bool between = standard_tab.read() ? control : !control;
+    return between;
 }
 
 bool DataGridView::tab_key(bool backward) {
@@ -5153,6 +5213,12 @@ void DataGridView::prepare_write(const decltype(auto_generate_columns)&, bool&) 
 }
 
 void DataGridView::written(const decltype(auto_generate_columns)&) {}
+
+void DataGridView::prepare_write(const decltype(standard_tab)&, bool&) {
+    require_mutable();
+}
+
+void DataGridView::written(const decltype(standard_tab)&) {}
 
 // property_codemod end DataGridView
 

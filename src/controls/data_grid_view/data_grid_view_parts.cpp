@@ -36,6 +36,9 @@ constexpr double glyph_size = 7.0;
 constexpr double button_inset = 2.0;
 constexpr double sort_glyph_size = 8.0;
 constexpr double sort_glyph_margin = 14.0;
+// The strip at the column header band's bottom edge a press resizes the
+// band from, in logical units.
+constexpr double column_headers_grip = 4.0;
 constexpr double row_glyph_size = 8.0;
 constexpr double row_glyph_margin = 4.0;
 // The error glyph of a cell or row with error text.
@@ -603,6 +606,33 @@ double DataGridView::preferred_cell_height(DataGridViewRowPosition row, std::siz
     // The cell's grid line is inside its height.
     const double result = content + padding.top + padding.bottom + 1.0;
     return result;
+}
+
+double DataGridView::preferred_column_headers_height() const {
+    if (shown_order_.empty()) return column_headers_height.read();
+    const double scale = effective_text_scale();
+    double tallest = 0.0;
+    for (const std::size_t column : shown_order_) {
+        const DataGridViewCellStyle style = inherited_column_header_style(column);
+        const FontSpec face = (style.font ? effective_font(*style.font) : text_font(font.read()));
+        const Insets padding = content_padding(style, 1.0);
+        const double height = text_line_height(face) / scale + padding.top + padding.bottom + 1.0;
+        tallest = std::max(tallest, height);
+    }
+    return tallest;
+}
+
+void DataGridView::auto_resize_column_headers_height() {
+    require_mutable();
+    const double wanted = std::clamp(preferred_column_headers_height(), 4.0, 256.0);
+    if (wanted != column_headers_height.read()) column_headers_height = wanted;
+}
+
+void DataGridView::apply_column_headers_auto_size() {
+    if (column_headers_height_size_mode.read() != DataGridViewColumnHeadersHeightSizeMode::auto_size) return;
+    const double wanted = std::clamp(preferred_column_headers_height(), 4.0, 256.0);
+    // Written only when it differs, so the layout this starts finds it equal.
+    if (wanted != column_headers_height.read()) column_headers_height = wanted;
 }
 
 double DataGridView::preferred_row_header_height(DataGridViewRowPosition row) const {
@@ -1540,6 +1570,26 @@ DataGridView::HitResult DataGridView::hit_test(Point local) const {
     const IndexSpan displays = display_span(layout);
     const Rect scrolling_columns = column_pane(false, layout.client, layout);
     if (!layout.column_header_band.empty() && layout.column_header_band.contains(local)) {
+        // The band's bottom edge, while the user may drag it: a strip inside
+        // the band, so cells below keep their hits.
+        const Rect band = layout.column_header_band;
+        const double edge = band.y + band.height;
+        const bool resizable = column_headers_height_size_mode.read() == DataGridViewColumnHeadersHeightSizeMode::enable_resizing;
+        if (resizable && local.y >= edge - column_headers_grip * layout.scale) {
+            // The column under the strip as well, for the mouse events.
+            result.zone = HitZone::column_headers_divider;
+            for (std::size_t display = displays.start(); display < displays.end; display = displays.next(display)) {
+                if (display >= displays.frozen_end && !scrolling_columns.contains(local)) continue;
+                const std::size_t column = shown_order_[display];
+                const ColumnParts placed = column_parts(column, layout);
+                if (placed.column_header.present && placed.column_header.bounds.contains(local)) {
+                    result.column = column;
+                    result.edge_column = true;
+                    break;
+                }
+            }
+            return result;
+        }
         for (std::size_t display = displays.start(); display < displays.end; display = displays.next(display)) {
             if (display >= displays.frozen_end && !scrolling_columns.contains(local)) continue;
             const std::size_t column = shown_order_[display];
