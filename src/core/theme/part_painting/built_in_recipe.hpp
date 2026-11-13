@@ -14,8 +14,8 @@ namespace gui_forms {
 // which Theme::resolve takes from the floor alone: a part whose primitive
 // refused it, or whose raster could not be made, keeps its authored
 // material. Borrowed for the call.
-void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part,
-                                     const SurfaceMaterial* resolved_material);
+GUI_FORMS_API void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part,
+                                                   const SurfaceMaterial* resolved_material);
 
 // Whether paint_part draws anything in `bounds`: finite and not empty.
 [[nodiscard]] bool part_bounds_paintable(Rect bounds) noexcept;

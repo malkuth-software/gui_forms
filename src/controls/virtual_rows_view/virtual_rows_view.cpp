@@ -69,15 +69,15 @@ using input_control_detail::includes;
 }
 
 constexpr std::array<PartField<VirtualRowsView::Parts>, 4> virtual_rows_view_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &VirtualRowsView::Parts::region},
-    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &VirtualRowsView::Parts::well},
     // The child scroll bar, a whole scroll bar system; a ranged path is the
     // nearest role to a composed scroll bar (as TreeListView declares it).
-    {.declaration = {.name = "vertical_scroll_bar", .role = PartRole::track, .composed_from = "v_scroll_bar"},
+    {.declaration = {.name = "vertical_scroll_bar", .role = PartRole::track, .composed_from = "v_scroll_bar", .states = {}},
      .member = &VirtualRowsView::Parts::vertical_scroll_bar},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &VirtualRowsView::Parts::focus},
 }};
 
@@ -90,11 +90,11 @@ constexpr std::array<StateField<VirtualRowsView::States>, 5> virtual_rows_view_s
 }};
 
 constexpr std::array<PartField<VirtualRowsView::RowParts>, 3> virtual_rows_view_row_part_fields{{
-    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &VirtualRowsView::RowParts::row},
-    {.declaration = {.name = "row_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "row_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &VirtualRowsView::RowParts::row_face},
-    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "row_focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &VirtualRowsView::RowParts::row_focus},
 }};
 

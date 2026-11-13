@@ -38,13 +38,13 @@ constexpr double bezel_ring = 2.0;
 constexpr double legend_gap = 6.0;
 
 constexpr std::array<PartField<IndicatorLamp::Parts>, 4> indicator_lamp_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &IndicatorLamp::Parts::region},
-    {.declaration = {.name = "bezel", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "bezel", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &IndicatorLamp::Parts::bezel},
-    {.declaration = {.name = "lens", .role = PartRole::indicator, .composed_from = {}},
+    {.declaration = {.name = "lens", .role = PartRole::indicator, .composed_from = {}, .states = {}},
      .member = &IndicatorLamp::Parts::lens},
-    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &IndicatorLamp::Parts::label},
 }};
 
@@ -68,6 +68,7 @@ constexpr ControlAnatomy indicator_lamp_anatomy{
     .parts = indicator_lamp_parts,
     .states = indicator_lamp_states,
     .custom_states = indicator_lamp_custom_states,
+    .item_systems = {},
 };
 
 // Whether `state` lights the lens.

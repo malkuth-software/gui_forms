@@ -2584,19 +2584,19 @@ constexpr std::array<AnatomyState, 1> drop_cue_states{AnatomyState::drop_rejecte
 constexpr std::array<AnatomyState, 2> flyout_grip_states{AnatomyState::hot, AnatomyState::captured};
 
 constexpr std::array<PartField<DockSite::Parts>, 11> site_part_fields{{
-    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::region},
-    {.declaration = {.name = "document_area", .role = PartRole::well, .composed_from = {}},
+    {.declaration = {.name = "document_area", .role = PartRole::well, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::document_area},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::focus},
     // The drag layer (phase D3).
-    {.declaration = {.name = "drag_stamp", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "drag_stamp", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::drag_stamp},
-    {.declaration = {.name = "drag_stamp_label", .role = PartRole::label, .composed_from = {}},
+    {.declaration = {.name = "drag_stamp_label", .role = PartRole::label, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::drag_stamp_label},
     // The panel's picture: an image part; icon is the nearest role.
-    {.declaration = {.name = "drag_stamp_image", .role = PartRole::image, .composed_from = {}},
+    {.declaration = {.name = "drag_stamp_image", .role = PartRole::image, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::drag_stamp_image},
     {.declaration = {.name = "drop_area", .role = PartRole::drop, .composed_from = {},
                      .states = drop_area_states},
@@ -2608,9 +2608,9 @@ constexpr std::array<PartField<DockSite::Parts>, 11> site_part_fields{{
      .member = &DockSite::Parts::drop_cue},
     // The flyout's overlay shadow (RB-37, DK-41 T5-1), face and inner-edge
     // grip.
-    {.declaration = {.name = "flyout_shadow", .role = PartRole::shadow, .composed_from = {}},
+    {.declaration = {.name = "flyout_shadow", .role = PartRole::shadow, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::flyout_shadow},
-    {.declaration = {.name = "flyout_face", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "flyout_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DockSite::Parts::flyout_face},
     {.declaration = {.name = "flyout_grip", .role = PartRole::grip, .composed_from = {}, .states = flyout_grip_states},
      .member = &DockSite::Parts::flyout_grip},
@@ -2622,9 +2622,9 @@ constexpr std::array<AnatomyState, 5> site_states{
 };
 
 constexpr std::array<PartField<DockSite::SeamParts>, 2> seam_part_fields{{
-    {.declaration = {.name = "seam_bar", .role = PartRole::seam, .composed_from = {}},
+    {.declaration = {.name = "seam_bar", .role = PartRole::seam, .composed_from = {}, .states = {}},
      .member = &DockSite::SeamParts::seam_bar},
-    {.declaration = {.name = "seam_grip", .role = PartRole::grip, .composed_from = {}},
+    {.declaration = {.name = "seam_grip", .role = PartRole::grip, .composed_from = {}, .states = {}},
      .member = &DockSite::SeamParts::seam_grip},
 }};
 constexpr std::array<PartDeclaration, 2> seam_parts_declared = part_declarations(seam_part_fields);
@@ -2647,22 +2647,22 @@ constexpr std::array<AnatomyState, 2> pin_glyph_states{AnatomyState::checked, An
 constexpr std::array<AnatomyState, 1> glyph_states{AnatomyState::disabled};
 
 constexpr std::array<PartField<DockSite::StackParts>, 12> stack_part_fields{{
-    {.declaration = {.name = "stack_area", .role = PartRole::region, .composed_from = "page_view"},
+    {.declaration = {.name = "stack_area", .role = PartRole::region, .composed_from = "page_view", .states = {}},
      .member = &DockSite::StackParts::stack_area},
-    {.declaration = {.name = "caption", .role = PartRole::face, .composed_from = {}},
+    {.declaration = {.name = "caption", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &DockSite::StackParts::caption},
     // The active caption's accent line (DK-41): no accent-line role exists;
     // keyline is the nearest atom.
-    {.declaration = {.name = "caption_accent", .role = PartRole::keyline, .composed_from = {}},
+    {.declaration = {.name = "caption_accent", .role = PartRole::keyline, .composed_from = {}, .states = {}},
      .member = &DockSite::StackParts::caption_accent},
     // The identity key: chip is the nearest atom for a small coloured mark.
-    {.declaration = {.name = "caption_key", .role = PartRole::chip, .composed_from = {}},
+    {.declaration = {.name = "caption_key", .role = PartRole::chip, .composed_from = {}, .states = {}},
      .member = &DockSite::StackParts::caption_key},
-    {.declaration = {.name = "caption_label", .role = PartRole::caption, .composed_from = {}},
+    {.declaration = {.name = "caption_label", .role = PartRole::caption, .composed_from = {}, .states = {}},
      .member = &DockSite::StackParts::caption_label},
     // The dotted grip after the title (cp29), drawn in every theme; a
     // transparent muted ink hides it.
-    {.declaration = {.name = "caption_grip", .role = PartRole::grip, .composed_from = {}},
+    {.declaration = {.name = "caption_grip", .role = PartRole::grip, .composed_from = {}, .states = {}},
      .member = &DockSite::StackParts::caption_grip},
     {.declaration = {.name = "caption_menu", .role = PartRole::actuator, .composed_from = "button",
                      .states = menu_button_states},
@@ -2694,9 +2694,9 @@ constexpr std::array<AnatomyState, 2> stack_states_declared = state_declarations
 // restrictions refuse, expanding while the cross fades in) and its
 // dock-shape glyph (PartMark::dock_shape with the zone's region).
 constexpr std::array<PartField<DockSite::TileParts>, 2> tile_part_fields{{
-    {.declaration = {.name = "tile", .role = PartRole::actuator, .composed_from = {}},
+    {.declaration = {.name = "tile", .role = PartRole::actuator, .composed_from = {}, .states = {}},
      .member = &DockSite::TileParts::tile},
-    {.declaration = {.name = "tile_glyph", .role = PartRole::glyph, .composed_from = {}},
+    {.declaration = {.name = "tile_glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
      .member = &DockSite::TileParts::tile_glyph},
 }};
 constexpr std::array<PartDeclaration, 2> tile_parts_declared = part_declarations(tile_part_fields);
