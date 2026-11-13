@@ -4575,6 +4575,8 @@
     _ZN9gui_forms19part_role_from_nameE*;
     _ZN9gui_forms19part_visual_contextB*;
     _ZN9gui_forms19part_visual_contextE*;
+    _ZN9gui_forms19plot_category_colorB*;
+    _ZN9gui_forms19plot_category_colorE*;
     _ZN9gui_forms19project_help_fieldsB*;
     _ZN9gui_forms19project_help_fieldsE*;
     _ZN9gui_forms19put_declared_topicsB*;
@@ -5608,6 +5610,8 @@
     _ZN9gui_forms5plots12ScaleMapping*;
     _ZN9gui_forms5plots12SeriesPicker*;
     _ZN9gui_forms5plots12SquareSignal*;
+    _ZN9gui_forms5plots12category_keyB*;
+    _ZN9gui_forms5plots12category_keyE*;
     _ZN9gui_forms5plots12engine_exp10B*;
     _ZN9gui_forms5plots12engine_exp10E*;
     _ZN9gui_forms5plots12engine_log10B*;
@@ -5652,6 +5656,10 @@
     _ZN9gui_forms5plots17SignalDeclaration*;
     _ZN9gui_forms5plots17built_in_colormapB*;
     _ZN9gui_forms5plots17built_in_colormapE*;
+    _ZN9gui_forms5plots17categorical_colorB*;
+    _ZN9gui_forms5plots17categorical_colorE*;
+    _ZN9gui_forms5plots17category_positionB*;
+    _ZN9gui_forms5plots17category_positionE*;
     _ZN9gui_forms5plots18ScaleMappingResult*;
     _ZN9gui_forms5plots18civil_from_secondsB*;
     _ZN9gui_forms5plots18civil_from_secondsE*;

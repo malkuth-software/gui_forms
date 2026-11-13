@@ -4814,6 +4814,10 @@ Functions, constants and aliases
 
    The opaque colour PlotView gives the series at ``position`` among its series items (the series cycle through the theme's accents). Reads only.
 
+.. cpp:function:: Color plot_category_color(const Control& owner, std::uint64_t key) noexcept
+
+   The theme accent for the category ``key`` (plots::category_key of a name, or the application's own identity; the flame graph demonstrator's F7): plot_series_color at plots::category_position(key, 256), so a key keeps its colour in a theme and follows a theme change. Reads only.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/controls/progress_bar_effects.hpp>``

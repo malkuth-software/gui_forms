@@ -1,6 +1,7 @@
 #include "plot_engine.hpp"
 
 #include "gui_forms/controls/plot_view_palette.hpp"
+#include "gui_forms/plots/colormap/colormap.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
@@ -1182,6 +1183,12 @@ Color plot_series_color(const Control& owner, std::size_t position) noexcept {
     Color color = owner.effective_theme().accent(accent);
     color.alpha = 255U;
     return color;
+}
+
+Color plot_category_color(const Control& owner, std::uint64_t key) noexcept {
+    const std::size_t position = plots::category_position(key, 256U);
+    const Color result = plot_series_color(owner, position);
+    return result;
 }
 
 } // namespace gui_forms

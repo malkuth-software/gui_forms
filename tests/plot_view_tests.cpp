@@ -12,6 +12,7 @@
 
 #include "gui_forms/instrument_controls.hpp"
 #include "gui_forms/plot_controls.hpp"
+#include "gui_forms/plots/colormap/colormap.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
@@ -753,6 +754,14 @@ void test_plot_palette() {
     require(first_series.alpha == 255U && !(first_series == plot_series_color(*fixture.plot, 1U)),
             "series colours are opaque and differ by position");
     require(resolve_plot_palette(*fixture.plot) == palette, "resolving reads only");
+    // The flame graph demonstrator's F7: a category's accent is the series
+    // colour at its position, the same for the same name.
+    const std::uint64_t key = plots::category_key("parse_header");
+    require(plot_category_color(*fixture.plot, key) ==
+                plot_series_color(*fixture.plot, plots::category_position(key, 256U)),
+            "a category takes the series colour at its position");
+    require(plot_category_color(*fixture.plot, key) == plot_category_color(*fixture.plot, plots::category_key("parse_header")),
+            "equal names share a colour");
 }
 
 // A custom kind gets PlotView's frame: it fits, paints through the plot's

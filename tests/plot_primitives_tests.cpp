@@ -387,6 +387,33 @@ void test_labels_never_overlap() {
     require(ticks.label_every > 1U, "the axis was thinned");
 }
 
+std::string duration_line(ScaleKind kind, double minimum, double maximum, double width, double unit_seconds) {
+    TickSet ticks{};
+    TickRequest request{};
+    request.minimum_spacing = 50.0;
+    request.label_unit = TickLabelUnit::duration;
+    request.unit_seconds = unit_seconds;
+    static_cast<void>(generate_ticks(horizontal(kind, minimum, maximum, width), request, nullptr, ticks));
+    const std::string line = tick_line(ticks);
+    return line;
+}
+
+// The flame graph demonstrator's F8: duration labels take one unit per set,
+// chosen by the step, with the step's decimals in that unit.
+void test_duration_ticks() {
+    require(duration_line(ScaleKind::linear, 0.0, 3.0, 150.0, 1.0) == "0 s 1 s 2 s 3 s", "a 1 s step labels seconds");
+    require(duration_line(ScaleKind::linear, 0.0, 2.0, 400.0, 1e-3) == "0.0 ms 0.5 ms 1.0 ms 1.5 ms 2.0 ms",
+            "a half-millisecond step on a millisecond axis labels milliseconds");
+    require(duration_line(ScaleKind::linear, 0.0, 0.005, 250.0, 1e-3) ==
+                "0 \xC2\xB5s 1 \xC2\xB5s 2 \xC2\xB5s 3 \xC2\xB5s 4 \xC2\xB5s 5 \xC2\xB5s",
+            "a zoom to microseconds labels microseconds");
+    require(duration_line(ScaleKind::linear, 0.0, 30e-9, 300.0, 1.0) == "0 ns 5 ns 10 ns 15 ns 20 ns 25 ns",
+            "nanosecond steps label nanoseconds");
+    require(duration_line(ScaleKind::linear, 0.0, 3.0, 150.0, 0.0) == "0 1 2 3",
+            "a unit that is not positive labels plain numbers");
+    require(duration_line(ScaleKind::log10, 1.0, 1000.0, 300.0, 1.0) == "1 10 100 1000", "a log scale ignores the unit");
+}
+
 void test_civil_time() {
     require(civil_from_seconds(0) == (CivilTime{1970, 1, 1, 0, 0, 0}), "the epoch is 1970-01-01");
     // 2024-02-29T12:34:56Z, a leap day.
@@ -677,6 +704,36 @@ void test_colormaps() {
     require(sample_colormap_span(viridis, scale, values, colours) && colours[1] == sample_colormap(viridis, 1.0) &&
                 colours[2] == viridis.gap_color,
             "a span maps through its scale's domain");
+}
+
+// The flame graph demonstrator's F7: a key's colour is stable and equal
+// names share it.
+void test_categorical_colors() {
+    require(category_key("") == 0xCBF29CE484222325ULL && category_key("a") == 0xAF63DC4C8601EC8CULL,
+            "category_key is FNV-1a 64");
+    require(category_key("render") == category_key(std::string("render")), "equal names give equal keys");
+    require(category_position(42U, 0U) == 0U, "no slots gives 0");
+    std::array<std::size_t, 8> counts{};
+    for (std::uint64_t key = 0U; key < 800U; ++key) {
+        const std::size_t slot = category_position(key, counts.size());
+        require(slot < counts.size(), "a position is a slot");
+        counts[slot] = counts[slot] + 1U;
+    }
+    for (const std::size_t count : counts) require(count > 60U && count < 140U, "consecutive keys spread over the slots");
+    Colormap qualitative{};
+    qualitative.kind = ColormapKind::qualitative;
+    qualitative.stop_count = 3U;
+    qualitative.stops[0].color = Color::rgba(1, 0, 0);
+    qualitative.stops[1].color = Color::rgba(0, 1, 0);
+    qualitative.stops[2].color = Color::rgba(0, 0, 1);
+    const std::uint64_t key = category_key("parse_header");
+    require(categorical_color(key, qualitative) == qualitative.stops[category_position(key, 3U)].color,
+            "a qualitative map gives the key's stop");
+    const Colormap& magma = built_in_colormap(BuiltInColormap::magma);
+    require(categorical_color(key, magma) == categorical_color(key, magma), "a continuous map samples the same place");
+    Colormap broken{};
+    broken.gap_color = Color::rgba(9, 9, 9);
+    require(categorical_color(key, broken) == broken.gap_color, "an invalid map gives its gap colour");
 }
 
 // -- view model --------------------------------------------------------------------------------
@@ -1091,6 +1148,7 @@ int main() {
         test_scale_refusals();
         test_tick_golden_tables();
         test_labels_never_overlap();
+        test_duration_ticks();
         test_civil_time();
         test_time_ticks();
         test_axes_and_transform();
@@ -1100,6 +1158,7 @@ int main() {
         test_occupancy_and_binning();
         test_picker_matches_oracle();
         test_colormaps();
+        test_categorical_colors();
         test_view_model_gestures();
         test_view_model_locks_keys_and_follow();
         test_view_model_single_axis();

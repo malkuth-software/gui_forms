@@ -66,6 +66,50 @@ void label_number(TickLabel& label, double value, int decimals, std::string& scr
     set_label(label, scratch);
 }
 
+// A duration label's unit for a whole tick set: what one axis value is
+// multiplied by for the shown number, its suffix and its decimals.
+struct DurationLabel final {
+    double factor{1.0};
+    std::string_view suffix{};
+    int decimals{};
+};
+
+// The unit for `step` axis units of `unit_seconds` each (both finite and
+// positive): the largest of s, ms, µs and ns in which the step is at least
+// 0.1, ns below that, so a half-millisecond step reads "0.5 ms".
+DurationLabel duration_label(double step, double unit_seconds) noexcept {
+    const double step_seconds = step * unit_seconds;
+    DurationLabel label{};
+    if (step_seconds >= 0.1) {
+        label.factor = unit_seconds;
+        label.suffix = " s";
+    } else if (step_seconds >= 1e-4) {
+        label.factor = unit_seconds * 1e3;
+        label.suffix = " ms";
+    } else if (step_seconds >= 1e-7) {
+        label.factor = unit_seconds * 1e6;
+        label.suffix = " \xC2\xB5s";
+    } else {
+        label.factor = unit_seconds * 1e9;
+        label.suffix = " ns";
+    }
+    const int exponent = step_exponent(step * label.factor);
+    label.decimals = std::max(0, -exponent);
+    return label;
+}
+
+void label_duration(TickLabel& label, double value, const DurationLabel& form, std::string& scratch) {
+    scratch.clear();
+    NumberFormat format{};
+    format.kind = NumberFormatKind::fixed;
+    format.precision = static_cast<std::uint32_t>(std::min(form.decimals, 9));
+    const double scaled = value * form.factor;
+    const double shown = scaled == 0.0 ? 0.0 : scaled;
+    append_formatted_number(scratch, shown, format);
+    scratch.append(form.suffix);
+    set_label(label, scratch);
+}
+
 void append_two_digits(std::string& text, std::int64_t value) {
     const std::int64_t clamped = value < 0 ? 0 : value % 100;
     text.push_back(static_cast<char>('0' + clamped / 10));
@@ -186,6 +230,10 @@ TickOutcome linear_ticks(const ScaleMapping& mapping, double low, double high, d
     const double last = std::floor(high / step);
     std::array<std::int64_t, maximum_major_ticks> ordinals{};
     TickOutcome outcome = TickOutcome::generated;
+    const bool durations = request.label_unit == TickLabelUnit::duration &&
+                           mapping.scale().kind == ScaleKind::linear && std::isfinite(request.unit_seconds) &&
+                           request.unit_seconds > 0.0;
+    const DurationLabel duration = durations ? duration_label(step, request.unit_seconds) : DurationLabel{};
     // Integer positions times the step: never accumulated.
     for (double position = first; position <= last; position = position + 1.0) {
         const double transformed = position * step;
@@ -197,8 +245,12 @@ TickOutcome linear_ticks(const ScaleMapping& mapping, double low, double high, d
             break;
         }
         ordinals[index] = static_cast<std::int64_t>(position);
-        const int decimals = exponent >= 7 || exponent <= -7 ? -1 : std::max(0, -exponent);
-        label_number(out.major[index].label, value, decimals, scratch);
+        if (durations) {
+            label_duration(out.major[index].label, value, duration, scratch);
+        } else {
+            const int decimals = exponent >= 7 || exponent <= -7 ? -1 : std::max(0, -exponent);
+            label_number(out.major[index].label, value, decimals, scratch);
+        }
     }
     thin_labels(out, request, metrics, std::span<const std::int64_t>(ordinals.data(), out.major_count));
     // Minors: a step of 2 divides by 4, others by 5.
