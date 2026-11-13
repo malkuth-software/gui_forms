@@ -6,6 +6,10 @@
  * hosted programs are left to the C++ content tests
  * (tests/content_surface_tests.cpp, tests/hosted_content_tests.cpp). */
 
+/* glibc and musl declare clock_gettime and CLOCK_REALTIME only with POSIX
+ * 2008 visible under strict C11; macOS declares them either way. */
+#define _POSIX_C_SOURCE 200809L
+
 #include "gf_conformance_internal.h"
 
 #include <errno.h>

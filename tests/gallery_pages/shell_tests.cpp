@@ -279,7 +279,7 @@ void test_basics_card_dark_contrast() {
     select_page(window, "basics");
     const Control::Ptr card = window.find("gallery.lifecycle-card");
     require(card != nullptr, "the basics page holds the lifecycle card");
-    reveal_in_page_surface(window, card);
+    reveal_in_page_viewport(window, card);
     const Rect bounds = (*card).committed_arranged_bounds();
     require(bounds.width > 0.0 && bounds.height > 0.0, "the shown basics page arranges the lifecycle card");
     PlateAndInkPainter painter(bounds.width * 0.5);

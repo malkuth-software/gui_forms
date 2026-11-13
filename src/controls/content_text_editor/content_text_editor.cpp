@@ -18,6 +18,7 @@
 #include <utility>
 
 namespace gui_forms {
+using namespace input_control_detail;
 
 namespace {
 

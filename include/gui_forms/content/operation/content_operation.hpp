@@ -47,6 +47,9 @@ public:
     ContentContext(const ContentContext&) = delete;
     ContentContext& operator=(const ContentContext&) = delete;
 
+    // The program publishes through the non-const sink; readers that only
+    // inspect it take the const one.
+    [[nodiscard]] ContentFrameSink& sink() noexcept { return sink_; }
     [[nodiscard]] const ContentFrameSink& sink() const noexcept { return sink_; }
     // Fires when the surface asks the program to stop (terminate, close,
     // leaving the window, the surface's destruction).

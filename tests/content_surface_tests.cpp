@@ -84,14 +84,14 @@ struct PublishOnThread final {
     ContentFrameSink sink;
     ContentFrame frame;
     ContentPublishResult* result{};
-    void operator()() const { *result = sink.publish(frame); }
+    void operator()() { *result = sink.publish(frame); }
 };
 
 struct SemanticsOnThread final {
     ContentFrameSink sink;
     ContentSemantics semantics;
     ContentSemanticsResult* result{};
-    void operator()() const { *result = sink.publish_semantics(semantics); }
+    void operator()() { *result = sink.publish_semantics(semantics); }
 };
 
 ContentPublishResult publish_from_thread(const ContentFrameSink& sink, const ContentFrame& frame) {
