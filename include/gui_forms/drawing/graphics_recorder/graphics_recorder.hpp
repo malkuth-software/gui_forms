@@ -182,6 +182,36 @@ public:
                                const SolidBrush& on_fill_brush, PointF origin, const StringFormat& format,
                                RectF fill);
 
+    // Gapped and per-element marks (gd_* ABI 0.4, the plot demonstrator's
+    // gaps G2 to G4). Each records commands of the kinds above, so replay
+    // and the trace need no new command kind. Each validates its whole
+    // input, and that the commands it records fit maximum_commands, before
+    // it records anything; a refusal records nothing.
+    //
+    // A break is a point with a NaN coordinate. An infinite coordinate is
+    // refused, as for the batched commands.
+    //
+    // The most samples fill_band takes: its polygon holds two points per
+    // sample, within GraphicsPath::maximum_elements.
+    static constexpr std::size_t maximum_band_samples = maximum_batch_elements / 2U;
+    // The area between two polylines sampled at the same positions (the
+    // Painter's fill_band): `upper` and `lower` hold the same count, 2
+    // through maximum_band_samples. A break at index i in either span
+    // breaks the band there. Each run of 2 or more unbroken indices records
+    // one fill_polygon (winding, along `upper` and back along `lower`); a
+    // run of one index records nothing.
+    void fill_band(const Brush& brush, std::span<const PointF> upper, std::span<const PointF> lower);
+    // An open polyline through `points` (2 or more) that breaks at each
+    // break point (the Painter's stroke_polyline): each run of 2 or more
+    // unbroken points records one draw_lines, and a run of one records
+    // nothing.
+    void draw_polyline_runs(const Pen& pen, std::span<const PointF> points);
+    // Each of 1 or more finite rectangles filled in its own colour (the
+    // Painter's fill_rects_each): `colors` holds one per rectangle. Each
+    // run of consecutive equal colours records one fill_rectangles with a
+    // solid brush of that colour.
+    void fill_rectangles_each(std::span<const RectF> rects, std::span<const Color> colors);
+
     void close();
     [[nodiscard]] bool closed() const;
     [[nodiscard]] std::span<const DrawingCommand> commands() const;

@@ -1091,6 +1091,18 @@ Types
 
       Piece C4: the string drawn twice under complementary clips, with ``on_fill_brush`` where it lies over ``fill`` and ``brush`` elsewhere. It records up to five draw_string commands, each with its own clip within the current one: the fill's part, and the bands above, below, left and right of it, which share its edges exactly. The transform must be a scale and translation (the clips are rectangles).
 
+   .. cpp:function:: void fill_band(const Brush& brush, std::span<const PointF> upper, std::span<const PointF> lower)
+
+      The area between two polylines sampled at the same positions (the Painter's fill_band): ``upper`` and ``lower`` hold the same count, 2 through maximum_band_samples. A break at index i in either span breaks the band there. Each run of 2 or more unbroken indices records one fill_polygon (winding, along ``upper`` and back along ``lower``); a run of one index records nothing.
+
+   .. cpp:function:: void draw_polyline_runs(const Pen& pen, std::span<const PointF> points)
+
+      An open polyline through ``points`` (2 or more) that breaks at each break point (the Painter's stroke_polyline): each run of 2 or more unbroken points records one draw_lines, and a run of one records nothing.
+
+   .. cpp:function:: void fill_rectangles_each(std::span<const RectF> rects, std::span<const Color> colors)
+
+      Each of 1 or more finite rectangles filled in its own colour (the Painter's fill_rects_each): ``colors`` holds one per rectangle. Each run of consecutive equal colours records one fill_rectangles with a solid brush of that colour.
+
    .. cpp:function:: void close()
 
       Requires balanced saved state and enters terminal closed state.
@@ -1131,6 +1143,10 @@ Types
    .. cpp:member:: constexpr std::size_t maximum_batch_elements
 
       Batched commands (the GUI.Forms Painter's batch calls; one command per call, the span copied once). Every point and rectangle must be finite, and each span holds at most maximum_batch_elements. Default: ``1'000'000``.
+
+   .. cpp:member:: constexpr std::size_t maximum_band_samples
+
+      Gapped and per-element marks (gd_* ABI 0.4, the plot demonstrator's gaps G2 to G4). Each records commands of the kinds above, so replay and the trace need no new command kind. Each validates its whole input, and that the commands it records fit maximum_commands, before it records anything; a refusal records nothing. A break is a point with a NaN coordinate. An infinite coordinate is refused, as for the batched commands. The most samples fill_band takes: its polygon holds two points per sample, within GraphicsPath::maximum_elements. Default: ``maximum_batch_elements / 2U``.
 
 .. cpp:namespace:: gui_drawing
 

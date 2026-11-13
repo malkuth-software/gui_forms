@@ -27,6 +27,9 @@ extern "C" {
    version exposes the table prefix it introduced; a newer version only
    appends. */
 #define GD_ABI_VERSION_0_3 UINT32_C(0x00000003)
+/* 0.4 appends the gapped and per-element marks (recorder_fill_band
+   onwards). */
+#define GD_ABI_VERSION_0_4 UINT32_C(0x00000004)
 
 typedef struct gd_handle {
     uint32_t slot;
@@ -624,6 +627,33 @@ typedef struct gd_api_v0 {
                                         gd_color dark, gd_color* chosen);
     gd_result (*graphics_path_add_rounded_rectangle)(gd_handle path, gd_rect rectangle,
                                                      gd_corner_radii radii);
+    /*
+     * ABI 0.4, the gapped and per-element marks (the plot demonstrator's
+     * gaps). Each records the 0.3 commands (fill_polygon, draw_lines,
+     * fill_rectangles), so a trace names those. A break is a point with a
+     * NaN coordinate; an infinite coordinate is refused. Each validates its
+     * whole input before it records; a refusal records nothing.
+     *
+     * The area between two polylines sampled at the same positions: upper
+     * and lower each hold count points, 2 through 500,000. A break at index
+     * i in either array breaks the band; each run of 2 or more unbroken
+     * indices records one fill_polygon (winding), and a run of one records
+     * nothing.
+     */
+    gd_result (*recorder_fill_band)(gd_handle recorder, gd_handle brush,
+                                    const gd_point* upper, const gd_point* lower,
+                                    uint64_t count);
+    /* An open polyline through count (2 through 1,000,000) points that breaks
+       at each break: each run of 2 or more unbroken points records one
+       draw_lines, and a run of one records nothing. Unlike
+       recorder_draw_lines, which refuses a NaN point. */
+    gd_result (*recorder_draw_polyline_runs)(gd_handle recorder, gd_handle pen,
+                                             const gd_point* points, uint64_t count);
+    /* Each of count (1 through 1,000,000) finite rectangles filled in its own
+       colour, colors[i] for rects[i]; each run of equal colours records one
+       fill_rectangles with a solid brush. */
+    gd_result (*recorder_fill_rectangles_each)(gd_handle recorder, const gd_rect* rects,
+                                               const gd_color* colors, uint64_t count);
 } gd_api_v0;
 
 /*

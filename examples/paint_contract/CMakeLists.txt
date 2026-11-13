@@ -39,3 +39,18 @@ if(WIN32)
 endif()
 enable_testing()
 add_test(NAME paint_contract COMMAND paint_contract)
+# The drawing ABI, where the SDK installed it: a C program through the
+# installed header and shared library alone.
+if(GUIForms_DrawingCApi_FOUND)
+    enable_language(C)
+    add_executable(drawing_abi_consumer drawing_abi_consumer.c)
+    set_target_properties(drawing_abi_consumer PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+    target_link_libraries(drawing_abi_consumer PRIVATE GUIForms::DrawingCApi)
+    if(WIN32)
+        add_custom_command(TARGET drawing_abi_consumer POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_RUNTIME_DLLS:drawing_abi_consumer> $<TARGET_FILE_DIR:drawing_abi_consumer>
+            COMMAND_EXPAND_LISTS)
+    endif()
+    add_test(NAME drawing_abi_consumer COMMAND drawing_abi_consumer)
+endif()

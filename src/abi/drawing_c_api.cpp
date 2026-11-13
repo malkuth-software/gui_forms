@@ -2403,8 +2403,86 @@ gd_result api_graphics_path_add_rounded_rectangle(gd_handle handle, gd_rect rect
                                                       rectangle, radii);
 }
 
+// ABI 0.4: the gapped and per-element marks. Each copies the caller's
+// arrays once, after the counts are bounded, and the recorder validates
+// the copies before it records.
+
+gd_result fill_recorder_band(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Brush& fill,
+                             const std::vector<gui_drawing::PointF>& upper,
+                             const std::vector<gui_drawing::PointF>& lower) {
+    graphics.fill_band(fill, upper, lower);
+    return GD_OK;
+}
+
+gd_result fill_recorder_band_from_c(gd_handle recorder, gd_handle brush, const gd_point* upper,
+                                    const gd_point* lower, std::uint64_t count) {
+    const std::vector<gui_drawing::PointF> native_upper = points_from_c(upper, count);
+    const std::vector<gui_drawing::PointF> native_lower = points_from_c(lower, count);
+    return registry().with_two<gui_drawing::GraphicsRecorder, gui_drawing::Brush>(
+        recorder, GD_OBJECT_RECORDER, brush, 0U, &fill_recorder_band, native_upper, native_lower);
+}
+
+gd_result api_recorder_fill_band(gd_handle recorder, gd_handle brush, const gd_point* upper,
+                                 const gd_point* lower, std::uint64_t count) {
+    if (!bounded_batch(upper, count, 2U) || !bounded_batch(lower, count, 2U) ||
+        count > gui_drawing::GraphicsRecorder::maximum_band_samples) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "band requires 2 through 500000 samples in both arrays");
+    }
+    return translate(&fill_recorder_band_from_c, recorder, brush, upper, lower, count);
+}
+
+gd_result draw_recorder_polyline_runs(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Pen& stroke,
+                                      const std::vector<gui_drawing::PointF>& points) {
+    graphics.draw_polyline_runs(stroke, points);
+    return GD_OK;
+}
+
+gd_result draw_recorder_polyline_runs_from_c(gd_handle recorder, gd_handle pen, const gd_point* points,
+                                             std::uint64_t count) {
+    const std::vector<gui_drawing::PointF> native = points_from_c(points, count);
+    return registry().with_two<gui_drawing::GraphicsRecorder, gui_drawing::Pen>(
+        recorder, GD_OBJECT_RECORDER, pen, GD_OBJECT_PEN, &draw_recorder_polyline_runs, native);
+}
+
+gd_result api_recorder_draw_polyline_runs(gd_handle recorder, gd_handle pen, const gd_point* points,
+                                          std::uint64_t count) {
+    if (!bounded_batch(points, count, 2U)) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "polyline runs require 2 or more bounded points");
+    }
+    return translate(&draw_recorder_polyline_runs_from_c, recorder, pen, points, count);
+}
+
+gd_result fill_recorder_rectangles_each(gui_drawing::GraphicsRecorder& graphics,
+                                        const std::vector<gui_drawing::RectF>& rects,
+                                        const std::vector<gui_drawing::Color>& colors) {
+    graphics.fill_rectangles_each(rects, colors);
+    return GD_OK;
+}
+
+gd_result fill_recorder_rectangles_each_from_c(gd_handle recorder, const gd_rect* rects, const gd_color* colors,
+                                               std::uint64_t count) {
+    std::vector<gui_drawing::RectF> native_rects;
+    std::vector<gui_drawing::Color> native_colors;
+    native_rects.reserve(static_cast<std::size_t>(count));
+    native_colors.reserve(static_cast<std::size_t>(count));
+    for (std::uint64_t index = 0; index < count; ++index) {
+        native_rects.push_back(rect_from_c(rects[index]));
+        native_colors.push_back(color_from_c(colors[index]));
+    }
+    return registry().with<gui_drawing::GraphicsRecorder>(
+        recorder, GD_OBJECT_RECORDER, &fill_recorder_rectangles_each, native_rects, native_colors);
+}
+
+gd_result api_recorder_fill_rectangles_each(gd_handle recorder, const gd_rect* rects, const gd_color* colors,
+                                            std::uint64_t count) {
+    if (!bounded_batch(rects, count, 1U) || !bounded_batch(colors, count, 1U)) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "fill rectangles each requires 1 or more bounded rectangles and colours");
+    }
+    return translate(&fill_recorder_rectangles_each_from_c, recorder, rects, colors, count);
+}
+
 const gd_api_v0 api_table{
-    sizeof(gd_api_v0), GD_ABI_VERSION_0_3,
+    sizeof(gd_api_v0), GD_ABI_VERSION_0_4,
     &api_last_error, &api_retain, &api_release, &api_dispose,
     &api_object_state, &api_object_kind,
     &api_solid_brush_create, &api_pen_create, &api_pen_set_width,
@@ -2472,6 +2550,8 @@ const gd_api_v0 api_table{
     &api_recorder_draw_string_over_fill,
     &api_contrast_ratio, &api_contrasting_text_color,
     &api_graphics_path_add_rounded_rectangle,
+    &api_recorder_fill_band, &api_recorder_draw_polyline_runs,
+    &api_recorder_fill_rectangles_each,
 };
 
 } // namespace
@@ -2484,7 +2564,8 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
     }
     if (requested_version != GD_ABI_VERSION_0_1 &&
         requested_version != GD_ABI_VERSION_0_2 &&
-        requested_version != GD_ABI_VERSION_0_3) {
+        requested_version != GD_ABI_VERSION_0_3 &&
+        requested_version != GD_ABI_VERSION_0_4) {
         return fail(GD_ERROR_UNSUPPORTED_VERSION,
                     "requested GUI.Drawing ABI version is unsupported");
     }
@@ -2495,6 +2576,8 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
         available = offsetof(gd_api_v0, bitmap_edit_begin);
     } else if (requested_version == GD_ABI_VERSION_0_2) {
         available = offsetof(gd_api_v0, pen_set_line_join);
+    } else if (requested_version == GD_ABI_VERSION_0_3) {
+        available = offsetof(gd_api_v0, recorder_fill_band);
     }
     const std::size_t copied = std::min<std::size_t>(caller_size, available);
     std::memcpy(table, &api_table, copied);

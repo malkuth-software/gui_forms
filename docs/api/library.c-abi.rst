@@ -1170,6 +1170,12 @@ Types
 
    .. cpp:member:: gd_result (*graphics_path_add_rounded_rectangle)(gd_handle path, gd_rect rectangle, gd_corner_radii radii)
 
+   .. cpp:member:: gd_result (*recorder_fill_band)(gd_handle recorder, gd_handle brush, const gd_point* upper, const gd_point* lower, uint64_t count)
+
+   .. cpp:member:: gd_result (*recorder_draw_polyline_runs)(gd_handle recorder, gd_handle pen, const gd_point* points, uint64_t count)
+
+   .. cpp:member:: gd_result (*recorder_fill_rectangles_each)(gd_handle recorder, const gd_rect* rects, const gd_color* colors, uint64_t count)
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gd_bitmap_damage_summary

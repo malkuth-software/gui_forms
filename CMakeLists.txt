@@ -873,7 +873,8 @@ else()
 endif()
 target_link_libraries(gui_drawing_c_api PRIVATE gui_drawing_core)
 target_include_directories(gui_drawing_c_api PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_compile_definitions(gui_drawing_c_api PRIVATE GD_C_API_BUILD)
 set_target_properties(gui_drawing_c_api PROPERTIES
@@ -899,6 +900,22 @@ elseif(UNIX)
     set_property(TARGET gui_drawing_c_api APPEND PROPERTY LINK_DEPENDS
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_c_api_exports_linux.map)
 endif()
+# The drawing ABI installs with the SDK as GUIForms::DrawingCApi (a shared
+# library with the C header gui_forms/drawing_c_api.h), and the raster
+# module beside it as GUIForms::DrawingRaster where the renderer is built
+# (below). Both are in GUIFormsDrawingCApiTargets, which GUIFormsConfig
+# includes when it was installed.
+add_library(GUIForms::DrawingCApi ALIAS gui_drawing_c_api)
+set_target_properties(gui_drawing_c_api PROPERTIES EXPORT_NAME DrawingCApi)
+install(TARGETS gui_drawing_c_api
+        EXPORT GUIFormsDrawingCApiTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(EXPORT GUIFormsDrawingCApiTargets
+        FILE GUIFormsDrawingCApiTargets.cmake
+        NAMESPACE GUIForms::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 
 add_library(gui_forms_host_headless STATIC
     src/host/headless/capabilities/headless_capabilities.cpp
@@ -1081,6 +1098,7 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/date_time_picker/date_time_picker.cpp
     src/controls/panel/month_calendar/month_calendar.cpp
     src/controls/drawing_surface/drawing_surface.cpp
+    src/controls/drawing_surface/drawing_surface_replay.cpp
     src/controls/metrics_view/metrics_view.cpp
     src/controls/specimen/stock_specimens/stock_specimens.cpp
     src/controls/panel/text_box_base/text_box_base.cpp
@@ -1544,11 +1562,18 @@ if(GUI_FORMS_ENABLE_SKIA)
             gui_drawing_c_api
         )
     endif()
+    target_compile_definitions(gui_drawing_raster_c_api PRIVATE GDR_C_API_BUILD)
+    target_include_directories(gui_drawing_raster_c_api INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
     set_target_properties(gui_drawing_raster_c_api PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN YES
         OUTPUT_NAME gui_drawing_raster0
+        EXPORT_NAME DrawingRaster
     )
+    add_library(GUIForms::DrawingRaster ALIAS gui_drawing_raster_c_api)
     if(WIN32)
         set_target_properties(gui_drawing_raster_c_api PROPERTIES PREFIX "")
         target_link_libraries(gui_drawing_raster_c_api PRIVATE advapi32)
@@ -1569,6 +1594,18 @@ if(GUI_FORMS_ENABLE_SKIA)
             "$<TARGET_FILE_DIR:gui_drawing_raster_c_api>/fonts"
         VERBATIM
     )
+    # Installed beside the drawing ABI, its faces in the fonts directory
+    # beside the module, where gdr_initialize registers them.
+    install(TARGETS gui_drawing_raster_c_api
+            EXPORT GUIFormsDrawingCApiTargets
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    if(WIN32)
+        install(FILES ${gui_drawing_raster_fonts} DESTINATION ${CMAKE_INSTALL_BINDIR}/fonts)
+    else()
+        install(FILES ${gui_drawing_raster_fonts} DESTINATION ${CMAKE_INSTALL_LIBDIR}/fonts)
+    endif()
 endif()
 
 if(GUI_FORMS_ENABLE_MACOS_HOST)
@@ -3233,6 +3270,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_canvas_tests tests/canvas_tests.cpp)
     target_link_libraries(gui_forms_canvas_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_canvas_tests COMMAND gui_forms_canvas_tests)
+    add_executable(gui_forms_drawing_replay_tests tests/drawing_replay_tests.cpp)
+    target_link_libraries(gui_forms_drawing_replay_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_drawing_replay_tests COMMAND gui_forms_drawing_replay_tests)
     if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         add_executable(gui_forms_windows_control_snapshot_tests tests/windows_control_snapshot_tests.cpp)
         target_compile_definitions(gui_forms_windows_control_snapshot_tests PRIVATE

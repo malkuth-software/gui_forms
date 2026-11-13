@@ -56,9 +56,10 @@ What it marks, outside templates:
 A class's mark covers its members, static data members, vtable and typeinfo,
 which classes thrown, caught or dynamic_cast across the boundary need.
 
-Not annotated: include/gui_forms/c/ and drawing_c_api.h (the C interfaces
-carry their own macros and allowlists), include/gui_forms/audio/ (a static
-library outside the Application archives), threading.hpp (its own library),
+Not annotated: include/gui_forms/c/, drawing_c_api.h and
+drawing_raster_c_api.h (the C interfaces carry their own macros and
+allowlists), include/gui_forms/audio/ (a static library outside the
+Application archives), threading.hpp (its own library),
 the export headers themselves, and class templates (their members are
 instantiated in each consumer; none is explicitly instantiated in a library).
 """
@@ -79,7 +80,7 @@ MACROS = (MACRO, THREADING_MACRO)
 EXPORT_INCLUDE = '#include "gui_forms/export/application_export.hpp"'
 
 EXCLUDED_DIRECTORIES = ('c', 'audio', 'export')
-EXCLUDED_FILES = ('drawing_c_api.h', 'threading.hpp')
+EXCLUDED_FILES = ('drawing_c_api.h', 'drawing_raster_c_api.h', 'threading.hpp')
 
 CLASS_KEYS = ('class', 'struct', 'union')
 ACCESS_KEYS = ('public', 'protected', 'private')

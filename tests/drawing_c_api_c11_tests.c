@@ -1,5 +1,6 @@
 #include "gui_forms/drawing_c_api.h"
 
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -158,6 +159,73 @@ static int check_drawing_primitives(const gd_api_v0* api) {
     return 0;
 }
 
+/* ABI 0.4: the gapped and per-element marks record 0.3 commands, break at
+   NaN points, refuse infinities and record nothing on a refusal. */
+static int check_gapped_marks(const gd_api_v0* api) {
+    gd_handle recorder = {0};
+    gd_handle pen = {0};
+    gd_handle brush = {0};
+    uint64_t count = 0;
+    uint64_t required = 0;
+    char* trace = NULL;
+    const double gap = NAN;
+    const gd_point upper[5] = {{0, 1}, {1, 2}, {2, gap}, {3, 2}, {4, 1}};
+    const gd_point lower[5] = {{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}};
+    const gd_point lone_upper[3] = {{0, 1}, {1, gap}, {2, 1}};
+    const gd_point lone_lower[3] = {{0, 0}, {1, 0}, {2, 0}};
+    const gd_point runs[6] = {{0, 0}, {1, 1}, {gap, 0}, {3, 3}, {gap, gap}, {5, 5}};
+    const gd_point infinite[2] = {{0, 0}, {HUGE_VAL, 0}};
+    const gd_rect cells[4] = {{0, 0, 1, 1}, {1, 0, 1, 1}, {2, 0, 1, 1}, {3, 0, 1, 1}};
+    const gd_color colors[4] = {{UINT32_C(0xffff0000), 0}, {UINT32_C(0xffff0000), 0},
+                                {UINT32_C(0xff0000ff), 0}, {UINT32_C(0xffff0000), 0}};
+
+    CHECK((*api).recorder_create(&recorder) == GD_OK);
+    CHECK((*api).pen_create((gd_color){UINT32_C(0xff00ff00), 0}, 1.0, &pen) == GD_OK);
+    CHECK((*api).solid_brush_create((gd_color){UINT32_C(0x800000ff), 0}, &brush) == GD_OK);
+
+    /* Two runs of two samples: two polygons, each upper forward, lower back. */
+    CHECK((*api).recorder_fill_band(recorder, brush, upper, lower, 5) == GD_OK);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 2U);
+    /* Runs of one sample record nothing. */
+    CHECK((*api).recorder_fill_band(recorder, brush, lone_upper, lone_lower, 3) == GD_OK);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 2U);
+    /* Runs {0,1} and {3}, {5}: one draw_lines. */
+    CHECK((*api).recorder_draw_polyline_runs(recorder, pen, runs, 6) == GD_OK);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 3U);
+    /* Red, red | blue | red: three fill_rectangles. */
+    CHECK((*api).recorder_fill_rectangles_each(recorder, cells, colors, 4) == GD_OK);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 6U);
+
+    /* Refusals record nothing. */
+    CHECK((*api).recorder_fill_band(recorder, brush, upper, NULL, 5) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_band(recorder, brush, upper, lower, 1) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_band(recorder, brush, infinite, lower, 2) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_draw_polyline_runs(recorder, pen, runs, 1) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_draw_polyline_runs(recorder, pen, infinite, 2) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_rectangles_each(recorder, cells, NULL, 4) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_rectangles_each(recorder, cells, colors, 0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_draw_lines(recorder, pen, runs, 6) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 6U);
+
+    CHECK((*api).recorder_trace(recorder, NULL, 0, &required) == GD_ERROR_BUFFER_TOO_SMALL);
+    trace = (char*)malloc((size_t)required + 1U);
+    CHECK(trace != NULL);
+    CHECK((*api).recorder_trace(recorder, trace, required, &required) == GD_OK);
+    trace[required] = '\0';
+    CHECK(strstr(trace, "0|fill_polygon|") != NULL);
+    CHECK(strstr(trace, "1|fill_polygon|") != NULL);
+    CHECK(strstr(trace, "2|draw_lines|points=0,0;1,1|") != NULL);
+    CHECK(strstr(trace, "3|fill_rectangles|rects=0,0,1,1;1,0,1,1|brush=ffff0000|") != NULL);
+    CHECK(strstr(trace, "4|fill_rectangles|rects=2,0,1,1|brush=ff0000ff|") != NULL);
+    CHECK(strstr(trace, "5|fill_rectangles|rects=3,0,1,1|brush=ffff0000|") != NULL);
+    free(trace);
+
+    CHECK((*api).release(brush) == GD_OK);
+    CHECK((*api).release(pen) == GD_OK);
+    CHECK((*api).release(recorder) == GD_OK);
+    return 0;
+}
+
 int main(void) {
     gd_api_v0 api;
     gd_api_v0 prefix;
@@ -225,8 +293,15 @@ int main(void) {
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_0_3, &api) == GD_OK);
-    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.struct_size == offsetof(gd_api_v0, recorder_fill_band));
     CHECK(api.abi_version == GD_ABI_VERSION_0_3);
+    CHECK(api.graphics_path_add_rounded_rectangle != NULL);
+    CHECK(api.recorder_fill_band == NULL);
+    memset(&api, 0, sizeof(api));
+    api.struct_size = sizeof(api);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_0_4, &api) == GD_OK);
+    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.abi_version == GD_ABI_VERSION_0_4);
     CHECK(api.recorder_trace != NULL);
     CHECK(api.graphics_path_create != NULL);
     CHECK(api.recorder_draw_image != NULL);
@@ -509,6 +584,7 @@ int main(void) {
     CHECK(api.recorder_command_count(extended_recorder, &count) == GD_OK && count == 10);
 
     CHECK(check_drawing_primitives(&api) == 0);
+    CHECK(check_gapped_marks(&api) == 0);
     CHECK(api.release(recorder) == GD_OK);
     CHECK(api.release(recorder) == GD_ERROR_STALE_HANDLE);
     CHECK(api.release(format) == GD_OK);

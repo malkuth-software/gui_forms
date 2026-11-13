@@ -38,6 +38,8 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`DrawingReplayReport <gui_forms::DrawingReplayReport>`
+     - What replay_drawing_commands drew and what it left out (the plot demonstrator's gap G6).
    * - :cpp:class:`DrawingSurface::Parts <gui_forms::DrawingSurface::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`DrawingSurface::States <gui_forms::DrawingSurface::States>`
@@ -188,6 +190,30 @@ Related types
      - A point in graph space (world units, float64).
    * - :cpp:class:`WorldRect <gui_forms::WorldRect>`
      - An axis-aligned rectangle in graph space: its top-left corner and size.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DrawingReplayReport final
+
+   ``#include <gui_forms/controls/drawing_surface_replay.hpp>``
+
+   What replay_drawing_commands drew and what it left out (the plot demonstrator's gap G6). Every command is counted once.
+
+   .. cpp:member:: std::size_t drawn
+
+      Commands drawn through the painter.
+
+   .. cpp:member:: std::size_t state
+
+      State commands (save, restore, translate, set_transform, set_clip, reset_clip, set_quality): they draw nothing, and every drawing command carries the state they made.
+
+   .. cpp:member:: std::size_t transformed
+
+      Commands left out because their transform is not a translation: the Painter vocabulary has no scale, rotation or shear.
+
+   .. cpp:member:: std::size_t unsupported
+
+      Commands left out because the Painter has no equivalent for their kind, brush or pen (see replay_drawing_commands).
 
 .. cpp:namespace:: gui_forms
 
@@ -2324,6 +2350,14 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/drawing_surface_replay.hpp>``
+
+.. cpp:function:: DrawingReplayReport replay_drawing_commands(std::span<const gui_drawing::DrawingCommand> commands, Painter& painter)
+
+   Replays a GUI.Drawing recording (GraphicsRecorder::commands()) onto a Painter, in order, in the painter's current coordinates: the recording's origin is the painter's. Each drawing command is drawn inside a save and restore of its own, under its state's clip (already in recording coordinates) and its transform's translation, so the painter's state is as it was when the call returns. Drawn, with solid brushes only: - fill_rectangle, fill_rectangles: fill_rect, fill_rects; - fill_polygon: fill_polygon (alternate is even-odd, winding nonzero); - fill_proportion: the covered part under clip_rounded_rect_corners; - draw_rectangle: stroke_rect for a solid pen, stroke_polyline round the rectangle for a dashed one; - draw_line, draw_lines: stroke_polyline; - draw_line_segments: stroke_segments; - draw_markers, fill_grid_pattern: draw_markers, fill_grid_pattern. A pen maps to a StrokeStyle as the raster executor draws it: preset dashes in multiples of the width, a custom pattern as given (at most maximum_dash_intervals entries, an even count of 2 or more). Left out (counted unsupported): clear (the control paints its own background), draw_string (FontSnapshot to FontSpec waits for the font identity work), ellipses, paths, images, and any command whose brush is not solid or whose custom dash pattern does not fit a StrokeStyle. Reads ``commands`` during the call only; allocates scratch storage once per call, reused across commands.
 
 .. cpp:namespace:: gui_forms
 
