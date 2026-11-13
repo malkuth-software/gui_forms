@@ -5766,7 +5766,8 @@ if(GUI_FORMS_BUILD_TESTS)
         # --headless; demo/gallery_headless_capture.hpp), used by previews.
         if(TARGET gui_forms_gallery_model)
             add_executable(gui_forms_gallery_headless_capture_tests tests/gallery_headless_capture_tests.cpp
-                src/runtime/offscreen/offscreen_raster_create.cpp)
+                src/runtime/offscreen/offscreen_raster_create.cpp
+                $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
             target_include_directories(gui_forms_gallery_headless_capture_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
             target_compile_definitions(gui_forms_gallery_headless_capture_tests PRIVATE
                 GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")

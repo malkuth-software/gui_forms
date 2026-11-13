@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/export/application_export.hpp"
 #include <exception>
 #include <string_view>
 #include <utility>
@@ -33,7 +34,9 @@ namespace gui_forms::detail {
 // Takes the thread's failure snapshot, writes the report for `failure` at
 // `site` and ends the process. Called from the catch block, before anything
 // opens a shadow frame. Never returns and never throws.
-[[noreturn]] void fail_fast(std::string_view site, std::exception_ptr failure) noexcept;
+// Exported: the C ABI library (libgui_forms_abi) reaches it through
+// call_failing_fast at its class entries.
+[[noreturn]] GUI_FORMS_API void fail_fast(std::string_view site, std::exception_ptr failure) noexcept;
 
 // The report's parts, shared with the borrow sanitizer's report
 // (detail::fail_borrow, gui_forms/borrow/borrowed_view/borrowed_view.hpp):

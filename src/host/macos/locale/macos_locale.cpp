@@ -119,12 +119,12 @@ std::optional<HostLocale> read_macos_locale() {
         CFDateFormatterCreate(kCFAllocatorDefault, locale, kCFDateFormatterNoStyle, kCFDateFormatterNoStyle));
     if (owned_formatter.get() != nullptr) {
         const CFDateFormatterRef formatter = static_cast<CFDateFormatterRef>(const_cast<void*>(owned_formatter.get()));
-        fill_symbols(formatter, kCFDateFormatterMonthSymbolsKey, record.month_names);
-        fill_symbols(formatter, kCFDateFormatterShortMonthSymbolsKey, record.abbreviated_month_names);
-        fill_symbols(formatter, kCFDateFormatterWeekdaySymbolsKey, record.day_names);
-        fill_symbols(formatter, kCFDateFormatterShortWeekdaySymbolsKey, record.abbreviated_day_names);
-        fill_symbol(formatter, kCFDateFormatterAMSymbolKey, record.am_designator);
-        fill_symbol(formatter, kCFDateFormatterPMSymbolKey, record.pm_designator);
+        fill_symbols(formatter, kCFDateFormatterMonthSymbols, record.month_names);
+        fill_symbols(formatter, kCFDateFormatterShortMonthSymbols, record.abbreviated_month_names);
+        fill_symbols(formatter, kCFDateFormatterWeekdaySymbols, record.day_names);
+        fill_symbols(formatter, kCFDateFormatterShortWeekdaySymbols, record.abbreviated_day_names);
+        fill_symbol(formatter, kCFDateFormatterAMSymbol, record.am_designator);
+        fill_symbol(formatter, kCFDateFormatterPMSymbol, record.pm_designator);
     }
 
     record.decimal_separator = locale_text(locale, kCFLocaleDecimalSeparator, record.decimal_separator);

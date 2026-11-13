@@ -5784,6 +5784,8 @@
     _ZN9gui_forms6detail62stable_id_literal_is_not_dot_separated_lowercase_dash_segmentsB*;
     _ZN9gui_forms6detail62stable_id_literal_is_not_dot_separated_lowercase_dash_segmentsE*;
     _ZN9gui_forms6detail9Revocable*;
+    _ZN9gui_forms6detail9fail_fastB*;
+    _ZN9gui_forms6detail9fail_fastE*;
     _ZN9gui_forms6sha256B*;
     _ZN9gui_forms6sha256E*;
     _ZN9gui_forms7Binding*;
