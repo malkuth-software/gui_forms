@@ -75,6 +75,36 @@ the PNG structure and retains its encoded bytes; the renderer decodes and
 caches the pixels. Controls refer to resources by `ImageId`. The registry
 also accepts raw pixels through `load_bgra32_premultiplied`.
 
+## Image atlases
+
+Many small images of one size made at run time (avatars, thumbnails, icons)
+go into an `ImageAtlas` (`gui_forms/resources/image_atlas/image_atlas.hpp`)
+instead of one registry image each. The atlas owns one backing image in the
+`ApplicationResources` it was made with, so its slots are valid in every
+window sharing them, and divides it into fixed-size slots
+(`ImageAtlasLayout`: the slot size, the slot count, a gutter of repeated
+edge pixels so that scaled drawing samples only the slot's own colours, and
+the replacement policy).
+
+- **Slots.** `acquire(key)` gives a key a slot (`hit`, `assigned`, or
+  `replaced` when the least recently used key loses its slot; under
+  `ImageAtlasReplacement::caller` a full atlas answers `full` and the caller
+  releases a slot itself). Handles carry a generation, so a handle kept past
+  its slot's replacement or release is refused as stale.
+- **Fills.** `fill(slot, row_bytes, pixels)` writes premultiplied BGRA
+  pixels into the backing image in place, so its `ImageId` never changes and
+  recorded display chunks stay valid. A fill made while a window sharing the
+  resources is painting is deferred (`ImageAtlasError::deferred`) and
+  written when that paint ends.
+- **Drawing and damage.** `draw(painter, user, slot, destination)` draws a
+  slot and remembers the control that drew it (up to
+  `users_per_slot`), so a later fill, replacement or release repaints only
+  the controls that drew that slot.
+- **Memory and threads.** The constructor allocates every table; acquire,
+  fill, release, find and draw allocate nothing of the atlas's own. All
+  mutations belong to the resources' UI thread. `statistics()` counts hits,
+  assignments, replacements, fills and deferred fills.
+
 ## Coherent frames
 
 A paint pass holds one exclusive UI-thread paint lease. Within the pass,

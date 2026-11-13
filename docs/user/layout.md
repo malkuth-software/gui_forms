@@ -277,7 +277,8 @@ At 10,000 children:
   - It orders visible children left to right, right to left, top down or
     bottom up.
   - It honours child margins, container padding, optional wrapping and
-    per-child flow breaks (`set_flow_break`).
+    per-child flow breaks (the child property `flow_break`:
+    `(*flow).flow_break[*child] = true;`).
   - Hidden children leave no gap.
   - It is Windows Forms' flow, not flexbox.
 
@@ -440,9 +441,11 @@ is in `tests/layout_corpus/`.
   - units other than `px` and `fr` (an imported `em` is resolved to px).
 
   Reading a style refuses each of these by name, with a diagnostic.
-- **Virtualizing containers.** A container lays out every child. Data
-  collections of 100,000 items or more realize only their visible window,
-  through item systems such as `ObjectView`.
+- **Virtualizing containers.** A container lays out every child. Large data
+  sets are not children: collection controls realize only their visible
+  rows, through item systems such as `ObjectView` and `TreeListView`, and
+  `VirtualRowsView` draws owner-drawn rows of varying height from a row
+  count alone ([Working with controls](controls.md#large-row-sets)).
 - **Per-monitor DPI policy inside the core.** The scale is a host fact the
   window is told.
 - **Window resizes and the measure cache.** Resizing the window still

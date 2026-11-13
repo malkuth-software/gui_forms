@@ -10,8 +10,8 @@ Controls are held by `std::shared_ptr`, so a property is reached through the
 pointer: `(*ok).text = "OK";`.
 
 ```cpp
-#include <gui_forms/basic_controls.hpp>
-#include <gui_forms/input_controls.hpp>
+#include <gui_forms/controls/button.hpp>
+#include <gui_forms/controls/list_box.hpp>
 
 #include <memory>
 
@@ -81,7 +81,8 @@ const std::size_t count = (*list).items.read().size();
 ```
 
 `insert`, `erase` and `clear` complete the set. `items.read()` returns a
-`std::span` of the elements, valid until the next edit.
+`BorrowedSpan` of the elements, a view valid until the next edit
+([Borrowed views](retained-tree.md#borrowed-views)).
 
 ## Properties a container gives its children
 
@@ -116,7 +117,8 @@ const std::optional<gf::BindingValue> converted = (*clear).visible.as_type(descr
 - `as_type(gf::types::<tag>)` converts at compile time, through a tag from
   `gui_forms::types` (`boolean`, `int32`, `int64`, `uint32`, `uint64`,
   `float32`, `float64`, `string`, `point`, `size`, `rect`, `insets`,
-  `color`, `font_spec`, `image_id`, `milliseconds`, `binding_value`, and
+  `color`, `optional_color`, `font_spec`, `image_id`, `milliseconds`,
+  `binding_value`, and
   enumeration tags beside their enumerations). Only total conversions are
   offered: the identity, widening integers, integers to `float64`, anything
   to `string` and to `binding_value`, an enumeration to `int64` (its value)

@@ -48,10 +48,12 @@ pixel on one platform fails that test.
 - **Host font catalogues for control text.** Controls never enumerate or
   load system fonts. The bundled set is the whole set, which is what makes
   identical output possible. The one exception is the separate GUI.Drawing C
-  API: when a caller names a font family it never registered, the macOS
-  build asks CoreText for that family's bytes, and the Windows build
-  registers the bytes GDI selects for it. Either way the shared engine
-  shapes and rasterizes the text.
+  API. A family it is asked for resolves first through the font substitution
+  table (below); for a family the table does not name, the macOS build asks
+  CoreText for that family's bytes and the Windows build registers the bytes
+  GDI selects for it, accepted only when the host's face has the requested
+  name, and otherwise the content face substitutes. Either way the shared
+  engine shapes and rasterizes the text.
 - **Colour emoji.** The bundled emoji face is monochrome.
 - **Coverage gamma other than 1.0, linear-light blending, bytecode hinting.**
   Each was measured and rejected as a stylistic or polarity-dependent change
@@ -65,12 +67,15 @@ pixel on one platform fails that test.
 | Portsmouth Rapids (light, italic, bold italic), Portsmouth (five styles), Portsmouth Mono | Installed with the SDK; not registered by the hosts | Owner's MIT grant |
 | Carlito (four styles) | `FontRole::content`: editable text, lists, fields; metric-compatible with Calibri | SIL OFL |
 | Cousine (four styles) | `FontRole::monospace` | SIL OFL |
+| Selawik (regular, semibold, bold) | A bundled family a theme names with `font-family: Selawik` (the Segoe UI-like face of `windows-professional`); read the first time text asks for it. It has no italic | SIL OFL |
+| Arimo, Tinos (four styles each) | Metric-compatible substitutes for Arial and Times New Roman in the font substitution table | SIL OFL |
 | Noto Sans CJK JP | Fallback: Han, kana, Hangul | SIL OFL |
 | Noto Sans Arabic, Bengali, Devanagari, Gurmukhi, Hebrew | Fallback by script | SIL OFL |
 | Noto Emoji (monochrome) | Fallback: emoji and symbols | SIL OFL |
 
-Controls ask for a `FontRole`, not a family name; the host-owned theme maps
-roles to faces. Fallback is resolved per grapheme cluster, so a Japanese word
+Controls ask for a `FontRole`, not a family name; the theme maps roles to
+faces, and may name a bundled family in place of a role's faces
+([The theme language](theme-language)), never a host font. Fallback is resolved per grapheme cluster, so a Japanese word
 inside a Latin label takes the CJK face for exactly that run. The provenance
 of every file, including hashes, is in `assets/fonts/ATTRIBUTION.md` and
 `assets/fonts/language-font-provenance.json`.
@@ -80,6 +85,16 @@ pack compiled into the library; no font file is read at run time. A
 development build configured with `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY=ON`
 reads a font directory first (`GUI_FORMS_FONT_DIR`, else the checkout's
 `assets/fonts`), for work on the faces themselves.
+
+The font substitution table, `assets/fonts/font-substitution.json`, resolves
+a family requested by name to a bundled family: its own name first, then a
+substitution (Calibri to Carlito, Arial to Arimo, Times New Roman to Tinos,
+Courier New to Cousine, Tahoma to Selawik, each recorded as metric-compatible
+or nearest with its measured exceptions), an alias (Helvetica as Arial) or a
+generic name (`sans-serif` is Carlito, `serif` Tinos, `monospace` Cousine).
+The build generates fixed records from it
+(`gui_forms/drawing/font_substitution/font_substitution.hpp`); the C# and
+Web.Forms siblings read the same file.
 
 The native SDK installs the faces' licences and exports their directory as
 the CMake variable `GUIForms_FONT_DIR`. Ship the licences with your program.
@@ -108,6 +123,34 @@ SheenBidi. Unicode line breaking through libunibreak belongs to the optional
 development text-mask profile (`GUI_FORMS_BUILD_TEXT_MASKS`); it is not part
 of the normal installed text engine. Neither dependency's types appear in
 public headers.
+
+## Paragraph layout for owner-drawn rows
+
+A control that draws many rows of wrapped text itself, such as the rows of a
+`VirtualRowsView`, lays each paragraph out with `lay_out_paragraph`
+(`gui_forms/text/paragraph_layout/paragraph_layout.hpp`) and draws it with
+`paint_paragraph`. The layout wraps as `TextBlock` wraps, with the same
+provider calls, so its lines are the lines `TextBlock` would paint, at about
+two shapings a line instead of one per candidate run.
+
+- **Caller storage.** The call keeps nothing between calls and allocates
+  nothing of its own: it fills the caller's `ParagraphStorage`, and a call
+  whose storage is too small returns `storage_too_small` with the sizes it
+  needs. `ParagraphBuffers` owns storage sized once and reused, and a
+  shaping workspace from the window's text metrics provider, so the
+  provider's shaping allocates nothing either once it is reserved.
+- **Glyph runs.** With `ParagraphGlyphOutput::runs` the layout also fills
+  each line's glyph runs (`GlyphRunRecord`, `PositionedGlyph`) into the
+  storage, and the `paint_paragraph` overload that takes them draws with
+  `Painter::draw_glyph_runs` without shaping the text again.
+- **Estimates.** `measure_paragraph` returns only the line count, height and
+  widest line, for a row's height before it is drawn.
+- **Limits.** Lines break in logical order and each line is reordered for
+  display as its own bidirectional paragraph; one base direction across a
+  paragraph's lines and vertical text are not supported.
+
+Its storage is counted under `AllocationSubsystem::text_layout`
+([Counting allocations](debugging.md#counting-allocations)).
 
 ## Text input
 

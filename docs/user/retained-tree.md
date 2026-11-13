@@ -87,6 +87,39 @@ recreating anything native.
 `UserControl` adds a one-shot `loaded()` event and an `attachment_count()`
 so composed controls can tell first presentation from re-attachment.
 
+## Borrowed views
+
+Many reads lend a view of storage its owner keeps rather than copying it:
+`children()` returns a `Control::ChildView`, a collection property's
+`.read()` returns its elements, and controls lend their item records
+(`CommandBar::items()`) and text. Each is spelled with a borrowed type from
+`gui_forms/borrow/borrowed_view/borrowed_view.hpp`: `BorrowedSpan<T>`,
+`BorrowedMutableSpan<T>`, `BorrowedText` and `BorrowedPointer<T>`.
+
+A borrowed view stays valid until its owner changes that storage's
+structure (an insertion, a removal, a reordering, a replacement of the whole
+sequence, a re-attachment) or is destroyed. Writing an element's fields in
+place does not end it. Use a view on the thread it was lent on, and read it
+again after any call that can change the owner. A member that lends a view
+deletes its overload for a temporary owner (`children() const&& = delete`),
+so a view of an owner about to be destroyed does not compile.
+
+The two build modes differ only in what they check:
+
+- In an ordinary build each borrowed type is the plain view it stands for
+  (`BorrowedSpan<T>` is `std::span<const T>`, `BorrowedText` is
+  `std::string_view`), so nothing is added.
+- In a checked build (`GUI_FORMS_CHECKED_BORROWS`, the sanitizer tree) the
+  owner keeps a generation and every view carries a stamp. Each element
+  access, iteration step and conversion checks the stamp, and a stale use
+  or a use on another thread ends the process with a report naming where
+  the view was lent and where the owner last changed it.
+
+A view converts implicitly to the plain view, but the conversion is the last
+point checked: keep the borrowed type (`Control::ChildView`,
+`BorrowedSpan<T>`) to keep the check. A consumer is compiled in the mode of
+the SDK it links ([Install](install.md#checked-borrowed-views)).
+
 ## State is retained, events report change
 
 A property write stores the new value, marks the dirtiness that value
