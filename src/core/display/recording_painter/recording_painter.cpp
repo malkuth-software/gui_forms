@@ -25,6 +25,7 @@ bool same_cached_drawing(const DisplayCommand& previous, const DisplayCommand& r
     if (recorded.operation == DisplayOperation::draw_text_utf8) {
         const bool same = previous.text_orientation == TextOrientation::horizontal &&
                           recorded.text_orientation == TextOrientation::horizontal &&
+                          previous.text_degrees == 0.0 && recorded.text_degrees == 0.0 &&
                           previous.font == recorded.font && previous.text == recorded.text;
         return same;
     }
@@ -54,7 +55,7 @@ void RecordingPainter::inherit_caches(std::shared_ptr<const DisplayChunk> previo
     for (std::size_t index = 0; index < commands.size(); ++index) {
         const DisplayCommand& command = commands[index];
         if (command.operation == DisplayOperation::draw_text_utf8 &&
-            command.text_orientation == TextOrientation::horizontal) {
+            command.text_orientation == TextOrientation::horizontal && command.text_degrees == 0.0) {
             previous_text_.push_back(index);
         } else if (command.operation == DisplayOperation::draw_box_shadow) {
             previous_shadows_.push_back(index);
@@ -507,6 +508,23 @@ void RecordingPainter::draw_turned_text_utf8(const Point origin, const std::stri
     command.font = font;
     command.text.assign(text);
     command.text_orientation = orientation;
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::draw_rotated_text_utf8(const Point anchor, const std::string_view text, const FontSpec font,
+                                              const Color color, const double degrees) {
+    if (!std::isfinite(degrees)) return;
+    if (degrees == 0.0) {
+        draw_text_utf8(anchor, text, font, color);
+        return;
+    }
+    DisplayCommand command;
+    command.operation = DisplayOperation::draw_text_utf8;
+    command.first = anchor;
+    command.color = color;
+    command.font = font;
+    command.text.assign(text);
+    command.text_degrees = degrees;
     commands_.push_back(std::move(command));
 }
 

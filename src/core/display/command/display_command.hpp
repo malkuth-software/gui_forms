@@ -134,6 +134,10 @@ struct DisplayCommand final {
     // The reading direction of draw_text_utf8. A turned run replays through
     // Painter::draw_turned_text_utf8, without the retained cache.
     TextOrientation text_orientation{TextOrientation::horizontal};
+    // The turn of a rotated run (Painter::draw_rotated_text_utf8), in
+    // degrees anticlockwise as seen, or 0. A rotated run replays through
+    // draw_rotated_text_utf8, without the retained cache.
+    double text_degrees{};
     // Renderer-derived data shared by every replay copy of this recording.
     std::shared_ptr<RetainedDrawCache> retained_cache{};
     // The raster of draw_part_raster, shared read-only with its maker. The

@@ -16,6 +16,8 @@
 
 namespace gui_forms {
 
+class PartRaster;
+
 class Control;
 class LiveSurface;
 class Painter;
@@ -93,9 +95,9 @@ inline constexpr std::size_t part_mark_count = static_cast<std::size_t>(PartMark
 // The values admitted to the vocabulary beside states and marks (design
 // language 12.7), as the schema lists them: they have no enum, so this is
 // the order they were admitted in.
-inline constexpr std::array<std::string_view, 9> part_value_names{
+inline constexpr std::array<std::string_view, 10> part_value_names{
     {"accent_index", "text_orientation", "dock_region", "content_color", "authored_color",
-     "text_tone", "pointed_face", "part_profile", "arc_angles"}};
+     "text_tone", "pointed_face", "part_profile", "arc_angles", "text_angle"}};
 
 enum class PartTextAlignment : std::uint8_t { start, center, end };
 
@@ -363,6 +365,24 @@ struct GUI_FORMS_API PartPaint final {
     // presentation alike and disabled or not, as a content colour is
     // (GIVEN E2-1); no rule or primitive restyles it. Shared for the call.
     std::shared_ptr<LiveSurface> live_surface{};
+    // A text part's turn (D5 ruling of 2026-11-13: text at any angle), in
+    // degrees anticlockwise as seen, or 0. The text is laid out in `bounds`
+    // as an unturned horizontal line is, then the line turns this far about
+    // the bounds' centre (Painter::draw_rotated_text_utf8), clipped to the
+    // rectangle bounding the turned bounds; `orientation` is not read. The
+    // caller keeps that rectangle inside the control's paint area, so its
+    // damage covers the text. Only text roles read it; a non-finite angle
+    // draws no text.
+    double text_angle{};
+    // A picture the control rendered itself (a PartRaster, such as a 3D
+    // plot's frame), or null. The image role draws it as given, never
+    // tinted, dimmed or resampled, its top left at the top left of `bounds`
+    // (Painter::draw_part_raster); a raster of another display scale than
+    // the painter's is not drawn. It stands in place of `image`. Shared
+    // read-only for the call; a recording keeps it for as long as the
+    // recording lives, so its maker writes a raster again only while it
+    // holds the last reference. Every other role ignores it.
+    std::shared_ptr<const PartRaster> raster{};
 };
 
 // The theme context a part's states select: hot, pressed or captured,

@@ -96,6 +96,8 @@ struct GUI_FORMS_API VisualPaintOperationSnapshot final {
     std::string text;
     // The reading direction of a draw_text operation.
     TextOrientation text_orientation{TextOrientation::horizontal};
+    // A rotated run's turn in degrees (Painter::draw_rotated_text_utf8), or 0.
+    double text_degrees{};
     // A batched mark's length: its points, rectangles, segments or markers
     // (a band counts its upper points); 0 for every other operation, whose
     // JSON leaves the field out.

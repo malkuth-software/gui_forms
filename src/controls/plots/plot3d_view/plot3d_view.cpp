@@ -46,11 +46,13 @@ constexpr std::uint8_t grid_alpha = 96U;
 constexpr std::size_t series_accent_first = 5U;
 constexpr std::size_t series_accent_stride = 3U;
 
-constexpr std::array<PartField<Plot3DView::Parts>, 7> plot3d_view_part_fields{{
+constexpr std::array<PartField<Plot3DView::Parts>, 8> plot3d_view_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
      .member = &Plot3DView::Parts::region},
     {.declaration = {.name = "plot", .role = PartRole::plot, .composed_from = {}},
      .member = &Plot3DView::Parts::plot},
+    {.declaration = {.name = "picture", .role = PartRole::image, .composed_from = {}},
+     .member = &Plot3DView::Parts::picture},
     {.declaration = {.name = "x_axis", .role = PartRole::axis, .composed_from = {}},
      .member = &Plot3DView::Parts::x_axis},
     {.declaration = {.name = "y_axis", .role = PartRole::axis, .composed_from = {}},
@@ -71,7 +73,7 @@ constexpr std::array<StateField<Plot3DView::States>, 5> plot3d_view_state_fields
     {.state = AnatomyState::focus_visible, .member = &Plot3DView::States::focus_visible},
 }};
 
-constexpr std::array<PartDeclaration, 7> plot3d_view_parts = part_declarations(plot3d_view_part_fields);
+constexpr std::array<PartDeclaration, 8> plot3d_view_parts = part_declarations(plot3d_view_part_fields);
 constexpr std::array<AnatomyState, 5> plot3d_view_states = state_declarations(plot3d_view_state_fields);
 
 constexpr ControlAnatomy plot3d_view_anatomy{
@@ -376,15 +378,14 @@ void Plot3DView::paint_labels(Painter& painter, AnatomyStateSet states) {
         part.role = tick ? PartRole::tick_label : PartRole::caption;
         part.tone = label.occluded ? PartTextTone::secondary : PartTextTone::ordinary;
         part.text = lend_paint_text(text);
-        if (label.turned) {
-            part.bounds = Rect{centre_x - label_height * 0.5, centre_y - text_width * 0.5, label_height, text_width};
-            part.orientation = TextOrientation::bottom_to_top;
-        } else {
-            part.bounds = Rect{centre_x - text_width * 0.5, centre_y - label_height * 0.5, text_width, label_height};
-            part.orientation = TextOrientation::horizontal;
-        }
+        // Laid out level and centred on the anchor, then turned about it
+        // (an along-axis title follows its edge).
+        part.bounds = Rect{centre_x - text_width * 0.5, centre_y - label_height * 0.5, text_width, label_height};
+        part.orientation = TextOrientation::horizontal;
+        part.text_angle = label.angle;
         paint_part(painter, *this, part);
     }
+    part.text_angle = 0.0;
     if (readout_.empty()) return;
     part.role = PartRole::label;
     part.tone = PartTextTone::secondary;
@@ -422,7 +423,16 @@ void Plot3DView::on_paint(Painter& painter, Rect) {
             picture_stale_ = false;
         }
     }
-    if (picture_) painter.draw_part_raster(picture_, Point{plot.x, plot.y});
+    if (picture_) {
+        // The kept picture, drawn as given by the theme's image role.
+        PartPaint picture{};
+        picture.states = states;
+        picture.family = ControlVisualRole::editor;
+        picture.role = PartRole::image;
+        picture.bounds = plot;
+        picture.raster = picture_;
+        paint_part(painter, *this, picture);
+    }
     paint_labels(painter, states);
     if (states.contains(AnatomyState::focus_visible)) {
         part.role = PartRole::focus;
@@ -656,6 +666,8 @@ void Plot3DView::publish_part_geometry(std::span<PartGeometry> geometry) const {
     record.region.present = true;
     record.plot.bounds = plot;
     record.plot.present = true;
+    record.picture.bounds = plot;
+    record.picture.present = picture_ != nullptr;
     record.x_axis.bounds = axis_bounds(plots::Plot3DAxis::x);
     record.x_axis.present = record.x_axis.bounds.width > 0.0;
     record.y_axis.bounds = axis_bounds(plots::Plot3DAxis::y);

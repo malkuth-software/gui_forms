@@ -74,6 +74,11 @@ public:
                                  Color color, const std::shared_ptr<RetainedDrawCache>& cache) override;
     void draw_turned_text_utf8(Point origin, std::string_view text, FontSpec font, Color color,
                                TextOrientation orientation) override;
+    // Recorded as a turned run (DisplayCommand::text_degrees); 0 records as
+    // draw_text_utf8. draw_rotated_glyph_runs keeps Painter's (the line is
+    // recorded as its text and shaped again on replay).
+    void draw_rotated_text_utf8(Point anchor, std::string_view text, FontSpec font, Color color,
+                                double degrees) override;
     [[nodiscard]] PreparedTextPaintResult draw_prepared_text(const PreparedTextLayout& layout,
         const LayoutAuthority expected, const Point baseline, const Color color) override;
     [[nodiscard]] Size measure_text_utf8(std::string_view text,

@@ -81,9 +81,10 @@ enum class Plot3DHitKind : std::uint8_t { none, surface, line, scatter, pane };
 
 enum class Plot3DLabelRole : std::uint8_t { tick, title };
 
-// How axis titles lie: screen-facing (the default), or along the axis.
-// Along the axis is approximated by turning a steep axis's title a quarter
-// turn (bottom to top); text at other angles is not drawn yet.
+// How axis titles lie: screen-facing (the default), or along the axis: a
+// title's baseline follows its axis edge as projected on the screen, turned
+// by the least angle that keeps it reading left to right (within -90 to 90
+// degrees, so it never reads upside down). Tick labels stay screen-facing.
 enum class Plot3DLabelAlignment : std::uint8_t { screen, along_axis };
 
 // A render's outcome.
@@ -219,14 +220,16 @@ struct GUI_FORMS_API Plot3DHit final {
 // the picture's top left). A tick label carries its text; a title's text is
 // options().axis_titles[axis]. `occluded` marks a label whose place on the
 // box is hidden behind data: the caller dims it rather than removing it.
-// `turned`: an along-axis title lies bottom to top.
+// `angle`: how far the label's baseline is turned about `anchor`, in degrees
+// anticlockwise as seen (Painter::draw_rotated_text_utf8), in (-90, 90]; 0
+// for a screen-facing label.
 struct GUI_FORMS_API Plot3DLabel final {
     Plot3DLabelRole role{Plot3DLabelRole::tick};
     Plot3DAxis axis{Plot3DAxis::x};
     TickLabel text{};
     Point anchor{};
     bool occluded{};
-    bool turned{};
+    double angle{};
 };
 
 // One render's request: the picture's logical size, its device scale (0.5

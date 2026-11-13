@@ -150,7 +150,10 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
                           command.scalar);
         return;
     case DisplayOperation::draw_text_utf8:
-        if (command.text_orientation != TextOrientation::horizontal) {
+        if (command.text_degrees != 0.0) {
+            painter.draw_rotated_text_utf8(command.first, command.text, command.font, command.color,
+                                           command.text_degrees);
+        } else if (command.text_orientation != TextOrientation::horizontal) {
             painter.draw_turned_text_utf8(command.first, command.text, command.font,
                                           command.color, command.text_orientation);
         } else if (command.retained_cache) {

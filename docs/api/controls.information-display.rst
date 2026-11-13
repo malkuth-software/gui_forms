@@ -2462,6 +2462,8 @@ Related types
 
    .. cpp:member:: PartGeometry plot
 
+   .. cpp:member:: PartGeometry picture
+
    .. cpp:member:: PartGeometry x_axis
 
    .. cpp:member:: PartGeometry y_axis

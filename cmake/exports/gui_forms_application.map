@@ -489,6 +489,7 @@
     _ZGVZN9gui_forms14PointerOverlay*;
     _ZGVZN9gui_forms14ProceduralFill*;
     _ZGVZN9gui_forms14RichTextFormat*;
+    _ZGVZN9gui_forms14RotatedTextBox*;
     _ZGVZN9gui_forms14RuleDiagnostic*;
     _ZGVZN9gui_forms14RuleProvenance*;
     _ZGVZN9gui_forms14SaveFileDialog*;
@@ -2090,6 +2091,7 @@
     _ZGVZNK9gui_forms14PointerOverlay*;
     _ZGVZNK9gui_forms14ProceduralFill*;
     _ZGVZNK9gui_forms14RichTextFormat*;
+    _ZGVZNK9gui_forms14RotatedTextBox*;
     _ZGVZNK9gui_forms14RuleDiagnostic*;
     _ZGVZNK9gui_forms14RuleProvenance*;
     _ZGVZNK9gui_forms14SaveFileDialog*;
@@ -3831,6 +3833,7 @@
     _ZN9gui_forms14PointerOverlay*;
     _ZN9gui_forms14ProceduralFill*;
     _ZN9gui_forms14RichTextFormat*;
+    _ZN9gui_forms14RotatedTextBox*;
     _ZN9gui_forms14RuleDiagnostic*;
     _ZN9gui_forms14RuleProvenance*;
     _ZN9gui_forms14SaveFileDialog*;
@@ -4842,6 +4845,10 @@
     _ZN9gui_forms19read_property_entryE*;
     _ZN9gui_forms19resolve_canvas_lookB*;
     _ZN9gui_forms19resolve_canvas_lookE*;
+    _ZN9gui_forms19rotated_text_anchorB*;
+    _ZN9gui_forms19rotated_text_anchorE*;
+    _ZN9gui_forms19rotated_text_boundsB*;
+    _ZN9gui_forms19rotated_text_boundsE*;
     _ZN9gui_forms19semantic_state_nameB*;
     _ZN9gui_forms19semantic_state_nameE*;
     _ZN9gui_forms19show_specimen_stateB*;
@@ -6830,6 +6837,7 @@
     _ZNK[RO]9gui_forms14PointerOverlay*;
     _ZNK[RO]9gui_forms14ProceduralFill*;
     _ZNK[RO]9gui_forms14RichTextFormat*;
+    _ZNK[RO]9gui_forms14RotatedTextBox*;
     _ZNK[RO]9gui_forms14RuleDiagnostic*;
     _ZNK[RO]9gui_forms14RuleProvenance*;
     _ZNK[RO]9gui_forms14SaveFileDialog*;
@@ -8431,6 +8439,7 @@
     _ZN[KRO]9gui_forms14PointerOverlay*;
     _ZN[KRO]9gui_forms14ProceduralFill*;
     _ZN[KRO]9gui_forms14RichTextFormat*;
+    _ZN[KRO]9gui_forms14RotatedTextBox*;
     _ZN[KRO]9gui_forms14RuleDiagnostic*;
     _ZN[KRO]9gui_forms14RuleProvenance*;
     _ZN[KRO]9gui_forms14SaveFileDialog*;
@@ -10032,6 +10041,7 @@
     _ZT[VIST]N9gui_forms14PointerOverlay*E;
     _ZT[VIST]N9gui_forms14ProceduralFill*E;
     _ZT[VIST]N9gui_forms14RichTextFormat*E;
+    _ZT[VIST]N9gui_forms14RotatedTextBox*E;
     _ZT[VIST]N9gui_forms14RuleDiagnostic*E;
     _ZT[VIST]N9gui_forms14RuleProvenance*E;
     _ZT[VIST]N9gui_forms14SaveFileDialog*E;
@@ -11633,6 +11643,7 @@
     _ZT[hvc]*9gui_forms14PointerOverlay*;
     _ZT[hvc]*9gui_forms14ProceduralFill*;
     _ZT[hvc]*9gui_forms14RichTextFormat*;
+    _ZT[hvc]*9gui_forms14RotatedTextBox*;
     _ZT[hvc]*9gui_forms14RuleDiagnostic*;
     _ZT[hvc]*9gui_forms14RuleProvenance*;
     _ZT[hvc]*9gui_forms14SaveFileDialog*;
@@ -13234,6 +13245,7 @@
     _ZZN9gui_forms14PointerOverlay*;
     _ZZN9gui_forms14ProceduralFill*;
     _ZZN9gui_forms14RichTextFormat*;
+    _ZZN9gui_forms14RotatedTextBox*;
     _ZZN9gui_forms14RuleDiagnostic*;
     _ZZN9gui_forms14RuleProvenance*;
     _ZZN9gui_forms14SaveFileDialog*;
@@ -14835,6 +14847,7 @@
     _ZZNK9gui_forms14PointerOverlay*;
     _ZZNK9gui_forms14ProceduralFill*;
     _ZZNK9gui_forms14RichTextFormat*;
+    _ZZNK9gui_forms14RotatedTextBox*;
     _ZZNK9gui_forms14RuleDiagnostic*;
     _ZZNK9gui_forms14RuleProvenance*;
     _ZZNK9gui_forms14SaveFileDialog*;

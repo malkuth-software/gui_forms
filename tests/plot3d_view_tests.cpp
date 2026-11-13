@@ -319,7 +319,11 @@ public:
         last = raster;
         last_origin = origin;
     }
+    void draw_rotated_text_utf8(Point, std::string_view, FontSpec, Color, double degrees) override {
+        rotated.push_back(degrees);
+    }
 
+    std::vector<double> rotated{};
     int saves{};
     int restores{};
     int rasters{};
@@ -402,14 +406,51 @@ void test_view_retains_picture() {
     require((*plot).picture_renders() == 3U, "wheel_zoom changes nothing drawn");
     require((*plot).scene().mesh_build_count() == 1U, "none of these rebuilt the data mesh");
 
-    // Along-axis labels turn the z title (a vertical edge).
-    (*plot).labels_along_axis = true;
-    paint(*plot, painter);
-    bool turned_title = false;
+    // Screen-facing labels are not turned.
     for (const plots::Plot3DLabel& label : (*plot).scene().labels()) {
-        if (label.role == plots::Plot3DLabelRole::title && label.axis == plots::Plot3DAxis::z) turned_title = label.turned;
+        require(label.angle == 0.0, "screen-facing labels are level");
     }
-    require(turned_title, "along the axis, the z title is turned");
+    require(painter.rotated.empty(), "no text is turned while labels face the screen");
+
+    // Along the axis, each title follows its edge as projected: the z title
+    // (a near-vertical edge at 30 degrees elevation) lies near a quarter
+    // turn, the floor axes' titles at their edges' slants, every angle
+    // reading left to right; tick labels stay level. The titles reach the
+    // painter turned, through the theme's text part.
+    (*plot).labels_along_axis = true;
+    painter.rotated.clear();
+    paint(*plot, painter);
+    double z_angle = 0.0;
+    std::size_t slanted = 0U;
+    for (const plots::Plot3DLabel& label : (*plot).scene().labels()) {
+        require(label.angle > -90.0 && label.angle <= 90.0, "a turned label reads left to right");
+        if (label.role == plots::Plot3DLabelRole::tick) {
+            require(label.angle == 0.0, "tick labels stay level along the axis");
+            continue;
+        }
+        if (label.axis == plots::Plot3DAxis::z) z_angle = label.angle;
+        if (label.axis != plots::Plot3DAxis::z && std::fabs(label.angle) > 1.0 && std::fabs(label.angle) < 89.0) {
+            slanted = slanted + 1U;
+        }
+    }
+    require(std::fabs(std::fabs(z_angle) - 90.0) < 15.0, "along the axis, the z title is near a quarter turn");
+    require(slanted == 2U, "the x and y titles follow their slanted edges");
+    require(painter.rotated.size() == 3U, "the three titles are drawn turned");
+    // Turning the box turns the floor titles with their edges.
+    std::array<double, 3> before{};
+    for (const plots::Plot3DLabel& label : (*plot).scene().labels()) {
+        if (label.role == plots::Plot3DLabelRole::title) before[static_cast<std::size_t>(label.axis)] = label.angle;
+    }
+    plots::Plot3DCamera spun = (*plot).camera();
+    spun.azimuth = spun.azimuth + 25.0;
+    require((*plot).set_camera(spun), "the camera spins");
+    paint(*plot, painter);
+    bool followed = false;
+    for (const plots::Plot3DLabel& label : (*plot).scene().labels()) {
+        if (label.role != plots::Plot3DLabelRole::title || label.axis == plots::Plot3DAxis::z) continue;
+        if (std::fabs(label.angle - before[static_cast<std::size_t>(label.axis)]) > 2.0) followed = true;
+    }
+    require(followed, "a turned box turns the floor titles with their edges");
 }
 
 void test_view_gestures_and_keys() {

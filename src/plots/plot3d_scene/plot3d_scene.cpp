@@ -820,6 +820,18 @@ void build_view_lines(State& state, const stx_raster3d::View& view, const Plot3D
     return hidden;
 }
 
+// The angle, in degrees anticlockwise as seen, of a screen direction
+// (dx across, dy down the surface), turned by half a turn when needed so
+// text along it reads left to right: within (-90, 90]. A direction too short
+// to have one is 0.
+[[nodiscard]] double readable_edge_angle(double dx, double dy) noexcept {
+    if (!(std::abs(dx) + std::abs(dy) > 1e-9)) return 0.0;
+    double angle = std::atan2(-dy, dx) * degrees_per_radian;
+    if (angle > half_turn_degrees * 0.5) angle -= half_turn_degrees;
+    if (angle <= -half_turn_degrees * 0.5) angle += half_turn_degrees;
+    return angle;
+}
+
 void lay_out_labels(State& state, const stx_raster3d::View& view, const Plot3DFrame& frame,
                     const std::array<AxisEdge, 3>& edges) {
     state.labels.clear();
@@ -862,14 +874,22 @@ void lay_out_labels(State& state, const stx_raster3d::View& view, const Plot3DFr
         const ScreenPoint place = logical_point(view, scale, middle);
         const ScreenPoint start = logical_point(view, scale, edges[axis].start);
         const ScreenPoint end = logical_point(view, scale, edges[axis].end);
-        const bool steep = std::abs(end.y - start.y) > std::abs(end.x - start.x);
-        const double offset = tick_pixels + label_gap + reach + title_gap + tick_label_height * 0.5;
+        const bool along_axis = state.options.label_alignment == Plot3DLabelAlignment::along_axis;
+        const double angle = along_axis ? readable_edge_angle(end.x - start.x, end.y - start.y) : 0.0;
+        // The title's half extent along the outward direction, as turned: its
+        // width along the turned baseline and its height across it.
+        const double radians = angle / degrees_per_radian;
+        const double title_width = widths.label_extent(state.options.axis_titles[axis]);
+        const double along_extent = std::abs(direction.x * std::cos(radians) - direction.y * std::sin(radians));
+        const double across_extent = std::abs(direction.x * std::sin(radians) + direction.y * std::cos(radians));
+        const double half_extent = along_extent * title_width * 0.5 + across_extent * tick_label_height * 0.5;
+        const double offset = tick_pixels + label_gap + reach + title_gap + half_extent;
         Plot3DLabel title{};
         title.role = Plot3DLabelRole::title;
         title.axis = static_cast<Plot3DAxis>(axis);
         title.anchor = Point{place.x + direction.x * offset, place.y + direction.y * offset};
         title.occluded = hidden_by_data(state, scale, place);
-        title.turned = state.options.label_alignment == Plot3DLabelAlignment::along_axis && steep;
+        title.angle = angle;
         state.labels.push_back(title);
     }
 }

@@ -97,6 +97,7 @@ VisualPaintOperationSnapshot inspect_operation(
     result.image_sampling = command.image_sampling;
     result.text_byte_count = command.text.size();
     result.text_orientation = command.text_orientation;
+    result.text_degrees = command.text_degrees;
     if (command.marks) {
         const detail::DisplayMarks& marks = *command.marks;
         const std::size_t listed = marks.points.size() + marks.rects.size() + marks.segments.size();

@@ -198,6 +198,17 @@ public:
     // through the same rasterization and compositing as draw_text_utf8
     // (the same pixels for the same glyphs); anything else as its text.
     void draw_glyph_runs(Point origin, const GlyphRunsView& view, FontSpec font_spec, Color color) override;
+    // Rasterizes the shaped run under the turn and the canvas's linear part
+    // (the engine's general, unhinted placement) and composites its coverage
+    // with the shared rule, as draw_text_utf8 composites; where the canvas
+    // pixels cannot be addressed, Skia blends the coverage as a mask. 0
+    // draws as draw_text_utf8. No coverage is retained.
+    void draw_rotated_text_utf8(Point anchor, std::string_view text, FontSpec font_spec, Color color,
+                                double degrees) override;
+    // Runs this raster's engine shaped, turned as draw_rotated_text_utf8
+    // turns a run; anything else as its text.
+    void draw_rotated_glyph_runs(Point anchor, const GlyphRunsView& view, FontSpec font_spec, Color color,
+                                 double degrees) override;
     void draw_image(ImageId image, Rect destination, double opacity) override;
     void draw_live_surface(const std::shared_ptr<LiveSurface> surface,
                            const Rect destination, const double opacity) override;

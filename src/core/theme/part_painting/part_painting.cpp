@@ -672,6 +672,43 @@ void paint_text(Painter& painter, const PartPaint& part, Color color) {
     painter.restore();
 }
 
+// A turned text part (PartPaint::text_angle): the line laid out in the
+// bounds as an unturned horizontal line is, then turned about the bounds'
+// centre, clipped to the rectangle bounding the turned bounds.
+void paint_rotated_text(Painter& painter, const PartPaint& part, Color color) {
+    if (part.text.empty() || !std::isfinite(part.text_angle)) return;
+    const Size measured = part.measured_text ? *part.measured_text
+                                             : painter.measure_text_utf8(part.text, part.font);
+    const double line_height = std::max(measured.height, part.font.size * 1.2);
+    const double ascent = std::max(part.font.size, line_height * 0.82);
+    double along = 0.0;
+    if (part.alignment == PartTextAlignment::center) {
+        along = (part.bounds.width - measured.width) * 0.5;
+    } else if (part.alignment == PartTextAlignment::end) {
+        along = part.bounds.width - measured.width;
+    }
+    const double line_top = (part.bounds.height - line_height) * 0.5;
+    // The unturned origin, relative to the bounds' centre; the turn moves it
+    // about the centre and draw_rotated_text_utf8 turns the run about it.
+    const Point centre{part.bounds.x + part.bounds.width * 0.5, part.bounds.y + part.bounds.height * 0.5};
+    const double offset_x = part.bounds.x + along - centre.x;
+    const double offset_y = part.bounds.y + line_top + ascent - centre.y;
+    const double radians = part.text_angle * (3.14159265358979323846 / 180.0);
+    const double cosine = std::cos(radians);
+    const double sine = std::sin(radians);
+    const Point origin{centre.x + offset_x * cosine + offset_y * sine, centre.y - offset_x * sine + offset_y * cosine};
+    // The turned bounds' corners, as a box whose baseline is the bounds' top
+    // edge: its advance the width, reaching the height below.
+    const RotatedTextBox box{part.bounds.width, 0.0, part.bounds.height, part.text_angle};
+    const Point corner{centre.x - part.bounds.width * 0.5 * cosine - part.bounds.height * 0.5 * sine,
+                       centre.y + part.bounds.width * 0.5 * sine - part.bounds.height * 0.5 * cosine};
+    const Rect clip = rotated_text_bounds(corner, box);
+    painter.save();
+    painter.clip_rect(clip);
+    painter.draw_rotated_text_utf8(origin, part.text, part.font, color, part.text_angle);
+    painter.restore();
+}
+
 // -- the dial and overlay roles (row 2.5; owner option (a)) ---------------------
 
 constexpr double whole_turn = 6.283185307179586476925;
@@ -1686,6 +1723,11 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
         // theme's own disabled text (owner ruling, 2026-11-02).
         // A secondary text is drawn in the muted ink; disabled text of either
         // tone is the disabled recipe's text.
+        if (part.text_angle != 0.0) {
+            paint_rotated_text(painter, part,
+                               part.tone == PartTextTone::secondary && !disabled ? recipe.muted_text : recipe.text);
+            return;
+        }
         paint_text(painter, part,
                    part.tone == PartTextTone::secondary && !disabled ? recipe.muted_text : recipe.text);
         return;
@@ -1693,8 +1735,13 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
         if (part.image.value != 0U) painter.draw_image(part.image, part.bounds, disabled ? 0.45 : 1.0);
         return;
     case PartRole::image:
-        // Content, drawn exactly as given, disabled or not (GIVEN H1-1).
-        if (part.image.value != 0U) painter.draw_image(part.image, part.bounds, 1.0);
+        // Content, drawn exactly as given, disabled or not (GIVEN H1-1): a
+        // picture the control rendered at the display scale, else an image.
+        if (part.raster) {
+            painter.draw_part_raster(part.raster, Point{part.bounds.x, part.bounds.y}, 1.0);
+        } else if (part.image.value != 0U) {
+            painter.draw_image(part.image, part.bounds, 1.0);
+        }
         return;
     case PartRole::caret:
         painter.fill_rect({part.bounds.x, part.bounds.y, std::max(1.0, part.bounds.width),

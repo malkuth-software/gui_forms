@@ -5,6 +5,7 @@
 #include "painter_support.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace gui_forms {
@@ -212,6 +213,81 @@ void Painter::draw_retained_text_utf8(
 void Painter::draw_glyph_runs(const Point origin, const GlyphRunsView& view, const FontSpec font,
                               const Color color) {
     draw_text_utf8(origin, view.text, font, color);
+}
+
+void Painter::draw_rotated_text_utf8(const Point anchor, const std::string_view text, const FontSpec font,
+                                     const Color color, const double degrees) {
+    if (!std::isfinite(degrees)) return;
+    draw_text_utf8(anchor, text, font, color);
+}
+
+void Painter::draw_rotated_glyph_runs(const Point anchor, const GlyphRunsView& view, const FontSpec font,
+                                      const Color color, const double degrees) {
+    draw_rotated_text_utf8(anchor, view.text, font, color, degrees);
+}
+
+namespace {
+
+// The turn's unit vectors: along the baseline, and across it towards the
+// descent (y grows down the surface, so anticlockwise as seen is -sin).
+struct TextTurn final {
+    double along_x{};
+    double along_y{};
+    double across_x{};
+    double across_y{};
+};
+
+[[nodiscard]] TextTurn text_turn(const double degrees) noexcept {
+    const double radians = degrees * (3.14159265358979323846 / 180.0);
+    const double cosine = std::cos(radians);
+    const double sine = std::sin(radians);
+    const TextTurn turn{cosine, -sine, sine, cosine};
+    return turn;
+}
+
+[[nodiscard]] bool usable_box(const RotatedTextBox& box) noexcept {
+    const bool finite = std::isfinite(box.width) && std::isfinite(box.ascent) && std::isfinite(box.descent) &&
+                        std::isfinite(box.degrees);
+    const bool usable = finite && box.width >= 0.0 && box.ascent >= 0.0 && box.descent >= 0.0;
+    return usable;
+}
+
+} // namespace
+
+Rect rotated_text_bounds(const Point anchor, const RotatedTextBox& box) noexcept {
+    const Rect empty{anchor.x, anchor.y, 0.0, 0.0};
+    if (!usable_box(box) || !std::isfinite(anchor.x) || !std::isfinite(anchor.y)) return empty;
+    const TextTurn turn = text_turn(box.degrees);
+    const std::array<double, 2> along{0.0, box.width};
+    const std::array<double, 2> across{-box.ascent, box.descent};
+    double left = anchor.x;
+    double top = anchor.y;
+    double right = anchor.x;
+    double bottom = anchor.y;
+    for (const double s : along) {
+        for (const double t : across) {
+            const double x = anchor.x + s * turn.along_x + t * turn.across_x;
+            const double y = anchor.y + s * turn.along_y + t * turn.across_y;
+            left = std::min(left, x);
+            top = std::min(top, y);
+            right = std::max(right, x);
+            bottom = std::max(bottom, y);
+        }
+    }
+    const Rect bounds{left, top, right - left, bottom - top};
+    return bounds;
+}
+
+Point rotated_text_anchor(const Point centre, const RotatedTextBox& box) noexcept {
+    if (!usable_box(box) || !std::isfinite(centre.x) || !std::isfinite(centre.y)) return centre;
+    const TextTurn turn = text_turn(box.degrees);
+    // The box's middle in run coordinates: half the advance along, and
+    // between the ascent and descent across.
+    const double along = box.width * 0.5;
+    const double across = (box.descent - box.ascent) * 0.5;
+    const Point anchor{centre.x - along * turn.along_x - across * turn.across_x,
+                       centre.y - along * turn.along_y - across * turn.across_y};
+    return anchor;
 }
 
 void Painter::draw_turned_text_utf8(const Point origin, const std::string_view text, const FontSpec font,

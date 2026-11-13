@@ -102,6 +102,28 @@ struct GUI_FORMS_API TextRun final {
     std::string_view text{};
     Color color{};
 };
+// Where a line of text turned about its baseline start lies
+// (Painter::draw_rotated_text_utf8). The run's box is its advance `width`
+// along the baseline and its line box `ascent` above and `descent` below
+// it; turned `degrees` anticlockwise as seen about `anchor`, the box's
+// corners are anchor + s * (cos, -sin) + t * (sin, cos) for s in
+// [0, width] and t in [-ascent, descent].
+struct GUI_FORMS_API RotatedTextBox final {
+    double width{};
+    double ascent{};
+    double descent{};
+    double degrees{};
+};
+// The rectangle bounding the turned box placed at `anchor`: the area a
+// control keeps inside its bounds (or its visual outsets) for the run, so
+// its damage covers every pixel the run inks. Negative or non-finite
+// extents, or a non-finite angle or anchor, give an empty rectangle at the
+// anchor.
+[[nodiscard]] GUI_FORMS_API Rect rotated_text_bounds(Point anchor, const RotatedTextBox& box) noexcept;
+// The anchor that centres the turned box on `centre` (a label placed by
+// its middle, such as an axis title along its edge). Non-finite input
+// gives `centre`.
+[[nodiscard]] GUI_FORMS_API Point rotated_text_anchor(Point centre, const RotatedTextBox& box) noexcept;
 
 class GUI_FORMS_API Painter : public TextMetricsProvider {
 public:
@@ -291,6 +313,30 @@ public:
     // draw_text_utf8 calls at most, no allocation.
     double draw_text_utf8_fitted(Point origin, std::string_view text, FontSpec font, Color color, double max_width,
                                  TextTrim trim);
+    // One line of text turned `degrees` about `anchor` (D5 ruling of
+    // 2026-11-13: text at any angle). `anchor` is the start of the
+    // baseline, as for draw_text_utf8, and stays where it is; the run turns
+    // about it, positive degrees anticlockwise as seen on the surface (90
+    // reads up it as TextOrientation::bottom_to_top does, -90 down it). The
+    // run is shaped as draw_text_utf8 shapes it, in the same face, and its
+    // glyph runs are rasterized under the turn (no picture of the
+    // horizontal run is turned). Its ink lies inside rotated_text_bounds of
+    // its measured extent, which is what a control keeps inside the area it
+    // damages. 0 draws as draw_text_utf8, the same pixels; a non-finite
+    // angle draws nothing. The base implementation, a minimal painter's
+    // fallback, draws the run horizontally from `anchor`, unturned; the
+    // recording and Skia painters turn it.
+    virtual void draw_rotated_text_utf8(Point anchor, std::string_view text, FontSpec font, Color color,
+                                        double degrees);
+    // draw_glyph_runs turned as draw_rotated_text_utf8 turns text: runs this
+    // painter's engine shaped in its current face table (view.source) are
+    // rasterized under the turn without shaping again, the pixels
+    // draw_rotated_text_utf8 draws for view.text; any other runs are drawn
+    // as view.text with draw_rotated_text_utf8. That fallback is the base
+    // implementation and the recording painter's (a recorded line is
+    // shaped again on replay); the Skia painter draws the runs.
+    virtual void draw_rotated_glyph_runs(Point anchor, const GlyphRunsView& view, FontSpec font, Color color,
+                                         double degrees);
     // Text controls need the same metrics used by the painter for caret hit
     // testing, selection geometry, and horizontal viewport maintenance.  The
     // renderer owns those metrics; controls must not guess a fixed glyph width.

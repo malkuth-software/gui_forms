@@ -33,8 +33,11 @@
 // Accessibility: one figure node (SemanticRole::figure), named by the
 // accessible name, described by its items and view, valued by the readout.
 //
-// Labels: screen-facing by default; `labels_along_axis` turns a steep
-// axis's title a quarter turn (text at other angles is not drawn yet).
+// Labels: screen-facing by default; `labels_along_axis` lays each axis
+// title along its edge as projected, turned at whatever angle that is
+// (kept reading left to right). The picture, the labels and the readout are
+// parts painted by the theme (paint_part): the picture as the image role's
+// raster, the labels and readout as text roles.
 //
 // One UI thread.
 
@@ -116,6 +119,7 @@ public:
     struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry plot;
+        PartGeometry picture;
         PartGeometry x_axis;
         PartGeometry y_axis;
         PartGeometry z_axis;

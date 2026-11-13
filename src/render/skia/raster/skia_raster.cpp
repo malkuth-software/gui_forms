@@ -631,6 +631,19 @@ public:
     // Skia then blends, so the bytes may differ from the shared rule.
     void draw_shaped_text(SkCanvas& target, const text::ShapedText& shaped, Point origin,
                           FontSpec font_spec, Color color);
+    // Coverage placed in device pixels, blended by Skia as an alpha mask in
+    // `color` (draw_shaped_text's last step).
+    void draw_coverage_mask(SkCanvas& target, const text::GlyphRunCoverage& coverage,
+                            const text::GlyphRunOrigin& placement, Color color);
+    // A run turned `degrees` anticlockwise as seen about `anchor`: rasterized
+    // under the turn and the canvas's linear part, composited with the shared
+    // rule, else blended as a mask. Nothing under a perspective canvas.
+    void draw_rotated_run(SkCanvas& target, const text::ShapedText& shaped, FontSpec font_spec, Point anchor,
+                          Color color, double degrees);
+    // draw_glyph_runs's view in the rasterizer's form, in glyph_line; false
+    // (glyph_line untouched) for runs of another engine or face table, or
+    // naming glyphs outside the view.
+    bool fill_glyph_line(const GlyphRunsView& view);
 
     // ADR-004 text clipping: the device clip that text compositing honours,
     // one entry per canvas save level from text_clip_base upward. Skia cannot
@@ -1909,6 +1922,11 @@ void SkiaRaster::Impl::draw_shaped_text(SkCanvas& target, const text::ShapedText
         coverage = (*glyph_runs).rasterize_transformed(shaped, font_spec, transform, static_cast<double>(device.x()),
                                                        static_cast<double>(device.y()), {}, placement);
     }
+    draw_coverage_mask(target, coverage, placement, color);
+}
+
+void SkiaRaster::Impl::draw_coverage_mask(SkCanvas& target, const text::GlyphRunCoverage& coverage,
+                                          const text::GlyphRunOrigin& placement, const Color color) {
     if (coverage.pixels.empty()) return;
     const SkPixmap mask(SkImageInfo::MakeA8(static_cast<int>(coverage.width), static_cast<int>(coverage.height)),
                         coverage.pixels.data(), static_cast<std::size_t>(coverage.width));
@@ -1921,6 +1939,64 @@ void SkiaRaster::Impl::draw_shaped_text(SkCanvas& target, const text::ShapedText
     target.drawImage(image, static_cast<SkScalar>(placement.pixel_x + coverage.left),
                      static_cast<SkScalar>(placement.pixel_y + coverage.top), SkSamplingOptions(), &paint);
     target.restore();
+}
+
+void SkiaRaster::Impl::draw_rotated_run(SkCanvas& target, const text::ShapedText& shaped, const FontSpec font_spec,
+                                        const Point anchor, const Color color, const double degrees) {
+    const SkMatrix matrix = target.getTotalMatrix();
+    if (matrix.hasPerspective()) return;
+    if (!glyph_runs) glyph_runs = std::make_unique<text::GlyphRunRasterizer>(text_engine);
+    const double radians = degrees * (3.14159265358979323846 / 180.0);
+    const double cosine = std::cos(radians);
+    const double sine = std::sin(radians);
+    // The turn in logical units, x' = cos x + sin y and y' = -sin x + cos y
+    // (anticlockwise as seen on the y-down surface), then the canvas's
+    // linear part: device = M * R * logical.
+    const double scale_x = static_cast<double>(matrix.getScaleX());
+    const double skew_x = static_cast<double>(matrix.getSkewX());
+    const double skew_y = static_cast<double>(matrix.getSkewY());
+    const double scale_y = static_cast<double>(matrix.getScaleY());
+    const text::GlyphRunTransform transform{scale_x * cosine - skew_x * sine, scale_x * sine + skew_x * cosine,
+                                            skew_y * cosine - scale_y * sine, skew_y * sine + scale_y * cosine};
+    const SkPoint device =
+        matrix.mapPoint(SkPoint::Make(static_cast<SkScalar>(anchor.x), static_cast<SkScalar>(anchor.y)));
+    text::GlyphRunOrigin placement{};
+    const text::GlyphRunCoverage coverage =
+        (*glyph_runs).rasterize_transformed(shaped, font_spec, transform, static_cast<double>(device.x()),
+                                            static_cast<double>(device.y()), {}, placement);
+    if (coverage.pixels.empty()) return;
+    const detail::TextCoverage placed{.pixels = coverage.pixels, .width = coverage.width, .height = coverage.height,
+                                      .left = placement.pixel_x + coverage.left,
+                                      .top = placement.pixel_y + coverage.top};
+    if (composite_coverage(target, placed, color)) return;
+    draw_coverage_mask(target, coverage, placement, color);
+}
+
+bool SkiaRaster::Impl::fill_glyph_line(const GlyphRunsView& view) {
+    if (view.source != text_engine.glyph_source()) return false;
+    for (const GlyphRunRecord& run : view.runs) {
+        const bool inside =
+            run.first_glyph <= view.glyphs.size() && run.glyph_count <= view.glyphs.size() - run.first_glyph;
+        if (!inside) return false;
+    }
+    // The rasterizer reads each run's face and each glyph's id and position,
+    // which are the values shape gives for the line; ranges and clusters are
+    // carried as they are (in the view's offsets) and not read.
+    text::ShapedText& line = glyph_line;
+    line.runs.resize(view.runs.size());
+    for (std::size_t index = 0U; index < view.runs.size(); ++index) {
+        const GlyphRunRecord& record = view.runs[index];
+        text::ShapedFontRun& run = line.runs[index];
+        run.face = record.face;
+        run.source_range = record.source_range;
+        run.glyphs.clear();
+        const std::span<const PositionedGlyph> glyphs = view.glyphs.subspan(record.first_glyph, record.glyph_count);
+        for (const PositionedGlyph& glyph : glyphs) {
+            const text::ShapedGlyph shaped{glyph.glyph, glyph.cluster, glyph.x, glyph.y, 0.0F, 0.0F};
+            run.glyphs.push_back(shaped);
+        }
+    }
+    return true;
 }
 
 
@@ -2244,6 +2320,35 @@ void SkiaRaster::draw_turned_text_utf8(const Point origin, const std::string_vie
     (*canvas).restore();
 }
 
+void SkiaRaster::draw_rotated_text_utf8(const Point anchor, const std::string_view text, const FontSpec font_spec,
+                                        const Color color, const double degrees) {
+    if (!std::isfinite(degrees)) return;
+    if (degrees == 0.0) {
+        draw_text_utf8(anchor, text, font_spec, color);
+        return;
+    }
+    SkCanvas* const canvas = (*impl_).canvas();
+    if (canvas == nullptr || text.empty()) return;
+    const text::ShapedText& shaped = (*impl_).shaped_text(text, font_spec);
+    (*impl_).draw_rotated_run(*canvas, shaped, font_spec, anchor, color, degrees);
+}
+
+void SkiaRaster::draw_rotated_glyph_runs(const Point anchor, const GlyphRunsView& view, const FontSpec font_spec,
+                                         const Color color, const double degrees) {
+    if (!std::isfinite(degrees)) return;
+    if (degrees == 0.0) {
+        draw_glyph_runs(anchor, view, font_spec, color);
+        return;
+    }
+    SkCanvas* const canvas = (*impl_).canvas();
+    if (canvas == nullptr || view.text.empty()) return;
+    if (!(*impl_).fill_glyph_line(view)) {
+        draw_rotated_text_utf8(anchor, view.text, font_spec, color, degrees);
+        return;
+    }
+    (*impl_).draw_rotated_run(*canvas, (*impl_).glyph_line, font_spec, anchor, color, degrees);
+}
+
 Size SkiaRaster::measure_text_utf8(std::string_view text,
                                    FontSpec font_spec) {
     if (text.empty()) return {0.0, font_spec.size};
@@ -2300,32 +2405,11 @@ void SkiaRaster::draw_glyph_runs(const Point origin, const GlyphRunsView& view, 
     if (canvas == nullptr || view.text.empty()) return;
     // Runs of another engine or face table, or naming glyphs outside the
     // view, are drawn as their text.
-    bool drawable = view.source == (*impl_).text_engine.glyph_source();
-    for (const GlyphRunRecord& run : view.runs) {
-        if (!drawable) break;
-        drawable = run.first_glyph <= view.glyphs.size() && run.glyph_count <= view.glyphs.size() - run.first_glyph;
-    }
-    if (!drawable) {
+    if (!(*impl_).fill_glyph_line(view)) {
         draw_text_utf8(origin, view.text, font_spec, color);
         return;
     }
-    // The rasterizer reads each run's face and each glyph's id and position,
-    // which are the values shape gives for the line; ranges and clusters are
-    // carried as they are (in the view's offsets) and not read.
-    text::ShapedText& line = (*impl_).glyph_line;
-    line.runs.resize(view.runs.size());
-    for (std::size_t index = 0U; index < view.runs.size(); ++index) {
-        const GlyphRunRecord& record = view.runs[index];
-        text::ShapedFontRun& run = line.runs[index];
-        run.face = record.face;
-        run.source_range = record.source_range;
-        run.glyphs.clear();
-        const std::span<const PositionedGlyph> glyphs = view.glyphs.subspan(record.first_glyph, record.glyph_count);
-        for (const PositionedGlyph& glyph : glyphs) {
-            const text::ShapedGlyph shaped{glyph.glyph, glyph.cluster, glyph.x, glyph.y, 0.0F, 0.0F};
-            run.glyphs.push_back(shaped);
-        }
-    }
+    const text::ShapedText& line = (*impl_).glyph_line;
     if ((*impl_).composite_run(*canvas, line, font_spec, origin, color, nullptr, nullptr, nullptr)) return;
     (*impl_).draw_shaped_text(*canvas, line, origin, font_spec, color);
 }

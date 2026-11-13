@@ -925,7 +925,7 @@ Types
 
    ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
 
-   A label to draw over the picture, centred on ``anchor`` (logical units from the picture's top left). A tick label carries its text; a title's text is options().axis_titles[axis]. ``occluded`` marks a label whose place on the box is hidden behind data: the caller dims it rather than removing it. ``turned``: an along-axis title lies bottom to top.
+   A label to draw over the picture, centred on ``anchor`` (logical units from the picture's top left). A tick label carries its text; a title's text is options().axis_titles[axis]. ``occluded`` marks a label whose place on the box is hidden behind data: the caller dims it rather than removing it. ``angle``: how far the label's baseline is turned about ``anchor``, in degrees anticlockwise as seen (Painter::draw_rotated_text_utf8), in (-90, 90]; 0 for a screen-facing label.
 
    .. cpp:member:: Plot3DLabelRole role
 
@@ -941,7 +941,7 @@ Types
 
    .. cpp:member:: bool occluded
 
-   .. cpp:member:: bool turned
+   .. cpp:member:: double angle
 
 .. cpp:namespace:: gui_forms::plots
 

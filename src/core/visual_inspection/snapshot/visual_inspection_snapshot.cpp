@@ -481,6 +481,8 @@ void append_operation(std::ostringstream& output,
     append_json_string(output, operation.text);
     output << ",\"text_orientation\":";
     append_json_string(output, text_orientation_name(operation.text_orientation));
+    // Written only for a rotated run, so other snapshots keep their bytes.
+    if (operation.text_degrees != 0.0) output << ",\"text_degrees\":" << operation.text_degrees;
     if (operation.element_count != 0U) output << ",\"element_count\":" << operation.element_count;
     output << '}';
 }
