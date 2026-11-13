@@ -2109,7 +2109,7 @@
       {"kind": "event", "winforms": "DataSourceChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "event", "winforms": "DefaultCellStyleChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "event", "winforms": "DefaultValuesNeeded", "scope": "admitted", "gui_forms": "default_values_needed", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
-      {"kind": "event", "winforms": "EditingControlShowing", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
+      {"kind": "event", "winforms": "EditingControlShowing", "scope": "admitted", "gui_forms": "editing_control_showing", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "event", "winforms": "EditModeChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "event", "winforms": "FontChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "event", "winforms": "ForeColorChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},

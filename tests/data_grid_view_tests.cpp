@@ -3950,6 +3950,39 @@ void column_resizable_and_minimum_row_height() {
     require(throws<std::out_of_range>(SetMinimumRowHeight{grid.get(), 2.0}), "the minimum is at least 4");
 }
 
+// Records each editing_control_showing event with the editor's text then.
+struct RecordEditingControl final {
+    DataGridView* grid{};
+    std::vector<DataGridViewEditingControlShowingEvent>* seen{};
+    std::vector<std::string>* texts{};
+    void operator()(const DataGridViewEditingControlShowingEvent& event) const {
+        (*seen).push_back(event);
+        const std::shared_ptr<TextBox> editor = (*grid).editing_control();
+        (*texts).push_back(editor ? std::string((*editor).text.read()) : std::string());
+    }
+};
+
+// Windows Forms' EditingControlShowing.
+void editing_control_showing() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.editing.control");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require(window.request_focus(grid), "the grid takes focus");
+    std::vector<DataGridViewEditingControlShowingEvent> seen;
+    std::vector<std::string> texts;
+    SubscriptionToken token =
+        (*grid).editing_control_showing().subscribe(RecordEditingControl{grid.get(), &seen, &texts});
+    require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).begin_edit(true), "a text edit begins");
+    require(seen.size() == 1U && seen[0].kind == DataGridViewEditingControlKind::text_box &&
+                seen[0].row_id == id("bravo") && seen[0].column == 0U && texts[0] == "Bravo",
+            "a text edit shows the editor holding the cell's text");
+    (*grid).cancel_edit();
+    require((*grid).set_current_cell(cell_at(0U, 2U)) && (*grid).begin_edit(true), "a choice edit begins");
+    require(seen.size() == 2U && seen[1].kind == DataGridViewEditingControlKind::choice_list && seen[1].column == 2U,
+            "a choice edit shows its choice list");
+    (*grid).close_drop_down();
+}
+
 int main() {
     columns_and_rows();
     layout_and_parts();
@@ -4001,6 +4034,7 @@ int main() {
     cell_mouse_events();
     three_state_and_display_style();
     column_resizable_and_minimum_row_height();
+    editing_control_showing();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";

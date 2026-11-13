@@ -307,6 +307,23 @@ struct GUI_FORMS_API DataGridViewHitTestInfo final {
     std::optional<std::size_t> column{};
 };
 
+// The control an edit shows: the hosted text editor (editing_control) or
+// the combo box cell's choice list.
+enum class DataGridViewEditingControlKind : std::uint8_t { text_box, choice_list };
+
+// Raised when an edit shows its control (Windows Forms'
+// EditingControlShowing), after cell_begin_edit: for a text edit with the
+// editor holding the cell's text and laid out over the cell, before it
+// takes the focus, so a handler may set the editor's own properties through
+// editing_control(); for a choice list before it opens. A handler that ends
+// the edit or moves the current cell stops it.
+struct GUI_FORMS_API DataGridViewEditingControlShowingEvent final {
+    DataGridViewRowId row_id{};
+    DataGridViewRowPosition row{};
+    std::size_t column{};
+    DataGridViewEditingControlKind kind{DataGridViewEditingControlKind::text_box};
+};
+
 // A pointer event over a cell or header (Windows Forms'
 // DataGridViewCellMouseEventArgs): `area` is cell, column_header,
 // row_header or top_left (a divider counts as its header); `row_id` and
@@ -873,6 +890,10 @@ public:
     // Raised after a pointer press on a row header, or its semantic press,
     // made the row current (Windows Forms' RowHeaderMouseClick).
     [[nodiscard]] Event<const DataGridViewRowEvent&>& row_header_click() noexcept { return row_header_click_; }
+    // See DataGridViewEditingControlShowingEvent.
+    [[nodiscard]] Event<const DataGridViewEditingControlShowingEvent&>& editing_control_showing() noexcept {
+        return editing_control_showing_;
+    }
     // The pointer over cells and headers (Windows Forms' CellMouseEnter,
     // CellMouseLeave, CellMouseMove, CellMouseDown, CellMouseUp,
     // CellMouseClick and CellMouseDoubleClick), for every button. Order: a
@@ -1876,6 +1897,7 @@ private:
     Event<const DataGridViewCellEvent&> cell_click_{};
     Event<const DataGridViewCellEvent&> cell_double_click_{};
     Event<const DataGridViewRowEvent&> row_header_click_{};
+    Event<const DataGridViewEditingControlShowingEvent&> editing_control_showing_{};
     Event<const DataGridViewCellMouseEvent&> cell_mouse_enter_{};
     Event<const DataGridViewCellMouseEvent&> cell_mouse_leave_{};
     Event<const DataGridViewCellMouseEvent&> cell_mouse_move_{};

@@ -2698,6 +2698,11 @@ bool DataGridView::begin_text_edit(std::string initial_text, bool select_all) {
     set_child_layout_collapsed(editor_, false);
     const Parts editor_parts = grid_parts(grid_layout());
     set_child_layout(editor_, editor_parts.editor.bounds);
+    const DataGridViewEditingControlShowingEvent showing{DataGridViewRowId{key.row_id}, (*moved).row,
+                                                         (*moved).column, DataGridViewEditingControlKind::text_box};
+    editing_control_showing_.emit(showing);
+    // A handler may end the edit, move the current cell or end the grid.
+    if (!is_alive() || !editing_ || edit_kind_ != EditKind::text || !current_ || !(*current_ == key)) return false;
     Window* const host = window();
     if (host != nullptr) static_cast<void>((*host).request_focus(editor_));
     if (select_all) {
@@ -3012,6 +3017,10 @@ bool DataGridView::open_choices() {
     edit_kind_ = EditKind::choice;
     edit_invalid_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
+    const DataGridViewEditingControlShowingEvent showing{DataGridViewRowId{key.row_id}, at.row, at.column,
+                                                         DataGridViewEditingControlKind::choice_list};
+    editing_control_showing_.emit(showing);
+    if (!is_alive() || !editing_ || edit_kind_ != EditKind::choice || !current_ || !(*current_ == key)) return false;
     (*choices_).preferred_width = std::max(bounds.width, 120.0);
     (*choices_).show(shared_from_this(), {absolute.x + bounds.x, absolute.y + bounds.y + bounds.height},
                      MenuOpenMode::keyboard);

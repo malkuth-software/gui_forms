@@ -318,6 +318,15 @@ struct EnumerationChoices<DataGridViewDataErrorContext> {
 };
 
 template <>
+struct EnumerationChoices<DataGridViewEditingControlKind> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"text_box", static_cast<std::int64_t>(DataGridViewEditingControlKind::text_box)},
+        {"choice_list", static_cast<std::int64_t>(DataGridViewEditingControlKind::choice_list)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<DataGridViewHitTestType> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 7> choices{{
@@ -1091,6 +1100,7 @@ void append_field(EventFields& fields, std::string_view name, const DataGridView
 void read_field(EventFields& fields, std::string_view name, DataGridViewCellValidatingEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewDataErrorEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewDataErrorEvent& value);
+void append_field(EventFields& fields, std::string_view name, const DataGridViewEditingControlShowingEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewRowCancelEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewRowCancelEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewRowErrorTextNeededEvent& value);
@@ -1678,6 +1688,15 @@ inline void read_field(EventFields& fields, std::string_view name, DataGridViewD
     read_field(fields, "context", value.context);
     read_field(fields, "formatted_value", value.formatted_value);
     read_field(fields, "cancel", value.cancel);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const DataGridViewEditingControlShowingEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "row_id", value.row_id);
+    append_field(fields, "row", value.row);
+    append_field(fields, "column", value.column);
+    append_field(fields, "kind", value.kind);
     fields.leave(prefix);
 }
 
@@ -4507,6 +4526,15 @@ inline SubscriptionToken connect_breadcrumb_trail_edit_started(Component& source
     return token;
 }
 
+inline SubscriptionToken connect_data_grid_view_editing_control_showing(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).editing_control_showing(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_semantic_feedback_emitted(Component& source, const EventSink& sink) {
     SemanticFeedback* typed = dynamic_cast<SemanticFeedback*>(&source);
     if (typed == nullptr) {
@@ -6457,7 +6485,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 350> event_connectors{{
+inline constexpr std::array<EventConnector, 351> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6599,6 +6627,7 @@ inline constexpr std::array<EventConnector, 350> event_connectors{{
     {"edit_failed", "ColorValueEditor", &connect_color_value_editor_edit_failed},
     {"edit_failed", "PropertyGrid", &connect_property_grid_edit_failed},
     {"edit_started", "BreadcrumbTrail", &connect_breadcrumb_trail_edit_started},
+    {"editing_control_showing", "DataGridView", &connect_data_grid_view_editing_control_showing},
     {"emitted", "SemanticFeedback", &connect_semantic_feedback_emitted},
     {"enabled_changed", "Control", &connect_control_enabled_changed},
     {"error_changed", "ErrorProvider", &connect_error_provider_error_changed},
