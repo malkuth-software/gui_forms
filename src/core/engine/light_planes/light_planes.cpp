@@ -304,9 +304,8 @@ double lit_key_lean_degrees(double height_share) noexcept {
 }
 
 LampColour lamp_colour_from_srgb(Color colour) noexcept {
-    if (colour.is_empty()) return LampColour{};
-    const LampColour linear{decoded_channel(colour.red()), decoded_channel(colour.green()),
-                            decoded_channel(colour.blue())};
+    const LampColour linear{decoded_channel(colour.red), decoded_channel(colour.green),
+                            decoded_channel(colour.blue)};
     return linear;
 }
 

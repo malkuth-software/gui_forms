@@ -1,9 +1,9 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
-#include "gui_forms/drawing/color/color.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/types/engine_types.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -64,7 +64,7 @@ inline constexpr LampColour lamp_cyan{0.15, 0.85, 1.0};
 // A colour given as sRGB, such as a control's lamp colour property, as a
 // lamp's linear colour at unit power: each channel decoded by the sRGB
 // curve (through engine_power, so every host decodes alike). Alpha is
-// ignored; an empty colour is black.
+// ignored.
 [[nodiscard]] GUI_FORMS_API LampColour lamp_colour_from_srgb(Color colour) noexcept;
 
 // One bake's planes, `width` × `height` pixels:
