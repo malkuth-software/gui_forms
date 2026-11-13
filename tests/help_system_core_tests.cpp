@@ -300,6 +300,57 @@ void search() {
               << hits.size() << " hits\n";
 }
 
+// GAPS H2: folding beyond ASCII. The UTF-8 is spelled in escapes.
+void unicode_folding() {
+    std::string folded;
+    fold_help_text("R\xC3\xA9sum\xC3\xA9", folded);
+    require(folded == "resume", "diacritics fold away (R\u00e9sum\u00e9)");
+    fold_help_text("STRA\xC3\x9F" "E", folded);
+    require(folded == "strasse", "full case folding (\u00df to ss)");
+    fold_help_text("\xEF\xAC\x81le", folded);
+    require(folded == "file", "a ligature folds to its letters (\ufb01)");
+    fold_help_text("\xC4\xB0stanbul", folded);
+    require(folded == "istanbul", "dotted capital I folds to i");
+    fold_help_text("\xCE\xA9\xCE\x9C\xCE\x88\xCE\x93\xCE\x91", folded);
+    require(folded == "\xCF\x89\xCE\xBC\xCE\xB5\xCE\xB3\xCE\xB1", "Greek capitals and tonos fold");
+    fold_help_text("\xEF\xBC\xA1\xEF\xBC\xA2", folded);
+    require(folded == "ab", "full-width letters fold");
+    fold_help_text("na\xC3\xAFve\xE2\x80\x94test", folded);
+    require(folded == "naive test", "an em dash separates words");
+    const std::string devanagari = "\xE0\xA4\xB9\xE0\xA4\xBF\xE0\xA4\xA8\xE0\xA5\x8D\xE0\xA4\xA6\xE0\xA5\x80";
+    fold_help_text(devanagari, folded);
+    require(folded == devanagari, "Indic vowel signs and the virama are kept");
+    const std::string hangul = "\xED\x95\x9C\xEA\xB5\xAD";
+    fold_help_text(hangul, folded);
+    require(folded == hangul, "Hangul syllables stay composed");
+    fold_help_text("a\xFF\xC3" "b", folded);
+    require(folded == "a\xFF\xC3" "b", "malformed bytes are kept");
+    std::string again;
+    fold_help_text("Caf\xC3\xA9 \xC3\x85ngstr\xC3\xB6m", folded);
+    fold_help_text(folded, again);
+    require(again == folded && folded == "cafe angstrom", "folding is idempotent");
+
+    HelpCatalog catalog;
+    HelpRecordEntry entry{};
+    entry.stable_id = "main.resume";
+    entry.title = "R\xC3\xA9sum\xC3\xA9 and na\xC3\xAFvet\xC3\xA9";
+    entry.help = "Writing a CV \xE2\x80\x94 the STRA\xC3\x9F" "E guide.";
+    catalog.built_in().put(std::move(entry));
+    const HelpBookCompileResult compiled = compile_helpbook_section(catalog, {}, {});
+    HelpSearchQuery query;
+    std::vector<HelpSearchHit> hits;
+    parse_help_query("resume naivete", query);
+    require(search_help(compiled.section, query, {}, hits) == HelpSearchStatus::complete && hits.size() == 1U &&
+                hits[0].title_hit,
+            "an unaccented query finds accented words");
+    parse_help_query("Stra\xC3\x9F" "e", query);
+    require(search_help(compiled.section, query, {}, hits) == HelpSearchStatus::complete && hits.size() == 1U,
+            "\u00df in the query matches SS in the body");
+    parse_help_query("\"cv the\"", query);
+    require(search_help(compiled.section, query, {}, hits) == HelpSearchStatus::complete && hits.size() == 1U,
+            "a phrase spans an em dash");
+}
+
 void page_model() {
     HelpPageModel page;
     const MarkdownParseResult parsed = build_help_page(
@@ -369,6 +420,7 @@ int main() {
     contents_and_compile();
     broken_links();
     search();
+    unicode_folding();
     page_model();
     locale_depth_limit();
     std::cout << "help system core tests passed\n";
