@@ -499,6 +499,38 @@ plots::PlotTransformResult PlotEngine::transform_for(const PlotEngineSeries& ser
     return result;
 }
 
+void PlotEngine::paint_handles(Painter& painter, const Control& owner, std::span<const PlotHandle> handles,
+                               std::optional<std::uint32_t> dragged, double device_scale) const {
+    if (handles.empty()) return;
+    const plots::PlotTransformResult made = first_axes_transform(device_scale);
+    if (made.check != plots::PlotTransformCheck::valid) return;
+    const Rect plot = made.transform.plot();
+    const PlotPalette palette = resolve_plot_palette(owner);
+    painter.save();
+    painter.clip_rect(plot);
+    for (std::size_t index = 0U; index < handles.size(); ++index) {
+        const PlotHandle& handle = handles[index];
+        const Point at = made.transform.to_device(handle.x, handle.y);
+        const bool heavy = dragged.has_value() && *dragged == handle.id;
+        const double width = heavy ? 2.0 : 1.0;
+        if (handle.kind == PlotHandleKind::vertical_line) {
+            painter.draw_line(Point{at.x, plot.y}, Point{at.x, plot.y + plot.height}, palette.selection_edge, width);
+        } else if (handle.kind == PlotHandleKind::horizontal_line) {
+            painter.draw_line(Point{plot.x, at.y}, Point{plot.x + plot.width, at.y}, palette.selection_edge, width);
+        } else {
+            MarkerStyle marker{};
+            marker.shape = MarkerShape::circle;
+            marker.size = heavy ? 10.0 : 8.0;
+            marker.fill = palette.selection_fill;
+            marker.edge = palette.selection_edge;
+            marker.edge_width = width;
+            const std::array<Point, 1> centre{at};
+            painter.draw_markers(centre, marker);
+        }
+    }
+    painter.restore();
+}
+
 plots::PlotTransformResult PlotEngine::first_axes_transform(double device_scale) const noexcept {
     const std::span<const plots::Axis> xs = model_.x_axes();
     const std::span<const plots::Axis> ys = model_.y_axes();

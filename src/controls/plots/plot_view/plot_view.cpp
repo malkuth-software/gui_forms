@@ -7,7 +7,6 @@
 #include "gui_forms/controls/plot_annotation_item.hpp"
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/controls/plot_series_item.hpp"
-#include "gui_forms/controls/plot_view_palette.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
@@ -695,34 +694,9 @@ void PlotView::finish_handle_drag(const DragTrackerFrame& frame) {
 }
 
 void PlotView::paint_handles(Painter& painter) {
-    if (handles_.empty()) return;
-    const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
-    if (made.check != plots::PlotTransformCheck::valid) return;
-    const Rect plot = made.transform.plot();
-    const PlotPalette palette = resolve_plot_palette(*this);
-    painter.save();
-    painter.clip_rect(plot);
-    for (std::size_t index = 0U; index < handles_.size(); ++index) {
-        const PlotHandle& handle = handles_[index];
-        const Point at = made.transform.to_device(handle.x, handle.y);
-        const bool dragged = handle_drag_state_.has_value() && (*handle_drag_state_).id == handle.id;
-        const double width = dragged ? 2.0 : 1.0;
-        if (handle.kind == PlotHandleKind::vertical_line) {
-            painter.draw_line(Point{at.x, plot.y}, Point{at.x, plot.y + plot.height}, palette.selection_edge, width);
-        } else if (handle.kind == PlotHandleKind::horizontal_line) {
-            painter.draw_line(Point{plot.x, at.y}, Point{plot.x + plot.width, at.y}, palette.selection_edge, width);
-        } else {
-            MarkerStyle marker{};
-            marker.shape = MarkerShape::circle;
-            marker.size = dragged ? 10.0 : 8.0;
-            marker.fill = palette.selection_fill;
-            marker.edge = palette.selection_edge;
-            marker.edge_width = width;
-            const std::array<Point, 1> centre{at};
-            painter.draw_markers(centre, marker);
-        }
-    }
-    painter.restore();
+    const std::optional<std::uint32_t> dragged = dragged_handle();
+    (*engine_).paint_handles(painter, *this, std::span<const PlotHandle>(handles_.data(), handles_.size()), dragged,
+                             device_scale());
 }
 
 // The mouse raisers hand the target phase to handle_pointer, whose

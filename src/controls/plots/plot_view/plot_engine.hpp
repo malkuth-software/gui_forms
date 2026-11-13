@@ -159,6 +159,10 @@ public:
     // Places the cursor (false when `cursor` names no element).
     bool set_cursor(PlotCursor cursor, std::span<const PlotEngineSeries> series);
     [[nodiscard]] PlotViewRanges ranges() const;
+    // Draws `handles` (PlotView::set_handles) over the plot on its first
+    // axes, `dragged` heavier, in the palette's selection colours.
+    void paint_handles(Painter& painter, const Control& owner, std::span<const PlotHandle> handles,
+                       std::optional<std::uint32_t> dragged, double device_scale) const;
     // The transform of the first x and y axes over the plot.
     [[nodiscard]] plots::PlotTransformResult first_axes_transform(double device_scale) const noexcept;
     [[nodiscard]] PlotQuery query() const;
