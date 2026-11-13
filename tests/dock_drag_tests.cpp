@@ -22,6 +22,7 @@
 #include "gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp"
 #include "gui_forms/docking/dock_layout/dock_layout.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/event/delegate/delegate.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
@@ -912,6 +913,52 @@ void stamp_picture() {
     window.set_framebuffer_painter(nullptr);
 }
 
+// The drop-cue pulse (roadmap row 2.6): painted over a selected target, it
+// is enlisted on the motion clock; a frame after the target goes drops it;
+// under reduced motion it is painted still and never enlisted.
+void drop_pulse() {
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockSite& site = *(*fixture).site;
+    Window& window = *(*fixture).window;
+    ManualTime time{};
+    window.motion_clock().set_time_source(&time);
+    require(!site.drop_pulse_running(), "no drag, no pulse");
+    const Rect pane = stack_bounds(site, stack_of(*(*fixture).workspace, "properties"));
+    drag_caption(*fixture, "output", centre(pane));
+    require(site.drag_target().has_value(), "the pane's middle is a target");
+    test_support::CountingPainter painter{};
+    static_cast<void>(window.paint(painter, Rect{0.0, 0.0, 800.0, 500.0}));
+    require(site.drop_pulse_effect() != nullptr && (*site.drop_pulse_effect()).entry() != nullptr,
+            "the target's paint attaches the pulse");
+    require(site.drop_pulse_running(), "and enlists it on the motion clock");
+    const Rect documents = stack_bounds(site, stack_of(*(*fixture).workspace, "doc.second"));
+    move(window, centre(documents));
+    require(!site.drag_target().has_value(), "Output is no document: no target there");
+    static_cast<void>(window.paint(painter, Rect{0.0, 0.0, 800.0, 500.0}));
+    for (int frame = 0; frame < 4; ++frame) {
+        time.time += std::chrono::milliseconds(40);
+        static_cast<void>(window.poll_frame_schedule(time.time));
+    }
+    require(!site.drop_pulse_running(), "with no target the pulse leaves the clock");
+    cancel_after(*fixture);
+
+    std::unique_ptr<Fixture> reduced = make_fixture();
+    Window& calm = *(*reduced).window;
+    PresentationSettings settings = calm.presentation_settings();
+    settings.reduced_motion = true;
+    calm.set_presentation_settings(settings);
+    calm.perform_layout();
+    const Rect calm_pane = stack_bounds(*(*reduced).site, stack_of(*(*reduced).workspace, "properties"));
+    drag_caption(*reduced, "output", centre(calm_pane));
+    test_support::CountingPainter still{};
+    static_cast<void>(calm.paint(still, Rect{0.0, 0.0, 800.0, 500.0}));
+    const EffectInstance* const calm_pulse = (*(*reduced).site).drop_pulse_effect();
+    require(calm_pulse != nullptr && (*calm_pulse).entry() != nullptr && (*calm_pulse).counters().ticks == 0U,
+            "under reduced motion the pulse is painted still");
+    require(!(*(*reduced).site).drop_pulse_running(), "and never enlisted");
+    require(key(calm, PhysicalKey::escape), "Escape is taken");
+}
+
 } // namespace
 
 // Audit N76: a workspace that goes away while the stamp settles leaves no
@@ -950,9 +997,10 @@ int main() {
     documents_by_recent_use();
     auto_hide_meets_dragging();
     stamp_picture();
+    drop_pulse();
     settling_ends_without_a_workspace();
     std::cout << "DockSite dragging: geometry, the target table, threshold, Escape, capture loss, deactivation, "
                  "layout changes, invalid drops, Ctrl, one transaction per drop, the stamp and its frames, tab drags, the "
-                 "keyboard move mode and restrictions passed\n";
+                 "keyboard move mode, restrictions and the drop pulse passed\n";
     return EXIT_SUCCESS;
 }

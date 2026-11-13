@@ -11,6 +11,8 @@
 // its record's bounds fit its budgets; this file is compiled without the
 // pass, so its own test effect is labelled unverified either way.
 
+#include "gui_forms/controls/dock_site_effects.hpp"
+#include "gui_forms/controls/numeric_up_down_effects.hpp"
 #include "gui_forms/controls/progress_bar_effects.hpp"
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
@@ -56,6 +58,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <span>
@@ -260,10 +263,17 @@ void bounded_ranges() {
 
 void registry_checks() {
     const EffectRegistry& registry = built_in_effect_registry();
-    require(registry.count() == 7U,
-            "seven built-in effects: the progress bar's five, the sweep scope's and the node canvas's link flow");
+    require(registry.count() == 9U,
+            "nine built-in effects: the progress bar's five, the sweep scope's, the node canvas's link flow, the "
+            "dock site's drop pulse and the numeric field's scrub glow");
     require(built_in("scope_sweep").parent == "sweep_scope", "the sweep scope's effect names its parent");
     require(built_in("link_flow").parent == "node_canvas", "the link flow names the node canvas as its parent");
+    require(built_in("drop_pulse").parent == "dock_site" &&
+                (*built_in("drop_pulse").declaration).time_model == EffectTimeModel::ambient,
+            "the drop pulse is ambient on the dock site");
+    require(built_in("scrub_glow").parent == "numeric_up_down" &&
+                (*built_in("scrub_glow").declaration).time_model == EffectTimeModel::transition,
+            "the scrub glow is a transition on the numeric field");
     const std::array<std::string_view, 5> names{"progress_stripes", "progress_pulse", "progress_laser",
                                                  "progress_woven_stripes", "progress_bubbles"};
     for (const std::string_view name : names) {
@@ -1481,6 +1491,62 @@ void backdrop_sampling() {
             "a changed backplane is blurred again, into a new raster while the old one is held");
 }
 
+// The interaction cues (roadmap row 2.6): the drop pulse draws a tint and
+// an edge while it moves, only the edge when still, and advances only on
+// moving frames; the scrub glow draws nothing at transition 0 and a tint
+// and an edge above it, and its host's transition is held to [0, 1].
+void interaction_cues() {
+    const Rect part{10.0, 20.0, 120.0, 80.0};
+    const EffectView<DockSite> drop{};
+    EffectColours colours{};
+    colours.primary = Color::rgba(38, 114, 185, 255);
+    colours.secondary = Color::rgba(38, 114, 185, 255);
+
+    EffectInstance pulse;
+    pulse.attach(built_in("drop_pulse"), 1U, start);
+    pulse.set_colours(colours);
+    RecordingPainter still;
+    pulse.paint(still, part, 1.0, true, drop);
+    require(still.stroked == 1 && still.rects == 0, "a still pulse draws its steady edge and no tint");
+    const std::uint64_t resting = pulse.state_checksum();
+    static_cast<void>(pulse.advance(at_milliseconds(50)));
+    RecordingPainter held;
+    pulse.paint(held, part, 1.0, true, drop);
+    require(pulse.state_checksum() == resting && pulse.counters().ticks == 0U, "a still frame advances nothing");
+    RecordingPainter moving;
+    pulse.paint(moving, part, 1.0, false, drop);
+    require(moving.stroked == 1 && moving.rects == 1, "a moving pulse draws its tint and its edge");
+    require(pulse.counters().ticks == 3U && pulse.state_checksum() != resting, "a moving frame runs the ticks due");
+    require(pulse.last_meter().refused == 0U, "the pulse stays within budget");
+    RecordingPainter narrow;
+    pulse.paint(narrow, Rect{0.0, 0.0, 1.0, 40.0}, 1.0, true, drop);
+    require(narrow.stroked == 0, "a part narrower than the edge draws nothing");
+
+    const EffectView<NumericUpDown> field{};
+    EffectInstance glow;
+    glow.attach(built_in("scrub_glow"), 1U, start);
+    glow.set_colours(colours);
+    require(glow.transition() == 0.0, "the transition starts at 0");
+    RecordingPainter dark;
+    glow.paint(dark, part, 1.0, false, field);
+    require(dark.stroked == 0 && dark.rects == 0, "at transition 0 the glow draws nothing");
+    glow.set_transition(0.5);
+    RecordingPainter half;
+    glow.paint(half, part, 1.0, false, field);
+    require(half.stroked == 1 && half.rects == 1, "midway the glow draws its tint and its edge");
+    glow.set_transition(2.0);
+    require(glow.transition() == 1.0, "a transition above 1 is held at 1");
+    glow.set_transition(std::numeric_limits<double>::quiet_NaN());
+    require(glow.transition() == 0.0, "a NaN transition is 0");
+    glow.set_transition(-0.5);
+    require(glow.transition() == 0.0, "a negative transition is 0");
+    glow.set_transition(1.0);
+    RecordingPainter lit;
+    glow.paint(lit, part, 2.0, true, field);
+    require(lit.stroked == 1 && lit.rects == 1, "a still frame still shows the transition's level");
+    require(glow.last_meter().refused == 0U, "the glow stays within budget");
+}
+
 int main() {
     generator_known_answers();
     bounded_ranges();
@@ -1501,10 +1567,11 @@ int main() {
     part_shape_clip();
     backdrop_sampling();
     vocabulary_version_two();
+    interaction_cues();
     std::cout << "effect programs: generator, bounded ranges, registry, verification, ticks and skips, meter, "
                  "stripes, pulse, laser, woven stripes, bubbles and steam, progress bar hosting, motion clock, "
                  "properties and input, themes selecting effects, colour roles, right to left, pointer record, "
                  "part shape clip, "
-                 "backdrop, vocabulary version 2\n";
+                 "backdrop, vocabulary version 2, interaction cues\n";
     return 0;
 }

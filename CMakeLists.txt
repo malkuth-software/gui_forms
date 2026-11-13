@@ -1236,6 +1236,7 @@ add_library(gui_forms_controls STATIC
     src/controls/instruments/sweep_scope/sweep_scope.cpp
     src/controls/instruments/sweep_scope/sweep_scope_effects.cpp
     src/controls/link_flow/link_flow_effects.cpp
+    src/controls/interaction_cues/interaction_cue_effects.cpp
     src/controls/instruments/sparkline/sparkline.cpp
     src/controls/plots/plot_axis_item/plot_axis_item.cpp
     src/controls/plots/plot_series_item/plot_series_item.cpp
@@ -1273,7 +1274,8 @@ set_target_properties(gui_forms_controls gui_forms_host_headless PROPERTIES
 gui_forms_verify_effects(gui_forms_controls
     SOURCES src/controls/range_control/progress_bar/progress_bar_effects.cpp
             src/controls/instruments/sweep_scope/sweep_scope_effects.cpp
-            src/controls/link_flow/link_flow_effects.cpp)
+            src/controls/link_flow/link_flow_effects.cpp
+            src/controls/interaction_cues/interaction_cue_effects.cpp)
 
 # The lab library (audit F9): controls a product uses that are not part of
 # the installed library. CorrespondenceView, ReviewCard and InstrumentRack

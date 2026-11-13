@@ -3,6 +3,10 @@
 #include "../up_down/spin_buttons.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/controls/numeric_up_down_effects.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "../panel_anatomy.hpp"
 #include "../../../core/drag_engine/scrub_gesture.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -13,6 +17,7 @@
 #include <charconv>
 #include <cmath>
 #include <iomanip>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -125,6 +130,8 @@ double NumericUpDownScrub::shown(double value) const noexcept {
 
 void NumericUpDownScrub::preview_scrub(double value) {
     NumericUpDown& numeric = *numeric_;
+    // Past the threshold: the field glows (a no-op after the first preview).
+    numeric.set_scrub_glow_target(true);
     const double next = shown(value);
     if (next != numeric.value.read()) numeric.value = next;
 }
@@ -135,6 +142,7 @@ void NumericUpDownScrub::end_scrub(ScrubEnd end, double value) {
     NumericUpDown& numeric = *numeric_;
     const double next = end == ScrubEnd::committed ? shown(value) : value;
     if (next != numeric.value.read()) numeric.value = next;
+    numeric.set_scrub_glow_target(false);
     numeric.invalidate(Dirty::paint);
 }
 
@@ -338,11 +346,93 @@ void NumericUpDown::step(int direction) {
 }
 
 void NumericUpDown::on_paint_overlay(Painter& painter, Rect local_damage) {
+    // The glow's timer waits for this paint after each damaging tick.
+    scrub_glow_frames_.note_painted();
     Panel::on_paint_overlay(painter, local_damage);
-    if (!spinner_) return;
-    // spinner_ is the SpinButtons initialize_control_tree made.
-    const SpinPartNames names{"increment_arrow", "decrement_arrow", "increment_glyph", "decrement_glyph"};
-    paint_spin_parts(painter, *this, static_cast<const SpinButtons&>(*spinner_), names);
+    if (spinner_) {
+        // spinner_ is the SpinButtons initialize_control_tree made.
+        const SpinPartNames names{"increment_arrow", "decrement_arrow", "increment_glyph", "decrement_glyph"};
+        paint_spin_parts(painter, *this, static_cast<const SpinButtons&>(*spinner_), names);
+    }
+    // The scrub glow over the field (and its editor), in the theme's accent.
+    if (scrub_glow_ <= 0.0 || field_bounds_.empty()) return;
+    const EffectEntry* const entry = built_in_effect_registry().find(ScrubGlow::declaration.name);
+    if (entry == nullptr) return;
+    if (scrub_glow_effect_.entry() != entry) {
+        scrub_glow_effect_.attach(*entry, effect_default_seed(stable_id().value(), ScrubGlow::declaration.name),
+                                  FrameClock::now());
+    }
+    const Color accent = effective_theme().basic_style().accent;
+    EffectColours colours{};
+    colours.primary = accent;
+    colours.secondary = accent;
+    scrub_glow_effect_.set_colours(colours);
+    scrub_glow_effect_.set_transition(scrub_glow_);
+    const SurfaceRoot* const root = attached_surface_root();
+    const bool still = root == nullptr || (*root).motion_clock().suppressed();
+    const Window* const host = attached_window();
+    const double scale = host != nullptr ? (*host).scale() : 1.0;
+    const EffectView<NumericUpDown> view{};
+    scrub_glow_effect_.paint(painter, field_bounds_, scale, still, view);
+}
+
+// -- the scrub glow --------------------------------------------------------------
+
+void NumericUpDown::set_scrub_glow_target(bool lit) {
+    const double target = lit ? 1.0 : 0.0;
+    if (target == scrub_glow_to_) return;
+    scrub_glow_from_ = scrub_glow_;
+    scrub_glow_to_ = target;
+    invalidate(field_bounds_);
+    const SurfaceRoot* const root = attached_surface_root();
+    const bool suppressed = root == nullptr || (*root).motion_clock().suppressed();
+    if (suppressed) {
+        complete_scrub_glow();
+        return;
+    }
+    AnimationSpec specification{};
+    specification.duration = lit ? scrub_glow_rise : scrub_glow_fall;
+    specification.easing = EasingCurve::ease_out;
+    scrub_glow_timeline_.set_specification(specification);
+    scrub_glow_timeline_.start(FrameClock::now());
+    const std::shared_ptr<NumericUpDown> self = std::static_pointer_cast<NumericUpDown>(shared_from_this());
+    scrub_glow_frames_.start(*this, display_frame_interval, ScrubGlowTick{self});
+}
+
+AnimationTickResult NumericUpDown::ScrubGlowTick::operator()(FrameTime now) const {
+    const std::shared_ptr<NumericUpDown> live = target.lock();
+    const AnimationTickResult result = live ? (*live).on_scrub_glow_tick(now) : AnimationTickResult::unchanged;
+    return result;
+}
+
+AnimationTickResult NumericUpDown::on_scrub_glow_tick(FrameTime now) {
+    // Motion suppressed since the transition began (reduced motion, an
+    // occluded window): the glow jumps to its end.
+    const SurfaceRoot* const root = attached_surface_root();
+    const bool suppressed = root == nullptr || (*root).motion_clock().suppressed();
+    const AnimationSample sample = scrub_glow_timeline_.sample(now);
+    if (suppressed || sample.finished || !scrub_glow_timeline_.running()) {
+        complete_scrub_glow();
+    } else {
+        const double eased = std::clamp(sample.eased_progress, 0.0, 1.0);
+        scrub_glow_ = scrub_glow_from_ + (scrub_glow_to_ - scrub_glow_from_) * eased;
+    }
+    invalidate(field_bounds_);
+    return AnimationTickResult::damaged;
+}
+
+void NumericUpDown::complete_scrub_glow() noexcept {
+    scrub_glow_frames_.stop();
+    scrub_glow_timeline_.stop();
+    scrub_glow_ = scrub_glow_to_;
+    scrub_glow_from_ = scrub_glow_to_;
+}
+
+void NumericUpDown::on_detached_from_window() noexcept {
+    // A scrub cannot outlive the window: the glow ends unlit, with no timer.
+    scrub_glow_to_ = 0.0;
+    complete_scrub_glow();
+    UpDownBase::on_detached_from_window();
 }
 
 void NumericUpDown::arrange(Rect final_bounds) {
@@ -369,6 +459,7 @@ void NumericUpDown::arrange(Rect final_bounds) {
         field = horizontally_mirrored(field, frame);
         column = horizontally_mirrored(column, frame);
     }
+    field_bounds_ = field;
     if (editor_) set_child_layout(editor_, field);
     if (spinner_) set_child_layout(spinner_, column);
 }
@@ -419,6 +510,8 @@ void NumericUpDown::on_pointer_preview(PointerEvent& event) {
 bool NumericUpDown::begin_keyboard_drag() {
     if (!scrub.read() || !enabled.read() || !scrub_) return false;
     const bool started = (*scrub_).gesture.begin_keyboard();
+    // The keyboard mode scrubs at once: the field glows.
+    if (started && scrubbing()) set_scrub_glow_target(true);
     return started;
 }
 

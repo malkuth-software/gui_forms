@@ -3,7 +3,9 @@
 
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
+#include "gui_forms/controls/dock_site_effects.hpp"
 #include "gui_forms/controls/link_flow_effects.hpp"
+#include "gui_forms/controls/numeric_up_down_effects.hpp"
 #include "gui_forms/controls/sweep_scope_effects.hpp"
 #include "gui_forms/controls/progress_bar_effects.hpp"
 
@@ -15,6 +17,8 @@ EffectRegistry make_built_in_effect_registry() {
     register_progress_bar_effects(registry);
     register_sweep_scope_effects(registry);
     register_link_flow_effects(registry);
+    register_dock_site_effects(registry);
+    register_numeric_up_down_effects(registry);
     return registry;
 }
 

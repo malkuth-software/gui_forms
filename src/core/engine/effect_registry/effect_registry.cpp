@@ -393,6 +393,15 @@ void EffectInstance::rebase(FrameTime now) noexcept {
     pending_ = 0U;
 }
 
+void EffectInstance::set_transition(double progress) noexcept {
+    // The negated test takes a NaN to 0 as well as a negative value.
+    if (!(progress > 0.0)) {
+        transition_ = 0.0;
+        return;
+    }
+    transition_ = progress < 1.0 ? progress : 1.0;
+}
+
 namespace {
 
 // How much input `kind` admits: 0 none, 1 pointer, 2 pointer and keys.
@@ -596,6 +605,7 @@ void EffectInstance::paint_view(Painter& painter, Rect part, double scale, bool 
     frame.input = input_;
     frame.input_count = input_count_;
     frame.colours = colours_;
+    frame.transition = transition_;
     // The standing pointer, only where the effect declares input and the
     // host grants it (section 8a(1)); otherwise zero.
     const bool pointer_granted =

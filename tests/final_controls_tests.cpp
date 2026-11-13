@@ -37,6 +37,7 @@
 #include "gui_forms/theme/types/theme_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/delegate.hpp"
@@ -516,6 +517,7 @@ void test_modal_layer() {
     require(!(*layer).show(behind, nullptr), "a layer needs content");
     require((*layer).show(behind, content) && (*layer).is_shown(), "the layer shows its content");
     window.perform_layout();
+    require((*layer).scrim_opacity() == 0.0, "the scrim fades in from nothing (row 2.6)");
     const Rect placed = (*content).absolute_bounds();
     require(near(placed.x, 150.0) && near(placed.y, 140.0), "the content is centred");
     require((*layer).parts().shadow.present, "the content casts the shadow");
@@ -546,8 +548,17 @@ void test_modal_layer() {
                 recorder.seen.back() == "modal:2" && (*layer).result() == std::optional<DialogResult>{DialogResult::cancel},
             "Escape closes as cancel");
     require(!(*content).parent(), "the content leaves the layer");
+    require((*layer).scrim_opacity() == 1.0, "a closed layer's fade is over");
     require((*layer).show(behind, content), "the layer shows again");
     require((*layer).close(DialogResult::ok) && recorder.seen.back() == "modal:1", "close reports its result");
+
+    // Under reduced motion the scrim is full at once.
+    PresentationSettings settings = window.presentation_settings();
+    settings.reduced_motion = true;
+    window.set_presentation_settings(settings);
+    require((*layer).show(behind, content) && (*layer).scrim_opacity() == 1.0,
+            "under reduced motion the scrim does not fade");
+    require((*layer).close(DialogResult::ok), "the calm layer closes");
 }
 
 void test_lookup_combo_box() {

@@ -28,6 +28,9 @@
 
 namespace gui_forms {
 
+// The drag layer's drop-pulse instance (effect_registry.hpp).
+class EffectInstance;
+
 // The rows of a panel's position menu (owner decision DK-30; docking study
 // 5.7). Float floats the panel into a new floating window (phase D4; enabled
 // while the workspace has windows attached and the panel may float). Auto
@@ -467,6 +470,15 @@ public:
     [[nodiscard]] std::span<const DockDropTarget> drag_targets() const noexcept;
     [[nodiscard]] std::span<const DockDropPane> drag_panes() const noexcept;
     [[nodiscard]] std::optional<DockDropTarget> drag_target() const;
+    // The drop-cue pulse over the selected target's drop part (the effect
+    // program drop_pulse, dock_site_effects.hpp), hosted by the drag
+    // layer: its instance, null before the site has a drag layer (attached
+    // only once the pulse is first painted), and whether it is enlisted on
+    // the motion clock. It is enlisted while a shown target may pulse
+    // (ambient motion on, motion not reduced) and leaves the clock at the
+    // first frame after the target goes; a still frame draws a steady edge.
+    [[nodiscard]] const EffectInstance* drop_pulse_effect() const noexcept;
+    [[nodiscard]] bool drop_pulse_running() const noexcept;
     // Whether this site shows a drag that runs in another site (phase D4).
     [[nodiscard]] bool showing_remote_drag() const noexcept { return drag_.guest; }
     // While a floating window is moved by its caption (phase D4).

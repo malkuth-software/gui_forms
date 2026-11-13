@@ -278,6 +278,8 @@ Related types
      - The current value (Value), within minimum and maximum; a view onto the range's value.
    * - :cpp:class:`RangeScrollEvent <gui_forms::RangeScrollEvent>`
      - RangeScrollEvent is the typed transition payload shared by interactive range controls.
+   * - :cpp:class:`ScrubGlow <gui_forms::ScrubGlow>`
+     - The scrub glow: an edge inside the field in the frame's primary colour and a faint tint in its secondary, both at an opacity that follows the transition (smoothed).
    * - :cpp:class:`ToggleSwitch::Parts <gui_forms::ToggleSwitch::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`ToggleSwitchCapabilities <gui_forms::ToggleSwitchCapabilities>`
@@ -2426,6 +2428,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: ScrubGlow final
+
+   ``#include <gui_forms/controls/numeric_up_down_effects.hpp>``
+
+   The scrub glow: an edge inside the field in the frame's primary colour and a faint tint in its secondary, both at an opacity that follows the transition (smoothed). Nothing at transition 0. It keeps no state.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void run(const EffectView<NumericUpDown>& parent, const EffectFrame& frame, EffectCanvas& canvas)
+
+   .. cpp:type:: parent_type = NumericUpDown
+
+   .. cpp:member:: constexpr EffectDeclaration declaration
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ToggleSwitch::Parts final
 
    ``#include <gui_forms/controls/toggle_switch.hpp>``
@@ -3140,6 +3159,26 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/numeric_up_down.hpp>``
+
+.. cpp:var:: constexpr FrameInterval scrub_glow_rise
+
+   The scrub glow's rise as a scrub starts and its fade as it ends. Value: ``std::chrono::milliseconds(120)``.
+
+.. cpp:var:: constexpr FrameInterval scrub_glow_fall
+
+   Value: ``std::chrono::milliseconds(240)``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/numeric_up_down_effects.hpp>``
+
+.. cpp:function:: void register_numeric_up_down_effects(EffectRegistry& registry)
+
+   Adds the scrub glow to ``registry``.
 
 .. cpp:namespace:: gui_forms
 

@@ -2277,6 +2277,12 @@ Types
 
       The colours the next frames are given (EffectFrame::colours); the host sets them before each paint. Kept across attach and detach.
 
+   .. cpp:function:: double transition() const noexcept
+
+   .. cpp:function:: void set_transition(double progress) noexcept
+
+      The part's transition progress, which the next paint gives a transition-model effect as EffectFrame::transition: ``progress`` held to [0, 1], a NaN as 0. The host drives it (its own timeline); an ambient or static effect ignores it. 0 until set.
+
    .. cpp:function:: std::uint64_t state_checksum() const noexcept
 
       The state's bytes, hashed (FNV-1a): the motion checksum.

@@ -1837,3 +1837,11 @@ Functions, constants and aliases
 .. cpp:function:: std::span<const BundledFontFace> bundled_font_faces() noexcept
 
    The bundled faces a FontDialog offers, in its list order.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/modal_layer.hpp>``
+
+.. cpp:var:: constexpr FrameInterval modal_scrim_fade
+
+   The scrim's fade-in as a modal layer opens (roadmap row 2.6). Value: ``std::chrono::milliseconds(150)``.

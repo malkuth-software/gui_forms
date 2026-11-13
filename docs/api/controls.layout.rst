@@ -138,6 +138,8 @@ Related types
      - The distance, in logical units along either axis, a caption press moves before it drags (owner decision DK-26, D5-1: 4, or a host's metric; no host reports one yet).
    * - :cpp:class:`DockSiteKeyboardIncrementCapability <gui_forms::DockSiteKeyboardIncrementCapability>`
      - The step of a keyboard seam move, in logical units; 8 by default.
+   * - :cpp:class:`DropPulse <gui_forms::DropPulse>`
+     - The drop-cue pulse: an edge inside the drop part and a faint tint over it, their opacity breathing between a low and a high level once every ``drop_pulse_period_seconds``.
    * - :cpp:class:`FlexItemLayout <gui_forms::FlexItemLayout>`
      - One child's flex item properties (CSS Flexbox's names; PLAN section 2.2).
    * - :cpp:class:`FlexPanelAlignContentCapability <gui_forms::FlexPanelAlignContentCapability>`
@@ -986,6 +988,23 @@ Related types
    .. cpp:member:: PropertyCell<double, DockSiteKeyboardIncrementCapability<Declaring>> keyboard_increment
 
       Default: ``{8.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: DropPulse final
+
+   ``#include <gui_forms/controls/dock_site_effects.hpp>``
+
+   The drop-cue pulse: an edge inside the drop part and a faint tint over it, their opacity breathing between a low and a high level once every ``drop_pulse_period_seconds``. The edge is the frame's primary colour and the tint its secondary. Still: the edge at its middle level, no tint.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void run(const EffectView<DockSite>& parent, const EffectFrame& frame, EffectCanvas& canvas)
+
+   .. cpp:type:: parent_type = DockSite
+
+   .. cpp:member:: constexpr EffectDeclaration declaration
 
 .. cpp:namespace:: gui_forms
 
@@ -3186,6 +3205,18 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/dock_site_effects.hpp>``
+
+.. cpp:function:: void register_dock_site_effects(EffectRegistry& registry)
+
+   Adds the drop pulse to ``registry``.
+
+.. cpp:var:: constexpr double drop_pulse_period_seconds
+
+   One breath of the pulse. Value: ``1.2``.
 
 .. cpp:namespace:: gui_forms
 

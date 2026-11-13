@@ -2,12 +2,16 @@
 
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <memory>
 #include <utility>
 
 namespace gui_forms {
@@ -75,13 +79,19 @@ Rect ModalLayer::content_slot() const noexcept {
 }
 
 void ModalLayer::on_paint(Painter& painter, Rect) {
+    // The fade's timer waits for this paint after each damaging tick.
+    scrim_fade_frames_.note_painted();
     const Rect slot = content_slot();
     if (slot.empty()) return;
     const AnatomyStateSet states = anatomy_states();
     PartPaint scrim{.role = PartRole::scrim, .bounds = client_rectangle(), .states = states,
                     .family = ControlVisualRole::window};
     scrim.key = PartKey{"scrim", {}, {}};
+    // While it fades in, the scrim draws in a group at the fade's opacity.
+    const bool fading = scrim_opacity_ < 1.0;
+    if (fading) painter.begin_group(PaintGroup{.bounds = client_rectangle(), .opacity = scrim_opacity_});
     paint_part(painter, *this, scrim);
+    if (fading) painter.end_group();
     PartPaint shadow{.role = PartRole::shadow, .bounds = slot, .states = states,
                      .family = ControlVisualRole::tool_tip};
     paint_part(painter, *this, shadow);
@@ -171,8 +181,46 @@ bool ModalLayer::show(const Control::Ptr& owner, Control::Ptr content) {
             (*revoked).subscribe(*this, Delegate<>::bind<ModalLayer, &ModalLayer::on_overlay_revoked>(*this));
     }
     scope_ = host.begin_focus_scope(content_);
+    // The scrim fades in, unless motion is suppressed.
+    scrim_opacity_ = 1.0;
+    if (!host.motion_clock().suppressed()) {
+        AnimationSpec specification{};
+        specification.duration = modal_scrim_fade;
+        specification.easing = EasingCurve::ease_out;
+        scrim_fade_.set_specification(specification);
+        scrim_fade_.start(FrameClock::now());
+        scrim_opacity_ = 0.0;
+        const std::shared_ptr<ModalLayer> self = std::static_pointer_cast<ModalLayer>(shared_from_this());
+        scrim_fade_frames_.start(*this, display_frame_interval, ScrimFadeTick{self});
+    }
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics);
     return true;
+}
+
+AnimationTickResult ModalLayer::ScrimFadeTick::operator()(FrameTime now) const {
+    const std::shared_ptr<ModalLayer> live = layer.lock();
+    const AnimationTickResult result = live ? (*live).on_scrim_fade_tick(now) : AnimationTickResult::unchanged;
+    return result;
+}
+
+AnimationTickResult ModalLayer::on_scrim_fade_tick(FrameTime now) {
+    // Motion suppressed since the layer opened: the scrim is full at once.
+    const SurfaceRoot* const root = attached_surface_root();
+    const bool suppressed = root == nullptr || (*root).motion_clock().suppressed();
+    const AnimationSample sample = scrim_fade_.sample(now);
+    if (suppressed || sample.finished || !scrim_fade_.running()) {
+        complete_scrim_fade();
+    } else {
+        scrim_opacity_ = std::clamp(sample.eased_progress, 0.0, 1.0);
+    }
+    invalidate(Dirty::paint);
+    return AnimationTickResult::damaged;
+}
+
+void ModalLayer::complete_scrim_fade() noexcept {
+    scrim_fade_frames_.stop();
+    scrim_fade_.stop();
+    scrim_opacity_ = 1.0;
 }
 
 bool ModalLayer::close(DialogResult result) {
@@ -194,6 +242,7 @@ void ModalLayer::on_overlay_revoked() {
 void ModalLayer::finish(DialogResult result) {
     if (!shown_) return;
     shown_ = false;
+    complete_scrim_fade();
     Window* const host = attached_window();
     if (host != nullptr && scope_) static_cast<void>((*host).end_focus_scope(scope_));
     scope_ = {};
@@ -211,6 +260,7 @@ void ModalLayer::finish(DialogResult result) {
 void ModalLayer::on_dispose() noexcept {
     // A disposed layer closes without raising closing or closed.
     shown_ = false;
+    complete_scrim_fade();
     overlay_revoked_.disconnect();
     Window* const host = attached_window();
     if (scope_ && host != nullptr) {

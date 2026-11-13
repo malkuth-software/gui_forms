@@ -374,6 +374,12 @@ public:
     // host sets them before each paint. Kept across attach and detach.
     void set_colours(EffectColours colours) noexcept { colours_ = colours; }
     [[nodiscard]] EffectColours colours() const noexcept { return colours_; }
+    // The part's transition progress, which the next paint gives a
+    // transition-model effect as EffectFrame::transition: `progress` held
+    // to [0, 1], a NaN as 0. The host drives it (its own timeline); an
+    // ambient or static effect ignores it. 0 until set.
+    void set_transition(double progress) noexcept;
+    [[nodiscard]] double transition() const noexcept { return transition_; }
 
     // The state's bytes, hashed (FNV-1a): the motion checksum.
     [[nodiscard]] std::uint64_t state_checksum() const noexcept;
@@ -425,6 +431,7 @@ private:
     EffectInstanceCounters counters_{};
     EffectCanvasMeter last_meter_{};
     EffectColours colours_{};
+    double transition_{};
     EffectInputKind input_grant_{EffectInputKind::none};
     EffectPointer pointer_{};
     // The backdrop (EP-7): the last blurred backplane, kept while its key

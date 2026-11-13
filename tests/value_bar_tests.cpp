@@ -26,6 +26,7 @@
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 
 #include <cmath>
@@ -471,10 +472,13 @@ void numeric_up_down_scrub() {
     pointer(window, PointerAction::down, {40.0, line});
     pointer(window, PointerAction::move, {50.0, line});
     require((*spin).scrubbing() && near((*spin).value.read(), 20.0), "a drag scrubs by the increment per unit");
+    require(near((*spin).scrub_glow_target(), 1.0) && (*spin).scrub_glow() < 1.0,
+            "past the threshold the field's glow starts to rise (row 2.6)");
     pointer(window, PointerAction::move, {53.0, line}, Modifier::shift);
     require(near((*spin).value.read(), 20.0), "Shift: 0.3 rounds away at no decimals");
     pointer(window, PointerAction::up, {53.0, line});
     require(!(*spin).scrubbing() && near((*spin).value.read(), 20.0), "the release keeps the value");
+    require(near((*spin).scrub_glow_target(), 0.0), "the release fades the glow");
     require(window.focused_control() != (*spin).editor(), "a scrub does not focus the field");
     pointer(window, PointerAction::down, {40.0, line});
     pointer(window, PointerAction::move, {60.0, line});
@@ -488,6 +492,18 @@ void numeric_up_down_scrub() {
     pointer(window, PointerAction::move, {70.0, line});
     pointer(window, PointerAction::up, {70.0, line});
     require(near((*spin).value.read(), 20.0), "a focused field edits text instead of scrubbing");
+    require(near((*spin).scrub_glow_target(), 0.0), "no scrub, no glow");
+
+    // Under reduced motion the glow jumps: lit at once, dark at once.
+    require(window.request_focus(other), "the focus leaves the field again");
+    PresentationSettings settings = window.presentation_settings();
+    settings.reduced_motion = true;
+    window.set_presentation_settings(settings);
+    pointer(window, PointerAction::down, {40.0, line});
+    pointer(window, PointerAction::move, {50.0, line});
+    require((*spin).scrubbing() && near((*spin).scrub_glow(), 1.0), "under reduced motion the glow is lit at once");
+    pointer(window, PointerAction::up, {50.0, line});
+    require(!(*spin).scrubbing() && near((*spin).scrub_glow(), 0.0), "and dark at once after the release");
 }
 
 } // namespace

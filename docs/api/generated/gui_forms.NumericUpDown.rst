@@ -81,6 +81,14 @@ gui_forms::NumericUpDown
       **scrubbing** : ``bool``, read-only
          Whether a scrub (scrub mode) is past its threshold or in the keyboard mode.
 
+      **scrub_glow** : ``double``, read-only
+         The glow's level now, 0 (none) to 1 (lit), and the level it moves to: 1 while scrubbing, else 0.
+
+      **scrub_glow_target** : ``double``, read-only
+
+      **scrub_glow_effect** : ``EffectInstance``, read-only
+         The glow's effect instance, attached at its first paint.
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -272,6 +280,16 @@ gui_forms::NumericUpDown
 
       Whether a scrub (scrub mode) is past its threshold or in the keyboard mode.
 
+   .. cpp:function:: double scrub_glow() const noexcept
+
+      The glow's level now, 0 (none) to 1 (lit), and the level it moves to: 1 while scrubbing, else 0.
+
+   .. cpp:function:: double scrub_glow_target() const noexcept
+
+   .. cpp:function:: const EffectInstance& scrub_glow_effect() const noexcept
+
+      The glow's effect instance, attached at its first paint.
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -323,6 +341,8 @@ gui_forms::NumericUpDown
 
    .. cpp:function:: bool begin_keyboard_drag() override
 
+   .. cpp:function:: void on_detached_from_window() noexcept override
+
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value_text) override
@@ -357,7 +377,7 @@ gui_forms::NumericUpDown
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``NumericUpDown``. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 16 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``NumericUpDown``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 17 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -440,6 +460,18 @@ Counterpart: ``NumericUpDown``. Members declared here and by the counterpart: 7 
      - GUI.Forms-only
      - ``scrub``
      - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scrub_glow``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scrub_glow_effect``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``scrub_glow_target``
+     - supported
    * - property
      - GUI.Forms-only
      - ``scrubbing``

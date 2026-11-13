@@ -4,7 +4,11 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/controls/modal_layer_capabilities.hpp"
+#include "gui_forms/animation/animation_timeline/animation_timeline.hpp"
+#include "gui_forms/animation/animation_timer/animation_timer.hpp"
 
+#include <chrono>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -17,6 +21,9 @@ struct GUI_FORMS_API ModalLayerClosingEvent final {
     DialogResult result{DialogResult::none};
     bool cancel{false};
 };
+
+// The scrim's fade-in as a modal layer opens (roadmap row 2.6).
+inline constexpr FrameInterval modal_scrim_fade = std::chrono::milliseconds(150);
 
 // An in-window modal layer (the superset's P1 rest): any control shown as a
 // modal panel inside its owner's window, without a native window. The layer
@@ -56,6 +63,12 @@ public:
     // closing handler refused.
     bool close(DialogResult result);
     [[nodiscard]] bool is_shown() const noexcept { return shown_; }
+    // The scrim's opacity now, as a factor on the theme's: it fades in from
+    // 0 over modal_scrim_fade as the layer opens (ease out, on a
+    // paint-gated timer, ADR-016), and is 1 at once under reduced motion or
+    // in an occluded window. The content and its shadow show at once, and
+    // closing removes the layer at once.
+    [[nodiscard]] double scrim_opacity() const noexcept { return scrim_opacity_; }
     // The content while shown, else empty.
     [[nodiscard]] Control::Ptr content() const noexcept { return content_; }
     // The result of the last closing, or none before the first.
@@ -94,6 +107,15 @@ private:
     [[nodiscard]] Rect content_slot() const noexcept;
     void finish(DialogResult result);
     void on_overlay_revoked();
+    // The fade timer's target. Observes the layer.
+    struct ScrimFadeTick final {
+        std::weak_ptr<ModalLayer> layer;
+        AnimationTickResult operator()(FrameTime now) const;
+    };
+    // One fade tick: the opacity from the timeline, the layer invalidated.
+    AnimationTickResult on_scrim_fade_tick(FrameTime now);
+    // Ends the fade at full opacity and stops its timer.
+    void complete_scrim_fade() noexcept;
 
     Control::Ptr content_{};
     Rect content_bounds_{};
@@ -102,6 +124,9 @@ private:
     FocusScopeId scope_{};
     std::optional<DialogResult> result_{};
     bool shown_{false};
+    double scrim_opacity_{1.0};
+    AnimationTimeline scrim_fade_{};
+    AnimationTimer scrim_fade_frames_{};
     Event<ModalLayerClosingEvent&> closing_;
     Event<DialogResult> closed_;
     // property_codemod begin ModalLayer (tools/property_families/modal_layer.json; generated, do not edit)

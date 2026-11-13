@@ -26,6 +26,9 @@ gui_forms::ModalLayer
 
       **is_shown** : ``bool``, read-only
 
+      **scrim_opacity** : ``double``, read-only
+         The scrim's opacity now, as a factor on the theme's: it fades in from 0 over modal_scrim_fade as the layer opens (ease out, on a paint-gated timer, ADR-016), and is 1 at once under reduced motion or in an occluded window. The content and its shadow show at once, and closing removes the layer at once.
+
       **content** : ``Control::Ptr``, read-only
          The content while shown, else empty.
 
@@ -70,6 +73,10 @@ gui_forms::ModalLayer
       Whether Escape inside the layer asks to close it as cancelled (through closing, which may refuse).
 
    .. cpp:function:: bool is_shown() const noexcept
+
+   .. cpp:function:: double scrim_opacity() const noexcept
+
+      The scrim's opacity now, as a factor on the theme's: it fades in from 0 over modal_scrim_fade as the layer opens (ease out, on a paint-gated timer, ADR-016), and is 1 at once under reduced motion or in an occluded window. The content and its shadow show at once, and closing removes the layer at once.
 
    .. cpp:function:: Control::Ptr content() const noexcept
 
@@ -150,7 +157,7 @@ gui_forms::ModalLayer
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 3 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 3 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -176,6 +183,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 6 su
    * - property
      - GUI.Forms-only
      - ``result``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scrim_opacity``
      - supported
    * - event
      - GUI.Forms-only

@@ -7,7 +7,13 @@
 #include "dock_site_children.hpp"
 #include "../../drag_gesture/drag_gesture.hpp"
 
+#include "gui_forms/controls/dock_site_effects.hpp"
 #include "gui_forms/delegate.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/window.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
@@ -791,6 +797,8 @@ void DockSite::paint_drag_layer(Painter& painter) {
         paint_part(painter, *this, part);
         part.accent.reset();
         part.states = {};
+        // The pulse over it (roadmap row 2.6), painted on the layer.
+        if (drag_layer_) (*drag_layer_).paint_drop_pulse(painter, (*target).highlight);
     }
     if (!drag_.stamp.empty() && !drag_.stamp_hidden) {
         part.family = ControlVisualRole::card;
@@ -1231,6 +1239,88 @@ void DockSite::end_window_move(bool cancelled) {
     DockDragOutcome outcome = DockDragOutcome::ended(DockDragEnd::rejected, subject);
     if (result.applied) outcome = DockDragOutcome::dropped(subject, *target, result, true);
     drag_ended_.emit(outcome);
+}
+
+// -- the drop-cue pulse ---------------------------------------------------------
+
+const EffectInstance* DockSite::drop_pulse_effect() const noexcept {
+    if (!drag_layer_) return nullptr;
+    const EffectInstance* const pulse = &(*drag_layer_).drop_pulse();
+    return pulse;
+}
+
+bool DockSite::drop_pulse_running() const noexcept {
+    const SurfaceRoot* const root = attached_surface_root();
+    if (root == nullptr || !drag_layer_) return false;
+    const bool enlisted = (*root).motion_clock().control_ambient(*drag_layer_);
+    return enlisted;
+}
+
+bool DockSite::DragLayer::pulse_moves() const noexcept {
+    const SurfaceRoot* const root = attached_surface_root();
+    if (root == nullptr || pulse_.entry() == nullptr) return false;
+    const PresentationSettings& settings = (*root).presentation_settings();
+    const bool moves = settings.ambient_motion && !settings.reduced_motion;
+    return moves;
+}
+
+void DockSite::DragLayer::paint_drop_pulse(Painter& painter, Rect highlight) {
+    if (highlight.empty()) return;
+    const EffectEntry* const entry = built_in_effect_registry().find(DropPulse::declaration.name);
+    if (entry == nullptr) return;
+    if (pulse_.entry() != entry) {
+        pulse_.attach(*entry, effect_default_seed(stable_id().value(), DropPulse::declaration.name),
+                      FrameClock::now());
+    }
+    pulse_paints_ = pulse_paints_ + 1U;
+    pulse_bounds_ = highlight;
+    SurfaceRoot* const root = attached_surface_root();
+    bool suppressed = true;
+    if (root != nullptr) {
+        MotionClock& clock = (*root).motion_clock();
+        suppressed = clock.ambient_suppressed();
+        if (!pulse_moves()) {
+            clock.withdraw_control_ambient(*this);
+        } else if (!clock.control_ambient(*this)) {
+            const FrameInterval interval = std::chrono::ceil<FrameInterval>(
+                std::chrono::duration<double>(1.0 / DropPulse::declaration.frames_per_second));
+            // Refused while ambient motion is suppressed (an occluded
+            // window): the pulse then stands still.
+            if (clock.enlist_control_ambient(*this, interval)) {
+                // The pulse starts: its time restarts, with no catch-up.
+                pulse_.rebase(clock.now());
+                pulse_paints_seen_ = ~std::uint64_t{0};
+            }
+        }
+    }
+    // The theme's accent edges the part and tints it.
+    const Color accent = effective_theme().basic_style().accent;
+    EffectColours colours{};
+    colours.primary = accent;
+    colours.secondary = accent;
+    pulse_.set_colours(colours);
+    const bool still = !pulse_moves() || suppressed;
+    const Window* const host = attached_window();
+    const double scale = host != nullptr ? (*host).scale() : 1.0;
+    const EffectView<DockSite> view{};
+    pulse_.paint(painter, highlight, scale, still, view);
+}
+
+bool DockSite::DragLayer::on_ambient_frame(FrameTime now) {
+    // Not painted since the last frame (the layer hidden, or no target
+    // shown), the target gone, or motion now reduced: the clock drops the
+    // pulse, and the next paint over a target enlists it again.
+    if (pulse_paints_ == pulse_paints_seen_ || site_ == nullptr) return false;
+    if (!(*site_).drag_target() || !pulse_moves()) return false;
+    pulse_paints_seen_ = pulse_paints_;
+    static_cast<void>(pulse_.advance(now));
+    invalidate(pulse_bounds_);
+    return true;
+}
+
+void DockSite::DragLayer::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
+    former_window.motion_clock().withdraw_control_ambient(*this);
+    Control::on_detaching_from_window(former_window);
 }
 
 } // namespace gui_forms
