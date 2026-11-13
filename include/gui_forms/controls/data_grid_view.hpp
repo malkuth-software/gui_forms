@@ -2205,8 +2205,10 @@ public:
 
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event; an override calls the base. Only the
-    // properties with a Windows Forms On<Property>Changed have one.
+    // raises the change event. The class is final: a hook is virtual only
+    // where the C ABI's class tables name it as a raiser (sealed ahead of
+    // the class becoming derivable). Only the properties with a Windows
+    // Forms On<Property>Changed have one.
     virtual void on_auto_size_columns_mode_changed();
     virtual void on_auto_size_rows_mode_changed();
     virtual void on_allow_user_to_delete_rows_changed();
@@ -2223,7 +2225,7 @@ protected:
     virtual void on_row_headers_border_style_changed();
     virtual void on_column_headers_height_changed();
     virtual void on_row_headers_width_changed();
-    virtual void on_font_changed();
+    void on_font_changed();
     virtual void on_read_only_changed();
     virtual void on_allow_user_to_resize_columns_changed();
     virtual void on_allow_user_to_resize_rows_changed();

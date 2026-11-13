@@ -2,10 +2,8 @@
  "about": "Distinct first-party warning sites per directory and host, from a whole build (tools/warning_baseline.py, cmake/Hardening.cmake). A count may only go down.",
  "hosts": {
   "windows": {
-   "demo/lab_controls/include/gui_forms_demo": 2,
    "demo/lab_controls/src": 20,
-   "include/gui_forms/controls": 54,
-   "lab/include/gui_forms_lab": 1,
+   "include/gui_forms/controls": 27,
    "lab/src": 13,
    "src/controls/backstage_view": 8,
    "src/controls/badge": 4,

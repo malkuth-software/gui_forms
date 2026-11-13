@@ -654,11 +654,11 @@ gui_forms::ObjectView
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event. The class is final: a hook is virtual only where the C ABI's class tables name it as a raiser (sealed ahead of the class becoming derivable). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:member:: constexpr std::size_t maximum_details_text_bytes
 
@@ -666,7 +666,7 @@ gui_forms::ObjectView
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supported, 0 deferred, 2 excluded, 107 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supported, 0 deferred, 2 excluded, 106 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1177,10 +1177,6 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - GUI.Forms-only
      - ``item_id_at``
      - supported
-   * - method
-     - ``Control.OnFontChanged``
-     - ``on_font_changed``
-     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``select_all``

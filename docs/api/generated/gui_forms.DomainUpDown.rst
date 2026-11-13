@@ -268,11 +268,11 @@ gui_forms::DomainUpDown
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
-   .. cpp:function:: virtual void on_text_changed()
+   .. cpp:function:: void on_text_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event. The class is final: a hook is virtual only where the C ABI's class tables name it as a raiser (sealed ahead of the class becoming derivable). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
@@ -284,7 +284,7 @@ gui_forms::DomainUpDown
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``DomainUpDown``. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 13 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``DomainUpDown``. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 12 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -346,10 +346,6 @@ Counterpart: ``DomainUpDown``. Members declared here and by the counterpart: 3 s
    * - method
      - GUI.Forms-only
      - ``initialize_control_tree``
-     - unclassified (untested)
-   * - method
-     - ``Control.OnTextChanged``
-     - ``on_text_changed``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

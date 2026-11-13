@@ -470,13 +470,15 @@ public:
 
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
-    // raises the change event; an override calls the base. Only the
-    // properties with a Windows Forms On<Property>Changed have one.
-    virtual void on_text_changed();
-    virtual void on_read_only_changed();
-    virtual void on_multiline_changed();
-    virtual void on_accepts_tab_changed();
-    virtual void on_font_changed();
+    // raises the change event. The class is final: a hook is virtual only
+    // where the C ABI's class tables name it as a raiser (sealed ahead of
+    // the class becoming derivable). Only the properties with a Windows
+    // Forms On<Property>Changed have one.
+    void on_text_changed();
+    void on_read_only_changed();
+    void on_multiline_changed();
+    void on_accepts_tab_changed();
+    void on_font_changed();
 
 private:
     // The routed form of a key the raisers left unhandled.

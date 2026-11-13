@@ -365,7 +365,7 @@ gui_forms::NumericUpDown
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event. The class is final: a hook is virtual only where the C ABI's class tables name it as a raiser (sealed ahead of the class becoming derivable). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 

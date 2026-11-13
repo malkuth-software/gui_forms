@@ -245,11 +245,11 @@ gui_forms::SearchField
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
-   .. cpp:function:: virtual void on_text_changed()
+   .. cpp:function:: void on_text_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event. The class is final: a hook is virtual only where the C ABI's class tables name it as a raiser (sealed ahead of the class becoming derivable). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
@@ -261,7 +261,7 @@ gui_forms::SearchField
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 6 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 5 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -307,10 +307,6 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 6 su
    * - method
      - GUI.Forms-only
      - ``initialize_control_tree``
-     - unclassified (untested)
-   * - method
-     - GUI.Forms-only
-     - ``on_text_changed``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

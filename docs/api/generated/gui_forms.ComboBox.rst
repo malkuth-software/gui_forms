@@ -540,17 +540,17 @@ gui_forms::ComboBox
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
-   .. cpp:function:: virtual void on_selected_index_changed()
+   .. cpp:function:: void on_selected_index_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event. The class is final: a hook is virtual only where the C ABI's class tables name it as a raiser (sealed ahead of the class becoming derivable). Only the properties with a Windows Forms On<Property>Changed have one.
 
-   .. cpp:function:: virtual void on_text_changed()
+   .. cpp:function:: void on_text_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 
@@ -564,7 +564,7 @@ gui_forms::ComboBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ComboBox``. Members declared here and by the counterpart: 11 supported, 0 deferred, 1 excluded, 54 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ComboBox``. Members declared here and by the counterpart: 10 supported, 0 deferred, 1 excluded, 52 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -818,18 +818,6 @@ Counterpart: ``ComboBox``. Members declared here and by the counterpart: 11 supp
    * - method
      - GUI.Forms-only
      - ``combo_box_property_entries``
-     - unclassified (untested)
-   * - method
-     - ``Control.OnFontChanged``
-     - ``on_font_changed``
-     - supported
-   * - method
-     - ``ListControl.OnSelectedIndexChanged``
-     - ``on_selected_index_changed``
-     - unclassified (untested)
-   * - method
-     - ``Control.OnTextChanged``
-     - ``on_text_changed``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

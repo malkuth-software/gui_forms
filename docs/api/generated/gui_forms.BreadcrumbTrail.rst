@@ -420,11 +420,11 @@ gui_forms::BreadcrumbTrail
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event. The class is final: a hook is virtual only where the C ABI's class tables name it as a raiser (sealed ahead of the class becoming derivable). Only the properties with a Windows Forms On<Property>Changed have one.
 
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
@@ -432,7 +432,7 @@ gui_forms::BreadcrumbTrail
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 3 unclassified; 15 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 2 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -498,8 +498,4 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 12 s
    * - method
      - GUI.Forms-only
      - ``initialize_control_tree``
-     - unclassified (untested)
-   * - method
-     - GUI.Forms-only
-     - ``on_font_changed``
      - unclassified (untested)
