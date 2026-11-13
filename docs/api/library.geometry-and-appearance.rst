@@ -238,6 +238,8 @@ Types
      - The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3.
    * - :cpp:class:`LightPlaneCache <gui_forms::engine_light::LightPlaneCache>`
      - The bakes in one directory, each read the first time it is asked for (``<directory>/<name>.f32``) and kept: a missing or defective file is remembered and not read again.
+   * - :cpp:class:`LightPlaneRaster <gui_forms::engine_light::LightPlaneRaster>`
+     - -- a part's kept composite ----------------------------------------------------------------- A part composited from a bake (PartPaint::light_planes, such as IndicatorLamp's lens) keeps its last composite in one of these, owned by the part's control, so that a repaint with nothing changed (a lamp repainted for a neighbour's damage) draws the kept raster again instead of compositing.
    * - :cpp:class:`LightPlaneRect <gui_forms::engine_light::LightPlaneRect>`
      - A rectangle of device pixels the planes are stretched over.
    * - :cpp:class:`LightPlanes <gui_forms::engine_light::LightPlanes>`
@@ -314,6 +316,8 @@ Types
      - A part's hit region (T1's hand-off): its shape in its bounds, never less than the minimum target.
    * - :cpp:class:`PartKey <gui_forms::PartKey>`
      - A painted part's identity from frame to frame (T2 GIVEN H3-1), which lets the engine keep a record for it: its states and when it entered them, its transitions, its preparation and its cached raster.
+   * - :cpp:class:`PartLightPlanes <gui_forms::PartLightPlanes>`
+     - A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, and the composite its control keeps between paints.
    * - :cpp:class:`PartMotion <gui_forms::PartMotion>`
      - A part's running transitions (E7; T2 plan, "How motion is driven").
    * - :cpp:class:`PartPaint <gui_forms::PartPaint>`
@@ -391,7 +395,7 @@ Types
    * - :cpp:class:`RuleSelector <gui_forms::RuleSelector>`
      - ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family).
    * - :cpp:class:`RuleSpecificity <gui_forms::RuleSpecificity>`
-     - A selector's specificity, CSS's three columns compared in order: the stable ID and the item's ID; the classes, the item's classes, the states and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
+     - A selector's specificity, CSS's three columns compared in order: the stable ID and the item's ID; the classes, the item's classes, the states (standard and custom) and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
    * - :cpp:class:`ScopedCondition <gui_forms::ScopedCondition>`
      - A copy's condition: the part's winning definition of ``name`` is ``definition``, or, for custom_property_undefined, no definition matches.
    * - :cpp:class:`ScopedDefinition <gui_forms::ScopedDefinition>`
@@ -3409,6 +3413,32 @@ Types
 
 .. cpp:namespace:: gui_forms::engine_light
 
+.. cpp:class:: LightPlaneRaster final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
+
+   -- a part's kept composite ----------------------------------------------------------------- A part composited from a bake (PartPaint::light_planes, such as IndicatorLamp's lens) keeps its last composite in one of these, owned by the part's control, so that a repaint with nothing changed (a lamp repainted for a neighbour's damage) draws the kept raster again instead of compositing. Every lamp of the bake takes the one drive. It holds the bake it composited, so a bake released elsewhere is never mistaken for a new one at the same address. One thread: the painting one.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t composites() const noexcept
+
+      Composites made so far: one for each change of the inputs.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::shared_ptr<const PartRaster> composite(const std::shared_ptr<const LightPlanes>& planes, LampDrive drive, const LightComposite& settings, DeviceExtent extent, DeviceScale scale)
+
+      The composite of ``planes`` over ``extent`` device pixels at ``scale``, every lamp driven by ``drive``: the kept raster when the bake, drive, settings, extent and scale are those it was made with, else a new one, then kept. Null, and nothing kept, when ``planes`` is null, the extent is empty, or no raster of that extent and scale can be made (PartRaster::create). Throws std::bad_alloc when a new raster cannot be stored (what was kept stays).
+
+   .. cpp:function:: void release() noexcept
+
+      Releases the kept raster and bake (a control leaving its window).
+
+.. cpp:namespace:: gui_forms::engine_light
+
 .. cpp:struct:: LightPlaneRect final
 
    ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
@@ -4622,6 +4652,22 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PartLightPlanes final
+
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+
+   A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, and the composite its control keeps between paints. See PartPaint::light_planes.
+
+   .. cpp:member:: std::shared_ptr<const engine_light::LightPlanes> planes
+
+   .. cpp:member:: engine_light::LampDrive drive
+
+   .. cpp:member:: engine_light::LightPlaneRaster* raster
+
+      The control's kept composite (a member of the control), borrowed for the call; with none the part takes its recipe.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: PartMotion final
 
    ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
@@ -4748,6 +4794,10 @@ Types
    .. cpp:member:: std::optional<PartArc> arc
 
       The arc and needle roles' angles (PartArc), or none, when neither draws. Every other role ignores them.
+
+   .. cpp:member:: std::optional<PartLightPlanes> light_planes
+
+      The baked light planes the part is composited from (PartLightPlanes), or none. Such a part is drawn as the bake's light, room · R + Σ colour · power · L_i toned (engine_light::composite_light_planes), stretched over ``bounds`` at the window's scale, in place of its recipe and of any primitive a rule would choose: the bake carries the part's whole look, its body included. The composite is transparent where the bake's coverage is 0, so its light never reaches past the part; a part with a corner radius is clipped to that shape as well. The recipe draws the part instead in forced high contrast, where the role's colours stand, and when no raster of the part's size can be made (ornament gives way first).
 
 .. cpp:namespace:: gui_forms
 
@@ -5638,6 +5688,10 @@ Types
 
    .. cpp:member:: std::vector<AnatomyState> states
 
+   .. cpp:member:: std::vector<CustomStateIndex> custom_states
+
+      Custom states (RuleSelector::custom_states), positions in the custom states of the exclusion's control type, or of its selector's when it names none.
+
    .. cpp:member:: std::string family
 
 .. cpp:namespace:: gui_forms
@@ -5672,7 +5726,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its ``:not()`` selectors: it matches no part any of them matches.
+   ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family). ``excluded`` holds the arguments of its ``:not()`` selectors: it matches no part any of them matches. ``custom_states`` (R2-13) are the custom states its ``:state()`` names: each a position in its control type's ControlAnatomy::custom_states, or, when its part is an item part, in the custom states of the item system declaring that part. A position means something only for one control type, so a selector with custom states names its control type (an inline style's rules, which apply to their own control alone, need not). They match the part's AnatomyStateSet custom bits.
 
    .. cpp:member:: std::string control_type
 
@@ -5685,6 +5739,8 @@ Types
    .. cpp:member:: std::optional<PartRole> role
 
    .. cpp:member:: std::vector<AnatomyState> states
+
+   .. cpp:member:: std::vector<CustomStateIndex> custom_states
 
    .. cpp:member:: SurfaceKind surface
 
@@ -5710,7 +5766,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   A selector's specificity, CSS's three columns compared in order: the stable ID and the item's ID; the classes, the item's classes, the states and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements). A ``:not()`` adds its most specific argument's, and each ancestor compound its own.
+   A selector's specificity, CSS's three columns compared in order: the stable ID and the item's ID; the classes, the item's classes, the states (standard and custom) and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements). A ``:not()`` adds its most specific argument's, and each ancestor compound its own.
 
    .. cpp:member:: std::uint32_t ids
 
@@ -8908,6 +8964,10 @@ Functions, constants and aliases
 
 ``#include <gui_forms/engine/light_planes/light_planes.hpp>``
 
+.. cpp:function:: LampColour lamp_colour_from_srgb(Color colour) noexcept
+
+   A colour given as sRGB, such as a control's lamp colour property, as a lamp's linear colour at unit power: each channel decoded by the sRGB curve (through engine_power, so every host decodes alike). Alpha is ignored.
+
 .. cpp:function:: LightPlanesDefect read_light_planes(std::span<const std::byte> bytes, LightPlanes& planes)
 
    Reads the study's bake file (lamp_keys.cpp, write_buffers): three little-endian int32 (width, height, lamp count), then the room plane, each lamp's plane and the coverage plane as little-endian IEEE binary32. The whole buffer is validated before ``planes`` is replaced; on a defect ``planes`` is left as it was. Throws std::bad_alloc when the planes cannot be stored (``planes`` left as it was).
@@ -8941,6 +9001,10 @@ Functions, constants and aliases
 .. cpp:function:: double lit_key_lean_degrees(double height_share) noexcept
 
    The sides' lean in degrees for a key ``height_share`` of its short side tall (lamp_keys.cpp, shape_key).
+
+.. cpp:function:: bool light_plane_name_valid(std::string_view name) noexcept
+
+   Whether ``name`` names a bake: 1 to 64 lower-case ASCII letters, digits and '_' (the baker's stems, such as dialog_ok_up), so that a name never leaves its directory.
 
 .. cpp:var:: constexpr LampColour lamp_amber
 
