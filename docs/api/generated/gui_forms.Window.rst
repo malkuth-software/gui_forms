@@ -589,7 +589,7 @@ gui_forms::Window
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Form``. Members declared here and by the counterpart: 222 supported, 10 deferred, 10 excluded, 132 unclassified; 234 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Form``. Members declared here and by the counterpart: 223 supported, 10 deferred, 10 excluded, 132 unclassified; 235 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1999,6 +1999,10 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 222 support
    * - method
      - GUI.Forms-only
      - ``set_paint_wake_handler``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_schedule_wake_handler``
      - supported
    * - method
      - GUI.Forms-only

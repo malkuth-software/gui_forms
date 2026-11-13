@@ -165,6 +165,7 @@ __ZGVZN9gui_forms11HelpKeyword*
 __ZGVZN9gui_forms11HelpPageRun*
 __ZGVZN9gui_forms11HostMonitor*
 __ZGVZN9gui_forms11HostSession*
+__ZGVZN9gui_forms11HostedInput*
 __ZGVZN9gui_forms11KeyBindings*
 __ZGVZN9gui_forms11LayoutStyle*
 __ZGVZN9gui_forms11LinearGauge*
@@ -236,6 +237,7 @@ __ZGVZN9gui_forms12HelpPageLink*
 __ZGVZN9gui_forms12HelpProvider*
 __ZGVZN9gui_forms12HostServices*
 __ZGVZN9gui_forms12HostWindowId*
+__ZGVZN9gui_forms12HostedClient*
 __ZGVZN9gui_forms12KeyEventArgs*
 __ZGVZN9gui_forms12ListViewItem*
 __ZGVZN9gui_forms12LocaleLimits*
@@ -345,6 +347,8 @@ __ZGVZN9gui_forms13HelpPrintPlan*
 __ZGVZN9gui_forms13HelpSearchHit*
 __ZGVZN9gui_forms13HostImageView*
 __ZGVZN9gui_forms13HostWindowing*
+__ZGVZN9gui_forms13HostedContent*
+__ZGVZN9gui_forms13HostedMessage*
 __ZGVZN9gui_forms13ImageMetadata*
 __ZGVZN9gui_forms13ImageRegistry*
 __ZGVZN9gui_forms13IndicatorLamp*
@@ -515,6 +519,7 @@ __ZGVZN9gui_forms15CollectionDirty*
 __ZGVZN9gui_forms15ColourSchemeSet*
 __ZGVZN9gui_forms15CompositorState*
 __ZGVZN9gui_forms15ContentTextLine*
+__ZGVZN9gui_forms15ContentUserEdit*
 __ZGVZN9gui_forms15ContentWatchdog*
 __ZGVZN9gui_forms15ControlSnapshot*
 __ZGVZN9gui_forms15CurrencyManager*
@@ -549,6 +554,8 @@ __ZGVZN9gui_forms15HostAttachEvent*
 __ZGVZN9gui_forms15HostClosedEvent*
 __ZGVZN9gui_forms15HostResizeEvent*
 __ZGVZN9gui_forms15HostWindowFrame*
+__ZGVZN9gui_forms15HostedFrameView*
+__ZGVZN9gui_forms15HostedKeyRecord*
 __ZGVZN9gui_forms15IconDeclaration*
 __ZGVZN9gui_forms15ImageListChange*
 __ZGVZN9gui_forms15ImageLoadResult*
@@ -760,6 +767,8 @@ __ZGVZN9gui_forms17HostMonitorResult*
 __ZGVZN9gui_forms17HostServiceStatus*
 __ZGVZN9gui_forms17HostShutdownEvent*
 __ZGVZN9gui_forms17HostTrayIconEvent*
+__ZGVZN9gui_forms17HostedClientInput*
+__ZGVZN9gui_forms17HostedFrameRecord*
 __ZGVZN9gui_forms17ImageAtlasAcquire*
 __ZGVZN9gui_forms17ImageResourceView*
 __ZGVZN9gui_forms17InlineStyleResult*
@@ -958,6 +967,8 @@ __ZGVZN9gui_forms19HostSoundCueRequest*
 __ZGVZN9gui_forms19HostTrayIconRequest*
 __ZGVZN9gui_forms19HostTrayMenuRequest*
 __ZGVZN9gui_forms19HostWindowAdmission*
+__ZGVZN9gui_forms19HostedMessageReader*
+__ZGVZN9gui_forms19HostedPointerRecord*
 __ZGVZN9gui_forms19ImageListResolution*
 __ZGVZN9gui_forms19ImageRegistryLimits*
 __ZGVZN9gui_forms19ImageVariantRequest*
@@ -1051,6 +1062,7 @@ __ZGVZN9gui_forms20HostServicesSnapshot*
 __ZGVZN9gui_forms20HostWindowFrameEvent*
 __ZGVZN9gui_forms20HostWindowKindTraits*
 __ZGVZN9gui_forms20HostWindowStateEvent*
+__ZGVZN9gui_forms20HostedContentOptions*
 __ZGVZN9gui_forms20ImageAtlasStatistics*
 __ZGVZN9gui_forms20InstrumentModuleSpec*
 __ZGVZN9gui_forms20MaterialColourFilter*
@@ -1114,6 +1126,7 @@ __ZGVZN9gui_forms21HostScreenPointResult*
 __ZGVZN9gui_forms21HostWindowDescription*
 __ZGVZN9gui_forms21HostWindowFrameResult*
 __ZGVZN9gui_forms21HostWindowingSnapshot*
+__ZGVZN9gui_forms21HostedConfigureRecord*
 __ZGVZN9gui_forms21ImageRegistrySnapshot*
 __ZGVZN9gui_forms21InstrumentFieldChange*
 __ZGVZN9gui_forms21InteractionValidation*
@@ -1710,6 +1723,7 @@ __ZGVZNK9gui_forms11HelpKeyword*
 __ZGVZNK9gui_forms11HelpPageRun*
 __ZGVZNK9gui_forms11HostMonitor*
 __ZGVZNK9gui_forms11HostSession*
+__ZGVZNK9gui_forms11HostedInput*
 __ZGVZNK9gui_forms11KeyBindings*
 __ZGVZNK9gui_forms11LayoutStyle*
 __ZGVZNK9gui_forms11LinearGauge*
@@ -1781,6 +1795,7 @@ __ZGVZNK9gui_forms12HelpPageLink*
 __ZGVZNK9gui_forms12HelpProvider*
 __ZGVZNK9gui_forms12HostServices*
 __ZGVZNK9gui_forms12HostWindowId*
+__ZGVZNK9gui_forms12HostedClient*
 __ZGVZNK9gui_forms12KeyEventArgs*
 __ZGVZNK9gui_forms12ListViewItem*
 __ZGVZNK9gui_forms12LocaleLimits*
@@ -1890,6 +1905,8 @@ __ZGVZNK9gui_forms13HelpPrintPlan*
 __ZGVZNK9gui_forms13HelpSearchHit*
 __ZGVZNK9gui_forms13HostImageView*
 __ZGVZNK9gui_forms13HostWindowing*
+__ZGVZNK9gui_forms13HostedContent*
+__ZGVZNK9gui_forms13HostedMessage*
 __ZGVZNK9gui_forms13ImageMetadata*
 __ZGVZNK9gui_forms13ImageRegistry*
 __ZGVZNK9gui_forms13IndicatorLamp*
@@ -2060,6 +2077,7 @@ __ZGVZNK9gui_forms15CollectionDirty*
 __ZGVZNK9gui_forms15ColourSchemeSet*
 __ZGVZNK9gui_forms15CompositorState*
 __ZGVZNK9gui_forms15ContentTextLine*
+__ZGVZNK9gui_forms15ContentUserEdit*
 __ZGVZNK9gui_forms15ContentWatchdog*
 __ZGVZNK9gui_forms15ControlSnapshot*
 __ZGVZNK9gui_forms15CurrencyManager*
@@ -2094,6 +2112,8 @@ __ZGVZNK9gui_forms15HostAttachEvent*
 __ZGVZNK9gui_forms15HostClosedEvent*
 __ZGVZNK9gui_forms15HostResizeEvent*
 __ZGVZNK9gui_forms15HostWindowFrame*
+__ZGVZNK9gui_forms15HostedFrameView*
+__ZGVZNK9gui_forms15HostedKeyRecord*
 __ZGVZNK9gui_forms15IconDeclaration*
 __ZGVZNK9gui_forms15ImageListChange*
 __ZGVZNK9gui_forms15ImageLoadResult*
@@ -2305,6 +2325,8 @@ __ZGVZNK9gui_forms17HostMonitorResult*
 __ZGVZNK9gui_forms17HostServiceStatus*
 __ZGVZNK9gui_forms17HostShutdownEvent*
 __ZGVZNK9gui_forms17HostTrayIconEvent*
+__ZGVZNK9gui_forms17HostedClientInput*
+__ZGVZNK9gui_forms17HostedFrameRecord*
 __ZGVZNK9gui_forms17ImageAtlasAcquire*
 __ZGVZNK9gui_forms17ImageResourceView*
 __ZGVZNK9gui_forms17InlineStyleResult*
@@ -2503,6 +2525,8 @@ __ZGVZNK9gui_forms19HostSoundCueRequest*
 __ZGVZNK9gui_forms19HostTrayIconRequest*
 __ZGVZNK9gui_forms19HostTrayMenuRequest*
 __ZGVZNK9gui_forms19HostWindowAdmission*
+__ZGVZNK9gui_forms19HostedMessageReader*
+__ZGVZNK9gui_forms19HostedPointerRecord*
 __ZGVZNK9gui_forms19ImageListResolution*
 __ZGVZNK9gui_forms19ImageRegistryLimits*
 __ZGVZNK9gui_forms19ImageVariantRequest*
@@ -2596,6 +2620,7 @@ __ZGVZNK9gui_forms20HostServicesSnapshot*
 __ZGVZNK9gui_forms20HostWindowFrameEvent*
 __ZGVZNK9gui_forms20HostWindowKindTraits*
 __ZGVZNK9gui_forms20HostWindowStateEvent*
+__ZGVZNK9gui_forms20HostedContentOptions*
 __ZGVZNK9gui_forms20ImageAtlasStatistics*
 __ZGVZNK9gui_forms20InstrumentModuleSpec*
 __ZGVZNK9gui_forms20MaterialColourFilter*
@@ -2659,6 +2684,7 @@ __ZGVZNK9gui_forms21HostScreenPointResult*
 __ZGVZNK9gui_forms21HostWindowDescription*
 __ZGVZNK9gui_forms21HostWindowFrameResult*
 __ZGVZNK9gui_forms21HostWindowingSnapshot*
+__ZGVZNK9gui_forms21HostedConfigureRecord*
 __ZGVZNK9gui_forms21ImageRegistrySnapshot*
 __ZGVZNK9gui_forms21InstrumentFieldChange*
 __ZGVZNK9gui_forms21InteractionValidation*
@@ -3317,6 +3343,7 @@ __ZN9gui_forms11HelpKeyword*
 __ZN9gui_forms11HelpPageRun*
 __ZN9gui_forms11HostMonitor*
 __ZN9gui_forms11HostSession*
+__ZN9gui_forms11HostedInput*
 __ZN9gui_forms11KeyBindings*
 __ZN9gui_forms11LayoutStyle*
 __ZN9gui_forms11LinearGauge*
@@ -3402,6 +3429,7 @@ __ZN9gui_forms12HelpPageLink*
 __ZN9gui_forms12HelpProvider*
 __ZN9gui_forms12HostServices*
 __ZN9gui_forms12HostWindowId*
+__ZN9gui_forms12HostedClient*
 __ZN9gui_forms12KeyEventArgs*
 __ZN9gui_forms12ListViewItem*
 __ZN9gui_forms12LocaleLimits*
@@ -3559,6 +3587,8 @@ __ZN9gui_forms13HelpPrintPlan*
 __ZN9gui_forms13HelpSearchHit*
 __ZN9gui_forms13HostImageView*
 __ZN9gui_forms13HostWindowing*
+__ZN9gui_forms13HostedContent*
+__ZN9gui_forms13HostedMessage*
 __ZN9gui_forms13ImageMetadata*
 __ZN9gui_forms13ImageRegistry*
 __ZN9gui_forms13IndicatorLamp*
@@ -3793,6 +3823,7 @@ __ZN9gui_forms15CollectionDirty*
 __ZN9gui_forms15ColourSchemeSet*
 __ZN9gui_forms15CompositorState*
 __ZN9gui_forms15ContentTextLine*
+__ZN9gui_forms15ContentUserEdit*
 __ZN9gui_forms15ContentWatchdog*
 __ZN9gui_forms15ControlSnapshot*
 __ZN9gui_forms15CurrencyManager*
@@ -3827,6 +3858,8 @@ __ZN9gui_forms15HostAttachEvent*
 __ZN9gui_forms15HostClosedEvent*
 __ZN9gui_forms15HostResizeEvent*
 __ZN9gui_forms15HostWindowFrame*
+__ZN9gui_forms15HostedFrameView*
+__ZN9gui_forms15HostedKeyRecord*
 __ZN9gui_forms15IconDeclaration*
 __ZN9gui_forms15ImageListChange*
 __ZN9gui_forms15ImageLoadResult*
@@ -4154,6 +4187,8 @@ __ZN9gui_forms17HostMonitorResult*
 __ZN9gui_forms17HostServiceStatus*
 __ZN9gui_forms17HostShutdownEvent*
 __ZN9gui_forms17HostTrayIconEvent*
+__ZN9gui_forms17HostedClientInput*
+__ZN9gui_forms17HostedFrameRecord*
 __ZN9gui_forms17ImageAtlasAcquire*
 __ZN9gui_forms17ImageResourceView*
 __ZN9gui_forms17InlineStyleResult*
@@ -4213,8 +4248,12 @@ __ZN9gui_forms17assemble_materialB*
 __ZN9gui_forms17assemble_materialE*
 __ZN9gui_forms17build_static_treeB*
 __ZN9gui_forms17build_static_treeE*
+__ZN9gui_forms17decode_hosted_keyB*
+__ZN9gui_forms17decode_hosted_keyE*
 __ZN9gui_forms17effect_name_validB*
 __ZN9gui_forms17effect_name_validE*
+__ZN9gui_forms17encode_hosted_keyB*
+__ZN9gui_forms17encode_hosted_keyE*
 __ZN9gui_forms17engine_input_nameB*
 __ZN9gui_forms17engine_input_nameE*
 __ZN9gui_forms17familiar_theme_idB*
@@ -4275,6 +4314,8 @@ __ZN9gui_forms17select_user_themeB*
 __ZN9gui_forms17select_user_themeE*
 __ZN9gui_forms17valid_host_localeB*
 __ZN9gui_forms17valid_host_localeE*
+__ZN9gui_forms17view_hosted_frameB*
+__ZN9gui_forms17view_hosted_frameE*
 __ZN9gui_forms17write_help_localeB*
 __ZN9gui_forms17write_help_localeE*
 __ZN9gui_forms18AbsoluteAxisResult*
@@ -4409,12 +4450,20 @@ __ZN9gui_forms18compile_user_themeB*
 __ZN9gui_forms18compile_user_themeE*
 __ZN9gui_forms18copy_shadow_framesB*
 __ZN9gui_forms18copy_shadow_framesE*
+__ZN9gui_forms18decode_hosted_slotB*
+__ZN9gui_forms18decode_hosted_slotE*
+__ZN9gui_forms18decode_hosted_textB*
+__ZN9gui_forms18decode_hosted_textE*
 __ZN9gui_forms18decode_utf8_scalarB*
 __ZN9gui_forms18decode_utf8_scalarE*
 __ZN9gui_forms18default_parametersB*
 __ZN9gui_forms18default_parametersE*
 __ZN9gui_forms18describe_exceptionB*
 __ZN9gui_forms18describe_exceptionE*
+__ZN9gui_forms18encode_hosted_slotB*
+__ZN9gui_forms18encode_hosted_slotE*
+__ZN9gui_forms18encode_hosted_textB*
+__ZN9gui_forms18encode_hosted_textE*
 __ZN9gui_forms18engine_arctangent2B*
 __ZN9gui_forms18engine_arctangent2E*
 __ZN9gui_forms18engine_exponentialB*
@@ -4516,6 +4565,8 @@ __ZN9gui_forms19HostSoundCueRequest*
 __ZN9gui_forms19HostTrayIconRequest*
 __ZN9gui_forms19HostTrayMenuRequest*
 __ZN9gui_forms19HostWindowAdmission*
+__ZN9gui_forms19HostedMessageReader*
+__ZN9gui_forms19HostedPointerRecord*
 __ZN9gui_forms19ImageListResolution*
 __ZN9gui_forms19ImageRegistryLimits*
 __ZN9gui_forms19ImageVariantRequest*
@@ -4590,10 +4641,22 @@ __ZN9gui_forms19declares_item_stateB*
 __ZN9gui_forms19declares_item_stateE*
 __ZN9gui_forms19declares_part_stateB*
 __ZN9gui_forms19declares_part_stateE*
+__ZN9gui_forms19decode_hosted_focusB*
+__ZN9gui_forms19decode_hosted_focusE*
+__ZN9gui_forms19decode_hosted_frameB*
+__ZN9gui_forms19decode_hosted_frameE*
+__ZN9gui_forms19decode_hosted_helloB*
+__ZN9gui_forms19decode_hosted_helloE*
 __ZN9gui_forms19derive_dark_recipesB*
 __ZN9gui_forms19derive_dark_recipesE*
 __ZN9gui_forms19dock_drop_highlightB*
 __ZN9gui_forms19dock_drop_highlightE*
+__ZN9gui_forms19encode_hosted_focusB*
+__ZN9gui_forms19encode_hosted_focusE*
+__ZN9gui_forms19encode_hosted_frameB*
+__ZN9gui_forms19encode_hosted_frameE*
+__ZN9gui_forms19encode_hosted_helloB*
+__ZN9gui_forms19encode_hosted_helloE*
 __ZN9gui_forms19find_property_entryB*
 __ZN9gui_forms19find_property_entryE*
 __ZN9gui_forms19find_stock_specimenB*
@@ -4614,6 +4677,8 @@ __ZN9gui_forms19locale_record_fieldB*
 __ZN9gui_forms19locale_record_fieldE*
 __ZN9gui_forms19locale_refusal_nameB*
 __ZN9gui_forms19locale_refusal_nameE*
+__ZN9gui_forms19make_hosted_contentB*
+__ZN9gui_forms19make_hosted_contentE*
 __ZN9gui_forms19make_stock_specimenB*
 __ZN9gui_forms19make_stock_specimenE*
 __ZN9gui_forms19markdown_plain_textB*
@@ -4707,6 +4772,7 @@ __ZN9gui_forms20HostServicesSnapshot*
 __ZN9gui_forms20HostWindowFrameEvent*
 __ZN9gui_forms20HostWindowKindTraits*
 __ZN9gui_forms20HostWindowStateEvent*
+__ZN9gui_forms20HostedContentOptions*
 __ZN9gui_forms20ImageAtlasStatistics*
 __ZN9gui_forms20InstrumentModuleSpec*
 __ZN9gui_forms20MaterialColourFilter*
@@ -4848,6 +4914,7 @@ __ZN9gui_forms21HostScreenPointResult*
 __ZN9gui_forms21HostWindowDescription*
 __ZN9gui_forms21HostWindowFrameResult*
 __ZN9gui_forms21HostWindowingSnapshot*
+__ZN9gui_forms21HostedConfigureRecord*
 __ZN9gui_forms21ImageRegistrySnapshot*
 __ZN9gui_forms21InstrumentFieldChange*
 __ZN9gui_forms21InteractionValidation*
@@ -4888,6 +4955,8 @@ __ZN9gui_forms21VirtualRowsStatistics*
 __ZN9gui_forms21WindowBackdropRequest*
 __ZN9gui_forms21allocation_statisticsB*
 __ZN9gui_forms21allocation_statisticsE*
+__ZN9gui_forms21append_hosted_messageB*
+__ZN9gui_forms21append_hosted_messageE*
 __ZN9gui_forms21binding_value_to_boolB*
 __ZN9gui_forms21binding_value_to_boolE*
 __ZN9gui_forms21colour_role_from_nameB*
@@ -4896,8 +4965,12 @@ __ZN9gui_forms21compile_theme_packageB*
 __ZN9gui_forms21compile_theme_packageE*
 __ZN9gui_forms21convert_binding_valueB*
 __ZN9gui_forms21convert_binding_valueE*
+__ZN9gui_forms21decode_hosted_pointerB*
+__ZN9gui_forms21decode_hosted_pointerE*
 __ZN9gui_forms21desktop_logical_pointB*
 __ZN9gui_forms21desktop_logical_pointE*
+__ZN9gui_forms21encode_hosted_pointerB*
+__ZN9gui_forms21encode_hosted_pointerE*
 __ZN9gui_forms21export_theme_packagesB*
 __ZN9gui_forms21export_theme_packagesE*
 __ZN9gui_forms21file_dialog_name_partB*
@@ -5039,6 +5112,8 @@ __ZN9gui_forms22grid_span_extent_validB*
 __ZN9gui_forms22grid_span_extent_validE*
 __ZN9gui_forms22help_locale_error_nameB*
 __ZN9gui_forms22help_locale_error_nameE*
+__ZN9gui_forms22hosted_content_supportB*
+__ZN9gui_forms22hosted_content_supportE*
 __ZN9gui_forms22link_flow_wants_framesB*
 __ZN9gui_forms22link_flow_wants_framesE*
 __ZN9gui_forms22locale_file_error_nameB*
@@ -5151,10 +5226,18 @@ __ZN9gui_forms23collect_declared_topicsB*
 __ZN9gui_forms23collect_declared_topicsE*
 __ZN9gui_forms23compile_installed_themeB*
 __ZN9gui_forms23compile_installed_themeE*
+__ZN9gui_forms23decode_hosted_configureB*
+__ZN9gui_forms23decode_hosted_configureE*
+__ZN9gui_forms23decode_hosted_semanticsB*
+__ZN9gui_forms23decode_hosted_semanticsE*
 __ZN9gui_forms23disconnect_button_groupB*
 __ZN9gui_forms23disconnect_button_groupE*
 __ZN9gui_forms23effect_load_diagnosticsB*
 __ZN9gui_forms23effect_load_diagnosticsE*
+__ZN9gui_forms23encode_hosted_configureB*
+__ZN9gui_forms23encode_hosted_configureE*
+__ZN9gui_forms23encode_hosted_semanticsB*
+__ZN9gui_forms23encode_hosted_semanticsE*
 __ZN9gui_forms23format_theme_diagnosticB*
 __ZN9gui_forms23format_theme_diagnosticE*
 __ZN9gui_forms23help_entry_refusal_nameB*
@@ -5165,6 +5248,8 @@ __ZN9gui_forms23host_service_error_nameB*
 __ZN9gui_forms23host_service_error_nameE*
 __ZN9gui_forms23host_window_kind_traitsB*
 __ZN9gui_forms23host_window_kind_traitsE*
+__ZN9gui_forms23hosted_read_result_nameB*
+__ZN9gui_forms23hosted_read_result_nameE*
 __ZN9gui_forms23install_effect_registryB*
 __ZN9gui_forms23install_effect_registryE*
 __ZN9gui_forms23interaction_defect_nameB*
@@ -5275,6 +5360,8 @@ __ZN9gui_forms24host_transient_is_splashB*
 __ZN9gui_forms24host_transient_is_splashE*
 __ZN9gui_forms24host_transient_kind_nameB*
 __ZN9gui_forms24host_transient_kind_nameE*
+__ZN9gui_forms24hosted_message_kind_nameB*
+__ZN9gui_forms24hosted_message_kind_nameE*
 __ZN9gui_forms24make_property_collectionB*
 __ZN9gui_forms24make_property_collectionE*
 __ZN9gui_forms24material_fields_read_boxB*
@@ -5345,6 +5432,8 @@ __ZN9gui_forms25host_auto_complete_sourceB*
 __ZN9gui_forms25host_auto_complete_sourceE*
 __ZN9gui_forms25host_lifecycle_phase_nameB*
 __ZN9gui_forms25host_lifecycle_phase_nameE*
+__ZN9gui_forms25hosted_message_kind_validB*
+__ZN9gui_forms25hosted_message_kind_validE*
 __ZN9gui_forms25image_resource_error_nameB*
 __ZN9gui_forms25image_resource_error_nameE*
 __ZN9gui_forms25installed_effect_registryB*
@@ -6240,6 +6329,7 @@ __ZNK[RO]9gui_forms11HelpKeyword*
 __ZNK[RO]9gui_forms11HelpPageRun*
 __ZNK[RO]9gui_forms11HostMonitor*
 __ZNK[RO]9gui_forms11HostSession*
+__ZNK[RO]9gui_forms11HostedInput*
 __ZNK[RO]9gui_forms11KeyBindings*
 __ZNK[RO]9gui_forms11LayoutStyle*
 __ZNK[RO]9gui_forms11LinearGauge*
@@ -6311,6 +6401,7 @@ __ZNK[RO]9gui_forms12HelpPageLink*
 __ZNK[RO]9gui_forms12HelpProvider*
 __ZNK[RO]9gui_forms12HostServices*
 __ZNK[RO]9gui_forms12HostWindowId*
+__ZNK[RO]9gui_forms12HostedClient*
 __ZNK[RO]9gui_forms12KeyEventArgs*
 __ZNK[RO]9gui_forms12ListViewItem*
 __ZNK[RO]9gui_forms12LocaleLimits*
@@ -6420,6 +6511,8 @@ __ZNK[RO]9gui_forms13HelpPrintPlan*
 __ZNK[RO]9gui_forms13HelpSearchHit*
 __ZNK[RO]9gui_forms13HostImageView*
 __ZNK[RO]9gui_forms13HostWindowing*
+__ZNK[RO]9gui_forms13HostedContent*
+__ZNK[RO]9gui_forms13HostedMessage*
 __ZNK[RO]9gui_forms13ImageMetadata*
 __ZNK[RO]9gui_forms13ImageRegistry*
 __ZNK[RO]9gui_forms13IndicatorLamp*
@@ -6590,6 +6683,7 @@ __ZNK[RO]9gui_forms15CollectionDirty*
 __ZNK[RO]9gui_forms15ColourSchemeSet*
 __ZNK[RO]9gui_forms15CompositorState*
 __ZNK[RO]9gui_forms15ContentTextLine*
+__ZNK[RO]9gui_forms15ContentUserEdit*
 __ZNK[RO]9gui_forms15ContentWatchdog*
 __ZNK[RO]9gui_forms15ControlSnapshot*
 __ZNK[RO]9gui_forms15CurrencyManager*
@@ -6624,6 +6718,8 @@ __ZNK[RO]9gui_forms15HostAttachEvent*
 __ZNK[RO]9gui_forms15HostClosedEvent*
 __ZNK[RO]9gui_forms15HostResizeEvent*
 __ZNK[RO]9gui_forms15HostWindowFrame*
+__ZNK[RO]9gui_forms15HostedFrameView*
+__ZNK[RO]9gui_forms15HostedKeyRecord*
 __ZNK[RO]9gui_forms15IconDeclaration*
 __ZNK[RO]9gui_forms15ImageListChange*
 __ZNK[RO]9gui_forms15ImageLoadResult*
@@ -6835,6 +6931,8 @@ __ZNK[RO]9gui_forms17HostMonitorResult*
 __ZNK[RO]9gui_forms17HostServiceStatus*
 __ZNK[RO]9gui_forms17HostShutdownEvent*
 __ZNK[RO]9gui_forms17HostTrayIconEvent*
+__ZNK[RO]9gui_forms17HostedClientInput*
+__ZNK[RO]9gui_forms17HostedFrameRecord*
 __ZNK[RO]9gui_forms17ImageAtlasAcquire*
 __ZNK[RO]9gui_forms17ImageResourceView*
 __ZNK[RO]9gui_forms17InlineStyleResult*
@@ -7033,6 +7131,8 @@ __ZNK[RO]9gui_forms19HostSoundCueRequest*
 __ZNK[RO]9gui_forms19HostTrayIconRequest*
 __ZNK[RO]9gui_forms19HostTrayMenuRequest*
 __ZNK[RO]9gui_forms19HostWindowAdmission*
+__ZNK[RO]9gui_forms19HostedMessageReader*
+__ZNK[RO]9gui_forms19HostedPointerRecord*
 __ZNK[RO]9gui_forms19ImageListResolution*
 __ZNK[RO]9gui_forms19ImageRegistryLimits*
 __ZNK[RO]9gui_forms19ImageVariantRequest*
@@ -7126,6 +7226,7 @@ __ZNK[RO]9gui_forms20HostServicesSnapshot*
 __ZNK[RO]9gui_forms20HostWindowFrameEvent*
 __ZNK[RO]9gui_forms20HostWindowKindTraits*
 __ZNK[RO]9gui_forms20HostWindowStateEvent*
+__ZNK[RO]9gui_forms20HostedContentOptions*
 __ZNK[RO]9gui_forms20ImageAtlasStatistics*
 __ZNK[RO]9gui_forms20InstrumentModuleSpec*
 __ZNK[RO]9gui_forms20MaterialColourFilter*
@@ -7189,6 +7290,7 @@ __ZNK[RO]9gui_forms21HostScreenPointResult*
 __ZNK[RO]9gui_forms21HostWindowDescription*
 __ZNK[RO]9gui_forms21HostWindowFrameResult*
 __ZNK[RO]9gui_forms21HostWindowingSnapshot*
+__ZNK[RO]9gui_forms21HostedConfigureRecord*
 __ZNK[RO]9gui_forms21ImageRegistrySnapshot*
 __ZNK[RO]9gui_forms21InstrumentFieldChange*
 __ZNK[RO]9gui_forms21InteractionValidation*
@@ -7785,6 +7887,7 @@ __ZN[KRO]9gui_forms11HelpKeyword*
 __ZN[KRO]9gui_forms11HelpPageRun*
 __ZN[KRO]9gui_forms11HostMonitor*
 __ZN[KRO]9gui_forms11HostSession*
+__ZN[KRO]9gui_forms11HostedInput*
 __ZN[KRO]9gui_forms11KeyBindings*
 __ZN[KRO]9gui_forms11LayoutStyle*
 __ZN[KRO]9gui_forms11LinearGauge*
@@ -7856,6 +7959,7 @@ __ZN[KRO]9gui_forms12HelpPageLink*
 __ZN[KRO]9gui_forms12HelpProvider*
 __ZN[KRO]9gui_forms12HostServices*
 __ZN[KRO]9gui_forms12HostWindowId*
+__ZN[KRO]9gui_forms12HostedClient*
 __ZN[KRO]9gui_forms12KeyEventArgs*
 __ZN[KRO]9gui_forms12ListViewItem*
 __ZN[KRO]9gui_forms12LocaleLimits*
@@ -7965,6 +8069,8 @@ __ZN[KRO]9gui_forms13HelpPrintPlan*
 __ZN[KRO]9gui_forms13HelpSearchHit*
 __ZN[KRO]9gui_forms13HostImageView*
 __ZN[KRO]9gui_forms13HostWindowing*
+__ZN[KRO]9gui_forms13HostedContent*
+__ZN[KRO]9gui_forms13HostedMessage*
 __ZN[KRO]9gui_forms13ImageMetadata*
 __ZN[KRO]9gui_forms13ImageRegistry*
 __ZN[KRO]9gui_forms13IndicatorLamp*
@@ -8135,6 +8241,7 @@ __ZN[KRO]9gui_forms15CollectionDirty*
 __ZN[KRO]9gui_forms15ColourSchemeSet*
 __ZN[KRO]9gui_forms15CompositorState*
 __ZN[KRO]9gui_forms15ContentTextLine*
+__ZN[KRO]9gui_forms15ContentUserEdit*
 __ZN[KRO]9gui_forms15ContentWatchdog*
 __ZN[KRO]9gui_forms15ControlSnapshot*
 __ZN[KRO]9gui_forms15CurrencyManager*
@@ -8169,6 +8276,8 @@ __ZN[KRO]9gui_forms15HostAttachEvent*
 __ZN[KRO]9gui_forms15HostClosedEvent*
 __ZN[KRO]9gui_forms15HostResizeEvent*
 __ZN[KRO]9gui_forms15HostWindowFrame*
+__ZN[KRO]9gui_forms15HostedFrameView*
+__ZN[KRO]9gui_forms15HostedKeyRecord*
 __ZN[KRO]9gui_forms15IconDeclaration*
 __ZN[KRO]9gui_forms15ImageListChange*
 __ZN[KRO]9gui_forms15ImageLoadResult*
@@ -8380,6 +8489,8 @@ __ZN[KRO]9gui_forms17HostMonitorResult*
 __ZN[KRO]9gui_forms17HostServiceStatus*
 __ZN[KRO]9gui_forms17HostShutdownEvent*
 __ZN[KRO]9gui_forms17HostTrayIconEvent*
+__ZN[KRO]9gui_forms17HostedClientInput*
+__ZN[KRO]9gui_forms17HostedFrameRecord*
 __ZN[KRO]9gui_forms17ImageAtlasAcquire*
 __ZN[KRO]9gui_forms17ImageResourceView*
 __ZN[KRO]9gui_forms17InlineStyleResult*
@@ -8578,6 +8689,8 @@ __ZN[KRO]9gui_forms19HostSoundCueRequest*
 __ZN[KRO]9gui_forms19HostTrayIconRequest*
 __ZN[KRO]9gui_forms19HostTrayMenuRequest*
 __ZN[KRO]9gui_forms19HostWindowAdmission*
+__ZN[KRO]9gui_forms19HostedMessageReader*
+__ZN[KRO]9gui_forms19HostedPointerRecord*
 __ZN[KRO]9gui_forms19ImageListResolution*
 __ZN[KRO]9gui_forms19ImageRegistryLimits*
 __ZN[KRO]9gui_forms19ImageVariantRequest*
@@ -8671,6 +8784,7 @@ __ZN[KRO]9gui_forms20HostServicesSnapshot*
 __ZN[KRO]9gui_forms20HostWindowFrameEvent*
 __ZN[KRO]9gui_forms20HostWindowKindTraits*
 __ZN[KRO]9gui_forms20HostWindowStateEvent*
+__ZN[KRO]9gui_forms20HostedContentOptions*
 __ZN[KRO]9gui_forms20ImageAtlasStatistics*
 __ZN[KRO]9gui_forms20InstrumentModuleSpec*
 __ZN[KRO]9gui_forms20MaterialColourFilter*
@@ -8734,6 +8848,7 @@ __ZN[KRO]9gui_forms21HostScreenPointResult*
 __ZN[KRO]9gui_forms21HostWindowDescription*
 __ZN[KRO]9gui_forms21HostWindowFrameResult*
 __ZN[KRO]9gui_forms21HostWindowingSnapshot*
+__ZN[KRO]9gui_forms21HostedConfigureRecord*
 __ZN[KRO]9gui_forms21ImageRegistrySnapshot*
 __ZN[KRO]9gui_forms21InstrumentFieldChange*
 __ZN[KRO]9gui_forms21InteractionValidation*
@@ -9330,6 +9445,7 @@ __ZT[VIST]N9gui_forms11HelpKeyword*E
 __ZT[VIST]N9gui_forms11HelpPageRun*E
 __ZT[VIST]N9gui_forms11HostMonitor*E
 __ZT[VIST]N9gui_forms11HostSession*E
+__ZT[VIST]N9gui_forms11HostedInput*E
 __ZT[VIST]N9gui_forms11KeyBindings*E
 __ZT[VIST]N9gui_forms11LayoutStyle*E
 __ZT[VIST]N9gui_forms11LinearGauge*E
@@ -9401,6 +9517,7 @@ __ZT[VIST]N9gui_forms12HelpPageLink*E
 __ZT[VIST]N9gui_forms12HelpProvider*E
 __ZT[VIST]N9gui_forms12HostServices*E
 __ZT[VIST]N9gui_forms12HostWindowId*E
+__ZT[VIST]N9gui_forms12HostedClient*E
 __ZT[VIST]N9gui_forms12KeyEventArgs*E
 __ZT[VIST]N9gui_forms12ListViewItem*E
 __ZT[VIST]N9gui_forms12LocaleLimits*E
@@ -9510,6 +9627,8 @@ __ZT[VIST]N9gui_forms13HelpPrintPlan*E
 __ZT[VIST]N9gui_forms13HelpSearchHit*E
 __ZT[VIST]N9gui_forms13HostImageView*E
 __ZT[VIST]N9gui_forms13HostWindowing*E
+__ZT[VIST]N9gui_forms13HostedContent*E
+__ZT[VIST]N9gui_forms13HostedMessage*E
 __ZT[VIST]N9gui_forms13ImageMetadata*E
 __ZT[VIST]N9gui_forms13ImageRegistry*E
 __ZT[VIST]N9gui_forms13IndicatorLamp*E
@@ -9680,6 +9799,7 @@ __ZT[VIST]N9gui_forms15CollectionDirty*E
 __ZT[VIST]N9gui_forms15ColourSchemeSet*E
 __ZT[VIST]N9gui_forms15CompositorState*E
 __ZT[VIST]N9gui_forms15ContentTextLine*E
+__ZT[VIST]N9gui_forms15ContentUserEdit*E
 __ZT[VIST]N9gui_forms15ContentWatchdog*E
 __ZT[VIST]N9gui_forms15ControlSnapshot*E
 __ZT[VIST]N9gui_forms15CurrencyManager*E
@@ -9714,6 +9834,8 @@ __ZT[VIST]N9gui_forms15HostAttachEvent*E
 __ZT[VIST]N9gui_forms15HostClosedEvent*E
 __ZT[VIST]N9gui_forms15HostResizeEvent*E
 __ZT[VIST]N9gui_forms15HostWindowFrame*E
+__ZT[VIST]N9gui_forms15HostedFrameView*E
+__ZT[VIST]N9gui_forms15HostedKeyRecord*E
 __ZT[VIST]N9gui_forms15IconDeclaration*E
 __ZT[VIST]N9gui_forms15ImageListChange*E
 __ZT[VIST]N9gui_forms15ImageLoadResult*E
@@ -9925,6 +10047,8 @@ __ZT[VIST]N9gui_forms17HostMonitorResult*E
 __ZT[VIST]N9gui_forms17HostServiceStatus*E
 __ZT[VIST]N9gui_forms17HostShutdownEvent*E
 __ZT[VIST]N9gui_forms17HostTrayIconEvent*E
+__ZT[VIST]N9gui_forms17HostedClientInput*E
+__ZT[VIST]N9gui_forms17HostedFrameRecord*E
 __ZT[VIST]N9gui_forms17ImageAtlasAcquire*E
 __ZT[VIST]N9gui_forms17ImageResourceView*E
 __ZT[VIST]N9gui_forms17InlineStyleResult*E
@@ -10123,6 +10247,8 @@ __ZT[VIST]N9gui_forms19HostSoundCueRequest*E
 __ZT[VIST]N9gui_forms19HostTrayIconRequest*E
 __ZT[VIST]N9gui_forms19HostTrayMenuRequest*E
 __ZT[VIST]N9gui_forms19HostWindowAdmission*E
+__ZT[VIST]N9gui_forms19HostedMessageReader*E
+__ZT[VIST]N9gui_forms19HostedPointerRecord*E
 __ZT[VIST]N9gui_forms19ImageListResolution*E
 __ZT[VIST]N9gui_forms19ImageRegistryLimits*E
 __ZT[VIST]N9gui_forms19ImageVariantRequest*E
@@ -10216,6 +10342,7 @@ __ZT[VIST]N9gui_forms20HostServicesSnapshot*E
 __ZT[VIST]N9gui_forms20HostWindowFrameEvent*E
 __ZT[VIST]N9gui_forms20HostWindowKindTraits*E
 __ZT[VIST]N9gui_forms20HostWindowStateEvent*E
+__ZT[VIST]N9gui_forms20HostedContentOptions*E
 __ZT[VIST]N9gui_forms20ImageAtlasStatistics*E
 __ZT[VIST]N9gui_forms20InstrumentModuleSpec*E
 __ZT[VIST]N9gui_forms20MaterialColourFilter*E
@@ -10279,6 +10406,7 @@ __ZT[VIST]N9gui_forms21HostScreenPointResult*E
 __ZT[VIST]N9gui_forms21HostWindowDescription*E
 __ZT[VIST]N9gui_forms21HostWindowFrameResult*E
 __ZT[VIST]N9gui_forms21HostWindowingSnapshot*E
+__ZT[VIST]N9gui_forms21HostedConfigureRecord*E
 __ZT[VIST]N9gui_forms21ImageRegistrySnapshot*E
 __ZT[VIST]N9gui_forms21InstrumentFieldChange*E
 __ZT[VIST]N9gui_forms21InteractionValidation*E
@@ -10875,6 +11003,7 @@ __ZT[hvc]*9gui_forms11HelpKeyword*
 __ZT[hvc]*9gui_forms11HelpPageRun*
 __ZT[hvc]*9gui_forms11HostMonitor*
 __ZT[hvc]*9gui_forms11HostSession*
+__ZT[hvc]*9gui_forms11HostedInput*
 __ZT[hvc]*9gui_forms11KeyBindings*
 __ZT[hvc]*9gui_forms11LayoutStyle*
 __ZT[hvc]*9gui_forms11LinearGauge*
@@ -10946,6 +11075,7 @@ __ZT[hvc]*9gui_forms12HelpPageLink*
 __ZT[hvc]*9gui_forms12HelpProvider*
 __ZT[hvc]*9gui_forms12HostServices*
 __ZT[hvc]*9gui_forms12HostWindowId*
+__ZT[hvc]*9gui_forms12HostedClient*
 __ZT[hvc]*9gui_forms12KeyEventArgs*
 __ZT[hvc]*9gui_forms12ListViewItem*
 __ZT[hvc]*9gui_forms12LocaleLimits*
@@ -11055,6 +11185,8 @@ __ZT[hvc]*9gui_forms13HelpPrintPlan*
 __ZT[hvc]*9gui_forms13HelpSearchHit*
 __ZT[hvc]*9gui_forms13HostImageView*
 __ZT[hvc]*9gui_forms13HostWindowing*
+__ZT[hvc]*9gui_forms13HostedContent*
+__ZT[hvc]*9gui_forms13HostedMessage*
 __ZT[hvc]*9gui_forms13ImageMetadata*
 __ZT[hvc]*9gui_forms13ImageRegistry*
 __ZT[hvc]*9gui_forms13IndicatorLamp*
@@ -11225,6 +11357,7 @@ __ZT[hvc]*9gui_forms15CollectionDirty*
 __ZT[hvc]*9gui_forms15ColourSchemeSet*
 __ZT[hvc]*9gui_forms15CompositorState*
 __ZT[hvc]*9gui_forms15ContentTextLine*
+__ZT[hvc]*9gui_forms15ContentUserEdit*
 __ZT[hvc]*9gui_forms15ContentWatchdog*
 __ZT[hvc]*9gui_forms15ControlSnapshot*
 __ZT[hvc]*9gui_forms15CurrencyManager*
@@ -11259,6 +11392,8 @@ __ZT[hvc]*9gui_forms15HostAttachEvent*
 __ZT[hvc]*9gui_forms15HostClosedEvent*
 __ZT[hvc]*9gui_forms15HostResizeEvent*
 __ZT[hvc]*9gui_forms15HostWindowFrame*
+__ZT[hvc]*9gui_forms15HostedFrameView*
+__ZT[hvc]*9gui_forms15HostedKeyRecord*
 __ZT[hvc]*9gui_forms15IconDeclaration*
 __ZT[hvc]*9gui_forms15ImageListChange*
 __ZT[hvc]*9gui_forms15ImageLoadResult*
@@ -11470,6 +11605,8 @@ __ZT[hvc]*9gui_forms17HostMonitorResult*
 __ZT[hvc]*9gui_forms17HostServiceStatus*
 __ZT[hvc]*9gui_forms17HostShutdownEvent*
 __ZT[hvc]*9gui_forms17HostTrayIconEvent*
+__ZT[hvc]*9gui_forms17HostedClientInput*
+__ZT[hvc]*9gui_forms17HostedFrameRecord*
 __ZT[hvc]*9gui_forms17ImageAtlasAcquire*
 __ZT[hvc]*9gui_forms17ImageResourceView*
 __ZT[hvc]*9gui_forms17InlineStyleResult*
@@ -11668,6 +11805,8 @@ __ZT[hvc]*9gui_forms19HostSoundCueRequest*
 __ZT[hvc]*9gui_forms19HostTrayIconRequest*
 __ZT[hvc]*9gui_forms19HostTrayMenuRequest*
 __ZT[hvc]*9gui_forms19HostWindowAdmission*
+__ZT[hvc]*9gui_forms19HostedMessageReader*
+__ZT[hvc]*9gui_forms19HostedPointerRecord*
 __ZT[hvc]*9gui_forms19ImageListResolution*
 __ZT[hvc]*9gui_forms19ImageRegistryLimits*
 __ZT[hvc]*9gui_forms19ImageVariantRequest*
@@ -11761,6 +11900,7 @@ __ZT[hvc]*9gui_forms20HostServicesSnapshot*
 __ZT[hvc]*9gui_forms20HostWindowFrameEvent*
 __ZT[hvc]*9gui_forms20HostWindowKindTraits*
 __ZT[hvc]*9gui_forms20HostWindowStateEvent*
+__ZT[hvc]*9gui_forms20HostedContentOptions*
 __ZT[hvc]*9gui_forms20ImageAtlasStatistics*
 __ZT[hvc]*9gui_forms20InstrumentModuleSpec*
 __ZT[hvc]*9gui_forms20MaterialColourFilter*
@@ -11824,6 +11964,7 @@ __ZT[hvc]*9gui_forms21HostScreenPointResult*
 __ZT[hvc]*9gui_forms21HostWindowDescription*
 __ZT[hvc]*9gui_forms21HostWindowFrameResult*
 __ZT[hvc]*9gui_forms21HostWindowingSnapshot*
+__ZT[hvc]*9gui_forms21HostedConfigureRecord*
 __ZT[hvc]*9gui_forms21ImageRegistrySnapshot*
 __ZT[hvc]*9gui_forms21InstrumentFieldChange*
 __ZT[hvc]*9gui_forms21InteractionValidation*
@@ -12420,6 +12561,7 @@ __ZZN9gui_forms11HelpKeyword*
 __ZZN9gui_forms11HelpPageRun*
 __ZZN9gui_forms11HostMonitor*
 __ZZN9gui_forms11HostSession*
+__ZZN9gui_forms11HostedInput*
 __ZZN9gui_forms11KeyBindings*
 __ZZN9gui_forms11LayoutStyle*
 __ZZN9gui_forms11LinearGauge*
@@ -12491,6 +12633,7 @@ __ZZN9gui_forms12HelpPageLink*
 __ZZN9gui_forms12HelpProvider*
 __ZZN9gui_forms12HostServices*
 __ZZN9gui_forms12HostWindowId*
+__ZZN9gui_forms12HostedClient*
 __ZZN9gui_forms12KeyEventArgs*
 __ZZN9gui_forms12ListViewItem*
 __ZZN9gui_forms12LocaleLimits*
@@ -12600,6 +12743,8 @@ __ZZN9gui_forms13HelpPrintPlan*
 __ZZN9gui_forms13HelpSearchHit*
 __ZZN9gui_forms13HostImageView*
 __ZZN9gui_forms13HostWindowing*
+__ZZN9gui_forms13HostedContent*
+__ZZN9gui_forms13HostedMessage*
 __ZZN9gui_forms13ImageMetadata*
 __ZZN9gui_forms13ImageRegistry*
 __ZZN9gui_forms13IndicatorLamp*
@@ -12770,6 +12915,7 @@ __ZZN9gui_forms15CollectionDirty*
 __ZZN9gui_forms15ColourSchemeSet*
 __ZZN9gui_forms15CompositorState*
 __ZZN9gui_forms15ContentTextLine*
+__ZZN9gui_forms15ContentUserEdit*
 __ZZN9gui_forms15ContentWatchdog*
 __ZZN9gui_forms15ControlSnapshot*
 __ZZN9gui_forms15CurrencyManager*
@@ -12804,6 +12950,8 @@ __ZZN9gui_forms15HostAttachEvent*
 __ZZN9gui_forms15HostClosedEvent*
 __ZZN9gui_forms15HostResizeEvent*
 __ZZN9gui_forms15HostWindowFrame*
+__ZZN9gui_forms15HostedFrameView*
+__ZZN9gui_forms15HostedKeyRecord*
 __ZZN9gui_forms15IconDeclaration*
 __ZZN9gui_forms15ImageListChange*
 __ZZN9gui_forms15ImageLoadResult*
@@ -13015,6 +13163,8 @@ __ZZN9gui_forms17HostMonitorResult*
 __ZZN9gui_forms17HostServiceStatus*
 __ZZN9gui_forms17HostShutdownEvent*
 __ZZN9gui_forms17HostTrayIconEvent*
+__ZZN9gui_forms17HostedClientInput*
+__ZZN9gui_forms17HostedFrameRecord*
 __ZZN9gui_forms17ImageAtlasAcquire*
 __ZZN9gui_forms17ImageResourceView*
 __ZZN9gui_forms17InlineStyleResult*
@@ -13213,6 +13363,8 @@ __ZZN9gui_forms19HostSoundCueRequest*
 __ZZN9gui_forms19HostTrayIconRequest*
 __ZZN9gui_forms19HostTrayMenuRequest*
 __ZZN9gui_forms19HostWindowAdmission*
+__ZZN9gui_forms19HostedMessageReader*
+__ZZN9gui_forms19HostedPointerRecord*
 __ZZN9gui_forms19ImageListResolution*
 __ZZN9gui_forms19ImageRegistryLimits*
 __ZZN9gui_forms19ImageVariantRequest*
@@ -13306,6 +13458,7 @@ __ZZN9gui_forms20HostServicesSnapshot*
 __ZZN9gui_forms20HostWindowFrameEvent*
 __ZZN9gui_forms20HostWindowKindTraits*
 __ZZN9gui_forms20HostWindowStateEvent*
+__ZZN9gui_forms20HostedContentOptions*
 __ZZN9gui_forms20ImageAtlasStatistics*
 __ZZN9gui_forms20InstrumentModuleSpec*
 __ZZN9gui_forms20MaterialColourFilter*
@@ -13369,6 +13522,7 @@ __ZZN9gui_forms21HostScreenPointResult*
 __ZZN9gui_forms21HostWindowDescription*
 __ZZN9gui_forms21HostWindowFrameResult*
 __ZZN9gui_forms21HostWindowingSnapshot*
+__ZZN9gui_forms21HostedConfigureRecord*
 __ZZN9gui_forms21ImageRegistrySnapshot*
 __ZZN9gui_forms21InstrumentFieldChange*
 __ZZN9gui_forms21InteractionValidation*
@@ -13965,6 +14119,7 @@ __ZZNK9gui_forms11HelpKeyword*
 __ZZNK9gui_forms11HelpPageRun*
 __ZZNK9gui_forms11HostMonitor*
 __ZZNK9gui_forms11HostSession*
+__ZZNK9gui_forms11HostedInput*
 __ZZNK9gui_forms11KeyBindings*
 __ZZNK9gui_forms11LayoutStyle*
 __ZZNK9gui_forms11LinearGauge*
@@ -14036,6 +14191,7 @@ __ZZNK9gui_forms12HelpPageLink*
 __ZZNK9gui_forms12HelpProvider*
 __ZZNK9gui_forms12HostServices*
 __ZZNK9gui_forms12HostWindowId*
+__ZZNK9gui_forms12HostedClient*
 __ZZNK9gui_forms12KeyEventArgs*
 __ZZNK9gui_forms12ListViewItem*
 __ZZNK9gui_forms12LocaleLimits*
@@ -14145,6 +14301,8 @@ __ZZNK9gui_forms13HelpPrintPlan*
 __ZZNK9gui_forms13HelpSearchHit*
 __ZZNK9gui_forms13HostImageView*
 __ZZNK9gui_forms13HostWindowing*
+__ZZNK9gui_forms13HostedContent*
+__ZZNK9gui_forms13HostedMessage*
 __ZZNK9gui_forms13ImageMetadata*
 __ZZNK9gui_forms13ImageRegistry*
 __ZZNK9gui_forms13IndicatorLamp*
@@ -14315,6 +14473,7 @@ __ZZNK9gui_forms15CollectionDirty*
 __ZZNK9gui_forms15ColourSchemeSet*
 __ZZNK9gui_forms15CompositorState*
 __ZZNK9gui_forms15ContentTextLine*
+__ZZNK9gui_forms15ContentUserEdit*
 __ZZNK9gui_forms15ContentWatchdog*
 __ZZNK9gui_forms15ControlSnapshot*
 __ZZNK9gui_forms15CurrencyManager*
@@ -14349,6 +14508,8 @@ __ZZNK9gui_forms15HostAttachEvent*
 __ZZNK9gui_forms15HostClosedEvent*
 __ZZNK9gui_forms15HostResizeEvent*
 __ZZNK9gui_forms15HostWindowFrame*
+__ZZNK9gui_forms15HostedFrameView*
+__ZZNK9gui_forms15HostedKeyRecord*
 __ZZNK9gui_forms15IconDeclaration*
 __ZZNK9gui_forms15ImageListChange*
 __ZZNK9gui_forms15ImageLoadResult*
@@ -14560,6 +14721,8 @@ __ZZNK9gui_forms17HostMonitorResult*
 __ZZNK9gui_forms17HostServiceStatus*
 __ZZNK9gui_forms17HostShutdownEvent*
 __ZZNK9gui_forms17HostTrayIconEvent*
+__ZZNK9gui_forms17HostedClientInput*
+__ZZNK9gui_forms17HostedFrameRecord*
 __ZZNK9gui_forms17ImageAtlasAcquire*
 __ZZNK9gui_forms17ImageResourceView*
 __ZZNK9gui_forms17InlineStyleResult*
@@ -14758,6 +14921,8 @@ __ZZNK9gui_forms19HostSoundCueRequest*
 __ZZNK9gui_forms19HostTrayIconRequest*
 __ZZNK9gui_forms19HostTrayMenuRequest*
 __ZZNK9gui_forms19HostWindowAdmission*
+__ZZNK9gui_forms19HostedMessageReader*
+__ZZNK9gui_forms19HostedPointerRecord*
 __ZZNK9gui_forms19ImageListResolution*
 __ZZNK9gui_forms19ImageRegistryLimits*
 __ZZNK9gui_forms19ImageVariantRequest*
@@ -14851,6 +15016,7 @@ __ZZNK9gui_forms20HostServicesSnapshot*
 __ZZNK9gui_forms20HostWindowFrameEvent*
 __ZZNK9gui_forms20HostWindowKindTraits*
 __ZZNK9gui_forms20HostWindowStateEvent*
+__ZZNK9gui_forms20HostedContentOptions*
 __ZZNK9gui_forms20ImageAtlasStatistics*
 __ZZNK9gui_forms20InstrumentModuleSpec*
 __ZZNK9gui_forms20MaterialColourFilter*
@@ -14914,6 +15080,7 @@ __ZZNK9gui_forms21HostScreenPointResult*
 __ZZNK9gui_forms21HostWindowDescription*
 __ZZNK9gui_forms21HostWindowFrameResult*
 __ZZNK9gui_forms21HostWindowingSnapshot*
+__ZZNK9gui_forms21HostedConfigureRecord*
 __ZZNK9gui_forms21ImageRegistrySnapshot*
 __ZZNK9gui_forms21InstrumentFieldChange*
 __ZZNK9gui_forms21InteractionValidation*

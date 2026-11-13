@@ -368,7 +368,7 @@ gui_forms::ContentTextEditor
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 15 supported, 0 deferred, 0 excluded, 2 unclassified; 17 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 1 unclassified; 19 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -390,7 +390,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 15 s
    * - property
      - GUI.Forms-only
      - ``draws_selection``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``layout_current``
@@ -431,6 +431,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 15 s
      - GUI.Forms-only
      - ``text_changed``
      - supported
+   * - event
+     - GUI.Forms-only
+     - ``user_edit``
+     - supported
    * - method
      - GUI.Forms-only
      - ``open_frames``
@@ -442,6 +446,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 15 s
    * - method
      - GUI.Forms-only
      - ``redo``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_edit_filter``
      - supported
    * - method
      - GUI.Forms-only

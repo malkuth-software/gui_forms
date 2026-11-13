@@ -83,6 +83,8 @@ const SemanticNode* find_node(const SemanticNode& node, std::string_view stable_
     return nullptr;
 }
 
+const SemanticNode* find_node(const SemanticSnapshot&& snapshot, std::string_view stable_id) = delete;
+
 const SemanticNode* find_node(const SemanticSnapshot& snapshot, std::string_view stable_id) {
     for (const SemanticNode& root : snapshot.roots) {
         const SemanticNode* found = find_node(root, stable_id);

@@ -3597,6 +3597,8 @@ Enumerations
 
    .. cpp:enumerator:: locale
 
+   .. cpp:enumerator:: hosted_content
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostCloseReason
