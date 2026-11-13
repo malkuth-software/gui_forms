@@ -928,6 +928,7 @@ void flow_starts_and_stops() {
     NodeCanvas& canvas = *fixture.canvas;
     MotionClock& clock = (*fixture.window).motion_clock();
     fixture.paint();
+    require(!canvas.link_flowing(fixture.link), "a link does not flow by default (T12: a state the program sets)");
     require(!canvas.flow_running() && !clock.control_ambient(canvas), "with nothing flowing there are no frames");
     require(canvas.set_link_flowing(fixture.link, true) && canvas.link_flowing(fixture.link), "the link flows");
     require(!canvas.set_link_flowing(LinkId{99U, 1U}, true), "a stale link is refused");
