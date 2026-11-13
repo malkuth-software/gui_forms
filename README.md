@@ -10,14 +10,15 @@ open the same controls to other languages.
 
 [![CI](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml/badge.svg)](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml) [![Docs](https://readthedocs.org/projects/gui-forms/badge/?version=latest)](https://gui-forms.readthedocs.io/) [![Release](https://img.shields.io/github/v/release/malkuth-software/gui_forms?display_name=tag)](https://github.com/malkuth-software/gui_forms/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg) ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)
 
-- **Status:** 0.5, the ABI and API seal, is done. Work is now towards
-  1.0 (backend): the library, its C ABI and its C# bindings. See the
+- **Status:** 0.5, the ABI and API seal, is done, and the package version
+  is 0.6 (C ABI 1.3). Work is now towards 1.0 (backend): the library, its
+  C ABI and its C# bindings. See the
   [release notes](https://gui-forms.readthedocs.io/en/latest/release/index.html)
   and the [roadmap](https://gui-forms.readthedocs.io/en/latest/dev/roadmap.html).
 - **Rendering:** CPU only, by design, with no GPU backend. One
   HarfBuzz/FreeType text engine with bundled fonts draws the same string
   identically on every platform.
-- **Controls:** more than 120 stock controls (the Windows Forms set, a
+- **Controls:** more than 140 stock controls (the Windows Forms set, a
   ribbon, docking, data grids, plots and more), themes written in a
   CSS-syntax theme language, form documents that generate typed window
   classes, and native accessibility on every host.
@@ -27,7 +28,7 @@ open the same controls to other languages.
 | Platform | Host | Notes |
 |---|---|---|
 | macOS 14+ | AppKit | Apple silicon (arm64) |
-| Windows 10+ | Win32 | x64; built with LLVM 22 (MSYS2 CLANG64 or clang-cl) |
+| Windows 10+ | Win32 | x64; built with LLVM 22 under MSYS2 CLANG64 |
 | Linux | X11 | x64 and arm64; also runs under XWayland. Enable with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` |
 
 ## Quick start
@@ -256,7 +257,7 @@ goes further: a form document, a model and an event handler.
 
 CI must pass on every platform. C++ follows the
 [house style](https://github.com/malkuth-software/notes/blob/main/HOUSE_STYLE.md);
-run `python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard`
+run `python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz`
 before you push. See the
 [contributor's guide](https://gui-forms.readthedocs.io/en/latest/dev/index.html).
 

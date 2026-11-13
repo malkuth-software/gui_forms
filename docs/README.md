@@ -46,6 +46,8 @@ The top bar has NumPy's five sections. Each is a directory with an index page.
 | `_static/` | `gui_forms.css` (adapted from NumPy's `numpy.css`), the logo mark and the card icons | hand |
 | `library/` | API reference inputs: docstrings, `manual.json`, archived captures; see `library/README.md` | hand; excluded |
 | `reference/` | Inputs of `tools/api_reference.py` (clang inventory, reviewed contracts) | generated or reviewed JSON; excluded |
+| `wiki/` | The GitHub wiki's pages, kept here and published to the wiki by hand | hand; excluded |
+| `images/` | Screenshots the repository README shows | hand |
 
 ## The exclude list
 
@@ -86,6 +88,7 @@ Regenerate before building when headers, the registry or a docstring changed:
 python3 tools/control_registry.py check          # validates manifests/controls.json
 python3 tools/control_registry.py render         # writes controls/generated/
 python3 tools/control_schema.py render           # writes controls/generated/schema.md
+python3 tools/winforms_divergences.py render     # writes controls/generated/winforms-divergences.md
 python3 tools/generate_library_docs.py           # writes api/ and tests/doc_examples_tests.cpp
 ```
 
