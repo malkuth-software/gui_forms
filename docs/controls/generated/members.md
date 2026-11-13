@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2096 | 13 | 367 | 4122 | 2207 |
+| 2107 | 13 | 367 | 4129 | 2225 |
 
 ## GUI.Forms types
 
@@ -142,6 +142,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `NodeCanvas` | GUI.Forms-only | 55 | 0 | 0 | 14 | 69 |
 | `LiveSurface` | GUI.Forms-only | 10 | 0 | 0 | 0 | 10 |
 | `SubSurfaceHost` | GUI.Forms-only | 14 | 0 | 0 | 1 | 15 |
+| `ContentSurface` | GUI.Forms-only | 11 | 0 | 0 | 7 | 18 |
 | `MetricsView` | GUI.Forms-only | 1 | 0 | 0 | 0 | 1 |
 | `Timer` | `Timer` | 6 | 0 | 0 | 3 | 1 |
 | `BackgroundWorker` | `BackgroundWorker` | 10 | 0 | 0 | 6 | 2 |
@@ -304,5 +305,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1633 |
-| `untested` | 913 |
+| `untested` | 920 |
 | `w-open` | 5 |

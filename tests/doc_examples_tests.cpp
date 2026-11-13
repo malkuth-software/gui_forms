@@ -944,6 +944,20 @@ void example() {
 }
 }  // namespace doc_example_ContentSurface_1
 
+namespace doc_example_ContentTextEditor_1 {
+void example() {
+    std::shared_ptr<gf::ContentTextEditor> editor =
+        gf::make_control<gf::ContentTextEditor>(gf::StableId("notes"), "hi");
+    gf::ContentTextLayout layout;
+    layout.text_revision = (*editor).text_revision();
+    layout.lines.push_back({.range = {gf::Utf8Offset(0U), gf::Utf8Offset(2U)}, .bounds = {0.0, 0.0, 20.0, 16.0}});
+    layout.clusters.push_back({.range = {gf::Utf8Offset(0U), gf::Utf8Offset(1U)}, .line = 0U, .bounds = {0.0, 0.0, 10.0, 16.0}});
+    layout.clusters.push_back({.range = {gf::Utf8Offset(1U), gf::Utf8Offset(2U)}, .line = 0U, .bounds = {10.0, 0.0, 10.0, 16.0}});
+    const gf::ContentLayoutResult result = (*editor).submit_layout(layout);
+    if (result != gf::ContentLayoutResult::accepted) return;   // refused: the editor keeps no layout
+}
+}  // namespace doc_example_ContentTextEditor_1
+
 namespace doc_example_ContextMenu_1 {
 struct Notes final : gf::Component {
     std::shared_ptr<gf::Panel> root =
@@ -4173,6 +4187,7 @@ int main() {
     failures += run("ContainerControl example 1", &doc_example_ContainerControl_1::example);
     failures += run("ContainerControl example 2", &doc_example_ContainerControl_2::example);
     failures += run("ContentSurface example 1", &doc_example_ContentSurface_1::example);
+    failures += run("ContentTextEditor example 1", &doc_example_ContentTextEditor_1::example);
     failures += run("ContextMenu example 1", &doc_example_ContextMenu_1::example);
     failures += run("Control example 1", &doc_example_Control_1::example);
     failures += run("Control example 2", &doc_example_Control_2::example);

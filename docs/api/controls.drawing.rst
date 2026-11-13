@@ -23,6 +23,8 @@ Owner-drawn, live and raster surfaces.
      - Region control that runs one threaded sub-surface with its own retained tree, sizes and reconfigures it, composes its LiveSurface frames into the window, and forwards input and keyboard focus to it.
    * - :cpp:class:`ContentSurface <gui_forms::ContentSurface>`
      - A region whose pixels a consumer renders itself, on its own thread, with its own engine and fonts.
+   * - :cpp:class:`ContentTextEditor <gui_forms::ContentTextEditor>`
+     - Editable text a consumer lays out and renders itself, edited by GUI.Forms.
 
 .. toctree::
    :hidden:
@@ -33,6 +35,7 @@ Owner-drawn, live and raster surfaces.
    generated/gui_forms.LiveSurface
    generated/gui_forms.SubSurfaceHost
    generated/gui_forms.ContentSurface
+   generated/gui_forms.ContentTextEditor
 
 Related types
 -------------
@@ -44,6 +47,10 @@ Related types
    * - :cpp:class:`ContentSurface::Parts <gui_forms::ContentSurface::Parts>`
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`ContentSurface::States <gui_forms::ContentSurface::States>`
+     -  
+   * - :cpp:class:`ContentTextEditor::Parts <gui_forms::ContentTextEditor::Parts>`
+     - Stage T1 anatomy, as dot members: the panel's scrollable parts, then ``content`` (the consumer's frame), ``caret`` (the bar while it shows), ``selection`` (the union of the highlight's boxes) and ``focus``.
+   * - :cpp:class:`ContentTextEditor::States <gui_forms::ContentTextEditor::States>`
      -  
    * - :cpp:class:`DrawingSurface::Parts <gui_forms::DrawingSurface::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
@@ -227,6 +234,42 @@ Related types
    .. cpp:member:: bool focused
 
    .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentTextEditor::Parts final
+
+   ``#include <gui_forms/controls/content_text_editor.hpp>``
+
+   Stage T1 anatomy, as dot members: the panel's scrollable parts, then ``content`` (the consumer's frame), ``caret`` (the bar while it shows), ``selection`` (the union of the highlight's boxes) and ``focus``.
+
+   .. cpp:member:: ScrollableControl::Parts scrollable
+
+   .. cpp:member:: PartGeometry content
+
+   .. cpp:member:: PartGeometry caret
+
+   .. cpp:member:: PartGeometry selection
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentTextEditor::States final
+
+   ``#include <gui_forms/controls/content_text_editor.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool focus_visible
+
+   .. cpp:member:: bool read_only
 
 .. cpp:namespace:: gui_forms
 

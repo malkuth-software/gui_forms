@@ -554,6 +554,7 @@ add_library(gui_forms_core STATIC
     src/core/live_surface/write_lease/live_surface_write_lease.cpp
     src/core/content/channel/content_channel.cpp
     src/core/content/frame_sink/content_frame_sink.cpp
+    src/core/content/editing/content_text_layout.cpp
     src/core/content/operation/content_worker.cpp
     src/core/content/types/content_types.cpp
     src/core/content/watchdog/content_watchdog.cpp
@@ -1005,6 +1006,7 @@ add_library(gui_forms_controls STATIC
     src/controls/badge/badge.cpp
     src/controls/indicator_lamp/indicator_lamp.cpp
     src/controls/content_surface/content_surface.cpp
+    src/controls/content_text_editor/content_text_editor.cpp
     src/controls/info_banner/info_banner.cpp
     src/controls/empty_state/empty_state.cpp
     src/controls/spinner/spinner.cpp
@@ -3782,6 +3784,10 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_content_termination_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_content_termination_tests COMMAND gui_forms_content_termination_tests)
     set_tests_properties(gui_forms_content_termination_tests PROPERTIES TIMEOUT 120)
+    add_executable(gui_forms_content_text_editor_tests tests/content_text_editor_tests.cpp)
+    target_link_libraries(gui_forms_content_text_editor_tests PRIVATE gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_content_text_editor_tests COMMAND gui_forms_content_text_editor_tests)
+    set_tests_properties(gui_forms_content_text_editor_tests PROPERTIES TIMEOUT 120)
     add_executable(gui_forms_sub_surface_tests tests/sub_surface_tests.cpp)
     target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_sub_surface_tests COMMAND gui_forms_sub_surface_tests)

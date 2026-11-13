@@ -50,6 +50,7 @@
 #include "gui_forms/controls/command_bar.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/controls/content_surface.hpp"
+#include "gui_forms/controls/content_text_editor.hpp"
 #include "gui_forms/controls/data_grid_view.hpp"
 #include "gui_forms/controls/data_grid_view_row_order.hpp"
 #include "gui_forms/controls/data_grid_view_types.hpp"
@@ -4805,6 +4806,15 @@ inline SubscriptionToken connect_dock_workspace_layout_changed(Component& source
     return token;
 }
 
+inline SubscriptionToken connect_content_text_editor_layout_requested(Component& source, const EventSink& sink) {
+    ContentTextEditor* typed = dynamic_cast<ContentTextEditor*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).layout_requested(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_plot_view_legend_toggled(Component& source, const EventSink& sink) {
     PlotView* typed = dynamic_cast<PlotView*>(&source);
     if (typed == nullptr) {
@@ -5646,6 +5656,15 @@ inline SubscriptionToken connect_tab_control_selecting(Component& source, const 
     return token;
 }
 
+inline SubscriptionToken connect_content_text_editor_selection_changed(Component& source, const EventSink& sink) {
+    ContentTextEditor* typed = dynamic_cast<ContentTextEditor*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_list_box_selection_changed(Component& source, const EventSink& sink) {
     ListBox* typed = dynamic_cast<ListBox*>(&source);
     if (typed == nullptr) {
@@ -5873,6 +5892,15 @@ inline SubscriptionToken connect_tool_strip_container_strip_moved(Component& sou
 
 inline SubscriptionToken connect_combo_box_text_changed(Component& source, const EventSink& sink) {
     ComboBox* typed = dynamic_cast<ComboBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).text_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_content_text_editor_text_changed(Component& source, const EventSink& sink) {
+    ContentTextEditor* typed = dynamic_cast<ContentTextEditor*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -6254,7 +6282,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 339> event_connectors{{
+inline constexpr std::array<EventConnector, 342> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6434,6 +6462,7 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"key_up", "Control", &connect_control_key_up},
     {"key_up", "Window", &connect_window_key_up},
     {"layout_changed", "DockWorkspace", &connect_dock_workspace_layout_changed},
+    {"layout_requested", "ContentTextEditor", &connect_content_text_editor_layout_requested},
     {"legend_toggled", "PlotView", &connect_plot_view_legend_toggled},
     {"link_activated", "HelpBook", &connect_help_book_link_activated},
     {"link_clicked", "RichTextBox", &connect_rich_text_box_link_clicked},
@@ -6527,6 +6556,7 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"selected_tab_changed", "Ribbon", &connect_ribbon_selected_tab_changed},
     {"selected_token_changed", "TokenBox", &connect_token_box_selected_token_changed},
     {"selecting", "TabControl", &connect_tab_control_selecting},
+    {"selection_changed", "ContentTextEditor", &connect_content_text_editor_selection_changed},
     {"selection_changed", "ListBox", &connect_list_box_selection_changed},
     {"selection_changed", "RichTextBox", &connect_rich_text_box_selection_changed},
     {"selection_changed", "TextBox", &connect_text_box_selection_changed},
@@ -6553,6 +6583,7 @@ inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"stopped", "SubSurfaceHost", &connect_sub_surface_host_stopped},
     {"strip_moved", "ToolStripContainer", &connect_tool_strip_container_strip_moved},
     {"text_changed", "ComboBox", &connect_combo_box_text_changed},
+    {"text_changed", "ContentTextEditor", &connect_content_text_editor_text_changed},
     {"text_changed", "MaskedTextBox", &connect_masked_text_box_text_changed},
     {"text_changed", "RichTextBox", &connect_rich_text_box_text_changed},
     {"text_changed", "TextBox", &connect_text_box_text_changed},

@@ -46,6 +46,7 @@
 #include "gui_forms/controls/command_overflow_panel.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/controls/content_surface.hpp"
+#include "gui_forms/controls/content_text_editor.hpp"
 #include "gui_forms/controls/data_grid_view.hpp"
 #include "gui_forms/controls/date_time_picker.hpp"
 #include "gui_forms/controls/dial.hpp"
@@ -158,7 +159,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 146> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 147> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -286,6 +287,7 @@ inline constexpr std::array<SchemaCatalogEntry, 146> schema_catalog{{
     {"live_surface", "LiveSurface", &describe_type<LiveSurface>, &create_type<LiveSurface>, &is_exact_type<LiveSurface>},
     {"sub_surface_host", "SubSurfaceHost", &describe_type<SubSurfaceHost>, &create_type<SubSurfaceHost>, &is_exact_type<SubSurfaceHost>},
     {"content_surface", "ContentSurface", &describe_type<ContentSurface>, &create_type<ContentSurface>, &is_exact_type<ContentSurface>},
+    {"content_text_editor", "ContentTextEditor", &describe_type<ContentTextEditor>, &create_type<ContentTextEditor>, &is_exact_type<ContentTextEditor>},
     {"metrics_view", "MetricsView", &describe_type<MetricsView>, &create_type<MetricsView>, &is_exact_type<MetricsView>},
     {"timer", "Timer", &describe_type<Timer>, &create_type<Timer>, &is_exact_type<Timer>},
     {"background_worker", "BackgroundWorker", &describe_type<BackgroundWorker>, &create_type<BackgroundWorker>, &is_exact_type<BackgroundWorker>},

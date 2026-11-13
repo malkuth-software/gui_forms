@@ -46,6 +46,7 @@
 #include "gui_forms/controls/command_overflow_panel.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/controls/content_surface.hpp"
+#include "gui_forms/controls/content_text_editor.hpp"
 #include "gui_forms/controls/data_grid_view.hpp"
 #include "gui_forms/controls/date_time_picker.hpp"
 #include "gui_forms/controls/dial.hpp"
@@ -158,7 +159,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 146> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 147> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -286,6 +287,7 @@ inline constexpr std::array<FormCatalogEntry, 146> form_catalog{{
     {"live_surface", "LiveSurface", "gui_forms/live_surface/surface/live_surface.hpp", &add_catalog_type<LiveSurface>},
     {"sub_surface_host", "SubSurfaceHost", "gui_forms/surface_root/sub_surface/sub_surface_host.hpp", &add_catalog_type<SubSurfaceHost>},
     {"content_surface", "ContentSurface", "gui_forms/controls/content_surface.hpp", &add_catalog_type<ContentSurface>},
+    {"content_text_editor", "ContentTextEditor", "gui_forms/controls/content_text_editor.hpp", &add_catalog_type<ContentTextEditor>},
     {"metrics_view", "MetricsView", "gui_forms/controls/metrics_view.hpp", &add_catalog_type<MetricsView>},
     {"timer", "Timer", "gui_forms/timer/timer/timer.hpp", &add_catalog_type<Timer>},
     {"background_worker", "BackgroundWorker", "gui_forms/background_worker/background_worker.hpp", &add_catalog_type<BackgroundWorker>},

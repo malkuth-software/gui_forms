@@ -307,7 +307,7 @@ gui_forms::ContentSurface
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 0 supported, 0 deferred, 0 excluded, 13 unclassified; 13 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 2 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -325,48 +325,68 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - property
      - GUI.Forms-only
      - ``content_semantics``
-     - unclassified (untested)
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``failure``
+     - supported
    * - property
      - GUI.Forms-only
      - ``live_surface``
-     - unclassified (untested)
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``program_running``
+     - supported
    * - property
      - GUI.Forms-only
      - ``request``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``stale_interval``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``statistics``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``status``
-     - unclassified (untested)
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``termination_grace``
+     - supported
    * - event
      - GUI.Forms-only
      - ``status_changed``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``check_watchdog``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``close_content``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``open_content``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``set_status_caption``
      - unclassified (untested)
    * - method
      - GUI.Forms-only
+     - ``start_program``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``status_caption``
-     - unclassified (untested)
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``terminate``
+     - supported

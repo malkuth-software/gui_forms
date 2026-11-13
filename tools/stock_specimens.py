@@ -161,6 +161,7 @@ BLANK_REASONS: Mapping[str, str] = {
     "ribbon_color_picker": "a small split button: with no icon image in the catalogue only its colour bar shows",
     "sub_surface_host": "hosts a program's own surface and is empty until one is attached",
     "content_surface": "shows the frames a consumer renders and is empty until content publishes one",
+    "content_text_editor": "shows the text a consumer renders and is empty until content publishes a frame",
 }
 
 # Sample text by control id, where the id as words would not suit.

@@ -1407,6 +1407,17 @@
       "doc": "api/generated/gui_forms.ContentSurface.rst"
     },
     {
+      "id": "content_text_editor",
+      "type": "ContentTextEditor",
+      "header": "gui_forms/controls/content_text_editor.hpp",
+      "category": "Drawing",
+      "purpose": "Editable text a consumer lays out and renders with its own engine and fonts, while GUI.Forms keeps the caret, selection, keys, input methods, undo, clipboard and accessibility; every layout and frame is validated.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.ContentTextEditor.rst"
+    },
+    {
       "id": "metrics_view",
       "type": "MetricsView",
       "header": "gui_forms/controls/metrics_view.hpp",

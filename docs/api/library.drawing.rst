@@ -36,6 +36,8 @@ Types
      - ColorBlend owns equal-length color and monotonic position vectors validated by consuming brushes.
    * - :cpp:class:`ConicGradientBrush <gui_drawing::ConicGradientBrush>`
      - A conic (sweep) gradient (piece C9, a hue wheel): the colour at a point is the blend's colour at its angle about ``center``, measured clockwise (y down) from ``start_angle`` degrees (0 along +x), one full turn from position 0 to position 1.
+   * - :cpp:class:`ContentCaretStop <gui_forms::ContentCaretStop>`
+     - An explicit caret position, for a consumer whose carets do not stand at cluster edges (split carets, vertical text): the caret at ``offset`` is the rectangle ``caret`` (a bar, usually one unit wide), in local coordinates.
    * - :cpp:class:`ContentContext <gui_forms::ContentContext>`
      - What a content program sees on its own thread: the sink it publishes through and the stop it should honour.
    * - :cpp:class:`ContentFrame <gui_forms::ContentFrame>`
@@ -54,6 +56,12 @@ Types
      - The text a consumer supplies for its surface, so that what it draws is not invisible to assistive technology (its pixels carry no text).
    * - :cpp:class:`ContentSurfaceStatistics <gui_forms::ContentSurfaceStatistics>`
      - Counters of one content channel, written by the consumer's threads and the interface thread, read by anyone.
+   * - :cpp:class:`ContentTextCluster <gui_forms::ContentTextCluster>`
+     - One shaped cluster (one or more graphemes drawn as a unit, such as a ligature): its UTF-8 range, the index of its line in ContentTextLayout::lines, its box and its direction.
+   * - :cpp:class:`ContentTextLayout <gui_forms::ContentTextLayout>`
+     - A whole layout for one revision of the editor's text (ContentTextEditor::text_revision).
+   * - :cpp:class:`ContentTextLine <gui_forms::ContentTextLine>`
+     - One visual line: the UTF-8 range of the text it shows (without the line break that ends it) and its box, in the editor's local coordinates.
    * - :cpp:class:`ContentWatchdog <gui_forms::ContentWatchdog>`
      - The missed-frame watchdog of a content surface (owner decisions 2026-11-13, "What this asks of GUI.Forms", item 1).
    * - :cpp:class:`ContentWorker <gui_forms::ContentWorker>`
@@ -587,6 +595,18 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ContentCaretStop final
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   An explicit caret position, for a consumer whose carets do not stand at cluster edges (split carets, vertical text): the caret at ``offset`` is the rectangle ``caret`` (a bar, usually one unit wide), in local coordinates.
+
+   .. cpp:member:: Utf8Offset offset
+
+   .. cpp:member:: Rect caret
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: ContentContext final
 
    ``#include <gui_forms/content/operation/content_operation.hpp>``
@@ -809,6 +829,50 @@ Types
    .. cpp:member:: ContentPublishResult last_refusal
 
       The newest refusal, ``published`` while there was none. Default: ``{ContentPublishResult::published}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentTextCluster final
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   One shaped cluster (one or more graphemes drawn as a unit, such as a ligature): its UTF-8 range, the index of its line in ContentTextLayout::lines, its box and its direction. The caret stands at its leading edge before it and at its trailing edge after it: left and right for left-to-right clusters, right and left for right-to-left ones.
+
+   .. cpp:member:: Utf8Range range
+
+   .. cpp:member:: std::uint32_t line
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: bool right_to_left
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentTextLayout final
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   A whole layout for one revision of the editor's text (ContentTextEditor::text_revision). Lines and clusters are in text order; caret stops, when given, ascend by offset and override the edge-derived caret at their offsets.
+
+   .. cpp:member:: std::uint64_t text_revision
+
+   .. cpp:member:: std::vector<ContentTextLine> lines
+
+   .. cpp:member:: std::vector<ContentTextCluster> clusters
+
+   .. cpp:member:: std::vector<ContentCaretStop> carets
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentTextLine final
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   One visual line: the UTF-8 range of the text it shows (without the line break that ends it) and its box, in the editor's local coordinates.
+
+   .. cpp:member:: Utf8Range range
+
+   .. cpp:member:: Rect bounds
 
 .. cpp:namespace:: gui_forms
 
@@ -3005,6 +3069,28 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ContentLayoutResult
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   .. cpp:enumerator:: accepted
+
+   .. cpp:enumerator:: stale_revision
+
+   .. cpp:enumerator:: refused_too_large
+
+   .. cpp:enumerator:: refused_range
+
+   .. cpp:enumerator:: refused_boundary
+
+   .. cpp:enumerator:: refused_cluster
+
+   .. cpp:enumerator:: refused_geometry
+
+   .. cpp:enumerator:: refused_caret
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ContentPublishResult
 
    ``#include <gui_forms/content/types/content_types.hpp>``
@@ -3487,6 +3573,20 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+.. cpp:function:: std::string_view content_layout_result_name(ContentLayoutResult result) noexcept
+
+.. cpp:function:: ContentLayoutResult validate_content_text_layout(const ContentTextLayout& layout, const TextStore& text, std::uint64_t revision)
+
+   Checks ``layout`` against ``text`` (the editor's text store) without keeping either: counts first, then every range against the text's size and grapheme boundaries, the order of lines and clusters, the coverage of each line by its clusters, and every box. ``revision`` is the text's revision the layout must name.
+
+.. cpp:var:: constexpr std::size_t maximum_content_layout_entries
+
+   The most lines, clusters or caret stops one layout may hold: one million each. A layout holding more is refused before it is read further. Value: ``1000000U``.
 
 .. cpp:namespace:: gui_forms
 

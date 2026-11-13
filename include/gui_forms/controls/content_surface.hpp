@@ -102,7 +102,8 @@ public:
     void set_termination_grace(std::chrono::milliseconds grace);
     [[nodiscard]] std::chrono::milliseconds termination_grace() const noexcept { return termination_grace_; }
     // What the program threw, for status failed; empty otherwise.
-    [[nodiscard]] const std::string& failure() const noexcept { return failure_; }
+    [[nodiscard]] const std::string& failure() const& noexcept { return failure_; }
+    const std::string& failure() const&& = delete;
 
     [[nodiscard]] ContentSurfaceStatus status() const noexcept { return status_; }
     // Raised on the UI thread when status() changes, with the new status.

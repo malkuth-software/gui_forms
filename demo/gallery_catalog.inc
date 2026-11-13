@@ -21,7 +21,7 @@ inline constexpr std::array<std::string_view, 14> catalog_categories {{
     "Components",
 }};
 
-inline constexpr std::array<CatalogEntry, 146> control_catalog {{
+inline constexpr std::array<CatalogEntry, 147> control_catalog {{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", "Commands", "Shared retained command state machine for pointer, keyboard, mnemonic, semantic, and dialog activation that Button, CheckBox, RadioButton, and LinkLabel specialize.", "ButtonBase", "stable", "control-spectrum"},
     {"button", "Button", "gui_forms/controls/button.hpp", "Commands", "Push button with accept/cancel dialog results, default-button state, and four visual policies.", "Button", "stable", "control-spectrum"},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", "Commands", "Command button with an explicit disclosure actuator that either routes the whole button to an owned overlay menu or keeps a primary click region beside a trailing split region.", "ToolStripSplitButton", "provisional", "commands-and-menus"},
@@ -149,6 +149,7 @@ inline constexpr std::array<CatalogEntry, 146> control_catalog {{
     {"live_surface", "LiveSurface", "gui_forms/live_surface/surface/live_surface.hpp", "Drawing", "Latest-frame surface where a producer publishes complete frame candidates and painters acquire only the newest immutable one.", "GUI.Forms-only", "stable", "live-surfaces"},
     {"sub_surface_host", "SubSurfaceHost", "gui_forms/surface_root/sub_surface/sub_surface_host.hpp", "Drawing", "Region control that runs one threaded sub-surface with its own retained tree, sizes and reconfigures it, composes its LiveSurface frames into the window, and forwards input and keyboard focus to it.", "GUI.Forms-only", "provisional", "live-surfaces"},
     {"content_surface", "ContentSurface", "gui_forms/controls/content_surface.hpp", "Drawing", "Region whose finished frames a consumer renders and publishes from its own execution context; every frame is validated, a missed-frame watchdog marks it stale while the last good frame stays, and the consumer supplies its semantic text.", "GUI.Forms-only", "provisional", "live-surfaces"},
+    {"content_text_editor", "ContentTextEditor", "gui_forms/controls/content_text_editor.hpp", "Drawing", "Editable text a consumer lays out and renders with its own engine and fonts, while GUI.Forms keeps the caret, selection, keys, input methods, undo, clipboard and accessibility; every layout and frame is validated.", "GUI.Forms-only", "provisional", ""},
     {"metrics_view", "MetricsView", "gui_forms/controls/metrics_view.hpp", "Diagnostics", "View over the structured Window metrics snapshot.", "GUI.Forms-only", "lab", "states-and-diagnostics"},
     {"timer", "Timer", "gui_forms/timer/timer/timer.hpp", "Components", "Timer whose callbacks are serialized with input, layout, and paint on the owning Window's UI thread and whose late ticks are coalesced.", "Timer", "stable", "timing-and-tooltips"},
     {"background_worker", "BackgroundWorker", "gui_forms/background_worker/background_worker.hpp", "Components", "Runs one work function at a time on a gui_forms Worker thread and delivers progress and completion on its window's UI thread through the dispatcher, with cooperative cancellation.", "BackgroundWorker", "provisional", "timing-and-tooltips"},
