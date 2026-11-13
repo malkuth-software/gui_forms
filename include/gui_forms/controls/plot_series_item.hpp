@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/plot_series_item_custom.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/plots/series_column/series_column.hpp"
@@ -69,6 +70,14 @@ public:
     [[nodiscard]] std::shared_ptr<plots::SeriesRingChannel> live_channel(std::size_t capacity);
     // Empties the series (copied-in columns stay reserved).
     void clear_points();
+    // A custom kind (PlotCustomSeries): while one is installed the plot
+    // draws, fits and picks through it instead of the item's points and
+    // `kind`; null removes it. The item shares ownership. custom_changed
+    // tells the plot that the installed series' content changed (it fits
+    // and repaints as for new points).
+    void set_custom(std::shared_ptr<PlotCustomSeries> custom);
+    [[nodiscard]] const std::shared_ptr<PlotCustomSeries>& custom() const noexcept { return custom_; }
+    void custom_changed();
 
     // What the plot reads.
     enum class DataSource : std::uint8_t { columns, borrowed };
@@ -128,6 +137,7 @@ private:
     bool pyramid_valid_{};
     std::optional<plots::SignalProgram> signal_{};
     std::shared_ptr<plots::SeriesRingChannel> channel_{};
+    std::shared_ptr<PlotCustomSeries> custom_{};
     std::uint64_t revision_{};
     std::uint64_t data_revision_{};
     // property_codemod begin PlotSeriesItem (tools/property_families/plot_series_item.json; generated, do not edit)

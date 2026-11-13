@@ -447,8 +447,28 @@ void hundred_megapixel_publication_probe() {
 
 } // namespace
 
+// A control that never calls set_pointer_capture: the primary press
+// captures for it and the primary release ends the capture; a secondary
+// press does not capture.
+void primary_press_captures_implicitly() {
+    const std::shared_ptr<Control> root = make_control<Control>(StableId("capture.root"));
+    const std::shared_ptr<Control> pad = make_control<Control>(StableId("capture.pad"));
+    (*pad).set_requested_bounds({10, 10, 40, 40});
+    (*root).add_child(pad);
+    Window window(root, {100, 100});
+    window.perform_layout();
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, {20, 20}}));
+    CHECK((*pad).has_pointer_capture());
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, {90, 90}}));
+    CHECK(!(*pad).has_pointer_capture());
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::secondary, {20, 20}}));
+    CHECK(!(*pad).has_pointer_capture());
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::secondary, {20, 20}}));
+}
+
 int main(int argc, char** argv) {
     derived_canvas_keeps_routing_presentation_and_resource_lifetime();
+    primary_press_captures_implicitly();
     canvas_projects_bitmap_changes_as_local_window_damage();
     transparency_colours_repaint_the_checkerboard();
     canvas_uploads_bgra_storage_without_changing_document_truth();

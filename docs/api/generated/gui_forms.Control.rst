@@ -259,7 +259,7 @@ gui_forms::Control
          The window whose tree contains this control, or null.
 
       **attached_surface_root** : ``BorrowedPointer<SurfaceRoot>``, read-only
-         The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
+         The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not. Its scale() is the device scale the control paints at (1 while detached).
 
       **effective_text_scale** : ``double``, read-only
          The attached window's presentation text scale, or 1 when detached.
@@ -1048,7 +1048,7 @@ gui_forms::Control
 
    .. cpp:function:: BorrowedPointer<SurfaceRoot> attached_surface_root() const noexcept
 
-      The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
+      The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not. Its scale() is the device scale the control paints at (1 while detached).
 
    .. cpp:function:: double effective_text_scale() const noexcept
 

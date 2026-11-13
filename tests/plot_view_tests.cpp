@@ -207,6 +207,14 @@ public:
     void draw_markers(std::span<const Point> centers, const MarkerStyle&) override {
         markers = markers + centers.size();
     }
+    void fill_rects(std::span<const Rect> rects, Color) override {
+        rect_batches = rect_batches + 1;
+        rects_drawn = rects_drawn + rects.size();
+    }
+    void fill_rects_each(std::span<const Rect> rects, std::span<const Color>) override {
+        rect_batches = rect_batches + 1;
+        rects_drawn = rects_drawn + rects.size();
+    }
 
     int saves{};
     int restores{};
@@ -214,6 +222,8 @@ public:
     std::size_t polyline_points{};
     int bands{};
     std::size_t markers{};
+    int rect_batches{};
+    std::size_t rects_drawn{};
 };
 
 // Records the plot's events.
@@ -658,6 +668,152 @@ void test_signal_runs_on_motion_clock() {
     require(!clock.control_ambient(*fixture.plot), "without a producer the plot leaves the clock");
 }
 
+// A plot that is not painted between two frames leaves the motion clock;
+// a paint enlists it again (hidden tabs stop the clock).
+void test_unpainted_plot_leaves_motion_clock() {
+    Fixture fixture = make_plot("plot.hidden", false);
+    (*fixture.series).source = std::string("signal(sine, frequency 2Hz)");
+    Window window(fixture.plot, {400.0, 300.0});
+    window.perform_layout();
+    MotionClock& clock = window.motion_clock();
+    RecordingPainter first;
+    (*fixture.plot).on_paint(first, Rect{0.0, 0.0, 400.0, 300.0});
+    require(clock.control_ambient(*fixture.plot), "a painted plot with a signal is enlisted");
+    // No paint from here: after at most one frame the clock finds the plot
+    // unshown and drops it (a few wakes allow for other scheduled work).
+    for (std::size_t wake_index = 0U; wake_index < 4U && clock.control_ambient(*fixture.plot); ++wake_index) {
+        const std::optional<FrameTime> wake = window.next_wake();
+        if (!wake.has_value()) break;
+        static_cast<void>(window.poll_frame_schedule(*wake + std::chrono::milliseconds(50)));
+    }
+    const std::uint64_t frames = (*fixture.plot).frames_run();
+    require(frames <= 1U, "an unpainted plot runs at most the frame after its paint");
+    require(!clock.control_ambient(*fixture.plot), "an unpainted plot leaves the clock");
+    RecordingPainter again;
+    (*fixture.plot).on_paint(again, Rect{0.0, 0.0, 400.0, 300.0});
+    require(clock.control_ambient(*fixture.plot), "a paint enlists the plot again");
+}
+
+// A PlotLinkGroup shares first-axis ranges: a member's change reaches the
+// others once, and the echoes are ignored.
+void test_link_group() {
+    Fixture first = make_plot("plot.link-a", false);
+    Fixture second = make_plot("plot.link-b", false);
+    const std::shared_ptr<Control> root = make_control<Control>(StableId("plot.links"));
+    (*first.plot).set_requested_bounds(Rect{0.0, 0.0, 400.0, 150.0});
+    (*second.plot).set_requested_bounds(Rect{0.0, 150.0, 400.0, 150.0});
+    (*root).add_child(first.plot);
+    (*root).add_child(second.plot);
+    Window window(root, {400.0, 300.0});
+    window.perform_layout();
+    Recorder recorder{};
+    std::vector<SubscriptionToken> tokens;
+    subscribe(*second.plot, recorder, tokens);
+    PlotLinkGroup group(PlotLinkAxes::x, plots::PlotRange{0.0, 10.0}, plots::PlotRange{-1.0, 1.0});
+    group.add(first.plot);
+    group.add(second.plot);
+    require(group.member_count() == 2U, "both plots joined");
+    bool threw = false;
+    try {
+        group.add(first.plot);
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw && group.member_count() == 2U, "a plot joins once");
+    const std::uint64_t views_before = static_cast<std::uint64_t>(recorder.views);
+    require((*first.plot).set_x_range(0U, plots::PlotRange{2.0, 5.0}), "the first plot moves");
+    require((*second.plot).x_range(0U) == (plots::PlotRange{2.0, 5.0}), "the linked x range reaches the other plot");
+    require(group.x_link().range() == (plots::PlotRange{2.0, 5.0}), "the link holds the range");
+    require(static_cast<std::uint64_t>(recorder.views) == views_before + 1U && group.echoes() >= 1U,
+            "the other plot raises view_changed once, which the group ignores");
+    require((*second.plot).y_range(0U) == (plots::PlotRange{-1.0, 1.0}), "y is not linked");
+    require((*second.plot).set_y_range(0U, plots::PlotRange{0.0, 0.5}) &&
+                (*first.plot).y_range(0U) == (plots::PlotRange{-1.0, 1.0}),
+            "an unlinked axis stays apart");
+    group.set_axes(PlotLinkAxes::both);
+    require((*first.plot).y_range(0U) == group.y_link().range() &&
+                (*second.plot).y_range(0U) == group.y_link().range(),
+            "linking y gives every member the y link's range");
+}
+
+// resolve_plot_palette and plot_series_color give a custom kind PlotView's
+// colours.
+void test_plot_palette() {
+    Fixture fixture = make_plot("plot.palette", false);
+    Window window(fixture.plot, {400.0, 300.0});
+    window.perform_layout();
+    const PlotPalette palette = resolve_plot_palette(*fixture.plot);
+    require(palette.grid_major.alpha == 96U && palette.grid_minor.alpha == 40U, "the grid takes reduced alphas");
+    require(palette.grid_major.red == palette.axis.red && palette.grid_major.green == palette.axis.green &&
+                palette.grid_major.blue == palette.axis.blue,
+            "grid and axis share the rule colour");
+    require(palette.selection_edge.red == palette.selection_fill.red && palette.selection_fill.alpha == 48U,
+            "the selection fill is its edge at low alpha");
+    const Color first_series = plot_series_color(*fixture.plot, 0U);
+    require(first_series.alpha == 255U && !(first_series == plot_series_color(*fixture.plot, 1U)),
+            "series colours are opaque and differ by position");
+    require(resolve_plot_palette(*fixture.plot) == palette, "resolving reads only");
+}
+
+// A custom kind gets PlotView's frame: it fits, paints through the plot's
+// mark painter and picks; the stock heatmap and histogram are custom kinds.
+void test_custom_series() {
+    Fixture fixture = make_plot("plot.custom", true);
+    const std::shared_ptr<PlotHistogramSeries> histogram = std::make_shared<PlotHistogramSeries>();
+    const std::array<double, 7> samples{0.0, 1.0, 1.0, 2.0, 2.0, 2.0, 4.0};
+    (*histogram).set_samples(samples, 4U);
+    require((*histogram).counts().size() == 4U && (*histogram).counts()[0] == 1U && (*histogram).counts()[1] == 2U &&
+                (*histogram).counts()[2] == 3U && (*histogram).counts()[3] == 1U,
+            "the histogram bins its samples over their extent");
+    (*fixture.series).set_custom(histogram);
+    Window window(fixture.plot, {400.0, 300.0});
+    window.perform_layout();
+    (*fixture.plot).fit_view();
+    require((*fixture.plot).x_range(0U).minimum <= 0.0 && (*fixture.plot).x_range(0U).maximum >= 4.0,
+            "the plot fits to the custom extent");
+    RecordingPainter painter;
+    (*fixture.plot).on_paint(painter, Rect{0.0, 0.0, 400.0, 300.0});
+    require(painter.rect_batches >= 1 && painter.polylines == 0, "the histogram draws bars, not the item's line");
+    require(painter.saves == painter.restores, "saves balance");
+
+    const std::shared_ptr<PlotHeatmapSeries> heatmap = std::make_shared<PlotHeatmapSeries>();
+    const std::array<double, 6> cells{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
+    (*heatmap).set_grid(cells, 2U, 3U, plots::PlotRange{0.0, 3.0}, plots::PlotRange{0.0, 2.0});
+    require((*heatmap).domain() == (plots::PlotRange{1.0, 6.0}), "the domain follows the values");
+    bool threw = false;
+    try {
+        (*heatmap).set_grid(cells, 4U, 2U, plots::PlotRange{0.0, 3.0}, plots::PlotRange{0.0, 2.0});
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw && (*heatmap).rows() == 2U, "a mismatched grid is refused, changing nothing");
+    (*fixture.series).set_custom(heatmap);
+    (*fixture.plot).reset_view();
+    window.perform_layout();
+    (*fixture.plot).fit_view();
+    RecordingPainter heat;
+    (*fixture.plot).on_paint(heat, Rect{0.0, 0.0, 400.0, 300.0});
+    require(heat.rects_drawn >= 6U, "the heatmap draws a rectangle per cell");
+    // A pick names the cell under the pointer: row 0 is at the top.
+    plots::Axis x_axis{};
+    x_axis.range = plots::PlotRange{0.0, 3.0};
+    plots::Axis y_axis{};
+    y_axis.range = plots::PlotRange{0.0, 2.0};
+    y_axis.side = plots::AxisSide::left;
+    const plots::PlotTransformResult made = plots::PlotTransform::make(x_axis, y_axis, Rect{0.0, 0.0, 30.0, 20.0}, 1.0);
+    require(made.check == plots::PlotTransformCheck::valid, "the test transform is valid");
+    const plots::PickResult top_left = (*heatmap).pick(Point{5.0, 5.0}, made.transform);
+    require(top_left.found && top_left.element == plots::ElementIndex{0U} && near(top_left.y, 1.0),
+            "the top-left cell is element 0");
+    const plots::PickResult bottom_right = (*heatmap).pick(Point{25.0, 15.0}, made.transform);
+    require(bottom_right.found && bottom_right.element == plots::ElementIndex{5U} && near(bottom_right.y, 6.0),
+            "the bottom-right cell is the last element");
+    (*fixture.series).set_custom(nullptr);
+    RecordingPainter plain;
+    (*fixture.plot).on_paint(plain, Rect{0.0, 0.0, 400.0, 300.0});
+    require(plain.polylines >= 1, "without a custom kind the item's line draws again");
+}
+
 void test_sparkline() {
     std::shared_ptr<Sparkline> line = make_control<Sparkline>(StableId("spark"));
     require((*line).capacity.read() == 120U && !(*line).latest().has_value(), "a sparkline starts empty");
@@ -708,6 +864,10 @@ int main() {
     test_live_host();
     test_live_repaint_copies_only_changed_columns();
     test_signal_runs_on_motion_clock();
+    test_unpainted_plot_leaves_motion_clock();
+    test_link_group();
+    test_plot_palette();
+    test_custom_series();
     test_sparkline();
     std::cout << "gui_forms_plot_view_tests passed\n";
     return 0;

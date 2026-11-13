@@ -79,6 +79,16 @@ struct PlotLiveColumns;
 // signal programs and channels are run and consumed on the window's
 // motion clock, 60 times a second while the plot has either.
 //
+// A plot that is not painted between two of its frames (a hidden tab, a
+// collapsed panel, a plot scrolled out) leaves the motion clock at the
+// second: it runs no signal ticks and consumes no channel until it is
+// painted again, which enlists it once more. Its series keep their
+// samples; its signals continue from the resume without catching up, and
+// a channel's producer keeps writing its ring meanwhile (what the ring
+// overwrote is lost). A headless run drives the clock with
+// Window::poll_frame_schedule at the times it chooses (with
+// MotionClock::set_time_source for the clock's own now).
+//
 // One UI thread; the live frame's state belongs to its sub-surface thread.
 class GUI_FORMS_API PlotView final : public Control, public PlotViewCapabilities<PlotView> {
 public:

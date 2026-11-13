@@ -179,6 +179,17 @@ void PlotSeriesItem::clear_points() {
     notify_data_changed();
 }
 
+void PlotSeriesItem::set_custom(std::shared_ptr<PlotCustomSeries> custom) {
+    require_mutable();
+    custom_ = std::move(custom);
+    notify_data_changed();
+}
+
+void PlotSeriesItem::custom_changed() {
+    require_mutable();
+    notify_data_changed();
+}
+
 plots::ColumnSamples<double, double> PlotSeriesItem::column_samples() const noexcept {
     plots::ColumnSamples<double, double> samples{};
     samples.xs = xs_.read();

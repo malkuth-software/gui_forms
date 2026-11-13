@@ -1,5 +1,7 @@
 #include "plot_engine.hpp"
 
+#include "gui_forms/controls/plot_view_palette.hpp"
+
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 
@@ -410,6 +412,7 @@ void PlotEngine::prepare(std::span<const PlotEngineSeries> series, double device
     std::size_t points = 4096U;
     for (std::size_t index = 0U; index < series.size(); ++index) {
         points = std::max(points, series_size(series[index]));
+        if (series[index].custom != nullptr) points = std::max(points, (*series[index].custom).mark_capacity());
     }
     if (columns > prepared_columns_ || points > prepared_points_) {
         prepared_columns_ = std::max(columns, prepared_columns_);
@@ -435,9 +438,16 @@ plots::PlotDataBounds PlotEngine::data_bounds(std::span<const PlotEngineSeries> 
         const PlotEngineSeries& one = series[index];
         if (one.hidden) continue;
         ExtentOperation extent{};
-        with_samples(one, extent);
+        if (one.custom != nullptr) {
+            const PlotCustomExtent covered = (*one.custom).extent();
+            if (!covered.x.valid() || !covered.y.valid()) continue;
+            extent.x = covered.x;
+            extent.y = covered.y;
+        } else {
+            with_samples(one, extent);
+        }
         if (!(extent.x.minimum <= extent.x.maximum)) continue;
-        if (drawn_from_zero(one.kind)) {
+        if (one.custom == nullptr && drawn_from_zero(one.kind)) {
             extent.y.minimum = std::min(extent.y.minimum, 0.0);
             extent.y.maximum = std::max(extent.y.maximum, 0.0);
         }
@@ -490,10 +500,7 @@ plots::PlotTransformResult PlotEngine::transform_for(const PlotEngineSeries& ser
 }
 
 Color PlotEngine::series_color(const Control& owner, std::size_t position) noexcept {
-    const std::size_t step = (position * series_accent_stride + series_accent_first) % 256U;
-    const AccentIndex accent{static_cast<std::uint8_t>(step)};
-    Color color = owner.effective_theme().accent(accent);
-    color.alpha = 255U;
+    const Color color = plot_series_color(owner, position);
     return color;
 }
 
@@ -671,6 +678,10 @@ void PlotEngine::paint_series(Painter& painter, const Control& owner, std::size_
     operation.order = series.order;
     operation.pyramid = series.borrowed ? nullptr : series.pyramid;
     operation.color = series_color(owner, position);
+    if (series.custom != nullptr) {
+        static_cast<void>((*series.custom).paint(painter, made.transform, marks_, operation.color));
+        return;
+    }
     with_samples(series, operation);
 }
 
@@ -814,6 +825,14 @@ plots::PickResult PlotEngine::pick(std::span<const PlotEngineSeries> series, Poi
         if (series[index].hidden) continue;
         const plots::PlotTransformResult made = transform_for(series[index], device_scale);
         if (made.check != plots::PlotTransformCheck::valid) continue;
+        if (series[index].custom != nullptr) {
+            plots::PickResult own = (*series[index].custom).pick(local, made.transform);
+            if (own.found && own.distance <= pick_radius && own.distance < result.distance) {
+                own.series = plots::SeriesIdentity{static_cast<std::uint32_t>(index), 0U};
+                result = own;
+            }
+            continue;
+        }
         PickOperation operation{};
         operation.picker = &picker_;
         operation.transform = &made.transform;
@@ -1096,3 +1115,29 @@ std::size_t PlotEngine::table_row_count(std::span<const PlotEngineSeries> series
 }
 
 } // namespace gui_forms::detail
+
+namespace gui_forms {
+
+PlotPalette resolve_plot_palette(const Control& owner) {
+    const ControlVisualContext context = part_visual_context(owner, owner.anatomy_states());
+    const ControlVisualRecipe& recipe = owner.effective_theme().resolve(ControlVisualRole::editor, context);
+    const Color rule = detail::rule_colour(recipe);
+    PlotPalette palette{};
+    palette.grid_major = detail::with_alpha(rule, detail::grid_major_alpha);
+    palette.grid_minor = detail::with_alpha(rule, detail::grid_minor_alpha);
+    palette.axis = rule;
+    palette.text = recipe.text;
+    palette.selection_fill = detail::with_alpha(recipe.focus_ring, detail::box_fill_alpha);
+    palette.selection_edge = recipe.focus_ring;
+    return palette;
+}
+
+Color plot_series_color(const Control& owner, std::size_t position) noexcept {
+    const std::size_t step = (position * detail::series_accent_stride + detail::series_accent_first) % 256U;
+    const AccentIndex accent{static_cast<std::uint8_t>(step)};
+    Color color = owner.effective_theme().accent(accent);
+    color.alpha = 255U;
+    return color;
+}
+
+} // namespace gui_forms

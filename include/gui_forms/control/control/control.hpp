@@ -511,7 +511,8 @@ public:
     // otherwise. A detach (or this control's death) ends the copies lent.
     [[nodiscard]] BorrowedPointer<Window> attached_window() const noexcept { return detail::lend_pointer(window_); }
     // The surface root whose table holds this control (null while detached).
-    // Inside a sub-surface attached_window() is null and this is not.
+    // Inside a sub-surface attached_window() is null and this is not. Its
+    // scale() is the device scale the control paints at (1 while detached).
     [[nodiscard]] BorrowedPointer<SurfaceRoot> attached_surface_root() const noexcept {
         return detail::lend_pointer(surface_root_);
     }
@@ -784,10 +785,21 @@ public:
     void set_command_target(std::shared_ptr<CommandTarget> target) noexcept {
         command_target_ = std::move(target);
     }
+    // The cursor shown over the control: its `cursor`, else its nearest
+    // ancestor's. A control whose regions want different cursors (a
+    // resize edge, an axis, a handle) writes `cursor` as the pointer moves
+    // between them, from on_mouse_move, and puts it back on leave, as
+    // DataGridView does at its column edges.
     [[nodiscard]] CursorKind effective_cursor() const noexcept;
     [[nodiscard]] bool effectively_visible() const noexcept;
     [[nodiscard]] bool effectively_enabled() const noexcept;
     [[nodiscard]] bool eligible_for_input() const noexcept;
+    // Pointer capture. A primary press captures the pointer to the control
+    // it lands on, unless that control is focusable and refuses focus; the
+    // primary release ends the capture. Other buttons do not capture. A
+    // control calls set_pointer_capture(true) only to capture outside a
+    // primary press (a secondary-button drag), and false to end a capture
+    // early.
     void set_pointer_capture(bool captured);
     [[nodiscard]] bool has_pointer_capture() const noexcept;
 

@@ -139,6 +139,14 @@ void PlotView::collect_series(std::vector<detail::PlotEngineSeries>& series,
             one.order = (*item).x_order();
             one.pyramid = (*item).pyramid();
             one.revision = (*item).revision();
+            // A custom kind draws instead of the points: the engine reads
+            // no columns for it.
+            one.custom = (*item).custom().get();
+            if (one.custom != nullptr) {
+                one.borrowed = false;
+                one.columns = plots::ColumnSamples<double, double>{};
+                one.pyramid = nullptr;
+            }
             series.push_back(one);
             if (items != nullptr) (*items).push_back(item);
             continue;

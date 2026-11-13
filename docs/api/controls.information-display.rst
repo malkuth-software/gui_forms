@@ -311,6 +311,18 @@ Related types
      - The smallest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
    * - :cpp:class:`PlotAxisItemScaleCapability <gui_forms::PlotAxisItemScaleCapability>`
      - How the axis maps values: linear, log10, symlog, time (UTC seconds) or category.
+   * - :cpp:class:`PlotCustomExtent <gui_forms::PlotCustomExtent>`
+     - The data rectangle a custom series covers, in its axes' units; either range invalid (PlotRange::valid) when it covers nothing.
+   * - :cpp:class:`PlotCustomSeries <gui_forms::PlotCustomSeries>`
+     - A plot kind PlotView does not have, drawn inside PlotView's frame (the plot demonstrator's gap P1): installed on a PlotSeriesItem with set_custom, it gets the plot's margins, axes, ticks, grid, view model (pan, zoom, fit), legend entry, hiding and theme colour, and draws only its marks.
+   * - :cpp:class:`PlotHeatmapSeries <gui_forms::PlotHeatmapSeries>`
+     - A heatmap (P2): ``values`` row-major, rows × columns, row 0 at the top of the data rectangle [area_x] × [area_y], coloured through a built-in colormap over ``domain`` (the finite values' extent unless set).
+   * - :cpp:class:`PlotHistogramSeries <gui_forms::PlotHistogramSeries>`
+     - A histogram (P2): ``samples`` counted into ``bins`` fixed bins over their finite extent (or a set range), drawn as bars in the series colour.
+   * - :cpp:class:`PlotLinkGroup <gui_forms::PlotLinkGroup>`
+     - PlotLinkGroup: PlotViews whose first x axes, first y axes or both share one range (linked subplots, a plot and its overview; the plot demonstrator's gap P7).
+   * - :cpp:class:`PlotPalette <gui_forms::PlotPalette>`
+     - The colours PlotView draws with, resolved from a control's effective theme as PlotView resolves its own (the plot demonstrator's gap P5), so a custom plot kind follows set_theme_override like the stock plots.
    * - :cpp:class:`PlotPointPick <gui_forms::PlotPointPick>`
      - A point the pointer or the keyboard cursor picked (PlotView::point_picked).
    * - :cpp:class:`PlotQuery <gui_forms::PlotQuery>`
@@ -2643,6 +2655,206 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PlotCustomExtent final
+
+   ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
+
+   The data rectangle a custom series covers, in its axes' units; either range invalid (PlotRange::valid) when it covers nothing.
+
+   .. cpp:member:: plots::PlotRange x
+
+      Default: ``{1.0, 0.0}``.
+
+   .. cpp:member:: plots::PlotRange y
+
+      Default: ``{1.0, 0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PlotCustomSeries
+
+   ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
+
+   A plot kind PlotView does not have, drawn inside PlotView's frame (the plot demonstrator's gap P1): installed on a PlotSeriesItem with set_custom, it gets the plot's margins, axes, ticks, grid, view model (pan, zoom, fit), legend entry, hiding and theme colour, and draws only its marks. While installed, the item's points and ``kind`` are not drawn. The plot calls it on its UI thread, during its layout, paint and input: extent when it fits, mark_capacity before it paints, paint when the series is visible, pick on a click or crosshair move. A live plot (``live``) draws no custom series: its frame runs on another thread. After its content changes, the owner calls PlotSeriesItem::custom_changed so that the plot fits and repaints.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual PlotCustomExtent extent() const = 0
+
+      The data it covers, for fitting the axes.
+
+   .. cpp:function:: virtual std::size_t mark_capacity() const noexcept
+
+      The most points, rectangles or colours one paint writes through ``marks`` (the plot reserves them before painting, so the paint does not allocate). The default is none beyond the plot's own.
+
+   .. cpp:function:: virtual plots::MarkStatistics paint(Painter& painter, const plots::PlotTransform& transform, plots::SeriesMarkPainter& marks, Color color) = 0
+
+      Draws the marks through ``painter`` under the plot's clip, mapping data through ``transform``. ``color`` is the series' theme colour (plot_series_color); ``marks`` is the plot's reused mark painter.
+
+   .. cpp:function:: virtual plots::PickResult pick(Point device, const plots::PlotTransform& transform) const
+
+      The nearest element to ``device`` (the plot's local coordinates), or found false. The plot keeps a result only within its pick radius and sets its series identity itself. The default finds nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PlotHeatmapSeries final : public PlotCustomSeries
+
+   ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
+
+   A heatmap (P2): ``values`` row-major, rows × columns, row 0 at the top of the data rectangle [area_x] × [area_y], coloured through a built-in colormap over :cpp:func:`domain <gui_forms::PlotHeatmapSeries::domain>` (the finite values' extent unless set). Its extent is the area; a pick names the cell under the pointer (element row * columns + column, y its value).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: plots::BuiltInColormap colormap() const noexcept
+
+   .. cpp:function:: void set_colormap(plots::BuiltInColormap colormap) noexcept
+
+   .. cpp:function:: plots::PlotRange domain() const noexcept
+
+   .. cpp:function:: void set_domain(std::optional<plots::PlotRange> domain)
+
+      A fixed colour domain (valid), or none to follow the values.
+
+   .. cpp:function:: std::size_t rows() const noexcept
+
+   .. cpp:function:: std::size_t columns() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void set_grid(std::span<const double> values, std::size_t rows, std::size_t columns, plots::PlotRange area_x, plots::PlotRange area_y)
+
+      Copies ``values``. Throws std::invalid_argument, changing nothing, unless rows × columns equals values.size() (without overflow) and both ranges are valid. An empty grid draws nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: PlotCustomExtent extent() const override
+
+   .. cpp:function:: std::size_t mark_capacity() const noexcept override
+
+   .. cpp:function:: plots::MarkStatistics paint(Painter& painter, const plots::PlotTransform& transform, plots::SeriesMarkPainter& marks, Color color) override
+
+   .. cpp:function:: plots::PickResult pick(Point device, const plots::PlotTransform& transform) const override
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PlotHistogramSeries final : public PlotCustomSeries
+
+   ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
+
+   A histogram (P2): ``samples`` counted into :cpp:func:`bins <gui_forms::PlotHistogramSeries::bins>` fixed bins over their finite extent (or a set range), drawn as bars in the series colour. Its extent is the bins' range by [0, the largest count]; a pick names the bin under the pointer (element its index, y its count).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::span<const std::uint64_t> counts() const& noexcept
+
+   .. cpp:function:: const plots::BinSpec& bins() const noexcept
+
+   .. cpp:function:: const plots::BinTally& tally() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void set_samples(std::span<const double> samples, std::size_t bins)
+
+      Copies ``samples`` and counts them. Throws std::invalid_argument, changing nothing, for bins of 0 or above maximum_bins.
+
+   .. cpp:function:: void set_range(std::optional<plots::PlotRange> range)
+
+      A fixed bin range (valid), or none for the samples' finite extent; the samples are counted again.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: PlotCustomExtent extent() const override
+
+   .. cpp:function:: std::size_t mark_capacity() const noexcept override
+
+   .. cpp:function:: plots::MarkStatistics paint(Painter& painter, const plots::PlotTransform& transform, plots::SeriesMarkPainter& marks, Color color) override
+
+   .. cpp:function:: plots::PickResult pick(Point device, const plots::PlotTransform& transform) const override
+
+   .. cpp:member:: constexpr std::size_t maximum_bins
+
+      Default: ``65536U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PlotLinkGroup final : public Component
+
+   ``#include <gui_forms/controls/plot_view_links.hpp>``
+
+   PlotLinkGroup: PlotViews whose first x axes, first y axes or both share one range (linked subplots, a plot and its overview; the plot demonstrator's gap P7). The ranges live in two plots::AxisLink objects, read by x_link and y_link. A member's view_changed (a gesture, a key, set_x_range, set_y_range or fit_view on it) writes the links; the group then sets the changed range on every other member, in joining order. Those set_x_range and set_y_range calls raise each member's view_changed as usual: the group ignores them (an echo, counted), so the change goes round once and the member that moved is never set again. Ranges a member refuses (an inadmissible range for its scale) are left; that member keeps its own. Members are observed, not owned: the group holds weak pointers, and a member that has died is skipped. The group's subscriptions end with the group (dispose or destruction) or with the member's events. One UI thread: the members' and the group's.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PlotLinkGroup(PlotLinkAxes axes, plots::PlotRange x, plots::PlotRange y)
+
+      The links start at ``x`` and ``y`` (each must be valid); the first member to join takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: PlotLinkAxes axes() const noexcept
+
+   .. cpp:function:: void set_axes(PlotLinkAxes axes)
+
+      Which axes are linked from now on. Linking an axis that was not makes every member take that link's range.
+
+   .. cpp:function:: const plots::AxisLink& x_link() const noexcept
+
+   .. cpp:function:: const plots::AxisLink& y_link() const noexcept
+
+   .. cpp:function:: std::size_t member_count() const noexcept
+
+   .. cpp:function:: std::uint64_t propagations() const noexcept
+
+      Ranges the group set on members, and member view changes it ignored as echoes of its own sets (diagnostics and tests).
+
+   .. cpp:function:: std::uint64_t echoes() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void add(const std::shared_ptr<PlotView>& plot)
+
+      Joins ``plot``, which takes the linked ranges now. Throws std::invalid_argument for a null plot or one already joined, adding nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotPalette final
+
+   ``#include <gui_forms/controls/plot_view_palette.hpp>``
+
+   The colours PlotView draws with, resolved from a control's effective theme as PlotView resolves its own (the plot demonstrator's gap P5), so a custom plot kind follows set_theme_override like the stock plots. The rules come from the editor recipe's border (its top edge, else its text), the selection from its focus ring.
+
+   .. cpp:member:: Color grid_major
+
+      The grid's major and minor lines (the rule colour at reduced alpha).
+
+   .. cpp:member:: Color grid_minor
+
+   .. cpp:member:: Color axis
+
+      The axis lines and ticks.
+
+   .. cpp:member:: Color text
+
+      Tick labels, readouts and other plot text (the recipe's text).
+
+   .. cpp:member:: Color selection_fill
+
+      A zoom box or kept selection: its fill and its edge.
+
+   .. cpp:member:: Color selection_edge
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PlotPointPick final
 
    ``#include <gui_forms/controls/plot_values.hpp>``
@@ -4372,6 +4584,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: PlotLinkAxes
+
+   ``#include <gui_forms/controls/plot_view_links.hpp>``
+
+   .. cpp:enumerator:: x
+
+   .. cpp:enumerator:: y
+
+   .. cpp:enumerator:: both
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PlotSeriesItem::DataSource
 
    ``#include <gui_forms/controls/plot_series_item.hpp>``
@@ -4526,6 +4750,18 @@ Functions, constants and aliases
 .. cpp:function:: constexpr Color notice_severity_colour(NoticeSeverity severity) noexcept
 
    A severity's colour, which InfoBanner's keyline and icon, Toast's icon and InstrumentRack's module keyline draw as an authored foreground over the notice's role, under the severity's custom state (``:state(warning)``). Mid-tone, so that each reads on a light face and a dark one; high contrast replaces it with the role's own colour. Provisional until T4's floor gives the status colours roles.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/plot_view_palette.hpp>``
+
+.. cpp:function:: PlotPalette resolve_plot_palette(const Control& owner)
+
+   The palette for ``owner`` in its current anatomy states. Reads only.
+
+.. cpp:function:: Color plot_series_color(const Control& owner, std::size_t position) noexcept
+
+   The opaque colour PlotView gives the series at ``position`` among its series items (the series cycle through the theme's accents). Reads only.
 
 .. cpp:namespace:: gui_forms
 

@@ -8,6 +8,7 @@
 // sub-surface's thread. One thread per engine.
 
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/plot_series_item_custom.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/plots/axis/axis.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"
@@ -48,6 +49,10 @@ struct PlotEngineSeries final {
     const plots::EnvelopePyramid* pyramid{};
     // Changes whenever the data does (the unordered picker's grid).
     std::uint64_t revision{};
+    // A custom kind drawing, fitting and picking in place of the columns
+    // (PlotSeriesItem::custom), borrowed for the call; never set on a live
+    // frame's series.
+    PlotCustomSeries* custom{};
 };
 
 // One axis: the primitives' description and its title (borrowed).

@@ -576,6 +576,16 @@ void test_occupancy_and_binning() {
     require(tally.binned == 5U && tally.below == 1U && tally.above == 1U && tally.gaps == 1U,
             "out-of-range values and gaps are counted apart");
     require(bin_values(values.read(), BinSpec{1.0, 1.0, 4U}, counts).refused, "an empty bin range is refused");
+    // bin_values adds to counts; bin_values_into counts afresh, and a
+    // refused spec leaves counts as they were.
+    static_cast<void>(bin_values(values.read(), BinSpec{0.0, 1.0, 4U}, counts));
+    require(counts == (std::array<std::uint64_t, 4>{2U, 2U, 2U, 4U}), "bin_values accumulates");
+    const BinTally fresh = bin_values_into(values.read(), BinSpec{0.0, 1.0, 4U}, counts);
+    require(counts == (std::array<std::uint64_t, 4>{1U, 1U, 1U, 2U}) && fresh.binned == 5U,
+            "bin_values_into clears before counting");
+    require(bin_values_into(values.read(), BinSpec{1.0, 1.0, 4U}, counts).refused &&
+                counts == (std::array<std::uint64_t, 4>{1U, 1U, 1U, 2U}),
+            "a refused spec leaves counts untouched");
     std::array<std::uint64_t, 4> grid_counts{};
     const BinTally two = bin_points(samples_of(xs, ys), BinSpec{0.0, 10.0, 2U}, BinSpec{0.0, 10.0, 2U}, grid_counts);
     require(two.binned == 5U && grid_counts[0] == 3U && grid_counts[3] == 2U, "two-dimensional bins are row-major");
