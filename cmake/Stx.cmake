@@ -27,8 +27,10 @@
 #   the package holds.
 #
 # Outputs:
-# - the imported targets stx_zlib::stx_zlib, stx_png::stx_png,
-#   stx_conv::stx_conv, stx_rtf2md::stx_rtf2md (and stx_vorbis's when asked);
+# - the imported targets stxlib::state, stxlib::boundary and
+#   stxlib::algorithms (STXlib at stx's stxlib.lock commit),
+#   stx_zlib::stx_zlib, stx_png::stx_png, stx_conv::stx_conv,
+#   stx_rtf2md::stx_rtf2md (and stx_vorbis's when asked);
 #   stx_skia::swizzle and, with the renderer, stx_skia::stx_skia; stx_text::md4c
 #   (objects) and, with the text engine, stx_text::freetype, stx_text::harfbuzz,
 #   stx_text::sheenbidi, stx_text::linebreak and stx_text::linebreak_conformance;
@@ -142,7 +144,7 @@ else()
     set(_gui_stx_settings CMAKE_BUILD_TYPE CMAKE_TOOLCHAIN_FILE CMAKE_MAKE_PROGRAM
         CMAKE_C_FLAGS CMAKE_CXX_FLAGS CMAKE_EXE_LINKER_FLAGS CMAKE_POSITION_INDEPENDENT_CODE
         CMAKE_INSTALL_LIBDIR CMAKE_OSX_ARCHITECTURES CMAKE_OSX_DEPLOYMENT_TARGET CMAKE_OSX_SYSROOT
-        CMAKE_MSVC_RUNTIME_LIBRARY FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX_AUXLIB)
+        CMAKE_MSVC_RUNTIME_LIBRARY)
     if(NOT _gui_stx_build_type STREQUAL "")
         list(APPEND _gui_stx_settings CMAKE_C_FLAGS_${_gui_stx_build_type} CMAKE_CXX_FLAGS_${_gui_stx_build_type})
     endif()
@@ -275,6 +277,9 @@ set(GUI_FORMS_STX_PACKAGE_ROOT "${_gui_stx_package}")
 set(GUI_FORMS_STX_PREFIX_DIR "${_gui_stx_package}/stx")
 set(GUI_FORMS_STX_BUILD_PREFIX_DIR "${_gui_stx_package}/build")
 list(PREPEND CMAKE_PREFIX_PATH "${GUI_FORMS_STX_PREFIX_DIR}" "${GUI_FORMS_STX_BUILD_PREFIX_DIR}")
+# STXlib, which stx builds at its stxlib.lock commit and installs beside its
+# packages: stx_conv's SIMD level and the controls' row height index.
+find_package(stxlib CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 find_package(stx_zlib CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 find_package(stx_png CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 find_package(stx_conv CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")

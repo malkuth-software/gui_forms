@@ -172,7 +172,7 @@ FileOutcome write_new_file(std::string_view path, std::string_view bytes) {
     if (error) return FileOutcome::failed;
 #if defined(_WIN32)
     // Checked, then created: another writer between the two could still
-    // be overwritten (an exclusive open replaces this with stx_auxlib).
+    // be overwritten (an exclusive open replaces this with STXlib).
     if (std::filesystem::exists(std::filesystem::symlink_status(file, error))) return FileOutcome::exists;
     std::FILE* const stream = _wfopen(file.c_str(), L"wb");
 #else

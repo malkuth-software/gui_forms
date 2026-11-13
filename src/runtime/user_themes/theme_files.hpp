@@ -10,7 +10,7 @@
 // sections 2 and 7), the one place src/runtime/user_themes reaches the file
 // system or the environment. Every path is UTF-8 text with `/` between its
 // segments (a Windows path may also hold `\`); no std::filesystem type
-// crosses this interface, so the operations can move onto stx_auxlib's
+// crosses this interface, so the operations can move onto STXlib's
 // owned UTF-8 paths and files without touching their callers.
 
 namespace gui_forms::detail::theme_files {

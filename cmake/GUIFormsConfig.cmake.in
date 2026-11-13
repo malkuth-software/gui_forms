@@ -2,6 +2,8 @@
 
 include(CMakeFindDependencyMacro)
 find_dependency(Threads)
+# STXlib, installed with the stx packages: the static Controls link it.
+find_dependency(stxlib CONFIG)
 find_dependency(stx_zlib CONFIG)
 find_dependency(stx_png CONFIG)
 find_dependency(stx_conv CONFIG)

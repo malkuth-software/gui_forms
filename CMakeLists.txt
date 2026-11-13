@@ -182,20 +182,18 @@ endif()
 include(CMakePackageConfigHelpers)
 # Everything from malkuth-software/stx at stx.lock's commit, as one built
 # package this build links and never compiles (cmake/Stx.cmake,
-# cmake/stx_package/): the stx libraries (stx_zlib, stx_png, stx_conv with its
-# SIMD level stx_auxlib::simd, the rich-text library stx_rtf2md of
+# cmake/stx_package/): the stx libraries (stx_zlib, stx_png, stx_conv with
+# STXlib's SIMD level, the rich-text library stx_rtf2md of
 # notes:planning/stages/RT-rich-text/PLAN.md and, for audio builds, stx_vorbis);
 # stx_skia, the CPU Skia derivative the Skia adapters draw with (without the
 # adapters only its red/blue swap kernel, stx_skia::swizzle, with which the
 # core, the controls and the hosts swap RGBA and BGRA rows); and stx_text, the
 # third-party sources of stx third_party/ (owner, 2026-11-05: this repository
 # carries none) compiled with GUI.Forms' options. Imported targets' headers are
-# system headers here.
+# system headers here. The package also carries STXlib at stx's stxlib.lock
+# commit (stxlib::algorithms; the controls' row height index adapts its
+# RowHeightIndex), so stx.lock is the only pin for both.
 include(cmake/Stx.cmake)
-# stx_btree's header-only sequence tree from malkuth-software/stx_auxlib at
-# stx_auxlib.lock's commit, which the controls' row height index adapts
-# (cmake/StxAuxlib.cmake).
-include(cmake/StxAuxlib.cmake)
 # stx_fontpack, the font pack codec (stx_fontpack/README.md): its loader, its
 # build-time packer and tool, and its tests, which also pack every bundled
 # face of assets/fonts. It is written beside the stx package until it moves
@@ -1310,9 +1308,10 @@ target_include_directories(gui_forms_controls PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-# stx_btree's headers reach only the controls' private row height index; no
-# public header includes them.
-target_include_directories(gui_forms_controls SYSTEM PRIVATE "${GUI_FORMS_STX_BTREE_INCLUDE_DIR}")
+# STXlib reaches only the controls' private row height index
+# (src/controls/collections/row_height_index.hpp); no public header includes
+# it, and VirtualRowsView, TreeListView and DataGridView use that adapter only.
+target_link_libraries(gui_forms_controls PRIVATE stxlib::algorithms)
 # The plots package's controls (PlotView, its items, Sparkline) draw through
 # the public plot primitives.
 target_link_libraries(gui_forms_controls PUBLIC gui_forms_core gui_drawing_core gui_forms_plot_primitives)
@@ -4618,7 +4617,8 @@ if(GUI_FORMS_BUILD_TESTS)
 
     add_executable(gui_forms_row_height_index_tests tests/row_height_index_tests.cpp)
     target_link_libraries(gui_forms_row_height_index_tests PRIVATE gui_forms_controls)
-    target_include_directories(gui_forms_row_height_index_tests SYSTEM PRIVATE "${GUI_FORMS_STX_BTREE_INCLUDE_DIR}")
+    # The adapter's private header includes STXlib's.
+    target_link_libraries(gui_forms_row_height_index_tests PRIVATE stxlib::algorithms)
     add_test(NAME gui_forms_row_height_index_tests COMMAND gui_forms_row_height_index_tests)
 
     add_executable(gui_forms_virtual_rows_view_tests tests/virtual_rows_view_tests.cpp)
@@ -6302,8 +6302,14 @@ install(FILES ${gui_forms_stx_licenses}/stx_rtf2md/PROVENANCE.md DESTINATION ${C
 install(FILES ${gui_forms_stx_licenses}/stx_png/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_png-PROVENANCE.md)
 install(FILES ${gui_forms_stx_licenses}/stx_conv/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-LICENSE.txt)
 install(FILES ${gui_forms_stx_licenses}/stx_conv/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-PROVENANCE.md)
-install(FILES "${GUI_FORMS_STX_AUXLIB_SOURCE_DIR}/btree/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-LICENSE.txt)
-install(FILES "${GUI_FORMS_STX_AUXLIB_SOURCE_DIR}/btree/NOTICE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-NOTICE.txt)
+# STXlib's licences, as stx installs them beside its packages (cmake/Stxlib.cmake
+# there): STXlib, stx_btree (the row height index's sequence tree), mimalloc
+# (STXlib's allocator) and tzdata (its zone data).
+install(FILES ${gui_forms_stx_licenses}/stxlib/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stxlib-LICENSE.txt)
+install(FILES ${gui_forms_stx_licenses}/stxlib/stx_btree-LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-LICENSE.txt)
+install(FILES ${gui_forms_stx_licenses}/stxlib/stx_btree-NOTICE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-NOTICE.txt)
+install(FILES ${gui_forms_stx_licenses}/stxlib/mimalloc-LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME mimalloc-LICENSE.txt)
+install(FILES ${gui_forms_stx_licenses}/stxlib/tzdata-LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME tzdata-LICENSE.txt)
 # The stock icons are Heroicons vectors converted into the library at build
 # time (assets/icons/heroicons/PROVENANCE.md); their MIT licence ships with it.
 install(FILES assets/icons/heroicons/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Heroicons-LICENSE.txt)

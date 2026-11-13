@@ -28,8 +28,9 @@ struct GUI_FORMS_API DataGridViewRowHeight final {
 // painting).
 //
 // The one data engine (owner, 2026-11-13): the heights live in the row
-// index VirtualRowsView uses, GUI.Forms' RowHeightIndex over stx_btree's
-// order-statistic tree (src/controls/collections/row_height_index.hpp).
+// index VirtualRowsView uses, GUI.Forms' RowHeightIndex over STXlib's
+// stx_btree order-statistic tree
+// (src/controls/collections/row_height_index.hpp).
 // Every row has the default height except those given their own. Rows at
 // the default are estimated rows of the index: a million of them are one
 // run, and reset costs O(1) before the heights given. A row's height, its

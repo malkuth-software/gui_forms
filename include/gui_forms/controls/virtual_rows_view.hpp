@@ -227,7 +227,7 @@ struct GUI_FORMS_API VirtualRowsStatistics final {
 // varying height (CHAT_STRESS_SPEC section 4.6). Rows are not controls and
 // the view keeps no row records: it keeps the row count and each row's
 // height in a height-indexed sequence B-tree (RowHeightIndex, over
-// stx_auxlib's stx_btree), and
+// STXlib's stx_btree), and
 // asks the application to measure, draw and describe the rows it shows.
 //
 // Heights. Every row starts at the estimate (estimated_row_height), so a

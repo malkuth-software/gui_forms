@@ -1,12 +1,20 @@
 # The stx commit GUI.Forms builds with, in lockstep (owner ruling 2026-11-03,
-# decision 3(a)): stx_zlib, stx_png, stx_conv (with stx_auxlib::simd),
-# stx_rtf2md and stx_vorbis; since 2026-11-08 also stx_skia and every
-# third-party source (stx third_party/). cmake/Stx.cmake builds this commit
-# once into the stx package (<build>/stx-package, or
-# -DGUI_FORMS_STX_PACKAGE_DIR=<dir>), reused while its stamp matches, and the
-# build links it; a local checkout replaces the commit with
-# -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<dir>, and
+# decision 3(a)): stx_zlib, stx_png, stx_conv, stx_rtf2md and stx_vorbis;
+# since 2026-11-08 also stx_skia and every third-party source (stx
+# third_party/); since cp33 also STXlib, which stx pins in its stxlib.lock
+# and installs beside its packages (stxlib::algorithms: stx_conv's SIMD level
+# and the controls' row height index), so this is GUI.Forms' only pin for
+# both. cmake/Stx.cmake builds this commit once into the stx package
+# (<build>/stx-package, or -DGUI_FORMS_STX_PACKAGE_DIR=<dir>), reused while
+# its stamp matches, and the build links it; a local checkout replaces the
+# commit with -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<dir>, and
 # -DGUI_FORMS_STX_PREFIX=<dir> links a package built elsewhere.
+#
+# PLACEHOLDER until the owner pushes the stx line: e0e7159 is the local
+# branch claude/stx-to-stxlib (D5's claude/cp33-stx-raster3d 321e56c with
+# STXlib e6c7d5e in place of stx_auxlib), not yet on GitHub. Replace it with
+# the pushed commit before this lands; until then build with
+# -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<that checkout>.
 [stx]
 repository = "malkuth-software/stx"
-commit = "1f5c6f54ef474c3abfc2db2aa4331aaf1ba807f6"
+commit = "e0e7159f43736f989e7e7fd794ef8cf2bd405d46"

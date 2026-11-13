@@ -17,8 +17,9 @@ cmake_minimum_required(VERSION 3.25)
 #   GUI.Forms built these sources itself.
 #
 # Outputs: two install components, each a relocatable prefix of its own.
-# - `stx`: the stx libraries (stx_zlib, stx_png, stx_conv with stx_auxlib::simd,
-#   stx_rtf2md and, when asked, stx_vorbis) exactly as the stx root installs
+# - `stx`: the stx libraries (stx_zlib, stx_png, stx_conv, stx_rtf2md and, when
+#   asked, stx_vorbis) and STXlib (stxlib::algorithms with its boundary and
+#   state, and its licences) exactly as the stx root installs
 #   them. Stx.cmake installs it at <package>/stx, and the SDK carries that
 #   prefix whole, as it did before this package existed.
 # - `build`: what only the GUI.Forms build links, installed at <package>/build

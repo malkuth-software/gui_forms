@@ -382,43 +382,45 @@ STX_LOCK_PATH: Path = ROOT / "stx.lock"
 STX_OVERRIDE_VARIABLE: str = "FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX"
 
 
-# stx_btree's notices ($STX_AUXLIB/btree/...) come from the stx_auxlib source the
-# build took its headers from (stx_auxlib.lock; cmake/StxAuxlib.cmake).
-STX_AUXLIB_PREFIX: str = "$STX_AUXLIB"
-STX_AUXLIB_SOURCE_VARIABLES: tuple[str, ...] = ("FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX_AUXLIB", "GUI_FORMS_STX_AUXLIB_SOURCE_DIR")
+# STXlib's notices ($STXLIB/...: STXlib, stx_btree, mimalloc, tzdata) come from the
+# licence directory the stx package installed beside its packages
+# (<package>/stx/share/licenses/stxlib; stx's cmake/Stxlib.cmake), since STXlib is
+# fetched inside the package build and no stx checkout holds it.
+STXLIB_PREFIX: str = "$STXLIB"
+STXLIB_LICENSE_PARTS: tuple[str, ...] = ("stx", "share", "licenses", "stxlib")
 
 
-def _is_stx_auxlib_source(directory: Path) -> bool:
-    marker: Path = directory / "btree" / "include" / "stx_btree" / "row_height_index.hpp"
+def _is_stxlib_licenses(directory: Path) -> bool:
+    marker: Path = directory / "stx_btree-LICENSE"
     return marker.is_file()
 
 
-def stx_auxlib_source_directory(build_dir: Path | None) -> Path | None:
-    """The stx_auxlib source whose stx_btree notices a package ships, or None.
+def stxlib_license_directory(build_dir: Path | None) -> Path | None:
+    """The STXlib licence directory whose notices a package ships, or None.
 
-    In order: the GUI_FORMS_STX_AUXLIB_SOURCE_DIR environment variable, then
-    for the build directory and its toolkit/ subdirectory the local checkout
-    the build was configured with, the source cmake/StxAuxlib.cmake recorded
-    and the fetched source (_deps/gui_forms_stx_auxlib-src). A named
-    directory without the stx_btree headers raises.
+    In order: the GUI_FORMS_STXLIB_LICENSES environment variable, then for
+    the build directory and its toolkit/ subdirectory the stx package the
+    build linked (GUI_FORMS_STX_PREFIX or GUI_FORMS_STX_PACKAGE_DIR), whose
+    stx/share/licenses/stxlib holds them. A named directory without them
+    raises.
     """
-    if os.environ.get("GUI_FORMS_STX_AUXLIB_SOURCE_DIR"):
-        named: Path = Path(os.environ["GUI_FORMS_STX_AUXLIB_SOURCE_DIR"])
-        if not _is_stx_auxlib_source(named):
-            raise RuntimeError(f"{named} is not an stx_auxlib source (no btree/include/stx_btree/row_height_index.hpp)")
+    if os.environ.get("GUI_FORMS_STXLIB_LICENSES"):
+        named: Path = Path(os.environ["GUI_FORMS_STXLIB_LICENSES"])
+        if not _is_stxlib_licenses(named):
+            raise RuntimeError(f"{named} is not STXlib's licence directory (no stx_btree-LICENSE)")
         return named
     if build_dir is None:
         return None
     build: Path
     for build in (build_dir, build_dir / "toolkit"):
         variable: str
-        for variable in STX_AUXLIB_SOURCE_VARIABLES:
+        for variable in STX_PACKAGE_VARIABLES:
             value: str = _cached_value(build, variable)
-            if value and _is_stx_auxlib_source(Path(value)):
-                return Path(value)
-        fetched: Path = build / "_deps" / "gui_forms_stx_auxlib-src"
-        if _is_stx_auxlib_source(fetched):
-            return fetched
+            if not value:
+                continue
+            licenses: Path = Path(value).joinpath(*STXLIB_LICENSE_PARTS)
+            if _is_stxlib_licenses(licenses):
+                return licenses
     return None
 
 
@@ -587,7 +589,7 @@ class Packager:
             "$GUI_FORMS_LLVM_RUNTIME": self.runtime,
             "$MSYS_PREFIX": (self.runtime_dir.parent if self.runtime_dir else None),
             STX_PREFIX: stx_source_directory(self.build_dir, self.stx_source),
-            STX_AUXLIB_PREFIX: stx_auxlib_source_directory(self.build_dir),
+            STXLIB_PREFIX: stxlib_license_directory(self.build_dir),
         }
         for notice in data["notices"]:
             platforms = notice.get("platforms")
@@ -596,7 +598,7 @@ class Packager:
             source_text: str = notice["source"]
             source: Path | None = ROOT / source_text
             for prefix, base in prefix_env.items():
-                # The separator keeps $STX from matching $STX_AUXLIB paths.
+                # The separator keeps $STX from matching $STXLIB paths.
                 if source_text.startswith(prefix + "/"):
                     source = (base / source_text[len(prefix) + 1:]) if base else None
             if source is None or not source.is_file():

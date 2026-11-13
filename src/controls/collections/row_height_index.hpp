@@ -1,21 +1,23 @@
 #pragma once
 
-#include <stx_btree/row_height_index.hpp>
+#include <stxlib/row_height_index.hpp>
+#include <stxlib/types.hpp>
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <span>
 #include <vector>
 
 namespace gui_forms {
 
 // The vertical extent of a long list of rows (audit N94, owner ruling D10 b,
-// POST_0.5_BACKLOG "Startup bar"): GUI.Forms' adapter over stx_btree's
-// RowHeightIndex (stx_auxlib at stx_auxlib.lock's commit,
-// btree/include/stx_btree/row_height_index.hpp; its design, invariants,
-// proofs and measurements are in stx_auxlib's
-// btree/docs/ORDER_STATISTIC_RESEARCH.md).
+// POST_0.5_BACKLOG "Startup bar"): GUI.Forms' adapter over STXlib's
+// RowHeightIndex (include/stxlib/row_height_index.hpp, the compiled facade
+// over stx_btree's sequence tree, in the STXlib the stx package installs at
+// stx.lock's commit; its design, invariants, proofs and measurements are
+// in STXlib's src/algorithms/stx_btree/ORDER_STATISTIC_RESEARCH.md). This
+// adapter is the only GUI.Forms code that names STXlib's index:
+// VirtualRowsView, TreeListView and DataGridView use it alone.
 //
 //   offset_of(row), row_at(offset), height_of(row)   O(log n)
 //   set_height(row) (a re-measure)                    O(log n)
@@ -41,7 +43,8 @@ namespace gui_forms {
 // Failure: assign, insert or forget past the index's limits (2^62 - 1 rows
 // or units in all) throws std::length_error and leaves the index
 // unchanged; a set_height or set_heights past them is refused with false.
-// Allocation failure throws std::bad_alloc and leaves the index unchanged.
+// Allocation failure (STXlib reports out_of_memory; its pages come from
+// stxlib::memory) throws std::bad_alloc and leaves the index unchanged.
 //
 // One control owns the index and uses it on its thread. A cursor is valid
 // until the index's next edit; a stale cursor re-seeks (from the root for
@@ -49,10 +52,10 @@ namespace gui_forms {
 // destroyed or assigned to.
 class RowHeightIndex final {
 public:
-    using Index = stx_btree::RowHeightIndex<>;
+    using Index = stxlib::RowHeightIndex;
     static constexpr double units_per_logical = 64.0;
     // The tallest row, 2^38 - 1 units.
-    static constexpr double maximum_height = static_cast<double>(Index::height_limit.value) / units_per_logical;
+    static constexpr double maximum_height = static_cast<double>(Index::height_limit) / units_per_logical;
 
     // A position in the rows, with the path to it.
     class Cursor final {
@@ -168,17 +171,17 @@ public:
 
 private:
     // A height in units: rounded to nearest, held within [0, the limit].
-    [[nodiscard]] static std::int64_t height_units(double height) noexcept;
+    [[nodiscard]] static stxlib::i64 height_units(double height) noexcept;
     // The unit holding a logical offset: floor(offset * 64), held within
     // [-1, total units]; not a number gives 0.
-    [[nodiscard]] std::int64_t offset_units(double offset) const noexcept;
+    [[nodiscard]] stxlib::i64 offset_units(double offset) const noexcept;
 
-    // Owned; held by pointer because the stx index does not move. Null
-    // only in a moved-from index.
-    std::unique_ptr<Index> index_;
+    // Owned by value: STXlib's index owns its tree by pointer and moves.
+    // Only a moved-from adapter holds a moved-from index.
+    Index index_;
     // The staged heights in units (set_heights and the stage); the
     // capacity is kept between calls.
-    std::vector<stx_btree::HeightUnits> batch_{};
+    std::vector<stxlib::i64> batch_{};
     std::uint64_t revision_{0U};
 };
 

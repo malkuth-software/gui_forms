@@ -1,5 +1,5 @@
 // RowHeightIndex (audit N94, owner ruling D10 b), GUI.Forms' adapter over
-// stx_btree's RowHeightIndex: a million rows, jumped into anywhere,
+// STXlib's RowHeightIndex: a million rows, jumped into anywhere,
 // re-measured, and spliced in bulk, checked against a plain vector of
 // heights; then the 1/64-unit quantization, coarsen, the cursors and the
 // batched stores. Heights are whole numbers unless a test says otherwise, so
@@ -406,6 +406,31 @@ void test_batches() {
             "the stage stores its first rows and clears");
 }
 
+// STXlib's refusals reach the adapter's contract: an assign past the row
+// limit is limit_exceeded, thrown as std::length_error with the index and
+// its revision unchanged; an index made, refused and then edited again
+// still checks out.
+void test_refusals_as_exceptions() {
+    gui_forms::RowHeightIndex index(estimate);
+    index.assign(6U, estimate);
+    require(index.set_height(1U, 9.0), "a measured height before the refusal");
+    const std::uint64_t revision = index.revision();
+    const double total = index.total_height();
+    bool threw = false;
+    try {
+        index.assign(std::numeric_limits<std::size_t>::max(), estimate);
+    } catch (const std::length_error&) {
+        threw = true;
+    }
+    require(threw && index.count() == 6U && index.total_height() == total && index.revision() == revision,
+            "an assign past the row limit throws std::length_error and changes nothing");
+    require(!index.set_height(6U, 4.0) && index.revision() == revision, "a row past the end is refused");
+    index.erase(0U, 2U);
+    index.coarsen(0U, 2U);
+    require(index.count() == 4U && index.invariant_failure() == nullptr && index.storage_bytes() > 0U,
+            "edits after a refusal keep the index whole");
+}
+
 } // namespace
 
 int main() {
@@ -419,6 +444,7 @@ int main() {
         test_coarsen();
         test_cursors();
         test_batches();
+        test_refusals_as_exceptions();
         std::cout << "row height index tests passed\n";
         return 0;
     } catch (const std::exception& error) {
