@@ -1664,12 +1664,23 @@ typedef uint32_t gf_dialog_choice;
 
 /* gf_dialog_flags: allow_multiple for an open-file dialog,
  * confirm_overwrite for a save-file dialog, allow_alpha for a colour
- * dialog; a flag the kind does not read is refused. */
+ * dialog; a flag the kind does not read is refused. The file checks
+ * (Windows Forms' CheckFileExists, CheckPathExists and CreatePrompt) are
+ * spelled so that no flag keeps each kind's default: an open-file dialog
+ * accepts only an existing file in an existing folder unless
+ * allow_missing_file or allow_missing_folder is given; a save-file dialog
+ * requires an existing folder unless allow_missing_folder is given, and
+ * requires an existing file or asks before a new one only with
+ * require_existing_file or create_prompt. */
 typedef uint32_t gf_dialog_flags;
 #define GF_DIALOG_FLAGS_NONE 0u
 #define GF_DIALOG_FLAGS_ALLOW_MULTIPLE 1u
 #define GF_DIALOG_FLAGS_CONFIRM_OVERWRITE 2u
 #define GF_DIALOG_FLAGS_ALLOW_ALPHA 4u
+#define GF_DIALOG_FLAGS_ALLOW_MISSING_FILE 8u
+#define GF_DIALOG_FLAGS_REQUIRE_EXISTING_FILE 16u
+#define GF_DIALOG_FLAGS_ALLOW_MISSING_FOLDER 32u
+#define GF_DIALOG_FLAGS_CREATE_PROMPT 64u
 
 typedef uint32_t gf_dialog_outcome;
 #define GF_DIALOG_OUTCOME_ACCEPTED 0u

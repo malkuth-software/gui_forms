@@ -419,6 +419,13 @@ The defaults are Windows Forms': opening checks that the file and its
 folder exist; saving checks the folder only and asks before replacing a
 file, not before creating one.
 
+Through the C ABI, `gf_dialog_request.flags` carries the checks so that no
+flag keeps those defaults: `GF_DIALOG_FLAGS_ALLOW_MISSING_FILE` (open) turns
+`check_file_exists` off, `GF_DIALOG_FLAGS_REQUIRE_EXISTING_FILE` (save) turns
+it on, `GF_DIALOG_FLAGS_ALLOW_MISSING_FOLDER` (open and save) turns
+`check_path_exists` off, and `GF_DIALOG_FLAGS_CREATE_PROMPT` (save) turns
+`create_prompt` on. A flag the kind does not read is refused, as before.
+
 What the Windows host must provide (the hand-back of these settings): the
 common item dialog's options follow the request instead of fixed flags.
 For `IFileOpenDialog`, `FOS_FILEMUSTEXIST` is set exactly when

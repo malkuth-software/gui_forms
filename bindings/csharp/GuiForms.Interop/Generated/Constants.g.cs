@@ -253,6 +253,10 @@ public static class Constants
     public const uint GF_DIALOG_FLAGS_ALLOW_MULTIPLE = 1u;
     public const uint GF_DIALOG_FLAGS_CONFIRM_OVERWRITE = 2u;
     public const uint GF_DIALOG_FLAGS_ALLOW_ALPHA = 4u;
+    public const uint GF_DIALOG_FLAGS_ALLOW_MISSING_FILE = 8u;
+    public const uint GF_DIALOG_FLAGS_REQUIRE_EXISTING_FILE = 16u;
+    public const uint GF_DIALOG_FLAGS_ALLOW_MISSING_FOLDER = 32u;
+    public const uint GF_DIALOG_FLAGS_CREATE_PROMPT = 64u;
     public const uint GF_DIALOG_OUTCOME_ACCEPTED = 0u;
     public const uint GF_DIALOG_OUTCOME_CANCELLED = 1u;
     public const ulong GF_DIALOG_NO_FILTER = 18446744073709551615ul;

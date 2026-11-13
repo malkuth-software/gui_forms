@@ -321,8 +321,10 @@ gf_status GF_CALL host_write_clipboard_text(gf_utf8_view text) noexcept {
 }
 
 // The flags each kind reads.
-constexpr gf_dialog_flags open_file_flags = GF_DIALOG_FLAGS_ALLOW_MULTIPLE;
-constexpr gf_dialog_flags save_file_flags = GF_DIALOG_FLAGS_CONFIRM_OVERWRITE;
+constexpr gf_dialog_flags open_file_flags =
+    GF_DIALOG_FLAGS_ALLOW_MULTIPLE | GF_DIALOG_FLAGS_ALLOW_MISSING_FILE | GF_DIALOG_FLAGS_ALLOW_MISSING_FOLDER;
+constexpr gf_dialog_flags save_file_flags = GF_DIALOG_FLAGS_CONFIRM_OVERWRITE | GF_DIALOG_FLAGS_REQUIRE_EXISTING_FILE |
+                                            GF_DIALOG_FLAGS_ALLOW_MISSING_FOLDER | GF_DIALOG_FLAGS_CREATE_PROMPT;
 constexpr gf_dialog_flags color_flags = GF_DIALOG_FLAGS_ALLOW_ALPHA;
 
 // Copies one optional text of a request.
@@ -500,6 +502,8 @@ gf_status read_dialog_request(const gf_dialog_request* request, SlotIdentity slo
         open.initial_directory = std::move(directory);
         open.suggested_name = std::move(suggested);
         open.allow_multiple = (given.flags & GF_DIALOG_FLAGS_ALLOW_MULTIPLE) != 0U;
+        open.check_file_exists = (given.flags & GF_DIALOG_FLAGS_ALLOW_MISSING_FILE) == 0U;
+        open.check_path_exists = (given.flags & GF_DIALOG_FLAGS_ALLOW_MISSING_FOLDER) == 0U;
         open.initial_filter = static_cast<std::size_t>(given.initial_filter);
         built.payload = std::move(open);
     } else if (given.kind == GF_DIALOG_KIND_SAVE_FILE) {
@@ -516,6 +520,9 @@ gf_status read_dialog_request(const gf_dialog_request* request, SlotIdentity slo
         save.initial_directory = std::move(directory);
         save.suggested_name = std::move(suggested);
         save.confirm_overwrite = (given.flags & GF_DIALOG_FLAGS_CONFIRM_OVERWRITE) != 0U;
+        save.check_file_exists = (given.flags & GF_DIALOG_FLAGS_REQUIRE_EXISTING_FILE) != 0U;
+        save.check_path_exists = (given.flags & GF_DIALOG_FLAGS_ALLOW_MISSING_FOLDER) == 0U;
+        save.create_prompt = (given.flags & GF_DIALOG_FLAGS_CREATE_PROMPT) != 0U;
         save.initial_filter = static_cast<std::size_t>(given.initial_filter);
         built.payload = std::move(save);
     } else if (given.kind == GF_DIALOG_KIND_FOLDER) {

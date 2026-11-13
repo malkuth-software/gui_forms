@@ -1252,6 +1252,26 @@
       "type": "uint32"
     },
     {
+      "name": "GF_DIALOG_FLAGS_ALLOW_MISSING_FILE",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_FLAGS_REQUIRE_EXISTING_FILE",
+      "value": 16,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_FLAGS_ALLOW_MISSING_FOLDER",
+      "value": 32,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_FLAGS_CREATE_PROMPT",
+      "value": 64,
+      "type": "uint32"
+    },
+    {
       "name": "GF_DIALOG_OUTCOME_ACCEPTED",
       "value": 0,
       "type": "uint32"

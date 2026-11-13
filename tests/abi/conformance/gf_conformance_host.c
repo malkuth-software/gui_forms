@@ -111,6 +111,16 @@ void gf_kit_host_running(gf_kit* kit) {
     gf_kit_status(kit, (*kit).host.show_dialog(&request, &result), GF_STATUS_INVALID_ARGUMENT,
                   "a flag the kind does not read is refused");
     request = message_request();
+    request.flags = GF_DIALOG_FLAGS_CREATE_PROMPT;
+    gf_kit_status(kit, (*kit).host.show_dialog(&request, &result), GF_STATUS_INVALID_ARGUMENT,
+                  "a save-file check on a message dialog is refused");
+    memset(&request, 0, sizeof(request));
+    request.struct_size = (uint32_t)sizeof(request);
+    request.kind = GF_DIALOG_KIND_COLOR;
+    request.flags = GF_DIALOG_FLAGS_ALLOW_MISSING_FOLDER;
+    gf_kit_status(kit, (*kit).host.show_dialog(&request, &result), GF_STATUS_INVALID_ARGUMENT,
+                  "a file check on a colour dialog is refused");
+    request = message_request();
     request.kind = GF_DIALOG_KIND_FOLDER;
     gf_kit_status(kit, (*kit).host.show_dialog(&request, &result), GF_STATUS_INVALID_ARGUMENT,
                   "a field the kind does not read is refused");
