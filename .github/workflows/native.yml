@@ -128,14 +128,14 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_generate_library_docs.py
           python3 -B -m unittest discover -s tools -p test_flatten_control_headers.py
           python3 tools/generate_library_docs.py --check
-          python3 -B ../template_harness/harness/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz
+          python3 -B ../template_harness/harness/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz stx_fontpack
           python3 -B -m unittest discover -s tools -p test_ci_build.py
           python3 -B -m unittest discover -s tools -p test_ci_docs_only.py
           python3 -B -m unittest discover -s tools -p test_ninja_phases.py
           python3 -B -m unittest discover -s tools -p test_engine_gate.py
           python3 -B -m unittest discover -s tools -p test_profile_hot_paths.py
           python3 -B -m unittest discover -s tools/layout_oracle -p test_layout_oracle.py
-          python3 -B ../template_harness/harness/check_lifetime_rules.py include src lab demo tests examples tools file_manager_demoboard fuzz
+          python3 -B ../template_harness/harness/check_lifetime_rules.py include src lab demo tests examples tools file_manager_demoboard fuzz stx_fontpack
           # Every public declaration carries its library's export macro.
           python3 -B tools/export_annotations.py check
           # 1.0 condition 3: every control and member, supported, deferred or excluded.

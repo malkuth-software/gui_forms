@@ -196,6 +196,14 @@ include(cmake/Stx.cmake)
 # stx_auxlib.lock's commit, which the controls' row height index adapts
 # (cmake/StxAuxlib.cmake).
 include(cmake/StxAuxlib.cmake)
+# stx_fontpack, the font pack codec (stx_fontpack/README.md): its loader, its
+# build-time packer and tool, and its tests, which also pack every bundled
+# face of assets/fonts. It is written beside the stx package until it moves
+# to malkuth-software/stx, links the package's stx_zlib, and installs nothing
+# from this build.
+set(STX_FONTPACK_TEST_FONT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+set(STX_FONTPACK_INSTALL OFF)
+add_subdirectory(stx_fontpack)
 include(cmake/FuzzTargets.cmake)
 
 if(GUI_FORMS_ENABLE_MACOS_HOST AND NOT APPLE)
