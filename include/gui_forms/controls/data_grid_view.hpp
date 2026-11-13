@@ -91,6 +91,13 @@ struct GUI_FORMS_API DataGridViewColumn final {
     // painting, hit testing, keyboard movement, selection ranges and the
     // semantic tree pass over it.
     bool visible{true};
+    // Whether the column's cells are owner drawn while the grid's draw_mode
+    // is normal: each raises draw_item_content as every cell does under
+    // owner_draw, and the other columns draw as usual (the ImGui-class
+    // demonstrator's gap I4). Under owner_draw every column is raised
+    // whatever this says. A grid with an owner-drawn column paints its cells
+    // on the UI thread, as under owner_draw.
+    bool owner_draw{};
 };
 
 // A column's place in the order the grid shows its columns (Windows Forms'

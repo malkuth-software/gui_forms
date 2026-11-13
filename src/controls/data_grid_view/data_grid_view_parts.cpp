@@ -1620,7 +1620,7 @@ bool DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std
     // Owner drawing (owner decision W-Q6) replaces the content parts unless
     // a handler asks for them.
     bool default_content = true;
-    if (draw_mode.read() == ItemDrawMode::owner_draw) {
+    if (draw_mode.read() == ItemDrawMode::owner_draw || columns_[column].owner_draw) {
         paint_stable_id_ = cell_stable_id(row, column);
         ItemContentPaint request{.painter = painter,
                                  .index = row.value,
