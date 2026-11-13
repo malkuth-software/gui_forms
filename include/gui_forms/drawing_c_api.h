@@ -30,6 +30,9 @@ extern "C" {
 /* 0.4 appends the gapped and per-element marks (recorder_fill_band
    onwards). */
 #define GD_ABI_VERSION_0_4 UINT32_C(0x00000004)
+/* 0.5 appends text in a box, batched strings, recorder reuse and the fitted
+   measure (recorder_draw_string_in_rect onwards). */
+#define GD_ABI_VERSION_0_5 UINT32_C(0x00000005)
 
 typedef struct gd_handle {
     uint32_t slot;
@@ -62,6 +65,14 @@ typedef struct gd_rect {
     double width;
     double height;
 } gd_rect;
+
+/* One string of recorder_draw_strings: UTF-8 text (borrowed for the call),
+   its origin and its colour. */
+typedef struct gd_text_item {
+    gd_string_view text;
+    gd_point origin;
+    gd_color color;
+} gd_text_item;
 
 typedef struct gd_rect_i {
     int32_t x;
@@ -383,6 +394,12 @@ typedef struct gd_api_v0 {
     gd_result (*recorder_restore)(gd_handle recorder, uint64_t token);
     gd_result (*recorder_translate)(gd_handle recorder, double x, double y);
     gd_result (*recorder_set_transform)(gd_handle recorder, gd_matrix transform);
+    /* set_clip replaces the clip in force; it does not intersect with it.
+       The clip is the axis-aligned bounds of the rectangle under the
+       transform in force when it is set, in target coordinates, so a later
+       transform does not move it. reset_clip removes it; recorder_save
+       records it and recorder_restore brings back the one saved. Every
+       command is drawn within the clip in force when it was recorded. */
     gd_result (*recorder_set_clip)(gd_handle recorder, gd_rect clip);
     gd_result (*recorder_reset_clip)(gd_handle recorder);
     gd_result (*recorder_set_quality)(gd_handle recorder,
@@ -403,6 +420,9 @@ typedef struct gd_api_v0 {
     gd_result (*recorder_draw_string)(gd_handle recorder, gd_string_view text,
                                       gd_handle font, gd_handle brush,
                                       gd_point origin, gd_handle format);
+    /* After close every recording call fails (GD_ERROR_INVALID_ARGUMENT) and
+       records nothing, until recorder_reset (ABI 0.5). recorder_clear
+       records a clear of the target; it does not empty the recording. */
     gd_result (*recorder_close)(gd_handle recorder);
     gd_result (*recorder_command_count)(gd_handle recorder, uint64_t* count);
     gd_result (*recorder_trace)(gd_handle recorder,
@@ -654,6 +674,39 @@ typedef struct gd_api_v0 {
        fill_rectangles with a solid brush. */
     gd_result (*recorder_fill_rectangles_each)(gd_handle recorder, const gd_rect* rects,
                                                const gd_color* colors, uint64_t count);
+    /*
+     * ABI 0.5, text in a box, batched strings, reuse and the fitted measure
+     * (the flame graph demonstrator's gaps D2 to D4). Each validates its
+     * whole input before it records; a refusal records nothing.
+     *
+     * The string laid out in layout (finite, non-negative size): lines break
+     * at newlines only; each line is placed across the box by the format's
+     * alignment and the block down it by its line alignment; a line wider
+     * than the box is trimmed by the format's trimming (the ellipsis forms
+     * add U+2026; ellipsis path is taken as ellipsis character; none lets it
+     * run on); the text is clipped to the box unless the format has the
+     * no-clip flag (0x4000). One draw_string command.
+     */
+    gd_result (*recorder_draw_string_in_rect)(gd_handle recorder, gd_string_view text,
+                                              gd_handle font, gd_handle brush,
+                                              gd_rect layout, gd_handle format);
+    /* count (1 through 65,536) strings in one font and format, items[i] at its
+       origin in its colour: one draw_string command each, in order. */
+    gd_result (*recorder_draw_strings)(gd_handle recorder, gd_handle font,
+                                       gd_handle format, const gd_text_item* items,
+                                       uint64_t count);
+    /* Empties the recording for reuse: the commands, the saved states (their
+       tokens become invalid) and the state in force are cleared and a closed
+       recorder reopens; the command storage is kept. */
+    gd_result (*recorder_reset)(gd_handle recorder);
+    /* The longest prefix of text, in whole code points, whose one-line
+       measured width (measure_string with no layout width) is at most
+       max_width (finite, non-negative): its byte count and that width. Text
+       that fits whole reports its size; none fitting reports 0 and 0. A zero
+       format handle means defaults. Needs the raster service. */
+    gd_result (*measure_string_fitted)(gd_string_view text, gd_handle font,
+                                       gd_handle format, double max_width,
+                                       uint64_t* bytes_fitted, double* fitted_width);
 } gd_api_v0;
 
 /*

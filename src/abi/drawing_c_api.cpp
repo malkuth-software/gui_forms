@@ -327,6 +327,42 @@ public:
                          std::forward<Arguments>(arguments)...);
     }
 
+    // with_text_objects without a brush (recorder_draw_strings, ABI 0.5):
+    // the recorder, the font and the format, locked together for the call.
+    template <typename Operation, typename... Arguments>
+    gd_result with_strings_objects(gd_handle recorder_handle, gd_handle font_handle, gd_handle format_handle,
+                                   Operation operation, Arguments&&... arguments) {
+        std::shared_ptr<ObjectRecord> recorder_record;
+        std::shared_ptr<ObjectRecord> font_record;
+        std::shared_ptr<ObjectRecord> format_record;
+        if (const gd_result result = get(recorder_handle, GD_OBJECT_RECORDER,
+                                    recorder_record, false, true); result != GD_OK) return result;
+        if (const gd_result result = get(font_handle, GD_OBJECT_FONT,
+                                    font_record, false, true); result != GD_OK) return result;
+        if (const gd_result result = get(format_handle, GD_OBJECT_STRING_FORMAT,
+                                    format_record, false, true); result != GD_OK) return result;
+        std::scoped_lock operation_lock((*recorder_record).operation_mutex,
+                                        (*font_record).operation_mutex,
+                                        (*format_record).operation_mutex);
+        const std::thread::id current_thread = std::this_thread::get_id();
+        for (ObjectRecord* record : {recorder_record.get(), font_record.get(), format_record.get()}) {
+            if ((*record).owner_thread != current_thread) {
+                (*(*record).object).handoff_to_current_thread();
+                (*record).owner_thread = current_thread;
+            }
+            if ((*(*record).object).is_disposed()) {
+                return fail(GD_ERROR_DISPOSED, "drawing object is disposed");
+            }
+        }
+        std::shared_ptr<gui_drawing::GraphicsRecorder> recorder = std::dynamic_pointer_cast<gui_drawing::GraphicsRecorder>((*recorder_record).object);
+        std::shared_ptr<gui_drawing::Font> font = std::dynamic_pointer_cast<gui_drawing::Font>((*font_record).object);
+        std::shared_ptr<gui_drawing::StringFormat> format = std::dynamic_pointer_cast<gui_drawing::StringFormat>((*format_record).object);
+        if (!recorder || !font || !format) {
+            return fail(GD_ERROR_WRONG_HANDLE_KIND, "drawing text handle type mismatch");
+        }
+        return translate(operation, *recorder, *font, *format, std::forward<Arguments>(arguments)...);
+    }
+
 private:
     template <typename Object, typename... Arguments>
     gd_result create_record(std::uint32_t kind, gd_handle* output,
@@ -2481,8 +2517,142 @@ gd_result api_recorder_fill_rectangles_each(gd_handle recorder, const gd_rect* r
     return translate(&fill_recorder_rectangles_each_from_c, recorder, rects, colors, count);
 }
 
+// ABI 0.5: text in a box, batched strings, reuse and the fitted measure.
+
+gd_result draw_recorder_string_in_rect(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Font& font,
+                                       gui_drawing::SolidBrush& brush, gui_drawing::StringFormat& format,
+                                       const std::string& text, gd_rect layout) {
+    graphics.draw_string_in_rect(text, font, brush, rect_from_c(layout), format);
+    return GD_OK;
+}
+
+gd_result draw_recorder_string_in_rect_from_c(gd_handle recorder, gd_string_view text, gd_handle font,
+                                              gd_handle brush, gd_rect layout, gd_handle format) {
+    const std::string native_text = string_from_c(text, "draw string text");
+    return registry().with_text_objects(recorder, font, brush, format, &draw_recorder_string_in_rect, native_text,
+                                        layout);
+}
+
+gd_result api_recorder_draw_string_in_rect(gd_handle recorder, gd_string_view text, gd_handle font,
+                                           gd_handle brush, gd_rect layout, gd_handle format) {
+    return translate(&draw_recorder_string_in_rect_from_c, recorder, text, font, brush, layout, format);
+}
+
+// The items' texts are copied once into `texts` (which the recorder's items
+// borrow for the call) after the count is bounded.
+gd_result draw_recorder_strings(gui_drawing::GraphicsRecorder& graphics, gui_drawing::Font& font,
+                                gui_drawing::StringFormat& format,
+                                const std::vector<gui_drawing::GraphicsRecorder::TextItem>& items) {
+    graphics.draw_strings(font, format, items);
+    return GD_OK;
+}
+
+gd_result draw_recorder_strings_from_c(gd_handle recorder, gd_handle font, gd_handle format,
+                                       const gd_text_item* items, std::uint64_t count) {
+    std::vector<std::string> texts;
+    std::vector<gui_drawing::GraphicsRecorder::TextItem> native;
+    texts.reserve(static_cast<std::size_t>(count));
+    native.reserve(static_cast<std::size_t>(count));
+    for (std::uint64_t index = 0; index < count; ++index) {
+        texts.push_back(string_from_c(items[index].text, "draw strings text"));
+    }
+    for (std::uint64_t index = 0; index < count; ++index) {
+        gui_drawing::GraphicsRecorder::TextItem item{};
+        item.text = texts[static_cast<std::size_t>(index)];
+        item.origin = point_from_c(items[index].origin);
+        item.color = color_from_c(items[index].color);
+        native.push_back(item);
+    }
+    return registry().with_strings_objects(recorder, font, format, &draw_recorder_strings, native);
+}
+
+gd_result api_recorder_draw_strings(gd_handle recorder, gd_handle font, gd_handle format,
+                                    const gd_text_item* items, std::uint64_t count) {
+    if (items == nullptr || count == 0U || count > gui_drawing::GraphicsRecorder::maximum_text_items) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "draw strings requires 1 through 65536 items");
+    }
+    return translate(&draw_recorder_strings_from_c, recorder, font, format, items, count);
+}
+
+gd_result api_recorder_reset(gd_handle handle) {
+    return registry().with<gui_drawing::GraphicsRecorder>(handle, GD_OBJECT_RECORDER,
+                                                         &gui_drawing::GraphicsRecorder::reset);
+}
+
+// The fitted prefix by binary search over byte lengths moved back to code
+// point boundaries: about log2(bytes) one-line measures.
+gd_result measure_fitted_prefix(gui_drawing::Font& font, gui_drawing::StringFormat* format,
+                                const gd_raster_service_v0& service, const std::string& text, double max_width,
+                                std::uint64_t* bytes_fitted, double* fitted_width) {
+    std::size_t low = 0U;
+    std::size_t high = text.size();
+    double low_width = 0.0;
+    while (low < high) {
+        std::size_t middle = low + (high - low + 1U) / 2U;
+        while (middle > low && middle < text.size() && (static_cast<unsigned char>(text[middle]) & 0xC0U) == 0x80U) {
+            --middle;
+        }
+        if (middle == low) break;
+        gd_size measured{};
+        const gd_string_view prefix{text.data(), static_cast<std::uint64_t>(middle)};
+        const gd_result result = service.measure_string(&font, format, prefix, 0.0, &measured);
+        if (result != GD_OK) return fail(result, "GUI.Drawing raster text measurement failed");
+        if (measured.width <= max_width) {
+            low = middle;
+            low_width = measured.width;
+        } else {
+            high = middle - 1U;
+            while (high > low && high < text.size() && (static_cast<unsigned char>(text[high]) & 0xC0U) == 0x80U) {
+                --high;
+            }
+        }
+    }
+    *bytes_fitted = static_cast<std::uint64_t>(low);
+    *fitted_width = low_width;
+    return GD_OK;
+}
+
+gd_result measure_fitted_without_format(gui_drawing::Font& font, const gd_raster_service_v0& service,
+                                        const std::string& text, double max_width, std::uint64_t* bytes_fitted,
+                                        double* fitted_width) {
+    return measure_fitted_prefix(font, nullptr, service, text, max_width, bytes_fitted, fitted_width);
+}
+
+gd_result measure_fitted_with_format(gui_drawing::Font& font, gui_drawing::StringFormat& format,
+                                     const gd_raster_service_v0& service, const std::string& text, double max_width,
+                                     std::uint64_t* bytes_fitted, double* fitted_width) {
+    return measure_fitted_prefix(font, &format, service, text, max_width, bytes_fitted, fitted_width);
+}
+
+gd_result api_measure_string_fitted(gd_string_view text, gd_handle font, gd_handle format, double max_width,
+                                    std::uint64_t* bytes_fitted, double* fitted_width) {
+    if (bytes_fitted == nullptr || fitted_width == nullptr || !std::isfinite(max_width) || max_width < 0.0) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "fitted measurement requires a valid width and outputs");
+    }
+    std::string native_text;
+    try {
+        native_text = string_from_c(text, "measure string text");
+    } catch (const std::exception& error) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, error.what());
+    }
+    if (native_text.size() > gui_drawing::GraphicsRecorder::maximum_text_bytes) {
+        return fail(GD_ERROR_LIMIT_EXCEEDED, "measure string text exceeds its byte limit");
+    }
+    gd_raster_service_v0 service{};
+    if (!load_raster_service(service)) {
+        return fail(GD_ERROR_INTERNAL, "GUI.Drawing raster service is not installed");
+    }
+    if (format.slot == 0U && format.generation == 0U) {
+        return registry().with<gui_drawing::Font>(font, GD_OBJECT_FONT, &measure_fitted_without_format, service,
+                                                  native_text, max_width, bytes_fitted, fitted_width);
+    }
+    return registry().with_two<gui_drawing::Font, gui_drawing::StringFormat>(
+        font, GD_OBJECT_FONT, format, GD_OBJECT_STRING_FORMAT, &measure_fitted_with_format, service, native_text,
+        max_width, bytes_fitted, fitted_width);
+}
+
 const gd_api_v0 api_table{
-    sizeof(gd_api_v0), GD_ABI_VERSION_0_4,
+    sizeof(gd_api_v0), GD_ABI_VERSION_0_5,
     &api_last_error, &api_retain, &api_release, &api_dispose,
     &api_object_state, &api_object_kind,
     &api_solid_brush_create, &api_pen_create, &api_pen_set_width,
@@ -2552,6 +2722,8 @@ const gd_api_v0 api_table{
     &api_graphics_path_add_rounded_rectangle,
     &api_recorder_fill_band, &api_recorder_draw_polyline_runs,
     &api_recorder_fill_rectangles_each,
+    &api_recorder_draw_string_in_rect, &api_recorder_draw_strings,
+    &api_recorder_reset, &api_measure_string_fitted,
 };
 
 } // namespace
@@ -2565,7 +2737,8 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
     if (requested_version != GD_ABI_VERSION_0_1 &&
         requested_version != GD_ABI_VERSION_0_2 &&
         requested_version != GD_ABI_VERSION_0_3 &&
-        requested_version != GD_ABI_VERSION_0_4) {
+        requested_version != GD_ABI_VERSION_0_4 &&
+        requested_version != GD_ABI_VERSION_0_5) {
         return fail(GD_ERROR_UNSUPPORTED_VERSION,
                     "requested GUI.Drawing ABI version is unsupported");
     }
@@ -2578,6 +2751,8 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
         available = offsetof(gd_api_v0, pen_set_line_join);
     } else if (requested_version == GD_ABI_VERSION_0_3) {
         available = offsetof(gd_api_v0, recorder_fill_band);
+    } else if (requested_version == GD_ABI_VERSION_0_4) {
+        available = offsetof(gd_api_v0, recorder_draw_string_in_rect);
     }
     const std::size_t copied = std::min<std::size_t>(caller_size, available);
     std::memcpy(table, &api_table, copied);

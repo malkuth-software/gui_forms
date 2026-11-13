@@ -841,6 +841,72 @@ void opaque_image_draws_as_row_copy() {
     CHECK(checksum(target.snapshot()) == before_checksum);
 }
 
+// The ink's bounding box: the columns and rows holding any non-white pixel,
+// as {x, y, width, height}, or all zero for a blank bitmap.
+RectF ink_box(const Bitmap& bitmap) {
+    std::uint32_t left = bitmap.width();
+    std::uint32_t top = bitmap.height();
+    std::uint32_t right = 0U;
+    std::uint32_t bottom = 0U;
+    for (std::uint32_t y = 0; y < bitmap.height(); ++y) {
+        for (std::uint32_t x = 0; x < bitmap.width(); ++x) {
+            if (bitmap.get_pixel(x, y).red() == 255U) continue;
+            left = std::min(left, x);
+            top = std::min(top, y);
+            right = std::max(right, x + 1U);
+            bottom = std::max(bottom, y + 1U);
+        }
+    }
+    if (right == 0U) return {};
+    const RectF box{static_cast<double>(left), static_cast<double>(top), static_cast<double>(right - left),
+                    static_cast<double>(bottom - top)};
+    return box;
+}
+
+RectF laid_out_ink(SkiaExecutor& executor, const Font& font, std::string_view text, RectF layout,
+                   const StringFormat& format) {
+    Bitmap target(240, 80);
+    GraphicsRecorder recorder;
+    recorder.clear(Color::from_name("white"));
+    recorder.draw_string_in_rect(text, font, SolidBrush(Color::from_name("black")), layout, format);
+    CHECK(executor.execute(recorder, target));
+    return ink_box(target);
+}
+
+// gd_* ABI 0.5 (the flame graph demonstrator's D2): a string laid out in a
+// box is aligned in it, trimmed to it and clipped to it.
+void laid_out_text_aligns_trims_and_clips() {
+    SkiaExecutor executor;
+    CHECK(executor.register_typeface("Portsmouth Rapids", read_file(GUI_DRAWING_TEST_FONT)));
+    const Font font("Portsmouth Rapids", 16.0, FontStyle::regular, GraphicsUnit::pixel);
+    const RectF wide{20, 10, 200, 40};
+    StringFormat near;
+    const RectF at_near = laid_out_ink(executor, font, "Name", wide, near);
+    StringFormat far;
+    far.set_alignment(StringAlignment::far);
+    far.set_line_alignment(StringAlignment::far);
+    const RectF at_far = laid_out_ink(executor, font, "Name", wide, far);
+    CHECK(at_near.width > 0.0 && at_near.x >= 20.0 && at_near.x < 30.0);
+    CHECK(at_far.x + at_far.width <= 220.0 && at_far.x + at_far.width > 205.0);
+    CHECK(at_far.y > at_near.y);
+    CHECK(std::abs(at_far.width - at_near.width) <= 1.0);
+
+    // A narrow box: none clips at the box; the ellipsis trims inside it.
+    const RectF narrow{20, 10, 50, 40};
+    StringFormat clipped;
+    const RectF cut = laid_out_ink(executor, font, "Hamburgefonstiv", narrow, clipped);
+    CHECK(cut.x + cut.width <= 70.0);
+    StringFormat trimmed;
+    trimmed.set_trimming(StringTrimming::ellipsis_character);
+    const RectF elided = laid_out_ink(executor, font, "Hamburgefonstiv", narrow, trimmed);
+    CHECK(elided.width > 0.0 && elided.x + elided.width <= 70.0);
+    // The no-clip flag lets an untrimmed line run past the box.
+    StringFormat open;
+    open.set_flags(UINT32_C(0x4000));
+    const RectF run_on = laid_out_ink(executor, font, "Hamburgefonstiv", narrow, open);
+    CHECK(run_on.x + run_on.width > 70.0);
+}
+
 int main() {
     command_execution_and_png_round_trip();
     image_attributes_clip_and_snapshot_execution();
@@ -856,6 +922,7 @@ int main() {
     connected_line_figures_fill_as_one_contour();
     quadratic_bezier_polygon_and_pie_paths_rasterize();
     text_uses_the_shared_engine();
+    laid_out_text_aligns_trims_and_clips();
     italic_faces_and_aliases_draw_registered_faces();
 #if defined(__APPLE__)
     installed_families_are_located_through_core_text();

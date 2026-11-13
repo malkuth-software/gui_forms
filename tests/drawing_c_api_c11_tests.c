@@ -226,6 +226,112 @@ static int check_gapped_marks(const gd_api_v0* api) {
     return 0;
 }
 
+/* Whether the trace holds `needle`. */
+static int trace_has(const gd_api_v0* api, gd_handle recorder, const char* needle) {
+    uint64_t required = 0;
+    char* trace = NULL;
+    int found = 0;
+    if ((*api).recorder_trace(recorder, NULL, 0, &required) != GD_ERROR_BUFFER_TOO_SMALL) return 0;
+    trace = (char*)malloc((size_t)required + 1U);
+    if (trace == NULL) return 0;
+    if ((*api).recorder_trace(recorder, trace, required, &required) == GD_OK) {
+        trace[required] = '\0';
+        found = strstr(trace, needle) != NULL;
+    }
+    free(trace);
+    return found;
+}
+
+/* ABI 0.5 and the clip rules (the flame graph demonstrator's D2 to D5):
+   text in a box, batched strings, reset for reuse, closed recorders refuse,
+   and set_clip replaces the clip in force, in target coordinates, restored
+   by recorder_restore. */
+static int check_text_and_reuse(const gd_api_v0* api) {
+    gd_handle recorder = {0};
+    gd_handle brush = {0};
+    gd_handle font = {0};
+    gd_handle format = {0};
+    uint64_t count = 0;
+    uint64_t token = 0;
+    uint64_t fitted = 0;
+    double fitted_width = 0.0;
+    gd_text_item items[3];
+    gd_text_item bad[2];
+
+    CHECK((*api).recorder_create(&recorder) == GD_OK);
+    CHECK((*api).solid_brush_create((gd_color){UINT32_C(0xff102030), 0}, &brush) == GD_OK);
+    CHECK((*api).font_create(view_of("Lucida Grande"), 12.0, 0, 3, 1, &font) == GD_OK);
+    CHECK((*api).string_format_create(0, &format) == GD_OK);
+    CHECK((*api).string_format_set(format, GD_STRING_CENTER, GD_STRING_FAR, GD_TRIM_ELLIPSIS_CHARACTER, 0) == GD_OK);
+
+    /* D5: set_clip replaces; the clip is in target coordinates. */
+    CHECK((*api).recorder_set_clip(recorder, (gd_rect){0, 0, 100, 50}) == GD_OK);
+    CHECK((*api).recorder_set_clip(recorder, (gd_rect){10, 10, 20, 20}) == GD_OK);
+    CHECK(trace_has(api, recorder, "1|set_clip|"));
+    CHECK(trace_has(api, recorder, "|clip=10,10,20,20|"));
+    CHECK((*api).recorder_save(recorder, &token) == GD_OK);
+    CHECK((*api).recorder_translate(recorder, 5.0, 5.0) == GD_OK);
+    CHECK((*api).recorder_set_clip(recorder, (gd_rect){0, 0, 10, 10}) == GD_OK);
+    CHECK(trace_has(api, recorder, "|clip=5,5,10,10|"));
+    CHECK((*api).recorder_restore(recorder, token) == GD_OK);
+    CHECK((*api).recorder_fill_rectangle(recorder, brush, (gd_rect){0, 0, 1, 1}) == GD_OK);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 7U);
+    CHECK(trace_has(api, recorder, "6|fill_rectangle|"));
+
+    /* D4: reset empties the recording, reopens it and drops saved tokens. */
+    CHECK((*api).recorder_save(recorder, &token) == GD_OK);
+    CHECK((*api).recorder_close(recorder) == GD_OK);
+    CHECK((*api).recorder_fill_rectangle(recorder, brush, (gd_rect){0, 0, 1, 1}) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_reset(recorder) == GD_OK);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 0U);
+    CHECK((*api).recorder_restore(recorder, token) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK(trace_has(api, recorder, "end|commands=0|closed=0\n"));
+
+    /* D2: a string laid out in a box records its layout. */
+    CHECK((*api).recorder_draw_string_in_rect(recorder, view_of("flame cell"), font, brush,
+                                              (gd_rect){4, 6, 40, 14}, format) == GD_OK);
+    CHECK(trace_has(api, recorder, "|text=flame cell|layout=4,6,40,14|"));
+    CHECK((*api).recorder_draw_string_in_rect(recorder, view_of("x"), font, brush,
+                                              (gd_rect){0, 0, -1, 14}, format) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_draw_string_in_rect(recorder, view_of("x"), font, brush,
+                                              (gd_rect){0, 0, NAN, 14}, format) == GD_ERROR_INVALID_ARGUMENT);
+
+    /* D3: one draw_string per item, each in its colour; a bad item refuses
+       the whole list. */
+    items[0].text = view_of("main");
+    items[0].origin = (gd_point){0, 0};
+    items[0].color = (gd_color){UINT32_C(0xffff0000), 0};
+    items[1].text = view_of("parse");
+    items[1].origin = (gd_point){0, 20};
+    items[1].color = (gd_color){UINT32_C(0xff00ff00), 0};
+    items[2].text = view_of("render");
+    items[2].origin = (gd_point){0, 40};
+    items[2].color = (gd_color){UINT32_C(0xff0000ff), 0};
+    CHECK((*api).recorder_draw_strings(recorder, font, format, items, 3) == GD_OK);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 4U);
+    CHECK(trace_has(api, recorder, "|brush=ff00ff00|"));
+    CHECK(trace_has(api, recorder, "|text=render|"));
+    bad[0] = items[0];
+    bad[1] = items[1];
+    bad[1].origin = (gd_point){HUGE_VAL, 0};
+    CHECK((*api).recorder_draw_strings(recorder, font, format, bad, 2) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_draw_strings(recorder, font, format, items, 0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_draw_strings(recorder, font, format, NULL, 1) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 4U);
+
+    /* The fitted measure validates before it needs a raster service. */
+    CHECK((*api).measure_string_fitted(view_of("abc"), font, format, -1.0, &fitted, &fitted_width) ==
+          GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).measure_string_fitted(view_of("abc"), font, format, 10.0, NULL, &fitted_width) ==
+          GD_ERROR_INVALID_ARGUMENT);
+
+    CHECK((*api).release(format) == GD_OK);
+    CHECK((*api).release(font) == GD_OK);
+    CHECK((*api).release(brush) == GD_OK);
+    CHECK((*api).release(recorder) == GD_OK);
+    return 0;
+}
+
 int main(void) {
     gd_api_v0 api;
     gd_api_v0 prefix;
@@ -300,8 +406,16 @@ int main(void) {
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_0_4, &api) == GD_OK);
-    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.struct_size == offsetof(gd_api_v0, recorder_draw_string_in_rect));
     CHECK(api.abi_version == GD_ABI_VERSION_0_4);
+    CHECK(api.recorder_fill_rectangles_each != NULL);
+    CHECK(api.recorder_draw_string_in_rect == NULL);
+    memset(&api, 0, sizeof(api));
+    api.struct_size = sizeof(api);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_0_5, &api) == GD_OK);
+    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.abi_version == GD_ABI_VERSION_0_5);
+    CHECK(api.measure_string_fitted != NULL);
     CHECK(api.recorder_trace != NULL);
     CHECK(api.graphics_path_create != NULL);
     CHECK(api.recorder_draw_image != NULL);
@@ -585,6 +699,7 @@ int main(void) {
 
     CHECK(check_drawing_primitives(&api) == 0);
     CHECK(check_gapped_marks(&api) == 0);
+    CHECK(check_text_and_reuse(&api) == 0);
     CHECK(api.release(recorder) == GD_OK);
     CHECK(api.release(recorder) == GD_ERROR_STALE_HANDLE);
     CHECK(api.release(format) == GD_OK);

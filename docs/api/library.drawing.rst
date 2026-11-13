@@ -56,6 +56,8 @@ Types
      - GraphicsPath is a bounded retained vector-geometry state machine with explicit figure boundaries, line/quadratic/cubic/polygon/rectangle/ellipse/arc/pie vocabulary, affine transformation, hit testing, cloning, bounds, and immutable snapshots.
    * - :cpp:class:`GraphicsRecorder <gui_drawing::GraphicsRecorder>`
      - GraphicsRecorder is a bounded thread-affine command transaction with explicit save-token stack discipline, retained transform/clip/quality state, validated resource snapshots, deterministic trace output, and a terminal close phase.
+   * - :cpp:class:`GraphicsRecorder::TextItem <gui_drawing::GraphicsRecorder::TextItem>`
+     - One string of draw_strings: its text (lent for the call), its origin, and its colour.
    * - :cpp:class:`GraphicsState <gui_drawing::GraphicsState>`
      - GraphicsState is the complete transform, optional clip, smoothing, interpolation, pixel-offset, compositing, and compositing-quality state.
    * - :cpp:class:`GraphicsStateToken <gui_drawing::GraphicsStateToken>`
@@ -641,6 +643,10 @@ Types
 
       Default: ``{FillDirection::left_to_right}``.
 
+   .. cpp:member:: bool laid_out
+
+      draw_string: true when the text is laid out in ``rect`` (draw_string_in_rect) rather than placed at ``first``.
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:class:: DrawingObject
@@ -1035,6 +1041,14 @@ Types
 
       Validates bounded UTF-8 and origin, then owns text plus font/brush/format snapshots.
 
+   .. cpp:function:: void draw_string_in_rect(std::string_view utf8, const Font& font, const SolidBrush& brush, RectF layout, const StringFormat& format)
+
+      The string laid out in ``layout`` (gd_* ABI 0.5, the flame graph demonstrator's D2). Lines break at newlines only. Each line is placed across the box by the format's alignment (near, center, far) and the block of lines down it by its line alignment, with the same side bearing an origin-placed string has. A line wider than the box is trimmed by the format's trimming: character and word cut it at the last code point or word that fits, the ellipsis forms add U+2026 after the cut, and ellipsis_path is taken as ellipsis_character; with none it runs on. The text is clipped to the box (within the clip in force) unless the format has the no-clip flag (0x4000). ``layout`` is finite with a non-negative width and height. Records one draw_string.
+
+   .. cpp:function:: void draw_strings(const Font& font, const StringFormat& format, std::span<const TextItem> items)
+
+      Strings in one font and format, each in its own colour at its own origin (gd_* ABI 0.5, the flame graph demonstrator's D3): one draw_string per item, in order. 1 through maximum_text_items items, each bounded valid UTF-8 at a finite origin; the whole list is validated, and that its commands fit maximum_commands, before anything is recorded.
+
    .. cpp:function:: void draw_ellipse(const Pen& pen, RectF bounds)
 
       Validates bounds and records a pen snapshot.
@@ -1107,6 +1121,10 @@ Types
 
       Requires balanced saved state and enters terminal closed state.
 
+   .. cpp:function:: void reset()
+
+      Empties the recording for reuse (gd_* ABI 0.5, the flame graph demonstrator's D4): the commands, the saved states (their tokens are no longer valid) and the state in force (no transform, no clip, default quality) are cleared and the recorder reopens. The command storage is kept for the next frame. Throws on a disposed recorder.
+
    .. cpp:function:: void set_transform(Matrix transform)
 
       Requires a finite matrix, commits it, and records the state change.
@@ -1140,6 +1158,10 @@ Types
 
       Default: ``1U << 20U``.
 
+   .. cpp:member:: constexpr std::size_t maximum_text_items
+
+      Default: ``65536``.
+
    .. cpp:member:: constexpr std::size_t maximum_batch_elements
 
       Batched commands (the GUI.Forms Painter's batch calls; one command per call, the span copied once). Every point and rectangle must be finite, and each span holds at most maximum_batch_elements. Default: ``1'000'000``.
@@ -1147,6 +1169,20 @@ Types
    .. cpp:member:: constexpr std::size_t maximum_band_samples
 
       Gapped and per-element marks (gd_* ABI 0.4, the plot demonstrator's gaps G2 to G4). Each records commands of the kinds above, so replay and the trace need no new command kind. Each validates its whole input, and that the commands it records fit maximum_commands, before it records anything; a refusal records nothing. A break is a point with a NaN coordinate. An infinite coordinate is refused, as for the batched commands. The most samples fill_band takes: its polygon holds two points per sample, within GraphicsPath::maximum_elements. Default: ``maximum_batch_elements / 2U``.
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:struct:: GraphicsRecorder::TextItem final
+
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+
+   One string of draw_strings: its text (lent for the call), its origin, and its colour.
+
+   .. cpp:member:: std::string_view text
+
+   .. cpp:member:: PointF origin
+
+   .. cpp:member:: Color color
 
 .. cpp:namespace:: gui_drawing
 

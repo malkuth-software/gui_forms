@@ -185,6 +185,59 @@ void GraphicsRecorder::draw_string(std::string_view utf8, const Font& font,
     append(std::move(command));
 }
 
+void GraphicsRecorder::draw_string_in_rect(std::string_view utf8, const Font& font, const SolidBrush& brush,
+                                           RectF layout, const StringFormat& format) {
+    require_recordable();
+    require_finite(layout, "text layout");
+    if (layout.width < 0.0 || layout.height < 0.0) {
+        throw std::invalid_argument("text layout must have a non-negative size");
+    }
+    if (utf8.size() > maximum_text_bytes || !valid_utf8(utf8)) {
+        throw std::invalid_argument("drawn text must be bounded valid UTF-8");
+    }
+    DrawingCommand command;
+    command.kind = CommandKind::draw_string;
+    command.state = state_;
+    command.first = PointF{layout.x, layout.y};
+    command.rect = layout;
+    command.laid_out = true;
+    command.color = brush.color();
+    command.font = font.snapshot();
+    command.format = format.snapshot();
+    command.text.assign(utf8);
+    append(std::move(command));
+}
+
+void GraphicsRecorder::draw_strings(const Font& font, const StringFormat& format, std::span<const TextItem> items) {
+    require_recordable();
+    if (items.empty() || items.size() > maximum_text_items) {
+        throw std::invalid_argument("draw_strings requires 1 through 65536 items");
+    }
+    if (items.size() > maximum_commands - commands_.size()) {
+        throw std::length_error("GUI.Drawing command limit exceeded");
+    }
+    for (const TextItem& item : items) {
+        require_finite(item.origin, "text origin");
+        if (item.text.size() > maximum_text_bytes || !valid_utf8(item.text)) {
+            throw std::invalid_argument("drawn text must be bounded valid UTF-8");
+        }
+    }
+    const FontSnapshot font_snapshot = font.snapshot();
+    const StringFormatSnapshot format_snapshot = format.snapshot();
+    commands_.reserve(commands_.size() + items.size());
+    for (const TextItem& item : items) {
+        DrawingCommand command;
+        command.kind = CommandKind::draw_string;
+        command.state = state_;
+        command.first = item.origin;
+        command.color = item.color;
+        command.font = font_snapshot;
+        command.format = format_snapshot;
+        command.text.assign(item.text);
+        commands_.push_back(std::move(command));
+    }
+}
+
 void GraphicsRecorder::draw_ellipse(const Pen& pen, RectF bounds) {
     require_recordable();
     require_finite(bounds, "stroke ellipse");
@@ -591,6 +644,15 @@ void GraphicsRecorder::close() {
     saved_.clear();
 }
 
+void GraphicsRecorder::reset() {
+    require_alive();
+    // clear keeps the vector's storage: the next frame reuses it.
+    commands_.clear();
+    saved_.clear();
+    state_ = GraphicsState{};
+    closed_ = false;
+}
+
 bool GraphicsRecorder::closed() const {
     require_alive();
     return closed_;
@@ -667,6 +729,7 @@ void append_command_fields(const DrawingCommand& command, std::string& trace) {
                  "," + std::to_string(static_cast<unsigned>(command.format.trimming)) +
                  "," + std::to_string(command.format.flags) +
                  "|text=" + escaped(command.text);
+        if (command.laid_out) trace += "|layout=" + rect_text(command.rect);
         return;
     case CommandKind::draw_ellipse:
         trace += "|bounds=" + rect_text(command.rect) +

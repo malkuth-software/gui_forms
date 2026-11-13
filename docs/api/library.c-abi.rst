@@ -74,6 +74,8 @@ Types
      - gd_size projects floating-point drawing dimensions.
    * - :cpp:class:`gd_string_view <gd_string_view>`
      - gd_string_view is a non-owning bounded drawing-ABI string view with explicit validation before copying.
+   * - :cpp:class:`gd_text_item <gd_text_item>`
+     -  
    * - :cpp:class:`gf_abi_version_info <gf_abi_version_info>`
      - gf_abi_version_info is the size-prefixed output record of the library and ABI versions.
    * - :cpp:class:`gf_anchored_overlay_options <gf_anchored_overlay_options>`
@@ -1176,6 +1178,14 @@ Types
 
    .. cpp:member:: gd_result (*recorder_fill_rectangles_each)(gd_handle recorder, const gd_rect* rects, const gd_color* colors, uint64_t count)
 
+   .. cpp:member:: gd_result (*recorder_draw_string_in_rect)(gd_handle recorder, gd_string_view text, gd_handle font, gd_handle brush, gd_rect layout, gd_handle format)
+
+   .. cpp:member:: gd_result (*recorder_draw_strings)(gd_handle recorder, gd_handle font, gd_handle format, const gd_text_item* items, uint64_t count)
+
+   .. cpp:member:: gd_result (*recorder_reset)(gd_handle recorder)
+
+   .. cpp:member:: gd_result (*measure_string_fitted)(gd_string_view text, gd_handle font, gd_handle format, double max_width, uint64_t* bytes_fitted, double* fitted_width)
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gd_bitmap_damage_summary
@@ -1459,6 +1469,18 @@ Types
    .. cpp:member:: const char* data
 
    .. cpp:member:: uint64_t size
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gd_text_item
+
+   ``#include <gui_forms/drawing_c_api.h>``
+
+   .. cpp:member:: gd_string_view text
+
+   .. cpp:member:: gd_point origin
+
+   .. cpp:member:: gd_color color
 
 .. cpp:namespace:: 0
 

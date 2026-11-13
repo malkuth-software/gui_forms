@@ -950,6 +950,12 @@ Types
 
    .. rubric:: Properties
 
+   .. cpp:function:: PlotGestureAxes gesture_axes() const noexcept
+
+   .. cpp:function:: void set_gesture_axes(PlotGestureAxes axes) noexcept
+
+      An unknown value is taken as both.
+
    .. cpp:function:: std::span<const Axis> x_axes() const noexcept
 
    .. cpp:function:: std::span<const Axis> y_axes() const noexcept
@@ -1985,6 +1991,18 @@ Enumerations
    .. cpp:enumerator:: box_zoom
 
    .. cpp:enumerator:: query
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:enum-class:: PlotGestureAxes
+
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+
+   .. cpp:enumerator:: both
+
+   .. cpp:enumerator:: x_only
+
+   .. cpp:enumerator:: y_only
 
 .. cpp:namespace:: gui_forms::plots
 
