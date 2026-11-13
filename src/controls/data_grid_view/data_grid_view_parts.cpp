@@ -333,15 +333,16 @@ void DataGridView::gather_content_regions() {
     const std::span<const ContentItemKey> cells = cells_region_.pending();
     if (cells.empty()) return;
     const GridLayout layout = grid_layout();
-    const std::size_t row_end = visible_row_end(layout);
+    const IndexSpan rows = row_span(layout);
     try {
         settle_rows_damage(false, layout);
         for (const ContentItemKey& cell : cells) {
-            const bool shown = cell.major >= first_row_ && cell.major < row_end && cell.minor < columns_.size();
+            const bool shown = rows.contains(static_cast<std::size_t>(cell.major)) && cell.minor < columns_.size();
             if (!shown) continue;
             const DataGridViewRowPosition row{static_cast<std::size_t>(cell.major)};
-            const Rect bounds = cell_bounds(row, static_cast<std::size_t>(cell.minor), layout);
-            const Rect visible = Rect::intersection(bounds, layout.data);
+            const std::size_t column = static_cast<std::size_t>(cell.minor);
+            const Rect bounds = cell_bounds(row, column, layout);
+            const Rect visible = Rect::intersection(bounds, cell_pane(row, column, layout));
             if (!visible.empty()) invalidate(visible);
         }
     } catch (...) {
@@ -427,13 +428,11 @@ std::optional<double> DataGridView::automatic_width(std::size_t column, DataGrid
         widest = preferred_column_header_width(column);
     }
     if (mode != DataGridViewAutoSizeColumnMode::column_header) {
-        std::size_t begin = 0U;
-        std::size_t end = row_count();
-        if (displayed_only(mode)) {
-            end = visible_row_end(layout);
-            begin = std::min(first_row_, end);
-        }
-        for (std::size_t position = begin; position < end; ++position) {
+        // Every row, or the rows shown: the frozen ones, then the scrolling
+        // ones.
+        IndexSpan span{0U, 0U, row_count()};
+        if (displayed_only(mode)) span = row_span(layout);
+        for (std::size_t position = span.start(); position < span.end; position = span.next(position)) {
             widest = std::max(widest, preferred_cell_width(DataGridViewRowPosition{position}, column));
             // A formatting handler changed the grid: the rows are not these.
             if (structure_revision_ != revision) return std::nullopt;
@@ -675,8 +674,17 @@ void DataGridView::apply_row_auto_sizes() {
     // measured before the next is placed, until the viewport is full.
     const DataGridViewRowHeights& heights = row_heights();
     const GridLayout layout = grid_layout();
-    const double viewport = layout.data.height / layout.scale;
-    const std::size_t first = std::min(first_row_, count);
+    const double data_height = layout.data.height / layout.scale;
+    // The frozen rows first, those whose top is in the data area; the
+    // scrolling rows then fill what the frozen ones leave.
+    const std::size_t frozen = frozen_rows();
+    for (std::size_t position = 0U; position < frozen && heights.top(position) < data_height; ++position) {
+        const std::optional<double> height = automatic_height(position, each);
+        if (structure_revision_ != revision) return;
+        if (height) row_heights_.set_height(position, *height);
+    }
+    const double viewport = data_height - heights.top(frozen);
+    const std::size_t first = scroll_first_row();
     const double first_top = heights.top(first);
     for (std::size_t position = first; position < count && heights.top(position) - first_top < viewport; ++position) {
         const std::optional<double> height = automatic_height(position, each);
@@ -718,15 +726,11 @@ void DataGridView::auto_resize_rows(DataGridViewAutoSizeRowsMode mode) {
         throw std::invalid_argument("DataGridView auto_resize_rows takes a header or cell mode");
     }
     const DataGridViewAutoSizeRowMode each = row_mode(mode);
-    std::size_t begin = 0U;
-    std::size_t end = row_count();
-    if (displayed_rows_only(mode)) {
-        const GridLayout layout = grid_layout();
-        end = visible_row_end(layout);
-        begin = std::min(first_row_, end);
-    }
+    IndexSpan span{0U, 0U, row_count()};
+    if (displayed_rows_only(mode)) span = row_span(grid_layout());
     // Read the count each time: a handler may change the rows.
-    for (std::size_t position = begin; is_alive() && position < end && position < row_count(); ++position) {
+    for (std::size_t position = span.start(); is_alive() && position < span.end && position < row_count();
+         position = span.next(position)) {
         auto_resize_row(DataGridViewRowPosition{position}, each);
     }
 }
@@ -820,8 +824,10 @@ double DataGridView::column_left(std::size_t column, const GridLayout& layout) c
     // band's reading start: its left, or its right edge right to left.
     const double frame_sum = layout.client.x * 2.0 + layout.client.width;
     const double reading_start = layout.mirrored ? frame_sum - layout.data.x - layout.data.width : layout.data.x;
-    double x = reading_start - horizontal_offset_ * layout.scale;
     const std::size_t display = column < shown_indices_.size() ? shown_indices_[column] : shown_order_.size();
+    // Frozen columns do not scroll.
+    double x = reading_start;
+    if (display >= frozen_display_count()) x -= horizontal_offset_ * layout.scale;
     for (std::size_t position = 0; position < display; ++position) {
         x += shown_width(shown_order_[position]) * layout.scale;
     }
@@ -853,22 +859,94 @@ Rect DataGridView::cell_bounds(DataGridViewRowPosition row, std::size_t column, 
 }
 
 std::size_t DataGridView::first_visible_display(const GridLayout& layout) const noexcept {
+    // Distances from the data band's reading start; the scrolling columns
+    // show past the frozen ones.
+    const std::size_t frozen = frozen_display_count();
+    const double boundary = layout.data.x + frozen_columns_width() * layout.scale;
     double x = layout.data.x - horizontal_offset_ * layout.scale;
     for (std::size_t position = 0; position < shown_order_.size(); ++position) {
         x += shown_width(shown_order_[position]) * layout.scale;
-        if (x > layout.data.x) return position;
+        if (position >= frozen && x > boundary) return position;
     }
     return shown_order_.size();
 }
 
 std::size_t DataGridView::visible_display_end(const GridLayout& layout) const noexcept {
     const double right = layout.data.x + layout.data.width;
-    double x = layout.data.x - horizontal_offset_ * layout.scale;
+    const std::size_t frozen = frozen_display_count();
+    // Each position's left edge: unscrolled while frozen.
+    double x = layout.data.x;
     for (std::size_t position = 0; position < shown_order_.size(); ++position) {
+        if (position == frozen) x -= horizontal_offset_ * layout.scale;
         if (x >= right) return position;
         x += shown_width(shown_order_[position]) * layout.scale;
     }
     return shown_order_.size();
+}
+
+DataGridView::IndexSpan DataGridView::display_span(const GridLayout& layout) const noexcept {
+    IndexSpan span;
+    span.end = visible_display_end(layout);
+    span.frozen_end = std::min(frozen_display_count(), span.end);
+    span.first = std::clamp(first_visible_display(layout), span.frozen_end, span.end);
+    return span;
+}
+
+std::size_t DataGridView::frozen_display_count() const noexcept {
+    std::size_t count = 0U;
+    for (std::size_t position = 0; position < shown_order_.size(); ++position) {
+        if (columns_[shown_order_[position]].frozen) count = position + 1U;
+    }
+    return count;
+}
+
+double DataGridView::frozen_columns_width() const noexcept {
+    const std::size_t frozen = frozen_display_count();
+    double width = 0.0;
+    for (std::size_t position = 0; position < frozen; ++position) width += shown_width(shown_order_[position]);
+    return width;
+}
+
+std::size_t DataGridView::frozen_rows() const noexcept {
+    const std::size_t result = std::min(frozen_row_count.read(), row_count());
+    return result;
+}
+
+std::size_t DataGridView::scroll_first_row() const noexcept {
+    const std::size_t result = std::min(std::max(first_row_, frozen_rows()), row_count());
+    return result;
+}
+
+bool DataGridView::has_frozen_panes() const noexcept {
+    const bool result = frozen_rows() != 0U || frozen_display_count() != 0U;
+    return result;
+}
+
+Rect DataGridView::column_pane(bool frozen, Rect band, const GridLayout& layout) const noexcept {
+    const double width = std::min(band.width, frozen_columns_width() * layout.scale);
+    // The frozen columns take the band's reading start: its left, or its
+    // right edge right to left; the scrolling columns take the rest.
+    const double pane_width = frozen ? width : band.width - width;
+    double left = band.x;
+    if (frozen && layout.mirrored) left = band.x + band.width - width;
+    if (!frozen && !layout.mirrored) left = band.x + width;
+    const Rect pane{left, band.y, pane_width, band.height};
+    return pane;
+}
+
+Rect DataGridView::row_pane(bool frozen, Rect band, const GridLayout& layout) const {
+    const DataGridViewRowHeights& heights = row_heights();
+    const double height = std::min(band.height, heights.top(frozen_rows()) * layout.scale);
+    const Rect pane = frozen ? Rect{band.x, band.y, band.width, height}
+                             : Rect{band.x, band.y + height, band.width, band.height - height};
+    return pane;
+}
+
+Rect DataGridView::cell_pane(DataGridViewRowPosition row, std::size_t column, const GridLayout& layout) const {
+    const std::size_t display = column < shown_indices_.size() ? shown_indices_[column] : shown_order_.size();
+    const Rect columns = column_pane(display < frozen_display_count(), layout.data, layout);
+    const Rect pane = row_pane(row.value < frozen_rows(), columns, layout);
+    return pane;
 }
 
 DataGridViewDisplayIndex DataGridView::order_target_at(double x, const GridLayout& layout) const {
@@ -929,18 +1007,22 @@ void DataGridView::rows_changed() {
 
 double DataGridView::row_offset(std::size_t position, const GridLayout& layout) const {
     const DataGridViewRowHeights& heights = row_heights();
-    const std::size_t first = std::min(first_row_, heights.count());
-    const double result = (heights.top(position) - heights.top(first)) * layout.scale;
+    const std::size_t frozen = frozen_rows();
+    if (position < frozen) return heights.top(position) * layout.scale;
+    const std::size_t first = scroll_first_row();
+    const double result = (heights.top(frozen) + heights.top(position) - heights.top(first)) * layout.scale;
     return result;
 }
 
 std::size_t DataGridView::first_row_ending_at(std::size_t last, const GridLayout& layout) const {
     const DataGridViewRowHeights& heights = row_heights();
-    const double viewport = layout.data.height / layout.scale;
+    const std::size_t frozen = frozen_rows();
+    // The scrolling rows' viewport: the data area under the frozen rows.
+    const double viewport = layout.data.height / layout.scale - heights.top(frozen);
     // The first row must start at or below `target` for `last` to end at
     // the viewport's bottom.
     const double target = heights.top(last + 1U) - viewport;
-    if (target <= 0.0) return 0U;
+    if (target <= heights.top(frozen)) return std::min(frozen, last);
     std::size_t first = heights.position_at(target);
     if (first < heights.count() && heights.top(first) < target) ++first;
     const std::size_t result = std::min(first, last);
@@ -950,9 +1032,11 @@ std::size_t DataGridView::first_row_ending_at(std::size_t last, const GridLayout
 std::size_t DataGridView::visible_row_end(const GridLayout& layout) const {
     const DataGridViewRowHeights& heights = row_heights();
     const std::size_t count = heights.count();
-    if (first_row_ >= count || layout.data.height <= 0.0) return std::min(first_row_, count);
+    const std::size_t first = scroll_first_row();
+    const double room = layout.data.height / layout.scale - heights.top(frozen_rows());
+    if (first >= count || layout.data.height <= 0.0 || room <= 0.0) return first;
     // Rows whose top lies inside the viewport, the last one perhaps cut off.
-    const double bottom = heights.top(first_row_) + layout.data.height / layout.scale;
+    const double bottom = heights.top(first) + room;
     const std::size_t last = heights.position_at(bottom);
     if (last >= count) return count;
     const std::size_t end = heights.top(last) < bottom ? last + 1U : last;
@@ -967,12 +1051,33 @@ DataGridViewRowPosition DataGridView::displayed_row_end() const {
 std::size_t DataGridView::fully_visible_rows(const GridLayout& layout) const {
     const DataGridViewRowHeights& heights = row_heights();
     const std::size_t count = heights.count();
-    if (first_row_ >= count || layout.data.height <= 0.0) return 0U;
+    const std::size_t first = scroll_first_row();
+    const double room = layout.data.height / layout.scale - heights.top(frozen_rows());
+    if (first >= count || layout.data.height <= 0.0 || room <= 0.0) return 0U;
     // The row holding the viewport's bottom is cut off, or starts there.
-    const double bottom = heights.top(first_row_) + layout.data.height / layout.scale;
+    const double bottom = heights.top(first) + room;
     const std::size_t last = heights.position_at(bottom);
-    const std::size_t result = last > first_row_ ? last - first_row_ : 0U;
+    const std::size_t result = last > first ? last - first : 0U;
     return result;
+}
+
+DataGridView::IndexSpan DataGridView::row_span(const GridLayout& layout) const {
+    const DataGridViewRowHeights& heights = row_heights();
+    IndexSpan span;
+    span.end = visible_row_end(layout);
+    span.first = std::min(scroll_first_row(), span.end);
+    const std::size_t frozen = frozen_rows();
+    if (frozen != 0U && layout.data.height > 0.0) {
+        // The frozen rows whose top lies inside the data area.
+        const double viewport = layout.data.height / layout.scale;
+        const std::size_t last = heights.position_at(viewport);
+        const std::size_t shown = last >= heights.count() ? heights.count()
+                                                           : (heights.top(last) < viewport ? last + 1U : last);
+        span.frozen_end = std::min(frozen, shown);
+    }
+    span.first = std::max(span.first, span.frozen_end);
+    span.end = std::max(span.end, span.first);
+    return span;
 }
 
 std::size_t DataGridView::maximum_first_row(const GridLayout& layout) const {
@@ -1041,7 +1146,8 @@ DataGridView::Parts DataGridView::grid_parts(const GridLayout& layout) const {
 DataGridView::RowParts DataGridView::row_parts(DataGridViewRowPosition row, const GridLayout& layout) const {
     RowParts record;
     if (!row_headers_visible.read()) return record;
-    const Rect clip = layout.row_header_band;
+    // A scrolling row's header passes under the frozen rows' headers.
+    const Rect clip = row_pane(row.value < frozen_rows(), layout.row_header_band, layout);
     const Rect header = row_header_bounds(row, layout);
     record.row_header = visible_part(header, clip);
     const double glyph_side = row_glyph_size * layout.scale;
@@ -1123,7 +1229,8 @@ DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, 
     }
     const DataGridViewCellStyle& style = result.content.style;
     CellParts& record = result.parts;
-    const Rect clip = layout.data;
+    // A scrolling cell passes under the frozen rows and columns.
+    const Rect clip = cell_pane(row, column, layout);
     const Rect cell = cell_bounds(row, column, layout);
     const double scale = layout.scale;
     const Rect inside = cell_inside(cell);
@@ -1280,9 +1387,10 @@ std::optional<DataGridView::CellImage> DataGridView::cell_image(DataGridViewRowP
 DataGridView::ColumnParts DataGridView::column_parts(std::size_t column, const GridLayout& layout) const {
     ColumnParts record;
     if (!column_headers_visible.read()) return record;
-    // Column headers scroll with the cells, between the row headers and the
-    // grid's right edge.
-    const Rect clip = layout.column_header_band;
+    // Column headers scroll with the cells, between the row headers (or
+    // the frozen columns' headers) and the grid's right edge.
+    const std::size_t display = column < shown_indices_.size() ? shown_indices_[column] : shown_order_.size();
+    const Rect clip = column_pane(display < frozen_display_count(), layout.column_header_band, layout);
     const Rect header = column_header_bounds(column, layout);
     const double scale = layout.scale;
     record.column_header = visible_part(header, clip);
@@ -1418,10 +1526,14 @@ DataGridView::HitResult DataGridView::hit_test(Point local) const {
         result.zone = HitZone::top_left;
         return result;
     }
-    const std::size_t first_display = first_visible_display(layout);
-    const std::size_t display_end = visible_display_end(layout);
+    // Display positions run frozen first, so a frozen column wins over a
+    // scrolling one passing under it; a scrolling column is also taken
+    // only in its own pane.
+    const IndexSpan displays = display_span(layout);
+    const Rect scrolling_columns = column_pane(false, layout.client, layout);
     if (!layout.column_header_band.empty() && layout.column_header_band.contains(local)) {
-        for (std::size_t display = first_display; display < display_end; ++display) {
+        for (std::size_t display = displays.start(); display < displays.end; display = displays.next(display)) {
+            if (display >= displays.frozen_end && !scrolling_columns.contains(local)) continue;
             const std::size_t column = shown_order_[display];
             const ColumnParts placed = column_parts(column, layout);
             if (placed.column_grip.present && placed.column_grip.bounds.contains(local)) {
@@ -1430,7 +1542,8 @@ DataGridView::HitResult DataGridView::hit_test(Point local) const {
                 return result;
             }
         }
-        for (std::size_t display = first_display; display < display_end; ++display) {
+        for (std::size_t display = displays.start(); display < displays.end; display = displays.next(display)) {
+            if (display >= displays.frozen_end && !scrolling_columns.contains(local)) continue;
             const std::size_t column = shown_order_[display];
             const ColumnParts placed = column_parts(column, layout);
             if (placed.column_header.present && placed.column_header.bounds.contains(local)) {
@@ -1441,17 +1554,26 @@ DataGridView::HitResult DataGridView::hit_test(Point local) const {
         }
         return result;
     }
-    // The row under the point, by offset from the first displayed row's top.
-    const std::size_t row_end = visible_row_end(layout);
+    // The row under the point: among the frozen rows by offset from the
+    // data area's top, else by offset from the first scrolling row's top.
+    const IndexSpan rows = row_span(layout);
     const DataGridViewRowHeights& heights = row_heights();
-    const std::size_t first_row = std::min(first_row_, heights.count());
-    const double offset = heights.top(first_row) + std::max(0.0, local.y - layout.data.y) / layout.scale;
-    const DataGridViewRowPosition row{std::max(first_row, heights.position_at(offset))};
+    const double frozen_height = heights.top(frozen_rows());
+    const double down = std::max(0.0, local.y - layout.data.y) / layout.scale;
+    const std::size_t first_row = rows.first;
+    DataGridViewRowPosition row{first_row};
+    if (down < frozen_height) {
+        row = DataGridViewRowPosition{heights.position_at(down)};
+    } else {
+        const double offset = heights.top(first_row) + down - frozen_height;
+        row = DataGridViewRowPosition{std::max(first_row, heights.position_at(offset))};
+    }
     if (!layout.row_header_band.empty() && layout.row_header_band.contains(local)) {
         // A row's grip reaches half into the row below, so the row above
         // the one under the point is tried as well.
-        const std::size_t above = row.value > first_row ? row.value - 1U : row.value;
-        for (std::size_t position = above; position <= row.value && position < row_end; ++position) {
+        const std::size_t above = row.value > 0U ? row.value - 1U : row.value;
+        for (std::size_t position = above; position <= row.value; ++position) {
+            if (!rows.contains(position)) continue;
             const RowParts placed = row_parts(DataGridViewRowPosition{position}, layout);
             if (placed.row_grip.present && placed.row_grip.bounds.contains(local)) {
                 result.zone = HitZone::row_divider;
@@ -1459,15 +1581,16 @@ DataGridView::HitResult DataGridView::hit_test(Point local) const {
                 return result;
             }
         }
-        if (row.value < row_end) {
+        if (rows.contains(row.value)) {
             result.zone = HitZone::row_header;
             result.row = row;
         }
         return result;
     }
     if (!layout.data.contains(local)) return result;
-    if (row.value >= row_end) return result;
-    for (std::size_t display = first_display; display < display_end; ++display) {
+    if (!rows.contains(row.value)) return result;
+    for (std::size_t display = displays.start(); display < displays.end; display = displays.next(display)) {
+        if (display >= displays.frozen_end && !scrolling_columns.contains(local)) continue;
         const std::size_t column = shown_order_[display];
         if (cell_bounds(row, column, layout).contains(local)) {
             result.zone = HitZone::cell;
@@ -1738,17 +1861,14 @@ void DataGridView::on_paint(Painter& painter, Rect) {
     surface.authored_background = grid.well.authored_background;
     paint_part(painter, *this, surface);
     surface.authored_background.reset();
-    const std::size_t row_end = visible_row_end(layout);
-    const std::size_t first_row = std::min(first_row_, row_end);
-    const std::size_t first_display = first_visible_display(layout);
-    const std::size_t display_end = visible_display_end(layout);
-    if (grid.well.authored_background && first_row < row_end && first_display < display_end) {
+    const IndexSpan rows = row_span(layout);
+    const IndexSpan displays = display_span(layout);
+    if (grid.well.authored_background && rows.count() != 0U && displays.count() != 0U) {
         // Under the cells the well keeps the theme's ground, as Windows
         // Forms' cells keep their own back colour over BackgroundColor: the
         // same well painted again, cut to the cells' extent, so that its
         // border stays where it was.
-        const Rect last =
-            cell_bounds(DataGridViewRowPosition{row_end - 1U}, shown_order_[display_end - 1U], layout);
+        const Rect last = cell_bounds(DataGridViewRowPosition{rows.last()}, shown_order_[displays.last()], layout);
         const Rect extent{layout.data.x, layout.data.y, last.x + last.width - layout.data.x,
                           last.y + last.height - layout.data.y};
         painter.save();
@@ -1760,16 +1880,30 @@ void DataGridView::on_paint(Painter& painter, Rect) {
         // The cell region paints the cells, off this thread (stage S7).
         if (!send_cells_snapshot(layout, grid)) return;
     } else if (!layout.data.empty()) {
-        painter.save();
-        painter.clip_rect(layout.data);
+        // Four panes, each cut to its own rectangle so that scrolling cells
+        // pass under the frozen ones: scrolling rows and columns, frozen
+        // columns, frozen rows, and both frozen. Without frozen columns or
+        // rows only the first has cells and it is the whole data area.
+        const std::array<PaneRange, 4> panes{{
+            {rows.first, rows.end, displays.first, displays.end, false, false},
+            {rows.first, rows.end, 0U, displays.frozen_end, false, true},
+            {0U, rows.frozen_end, displays.first, displays.end, true, false},
+            {0U, rows.frozen_end, 0U, displays.frozen_end, true, true},
+        }};
         bool unchanged = true;
-        for (std::size_t position = first_row; unchanged && position < row_end; ++position) {
-            const DataGridViewRowPosition row{position};
-            for (std::size_t display = first_display; unchanged && display < display_end; ++display) {
-                unchanged = paint_cell(painter, row, shown_order_[display], layout);
+        for (const PaneRange& pane : panes) {
+            if (!unchanged) break;
+            if (pane.row_begin >= pane.row_end || pane.display_begin >= pane.display_end) continue;
+            painter.save();
+            painter.clip_rect(row_pane(pane.rows_frozen, column_pane(pane.columns_frozen, layout.data, layout), layout));
+            for (std::size_t position = pane.row_begin; unchanged && position < pane.row_end; ++position) {
+                const DataGridViewRowPosition row{position};
+                for (std::size_t display = pane.display_begin; unchanged && display < pane.display_end; ++display) {
+                    unchanged = paint_cell(painter, row, shown_order_[display], layout);
+                }
             }
+            painter.restore();
         }
-        painter.restore();
         // A handler changed the grid: the change invalidated it, and the
         // next paint draws it whole.
         if (!unchanged) return;
@@ -1780,10 +1914,19 @@ void DataGridView::on_paint(Painter& painter, Rect) {
         surface.bounds = grid.column_header_band.bounds;
         paint_part(painter, *this, surface);
         painter.save();
-        painter.clip_rect(layout.column_header_band);
-        for (std::size_t display = first_display; display < display_end; ++display) {
+        painter.clip_rect(column_pane(false, layout.column_header_band, layout));
+        for (std::size_t display = displays.first; display < displays.end; ++display) {
             paint_column_header(painter, shown_order_[display], layout);
         }
+        painter.restore();
+        painter.save();
+        painter.clip_rect(column_pane(true, layout.column_header_band, layout));
+        for (std::size_t display = 0U; display < displays.frozen_end; ++display) {
+            paint_column_header(painter, shown_order_[display], layout);
+        }
+        painter.restore();
+        painter.save();
+        painter.clip_rect(layout.column_header_band);
         if (grid.column_drop_indicator.present) {
             surface.role = PartRole::drop;
             surface.bounds = grid.column_drop_indicator.bounds;
@@ -1796,8 +1939,14 @@ void DataGridView::on_paint(Painter& painter, Rect) {
         surface.bounds = grid.row_header_band.bounds;
         paint_part(painter, *this, surface);
         painter.save();
-        painter.clip_rect(layout.row_header_band);
-        for (std::size_t position = first_row; position < row_end; ++position) {
+        painter.clip_rect(row_pane(false, layout.row_header_band, layout));
+        for (std::size_t position = rows.first; position < rows.end; ++position) {
+            paint_row(painter, DataGridViewRowPosition{position}, layout);
+        }
+        painter.restore();
+        painter.save();
+        painter.clip_rect(row_pane(true, layout.row_header_band, layout));
+        for (std::size_t position = 0U; position < rows.frozen_end; ++position) {
             paint_row(painter, DataGridViewRowPosition{position}, layout);
         }
         painter.restore();
@@ -2007,15 +2156,12 @@ DataGridView::States DataGridView::states() const {
 // Realized items, in paint order: the visible rows, then their visible cells
 // row by row, then the visible column headers.
 std::size_t DataGridView::realized_row_count(const GridLayout& layout) const noexcept {
-    const std::size_t end = visible_row_end(layout);
-    const std::size_t result = end > first_row_ ? end - first_row_ : 0U;
+    const std::size_t result = row_span(layout).count();
     return result;
 }
 
 std::size_t DataGridView::realized_column_count(const GridLayout& layout) const noexcept {
-    const std::size_t first = first_visible_display(layout);
-    const std::size_t end = visible_display_end(layout);
-    const std::size_t result = end > first ? end - first : 0U;
+    const std::size_t result = display_span(layout).count();
     return result;
 }
 
@@ -2029,26 +2175,28 @@ std::size_t DataGridView::realized_item_count() const {
 }
 
 DataGridView::RealizedSlot DataGridView::realized_slot(const GridLayout& layout, std::size_t item) const {
-    const std::size_t rows = realized_row_count(layout);
-    const std::size_t columns = realized_column_count(layout);
-    const std::size_t first_display = first_visible_display(layout);
+    // Frozen rows and columns first, then the scrolling ones.
+    const IndexSpan row_run = row_span(layout);
+    const IndexSpan display_run = display_span(layout);
+    const std::size_t rows = row_run.count();
+    const std::size_t columns = display_run.count();
     const std::size_t cells = rows * columns;
     RealizedSlot slot;
     if (item < rows) {
         slot.system = row_system;
-        slot.row = DataGridViewRowPosition{first_row_ + item};
+        slot.row = DataGridViewRowPosition{row_run.at(item)};
         return slot;
     }
     if (item < rows + cells) {
         // A nonzero cell count has columns: cells run row by row.
         const std::size_t position = item - rows;
         slot.system = cell_system;
-        slot.row = DataGridViewRowPosition{first_row_ + position / columns};
-        slot.column = shown_order_[first_display + position % columns];
+        slot.row = DataGridViewRowPosition{row_run.at(position / columns)};
+        slot.column = shown_order_[display_run.at(position % columns)];
         return slot;
     }
     slot.system = column_system;
-    slot.column = shown_order_[first_display + (item - rows - cells)];
+    slot.column = shown_order_[display_run.at(item - rows - cells)];
     return slot;
 }
 
@@ -2089,14 +2237,15 @@ void DataGridView::publish_realized_item_geometry(std::size_t item, std::span<Pa
 
 std::vector<DataGridView::Row> DataGridView::realized_rows() const {
     const GridLayout layout = grid_layout();
-    const std::size_t count = realized_row_count(layout);
+    const IndexSpan row_run = row_span(layout);
+    const std::size_t count = row_run.count();
     std::vector<Row> records;
     records.reserve(count);
     // One layout serves every row (audit N93): the parts are made from it
     // directly, as the published geometry would make them per item.
     for (std::size_t item = 0; item < count; ++item) {
         Row record;
-        record.position = DataGridViewRowPosition{first_row_ + item};
+        record.position = DataGridViewRowPosition{row_run.at(item)};
         record.stable_id = row_id_text(record.position);
         record.parts = row_parts(record.position, layout);
         read_states(row_state_fields, row_states(record.position), record.states);
@@ -2107,16 +2256,17 @@ std::vector<DataGridView::Row> DataGridView::realized_rows() const {
 
 std::vector<DataGridView::Cell> DataGridView::realized_cells() const {
     const GridLayout layout = grid_layout();
-    const std::size_t rows = realized_row_count(layout);
-    const std::size_t columns = realized_column_count(layout);
-    const std::size_t first_display = first_visible_display(layout);
+    const IndexSpan row_run = row_span(layout);
+    const IndexSpan display_run = display_span(layout);
+    const std::size_t rows = row_run.count();
+    const std::size_t columns = display_run.count();
     std::vector<Cell> records;
     records.reserve(rows * columns);
     // One layout serves every cell (audit N93).
     for (std::size_t position = 0; position < rows * columns; ++position) {
         Cell record;
-        record.address = {DataGridViewRowPosition{first_row_ + position / columns},
-                          shown_order_[first_display + position % columns]};
+        record.address = {DataGridViewRowPosition{row_run.at(position / columns)},
+                          shown_order_[display_run.at(position % columns)]};
         record.stable_id = cell_stable_id(record.address.row, record.address.column);
         record.parts = cell_parts(record.address.row, record.address.column, layout);
         const AnatomyStateSet states = cell_states(record.address.row, record.address.column);
@@ -2130,13 +2280,13 @@ std::vector<DataGridView::Cell> DataGridView::realized_cells() const {
 std::vector<DataGridView::Column> DataGridView::realized_columns() const {
     const GridLayout layout = grid_layout();
     if (!column_headers_visible.read()) return {};
-    const std::size_t first_display = first_visible_display(layout);
-    const std::size_t count = realized_column_count(layout);
+    const IndexSpan display_run = display_span(layout);
+    const std::size_t count = display_run.count();
     std::vector<Column> records;
     records.reserve(count);
     for (std::size_t position = 0; position < count; ++position) {
         Column record;
-        record.index = shown_order_[first_display + position];
+        record.index = shown_order_[display_run.at(position)];
         record.stable_id = column_stable_id(record.index);
         record.parts = column_parts(record.index, layout);
         const AnatomyStateSet states = column_states(record.index);

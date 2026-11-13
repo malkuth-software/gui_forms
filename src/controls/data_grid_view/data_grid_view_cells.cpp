@@ -265,7 +265,18 @@ void DataGridViewCells::on_paint(Painter& painter, Rect) {
     painter.save();
     painter.clip_rect(data);
     for (const DataGridViewCellsCell& cell : snapshot_.cells) {
-        paint_data_grid_view_cell(painter, *this, snapshot_, cell, data);
+        if (cell.pane.empty()) {
+            paint_data_grid_view_cell(painter, *this, snapshot_, cell, data);
+            continue;
+        }
+        // A cell of a grid with frozen rows or columns: cut to its pane, so
+        // that scrolling cells pass under the frozen ones.
+        const Rect cut = Rect::intersection(cell.pane, data);
+        if (cut.empty()) continue;
+        painter.save();
+        painter.clip_rect(cut);
+        paint_data_grid_view_cell(painter, *this, snapshot_, cell, cut);
+        painter.restore();
     }
     painter.restore();
 }

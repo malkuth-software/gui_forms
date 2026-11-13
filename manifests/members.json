@@ -2402,6 +2402,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "set_column_default_cell_style", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_column_display_index", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_column_fill_weight", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "set_column_frozen", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_column_header_cell_style", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_column_header_text", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_column_read_only", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},

@@ -394,6 +394,19 @@ struct DataGridViewRowHeightCapability {
     }
 };
 
+// The leading rows that stay at the top of the data area while the other rows scroll (Windows Forms' DataGridViewRow.Frozen, which freezes a row and every row above it); counts past the rows freeze them all.
+template <typename Declaring>
+struct DataGridViewFrozenRowCountCapability {
+    PropertyCell<std::size_t, DataGridViewFrozenRowCountCapability<Declaring>> frozen_row_count{0U};
+
+    static void assign(DataGridViewFrozenRowCountCapability& capability, std::size_t incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.frozen_row_count), incoming);
+        if (!capability.frozen_row_count.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.frozen_row_count));
+    }
+};
+
 // Whether no cell can be edited (ReadOnly).
 template <typename Declaring>
 struct DataGridViewReadOnlyCapability {
@@ -570,6 +583,7 @@ struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapabili
                                   public DataGridViewColumnHeadersHeightCapability<Declaring>,
                                   public DataGridViewRowHeadersWidthCapability<Declaring>,
                                   public DataGridViewRowHeightCapability<Declaring>,
+                                  public DataGridViewFrozenRowCountCapability<Declaring>,
                                   public FontCapability<Declaring>,
                                   public DataGridViewReadOnlyCapability<Declaring>,
                                   public DataGridViewAllowUserToResizeColumnsCapability<Declaring>,

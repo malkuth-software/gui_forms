@@ -99,6 +99,10 @@ struct GUI_FORMS_API DataGridViewColumn final {
     // whatever this says. A grid with an owner-drawn column paints its cells
     // on the UI thread, as under owner_draw.
     bool owner_draw{};
+    // Whether the column stays at the data area's reading start while the
+    // other columns scroll (Windows Forms' Frozen). As there, a frozen
+    // column freezes every column shown before it in display order.
+    bool frozen{};
     // The column header's tooltip (Windows Forms' ToolTipText), published on
     // the header's semantic node while show_cell_tool_tips holds; valid
     // UTF-8, and empty for none.
@@ -438,6 +442,9 @@ public:
     // row validation handler that refuses the clear keeps the current cell
     // where it was. Throws std::out_of_range for an unknown column.
     void set_column_visible(std::size_t column, bool column_visible);
+    // Freezes or unfreezes a column (DataGridViewColumn::frozen). Throws
+    // std::out_of_range for an unknown column.
+    void set_column_frozen(std::size_t column, bool column_frozen);
 
     // -- rows ------------------------------------------------------------
     [[nodiscard]] DataGridViewRowSource row_source() const noexcept { return row_source_; }
@@ -707,17 +714,21 @@ public:
     [[nodiscard]] std::size_t column_at_display_index(DataGridViewDisplayIndex display_index) const;
 
     // -- scrolling -------------------------------------------------------
-    // The position of the first row shown under the column headers.
+    // The position of the first scrolling row: the first row shown under
+    // the column headers, or under the frozen rows (frozen_row_count) when
+    // there are any; the layout keeps it at or past them.
     [[nodiscard]] DataGridViewRowPosition first_displayed_row() const noexcept {
-        const DataGridViewRowPosition first{first_row_};
+        const DataGridViewRowPosition first{scroll_first_row()};
         return first;
     }
     void set_first_displayed_row(DataGridViewRowPosition row);
-    // How far the cells are scrolled left, in logical units at text scale 1.
+    // How far the cells are scrolled left, in logical units at text scale 1;
+    // frozen columns do not scroll, and offset zero shows the first
+    // scrolling column beside them.
     [[nodiscard]] double horizontal_scroll_offset() const noexcept { return horizontal_offset_; }
     void set_horizontal_scroll_offset(double offset);
     // The rows a paint shows, partly visible ones included: positions
-    // [first_displayed_row, displayed_row_end).
+    // [first_displayed_row, displayed_row_end), after the frozen rows.
     [[nodiscard]] DataGridViewRowPosition displayed_row_end() const;
     [[nodiscard]] std::shared_ptr<VScrollBar> vertical_scroll_bar() const noexcept { return vertical_bar_; }
     [[nodiscard]] std::shared_ptr<HScrollBar> horizontal_scroll_bar() const noexcept { return horizontal_bar_; }
@@ -1236,9 +1247,64 @@ private:
     [[nodiscard]] Rect row_header_bounds(DataGridViewRowPosition row, const GridLayout& layout) const;
     [[nodiscard]] Rect cell_bounds(DataGridViewRowPosition row, std::size_t column,
                                    const GridLayout& layout) const;
-    // The display indices of the first column shown and one past the last.
+    // The display indices of the first scrolling column shown (past the
+    // frozen ones) and one past the last column shown.
     [[nodiscard]] std::size_t first_visible_display(const GridLayout& layout) const noexcept;
     [[nodiscard]] std::size_t visible_display_end(const GridLayout& layout) const noexcept;
+    // A run of indices the grid shows: the frozen ones, [0, frozen_end),
+    // then the scrolled ones, [first, end), with frozen_end <= first <= end.
+    // Iterated as `for (i = span.start(); i < span.end; i = span.next(i))`;
+    // `at` maps an item count from the run's start to its index.
+    struct IndexSpan final {
+        std::size_t frozen_end{};
+        std::size_t first{};
+        std::size_t end{};
+        [[nodiscard]] std::size_t start() const noexcept { return frozen_end != 0U ? 0U : first; }
+        [[nodiscard]] std::size_t next(std::size_t index) const noexcept {
+            const std::size_t following = index + 1U;
+            return following == frozen_end ? first : following;
+        }
+        [[nodiscard]] std::size_t count() const noexcept { return frozen_end + (end - first); }
+        [[nodiscard]] std::size_t at(std::size_t item) const noexcept {
+            return item < frozen_end ? item : first + (item - frozen_end);
+        }
+        [[nodiscard]] bool contains(std::size_t index) const noexcept {
+            return index < frozen_end || (index >= first && index < end);
+        }
+        // The last index of the run; the run must not be empty.
+        [[nodiscard]] std::size_t last() const noexcept { return end > first ? end - 1U : frozen_end - 1U; }
+    };
+    // One pane of the data area for painting: a row range, a display range,
+    // and whether those rows and columns are the frozen ones.
+    struct PaneRange final {
+        std::size_t row_begin{};
+        std::size_t row_end{};
+        std::size_t display_begin{};
+        std::size_t display_end{};
+        bool rows_frozen{};
+        bool columns_frozen{};
+    };
+    // The display positions and the rows a paint shows.
+    [[nodiscard]] IndexSpan display_span(const GridLayout& layout) const noexcept;
+    [[nodiscard]] IndexSpan row_span(const GridLayout& layout) const;
+    // The shown columns through the last frozen one, as a count of display
+    // positions, and their width in logical units at text scale 1.
+    [[nodiscard]] std::size_t frozen_display_count() const noexcept;
+    [[nodiscard]] double frozen_columns_width() const noexcept;
+    // frozen_row_count cut to the rows there are, and the first scrolling
+    // row: first_row_ kept at or past them and cut to the rows.
+    [[nodiscard]] std::size_t frozen_rows() const noexcept;
+    [[nodiscard]] std::size_t scroll_first_row() const noexcept;
+    // The part of `band` the frozen or the scrolling columns show in (its
+    // reading start, or the rest), and of `band` the frozen or scrolling
+    // rows show in (its top, or the rest). A cell is cut to both.
+    [[nodiscard]] Rect column_pane(bool frozen, Rect band, const GridLayout& layout) const noexcept;
+    [[nodiscard]] Rect row_pane(bool frozen, Rect band, const GridLayout& layout) const;
+    [[nodiscard]] Rect cell_pane(DataGridViewRowPosition row, std::size_t column, const GridLayout& layout) const;
+    // The first row shown: the first frozen row, or the first scrolling row.
+    [[nodiscard]] std::size_t first_shown_row() const noexcept;
+    // Whether the grid has frozen columns or rows shown.
+    [[nodiscard]] bool has_frozen_panes() const noexcept;
     // Display order upkeep: the order reset to index order, a column
     // appended or removed, and the display index a drag at `x` would give.
     void reset_display_order();
@@ -1257,13 +1323,15 @@ private:
     [[nodiscard]] const DataGridViewRowHeights& row_heights() const;
     // A change to the rows: structure_changed, and the index rebuilt.
     void rows_changed();
-    // A row's top relative to the first displayed row's, in layout units.
+    // A row's top relative to the data area's, in layout units: a frozen
+    // row's from the first row's, a scrolling row's from the first
+    // scrolling row's, below the frozen rows.
     [[nodiscard]] double row_offset(std::size_t position, const GridLayout& layout) const;
     // The first row that would show `last` whole at the viewport's bottom
     // (`last` itself when it is taller than the viewport).
     [[nodiscard]] std::size_t first_row_ending_at(std::size_t last, const GridLayout& layout) const;
     [[nodiscard]] std::size_t visible_row_end(const GridLayout& layout) const;
-    // The rows shown whole from the first displayed row down.
+    // The scrolling rows shown whole from the first displayed row down.
     [[nodiscard]] std::size_t fully_visible_rows(const GridLayout& layout) const;
     [[nodiscard]] std::size_t maximum_first_row(const GridLayout& layout) const;
     [[nodiscard]] double maximum_horizontal_offset(const GridLayout& layout) const noexcept;
@@ -1822,6 +1890,7 @@ private:
     friend struct DataGridViewColumnHeadersHeightCapability<DataGridView>;
     friend struct DataGridViewRowHeadersWidthCapability<DataGridView>;
     friend struct DataGridViewRowHeightCapability<DataGridView>;
+    friend struct DataGridViewFrozenRowCountCapability<DataGridView>;
     friend struct FontCapability<DataGridView>;
     friend struct DataGridViewReadOnlyCapability<DataGridView>;
     friend struct DataGridViewAllowUserToResizeColumnsCapability<DataGridView>;
@@ -1890,6 +1959,8 @@ private:
     void written(const decltype(row_headers_width)& cell);
     void prepare_write(const decltype(row_height)& cell, double& incoming);
     void written(const decltype(row_height)& cell);
+    void prepare_write(const decltype(frozen_row_count)& cell, std::size_t& incoming);
+    void written(const decltype(frozen_row_count)& cell);
     void prepare_write(const decltype(font)& cell, FontSpec& incoming);
     void written(const decltype(font)& cell);
     void prepare_write(const decltype(read_only)& cell, bool& incoming);

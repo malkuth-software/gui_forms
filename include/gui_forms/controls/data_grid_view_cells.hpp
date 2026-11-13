@@ -89,6 +89,10 @@ struct GUI_FORMS_API DataGridViewCellsProvided final {
 // one per cell.
 struct GUI_FORMS_API DataGridViewCellsCell final {
     DataGridViewCellsParts parts{};
+    // The pane the cell is cut to, in the region's coordinates, when the
+    // grid has frozen rows or columns (a scrolling cell passes under the
+    // frozen ones); empty for the whole data area.
+    Rect pane{};
     // The cell's active states (its anatomy's standard and custom states),
     // as the theme reads them; checked draws a check box's indicator.
     AnatomyStateSet states{};

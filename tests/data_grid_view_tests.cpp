@@ -3640,6 +3640,76 @@ void clicks_tool_tips_and_hit_tests() {
     require(throws<std::invalid_argument>(AddBadTipColumn{grid.get()}), "a column's tooltip text must be valid UTF-8");
 }
 
+// Windows Forms' frozen columns and rows: a frozen column (and every
+// column before it) stays at the data area's start while the others scroll
+// under it; frozen rows stay at the top.
+void frozen_columns_and_rows() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.frozen");
+    for (std::size_t index = 0; index < 27U; ++index) {
+        (*grid).rows.append({.stable_id = {"extra" + std::to_string(index)},
+                             .cells = {BindingValue{std::string("Row ") + std::to_string(index)}}});
+    }
+    Window window(grid, {260.0, 200.0});
+    (*grid).set_column_frozen(0U, true);
+    require((*grid).columns()[0].frozen, "set_column_frozen freezes the column");
+    (*grid).set_horizontal_scroll_offset(60.0);
+    window.perform_layout();
+    const Rect band = (*grid).parts().column_header_band.bounds;
+    const std::vector<DataGridView::Column> columns = (*grid).realized_columns();
+    require(!columns.empty() && columns[0].index == 0U, "the frozen column is realized first");
+    require(columns[0].parts.column_header.bounds.x == band.x, "the frozen column does not scroll");
+    bool passed_under = true;
+    for (const DataGridView::Column& column : columns) {
+        if (column.index == 1U) passed_under = false;
+        if (column.index != 0U && column.parts.column_header.present &&
+            column.parts.column_header.bounds.x < band.x + 100.0 - 0.001) {
+            passed_under = false;
+        }
+    }
+    require(passed_under, "a scrolling column under the frozen one is cut to its own pane or not shown");
+    const std::vector<DataGridView::Row> rows_shown = (*grid).realized_rows();
+    require(!rows_shown.empty(), "rows are shown");
+    const Rect first_header = rows_shown[0].parts.row_header.bounds;
+    // Column 1 (50 wide, scrolled 60) lies at band.x + 40 to + 90, under the
+    // frozen column: the point hits the frozen column.
+    const DataGridViewHitTestInfo under = (*grid).hit_test_at(Point{band.x + 60.0, first_header.y + 4.0});
+    require(under.type == DataGridViewHitTestType::cell && under.column && *under.column == 0U,
+            "a point over the frozen column hits it, not the column scrolled under it");
+
+    (*grid).set_horizontal_scroll_offset(0.0);
+    (*grid).frozen_row_count = 2U;
+    (*grid).set_first_displayed_row(row_at(10U));
+    window.perform_layout();
+    require((*grid).first_displayed_row() == row_at(10U), "the first scrolling row is kept past the frozen rows");
+    const std::vector<DataGridView::Row> frozen_rows = (*grid).realized_rows();
+    require(frozen_rows.size() > 3U && frozen_rows[0].position == row_at(0U) && frozen_rows[1].position == row_at(1U) &&
+                frozen_rows[2].position == row_at(10U),
+            "the frozen rows are realized first, then the scrolling rows");
+    const Rect top = frozen_rows[0].parts.row_header.bounds;
+    const Rect second = frozen_rows[1].parts.row_header.bounds;
+    const Rect scrolled = frozen_rows[2].parts.row_header.bounds;
+    require(top.y == (*grid).parts().row_header_band.bounds.y && second.y == top.y + top.height &&
+                scrolled.y == second.y + second.height,
+            "the first scrolling row starts under the frozen rows");
+    const DataGridViewHitTestInfo on_frozen = (*grid).hit_test_at(Point{band.x + 10.0, second.y + 2.0});
+    const DataGridViewHitTestInfo on_scrolled = (*grid).hit_test_at(Point{band.x + 10.0, scrolled.y + 4.0});
+    require(on_frozen.row && *on_frozen.row == row_at(1U) && on_scrolled.row && *on_scrolled.row == row_at(10U),
+            "hit testing finds frozen and scrolling rows");
+    const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
+    require(find_node(nodes, "alpha") != nullptr && find_node(nodes, "extra7") != nullptr &&
+                find_node(nodes, "charlie") == nullptr,
+            "the semantic tree publishes the frozen rows and the scrolling ones, not those scrolled away");
+
+    (*grid).set_first_displayed_row(row_at(0U));
+    window.perform_layout();
+    require((*grid).first_displayed_row() == row_at(2U), "layout keeps the first scrolling row past the frozen rows");
+    require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).first_displayed_row() == row_at(2U),
+            "a frozen row becomes current without scrolling");
+    (*grid).frozen_row_count = 0U;
+    window.perform_layout();
+    require((*grid).first_displayed_row() == row_at(2U), "unfreezing keeps the scroll position");
+}
+
 int main() {
     columns_and_rows();
     layout_and_parts();
@@ -3686,6 +3756,7 @@ int main() {
     million_row_heights();
     bound_identity_follows_list_changes();
     clicks_tool_tips_and_hit_tests();
+    frozen_columns_and_rows();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";

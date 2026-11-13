@@ -780,6 +780,11 @@ void test_data_grid_view_properties() {
         expect((*control).row_height.read() == sample, "DataGridView.row_height: a write stores");
     }
     {
+        const std::size_t sample = 2U;
+        (*control).frozen_row_count = sample;
+        expect((*control).frozen_row_count.read() == sample, "DataGridView.frozen_row_count: a write stores");
+    }
+    {
         const FontSpec sample = FontSpec{FontRole::content, 13.0, 600, false};
         (*control).font = sample;
         expect((*control).font.read() == sample, "DataGridView.font: a write stores");

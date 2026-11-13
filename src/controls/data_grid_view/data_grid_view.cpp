@@ -1182,6 +1182,30 @@ void DataGridView::set_column_read_only(std::size_t column, bool column_read_onl
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
+void DataGridView::set_column_frozen(std::size_t column, bool column_frozen) {
+    require_mutable();
+    if (column >= columns_.size()) throw std::out_of_range("DataGridView column is past the end");
+    if (columns_[column].frozen == column_frozen) return;
+    columns_[column].frozen = column_frozen;
+    // The whole grid moves: a redraw-all, folding the cell region.
+    redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+std::size_t DataGridView::first_shown_row() const noexcept {
+    const std::size_t result = frozen_rows() != 0U ? 0U : scroll_first_row();
+    return result;
+}
+
+void DataGridView::prepare_write(const decltype(frozen_row_count)&, std::size_t&) {
+    require_mutable();
+}
+
+void DataGridView::written(const decltype(frozen_row_count)&) {
+    structure_changed();
+    // The whole grid moves: a redraw-all, folding the cell region.
+    redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
 void DataGridView::set_column_visible(std::size_t column, bool column_visible) {
     require_mutable();
     if (column >= columns_.size()) throw std::out_of_range("DataGridView column is past the end");
@@ -2000,23 +2024,32 @@ void DataGridView::on_horizontal_scroll(double value) {
 
 void DataGridView::scroll_into_view(DataGridViewCellAddress cell) {
     const GridLayout layout = grid_layout();
-    if (cell.row.value < first_row_) {
+    // Frozen rows and columns are always in view; the others scroll in
+    // the viewport the frozen ones leave.
+    const std::size_t first = scroll_first_row();
+    if (cell.row.value < frozen_rows()) {
+        // A frozen row: no vertical scrolling.
+    } else if (cell.row.value < first) {
         first_row_ = cell.row.value;
     } else if (cell.row.value < row_count()) {
-        first_row_ = std::max(first_row_, first_row_ending_at(cell.row.value, layout));
+        first_row_ = std::max(first, first_row_ending_at(cell.row.value, layout));
     }
-    // Columns in logical units at text scale 1, in display order.
-    double left = 0.0;
+    // Columns in logical units at text scale 1, in display order, from the
+    // frozen columns' end.
     const std::size_t display = cell.column < shown_indices_.size() ? shown_indices_[cell.column] : 0U;
-    for (std::size_t position = 0; position < display; ++position) {
-        left += shown_width(shown_order_[position]);
-    }
-    const double right = left + shown_width(cell.column);
-    const double viewport = layout.data.width / layout.scale;
-    if (left < horizontal_offset_) {
-        horizontal_offset_ = left;
-    } else if (right > horizontal_offset_ + viewport) {
-        horizontal_offset_ = std::min(left, right - viewport);
+    if (display >= frozen_display_count()) {
+        const double frozen_width = frozen_columns_width();
+        double left = -frozen_width;
+        for (std::size_t position = 0; position < display; ++position) {
+            left += shown_width(shown_order_[position]);
+        }
+        const double right = left + shown_width(cell.column);
+        const double viewport = std::max(0.0, layout.data.width / layout.scale - frozen_width);
+        if (left < horizontal_offset_) {
+            horizontal_offset_ = left;
+        } else if (right > horizontal_offset_ + viewport) {
+            horizontal_offset_ = std::min(left, right - viewport);
+        }
     }
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
@@ -2030,7 +2063,10 @@ void DataGridView::arrange(Rect final_bounds) {
     apply_auto_sizes();
     apply_row_auto_sizes();
     const GridLayout layout = grid_layout();
-    first_row_ = std::min(first_row_, maximum_first_row(layout));
+    // The first scrolling row stays past the frozen rows and no further
+    // than the last full viewport.
+    const std::size_t highest = maximum_first_row(layout);
+    first_row_ = std::clamp(first_row_, std::min(frozen_rows(), highest), highest);
     // A layout pass ends the change-rate interval of the virtual order
     // (owner decision W-5), and a window-mode order fetches the rows this
     // pass shows, plus its margin, unless it holds them already.
@@ -2076,9 +2112,12 @@ void DataGridView::arrange(Rect final_bounds) {
 void DataGridView::synchronize_scroll_bars(const GridLayout& layout) {
     synchronizing_scroll_ = true;
     const std::size_t last_first = maximum_first_row(layout);
-    if (vertical_bar_ && last_first > 0U) {
+    // The bar runs over the scrolling rows: from the first one past the
+    // frozen rows.
+    const std::size_t lowest = std::min(frozen_rows(), last_first);
+    if (vertical_bar_ && last_first > lowest) {
         VScrollBar& bar = *vertical_bar_;
-        bar.set_range(0.0, static_cast<double>(last_first));
+        bar.set_range(static_cast<double>(lowest), static_cast<double>(last_first));
         bar.small_change = 1.0;
         bar.large_change = static_cast<double>(std::max<std::size_t>(1U, fully_visible_rows(layout)));
         bar.value = static_cast<double>(first_row_);
@@ -2088,7 +2127,7 @@ void DataGridView::synchronize_scroll_bars(const GridLayout& layout) {
         HScrollBar& bar = *horizontal_bar_;
         bar.set_range(0.0, last_offset);
         bar.small_change = 16.0;
-        bar.large_change = std::max(1.0, layout.data.width / layout.scale);
+        bar.large_change = std::max(1.0, layout.data.width / layout.scale - frozen_columns_width());
         bar.value = horizontal_offset_;
     }
     synchronizing_scroll_ = false;
@@ -3604,10 +3643,13 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             if (next != horizontal_offset_) set_horizontal_scroll_offset(next);
         } else {
             const double rows = notches ? delta * 3.0 : delta / layout.row_height;
-            const double moved = std::round(static_cast<double>(first_row_) - rows);
-            const double last = static_cast<double>(maximum_first_row(layout));
-            const std::size_t next = static_cast<std::size_t>(std::clamp(moved, 0.0, last));
-            if (next != first_row_) set_first_displayed_row(DataGridViewRowPosition{next});
+            const std::size_t first = scroll_first_row();
+            const double moved = std::round(static_cast<double>(first) - rows);
+            const std::size_t highest = maximum_first_row(layout);
+            const double last = static_cast<double>(highest);
+            const double lowest = static_cast<double>(std::min(frozen_rows(), highest));
+            const std::size_t next = static_cast<std::size_t>(std::clamp(moved, std::min(lowest, last), last));
+            if (next != first) set_first_displayed_row(DataGridViewRowPosition{next});
         }
         event.handled = true;
         return;
@@ -3999,7 +4041,7 @@ bool DataGridView::navigation_key(KeyEvent& event) {
     const bool full_row = selection_mode.read() == DataGridViewSelectionMode::full_row_select;
     const std::optional<DataGridViewCellAddress> current = current_cell();
     const DataGridViewCellAddress from =
-        current ? *current : DataGridViewCellAddress{DataGridViewRowPosition{first_row_}, shown_order_.front()};
+        current ? *current : DataGridViewCellAddress{DataGridViewRowPosition{first_shown_row()}, shown_order_.front()};
     const std::size_t row = from.row.value;
     const std::size_t last_row = count - 1U;
     // Columns move by display index: the first, previous, next and last
@@ -4097,7 +4139,7 @@ void DataGridView::on_window_focus_moved(const FocusedControlChange& change) {
 void DataGridView::on_focus_changed(bool focused) {
     focused_ = focused;
     if (focused_ && !current_ && row_count() > 0U && !shown_order_.empty()) {
-        const DataGridViewCellAddress first{DataGridViewRowPosition{first_row_}, shown_order_.front()};
+        const DataGridViewCellAddress first{DataGridViewRowPosition{first_shown_row()}, shown_order_.front()};
         static_cast<void>(move_current(first, SelectionGesture::replace));
     }
     invalidate(Dirty::paint | Dirty::semantics);
@@ -4206,10 +4248,10 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
     const Rect absolute = absolute_bounds();
     const GridLayout layout = grid_layout();
     const bool focus_within = focused_ || editing_;
-    const std::size_t first_display = first_visible_display(layout);
-    const std::size_t display_end = visible_display_end(layout);
+    // Frozen columns and rows first, then the scrolling ones.
+    const IndexSpan displays = display_span(layout);
     if (column_headers_visible.read()) {
-        for (std::size_t display = first_display; display < display_end; ++display) {
+        for (std::size_t display = displays.start(); display < displays.end; display = displays.next(display)) {
             const std::size_t column = shown_order_[display];
             const ColumnParts placed = column_parts(column, layout);
             SemanticNode node{};
@@ -4226,9 +4268,9 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             nodes.push_back(std::move(node));
         }
     }
-    const std::size_t row_end = visible_row_end(layout);
+    const IndexSpan row_run = row_span(layout);
     const std::string header_prefix = row_header_prefix();
-    for (std::size_t position = std::min(first_row_, row_end); position < row_end; ++position) {
+    for (std::size_t position = row_run.start(); position < row_run.end; position = row_run.next(position)) {
         const DataGridViewRowPosition row{position};
         SemanticNode row_node{};
         row_node.stable_id = row_id_text(row);
@@ -4270,7 +4312,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             }
             row_node.children.push_back(std::move(header));
         }
-        for (std::size_t display = first_display; display < display_end; ++display) {
+        for (std::size_t display = displays.start(); display < displays.end; display = displays.next(display)) {
             const std::size_t column = shown_order_[display];
             const DataGridViewColumn& definition = columns_[column];
             const CellParts placed = cell_parts(row, column, layout);

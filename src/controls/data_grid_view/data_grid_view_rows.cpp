@@ -194,7 +194,9 @@ void DataGridView::settle_rows_damage(bool whole, const GridLayout& layout) {
     settled_rows_.clear();
     const std::optional<std::size_t> structural_from = take_dirty(*this, settled_rows_);
     if (!structural_from && settled_rows_.empty()) return;
-    if (whole) {
+    // Frozen rows or columns split the data area into panes whose rows
+    // and columns move apart: the whole grid repaints.
+    if (whole || has_frozen_panes()) {
         invalidate(Dirty::paint);
         return;
     }
