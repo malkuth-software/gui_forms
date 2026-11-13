@@ -13,6 +13,7 @@
 #include "gui_forms/controls/button_base.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/dial.hpp"
+#include "gui_forms/controls/expandable_sections.hpp"
 #include "gui_forms/controls/linear_gauge.hpp"
 #include "gui_forms/controls/lookup_combo_box.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
@@ -736,6 +737,55 @@ void test_high_contrast_gauge_arcs() {
             "outside high contrast the track is a solid band");
 }
 
+// The collapsing-header reveal (row 2.6): a section's body sits in a
+// clipping host at its full height while the host opens from 0; closing
+// hides the body at once; under reduced motion both jump.
+void test_expandable_sections_reveal() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("final.sections.root"));
+    std::shared_ptr<ExpandableSections> sections = make_control<ExpandableSections>(StableId("final.sections"));
+    (*sections).set_requested_bounds(Rect{0.0, 0.0, 300.0, 300.0});
+    (*root).add_child(sections);
+    std::shared_ptr<Panel> first = make_control<Panel>(StableId("final.sections.first"));
+    (*first).set_requested_bounds(Rect{0.0, 0.0, 300.0, 80.0});
+    std::shared_ptr<Panel> second = make_control<Panel>(StableId("final.sections.second"));
+    (*second).set_requested_bounds(Rect{0.0, 0.0, 300.0, 80.0});
+    std::vector<SectionItem> items{};
+    items.push_back(SectionItem{1, "First", first, nullptr});
+    items.push_back(SectionItem{2, "Second", second, nullptr});
+    (*sections).set_items(std::move(items));
+    Window window(root, Size{400.0, 400.0});
+    window.perform_layout();
+    require(near((*sections).section_reveal(0), 0.0) && near((*sections).section_reveal(1), 0.0) &&
+                !(*sections).revealing(),
+            "the sections start closed, with no reveal");
+    require((*first).parent() != nullptr && (*first).parent().get() != sections.get() &&
+                (*(*first).parent()).parent().get() == sections.get(),
+            "each body sits in a host inside the sections");
+
+    (*sections).set_expanded(0, true);
+    window.perform_layout();
+    require((*first).visible.read() && (*sections).revealing() && (*sections).section_reveal(0) < 1.0,
+            "opening shows the body at once and starts the reveal");
+    require(near((*first).absolute_bounds().height, 80.0),
+            "the body keeps its full height while its host opens");
+    require((*(*first).parent()).absolute_bounds().height < 80.0, "the host is still lower than the body");
+
+    PresentationSettings settings = window.presentation_settings();
+    settings.reduced_motion = true;
+    window.set_presentation_settings(settings);
+    (*sections).set_expanded(1, true);
+    window.perform_layout();
+    require(near((*sections).section_reveal(1), 1.0) && (*second).visible.read(),
+            "under reduced motion a section opens at once");
+    require(near((*(*second).parent()).absolute_bounds().height, 80.0), "its host is the body's height");
+    (*sections).set_expanded(1, false);
+    window.perform_layout();
+    require(near((*sections).section_reveal(1), 0.0) && !(*second).visible.read(),
+            "and closes at once, the body hidden");
+    (*sections).set_expanded(0, false);
+    require(!(*first).visible.read(), "closing hides the body at once");
+}
+
 int main() {
     test_seven_segment_patterns();
     test_seven_segment_in_window();
@@ -750,6 +800,7 @@ int main() {
     test_about_dialog();
     test_dial_parts_in_the_stock_themes();
     test_high_contrast_gauge_arcs();
+    test_expandable_sections_reveal();
     std::cout << "final control tests passed\n";
     return EXIT_SUCCESS;
 }

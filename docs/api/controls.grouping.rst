@@ -2367,6 +2367,18 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/controls/expandable_sections.hpp>``
+
+.. cpp:var:: constexpr FrameInterval section_reveal_open
+
+   How long a section takes to open (its body revealed from the top) and to close (the space it leaves closing up). Value: ``std::chrono::milliseconds(160)``.
+
+.. cpp:var:: constexpr FrameInterval section_reveal_close
+
+   Value: ``std::chrono::milliseconds(120)``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/controls/page_strip.hpp>``
 
 .. cpp:var:: constexpr double page_drag_threshold

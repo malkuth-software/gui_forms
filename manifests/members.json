@@ -363,9 +363,9 @@
       {"kind": "method", "winforms": "UpdateZOrder", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "method", "winforms": "WndProc", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": null, "gui_forms": "absolute_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "active_border", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": null, "gui_forms": "active_border_animating", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": null, "gui_forms": "active_border_pose", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "active_border", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/active_border_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "active_border_animating", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/active_border_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "active_border_pose", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/active_border_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "align_self", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "ambient_back_color", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "ambient_fore_color", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/part_painting_tests.cpp"},
@@ -2980,9 +2980,11 @@
     ]},
     {"type": "ExpandableSections", "winforms": null, "gui_forms_base": "Panel", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "items", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "revealing", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "toggled", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "expanded", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/choices-and-sections_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "part", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/owned_event_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "section_reveal", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_expanded", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"}
     ]},
     {"type": "ContainerControl", "winforms": "ContainerControl", "gui_forms_base": "ScrollableControl", "winforms_base": "ScrollableControl", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
@@ -5292,7 +5294,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "presentation_availability", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/damage_rectangles_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "presentation_base", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/application_instance_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "presentation_overrides", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/application_instance_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "presentation_settings", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/animation_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "presentation_settings", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/active_border_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "presenting_window", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/borrowed_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "pressed_control", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/retained_lifetime_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "resources", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/application_instance_tests.cpp"},
