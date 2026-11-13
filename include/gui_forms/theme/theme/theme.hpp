@@ -178,6 +178,10 @@ public:
     // lets the icon be replaced is the application's (ApplicationResources::
     // icon).
     [[nodiscard]] std::optional<ImageId> icon_override(std::string_view identifier) const noexcept;
+    // The theme's own drawing of the stock icon variant `icon`
+    // (ThemeDefinition::stock_icons), shared with the theme; null where the
+    // theme keeps the built-in drawing.
+    [[nodiscard]] std::shared_ptr<const StockIconVectors> stock_icon_replacement(const StockIcon& icon) const noexcept;
     // The colours of the application colour role `name` (lowercase, as the
     // sheet's `color-roles` declares it) where `facts` hold: its last
     // declaration whose condition holds. Under forced colours with no

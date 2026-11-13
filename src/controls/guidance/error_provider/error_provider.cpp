@@ -1,5 +1,6 @@
 #include "gui_forms/components/error_provider/error_provider.hpp"
 
+#include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "../error_layer/error_layer.hpp"
 #include "../error_glyph/error_glyph.hpp"
 #include "../guidance_utilities.hpp"
@@ -296,10 +297,12 @@ void ErrorProvider::written(const decltype(right_to_left)&) {
 void ErrorProvider::prepare_write(const decltype(icon)&, std::optional<ImageId>& incoming) {
     require_access("ErrorProvider icon mutation");
     Window* owner = bound_window();
-    if (incoming && ((*incoming).value == 0U || !owner ||
-                     !(*owner).image_resources().find(*incoming))) {
+    // A stock icon (E10) names no registry entry and is valid anywhere.
+    const bool stock = incoming && is_stock_icon_image(*incoming);
+    if (incoming && !stock && ((*incoming).value == 0U || !owner ||
+                               !(*owner).image_resources().find(*incoming))) {
         throw std::invalid_argument(
-            "GUI.Forms ErrorProvider icon must identify a live Window image");
+            "GUI.Forms ErrorProvider icon must identify a live Window image or a stock icon");
     }
 }
 

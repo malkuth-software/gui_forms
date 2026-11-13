@@ -1,6 +1,7 @@
 #include "error_glyph.hpp"
 
 #include "../guidance_utilities.hpp"
+#include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
@@ -65,24 +66,15 @@ void ErrorGlyph::on_paint(Painter& painter, Rect) {
     if (!phase_visible_) return;
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
-    // An icon the program set is an icon part; otherwise the glyph is the
-    // theme's round validation plate with the error mark over it.
+    // An icon part: the icon the program set, else the stock error icon
+    // (E10: the solid exclamation circle, the variant nearest the glyph's
+    // size), drawn in the theme's invalid recipe's glyph colour, so dark
+    // schemes and high contrast follow.
     PartPaint part;
     part.family = ControlVisualRole::editor;
     part.bounds = bounds;
-    if (icon_) {
-        part.role = PartRole::icon;
-        part.image = *icon_;
-        paint_part(painter, *this, part);
-        return;
-    }
-    part.role = PartRole::validation;
-    part.corner_radius = std::min(bounds.width, bounds.height) * 0.5;
-    paint_part(painter, *this, part);
-    part.role = PartRole::glyph;
-    part.mark = PartMark::error;
-    part.corner_radius.reset();
-    part.bounds = {2.0, 2.0, std::max(0.0, bounds.width - 4.0), std::max(0.0, bounds.height - 4.0)};
+    part.role = PartRole::icon;
+    part.image = icon_ ? *icon_ : stock_icon_image(stock_icon_error, StockIconStyle::solid);
     paint_part(painter, *this, part);
 }
 

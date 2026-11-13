@@ -166,6 +166,41 @@ void run_file_filter_filter_changed(GuiFormsFileFilterSwitch* object, NSPopUpBut
 
 namespace {
 
+// The logical size of GUI.Forms' message icon (stock_alert_icon_image).
+constexpr CGFloat alert_icon_points = 32.0;
+
+// `pixels` (premultiplied BGRA, top row first) as an NSImage 32 points
+// square: one representation, its pixels converted to the premultiplied
+// RGBA NSBitmapImageRep holds by default. Nil when AppKit cannot make it.
+NSImage* alert_icon_image(const gui_forms::HostImage& pixels) {
+    if (pixels.width == 0U || pixels.height == 0U || pixels.row_bytes < std::uint64_t{pixels.width} * 4U ||
+        pixels.pixels.size() < pixels.row_bytes * (pixels.height - 1U) + std::uint64_t{pixels.width} * 4U) {
+        return nil;
+    }
+    NSBitmapImageRep* rep = [[NSBitmapImageRep alloc]
+        initWithBitmapDataPlanes:nullptr pixelsWide:pixels.width pixelsHigh:pixels.height
+        bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES isPlanar:NO
+        colorSpaceName:NSDeviceRGBColorSpace bitmapFormat:0
+        bytesPerRow:pixels.width * 4 bitsPerPixel:32];
+    if (rep == nil || rep.bitmapData == nullptr) return nil;
+    unsigned char* const bytes = rep.bitmapData;
+    for (std::uint32_t y = 0U; y < pixels.height; ++y) {
+        const std::byte* const row = pixels.pixels.data() + y * pixels.row_bytes;
+        unsigned char* const out = bytes + std::size_t{y} * pixels.width * 4U;
+        for (std::uint32_t x = 0U; x < pixels.width; ++x) {
+            out[x * 4U] = static_cast<unsigned char>(row[x * 4U + 2U]);
+            out[x * 4U + 1U] = static_cast<unsigned char>(row[x * 4U + 1U]);
+            out[x * 4U + 2U] = static_cast<unsigned char>(row[x * 4U]);
+            out[x * 4U + 3U] = static_cast<unsigned char>(row[x * 4U + 3U]);
+        }
+    }
+    const NSSize size = NSMakeSize(alert_icon_points, alert_icon_points);
+    rep.size = size;
+    NSImage* image = [[NSImage alloc] initWithSize:size];
+    [image addRepresentation:rep];
+    return image;
+}
+
 NSCursor* native_cursor(CursorKind cursor) {
     switch (cursor) {
     case CursorKind::arrow: return [NSCursor arrowCursor];
@@ -647,6 +682,12 @@ protected:
                     // Fallback: a value outside HostMessageIcon shows as information.
                     alert.alertStyle = NSAlertStyleInformational;
                     break;
+                }
+                // GUI.Forms' own icon for the message (the stock set) in place
+                // of the application icon AppKit shows by default.
+                if (payload.icon_image) {
+                    NSImage* icon = alert_icon_image(*payload.icon_image);
+                    if (icon != nil) alert.icon = icon;
                 }
                 std::vector<std::pair<NSString*, HostDialogChoice>> buttons;
                 switch (payload.buttons) {

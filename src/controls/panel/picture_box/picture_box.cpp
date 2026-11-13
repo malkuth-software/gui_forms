@@ -2,7 +2,9 @@
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
+#include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -34,11 +36,21 @@ void PictureBox::clear_image() {
 }
 
 bool PictureBox::has_valid_image() const noexcept {
+    // A stock icon (E10) is valid attached or not: it names no registry
+    // entry.
+    if (is_stock_icon_image(image.read())) return true;
     return window() != nullptr && image.read().value != 0U &&
            (*window()).image_resources().find(image.read()).has_value();
 }
 
 Size PictureBox::image_size() const noexcept {
+    // A stock icon's natural size is its fixed size, else the largest grid
+    // (24 units): the zoom and stretch modes then show the variant nearest
+    // the drawn size.
+    if (const std::optional<StockIconImage> icon = stock_icon_image_parts(image.read())) {
+        const double side = (*icon).size ? static_cast<double>(*(*icon).size) : 24.0;
+        return {side, side};
+    }
     if (window() == nullptr || image.read().value == 0U) {
         return {};
     }
@@ -106,9 +118,15 @@ void PictureBox::on_paint(Painter& painter, Rect) {
         return;
     }
     const Rect destination = image_bounds();
-    if (!destination.empty()) {
-        painter.draw_image(image.read(), destination, image_opacity.read());
+    if (destination.empty()) return;
+    if (is_stock_icon_image(image.read())) {
+        // A stock icon in the theme's glyph colour for the box's role, so
+        // dark schemes and high contrast follow.
+        const Color colour = effective_theme().resolve(visual_role.read(), visual_context()).glyph;
+        paint_stock_icon(painter, *this, image.read(), destination, colour, image_opacity.read());
+        return;
     }
+    painter.draw_image(image.read(), destination, image_opacity.read());
 }
 
 bool PictureBox::hit_test_local(Point) const {

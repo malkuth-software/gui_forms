@@ -16,7 +16,9 @@ namespace {
 constexpr std::array<std::uint8_t, 8> png_signature{
     0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
 constexpr std::uint64_t slot_mask = 0xffffULL;
-constexpr std::uint64_t maximum_generation = (1ULL << 48U) - 1ULL;
+// Generations stop below bit 47, so an id never sets the top bit: ids with
+// it set name stock icons (stock_icon_image), never a registry entry.
+constexpr std::uint64_t maximum_generation = (1ULL << 47U) - 1ULL;
 
 constexpr std::uint32_t chunk_type(char a, char b, char c, char d) noexcept {
     return (static_cast<std::uint32_t>(static_cast<unsigned char>(a)) << 24U) |
@@ -90,7 +92,7 @@ bool split_image_id(ImageId image,
                     std::uint64_t& generation) noexcept {
     const std::uint64_t encoded_slot = image.value & slot_mask;
     generation = image.value >> 16U;
-    if (encoded_slot == 0 || generation == 0) {
+    if (encoded_slot == 0 || generation == 0 || generation > maximum_generation) {
         return false;
     }
     slot = static_cast<std::size_t>(encoded_slot - 1ULL);

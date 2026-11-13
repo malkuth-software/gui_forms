@@ -1157,6 +1157,10 @@ Related types
 
       Windows Forms' displayHelpButton: a Help button after the set's buttons. Pressing it, or F1 where the host's dialog takes it, reports a HostDialogHelpEvent and leaves the dialog open.
 
+   .. cpp:member:: std::optional<HostImage> icon_image
+
+      The picture GUI.Forms draws for ``icon`` (the stock icon set, exhibit gap E10; stock_alert_icon_image), at the owner window's scale. A host that can put its own image in the dialog shows it in place of its system icon (the AppKit host does); one that cannot keeps its system icon for ``icon`` (the Win32 and X11 hosts for now). Empty for no icon.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: HostMessageDialogResult final

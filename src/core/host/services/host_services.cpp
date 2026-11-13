@@ -228,9 +228,13 @@ struct DialogRequestValidator final {
         using Payload =
             std::remove_cv_t<std::remove_reference_t<PayloadValue>>;
         if constexpr (std::is_same_v<Payload, HostMessageDialogRequest>) {
+            // An icon image (stock_alert_icon_image) must be a valid
+            // image the host can read whole.
+            const bool icon_valid = !payload.icon_image ||
+                validate_host_image((*payload.icon_image).view()) == HostImageError::none;
             return valid_dialog_string(payload.title) &&
                    valid_dialog_string(payload.message) &&
-                   default_allowed(payload);
+                   default_allowed(payload) && icon_valid;
         } else if constexpr (
             std::is_same_v<Payload, HostOpenFileDialogRequest>) {
             return valid_dialog_string(payload.title) &&

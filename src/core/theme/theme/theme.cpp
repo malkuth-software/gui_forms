@@ -1,6 +1,7 @@
 #include "gui_forms/theme.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
+#include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/surface_material/presets/material_presets.hpp"
 #include "gui_forms/window/window.hpp"
 
@@ -1588,6 +1589,13 @@ std::optional<ImageId> Theme::icon_override(std::string_view identifier) const n
     return std::nullopt;
 }
 
+std::shared_ptr<const StockIconVectors> Theme::stock_icon_replacement(const StockIcon& icon) const noexcept {
+    for (const StockIconReplacement& replacement : definition_.stock_icons) {
+        if (replacement.icon == icon) return replacement.vectors;
+    }
+    return nullptr;
+}
+
 std::optional<ThemeRoleColours> Theme::application_role(std::string_view name,
                                                         const MediaFacts& facts) const noexcept {
     const std::vector<ApplicationColourRole>& roles = definition_.rules.application_roles;
@@ -1656,6 +1664,13 @@ std::unique_ptr<Theme> Theme::validated(const ThemeDefinition& definition) {
         definition.rules.colour_schemes ? *definition.rules.colour_schemes : definition.colour_schemes;
     if (!schemes.light && !schemes.dark) {
         throw std::invalid_argument("theme must have a light or a dark variant");
+    }
+    for (const StockIconReplacement& replacement : definition.stock_icons) {
+        const std::span<const std::string_view> names = stock_icon_names();
+        const bool known = std::binary_search(names.begin(), names.end(), std::string_view(replacement.icon.name));
+        if (!replacement.vectors || !known) {
+            throw std::invalid_argument("theme stock icon replacement needs vectors and a stock icon name");
+        }
     }
     std::unique_ptr<Theme> theme(new Theme(definition));
     // A sheet's `color-scheme` is the theme's (T4 theme variants).

@@ -1,4 +1,5 @@
 #include "window_alerts.hpp"
+#include "gui_forms/resources/stock_icons/stock_alert_icon.hpp"
 #include "../../surface_root/access/surface_request_access.hpp"
 
 #include "gui_forms/host/services/host_services.hpp"
@@ -93,6 +94,7 @@ void WindowAlerts::show_next() {
     payload.message = record.content.text;
     payload.buttons = record.content.buttons;
     payload.icon = record.content.icon;
+    payload.icon_image = stock_alert_icon_image(window_, record.content.icon);
     payload.default_choice = record.content.default_choice == HostDialogChoice::none
                                  ? first_alert_choice(record.content.buttons)
                                  : record.content.default_choice;

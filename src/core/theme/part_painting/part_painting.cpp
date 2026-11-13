@@ -2,6 +2,7 @@
 
 #include "built_in_recipe.hpp"
 #include "gui_forms/control/control/control.hpp"
+#include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
@@ -1462,6 +1463,24 @@ void paint_text_part_at(Painter& painter, const Control& control, PartPaint part
     paint_part(painter, control, part);
 }
 
+namespace {
+
+// A stock icon image or icon part (E10): drawn in the recipe's glyph colour,
+// baked for the control's window, so dark schemes and high contrast follow.
+// An icon part is dimmed while disabled, as an image icon is; an image part
+// is content and drawn as given. False, drawing nothing, for any other part.
+bool paint_stock_icon_part(Painter& painter, const Control& control, const PartPaint& part,
+                           const ControlVisualRecipe& recipe, ControlVisualContext context) {
+    if (part.role != PartRole::icon && part.role != PartRole::image) return false;
+    if (!is_stock_icon_image(part.image)) return false;
+    const bool disabled = context.surface == ControlSurfaceState::disabled;
+    const double opacity = part.role == PartRole::icon && disabled ? 0.45 : 1.0;
+    paint_stock_icon(painter, control, part.image, part.bounds, recipe.glyph, opacity);
+    return true;
+}
+
+} // namespace
+
 void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part,
                                      const SurfaceMaterial* resolved_material) {
     if (!paintable(part.bounds)) return;
@@ -1492,10 +1511,14 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
         if (authored) {
             apply_authored_colours(part, disabled, resolved.important_text(), resolved.important_glyph(), styled);
         }
-        paint_part_from_recipe(painter, part, styled, context);
+        if (!paint_stock_icon_part(painter, control, part, styled, context)) {
+            paint_part_from_recipe(painter, part, styled, context);
+        }
         opaque_face = opaque_surface_part(part, styled.material);
     } else {
-        paint_part_from_recipe(painter, part, recipe, context);
+        if (!paint_stock_icon_part(painter, control, part, recipe, context)) {
+            paint_part_from_recipe(painter, part, recipe, context);
+        }
         opaque_face = opaque_surface_part(part, recipe.material);
     }
     // An opaque engine face (owner, 2026-11-05): what lies beneath it, a

@@ -4,6 +4,7 @@
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 #include "gui_forms/theme/types/control_visual_types.hpp"
 #include "gui_forms/host/compositor/window_backdrop.hpp"
+#include "gui_forms/resources/stock_icons/stock_icon_vectors.hpp"
 #include "gui_forms/surface_material.hpp"
 
 #include <array>
@@ -611,6 +612,12 @@ struct GUI_FORMS_API ThemeDefinition final {
     // sheet declaring `color-scheme` (rules.colour_schemes) replaces it
     // when the theme is made.
     ColourSchemeSet colour_schemes{};
+    // Stock icon variants the theme draws its own way (exhibit gap E10): each
+    // replaces the built-in drawing of its icon (a name in
+    // stock_icon_names, a style and a size) wherever that variant is shown.
+    // Theme::create refuses a replacement without vectors or of an unknown
+    // name. Empty by default: every icon keeps the built-in drawing.
+    std::vector<StockIconReplacement> stock_icons{};
     friend bool operator==(const ThemeDefinition& left,
                            const ThemeDefinition& right) noexcept(noexcept(
         left.id == right.id && left.compatibility == right.compatibility &&
@@ -623,7 +630,8 @@ struct GUI_FORMS_API ThemeDefinition final {
                left.high_contrast_overlay_shadow == right.high_contrast_overlay_shadow &&
                left.rules == right.rules && left.rule_set == right.rule_set &&
                left.window_backdrop == right.window_backdrop &&
-               left.dark_variant == right.dark_variant && left.colour_schemes == right.colour_schemes;
+               left.dark_variant == right.dark_variant && left.colour_schemes == right.colour_schemes &&
+               left.stock_icons == right.stock_icons;
     }
 };
 

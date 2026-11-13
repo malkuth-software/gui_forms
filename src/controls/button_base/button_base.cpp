@@ -7,6 +7,7 @@
 #include "choice_indicator_property.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
+#include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
@@ -279,11 +280,24 @@ void ButtonBase::set_connection_topology(
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
+namespace {
+
+// A stock icon's size on a button: its fixed size, else 16 units (the
+// toolbar and menu icon size), at which the nearest variant is shown.
+Size stock_button_image_size(ImageId image) noexcept {
+    const std::optional<StockIconImage> icon = stock_icon_image_parts(image);
+    if (!icon) return {};
+    const double side = (*icon).size ? static_cast<double>(*(*icon).size) : 16.0;
+    return {side, side};
+}
+
+} // namespace
+
 // The image's write, as set_image was: an ID must be live in the button's
 // Window; a direct image replaces an image-list index or key.
 void ButtonBase::write_view(const decltype(image)&, ImageId incoming) {
     require_mutable();
-    if (incoming.value != 0U && window() != nullptr &&
+    if (incoming.value != 0U && !is_stock_icon_image(incoming) && window() != nullptr &&
         !(*window()).image_resources().find(incoming)) {
         throw std::invalid_argument("Button image ID is not live in its Window");
     }
@@ -388,7 +402,7 @@ void ButtonBase::on_attached_to_window() {
     if (image_list_ && !(*image_list_).belongs_to(*window())) {
         throw std::logic_error("Button cannot attach to a different ImageList Window");
     }
-    if (image_.value != 0U && !(*window()).image_resources().find(image_)) {
+    if (image_.value != 0U && !is_stock_icon_image(image_) && !(*window()).image_resources().find(image_)) {
         throw std::logic_error("Button cannot attach with a foreign or stale image ID");
     }
 }
@@ -404,7 +418,9 @@ Size ButtonBase::measure(Size available) {
     }
     const double text_height = static_cast<double>(lines.size()) * resolved_font.size * text_line_spacing.read();
     Size image_size{};
-    if (image_.value != 0U) {
+    if (is_stock_icon_image(image_)) {
+        image_size = stock_button_image_size(image_);
+    } else if (image_.value != 0U) {
         if (window() != nullptr) {
             if (const std::optional<ImageResourceView> resource = (*window()).image_resources().find(image_)) {
                 image_size = {static_cast<double>((*resource).metadata.width),
@@ -457,6 +473,15 @@ ImageListResolution ButtonBase::resolved_button_image(bool selected) const noexc
                    : ImageVisualState::normal;
     result.requested_state = state;
     result.requested_scale = window() ? (*window()).scale() : 1.0;
+    if (is_stock_icon_image(image_)) {
+        // A stock icon (E10) is drawn by paint_part from its vectors, at
+        // the window's scale: no registry entry, no image-list state.
+        result.image = image_;
+        result.source_size = stock_button_image_size(image_);
+        result.resolved_state = ImageVisualState::normal;
+        result.resolved_scale = result.requested_scale;
+        return result;
+    }
     if (image_.value != 0U && window() != nullptr) {
         const std::optional<ImageResourceView> resource = (*window()).image_resources().find(image_);
         if (!resource) return result;

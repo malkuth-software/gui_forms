@@ -493,6 +493,9 @@ add_library(gui_forms_core STATIC
     src/core/window/inspection/window_visual_inspection.cpp
     src/core/allocation/statistics/allocation_statistics.cpp
     src/core/resources/image_registry/image_registry.cpp
+    src/core/resources/stock_icons/stock_icons.cpp
+    src/core/resources/stock_icons/stock_icon_raster.cpp
+    src/core/resources/stock_icons/stock_icon_cache.cpp
     src/core/resources/image_atlas/image_atlas.cpp
     src/core/resources/application_resources/application_resources.cpp
     src/runtime/user_themes/theme_files.cpp
@@ -3217,6 +3220,11 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_test_assert_check
             COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_test_asserts.py
                 --root ${CMAKE_CURRENT_SOURCE_DIR})
+        # The stock icon converter (tools/stock_icon_codec.py): its SVG subset,
+        # the round trip of records, and the committed records' samples.
+        add_test(NAME gui_forms_stock_icon_codec_tests
+            COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
+                -p test_stock_icon_codec.py)
         add_test(NAME gui_forms_test_assert_check_unit
             COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
                 -p test_check_test_asserts.py)
@@ -5057,6 +5065,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_guidance_provider_tests
              COMMAND gui_forms_guidance_provider_tests)
 
+    add_executable(gui_forms_stock_icons_tests tests/stock_icons_tests.cpp)
+    target_link_libraries(gui_forms_stock_icons_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_stock_icons_tests COMMAND gui_forms_stock_icons_tests)
     add_executable(gui_forms_control_locale_tests tests/control_locale_tests.cpp)
     target_link_libraries(gui_forms_control_locale_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_control_locale_tests COMMAND gui_forms_control_locale_tests)
@@ -6035,6 +6046,10 @@ install(FILES ${gui_forms_stx_licenses}/stx_conv/LICENSE DESTINATION ${CMAKE_INS
 install(FILES ${gui_forms_stx_licenses}/stx_conv/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-PROVENANCE.md)
 install(FILES "${GUI_FORMS_STX_AUXLIB_SOURCE_DIR}/btree/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-LICENSE.txt)
 install(FILES "${GUI_FORMS_STX_AUXLIB_SOURCE_DIR}/btree/NOTICE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-NOTICE.txt)
+# The stock icons are Heroicons vectors converted into the library
+# (third_party/heroicons/PROVENANCE.md); their MIT licence ships with it.
+install(FILES third_party/heroicons/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Heroicons-LICENSE.txt)
+install(FILES third_party/heroicons/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Heroicons-PROVENANCE.md)
 install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
 # Every third-party component the SDK and the programs ship, with its licence
 # and the FreeType credit (THIRD_PARTY_NOTICES.md).

@@ -318,6 +318,12 @@ struct GUI_FORMS_API HostMessageDialogRequest final {
     // buttons. Pressing it, or F1 where the host's dialog takes it, reports
     // a HostDialogHelpEvent and leaves the dialog open.
     bool help_button{};
+    // The picture GUI.Forms draws for `icon` (the stock icon set, exhibit
+    // gap E10; stock_alert_icon_image), at the owner window's scale. A host
+    // that can put its own image in the dialog shows it in place of its
+    // system icon (the AppKit host does); one that cannot keeps its system
+    // icon for `icon` (the Win32 and X11 hosts for now). Empty for no icon.
+    std::optional<HostImage> icon_image{};
 };
 
 // The user asked for help in an open message dialog: its Help button, or

@@ -6155,6 +6155,10 @@ Types
 
       The image a compiled user theme gives the program icon ``identifier`` (its ``icons/<identifier>.png``), held by the theme while it lives; nullopt where it gives none (T3 user themes). Whether the program lets the icon be replaced is the application's (ApplicationResources:: icon).
 
+   .. cpp:function:: std::shared_ptr<const StockIconVectors> stock_icon_replacement(const StockIcon& icon) const noexcept
+
+      The theme's own drawing of the stock icon variant ``icon`` (ThemeDefinition::stock_icons), shared with the theme; null where the theme keeps the built-in drawing.
+
    .. cpp:function:: std::optional<ThemeRoleColours> application_role(std::string_view name, const MediaFacts& facts) const noexcept
 
       The colours of the application colour role ``name`` (lowercase, as the sheet's ``color-roles`` declares it) where ``facts`` hold: its last declaration whose condition holds. Under forced colours with no ``forced-colors`` declaration of its own, its fallback role's high-contrast pair. Nullopt where the theme declares no such role.
@@ -6320,6 +6324,10 @@ Types
    .. cpp:member:: ColourSchemeSet colour_schemes
 
       The colour schemes the theme has variants for (T4 theme variants): light alone by default. A window in a scheme its theme lacks shows GUI.Forms' own theme in that scheme (Window::theme_fallback). A sheet declaring ``color-scheme`` (rules.colour_schemes) replaces it when the theme is made.
+
+   .. cpp:member:: std::vector<StockIconReplacement> stock_icons
+
+      Stock icon variants the theme draws its own way (exhibit gap E10): each replaces the built-in drawing of its icon (a name in stock_icon_names, a style and a size) wherever that variant is shown. Theme::create refuses a replacement without vectors or of an unknown name. Empty by default: every icon keeps the built-in drawing.
 
 .. cpp:namespace:: gui_forms
 

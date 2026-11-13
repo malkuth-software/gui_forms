@@ -1,5 +1,6 @@
 #include "gui_forms/components/message_box/message_box.hpp"
 
+#include "gui_forms/resources/stock_icons/stock_alert_icon.hpp"
 #include "../file_dialog/file_dialog_support.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
 #include "gui_forms/window.hpp"
@@ -187,6 +188,7 @@ MessageBoxResult show_message_box(Window& owner, const MessageBoxRequest& reques
     payload.message = request.text;
     payload.buttons = request.buttons;
     payload.icon = request.icon;
+    payload.icon_image = stock_alert_icon_image(owner, request.icon);
     payload.default_choice = default_choice(request.buttons, request.display_help_button, request.default_button);
     payload.help_button = request.display_help_button;
     payload.right_align = has_message_box_option(request.options, MessageBoxOptions::right_align);

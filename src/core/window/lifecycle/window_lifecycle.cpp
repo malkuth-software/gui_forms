@@ -13,6 +13,7 @@
 #include "../interaction/interaction_state.hpp"
 #include "../tool_tips/tool_tip_presenter.hpp"
 #include "../toasts/toast_presenter.hpp"
+#include "../../resources/stock_icons/stock_icon_cache.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -124,6 +125,9 @@ Window::Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationR
     if (!(*root_).is_alive()) {
         throw std::logic_error("GUI.Forms window root may not be disposed");
     }
+    // The status icons are baked for the window's scale at launch (stock
+    // icons, E10), once per scale for the process.
+    detail::prebake_stock_icons(scale());
     attach_subtree(root_, {});
     // The theme's backdrop request (stage T5) until the application makes
     // its own. Undeclared, the window is granted `opaque` whatever it asks.
@@ -346,6 +350,7 @@ void SurfaceRoot::mark_resized_measure(Control& control, bool width_reaches, boo
 void Window::set_scale(double scale) {
     require_root_thread("scale mutation");
     if (!set_surface_scale(scale)) return;
+    detail::prebake_stock_icons(scale);
     invalidate_cursor_interaction(CursorError::stale_metrics);
 }
 
