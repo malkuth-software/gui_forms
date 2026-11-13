@@ -10,7 +10,7 @@
     {"name": "THIRD_PARTY_NOTICES.md", "source": "THIRD_PARTY_NOTICES.md"},
     {"name": "GUIForms.txt", "source": "LICENSE", "component": "GUI.Forms"},
     {"name": "threadpool_atomic_fast.txt", "source": "src/core/threading/atomic_pool/LICENSE", "component": "threadpool_atomic_fast (the owner's thread pool)"},
-    {"name": "Heroicons.txt", "source": "third_party/heroicons/LICENSE", "component": "Heroicons (the stock icons)"},
+    {"name": "Heroicons.txt", "source": "assets/icons/heroicons/LICENSE", "component": "Heroicons (the stock icons)"},
     {"name": "Unicode.txt", "source": "$STX/third_party/unicode/LICENSE.txt", "component": "Unicode Character Database (grapheme tables)"},
     {"name": "SheenBidi.txt", "source": "$STX/third_party/sheenbidi/LICENSE", "component": "SheenBidi"},
     {"name": "MD4C.txt", "source": "$STX/third_party/md4c/LICENSE.md", "component": "MD4C (the markdown framework's parser)"},

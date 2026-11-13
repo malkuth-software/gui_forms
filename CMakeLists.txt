@@ -356,6 +356,30 @@ add_custom_command(
     COMMENT "Generating the bundled font manifest records"
     VERBATIM)
 
+# The stock icon records (src/core/resources/stock_icons/stock_icon_records.hpp):
+# tools/stock_icon_codec.py converts the committed Heroicons SVG files,
+# assets/icons/heroicons/ (assets/icons/heroicons/PROVENANCE.md), into
+# stock_icon_data.inc in the build tree, regenerated when an SVG file or the
+# converter changes. The build needs a Python 3 interpreter for it.
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+set(GUI_FORMS_STOCK_ICON_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/heroicons)
+file(GLOB GUI_FORMS_STOCK_ICON_SVGS CONFIGURE_DEPENDS
+    ${GUI_FORMS_STOCK_ICON_SOURCE}/24/outline/*.svg
+    ${GUI_FORMS_STOCK_ICON_SOURCE}/24/solid/*.svg
+    ${GUI_FORMS_STOCK_ICON_SOURCE}/20/solid/*.svg
+    ${GUI_FORMS_STOCK_ICON_SOURCE}/16/solid/*.svg)
+set(GUI_FORMS_STOCK_ICON_RECORDS ${CMAKE_CURRENT_BINARY_DIR}/generated/stock_icons/stock_icon_data.inc)
+add_custom_command(
+    OUTPUT ${GUI_FORMS_STOCK_ICON_RECORDS}
+    COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/stock_icon_codec.py generate
+        --source ${GUI_FORMS_STOCK_ICON_SOURCE}
+        --output ${GUI_FORMS_STOCK_ICON_RECORDS}
+    DEPENDS
+        ${GUI_FORMS_STOCK_ICON_SVGS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/stock_icon_codec.py
+    COMMENT "Generating the stock icon records from the Heroicons SVG files"
+    VERBATIM)
+
 add_library(gui_forms_core STATIC
     src/core/application/application.cpp
     src/core/application/native_popup.cpp
@@ -494,6 +518,7 @@ add_library(gui_forms_core STATIC
     src/core/allocation/statistics/allocation_statistics.cpp
     src/core/resources/image_registry/image_registry.cpp
     src/core/resources/stock_icons/stock_icons.cpp
+    ${GUI_FORMS_STOCK_ICON_RECORDS}
     src/core/resources/stock_icons/stock_icon_raster.cpp
     src/core/resources/stock_icons/stock_icon_cache.cpp
     src/core/resources/image_atlas/image_atlas.cpp
@@ -661,7 +686,8 @@ target_include_directories(gui_forms_core PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_include_directories(gui_forms_core PRIVATE
-    ${CMAKE_CURRENT_BINARY_DIR}/generated/bundled_fonts)
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/bundled_fonts
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/stock_icons)
 target_compile_features(gui_forms_core PUBLIC cxx_std_20)
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     # Inspection must account for every retained operation, including optional
@@ -3229,10 +3255,16 @@ if(GUI_FORMS_BUILD_TESTS)
             COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_test_asserts.py
                 --root ${CMAKE_CURRENT_SOURCE_DIR})
         # The stock icon converter (tools/stock_icon_codec.py): its SVG subset,
-        # the round trip of records, and the committed records' samples.
+        # the round trip of records, and the build's generated records
+        # against the committed SVG files.
         add_test(NAME gui_forms_stock_icon_codec_tests
             COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
                 -p test_stock_icon_codec.py)
+        set_tests_properties(gui_forms_stock_icon_codec_tests PROPERTIES
+            ENVIRONMENT "GUI_FORMS_STOCK_ICON_DATA=${GUI_FORMS_STOCK_ICON_RECORDS}")
+        add_test(NAME gui_forms_stock_icon_records_check
+            COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/stock_icon_codec.py check
+                --source ${GUI_FORMS_STOCK_ICON_SOURCE} --output ${GUI_FORMS_STOCK_ICON_RECORDS})
         add_test(NAME gui_forms_test_assert_check_unit
             COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
                 -p test_check_test_asserts.py)
@@ -6055,10 +6087,10 @@ install(FILES ${gui_forms_stx_licenses}/stx_conv/LICENSE DESTINATION ${CMAKE_INS
 install(FILES ${gui_forms_stx_licenses}/stx_conv/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-PROVENANCE.md)
 install(FILES "${GUI_FORMS_STX_AUXLIB_SOURCE_DIR}/btree/LICENSE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-LICENSE.txt)
 install(FILES "${GUI_FORMS_STX_AUXLIB_SOURCE_DIR}/btree/NOTICE" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-NOTICE.txt)
-# The stock icons are Heroicons vectors converted into the library
-# (third_party/heroicons/PROVENANCE.md); their MIT licence ships with it.
-install(FILES third_party/heroicons/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Heroicons-LICENSE.txt)
-install(FILES third_party/heroicons/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Heroicons-PROVENANCE.md)
+# The stock icons are Heroicons vectors converted into the library at build
+# time (assets/icons/heroicons/PROVENANCE.md); their MIT licence ships with it.
+install(FILES assets/icons/heroicons/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Heroicons-LICENSE.txt)
+install(FILES assets/icons/heroicons/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Heroicons-PROVENANCE.md)
 install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
 # Every third-party component the SDK and the programs ship, with its licence
 # and the FreeType credit (THIRD_PARTY_NOTICES.md).

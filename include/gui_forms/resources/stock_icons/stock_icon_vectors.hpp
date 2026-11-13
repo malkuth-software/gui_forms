@@ -14,7 +14,7 @@
 namespace gui_forms {
 
 // The stock icon set's identities and vector records (exhibit gap E10; owner
-// decisions, 2026-11-13): Heroicons v2.2.0 (MIT, third_party/heroicons/),
+// decisions, 2026-11-13): Heroicons v2.2.0 (MIT, assets/icons/heroicons/),
 // stored as vectors in GUI.Forms' own record format and baked to rasters at
 // launch (stock_icons.hpp). Each icon is drawn separately for each size, so
 // an icon is its name, its style and the authored grid it was drawn on.

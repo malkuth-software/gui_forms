@@ -1,15 +1,20 @@
 """stock_icon_codec converts the Heroicons SVG subset to stock icon records.
 
-The samples are four Heroicons v2.2.0 files (MIT, third_party/heroicons/),
-copied here byte for byte so the round trip runs without the upstream
-tree: a stroked outline, a solid with arcs, a solid rect with rounded
-corners and an even-odd solid. The last test reads the committed
-generated file back and checks that it holds the same records for them.
+The samples are four Heroicons v2.2.0 files (MIT, assets/icons/heroicons/),
+copied here byte for byte so the parser tests stand alone: a stroked
+outline, a solid with arcs, a solid rect with rounded corners and an
+even-odd solid. The last tests check that the samples are the committed
+files, and read the build's generated records (GUI_FORMS_STOCK_ICON_DATA,
+set by the CMake test; without it, the records the committed SVG files
+give) and check that they hold the same records for the samples and match
+the SVG tree whole.
 """
 from __future__ import annotations
 
 import math
+import os
 import unittest
+from pathlib import Path
 
 import stock_icon_codec as codec
 
@@ -50,6 +55,15 @@ def sample_variants() -> list[codec.Variant]:
                                      for name, style, grid, text in SAMPLES]
     variants.sort(key=codec.variant_key)
     return variants
+
+
+def generated_text() -> str:
+    """The build's generated records (GUI_FORMS_STOCK_ICON_DATA), or the
+    records the committed SVG files give when the test runs alone."""
+    location: str | None = os.environ.get('GUI_FORMS_STOCK_ICON_DATA')
+    if location:
+        return Path(location).read_text(encoding='utf-8')
+    return codec.render(codec.encode(codec.read_variants(codec.SOURCE)))
 
 
 class ParseTests(unittest.TestCase):
@@ -137,8 +151,18 @@ class RoundTripTests(unittest.TestCase):
         self.assertEqual(read.verbs, records.verbs)
         self.assertEqual(read.coordinates, records.coordinates)
 
-    def test_committed_records_hold_the_samples(self) -> None:
-        committed: codec.Records = codec.read_generated(codec.OUTPUT.read_text(encoding='utf-8'))
+    def test_samples_are_the_committed_files(self) -> None:
+        for name, style, grid, text in SAMPLES:
+            directory: str = f'{grid}/outline' if style == codec.STYLE_OUTLINE else f'{grid}/solid'
+            path: Path = codec.SOURCE / directory / f'{name}.svg'
+            self.assertEqual(path.read_text(encoding='utf-8'), text, str(path))
+
+    def test_generated_records_match_the_svg_tree(self) -> None:
+        expected: str = codec.render(codec.encode(codec.read_variants(codec.SOURCE)))
+        self.assertEqual(generated_text(), expected)
+
+    def test_generated_records_hold_the_samples(self) -> None:
+        committed: codec.Records = codec.read_generated(generated_text())
         sample: codec.Records = codec.encode(sample_variants())
         for sample_index, (name_index, style, grid, _, _) in enumerate(sample.variants):
             name: str = sample.names[name_index]
