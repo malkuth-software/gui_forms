@@ -3983,6 +3983,64 @@ void editing_control_showing() {
     (*grid).close_drop_down();
 }
 
+struct ScrollToFrozenColumn final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_first_displayed_scrolling_column(0U); }
+};
+
+// Windows Forms' AutoGenerateColumns.
+void auto_generated_columns() {
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.generated"));
+    (*grid).set_columns({{.name = "name", .header_text = "Name", .data_property_name = "Name"}});
+    (*grid).allow_user_to_add_rows = false;
+    Window window(grid, {360.0, 160.0});
+    std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
+    const test_rows::NamedRow first{"person.1", {{"Name", std::string("Ada")}, {"City", std::string("London")}}};
+    const test_rows::NamedRow second{"person.2", {{"Name", std::string("Grace")}, {"City", std::string("Arlington")}}};
+    test_rows::fill_source(*source, {first, second});
+    (*grid).data_source = source;
+    require((*grid).columns().size() == 1U, "by default binding adds no columns");
+    (*grid).data_source = nullptr;
+    (*grid).auto_generate_columns = true;
+    (*grid).data_source = source;
+    window.perform_layout();
+    require((*grid).columns().size() == 2U && (*grid).columns()[1].name == "city" &&
+                (*grid).columns()[1].header_text == "City" && (*grid).columns()[1].data_property_name == "City",
+            "binding adds a column for the field no column names");
+    require((*grid).cell_text(row_at(1U), 1U) == "Arlington", "the generated column shows its field");
+    (*grid).data_source = nullptr;
+    (*grid).data_source = source;
+    require((*grid).columns().size() == 2U, "a field a column already names adds none");
+}
+
+// Windows Forms' FirstDisplayedScrollingColumnIndex and
+// FirstDisplayedScrollingColumnHiddenWidth.
+void first_displayed_scrolling_column() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.first.column");
+    Window window(grid, {200.0, 160.0});
+    window.perform_layout();
+    require((*grid).first_displayed_scrolling_column() == std::optional<std::size_t>{0U} &&
+                (*grid).first_displayed_scrolling_column_hidden_width() == 0.0,
+            "unscrolled, the first column is the first shown");
+    (*grid).set_first_displayed_scrolling_column(1U);
+    window.perform_layout();
+    require((*grid).horizontal_scroll_offset() == 100.0 &&
+                (*grid).first_displayed_scrolling_column() == std::optional<std::size_t>{1U},
+            "a column can be scrolled to the start");
+    (*grid).set_horizontal_scroll_offset(110.0);
+    window.perform_layout();
+    require((*grid).first_displayed_scrolling_column() == std::optional<std::size_t>{1U} &&
+                (*grid).first_displayed_scrolling_column_hidden_width() == 10.0,
+            "a column scrolled in part is first, with its hidden width");
+    (*grid).set_column_frozen(0U, true);
+    (*grid).set_first_displayed_scrolling_column(2U);
+    window.perform_layout();
+    require((*grid).horizontal_scroll_offset() == 50.0 &&
+                (*grid).first_displayed_scrolling_column() == std::optional<std::size_t>{2U},
+            "beside frozen columns the offset counts from their end");
+    require(throws<std::logic_error>(ScrollToFrozenColumn{grid.get()}), "a frozen column is not a scrolling column");
+}
+
 int main() {
     columns_and_rows();
     layout_and_parts();
@@ -4035,6 +4093,8 @@ int main() {
     three_state_and_display_style();
     column_resizable_and_minimum_row_height();
     editing_control_showing();
+    auto_generated_columns();
+    first_displayed_scrolling_column();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";

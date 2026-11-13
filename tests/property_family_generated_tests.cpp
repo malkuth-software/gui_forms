@@ -843,6 +843,11 @@ void test_data_grid_view_properties() {
         (*control).cells_on_sub_surface = sample;
         expect((*control).cells_on_sub_surface.read() == sample, "DataGridView.cells_on_sub_surface: a write stores");
     }
+    {
+        const bool sample = true;
+        (*control).auto_generate_columns = sample;
+        expect((*control).auto_generate_columns.read() == sample, "DataGridView.auto_generate_columns: a write stores");
+    }
 }
 
 void test_date_time_picker_properties() {

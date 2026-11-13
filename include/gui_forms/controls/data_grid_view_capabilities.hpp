@@ -541,6 +541,19 @@ struct DataGridViewAllowUserToAddRowsCapability {
     }
 };
 
+// Whether binding a data_source adds a column for each source field no column's data_property_name names (AutoGenerateColumns; off by default here, unlike Windows Forms, so that bound grids keep exactly their columns).
+template <typename Declaring>
+struct DataGridViewAutoGenerateColumnsCapability {
+    PropertyCell<bool, DataGridViewAutoGenerateColumnsCapability<Declaring>> auto_generate_columns{false};
+
+    static void assign(DataGridViewAutoGenerateColumnsCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.auto_generate_columns), incoming);
+        if (!capability.auto_generate_columns.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.auto_generate_columns));
+    }
+};
+
 // The BindingSource the grid's rows show (data_property_name names the fields); null returns to unbound rows. Every write resets the rows and the row state, even an equal one. A view onto the grid's source.
 template <typename Declaring>
 struct DataGridViewDataSourceCapability {
@@ -608,6 +621,7 @@ struct DataGridViewCapabilities : public DataGridViewAutoSizeColumnsModeCapabili
                                   public DataGridViewEditModeCapability<Declaring>,
                                   public DataGridViewCellsOnSubSurfaceCapability<Declaring>,
                                   public DataGridViewAllowUserToAddRowsCapability<Declaring>,
+                                  public DataGridViewAutoGenerateColumnsCapability<Declaring>,
                                   public DataGridViewDataSourceCapability<Declaring> {
     DataGridViewCapabilities() : FontCapability<Declaring>(FontSpec{FontSpec{FontRole::content, 11.0, 400, false}}) {}
 };

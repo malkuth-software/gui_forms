@@ -5,6 +5,7 @@
 #include "data_grid_view_bound_index.hpp"
 #include "../scrollable_control/scrolling_utilities.hpp"
 
+#include "gui_forms/binding/binding_schema/binding_schema.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
 #include "gui_forms/binding/number_format/number_format.hpp"
 #include "gui_forms/delegate.hpp"
@@ -1626,6 +1627,8 @@ void DataGridView::write_view(const decltype(data_source)&, std::shared_ptr<Bind
         rows_changed();
         return;
     }
+    // Columns first, while no rows are bound.
+    if (auto_generate_columns.read()) generate_columns((*source).schema());
     data_source_ = std::move(source);
     row_source_ = DataGridViewRowSource::binding_source;
     rebuild_row_index();
@@ -1635,6 +1638,47 @@ void DataGridView::write_view(const decltype(data_source)&, std::shared_ptr<Bind
         *this, Delegate<std::ptrdiff_t>::bind<DataGridView, &DataGridView::on_source_position_changed>(*this));
     rows_changed();
     on_source_position_changed((*data_source_).position());
+}
+
+void DataGridView::generate_columns(const BindingSchema& schema) {
+    for (const BindingColumn& field : schema.columns()) {
+        bool named = false;
+        for (const DataGridViewColumn& column : columns_) {
+            if (column.data_property_name == field.name) named = true;
+        }
+        if (named || !validate_utf8(field.name).valid()) continue;
+        DataGridViewColumn generated{};
+        generated.name = generated_column_name(field.name);
+        generated.header_text = field.name;
+        generated.data_property_name = field.name;
+        generated.value_kind = field.kind;
+        generated.read_only = field.read_only;
+        if (field.kind == BindingValueKind::boolean) generated.kind = DataGridViewColumnKind::check_box;
+        add_column(std::move(generated));
+    }
+}
+
+std::string DataGridView::generated_column_name(std::string_view field) const {
+    // Lowercase letters and digits kept, every other run one '-', none at
+    // either end: one StableId segment.
+    std::string base{};
+    base.reserve(field.size());
+    for (const char character : field) {
+        const char lower = (character >= 'A' && character <= 'Z') ? static_cast<char>(character - 'A' + 'a') : character;
+        const bool kept = (lower >= 'a' && lower <= 'z') || (lower >= '0' && lower <= '9');
+        if (kept) {
+            base.push_back(lower);
+        } else if (!base.empty() && base.back() != '-') {
+            base.push_back('-');
+        }
+    }
+    while (!base.empty() && base.back() == '-') base.pop_back();
+    if (base.empty()) base = "column";
+    std::string name = base;
+    for (std::size_t suffix = 2U; column_index(name); ++suffix) {
+        name = base + "-" + std::to_string(suffix);
+    }
+    return name;
 }
 
 void DataGridView::on_source_list_changed(const BindingListChange& change) {
@@ -2023,6 +2067,38 @@ void DataGridView::set_horizontal_scroll_offset(double offset) {
     horizontal_offset_ = offset;
     // The whole grid moves: a redraw-all, folding the cell region.
     redraw_all(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+double DataGridView::scrolling_left(std::size_t display) const noexcept {
+    const std::size_t frozen = frozen_display_count();
+    double left = 0.0;
+    for (std::size_t position = frozen; position < display && position < shown_order_.size(); ++position) {
+        left += shown_width(shown_order_[position]);
+    }
+    return left;
+}
+
+std::optional<std::size_t> DataGridView::first_displayed_scrolling_column() const {
+    const IndexSpan displays = display_span(grid_layout());
+    if (displays.first >= displays.end) return std::nullopt;
+    return shown_order_[displays.first];
+}
+
+double DataGridView::first_displayed_scrolling_column_hidden_width() const {
+    const IndexSpan displays = display_span(grid_layout());
+    if (displays.first >= displays.end) return 0.0;
+    const double hidden = std::max(0.0, horizontal_offset_ - scrolling_left(displays.first));
+    return hidden;
+}
+
+void DataGridView::set_first_displayed_scrolling_column(std::size_t column) {
+    require_mutable();
+    if (column >= columns_.size()) throw std::out_of_range("DataGridView column is past the end");
+    const std::size_t display = column < shown_indices_.size() ? shown_indices_[column] : shown_order_.size();
+    if (!columns_[column].visible || display >= shown_order_.size() || display < frozen_display_count()) {
+        throw std::logic_error("DataGridView first scrolling column must be shown and not frozen");
+    }
+    set_horizontal_scroll_offset(scrolling_left(display));
 }
 
 void DataGridView::on_vertical_scroll(double value) {
@@ -5071,6 +5147,12 @@ void DataGridView::written(const decltype(edit_mode)&) {
 }
 
 void DataGridView::on_edit_mode_changed() {}
+
+void DataGridView::prepare_write(const decltype(auto_generate_columns)&, bool&) {
+    require_mutable();
+}
+
+void DataGridView::written(const decltype(auto_generate_columns)&) {}
 
 // property_codemod end DataGridView
 

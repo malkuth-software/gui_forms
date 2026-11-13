@@ -38,6 +38,7 @@ namespace gui_forms {
 
 struct FocusedControlChange;
 
+class BindingSchema;
 class BindingSource;
 class SubSurfaceHost;
 
@@ -643,7 +644,12 @@ public:
     // Repaints after the provider's values changed outside the grid.
     void refresh_rows();
     // data_source (a capability) shows a BindingSource's records as rows: a
-    // column shows the field its data_property_name names. The current row
+    // column shows the field its data_property_name names. With
+    // auto_generate_columns, binding first appends a column for each field
+    // of the source's schema that no column names, in schema order: a check
+    // box column for a boolean field, else a text column, named from the
+    // field (lowercase letters, digits and '-', made unique) and headed by
+    // the field's own name. A later schema change adds none. The current row
     // follows the source's position and moves it; a committed edit moves the
     // position to its row and sets the field. A null source returns to
     // unbound rows.
@@ -775,6 +781,17 @@ public:
     // scrolling column beside them.
     [[nodiscard]] double horizontal_scroll_offset() const noexcept { return horizontal_offset_; }
     void set_horizontal_scroll_offset(double offset);
+    // The first scrolling column shown, wholly or in part, past the frozen
+    // columns (Windows Forms' FirstDisplayedScrollingColumnIndex), or none;
+    // and how much of it is scrolled out of view, in logical units at text
+    // scale 1 (FirstDisplayedScrollingColumnHiddenWidth).
+    [[nodiscard]] std::optional<std::size_t> first_displayed_scrolling_column() const;
+    [[nodiscard]] double first_displayed_scrolling_column_hidden_width() const;
+    // Scrolls so that a shown, unfrozen column starts beside the frozen
+    // columns (the layout then keeps the offset within the scroll range).
+    // Throws std::out_of_range for an unknown column and std::logic_error
+    // for a hidden or frozen one.
+    void set_first_displayed_scrolling_column(std::size_t column);
     // The rows a paint shows, partly visible ones included: positions
     // [first_displayed_row, displayed_row_end), after the frozen rows.
     [[nodiscard]] DataGridViewRowPosition displayed_row_end() const;
@@ -1295,6 +1312,13 @@ private:
     bool copy_selection_to_clipboard();
     [[nodiscard]] std::string row_header_text(DataGridViewRowPosition row) const;
     void detach_data_source() noexcept;
+    // auto_generate_columns: the columns a source's schema adds, and a
+    // column name made from a field's.
+    void generate_columns(const BindingSchema& schema);
+    [[nodiscard]] std::string generated_column_name(std::string_view field) const;
+    // A shown column's left edge in the scrolling columns' coordinates
+    // (from the frozen columns' end), in logical units at text scale 1.
+    [[nodiscard]] double scrolling_left(std::size_t display) const noexcept;
     void on_source_list_changed(const BindingListChange& change);
     void on_source_position_changed(std::ptrdiff_t position);
 
@@ -2037,6 +2061,7 @@ private:
     friend struct DataGridViewEditModeCapability<DataGridView>;
     friend struct DataGridViewCellsOnSubSurfaceCapability<DataGridView>;
     friend struct DataGridViewAllowUserToAddRowsCapability<DataGridView>;
+    friend struct DataGridViewAutoGenerateColumnsCapability<DataGridView>;
     friend struct DataGridViewDataSourceCapability<DataGridView>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(auto_size_columns_mode)& cell, DataGridViewAutoSizeColumnsMode& incoming);
@@ -2119,6 +2144,8 @@ private:
     void written(const decltype(cells_on_sub_surface)& cell);
     void write_view(const decltype(allow_user_to_add_rows)& cell, bool incoming);
     [[nodiscard]] bool read_view(const decltype(allow_user_to_add_rows)& cell) const;
+    void prepare_write(const decltype(auto_generate_columns)& cell, bool& incoming);
+    void written(const decltype(auto_generate_columns)& cell);
     void write_view(const decltype(data_source)& cell, std::shared_ptr<BindingSource> incoming);
     [[nodiscard]] std::shared_ptr<BindingSource> read_view(const decltype(data_source)& cell) const;
     // property_codemod end DataGridView

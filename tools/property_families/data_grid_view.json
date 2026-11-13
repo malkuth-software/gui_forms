@@ -877,6 +877,24 @@
       ]
     },
     {
+      "name": "auto_generate_columns",
+      "capability": "DataGridViewAutoGenerateColumns",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether binding a data_source adds a column for each source field no column's data_property_name names (AutoGenerateColumns; off by default here, unlike Windows Forms, so that bound grids keep exactly their columns).",
+      "getter": "auto_generate_columns",
+      "setter": "set_auto_generate_columns",
+      "clear": null,
+      "field": "auto_generate_columns_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "effects": null,
+      "sample": "true"
+    },
+    {
       "name": "data_source",
       "capability": "DataGridViewDataSource",
       "value": "std::shared_ptr<BindingSource>",
