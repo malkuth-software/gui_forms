@@ -4397,7 +4397,8 @@
       {"kind": "method", "winforms": null, "gui_forms": "request_statistics", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/sub_surface_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_cells_tests.cpp"}
     ]},
-    {"type": "ContentSurface", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/content_surface_tests.cpp", "members": [
+    {"type": "ContentSurface", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/content_surface_raster_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "close_on_escape", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "content_open", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "content_semantics", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "failure", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_termination_tests.cpp"},
@@ -4405,14 +4406,14 @@
       {"kind": "property", "winforms": null, "gui_forms": "live_surface", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "program_running", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_termination_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "request", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "stale_interval", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "stale_interval", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_raster_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "statistics", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "status", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "status", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_raster_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "termination_grace", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_termination_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "status_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "check_watchdog", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "check_watchdog", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_raster_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "close_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "open_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "open_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_raster_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_status_caption", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "start_hosted_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/hosted_client_consumer/parent.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "start_program", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_termination_tests.cpp"},

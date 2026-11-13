@@ -656,6 +656,10 @@ Types
 
    .. rubric:: Methods
 
+   .. cpp:function:: ContentFrameSink& sink() noexcept
+
+      The program publishes through the non-const sink; readers that only inspect it take the const one.
+
    .. cpp:function:: ContentRequest wait_for_request(std::uint64_t seen_generation, std::chrono::milliseconds timeout) const
 
       ContentFrameSink::wait_for_request: also returns at once when a stop is requested.
