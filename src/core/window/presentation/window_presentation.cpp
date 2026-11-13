@@ -179,8 +179,15 @@ std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr&
     const Rect local{0.0, 0.0, logical.width, logical.height};
     const std::shared_ptr<const detail::DisplayChunk> recorded =
         candidate.finish(display_generation_, PaintPlane::control, local);
-    // Rebuilt chunks consumed their paint dirt without reaching the screen.
-    if (consumed_invalidations > 0U && (*control).is_alive()) mark_subtree_dirty(*control, Dirty::paint);
+    // Rebuilt chunks consumed their paint dirt without reaching the screen:
+    // damage over the area at the window's own scale, as capture_window.
+    if (consumed_invalidations > 0U) {
+        if (scale == scale_) {
+            add_damage_all_planes(bounds);
+        } else if ((*control).is_alive()) {
+            mark_subtree_dirty(*control, Dirty::paint);
+        }
+    }
     // Replay into the offscreen raster.
     if (!(*framebuffer).begin(image_resources(), local)) return std::nullopt;
     static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
@@ -268,10 +275,22 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
     const std::shared_ptr<const detail::DisplayChunk> recorded =
         candidate.finish(display_generation_, PaintPlane::control, window_bounds);
     // Rebuilt chunks consumed their paint dirt without reaching the screen.
-    if (consumed_invalidations > 0U && (*root_).is_alive()) mark_subtree_dirty(*root_, Dirty::paint);
-    for (const Control::Ptr& overlay : overlay_roots) {
-        if (consumed_invalidations == 0U || !overlay || !(*overlay).is_alive()) continue;
-        mark_subtree_dirty(*overlay, Dirty::paint);
+    // Recorded at the window's own scale, they are what the next paint
+    // would record, so the screen only owes their presentation: damage,
+    // which take_damage hands to the host and a paint discharges. Recorded
+    // at another scale they are not, and their controls are marked to be
+    // recorded again (a capture through OffscreenAttachment restores the
+    // window's scale and settings afterwards, which marks them anyway).
+    if (consumed_invalidations > 0U) {
+        if (scale == scale_) {
+            add_damage_all_planes(window_bounds);
+        } else {
+            if ((*root_).is_alive()) mark_subtree_dirty(*root_, Dirty::paint);
+            for (const Control::Ptr& overlay : overlay_roots) {
+                if (!overlay || !(*overlay).is_alive()) continue;
+                mark_subtree_dirty(*overlay, Dirty::paint);
+            }
+        }
     }
     if (!(*framebuffer).begin(image_resources(), window_bounds)) return std::nullopt;
     static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
@@ -338,8 +357,15 @@ std::optional<WindowCapture> SurfaceRoot::capture_control(const Control::Ptr& co
     const Rect local{0.0, 0.0, logical.width, logical.height};
     const std::shared_ptr<const detail::DisplayChunk> recorded =
         candidate.finish(display_generation_, PaintPlane::control, local);
-    // Rebuilt chunks consumed their paint dirt without reaching the screen.
-    if (consumed_invalidations > 0U && (*control).is_alive()) mark_subtree_dirty(*control, Dirty::paint);
+    // Rebuilt chunks consumed their paint dirt without reaching the screen:
+    // damage over the area at the window's own scale, as capture_window.
+    if (consumed_invalidations > 0U) {
+        if (scale == scale_) {
+            add_damage_all_planes(area);
+        } else if ((*control).is_alive()) {
+            mark_subtree_dirty(*control, Dirty::paint);
+        }
+    }
     if (!(*framebuffer).begin(image_resources(), local)) return std::nullopt;
     static_cast<void>(detail::replay_display_chunk(*recorded, (*framebuffer).painter()));
     (*framebuffer).end();

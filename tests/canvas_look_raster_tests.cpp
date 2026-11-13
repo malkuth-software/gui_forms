@@ -338,11 +338,12 @@ public:
 // painted in the request's scheme and contrast queues them and draws
 // their grounds or nothing (E10, cp31), each idle frame makes some, the
 // frame after it repaints what waited, and the capture then shows them.
-// The window holds the request's presentation throughout: the capture's
-// own scope would restore the window's scheme after its paint, and a
-// scheme change shows another theme, which empties the queues
-// (EnginePartTable::invalidate_rasters). Bounded by maximum_settle_frames;
-// the window's presentation overrides are restored after the capture.
+// The window holds the request's presentation throughout, so that its own
+// paints queue the request's patterns and tiles and the capture needs no
+// scheme switch. (A switch no longer empties the queues, cp32, but each
+// switch repaints the whole window, and an idle frame waits for it.)
+// Bounded by maximum_settle_frames; the window's presentation overrides
+// are restored after the capture.
 WindowCapture settled(OffscreenAttachment& attached, const SampleWindow& sample, const CaptureRequest& request) {
     Window& window = *sample.window;
     PresentationOverrides kept{};

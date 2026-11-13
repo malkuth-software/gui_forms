@@ -1213,13 +1213,15 @@ void EnginePartTable::invalidate_rasters() noexcept {
     clear_shared_bakes();
     idle_keyframes_.clear();
     statistics_.idle_keyframes_queued = 0U;
-    // The new theme's paints queue the patterns they need.
-    pattern_queue_.clear();
-    statistics_.procedural_queued = 0U;
-    // Finish tiles depend on their keys alone and are kept, as patterns
-    // are; the new theme's paints queue the tiles they need.
-    finish_tile_queue_.clear();
-    statistics_.finish_tiles_queued = 0U;
+    // Procedural patterns and finish tiles depend on their keys alone, so
+    // the held ones are kept and so are the queues: a queued pattern or
+    // tile is as valid under the new theme as under the old, and the new
+    // theme's paints add the ones they need. Emptying the queues here lost
+    // the work a paint under a passing scheme had asked for: an offscreen
+    // capture in another scheme switches the theme for its paint and back
+    // afterwards, and its patterns were then never made (cp31 follow-up).
+    // Both queues stay bounded (maximum_queued_patterns,
+    // maximum_queued_finish_tiles).
 }
 
 } // namespace gui_forms

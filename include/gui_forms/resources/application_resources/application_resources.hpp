@@ -220,7 +220,8 @@ public:
     // `directory` the first time each is asked for and kept
     // (LightPlaneCache). An empty path, the default, holds none, so every
     // such part draws its theme's look. A new directory forgets the bakes
-    // read so far and repaints every sharing window. On the UI thread
+    // read so far and lays out and repaints every sharing window (a bake's
+    // presence changes a part's aspect). On the UI thread
     // (std::logic_error elsewhere).
     void set_light_plane_directory(std::filesystem::path directory);
     // The bake named `name` (`<directory>/<name>.f32`), or null when no

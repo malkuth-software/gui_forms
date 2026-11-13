@@ -1459,7 +1459,8 @@ std::shared_ptr<const detail::ControlInlineStyle> detail::compile_inline_style(
     const theme_language::ThemeCompileInput input{
         .source = source,
         .registry = registry,
-        .vocabulary = theme_language::SelectorVocabulary{std::span<const ControlAnatomy>(&anatomy, 1U)},
+        .vocabulary = theme_language::SelectorVocabulary{.controls = std::span<const ControlAnatomy>(&anatomy, 1U),
+                                                         .element = &anatomy},
         .published_values = {},
         .resources = {},
         .images = {},

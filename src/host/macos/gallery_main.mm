@@ -1,5 +1,6 @@
 #include "macos_host.hpp"
 #include "gallery.hpp"
+#include "gallery_headless_capture.hpp"
 #include "gallery_staging.hpp"
 #include "program_options.hpp"
 
@@ -29,6 +30,7 @@ int main(int argc, char** argv) {
     gui_forms::demo::apply_program_options(*program, options);
     std::unique_ptr<gui_forms::Window> window = gui_forms::gallery::make_gallery();
     if (!gui_forms::gallery::apply_gallery_staging(*program, *window)) return 2;
+    if ((*program).headless) return gui_forms::gallery::run_headless_gallery_capture(*program, *window);
     const std::shared_ptr<gui_forms::demo::SmokeTest> smoke =
         gui_forms::demo::arm_smoke_test(*program, options, *window);
     return gui_forms::demo::smoke_test_result(

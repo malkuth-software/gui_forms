@@ -319,10 +319,12 @@ void ApplicationResources::set_light_plane_directory(std::filesystem::path direc
     std::unique_ptr<engine_light::LightPlaneCache> made{};
     if (!directory.empty()) made = std::make_unique<engine_light::LightPlaneCache>(std::move(directory));
     light_planes_ = std::move(made);
-    // Any window may show a part composited from the old directory's bakes:
-    // the same whole repaint an image replacement makes.
+    // Any window may show a part composited from the old directory's bakes,
+    // and a bake's presence changes the part's aspect: every sharing window
+    // lays out and repaints (cp31 follow-up; a repaint alone left the
+    // published part geometry stale until the next layout).
     for (std::size_t index = 0U; index < windows_.size(); ++index) {
-        detail::SurfaceResourceAccess::repaint_for_image_replacement(*windows_[index]);
+        detail::SurfaceResourceAccess::relayout_for_light_planes(*windows_[index]);
     }
 }
 

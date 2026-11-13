@@ -513,6 +513,19 @@ void test_baked_lens() {
     set_high_contrast(*made.window, false);
     (*made.window).perform_layout();
     require((*made.lamp).light_planes_shown(), "and the bake again after it");
+
+    // A directory change lays the windows out again (cp32): with no
+    // directory the lens is the theme's at once, the round bezel's
+    // placement published by the next layout, with nothing else changed.
+    (*(*made.window).resources()).set_light_plane_directory(std::filesystem::path{});
+    (*made.window).perform_layout();
+    require(!(*made.lamp).light_planes_shown(), "clearing the directory shows the theme's lens");
+    require((*made.lamp).parts().bezel.bounds == Rect{0.0, 0.0, 20.0, 20.0},
+            "and the next layout publishes the round bezel's placement");
+    (*(*made.window).resources()).set_light_plane_directory(directory);
+    (*made.window).perform_layout();
+    require((*made.lamp).light_planes_shown() && (*made.lamp).parts().lens.bounds == Rect{0.0, 0.0, 30.0, 20.0},
+            "and setting it again the bake's aspect");
 }
 
 } // namespace

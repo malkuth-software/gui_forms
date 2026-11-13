@@ -639,8 +639,10 @@ public:
     // again, and bakes again the slice reference it is assembled from. A
     // stale handle does nothing.
     void invalidate_raster(PartRecordHandle handle) noexcept;
-    // Makes every cached raster stale and drops every slice reference, as
-    // when the theme changes.
+    // Makes every cached raster stale and drops every slice reference and
+    // queued keyframe, as when the theme changes. Held and queued
+    // procedural patterns and finish tiles depend on their keys alone and
+    // are kept.
     void invalidate_rasters() noexcept;
 
     [[nodiscard]] RasterCacheStatistics cache_statistics() const noexcept { return statistics_; }

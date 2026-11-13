@@ -17,6 +17,8 @@
 //   same paint presents its old pixels in that frame and the new ones in the
 //   next; the same for a slot drawn and filled during Window::capture_window,
 //   which paints as a paint does.
+// - a capture at the window's scale leaves no paint dirt, only damage; at
+//   another scale it marks what it rebuilt to be recorded again.
 
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/capture/offscreen_raster/offscreen_raster.hpp"
@@ -522,6 +524,51 @@ void atlas_first_draw_after_deferred_fill() {
     (*probe).atlas = nullptr;
 }
 
+// A capture at the window's own scale rebuilds a paint-dirty control's
+// chunk; the chunk is what the next paint would record, so the control is
+// left clean and the screen owes only damage, which take_damage hands over
+// (cp32: captures no longer leave controls marked for paint). A capture at
+// another scale marks the control to be recorded again.
+void capture_settles_paint() {
+    const std::unique_ptr<OffscreenRaster> raster = made_raster();
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("settle"));
+    const std::shared_ptr<Button> button = make_control<Button>(StableId("settle.button"), "Settle");
+    (*button).set_requested_bounds({20.0, 10.0, 100.0, 30.0});
+    (*root).add_child(button);
+    const Size size{160.0, 60.0};
+    Window window(root, size);
+    OffscreenAttachment attached(*raster, window);
+    window.perform_layout();
+    static_cast<void>(presented_pixel(window, size, 1U, 1U));
+    static_cast<void>(window.take_damage());
+
+    (*button).invalidate(invalidation::paint_only);
+    WindowCaptureOptions own{};
+    own.scale = window.scale();
+    const std::optional<WindowCapture> first = window.capture_window(own);
+    require(first.has_value(), "the capture at the window's scale completes");
+    require(!has_dirty((*button).dirty(), Dirty::paint), "the capture leaves the button clean");
+    const DamageRegion owed = window.take_damage();
+    require(!owed.empty(), "the screen owes the capture's rebuilt area as damage");
+    const DamageRegion settled = window.take_damage();
+    require(settled.empty(), "take_damage hands the damage over once");
+
+    (*button).invalidate(invalidation::paint_only);
+    const std::optional<WindowCapture> control = window.capture_control(button);
+    require(control.has_value() && !has_dirty((*button).dirty(), Dirty::paint),
+            "a control capture at the window's scale leaves the button clean too");
+    static_cast<void>(window.take_damage());
+
+    (*button).invalidate(invalidation::paint_only);
+    WindowCaptureOptions doubled{};
+    doubled.scale = window.scale() * 2.0;
+    const std::optional<WindowCapture> second = window.capture_window(doubled);
+    require(second.has_value(), "the capture at twice the scale completes");
+    window.perform_layout();
+    require(has_dirty((*button).dirty(), Dirty::paint),
+            "a capture at another scale marks the button to be recorded again");
+}
+
 int main() {
     raster_refusals();
     attachment_and_control_capture();
@@ -530,6 +577,7 @@ int main() {
     atlas_deferred_fill_pixels();
     atlas_deferred_fill_capture();
     atlas_first_draw_after_deferred_fill();
+    capture_settles_paint();
     std::cout << "Offscreen capture: raster refusals, the attachment, control captures, specimen states, the "
                  "stock catalogue and atlas deferred-fill frames and captures passed\n";
     return EXIT_SUCCESS;

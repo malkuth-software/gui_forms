@@ -72,8 +72,16 @@ struct LoweredSelector final {
 // refuses a custom state named as a standard one; one that was not checked
 // cannot shadow a standard state, since the standard name is read first.
 // Borrowed for the lowering.
+//
+// `element`, set for an inline style alone, is the control the style
+// styles (one of `controls`): its selectors name no control type, since
+// they apply to that control only, so a custom state they name is resolved
+// against the element's anatomy (cp32; before, it was reported as W106
+// "no control type to declare"). Null for a theme sheet, whose selectors
+// with custom states name their type.
 struct SelectorVocabulary final {
     std::span<const ControlAnatomy> controls{};
+    const ControlAnatomy* element{};
 };
 
 // What one lowering reads, all borrowed for the call: the sheet, its

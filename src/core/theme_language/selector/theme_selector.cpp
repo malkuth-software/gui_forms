@@ -922,8 +922,9 @@ std::optional<CustomStateIndex> SelectorPass::resolve_custom_state(const Simple&
                                                                    std::string_view control_type,
                                                                    std::string_view part) {
     const std::string registered = registered_name_from_kebab(simple.name);
-    // The type was found in the vocabulary when it was read.
-    const ControlAnatomy* anatomy = control_type.empty() ? nullptr : find_control(vocabulary_, control_type);
+    // The type was found in the vocabulary when it was read. A selector
+    // naming none resolves against the inline style's element, if any.
+    const ControlAnatomy* anatomy = control_type.empty() ? vocabulary_.element : find_control(vocabulary_, control_type);
     if (anatomy != nullptr) {
         const std::span<const CustomStateDeclaration> declared = custom_state_scope(*anatomy, part);
         const std::optional<CustomStateIndex> found = find_declared_custom_state(declared, registered);
@@ -937,7 +938,7 @@ std::optional<CustomStateIndex> SelectorPass::resolve_custom_state(const Simple&
     if (anatomy == nullptr) {
         detail = "no control type to declare ";
     } else {
-        detail = kebab_case_of(control_type);
+        detail = kebab_case_of((*anatomy).control_id);
         const bool item_part = !part.empty() && !find_declared_part((*anatomy).parts, part).has_value();
         if (item_part) {
             detail += "::part(";

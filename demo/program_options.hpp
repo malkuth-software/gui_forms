@@ -16,6 +16,11 @@
 //                       window, write the framebuffer as PNG to <path>, print
 //                       {"automation":"capture","saved":true|false,"path":"..."}
 //                       to stdout and close. Exit code 0 only when saved.
+//   --headless          The Gallery draws the window offscreen, with no host
+//                       window, and writes --capture's PNG
+//                       (gallery_headless_capture.hpp): a still of the
+//                       staged page at --size and --scale. Other programs
+//                       ignore it.
 //   --size <W>x<H>      Create the window at this logical size.
 //   --scale <factor>    Recorded as a hint only; hosts take the device scale
 //                       from the display.
@@ -78,6 +83,8 @@ namespace gui_forms::demo {
 struct ProgramOptions final {
     bool automation{};
     bool smoke_test{};
+    // --headless: the Gallery's offscreen capture, with no host window.
+    bool headless{};
     std::string capture_path;
     std::optional<Size> capture_size;
     double scale_hint{};
@@ -94,7 +101,7 @@ struct ProgramOptions final {
 
 inline void print_program_usage(const char* program) {
     std::fprintf(stderr,
-                 "usage: %s [--automation] [--smoke-test] [--capture <path.png>] "
+                 "usage: %s [--automation] [--smoke-test] [--capture <path.png>] [--headless] "
                  "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme-base <id>]\n"
                  "       [--scheme light|dark] [--reveal <id>] [--open-menu <id>[/<item>]]\n"
                  "       [--theme <name|built-in|path.css>]\n",
@@ -156,6 +163,10 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
         }
         if (argument == "--smoke-test") {
             options.smoke_test = true;
+            continue;
+        }
+        if (argument == "--headless") {
+            options.headless = true;
             continue;
         }
         const bool wants_value = argument == "--capture" || argument == "--size" ||

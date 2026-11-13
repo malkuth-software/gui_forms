@@ -41,6 +41,7 @@ public:
     }
     static void repaint_for_image_replacement(SurfaceRoot& root) { root.repaint_for_image_replacement(); }
     static void repaint_for_image_removal(SurfaceRoot& root) { root.repaint_for_image_removal(); }
+    static void relayout_for_light_planes(SurfaceRoot& root) { root.relayout_for_light_planes(); }
     // Whether `root` is inside a paint pass (an image atlas refuses to write
     // its image then).
     [[nodiscard]] static bool painting(const SurfaceRoot& root) noexcept { return root.in_paint_; }

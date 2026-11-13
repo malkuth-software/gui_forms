@@ -1712,6 +1712,12 @@ private:
     static void commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles);
     void repaint_for_image_replacement();
     void repaint_for_image_removal();
+    // A new light-plane directory (ApplicationResources::
+    // set_light_plane_directory): a bake's presence gives a part another
+    // aspect and look, so every control of the root and the overlays is
+    // measured, arranged and painted again, and the part geometry published
+    // after the next layout is the new bakes'.
+    void relayout_for_light_planes();
     // Counts `result` in stale_image_refusals, with its diagnostic line,
     // when it refused `image` as stale_image_id; `operation` names the call.
     void note_image_refusal(std::string_view operation, ImageId image, const ImageLoadResult& result) noexcept;

@@ -173,6 +173,12 @@ void cached_tiles_join() {
     require(table.finish_tile(far, waiter, 1U) == nullptr && table.finish_tile(unscaled, waiter, 1U) == nullptr &&
                 table.cache_statistics().finish_tiles_queued == 2U,
             "a tile beyond the world's reach, or at no scale, is never queued");
+    // A theme change (an offscreen capture's scheme switch and its
+    // restore) keeps the queue: a tile depends on its key alone (cp32).
+    table.invalidate_rasters();
+    table.invalidate_rasters();
+    require(table.finish_tiles_waiting() && table.cache_statistics().finish_tiles_queued == 2U,
+            "a theme change and back keeps both queued tiles");
     bool drained = false;
     for (int frame = 0; frame < 4 && table.finish_tiles_waiting(); ++frame) {
         drained = table.generate_finish_tiles(2U);
