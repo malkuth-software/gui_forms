@@ -44,6 +44,35 @@ private:
     std::vector<Row> rows_{};
 };
 
+// The gap between the navigation pane and the book (GAPS H4): a drag
+// resizes the pane. The pointer is the horizontal resize cursor over it; a
+// primary press captures the pointer, each move sets the viewer's
+// navigation width from the press's width plus the distance moved (held
+// between the minimum and the pane's share of the viewer), and the release
+// or a lost capture ends the drag. It paints nothing and takes no focus.
+class HelpNavigationSplitter final : public Control {
+public:
+    HelpNavigationSplitter(StableId stable_id, HelpBookViewer& owner)
+        : Control(std::move(stable_id)), owner_(&owner) {
+        focusable = false;
+        tab_stop = false;
+        cursor = CursorKind::resize_horizontal;
+    }
+
+protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_capture_changed() override;
+
+private:
+    // The viewer owns this splitter as its child and outlives it.
+    HelpBookViewer* owner_;
+    bool dragging_{};
+    double start_x_{};
+    double start_width_{};
+};
+
 } // namespace detail
 
 namespace {
@@ -106,6 +135,50 @@ void detail::HelpNavigationColumn::arrange(Rect final_bounds) {
         }
         top += height + viewer_gap;
     }
+}
+
+namespace {
+
+// The widest the navigation pane is shown in a viewer `viewer_width` wide.
+[[nodiscard]] double navigation_share(double viewer_width) noexcept {
+    return std::max(0.0, viewer_width * maximum_navigation_share);
+}
+
+} // namespace
+
+void detail::HelpNavigationSplitter::on_mouse_down(MouseEventArgs& arguments) {
+    Control::on_mouse_down(arguments);
+    if (arguments.handled || arguments.button != PointerButton::primary) return;
+    const double viewer_width = (*owner_).client_rectangle().width;
+    dragging_ = true;
+    start_x_ = arguments.window_position.x;
+    start_width_ = std::min((*owner_).navigation_width(), navigation_share(viewer_width));
+    set_pointer_capture(true);
+    arguments.handled = true;
+}
+
+void detail::HelpNavigationSplitter::on_mouse_move(MouseEventArgs& arguments) {
+    Control::on_mouse_move(arguments);
+    if (!dragging_) return;
+    const double viewer_width = (*owner_).client_rectangle().width;
+    const double widest = std::max(minimum_navigation_width, navigation_share(viewer_width));
+    const double wanted = start_width_ + (arguments.window_position.x - start_x_);
+    const double width = std::clamp(wanted, minimum_navigation_width, widest);
+    (*owner_).set_navigation_width(width);
+    arguments.handled = true;
+}
+
+void detail::HelpNavigationSplitter::on_mouse_up(MouseEventArgs& arguments) {
+    Control::on_mouse_up(arguments);
+    if (!dragging_ || arguments.button != PointerButton::primary) return;
+    dragging_ = false;
+    set_pointer_capture(false);
+    arguments.handled = true;
+}
+
+void detail::HelpNavigationSplitter::on_mouse_capture_changed() {
+    Control::on_mouse_capture_changed();
+    if (!has_pointer_capture()) dragging_ = false;
 }
 
 HelpBookViewer::HelpBookViewer(StableId stable_id) : Control(std::move(stable_id)) {
@@ -185,6 +258,8 @@ void HelpBookViewer::initialize_control_tree() {
     add_child(locate_button_);
     add_child(language_button_);
     add_child(tabs_);
+    navigation_splitter_ = make_control<detail::HelpNavigationSplitter>(StableId(prefix + ".navigation-splitter"), *this);
+    add_child(navigation_splitter_);
     add_child(book_);
 
     on((*hide_button_).clicked(), *this, &HelpBookViewer::on_hide_clicked);
@@ -718,6 +793,7 @@ void HelpBookViewer::set_navigation_visible(bool visible) {
     if (navigation_visible_ == visible) return;
     navigation_visible_ = visible;
     (*tabs_).visible = visible;
+    (*navigation_splitter_).visible = visible;
     refresh_buttons();
     invalidate(Dirty::layout);
 }
@@ -875,9 +951,10 @@ void HelpBookViewer::arrange(Rect final_bounds) {
     const double height = std::max(0.0, final_bounds.height - top - viewer_margin);
     double book_left = viewer_margin;
     if (navigation_visible_) {
-        const double share = std::max(0.0, final_bounds.width * maximum_navigation_share);
-        const double width = std::min(navigation_width_, share);
+        const double width = std::min(navigation_width_, navigation_share(final_bounds.width));
         set_child_layout(tabs_, Rect{viewer_margin, top, width, height});
+        // The gap between the pane and the book is the splitter.
+        set_child_layout(navigation_splitter_, Rect{viewer_margin + width, top, viewer_gap, height});
         book_left = viewer_margin + width + viewer_gap;
     }
     const double book_width = std::max(0.0, final_bounds.width - book_left - viewer_margin);

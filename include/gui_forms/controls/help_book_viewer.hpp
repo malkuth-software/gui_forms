@@ -82,6 +82,9 @@ struct GUI_FORMS_API HelpBookViewerSnapshot final {
 // own. It shows one compiled language's helpbook section, never opens a
 // file or a network resource, and passes external links on.
 //
+// The navigation pane is set_navigation_width units wide (at most 60% of
+// the viewer); dragging the gap between it and the book resizes it.
+//
 // Keyboard: Alt+C, Alt+N, Alt+S and Alt+I select Contents, Index, Search
 // and Bookmarks; F6 moves between the navigation pane and the book;
 // Alt+Left and Alt+Right move in history and Alt+Home goes home; Ctrl+P
@@ -245,6 +248,9 @@ private:
     std::shared_ptr<Button> locate_button_;
     std::shared_ptr<Button> language_button_;
     std::shared_ptr<TabControl> tabs_;
+    // The drag handle in the gap after the navigation pane
+    // (detail::HelpNavigationSplitter).
+    Control::Ptr navigation_splitter_;
     std::shared_ptr<TabPage> contents_page_;
     std::shared_ptr<TabPage> index_page_;
     std::shared_ptr<TabPage> search_page_;

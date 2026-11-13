@@ -4725,7 +4725,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "index_row_count", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "labels", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "navigation_visible", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "navigation_width", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "navigation_width", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "search_field", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "search_results", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/help-book_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "section", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/help-book_tests.cpp"},

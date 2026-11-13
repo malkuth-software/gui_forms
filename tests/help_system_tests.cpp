@@ -221,6 +221,36 @@ void viewer() {
     SubscriptionToken printing_token = help.print_requested().subscribe(RecordPrint{&printed});
     static_cast<void>((*program.window).dispatch_key({KeyAction::down, PhysicalKey::p, Modifier::control}));
     require(printed.size() == 1U && printed[0] == viewer.current_page(), "Ctrl+P asks to print the page");
+    // GAPS H4: dragging the gap between the pane and the book resizes the
+    // pane (4 is the viewer's margin and gap, 34 its toolbar).
+    (*program.window).perform_layout();
+    const Rect frame = viewer.absolute_bounds();
+    const double shown = std::min(viewer.navigation_width(), frame.width * 0.6);
+    const Point grip{frame.x + 4.0 + shown + 2.0, frame.y + 34.0 + 20.0};
+    const Control::Ptr over_grip = (*program.window).hit_test(grip);
+    require(over_grip != nullptr && (*over_grip).effective_cursor() == CursorKind::resize_horizontal,
+            "the gap after the navigation pane shows the resize cursor");
+    PointerEvent grab{};
+    grab.action = PointerAction::down;
+    grab.button = PointerButton::primary;
+    grab.position = grip;
+    static_cast<void>((*program.window).dispatch_pointer(grab));
+    PointerEvent drag{};
+    drag.action = PointerAction::move;
+    drag.position = Point{grip.x - 30.0, grip.y};
+    static_cast<void>((*program.window).dispatch_pointer(drag));
+    require(viewer.navigation_width() == std::max(120.0, shown - 30.0), "the drag narrows the pane by its distance");
+    drag.position = Point{grip.x - 1000.0, grip.y};
+    static_cast<void>((*program.window).dispatch_pointer(drag));
+    require(viewer.navigation_width() == 120.0, "the pane stops at its minimum width");
+    PointerEvent release{};
+    release.action = PointerAction::up;
+    release.button = PointerButton::primary;
+    release.position = drag.position;
+    static_cast<void>((*program.window).dispatch_pointer(release));
+    drag.position = grip;
+    static_cast<void>((*program.window).dispatch_pointer(drag));
+    require(viewer.navigation_width() == 120.0, "after the release a move resizes nothing");
     // The navigation pane hides and shows.
     viewer.set_navigation_visible(false);
     (*program.window).perform_layout();
