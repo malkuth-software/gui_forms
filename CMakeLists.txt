@@ -2466,15 +2466,15 @@ if(GUI_FORMS_BUILD_GALLERY)
         set_target_properties(gui_forms_macos_live_resize_probe PROPERTIES
             MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.live-resize-probe")
         if(GUI_FORMS_BUILD_TESTS)
-            add_test(NAME gui_forms_macos_live_resize_directory
-                     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/live-resize)
+            # Launched through LaunchServices so the window is active and
+            # takes the posted drag (cmake/run_macos_activated_test.cmake).
             add_test(NAME gui_forms_macos_live_resize_probe_tests
-                     COMMAND gui_forms_macos_live_resize_probe --out ${CMAKE_CURRENT_BINARY_DIR}/live-resize)
-            set_tests_properties(gui_forms_macos_live_resize_directory PROPERTIES
-                FIXTURES_SETUP gui_forms_live_resize_directory LABELS "mac_conditions")
+                     COMMAND ${CMAKE_COMMAND}
+                         -DBUNDLE=$<TARGET_BUNDLE_DIR:gui_forms_macos_live_resize_probe>
+                         -DOUTPUT_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}
+                         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/run_macos_activated_test.cmake)
             set_tests_properties(gui_forms_macos_live_resize_probe_tests PROPERTIES
-                FIXTURES_REQUIRED gui_forms_live_resize_directory
-                RUN_SERIAL TRUE TIMEOUT 120 LABELS "mac_conditions")
+                RUN_SERIAL TRUE TIMEOUT 150 LABELS "mac_conditions")
         endif()
 
         add_executable(gui_forms_vsync_lab MACOSX_BUNDLE
@@ -3281,6 +3281,39 @@ if(GUI_FORMS_BUILD_TESTS)
                          $<TARGET_BUNDLE_DIR:gui_forms_macos_termination_fixture>)
             set_tests_properties(gui_forms_macos_termination_fixture_tests PROPERTIES
                 RUN_SERIAL TRUE TIMEOUT 120 LABELS "mac_conditions")
+
+            # The normative trace on macOS (tests/macos_normative_trace.mm),
+            # launched through LaunchServices so the window is active and
+            # takes the posted events; it writes normative/macos.trace beside
+            # the bundle, then the comparison with the headless reference.
+            add_executable(gui_forms_macos_normative_trace MACOSX_BUNDLE
+                tests/macos_normative_trace.mm
+                tests/support/normative_trace.cpp
+                ${GUI_FORMS_GALLERY_FONTS} ${GUI_FORMS_GALLERY_FONT_NOTICES})
+            target_compile_options(gui_forms_macos_normative_trace PRIVATE
+                $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>)
+            target_include_directories(gui_forms_macos_normative_trace PRIVATE tests)
+            target_link_libraries(gui_forms_macos_normative_trace PRIVATE gui_forms_host_macos ${GUI_FORMS_APPKIT})
+            set_target_properties(gui_forms_macos_normative_trace PROPERTIES
+                MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.normative-trace")
+            add_test(NAME gui_forms_macos_normative_trace
+                     COMMAND ${CMAKE_COMMAND}
+                         -DBUNDLE=$<TARGET_BUNDLE_DIR:gui_forms_macos_normative_trace>
+                         -DOUTPUT_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}
+                         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/run_macos_activated_test.cmake)
+            set_tests_properties(gui_forms_macos_normative_trace PROPERTIES
+                RUN_SERIAL TRUE TIMEOUT 90 FIXTURES_REQUIRED gui_forms_normative_reference
+                FIXTURES_SETUP gui_forms_normative_macos LABELS "mac_conditions;normative_trace")
+            find_package(Python3 COMPONENTS Interpreter QUIET)
+            if(Python3_Interpreter_FOUND)
+                add_test(NAME gui_forms_macos_normative_trace_compare
+                         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/normative_trace.py compare
+                             --reference-dir ${CMAKE_CURRENT_BINARY_DIR}/normative
+                             --trace $<TARGET_BUNDLE_DIR:gui_forms_macos_normative_trace>/../normative/macos.trace)
+                set_tests_properties(gui_forms_macos_normative_trace_compare PROPERTIES
+                    FIXTURES_REQUIRED "gui_forms_normative_reference;gui_forms_normative_macos"
+                    LABELS "mac_conditions;normative_trace")
+            endif()
         endif()
         # Stage DK W0 measurement (notes:results/2026-10-18-dk-w0-capture-drag/): it
         # puts windows on the desktop, so it is built but never run by ctest.
@@ -3292,6 +3325,30 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_linux_host_tests PRIVATE gui_forms_host_linux X11::X11)
         add_test(NAME gui_forms_linux_host_tests COMMAND gui_forms_linux_host_tests)
         set_tests_properties(gui_forms_linux_host_tests PROPERTIES TIMEOUT 45)
+        # The normative trace on X11 (tests/linux_normative_trace.cpp), then
+        # its comparison with the headless reference. Needs an X server.
+        add_executable(gui_forms_linux_normative_trace
+            tests/linux_normative_trace.cpp
+            tests/support/normative_trace.cpp
+        )
+        target_include_directories(gui_forms_linux_normative_trace PRIVATE tests)
+        target_link_libraries(gui_forms_linux_normative_trace PRIVATE gui_forms_host_linux X11::X11)
+        add_test(NAME gui_forms_linux_normative_trace
+                 COMMAND gui_forms_linux_normative_trace
+                     --output ${CMAKE_CURRENT_BINARY_DIR}/normative/x11.trace)
+        set_tests_properties(gui_forms_linux_normative_trace PROPERTIES
+            RUN_SERIAL TRUE TIMEOUT 60 FIXTURES_REQUIRED gui_forms_normative_reference
+            FIXTURES_SETUP gui_forms_normative_x11 LABELS "normative_trace")
+        find_package(Python3 COMPONENTS Interpreter QUIET)
+        if(Python3_Interpreter_FOUND)
+            add_test(NAME gui_forms_linux_normative_trace_compare
+                     COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/normative_trace.py compare
+                         --reference-dir ${CMAKE_CURRENT_BINARY_DIR}/normative
+                         --trace ${CMAKE_CURRENT_BINARY_DIR}/normative/x11.trace)
+            set_tests_properties(gui_forms_linux_normative_trace_compare PROPERTIES
+                FIXTURES_REQUIRED "gui_forms_normative_reference;gui_forms_normative_x11"
+                LABELS "normative_trace")
+        endif()
         # Audit N66, option a: the host at Xft.dpi 192 under Xvfb, then at 96
         # and 144 during the run. Serial: it rewrites the display's
         # RESOURCE_MANAGER, which every other runtime on the display reads.
@@ -5359,6 +5416,22 @@ if(GUI_FORMS_BUILD_TESTS)
     target_include_directories(gui_forms_headless_trace_tests PRIVATE tests)
     target_link_libraries(gui_forms_headless_trace_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_headless_trace_tests COMMAND gui_forms_headless_trace_tests)
+
+    # The normative trace (release-1.0 condition 2; tests/support/
+    # normative_trace.hpp): the headless reference, replayed and written to
+    # normative/ in the build tree for the host drivers' comparison
+    # (tools/normative_trace.py compare).
+    add_executable(gui_forms_normative_trace_tests
+        tests/normative_trace_tests.cpp
+        tests/support/normative_trace.cpp
+    )
+    target_include_directories(gui_forms_normative_trace_tests PRIVATE tests)
+    target_link_libraries(gui_forms_normative_trace_tests PRIVATE gui_forms_core)
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/normative)
+    add_test(NAME gui_forms_normative_trace_tests
+             COMMAND gui_forms_normative_trace_tests --write ${CMAKE_CURRENT_BINARY_DIR}/normative)
+    set_tests_properties(gui_forms_normative_trace_tests PROPERTIES
+        FIXTURES_SETUP gui_forms_normative_reference LABELS "normative_trace")
 
     add_executable(gui_forms_host_protocol_tests tests/host_protocol_tests.cpp)
     target_link_libraries(gui_forms_host_protocol_tests PRIVATE

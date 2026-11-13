@@ -43,7 +43,9 @@
 //   live-resize|phase=<p>|workload=...|draws=..|size_changes=..|live_resize_draws=..
 //   |interval_median_ms=..|interval_p95_ms=..|interval_max_ms=..
 //   |draw_median_ms=..|draw_p95_ms=..|draw_max_ms=..|stale=..|stalls=..|final_size_drawn=..
-// and, with --out <dir>, <dir>/<phase>.csv holding every draw record. With
+// and <dir>/<phase>.csv holding every draw record, where <dir> is --out's
+// or, by default, live-resize/ beside the bundle; the last line is
+// "failures=N" (cmake/run_macos_activated_test.cmake). With
 // --capture <dir>, a second pass of each phase saves every 4th presented
 // frame (at most 120) as <dir>/<phase>/frame_NNNN.png; that pass's timings
 // include the PNG encoding and are not reported.
@@ -379,6 +381,17 @@ int main(int argc, char** argv) {
         if (argument == "--out") state.out_directory = argv[index + 1];
         if (argument == "--capture") state.capture_directory = argv[index + 1];
     }
+    // LaunchServices passes no arguments (cmake/run_macos_activated_test.cmake):
+    // the CSVs then go to live-resize/ beside the bundle.
+    if (state.out_directory.empty()) {
+        NSString* const beside = [[[NSBundle mainBundle] bundlePath] stringByDeletingLastPathComponent];
+        NSString* const directory = [beside stringByAppendingPathComponent:@"live-resize"];
+        [[NSFileManager defaultManager] createDirectoryAtPath:directory
+                                  withIntermediateDirectories:YES
+                                                   attributes:nil
+                                                        error:nil];
+        state.out_directory = std::string([directory UTF8String]);
+    }
     state.passes.push_back(Pass{PhaseKind::drag, false});
     state.passes.push_back(Pass{PhaseKind::stepped, false});
     if (!state.capture_directory.empty()) {
@@ -398,8 +411,10 @@ int main(int argc, char** argv) {
     std::unique_ptr<gui_forms::Window> window = gui_forms::gallery::make_gallery();
     const int result = gui_forms::host::run_macos(std::move(window), std::move(options));
     if (!state.ran) {
-        std::printf("live-resize|FAIL the probe did not finish (host result %d)\n", result);
+        std::printf("live-resize|FAIL the probe did not finish (host result %d)\nfailures=1\n", result);
         return 2;
     }
-    return state.failed || result != 0 ? 1 : 0;
+    const bool failed = state.failed || result != 0;
+    std::printf("failures=%d\n", failed ? 1 : 0);
+    return failed ? 1 : 0;
 }
