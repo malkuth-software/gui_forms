@@ -58,7 +58,8 @@ HostCapabilities macos_capabilities() {
                 HostCapability::compositor_notifications |
                 HostCapability::presentation_preferences |
                 HostCapability::transient_surfaces |
-                HostCapability::window_state_reports,
+                HostCapability::window_state_reports |
+                HostCapability::hosted_content,
             macos_key_map()};
     // locale: the user's locale and calendar from CoreFoundation, the
     // formats chosen in System Settings included (read_macos_locale).

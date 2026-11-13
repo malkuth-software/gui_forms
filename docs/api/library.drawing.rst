@@ -94,6 +94,30 @@ Types
      - A world-aligned grid for GraphicsRecorder::fill_grid_pattern: lines ``spacing`` apart through ``origin`` (the recorder's coordinates), every ``major_every``-th line from the origin in ``major``, the rest in ``minor``, each ``line_width`` wide.
    * - :cpp:class:`HatchBrush <gui_drawing::HatchBrush>`
      - HatchBrush retains one validated hatch vocabulary value plus foreground/background colors.
+   * - :cpp:class:`HostedClient <gui_forms::HostedClient>`
+     -  
+   * - :cpp:class:`HostedClientInput <gui_forms::HostedClientInput>`
+     - One input event the parent forwarded.
+   * - :cpp:class:`HostedConfigureRecord <gui_forms::HostedConfigureRecord>`
+     - The parent's request, as the child receives it.
+   * - :cpp:class:`HostedContent <gui_forms::HostedContent>`
+     - What make_hosted_content makes: the program to start on a ContentSurface, and the input channel to its process.
+   * - :cpp:class:`HostedContentOptions <gui_forms::HostedContentOptions>`
+     -  
+   * - :cpp:class:`HostedFrameRecord <gui_forms::HostedFrameRecord>`
+     - A frame in a slot: its shape (as ContentFrame) and damage, in the slot's pixels from the slot's first byte.
+   * - :cpp:class:`HostedFrameView <gui_forms::HostedFrameView>`
+     - The frame a record describes, over ``region`` (the whole mapped region of slot_count slots of slot_bytes each), validated before any pixel is read: the slot index, then validate_content_frame over exactly the slot's bytes.
+   * - :cpp:class:`HostedInput <gui_forms::HostedInput>`
+     - The application's end of the input channel: forwards input to the program, from the UI thread or any other.
+   * - :cpp:class:`HostedKeyRecord <gui_forms::HostedKeyRecord>`
+     - A key, as KeyEvent's numeric fields: action (u32), physical key (u32), modifiers (u32), repeat (u32, 0 or 1).
+   * - :cpp:class:`HostedMessage <gui_forms::HostedMessage>`
+     - One message read from the channel.
+   * - :cpp:class:`HostedMessageReader <gui_forms::HostedMessageReader>`
+     - Splits a byte stream into messages, checking each header before its payload is buffered.
+   * - :cpp:class:`HostedPointerRecord <gui_forms::HostedPointerRecord>`
+     - A pointer event in the region's device pixels from its top left: action, button, modifiers, click count (u32 each), then x, y, wheel x, wheel y (f64 bits, u64 each).
    * - :cpp:class:`ImageAttributes <gui_drawing::ImageAttributes>`
      - ImageAttributes retains an optional finite 5x5 color matrix and bounded unique remap table under DrawingObject lifetime rules.
    * - :cpp:class:`ImageAttributesSnapshot <gui_drawing::ImageAttributesSnapshot>`
@@ -1630,6 +1654,308 @@ Types
    .. cpp:function:: BrushSnapshot snapshot() const override
 
       Requires liveness and projects a hatch BrushSnapshot.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: HostedClient final
+
+   ``#include <gui_forms/content/hosted/hosted_client.hpp>``
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::uint32_t slot_count() const noexcept
+
+   .. cpp:function:: std::uint64_t slot_bytes() const noexcept
+
+   .. cpp:function:: HostedConfigureRecord request() const noexcept
+
+      The region's device size and scale as last configured (zero before the first configure).
+
+   .. cpp:function:: bool stop_requested() const noexcept
+
+   .. cpp:function:: bool connected() const noexcept
+
+   .. cpp:function:: int channel_descriptor() const noexcept
+
+      The channel's descriptor, for a program that waits on it with its own loop (and for tests that write malformed bytes); -1 once closed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static std::unique_ptr<HostedClient> connect()
+
+      Connects to the parent the environment names, maps the frame region and sends hello. None when the process was not started as hosted content (the variables are missing or name no usable descriptors).
+
+   .. cpp:function:: bool pump(std::chrono::milliseconds timeout)
+
+      Waits up to ``timeout`` for parent messages and handles every one that arrived: configure updates request(), release frees a slot, input is queued for take_input, stop sets stop_requested(). Returns false once a stop was asked for or the channel closed or broke.
+
+   .. cpp:function:: std::optional<std::uint32_t> acquire_slot(std::chrono::milliseconds timeout)
+
+      A slot the parent has released, pumping up to ``timeout`` for one; none on timeout, stop or a closed channel.
+
+   .. cpp:function:: std::span<std::byte> slot_pixels(std::uint32_t slot) noexcept
+
+      The slot's writable bytes, slot_bytes() long, valid while the client lives. An empty span for a slot that does not exist.
+
+   .. cpp:function:: bool publish(const HostedFrameRecord& record)
+
+      Sends the frame in ``record.slot``; the slot is in use until the parent releases it. False when the slot is not one acquire_slot gave, or the channel is closed.
+
+   .. cpp:function:: bool heartbeat()
+
+   .. cpp:function:: bool publish_semantics(const ContentSemantics& semantics)
+
+   .. cpp:function:: bool goodbye()
+
+      Says the program is about to exit on its own.
+
+   .. cpp:function:: void take_input(std::vector<HostedClientInput>& out)
+
+      Moves the input received so far to the end of ``out``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedClientInput final
+
+   ``#include <gui_forms/content/hosted/hosted_client.hpp>``
+
+   One input event the parent forwarded. ``kind`` is key, text or pointer and says which fields are set.
+
+   .. cpp:member:: HostedMessageKind kind
+
+      Default: ``{HostedMessageKind::key}``.
+
+   .. cpp:member:: HostedKeyRecord key
+
+   .. cpp:member:: HostedPointerRecord pointer
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: bool composing
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedConfigureRecord final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   The parent's request, as the child receives it.
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: std::uint64_t generation
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedContent final
+
+   ``#include <gui_forms/content/hosted/hosted_content.hpp>``
+
+   What make_hosted_content makes: the program to start on a ContentSurface, and the input channel to its process.
+
+   .. cpp:member:: std::unique_ptr<ContentProgram> program
+
+   .. cpp:member:: HostedInput input
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedContentOptions final
+
+   ``#include <gui_forms/content/hosted/hosted_content.hpp>``
+
+   .. cpp:member:: std::filesystem::path executable
+
+      The program to run, by absolute path; it is not looked up on PATH.
+
+   .. cpp:member:: std::vector<std::string> arguments
+
+      Its arguments after the program name.
+
+   .. cpp:member:: std::uint64_t slot_bytes
+
+      Each frame slot's size in bytes (hosted_protocol.hpp); frames larger than a slot are refused. At most maximum_hosted_slot_bytes. Default: ``{default_hosted_slot_bytes}``.
+
+   .. cpp:member:: std::chrono::milliseconds start_timeout
+
+      How long the program may take to send hello; it is ended as failed after that. Default: ``{default_hosted_start_timeout}``.
+
+   .. cpp:member:: std::chrono::milliseconds stop_grace
+
+      How long a stopped program may take to exit before it is killed. Keep it below the surface's termination grace, so the process is ended before the surface stops waiting. Default: ``{default_hosted_stop_grace}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedFrameRecord final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   A frame in a slot: its shape (as ContentFrame) and damage, in the slot's pixels from the slot's first byte. 40 bytes on the wire: slot, width, height, opaque (u32 each), row_bytes (u64), damage x, y, width, height (u32 each).
+
+   .. cpp:member:: std::uint32_t slot
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+   .. cpp:member:: bool opaque
+
+   .. cpp:member:: std::uint64_t row_bytes
+
+   .. cpp:member:: ContentPixelRect damage
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedFrameView final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   The frame a record describes, over ``region`` (the whole mapped region of slot_count slots of slot_bytes each), validated before any pixel is read: the slot index, then validate_content_frame over exactly the slot's bytes. The view borrows ``region``, which must outlive it. On ``accepted``, ``frame`` views the frame's bytes in the slot; on ``refused_frame``, the whole slot (publishing it refuses it again, counted).
+
+   .. cpp:member:: HostedFrameCheck check
+
+      Default: ``{HostedFrameCheck::refused_slot}``.
+
+   .. cpp:member:: ContentPublishResult frame_result
+
+      Default: ``{ContentPublishResult::refused_empty}``.
+
+   .. cpp:member:: ContentFrame frame
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: HostedInput final
+
+   ``#include <gui_forms/content/hosted/hosted_content.hpp>``
+
+   The application's end of the input channel: forwards input to the program, from the UI thread or any other. A send never waits: when the channel is full or the program is not running, the event is dropped and counted. Copies share one channel.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: HostedInput() noexcept = default
+
+   .. cpp:function:: explicit HostedInput(std::shared_ptr<detail::HostedInputState> state) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::uint64_t dropped() const noexcept
+
+      Events dropped because the channel was full or closed.
+
+   .. cpp:function:: bool connected() const noexcept
+
+      Whether the program's process is running and connected.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool send_key(const KeyEvent& event)
+
+      A key, as the window delivered it.
+
+   .. cpp:function:: bool send_text(std::string_view text, bool composing)
+
+      Text input, an input method's composition included.
+
+   .. cpp:function:: bool send_pointer(const PointerEvent& event, Point device_position)
+
+      A pointer event; ``device_position`` is in the region's device pixels from its top left (the local position times the window's scale).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedKeyRecord final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   A key, as KeyEvent's numeric fields: action (u32), physical key (u32), modifiers (u32), repeat (u32, 0 or 1). 16 bytes.
+
+   .. cpp:member:: std::uint32_t action
+
+   .. cpp:member:: std::uint32_t physical_key
+
+   .. cpp:member:: std::uint32_t modifiers
+
+   .. cpp:member:: bool repeat
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedMessage final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   One message read from the channel. ``payload`` is owned.
+
+   .. cpp:member:: HostedMessageKind kind
+
+      Default: ``{HostedMessageKind::heartbeat}``.
+
+   .. cpp:member:: std::vector<std::byte> payload
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: HostedMessageReader final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   Splits a byte stream into messages, checking each header before its payload is buffered. One reader per direction and thread. Its buffer grows to at most one header and one largest payload beyond what was fed and not yet read.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit HostedMessageReader(bool from_child) noexcept
+
+      ``from_child``: the reader accepts the kinds a child sends (the parent's reader) or the kinds a parent sends (the child's).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t pending_bytes() const noexcept
+
+      Bytes fed and not yet taken.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void feed(std::span<const std::byte> bytes)
+
+      Appends received bytes.
+
+   .. cpp:function:: HostedReadResult next(HostedMessage& out)
+
+      Takes the next whole message into ``out``. After a refusal every later call repeats it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostedPointerRecord final
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   A pointer event in the region's device pixels from its top left: action, button, modifiers, click count (u32 each), then x, y, wheel x, wheel y (f64 bits, u64 each). 48 bytes.
+
+   .. cpp:member:: std::uint32_t action
+
+   .. cpp:member:: std::uint32_t button
+
+   .. cpp:member:: std::uint32_t modifiers
+
+   .. cpp:member:: std::uint32_t click_count
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+   .. cpp:member:: double wheel_x
+
+   .. cpp:member:: double wheel_y
 
 .. cpp:namespace:: gui_drawing
 
@@ -3333,6 +3659,72 @@ Enumerations
 
    .. cpp:enumerator:: diagonal_cross
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostedContentSupport
+
+   ``#include <gui_forms/content/hosted/hosted_content.hpp>``
+
+   .. cpp:enumerator:: available
+
+   .. cpp:enumerator:: not_reported
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostedFrameCheck
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   .. cpp:enumerator:: accepted
+
+   .. cpp:enumerator:: refused_slot
+
+   .. cpp:enumerator:: refused_frame
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostedMessageKind
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   .. cpp:enumerator:: hello
+
+   .. cpp:enumerator:: frame
+
+   .. cpp:enumerator:: heartbeat
+
+   .. cpp:enumerator:: semantics
+
+   .. cpp:enumerator:: goodbye
+
+   .. cpp:enumerator:: configure
+
+   .. cpp:enumerator:: release
+
+   .. cpp:enumerator:: key
+
+   .. cpp:enumerator:: text
+
+   .. cpp:enumerator:: pointer
+
+   .. cpp:enumerator:: stop
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostedReadResult
+
+   ``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+   .. cpp:enumerator:: message
+
+   .. cpp:enumerator:: need_more
+
+   .. cpp:enumerator:: refused_magic
+
+   .. cpp:enumerator:: refused_kind
+
+   .. cpp:enumerator:: refused_size
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:enum-class:: InterpolationMode
@@ -3587,6 +3979,148 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_content_layout_entries
 
    The most lines, clusters or caret stops one layout may hold: one million each. A layout holding more is refused before it is read further. Value: ``1000000U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/content/hosted/hosted_content.hpp>``
+
+.. cpp:function:: HostedContentSupport hosted_content_support() noexcept
+
+.. cpp:function:: HostedContent make_hosted_content(HostedContentOptions options)
+
+   Checks ``options`` and makes the program; nothing starts until the surface runs it. Throws std::invalid_argument for an executable that is not an absolute path or a slot size of zero or over the limit, and std::runtime_error where hosted content is not supported.
+
+.. cpp:var:: constexpr std::chrono::milliseconds default_hosted_start_timeout
+
+   Value: ``{5000}``.
+
+.. cpp:var:: constexpr std::chrono::milliseconds default_hosted_stop_grace
+
+   Value: ``{100}``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/content/hosted/hosted_protocol.hpp>``
+
+.. cpp:function:: std::string_view hosted_message_kind_name(HostedMessageKind kind) noexcept
+
+.. cpp:function:: bool hosted_message_kind_valid(std::uint32_t value, bool from_child) noexcept
+
+   Whether ``value`` names a message kind the child may send (``from_child``) or the parent may send.
+
+.. cpp:function:: void append_hosted_message(std::vector<std::byte>& out, HostedMessageKind kind, std::span<const std::byte> payload)
+
+   Appends one whole message (header and payload) to ``out``. Throws std::length_error for a payload over hosted_maximum_payload_bytes.
+
+.. cpp:function:: void encode_hosted_hello(std::vector<std::byte>& payload)
+
+   Payload encoders: each fills ``payload``, replacing its contents.
+
+.. cpp:function:: void encode_hosted_frame(std::vector<std::byte>& payload, const HostedFrameRecord& record)
+
+.. cpp:function:: void encode_hosted_slot(std::vector<std::byte>& payload, std::uint32_t slot)
+
+.. cpp:function:: void encode_hosted_key(std::vector<std::byte>& payload, const HostedKeyRecord& record)
+
+.. cpp:function:: void encode_hosted_text(std::vector<std::byte>& payload, std::string_view text, bool composing)
+
+.. cpp:function:: void encode_hosted_pointer(std::vector<std::byte>& payload, const HostedPointerRecord& record)
+
+.. cpp:function:: void encode_hosted_configure(std::vector<std::byte>& payload, const HostedConfigureRecord& record)
+
+.. cpp:function:: void encode_hosted_semantics(std::vector<std::byte>& payload, const ContentSemantics& semantics)
+
+   Throws std::length_error when the three strings exceed the payload limit.
+
+.. cpp:function:: bool decode_hosted_hello(std::span<const std::byte> payload, std::uint32_t& version)
+
+   Payload decoders: each returns false, leaving ``out`` unspecified, for a payload of the wrong size or contents (an unknown version, a slot index or flag out of range, a string running past the payload, text that is not UTF-8).
+
+.. cpp:function:: bool decode_hosted_frame(std::span<const std::byte> payload, HostedFrameRecord& out)
+
+.. cpp:function:: bool decode_hosted_slot(std::span<const std::byte> payload, std::uint32_t& slot)
+
+.. cpp:function:: bool decode_hosted_key(std::span<const std::byte> payload, HostedKeyRecord& out)
+
+.. cpp:function:: bool decode_hosted_text(std::span<const std::byte> payload, std::string& text, bool& composing)
+
+.. cpp:function:: bool decode_hosted_pointer(std::span<const std::byte> payload, HostedPointerRecord& out)
+
+.. cpp:function:: bool decode_hosted_configure(std::span<const std::byte> payload, HostedConfigureRecord& out)
+
+.. cpp:function:: bool decode_hosted_semantics(std::span<const std::byte> payload, ContentSemantics& out)
+
+.. cpp:function:: HostedFrameView view_hosted_frame(const HostedFrameRecord& record, std::span<const std::byte> region, std::uint32_t slot_count, std::uint64_t slot_bytes) noexcept
+
+.. cpp:function:: std::string_view hosted_read_result_name(HostedReadResult result) noexcept
+
+.. cpp:var:: constexpr std::uint32_t hosted_protocol_magic
+
+   "GFHC" read as a little-endian u32. Value: ``0x43484647U``.
+
+.. cpp:var:: constexpr std::uint32_t hosted_protocol_version
+
+   Value: ``1U``.
+
+.. cpp:var:: constexpr std::size_t hosted_message_header_bytes
+
+   Value: ``16U``.
+
+.. cpp:var:: constexpr std::size_t hosted_maximum_payload_bytes
+
+   The largest payload either end accepts: semantic text up to its limit, three strings' length fields and slack. Value: ``maximum_content_semantic_text_bytes + 64U``.
+
+.. cpp:var:: constexpr std::uint32_t hosted_slot_count
+
+   The frame slots: two, so the child draws one while the parent copies the other. Value: ``2U``.
+
+.. cpp:var:: constexpr std::uint64_t default_hosted_slot_bytes
+
+   The default and largest slot: a frame of up to 32 MiB (a 4096 by 2048 frame) by default; at most the content frame limit. Value: ``32ULL * 1024ULL * 1024ULL``.
+
+.. cpp:var:: constexpr std::uint64_t maximum_hosted_slot_bytes
+
+   Value: ``maximum_content_frame_bytes``.
+
+.. cpp:var:: constexpr int hosted_channel_descriptor
+
+   The descriptors and environment the parent gives the child. The channel and the frame region are inherited at these descriptor numbers on POSIX; the environment names them as well, with the slot shape. Value: ``3``.
+
+.. cpp:var:: constexpr int hosted_frames_descriptor
+
+   Value: ``4``.
+
+.. cpp:var:: constexpr std::string_view hosted_environment_channel
+
+   Value: ``"GUI_FORMS_HOSTED_CHANNEL"``.
+
+.. cpp:var:: constexpr std::string_view hosted_environment_frames
+
+   Value: ``"GUI_FORMS_HOSTED_FRAMES"``.
+
+.. cpp:var:: constexpr std::string_view hosted_environment_slot_bytes
+
+   Value: ``"GUI_FORMS_HOSTED_SLOT_BYTES"``.
+
+.. cpp:var:: constexpr std::string_view hosted_environment_slot_count
+
+   Value: ``"GUI_FORMS_HOSTED_SLOT_COUNT"``.
+
+.. cpp:var:: constexpr std::size_t hosted_frame_record_bytes
+
+   Value: ``40U``.
+
+.. cpp:var:: constexpr std::size_t hosted_key_record_bytes
+
+   Value: ``16U``.
+
+.. cpp:var:: constexpr std::size_t hosted_pointer_record_bytes
+
+   Value: ``48U``.
+
+.. cpp:var:: constexpr std::size_t hosted_configure_record_bytes
+
+   Value: ``24U``.
 
 .. cpp:namespace:: gui_forms
 

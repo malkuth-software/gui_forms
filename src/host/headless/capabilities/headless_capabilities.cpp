@@ -43,7 +43,12 @@ HostCapabilities headless_capabilities() {
                 // (HeadlessHostServices::set_corner_report).
                 HostCapability::window_corners |
                 // Tests dispatch HostWindowStateEvent themselves.
-                HostCapability::window_state_reports,
+                HostCapability::window_state_reports
+#if !defined(_WIN32)
+                // Hosted content is real where it exists (POSIX).
+                | HostCapability::hosted_content
+#endif
+                ,
             // The reference host reports the PC convention.
             pc_key_map()};
 }

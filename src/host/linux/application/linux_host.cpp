@@ -2258,7 +2258,8 @@ HostCapabilities linux_capabilities() {
               HostCapability::compositor_notifications |
               HostCapability::transient_surfaces |
               HostCapability::opaque_transient_surfaces |
-              HostCapability::window_state_reports,
+              HostCapability::window_state_reports |
+              HostCapability::hosted_content,
           // X11 desktops follow the PC keyboard convention.
           pc_key_map()};
   // locale: the environment's POSIX locale (read_posix_locale); none for

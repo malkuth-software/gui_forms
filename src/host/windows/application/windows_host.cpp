@@ -4216,6 +4216,8 @@ HostCapabilities windows_capabilities() {
                 HostCapability::presentation_preferences |
                 HostCapability::transient_surfaces |
                 HostCapability::window_corners |
+                // HostCapability::hosted_content is not reported until
+                // src/host/windows/hosted/ is written (the hand-back).
                 HostCapability::window_state_reports,
             // Windows follows the PC keyboard convention (Ctrl+F4 closes a
             // document).

@@ -178,7 +178,7 @@ gui_forms::ContentSurface
 
       Sets :cpp:func:`termination_grace <gui_forms::ContentSurface::termination_grace>`; see the property's description above.
 
-   .. cpp:function:: const std::string& failure() const noexcept
+   .. cpp:function:: const std::string& failure() const& noexcept
 
       What a program the surface ran threw, while the status is ``failed``.
 

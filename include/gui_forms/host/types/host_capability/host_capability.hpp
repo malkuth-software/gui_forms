@@ -98,6 +98,14 @@ enum class HostCapability : std::uint64_t {
     // holds the portable default. macOS and Linux; the Windows host does
     // not report it yet. Host protocol version 14.
     locale = 1ULL << 36U,
+    // Hosted content runs here (content/hosted/hosted_content.hpp): a
+    // sub-surface program in its own process, frames through shared memory
+    // and input through a channel; its crash leaves the application running
+    // (owner decisions 2026-11-13, "The two topologies"). macOS and Linux;
+    // the Windows host does not report it until its implementation exists.
+    // Not yet in the C ABI's capability set. Additive flag; no protocol
+    // version change.
+    hosted_content = 1ULL << 37U,
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,

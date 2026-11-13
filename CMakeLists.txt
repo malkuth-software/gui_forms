@@ -555,6 +555,7 @@ add_library(gui_forms_core STATIC
     src/core/content/channel/content_channel.cpp
     src/core/content/frame_sink/content_frame_sink.cpp
     src/core/content/editing/content_text_layout.cpp
+    src/core/content/hosted/hosted_protocol.cpp
     src/core/content/operation/content_worker.cpp
     src/core/content/types/content_types.cpp
     src/core/content/watchdog/content_watchdog.cpp
@@ -683,6 +684,14 @@ target_link_libraries(gui_forms_core PRIVATE stx_rtf2md::stx_rtf2md)
 # objects are part of Core, so no target is added to the exports; its header
 # stays private to markdown.cpp.
 target_sources(gui_forms_core PRIVATE $<TARGET_OBJECTS:stx_text::md4c>)
+# Hosted content's parent end (include/gui_forms/content/hosted): POSIX
+# processes, shared memory and a socket pair on macOS and Linux; on Windows
+# an implementation that reports itself absent (the hand-back writes it).
+if(WIN32)
+    target_sources(gui_forms_core PRIVATE src/host/windows/hosted/hosted_content_windows.cpp)
+else()
+    target_sources(gui_forms_core PRIVATE src/host/posix/hosted/hosted_content_posix.cpp)
+endif()
 set_source_files_properties(src/core/text/markdown/markdown.cpp PROPERTIES
     INCLUDE_DIRECTORIES "${GUI_FORMS_STX_BUILD_PREFIX_DIR}/include/md4c")
 set_property(TARGET gui_forms_core PROPERTY INTERFACE_GUI_FORMS_CORE_LINKAGE static)
@@ -737,6 +746,13 @@ else()
 endif()
 target_link_libraries(gui_forms_sealed_pages_objects PRIVATE gui_forms_core)
 set_target_properties(gui_forms_sealed_pages_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
+# The hosted program's end (include/gui_forms/content/hosted/hosted_client.hpp):
+# what a program started by make_hosted_content links. macOS and Linux.
+if(NOT WIN32)
+    add_library(gui_forms_hosted_client STATIC src/host/posix/hosted/hosted_client_posix.cpp)
+    target_link_libraries(gui_forms_hosted_client PUBLIC gui_forms_core)
+    set_target_properties(gui_forms_hosted_client PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
 if(WIN32 AND GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
     # The transactional DIB frame store: the Win32 host and three tests.
     add_library(gui_forms_dib_frame_store_objects OBJECT src/host/windows/raster/dib_frame_store.cpp)
@@ -3788,6 +3804,19 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_content_text_editor_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_content_text_editor_tests COMMAND gui_forms_content_text_editor_tests)
     set_tests_properties(gui_forms_content_text_editor_tests PROPERTIES TIMEOUT 120)
+    # Hosted content: the protocol everywhere, the process cases (with the
+    # child program they start) on macOS and Linux.
+    add_executable(gui_forms_hosted_content_tests tests/hosted_content_tests.cpp)
+    target_link_libraries(gui_forms_hosted_content_tests PRIVATE gui_forms_controls gui_forms_host_headless)
+    if(NOT WIN32)
+        add_executable(gui_forms_hosted_child tests/hosted_child.cpp)
+        target_link_libraries(gui_forms_hosted_child PRIVATE gui_forms_hosted_client)
+        add_dependencies(gui_forms_hosted_content_tests gui_forms_hosted_child)
+        target_compile_definitions(gui_forms_hosted_content_tests PRIVATE
+            "GUI_FORMS_HOSTED_CHILD=\"$<TARGET_FILE:gui_forms_hosted_child>\"")
+    endif()
+    add_test(NAME gui_forms_hosted_content_tests COMMAND gui_forms_hosted_content_tests)
+    set_tests_properties(gui_forms_hosted_content_tests PROPERTIES TIMEOUT 120)
     # No shared GUI.Forms library exports a symbol of the pinned text stack
     # (cmake/CheckForeignTextSymbols.cmake), so a consumer's own HarfBuzz and
     # FreeType never meet ours.
