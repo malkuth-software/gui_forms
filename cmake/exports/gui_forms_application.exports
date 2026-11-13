@@ -213,6 +213,7 @@ __ZGVZN9gui_forms12BoxAlignment*
 __ZGVZN9gui_forms12ColorCommand*
 __ZGVZN9gui_forms12ColourOrigin*
 __ZGVZN9gui_forms12CommandState*
+__ZGVZN9gui_forms12ContentFrame*
 __ZGVZN9gui_forms12CursorImages*
 __ZGVZN9gui_forms12CursorStatus*
 __ZGVZN9gui_forms12DamageRegion*
@@ -309,6 +310,7 @@ __ZGVZN9gui_forms13BlockFlowLine*
 __ZGVZN9gui_forms13CaretSettings*
 __ZGVZN9gui_forms13CommandTarget*
 __ZGVZN9gui_forms13ContentRegion*
+__ZGVZN9gui_forms13ContentWorker*
 __ZGVZN9gui_forms13ControlLookup*
 __ZGVZN9gui_forms13CursorMetrics*
 __ZGVZN9gui_forms13DateTimeValue*
@@ -401,7 +403,11 @@ __ZGVZN9gui_forms14CheckedListBox*
 __ZGVZN9gui_forms14CheckerPattern*
 __ZGVZN9gui_forms14CollectionEdit*
 __ZGVZN9gui_forms14CommandBinding*
+__ZGVZN9gui_forms14ContentContext*
 __ZGVZN9gui_forms14ContentItemKey*
+__ZGVZN9gui_forms14ContentProgram*
+__ZGVZN9gui_forms14ContentRequest*
+__ZGVZN9gui_forms14ContentSurface*
 __ZGVZN9gui_forms14ControlAnatomy*
 __ZGVZN9gui_forms14ControlFactory*
 __ZGVZN9gui_forms14DateTimePicker*
@@ -508,6 +514,8 @@ __ZGVZN9gui_forms15CollapsedMargin*
 __ZGVZN9gui_forms15CollectionDirty*
 __ZGVZN9gui_forms15ColourSchemeSet*
 __ZGVZN9gui_forms15CompositorState*
+__ZGVZN9gui_forms15ContentTextLine*
+__ZGVZN9gui_forms15ContentWatchdog*
 __ZGVZN9gui_forms15ControlSnapshot*
 __ZGVZN9gui_forms15CurrencyManager*
 __ZGVZN9gui_forms15DataGridViewRow*
@@ -606,6 +614,11 @@ __ZGVZN9gui_forms16BindingPredicate*
 __ZGVZN9gui_forms16CachedPartRaster*
 __ZGVZN9gui_forms16ColorValueEditor*
 __ZGVZN9gui_forms16ContainerControl*
+__ZGVZN9gui_forms16ContentCaretStop*
+__ZGVZN9gui_forms16ContentFrameSink*
+__ZGVZN9gui_forms16ContentPixelRect*
+__ZGVZN9gui_forms16ContentPixelSize*
+__ZGVZN9gui_forms16ContentSemantics*
 __ZGVZN9gui_forms16ControlRoleTable*
 __ZGVZN9gui_forms16CustomStateIndex*
 __ZGVZN9gui_forms16DisplayChunkInfo*
@@ -714,6 +727,8 @@ __ZGVZN9gui_forms17BindingListChange*
 __ZGVZN9gui_forms17BreadcrumbSegment*
 __ZGVZN9gui_forms17CalendarDateRange*
 __ZGVZN9gui_forms17CommandInvocation*
+__ZGVZN9gui_forms17ContentTextEditor*
+__ZGVZN9gui_forms17ContentTextLayout*
 __ZGVZN9gui_forms17ControlTextShadow*
 __ZGVZN9gui_forms17CursorHiddenLease*
 __ZGVZN9gui_forms17CursorLeaseResult*
@@ -812,6 +827,7 @@ __ZGVZN9gui_forms18ChildPropertyEntry*
 __ZGVZN9gui_forms18CommandRouteResult*
 __ZGVZN9gui_forms18CompiledThemeRules*
 __ZGVZN9gui_forms18ComponentContainer*
+__ZGVZN9gui_forms18ContentTextCluster*
 __ZGVZN9gui_forms18ContextMenuRequest*
 __ZGVZN9gui_forms18ControlCanvasPaint*
 __ZGVZN9gui_forms18ControlPartMetrics*
@@ -1227,6 +1243,7 @@ __ZGVZN9gui_forms24BackgroundWorkerProgress*
 __ZGVZN9gui_forms24BlockFlowLayoutWorkspace*
 __ZGVZN9gui_forms24CommandOverflowGroupSpec*
 __ZGVZN9gui_forms24ConnectedControlTopology*
+__ZGVZN9gui_forms24ContentSurfaceStatistics*
 __ZGVZN9gui_forms24DataGridViewCellsContent*
 __ZGVZN9gui_forms24DataGridViewDisplayIndex*
 __ZGVZN9gui_forms24ExpressionParameterIndex*
@@ -1741,6 +1758,7 @@ __ZGVZNK9gui_forms12BoxAlignment*
 __ZGVZNK9gui_forms12ColorCommand*
 __ZGVZNK9gui_forms12ColourOrigin*
 __ZGVZNK9gui_forms12CommandState*
+__ZGVZNK9gui_forms12ContentFrame*
 __ZGVZNK9gui_forms12CursorImages*
 __ZGVZNK9gui_forms12CursorStatus*
 __ZGVZNK9gui_forms12DamageRegion*
@@ -1837,6 +1855,7 @@ __ZGVZNK9gui_forms13BlockFlowLine*
 __ZGVZNK9gui_forms13CaretSettings*
 __ZGVZNK9gui_forms13CommandTarget*
 __ZGVZNK9gui_forms13ContentRegion*
+__ZGVZNK9gui_forms13ContentWorker*
 __ZGVZNK9gui_forms13ControlLookup*
 __ZGVZNK9gui_forms13CursorMetrics*
 __ZGVZNK9gui_forms13DateTimeValue*
@@ -1929,7 +1948,11 @@ __ZGVZNK9gui_forms14CheckedListBox*
 __ZGVZNK9gui_forms14CheckerPattern*
 __ZGVZNK9gui_forms14CollectionEdit*
 __ZGVZNK9gui_forms14CommandBinding*
+__ZGVZNK9gui_forms14ContentContext*
 __ZGVZNK9gui_forms14ContentItemKey*
+__ZGVZNK9gui_forms14ContentProgram*
+__ZGVZNK9gui_forms14ContentRequest*
+__ZGVZNK9gui_forms14ContentSurface*
 __ZGVZNK9gui_forms14ControlAnatomy*
 __ZGVZNK9gui_forms14ControlFactory*
 __ZGVZNK9gui_forms14DateTimePicker*
@@ -2036,6 +2059,8 @@ __ZGVZNK9gui_forms15CollapsedMargin*
 __ZGVZNK9gui_forms15CollectionDirty*
 __ZGVZNK9gui_forms15ColourSchemeSet*
 __ZGVZNK9gui_forms15CompositorState*
+__ZGVZNK9gui_forms15ContentTextLine*
+__ZGVZNK9gui_forms15ContentWatchdog*
 __ZGVZNK9gui_forms15ControlSnapshot*
 __ZGVZNK9gui_forms15CurrencyManager*
 __ZGVZNK9gui_forms15DataGridViewRow*
@@ -2134,6 +2159,11 @@ __ZGVZNK9gui_forms16BindingPredicate*
 __ZGVZNK9gui_forms16CachedPartRaster*
 __ZGVZNK9gui_forms16ColorValueEditor*
 __ZGVZNK9gui_forms16ContainerControl*
+__ZGVZNK9gui_forms16ContentCaretStop*
+__ZGVZNK9gui_forms16ContentFrameSink*
+__ZGVZNK9gui_forms16ContentPixelRect*
+__ZGVZNK9gui_forms16ContentPixelSize*
+__ZGVZNK9gui_forms16ContentSemantics*
 __ZGVZNK9gui_forms16ControlRoleTable*
 __ZGVZNK9gui_forms16CustomStateIndex*
 __ZGVZNK9gui_forms16DisplayChunkInfo*
@@ -2242,6 +2272,8 @@ __ZGVZNK9gui_forms17BindingListChange*
 __ZGVZNK9gui_forms17BreadcrumbSegment*
 __ZGVZNK9gui_forms17CalendarDateRange*
 __ZGVZNK9gui_forms17CommandInvocation*
+__ZGVZNK9gui_forms17ContentTextEditor*
+__ZGVZNK9gui_forms17ContentTextLayout*
 __ZGVZNK9gui_forms17ControlTextShadow*
 __ZGVZNK9gui_forms17CursorHiddenLease*
 __ZGVZNK9gui_forms17CursorLeaseResult*
@@ -2340,6 +2372,7 @@ __ZGVZNK9gui_forms18ChildPropertyEntry*
 __ZGVZNK9gui_forms18CommandRouteResult*
 __ZGVZNK9gui_forms18CompiledThemeRules*
 __ZGVZNK9gui_forms18ComponentContainer*
+__ZGVZNK9gui_forms18ContentTextCluster*
 __ZGVZNK9gui_forms18ContextMenuRequest*
 __ZGVZNK9gui_forms18ControlCanvasPaint*
 __ZGVZNK9gui_forms18ControlPartMetrics*
@@ -2755,6 +2788,7 @@ __ZGVZNK9gui_forms24BackgroundWorkerProgress*
 __ZGVZNK9gui_forms24BlockFlowLayoutWorkspace*
 __ZGVZNK9gui_forms24CommandOverflowGroupSpec*
 __ZGVZNK9gui_forms24ConnectedControlTopology*
+__ZGVZNK9gui_forms24ContentSurfaceStatistics*
 __ZGVZNK9gui_forms24DataGridViewCellsContent*
 __ZGVZNK9gui_forms24DataGridViewDisplayIndex*
 __ZGVZNK9gui_forms24ExpressionParameterIndex*
@@ -3345,6 +3379,7 @@ __ZN9gui_forms12BoxAlignment*
 __ZN9gui_forms12ColorCommand*
 __ZN9gui_forms12ColourOrigin*
 __ZN9gui_forms12CommandState*
+__ZN9gui_forms12ContentFrame*
 __ZN9gui_forms12CursorImages*
 __ZN9gui_forms12CursorStatus*
 __ZN9gui_forms12DamageRegion*
@@ -3489,6 +3524,7 @@ __ZN9gui_forms13BlockFlowLine*
 __ZN9gui_forms13CaretSettings*
 __ZN9gui_forms13CommandTarget*
 __ZN9gui_forms13ContentRegion*
+__ZN9gui_forms13ContentWorker*
 __ZN9gui_forms13ControlLookup*
 __ZN9gui_forms13CursorMetrics*
 __ZN9gui_forms13DateTimeValue*
@@ -3597,7 +3633,11 @@ __ZN9gui_forms14CheckedListBox*
 __ZN9gui_forms14CheckerPattern*
 __ZN9gui_forms14CollectionEdit*
 __ZN9gui_forms14CommandBinding*
+__ZN9gui_forms14ContentContext*
 __ZN9gui_forms14ContentItemKey*
+__ZN9gui_forms14ContentProgram*
+__ZN9gui_forms14ContentRequest*
+__ZN9gui_forms14ContentSurface*
 __ZN9gui_forms14ControlAnatomy*
 __ZN9gui_forms14ControlFactory*
 __ZN9gui_forms14DateTimePicker*
@@ -3752,6 +3792,8 @@ __ZN9gui_forms15CollapsedMargin*
 __ZN9gui_forms15CollectionDirty*
 __ZN9gui_forms15ColourSchemeSet*
 __ZN9gui_forms15CompositorState*
+__ZN9gui_forms15ContentTextLine*
+__ZN9gui_forms15ContentWatchdog*
 __ZN9gui_forms15ControlSnapshot*
 __ZN9gui_forms15CurrencyManager*
 __ZN9gui_forms15DataGridViewRow*
@@ -3892,6 +3934,11 @@ __ZN9gui_forms16BindingPredicate*
 __ZN9gui_forms16CachedPartRaster*
 __ZN9gui_forms16ColorValueEditor*
 __ZN9gui_forms16ContainerControl*
+__ZN9gui_forms16ContentCaretStop*
+__ZN9gui_forms16ContentFrameSink*
+__ZN9gui_forms16ContentPixelRect*
+__ZN9gui_forms16ContentPixelSize*
+__ZN9gui_forms16ContentSemantics*
 __ZN9gui_forms16ControlRoleTable*
 __ZN9gui_forms16CustomStateIndex*
 __ZN9gui_forms16DisplayChunkInfo*
@@ -4074,6 +4121,8 @@ __ZN9gui_forms17BindingListChange*
 __ZN9gui_forms17BreadcrumbSegment*
 __ZN9gui_forms17CalendarDateRange*
 __ZN9gui_forms17CommandInvocation*
+__ZN9gui_forms17ContentTextEditor*
+__ZN9gui_forms17ContentTextLayout*
 __ZN9gui_forms17ControlTextShadow*
 __ZN9gui_forms17CursorHiddenLease*
 __ZN9gui_forms17CursorLeaseResult*
@@ -4240,6 +4289,7 @@ __ZN9gui_forms18ChildPropertyEntry*
 __ZN9gui_forms18CommandRouteResult*
 __ZN9gui_forms18CompiledThemeRules*
 __ZN9gui_forms18ComponentContainer*
+__ZN9gui_forms18ContentTextCluster*
 __ZN9gui_forms18ContextMenuRequest*
 __ZN9gui_forms18ControlCanvasPaint*
 __ZN9gui_forms18ControlPartMetrics*
@@ -5033,6 +5083,8 @@ __ZN9gui_forms22valid_style_class_nameB*
 __ZN9gui_forms22valid_style_class_nameE*
 __ZN9gui_forms22valid_surface_materialB*
 __ZN9gui_forms22valid_surface_materialE*
+__ZN9gui_forms22validate_content_frameB*
+__ZN9gui_forms22validate_content_frameE*
 __ZN9gui_forms22value_text_defect_nameB*
 __ZN9gui_forms22value_text_defect_nameE*
 __ZN9gui_forms22write_helpbook_sectionB*
@@ -5175,6 +5227,7 @@ __ZN9gui_forms24BackgroundWorkerProgress*
 __ZN9gui_forms24BlockFlowLayoutWorkspace*
 __ZN9gui_forms24CommandOverflowGroupSpec*
 __ZN9gui_forms24ConnectedControlTopology*
+__ZN9gui_forms24ContentSurfaceStatistics*
 __ZN9gui_forms24DataGridViewCellsContent*
 __ZN9gui_forms24DataGridViewDisplayIndex*
 __ZN9gui_forms24ExpressionParameterIndex*
@@ -5260,6 +5313,8 @@ __ZN9gui_forms25QuickAccessToolbarCommand*
 __ZN9gui_forms25ResponsiveTrackResolution*
 __ZN9gui_forms25TreeListColumnWidthChange*
 __ZN9gui_forms25WindowFrameDragStatistics*
+__ZN9gui_forms25abandoned_content_workersB*
+__ZN9gui_forms25abandoned_content_workersE*
 __ZN9gui_forms25allocation_subsystem_nameB*
 __ZN9gui_forms25allocation_subsystem_nameE*
 __ZN9gui_forms25binding_value_to_unsignedB*
@@ -5268,6 +5323,8 @@ __ZN9gui_forms25box_shadow_visual_outsetsB*
 __ZN9gui_forms25box_shadow_visual_outsetsE*
 __ZN9gui_forms25connected_control_segmentB*
 __ZN9gui_forms25connected_control_segmentE*
+__ZN9gui_forms25content_worker_state_nameB*
+__ZN9gui_forms25content_worker_state_nameE*
 __ZN9gui_forms25drag_auto_scroll_velocityB*
 __ZN9gui_forms25drag_auto_scroll_velocityE*
 __ZN9gui_forms25encode_window_capture_pngB*
@@ -5342,6 +5399,10 @@ __ZN9gui_forms26block_flow_intrinsic_widthB*
 __ZN9gui_forms26block_flow_intrinsic_widthE*
 __ZN9gui_forms26builtin_primitive_registryB*
 __ZN9gui_forms26builtin_primitive_registryE*
+__ZN9gui_forms26content_frame_extent_bytesB*
+__ZN9gui_forms26content_frame_extent_bytesE*
+__ZN9gui_forms26content_layout_result_nameB*
+__ZN9gui_forms26content_layout_result_nameE*
 __ZN9gui_forms26copy_failure_shadow_framesB*
 __ZN9gui_forms26copy_failure_shadow_framesE*
 __ZN9gui_forms26familiar_theme_floor_sheetB*
@@ -5376,6 +5437,8 @@ __ZN9gui_forms26scene_distance_to_polylineB*
 __ZN9gui_forms26scene_distance_to_polylineE*
 __ZN9gui_forms26show_specimen_custom_stateB*
 __ZN9gui_forms26show_specimen_custom_stateE*
+__ZN9gui_forms26validate_content_semanticsB*
+__ZN9gui_forms26validate_content_semanticsE*
 __ZN9gui_forms26write_child_property_entryB*
 __ZN9gui_forms26write_child_property_entryE*
 __ZN9gui_forms27ApplicationWindowOpenResult*
@@ -5393,6 +5456,10 @@ __ZN9gui_forms27ToolStripDropDownInvocation*
 __ZN9gui_forms27VisualControlLayoutSnapshot*
 __ZN9gui_forms27absolute_axis_reads_contentB*
 __ZN9gui_forms27absolute_axis_reads_contentE*
+__ZN9gui_forms27content_publish_result_nameB*
+__ZN9gui_forms27content_publish_result_nameE*
+__ZN9gui_forms27content_surface_status_nameB*
+__ZN9gui_forms27content_surface_status_nameE*
 __ZN9gui_forms27form_start_position_definedB*
 __ZN9gui_forms27form_start_position_definedE*
 __ZN9gui_forms27layout_diagnostic_code_nameB*
@@ -5449,6 +5516,8 @@ __ZN9gui_forms28surface_material_resize_bandB*
 __ZN9gui_forms28surface_material_resize_bandE*
 __ZN9gui_forms28thread_allocation_statisticsB*
 __ZN9gui_forms28thread_allocation_statisticsE*
+__ZN9gui_forms28validate_content_text_layoutB*
+__ZN9gui_forms28validate_content_text_layoutE*
 __ZN9gui_forms28window_backdrop_support_nameB*
 __ZN9gui_forms28window_backdrop_support_nameE*
 __ZN9gui_forms28window_band_appearance_validB*
@@ -6219,6 +6288,7 @@ __ZNK[RO]9gui_forms12BoxAlignment*
 __ZNK[RO]9gui_forms12ColorCommand*
 __ZNK[RO]9gui_forms12ColourOrigin*
 __ZNK[RO]9gui_forms12CommandState*
+__ZNK[RO]9gui_forms12ContentFrame*
 __ZNK[RO]9gui_forms12CursorImages*
 __ZNK[RO]9gui_forms12CursorStatus*
 __ZNK[RO]9gui_forms12DamageRegion*
@@ -6315,6 +6385,7 @@ __ZNK[RO]9gui_forms13BlockFlowLine*
 __ZNK[RO]9gui_forms13CaretSettings*
 __ZNK[RO]9gui_forms13CommandTarget*
 __ZNK[RO]9gui_forms13ContentRegion*
+__ZNK[RO]9gui_forms13ContentWorker*
 __ZNK[RO]9gui_forms13ControlLookup*
 __ZNK[RO]9gui_forms13CursorMetrics*
 __ZNK[RO]9gui_forms13DateTimeValue*
@@ -6407,7 +6478,11 @@ __ZNK[RO]9gui_forms14CheckedListBox*
 __ZNK[RO]9gui_forms14CheckerPattern*
 __ZNK[RO]9gui_forms14CollectionEdit*
 __ZNK[RO]9gui_forms14CommandBinding*
+__ZNK[RO]9gui_forms14ContentContext*
 __ZNK[RO]9gui_forms14ContentItemKey*
+__ZNK[RO]9gui_forms14ContentProgram*
+__ZNK[RO]9gui_forms14ContentRequest*
+__ZNK[RO]9gui_forms14ContentSurface*
 __ZNK[RO]9gui_forms14ControlAnatomy*
 __ZNK[RO]9gui_forms14ControlFactory*
 __ZNK[RO]9gui_forms14DateTimePicker*
@@ -6514,6 +6589,8 @@ __ZNK[RO]9gui_forms15CollapsedMargin*
 __ZNK[RO]9gui_forms15CollectionDirty*
 __ZNK[RO]9gui_forms15ColourSchemeSet*
 __ZNK[RO]9gui_forms15CompositorState*
+__ZNK[RO]9gui_forms15ContentTextLine*
+__ZNK[RO]9gui_forms15ContentWatchdog*
 __ZNK[RO]9gui_forms15ControlSnapshot*
 __ZNK[RO]9gui_forms15CurrencyManager*
 __ZNK[RO]9gui_forms15DataGridViewRow*
@@ -6612,6 +6689,11 @@ __ZNK[RO]9gui_forms16BindingPredicate*
 __ZNK[RO]9gui_forms16CachedPartRaster*
 __ZNK[RO]9gui_forms16ColorValueEditor*
 __ZNK[RO]9gui_forms16ContainerControl*
+__ZNK[RO]9gui_forms16ContentCaretStop*
+__ZNK[RO]9gui_forms16ContentFrameSink*
+__ZNK[RO]9gui_forms16ContentPixelRect*
+__ZNK[RO]9gui_forms16ContentPixelSize*
+__ZNK[RO]9gui_forms16ContentSemantics*
 __ZNK[RO]9gui_forms16ControlRoleTable*
 __ZNK[RO]9gui_forms16CustomStateIndex*
 __ZNK[RO]9gui_forms16DisplayChunkInfo*
@@ -6720,6 +6802,8 @@ __ZNK[RO]9gui_forms17BindingListChange*
 __ZNK[RO]9gui_forms17BreadcrumbSegment*
 __ZNK[RO]9gui_forms17CalendarDateRange*
 __ZNK[RO]9gui_forms17CommandInvocation*
+__ZNK[RO]9gui_forms17ContentTextEditor*
+__ZNK[RO]9gui_forms17ContentTextLayout*
 __ZNK[RO]9gui_forms17ControlTextShadow*
 __ZNK[RO]9gui_forms17CursorHiddenLease*
 __ZNK[RO]9gui_forms17CursorLeaseResult*
@@ -6818,6 +6902,7 @@ __ZNK[RO]9gui_forms18ChildPropertyEntry*
 __ZNK[RO]9gui_forms18CommandRouteResult*
 __ZNK[RO]9gui_forms18CompiledThemeRules*
 __ZNK[RO]9gui_forms18ComponentContainer*
+__ZNK[RO]9gui_forms18ContentTextCluster*
 __ZNK[RO]9gui_forms18ContextMenuRequest*
 __ZNK[RO]9gui_forms18ControlCanvasPaint*
 __ZNK[RO]9gui_forms18ControlPartMetrics*
@@ -7233,6 +7318,7 @@ __ZNK[RO]9gui_forms24BackgroundWorkerProgress*
 __ZNK[RO]9gui_forms24BlockFlowLayoutWorkspace*
 __ZNK[RO]9gui_forms24CommandOverflowGroupSpec*
 __ZNK[RO]9gui_forms24ConnectedControlTopology*
+__ZNK[RO]9gui_forms24ContentSurfaceStatistics*
 __ZNK[RO]9gui_forms24DataGridViewCellsContent*
 __ZNK[RO]9gui_forms24DataGridViewDisplayIndex*
 __ZNK[RO]9gui_forms24ExpressionParameterIndex*
@@ -7747,6 +7833,7 @@ __ZN[KRO]9gui_forms12BoxAlignment*
 __ZN[KRO]9gui_forms12ColorCommand*
 __ZN[KRO]9gui_forms12ColourOrigin*
 __ZN[KRO]9gui_forms12CommandState*
+__ZN[KRO]9gui_forms12ContentFrame*
 __ZN[KRO]9gui_forms12CursorImages*
 __ZN[KRO]9gui_forms12CursorStatus*
 __ZN[KRO]9gui_forms12DamageRegion*
@@ -7843,6 +7930,7 @@ __ZN[KRO]9gui_forms13BlockFlowLine*
 __ZN[KRO]9gui_forms13CaretSettings*
 __ZN[KRO]9gui_forms13CommandTarget*
 __ZN[KRO]9gui_forms13ContentRegion*
+__ZN[KRO]9gui_forms13ContentWorker*
 __ZN[KRO]9gui_forms13ControlLookup*
 __ZN[KRO]9gui_forms13CursorMetrics*
 __ZN[KRO]9gui_forms13DateTimeValue*
@@ -7935,7 +8023,11 @@ __ZN[KRO]9gui_forms14CheckedListBox*
 __ZN[KRO]9gui_forms14CheckerPattern*
 __ZN[KRO]9gui_forms14CollectionEdit*
 __ZN[KRO]9gui_forms14CommandBinding*
+__ZN[KRO]9gui_forms14ContentContext*
 __ZN[KRO]9gui_forms14ContentItemKey*
+__ZN[KRO]9gui_forms14ContentProgram*
+__ZN[KRO]9gui_forms14ContentRequest*
+__ZN[KRO]9gui_forms14ContentSurface*
 __ZN[KRO]9gui_forms14ControlAnatomy*
 __ZN[KRO]9gui_forms14ControlFactory*
 __ZN[KRO]9gui_forms14DateTimePicker*
@@ -8042,6 +8134,8 @@ __ZN[KRO]9gui_forms15CollapsedMargin*
 __ZN[KRO]9gui_forms15CollectionDirty*
 __ZN[KRO]9gui_forms15ColourSchemeSet*
 __ZN[KRO]9gui_forms15CompositorState*
+__ZN[KRO]9gui_forms15ContentTextLine*
+__ZN[KRO]9gui_forms15ContentWatchdog*
 __ZN[KRO]9gui_forms15ControlSnapshot*
 __ZN[KRO]9gui_forms15CurrencyManager*
 __ZN[KRO]9gui_forms15DataGridViewRow*
@@ -8140,6 +8234,11 @@ __ZN[KRO]9gui_forms16BindingPredicate*
 __ZN[KRO]9gui_forms16CachedPartRaster*
 __ZN[KRO]9gui_forms16ColorValueEditor*
 __ZN[KRO]9gui_forms16ContainerControl*
+__ZN[KRO]9gui_forms16ContentCaretStop*
+__ZN[KRO]9gui_forms16ContentFrameSink*
+__ZN[KRO]9gui_forms16ContentPixelRect*
+__ZN[KRO]9gui_forms16ContentPixelSize*
+__ZN[KRO]9gui_forms16ContentSemantics*
 __ZN[KRO]9gui_forms16ControlRoleTable*
 __ZN[KRO]9gui_forms16CustomStateIndex*
 __ZN[KRO]9gui_forms16DisplayChunkInfo*
@@ -8248,6 +8347,8 @@ __ZN[KRO]9gui_forms17BindingListChange*
 __ZN[KRO]9gui_forms17BreadcrumbSegment*
 __ZN[KRO]9gui_forms17CalendarDateRange*
 __ZN[KRO]9gui_forms17CommandInvocation*
+__ZN[KRO]9gui_forms17ContentTextEditor*
+__ZN[KRO]9gui_forms17ContentTextLayout*
 __ZN[KRO]9gui_forms17ControlTextShadow*
 __ZN[KRO]9gui_forms17CursorHiddenLease*
 __ZN[KRO]9gui_forms17CursorLeaseResult*
@@ -8346,6 +8447,7 @@ __ZN[KRO]9gui_forms18ChildPropertyEntry*
 __ZN[KRO]9gui_forms18CommandRouteResult*
 __ZN[KRO]9gui_forms18CompiledThemeRules*
 __ZN[KRO]9gui_forms18ComponentContainer*
+__ZN[KRO]9gui_forms18ContentTextCluster*
 __ZN[KRO]9gui_forms18ContextMenuRequest*
 __ZN[KRO]9gui_forms18ControlCanvasPaint*
 __ZN[KRO]9gui_forms18ControlPartMetrics*
@@ -8761,6 +8863,7 @@ __ZN[KRO]9gui_forms24BackgroundWorkerProgress*
 __ZN[KRO]9gui_forms24BlockFlowLayoutWorkspace*
 __ZN[KRO]9gui_forms24CommandOverflowGroupSpec*
 __ZN[KRO]9gui_forms24ConnectedControlTopology*
+__ZN[KRO]9gui_forms24ContentSurfaceStatistics*
 __ZN[KRO]9gui_forms24DataGridViewCellsContent*
 __ZN[KRO]9gui_forms24DataGridViewDisplayIndex*
 __ZN[KRO]9gui_forms24ExpressionParameterIndex*
@@ -9275,6 +9378,7 @@ __ZT[VIST]N9gui_forms12BoxAlignment*E
 __ZT[VIST]N9gui_forms12ColorCommand*E
 __ZT[VIST]N9gui_forms12ColourOrigin*E
 __ZT[VIST]N9gui_forms12CommandState*E
+__ZT[VIST]N9gui_forms12ContentFrame*E
 __ZT[VIST]N9gui_forms12CursorImages*E
 __ZT[VIST]N9gui_forms12CursorStatus*E
 __ZT[VIST]N9gui_forms12DamageRegion*E
@@ -9371,6 +9475,7 @@ __ZT[VIST]N9gui_forms13BlockFlowLine*E
 __ZT[VIST]N9gui_forms13CaretSettings*E
 __ZT[VIST]N9gui_forms13CommandTarget*E
 __ZT[VIST]N9gui_forms13ContentRegion*E
+__ZT[VIST]N9gui_forms13ContentWorker*E
 __ZT[VIST]N9gui_forms13ControlLookup*E
 __ZT[VIST]N9gui_forms13CursorMetrics*E
 __ZT[VIST]N9gui_forms13DateTimeValue*E
@@ -9463,7 +9568,11 @@ __ZT[VIST]N9gui_forms14CheckedListBox*E
 __ZT[VIST]N9gui_forms14CheckerPattern*E
 __ZT[VIST]N9gui_forms14CollectionEdit*E
 __ZT[VIST]N9gui_forms14CommandBinding*E
+__ZT[VIST]N9gui_forms14ContentContext*E
 __ZT[VIST]N9gui_forms14ContentItemKey*E
+__ZT[VIST]N9gui_forms14ContentProgram*E
+__ZT[VIST]N9gui_forms14ContentRequest*E
+__ZT[VIST]N9gui_forms14ContentSurface*E
 __ZT[VIST]N9gui_forms14ControlAnatomy*E
 __ZT[VIST]N9gui_forms14ControlFactory*E
 __ZT[VIST]N9gui_forms14DateTimePicker*E
@@ -9570,6 +9679,8 @@ __ZT[VIST]N9gui_forms15CollapsedMargin*E
 __ZT[VIST]N9gui_forms15CollectionDirty*E
 __ZT[VIST]N9gui_forms15ColourSchemeSet*E
 __ZT[VIST]N9gui_forms15CompositorState*E
+__ZT[VIST]N9gui_forms15ContentTextLine*E
+__ZT[VIST]N9gui_forms15ContentWatchdog*E
 __ZT[VIST]N9gui_forms15ControlSnapshot*E
 __ZT[VIST]N9gui_forms15CurrencyManager*E
 __ZT[VIST]N9gui_forms15DataGridViewRow*E
@@ -9668,6 +9779,11 @@ __ZT[VIST]N9gui_forms16BindingPredicate*E
 __ZT[VIST]N9gui_forms16CachedPartRaster*E
 __ZT[VIST]N9gui_forms16ColorValueEditor*E
 __ZT[VIST]N9gui_forms16ContainerControl*E
+__ZT[VIST]N9gui_forms16ContentCaretStop*E
+__ZT[VIST]N9gui_forms16ContentFrameSink*E
+__ZT[VIST]N9gui_forms16ContentPixelRect*E
+__ZT[VIST]N9gui_forms16ContentPixelSize*E
+__ZT[VIST]N9gui_forms16ContentSemantics*E
 __ZT[VIST]N9gui_forms16ControlRoleTable*E
 __ZT[VIST]N9gui_forms16CustomStateIndex*E
 __ZT[VIST]N9gui_forms16DisplayChunkInfo*E
@@ -9776,6 +9892,8 @@ __ZT[VIST]N9gui_forms17BindingListChange*E
 __ZT[VIST]N9gui_forms17BreadcrumbSegment*E
 __ZT[VIST]N9gui_forms17CalendarDateRange*E
 __ZT[VIST]N9gui_forms17CommandInvocation*E
+__ZT[VIST]N9gui_forms17ContentTextEditor*E
+__ZT[VIST]N9gui_forms17ContentTextLayout*E
 __ZT[VIST]N9gui_forms17ControlTextShadow*E
 __ZT[VIST]N9gui_forms17CursorHiddenLease*E
 __ZT[VIST]N9gui_forms17CursorLeaseResult*E
@@ -9874,6 +9992,7 @@ __ZT[VIST]N9gui_forms18ChildPropertyEntry*E
 __ZT[VIST]N9gui_forms18CommandRouteResult*E
 __ZT[VIST]N9gui_forms18CompiledThemeRules*E
 __ZT[VIST]N9gui_forms18ComponentContainer*E
+__ZT[VIST]N9gui_forms18ContentTextCluster*E
 __ZT[VIST]N9gui_forms18ContextMenuRequest*E
 __ZT[VIST]N9gui_forms18ControlCanvasPaint*E
 __ZT[VIST]N9gui_forms18ControlPartMetrics*E
@@ -10289,6 +10408,7 @@ __ZT[VIST]N9gui_forms24BackgroundWorkerProgress*E
 __ZT[VIST]N9gui_forms24BlockFlowLayoutWorkspace*E
 __ZT[VIST]N9gui_forms24CommandOverflowGroupSpec*E
 __ZT[VIST]N9gui_forms24ConnectedControlTopology*E
+__ZT[VIST]N9gui_forms24ContentSurfaceStatistics*E
 __ZT[VIST]N9gui_forms24DataGridViewCellsContent*E
 __ZT[VIST]N9gui_forms24DataGridViewDisplayIndex*E
 __ZT[VIST]N9gui_forms24ExpressionParameterIndex*E
@@ -10803,6 +10923,7 @@ __ZT[hvc]*9gui_forms12BoxAlignment*
 __ZT[hvc]*9gui_forms12ColorCommand*
 __ZT[hvc]*9gui_forms12ColourOrigin*
 __ZT[hvc]*9gui_forms12CommandState*
+__ZT[hvc]*9gui_forms12ContentFrame*
 __ZT[hvc]*9gui_forms12CursorImages*
 __ZT[hvc]*9gui_forms12CursorStatus*
 __ZT[hvc]*9gui_forms12DamageRegion*
@@ -10899,6 +11020,7 @@ __ZT[hvc]*9gui_forms13BlockFlowLine*
 __ZT[hvc]*9gui_forms13CaretSettings*
 __ZT[hvc]*9gui_forms13CommandTarget*
 __ZT[hvc]*9gui_forms13ContentRegion*
+__ZT[hvc]*9gui_forms13ContentWorker*
 __ZT[hvc]*9gui_forms13ControlLookup*
 __ZT[hvc]*9gui_forms13CursorMetrics*
 __ZT[hvc]*9gui_forms13DateTimeValue*
@@ -10991,7 +11113,11 @@ __ZT[hvc]*9gui_forms14CheckedListBox*
 __ZT[hvc]*9gui_forms14CheckerPattern*
 __ZT[hvc]*9gui_forms14CollectionEdit*
 __ZT[hvc]*9gui_forms14CommandBinding*
+__ZT[hvc]*9gui_forms14ContentContext*
 __ZT[hvc]*9gui_forms14ContentItemKey*
+__ZT[hvc]*9gui_forms14ContentProgram*
+__ZT[hvc]*9gui_forms14ContentRequest*
+__ZT[hvc]*9gui_forms14ContentSurface*
 __ZT[hvc]*9gui_forms14ControlAnatomy*
 __ZT[hvc]*9gui_forms14ControlFactory*
 __ZT[hvc]*9gui_forms14DateTimePicker*
@@ -11098,6 +11224,8 @@ __ZT[hvc]*9gui_forms15CollapsedMargin*
 __ZT[hvc]*9gui_forms15CollectionDirty*
 __ZT[hvc]*9gui_forms15ColourSchemeSet*
 __ZT[hvc]*9gui_forms15CompositorState*
+__ZT[hvc]*9gui_forms15ContentTextLine*
+__ZT[hvc]*9gui_forms15ContentWatchdog*
 __ZT[hvc]*9gui_forms15ControlSnapshot*
 __ZT[hvc]*9gui_forms15CurrencyManager*
 __ZT[hvc]*9gui_forms15DataGridViewRow*
@@ -11196,6 +11324,11 @@ __ZT[hvc]*9gui_forms16BindingPredicate*
 __ZT[hvc]*9gui_forms16CachedPartRaster*
 __ZT[hvc]*9gui_forms16ColorValueEditor*
 __ZT[hvc]*9gui_forms16ContainerControl*
+__ZT[hvc]*9gui_forms16ContentCaretStop*
+__ZT[hvc]*9gui_forms16ContentFrameSink*
+__ZT[hvc]*9gui_forms16ContentPixelRect*
+__ZT[hvc]*9gui_forms16ContentPixelSize*
+__ZT[hvc]*9gui_forms16ContentSemantics*
 __ZT[hvc]*9gui_forms16ControlRoleTable*
 __ZT[hvc]*9gui_forms16CustomStateIndex*
 __ZT[hvc]*9gui_forms16DisplayChunkInfo*
@@ -11304,6 +11437,8 @@ __ZT[hvc]*9gui_forms17BindingListChange*
 __ZT[hvc]*9gui_forms17BreadcrumbSegment*
 __ZT[hvc]*9gui_forms17CalendarDateRange*
 __ZT[hvc]*9gui_forms17CommandInvocation*
+__ZT[hvc]*9gui_forms17ContentTextEditor*
+__ZT[hvc]*9gui_forms17ContentTextLayout*
 __ZT[hvc]*9gui_forms17ControlTextShadow*
 __ZT[hvc]*9gui_forms17CursorHiddenLease*
 __ZT[hvc]*9gui_forms17CursorLeaseResult*
@@ -11402,6 +11537,7 @@ __ZT[hvc]*9gui_forms18ChildPropertyEntry*
 __ZT[hvc]*9gui_forms18CommandRouteResult*
 __ZT[hvc]*9gui_forms18CompiledThemeRules*
 __ZT[hvc]*9gui_forms18ComponentContainer*
+__ZT[hvc]*9gui_forms18ContentTextCluster*
 __ZT[hvc]*9gui_forms18ContextMenuRequest*
 __ZT[hvc]*9gui_forms18ControlCanvasPaint*
 __ZT[hvc]*9gui_forms18ControlPartMetrics*
@@ -11817,6 +11953,7 @@ __ZT[hvc]*9gui_forms24BackgroundWorkerProgress*
 __ZT[hvc]*9gui_forms24BlockFlowLayoutWorkspace*
 __ZT[hvc]*9gui_forms24CommandOverflowGroupSpec*
 __ZT[hvc]*9gui_forms24ConnectedControlTopology*
+__ZT[hvc]*9gui_forms24ContentSurfaceStatistics*
 __ZT[hvc]*9gui_forms24DataGridViewCellsContent*
 __ZT[hvc]*9gui_forms24DataGridViewDisplayIndex*
 __ZT[hvc]*9gui_forms24ExpressionParameterIndex*
@@ -12331,6 +12468,7 @@ __ZZN9gui_forms12BoxAlignment*
 __ZZN9gui_forms12ColorCommand*
 __ZZN9gui_forms12ColourOrigin*
 __ZZN9gui_forms12CommandState*
+__ZZN9gui_forms12ContentFrame*
 __ZZN9gui_forms12CursorImages*
 __ZZN9gui_forms12CursorStatus*
 __ZZN9gui_forms12DamageRegion*
@@ -12427,6 +12565,7 @@ __ZZN9gui_forms13BlockFlowLine*
 __ZZN9gui_forms13CaretSettings*
 __ZZN9gui_forms13CommandTarget*
 __ZZN9gui_forms13ContentRegion*
+__ZZN9gui_forms13ContentWorker*
 __ZZN9gui_forms13ControlLookup*
 __ZZN9gui_forms13CursorMetrics*
 __ZZN9gui_forms13DateTimeValue*
@@ -12519,7 +12658,11 @@ __ZZN9gui_forms14CheckedListBox*
 __ZZN9gui_forms14CheckerPattern*
 __ZZN9gui_forms14CollectionEdit*
 __ZZN9gui_forms14CommandBinding*
+__ZZN9gui_forms14ContentContext*
 __ZZN9gui_forms14ContentItemKey*
+__ZZN9gui_forms14ContentProgram*
+__ZZN9gui_forms14ContentRequest*
+__ZZN9gui_forms14ContentSurface*
 __ZZN9gui_forms14ControlAnatomy*
 __ZZN9gui_forms14ControlFactory*
 __ZZN9gui_forms14DateTimePicker*
@@ -12626,6 +12769,8 @@ __ZZN9gui_forms15CollapsedMargin*
 __ZZN9gui_forms15CollectionDirty*
 __ZZN9gui_forms15ColourSchemeSet*
 __ZZN9gui_forms15CompositorState*
+__ZZN9gui_forms15ContentTextLine*
+__ZZN9gui_forms15ContentWatchdog*
 __ZZN9gui_forms15ControlSnapshot*
 __ZZN9gui_forms15CurrencyManager*
 __ZZN9gui_forms15DataGridViewRow*
@@ -12724,6 +12869,11 @@ __ZZN9gui_forms16BindingPredicate*
 __ZZN9gui_forms16CachedPartRaster*
 __ZZN9gui_forms16ColorValueEditor*
 __ZZN9gui_forms16ContainerControl*
+__ZZN9gui_forms16ContentCaretStop*
+__ZZN9gui_forms16ContentFrameSink*
+__ZZN9gui_forms16ContentPixelRect*
+__ZZN9gui_forms16ContentPixelSize*
+__ZZN9gui_forms16ContentSemantics*
 __ZZN9gui_forms16ControlRoleTable*
 __ZZN9gui_forms16CustomStateIndex*
 __ZZN9gui_forms16DisplayChunkInfo*
@@ -12832,6 +12982,8 @@ __ZZN9gui_forms17BindingListChange*
 __ZZN9gui_forms17BreadcrumbSegment*
 __ZZN9gui_forms17CalendarDateRange*
 __ZZN9gui_forms17CommandInvocation*
+__ZZN9gui_forms17ContentTextEditor*
+__ZZN9gui_forms17ContentTextLayout*
 __ZZN9gui_forms17ControlTextShadow*
 __ZZN9gui_forms17CursorHiddenLease*
 __ZZN9gui_forms17CursorLeaseResult*
@@ -12930,6 +13082,7 @@ __ZZN9gui_forms18ChildPropertyEntry*
 __ZZN9gui_forms18CommandRouteResult*
 __ZZN9gui_forms18CompiledThemeRules*
 __ZZN9gui_forms18ComponentContainer*
+__ZZN9gui_forms18ContentTextCluster*
 __ZZN9gui_forms18ContextMenuRequest*
 __ZZN9gui_forms18ControlCanvasPaint*
 __ZZN9gui_forms18ControlPartMetrics*
@@ -13345,6 +13498,7 @@ __ZZN9gui_forms24BackgroundWorkerProgress*
 __ZZN9gui_forms24BlockFlowLayoutWorkspace*
 __ZZN9gui_forms24CommandOverflowGroupSpec*
 __ZZN9gui_forms24ConnectedControlTopology*
+__ZZN9gui_forms24ContentSurfaceStatistics*
 __ZZN9gui_forms24DataGridViewCellsContent*
 __ZZN9gui_forms24DataGridViewDisplayIndex*
 __ZZN9gui_forms24ExpressionParameterIndex*
@@ -13859,6 +14013,7 @@ __ZZNK9gui_forms12BoxAlignment*
 __ZZNK9gui_forms12ColorCommand*
 __ZZNK9gui_forms12ColourOrigin*
 __ZZNK9gui_forms12CommandState*
+__ZZNK9gui_forms12ContentFrame*
 __ZZNK9gui_forms12CursorImages*
 __ZZNK9gui_forms12CursorStatus*
 __ZZNK9gui_forms12DamageRegion*
@@ -13955,6 +14110,7 @@ __ZZNK9gui_forms13BlockFlowLine*
 __ZZNK9gui_forms13CaretSettings*
 __ZZNK9gui_forms13CommandTarget*
 __ZZNK9gui_forms13ContentRegion*
+__ZZNK9gui_forms13ContentWorker*
 __ZZNK9gui_forms13ControlLookup*
 __ZZNK9gui_forms13CursorMetrics*
 __ZZNK9gui_forms13DateTimeValue*
@@ -14047,7 +14203,11 @@ __ZZNK9gui_forms14CheckedListBox*
 __ZZNK9gui_forms14CheckerPattern*
 __ZZNK9gui_forms14CollectionEdit*
 __ZZNK9gui_forms14CommandBinding*
+__ZZNK9gui_forms14ContentContext*
 __ZZNK9gui_forms14ContentItemKey*
+__ZZNK9gui_forms14ContentProgram*
+__ZZNK9gui_forms14ContentRequest*
+__ZZNK9gui_forms14ContentSurface*
 __ZZNK9gui_forms14ControlAnatomy*
 __ZZNK9gui_forms14ControlFactory*
 __ZZNK9gui_forms14DateTimePicker*
@@ -14154,6 +14314,8 @@ __ZZNK9gui_forms15CollapsedMargin*
 __ZZNK9gui_forms15CollectionDirty*
 __ZZNK9gui_forms15ColourSchemeSet*
 __ZZNK9gui_forms15CompositorState*
+__ZZNK9gui_forms15ContentTextLine*
+__ZZNK9gui_forms15ContentWatchdog*
 __ZZNK9gui_forms15ControlSnapshot*
 __ZZNK9gui_forms15CurrencyManager*
 __ZZNK9gui_forms15DataGridViewRow*
@@ -14252,6 +14414,11 @@ __ZZNK9gui_forms16BindingPredicate*
 __ZZNK9gui_forms16CachedPartRaster*
 __ZZNK9gui_forms16ColorValueEditor*
 __ZZNK9gui_forms16ContainerControl*
+__ZZNK9gui_forms16ContentCaretStop*
+__ZZNK9gui_forms16ContentFrameSink*
+__ZZNK9gui_forms16ContentPixelRect*
+__ZZNK9gui_forms16ContentPixelSize*
+__ZZNK9gui_forms16ContentSemantics*
 __ZZNK9gui_forms16ControlRoleTable*
 __ZZNK9gui_forms16CustomStateIndex*
 __ZZNK9gui_forms16DisplayChunkInfo*
@@ -14360,6 +14527,8 @@ __ZZNK9gui_forms17BindingListChange*
 __ZZNK9gui_forms17BreadcrumbSegment*
 __ZZNK9gui_forms17CalendarDateRange*
 __ZZNK9gui_forms17CommandInvocation*
+__ZZNK9gui_forms17ContentTextEditor*
+__ZZNK9gui_forms17ContentTextLayout*
 __ZZNK9gui_forms17ControlTextShadow*
 __ZZNK9gui_forms17CursorHiddenLease*
 __ZZNK9gui_forms17CursorLeaseResult*
@@ -14458,6 +14627,7 @@ __ZZNK9gui_forms18ChildPropertyEntry*
 __ZZNK9gui_forms18CommandRouteResult*
 __ZZNK9gui_forms18CompiledThemeRules*
 __ZZNK9gui_forms18ComponentContainer*
+__ZZNK9gui_forms18ContentTextCluster*
 __ZZNK9gui_forms18ContextMenuRequest*
 __ZZNK9gui_forms18ControlCanvasPaint*
 __ZZNK9gui_forms18ControlPartMetrics*
@@ -14873,6 +15043,7 @@ __ZZNK9gui_forms24BackgroundWorkerProgress*
 __ZZNK9gui_forms24BlockFlowLayoutWorkspace*
 __ZZNK9gui_forms24CommandOverflowGroupSpec*
 __ZZNK9gui_forms24ConnectedControlTopology*
+__ZZNK9gui_forms24ContentSurfaceStatistics*
 __ZZNK9gui_forms24DataGridViewCellsContent*
 __ZZNK9gui_forms24DataGridViewDisplayIndex*
 __ZZNK9gui_forms24ExpressionParameterIndex*
