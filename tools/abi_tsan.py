@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and run the C ABI's verification set under ThreadSanitizer (stage C8).
+"""Build and run the C ABI's verification set and the event stack under ThreadSanitizer (stage C8, gap P2).
 
 The C ABI promises release from any thread, deferred destruction on the UI
 thread, begin_invoke from any thread and the conformance kit's thread
@@ -9,10 +9,16 @@ ThreadSanitizer, so this tool refuses there.
 
 It configures its own tree, ``.build/native-<host>-<arch>/gui-forms-tsan``,
 with the toolkit's ordinary options (tools/toolkit_configure.py) and
-``-fsanitize=thread``, builds only the programs the ``c_abi``-labelled tests
-read, and runs them with every report fatal:
+``-fsanitize=thread``, builds only the programs the selected tests read, and
+runs them with every report fatal:
 
-    python3 tools/abi_tsan.py [--jobs N] [--tests PATTERN] [--skip-labels PATTERN]
+    python3 tools/abi_tsan.py [--set all|c_abi|tsan] [--jobs N] [--tests PATTERN] [--skip-labels PATTERN]
+
+The tests are those labelled ``c_abi`` (the C ABI, its conformance kit
+including the sub-surface part) and ``tsan`` (the event stack, the
+dispatcher and timers, threading, and the sub-surface and live-surface
+machinery; CMakeLists.txt beside gui_forms_dispatcher_tests). ``--set``
+picks both (the default) or one label.
 
 ``--tests`` narrows the run further with a ctest -R pattern, and
 ``--skip-labels`` leaves out tests whose labels match (ctest -LE), as
@@ -43,7 +49,12 @@ from ci_build_steps import configure_tree, ctest_selection, run, selected_test_t
 from toolkit_configure import host_options, prepare_host, toolkit_options
 
 ROOT: Path = Path(__file__).resolve().parents[2]
-LABEL: str = 'c_abi'
+# The label sets --set chooses from.
+LABEL_SETS: dict[str, tuple[str, ...]] = {
+    'all': ('c_abi', 'tsan'),
+    'c_abi': ('c_abi',),
+    'tsan': ('tsan',),
+}
 # Tests of the label that cannot run under ThreadSanitizer (see the docstring).
 EXCLUDED: str = '^(gui_forms_abi_csharp|gui_forms_abi_msvc_consumer)$'
 TSAN_FLAGS: str = '-fsanitize=thread -fno-omit-frame-pointer -fdebug-compilation-dir=.'
@@ -75,8 +86,10 @@ def require_instrumented(tree: Path) -> None:
 
 def main() -> int:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
+    parser.add_argument('--set', choices=sorted(LABEL_SETS), default='all',
+                        help='the labelled tests to run: c_abi, tsan, or both (all)')
     parser.add_argument('--jobs', type=int, default=4)
-    parser.add_argument('--tests', default='', help='narrow the c_abi set with this ctest -R pattern')
+    parser.add_argument('--tests', default='', help='narrow the selected set with this ctest -R pattern')
     parser.add_argument('--skip-labels', default='', help='leave out tests with labels matching this ctest -LE pattern')
     args: argparse.Namespace = parser.parse_args()
     hosts: dict[str, str] = {'Darwin': 'macos', 'Linux': 'linux'}
@@ -103,7 +116,8 @@ def main() -> int:
     configure_tree(tree, configure)
     require_instrumented(tree)
 
-    selection: list[str] = ['-L', '^' + LABEL + '$', '-E', EXCLUDED]
+    labels_chosen: tuple[str, ...] = LABEL_SETS[args.set]
+    selection: list[str] = ['-L', '^(' + '|'.join(labels_chosen) + ')$', '-E', EXCLUDED]
     if args.tests or args.skip_labels:
         selection.extend(ctest_selection(args.tests, args.skip_labels))
     listing: dict = test_listing(tree, args.tests, args.skip_labels)
@@ -115,7 +129,8 @@ def main() -> int:
         for prop in test.get('properties', []):
             if prop.get('name') == 'LABELS':
                 labels = list(prop.get('value', []))
-        if LABEL in labels and not re.search(EXCLUDED, test['name']):
+        chosen: bool = any(label in labels for label in labels_chosen)
+        if chosen and not re.search(EXCLUDED, test['name']):
             kept.append(test)
     listing['tests'] = kept
     targets: list[str] | None = selected_test_targets(tree, listing)

@@ -5362,6 +5362,25 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_dispatcher_tests COMMAND gui_forms_dispatcher_tests)
     set_tests_properties(gui_forms_dispatcher_tests PROPERTIES TIMEOUT 60)
 
+    # ThreadSanitizer's set beyond the C ABI (gap P2): the event stack and
+    # the sub-surface and live-surface machinery whose threads the C ABI's
+    # sub-surface table reaches. tools/abi_tsan.py runs the tests labelled
+    # c_abi or tsan in its instrumented tree; the c_abi conformance kit
+    # already covers the ABI's sub-surface part (gf_conformance_subsurfaces.c).
+    set_property(TEST
+        gui_forms_sub_surface_tests
+        gui_forms_live_surface_tests
+        gui_forms_live_surface_pacer_tests
+        gui_forms_live_surface_idle_wake_tests
+        gui_forms_threading_tests
+        gui_forms_delegate_event_tests
+        gui_forms_owned_event_tests
+        gui_forms_event_payload_lifetime_tests
+        gui_forms_mouse_event_order_tests
+        gui_forms_timer_tests
+        gui_forms_dispatcher_tests
+        APPEND PROPERTY LABELS tsan)
+
     add_executable(gui_forms_tooltip_tests tests/tooltip_tests.cpp)
     target_link_libraries(gui_forms_tooltip_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_tooltip_tests COMMAND gui_forms_tooltip_tests)
