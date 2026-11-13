@@ -2909,10 +2909,12 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
         if (rule.recipe_fields.empty() || !matches(rule, facts)) continue;
+        const bool on_named_part = !rule.selector.part.empty() && !rule.selector.role.has_value();
         for (const RecipeDeclaration& declaration : rule.recipe_fields) {
             const std::size_t position = static_cast<std::size_t>(declaration.field);
             result.fields[position] = &declaration;
             result.levels[position] = rule.level;
+            result.on_named_part[position] = on_named_part;
         }
         result.authored = true;
     }

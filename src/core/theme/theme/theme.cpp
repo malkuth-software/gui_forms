@@ -770,13 +770,9 @@ ControlVisualRecipe derived_high_contrast(const ControlVisualRecipe& ordinary, C
     result.scrim = Color::rgba(plate.red, plate.green, plate.blue, 255);
     result.stroke_width = std::max(ordinary.stroke_width, 2.0);
     result.needle_shape = NeedleShape::line;
-    // A node canvas part (cp31): its area in the plate, its lines in the
-    // state's edge and its halo in the focus colour, with no texture; its
-    // dashes, corners, grid spacing and flow are geometry and are kept.
-    result.canvas.fill = plate;
-    result.canvas.stroke = edge;
-    result.canvas.halo = focus;
-    result.canvas.texture.reset();
+    // A node canvas part's colours are not set here: resolve_canvas_look
+    // reads this record's plate, edge and focus colour (cp31), so every
+    // family's derived record stays the hand-authored one.
     return result;
 }
 
@@ -1877,14 +1873,19 @@ void apply_part_metrics(const CompiledThemeRules::RecipeResolution& fields, Cont
 // The node canvas fields `fields` sets (RecipeField::fill_colour on; cp31),
 // over `canvas`, in place, with the stroke width (which the dial parts also
 // read as ControlVisualRecipe::stroke_width), so a canvas part can tell a
-// set width from the floor's. A texture of no layers is `none`.
+// set width from the floor's. Only a rule naming a part sets the canvas's
+// width: a family rule's `stroke-width` is the dial arc's (the floor's
+// `:family(progress)` 6 units), which neither a family record nor the
+// lamp (a progress part) takes as a canvas width. A texture of no layers
+// is `none`.
 void apply_canvas_paint(const CompiledThemeRules::RecipeResolution& fields, ControlCanvasPaint& canvas) noexcept {
     const RecipeDeclaration* const fill = set_recipe_field(fields, RecipeField::fill_colour);
     if (fill != nullptr) canvas.fill = (*fill).colour;
     const RecipeDeclaration* const stroke = set_recipe_field(fields, RecipeField::stroke_colour);
     if (stroke != nullptr) canvas.stroke = (*stroke).colour;
     const RecipeDeclaration* const width = set_recipe_field(fields, RecipeField::stroke_width);
-    if (width != nullptr) canvas.stroke_width = (*width).number;
+    const bool width_on_part = fields.on_named_part[static_cast<std::size_t>(RecipeField::stroke_width)];
+    if (width != nullptr && width_on_part) canvas.stroke_width = (*width).number;
     const RecipeDeclaration* const dash = set_recipe_field(fields, RecipeField::stroke_dash);
     if (dash != nullptr) canvas.dash = (*dash).number;
     const RecipeDeclaration* const gap = set_recipe_field(fields, RecipeField::stroke_gap);

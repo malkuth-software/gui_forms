@@ -1386,6 +1386,10 @@ Types
 
       The cascade level of each winning declaration's rule, by the same position; built_in where ``fields`` holds null. An authored colour (PartPaint::authored_foreground) stands under the important ones.
 
+   .. cpp:member:: std::array<bool, recipe_field_count> on_named_part
+
+      Whether each winning declaration's rule names a part (a ``::part(...)`` rule, not a role or family rule), by the same position; false where ``fields`` holds null. A field two consumers share (stroke_width: a dial's arc and a canvas part's line) is a canvas width only from a part rule.
+
    .. cpp:member:: bool authored
 
 .. cpp:namespace:: gui_forms

@@ -593,7 +593,10 @@ void background_commands() {
     // A finish layer: the world's finish tiles, 128 device pixels square
     // on the lattice through world (0, 0). In no window it draws nothing;
     // in a window the first paint queues its tiles and draws none, idle
-    // frames paint them, and the next paint draws them.
+    // frames paint them, and the next paint draws them. The view returns to
+    // (5, 7) from the block pan above, so that the pan below stays within
+    // the tiles painted here (from 261 it would cross two columns).
+    view.origin = Point{5.0, 7.0};
     look.texture = finish_layer();
     RecordingPainter unbaked_finish;
     paint_canvas_background(unbaked_finish, *detached, look, area, view);

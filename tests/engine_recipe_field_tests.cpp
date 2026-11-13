@@ -203,6 +203,42 @@ void test_cascade() {
     require(!plain.resolve_recipe_fields(facts).authored, "the built-in rules set no recipe field");
 }
 
+// A family rule and a part rule may both set stroke_width (a dial's arc, a
+// canvas part's line); the resolution records whether the winner names a
+// part, so a family's arc width is never a canvas part's line width.
+void test_named_part_winners() {
+    ThemeRuleSheet sheet{};
+    ThemeRule family = control_rule("family", {});
+    family.selector.family = "progress";
+    family.recipe_fields.push_back(number_field(RecipeField::stroke_width, 6.0));
+    sheet.rules.push_back(family);
+    ThemeRule part = control_rule("part", {});
+    part.selector.control_type = "pad";
+    part.selector.part = "lamp";
+    part.recipe_fields.push_back(number_field(RecipeField::stroke_width, 1.0));
+    sheet.rules.push_back(part);
+    const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    require(rules.diagnostics().empty(), "a family stroke width and a part stroke width compile cleanly");
+    const std::size_t width = static_cast<std::size_t>(RecipeField::stroke_width);
+
+    CompiledThemeRules::PartFacts facts{};
+    facts.family = "progress";
+    CompiledThemeRules::RecipeResolution resolved = rules.resolve_recipe_fields(facts);
+    require(resolved.fields[width] != nullptr && (*resolved.fields[width]).number == 6.0 &&
+                !resolved.on_named_part[width],
+            "a family record's stroke width comes from a rule naming no part");
+    facts.control_type = "pad";
+    facts.part = "lamp";
+    resolved = rules.resolve_recipe_fields(facts);
+    require(resolved.fields[width] != nullptr && (*resolved.fields[width]).number == 1.0 &&
+                resolved.on_named_part[width],
+            "a part's stroke width comes from the rule naming it");
+    facts.part = "other";
+    resolved = rules.resolve_recipe_fields(facts);
+    require(resolved.fields[width] != nullptr && !resolved.on_named_part[width],
+            "a part no part rule names takes only the family's width, marked as no part's");
+}
+
 // -- the theme's resolution ------------------------------------------------------------
 
 class Labelled final : public Control {
@@ -505,6 +541,7 @@ int main() {
     test_field_names();
     test_compile();
     test_cascade();
+    test_named_part_winners();
     test_floor();
     test_resolve();
     test_part_text_colour();
