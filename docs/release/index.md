@@ -6,10 +6,11 @@ packaged program is published on the
 `vX.Y.Z`, with generated notes naming the commit and the platforms. The notes
 below describe each release series and each stage.
 
-The package and the tags still carry the 0.2 version number (`v0.2.N`):
-the stages 0.3, 0.4 and 0.5 were not tagged separately, and their content
-reached the published builds as it landed. The newest work is under
-[Unreleased (towards 1.0)](unreleased).
+The package version is 0.6 (since 2026-11-12), and builds published from
+`main` are tagged `v0.6.N`, from `v0.6.1541`. Earlier builds carry the 0.2
+number (`v0.2.N`): the stages 0.3, 0.4 and 0.5 were not tagged separately,
+and their content reached the published builds as it landed. The newest
+work is under [Unreleased (towards 1.0)](unreleased).
 
 ## Documentation site
 
