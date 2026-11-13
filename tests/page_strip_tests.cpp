@@ -15,8 +15,11 @@
 #include "gui_forms/controls/page_strip_values.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/dirty.hpp"
+#include "gui_forms/engine/part_table/engine_part_table.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
 #include "gui_forms/pages/page_set/page_set.hpp"
 #include "gui_forms/pages/types/page_set_types.hpp"
 #include "gui_forms/rules/rule/rule.hpp"
@@ -38,6 +41,7 @@
 #include <limits>
 #include <memory>
 #include <new>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -837,8 +841,34 @@ void measured_widths_are_kept() {
 
 } // namespace
 
+// Roadmap 2.12: each tab's parts are keyed by its page, so a tab's engine
+// record (and the transitions it carries) follows the page when pages move,
+// and no tab falls back to its index.
+void tab_records_follow_their_pages() {
+    PageSet pages{};
+    add_pages(pages, 3U);
+    std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
+    Window window(strip, {640.0, 26.0});
+    window.perform_layout();
+    CountingPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 640.0, 26.0}));
+    const std::optional<PartRecordHandle> before = window.engine_parts().find("strip", PartKey{"tab", "p2", {}});
+    const std::optional<PartRecordHandle> label = window.engine_parts().find("strip", PartKey{"tab_label", "p2", {}});
+    require(before.has_value() && label.has_value(), "a tab's parts have records under its page's ID");
+    require(window.metrics_snapshot().engine_part_index_fallbacks == 0U, "no tab part falls back to its index");
+    const std::size_t records = window.engine_parts().record_count();
+    require(pages.move(PageId{"p2"}, PagePosition{0U}) == PageEditStatus::applied, "the last page moves first");
+    window.perform_layout();
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 640.0, 26.0}));
+    const std::optional<PartRecordHandle> after = window.engine_parts().find("strip", PartKey{"tab", "p2", {}});
+    require(after.has_value() && *after == *before, "the moved tab keeps its record");
+    require(window.engine_parts().record_count() == records && window.metrics_snapshot().engine_part_index_fallbacks == 0U,
+            "moving a page makes no record and no index fallback");
+}
+
 int main() {
     anatomy_and_parts();
+    tab_records_follow_their_pages();
     fixed_geometry_table();
     content_and_fill_geometry();
     selected_tab_always_visible();

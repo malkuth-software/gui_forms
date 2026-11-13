@@ -6,9 +6,12 @@
 #include "gui_forms/controls/tab_control.hpp"
 #include "gui_forms/controls/tab_control_values.hpp"
 #include "gui_forms/controls/tab_page.hpp"
+#include "gui_forms/engine/part_table/engine_part_table.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
+#include "gui_forms/metrics/types/metrics_types.hpp"
 #include "gui_forms/resources/types/image_resource_types.hpp"
 #include "gui_forms/rules/rule/rule.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
@@ -572,6 +575,29 @@ void test_owner_draw() {
     resizing.disconnect();
 }
 
+// Roadmap 2.12: the TabControl's tabs, painted by its strip, are keyed by
+// their pages' stable IDs: a tab keeps its engine record when a page before
+// it goes, and no tab falls back to its index.
+void test_tab_records_follow_their_pages() {
+    Fixture fixture = make_fixture();
+    Window window(fixture.tabs, {480.0, 260.0});
+    window.perform_layout();
+    RecordingPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 480.0, 260.0}));
+    const std::optional<PartRecordHandle> before =
+        window.engine_parts().find("tabs.strip", PartKey{"tab", "tabs.third", {}});
+    require(before.has_value(), "the third tab's record is keyed by its page");
+    require(window.metrics_snapshot().engine_part_index_fallbacks == 0U, "no tab falls back to its index");
+    const std::shared_ptr<TabPage> removed = (*fixture.tabs).remove_page(*fixture.second);
+    require(removed == fixture.second, "the middle page goes");
+    window.perform_layout();
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 480.0, 260.0}));
+    const std::optional<PartRecordHandle> after =
+        window.engine_parts().find("tabs.strip", PartKey{"tab", "tabs.third", {}});
+    require(after.has_value() && *after == *before && window.metrics_snapshot().engine_part_index_fallbacks == 0U,
+            "the third tab, now second, keeps its record");
+}
+
 int main() {
     try {
         test_page_ownership_layout_and_visibility();
@@ -582,6 +608,7 @@ int main() {
         test_tab_images();
         test_selecting_events();
         test_selection_cells();
+        test_tab_records_follow_their_pages();
         std::cout << "gui_forms_tab_control_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
