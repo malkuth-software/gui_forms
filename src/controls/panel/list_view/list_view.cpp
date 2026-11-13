@@ -175,6 +175,31 @@ std::string sub_item_identity(std::string_view item_id, std::string_view column_
     return identity;
 }
 
+// The choice sets of the enumerated properties the table publishes, in the
+// enumerations' declaration order (list_view_values.hpp).
+std::shared_ptr<const PropertyEnumDescriptor> list_view_view_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "list_view_view",
+            {{"details", 0}, {"list", 1}, {"small_icon", 2}, {"large_icon", 3}, {"tile", 4}},
+            false});
+    return value;
+}
+
+std::shared_ptr<const PropertyEnumDescriptor> list_view_activation_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "list_view_activation", {{"standard", 0}, {"one_click", 1}, {"two_click", 2}}, false});
+    return value;
+}
+
+std::shared_ptr<const PropertyEnumDescriptor> list_view_header_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "list_view_header_style", {{"clickable", 0}, {"nonclickable", 1}, {"none", 2}}, false});
+    return value;
+}
+
 } // namespace
 
 ListViewItemSource::~ListViewItemSource() {}
@@ -2882,12 +2907,20 @@ void ListView::on_label_editor_focus(bool focused) {
 
 // -- semantics -----------------------------------------------------------------
 
+// The details view is a table (12.13) whose rows hold a cell per column,
+// unless it has at most one column and no header row: a single headerless
+// column reads as a list, as the other views do.
+bool ListView::publishes_table() const noexcept {
+    if (view.read() != ListViewView::details) return false;
+    const bool single_column = columns_.size() <= 1U;
+    const bool headerless = header_style.read() == ListViewHeaderStyle::none;
+    return !(single_column && headerless);
+}
+
 SemanticDescriptor ListView::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
-    // The details view is a table (12.13) whose rows hold a cell per
-    // column, sized by every item and every column, realized or not; the
-    // other views are lists.
-    if (view.read() == ListViewView::details) {
+    // A table is sized by every item and every column, realized or not.
+    if (publishes_table()) {
         descriptor.role = SemanticRole::table;
         descriptor.row_count = item_count();
         descriptor.column_count = columns_.size();
@@ -2915,9 +2948,10 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
     const std::string list_id(stable_id().value());
     const bool enabled = effectively_enabled();
     const SemanticState enabled_state = enabled ? SemanticState::enabled : SemanticState::none;
-    // Column headers first, in reading order; a header's press raises
-    // column_click.
-    for (std::size_t column = 0; column < columns_.size(); ++column) {
+    const bool table = publishes_table();
+    // A table's column headers first, in reading order; a header's press
+    // raises column_click.
+    for (std::size_t column = 0; table && column < columns_.size(); ++column) {
         if (!column_visible(placed, column)) continue;
         const Rect bounds = details_detail::shown_rect(Rect::intersection(column_cell(placed, column), placed.header),
                                                        placed.well, placed.mirrored);
@@ -2950,12 +2984,21 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
         node.stable_id = item.stable_id;
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.name = item.text;
-        if (view.read() == ListViewView::details) {
+        if (table) {
             node.role = SemanticRole::row;
             node.row_index = position + 1U;
             append_row_cells(placed, index, item, node);
         } else {
+            // A list item is n of m: of every item, or of its group's items
+            // in a grouped view, counted in the shown order, realized or not.
             node.role = check_boxes.read() ? SemanticRole::check_list_item : SemanticRole::list_item;
+            node.position_in_set = position + 1U;
+            node.set_size = item_count();
+            if (placed.grouped) {
+                const GroupBand& record = placed.bands[band_of_position(placed, position)];
+                node.position_in_set = position - record.first + 1U;
+                node.set_size = record.count;
+            }
         }
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible | SemanticState::focusable | enabled_state;
@@ -3477,6 +3520,347 @@ void ListView::append_interactions(std::vector<InteractionDeclaration>& interact
 }
 
 // property_codemod begin ListView (tools/property_families/list_view.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor list_view_view_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "view";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "How the items are arranged: details, list, small_icon, large_icon or tile.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"list_view_view", "details", 0}};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = list_view_view_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_view() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_view_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_check_boxes_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "check_boxes";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Appearance";
+    descriptor.description = "Whether each item shows a check box.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_check_boxes() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_check_boxes_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_multi_select_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "multi_select";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether several items can be selected.";
+    descriptor.default_value = BindingValue{true};
+    descriptor.invalidation_effects = Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_multi_select() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_multi_select_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_full_row_select_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "full_row_select";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Appearance";
+    descriptor.description = "Whether the selection highlight spans the whole details row.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_full_row_select() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_full_row_select_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_font_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "font";
+    descriptor.kind = BindingValueKind::font;
+    descriptor.category = "Appearance";
+    descriptor.description = "The font of the items, headers and label editor.";
+    descriptor.default_value = BindingValue{FontSpec{FontRole::content, 10.5, 400, false}};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_font() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_font_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_tile_size_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "tile_size";
+    descriptor.kind = BindingValueKind::size;
+    descriptor.category = "Layout";
+    descriptor.description = "The tile view's tile in logical units; empty for the default.";
+    descriptor.default_value = BindingValue{Size{}};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_tile_size() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_tile_size_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_show_groups_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "show_groups";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether the items are shown in their groups.";
+    descriptor.default_value = BindingValue{true};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_show_groups() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_show_groups_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_default_group_header_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "default_group_header";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Appearance";
+    descriptor.description = "The default group's header.";
+    descriptor.default_value = BindingValue{std::string{"Default"}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_default_group_header() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_default_group_header_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_label_edit_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "label_edit";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether the user can edit an item's text in place.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_label_edit() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_label_edit_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_activation_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "activation";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Behavior";
+    descriptor.description = "How the user activates an item: standard (double click), one_click or two_click.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"list_view_activation", "standard", 0}};
+    descriptor.invalidation_effects = Dirty::paint;
+    descriptor.bindable = false;
+    descriptor.enumeration = list_view_activation_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_activation() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_activation_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor list_view_header_style_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "header_style";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "The details view's column headers: clickable, nonclickable or none.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"list_view_header_style", "clickable", 0}};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = list_view_header_style_enum();
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_list_view_header_style() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        list_view_header_style_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<ListViewView>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, list_view_view_enum()};
+}
+
+BindingValue PropertyValueTraits<ListViewView>::to_binding(ListViewView value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = list_view_view_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ListViewView PropertyValueTraits<ListViewView>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ListViewView>(choice.value);
+}
+
+PropertyType PropertyValueTraits<ListViewActivation>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, list_view_activation_enum()};
+}
+
+BindingValue PropertyValueTraits<ListViewActivation>::to_binding(ListViewActivation value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = list_view_activation_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ListViewActivation PropertyValueTraits<ListViewActivation>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ListViewActivation>(choice.value);
+}
+
+PropertyType PropertyValueTraits<ListViewHeaderStyle>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, list_view_header_style_enum()};
+}
+
+BindingValue PropertyValueTraits<ListViewHeaderStyle>::to_binding(ListViewHeaderStyle value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = list_view_header_style_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ListViewHeaderStyle PropertyValueTraits<ListViewHeaderStyle>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ListViewHeaderStyle>(choice.value);
+}
+
+const std::array<PropertyEntry, ListView::list_view_property_count>& ListView::list_view_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 11U> own{{
+        {"view", &describe_list_view_view,
+         &read_cell_entry<ListView, decltype(&ListView::view), &ListView::view>,
+         &write_cell_entry<ListView, decltype(&ListView::view), &ListView::view>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"check_boxes", &describe_list_view_check_boxes,
+         &read_cell_entry<ListView, decltype(&ListView::check_boxes), &ListView::check_boxes>,
+         &write_cell_entry<ListView, decltype(&ListView::check_boxes), &ListView::check_boxes>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"multi_select", &describe_list_view_multi_select,
+         &read_cell_entry<ListView, decltype(&ListView::multi_select), &ListView::multi_select>,
+         &write_cell_entry<ListView, decltype(&ListView::multi_select), &ListView::multi_select>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"full_row_select", &describe_list_view_full_row_select,
+         &read_cell_entry<ListView, decltype(&ListView::full_row_select), &ListView::full_row_select>,
+         &write_cell_entry<ListView, decltype(&ListView::full_row_select), &ListView::full_row_select>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"font", &describe_list_view_font,
+         &read_cell_entry<ListView, decltype(&ListView::font), &ListView::font>,
+         &write_cell_entry<ListView, decltype(&ListView::font), &ListView::font>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"tile_size", &describe_list_view_tile_size,
+         &read_cell_entry<ListView, decltype(&ListView::tile_size), &ListView::tile_size>,
+         &write_cell_entry<ListView, decltype(&ListView::tile_size), &ListView::tile_size>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"show_groups", &describe_list_view_show_groups,
+         &read_cell_entry<ListView, decltype(&ListView::show_groups), &ListView::show_groups>,
+         &write_cell_entry<ListView, decltype(&ListView::show_groups), &ListView::show_groups>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"default_group_header", &describe_list_view_default_group_header,
+         &read_cell_entry<ListView, decltype(&ListView::default_group_header), &ListView::default_group_header>,
+         &write_cell_entry<ListView, decltype(&ListView::default_group_header), &ListView::default_group_header>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"label_edit", &describe_list_view_label_edit,
+         &read_cell_entry<ListView, decltype(&ListView::label_edit), &ListView::label_edit>,
+         &write_cell_entry<ListView, decltype(&ListView::label_edit), &ListView::label_edit>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"activation", &describe_list_view_activation,
+         &read_cell_entry<ListView, decltype(&ListView::activation), &ListView::activation>,
+         &write_cell_entry<ListView, decltype(&ListView::activation), &ListView::activation>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"header_style", &describe_list_view_header_style,
+         &read_cell_entry<ListView, decltype(&ListView::header_style), &ListView::header_style>,
+         &write_cell_entry<ListView, decltype(&ListView::header_style), &ListView::header_style>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "ListView's property table names a property twice");
+    static const std::array<PropertyEntry, list_view_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> ListView::property_table() const noexcept {
+    const std::array<PropertyEntry, list_view_property_count>& entries = list_view_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
 
 void ListView::prepare_write(const decltype(check_boxes)&, bool&) {
     require_mutable();

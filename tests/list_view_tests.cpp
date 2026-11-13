@@ -1407,6 +1407,62 @@ void header_styles() {
     require(clicks.size() == 1U, "clickable headers raise column_click again");
 }
 
+// A details view with one column and no header row publishes a list of
+// items, each n of m (of its group's items in a grouped view, each group a
+// node named by its header); a shown header or a second column keeps the
+// table of rows and cells.
+void single_column_semantics() {
+    std::shared_ptr<ListView> view = grouped_view();
+    std::vector<ListViewColumn> one;
+    one.push_back({.stable_id = "name", .text = "Name", .width = 140.0});
+    (*view).set_columns(std::move(one));
+    (*view).header_style = ListViewHeaderStyle::none;
+    Window window(view, {400.0, 320.0});
+    window.perform_layout();
+    const SemanticDescriptor descriptor = (*view).semantic_descriptor();
+    require(descriptor.role == SemanticRole::list && !descriptor.row_count && !descriptor.column_count,
+            "a single headerless column describes a list, not a table");
+    std::vector<SemanticNode> children = (*view).semantic_virtual_children();
+    require(children.size() == 3U && children[0].role == SemanticRole::group && children[0].name == "Default" &&
+                children[0].children.size() == 2U && children[0].children[0].role == SemanticRole::list_item &&
+                children[0].children[0].name == "Charlie 2" && children[0].children[0].position_in_set == 1U &&
+                children[0].children[0].set_size == 2U && children[0].children[1].position_in_set == 2U &&
+                !children[0].children[0].row_index && children[0].children[0].children.empty() &&
+                children[1].name == "Alpha" && children[1].children[0].position_in_set == 1U &&
+                children[1].children[0].set_size == 2U && children[2].name == "Beta",
+            "each group is a node named by its header over its list items, n of the group's m");
+    const std::string json = window.semantic_snapshot().to_json();
+    require(json.find("\"role\":\"list\"") != std::string::npos &&
+                json.find("\"role\":\"list_item\"") != std::string::npos &&
+                json.find("\"role\":\"table\"") == std::string::npos &&
+                json.find("\"role\":\"column_header\"") == std::string::npos &&
+                json.find("\"role\":\"cell\"") == std::string::npos,
+            "the semantic snapshot holds a list of list items, with no table, header or cell");
+
+    (*view).show_groups = false;
+    window.perform_layout();
+    children = (*view).semantic_virtual_children();
+    require(children.size() == 6U && children[0].role == SemanticRole::list_item &&
+                children[0].position_in_set == 1U && children[0].set_size == 6U &&
+                children[5].position_in_set == 6U && children[5].set_size == 6U,
+            "ungrouped, each item is n of every item");
+
+    (*view).header_style = ListViewHeaderStyle::nonclickable;
+    window.perform_layout();
+    children = (*view).semantic_virtual_children();
+    require((*view).semantic_descriptor().role == SemanticRole::table && !children.empty() &&
+                children[0].role == SemanticRole::column_header,
+            "a shown header keeps the table");
+    (*view).header_style = ListViewHeaderStyle::none;
+    (*view).set_columns(sample_columns());
+    window.perform_layout();
+    children = (*view).semantic_virtual_children();
+    const SemanticDescriptor table = (*view).semantic_descriptor();
+    require(table.role == SemanticRole::table && table.column_count == 3U && !children.empty() &&
+                children[0].role == SemanticRole::row,
+            "several columns keep the table without a header");
+}
+
 int main() {
     details_parts_and_paint();
     selection_by_pointer_and_keyboard();
@@ -1428,6 +1484,7 @@ int main() {
     semantics();
     activation_modes();
     header_styles();
+    single_column_semantics();
     capabilities();
     refusals();
     std::cout << "ListView: parts, views, selection, keys, checks, columns, sorting, resizing, owner drawing, "

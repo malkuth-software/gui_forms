@@ -1481,21 +1481,33 @@ void test_list_view_properties() {
         const ListViewView sample = ListViewView::tile;
         (*control).view = sample;
         expect((*control).view.read() == sample, "ListView.view: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("view");
+        expect(by_name && *by_name == PropertyValueTraits<ListViewView>::to_binding(sample),
+               "ListView.view: the table reads the cell");
     }
     {
         const bool sample = !(*control).check_boxes.read();
         (*control).check_boxes = sample;
         expect((*control).check_boxes.read() == sample, "ListView.check_boxes: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("check_boxes");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ListView.check_boxes: the table reads the cell");
     }
     {
         const bool sample = !(*control).multi_select.read();
         (*control).multi_select = sample;
         expect((*control).multi_select.read() == sample, "ListView.multi_select: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("multi_select");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ListView.multi_select: the table reads the cell");
     }
     {
         const bool sample = !(*control).full_row_select.read();
         (*control).full_row_select = sample;
         expect((*control).full_row_select.read() == sample, "ListView.full_row_select: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("full_row_select");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ListView.full_row_select: the table reads the cell");
     }
     // small_image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
     // large_image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
@@ -1503,11 +1515,17 @@ void test_list_view_properties() {
         const FontSpec sample = FontSpec{FontRole::content, 12.0, 700, false};
         (*control).font = sample;
         expect((*control).font.read() == sample, "ListView.font: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("font");
+        expect(by_name && *by_name == PropertyValueTraits<FontSpec>::to_binding(sample),
+               "ListView.font: the table reads the cell");
     }
     {
         const Size sample = Size{120.0, 48.0};
         (*control).tile_size = sample;
         expect((*control).tile_size.read() == sample, "ListView.tile_size: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("tile_size");
+        expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
+               "ListView.tile_size: the table reads the cell");
     }
     {
         const ItemDrawMode sample = ItemDrawMode::owner_draw;
@@ -1518,26 +1536,41 @@ void test_list_view_properties() {
         const bool sample = !(*control).show_groups.read();
         (*control).show_groups = sample;
         expect((*control).show_groups.read() == sample, "ListView.show_groups: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_groups");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ListView.show_groups: the table reads the cell");
     }
     {
         const std::string sample = std::string{"Other"};
         (*control).default_group_header = sample;
         expect((*control).default_group_header.read() == sample, "ListView.default_group_header: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("default_group_header");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "ListView.default_group_header: the table reads the cell");
     }
     {
         const bool sample = !(*control).label_edit.read();
         (*control).label_edit = sample;
         expect((*control).label_edit.read() == sample, "ListView.label_edit: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("label_edit");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ListView.label_edit: the table reads the cell");
     }
     {
         const ListViewActivation sample = ListViewActivation::one_click;
         (*control).activation = sample;
         expect((*control).activation.read() == sample, "ListView.activation: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("activation");
+        expect(by_name && *by_name == PropertyValueTraits<ListViewActivation>::to_binding(sample),
+               "ListView.activation: the table reads the cell");
     }
     {
         const ListViewHeaderStyle sample = ListViewHeaderStyle::none;
         (*control).header_style = sample;
         expect((*control).header_style.read() == sample, "ListView.header_style: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("header_style");
+        expect(by_name && *by_name == PropertyValueTraits<ListViewHeaderStyle>::to_binding(sample),
+               "ListView.header_style: the table reads the cell");
     }
 }
 

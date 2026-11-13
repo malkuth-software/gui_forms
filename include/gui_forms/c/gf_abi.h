@@ -131,6 +131,8 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_CLASSES 24u
 /* Since 1.4: content surfaces, content editing and hosted content. */
 #define GF_TABLE_CONTENT 25u
+/* Since 1.5: a list view's columns, items, groups and selection. */
+#define GF_TABLE_LIST_VIEW 26u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -4557,6 +4559,190 @@ typedef struct gf_content_table {
     gf_status (GF_CALL* editor_set_multiline)(gf_object editor, uint32_t multiline);
     gf_status (GF_CALL* editor_set_read_only)(gf_object editor, uint32_t read_only);
 } gf_content_table;
+ * GF_TABLE_LIST_VIEW (since 1.4): a list_view's columns, items, groups,
+ * selection, focus and sort glyph (C++ ListView, Windows Forms' ListView).
+ * Its events (selection_changed, item_activated, column_click,
+ * item_checking, item_checked, column_width_changed, before_label_edit,
+ * after_label_edit and the others the schema lists) are interactions:
+ * events.subscribe takes their names on the view. Its settings (view,
+ * activation, header_style, check_boxes, multi_select, full_row_select,
+ * show_groups, default_group_header, label_edit, tile_size, font) are
+ * properties (GF_TABLE_PROPERTIES). Another control gives
+ * GF_STATUS_WRONG_HANDLE_KIND. UI thread only.
+ *
+ * Columns, items and groups are numbered by their index in the view's
+ * model, which grouping and the shown order do not change. The item
+ * functions read and replace the view's own items; a view in virtual mode
+ * (a C++ item source) counts its source's items, and item_at, item_sub_item,
+ * set_items and set_item_checked give GF_STATUS_INVALID_STATE there.
+ * Replacing the items carries the selection, the focused item and the
+ * anchor over by stable ID.
+ *
+ * Arrays of records the caller passes have the stride of their first
+ * element's struct_size, the caller's sizeof, which every element repeats;
+ * each element is at least its 1.4 size. A record and what it references
+ * are read during the call; texts are copied.
+ */
+
+/* gf_list_view_alignment: how a column's text, or a group's header, sits. */
+typedef uint32_t gf_list_view_alignment;
+#define GF_LIST_VIEW_ALIGNMENT_LEFT 0u
+#define GF_LIST_VIEW_ALIGNMENT_CENTER 1u
+#define GF_LIST_VIEW_ALIGNMENT_RIGHT 2u
+
+/* gf_list_view_sort_order: the order a column header's sort glyph shows. */
+typedef uint32_t gf_list_view_sort_order;
+#define GF_LIST_VIEW_SORT_ORDER_NONE 0u
+#define GF_LIST_VIEW_SORT_ORDER_ASCENDING 1u
+#define GF_LIST_VIEW_SORT_ORDER_DESCENDING 2u
+
+/* The most columns, items and groups a view holds, and the most sub-items
+ * an item given to set_items carries. */
+#define GF_LIST_VIEW_MAXIMUM_COLUMNS 64u
+#define GF_LIST_VIEW_MAXIMUM_ITEMS 10000000u
+#define GF_LIST_VIEW_MAXIMUM_GROUPS 4096u
+#define GF_LIST_VIEW_MAXIMUM_SUB_ITEMS 64u
+
+/*
+ * A details-view column. As input (set_columns): stable_id is its identity
+ * (unique in the view, not empty), text the header's text, width in
+ * logical units at text scale 1 (zero takes the default, 120; otherwise
+ * from 20 to 4096), alignment its cells' text. As output (column_at) the
+ * record is filled and its texts copied into the caller's buffer.
+ */
+typedef struct gf_list_view_column {
+    uint32_t struct_size;
+    gf_list_view_alignment alignment;
+    double width;
+    gf_utf8_view stable_id;
+    gf_utf8_view text;
+} gf_list_view_column;
+
+/*
+ * An item. As input (set_items): stable_id is its identity (unique in the
+ * view, not empty); text is shown in the first column and as the label in
+ * the other views; sub_items (sub_item_count of them, at most
+ * GF_LIST_VIEW_MAXIMUM_SUB_ITEMS; null when none) in the later columns of
+ * the details view; image_key names an image in the view's image lists
+ * (empty for none); group names the group it is shown in (empty or unknown
+ * for the default group); checked 0 or 1. As output (item_at) the record is
+ * filled, its four texts copied into the caller's buffer, sub_items null
+ * and sub_item_count the number of sub-items (item_sub_item reads them).
+ */
+typedef struct gf_list_view_item {
+    uint32_t struct_size;
+    uint32_t checked;
+    gf_utf8_view stable_id;
+    gf_utf8_view text;
+    gf_utf8_view image_key;
+    gf_utf8_view group;
+    const gf_utf8_view* sub_items;
+    uint64_t sub_item_count;
+} gf_list_view_item;
+
+/*
+ * A group: stable_id its identity (unique in the view, not empty), header
+ * its header's text, header_alignment where the header sits. Input to
+ * set_groups and output of group_at, as the column record is.
+ */
+typedef struct gf_list_view_group {
+    uint32_t struct_size;
+    gf_list_view_alignment header_alignment;
+    gf_utf8_view stable_id;
+    gf_utf8_view header;
+} gf_list_view_group;
+
+typedef struct gf_list_view_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* The number of columns. */
+    gf_status (GF_CALL* column_count)(gf_object view, uint64_t* count);
+    /* Column index (below the count) into column, an output record of at
+     * least the 1.4 size; its stable id and text are copied into
+     * text_buffer, one after the other, and the views point there.
+     * text_required receives their total size, also with
+     * GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten.
+     * GF_STATUS_NOT_FOUND past the columns. */
+    gf_status (GF_CALL* column_at)(gf_object view, uint64_t index, gf_list_view_column* column, char* text_buffer,
+                                   uint64_t text_capacity, uint64_t* text_required);
+    /* Replaces the columns with count records (columns may be null when
+     * count is zero), all or nothing. Clears the sort glyph when its column
+     * is gone. A malformed record, a repeated or empty stable id or a width
+     * out of range gives GF_STATUS_INVALID_ARGUMENT, more than
+     * GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing
+     * nothing. */
+    gf_status (GF_CALL* set_columns)(gf_object view, const gf_list_view_column* columns, uint64_t count);
+    /* Sets column's width (20 to 4096 logical units), raising
+     * column_width_changed. GF_STATUS_NOT_FOUND past the columns. */
+    gf_status (GF_CALL* set_column_width)(gf_object view, uint64_t column, double width);
+    /* The number of items (the source's in virtual mode). */
+    gf_status (GF_CALL* item_count)(gf_object view, uint64_t* count);
+    /* Item index (below the count) into item, an output record of at least
+     * the 1.4 size; its stable id, text, image key and group are copied
+     * into text_buffer one after another, as column_at copies. */
+    gf_status (GF_CALL* item_at)(gf_object view, uint64_t index, gf_list_view_item* item, char* text_buffer,
+                                 uint64_t text_capacity, uint64_t* text_required);
+    /* Item index's sub-item (below its sub_item_count) as text, into buffer
+     * (required receives its size; a short buffer gives
+     * GF_STATUS_BUFFER_TOO_SMALL). GF_STATUS_NOT_FOUND past the items or
+     * the sub-items. */
+    gf_status (GF_CALL* item_sub_item)(gf_object view, uint64_t index, uint64_t sub_item, char* buffer,
+                                       uint64_t capacity, uint64_t* required);
+    /* Replaces the items with count records (items may be null when count
+     * is zero), all or nothing; the selection, focus and anchor follow
+     * their stable ids. A malformed record or a repeated or empty stable id
+     * gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS
+     * items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items
+     * GF_STATUS_LIMIT_EXCEEDED, changing nothing. */
+    gf_status (GF_CALL* set_items)(gf_object view, const gf_list_view_item* items, uint64_t count);
+    /* The index of the item with stable id item_id; GF_STATUS_NOT_FOUND
+     * when no item has it (and always in virtual mode). */
+    gf_status (GF_CALL* index_of)(gf_object view, gf_utf8_view item_id, uint64_t* index);
+    /* Sets item index's checked state (0 or 1), raising item_checked when
+     * it changes. GF_STATUS_NOT_FOUND past the items. */
+    gf_status (GF_CALL* set_item_checked)(gf_object view, uint64_t index, uint32_t checked);
+    /* The number of groups. */
+    gf_status (GF_CALL* group_count)(gf_object view, uint64_t* count);
+    /* Group index (below the count) into group, an output record of at
+     * least the 1.4 size; its stable id and header are copied into
+     * text_buffer, as column_at copies. */
+    gf_status (GF_CALL* group_at)(gf_object view, uint64_t index, gf_list_view_group* group, char* text_buffer,
+                                  uint64_t text_capacity, uint64_t* text_required);
+    /* Replaces the groups with count records, all or nothing, as
+     * set_columns replaces the columns (at most
+     * GF_LIST_VIEW_MAXIMUM_GROUPS). */
+    gf_status (GF_CALL* set_groups)(gf_object view, const gf_list_view_group* groups, uint64_t count);
+    /* The selected items' indices in ascending order into indices
+     * (capacity elements; null when the capacity is zero). count receives
+     * the number selected, also with GF_STATUS_BUFFER_TOO_SMALL, which
+     * writes no index. */
+    gf_status (GF_CALL* selected_items)(gf_object view, uint64_t* indices, uint64_t capacity, uint64_t* count);
+    /* Selects (1) or deselects (0) item index, keeping the others (without
+     * multi_select, selecting one deselects the rest); raises
+     * selection_changed when the selection changes. GF_STATUS_NOT_FOUND past
+     * the items. */
+    gf_status (GF_CALL* set_selected)(gf_object view, uint64_t index, uint32_t selected);
+    /* Selects every item (with multi_select), raising selection_changed. */
+    gf_status (GF_CALL* select_all)(gf_object view);
+    /* Deselects every item, raising selection_changed when any was. */
+    gf_status (GF_CALL* clear_selection)(gf_object view);
+    /* The item with the focus cue and the keyboard's position, or -1. */
+    gf_status (GF_CALL* focused_item)(gf_object view, int64_t* index);
+    /* Moves the focus cue to item index, or removes it with -1.
+     * GF_STATUS_NOT_FOUND past the items. */
+    gf_status (GF_CALL* set_focused_item)(gf_object view, int64_t index);
+    /* Scrolls so item index is fully visible. GF_STATUS_NOT_FOUND past the
+     * items. */
+    gf_status (GF_CALL* ensure_visible)(gf_object view, uint64_t index);
+    /* Shows the sort glyph order on column, or on no column with -1 (the
+     * order is then ignored). The view does not reorder its items for it.
+     * GF_STATUS_NOT_FOUND past the columns. */
+    gf_status (GF_CALL* set_sort_indicator)(gf_object view, int64_t column, gf_list_view_sort_order order);
+    /* Stable-sorts the items by column's text (ASCII case folded, then byte
+     * order) in order and shows the glyph; the selection and focus follow
+     * their items. GF_STATUS_NOT_FOUND past the columns. */
+    gf_status (GF_CALL* sort_items)(gf_object view, uint64_t column, gf_list_view_sort_order order);
+} gf_list_view_table;
 
 /*
  * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability

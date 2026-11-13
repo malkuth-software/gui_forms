@@ -40,6 +40,7 @@ typedef struct gf_kit {
     gf_help_table help;
     gf_classes_table classes;
     gf_content_table content;
+    gf_list_view_table list_view;
     /* Loaded by the custom part where the library has it (Windows). */
     gf_windows_paint_endpoint_table windows_paint_endpoint;
 } gf_kit;
@@ -130,6 +131,10 @@ void gf_kit_rules(gf_kit* kit);
 /* A data grid view's columns, rows, cells and selection (GF_TABLE_DATA_GRID),
  * on a created window's root. */
 void gf_kit_data_grid(gf_kit* kit);
+/* A list view's columns, items, groups, selection and focus
+ * (GF_TABLE_LIST_VIEW, since 1.4), its properties and its events, on a
+ * created window's root. */
+void gf_kit_list_view(gf_kit* kit);
 /* A dock workspace's panels and layout (GF_TABLE_DOCKING), with no window
  * running. */
 void gf_kit_docking(gf_kit* kit);

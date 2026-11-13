@@ -197,6 +197,30 @@ struct ListViewHeaderStyleCapability {
     }
 };
 
+// ListViewView as a property value; defined beside ListView's table.
+template <>
+struct PropertyValueTraits<ListViewView> {
+    static PropertyType type();
+    static BindingValue to_binding(ListViewView value);
+    static ListViewView from_binding(const BindingValue& value);
+};
+
+// ListViewActivation as a property value; defined beside ListView's table.
+template <>
+struct PropertyValueTraits<ListViewActivation> {
+    static PropertyType type();
+    static BindingValue to_binding(ListViewActivation value);
+    static ListViewActivation from_binding(const BindingValue& value);
+};
+
+// ListViewHeaderStyle as a property value; defined beside ListView's table.
+template <>
+struct PropertyValueTraits<ListViewHeaderStyle> {
+    static PropertyType type();
+    static BindingValue to_binding(ListViewHeaderStyle value);
+    static ListViewHeaderStyle from_binding(const BindingValue& value);
+};
+
 // Every ListView capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct ListViewCapabilities : public ListViewViewCapability<Declaring>,

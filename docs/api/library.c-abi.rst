@@ -242,6 +242,14 @@ Types
      -  
    * - :cpp:class:`gf_list_control_class <gf_list_control_class>`
      -  
+   * - :cpp:class:`gf_list_view_column <gf_list_view_column>`
+     -  
+   * - :cpp:class:`gf_list_view_group <gf_list_view_group>`
+     -  
+   * - :cpp:class:`gf_list_view_item <gf_list_view_item>`
+     -  
+   * - :cpp:class:`gf_list_view_table <gf_list_view_table>`
+     -  
    * - :cpp:class:`gf_logical_insets <gf_logical_insets>`
      -  
    * - :cpp:class:`gf_logical_point <gf_logical_point>`
@@ -398,6 +406,8 @@ Types
      - gf_help_table, negotiated as GF_TABLE_HELP.
    * - :cpp:class:`HostTable <gui_forms::abi::HostTable>`
      - gf_host_table, negotiated as GF_TABLE_HOST.
+   * - :cpp:class:`ListViewTable <gui_forms::abi::ListViewTable>`
+     - gf_list_view_table, negotiated as GF_TABLE_LIST_VIEW.
    * - :cpp:class:`ObjectReference <gui_forms::abi::ObjectReference>`
      - One reference to a library object, released (objects.release) when the owner goes or resets.
    * - :cpp:class:`ObjectsTable <gui_forms::abi::ObjectsTable>`
@@ -3438,6 +3448,115 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_list_view_column
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_list_view_alignment alignment
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: gf_utf8_view stable_id
+
+   .. cpp:member:: gf_utf8_view text
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_list_view_group
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_list_view_alignment header_alignment
+
+   .. cpp:member:: gf_utf8_view stable_id
+
+   .. cpp:member:: gf_utf8_view header
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_list_view_item
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t checked
+
+   .. cpp:member:: gf_utf8_view stable_id
+
+   .. cpp:member:: gf_utf8_view text
+
+   .. cpp:member:: gf_utf8_view image_key
+
+   .. cpp:member:: gf_utf8_view group
+
+   .. cpp:member:: const gf_utf8_view* sub_items
+
+   .. cpp:member:: uint64_t sub_item_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_list_view_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*column_count)(gf_object view, uint64_t* count)
+
+   .. cpp:member:: gf_status (*column_at)(gf_object view, uint64_t index, gf_list_view_column* column, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+   .. cpp:member:: gf_status (*set_columns)(gf_object view, const gf_list_view_column* columns, uint64_t count)
+
+   .. cpp:member:: gf_status (*set_column_width)(gf_object view, uint64_t column, double width)
+
+   .. cpp:member:: gf_status (*item_count)(gf_object view, uint64_t* count)
+
+   .. cpp:member:: gf_status (*item_at)(gf_object view, uint64_t index, gf_list_view_item* item, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+   .. cpp:member:: gf_status (*item_sub_item)(gf_object view, uint64_t index, uint64_t sub_item, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*set_items)(gf_object view, const gf_list_view_item* items, uint64_t count)
+
+   .. cpp:member:: gf_status (*index_of)(gf_object view, gf_utf8_view item_id, uint64_t* index)
+
+   .. cpp:member:: gf_status (*set_item_checked)(gf_object view, uint64_t index, uint32_t checked)
+
+   .. cpp:member:: gf_status (*group_count)(gf_object view, uint64_t* count)
+
+   .. cpp:member:: gf_status (*group_at)(gf_object view, uint64_t index, gf_list_view_group* group, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+   .. cpp:member:: gf_status (*set_groups)(gf_object view, const gf_list_view_group* groups, uint64_t count)
+
+   .. cpp:member:: gf_status (*selected_items)(gf_object view, uint64_t* indices, uint64_t capacity, uint64_t* count)
+
+   .. cpp:member:: gf_status (*set_selected)(gf_object view, uint64_t index, uint32_t selected)
+
+   .. cpp:member:: gf_status (*select_all)(gf_object view)
+
+   .. cpp:member:: gf_status (*clear_selection)(gf_object view)
+
+   .. cpp:member:: gf_status (*focused_item)(gf_object view, int64_t* index)
+
+   .. cpp:member:: gf_status (*set_focused_item)(gf_object view, int64_t index)
+
+   .. cpp:member:: gf_status (*ensure_visible)(gf_object view, uint64_t index)
+
+   .. cpp:member:: gf_status (*set_sort_indicator)(gf_object view, int64_t column, gf_list_view_sort_order order)
+
+   .. cpp:member:: gf_status (*sort_items)(gf_object view, uint64_t column, gf_list_view_sort_order order)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_logical_insets
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -5033,6 +5152,79 @@ Types
    .. cpp:function:: gf_status dialog_path_at(uint64_t index, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
 
    .. cpp:function:: gf_status set_cursor(gf_pointer_cursor cursor) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: ListViewTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_list_view_table, negotiated as GF_TABLE_LIST_VIEW.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ListViewTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_list_view_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(ListViewTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static ListViewTable adopt(const gf_list_view_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status column_count(gf_object view, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status column_at(gf_object view, uint64_t index, gf_list_view_column* column, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status item_count(gf_object view, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status item_at(gf_object view, uint64_t index, gf_list_view_item* item, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status item_sub_item(gf_object view, uint64_t index, uint64_t sub_item, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status index_of(gf_object view, gf_utf8_view item_id, uint64_t* index) const noexcept
+
+   .. cpp:function:: gf_status group_count(gf_object view, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status group_at(gf_object view, uint64_t index, gf_list_view_group* group, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status selected_items(gf_object view, uint64_t* indices, uint64_t capacity, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status select_all(gf_object view) const noexcept
+
+   .. cpp:function:: gf_status clear_selection(gf_object view) const noexcept
+
+   .. cpp:function:: gf_status focused_item(gf_object view, int64_t* index) const noexcept
+
+   .. cpp:function:: gf_status ensure_visible(gf_object view, uint64_t index) const noexcept
+
+   .. cpp:function:: gf_status sort_items(gf_object view, uint64_t column, gf_list_view_sort_order order) const noexcept
+
+   .. cpp:function:: gf_status set_columns(gf_object view, const gf_list_view_column* columns, uint64_t count) const noexcept
+
+   .. cpp:function:: gf_status set_column_width(gf_object view, uint64_t column, double width) const noexcept
+
+   .. cpp:function:: gf_status set_items(gf_object view, const gf_list_view_item* items, uint64_t count) const noexcept
+
+   .. cpp:function:: gf_status set_item_checked(gf_object view, uint64_t index, uint32_t checked) const noexcept
+
+   .. cpp:function:: gf_status set_groups(gf_object view, const gf_list_view_group* groups, uint64_t count) const noexcept
+
+   .. cpp:function:: gf_status set_selected(gf_object view, uint64_t index, uint32_t selected) const noexcept
+
+   .. cpp:function:: gf_status set_focused_item(gf_object view, int64_t index) const noexcept
+
+   .. cpp:function:: gf_status set_sort_indicator(gf_object view, int64_t column, gf_list_view_sort_order order) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 

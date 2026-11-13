@@ -11,6 +11,7 @@
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
 
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -613,6 +614,9 @@ private:
     [[nodiscard]] Rect item_bounds(const Layout& placed, std::size_t index) const noexcept;
     [[nodiscard]] Rect column_cell(const Layout& placed, std::size_t column) const noexcept;
     [[nodiscard]] bool column_visible(const Layout& placed, std::size_t column) const noexcept;
+    // Whether the semantics publish a table (rows of cells under column
+    // headers) rather than a list of items.
+    [[nodiscard]] bool publishes_table() const noexcept;
     void append_row_cells(const Layout& placed, std::size_t index, const ListViewItem& item,
                           SemanticNode& row_node) const;
     [[nodiscard]] std::size_t visible_column_count(const Layout& placed) const noexcept;
@@ -800,6 +804,12 @@ private:
     // The target phase in the routed form, from the mouse raisers.
     void handle_pointer(PointerEvent& event);
     // property_codemod begin ListView (tools/property_families/list_view.json; generated, do not edit)
+public:
+    // ListView's property table: Control's entries, then its own.
+    static constexpr std::size_t list_view_property_count = Control::control_property_count + 11U;
+    [[nodiscard]] static const std::array<PropertyEntry, list_view_property_count>& list_view_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
     // raises the change event (the class is final: nothing overrides it in

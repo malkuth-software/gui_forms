@@ -171,6 +171,7 @@ uint32_t gf_conformance_run(FILE* out, gf_conformance_flags flags) {
     load_table(&kit, GF_TABLE_HELP, &kit.help, sizeof(kit.help), "load the help table");
     load_table(&kit, GF_TABLE_CLASSES, &kit.classes, sizeof(kit.classes), "load the classes table");
     load_table(&kit, GF_TABLE_CONTENT, &kit.content, sizeof(kit.content), "load the content table");
+    load_table(&kit, GF_TABLE_LIST_VIEW, &kit.list_view, sizeof(kit.list_view), "load the list view table");
     if (kit.failures == 0u) {
         gf_kit_ownership(&kit);
         gf_kit_values(&kit);
@@ -194,6 +195,7 @@ uint32_t gf_conformance_run(FILE* out, gf_conformance_flags flags) {
         gf_kit_bindings(&kit);
         gf_kit_rules(&kit);
         gf_kit_data_grid(&kit);
+        gf_kit_list_view(&kit);
         gf_kit_docking(&kit);
         gf_kit_help(&kit);
         gf_kit_content(&kit);

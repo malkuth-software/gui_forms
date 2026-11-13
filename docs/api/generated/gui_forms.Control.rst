@@ -2631,7 +2631,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 239 supp
      - unclassified (unmatched)
    * - property
      - ``Font``
-     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``Label``, ``CheckBox``, ``RadioButton``, ``GroupBox``
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``Label``, ``ListView``, ``CheckBox``, ``RadioButton``, ``GroupBox``
      - unclassified (carried)
    * - property
      - ``FontHeight``

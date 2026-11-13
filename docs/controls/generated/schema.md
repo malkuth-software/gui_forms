@@ -927,7 +927,7 @@ Item system `group`:
 
 Item states: `disabled`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `activation` (enumeration), `check_boxes` (boolean), `default_group_header` (text), `font` (font), `full_row_select` (boolean), `header_style` (enumeration), `label_edit` (boolean), `multi_select` (boolean), `show_groups` (boolean), `tile_size` (size), `view` (enumeration).
 
 | Interaction | Payload |
 |---|---|

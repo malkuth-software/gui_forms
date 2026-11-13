@@ -821,6 +821,65 @@ internal static unsafe class Program
         expect(Encoding.UTF8.GetString(read, 0, checked((int)required)) == "caf\u00e9", "the editor's text reads back");
         expect(table.open_content(editor.value, 0u, &sink) == Constants.GF_STATUS_WRONG_HANDLE_KIND,
                "an editor is not a content surface");
+    // GF_TABLE_LIST_VIEW (since 1.4) from C#: one column and two items
+    // through the table, read back, and the header style as a property.
+    private static void list_view_items()
+    {
+        Abi.check(Exports.get_list_view_table(out gf_list_view_table table));
+        expect(table.struct_size >= (uint)sizeof(gf_list_view_table), "the list view table is served whole");
+        using ObjectHandle view = ObjectHandle.create("list_view"u8, "csharp.list"u8);
+        gf_object made = 0;
+        Abi.check(Abi.windows.create(view.value, &made));
+        using ObjectHandle window = ObjectHandle.adopt(made);
+
+        fixed (byte* column_id = "name"u8)
+        fixed (byte* column_text = "Name"u8)
+        fixed (byte* first_id = "first"u8)
+        fixed (byte* first_text = "First"u8)
+        fixed (byte* second_id = "second"u8)
+        fixed (byte* second_text = "Second"u8)
+        {
+            gf_list_view_column column = default;
+            column.struct_size = (uint)sizeof(gf_list_view_column);
+            column.stable_id = Utf8.view(column_id, 4);
+            column.text = Utf8.view(column_text, 4);
+            Abi.check(table.set_columns(view.value, &column, 1u));
+            gf_list_view_item* items = stackalloc gf_list_view_item[2];
+            items[0] = default;
+            items[0].struct_size = (uint)sizeof(gf_list_view_item);
+            items[0].stable_id = Utf8.view(first_id, 5);
+            items[0].text = Utf8.view(first_text, 5);
+            items[1] = items[0];
+            items[1].stable_id = Utf8.view(second_id, 6);
+            items[1].text = Utf8.view(second_text, 6);
+            items[1].@checked = 1u;
+            Abi.check(table.set_items(view.value, items, 2u));
+        }
+        ulong count = 0;
+        Abi.check(table.item_count(view.value, &count));
+        expect(count == 2u, "two items were set from C#");
+        byte[] text = new byte[64];
+        gf_list_view_item read = default;
+        read.struct_size = (uint)sizeof(gf_list_view_item);
+        ulong required = 0;
+        fixed (byte* text_data = text)
+        {
+            Abi.check(table.item_at(view.value, 1u, &read, text_data, (ulong)text.Length, &required));
+        }
+        expect(read.@checked == 1u && read.text.size == 6u && required == 12u, "the second item reads back checked");
+
+        gf_value style = default;
+        style.struct_size = (uint)sizeof(gf_value);
+        style.kind = Constants.GF_VALUE_KIND_ENUMERATION;
+        style.signed_integer = 2;
+        fixed (byte* property = "header_style"u8)
+        {
+            Abi.check(Abi.properties.set(view.value, Utf8.view(property, 12), &style));
+        }
+        Abi.check(table.set_selected(view.value, 0u, 1u));
+        ulong* selected = stackalloc ulong[2];
+        Abi.check(table.selected_items(view.value, selected, 2u, &count));
+        expect(count == 1u && selected[0] == 0u, "the first item is selected from C#");
     }
 
     private static int Main()
@@ -843,6 +902,7 @@ internal static unsafe class Program
         help_language_files();
         font_families();
         content();
+        list_view_items();
         expect(unhandled_raised == 0, "no failure in these checks ran under an event loop");
         Console.WriteLine(failures == 0 ? "gui_forms_abi_csharp: all checks passed" :
                                           $"gui_forms_abi_csharp: {failures} checks failed");

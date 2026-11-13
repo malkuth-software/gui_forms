@@ -51,7 +51,10 @@ Two rules apply to the call:
   and freed tokens. The data grid table (`GF_TABLE_DATA_GRID`, since 1.1) is
   checked on a created window's root in both modes: columns, rows in bulk,
   cells by row ID, the bulk read into caller storage, the current cell, the
-  selection, an edit and the change events.
+  selection, an edit and the change events. The list view table
+  (`GF_TABLE_LIST_VIEW`, since 1.4) is checked the same way: columns,
+  items with sub-items, groups, sorting, the selection, the focus cue, the
+  view, activation and header style properties, and its events.
   `GF_CONFORMANCE_FLAGS_NONE` leaves them out, for headless CI.
 
 A complete test program, as the SDK's own installed example builds it
