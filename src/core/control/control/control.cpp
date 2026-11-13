@@ -4115,6 +4115,8 @@ bool Control::sizes_children_from_content() const noexcept { return true; }
 
 bool Control::measures_children_in_arrange() const noexcept { return false; }
 
+bool Control::sizes_unrequested_extents_from_content() const noexcept { return false; }
+
 LayoutDirection Control::effective_layout_direction() const noexcept {
     return resolved_direction_;
 }
@@ -4212,7 +4214,27 @@ void Control::arrange(Rect final_bounds) {
                 authored.height = preferred.height;
             }
         }
-        if ((*child).auto_size.read()) {
+        // A zero requested extent that the child takes from its content
+        // (sizes_unrequested_extents_from_content): one measure at the
+        // requested width, else the client's, gives the width and then
+        // the height at that width.
+        const bool unrequested_extent = !(*child).auto_size.read() &&
+                                        (*child).sizes_unrequested_extents_from_content() &&
+                                        (authored.width <= 0.0 || authored.height <= 0.0);
+        if (unrequested_extent) {
+            const double width_limit = authored.width > 0.0 ? authored.width : client.width;
+            const Size preferred = measure_child_cached(*child, unconstrained_if_zero({width_limit, client.height}));
+            if (!is_alive()) return;
+            if (!is_current_layout_child(child) || !(*child).visible.read() ||
+                (*child).dock.read() != DockStyle::none) {
+                continue;
+            }
+            if (authored.width <= 0.0) authored.width = preferred.width;
+            if (authored.height <= 0.0) authored.height = preferred.height;
+        }
+        if ((*child).auto_size.read() || unrequested_extent) {
+            // The preferred size follows the content, so the reference is
+            // taken again each layout.
             (*child).anchor_reference_ = AnchorReference{authored, client};
         } else if (!(*child).anchor_reference_) {
             (*child).anchor_reference_ = AnchorReference{

@@ -1049,6 +1049,15 @@ public:
     // callback). False by default, which keeps every existing container's
     // measure pass unchanged.
     [[nodiscard]] virtual bool measures_children_in_arrange() const noexcept;
+    // Whether a requested width or height of 0 means "from content" when
+    // this control is placed by its parent's dock and anchor layout without
+    // AutoSize (coordinator ruling, cp32 return 1: exhibit gap E12). The
+    // parent then measures it once, at the requested width (else the
+    // client's), and takes each zero axis from the answer: width first,
+    // then the height at that width (the A8 rule), so one layout pass
+    // converges. False by default, so a 0 stays 0 for every control that
+    // does not say otherwise; Label answers true.
+    [[nodiscard]] virtual bool sizes_unrequested_extents_from_content() const noexcept;
     // layout_direction stores the authored inline direction, `inherit` by
     // default (stage L, PLAN section 4): Windows Forms' RightToLeft. The
     // registry, the property grid and forms spell it `right_to_left` (No,

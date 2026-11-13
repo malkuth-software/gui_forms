@@ -55,6 +55,10 @@ protected:
     // label does not wrap within 4 px of content width, so when the widest
     // word is at most 4 px wide min-content equals max-content.
     [[nodiscard]] Size measure_intrinsic(const LayoutConstraint& constraint) override;
+    // A requested width or height of 0 is the text's (coordinator ruling,
+    // exhibit gap E12): wrapped lines at the arranged width with word wrap,
+    // one line otherwise.
+    [[nodiscard]] bool sizes_unrequested_extents_from_content() const noexcept override;
     // The lines of a label's text placed in its arranged bounds (stage T1):
     // each line's drawing origin (left edge, snapped baseline) and width, and
     // the block the lines fill. Paint and published geometry share it.

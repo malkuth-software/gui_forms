@@ -277,6 +277,12 @@ gui_forms::Label
 
       Min-content is the widest unbreakable segment: the widest whitespace-delimited word of any paragraph, so word wrapping never has to break a word (CSS ``overflow-wrap: break-word``). Max-content is the widest paragraph unwrapped. Both include the 4 px text inset, and the height is the wrapped height at that width. A label that does not wrap, or has a requested width, answers both from its preferred size. The label does not wrap within 4 px of content width, so when the widest word is at most 4 px wide min-content equals max-content.
 
+   .. cpp:function:: bool sizes_unrequested_extents_from_content() const noexcept override
+
+      *Protected.*
+
+      A requested width or height of 0 is the text's (coordinator ruling, exhibit gap E12): wrapped lines at the arranged width with word wrap, one line otherwise.
+
    .. cpp:function:: virtual std::string display_text() const
 
       *Protected.*

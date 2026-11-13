@@ -230,6 +230,8 @@ Size Label::measure(const Size available) {
     return measured;
 }
 
+bool Label::sizes_unrequested_extents_from_content() const noexcept { return true; }
+
 Size Label::measure_intrinsic(const LayoutConstraint& constraint) {
     const AvailableExtentKind kind = constraint.width.kind;
     const bool content_query = kind == AvailableExtentKind::min_content ||

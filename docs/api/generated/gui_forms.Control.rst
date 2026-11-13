@@ -1743,6 +1743,10 @@ gui_forms::Control
 
       Whether this container's arrange asks each child the content questions its algorithm needs (min-content, max-content, a height at a definite width) rather than the at-most question the window's measure pass would ask. When true, the window's pass leaves a measure-dirty direct child to its arrange: the child's dirtiness has already emptied its cache, and measuring it against the parent's available size too would cost a second callback whose answer nothing reads (stage L, PLAN section 5: one item's text change costs one callback). False by default, which keeps every existing container's measure pass unchanged.
 
+   .. cpp:function:: virtual bool sizes_unrequested_extents_from_content() const noexcept
+
+      Whether a requested width or height of 0 means "from content" when this control is placed by its parent's dock and anchor layout without AutoSize (coordinator ruling, cp32 return 1: exhibit gap E12). The parent then measures it once, at the requested width (else the client's), and takes each zero axis from the answer: width first, then the height at that width (the A8 rule), so one layout pass converges. False by default, so a 0 stays 0 for every control that does not say otherwise; Label answers true.
+
    .. cpp:function:: virtual void on_paint(Painter& painter, Rect local_damage)
 
       Override to draw the control in local coordinates. The window records
