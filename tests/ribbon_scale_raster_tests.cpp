@@ -213,11 +213,11 @@ void gallery_ribbon_at(double scale, double window_scale) {
     Window& window = *owned;
     window.set_scale(window_scale);
     window.perform_layout();
-    const std::shared_ptr<Button> navigation =
-        std::dynamic_pointer_cast<Button>(window.find("gallery.page.commands-and-menus"));
-    require(navigation != nullptr, "the commands page's navigation row exists");
-    if (!navigation) return;
-    static_cast<void>((*navigation).perform_click());
+    // The navigation opens the page through its ListView row; the shell's
+    // select_gallery_page is the same selection without the pointer.
+    const bool shown = gui_forms::gallery::select_gallery_page(window, "commands-and-menus");
+    require(shown, "the commands page's navigation row exists");
+    if (!shown) return;
     window.perform_layout();
     const std::shared_ptr<Ribbon> ribbon =
         std::dynamic_pointer_cast<Ribbon>(window.find("gallery.commands.ribbon.bar"));
@@ -419,9 +419,7 @@ void gallery_labels_at(double scale) {
     window.set_scale(scale);
     window.set_text_metrics_provider(&raster);
     window.perform_layout();
-    const std::shared_ptr<Button> navigation =
-        std::dynamic_pointer_cast<Button>(window.find("gallery.page.commands-and-menus"));
-    if (navigation) static_cast<void>((*navigation).perform_click());
+    static_cast<void>(gui_forms::gallery::select_gallery_page(window, "commands-and-menus"));
     window.perform_layout();
     const std::shared_ptr<Ribbon> ribbon =
         std::dynamic_pointer_cast<Ribbon>(window.find("gallery.commands.ribbon.bar"));

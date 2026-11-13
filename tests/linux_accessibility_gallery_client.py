@@ -144,7 +144,7 @@ ACCEPTED_WITHOUT_CHANGE: dict[str, str] = {
 
 # The Gallery's own frame (navigation, header, command row), which every
 # page repeats; a type's action target is chosen outside it.
-SHELL_PREFIXES: tuple[str, ...] = ('gallery.command.', 'gallery.page.', 'gallery.nav', 'gallery.header')
+SHELL_PREFIXES: tuple[str, ...] = ('gallery.command.', 'gallery.page.', 'gallery.nav', 'gallery.header', 'gallery.sidebar.')
 
 # SemanticState bits (include/gui_forms/semantics/types/semantic_types.hpp).
 ENABLED: int = 1 << 0

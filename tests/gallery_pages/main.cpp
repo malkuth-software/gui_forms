@@ -130,6 +130,7 @@ int main(int argc, char** argv) {
         test_every_page_scrolls_to_its_end();
         test_catalog_pages_resolve_and_headers_describe_pages();
         test_gallery_semantic_surface();
+        test_shell_keyboard_order();
         test_basics_card_dark_contrast();
         test_ranges_containers_and_animation();
         test_text_collections_and_overlay_lifecycle();

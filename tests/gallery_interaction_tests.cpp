@@ -193,7 +193,7 @@ int main()
     expect(every_form_id_resolves && (*window).metrics_snapshot().control_count > gallery_form_ids.size(),
            "the form document's controls reach the retained window beside the registry-driven shell");
     expect(gui_forms::gallery::selected_gallery_page(*window) == "control-spectrum" &&
-               (*window).find("gallery.page.basics") != nullptr &&
+               gui_forms::gallery::select_gallery_page(*window, "control-spectrum") &&
                (*window).find("gallery.surface.basics") != nullptr,
            "navigation rows and page surfaces resolve by stable page id");
     expect((*window).find("gallery.instrument") != nullptr,

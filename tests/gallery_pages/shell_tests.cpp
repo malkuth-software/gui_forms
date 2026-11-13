@@ -1,9 +1,13 @@
 #include "support.hpp"
+#include "gui_forms/controls/list_view_values.hpp"
 #include "gui_forms/prepared_text/types/prepared_text_types.hpp"
 #include "../../src/core/theme/contrast/theme_contrast.hpp"
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <string>
+#include <vector>
 #include <span>
 #include <string_view>
 
@@ -35,6 +39,120 @@ void test_page_contract_and_rendering() {
     for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
         select_page(window, page.id);
     }
+}
+
+namespace {
+
+bool press_key(Window& window, std::uint32_t key, Modifier modifiers = Modifier::none) {
+    KeyEvent event{};
+    event.action = KeyAction::down;
+    event.physical_key = key;
+    event.modifiers = modifiers;
+    const bool handled = window.dispatch_key(event);
+    KeyEvent release = event;
+    release.action = KeyAction::up;
+    static_cast<void>(window.dispatch_key(release));
+    return handled;
+}
+
+// Whether `control` is `ancestor` or below it.
+bool holds(const Control::Ptr& ancestor, Control::Ptr control) {
+    while (control) {
+        if (control == ancestor) return true;
+        control = (*control).parent();
+    }
+    return false;
+}
+
+// The surface of the page at navigation `index`.
+Control::Ptr page_surface(Window& window, const ListView& list, std::size_t index) {
+    const std::string_view row_id = list.items()[index].stable_id;
+    const std::string page_id(row_id.substr(gallery::navigation_id_prefix.size()));
+    const Control::Ptr viewport =
+        window.find(std::string(gallery::surface_id_prefix) + page_id);
+    require(viewport != nullptr, "every navigation row has a page surface");
+    return viewport;
+}
+
+const SemanticNode* find_node(const SemanticNode& node, std::string_view stable_id) {
+    if (node.stable_id == stable_id) return &node;
+    for (const SemanticNode& child : node.children) {
+        const SemanticNode* found = find_node(child, stable_id);
+        if (found != nullptr) return found;
+    }
+    return nullptr;
+}
+
+const SemanticNode* find_node(const SemanticSnapshot& snapshot, std::string_view stable_id) {
+    for (const SemanticNode& root : snapshot.roots) {
+        const SemanticNode* found = find_node(root, stable_id);
+        if (found != nullptr) return found;
+    }
+    return nullptr;
+}
+
+} // namespace
+
+// The shell's keyboard order (owner rulings 2026-11-13): the navigation is
+// one ListView, one Tab stop moved through with the arrow keys and opened
+// with Enter; Tab goes from it into the page body and Shift+Tab comes back;
+// F6 moves between the panes.
+void test_shell_keyboard_order() {
+    std::unique_ptr<Window> owned = gallery::make_gallery();
+    Window& window = *owned;
+    window.perform_layout();
+    const std::shared_ptr<ListView> list = navigation_list(window);
+    require((*list).item_count() > 10U && (*list).grouped(), "the navigation lists every page in its groups");
+    require((*list).tab_stop.read() && (*list).header_style.read() == ListViewHeaderStyle::none &&
+                (*list).activation.read() == ListViewActivation::one_click,
+            "the navigation is one Tab stop without a header, opened by one click");
+    const Control::Ptr first_page = page_surface(window, *list, 0U);
+    const Control::Ptr second_page = page_surface(window, *list, 1U);
+    require((*list).is_selected(0U) && (*first_page).effectively_visible(), "the first page is open and selected");
+
+    require(window.request_focus(list), "the navigation takes focus");
+    require(press_key(window, PhysicalKey::down) && (*list).focused_index() == std::optional<std::size_t>(1U),
+            "Down moves to the next page");
+    require((*first_page).effectively_visible() && !(*second_page).effectively_visible(),
+            "moving between rows opens no page");
+    require(press_key(window, PhysicalKey::enter), "Enter opens the row's page");
+    window.perform_layout();
+    require((*second_page).effectively_visible() && !(*first_page).effectively_visible(),
+            "Enter on a row shows its page");
+    require(press_key(window, PhysicalKey::up) && press_key(window, PhysicalKey::enter), "Enter opens the first page");
+    window.perform_layout();
+    require((*first_page).effectively_visible(), "the first page shows again");
+
+    require(press_key(window, PhysicalKey::tab), "Tab moves on from the navigation");
+    const Control::Ptr body_first = window.focused_control();
+    require(body_first != nullptr && holds(first_page, body_first),
+            "Tab from the navigation goes into the page body, before the status strip");
+    require(press_key(window, PhysicalKey::tab, Modifier::shift) && window.focused_control() == list,
+            "Shift+Tab from the body's first control returns to the navigation");
+
+    const Control::Ptr content = window.find("gallery.content");
+    const Control::Ptr command_strip = window.find("gallery.command-strip");
+    require(content != nullptr && command_strip != nullptr, "the shell's panes resolve");
+    require(press_key(window, PhysicalKey::f6) && holds(content, window.focused_control()),
+            "F6 from the navigation moves into the page area");
+    require(press_key(window, PhysicalKey::f6, Modifier::shift) && window.focused_control() == list,
+            "Shift+F6 returns to the navigation");
+    require(press_key(window, PhysicalKey::f6, Modifier::shift) && holds(command_strip, window.focused_control()),
+            "Shift+F6 again reaches the command strip");
+
+    // The navigation publishes as one named node whose rows are the pages
+    // (in their category groups), the open page's selected; the page body's
+    // controls sit under the window too.
+    const SemanticSnapshot snapshot = window.semantic_snapshot();
+    const SemanticNode* navigation = find_node(snapshot, "gallery.sidebar.pages");
+    require(navigation != nullptr && (*navigation).name == "Pages", "the navigation list is published by name");
+    const SemanticNode* first_row = find_node(snapshot, (*list).items()[0].stable_id);
+    require(first_row != nullptr && (*first_row).role == SemanticRole::row &&
+                has_semantic_state((*first_row).states, SemanticState::selected) &&
+                (*first_row).row_index == std::optional<std::size_t>(1U),
+            "the open page's row is row 1, selected");
+    const SemanticNode* body_node = find_node(snapshot, std::string((*body_first).stable_id().value()));
+    require(body_node != nullptr, "the page body's controls are published under the window");
 }
 
 void test_gallery_semantic_surface() {
@@ -159,7 +277,7 @@ void test_basics_card_dark_contrast() {
     select_page(window, "basics");
     const Control::Ptr card = window.find("gallery.lifecycle-card");
     require(card != nullptr, "the basics page holds the lifecycle card");
-    reveal_in_page_viewport(window, card);
+    reveal_in_page_surface(window, card);
     const Rect bounds = (*card).committed_arranged_bounds();
     require(bounds.width > 0.0 && bounds.height > 0.0, "the shown basics page arranges the lifecycle card");
     PlateAndInkPainter painter(bounds.width * 0.5);

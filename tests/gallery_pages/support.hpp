@@ -4,6 +4,7 @@
 #include "demo/gallery_page_specs.hpp"
 #include "gui_forms/binding/property_type/property_type.hpp"
 #include "gui_forms/control/control/control.hpp"
+#include "gui_forms/controls/list_view.hpp"
 #include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
@@ -21,6 +22,7 @@
 #include <chrono>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -215,28 +217,38 @@ inline void click(Window& window, const Control::Ptr& control) {
     }
 }
 
+// The Gallery's page navigation: one ListView whose rows are
+// gallery.page.<page>.
+inline std::shared_ptr<ListView> navigation_list(Window& window) {
+    const std::shared_ptr<ListView> list = std::dynamic_pointer_cast<ListView>(window.find("gallery.sidebar.pages"));
+    require(list != nullptr, "the Gallery's navigation is one ListView");
+    return list;
+}
+
 // Selects a page the way a user does (click its navigation row), then proves
 // exactly that page's retained surface is visible.
 inline void select_page(Window& window, std::string_view page_id) {
-    const Control::Ptr navigation = window.find(
-        std::string(gallery::navigation_id_prefix) + std::string(page_id));
-    require(navigation != nullptr, "gallery navigation stable ID must resolve");
-    // The sidebar scrolls; bring the row into the viewport as a user would.
-    if (const std::shared_ptr<ScrollableControl> sidebar =
-            std::dynamic_pointer_cast<ScrollableControl>((*navigation).parent())) {
-        const Rect row = (*navigation).requested_bounds();
-        const Rect viewport = (*sidebar).viewport_rectangle();
-        const Point position = (*sidebar).scroll_position();
-        double target = position.y;
-        if (row.y < position.y + 8.0) target = row.y - 8.0;
-        else if (row.y + row.height > position.y + viewport.height - 8.0) {
-            target = row.y + row.height + 8.0 - viewport.height;
-        }
-        target = std::max(0.0, target);
-        if (target != position.y) static_cast<void>((*sidebar).scroll_to({position.x, target}));
-        window.perform_layout();
+    const std::shared_ptr<ListView> list = navigation_list(window);
+    const std::string row_id = std::string(gallery::navigation_id_prefix) + std::string(page_id);
+    const std::optional<std::size_t> index = (*list).index_of(row_id);
+    require(index.has_value(), "gallery navigation stable ID must resolve");
+    // The list scrolls; bring the row into view as a user would.
+    (*list).ensure_visible(*index);
+    window.perform_layout();
+    Rect row{};
+    bool found = false;
+    for (const ListView::Item& item : (*list).realized_items()) {
+        if (item.stable_id != row_id) continue;
+        row = item.parts.cell.bounds;
+        found = true;
     }
-    click(window, navigation);
+    require(found, "the navigation row is realized once in view");
+    const Rect absolute = (*list).absolute_bounds();
+    const Point point{absolute.x + row.x + row.width * 0.5, absolute.y + row.y + row.height * 0.5};
+    const bool down = window.dispatch_pointer({PointerAction::down, PointerButton::primary, point});
+    const bool up = window.dispatch_pointer({PointerAction::up, PointerButton::primary, point});
+    require(down && up, "the navigation row takes the click");
+    window.perform_layout();
     for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
         const Control::Ptr surface = window.find(
             std::string(gallery::surface_id_prefix) + std::string(page.id));
