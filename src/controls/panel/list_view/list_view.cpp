@@ -221,6 +221,25 @@ void ListView::written(const decltype(view)&) {
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
+void ListView::prepare_write(const decltype(header_style)&, ListViewHeaderStyle& incoming) {
+    require_mutable();
+    if (incoming != ListViewHeaderStyle::clickable && incoming != ListViewHeaderStyle::nonclickable &&
+        incoming != ListViewHeaderStyle::none) {
+        throw std::invalid_argument("ListView header style is invalid");
+    }
+}
+
+// A new header style drops the pressed and hot column (a header that no
+// longer responds keeps no state) and moves the layout, whose header row
+// appears or goes.
+void ListView::written(const decltype(header_style)&) {
+    pressed_column_.reset();
+    hot_column_.reset();
+    if (has_pointer_capture() && !resizing_column_) set_pointer_capture(false);
+    advance_layout_revision();
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
 void ListView::set_columns(std::vector<ListViewColumn> columns) {
     require_mutable();
     if (columns.size() > maximum_columns) {
@@ -1255,7 +1274,9 @@ ListView::Layout ListView::layout_for(Rect client) const {
     placed.columns_width = columns_width;
     // The details view shows nothing without columns, as in Windows Forms.
     placed.shown_count = details && columns_.empty() ? 0U : item_count();
-    const double header_height = details && !columns_.empty() ? row + 2.0 * scale : 0.0;
+    // No header row with header_style none (Windows Forms' ColumnHeaderStyle.None).
+    const bool header_shown = details && !columns_.empty() && header_style.read() != ListViewHeaderStyle::none;
+    const double header_height = header_shown ? row + 2.0 * scale : 0.0;
     if (details) {
         placed.cell = {columns_width, row};
     } else if (view.read() == ListViewView::large_icon) {
@@ -2291,11 +2312,21 @@ void ListView::handle_pointer(PointerEvent& event) {
     const Hit hit = hit_test(placed, local);
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
         const bool on_item = hit.zone == HitZone::item || hit.zone == HitZone::check;
-        const bool on_header = hit.zone == HitZone::header;
+        // Only clickable headers track the pointer.
+        const bool on_header = hit.zone == HitZone::header && header_style.read() == ListViewHeaderStyle::clickable;
         const std::optional<std::size_t> next_hot = on_item ? std::optional<std::size_t>(hit.index) : std::nullopt;
         const std::optional<std::size_t> next_column =
             on_header ? std::optional<std::size_t>(hit.index) : std::nullopt;
-        cursor = hit.zone == HitZone::divider ? CursorKind::resize_horizontal : CursorKind::arrow;
+        // Activation by click shows the hand over items (Windows Forms' hot
+        // tracking for one_click and two_click).
+        const bool clickable_items = activation.read() != ListViewActivation::standard;
+        if (hit.zone == HitZone::divider) {
+            cursor = CursorKind::resize_horizontal;
+        } else if (on_item && clickable_items) {
+            cursor = CursorKind::hand;
+        } else {
+            cursor = CursorKind::arrow;
+        }
         if (next_hot != hot_index_ || next_column != hot_column_) {
             hot_index_ = next_hot;
             hot_column_ = next_column;
@@ -2348,7 +2379,7 @@ void ListView::handle_pointer(PointerEvent& event) {
             resize_start_width_ = columns_[hit.index].width;
             if (window() != nullptr) (*window()).capture_pointer(lifetime, event.pointer_id);
             invalidate(Dirty::paint | Dirty::semantics);
-        } else if (hit.zone == HitZone::header) {
+        } else if (hit.zone == HitZone::header && header_style.read() == ListViewHeaderStyle::clickable) {
             pressed_column_ = hit.index;
             if (window() != nullptr) (*window()).capture_pointer(lifetime, event.pointer_id);
             invalidate(Dirty::paint | Dirty::semantics);
@@ -2356,11 +2387,25 @@ void ListView::handle_pointer(PointerEvent& event) {
             move_focus(hit.index);
             toggle_check(hit.index);
         } else if (hit.zone == HitZone::item) {
+            const ListViewActivation mode = activation.read();
+            // two_click: a click on the item that was already selected and
+            // focused, read before this press changes them.
+            const bool already_chosen = focused_index_ == hit.index && hit.index < selected_.size() &&
+                                        selected_[hit.index] != 0U;
             if (event.click_count >= 2U) {
-                activate(hit.index);
+                // one_click activated on the first press of the pair.
+                if (mode != ListViewActivation::one_click) activate(hit.index);
             } else {
                 choose(hit.index, event.modifiers, false);
-                if (slow_click && is_alive()) schedule_label_click(hit.index);
+                if (!is_alive()) return;
+                const bool plain = event.modifiers == Modifier::none;
+                if (plain && mode == ListViewActivation::one_click) {
+                    activate(hit.index);
+                } else if (plain && mode == ListViewActivation::two_click && already_chosen) {
+                    activate(hit.index);
+                } else if (slow_click) {
+                    schedule_label_click(hit.index);
+                }
             }
         } else if (!placed.viewport.empty() && placed.viewport.contains(local) &&
                    event.modifiers == Modifier::none) {
@@ -2877,7 +2922,7 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
         if (sort_column_ == column && sort_order_ == ListViewSortOrder::descending) node.value = "descending";
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible | enabled_state;
-        node.actions = {SemanticAction::press};
+        if (header_style.read() == ListViewHeaderStyle::clickable) node.actions = {SemanticAction::press};
         nodes.push_back(std::move(node));
     }
     const std::size_t first = first_realized(placed);
@@ -2992,7 +3037,7 @@ bool ListView::on_semantic_child_action(std::string_view id, SemanticAction acti
     const std::string list_id(stable_id().value());
     for (std::size_t column = 0; column < columns_.size(); ++column) {
         if (id != column_identity(list_id, columns_[column].stable_id)) continue;
-        if (action != SemanticAction::press) return false;
+        if (action != SemanticAction::press || header_style.read() != ListViewHeaderStyle::clickable) return false;
         request_column_click(column);
         return true;
     }
@@ -3460,6 +3505,18 @@ void ListView::prepare_write(const decltype(default_group_header)&, std::string&
 
 void ListView::written(const decltype(default_group_header)&) {
     invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void ListView::prepare_write(const decltype(activation)&, ListViewActivation& incoming) {
+    require_mutable();
+    if (incoming != ListViewActivation::standard && incoming != ListViewActivation::one_click &&
+        incoming != ListViewActivation::two_click) {
+        throw std::invalid_argument("ListView activation is invalid");
+    }
+}
+
+void ListView::written(const decltype(activation)&) {
+    invalidate(Dirty::paint);
 }
 
 // property_codemod end ListView

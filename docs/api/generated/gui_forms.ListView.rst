@@ -89,6 +89,12 @@ gui_forms::ListView
          ``LabelEdit``): F2 on the focused item begins an edit. Turning it off
          cancels an edit in progress.
 
+      **activation** : ``ListViewActivation``
+         How the user activates an item, raising item_activated (Windows Forms' Activation): standard on a double click, one_click on a single click, two_click on a click of the item that was already selected and focused (a double click also activates in standard and two_click). In one_click and two_click the pointer over an item shows the hand cursor (Windows Forms' hot tracking of activation). Enter and the semantic press action activate in every mode. Throws std::invalid_argument for an unknown value.
+
+      **header_style** : ``ListViewHeaderStyle``
+         The details view's column headers (Windows Forms' HeaderStyle): clickable headers raise column_click and show their pressed and hot states; nonclickable headers are shown and can be resized but do not respond to clicks or publish a press action; none shows no header row, the items starting at the top of the view. Throws std::invalid_argument for an unknown value.
+
       **columns** : ``std::span<const ListViewColumn>``
          The details view's columns. :cpp:func:`set_columns <gui_forms::ListView::set_columns>` replaces them and throws
          ``std::invalid_argument`` for a repeated ID or one that breaks the
@@ -464,6 +470,14 @@ gui_forms::ListView
       Whether the user may edit items' labels in place (Windows Forms'
       ``LabelEdit``): F2 on the focused item begins an edit. Turning it off
       cancels an edit in progress.
+
+   .. cpp:member:: ListViewActivation activation
+
+      How the user activates an item, raising item_activated (Windows Forms' Activation): standard on a double click, one_click on a single click, two_click on a click of the item that was already selected and focused (a double click also activates in standard and two_click). In one_click and two_click the pointer over an item shows the hand cursor (Windows Forms' hot tracking of activation). Enter and the semantic press action activate in every mode. Throws std::invalid_argument for an unknown value.
+
+   .. cpp:member:: ListViewHeaderStyle header_style
+
+      The details view's column headers (Windows Forms' HeaderStyle): clickable headers raise column_click and show their pressed and hot states; nonclickable headers are shown and can be resized but do not respond to clicks or publish a press action; none shows no header row, the items starting at the top of the view. Throws std::invalid_argument for an unknown value.
 
    .. cpp:function:: std::span<const ListViewColumn> columns() const& noexcept
 

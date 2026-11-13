@@ -791,6 +791,10 @@ private:
     Event<ListViewLabelEdit&> before_label_edit_{};
     Event<ListViewLabelEdit&> after_label_edit_{};
     Event<ItemContentPaint&> draw_item_content_{};
+    // The routed form of a key the raisers left unhandled.
+    void handle_key(KeyEvent& event);
+    // The target phase in the routed form, from the mouse raisers.
+    void handle_pointer(PointerEvent& event);
     // property_codemod begin ListView (tools/property_families/list_view.json; generated, do not edit)
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
@@ -799,10 +803,6 @@ protected:
     virtual void on_font_changed();
 
 private:
-    // The routed form of a key the raisers left unhandled.
-    void handle_key(KeyEvent& event);
-    // The target phase in the routed form, from the mouse raisers.
-    void handle_pointer(PointerEvent& event);
     friend struct ListViewViewCapability<ListView>;
     friend struct ListViewCheckBoxesCapability<ListView>;
     friend struct ListViewMultiSelectCapability<ListView>;
@@ -815,6 +815,8 @@ private:
     friend struct ShowGroupsCapability<ListView>;
     friend struct DefaultGroupHeaderCapability<ListView>;
     friend struct ListViewLabelEditCapability<ListView>;
+    friend struct ListViewActivationCapability<ListView>;
+    friend struct ListViewHeaderStyleCapability<ListView>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(view)& cell, ListViewView& incoming);
     void written(const decltype(view)& cell);
@@ -840,6 +842,10 @@ private:
     void written(const decltype(default_group_header)& cell);
     void prepare_write(const decltype(label_edit)& cell, bool& incoming);
     void written(const decltype(label_edit)& cell);
+    void prepare_write(const decltype(activation)& cell, ListViewActivation& incoming);
+    void written(const decltype(activation)& cell);
+    void prepare_write(const decltype(header_style)& cell, ListViewHeaderStyle& incoming);
+    void written(const decltype(header_style)& cell);
     // property_codemod end ListView
 };
 

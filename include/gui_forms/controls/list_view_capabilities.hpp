@@ -171,6 +171,32 @@ struct ListViewLabelEditCapability {
     }
 };
 
+// How the user activates an item, raising item_activated (Windows Forms' Activation): standard on a double click, one_click on a single click, two_click on a click of the item that was already selected and focused (a double click also activates in standard and two_click). In one_click and two_click the pointer over an item shows the hand cursor (Windows Forms' hot tracking of activation). Enter and the semantic press action activate in every mode. Throws std::invalid_argument for an unknown value.
+template <typename Declaring>
+struct ListViewActivationCapability {
+    PropertyCell<ListViewActivation, ListViewActivationCapability<Declaring>> activation{ListViewActivation::standard};
+
+    static void assign(ListViewActivationCapability& capability, ListViewActivation incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.activation), incoming);
+        if (!capability.activation.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.activation));
+    }
+};
+
+// The details view's column headers (Windows Forms' HeaderStyle): clickable headers raise column_click and show their pressed and hot states; nonclickable headers are shown and can be resized but do not respond to clicks or publish a press action; none shows no header row, the items starting at the top of the view. Throws std::invalid_argument for an unknown value.
+template <typename Declaring>
+struct ListViewHeaderStyleCapability {
+    PropertyCell<ListViewHeaderStyle, ListViewHeaderStyleCapability<Declaring>> header_style{ListViewHeaderStyle::clickable};
+
+    static void assign(ListViewHeaderStyleCapability& capability, ListViewHeaderStyle incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.header_style), incoming);
+        if (!capability.header_style.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.header_style));
+    }
+};
+
 // Every ListView capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct ListViewCapabilities : public ListViewViewCapability<Declaring>,
@@ -184,7 +210,9 @@ struct ListViewCapabilities : public ListViewViewCapability<Declaring>,
                               public ListViewDrawModeCapability<Declaring>,
                               public ShowGroupsCapability<Declaring>,
                               public DefaultGroupHeaderCapability<Declaring>,
-                              public ListViewLabelEditCapability<Declaring> {
+                              public ListViewLabelEditCapability<Declaring>,
+                              public ListViewActivationCapability<Declaring>,
+                              public ListViewHeaderStyleCapability<Declaring> {
     ListViewCapabilities() : FontCapability<Declaring>(FontSpec{FontRole::content, 10.5, 400, false}) {}
 };
 

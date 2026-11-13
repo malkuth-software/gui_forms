@@ -1320,6 +1320,93 @@ void refusals() {
 
 } // namespace
 
+// Activation modes (Windows Forms' Activation): standard on a double click,
+// one_click on a single click (with the hand over items), two_click on a
+// click of the already selected and focused item; Enter in every mode.
+void activation_modes() {
+    std::shared_ptr<ListView> view = details_view(6U);
+    Window window(view, {400.0, 240.0});
+    window.perform_layout();
+    std::vector<std::size_t> activations;
+    SubscriptionToken activated = (*view).item_activated().subscribe(RecordActivation{&activations});
+    require((*view).activation.read() == ListViewActivation::standard, "activation starts standard");
+    const std::vector<ListView::Item> items = (*view).realized_items();
+    const Point first = to_window(*view, centre(items[1].parts.text.bounds));
+    const Point second = to_window(*view, centre(items[3].parts.text.bounds));
+    click(window, first);
+    require(activations.empty(), "a single click does not activate in standard");
+
+    (*view).activation = ListViewActivation::one_click;
+    click(window, second);
+    require(activations.size() == 1U && activations[0] == 3U && (*view).is_selected(3U),
+            "one_click selects and activates on a single click");
+    click(window, second, Modifier::none, 2U);
+    require(activations.size() == 1U, "the second press of a double click does not activate again in one_click");
+    click(window, first, Modifier::control);
+    require(activations.size() == 1U, "a modified click only changes the selection");
+    PointerEvent hover{PointerAction::move, PointerButton::none, first};
+    static_cast<void>(window.dispatch_pointer(hover));
+    require((*view).cursor.read() == CursorKind::hand, "one_click shows the hand over an item");
+
+    (*view).activation = ListViewActivation::two_click;
+    activations.clear();
+    click(window, to_window(*view, centre(items[4].parts.text.bounds)));
+    require(activations.empty() && (*view).is_selected(4U), "two_click: the first click only selects");
+    click(window, to_window(*view, centre(items[4].parts.text.bounds)));
+    require(activations.size() == 1U && activations[0] == 4U, "two_click: a click on the chosen item activates");
+
+    (*view).activation = ListViewActivation::standard;
+    static_cast<void>(window.dispatch_pointer(hover));
+    require((*view).cursor.read() == CursorKind::arrow, "standard keeps the arrow over items");
+    require(window.request_focus(view) && key(window, PhysicalKey::enter) && activations.size() == 2U,
+            "Enter activates in every mode");
+    bool refused = false;
+    try {
+        (*view).activation = static_cast<ListViewActivation>(9U);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*view).activation.read() == ListViewActivation::standard,
+            "an unknown activation is refused and changes nothing");
+}
+
+// Header styles (Windows Forms' ColumnHeaderStyle): nonclickable headers
+// show but raise no column_click and publish no press; none removes the
+// header row and the items start at the top.
+void header_styles() {
+    std::shared_ptr<ListView> view = details_view(4U);
+    Window window(view, {400.0, 240.0});
+    window.perform_layout();
+    std::vector<std::size_t> clicks;
+    SubscriptionToken clicked = (*view).column_click().subscribe(RecordColumnClick{&clicks});
+    const double first_row_top = (*view).realized_items()[0].parts.cell.bounds.y;
+
+    (*view).header_style = ListViewHeaderStyle::nonclickable;
+    window.perform_layout();
+    require((*view).parts().header.present, "nonclickable headers are shown");
+    std::vector<ListView::Column> columns = (*view).realized_columns();
+    click(window, to_window(*view, centre(columns[0].parts.column_label.bounds)));
+    require(clicks.empty(), "a click on a nonclickable header raises nothing");
+    require(!(*view).on_semantic_child_action("list.column.name", SemanticAction::press, {}) && clicks.empty(),
+            "a nonclickable header refuses the press action");
+    std::vector<SemanticNode> children = (*view).semantic_virtual_children();
+    require(children[0].role == SemanticRole::column_header && children[0].actions.empty(),
+            "a nonclickable header publishes no press");
+
+    (*view).header_style = ListViewHeaderStyle::none;
+    window.perform_layout();
+    require(!(*view).parts().header.present, "header_style none shows no header row");
+    require((*view).realized_items()[0].parts.cell.bounds.y < first_row_top, "the rows move up into the header's place");
+    children = (*view).semantic_virtual_children();
+    require(!children.empty() && children[0].role == SemanticRole::row, "no header nodes are published");
+
+    (*view).header_style = ListViewHeaderStyle::clickable;
+    window.perform_layout();
+    columns = (*view).realized_columns();
+    click(window, to_window(*view, centre(columns[0].parts.column_label.bounds)));
+    require(clicks.size() == 1U, "clickable headers raise column_click again");
+}
+
 int main() {
     details_parts_and_paint();
     selection_by_pointer_and_keyboard();
@@ -1339,6 +1426,8 @@ int main() {
     virtual_mode();
     virtual_splice();
     semantics();
+    activation_modes();
+    header_styles();
     capabilities();
     refusals();
     std::cout << "ListView: parts, views, selection, keys, checks, columns, sorting, resizing, owner drawing, "

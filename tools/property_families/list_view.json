@@ -259,6 +259,52 @@
       "hand": [
         "written cancels a pending label click and an edit in progress when turned off; it invalidates nothing"
       ]
+    },
+    {
+      "name": "activation",
+      "capability": "ListViewActivation",
+      "value": "ListViewActivation",
+      "initial": "ListViewActivation::standard",
+      "comment": "How the user activates an item, raising item_activated (Windows Forms' Activation): standard on a double click, one_click on a single click, two_click on a click of the item that was already selected and focused (a double click also activates in standard and two_click). In one_click and two_click the pointer over an item shows the hand cursor (Windows Forms' hot tracking of activation). Enter and the semantic press action activate in every mode. Throws std::invalid_argument for an unknown value.",
+      "getter": "activation",
+      "setter": "set_activation",
+      "clear": null,
+      "field": "activation_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::paint",
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (incoming != ListViewActivation::standard && incoming != ListViewActivation::one_click &&",
+        "    incoming != ListViewActivation::two_click) {",
+        "    throw std::invalid_argument(\"ListView activation is invalid\");",
+        "}"
+      ],
+      "sample": "ListViewActivation::one_click"
+    },
+    {
+      "name": "header_style",
+      "capability": "ListViewHeaderStyle",
+      "value": "ListViewHeaderStyle",
+      "initial": "ListViewHeaderStyle::clickable",
+      "comment": "The details view's column headers (Windows Forms' HeaderStyle): clickable headers raise column_click and show their pressed and hot states; nonclickable headers are shown and can be resized but do not respond to clicks or publish a press action; none shows no header row, the items starting at the top of the view. Throws std::invalid_argument for an unknown value.",
+      "getter": "header_style",
+      "setter": "set_header_style",
+      "clear": null,
+      "field": "header_style_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "hand",
+      "hand": [
+        "prepare validates the value; written drops the pressed and hot column and bumps the layout revision before invalidating"
+      ],
+      "sample": "ListViewHeaderStyle::none"
     }
   ],
   "not_properties": [

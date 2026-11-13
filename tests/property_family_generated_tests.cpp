@@ -1435,6 +1435,16 @@ void test_list_view_properties() {
         (*control).label_edit = sample;
         expect((*control).label_edit.read() == sample, "ListView.label_edit: a write stores");
     }
+    {
+        const ListViewActivation sample = ListViewActivation::one_click;
+        (*control).activation = sample;
+        expect((*control).activation.read() == sample, "ListView.activation: a write stores");
+    }
+    {
+        const ListViewHeaderStyle sample = ListViewHeaderStyle::none;
+        (*control).header_style = sample;
+        expect((*control).header_style.read() == sample, "ListView.header_style: a write stores");
+    }
 }
 
 void test_lookup_combo_box_properties() {

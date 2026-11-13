@@ -360,6 +360,8 @@ Related types
      - The "sub_item" item system: one visible details-view cell past the first column.
    * - :cpp:class:`ListView::SubItemStates <gui_forms::ListView::SubItemStates>`
      -  
+   * - :cpp:class:`ListViewActivationCapability <gui_forms::ListViewActivationCapability>`
+     - How the user activates an item, raising item_activated (Windows Forms' Activation): standard on a double click, one_click on a single click, two_click on a click of the item that was already selected and focused (a double click also activates in standard and two_click).
    * - :cpp:class:`ListViewCapabilities <gui_forms::ListViewCapabilities>`
      - Every ListView capability, in the order the declaring class takes them.
    * - :cpp:class:`ListViewCheckBoxesCapability <gui_forms::ListViewCheckBoxesCapability>`
@@ -376,6 +378,8 @@ Related types
      - Whether the selection highlight spans the whole details row rather than the first column's text.
    * - :cpp:class:`ListViewGroup <gui_forms::ListViewGroup>`
      - One group of a ListView (Windows Forms' ListViewGroup): a header over its items.
+   * - :cpp:class:`ListViewHeaderStyleCapability <gui_forms::ListViewHeaderStyleCapability>`
+     - The details view's column headers (Windows Forms' HeaderStyle): clickable headers raise column_click and show their pressed and hot states; nonclickable headers are shown and can be resized but do not respond to clicks or publish a press action; none shows no header row, the items starting at the top of the view.
    * - :cpp:class:`ListViewInsertionMark <gui_forms::ListViewInsertionMark>`
      - Where a ListView's insertion mark stands (Windows Forms' ListViewInsertionMark Index and AppearsAfterItem): beside the item at model index ``index``, before it or, with ``after``, after it.
    * - :cpp:class:`ListViewItem <gui_forms::ListViewItem>`
@@ -3630,7 +3634,24 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ListViewCapabilities : public ListViewViewCapability<Declaring>, public ListViewCheckBoxesCapability<Declaring>, public ListViewMultiSelectCapability<Declaring>, public ListViewFullRowSelectCapability<Declaring>, public SmallImageListCapability<Declaring>, public LargeImageListCapability<Declaring>, public FontCapability<Declaring>, public TileSizeCapability<Declaring>, public ListViewDrawModeCapability<Declaring>, public ShowGroupsCapability<Declaring>, public DefaultGroupHeaderCapability<Declaring>, public ListViewLabelEditCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ListViewActivationCapability
+
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
+
+   How the user activates an item, raising item_activated (Windows Forms' Activation): standard on a double click, one_click on a single click, two_click on a click of the item that was already selected and focused (a double click also activates in standard and two_click). In one_click and two_click the pointer over an item shows the hand cursor (Windows Forms' hot tracking of activation). Enter and the semantic press action activate in every mode. Throws std::invalid_argument for an unknown value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewActivationCapability& capability, ListViewActivation incoming)
+
+   .. cpp:member:: PropertyCell<ListViewActivation, ListViewActivationCapability<Declaring>> activation
+
+      Default: ``{ListViewActivation::standard}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListViewCapabilities : public ListViewViewCapability<Declaring>, public ListViewCheckBoxesCapability<Declaring>, public ListViewMultiSelectCapability<Declaring>, public ListViewFullRowSelectCapability<Declaring>, public SmallImageListCapability<Declaring>, public LargeImageListCapability<Declaring>, public FontCapability<Declaring>, public TileSizeCapability<Declaring>, public ListViewDrawModeCapability<Declaring>, public ShowGroupsCapability<Declaring>, public DefaultGroupHeaderCapability<Declaring>, public ListViewLabelEditCapability<Declaring>, public ListViewActivationCapability<Declaring>, public ListViewHeaderStyleCapability<Declaring>
 
    ``#include <gui_forms/controls/list_view_capabilities.hpp>``
 
@@ -3691,6 +3712,14 @@ Related types
    .. cpp:member:: bool label_edit
 
       Label editing (Windows Forms' LabelEdit, ListViewItem.BeginEdit, BeforeLabelEdit and AfterLabelEdit). While label_edit is on, F2 on the focused item, or begin_label_edit, places a TextBox (the ``label_editor`` part) over the item's text with its text selected. Enter, a press elsewhere in the view, or focus leaving the editor commits the edit; Escape and cancel_label_edit cancel it. Each ended edit raises after_label_edit once, after the editor has closed. A committed label after_label_edit does not cancel becomes an ordinary item's text; in a virtual view the application stores it while handling after_label_edit, and the view shows what the source then retrieves. Replacing or sorting the items, a new virtual source or refresh_virtual_items cancels the edit once the change is made, before any selection event; scrolling keeps it, the editor following its item. A slow second click on the focused item does not begin an edit yet: the host does not report its double-click interval. Turning label_edit off cancels an edit in progress.
+
+   .. cpp:member:: ListViewActivation activation
+
+      How the user activates an item, raising item_activated (Windows Forms' Activation): standard on a double click, one_click on a single click, two_click on a click of the item that was already selected and focused (a double click also activates in standard and two_click). In one_click and two_click the pointer over an item shows the hand cursor (Windows Forms' hot tracking of activation). Enter and the semantic press action activate in every mode. Throws std::invalid_argument for an unknown value.
+
+   .. cpp:member:: ListViewHeaderStyle header_style
+
+      The details view's column headers (Windows Forms' HeaderStyle): clickable headers raise column_click and show their pressed and hot states; nonclickable headers are shown and can be resized but do not respond to clicks or publish a press action; none shows no header row, the items starting at the top of the view. Throws std::invalid_argument for an unknown value.
 
 .. cpp:namespace:: gui_forms
 
@@ -3802,6 +3831,23 @@ Related types
    .. cpp:member:: ListViewAlignment header_alignment
 
       Default: ``{ListViewAlignment::left}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ListViewHeaderStyleCapability
+
+   ``#include <gui_forms/controls/list_view_capabilities.hpp>``
+
+   The details view's column headers (Windows Forms' HeaderStyle): clickable headers raise column_click and show their pressed and hot states; nonclickable headers are shown and can be resized but do not respond to clicks or publish a press action; none shows no header row, the items starting at the top of the view. Throws std::invalid_argument for an unknown value.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ListViewHeaderStyleCapability& capability, ListViewHeaderStyle incoming)
+
+   .. cpp:member:: PropertyCell<ListViewHeaderStyle, ListViewHeaderStyleCapability<Declaring>> header_style
+
+      Default: ``{ListViewHeaderStyle::clickable}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -5810,6 +5856,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ListViewActivation
+
+   ``#include <gui_forms/controls/list_view_values.hpp>``
+
+   .. cpp:enumerator:: standard
+
+   .. cpp:enumerator:: one_click
+
+   .. cpp:enumerator:: two_click
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ListViewAlignment
 
    ``#include <gui_forms/controls/list_view.hpp>``
@@ -5819,6 +5877,18 @@ Enumerations
    .. cpp:enumerator:: center
 
    .. cpp:enumerator:: right
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ListViewHeaderStyle
+
+   ``#include <gui_forms/controls/list_view_values.hpp>``
+
+   .. cpp:enumerator:: clickable
+
+   .. cpp:enumerator:: nonclickable
+
+   .. cpp:enumerator:: none
 
 .. cpp:namespace:: gui_forms
 
