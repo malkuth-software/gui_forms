@@ -308,6 +308,12 @@ if(GUI_FORMS_BUILD_TESTS)
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_audit.py coverage
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/conformance ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/schema
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/host)
+    # The C ABI library exports its gf_ entry points alone: no symbol of
+    # the pinned text stack (cmake/CheckForeignTextSymbols.cmake).
+    add_test(NAME gui_forms_abi_foreign_text_symbols
+        COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
+            "-DLIBRARIES=$<TARGET_FILE:gui_forms_abi>"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckForeignTextSymbols.cmake")
 
     # The stage C3 gate: the control schema read through the ABI alone equals
     # manifests/control-schema.json. The schema as the ABI gave it is left in

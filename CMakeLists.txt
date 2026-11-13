@@ -3788,6 +3788,20 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_content_text_editor_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_content_text_editor_tests COMMAND gui_forms_content_text_editor_tests)
     set_tests_properties(gui_forms_content_text_editor_tests PROPERTIES TIMEOUT 120)
+    # No shared GUI.Forms library exports a symbol of the pinned text stack
+    # (cmake/CheckForeignTextSymbols.cmake), so a consumer's own HarfBuzz and
+    # FreeType never meet ours.
+    if(TARGET gui_forms_application)
+        set(foreign_symbol_libraries "$<TARGET_FILE:gui_forms_application>")
+        if(TARGET gui_drawing_raster_c_api)
+            string(APPEND foreign_symbol_libraries "|$<TARGET_FILE:gui_drawing_raster_c_api>")
+        endif()
+        add_test(NAME gui_forms_foreign_text_symbols_tests
+            COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
+                "-DLIBRARIES=${foreign_symbol_libraries}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckForeignTextSymbols.cmake")
+        set_tests_properties(gui_forms_foreign_text_symbols_tests PROPERTIES TIMEOUT 120)
+    endif()
     add_executable(gui_forms_sub_surface_tests tests/sub_surface_tests.cpp)
     target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_sub_surface_tests COMMAND gui_forms_sub_surface_tests)

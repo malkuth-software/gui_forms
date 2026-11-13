@@ -30,9 +30,14 @@ def main() -> None:
     parser.add_argument("--feature-components", action="store_true",
                         help="The prefix holds build_sdk.py --features all's components: build and run a consumer "
                              "of Application, TextMasks, Audio and AudioLoopTransport (requires --native)")
+    parser.add_argument("--upstream-text-stack", action="store_true",
+                        help="Build and run tests/upstream_text_stack_consumer, which links the system's own HarfBuzz "
+                             "and FreeType (pkg-config harfbuzz freetype2) beside Application (requires --native)")
     args: argparse.Namespace = parser.parse_args()
     if args.feature_components and not args.native:
         parser.error("--feature-components requires --native: TextMasks lives in Application")
+    if args.upstream_text_stack and not args.native:
+        parser.error("--upstream-text-stack requires --native: the text engine lives in Application")
     prefix: Path = args.prefix.resolve(strict=True)
     project: Path = Path(__file__).resolve().parent.parent
     scratch: str
@@ -70,6 +75,13 @@ def main() -> None:
                  "-DGUI_FORMS_CONSUMER_MAIN=" + str(main_source)] + package_arguments)
             run(["cmake", "--build", str(feature_build), "--parallel", "2"])
             print(run(["ctest", "--test-dir", str(feature_build), "--output-on-failure"]))
+        if args.upstream_text_stack:
+            upstream: Path = scratch_path / "upstream-text-consumer"
+            shutil.copytree(project / "tests" / "upstream_text_stack_consumer", upstream)
+            upstream_build: Path = scratch_path / "upstream-text-build"
+            run(["cmake", "-S", str(upstream), "-B", str(upstream_build)] + package_arguments)
+            run(["cmake", "--build", str(upstream_build), "--parallel", "2"])
+            print(run(["ctest", "--test-dir", str(upstream_build), "--output-on-failure"]))
         invalid: Path = scratch_path / "invalid"
         invalid.mkdir()
         components: list[str] = ["NotAComponent"]
