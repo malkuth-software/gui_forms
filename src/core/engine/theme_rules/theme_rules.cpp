@@ -2914,7 +2914,7 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
             const std::size_t position = static_cast<std::size_t>(declaration.field);
             result.fields[position] = &declaration;
             result.levels[position] = rule.level;
-            result.on_named_part[position] = on_named_part;
+            if (on_named_part) result.named_part_fields[position] = &declaration;
         }
         result.authored = true;
     }
