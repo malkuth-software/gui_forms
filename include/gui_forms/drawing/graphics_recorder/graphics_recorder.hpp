@@ -175,6 +175,15 @@ public:
     // validated, and that its commands fit maximum_commands, before
     // anything is recorded.
     void draw_strings(const Font& font, const StringFormat& format, std::span<const TextItem> items);
+    // The string as draw_string draws it at `origin`, turned about `origin`
+    // by `degrees` (finite; positive turns anticlockwise as seen). One
+    // draw_string command whose recorded transform is the turn followed by
+    // the transform in force, which stays in force; 0 degrees records what
+    // draw_string records. Throws, recording nothing, as draw_string does or
+    // for a non-finite angle.
+    void draw_string_rotated(std::string_view utf8, const Font& font,
+                             const SolidBrush& brush, PointF origin, double degrees,
+                             const StringFormat& format);
     void draw_ellipse(const Pen& pen, RectF bounds);
     void fill_ellipse(const Brush& brush, RectF bounds);
     void fill_polygon(const Brush& brush, std::span<const PointF> points,

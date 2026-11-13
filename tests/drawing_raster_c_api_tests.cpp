@@ -1,6 +1,9 @@
 #include "gui_forms/drawing_c_api.h"
 #include "gui_forms/drawing_raster_c_api.h"
 
+#include <algorithm>
+#include <array>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -169,6 +172,160 @@ void curved_paths_fill_and_stroke() {
     CHECK(api.release(brush) == GD_OK);
 }
 
+// The pixels of a 160 x 160 white bitmap after `recorder` runs over it.
+std::vector<std::uint32_t> executed_pixels(const gd_api_v0& api, gd_handle recorder) {
+    constexpr std::uint32_t side = 160U;
+    gd_handle bitmap{};
+    CHECK(api.bitmap_create(side, side, GD_PIXEL_BGRA32_PREMULTIPLIED, &bitmap) == GD_OK);
+    std::uint64_t executed{};
+    CHECK(api.recorder_execute(recorder, bitmap, &executed) == GD_OK);
+    std::vector<std::uint32_t> pixels(static_cast<std::size_t>(side) * side);
+    for (std::uint32_t y = 0U; y < side; ++y) {
+        for (std::uint32_t x = 0U; x < side; ++x) {
+            gd_color pixel{};
+            CHECK(api.bitmap_get_pixel(bitmap, x, y, &pixel) == GD_OK);
+            pixels[static_cast<std::size_t>(y) * side + x] = pixel.argb;
+        }
+    }
+    CHECK(api.release(bitmap) == GD_OK);
+    return pixels;
+}
+
+// The dark pixels (red below 128) of executed_pixels: their count, box and
+// centroid, in pixel-centre coordinates.
+struct Ink final {
+    std::size_t count{};
+    double left{};
+    double top{};
+    double right{};
+    double bottom{};
+    double centre_x{};
+    double centre_y{};
+};
+
+Ink ink_of(const std::vector<std::uint32_t>& pixels) {
+    constexpr std::uint32_t side = 160U;
+    Ink ink{};
+    ink.left = side;
+    ink.top = side;
+    double sum_x = 0.0;
+    double sum_y = 0.0;
+    for (std::uint32_t y = 0U; y < side; ++y) {
+        for (std::uint32_t x = 0U; x < side; ++x) {
+            const std::uint32_t red = (pixels[static_cast<std::size_t>(y) * side + x] >> 16U) & 0xffU;
+            if (red >= 128U) continue;
+            ink.count = ink.count + 1U;
+            ink.left = std::min(ink.left, static_cast<double>(x));
+            ink.top = std::min(ink.top, static_cast<double>(y));
+            ink.right = std::max(ink.right, static_cast<double>(x + 1U));
+            ink.bottom = std::max(ink.bottom, static_cast<double>(y + 1U));
+            sum_x += static_cast<double>(x) + 0.5;
+            sum_y += static_cast<double>(y) + 0.5;
+        }
+    }
+    if (ink.count == 0U) return ink;
+    ink.centre_x = sum_x / static_cast<double>(ink.count);
+    ink.centre_y = sum_y / static_cast<double>(ink.count);
+    return ink;
+}
+
+// What one string draws at (80, 80) on white: level through
+// recorder_draw_string, or turned through recorder_draw_string_rotated.
+struct TurnedDraw final {
+    gd_handle font{};
+    gd_handle format{};
+    gd_handle brush{};
+    bool level{};
+    double degrees{};
+};
+
+constexpr std::string_view turned_sample = "Axis 42";
+constexpr gd_point turned_origin{80.0, 80.0};
+
+std::vector<std::uint32_t> draw_turned(const gd_api_v0& api, const TurnedDraw& draw) {
+    gd_handle recorder{};
+    CHECK(api.recorder_create(&recorder) == GD_OK);
+    CHECK(api.recorder_clear(recorder, gd_color{UINT32_C(0xffffffff), 0}) == GD_OK);
+    const gd_string_view text{turned_sample.data(), turned_sample.size()};
+    if (draw.level) {
+        CHECK(api.recorder_draw_string(recorder, text, draw.font, draw.brush, turned_origin, draw.format) == GD_OK);
+    } else {
+        CHECK(api.recorder_draw_string_rotated(recorder, text, draw.font, draw.brush, turned_origin, draw.degrees,
+                                               draw.format) == GD_OK);
+    }
+    std::vector<std::uint32_t> pixels = executed_pixels(api, recorder);
+    CHECK(api.release(recorder) == GD_OK);
+    return pixels;
+}
+
+// ABI 0.7: a string turned about its origin keeps its ink inside its turned
+// layout box (the box a consumer damages) and reads along the turned
+// baseline, at several angles; 0 degrees draws recorder_draw_string's
+// pixels.
+void rotated_strings_turn_their_ink() {
+    gd_api_v0 api{};
+    api.struct_size = sizeof(api);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_0_7, &api) == GD_OK);
+    CHECK(api.recorder_draw_string_rotated != nullptr);
+    const char family[] = "Portsmouth Rapids";
+    TurnedDraw draw{};
+    CHECK(api.font_create({family, sizeof(family) - 1U}, 16.0, 0U, 3U, 1U, &draw.font) == GD_OK);
+    CHECK(api.string_format_create(0U, &draw.format) == GD_OK);
+    CHECK(api.solid_brush_create(gd_color{UINT32_C(0xff000000), 0}, &draw.brush) == GD_OK);
+    gd_size measured{};
+    CHECK(api.measure_string({turned_sample.data(), turned_sample.size()}, draw.font, draw.format, 0.0, &measured) ==
+          GD_OK);
+    CHECK(measured.width > 30.0 && measured.height > 16.0);
+
+    draw.level = true;
+    const std::vector<std::uint32_t> level = draw_turned(api, draw);
+    draw.level = false;
+    draw.degrees = 0.0;
+    CHECK(draw_turned(api, draw) == level);
+
+    constexpr double pi = 3.14159265358979323846;
+    // The draw_string overhang (a sixth of the size) and a pixel of
+    // antialiasing.
+    const double slack = 16.0 / 6.0 + 1.5;
+    const std::array<double, 5> angles{30.0, 90.0, 135.0, 200.0, -45.0};
+    for (const double degrees : angles) {
+        draw.degrees = degrees;
+        const Ink ink = ink_of(draw_turned(api, draw));
+        CHECK(ink.count >= 40U);
+        const double radians = degrees * (pi / 180.0);
+        const double cosine = std::cos(radians);
+        const double sine = std::sin(radians);
+        // The turned layout box: along u = (cos, -sin) by the width and down
+        // v = (sin, cos) by the height from the origin.
+        const std::array<double, 4> along_corner{0.0, measured.width, 0.0, measured.width};
+        const std::array<double, 4> down_corner{0.0, 0.0, measured.height, measured.height};
+        double box_left = turned_origin.x;
+        double box_top = turned_origin.y;
+        double box_right = turned_origin.x;
+        double box_bottom = turned_origin.y;
+        for (std::size_t corner = 0U; corner < along_corner.size(); ++corner) {
+            const double x = turned_origin.x + along_corner[corner] * cosine + down_corner[corner] * sine;
+            const double y = turned_origin.y - along_corner[corner] * sine + down_corner[corner] * cosine;
+            box_left = std::min(box_left, x);
+            box_top = std::min(box_top, y);
+            box_right = std::max(box_right, x);
+            box_bottom = std::max(box_bottom, y);
+        }
+        CHECK(ink.left >= box_left - slack && ink.top >= box_top - slack);
+        CHECK(ink.right <= box_right + slack && ink.bottom <= box_bottom + slack);
+        const double dx = ink.centre_x - turned_origin.x;
+        const double dy = ink.centre_y - turned_origin.y;
+        const double along = dx * cosine - dy * sine;
+        const double down = dx * sine + dy * cosine;
+        CHECK(std::fabs(along - measured.width * 0.5) < measured.width * 0.25);
+        CHECK(down > 0.0 && down < measured.height);
+    }
+
+    CHECK(api.release(draw.brush) == GD_OK);
+    CHECK(api.release(draw.format) == GD_OK);
+    CHECK(api.release(draw.font) == GD_OK);
+}
+
 int main() {
     gd_api_v0 api{};
     api.struct_size = sizeof(api);
@@ -272,5 +429,6 @@ int main() {
     CHECK(current.font_resolve != nullptr);
     fonts_resolve_through_the_substitution_table(current);
     curved_paths_fill_and_stroke();
+    rotated_strings_turn_their_ink();
     return 0;
 }

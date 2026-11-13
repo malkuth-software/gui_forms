@@ -617,6 +617,26 @@ gd_result draw_recorder_string_from_c(gd_handle recorder,
         origin);
 }
 
+gd_result draw_recorder_string_rotated(gui_drawing::GraphicsRecorder& graphics,
+                                       gui_drawing::Font& font,
+                                       gui_drawing::SolidBrush& brush,
+                                       gui_drawing::StringFormat& format,
+                                       const std::string& text, gd_point origin,
+                                       double degrees) {
+    graphics.draw_string_rotated(text, font, brush, point_from_c(origin), degrees, format);
+    return GD_OK;
+}
+
+gd_result draw_recorder_string_rotated_from_c(gd_handle recorder,
+                                              gd_string_view text, gd_handle font,
+                                              gd_handle brush, gd_point origin,
+                                              double degrees, gd_handle format) {
+    const std::string native_text = string_from_c(text, "draw string text");
+    return registry().with_text_objects(
+        recorder, font, brush, format, &draw_recorder_string_rotated, native_text,
+        origin, degrees);
+}
+
 gd_result query_recorder_command_count(
     gui_drawing::GraphicsRecorder& recorder, std::uint64_t* count) {
     *count = recorder.commands().size();
@@ -1532,6 +1552,17 @@ gd_result api_recorder_draw_string(gd_handle recorder, gd_string_view text,
                                    gd_point origin, gd_handle format) {
     return translate(&draw_recorder_string_from_c, recorder, text, font,
                      brush, origin, format);
+}
+
+gd_result api_recorder_draw_string_rotated(gd_handle recorder, gd_string_view text,
+                                           gd_handle font, gd_handle brush,
+                                           gd_point origin, double degrees,
+                                           gd_handle format) {
+    if (!std::isfinite(degrees)) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "text rotation must be finite");
+    }
+    return translate(&draw_recorder_string_rotated_from_c, recorder, text, font,
+                     brush, origin, degrees, format);
 }
 
 gd_result api_recorder_close(gd_handle handle) {
@@ -2740,7 +2771,7 @@ gd_result api_measure_string_fitted(gd_string_view text, gd_handle font, gd_hand
 }
 
 const gd_api_v0 api_table{
-    sizeof(gd_api_v0), GD_ABI_VERSION_0_6,
+    sizeof(gd_api_v0), GD_ABI_VERSION_0_7,
     &api_last_error, &api_retain, &api_release, &api_dispose,
     &api_object_state, &api_object_kind,
     &api_solid_brush_create, &api_pen_create, &api_pen_set_width,
@@ -2816,6 +2847,7 @@ const gd_api_v0 api_table{
     &api_graphics_path_add_beziers, &api_graphics_path_add_polygon,
     &api_graphics_path_add_pie,
     &api_graphics_path_set_fill_mode, &api_graphics_path_fill_mode,
+    &api_recorder_draw_string_rotated,
 };
 
 } // namespace
@@ -2831,7 +2863,8 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
         requested_version != GD_ABI_VERSION_0_3 &&
         requested_version != GD_ABI_VERSION_0_4 &&
         requested_version != GD_ABI_VERSION_0_5 &&
-        requested_version != GD_ABI_VERSION_0_6) {
+        requested_version != GD_ABI_VERSION_0_6 &&
+        requested_version != GD_ABI_VERSION_0_7) {
         return fail(GD_ERROR_UNSUPPORTED_VERSION,
                     "requested GUI.Drawing ABI version is unsupported");
     }
@@ -2848,6 +2881,8 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
         available = offsetof(gd_api_v0, recorder_draw_string_in_rect);
     } else if (requested_version == GD_ABI_VERSION_0_5) {
         available = offsetof(gd_api_v0, graphics_path_add_quadratic);
+    } else if (requested_version == GD_ABI_VERSION_0_6) {
+        available = offsetof(gd_api_v0, recorder_draw_string_rotated);
     }
     const std::size_t copied = std::min<std::size_t>(caller_size, available);
     std::memcpy(table, &api_table, copied);

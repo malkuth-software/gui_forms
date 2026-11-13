@@ -208,6 +208,35 @@ void GraphicsRecorder::draw_string_in_rect(std::string_view utf8, const Font& fo
     append(std::move(command));
 }
 
+void GraphicsRecorder::draw_string_rotated(std::string_view utf8, const Font& font,
+                                           const SolidBrush& brush, PointF origin, double degrees,
+                                           const StringFormat& format) {
+    require_recordable();
+    require_finite(origin, "text origin");
+    require_finite(degrees, "text rotation degrees");
+    if (degrees == 0.0) {
+        draw_string(utf8, font, brush, origin, format);
+        return;
+    }
+    if (utf8.size() > maximum_text_bytes || !valid_utf8(utf8)) {
+        throw std::invalid_argument("drawn text must be bounded valid UTF-8");
+    }
+    // Matrix::rotation_at turns clockwise as seen (y down); this call's
+    // angles turn anticlockwise, as the Painter's do.
+    const Matrix turn = Matrix::rotation_at(-degrees, origin);
+    const Matrix turned = turn.followed_by(state_.transform);
+    DrawingCommand command;
+    command.kind = CommandKind::draw_string;
+    command.state = state_;
+    command.state.transform = turned;
+    command.first = origin;
+    command.color = brush.color();
+    command.font = font.snapshot();
+    command.format = format.snapshot();
+    command.text.assign(utf8);
+    append(std::move(command));
+}
+
 void GraphicsRecorder::draw_strings(const Font& font, const StringFormat& format, std::span<const TextItem> items) {
     require_recordable();
     if (items.empty() || items.size() > maximum_text_items) {

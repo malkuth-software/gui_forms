@@ -75,6 +75,87 @@ static int check_curved_paths(const gd_api_v0* api) {
     return 0;
 }
 
+/* Reads a recorder's trace into a fresh NUL-terminated buffer the caller
+   frees, or NULL. */
+static char* read_trace(const gd_api_v0* api, gd_handle recorder) {
+    uint64_t required = 0;
+    char* trace = NULL;
+    if ((*api).recorder_trace(recorder, NULL, 0, &required) != GD_ERROR_BUFFER_TOO_SMALL) return NULL;
+    trace = (char*)malloc((size_t)required + 1U);
+    if (trace == NULL) return NULL;
+    if ((*api).recorder_trace(recorder, trace, required, &required) != GD_OK) {
+        free(trace);
+        return NULL;
+    }
+    trace[required] = '\0';
+    return trace;
+}
+
+/* ABI 0.7, text at any angle: one draw_string command under the turn
+   followed by the transform in force, which stays in force; 0 degrees
+   records what recorder_draw_string records; refusals record nothing. */
+static int check_rotated_text(const gd_api_v0* api) {
+    gd_handle level = {0};
+    gd_handle turned = {0};
+    gd_handle font = {0};
+    gd_handle format = {0};
+    gd_handle brush = {0};
+    uint64_t count = 0;
+    char* level_trace = NULL;
+    char* turned_trace = NULL;
+    const char* entry = NULL;
+
+    CHECK((*api).recorder_draw_string_rotated != NULL);
+    CHECK((*api).font_create(view_of("Lucida Grande"), 12.0, 0, 3, 1, &font) == GD_OK);
+    CHECK((*api).string_format_create(0, &format) == GD_OK);
+    CHECK((*api).solid_brush_create((gd_color){UINT32_C(0xff000000), 0}, &brush) == GD_OK);
+    CHECK((*api).recorder_create(&level) == GD_OK);
+    CHECK((*api).recorder_create(&turned) == GD_OK);
+    CHECK((*api).recorder_translate(level, 10, 5) == GD_OK);
+    CHECK((*api).recorder_translate(turned, 10, 5) == GD_OK);
+    CHECK((*api).recorder_draw_string(level, view_of("axis"), font, brush, (gd_point){4, 7}, format) == GD_OK);
+    CHECK((*api).recorder_draw_string_rotated(turned, view_of("axis"), font, brush, (gd_point){4, 7}, 0.0,
+                                              format) == GD_OK);
+    level_trace = read_trace(api, level);
+    turned_trace = read_trace(api, turned);
+    CHECK(level_trace != NULL && turned_trace != NULL);
+    CHECK(strcmp(level_trace, turned_trace) == 0);
+    free(turned_trace);
+    turned_trace = NULL;
+
+    /* A quarter turn about (4, 7) under translate(10, 5): m12 = -1 and
+       m21 = 1 exactly (sin of a quarter turn), and the next command is back
+       under the plain translation. */
+    CHECK((*api).recorder_draw_string_rotated(turned, view_of("axis"), font, brush, (gd_point){4, 7}, 90.0,
+                                              format) == GD_OK);
+    CHECK((*api).recorder_fill_rectangle(turned, brush, (gd_rect){0, 0, 2, 2}) == GD_OK);
+    CHECK((*api).recorder_draw_string_rotated(turned, view_of("axis"), font, brush, (gd_point){4, 7}, INFINITY,
+                                              format) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_draw_string_rotated(turned, view_of("axis"), font, brush, (gd_point){NAN, 7}, 30.0,
+                                              format) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_draw_string_rotated(turned, view_of("\xff"), font, brush, (gd_point){4, 7}, 30.0,
+                                              format) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_command_count(turned, &count) == GD_OK && count == 4U);
+    turned_trace = read_trace(api, turned);
+    CHECK(turned_trace != NULL);
+    entry = strstr(turned_trace, "2|draw_string|at=4,7|");
+    CHECK(entry != NULL);
+    entry = strstr(entry, "|transform=");
+    CHECK(entry != NULL && strstr(entry, ",-1,1,") != NULL);
+    CHECK(strchr(entry, '\n') != NULL && strstr(entry, ",-1,1,") < strchr(entry, '\n'));
+    CHECK(strstr(turned_trace, "3|fill_rectangle|rect=0,0,2,2|") != NULL);
+    CHECK(strstr(strstr(turned_trace, "3|fill_rectangle|"), "|transform=1,0,0,1,10,5|") != NULL);
+
+    free(level_trace);
+    free(turned_trace);
+    CHECK((*api).release(turned) == GD_OK);
+    CHECK((*api).release(level) == GD_OK);
+    CHECK((*api).release(brush) == GD_OK);
+    CHECK((*api).release(format) == GD_OK);
+    CHECK((*api).release(font) == GD_OK);
+    return 0;
+}
+
 static int check_drawing_primitives(const gd_api_v0* api) {
     gd_handle recorder = {0};
     gd_handle pen = {0};
@@ -479,8 +560,19 @@ int main(void) {
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_0_6, &api) == GD_OK);
-    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.struct_size == offsetof(gd_api_v0, recorder_draw_string_rotated));
     CHECK(api.abi_version == GD_ABI_VERSION_0_6);
+    CHECK(api.graphics_path_fill_mode != NULL);
+    CHECK(api.recorder_draw_string_rotated == NULL);
+    /* Text at any angle is 0.7, after 0.6's graphics_path_fill_mode. */
+    CHECK(offsetof(gd_api_v0, recorder_draw_string_rotated) ==
+          offsetof(gd_api_v0, graphics_path_fill_mode) + sizeof(api.graphics_path_fill_mode));
+    memset(&api, 0, sizeof(api));
+    api.struct_size = sizeof(api);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_0_7, &api) == GD_OK);
+    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.abi_version == GD_ABI_VERSION_0_7);
+    CHECK(api.recorder_draw_string_rotated != NULL);
     CHECK(api.graphics_path_add_quadratic != NULL);
     CHECK(api.graphics_path_fill_mode != NULL);
     CHECK(api.recorder_trace != NULL);
@@ -768,6 +860,7 @@ int main(void) {
     CHECK(check_gapped_marks(&api) == 0);
     CHECK(check_text_and_reuse(&api) == 0);
     CHECK(check_curved_paths(&api) == 0);
+    CHECK(check_rotated_text(&api) == 0);
     CHECK(api.release(recorder) == GD_OK);
     CHECK(api.release(recorder) == GD_ERROR_STALE_HANDLE);
     CHECK(api.release(format) == GD_OK);

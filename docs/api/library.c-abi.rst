@@ -1351,6 +1351,8 @@ Types
 
    .. cpp:member:: gd_result (*graphics_path_fill_mode)(gd_handle path, uint32_t* fill_mode)
 
+   .. cpp:member:: gd_result (*recorder_draw_string_rotated)(gd_handle recorder, gd_string_view text, gd_handle font, gd_handle brush, gd_point origin, double degrees, gd_handle format)
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gd_bitmap_damage_summary

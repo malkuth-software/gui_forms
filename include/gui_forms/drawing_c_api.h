@@ -36,6 +36,8 @@ extern "C" {
 /* 0.6 appends the curved path vocabulary (graphics_path_add_quadratic
    onwards), for consumers drawing their own curves (exhibit gap E7). */
 #define GD_ABI_VERSION_0_6 UINT32_C(0x00000006)
+/* 0.7 appends text at any angle (recorder_draw_string_rotated onwards). */
+#define GD_ABI_VERSION_0_7 UINT32_C(0x00000007)
 
 typedef struct gd_handle {
     uint32_t slot;
@@ -735,6 +737,21 @@ typedef struct gd_api_v0 {
     /* 0 alternate (even-odd), 1 winding (non-zero). */
     gd_result (*graphics_path_set_fill_mode)(gd_handle path, uint32_t fill_mode);
     gd_result (*graphics_path_fill_mode)(gd_handle path, uint32_t* fill_mode);
+    /*
+     * ABI 0.7, text at any angle.
+     *
+     * The string as recorder_draw_string draws it at origin, turned about
+     * origin by degrees (finite; positive turns anticlockwise as seen, so 90
+     * reads up the surface), with the same font, shaping, format and
+     * colour, under the transform and clip in force. One draw_string command
+     * whose recorded transform is the turn followed by the transform in
+     * force; the state in force is unchanged. 0 degrees records exactly what
+     * recorder_draw_string records. A refusal records nothing.
+     */
+    gd_result (*recorder_draw_string_rotated)(gd_handle recorder, gd_string_view text,
+                                              gd_handle font, gd_handle brush,
+                                              gd_point origin, double degrees,
+                                              gd_handle format);
 } gd_api_v0;
 
 /*
