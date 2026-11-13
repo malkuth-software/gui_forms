@@ -528,7 +528,8 @@ void test_dropped() {
 // -- custom states (R2-13) ------------------------------------------------------
 
 // Whether `result` dropped its rule with one W106 whose detail contains
-// `checked`.
+// `checked` (the detail is clipped to maximum_detail_bytes, so the element
+// checked comes first).
 bool dropped_naming(const Lowering& result, std::string_view checked) {
     const bool dropped = result.outcome == SelectorOutcome::dropped && result.selectors.empty() &&
                          result.diagnostics.size() == 1U &&
@@ -597,8 +598,17 @@ void test_custom_states() {
     // state named as a standard one never shadows it; the anatomy carrying
     // it is refused by validate_control_anatomy.
     constexpr std::array<CustomStateDeclaration, 2> gauge_custom_states{{{.name = "hot"}, {.name = "lit"}}};
+    // A valid anatomy but for the colliding name: validation reports the
+    // first defect, and a control type without parts is refused earlier.
+    constexpr std::array<PartDeclaration, 1> gauge_parts{{
+        {.name = "dial", .role = PartRole::face, .composed_from = {}, .states = {}},
+    }};
     const std::array<ControlAnatomy, 1> gauge{{
-        {.control_id = "gauge", .parts = {}, .states = {}, .custom_states = gauge_custom_states, .item_systems = {}},
+        {.control_id = "gauge",
+         .parts = gauge_parts,
+         .states = {},
+         .custom_states = gauge_custom_states,
+         .item_systems = {}},
     }};
     require(validate_control_anatomy(gauge[0]).defect == AnatomyDefect::custom_state_shadows_standard_state,
             "a custom state named as a standard one is refused with the anatomy");
