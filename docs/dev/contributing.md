@@ -21,9 +21,12 @@ for a new dependency or a new platform assumption is not.
 - The portable core and host protocol encode no AppKit, Win32, Wayland or X11
   assumption. Honest platform differences are capability-reported adapter
   behaviour.
-- Controls draw only the bundled fonts. Do not add host font lookups; the
-  GUI.Drawing C API's family lookup described in
-  [Text engine](../user/text-engine) is the one existing exception.
+- Interface text draws only the bundled fonts, and programs cannot
+  register fonts with the interface engine (the owner's interface and
+  content split, 2026-11-13). Do not add host font lookups or a font
+  registration API for interface text; the GUI.Drawing C API's family
+  lookup described in [Text engine](../user/text-engine) serves a program's
+  own drawing and is the one existing exception.
 
 Boundary tests run under `ctest`, so a violation fails before review.
 
@@ -52,7 +55,7 @@ coroutines and ranges pipelines. CI runs it over every first-party directory
 and fails on any finding, so run it before you push:
 
 ```sh
-python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard stx_vorbis
+python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz
 ```
 
 It is a review aid, not a certification: ownership, lifetimes and
@@ -68,7 +71,10 @@ suite on Linux under AddressSanitizer, UndefinedBehaviorSanitizer and
 LeakSanitizer (`python tools/ci_build.py --sanitize`); any report fails it.
 It runs only when requested by hand (`workflow_dispatch` with
 `run_sanitizers`); the gate is the local sanitized run of every test when a
-checkpoint is folded.
+checkpoint is folded. The same gate compiles every changed file against
+libstdc++ (syntax only, on macOS or the Linux VM), because macOS and Windows
+both build with libc++ and libstdc++-only failures otherwise surface only in
+CI.
 
 The same command is the standard local sanitizer tree, kept by every build
 tree on every platform: it builds `.build/native-<host>-<arch>/gui-forms-sanitize`

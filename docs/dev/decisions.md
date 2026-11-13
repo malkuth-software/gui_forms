@@ -16,7 +16,13 @@ to each one.
 | [ADR-006](https://github.com/malkuth-software/notes/blob/gui_forms/decisions/ADR-006-independent-predecessors-and-negotiated-consumption.md) | GUI.Forms and Orchestrator are independent predecessors; consumption is negotiated through a published manifest | accepted (recorded retroactively) | 2026-10-11 |
 | [ADR-013](https://github.com/malkuth-software/notes/blob/gui_forms/decisions/ADR-013-panel-composition-reserved-to-file-manager.md) | Persistent side-panel composition is reserved to File Manager; demonstrations may compose panels | retired | 2026-10-13 |
 | [ADR-014](https://github.com/malkuth-software/notes/blob/gui_forms/decisions/ADR-014-lifecycle-contract.md) | One portable lifecycle contract with separate retained, session, native and lease identities | accepted (recorded retroactively) | 2026-10-11 |
+| [ADR-015](https://github.com/malkuth-software/notes/blob/gui_forms/decisions/ADR-015-text-prepared-and-owned-by-content.md) | Text is prepared ahead of painting and owned by its content | accepted | 2026-10-31 |
+| [ADR-016](https://github.com/malkuth-software/notes/blob/gui_forms/decisions/ADR-016-retire-active-surfaces.md) | Animation runs on the motion clock and settling timers; active surfaces are retired | accepted; implemented | 2026-10-31 |
 
 Numbers 005 and 007 through 012 are not assigned to GUI.Forms; the
 numbering follows the wider programme's sequence, and records that belong to
 other projects are kept there.
+
+Smaller owner decisions, which do not take the form of a record, are indexed
+in [`planning/DECISIONS_2026-11.md`](https://github.com/malkuth-software/notes/blob/gui_forms/planning/DECISIONS_2026-11.md)
+and in the stage briefs under `planning/stages/`.

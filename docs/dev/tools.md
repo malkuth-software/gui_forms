@@ -68,6 +68,8 @@ template_harness, checked out beside this repository at the commit
   (`tools/check_member_views.py`): an inline accessor returning a view of a
   data member (`std::span`, `std::string_view`, `BorrowedSpan`,
   `BorrowedText`) is qualified `const&` and has a deleted `&&` overload.
+  The `house-style` CI job calls the harness's checker directly, so this
+  member-accessor rule runs only through the shim.
   `python3 -B tools/check_lifetime_rules.py tests/semantic_tests.cpp`
 
 `tools/lifetime_lint.py`
@@ -117,15 +119,112 @@ template_harness, checked out beside this repository at the commit
   so it runs on macOS.
   `tools/house_policy_check/run_inventory.sh "$PWD/build" ledger.json`
 
+## The C ABI and other generated sources
+
+The `house-style` CI job runs each of these with `--check` (or `check`), so a
+stale generated file fails it. Run the generator and commit its output with
+the change that needs it.
+
+`tools/abi_audit.py`
+: Records and audits the C ABI (`include/gui_forms/c/gf_abi.h`). `extract`
+  writes or checks the manifest under `manifests/abi/`, `check` applies the
+  ABI rules and the recorded baselines (`--mode blocking` fails on any
+  break), `probe` writes or checks the layout probe, `exports` checks a built
+  library's exports and `coverage` requires every slot to be called. It
+  parses with clang, so pass `--clang` with LLVM 22.1.8. ctest runs the
+  blocking check in every native build (`gui_forms_abi_audit`).
+  `python3 -B tools/abi_audit.py check --clang /path/to/clang --mode blocking`
+
+`tools/abi_bindings.py`
+: Generates the C# interop (`csharp`) and the C++ wrappers (`cpp`) from the
+  audited manifest.
+  `python3 -B tools/abi_bindings.py csharp --check`
+
+`tools/abi_class_tables.py`
+: Generates the C ABI 1.3 class tables, through which C and C# code
+  overrides a control's `on_*` hooks, and checks that the ledger only grows
+  (`--previous`).
+  `python3 -B tools/abi_class_tables.py --check`
+
+`tools/abi_event_catalog.py`
+: Generates the C ABI's event catalog from the interaction declarations.
+  `python3 -B tools/abi_event_catalog.py --check`
+
+`tools/export_annotations.py`
+: Checks that every public declaration carries its library's export macro
+  (`check`), adds missing ones (`apply`) and writes the export lists under
+  `cmake/exports/` (`exports`).
+  `python3 -B tools/export_annotations.py check`
+
+`tools/property_codemod.py`
+: Generates and checks the property families' code from
+  `tools/property_families/*.json` (`generate`, `rewrite`, `check`,
+  `selftest`).
+  `python3 -B tools/property_codemod.py check`
+
+`tools/control_schema.py`, `tools/stock_anatomies.py`, `tools/stock_specimens.py`
+: Check and render the control schema (`manifests/control-schema.json`,
+  written from a laid-out Gallery), and project it into the stock anatomy
+  table the core compiles and the stock specimen catalogue.
+  `python3 tools/control_schema.py check`
+  `python3 -B tools/stock_anatomies.py --check`
+
+`tools/dither_tables.py`
+: Writes the engine's blue-noise dither table for gradient dithering.
+  `python3 -B tools/dither_tables.py --check`
+
+`tools/paint_census.py`
+: Counts control code that paints without the theme engine; the count in
+  `manifests/paint_census.json` may only fall.
+  `python3 -B tools/paint_census.py check`
+
+`tools/check_test_registration.py`, `tools/check_test_asserts.py`
+: Refuse test programs the build never runs, and checks in test code that
+  `NDEBUG` would remove.
+  `python3 -B tools/check_test_registration.py`
+
+`tools/warning_baseline.py`
+: Counts the distinct warning sites per directory in a build's compiler
+  output and compares them with `tools/warning_baseline.json`, per host.
+  `python3 -B tools/warning_baseline.py check --log build.log --host macos`
+
+## Migrations
+
+`tools/flatten_control_headers.py`
+: Moved the control headers to `include/gui_forms/controls/<name>.hpp`
+  (checkpoint 29); `check` fails on any remaining old include spelling, and
+  `tools/control_header_moves.json` lists the moves for consumers.
+  `python3 -B tools/flatten_control_headers.py check`
+
+`tools/migrate_right_to_left.py`
+: Rewrites the retired `layout_direction` spelling to `right_to_left`.
+  `python3 -B tools/migrate_right_to_left.py --write src/`
+
+`tools/relocate_colours.py`
+: Moves colours written in form documents into a theme sheet.
+  `python3 -B tools/relocate_colours.py --sheet themes/app/app.theme.css --no-dark forms/main.form`
+
 ## Build, install and packaging
 
 `tools/ci_build.py`
-: Builds and tests the toolkit exactly as the native CI job does: fetches the
-  text stack and Skia, configures with `cmake/llvm22.cmake`, runs `ctest`,
-  installs into a scratch SDK and builds `examples/reference/` against it.
-  It expects the checkout in a directory named `gui_forms` and writes to
-  `../.build/native-<host>-<arch>/`. `--gallery` also builds the programs.
+: Builds and tests the toolkit exactly as the native CI job does: builds or
+  reuses the stx package (the CPU renderer and the text stack), configures
+  with `cmake/llvm22.cmake`, runs `ctest`, installs into a scratch SDK and
+  builds `examples/reference/` against it. It expects the checkout in a
+  directory named `gui_forms` and writes to `.build/native-<host>-<arch>/`
+  in the workspace that holds it. `--gallery` also builds the programs;
+  `--sanitize` builds the sanitizer tree ([Contributing](contributing.md));
+  `--test-targets-only` is the pull-request build (the whole suite, nothing
+  installed); `--install-only` installs the SDK without running the tests.
   `python3 tools/ci_build.py --jobs 4`
+
+`tools/build_sdk.py`, `tools/package_sdk.py`
+: The source SDK. `package_sdk.py` archives a release's tree with the stx
+  checkout `stx.lock` names as `gui-forms-sdk-<version>-source.tar.gz`;
+  `build_sdk.py` builds and installs GUI.Forms from that archive (or this
+  tree) for one target, with `--features all` adding the optional
+  components.
+  `python3 tools/build_sdk.py --target macos-arm64 --prefix /path/to/sdk`
 
 `tools/verify_install.py`
 : Builds an independent consumer against an installed SDK prefix and checks

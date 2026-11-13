@@ -11,9 +11,13 @@ extension follows. All of it is pre-1.0; see
 
 ## Library layers
 
-The installed CMake package exposes six components. Their link-time use and
-the one linking rule are in [Consume the SDK](../user/consume-the-sdk); this
-is how they stack:
+The installed CMake package exposes six main components (`Threading`,
+`Core`, `Drawing`, `Controls`, `Application` and `Audio`), the C ABI
+(`CAbi`, with `CAbiConformance` for its conformance kit) in a build with a
+native host, and optional components that a build must enable (`TextMasks`,
+`AudioLoopTransport`, `FreeType`, `HarfBuzz`, `GalleryModel`, `Lab`,
+`DemoControls`). Their link-time use and the one linking rule are in
+[Consume the SDK](../user/consume-the-sdk); this is how the main ones stack:
 
 ```text
 your application
@@ -43,10 +47,11 @@ that set.
 
 Some build targets are never installed. The headless host
 (`src/host/headless/`) is the deterministic reference adapter the tests link.
-The experimental drawing C ABI (`src/abi/drawing_*`) is built and tested in
-the source tree; its library is not part of the package. (The experimental
-0.x C ABI, `gui_forms_abi0`, was retired before 1.0; the sealed C ABI,
-`gui_forms_abi1`, is GUI.Forms' one C surface.) The development text services refuse
+The drawing C ABI (`gd_*`, `src/abi/drawing_*`) is built and tested in
+the source tree; its library is not part of the package until the drawing
+ABI is sealed. The sealed C ABI (`gui_forms_abi`, installed as
+`GUIForms::CAbi`) is GUI.Forms' one C surface; the experimental 0.x C ABI
+was retired before it. The development text services refuse
 to install: configuring with them enabled makes `cmake --install` stop.
 
 ### Boundaries the build enforces
@@ -130,7 +135,7 @@ The details are in [Retained tree](../user/retained-tree),
   prints a rate-limited `gui-forms-telemetry=expectation|...` record. A
   throwing paint callback still restores the previous chunks before the
   exception goes on, a dispatched callback's exception stays on its
-  operation, and the experimental C ABI turns exceptions into error results.
+  operation, and the C ABI turns exceptions into error results.
 
 ## Host-owned appearance
 
@@ -163,13 +168,16 @@ new SDK ([Consume the SDK](../user/consume-the-sdk)).
 
 Contracts are versioned separately rather than under one number. The host
 protocol reports its own `protocol_version` in `HostCapabilities`
-([Hosts and capabilities](../user/hosts-and-capabilities)), and the
-experimental C ABIs negotiate their own 0.x versions, which carry no
-compatibility promise.
+([Hosts and capabilities](../user/hosts-and-capabilities)), at version 13.
+The C ABI carries its own version, 1.3: 1.1 is the seal, and each later
+minor version only adds, which a blocking breaking-change audit checks. The
+drawing ABI (`gd_*`, 0.3) stays experimental until it is sealed after the
+demonstrators.
 
 GUI.Forms is Forms-shaped, not a reimplementation of all of Windows Forms.
-ActiveX, browser hosting, printing, MDI, obsolete control families and
-window-handle or message emulation are outside its scope. The decisions
+ActiveX, browser hosting, device printing, obsolete control families and
+window-handle or message emulation are outside its scope. MDI is planned
+with the docking work. The decisions
 behind these boundaries, event order and the lifecycle contract are in
 [Architecture decisions](decisions); what has to be true before 1.0 is on the
 [Roadmap](roadmap).
