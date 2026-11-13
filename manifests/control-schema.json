@@ -252,7 +252,8 @@
       {"name": "progress_laser", "parent": "progress_bar", "time_model": "ambient", "engine_version": 1, "cost": {"fixed": 3000, "per_device_pixel": 12}, "setup_cost": 0, "setup_on_geometry": false, "state_budget": 16, "frames_per_second": 30, "outsets": [0, 0, 0, 0], "input": "none"},
       {"name": "progress_woven_stripes", "parent": "progress_bar", "time_model": "ambient", "engine_version": 1, "cost": {"fixed": 6000, "per_device_pixel": 8}, "setup_cost": 8000, "setup_on_geometry": true, "state_budget": 1600, "frames_per_second": 30, "outsets": [0, 0, 0, 0], "input": "none"},
       {"name": "progress_bubbles", "parent": "progress_bar", "time_model": "ambient", "engine_version": 1, "cost": {"fixed": 12000, "per_device_pixel": 8}, "setup_cost": 0, "setup_on_geometry": false, "state_budget": 2048, "frames_per_second": 30, "outsets": [0, 14, 0, 0], "input": "pointer"},
-      {"name": "scope_sweep", "parent": "sweep_scope", "time_model": "ambient", "engine_version": 1, "cost": {"fixed": 400, "per_device_pixel": 4}, "setup_cost": 0, "setup_on_geometry": false, "state_budget": 16, "frames_per_second": 30, "outsets": [0, 0, 0, 0], "input": "none"}
+      {"name": "scope_sweep", "parent": "sweep_scope", "time_model": "ambient", "engine_version": 1, "cost": {"fixed": 400, "per_device_pixel": 4}, "setup_cost": 0, "setup_on_geometry": false, "state_budget": 16, "frames_per_second": 30, "outsets": [0, 0, 0, 0], "input": "none"},
+      {"name": "link_flow", "parent": "node_canvas", "time_model": "ambient", "engine_version": 2, "cost": {"fixed": 8000, "per_device_pixel": 4}, "setup_cost": 0, "setup_on_geometry": false, "state_budget": 16, "frames_per_second": 30, "outsets": [0, 0, 0, 0], "input": "none"}
     ]
   },
   "types": [
