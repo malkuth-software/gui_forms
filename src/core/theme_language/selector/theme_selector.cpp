@@ -867,19 +867,22 @@ std::optional<CustomStateIndex> SelectorPass::resolve_custom_state(const Simple&
     }
     if (reported_state_token_ == simple.token) return std::nullopt;
     reported_state_token_ = simple.token;
-    std::string detail(simple.name);
+    // The element checked first: a detail is clipped to
+    // maximum_detail_bytes, and a long state name must not hide it.
+    std::string detail{};
     if (anatomy == nullptr) {
-        detail += ": not a standard state, and the selector names no control type to declare it";
+        detail = "no control type to declare ";
     } else {
-        detail += ": neither a standard state nor a custom state of ";
-        detail += kebab_case_of(control_type);
+        detail = kebab_case_of(control_type);
         const bool item_part = !part.empty() && !find_declared_part((*anatomy).parts, part).has_value();
         if (item_part) {
             detail += "::part(";
             detail += kebab_case_of(part);
-            detail += ")'s item";
+            detail += ") items";
         }
+        detail += item_part ? " declare no custom state " : " declares no custom state ";
     }
+    detail += simple.name;
     report(DiagnosticCode::unknown_selector_name, simple.token, clipped_theme_detail(detail));
     return std::nullopt;
 }
