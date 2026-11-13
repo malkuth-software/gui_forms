@@ -503,7 +503,7 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: void reserve(std::size_t capacity)
+   .. cpp:function:: inline void reserve(std::size_t capacity)
 
       Reserves the levels for up to :cpp:func:`capacity <gui_forms::plots::EnvelopePyramid::capacity>` elements (allocates once).
 
@@ -515,15 +515,15 @@ Types
 
       Extends after elements [previous_size, source.size()) were appended: recomputes only the buckets that hold them, at every level.
 
-   .. cpp:function:: std::size_t bucket_count(std::size_t level) const noexcept
+   .. cpp:function:: inline std::size_t bucket_count(std::size_t level) const noexcept
 
       Buckets at ``level`` (level 0 holds size()/pyramid_base whole buckets).
 
-   .. cpp:function:: std::uint32_t minimum_index(std::size_t level, std::size_t bucket) const noexcept
+   .. cpp:function:: inline std::uint32_t minimum_index(std::size_t level, std::size_t bucket) const noexcept
 
       The minimum's and maximum's element indices of bucket ``bucket`` at ``level``.
 
-   .. cpp:function:: std::uint32_t maximum_index(std::size_t level, std::size_t bucket) const noexcept
+   .. cpp:function:: inline std::uint32_t maximum_index(std::size_t level, std::size_t bucket) const noexcept
 
    .. cpp:function:: template <typename Source> DecimationStatistics envelope(const Source& source, ElementRange range, const PlotTransform& transform, std::span<Point> out) const noexcept
 
@@ -718,7 +718,7 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: void reserve(std::size_t columns, std::size_t rows)
+   .. cpp:function:: inline void reserve(std::size_t columns, std::size_t rows)
 
    .. cpp:function:: template <typename Source> DecimationStatistics thin(const Source& source, const PlotTransform& transform, std::span<Point> out) noexcept
 

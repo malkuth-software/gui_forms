@@ -5725,15 +5725,20 @@ if(GUI_FORMS_BUILD_TESTS)
         # and the danger key, their timing, and that each lights only its
         # own lens or face (offscreen raster). GUI_FORMS_PREVIEW_DIR, when
         # set, receives preview shots.
-        foreach(lamp_test indicator_lamp danger_key)
-            add_executable(gui_forms_${lamp_test}_tests tests/${lamp_test}_tests.cpp
-                src/runtime/offscreen/offscreen_raster_create.cpp
-                $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
-            target_compile_definitions(gui_forms_${lamp_test}_tests PRIVATE
-                GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
-            target_link_libraries(gui_forms_${lamp_test}_tests PRIVATE gui_forms_controls gui_forms_skia)
-            add_test(NAME gui_forms_${lamp_test}_tests COMMAND gui_forms_${lamp_test}_tests)
-        endforeach()
+        add_executable(gui_forms_indicator_lamp_tests tests/indicator_lamp_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_indicator_lamp_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_indicator_lamp_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_indicator_lamp_tests COMMAND gui_forms_indicator_lamp_tests)
+        add_executable(gui_forms_danger_key_tests tests/danger_key_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_danger_key_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_danger_key_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_danger_key_tests COMMAND gui_forms_danger_key_tests)
         # The node canvas's look in pixels (cp31), and its preview set:
         # gui_forms_canvas_look_raster_tests --preview <directory>.
         add_executable(gui_forms_canvas_look_raster_tests tests/canvas_look_raster_tests.cpp

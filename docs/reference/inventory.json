@@ -382486,7 +382486,7 @@
               "declaration": "std::size_t capacity"
             }
           ],
-          "declaration": "void reserve(std::size_t capacity)",
+          "declaration": "inline void reserve(std::size_t capacity)",
           "comment": "",
           "header": "gui_forms/plots/decimation/decimation.hpp",
           "source": "include/gui_forms/plots/decimation/decimation.hpp",
@@ -382599,7 +382599,7 @@
               "declaration": "std::size_t level"
             }
           ],
-          "declaration": "[[nodiscard]] std::size_t bucket_count(std::size_t level) const noexcept",
+          "declaration": "[[nodiscard]] inline std::size_t bucket_count(std::size_t level) const noexcept",
           "comment": "",
           "header": "gui_forms/plots/decimation/decimation.hpp",
           "source": "include/gui_forms/plots/decimation/decimation.hpp",
@@ -382625,7 +382625,7 @@
               "declaration": "std::size_t bucket"
             }
           ],
-          "declaration": "[[nodiscard]] std::uint32_t minimum_index(std::size_t level, std::size_t bucket) const noexcept",
+          "declaration": "[[nodiscard]] inline std::uint32_t minimum_index(std::size_t level, std::size_t bucket) const noexcept",
           "comment": "",
           "header": "gui_forms/plots/decimation/decimation.hpp",
           "source": "include/gui_forms/plots/decimation/decimation.hpp",
@@ -382651,7 +382651,7 @@
               "declaration": "std::size_t bucket"
             }
           ],
-          "declaration": "[[nodiscard]] std::uint32_t maximum_index(std::size_t level, std::size_t bucket) const noexcept",
+          "declaration": "[[nodiscard]] inline std::uint32_t maximum_index(std::size_t level, std::size_t bucket) const noexcept",
           "comment": "",
           "header": "gui_forms/plots/decimation/decimation.hpp",
           "source": "include/gui_forms/plots/decimation/decimation.hpp",
@@ -383726,7 +383726,7 @@
               "declaration": "std::size_t rows"
             }
           ],
-          "declaration": "void reserve(std::size_t columns, std::size_t rows)",
+          "declaration": "inline void reserve(std::size_t columns, std::size_t rows)",
           "comment": "",
           "header": "gui_forms/plots/decimation/decimation.hpp",
           "source": "include/gui_forms/plots/decimation/decimation.hpp",
