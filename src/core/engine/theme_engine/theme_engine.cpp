@@ -1403,7 +1403,9 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
     const ControlVisualContext context = part_visual_context(control, part.states);
     if (context.high_contrast) return nullptr;
     const Theme& theme = control.effective_theme();
-    const bool darkened = context.dark && derives_dark(theme);
+    // A part showing a content colour (W-7) draws its gradients as written:
+    // the dark variant's rule does not darken data.
+    const bool darkened = context.dark && derives_dark(theme) && !part.content_color;
     ControlVisualContext floor_context = context;
     if (darkened) floor_context.dark = false;
     const std::string_view part_name = part.key ? (*part.key).part : std::string_view{};
@@ -1413,7 +1415,9 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
     if (material_fields_read_em(resolution.materials)) {
         relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
     }
-    if (material_fields_read_current_colour(resolution.materials)) relative.current_colour = floor.recipe().text;
+    if (material_fields_read_current_colour(resolution.materials)) {
+        relative.current_colour = part.content_color ? *part.content_color : floor.recipe().text;
+    }
     UnkeptAssemblies unkept{detail::SurfaceEngineAccess::unkept_assemblies(*window), detail::SurfaceEngineAccess::unkept_next(*window),
                             (*window).metrics()};
     if (darkened) {
@@ -1564,7 +1568,8 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
                               *run.unkept_material);
             (*window).metrics().record_engine_material_assembly();
             request.target.material = run.unkept_material;
-        } else if (resolution.materials_authored && context.dark && derives_dark(control.effective_theme())) {
+        } else if (resolution.materials_authored && context.dark && derives_dark(control.effective_theme()) &&
+                   !part.content_color) {
             // The dark variant (T4 phase 5): the rules' fields in place on
             // the light recipe's material, then the whole darkened by rule,
             // for this paint only.
@@ -1590,7 +1595,10 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
             if (material_fields_read_em(resolution.materials)) {
                 relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
             }
-            if (material_fields_read_current_colour(resolution.materials)) {
+            // A content colour (W-7) is what currentcolor names in its part.
+            if (material_fields_read_current_colour(resolution.materials) && part.content_color) {
+                relative.current_colour = *part.content_color;
+            } else if (material_fields_read_current_colour(resolution.materials)) {
                 const Theme& theme = control.effective_theme();
                 const ResolvedControlRecipe text = theme.resolve(control, part.family, context, part.states);
                 relative.current_colour = text.recipe().text;

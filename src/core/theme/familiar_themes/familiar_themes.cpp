@@ -2,6 +2,7 @@
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include "../theme_compiler/built_in_theme.hpp"
+#include "../theme_compiler/content_parts_sheet.hpp"
 #include "windows_professional_floor.hpp"
 #include "windows_professional_sheets.hpp"
 
@@ -1964,14 +1965,15 @@ FamiliarThemeBuild build_from_floor(const FamiliarDescription& description, cons
     result.compile_operations = floor.operations;
     const ThemeDefinition* const definition = floor.definition.get();
     result.theme = Theme::create(*definition);
-    if (!description.parts_sheet.empty()) {
-        // A refused parts sheet leaves the theme its floor alone.
-        detail::BuiltInThemeCompilation compiled = detail::compile_built_in_theme(
-            *definition, description.parts_file, description.parts_sheet, stock_control_anatomies());
-        result.diagnostics.insert(result.diagnostics.end(), compiled.diagnostics.begin(), compiled.diagnostics.end());
-        result.compile_operations += compiled.operations;
-        if (compiled.theme != nullptr) result.theme = std::move(compiled.theme);
-    }
+    // The parts sheet (empty for none), then the content parts' rules
+    // (W-7), as one sheet. A refused sheet leaves the theme its floor alone.
+    std::string sheet(description.parts_sheet);
+    sheet.append(detail::content_parts_sheet);
+    detail::BuiltInThemeCompilation compiled =
+        detail::compile_built_in_theme(*definition, description.parts_file, sheet, stock_control_anatomies());
+    result.diagnostics.insert(result.diagnostics.end(), compiled.diagnostics.begin(), compiled.diagnostics.end());
+    result.compile_operations += compiled.operations;
+    if (compiled.theme != nullptr) result.theme = std::move(compiled.theme);
     const std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     result.build_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     return result;

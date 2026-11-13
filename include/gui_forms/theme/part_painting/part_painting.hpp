@@ -277,6 +277,16 @@ struct GUI_FORMS_API PartPaint final {
     // high-contrast recipe, so the sample stays outlined), and when the
     // part is disabled (T2 GIVEN E2-1: a theme styles only what surrounds
     // it, so a disabled swatch shows through its well, edge and label).
+    //
+    // A surface part (face or well) with a content colour draws its
+    // material, and the colours its theme rules write as CSS's currentcolor
+    // take the content colour instead of the text colour: a colour picker's
+    // field, spectrum and alpha ramp are gradient rules over the colour
+    // they show (the ColorPicker parts in the default and familiar themes'
+    // content rules). The dark variant's rule does not darken such a
+    // part's material. Without the theme engine (no window, or a theme
+    // whose rules write no material for the part), and in forced high
+    // contrast, the part draws its recipe and the colour is not shown.
     std::optional<Color> content_color{};
     // The colours an application authored for this part (design language
     // 8.5; owner decision T4-1), or none, such as a DataGridView cell

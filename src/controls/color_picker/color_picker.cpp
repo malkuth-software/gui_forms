@@ -1,6 +1,5 @@
 #include "gui_forms/controls/color_picker.hpp"
 
-#include "color_picker_gradients.hpp"
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -16,8 +15,6 @@ namespace gui_forms {
 
 namespace {
 
-// The checkerboard's square in logical units.
-constexpr double checker_cell = 5.0;
 // The field thumb's side, and the track thumbs' height beyond the track.
 constexpr double field_thumb_extent = 10.0;
 constexpr double track_thumb_height = 6.0;
@@ -368,11 +365,14 @@ void ColorPicker::on_focus_changed(bool focused) {
 
 // -- paint ----------------------------------------------------------------------
 
-// The wells, thumbs and focus cue are theme parts in the control's states;
-// the gradients and the swatch's colour are content (color_picker_gradients).
+// Every area is a theme part in the control's states; the colour areas
+// carry their content colours for the themes' content rules.
 void ColorPicker::on_paint(Painter& painter, Rect) {
     const Layout layout = layout_parts();
     const AnatomyStateSet states = anatomy_states();
+    // The colour areas are well parts whose content colours (W-7) the
+    // theme's content rules draw as gradients over: the field's pure hue,
+    // the alpha ramp's colour made opaque and the swatch's value.
     PartPaint well;
     well.family = ControlVisualRole::editor;
     well.role = PartRole::well;
@@ -380,22 +380,25 @@ void ColorPicker::on_paint(Painter& painter, Rect) {
     well.corner_radius = 0.0;
     well.bounds = layout.field;
     well.key = PartKey{"field", {}, {}};
+    well.content_color = color_of(ColorPickerHsv{hsv_.hue, 1.0, 1.0}, 255U);
     paint_part(painter, *this, well);
-    color_picker_detail::paint_field(painter, layout.field, hsv_.hue);
     well.bounds = layout.hue_track;
     well.key = PartKey{"hue_track", {}, {}};
+    well.content_color.reset();
     paint_part(painter, *this, well);
-    color_picker_detail::paint_hue_track(painter, layout.hue_track);
+    const Color shown = value.read();
     if (alpha_enabled.read()) {
         well.bounds = layout.alpha_track;
         well.key = PartKey{"alpha_track", {}, {}};
+        Color opaque = shown;
+        opaque.alpha = 255U;
+        well.content_color = opaque;
         paint_part(painter, *this, well);
-        color_picker_detail::paint_alpha_track(painter, layout.alpha_track, value.read(), checker_cell);
     }
     well.bounds = layout.swatch;
     well.key = PartKey{"swatch", {}, {}};
+    well.content_color = shown;
     paint_part(painter, *this, well);
-    color_picker_detail::paint_swatch(painter, layout.swatch, value.read(), checker_cell);
 
     PartPaint thumb;
     thumb.family = ControlVisualRole::button;

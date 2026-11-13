@@ -45,9 +45,12 @@ struct GUI_FORMS_API ColorPickerHsv final {
 // The picker keeps its HSV position apart from the value, so a grey keeps
 // the hue it was picked at; a program's write of `value` recomputes it,
 // keeping the hue when the written colour is grey and the saturation when
-// it is black. The colour gradients are content (design language 8.5,
-// owner decision W-7): drawn as data, the same in every theme; the wells,
-// thumbs and focus cue are theme parts.
+// it is black. Every area is a theme part. The colour areas (field,
+// hue_track, alpha_track, swatch) are wells carrying their content colours
+// (PartPaint::content_color; design language 8.5, owner decision W-7), which
+// the default and familiar themes' content rules draw as gradients over a
+// checkerboard, the same in every theme; a theme without those rules draws
+// plain wells, and so does forced high contrast.
 //
 // Threads: the UI thread.
 class GUI_FORMS_API ColorPicker final : public Control, public ColorPickerCapabilities<ColorPicker> {

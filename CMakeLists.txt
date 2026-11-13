@@ -1136,7 +1136,6 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/font_dialog/font_dialog.cpp
     src/controls/panel/color_value_editor/color_value_editor.cpp
     src/controls/color_picker/color_picker.cpp
-    src/controls/color_picker/color_picker_gradients.cpp
     src/controls/inspection/property_row_spec/property_row_spec.cpp
     src/controls/inspection/property_value_converter_registry/property_value_converter_registry.cpp
     src/controls/inspection/property_editor_registry/property_editor_registry.cpp
@@ -5801,6 +5800,15 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
         target_link_libraries(gui_forms_indicator_lamp_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_indicator_lamp_tests COMMAND gui_forms_indicator_lamp_tests)
+        # ColorPicker's colour areas as content parts drawn by the themes'
+        # content rules (W-7), in pixels.
+        add_executable(gui_forms_color_picker_raster_tests tests/color_picker_raster_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_color_picker_raster_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_color_picker_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_color_picker_raster_tests COMMAND gui_forms_color_picker_raster_tests)
         add_executable(gui_forms_danger_key_tests tests/danger_key_tests.cpp
             src/runtime/offscreen/offscreen_raster_create.cpp
             $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)

@@ -45,7 +45,6 @@
   "exempt": {
     "basic/basic_control_rendering.cpp": "the authored-recipe path: paint_theme_cues paints the focus and default cues of a control's own override recipes (visual_recipes_override), which the theme engine does not draw (owner decision, 2026-11-03)",
     "button_base/button_base.cpp": "the authored-colour path: paint_flat_button paints FlatStyle.Flat (WinForms FlatStyle and FlatAppearance) from the application's own colours, the control's back and fore colours or its style override, which the theme engine does not draw (owner decision, 2026-11-09, on the authored-recipe precedent)",
-    "color_picker/color_picker_gradients.cpp": "draws content colours (design language 8.5, owner decision W-7: a picker's colours are data): ColorPicker's saturation-brightness field, hue spectrum, alpha ramp and swatch over their checkerboard; its wells, thumbs and focus cue go through the theme (pending owner decision, claude/cp32-demonstrator-gaps)",
     "connected_controls/connected_controls.cpp": "the authored-recipe path: the public paint_connected_surface_material paints an application's own recipe, which the theme engine does not draw (owner decision, 2026-11-03)",
     "drawing_surface/drawing_surface.cpp": "draws the application's own drawing (DrawingSurface), not chrome",
     "instruments/sparkline/sparkline.cpp": "draws application content: the sparkline's data markers, in the series colours the application gives (as metrics_view, owner decision T4-4); its frame and background go through the theme",
@@ -59,8 +58,8 @@
   },
   "totals": {
     "exempt": {
-      "files": 13,
-      "calls": 48
+      "files": 12,
+      "calls": 41
     },
     "demo": {
       "files": 2,
@@ -79,10 +78,6 @@
     "button_base/button_base.cpp": {
       "category": "exempt",
       "calls": 4
-    },
-    "color_picker/color_picker_gradients.cpp": {
-      "category": "exempt",
-      "calls": 7
     },
     "connected_controls/connected_controls.cpp": {
       "category": "exempt",
