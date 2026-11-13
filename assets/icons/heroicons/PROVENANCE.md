@@ -19,22 +19,25 @@ SVG at run time.
 
 ## Conversion
 
-`tools/stock_icon_codec.py` reads the SVG subset these files use (the
+`tools/stock_icon_generator/` (C++20, standard library only) reads the SVG subset these files use (the
 `viewBox`, `path` `d` data, `rect` with corner radii, and the fill, stroke,
 cap, join and fill-rule attributes) and refuses anything else. Arcs and
 rounded corners become cubic curves of at most a quarter turn; coordinates
 are stored as 16-bit integers in thousandths of a grid unit.
 
-The build runs it (a custom command in `CMakeLists.txt`) and writes
-`<build>/generated/stock_icons/stock_icon_data.inc`, which
-`src/core/resources/stock_icons/stock_icons.cpp` compiles in. The output is
-not committed. By hand:
+The build compiles it for the host and runs it (a custom command in
+`CMakeLists.txt`), writing `<build>/generated/stock_icons/stock_icon_data.inc`,
+which `src/core/resources/stock_icons/stock_icons.cpp` compiles in. The
+output is not committed, and building needs no Python.
+
+`tools/stock_icon_codec.py` is the same converter in Python and the
+generator's test oracle: with the tests built, `gui_forms_stock_icon_generator_oracle`
+checks that the build's records are byte for byte what it gives, and
+`tools/test_stock_icon_codec.py` holds four of these files, checks that they
+are the committed ones, and checks the round trip and the build's records
+against them and against the whole tree. By hand:
 
 ```text
 python3 -B tools/stock_icon_codec.py generate --output <file>
 python3 -B tools/stock_icon_codec.py check --output <file>
 ```
-
-`tools/test_stock_icon_codec.py` holds four of these files, checks that they
-are the committed ones, and checks the round trip and the build's generated
-records against them and against the whole tree.

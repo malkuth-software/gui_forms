@@ -4,10 +4,11 @@ The samples are four Heroicons v2.2.0 files (MIT, assets/icons/heroicons/),
 copied here byte for byte so the parser tests stand alone: a stroked
 outline, a solid with arcs, a solid rect with rounded corners and an
 even-odd solid. The last tests check that the samples are the committed
-files, and read the build's generated records (GUI_FORMS_STOCK_ICON_DATA,
-set by the CMake test; without it, the records the committed SVG files
-give) and check that they hold the same records for the samples and match
-the SVG tree whole.
+files, and read the build's generated records: the C++ generator's
+output (tools/stock_icon_generator/, whose oracle this codec is), named by
+GUI_FORMS_STOCK_ICON_DATA, which the CMake test sets; without it, the
+records the committed SVG files give. They check that those records hold
+the same records for the samples and match the SVG tree whole.
 """
 from __future__ import annotations
 

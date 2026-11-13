@@ -1,7 +1,8 @@
 #pragma once
 // The embedded stock icon records (stock_icon_data.inc, generated at build
-// time by tools/stock_icon_codec.py from the Heroicons v2.2.0 SVG files in
-// assets/icons/heroicons/; the format is described there). The build puts
+// time by tools/stock_icon_generator/ from the Heroicons v2.2.0 SVG files in
+// assets/icons/heroicons/; the format is described in its oracle,
+// tools/stock_icon_codec.py). The build puts
 // it in <build>/generated/stock_icons/, which gui_forms_core has on its
 // private include path. Included by stock_icons.cpp only.
 

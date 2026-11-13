@@ -357,11 +357,28 @@ add_custom_command(
     VERBATIM)
 
 # The stock icon records (src/core/resources/stock_icons/stock_icon_records.hpp):
-# tools/stock_icon_codec.py converts the committed Heroicons SVG files,
+# gui_forms_stock_icon_generator (tools/stock_icon_generator/, C++20, standard
+# library only) converts the committed Heroicons SVG files,
 # assets/icons/heroicons/ (assets/icons/heroicons/PROVENANCE.md), into
 # stock_icon_data.inc in the build tree, regenerated when an SVG file or the
-# converter changes. The build needs a Python 3 interpreter for it.
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
+# generator changes. The build needs no Python: tools/stock_icon_codec.py is
+# the generator's test oracle and runs only with the tests. A cross build
+# has no host to run the generator it builds, so it names a host-built one in
+# GUI_FORMS_STOCK_ICON_GENERATOR.
+set(GUI_FORMS_STOCK_ICON_GENERATOR "" CACHE FILEPATH
+    "A host-built gui_forms_stock_icon_generator to run in place of the one this build compiles (cross builds)")
+if(GUI_FORMS_STOCK_ICON_GENERATOR)
+    set(_gf_stock_icon_generator ${GUI_FORMS_STOCK_ICON_GENERATOR})
+else()
+    add_executable(gui_forms_stock_icon_generator tools/stock_icon_generator/stock_icon_generator.cpp)
+    target_compile_features(gui_forms_stock_icon_generator PRIVATE cxx_std_20)
+    # Byte-identical to the Python oracle: no fused multiply-adds.
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(gui_forms_stock_icon_generator PRIVATE -ffp-contract=off)
+    endif()
+    # A target name in COMMAND and DEPENDS runs its file and orders the build.
+    set(_gf_stock_icon_generator gui_forms_stock_icon_generator)
+endif()
 set(GUI_FORMS_STOCK_ICON_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/assets/icons/heroicons)
 file(GLOB GUI_FORMS_STOCK_ICON_SVGS CONFIGURE_DEPENDS
     ${GUI_FORMS_STOCK_ICON_SOURCE}/24/outline/*.svg
@@ -371,12 +388,12 @@ file(GLOB GUI_FORMS_STOCK_ICON_SVGS CONFIGURE_DEPENDS
 set(GUI_FORMS_STOCK_ICON_RECORDS ${CMAKE_CURRENT_BINARY_DIR}/generated/stock_icons/stock_icon_data.inc)
 add_custom_command(
     OUTPUT ${GUI_FORMS_STOCK_ICON_RECORDS}
-    COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/stock_icon_codec.py generate
+    COMMAND ${_gf_stock_icon_generator}
         --source ${GUI_FORMS_STOCK_ICON_SOURCE}
         --output ${GUI_FORMS_STOCK_ICON_RECORDS}
     DEPENDS
         ${GUI_FORMS_STOCK_ICON_SVGS}
-        ${CMAKE_CURRENT_SOURCE_DIR}/tools/stock_icon_codec.py
+        ${_gf_stock_icon_generator}
     COMMENT "Generating the stock icon records from the Heroicons SVG files"
     VERBATIM)
 
@@ -3254,15 +3271,17 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_test_assert_check
             COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_test_asserts.py
                 --root ${CMAKE_CURRENT_SOURCE_DIR})
-        # The stock icon converter (tools/stock_icon_codec.py): its SVG subset,
-        # the round trip of records, and the build's generated records
-        # against the committed SVG files.
+        # The stock icon codec (tools/stock_icon_codec.py, the generator's
+        # oracle): its SVG subset, the round trip of records, and the build's
+        # generated records against the committed SVG files.
         add_test(NAME gui_forms_stock_icon_codec_tests
             COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
                 -p test_stock_icon_codec.py)
         set_tests_properties(gui_forms_stock_icon_codec_tests PROPERTIES
             ENVIRONMENT "GUI_FORMS_STOCK_ICON_DATA=${GUI_FORMS_STOCK_ICON_RECORDS}")
-        add_test(NAME gui_forms_stock_icon_records_check
+        # The oracle: the C++ generator's records are byte for byte what
+        # the Python codec gives for the same SVG files.
+        add_test(NAME gui_forms_stock_icon_generator_oracle
             COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/stock_icon_codec.py check
                 --source ${GUI_FORMS_STOCK_ICON_SOURCE} --output ${GUI_FORMS_STOCK_ICON_RECORDS})
         add_test(NAME gui_forms_test_assert_check_unit
