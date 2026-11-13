@@ -272,6 +272,17 @@
       "doc": "api/generated/gui_forms.PlotView.rst"
     },
     {
+      "id": "plot3_d_view",
+      "type": "Plot3DView",
+      "header": "gui_forms/controls/plot3d_view.hpp",
+      "category": "Information display",
+      "purpose": "Retained 3D plot from the plots package: surfaces (CONV-interpolated or as gridded), lines and scatters in a box with back panes, grid, ticks and themed overlay labels, drawn on the CPU by stx_raster3d with a per-pixel depth; turntable rotation, zoom and pan by pointer, wheel and keyboard, and exact per-pixel picking with a coordinate readout.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.Plot3DView.rst"
+    },
+    {
       "id": "plot_axis_item",
       "type": "PlotAxisItem",
       "header": "gui_forms/controls/plot_axis_item.hpp",

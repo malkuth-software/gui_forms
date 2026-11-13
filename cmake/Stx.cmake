@@ -1,6 +1,6 @@
 # Everything GUI.Forms takes from malkuth-software/stx, consumed as one built
 # package (cmake/stx_package/CMakeLists.txt): the stx libraries (stx_zlib,
-# stx_png, stx_conv, stx_rtf2md and, for audio builds, stx_vorbis; owner ruling
+# stx_png, stx_conv, stx_raster3d, stx_rtf2md and, for audio builds, stx_vorbis; owner ruling
 # 2026-11-03, decision 3(a)), stx_skia, and the third-party sources of stx
 # third_party/ (FreeType, HarfBuzz, SheenBidi, libunibreak, MD4C; owner,
 # 2026-11-05: this repository carries no third-party sources). This build
@@ -31,7 +31,7 @@
 #   bin/stxlib_state.dll on Windows, copied beside this build's programs by
 #   gui_forms_stxlib_state_runtime), stxlib::boundary and stxlib::algorithms
 #   (STXlib at stx's stxlib.lock commit),
-#   stx_zlib::stx_zlib, stx_png::stx_png, stx_conv::stx_conv,
+#   stx_zlib::stx_zlib, stx_png::stx_png, stx_conv::stx_conv, stx_raster3d::stx_raster3d,
 #   stx_rtf2md::stx_rtf2md (and stx_vorbis's when asked);
 #   stx_skia::swizzle and, with the renderer, stx_skia::stx_skia; stx_text::md4c
 #   (objects) and, with the text engine, stx_text::freetype, stx_text::harfbuzz,
@@ -310,6 +310,7 @@ endif()
 find_package(stx_zlib CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 find_package(stx_png CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 find_package(stx_conv CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
+find_package(stx_raster3d CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 find_package(stx_rtf2md CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 if(_gui_stx_with_vorbis)
     find_package(stx_vorbis CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")

@@ -95,6 +95,7 @@
 #include "gui_forms/controls/page_view.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_annotation_item.hpp"
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/controls/plot_series_item.hpp"
@@ -162,7 +163,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 150> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 151> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -187,6 +188,7 @@ inline constexpr std::array<SchemaCatalogEntry, 150> schema_catalog{{
     {"sweep_scope", "SweepScope", &describe_type<SweepScope>, &create_type<SweepScope>, &is_exact_type<SweepScope>},
     {"sparkline", "Sparkline", &describe_type<Sparkline>, &create_type<Sparkline>, &is_exact_type<Sparkline>},
     {"plot_view", "PlotView", &describe_type<PlotView>, &create_type<PlotView>, &is_exact_type<PlotView>},
+    {"plot3_d_view", "Plot3DView", &describe_type<Plot3DView>, &create_type<Plot3DView>, &is_exact_type<Plot3DView>},
     {"plot_axis_item", "PlotAxisItem", &describe_type<PlotAxisItem>, &create_type<PlotAxisItem>, &is_exact_type<PlotAxisItem>},
     {"plot_series_item", "PlotSeriesItem", &describe_type<PlotSeriesItem>, &create_type<PlotSeriesItem>, &is_exact_type<PlotSeriesItem>},
     {"plot_annotation_item", "PlotAnnotationItem", &describe_type<PlotAnnotationItem>, &create_type<PlotAnnotationItem>, &is_exact_type<PlotAnnotationItem>},

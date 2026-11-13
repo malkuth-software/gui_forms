@@ -8,6 +8,7 @@
 #include "gui_forms/plots/colormap/colormap.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/plots/mark_painters/mark_painters.hpp"
+#include "gui_forms/plots/plot3d_scene/plot3d_scene.hpp"
 #include "gui_forms/plots/plot_legend/plot_legend.hpp"
 #include "gui_forms/plots/plot_transform/plot_transform.hpp"
 #include "gui_forms/plots/plot_types/plot_types.hpp"

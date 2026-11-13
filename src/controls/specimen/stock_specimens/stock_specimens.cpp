@@ -497,6 +497,37 @@ StockSpecimenInstance make_plot_view(const StockSpecimen&, StableId id) {
     return instance;
 }
 
+// A 3D plot of a fixed 9 x 9 surface, z = (x^2 - y^2) / 2 over [-1, 1]^2
+// (a saddle, exact on the grid; no clock, no random source), with titled
+// axes.
+StockSpecimenInstance make_plot3_d_view(const StockSpecimen&, StableId id) {
+    constexpr std::size_t side = 9U;
+    std::array<double, side> along{};
+    for (std::size_t index = 0U; index < side; ++index) {
+        along[index] = -1.0 + 2.0 * static_cast<double>(index) / static_cast<double>(side - 1U);
+    }
+    std::array<double, side * side> heights{};
+    for (std::size_t row = 0U; row < side; ++row) {
+        for (std::size_t column = 0U; column < side; ++column) {
+            heights[row * side + column] = 0.5 * (along[column] * along[column] - along[row] * along[row]);
+        }
+    }
+    const std::shared_ptr<Plot3DView> control = make_control<Plot3DView>(std::move(id));
+    plots::Plot3DSurfaceSpec surface{};
+    surface.x = along;
+    surface.y = along;
+    surface.z = heights;
+    surface.rows = side;
+    surface.columns = side;
+    surface.label = "Saddle";
+    static_cast<void>((*control).add_surface(surface));
+    (*control).set_axis_title(plots::Plot3DAxis::x, "x");
+    (*control).set_axis_title(plots::Plot3DAxis::y, "y");
+    (*control).set_axis_title(plots::Plot3DAxis::z, "z");
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
 // A plot item shows only inside its plot: the plot is the root and the
 // frame, the item the subject.
 StockSpecimenInstance make_plot_axis_item(const StockSpecimen&, StableId id) {

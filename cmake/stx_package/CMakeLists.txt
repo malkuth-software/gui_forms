@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.25)
 #   GUI.Forms built these sources itself.
 #
 # Outputs: two install components, each a relocatable prefix of its own.
-# - `stx`: the stx libraries (stx_zlib, stx_png, stx_conv, stx_rtf2md and, when
+# - `stx`: the stx libraries (stx_zlib, stx_png, stx_conv, stx_raster3d, stx_rtf2md and, when
 #   asked, stx_vorbis) and STXlib (stxlib::algorithms with its boundary and
 #   state, and its licences) exactly as the stx root installs
 #   them. Stx.cmake installs it at <package>/stx, and the SDK carries that
@@ -245,4 +245,5 @@ install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/LICENSE" "${GUI_FORMS_STX_SO
     "${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/LICENSE-zlib.txt" DESTINATION ${_stx_notice_root}/stx_zlib)
 install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_png/LICENSE" DESTINATION ${_stx_notice_root}/stx_png)
 install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_conv/LICENSE" DESTINATION ${_stx_notice_root}/stx_conv)
+install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_raster3d/LICENSE" DESTINATION ${_stx_notice_root}/stx_raster3d)
 install(FILES "${GUI_FORMS_STX_SOURCE_DIR}/stx_rtf2md/LICENSE" DESTINATION ${_stx_notice_root}/stx_rtf2md)

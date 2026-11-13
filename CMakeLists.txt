@@ -1054,6 +1054,7 @@ add_library(gui_forms_plot_primitives STATIC
     src/plots/axis/axis.cpp
     src/plots/colormap/colormap.cpp
     src/plots/mark_painters/mark_painters.cpp
+    src/plots/plot3d_scene/plot3d_scene.cpp
     src/plots/plot_legend/plot_legend.cpp
     src/plots/plot_transform/plot_transform.cpp
     src/plots/plot_view_model/plot_view_model.cpp
@@ -1069,6 +1070,9 @@ target_include_directories(gui_forms_plot_primitives PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(gui_forms_plot_primitives PUBLIC gui_forms_core)
+# The 3D scene's private renderer and its CONV surfaces (D5); no stx type is
+# public.
+target_link_libraries(gui_forms_plot_primitives PRIVATE stx_raster3d::stx_raster3d stx_conv::stx_conv)
 set_target_properties(gui_forms_plot_primitives PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # The signal programs, verified by the plugin's effect pass like the effect
 # programs (make_signal_entry; cmake/LocalizablePlugin.cmake).
@@ -1293,6 +1297,7 @@ add_library(gui_forms_controls STATIC
     src/controls/plots/plot_view/plot_view.cpp
     src/controls/plots/plot_view/plot_view_live.cpp
     src/controls/plots/plot_view/plot_view_links.cpp
+    src/controls/plots/plot3d_view/plot3d_view.cpp
     src/controls/built_in_effect_registry/built_in_effect_registry.cpp
     src/controls/range_control/scroll_bar/scroll_bar.cpp
     src/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.cpp
@@ -4623,6 +4628,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_plot_view_tests tests/plot_view_tests.cpp)
     target_link_libraries(gui_forms_plot_view_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_plot_view_tests COMMAND gui_forms_plot_view_tests)
+    add_executable(gui_forms_plot3d_view_tests tests/plot3d_view_tests.cpp)
+    target_link_libraries(gui_forms_plot3d_view_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_plot3d_view_tests COMMAND gui_forms_plot3d_view_tests)
     add_executable(gui_forms_event_payload_lifetime_tests tests/event_payload_lifetime_tests.cpp)
     target_link_libraries(gui_forms_event_payload_lifetime_tests PRIVATE gui_forms_lab)
     add_test(NAME gui_forms_event_payload_lifetime_tests COMMAND gui_forms_event_payload_lifetime_tests)
@@ -6446,6 +6454,8 @@ install(FILES ${gui_forms_stx_licenses}/stx_rtf2md/PROVENANCE.md DESTINATION ${C
 install(FILES ${gui_forms_stx_licenses}/stx_png/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_png-PROVENANCE.md)
 install(FILES ${gui_forms_stx_licenses}/stx_conv/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-LICENSE.txt)
 install(FILES ${gui_forms_stx_licenses}/stx_conv/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-PROVENANCE.md)
+install(FILES ${gui_forms_stx_licenses}/stx_raster3d/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_raster3d-LICENSE.txt)
+install(FILES ${gui_forms_stx_licenses}/stx_raster3d/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_raster3d-PROVENANCE.md)
 # STXlib's licences, as stx installs them beside its packages (cmake/Stxlib.cmake
 # there): STXlib, stx_btree (the row height index's sequence tree), mimalloc
 # (STXlib's allocator) and tzdata (its zone data).

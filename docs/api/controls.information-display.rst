@@ -39,6 +39,8 @@ Labels, images, progress and review cards.
      - Read-only word-sized trend line from the instruments package: the newest values of a ring drawn through the plot primitives, with an optional shaded band and a dot on the newest value.
    * - :cpp:class:`PlotView <gui_forms::PlotView>`
      - Retained declarative plot from the plots package: axes, series and annotations declared as item children, with pan, zoom, box zoom, query and point picking, a keyboard point cursor, a figure node with a summary and a table view, and an optional live sub-surface.
+   * - :cpp:class:`Plot3DView <gui_forms::Plot3DView>`
+     - Retained 3D plot from the plots package: surfaces (CONV-interpolated or as gridded), lines and scatters in a box with back panes, grid, ticks and themed overlay labels, drawn on the CPU by stx_raster3d with a per-pixel depth; turntable rotation, zoom and pan by pointer, wheel and keyboard, and exact per-pixel picking with a coordinate readout.
    * - :cpp:class:`PlotAxisItem <gui_forms::PlotAxisItem>`
      - Item child of a PlotView declaring one axis: direction, scale, initial range, title, fitting and following.
    * - :cpp:class:`PlotSeriesItem <gui_forms::PlotSeriesItem>`
@@ -77,6 +79,7 @@ Labels, images, progress and review cards.
    generated/gui_forms.SweepScope
    generated/gui_forms.Sparkline
    generated/gui_forms.PlotView
+   generated/gui_forms.Plot3DView
    generated/gui_forms.PlotAxisItem
    generated/gui_forms.PlotSeriesItem
    generated/gui_forms.PlotAnnotationItem
@@ -287,6 +290,22 @@ Related types
      - The image's opacity from zero through one; anything else, or a value that is not finite, throws std::invalid_argument.
    * - :cpp:class:`PictureBoxSizeModePropertyCapability <gui_forms::PictureBoxSizeModePropertyCapability>`
      - How the image is placed and scaled (SizeMode): normal, stretch_image, auto_size, center_image or zoom.
+   * - :cpp:class:`Plot3DView::Parts <gui_forms::Plot3DView::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`Plot3DView::States <gui_forms::Plot3DView::States>`
+     -  
+   * - :cpp:class:`Plot3DViewCapabilities <gui_forms::Plot3DViewCapabilities>`
+     - Every Plot3DView capability, in the order the declaring class takes them.
+   * - :cpp:class:`Plot3DViewLabelsAlongAxisCapability <gui_forms::Plot3DViewLabelsAlongAxisCapability>`
+     - Whether a steep axis's title is turned along it (screen-facing otherwise; owner decision 2026-11-13).
+   * - :cpp:class:`Plot3DViewShowAxesCapability <gui_forms::Plot3DViewShowAxesCapability>`
+     - Whether the axis lines, ticks, tick labels and axis titles are drawn.
+   * - :cpp:class:`Plot3DViewShowGridCapability <gui_forms::Plot3DViewShowGridCapability>`
+     - Whether the grid is drawn on the back panes at the ticks.
+   * - :cpp:class:`Plot3DViewShowPanesCapability <gui_forms::Plot3DViewShowPanesCapability>`
+     - Whether the three back panes of the box are filled.
+   * - :cpp:class:`Plot3DViewWheelZoomCapability <gui_forms::Plot3DViewWheelZoomCapability>`
+     - Whether the wheel zooms about the pointer (owner decision 2026-11-13: on).
    * - :cpp:class:`PlotAnnotationItemCapabilities <gui_forms::PlotAnnotationItemCapabilities>`
      - Every PlotAnnotationItem capability, in the order the declaring class takes them.
    * - :cpp:class:`PlotAnnotationItemTextCapability <gui_forms::PlotAnnotationItemTextCapability>`
@@ -2430,6 +2449,158 @@ Related types
    .. cpp:member:: PropertyCell<PictureBoxSizeMode, PictureBoxSizeModePropertyCapability<Declaring>> size_mode
 
       Default: ``{PictureBoxSizeMode::normal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Plot3DView::Parts final
+
+   ``#include <gui_forms/controls/plot3d_view.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry plot
+
+   .. cpp:member:: PartGeometry x_axis
+
+   .. cpp:member:: PartGeometry y_axis
+
+   .. cpp:member:: PartGeometry z_axis
+
+   .. cpp:member:: PartGeometry readout
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: Plot3DView::States final
+
+   ``#include <gui_forms/controls/plot3d_view.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> Plot3DViewCapabilities : public Plot3DViewShowPanesCapability<Declaring>, public Plot3DViewShowGridCapability<Declaring>, public Plot3DViewShowAxesCapability<Declaring>, public Plot3DViewWheelZoomCapability<Declaring>, public Plot3DViewLabelsAlongAxisCapability<Declaring>
+
+   ``#include <gui_forms/controls/plot3d_view_capabilities.hpp>``
+
+   Every Plot3DView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool show_panes
+
+      Whether the three back panes of the box are filled.
+
+   .. cpp:member:: bool show_grid
+
+      Whether the grid is drawn on the back panes at the ticks.
+
+   .. cpp:member:: bool show_axes
+
+      Whether the axis lines, ticks, tick labels and axis titles are drawn.
+
+   .. cpp:member:: bool wheel_zoom
+
+      Whether the wheel zooms about the pointer (owner decision 2026-11-13: on).
+
+   .. cpp:member:: bool labels_along_axis
+
+      Whether a steep axis's title is turned along it (screen-facing otherwise; owner decision 2026-11-13).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> Plot3DViewLabelsAlongAxisCapability
+
+   ``#include <gui_forms/controls/plot3d_view_capabilities.hpp>``
+
+   Whether a steep axis's title is turned along it (screen-facing otherwise; owner decision 2026-11-13).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(Plot3DViewLabelsAlongAxisCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, Plot3DViewLabelsAlongAxisCapability<Declaring>> labels_along_axis
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> Plot3DViewShowAxesCapability
+
+   ``#include <gui_forms/controls/plot3d_view_capabilities.hpp>``
+
+   Whether the axis lines, ticks, tick labels and axis titles are drawn.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(Plot3DViewShowAxesCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, Plot3DViewShowAxesCapability<Declaring>> show_axes
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> Plot3DViewShowGridCapability
+
+   ``#include <gui_forms/controls/plot3d_view_capabilities.hpp>``
+
+   Whether the grid is drawn on the back panes at the ticks.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(Plot3DViewShowGridCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, Plot3DViewShowGridCapability<Declaring>> show_grid
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> Plot3DViewShowPanesCapability
+
+   ``#include <gui_forms/controls/plot3d_view_capabilities.hpp>``
+
+   Whether the three back panes of the box are filled.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(Plot3DViewShowPanesCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, Plot3DViewShowPanesCapability<Declaring>> show_panes
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> Plot3DViewWheelZoomCapability
+
+   ``#include <gui_forms/controls/plot3d_view_capabilities.hpp>``
+
+   Whether the wheel zooms about the pointer (owner decision 2026-11-13: on).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(Plot3DViewWheelZoomCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, Plot3DViewWheelZoomCapability<Declaring>> wheel_zoom
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 

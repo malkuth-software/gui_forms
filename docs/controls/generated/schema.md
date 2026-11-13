@@ -603,6 +603,28 @@ Properties beyond every control's: `crosshair` (boolean), `live` (boolean), `sho
 | `handle_moved` | `PlotHandleMove` |
 | `handle_committed` | `PlotHandleMove` |
 
+## `plot3_d_view` (Plot3DView, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `plot` | plot |  |  |
+| `x_axis` | axis |  |  |
+| `y_axis` | axis |  |  |
+| `z_axis` | axis |  |  |
+| `readout` | label |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `labels_along_axis` (boolean), `show_axes` (boolean), `show_grid` (boolean), `show_panes` (boolean), `wheel_zoom` (boolean).
+
+| Interaction | Payload |
+|---|---|
+| `hovered` | `plots::Plot3DHit` |
+| `picked` | `plots::Plot3DHit` |
+| `camera_changed` | `plots::Plot3DCamera` |
+
 ## `plot_axis_item` (PlotAxisItem, control)
 
 | Part | Role | Reuses | Own states |

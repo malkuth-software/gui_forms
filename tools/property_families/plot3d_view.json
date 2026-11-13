@@ -1,0 +1,183 @@
+{
+  "family": "Plot3DView",
+  "step": "D5",
+  "declaring": "Plot3DView",
+  "header": "include/gui_forms/controls/plot3d_view.hpp",
+  "source": "src/controls/plots/plot3d_view/plot3d_view.cpp",
+  "capabilities_header": "include/gui_forms/controls/plot3d_view_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [],
+  "properties": [
+    {
+      "name": "show_panes",
+      "capability": "Plot3DViewShowPanes",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the three back panes of the box are filled.",
+      "getter": "show_panes",
+      "setter": "set_show_panes",
+      "clear": null,
+      "field": "show_panes_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the back panes are drawn.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written repaints"
+      ],
+      "sample": "false"
+    },
+    {
+      "name": "show_grid",
+      "capability": "Plot3DViewShowGrid",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the grid is drawn on the back panes at the ticks.",
+      "getter": "show_grid",
+      "setter": "set_show_grid",
+      "clear": null,
+      "field": "show_grid_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the grid is drawn.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written repaints"
+      ],
+      "sample": "false"
+    },
+    {
+      "name": "show_axes",
+      "capability": "Plot3DViewShowAxes",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the axis lines, ticks, tick labels and axis titles are drawn.",
+      "getter": "show_axes",
+      "setter": "set_show_axes",
+      "clear": null,
+      "field": "show_axes_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the axes are drawn.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written repaints"
+      ],
+      "sample": "false"
+    },
+    {
+      "name": "wheel_zoom",
+      "capability": "Plot3DViewWheelZoom",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the wheel zooms about the pointer (owner decision 2026-11-13: on).",
+      "getter": "wheel_zoom",
+      "setter": "set_wheel_zoom",
+      "clear": null,
+      "field": "wheel_zoom_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the wheel zooms.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written changes nothing drawn"
+      ],
+      "sample": "false"
+    },
+    {
+      "name": "labels_along_axis",
+      "capability": "Plot3DViewLabelsAlongAxis",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether a steep axis's title is turned along it (screen-facing otherwise; owner decision 2026-11-13).",
+      "getter": "labels_along_axis",
+      "setter": "set_labels_along_axis",
+      "clear": null,
+      "field": "labels_along_axis_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether axis titles follow their axes.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written repaints"
+      ],
+      "sample": "true"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "Plot3DView",
+    "include": "gui_forms/controls/plot3d_view.hpp"
+  }
+}

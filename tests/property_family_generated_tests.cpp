@@ -57,6 +57,7 @@
 #include "gui_forms/controls/page_view.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_annotation_item.hpp"
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/controls/plot_series_item.hpp"
@@ -2002,6 +2003,50 @@ void test_picture_box_properties() {
     }
 }
 
+void test_plot3_d_view_properties() {
+    std::shared_ptr<Plot3DView> control = make_control<Plot3DView>(StableId("generated.plot3dview"));
+    {
+        const bool sample = false;
+        (*control).show_panes = sample;
+        expect((*control).show_panes.read() == sample, "Plot3DView.show_panes: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_panes");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Plot3DView.show_panes: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).show_grid = sample;
+        expect((*control).show_grid.read() == sample, "Plot3DView.show_grid: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_grid");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Plot3DView.show_grid: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).show_axes = sample;
+        expect((*control).show_axes.read() == sample, "Plot3DView.show_axes: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("show_axes");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Plot3DView.show_axes: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).wheel_zoom = sample;
+        expect((*control).wheel_zoom.read() == sample, "Plot3DView.wheel_zoom: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("wheel_zoom");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Plot3DView.wheel_zoom: the table reads the cell");
+    }
+    {
+        const bool sample = true;
+        (*control).labels_along_axis = sample;
+        expect((*control).labels_along_axis.read() == sample, "Plot3DView.labels_along_axis: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("labels_along_axis");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "Plot3DView.labels_along_axis: the table reads the cell");
+    }
+}
+
 void test_plot_annotation_item_properties() {
     std::shared_ptr<PlotAnnotationItem> control = make_control<PlotAnnotationItem>(StableId("generated.plotannotationitem"));
     {
@@ -3453,6 +3498,7 @@ int main() {
     test_page_view_properties();
     test_panel_properties();
     test_picture_box_properties();
+    test_plot3_d_view_properties();
     test_plot_annotation_item_properties();
     test_plot_axis_item_properties();
     test_plot_series_item_properties();

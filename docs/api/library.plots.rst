@@ -74,6 +74,28 @@ Types
      - A sum of up to maximum_oscillators sines.
    * - :cpp:class:`PickResult <gui_forms::plots::PickResult>`
      -  
+   * - :cpp:class:`Plot3DCamera <gui_forms::plots::Plot3DCamera>`
+     -  
+   * - :cpp:class:`Plot3DColors <gui_forms::plots::Plot3DColors>`
+     - The colours the caller resolves from its theme: the panes (translucent, drawn over the caller's own background), the grid, the axis lines and ticks, and the series colours an item without its own colour takes in turn.
+   * - :cpp:class:`Plot3DFrame <gui_forms::plots::Plot3DFrame>`
+     - One render's request: the picture's logical size, its device scale (0.5 to 8), the supersampling per side (1 to 4) and how wide the caller's tick labels are (logical units; null estimates them).
+   * - :cpp:class:`Plot3DHit <gui_forms::plots::Plot3DHit>`
+     - What lies under a point of the last picture, exact per pixel.
+   * - :cpp:class:`Plot3DItemId <gui_forms::plots::Plot3DItemId>`
+     - An item's identity, stable for the scene's lifetime (never reused).
+   * - :cpp:class:`Plot3DLabel <gui_forms::plots::Plot3DLabel>`
+     - A label to draw over the picture, centred on ``anchor`` (logical units from the picture's top left).
+   * - :cpp:class:`Plot3DLineSpec <gui_forms::plots::Plot3DLineSpec>`
+     - A polyline through points (matplotlib's plot).
+   * - :cpp:class:`Plot3DOptions <gui_forms::plots::Plot3DOptions>`
+     -  
+   * - :cpp:class:`Plot3DScatterSpec <gui_forms::plots::Plot3DScatterSpec>`
+     - Markers at points (matplotlib's scatter).
+   * - :cpp:class:`Plot3DScene <gui_forms::plots::Plot3DScene>`
+     -  
+   * - :cpp:class:`Plot3DSurfaceSpec <gui_forms::plots::Plot3DSurfaceSpec>`
+     - A surface over a grid (matplotlib's plot_surface).
    * - :cpp:class:`PlotDataBounds <gui_forms::plots::PlotDataBounds>`
      - The data extents fit() fits to: one range per axis, in model order; an invalid range leaves its axis as it is.
    * - :cpp:class:`PlotModifiers <gui_forms::plots::PlotModifiers>`
@@ -784,6 +806,375 @@ Types
    .. cpp:member:: double distance
 
       Default: ``{std::numeric_limits<double>::infinity()}``.
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:struct:: Plot3DCamera final
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   .. cpp:member:: double elevation
+
+      Default: ``{30.0}``.
+
+   .. cpp:member:: double azimuth
+
+      Default: ``{-60.0}``.
+
+   .. cpp:member:: double roll
+
+      Default: ``{0.0}``.
+
+   .. cpp:member:: double zoom
+
+      The picture's magnification, 0.1 to 20. Default: ``{1.0}``.
+
+   .. cpp:member:: std::array<double, 3> target
+
+      The point the camera turns about, in box units.
+
+   .. cpp:member:: Plot3DProjection projection
+
+      Default: ``{Plot3DProjection::perspective}``.
+
+   .. cpp:member:: double focal_length
+
+      Perspective's focal length (1: a 90 degree field of view), 0.2 to 20. Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:struct:: Plot3DColors final
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   The colours the caller resolves from its theme: the panes (translucent, drawn over the caller's own background), the grid, the axis lines and ticks, and the series colours an item without its own colour takes in turn.
+
+   .. cpp:member:: constexpr std::size_t series_count
+
+      Default: ``8U``.
+
+   .. cpp:member:: std::array<Color, 3> panes
+
+      Default: ``{Color{128, 128, 128, 20}, Color{128, 128, 128, 28}, Color{128, 128, 128, 36}}``.
+
+   .. cpp:member:: Color grid
+
+      Default: ``{128, 128, 128, 110}``.
+
+   .. cpp:member:: Color axis
+
+      Default: ``{64, 64, 64, 255}``.
+
+   .. cpp:member:: std::array<Color, series_count> series{Color{31, 119, 180, 255}, Color{255, 127, 14, 255},
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:struct:: Plot3DFrame final
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   One render's request: the picture's logical size, its device scale (0.5 to 8), the supersampling per side (1 to 4) and how wide the caller's tick labels are (logical units; null estimates them).
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double height
+
+   .. cpp:member:: DeviceScale scale
+
+   .. cpp:member:: std::size_t supersample
+
+      Default: ``{1U}``.
+
+   .. cpp:member:: const TickLabelMetrics* metrics
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:struct:: Plot3DHit final
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   What lies under a point of the last picture, exact per pixel. - index: a line's or scatter's point (the nearer end of the hit segment), a surface's nearest grid node (row * columns + column); - data_point: the point in data coordinates (on a surface, the interpolant's point; on a pane, the point on the pane); - surface_parameter: a surface's fractional row and column; - depth: the distance in front of the eye along the view, in box units.
+
+   .. cpp:member:: Plot3DHitKind kind
+
+      Default: ``{Plot3DHitKind::none}``.
+
+   .. cpp:member:: Plot3DItemId item
+
+   .. cpp:member:: std::size_t index
+
+   .. cpp:member:: std::array<double, 3> data_point
+
+   .. cpp:member:: std::array<double, 2> surface_parameter
+
+   .. cpp:member:: double depth
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:struct:: Plot3DItemId final
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   An item's identity, stable for the scene's lifetime (never reused).
+
+   .. cpp:member:: std::uint32_t value
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:struct:: Plot3DLabel final
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   A label to draw over the picture, centred on ``anchor`` (logical units from the picture's top left). A tick label carries its text; a title's text is options().axis_titles[axis]. ``occluded`` marks a label whose place on the box is hidden behind data: the caller dims it rather than removing it. ``turned``: an along-axis title lies bottom to top.
+
+   .. cpp:member:: Plot3DLabelRole role
+
+      Default: ``{Plot3DLabelRole::tick}``.
+
+   .. cpp:member:: Plot3DAxis axis
+
+      Default: ``{Plot3DAxis::x}``.
+
+   .. cpp:member:: TickLabel text
+
+   .. cpp:member:: Point anchor
+
+   .. cpp:member:: bool occluded
+
+   .. cpp:member:: bool turned
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:struct:: Plot3DLineSpec final
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   A polyline through points (matplotlib's plot). NaN in any coordinate breaks the line. Equal lengths, at least one point.
+
+   .. cpp:member:: std::span<const double> x
+
+   .. cpp:member:: std::span<const double> y
+
+   .. cpp:member:: std::span<const double> z
+
+   .. cpp:member:: std::optional<Color> color
+
+   .. cpp:member:: double width
+
+      In logical units, above 0 and at most 32. Default: ``{1.5}``.
+
+   .. cpp:member:: std::string_view label
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:struct:: Plot3DOptions final
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   .. cpp:member:: std::array<double, 3> box_aspect
+
+      The box's side ratios (positive); matplotlib's default 4:4:3. Default: ``{4.0, 4.0, 3.0}``.
+
+   .. cpp:member:: bool show_panes
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool show_grid
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool show_axes
+
+      Default: ``{true}``.
+
+   .. cpp:member:: Plot3DLabelAlignment label_alignment
+
+      Default: ``{Plot3DLabelAlignment::screen}``.
+
+   .. cpp:member:: std::array<std::string, 3> axis_titles
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:struct:: Plot3DScatterSpec final
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   Markers at points (matplotlib's scatter). A point with NaN is left out.
+
+   .. cpp:member:: std::span<const double> x
+
+   .. cpp:member:: std::span<const double> y
+
+   .. cpp:member:: std::span<const double> z
+
+   .. cpp:member:: std::optional<Color> color
+
+   .. cpp:member:: double size
+
+      The marker's size in logical units, above 0 and at most 64. Default: ``{6.0}``.
+
+   .. cpp:member:: Plot3DMarker marker
+
+      Default: ``{Plot3DMarker::circle}``.
+
+   .. cpp:member:: std::string_view label
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:class:: Plot3DScene final
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: Plot3DScene()
+
+   .. cpp:function:: Plot3DScene(Plot3DScene&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t item_count() const noexcept
+
+   .. cpp:function:: const Plot3DCamera& camera() const noexcept
+
+      -- view ------------------------------------------------------------------
+
+   .. cpp:function:: bool set_camera(const Plot3DCamera& camera)
+
+      Takes the camera with its zoom, focal length and target clamped; false (unchanged) for a non-finite field. True when it changed.
+
+   .. cpp:function:: const Plot3DOptions& options() const noexcept
+
+   .. cpp:function:: void set_options(const Plot3DOptions& options)
+
+      std::invalid_argument for a box aspect that is not positive and finite.
+
+   .. cpp:function:: const Plot3DColors& colors() const noexcept
+
+   .. cpp:function:: void set_colors(const Plot3DColors& colors)
+
+   .. cpp:function:: std::span<const Plot3DLabel> labels() const& noexcept
+
+      The labels of the last render, valid until the next render.
+
+   .. cpp:function:: std::uint64_t render_count() const noexcept
+
+      -- diagnostics ------------------------------------------------------------ Renders done and data meshes built since the scene was made.
+
+   .. cpp:function:: std::uint64_t mesh_build_count() const noexcept
+
+   .. cpp:function:: std::size_t triangles_drawn() const noexcept
+
+      The last render's triangles drawn (data and panes).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: Plot3DItemId add_surface(const Plot3DSurfaceSpec& spec)
+
+      -- items ----------------------------------------------------------------- Each copies its spec; std::invalid_argument for a shape that cannot be drawn (the scene unchanged).
+
+   .. cpp:function:: Plot3DItemId add_line(const Plot3DLineSpec& spec)
+
+   .. cpp:function:: Plot3DItemId add_scatter(const Plot3DScatterSpec& spec)
+
+   .. cpp:function:: bool remove(Plot3DItemId item)
+
+      False when no item has the identity.
+
+   .. cpp:function:: void clear()
+
+   .. cpp:function:: std::string_view item_label(Plot3DItemId item) const& noexcept
+
+      An item's label; empty for an unknown identity.
+
+   .. cpp:function:: PlotRange limits(Plot3DAxis axis) const
+
+      The data limits along an axis (all items' finite values, widened when they are one value).
+
+   .. cpp:function:: bool reset_camera()
+
+      Back to the default angles, zoom and target; the projection stays.
+
+   .. cpp:function:: bool rotate_by(double dx, double dy)
+
+      -- gestures (logical units of the last render's picture) ----------------- Turntable rotation by a pointer movement (matplotlib's azel style): across turns the azimuth, down and up the elevation, half a turn per picture width or height.
+
+   .. cpp:function:: bool pan_by(double dx, double dy)
+
+      Moves the target so the picture follows the pointer.
+
+   .. cpp:function:: bool zoom_by(double factor, std::optional<Point> about)
+
+      Multiplies the zoom by ``factor``, keeping the point under ``about`` (logical, from the picture's top left) in place when given.
+
+   .. cpp:function:: static DeviceExtent device_extent(const Plot3DFrame& frame) noexcept
+
+      -- picture --------------------------------------------------------------- The device size of a frame's picture (its logical size times its scale, rounded); zero for an unusable frame.
+
+   .. cpp:function:: Plot3DCheck render(const Plot3DFrame& frame, const PartRasterView& destination)
+
+      Draws the view into ``destination`` (premultiplied BGRA8, transparent where nothing is drawn, of device_extent(frame)) and lays out the labels. Builds the data mesh first when it is stale.
+
+   .. cpp:function:: Plot3DHit hit(Point point) const
+
+      What lies under ``point`` (logical, from the picture's top left) in the last picture; none before the first render.
+
+   .. cpp:function:: std::string readout(const Plot3DHit& hit) const
+
+      The status-line readout of a hit (matplotlib's coordinate readout): "x=…, y=…, z=…", after the item's label when it has one; empty for none.
+
+   .. cpp:member:: constexpr std::uint32_t maximum_side
+
+      The most device pixels per side a render draws. Default: ``8192U``.
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:struct:: Plot3DSurfaceSpec final
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   A surface over a grid (matplotlib's plot_surface). Borrowed for the call: the scene copies what it keeps.
+
+   .. cpp:member:: std::span<const double> x
+
+      z: rows * columns heights, row-major ([row][column]); NaN leaves a hole. x: ``columns`` values (one per column) or rows * columns; y: ``rows`` values (one per row) or rows * columns. x and y are finite.
+
+   .. cpp:member:: std::span<const double> y
+
+   .. cpp:member:: std::span<const double> z
+
+   .. cpp:member:: std::size_t rows
+
+   .. cpp:member:: std::size_t columns
+
+   .. cpp:member:: std::size_t row_stride
+
+      Downsampling (matplotlib's rstride and cstride): every row_stride-th row and column_stride-th column, the last always kept; at least 1. Default: ``{1U}``.
+
+   .. cpp:member:: std::size_t column_stride
+
+      Default: ``{1U}``.
+
+   .. cpp:member:: Plot3DInterpolation interpolation
+
+      Default: ``{Plot3DInterpolation::conv}``.
+
+   .. cpp:member:: BuiltInColormap colormap
+
+      Default: ``{BuiltInColormap::viridis}``.
+
+   .. cpp:member:: std::optional<Color> color
+
+      One colour instead of the colour map over z, when set.
+
+   .. cpp:member:: Plot3DLighting lighting
+
+      Default: ``{Plot3DLighting::fixed}``.
+
+   .. cpp:member:: std::string_view label
 
 .. cpp:namespace:: gui_forms::plots
 
@@ -1985,6 +2376,120 @@ Enumerations
    .. cpp:enumerator:: pyramid
 
    .. cpp:enumerator:: none
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:enum-class:: Plot3DAxis
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   .. cpp:enumerator:: x
+
+   .. cpp:enumerator:: y
+
+   .. cpp:enumerator:: z
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:enum-class:: Plot3DCheck
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   .. cpp:enumerator:: ok
+
+   .. cpp:enumerator:: invalid_frame
+
+   .. cpp:enumerator:: out_of_memory
+
+   .. cpp:enumerator:: build_failed
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:enum-class:: Plot3DHitKind
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: surface
+
+   .. cpp:enumerator:: line
+
+   .. cpp:enumerator:: scatter
+
+   .. cpp:enumerator:: pane
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:enum-class:: Plot3DInterpolation
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   .. cpp:enumerator:: conv
+
+   .. cpp:enumerator:: linear
+
+   .. cpp:enumerator:: flat
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:enum-class:: Plot3DLabelAlignment
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   .. cpp:enumerator:: screen
+
+   .. cpp:enumerator:: along_axis
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:enum-class:: Plot3DLabelRole
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   .. cpp:enumerator:: tick
+
+   .. cpp:enumerator:: title
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:enum-class:: Plot3DLighting
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: fixed
+
+   .. cpp:enumerator:: headlight
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:enum-class:: Plot3DMarker
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   .. cpp:enumerator:: circle
+
+   .. cpp:enumerator:: square
+
+   .. cpp:enumerator:: diamond
+
+   .. cpp:enumerator:: triangle_up
+
+   .. cpp:enumerator:: plus
+
+   .. cpp:enumerator:: cross
+
+.. cpp:namespace:: gui_forms::plots
+
+.. cpp:enum-class:: Plot3DProjection
+
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+
+   .. cpp:enumerator:: perspective
+
+   .. cpp:enumerator:: orthographic
 
 .. cpp:namespace:: gui_forms::plots
 

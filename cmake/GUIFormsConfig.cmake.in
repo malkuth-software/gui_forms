@@ -7,6 +7,7 @@ find_dependency(stxlib CONFIG)
 find_dependency(stx_zlib CONFIG)
 find_dependency(stx_png CONFIG)
 find_dependency(stx_conv CONFIG)
+find_dependency(stx_raster3d CONFIG)
 find_dependency(stx_rtf2md CONFIG)
 # The stx package's red/blue swap kernel, installed beside the static Core and
 # Controls that link it (CMakeLists.txt), under the name GUIFormsTargets uses.
