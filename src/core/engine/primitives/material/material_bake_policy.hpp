@@ -128,9 +128,11 @@ struct MaterialEffortWeights final {
 // which was busy, so by the median of 101 interleaved pairs of bakes
 // against the base material (and the solid layer measured the same way):
 // nine runs suggested 56 to 98, median 68, at its dearest (reach 8, every
-// line drawn, opacity 1). dither is provisional (2026-11-12, set before a
-// measurement: a table read and an addition per pixel beside the base's
-// loop and store), to be replaced by the --measure figure on the M4.
+// line drawn, opacity 1). dither is a floor, not a measurement: on the M4
+// (2026-11-12, gui_forms_engine_dither_tests --measure) the ordered table
+// cost -0.001 and the blue-noise table 0.018 ns per pixel past the
+// undithered bake, below the timing's noise, so it is the least weight, 1
+// (coordinator ruling, cp31 fold E).
 inline constexpr MaterialEffortWeights material_effort_weights{
     .base = 90U,
     .solid = 25U,
@@ -152,7 +154,7 @@ inline constexpr MaterialEffortWeights material_effort_weights{
     .fill_blend = 140U,
     .mask = 55U,
     .reflection = 70U,
-    .dither = 5U,
+    .dither = 1U,
 };
 
 } // namespace gui_forms::engine_primitives
