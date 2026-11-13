@@ -816,7 +816,11 @@ public:
     // the row. Rows are found by offset through an index (see
     // DataGridViewRowHeights), so scrolling, hit testing and painting stay
     // logarithmic in the row count; a change to the rows rebuilds the index
-    // in one pass over them while any row has its own height. Both throw
+    // in one pass over them while any row has its own height. The index
+    // keeps heights in 1/64 logical unit (owner, 2026-11-12, as
+    // VirtualRowsView does), so the getter returns the height set rounded
+    // to the nearest 1/64 (DataGridViewRowHeights::stored_height): whole,
+    // half and quarter units come back exactly. Both throw
     // std::out_of_range for a row past the end; the setter throws
     // std::out_of_range for a height outside [4, 4096] and raises
     // row_height_changed when the height changes.
@@ -1009,6 +1013,16 @@ public:
     // See DataGridViewRowPrePaintEvent and DataGridViewRowPostPaintEvent.
     [[nodiscard]] Event<DataGridViewRowPrePaintEvent&>& row_pre_paint() noexcept { return row_pre_paint_; }
     [[nodiscard]] Event<DataGridViewRowPostPaintEvent&>& row_post_paint() noexcept { return row_post_paint_; }
+    // Repaint one row (its header and cells), one cell, or one column (its
+    // header and cells) at the next paint (Windows Forms' InvalidateRow,
+    // InvalidateCell, InvalidateColumn): for a program whose row paint
+    // hooks or owner drawing change what they draw between frames. Only
+    // the shown part is damaged, cut to its frozen or scrolling pane;
+    // with the cell region the whole grid is redrawn. Each throws
+    // std::out_of_range past the rows or columns.
+    void invalidate_row(DataGridViewRowPosition row);
+    void invalidate_cell(DataGridViewRowPosition row, std::size_t column);
+    void invalidate_column(std::size_t column);
     // See DataGridViewScrollStatistics.
     [[nodiscard]] DataGridViewScrollStatistics scroll_statistics() const noexcept { return scroll_statistics_; }
     // See DataGridViewRowsChangedEvent and DataGridViewColumnChangedEvent.
@@ -1744,6 +1758,11 @@ private:
     // column auto sizing (both re-measure what a scroll shows), and the row
     // heights current.
     [[nodiscard]] bool scroll_copy_allowed() const;
+    // Whether program code draws part of the rows: a row_pre_paint or
+    // row_post_paint subscriber, owner_draw, or an owner-drawn column. Such
+    // a grid's scroll repaints the scrolling pane instead of copying it,
+    // since the program may draw a row differently after the scroll.
+    [[nodiscard]] bool rows_drawn_by_program() const;
     void scroll_into_view(DataGridViewCellAddress cell);
 
     // Selection, kept by row ID.

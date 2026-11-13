@@ -1904,11 +1904,11 @@
       {"kind": "method", "winforms": null, "gui_forms": "set_sort", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "splice_rows", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"}
     ]},
-    {"type": "VirtualRowsView", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/display_trace_tests.cpp", "members": [
+    {"type": "VirtualRowsView", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_workload_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "announcement", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "announces_appends", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "column_header_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "columns", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/tree-and-object-views_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "columns", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_workload_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "content_height", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "estimated_row_height", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "first_visible_row", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
@@ -1916,7 +1916,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "following_tail", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "measured_row_budget", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "row_callbacks", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "row_count", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/tree-and-object-views_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "row_count", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_workload_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "scroll_offset", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "selected_ranges", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "selected_row", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},
@@ -2139,8 +2139,13 @@
       {"kind": "event", "winforms": "RowHeightInfoPushed", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "event", "winforms": "RowLeave", "scope": "admitted", "gui_forms": "row_leave", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "event", "winforms": "RowMinimumHeightChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
+<<<<<<< HEAD
       {"kind": "event", "winforms": "RowPostPaint", "scope": "admitted", "gui_forms": "row_post_paint", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_row_paint_raster_tests.cpp"},
       {"kind": "event", "winforms": "RowPrePaint", "scope": "admitted", "gui_forms": "row_pre_paint", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_row_paint_raster_tests.cpp"},
+=======
+      {"kind": "event", "winforms": "RowPostPaint", "scope": "admitted", "gui_forms": "row_post_paint", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
+      {"kind": "event", "winforms": "RowPrePaint", "scope": "admitted", "gui_forms": "row_pre_paint", "status": "supported", "basis": "test", "evidence": "tests/collection_cell_tests.cpp"},
+>>>>>>> 5a61a5887 (DataGridView: program-drawn rows are repainted on scroll; invalidate_row/cell/column)
       {"kind": "event", "winforms": "RowsAdded", "scope": "admitted", "gui_forms": "rows_added", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "event", "winforms": "RowsDefaultCellStyleChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "event", "winforms": "RowsRemoved", "scope": "admitted", "gui_forms": "rows_removed", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
@@ -2181,9 +2186,9 @@
       {"kind": "method", "winforms": "GetColumnDisplayRectangle", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "method", "winforms": "GetRowDisplayRectangle", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "method", "winforms": "HitTest", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
-      {"kind": "method", "winforms": "InvalidateCell", "scope": "admitted", "overloads": 2, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
-      {"kind": "method", "winforms": "InvalidateColumn", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
-      {"kind": "method", "winforms": "InvalidateRow", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
+      {"kind": "method", "winforms": "InvalidateCell", "scope": "admitted", "overloads": 2, "gui_forms": "invalidate_cell", "status": "supported", "basis": "test", "evidence": "tests/collection_cell_tests.cpp"},
+      {"kind": "method", "winforms": "InvalidateColumn", "scope": "admitted", "gui_forms": "invalidate_column", "status": "supported", "basis": "test", "evidence": "tests/collection_cell_tests.cpp"},
+      {"kind": "method", "winforms": "InvalidateRow", "scope": "admitted", "gui_forms": "invalidate_row", "status": "supported", "basis": "test", "evidence": "tests/collection_cell_tests.cpp"},
       {"kind": "method", "winforms": "NotifyCurrentCellDirty", "scope": "admitted", "gui_forms": "notify_current_cell_dirty", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": "OnAllowUserToAddRowsChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "hook: a protected On* raiser; GUI.Forms raises events without an overridable raiser"},
       {"kind": "method", "winforms": "OnAllowUserToDeleteRowsChanged", "scope": "admitted", "gui_forms": "on_allow_user_to_delete_rows_changed", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it", "raiser": {"cpp": "DataGridView::on_allow_user_to_delete_rows_changed", "interaction": null}},
@@ -2347,11 +2352,11 @@
       {"kind": "property", "winforms": null, "gui_forms": "preferred_column_headers_height", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "realized_cells", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_row_paint_raster_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "realized_columns", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "realized_rows", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "realized_rows", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/collection_cell_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "row_order_mode", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "row_order_statistics", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "row_source", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "scroll_statistics", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "scroll_statistics", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/collection_cell_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "virtual_row_window_source", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "column_header_click", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "draw_item_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_cells_tests.cpp"},
@@ -2422,7 +2427,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "set_row_selected", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_virtual_row_order", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_virtual_rows", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_cells_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "shared_row", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "shared_row", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_workload_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "written", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "ChoiceGroup", "winforms": null, "gui_forms_base": "Panel", "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp", "members": [

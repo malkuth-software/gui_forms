@@ -598,6 +598,12 @@ gui_forms::DataGridView
         - Marks the edit in progress dirty or clean, raising current_cell_dirty_state_changed when that changes; ignored when no edit is in progress.
       * - :cpp:func:`close_drop_down <gui_forms::DataGridView::close_drop_down>`
         - Closes a combo box cell's choices, ending its edit.
+      * - :cpp:func:`invalidate_row <gui_forms::DataGridView::invalidate_row>`
+        - Repaint one row (its header and cells), one cell, or one column (its header and cells) at the next paint (Windows Forms' InvalidateRow, InvalidateCell, InvalidateColumn): for a program whose row paint hooks or owner drawing change what they draw between frames.
+      * - :cpp:func:`invalidate_cell <gui_forms::DataGridView::invalidate_cell>`
+        -  
+      * - :cpp:func:`invalidate_column <gui_forms::DataGridView::invalidate_column>`
+        -  
       * - :cpp:func:`hit_test_at <gui_forms::DataGridView::hit_test_at>`
         - Where a point in the grid's own coordinates falls (Windows Forms' HitTest), against the layout the grid last arranged.
       * - :cpp:func:`data_grid_view_property_entries <gui_forms::DataGridView::data_grid_view_property_entries>`
@@ -1785,6 +1791,14 @@ gui_forms::DataGridView
 
       Closes a combo box cell's choices, ending its edit.
 
+   .. cpp:function:: void invalidate_row(DataGridViewRowPosition row)
+
+      Repaint one row (its header and cells), one cell, or one column (its header and cells) at the next paint (Windows Forms' InvalidateRow, InvalidateCell, InvalidateColumn): for a program whose row paint hooks or owner drawing change what they draw between frames. Only the shown part is damaged, cut to its frozen or scrolling pane; with the cell region the whole grid is redrawn. Each throws std::out_of_range past the rows or columns.
+
+   .. cpp:function:: void invalidate_cell(DataGridViewRowPosition row, std::size_t column)
+
+   .. cpp:function:: void invalidate_column(std::size_t column)
+
    .. cpp:function:: DataGridViewHitTestInfo hit_test_at(Point local) const
 
       Where a point in the grid's own coordinates falls (Windows Forms' HitTest), against the layout the grid last arranged.
@@ -2097,7 +2111,11 @@ gui_forms::DataGridView
 
 .. rubric:: Windows Forms correspondence
 
+<<<<<<< HEAD
 Counterpart: ``DataGridView``. Members declared here and by the counterpart: 157 supported, 0 deferred, 0 excluded, 310 unclassified; 86 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+=======
+Counterpart: ``DataGridView``. Members declared here and by the counterpart: 162 supported, 0 deferred, 0 excluded, 307 unclassified; 88 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+>>>>>>> 5a61a5887 (DataGridView: program-drawn rows are repainted on scroll; invalidate_row/cell/column)
 
 .. list-table::
    :class: longtable
@@ -3014,16 +3032,16 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 157
      - unclassified (unmatched)
    * - method
      - ``InvalidateCell``
-     - none
-     - unclassified (unmatched)
+     - ``invalidate_cell``
+     - supported
    * - method
      - ``InvalidateColumn``
-     - none
-     - unclassified (unmatched)
+     - ``invalidate_column``
+     - supported
    * - method
      - ``InvalidateRow``
-     - none
-     - unclassified (unmatched)
+     - ``invalidate_row``
+     - supported
    * - method
      - ``NotifyCurrentCellDirty``
      - ``notify_current_cell_dirty``
@@ -3694,6 +3712,13 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 157
      - supported
    * - property
      - GUI.Forms-only
+<<<<<<< HEAD
+=======
+     - ``scroll_statistics``
+     - supported
+   * - property
+     - GUI.Forms-only
+>>>>>>> 5a61a5887 (DataGridView: program-drawn rows are repainted on scroll; invalidate_row/cell/column)
      - ``virtual_row_window_source``
      - supported
    * - event
@@ -3974,5 +3999,12 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 157
      - supported
    * - method
      - GUI.Forms-only
+<<<<<<< HEAD
+=======
+     - ``shared_row``
+     - supported
+   * - method
+     - GUI.Forms-only
+>>>>>>> 5a61a5887 (DataGridView: program-drawn rows are repainted on scroll; invalidate_row/cell/column)
      - ``written``
      - unclassified (untested)

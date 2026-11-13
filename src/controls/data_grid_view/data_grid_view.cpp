@@ -2272,6 +2272,71 @@ bool DataGridView::scroll_copy_allowed() const {
     return true;
 }
 
+namespace {
+
+// Subscribers still connected to an event.
+template <typename... Arguments>
+bool has_subscribers(const Event<Arguments...>& event) noexcept {
+    const EventStatistics statistics = event.statistics();
+    const bool result = statistics.subscriptions_connected > statistics.subscriptions_disconnected;
+    return result;
+}
+
+} // namespace
+
+bool DataGridView::rows_drawn_by_program() const {
+    if (has_subscribers(row_pre_paint_) || has_subscribers(row_post_paint_)) return true;
+    if (draw_mode.read() == ItemDrawMode::owner_draw) return true;
+    for (const DataGridViewColumn& column : columns_) {
+        if (column.owner_draw) return true;
+    }
+    return false;
+}
+
+void DataGridView::invalidate_row(DataGridViewRowPosition row) {
+    require_mutable();
+    if (row.value >= row_count()) throw std::out_of_range("DataGridView row is past the end");
+    if (cells_host_) {
+        redraw_all(Dirty::paint);
+        return;
+    }
+    const GridLayout layout = grid_layout();
+    const Rect band = Rect::united(layout.data, layout.row_header_band.empty() ? layout.data : layout.row_header_band);
+    const Rect pane = row_pane(row.value < frozen_rows(), band, layout);
+    const Rect bounds = row_paint_bounds(row, layout);
+    const Rect damaged = Rect::intersection(bounds, pane);
+    if (!damaged.empty()) invalidate(damaged);
+}
+
+void DataGridView::invalidate_cell(DataGridViewRowPosition row, std::size_t column) {
+    require_mutable();
+    require_cell(row, column);
+    if (cells_host_) {
+        redraw_all(Dirty::paint);
+        return;
+    }
+    const GridLayout layout = grid_layout();
+    const Rect damaged = Rect::intersection(cell_bounds(row, column, layout), cell_pane(row, column, layout));
+    if (!damaged.empty()) invalidate(damaged);
+}
+
+void DataGridView::invalidate_column(std::size_t column) {
+    require_column(column);
+    require_mutable();
+    if (cells_host_) {
+        redraw_all(Dirty::paint);
+        return;
+    }
+    const GridLayout layout = grid_layout();
+    const std::size_t display = column < shown_indices_.size() ? shown_indices_[column] : shown_order_.size();
+    const Rect header = layout.column_header_band.empty() ? layout.data : layout.column_header_band;
+    const Rect band = Rect::united(layout.data, Rect{layout.data.x, header.y, layout.data.width, header.height});
+    const Rect pane = column_pane(display < frozen_display_count(), band, layout);
+    const Rect strip{column_left(column, layout), band.y, shown_width(column) * layout.scale, band.height};
+    const Rect damaged = Rect::intersection(strip, pane);
+    if (!damaged.empty()) invalidate(damaged);
+}
+
 void DataGridView::scroll_moved(const GridLayout& layout, std::size_t former_first, double former_offset) {
     if (!scroll_copy_allowed() || layout.data.empty()) {
         ++scroll_statistics_.scroll_repaints;
@@ -2288,13 +2353,20 @@ void DataGridView::scroll_moved(const GridLayout& layout, std::size_t former_fir
     const double moved_y = (heights.top(former_first) - heights.top(std::max(first, frozen_rows()))) * layout.scale;
     const double scrolled_x = (former_offset - offset) * layout.scale;
     const double moved_x = layout.mirrored ? -scrolled_x : scrolled_x;
+    // Rows the program draws are repainted where they now are, never
+    // copied: a hook may draw a row differently after the scroll.
+    const bool copy = !rows_drawn_by_program();
     bool repainted = false;
     if (moved_y != 0.0) {
         // The scrolling rows, with their row headers and the frozen
         // columns' cells, move up or down; the frozen rows stay.
         const Rect band = Rect::united(layout.data, layout.row_header_band.empty() ? layout.data : layout.row_header_band);
         const Rect pane = row_pane(false, band, layout);
-        if (!pane.empty() && !scroll_content(pane, Point{0.0, moved_y})) repainted = true;
+        if (!pane.empty() && !copy) {
+            invalidate(pane);
+            repainted = true;
+        }
+        if (!pane.empty() && copy && !scroll_content(pane, Point{0.0, moved_y})) repainted = true;
     }
     if (moved_x != 0.0) {
         // The scrolling columns, with their headers and the frozen rows'
@@ -2302,7 +2374,11 @@ void DataGridView::scroll_moved(const GridLayout& layout, std::size_t former_fir
         const Rect header = layout.column_header_band.empty() ? layout.data : layout.column_header_band;
         const Rect band = Rect::united(layout.data, Rect{layout.data.x, header.y, layout.data.width, header.height});
         const Rect pane = column_pane(false, band, layout);
-        if (!pane.empty() && !scroll_content(pane, Point{moved_x, 0.0})) repainted = true;
+        if (!pane.empty() && !copy) {
+            invalidate(pane);
+            repainted = true;
+        }
+        if (!pane.empty() && copy && !scroll_content(pane, Point{moved_x, 0.0})) repainted = true;
     }
     if (repainted) {
         ++scroll_statistics_.scroll_repaints;

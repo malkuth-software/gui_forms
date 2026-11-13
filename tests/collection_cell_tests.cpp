@@ -20,6 +20,7 @@
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/metrics/types/metrics_types.hpp"
 #include "gui_forms/types/damage_region/damage_region.hpp"
+#include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
 #include "support/clip_tracking_painter.hpp"
@@ -365,6 +366,72 @@ void test_grid_cell_region() {
     require(scrolled.bounds().height > 4.0 * row_height, "a scroll redraws the whole grid, the pending cell folded");
 }
 
+// A row paint hook that draws each frame differently: a colour from a frame
+// count the paint advances.
+struct ChangingRowPaint final {
+    int* frame{};
+    void operator()(DataGridViewRowPrePaintEvent& event) const {
+        ++*frame;
+        const std::uint8_t shade = static_cast<std::uint8_t>((*frame * 37) % 256);
+        event.background = Color{shade, 200, 120, 255};
+    }
+};
+
+// Scroll copies trust the next paint to draw the moved pixels again. A grid
+// whose rows the program draws (here a row_pre_paint hook that changes its
+// output between frames) is never copied: its scroll repaints the whole
+// scrolling pane, and invalidate_row, invalidate_cell and invalidate_column
+// damage exactly the row, cell and column a program redraws.
+void test_grid_program_drawn_rows_are_repainted() {
+    GridFixture fixture;
+    DataGridView& grid = *fixture.grid;
+    const double row_height = grid.row_height.read();
+
+    // Without a hook a one-row scroll is one copy or one pane repaint.
+    const DataGridViewScrollStatistics plain_before = grid.scroll_statistics();
+    grid.set_first_displayed_row(DataGridViewRowPosition{1U});
+    static_cast<void>(fixture.damage_after_layout());
+    const DataGridViewScrollStatistics plain_after = grid.scroll_statistics();
+    require((plain_after.scroll_copies - plain_before.scroll_copies) +
+                    (plain_after.scroll_repaints - plain_before.scroll_repaints) == 1U,
+            "a plain scroll is counted once");
+
+    int frame = 0;
+    SubscriptionToken token = grid.row_pre_paint().subscribe(ChangingRowPaint{&frame});
+    fixture.settle();
+    require(frame > 0, "the hook runs at each paint");
+    const DataGridViewScrollStatistics before = grid.scroll_statistics();
+    grid.set_first_displayed_row(DataGridViewRowPosition{2U});
+    const DamageRegion scrolled = fixture.damage_after_layout();
+    const DataGridViewScrollStatistics after = grid.scroll_statistics();
+    require(after.scroll_copies == before.scroll_copies && after.scroll_repaints == before.scroll_repaints + 1U,
+            "a hooked grid's scroll is a repaint, never a copy");
+    require(scrolled.bounds().height > 4.0 * row_height,
+            "the hooked scroll repaints every shown scrolling row, not only the exposed one");
+
+    // Between frames, without a scroll: the program names what it redraws.
+    const std::vector<DataGridView::Row> rows = grid.realized_rows();
+    require(rows.size() > 3U, "rows are shown");
+    const Rect third = rows[2].parts.row_header.bounds;
+    grid.invalidate_row(rows[2].position);
+    const DamageRegion row_damage = fixture.damage_after_layout();
+    require(!row_damage.empty() && row_damage.bounds().y >= third.y - 0.5 &&
+                row_damage.bounds().y <= third.y + 0.5 && row_damage.bounds().height <= row_height + 0.5 &&
+                row_damage.bounds().x <= third.x,
+            "invalidate_row damages that row, header and cells, alone");
+    grid.invalidate_cell(rows[1].position, 0U);
+    const DamageRegion cell_damage = fixture.damage_after_layout();
+    require(!cell_damage.empty() && cell_damage.bounds().height <= row_height + 0.5 &&
+                cell_damage.bounds().width <= 120.0 + 0.5 && cell_damage.bounds().x >= third.x + third.width - 0.5,
+            "invalidate_cell damages that cell alone");
+    grid.invalidate_column(0U);
+    const DamageRegion column_damage = fixture.damage_after_layout();
+    require(!column_damage.empty() && column_damage.bounds().width <= 120.0 + 0.5 &&
+                column_damage.bounds().height > 4.0 * row_height,
+            "invalidate_column damages that column's header and cells");
+    token.disconnect();
+}
+
 void test_grid_rows_refuse_and_keep_identity() {
     std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("collection.grid.ids"));
     (*grid).set_columns({{.name = "name", .header_text = "Name", .width = 120.0}});
@@ -473,6 +540,7 @@ int main() {
     test_grid_damage_is_limited_to_shown_rows();
     test_grid_rows_refuse_and_keep_identity();
     test_grid_cell_region();
+    test_grid_program_drawn_rows_are_repainted();
     test_choice_items_follow_edits();
     return EXIT_SUCCESS;
 }

@@ -8,7 +8,11 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
+<<<<<<< HEAD
 | 2240 | 13 | 367 | 4115 | 2344 |
+=======
+| 2187 | 13 | 367 | 4100 | 2276 |
+>>>>>>> 5a61a5887 (DataGridView: program-drawn rows are repainted on scroll; invalidate_row/cell/column)
 
 ## GUI.Forms types
 
@@ -51,7 +55,11 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ListView` | `ListView` | 49 | 0 | 2 | 98 | 38 |
 | `TreeListView` | GUI.Forms-only | 31 | 0 | 0 | 5 | 36 |
 | `VirtualRowsView` | GUI.Forms-only | 46 | 0 | 0 | 2 | 48 |
+<<<<<<< HEAD
 | `DataGridView` | `DataGridView` | 157 | 0 | 0 | 310 | 86 |
+=======
+| `DataGridView` | `DataGridView` | 162 | 0 | 0 | 307 | 88 |
+>>>>>>> 5a61a5887 (DataGridView: program-drawn rows are repainted on scroll; invalidate_row/cell/column)
 | `ChoiceGroup` | GUI.Forms-only | 6 | 0 | 0 | 3 | 9 |
 | `BreadcrumbTrail` | GUI.Forms-only | 12 | 0 | 0 | 3 | 15 |
 | `CheckBox` | `CheckBox` | 4 | 0 | 0 | 14 | 3 |
@@ -308,6 +316,11 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `nested` | 641 |
 | `no-entry` | 497 |
 | `review` | 13 |
+<<<<<<< HEAD
 | `unmatched` | 1611 |
 | `untested` | 928 |
+=======
+| `unmatched` | 1608 |
+| `untested` | 916 |
+>>>>>>> 5a61a5887 (DataGridView: program-drawn rows are repainted on scroll; invalidate_row/cell/column)
 | `w-open` | 5 |
