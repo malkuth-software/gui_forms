@@ -229,6 +229,12 @@ HostSession::HostSession(Window& window,
     // other windows, unless an earlier session seeded them. The
     // application's rebindings stay over them.
     window.install_host_key_map(snapshot_.capabilities.key_map);
+    // The host's locale (exhibit gap E11), where it read one: it seeds the
+    // application's locale unless the program set one or an earlier
+    // session seeded it.
+    if (snapshot_.capabilities.supports(HostCapability::locale)) {
+        window.install_host_locale(snapshot_.capabilities.locale);
+    }
 }
 
 HostSession::~HostSession() {

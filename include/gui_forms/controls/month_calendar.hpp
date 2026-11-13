@@ -95,6 +95,20 @@ public:
     // assistive technology, after date_changed.
     [[nodiscard]] Event<const CalendarDateRange&>& date_selected() noexcept { return date_selected_; }
 
+    // The provider and the first day of the week the calendar shows: its
+    // window's locale's (Control::effective_locale) while each follows the
+    // host locale, else the format_provider and first_day_of_week
+    // properties (exhibit gap E11). Each follows from construction until
+    // its property is written with a change; follow_host_locale() returns
+    // both to following. The provider reference stays valid until the next
+    // call on the calendar.
+    [[nodiscard]] const DateTimeFormatProvider& effective_format_provider() const;
+    [[nodiscard]] CalendarWeekday effective_first_day_of_week() const noexcept;
+    [[nodiscard]] bool follows_host_locale() const noexcept {
+        return provider_follows_locale_ && first_day_follows_locale_;
+    }
+    void follow_host_locale();
+
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     void on_focus_changed(bool focused) override;
@@ -235,6 +249,13 @@ private:
     Zone pressed_zone_{Zone::none};
     bool dragging_{};
     bool focused_{};
+    // Whether the provider and the first day follow the locale
+    // (follows_host_locale), and the locale's provider with the locale
+    // generation it was made for.
+    bool provider_follows_locale_{true};
+    bool first_day_follows_locale_{true};
+    mutable std::optional<std::uint64_t> locale_provider_generation_{};
+    mutable DateTimeFormatProvider locale_provider_{};
     Event<const CalendarDateRange&> date_changed_{};
     Event<const CalendarDateRange&> date_selected_{};
     // property_codemod begin MonthCalendar (tools/property_families/month_calendar.json; generated, do not edit)

@@ -104,6 +104,13 @@ gui_forms::MonthCalendar
       **monthly_bolded_dates** : ``std::span<const DateTimeValue>``
          Days shown in bold every month: only their day counts.
 
+      **effective_format_provider** : ``DateTimeFormatProvider``, read-only
+         The provider and the first day of the week the calendar shows: its window's locale's (Control::effective_locale) while each follows the host locale, else the format_provider and first_day_of_week properties (exhibit gap E11). Each follows from construction until its property is written with a change; follow_host_locale() returns both to following. The provider reference stays valid until the next call on the calendar.
+
+      **effective_first_day_of_week** : ``CalendarWeekday``, read-only
+
+      **follows_host_locale** : ``bool``, read-only
+
       **parts** : ``Parts``, read-only
 
       **realized_days** : ``std::vector<Day>``, read-only
@@ -151,6 +158,8 @@ gui_forms::MonthCalendar
         -  
       * - :cpp:func:`bolded <gui_forms::MonthCalendar::bolded>`
         - Whether a day is shown in bold.
+      * - :cpp:func:`follow_host_locale <gui_forms::MonthCalendar::follow_host_locale>`
+        -  
       * - :cpp:func:`set_date <gui_forms::MonthCalendar::set_date>`
         - Selects one day.
       * - :cpp:func:`set_range <gui_forms::MonthCalendar::set_range>`
@@ -320,6 +329,14 @@ gui_forms::MonthCalendar
 
       Sets :cpp:func:`monthly_bolded_dates <gui_forms::MonthCalendar::monthly_bolded_dates>`; see the property's description above.
 
+   .. cpp:function:: const DateTimeFormatProvider& effective_format_provider() const
+
+      The provider and the first day of the week the calendar shows: its window's locale's (Control::effective_locale) while each follows the host locale, else the format_provider and first_day_of_week properties (exhibit gap E11). Each follows from construction until its property is written with a change; follow_host_locale() returns both to following. The provider reference stays valid until the next call on the calendar.
+
+   .. cpp:function:: CalendarWeekday effective_first_day_of_week() const noexcept
+
+   .. cpp:function:: bool follows_host_locale() const noexcept
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: std::vector<Day> realized_days() const
@@ -368,6 +385,8 @@ gui_forms::MonthCalendar
    .. cpp:function:: bool bolded(DateTimeValue date) const noexcept
 
       Whether a day is shown in bold.
+
+   .. cpp:function:: void follow_host_locale()
 
    .. cpp:function:: void set_date(DateTimeValue date)
 

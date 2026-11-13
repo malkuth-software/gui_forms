@@ -28,30 +28,49 @@ std::shared_ptr<const PropertyEnumDescriptor> numeric_text_alignment_enum() {
     return value;
 }
 
-// Groups the integer digits of a fixed-point decimal in threes with commas:
-// "-1234567.50" becomes "-1,234,567.50". digits is the formatted number.
-std::string group_thousands(const std::string& digits) {
+// A fixed-point decimal written with `locale`'s separators: "-1234567.50"
+// (digits, as the C locale formats it) becomes "-1,234,567.50" grouped in
+// threes in the portable default, "-1.234.567,50" in a locale writing "."
+// between groups and "," before the fraction. Grouping only when `grouped`.
+std::string localized_decimal(const std::string& digits, const HostLocale& locale, bool grouped) {
     const std::size_t sign = !digits.empty() && digits.front() == '-' ? 1U : 0U;
     const std::size_t point = digits.find('.');
     const std::size_t integer_end = point == std::string::npos ? digits.size() : point;
     const std::size_t integer_length = integer_end - sign;
-    std::string grouped;
-    grouped.reserve(digits.size() + integer_length / 3U);
-    grouped.append(digits, 0U, sign);
+    const std::size_t groups = integer_length / 3U;
+    std::string written;
+    written.reserve(digits.size() + groups * locale.group_separator.size() + locale.decimal_separator.size());
+    written.append(digits, 0U, sign);
     for (std::size_t index = 0U; index < integer_length; ++index) {
-        if (index != 0U && (integer_length - index) % 3U == 0U) grouped.push_back(',');
-        grouped.push_back(digits[sign + index]);
+        if (grouped && index != 0U && (integer_length - index) % 3U == 0U) written += locale.group_separator;
+        written.push_back(digits[sign + index]);
     }
-    grouped.append(digits, integer_end, std::string::npos);
-    return grouped;
+    if (point != std::string::npos) {
+        written += locale.decimal_separator;
+        written.append(digits, point + 1U, std::string::npos);
+    }
+    return written;
 }
 
-// The typed text without group commas, for parsing a decimal.
-std::string without_commas(std::string_view text) {
+// Typed text as the C locale reads it: `locale`'s group separators removed
+// (typed groups are accepted whether or not the editor shows them) and its
+// decimal separator written as '.'.
+std::string delocalized_decimal(std::string_view text, const HostLocale& locale) {
+    const std::string_view group = locale.group_separator;
+    const std::string_view decimal = locale.decimal_separator;
     std::string plain;
     plain.reserve(text.size());
-    for (const char character : text) {
-        if (character != ',') plain.push_back(character);
+    for (std::size_t index = 0U; index < text.size();) {
+        const std::string_view rest = text.substr(index);
+        if (!group.empty() && rest.substr(0U, group.size()) == group) {
+            index = index + group.size();
+        } else if (!decimal.empty() && rest.substr(0U, decimal.size()) == decimal) {
+            plain.push_back('.');
+            index = index + decimal.size();
+        } else {
+            plain.push_back(text[index]);
+            index = index + 1U;
+        }
     }
     return plain;
 }
@@ -252,13 +271,15 @@ std::string NumericUpDown::formatted_value() const {
         stream << std::uppercase << std::hex << static_cast<std::int64_t>(std::llround(value.read()));
     } else {
         stream << std::fixed << std::setprecision(decimal_places.read()) << value.read();
-        if (thousands_separator.read()) return group_thousands(stream.str());
+        const std::string written = localized_decimal(stream.str(), effective_locale(), thousands_separator.read());
+        return written;
     }
     return stream.str();
 }
 
 void NumericUpDown::synchronize_editor() {
     if (!editor_) return;
+    shown_locale_generation_ = effective_locale_generation();
     synchronizing_ = true;
     (*editor_).text = formatted_value();
     synchronizing_ = false;
@@ -266,9 +287,9 @@ void NumericUpDown::synchronize_editor() {
 
 void NumericUpDown::commit_editor_text() {
     if (!editor_ || (*editor_).text.read().empty()) return;
-    // Group commas are accepted whether or not the editor shows them.
+    // Group separators are accepted whether or not the editor shows them.
     const std::string typed = hexadecimal.read() ? std::string((*editor_).text.read())
-                                                 : without_commas((*editor_).text.read());
+                                                 : delocalized_decimal((*editor_).text.read(), effective_locale());
     double parsed{};
     bool understood = false;
     if (hexadecimal.read()) {
@@ -326,6 +347,11 @@ void NumericUpDown::on_paint_overlay(Painter& painter, Rect local_damage) {
 
 void NumericUpDown::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
+    // A locale that changed since the editor's text was written (a host's
+    // report after attach, or ApplicationResources::set_locale, which lays
+    // every window out): the text is written again with its separators.
+    // The editor's change asks the layout for a second pass.
+    if (shown_locale_generation_ != effective_locale_generation() && !committing_) synchronize_editor();
     // The field and the spin column sit inside the control's own border
     // (the borderless editor draws none of its own).
     const double inset = border_style.read() == BorderStyle::none ? 0.0 : 1.0;

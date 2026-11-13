@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/host/types/host_locale/host_locale.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
 
@@ -230,6 +231,21 @@ public:
     // cannot be had. On the UI thread (std::logic_error elsewhere).
     [[nodiscard]] std::shared_ptr<const engine_light::LightPlanes> lend_light_planes(std::string_view name);
 
+    // The locale these windows format dates and numbers with (exhibit gap
+    // E11): the portable default until the first HostSession seeds it with
+    // the host's (HostCapabilities::locale, when the host reports
+    // HostCapability::locale), or until the program sets one, which then
+    // stays over the host's. A change lays out and repaints every sharing
+    // window. locale_generation() changes with every change (0 for the
+    // portable default never changed), for a control's cache.
+    [[nodiscard]] const HostLocale& locale() const noexcept { return locale_; }
+    [[nodiscard]] std::uint64_t locale_generation() const noexcept { return locale_generation_; }
+    // Sets the locale (a program's own choice, or a test's fixture).
+    // Throws std::invalid_argument, changing nothing, for a locale
+    // valid_host_locale refuses. On the UI thread (std::logic_error
+    // elsewhere).
+    void set_locale(HostLocale locale);
+
     // The windows currently sharing these resources.
     [[nodiscard]] std::size_t window_count() const noexcept { return windows_.size(); }
 
@@ -267,6 +283,11 @@ private:
     // A window shows the fallback for `theme` in `scheme`: writes W403
     // to the log the first time for that theme and scheme.
     void note_theme_variant_missing(const Theme& theme, ColourScheme scheme);
+    // A HostSession attached with the host's locale (Window::
+    // install_host_locale): adopted unless the program set one or an
+    // earlier session seeded it; an invalid report is ignored.
+    void seed_host_locale(const HostLocale& locale);
+    void adopt_locale(HostLocale locale);
     // A window's host reported `hints` (Window::set_compositor_state).
     void note_system_colour_hints(const SystemColourHints& hints) noexcept { system_colour_hints_ = hints; }
     // Window's consumer-scoped operations reach the registry directly.
@@ -304,6 +325,11 @@ private:
     // The atlases made with these resources, observed; an expired link is an
     // atlas already destroyed.
     std::vector<std::weak_ptr<detail::ImageAtlasLink>> atlases_{};
+    // The locale and its generation (locale(), set_locale).
+    HostLocale locale_{};
+    std::uint64_t locale_generation_{};
+    bool locale_set_by_program_{};
+    bool host_locale_seeded_{};
     // The light-plane bakes, null while no directory is set. Owned.
     std::unique_ptr<engine_light::LightPlaneCache> light_planes_{};
 };

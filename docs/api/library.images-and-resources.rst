@@ -141,6 +141,16 @@ Related types
 
       The registered icons, in registration order, for a user theme's compilation (ThemeCompileOptions::icons).
 
+   .. cpp:function:: const HostLocale& locale() const noexcept
+
+      The locale these windows format dates and numbers with (exhibit gap E11): the portable default until the first HostSession seeds it with the host's (HostCapabilities::locale, when the host reports HostCapability::locale), or until the program sets one, which then stays over the host's. A change lays out and repaints every sharing window. locale_generation() changes with every change (0 for the portable default never changed), for a control's cache.
+
+   .. cpp:function:: void set_locale(HostLocale locale)
+
+      Sets the locale (a program's own choice, or a test's fixture). Throws std::invalid_argument, changing nothing, for a locale valid_host_locale refuses. On the UI thread (std::logic_error elsewhere).
+
+   .. cpp:function:: std::uint64_t locale_generation() const noexcept
+
    .. cpp:function:: std::size_t window_count() const noexcept
 
       The windows currently sharing these resources.
@@ -200,7 +210,7 @@ Related types
 
    .. cpp:function:: void set_light_plane_directory(std::filesystem::path directory)
 
-      Baked light planes (engine/light_planes) for the parts of these windows that composite them (PartPaint::light_planes, such as an IndicatorLamp's lens named by its light_planes property), read from ``directory`` the first time each is asked for and kept (LightPlaneCache). An empty path, the default, holds none, so every such part draws its theme's look. A new directory forgets the bakes read so far and repaints every sharing window. On the UI thread (std::logic_error elsewhere).
+      Baked light planes (engine/light_planes) for the parts of these windows that composite them (PartPaint::light_planes, such as an IndicatorLamp's lens named by its light_planes property), read from ``directory`` the first time each is asked for and kept (LightPlaneCache). An empty path, the default, holds none, so every such part draws its theme's look. A new directory forgets the bakes read so far and lays out and repaints every sharing window (a bake's presence changes a part's aspect). On the UI thread (std::logic_error elsewhere).
 
 .. cpp:namespace:: gui_forms
 

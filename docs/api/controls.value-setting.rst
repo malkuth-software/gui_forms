@@ -168,7 +168,7 @@ Related types
    * - :cpp:class:`NumericUpDownTextAlignmentCapability <gui_forms::NumericUpDownTextAlignmentCapability>`
      - Where the editor's text sits (TextAlign): near, center or far.
    * - :cpp:class:`NumericUpDownThousandsSeparatorCapability <gui_forms::NumericUpDownThousandsSeparatorCapability>`
-     - Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way.
+     - Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way.
    * - :cpp:class:`NumericUpDownValueCapability <gui_forms::NumericUpDownValueCapability>`
      - The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range.
    * - :cpp:class:`PropertyConversionContext <gui_forms::PropertyConversionContext>`
@@ -1219,7 +1219,7 @@ Related types
 
    .. cpp:member:: bool thousands_separator
 
-      Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+      Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.
 
    .. cpp:member:: HorizontalAlignment text_alignment
 
@@ -1346,7 +1346,7 @@ Related types
 
    ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
 
-   Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+   Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.
 
 
    .. rubric:: Methods

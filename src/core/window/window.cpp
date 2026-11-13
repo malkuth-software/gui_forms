@@ -543,7 +543,7 @@ void SurfaceRoot::repaint_for_image_replacement() {
     touch_paint();
 }
 
-void SurfaceRoot::relayout_for_light_planes() {
+void SurfaceRoot::relayout_for_resource_content() {
     if (root_ && (*root_).is_alive()) mark_subtree_dirty(*root_, invalidation::resource_content);
     for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
         if (const Control::Ptr overlay_root = (*overlay).overlay()) {

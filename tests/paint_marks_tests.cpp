@@ -3,13 +3,15 @@
 // value helpers, their recording and replay as one display command each
 // (display-trace cases: every call is written as text with its arguments and
 // compared exactly), the base painter's fallbacks, and the part primitives
-// composed from them (paint_recipes.hpp: C2, C3, C4).
+// composed from them (paint_recipes.hpp: C2, C3, C4); and the curved paths
+// (paint_path.hpp, exhibit gap E7): values, recording and fallbacks.
 #include "gui_forms/binding/property_type/property_type.hpp"
 #include "gui_forms/display/types/display_types.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"
 #include "gui_forms/plots/series_column/series_column.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_marks/paint_marks.hpp"
+#include "gui_forms/types/paint_path/paint_path.hpp"
 #include "gui_forms/types/paint_recipes/paint_recipes.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/types/painter/painter.hpp"
@@ -125,6 +127,13 @@ public:
         out << "stroke_rounded_rect_corners " << box(rect) << ' ' << corners(radii) << ' ' << colour(color) << ' '
             << width << '\n';
     }
+    void fill_path(PaintPathView path, Color color, PolygonFillRule rule) override {
+        out << "fill_path " << path_text(path) << ' ' << colour(color) << ' '
+            << (rule == PolygonFillRule::even_odd ? "even_odd" : "nonzero") << '\n';
+    }
+    void stroke_path(PaintPathView path, const StrokeStyle& style) override {
+        out << "stroke_path " << path_text(path) << ' ' << stroke(style) << '\n';
+    }
 
     std::ostringstream out;
 
@@ -155,6 +164,22 @@ private:
         for (std::size_t index = 0U; index < values.size(); ++index) {
             if (index != 0U) text += ';';
             text += point(values[index]);
+        }
+        return text;
+    }
+    // Each verb as its letter (M L Q C A Z) followed by its point slots.
+    static std::string path_text(PaintPathView path) {
+        static constexpr std::array<char, 6> letters{{'M', 'L', 'Q', 'C', 'A', 'Z'}};
+        std::string text;
+        std::size_t consumed = 0U;
+        for (const PaintPathVerb verb : path.verbs) {
+            const std::size_t index = static_cast<std::size_t>(verb);
+            text += index < letters.size() ? letters[index] : '?';
+            const std::size_t count = paint_path_points_for(verb);
+            if (count != 0U && consumed + count <= path.points.size()) {
+                text += points_text(path.points.subspan(consumed, count));
+            }
+            consumed = consumed + count;
         }
         return text;
     }
@@ -731,10 +756,141 @@ void test_direction_ring_trace() {
     require(refused.out.str().empty(), "an inner radius past the outer paints nothing");
 }
 
+// A closed shape of every verb: a line, a quadratic, a cubic and an arc.
+PaintPath every_verb_path() {
+    PaintPath path;
+    path.reserve(6U, 12U);
+    path.move_to(Point{0.0, 0.0});
+    path.line_to(Point{10.0, 0.0});
+    path.quad_to(Point{20.0, 0.0}, Point{20.0, 10.0});
+    path.cubic_to(Point{20.0, 20.0}, Point{10.0, 30.0}, Point{0.0, 20.0});
+    path.arc_to(Point{0.0, 10.0}, Size{10.0, 10.0}, 90.0, 180.0);
+    path.close();
+    return path;
+}
+
+// Exhibit gap E7: the path's validation, bounds and flattening, as values.
+void test_path_values() {
+    const PaintPath path = every_verb_path();
+    const PaintPathView view = path.view();
+    require(valid_paint_path(view), "a path of every verb is valid");
+    const Rect bounds = paint_path_bounds(view);
+    require(bounds == (Rect{-10.0, 0.0, 30.0, 30.0}),
+            "the bounds hold the control points and the arc's whole ellipse");
+
+    PaintPath no_start;
+    no_start.line_to(Point{1.0, 1.0});
+    require(!valid_paint_path(no_start.view()), "a line with no current point is refused");
+    PaintPath flat_arc;
+    flat_arc.arc_to(Point{0.0, 0.0}, Size{0.0, 4.0}, 0.0, 90.0);
+    require(!valid_paint_path(flat_arc.view()), "an arc of zero radius is refused");
+    PaintPath infinite;
+    infinite.move_to(Point{0.0, 0.0});
+    infinite.line_to(Point{std::numeric_limits<double>::infinity(), 0.0});
+    require(!valid_paint_path(infinite.view()), "an infinite point is refused");
+    const std::array<PaintPathVerb, 1> short_verbs{{PaintPathVerb::cubic_to}};
+    const std::array<Point, 2> two{{Point{}, Point{}}};
+    PaintPathView short_points{};
+    short_points.verbs = short_verbs;
+    short_points.points = two;
+    require(!valid_paint_path(short_points), "too few points for the verbs are refused");
+    require(paint_path_bounds(short_points) == Rect{}, "an invalid path has empty bounds");
+
+    std::array<Point, 512> points{};
+    std::array<FlattenedContour, 4> contours{};
+    const FlattenedPath flat = flatten_paint_path(view, 0.25, points, contours);
+    require(flat.contour_count == 1U && contours[0].closed && !flat.truncated,
+            "one closed contour, flattened whole");
+    require(points[0] == (Point{0.0, 0.0}) && points[flat.point_count - 1U] == (Point{0.0, 0.0}),
+            "a closed contour starts and ends at its start");
+    // Every flattened point of the arc's half lies on its circle, and the
+    // chords' sagitta stays within the tolerance.
+    bool on_curves = true;
+    for (std::size_t index = 0U; index < flat.point_count; ++index) {
+        const Point point = points[index];
+        if (point.x < 0.0) {
+            const double radius = std::sqrt(point.x * point.x + (point.y - 10.0) * (point.y - 10.0));
+            if (std::abs(radius - 10.0) > 1e-9) on_curves = false;
+        }
+    }
+    require(on_curves, "the arc's points lie on its circle");
+    require(flat.point_count > 12U, "the curves are subdivided");
+
+    std::array<Point, 8> few{};
+    const FlattenedPath cut = flatten_paint_path(view, 0.25, few, contours);
+    require(cut.truncated && cut.point_count <= few.size(), "full storage truncates without overrunning");
+    require(flatten_paint_path(view, 0.0, points, contours).point_count == 0U, "a zero tolerance is refused");
+
+    // A full turn is held to one turn and ends where it starts.
+    PaintPath circle;
+    circle.arc_to(Point{5.0, 5.0}, Size{5.0, 5.0}, 0.0, 720.0);
+    const FlattenedPath round = flatten_paint_path(circle.view(), 0.25, points, contours);
+    require(round.contour_count == 1U && std::abs(points[round.point_count - 1U].x - 10.0) < 1e-9 &&
+                std::abs(points[round.point_count - 1U].y - 5.0) < 1e-9,
+            "a sweep past a turn is held to one turn");
+    require(stroke_bounds_outset(2.0, 4.0) == 4.0 && std::abs(stroke_bounds_outset(2.0, 1.0) - 1.4142135623730951) <
+                                                         1e-12,
+            "the stroke outset covers miters and square caps");
+}
+
+// The path calls record one command each, copy the caller's arrays, and
+// replay exactly; the base fallbacks fill and stroke the flattened path.
+void test_path_recording_and_fallbacks() {
+    PaintPath path = every_verb_path();
+    detail::RecordingPainter recorder;
+    recorder.fill_path(path.view(), ink, PolygonFillRule::even_odd);
+    recorder.stroke_path(path.view(), dashed_stroke());
+    path.clear();
+    path.move_to(Point{99.0, 99.0});
+    const std::shared_ptr<const detail::DisplayChunk> chunk =
+        recorder.finish(1U, PaintPlane::control, Rect{0.0, 0.0, 64.0, 32.0});
+    require((*chunk).commands().size() == 2U, "each path call records one command");
+    TracePainter trace;
+    require(detail::replay_display_chunk(*chunk, trace) == 2U, "both commands replay");
+    const std::string shape = "M0,0L10,0Q20,0;20,10C20,20;10,30;0,20A0,10;10,10;90,180Z";
+    const std::string expected = "fill_path " + shape + " #10.20.30.255 even_odd\n" + "stroke_path " + shape +
+                                 " #10.20.30.255 w=2 join=1 cap=2 dashes=4,2@1\n";
+    const std::string observed = trace.out.str();
+    if (observed != expected) std::cerr << "observed trace:\n" << observed;
+    require(observed == expected, "the path commands replay what was recorded");
+
+    // The fallback: a 10-unit square drawn as a path fills by unit rows,
+    // with a 4-unit square hole under even-odd and none under nonzero.
+    PaintPath ring;
+    ring.move_to(Point{0.0, 0.0});
+    ring.line_to(Point{10.0, 0.0});
+    ring.line_to(Point{10.0, 10.0});
+    ring.line_to(Point{0.0, 10.0});
+    ring.close();
+    ring.move_to(Point{3.0, 3.0});
+    ring.line_to(Point{7.0, 3.0});
+    ring.line_to(Point{7.0, 7.0});
+    ring.line_to(Point{3.0, 7.0});
+    ring.close();
+    MinimalPainter even_odd;
+    even_odd.fill_path(ring.view(), ink, PolygonFillRule::even_odd);
+    MinimalPainter nonzero;
+    nonzero.fill_path(ring.view(), ink, PolygonFillRule::nonzero);
+    require(std::abs(even_odd.filled_area() - 84.0) < 1e-9, "even-odd leaves the inner square open");
+    require(std::abs(nonzero.filled_area() - 100.0) < 1e-9, "nonzero fills the same-wound inner square");
+
+    MinimalPainter stroked;
+    stroked.stroke_path(ring.view(), dashed_stroke());
+    require(stroked.lines.size() == 8U, "each closed contour strokes its four sides, the last back to its start");
+    MinimalPainter refused;
+    PaintPath broken;
+    broken.quad_to(Point{1.0, 1.0}, Point{2.0, 0.0});
+    refused.fill_path(broken.view(), ink, PolygonFillRule::nonzero);
+    refused.stroke_path(broken.view(), dashed_stroke());
+    require(refused.fills.empty() && refused.lines.empty(), "an invalid path draws nothing");
+}
+
 void test_operation_names() {
     require(std::string_view(visual_paint_operation_name(VisualPaintOperation::stroke_polyline)) == "stroke_polyline" &&
                 std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_grid_pattern)) ==
-                    "fill_grid_pattern",
+                    "fill_grid_pattern" &&
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::fill_path)) == "fill_path" &&
+                std::string_view(visual_paint_operation_name(VisualPaintOperation::stroke_path)) == "stroke_path",
             "the batched operations must have inspection names");
 }
 
@@ -755,6 +911,8 @@ int main() {
         test_contrast_rule();
         test_text_over_fill_uses_complementary_clips();
         test_joined_segments();
+        test_path_values();
+        test_path_recording_and_fallbacks();
         test_operation_names();
         test_radial_layout_places_and_picks();
         test_direction_ring_trace();

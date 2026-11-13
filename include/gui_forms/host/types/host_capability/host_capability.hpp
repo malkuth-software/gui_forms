@@ -92,6 +92,12 @@ enum class HostCapability : std::uint64_t {
     // (owner, 2026-11-08: the window outer band hides in full screen when
     // declared so). Windows, macOS and X11. Host protocol version 12.
     window_state_reports = 1ULL << 35U,
+    // The host read the platform's locale into HostCapabilities::locale
+    // (HostLocale: the date and time patterns, names, number separators
+    // and first day of the week; exhibit gap E11). Without it the record
+    // holds the portable default. macOS and Linux; the Windows host does
+    // not report it yet. Host protocol version 14.
+    locale = 1ULL << 36U,
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,

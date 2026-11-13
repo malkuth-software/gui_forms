@@ -284,6 +284,11 @@ gui_forms::Control
       **effective_key_map** : ``KeyMap``, read-only
          The attached window's key map (Window::key_map), or the PC convention's while detached. A control asks it whether a key event is a named keyboard command instead of naming the keys itself.
 
+      **effective_locale** : ``HostLocale``, read-only
+         The locale the control formats dates and numbers with (exhibit gap E11): its window's application locale (ApplicationResources::locale), or the portable default while detached. The reference stays valid while the control is attached and the locale unchanged; a control keeping something derived from it keys it by effective_locale_generation() (0 while detached).
+
+      **effective_locale_generation** : ``std::uint64_t``, read-only
+
       **theme_override** : ``std::shared_ptr<const Theme>``
          A theme for this control and its subtree instead of the inherited one,
          or null. Setting null throws ``std::invalid_argument``; use
@@ -1078,6 +1083,12 @@ gui_forms::Control
    .. cpp:function:: const KeyMap& effective_key_map() const noexcept
 
       The attached window's key map (Window::key_map), or the PC convention's while detached. A control asks it whether a key event is a named keyboard command instead of naming the keys itself.
+
+   .. cpp:function:: const HostLocale& effective_locale() const noexcept
+
+      The locale the control formats dates and numbers with (exhibit gap E11): its window's application locale (ApplicationResources::locale), or the portable default while detached. The reference stays valid while the control is attached and the locale unchanged; a control keeping something derived from it keys it by effective_locale_generation() (0 while detached).
+
+   .. cpp:function:: std::uint64_t effective_locale_generation() const noexcept
 
    .. cpp:function:: std::shared_ptr<const Theme> theme_override() const noexcept
 

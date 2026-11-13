@@ -419,7 +419,7 @@ MonthGridMetrics day_grid(Rect block, bool week_numbers) noexcept {
 Rect MonthCalendar::day_cell(std::size_t month, std::size_t day_index) const noexcept {
     const DateTimeValue start = month_start(month);
     const DateTimeValue date = add_days(start, static_cast<std::int64_t>(day_index));
-    const std::uint8_t first_day_number = static_cast<std::uint8_t>(first_day_of_week.read());
+    const std::uint8_t first_day_number = static_cast<std::uint8_t>(effective_first_day_of_week());
     const std::optional<std::size_t> cell = month_page_cell(start, first_day_number, date);
     if (!cell) return {};
     const MonthGridMetrics metrics = day_grid(month_block(month), show_week_numbers.read());
@@ -431,7 +431,7 @@ std::size_t MonthCalendar::week_rows(std::size_t month) const noexcept {
     const std::uint8_t days = days_in_month(start.year, start.month);
     const DateTimeValue last = add_days(start, static_cast<std::int64_t>(days) - 1);
     const std::optional<std::size_t> cell =
-        month_page_cell(start, static_cast<std::uint8_t>(first_day_of_week.read()), last);
+        month_page_cell(start, static_cast<std::uint8_t>(effective_first_day_of_week()), last);
     const std::size_t rows = cell ? *cell / grid_columns + 1U : grid_rows;
     return rows;
 }
@@ -554,8 +554,8 @@ AnatomyStateSet MonthCalendar::day_states(DateTimeValue date) const {
 // -- text ----------------------------------------------------------------------------
 
 std::string MonthCalendar::weekday_text(std::size_t column) const {
-    const std::size_t day = (static_cast<std::size_t>(first_day_of_week.read()) + column) % 7U;
-    return format_provider.read().abbreviated_day_names[day];
+    const std::size_t day = (static_cast<std::size_t>(effective_first_day_of_week()) + column) % 7U;
+    return effective_format_provider().abbreviated_day_names[day];
 }
 
 std::string MonthCalendar::week_text(std::size_t month, std::size_t row) const {
@@ -563,11 +563,11 @@ std::string MonthCalendar::week_text(std::size_t month, std::size_t row) const {
     // in the new year and is week 1.
     const DateTimeValue start = month_start(month);
     const std::array<DateTimeValue, grid_cells> dates =
-        month_page_dates(start, static_cast<std::uint8_t>(first_day_of_week.read()));
+        month_page_dates(start, static_cast<std::uint8_t>(effective_first_day_of_week()));
     const DateTimeValue last = dates[row * grid_columns + grid_columns - 1U];
     const DateTimeValue january{last.year, 1U, 1U};
     const int offset = (static_cast<int>(day_of_week(january)) -
-                        static_cast<int>(first_day_of_week.read()) + 7) % 7;
+                        static_cast<int>(effective_first_day_of_week()) + 7) % 7;
     const std::int64_t day_of_year = serial_day(last) - serial_day(january);
     const std::int64_t week = (day_of_year + offset) / 7 + 1;
     return std::to_string(week);
@@ -575,12 +575,12 @@ std::string MonthCalendar::week_text(std::size_t month, std::size_t row) const {
 
 std::string MonthCalendar::month_title_text(std::size_t month) const {
     const DateTimeValue start = month_start(month);
-    const std::string title = format_provider.read().month_names[start.month - 1U] + " " + std::to_string(start.year);
+    const std::string title = effective_format_provider().month_names[start.month - 1U] + " " + std::to_string(start.year);
     return title;
 }
 
 std::string MonthCalendar::today_text() const {
-    const DateTimeFormatProvider& provider = format_provider.read();
+    const DateTimeFormatProvider& provider = effective_format_provider();
     const std::string text = "Today: " + date_time_detail::format_date_time(
                                              today_date(), provider.short_date_pattern, provider);
     return text;
@@ -719,7 +719,7 @@ MonthCalendar::Zone MonthCalendar::zone_at(Point local, DateTimeValue& date) con
     if (control.previous_arrow.bounds.contains(local)) return Zone::previous;
     if (control.next_arrow.bounds.contains(local)) return Zone::next;
     const double scale = effective_text_scale();
-    const std::uint8_t first_day_number = static_cast<std::uint8_t>(first_day_of_week.read());
+    const std::uint8_t first_day_number = static_cast<std::uint8_t>(effective_first_day_of_week());
     for (std::size_t month = 0U; month < month_count(); ++month) {
         const MonthGridMetrics metrics = day_grid(month_block(month), show_week_numbers.read());
         const std::optional<std::size_t> cell = month_grid_cell_at(metrics, local, scale);
@@ -886,7 +886,7 @@ SemanticDescriptor MonthCalendar::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::calendar;
     descriptor.name = accessible_name.read().empty() ? month_title_text(0U) : accessible_name.read();
-    const DateTimeFormatProvider& provider = format_provider.read();
+    const DateTimeFormatProvider& provider = effective_format_provider();
     std::string value = date_time_detail::format_date_time(selection_.start, provider.long_date_pattern, provider);
     if (!same_day(selection_.start, selection_.end)) {
         value += " to " + date_time_detail::format_date_time(selection_.end, provider.long_date_pattern, provider);
@@ -930,7 +930,7 @@ std::vector<SemanticNode> MonthCalendar::semantic_virtual_children() const {
             node.stable_id = day_stable_id(date);
             node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
             node.role = SemanticRole::date_cell;
-            node.name = date_time_detail::format_date_time(date, format_provider.read().long_date_pattern, format_provider.read());
+            node.name = date_time_detail::format_date_time(date, effective_format_provider().long_date_pattern, effective_format_provider());
             node.value = iso_date(date);
             node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
             node.states = SemanticState::visible | SemanticState::focusable;
@@ -1233,6 +1233,50 @@ void MonthCalendar::append_interactions(std::vector<InteractionDeclaration>& int
                         month_calendar_interactions.end());
 }
 
+// The locale-following hooks, written by hand (tools/property_families/
+// month_calendar.json lists them as hand hooks).
+void MonthCalendar::prepare_write(const decltype(first_day_of_week)&, CalendarWeekday& incoming) {
+    require_mutable();
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(CalendarWeekday::saturday)) {
+        throw std::invalid_argument("MonthCalendar first day of week is invalid");
+    }
+}
+
+void MonthCalendar::written(const decltype(first_day_of_week)&) {
+    first_day_follows_locale_ = false;
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void MonthCalendar::prepare_write(const decltype(format_provider)&, DateTimeFormatProvider& incoming) {
+    require_mutable();
+    date_time_detail::validate_provider(incoming);
+}
+
+void MonthCalendar::written(const decltype(format_provider)&) {
+    // A program's own provider replaces the locale's.
+    provider_follows_locale_ = false;
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+const DateTimeFormatProvider& MonthCalendar::effective_format_provider() const {
+    if (!provider_follows_locale_) return format_provider.read();
+    return date_time_detail::locale_format_provider(*this, locale_provider_generation_, locale_provider_);
+}
+
+CalendarWeekday MonthCalendar::effective_first_day_of_week() const noexcept {
+    if (!first_day_follows_locale_) return first_day_of_week.read();
+    const CalendarWeekday first = static_cast<CalendarWeekday>(effective_locale().first_day_of_week);
+    return first;
+}
+
+void MonthCalendar::follow_host_locale() {
+    require_mutable();
+    if (provider_follows_locale_ && first_day_follows_locale_) return;
+    provider_follows_locale_ = true;
+    first_day_follows_locale_ = true;
+    invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
 // property_codemod begin MonthCalendar (tools/property_families/month_calendar.json; generated, do not edit)
 
 void MonthCalendar::prepare_write(const decltype(show_today)&, bool&) {
@@ -1259,32 +1303,12 @@ void MonthCalendar::written(const decltype(show_week_numbers)&) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void MonthCalendar::prepare_write(const decltype(first_day_of_week)&, CalendarWeekday& incoming) {
-    require_mutable();
-    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(CalendarWeekday::saturday)) {
-        throw std::invalid_argument("MonthCalendar first day of week is invalid");
-    }
-}
-
-void MonthCalendar::written(const decltype(first_day_of_week)&) {
-    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
 void MonthCalendar::prepare_write(const decltype(scroll_change)&, std::uint32_t& incoming) {
     require_mutable();
     if (incoming > 20000U) throw std::out_of_range("MonthCalendar scroll change is at most 20000 months");
 }
 
 void MonthCalendar::written(const decltype(scroll_change)&) {}
-
-void MonthCalendar::prepare_write(const decltype(format_provider)&, DateTimeFormatProvider& incoming) {
-    require_mutable();
-    date_time_detail::validate_provider(incoming);
-}
-
-void MonthCalendar::written(const decltype(format_provider)&) {
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
 
 void MonthCalendar::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();

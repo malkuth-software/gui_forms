@@ -94,7 +94,7 @@ struct DateTimePickerCustomFormatCapability {
     }
 };
 
-// The month and day names and the patterns the value is shown with. An invalid provider throws std::invalid_argument; a change closes an open calendar.
+// The month and day names and the patterns the value is shown with, once written; until then the host locale's (effective_format_provider). An invalid provider throws std::invalid_argument; a change closes an open calendar.
 template <typename Declaring>
 struct DateTimePickerFormatProviderCapability {
     PropertyCell<DateTimeFormatProvider, DateTimePickerFormatProviderCapability<Declaring>> format_provider{DateTimeFormatProvider::english_united_states()};

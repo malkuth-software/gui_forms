@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_marks/paint_marks.hpp"
+#include "gui_forms/types/paint_path/paint_path.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/typography.hpp"
 #include "gui_forms/typography/shaping_workspace/shaping_workspace.hpp"
@@ -176,6 +177,20 @@ public:
     // A closed polygon through `points` (at least 3, all finite), filled by
     // `rule`.
     virtual void fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule);
+    // A curved path (paint_path.hpp, exhibit gap E7) filled by `rule`: every
+    // contour, open ones closed by a straight segment. An invalid path
+    // (valid_paint_path) draws nothing. The base implementation flattens
+    // the path at paint_path_flattening_tolerance into fixed storage
+    // (maximum_fallback_path_points points, maximum_fallback_path_contours
+    // contours; a longer path is drawn from its start) and fills the
+    // contours together by scan rows, as fill_polygon's fallback does.
+    virtual void fill_path(PaintPathView path, Color color, PolygonFillRule rule);
+    // A curved path stroked with `style`'s width, joins, caps and dashes;
+    // closed contours join at their start instead of capping. An invalid
+    // path or style draws nothing. The base implementation flattens as
+    // fill_path's does and strokes each contour as stroke_polyline's
+    // fallback does (solid, no joins of its own).
+    virtual void stroke_path(PaintPathView path, const StrokeStyle& style);
     // The area between two polylines sampled at the same positions (a
     // plot's shaded band, area or stacked area): `upper` and `lower` hold
     // the same count, at least 2, all finite; the band's outline runs along

@@ -391,6 +391,7 @@ add_library(gui_forms_core STATIC
     src/core/types/painter/painter.cpp
     src/core/types/painter/painter_marks.cpp
     src/core/types/paint_marks/paint_marks.cpp
+    src/core/types/paint_path/paint_path.cpp
     src/core/scene/spatial_index/spatial_index.cpp
     src/core/scene/scene_view/scene_view.cpp
     src/core/types/paint_recipes/paint_recipes.cpp
@@ -556,6 +557,7 @@ add_library(gui_forms_core STATIC
     src/core/host/compositor/window_backdrop.cpp
     src/core/host/types/host_types.cpp
     src/core/host/types/host_capabilities/host_capabilities.cpp
+    src/core/host/types/host_locale/host_locale.cpp
     src/core/host/types/host_services_snapshot/host_services_snapshot.cpp
     src/core/host/types/host_session_snapshot/host_session_snapshot.cpp
     src/core/host/services/host_services.cpp
@@ -1577,6 +1579,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     find_library(GUI_FORMS_QUARTZCORE QuartzCore REQUIRED)
     find_library(GUI_FORMS_COREGRAPHICS CoreGraphics REQUIRED)
     find_library(GUI_FORMS_UNIFORMTYPEIDENTIFIERS UniformTypeIdentifiers REQUIRED)
+    find_library(GUI_FORMS_COREFOUNDATION CoreFoundation REQUIRED)
     add_library(gui_forms_host_macos STATIC
         src/host/macos/application/macos_host.mm
         src/host/macos/application/macos_application_run.mm
@@ -1600,6 +1603,8 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         src/host/macos/services/appkit_clipboard_image.mm
         src/host/macos/services/appkit_status_items.mm
         src/host/macos/compositor/macos_compositor.mm
+        src/host/macos/locale/icu_date_pattern.cpp
+        src/host/macos/locale/macos_locale.cpp
         $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
     )
     target_include_directories(gui_forms_host_macos PUBLIC
@@ -1611,6 +1616,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         PRIVATE ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE}
                 ${GUI_FORMS_COREGRAPHICS}
                 ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS}
+                ${GUI_FORMS_COREFOUNDATION}
     )
 
     # First-party native applications consume one installed dynamic boundary.
@@ -1693,6 +1699,8 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/host/linux/application/x11_windowing.cpp
         src/host/linux/application/x11_shm_present.cpp
         src/host/linux/settings/xsettings_parse.cpp
+        src/host/linux/locale/strftime_date_pattern.cpp
+        src/host/linux/locale/posix_locale.cpp
         src/host/linux/application/linux_input_rules.cpp
         src/host/linux/settings/xsettings_watch.cpp
         src/host/linux/accessibility/linux_accessibility.cpp
@@ -4349,6 +4357,25 @@ if(GUI_FORMS_BUILD_TESTS)
     # marker in a checked build, which only the core library defines.
     target_link_libraries(gui_forms_xsettings_parse_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_xsettings_parse_tests COMMAND gui_forms_xsettings_parse_tests)
+    # The hosts' locale pattern conversions (UTS #35 for macOS, strftime for
+    # Linux) take plain text, so they are tested on every platform; each
+    # platform's own reader is compiled in where it builds.
+    add_executable(gui_forms_host_locale_tests
+        tests/host_locale_tests.cpp
+        src/host/macos/locale/icu_date_pattern.cpp
+        src/host/linux/locale/strftime_date_pattern.cpp)
+    target_include_directories(gui_forms_host_locale_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(gui_forms_host_locale_tests PRIVATE gui_forms_core)
+    if(APPLE)
+        find_library(GUI_FORMS_COREFOUNDATION CoreFoundation REQUIRED)
+        target_sources(gui_forms_host_locale_tests PRIVATE src/host/macos/locale/macos_locale.cpp)
+        target_compile_definitions(gui_forms_host_locale_tests PRIVATE GUI_FORMS_TEST_MACOS_LOCALE=1)
+        target_link_libraries(gui_forms_host_locale_tests PRIVATE ${GUI_FORMS_COREFOUNDATION})
+    elseif(UNIX)
+        target_sources(gui_forms_host_locale_tests PRIVATE src/host/linux/locale/posix_locale.cpp)
+        target_compile_definitions(gui_forms_host_locale_tests PRIVATE GUI_FORMS_TEST_POSIX_LOCALE=1)
+    endif()
+    add_test(NAME gui_forms_host_locale_tests COMMAND gui_forms_host_locale_tests)
     # The X11 host's computed click counts and context keys take plain
     # values and no Xlib, so they are tested on every platform.
     add_executable(gui_forms_linux_input_rules_tests
@@ -5029,6 +5056,10 @@ if(GUI_FORMS_BUILD_TESTS)
         gui_forms_controls)
     add_test(NAME gui_forms_guidance_provider_tests
              COMMAND gui_forms_guidance_provider_tests)
+
+    add_executable(gui_forms_control_locale_tests tests/control_locale_tests.cpp)
+    target_link_libraries(gui_forms_control_locale_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_control_locale_tests COMMAND gui_forms_control_locale_tests)
 
     add_executable(gui_forms_date_time_picker_tests
         tests/date_time_picker_tests.cpp

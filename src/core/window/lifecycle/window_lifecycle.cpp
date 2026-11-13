@@ -2,6 +2,7 @@
 #include "gui_forms/application.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "../../dispatcher/state/dispatcher_state.hpp"
 #include "../../drag_engine/drag_engine.hpp"
@@ -765,6 +766,12 @@ void Window::install_host_key_map(const KeyMap& defaults) {
     // Seeds the table the window holds or reads (its application's, shared
     // by the application's windows), made now for a window with neither.
     static_cast<void>(held_key_bindings().seed(defaults));
+}
+
+void Window::install_host_locale(const HostLocale& locale) {
+    require_root_thread("host locale installation");
+    const std::shared_ptr<ApplicationResources> shared = resources();
+    if (shared) (*shared).seed_host_locale(locale);
 }
 
 void SurfaceRoot::set_text_scale(double text_scale) {

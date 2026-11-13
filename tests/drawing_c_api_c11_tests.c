@@ -1,5 +1,6 @@
 #include "gui_forms/drawing_c_api.h"
 
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -22,6 +23,56 @@ static gd_string_view view_of(const char* text) {
 
 /* The drawing-primitives append: every entry records, validates before it
    mutates, and traces. */
+/* ABI 0.4, curved paths: each verb is accepted and kept, refusals leave the
+   path as it was, and the fill mode round-trips. */
+static int check_curved_paths(const gd_api_v0* api) {
+    gd_handle path = {0};
+    gd_rect bounds = {0};
+    uint32_t fill_mode = 9U;
+    uint64_t required = 0;
+    gd_point kept[64];
+    const gd_point beziers[7] = {{0, 0}, {4, -8}, {8, 8}, {12, 0}, {16, -8}, {20, 8}, {24, 0}};
+    const gd_point triangle[3] = {{0, 0}, {10, 0}, {5, 9}};
+
+    CHECK((*api).graphics_path_create(GD_FILL_ALTERNATE, &path) == GD_OK);
+    CHECK((*api).graphics_path_fill_mode(path, &fill_mode) == GD_OK && fill_mode == 0U);
+    CHECK((*api).graphics_path_add_quadratic(path, (gd_point){0, 0}, (gd_point){10, 20}, (gd_point){20, 0}) == GD_OK);
+    CHECK((*api).graphics_path_add_bezier(path, (gd_point){20, 0}, (gd_point){25, -10}, (gd_point){35, 10},
+                                          (gd_point){40, 0}) == GD_OK);
+    CHECK((*api).graphics_path_points(path, NULL, 0, &required) == GD_ERROR_BUFFER_TOO_SMALL);
+    CHECK(required >= 7U && required <= 64U);
+    CHECK((*api).graphics_path_points(path, kept, 64, &required) == GD_OK);
+    CHECK(kept[0].x == 0.0 && kept[0].y == 0.0);
+    CHECK((*api).graphics_path_bounds(path, &bounds) == GD_OK);
+    CHECK(bounds.x <= 0.0 && bounds.x + bounds.width >= 40.0);
+
+    /* Refusals keep the path's points as they were. */
+    CHECK((*api).graphics_path_add_beziers(path, beziers, 5) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).graphics_path_add_beziers(path, NULL, 7) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).graphics_path_add_polygon(path, triangle, 2) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).graphics_path_add_quadratic(path, (gd_point){0, 0}, (gd_point){INFINITY, 0}, (gd_point){1, 1}) ==
+          GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).graphics_path_set_fill_mode(path, 2U) == GD_ERROR_INVALID_ARGUMENT);
+    {
+        uint64_t again = 0;
+        CHECK((*api).graphics_path_points(path, NULL, 0, &again) == GD_ERROR_BUFFER_TOO_SMALL);
+        CHECK(again == required);
+    }
+
+    CHECK((*api).graphics_path_add_beziers(path, beziers, 7) == GD_OK);
+    CHECK((*api).graphics_path_add_polygon(path, triangle, 3) == GD_OK);
+    CHECK((*api).graphics_path_add_pie(path, (gd_rect){50, 0, 20, 20}, 0, 90) == GD_OK);
+    CHECK((*api).graphics_path_set_fill_mode(path, GD_FILL_WINDING) == GD_OK);
+    CHECK((*api).graphics_path_fill_mode(path, &fill_mode) == GD_OK && fill_mode == 1U);
+    CHECK((*api).graphics_path_fill_mode(path, NULL) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).graphics_path_bounds(path, &bounds) == GD_OK);
+    CHECK(bounds.x + bounds.width >= 70.0);
+    CHECK((*api).release(path) == GD_OK);
+    CHECK((*api).graphics_path_add_quadratic(path, (gd_point){0, 0}, (gd_point){1, 1}, (gd_point){2, 0}) ==
+          GD_ERROR_STALE_HANDLE);
+    return 0;
+}
+
 static int check_drawing_primitives(const gd_api_v0* api) {
     gd_handle recorder = {0};
     gd_handle pen = {0};
@@ -225,8 +276,16 @@ int main(void) {
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_0_3, &api) == GD_OK);
-    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.struct_size == offsetof(gd_api_v0, graphics_path_add_quadratic));
     CHECK(api.abi_version == GD_ABI_VERSION_0_3);
+    CHECK(api.graphics_path_add_rounded_rectangle != NULL);
+    CHECK(api.graphics_path_add_quadratic == NULL);
+    memset(&api, 0, sizeof(api));
+    api.struct_size = sizeof(api);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_0_4, &api) == GD_OK);
+    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.abi_version == GD_ABI_VERSION_0_4);
+    CHECK(api.graphics_path_fill_mode != NULL);
     CHECK(api.recorder_trace != NULL);
     CHECK(api.graphics_path_create != NULL);
     CHECK(api.recorder_draw_image != NULL);
@@ -509,6 +568,7 @@ int main(void) {
     CHECK(api.recorder_command_count(extended_recorder, &count) == GD_OK && count == 10);
 
     CHECK(check_drawing_primitives(&api) == 0);
+    CHECK(check_curved_paths(&api) == 0);
     CHECK(api.release(recorder) == GD_OK);
     CHECK(api.release(recorder) == GD_ERROR_STALE_HANDLE);
     CHECK(api.release(format) == GD_OK);

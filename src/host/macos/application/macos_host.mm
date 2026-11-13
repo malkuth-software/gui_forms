@@ -8,6 +8,9 @@
 #include "macos_window_delegates.hpp"
 #include "macos_window_requests.hpp"
 #include "../view/macos_view.hpp"
+#include "../locale/macos_locale.hpp"
+
+#include <optional>
 
 namespace gui_forms::host {
 
@@ -24,7 +27,7 @@ static KeyMap macos_key_map() {
 // including editable text attributes, verified by
 // gui_forms_macos_accessibility_tests and the AXUIElement client (stage A).
 HostCapabilities macos_capabilities() {
-    return {HostCapabilities::current_protocol_version,
+    HostCapabilities capabilities{HostCapabilities::current_protocol_version,
             "appkit-macos",
             HostCapability::lifecycle |
                 HostCapability::accessibility |
@@ -57,6 +60,14 @@ HostCapabilities macos_capabilities() {
                 HostCapability::transient_surfaces |
                 HostCapability::window_state_reports,
             macos_key_map()};
+    // locale: the user's locale and calendar from CoreFoundation, the
+    // formats chosen in System Settings included (read_macos_locale).
+    const std::optional<HostLocale> locale = read_macos_locale();
+    if (locale.has_value()) {
+        capabilities.locale = *locale;
+        capabilities.available = capabilities.available | HostCapability::locale;
+    }
+    return capabilities;
 }
 
 namespace {

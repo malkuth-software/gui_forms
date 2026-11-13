@@ -1170,6 +1170,20 @@ Types
 
    .. cpp:member:: gd_result (*graphics_path_add_rounded_rectangle)(gd_handle path, gd_rect rectangle, gd_corner_radii radii)
 
+   .. cpp:member:: gd_result (*graphics_path_add_quadratic)(gd_handle path, gd_point from, gd_point control, gd_point to)
+
+   .. cpp:member:: gd_result (*graphics_path_add_bezier)(gd_handle path, gd_point from, gd_point first_control, gd_point second_control, gd_point to)
+
+   .. cpp:member:: gd_result (*graphics_path_add_beziers)(gd_handle path, const gd_point* points, uint64_t count)
+
+   .. cpp:member:: gd_result (*graphics_path_add_polygon)(gd_handle path, const gd_point* points, uint64_t count)
+
+   .. cpp:member:: gd_result (*graphics_path_add_pie)(gd_handle path, gd_rect bounds, double start_angle, double sweep_angle)
+
+   .. cpp:member:: gd_result (*graphics_path_set_fill_mode)(gd_handle path, uint32_t fill_mode)
+
+   .. cpp:member:: gd_result (*graphics_path_fill_mode)(gd_handle path, uint32_t* fill_mode)
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gd_bitmap_damage_summary

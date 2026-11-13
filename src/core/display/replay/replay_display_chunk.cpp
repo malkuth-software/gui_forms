@@ -47,6 +47,8 @@ void replay_marks(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::draw_markers: painter.draw_markers(marks.points, marks.marker); return;
     case DisplayOperation::fill_checker: painter.fill_checker(command.rect, marks.checker); return;
     case DisplayOperation::fill_grid_pattern: painter.fill_grid_pattern(command.rect, marks.grid); return;
+    case DisplayOperation::fill_path: painter.fill_path(marks.path(), command.color, marks.fill_rule); return;
+    case DisplayOperation::stroke_path: painter.stroke_path(marks.path(), marks.stroke); return;
     default:
         // Not a batched operation: replay_command handles it.
         return;
@@ -90,6 +92,8 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::fill_grid_pattern:
     case DisplayOperation::fill_rounded_rect_corners:
     case DisplayOperation::stroke_rounded_rect_corners:
+    case DisplayOperation::fill_path:
+    case DisplayOperation::stroke_path:
         replay_marks(command, painter);
         return;
     case DisplayOperation::fill_rect:

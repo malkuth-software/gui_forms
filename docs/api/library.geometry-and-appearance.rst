@@ -200,6 +200,10 @@ Types
      -  
    * - :cpp:class:`FinishTiles <gui_forms::FinishTiles>`
      - A surface finish over an area, in world coordinates (ThemeEngine::paint_finish_tiles; cp31, the node canvas's finish texture): - ``key`` names the part's record (borrowed for the call); - ``finish`` is borrowed for the call; - ``anchor`` is world (0, 0) in the painter's coordinates and ``zoom`` the view units per world unit, so the finish is a property of the world: it pans with it and grows with the zoom; - ``area`` is where it is drawn, clipped to it (the painter's coordinates).
+   * - :cpp:class:`FlattenedContour <gui_forms::FlattenedContour>`
+     - One contour of a flattened path: its points are those of the flattened point array from the previous contour's ``end`` (0 for the first) to its own ``end``, exclusive.
+   * - :cpp:class:`FlattenedPath <gui_forms::FlattenedPath>`
+     - What flatten_paint_path wrote: the points and contours, and whether the storage ran out (the path is then flattened from its start only).
    * - :cpp:class:`FontDeclaration <gui_forms::FontDeclaration>`
      - A part's font as the cascade resolved it: a text role, or, with ``inherit`` (D7), the parent control's, which the caller resolves at paint.
    * - :cpp:class:`FontSpec <gui_forms::FontSpec>`
@@ -304,6 +308,10 @@ Types
      - Painter is the renderer-neutral command vocabulary for transforms, clips, solids, rounded geometry, gradients, shadows, text, registered images, live surfaces, sampled regions, and bounded patterns; rich operations provide coherent minimal-host fallbacks.
    * - :cpp:class:`PaintGroup <gui_forms::PaintGroup>`
      - A paint group (T2 plan, E7; owner, 2026-10-21: "there are other things that group layer may be needed for"): commands drawn as one image, then composited once.
+   * - :cpp:class:`PaintPath <gui_forms::PaintPath>`
+     - An owned path built verb by verb, for callers that do not keep their own arrays.
+   * - :cpp:class:`PaintPathView <gui_forms::PaintPathView>`
+     - A borrowed path: the verbs and their points, both owned by the caller and read only for the duration of the call given the view.
    * - :cpp:class:`PaintSegment <gui_forms::PaintSegment>`
      - One independent segment of stroke_segments (no joins between segments).
    * - :cpp:class:`ParameterValidation <gui_forms::ParameterValidation>`
@@ -2686,7 +2694,7 @@ Types
 
    .. cpp:function:: void invalidate_rasters() noexcept
 
-      Makes every cached raster stale and drops every slice reference, as when the theme changes.
+      Makes every cached raster stale and drops every slice reference and queued keyframe, as when the theme changes. Held and queued procedural patterns and finish tiles depend on their keys alone and are kept.
 
    .. cpp:function:: void note_paint(PartRecordHandle handle, std::uint64_t inputs_read, std::string_view painted_by, Rect extent)
 
@@ -3043,6 +3051,32 @@ Types
       Default: ``{1.0}``.
 
    .. cpp:member:: Rect area
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FlattenedContour final
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   One contour of a flattened path: its points are those of the flattened point array from the previous contour's ``end`` (0 for the first) to its own ``end``, exclusive. A closed contour repeats its start point last.
+
+   .. cpp:member:: std::size_t end
+
+   .. cpp:member:: bool closed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FlattenedPath final
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   What flatten_paint_path wrote: the points and contours, and whether the storage ran out (the path is then flattened from its start only).
+
+   .. cpp:member:: std::size_t point_count
+
+   .. cpp:member:: std::size_t contour_count
+
+   .. cpp:member:: bool truncated
 
 .. cpp:namespace:: gui_forms
 
@@ -4457,6 +4491,14 @@ Types
 
       A closed polygon through ``points`` (at least 3, all finite), filled by ``rule``.
 
+   .. cpp:function:: virtual void fill_path(PaintPathView path, Color color, PolygonFillRule rule)
+
+      A curved path (paint_path.hpp, exhibit gap E7) filled by ``rule``: every contour, open ones closed by a straight segment. An invalid path (valid_paint_path) draws nothing. The base implementation flattens the path at paint_path_flattening_tolerance into fixed storage (maximum_fallback_path_points points, maximum_fallback_path_contours contours; a longer path is drawn from its start) and fills the contours together by scan rows, as fill_polygon's fallback does.
+
+   .. cpp:function:: virtual void stroke_path(PaintPathView path, const StrokeStyle& style)
+
+      A curved path stroked with ``style``'s width, joins, caps and dashes; closed contours join at their start instead of capping. An invalid path or style draws nothing. The base implementation flattens as fill_path's does and strokes each contour as stroke_polyline's fallback does (solid, no joins of its own).
+
    .. cpp:function:: virtual void fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color)
 
       The area between two polylines sampled at the same positions (a plot's shaded band, area or stacked area): ``upper`` and ``lower`` hold the same count, at least 2, all finite; the band's outline runs along ``upper`` and back along ``lower``, filled nonzero. A constant baseline is a ``lower`` of equal points.
@@ -4574,6 +4616,54 @@ Types
    .. cpp:member:: bool isolated
 
       Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PaintPath final
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   An owned path built verb by verb, for callers that do not keep their own arrays. Each builder call appends one verb and its points; nothing is validated until it is drawn (valid_paint_path). reserve() allocates once before a long build; clear() keeps the storage for the next build.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: PaintPathView view() const& noexcept
+
+      The path, borrowed from this object: valid until the next builder call, clear() or destruction. Not for a temporary path.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void reserve(std::size_t verb_capacity, std::size_t point_capacity)
+
+   .. cpp:function:: void clear() noexcept
+
+   .. cpp:function:: void move_to(Point point)
+
+   .. cpp:function:: void line_to(Point point)
+
+   .. cpp:function:: void quad_to(Point control, Point end)
+
+   .. cpp:function:: void cubic_to(Point first_control, Point second_control, Point end)
+
+   .. cpp:function:: void arc_to(Point center, Size radii, double start_degrees, double sweep_degrees)
+
+      An elliptical arc as arc_to above: ``radii`` x and y the horizontal and vertical radius, angles in degrees, clockwise (y down) from +x.
+
+   .. cpp:function:: void close()
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PaintPathView final
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   A borrowed path: the verbs and their points, both owned by the caller and read only for the duration of the call given the view.
+
+   .. cpp:member:: std::span<const PaintPathVerb> verbs
+
+   .. cpp:member:: std::span<const Point> points
 
 .. cpp:namespace:: gui_forms
 
@@ -7959,6 +8049,24 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: PaintPathVerb
+
+   ``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+   .. cpp:enumerator:: move_to
+
+   .. cpp:enumerator:: line_to
+
+   .. cpp:enumerator:: quad_to
+
+   .. cpp:enumerator:: cubic_to
+
+   .. cpp:enumerator:: arc_to
+
+   .. cpp:enumerator:: close
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ParameterAssignment
 
    ``#include <gui_forms/engine/primitive_registry/primitive_registry.hpp>``
@@ -10297,6 +10405,50 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double grid_level_ratio
 
    Value: ``4.0``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/types/paint_path/paint_path.hpp>``
+
+.. cpp:function:: std::size_t paint_path_points_for(PaintPathVerb verb) noexcept
+
+   The point slots ``verb`` consumes (above); 0 for close and for a value outside the enumeration.
+
+.. cpp:function:: bool valid_paint_path(PaintPathView path) noexcept
+
+   Whether ``path`` can be drawn: at least one verb, every verb known, the points exactly as many as the verbs consume, all finite, every contour starting with move_to or arc_to, arc radii positive, and the counts within the maxima above.
+
+.. cpp:function:: Rect paint_path_bounds(PaintPathView path) noexcept
+
+   A bounding box of a valid path's geometry: the box of its positions and control points (a Bezier curve lies inside its control points' hull) and of each arc's whole ellipse. It may be larger than the drawn geometry, never smaller. Empty for an invalid path. A stroke's bounds add half its width (more where miters reach: stroke_bounds_outset).
+
+.. cpp:function:: double stroke_bounds_outset(double width, double miter_limit) noexcept
+
+   How far a stroke ``width`` wide with miter limit ``miter_limit`` may reach beyond the path's geometry, whatever its joins and caps: half the width times the larger of the miter limit and the square cap's diagonal (the square root of 2). Meant for damage and bounds; finite for a valid StrokeStyle.
+
+.. cpp:function:: FlattenedPath flatten_paint_path(PaintPathView path, double tolerance, std::span<Point> points, std::span<FlattenedContour> contours) noexcept
+
+   Fills ``points`` and ``contours``, which the caller owns, with ``path`` flattened to polylines: lines as they are, curves and arcs subdivided into chords no farther than ``tolerance`` (positive, finite) from the curve. Writes nothing and returns zeros for an invalid path or a tolerance that is not positive and finite. When either array fills, the last contour is ended where the storage ran out and ``truncated`` is set. The arrays must not overlap the path's (they cannot: different types).
+
+.. cpp:var:: constexpr std::size_t maximum_paint_path_verbs
+
+   The most verbs and the most points a path holds; a longer path is refused (valid_paint_path), as a batched mark of more than a million elements is. Value: ``1'000'000U``.
+
+.. cpp:var:: constexpr std::size_t maximum_paint_path_points
+
+   Value: ``3'000'000U``.
+
+.. cpp:var:: constexpr double paint_path_flattening_tolerance
+
+   The default flattening tolerance, in the painter's units: the farthest a flattened chord may lie from the curve (the base painter's fallbacks use a quarter unit, below a device pixel at scale 2 and above). Value: ``0.25``.
+
+.. cpp:var:: constexpr std::size_t maximum_fallback_path_points
+
+   The fixed storage of the base Painter's path fallbacks (Painter::fill_path, Painter::stroke_path): a flattened path longer than this is drawn from its start. Value: ``2048U``.
+
+.. cpp:var:: constexpr std::size_t maximum_fallback_path_contours
+
+   Value: ``64U``.
 
 .. cpp:namespace:: gui_forms
 

@@ -1196,6 +1196,10 @@ Enumerations
 
    .. cpp:enumerator:: stroke_rounded_rect_corners
 
+   .. cpp:enumerator:: fill_path
+
+   .. cpp:enumerator:: stroke_path
+
 Functions, constants and aliases
 --------------------------------
 

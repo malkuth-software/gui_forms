@@ -11,6 +11,7 @@
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/text/markdown/markdown.hpp"
 #include "gui_forms/window/window.hpp"
+#include "support/locale_fixtures.hpp"
 #include "support/named_callbacks.hpp"
 
 #include <algorithm>
@@ -157,14 +158,12 @@ void test_formats_provider_and_transactional_validation() {
     require(rejected && picker.formatted_value() == "5 Thermidor 2026",
             "invalid provider text must be rejected before changing picker state");
 
-    // The named cultures (exhibit gap E11): en-GB's patterns, found by name.
-    const std::optional<DateTimeFormatProvider> british = DateTimeFormatProvider::for_culture("EN-gb");
-    require(british.has_value() && *british == DateTimeFormatProvider::english_united_kingdom(),
-            "en-GB is found by name, ignoring case");
-    require(!DateTimeFormatProvider::for_culture("fr-FR").has_value() &&
-                DateTimeFormatProvider::for_culture("en-US") == DateTimeFormatProvider::english_united_states(),
-            "a culture GUI.Forms does not carry is none; en-US is the default");
-    picker.format_provider = DateTimeFormatProvider::english_united_kingdom();
+    // A provider made from a host locale (exhibit gap E11; en-GB here is a
+    // test fixture, as a host would report it).
+    require(DateTimeFormatProvider::from_locale(portable_host_locale()) ==
+                DateTimeFormatProvider::english_united_states(),
+            "the portable locale's provider is the en-US default");
+    picker.format_provider = DateTimeFormatProvider::from_locale(test_support::english_united_kingdom_locale());
     picker.format = DateTimePickerFormat::long_date;
     require(picker.formatted_value() == "Wednesday 5 August 2026", "en-GB long date: day before month");
     picker.format = DateTimePickerFormat::short_date;

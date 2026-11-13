@@ -58,6 +58,9 @@ enum class VisualPaintOperation : std::uint8_t {
     fill_grid_pattern,
     fill_rounded_rect_corners,
     stroke_rounded_rect_corners,
+    // Curved paths: `element_count` gives the path's point slots.
+    fill_path,
+    stroke_path,
 };
 
 [[nodiscard]] GUI_FORMS_API const char* visual_paint_operation_name(

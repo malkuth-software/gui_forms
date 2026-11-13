@@ -1,4 +1,5 @@
 #include "gui_forms/control.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/component/failures/component_failures.hpp"
 
 #include "gui_forms/binding.hpp"
@@ -1424,6 +1425,25 @@ const KeyMap& Control::effective_key_map() const noexcept {
     static const KeyMap detached_key_map = pc_key_map();
     if (surface_root_ != nullptr) return (*surface_root_).key_map();
     return detached_key_map;
+}
+
+const HostLocale& Control::effective_locale() const noexcept {
+    // Made once, on first use; never modified.
+    static const HostLocale detached_locale = portable_host_locale();
+    if (surface_root_ == nullptr) return detached_locale;
+    const std::shared_ptr<ApplicationResources> shared = (*surface_root_).resources();
+    // The window holds its resources for as long as the control is
+    // attached to it, so the reference outlives this local pointer.
+    if (shared) return (*shared).locale();
+    return detached_locale;
+}
+
+std::uint64_t Control::effective_locale_generation() const noexcept {
+    if (surface_root_ == nullptr) return 0U;
+    const std::shared_ptr<ApplicationResources> shared = (*surface_root_).resources();
+    if (!shared) return 0U;
+    const std::uint64_t generation = (*shared).locale_generation();
+    return generation;
 }
 
 void Control::set_theme_override(std::shared_ptr<const Theme> theme) {

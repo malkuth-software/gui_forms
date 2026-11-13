@@ -647,6 +647,8 @@ const char* visual_paint_operation_name(VisualPaintOperation operation) noexcept
     case VisualPaintOperation::fill_grid_pattern: return "fill_grid_pattern";
     case VisualPaintOperation::fill_rounded_rect_corners: return "fill_rounded_rect_corners";
     case VisualPaintOperation::stroke_rounded_rect_corners: return "stroke_rounded_rect_corners";
+    case VisualPaintOperation::fill_path: return "fill_path";
+    case VisualPaintOperation::stroke_path: return "stroke_path";
     }
     return "unknown";
 }

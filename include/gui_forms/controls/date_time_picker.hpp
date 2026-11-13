@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -28,6 +29,16 @@ public:
     void set_range(DateTimeValue earliest, DateTimeValue latest);
 
     [[nodiscard]] std::string formatted_value() const;
+
+    // The provider the picker shows its value with: its window's locale's
+    // (Control::effective_locale, DateTimeFormatProvider::from_locale)
+    // while it follows the host locale, else format_provider (exhibit gap
+    // E11). It follows from construction until format_provider is written
+    // with a change; follow_host_locale() returns to following. The
+    // reference stays valid until the next call on the picker.
+    [[nodiscard]] const DateTimeFormatProvider& effective_format_provider() const;
+    [[nodiscard]] bool follows_host_locale() const noexcept { return follows_host_locale_; }
+    void follow_host_locale();
 
     [[nodiscard]] Event<DateTimeValue>& value_changed() noexcept {
         return value_changed_;
@@ -98,6 +109,11 @@ private:
     void on_popup_window_closed(std::size_t slot);
 
     BasicControlStyle style_;
+    // Whether the picker shows its locale's provider (follows_host_locale),
+    // and that provider with the locale generation it was made for.
+    bool follows_host_locale_{true};
+    mutable std::optional<std::uint64_t> locale_provider_generation_{};
+    mutable DateTimeFormatProvider locale_provider_{};
     // Whether set_style supplied style_: its text then inks the field's text
     // and marks as authored colours (T4-1); otherwise the theme's stand.
     bool style_authored_{};

@@ -73,7 +73,7 @@ gui_forms::NumericUpDown
          Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
 
       **thousands_separator** : ``bool``
-         Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+         Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.
 
       **text_alignment** : ``HorizontalAlignment``
          Where the editor's text sits (TextAlign): near, center or far.
@@ -262,7 +262,7 @@ gui_forms::NumericUpDown
 
    .. cpp:member:: bool thousands_separator
 
-      Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+      Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.
 
    .. cpp:member:: HorizontalAlignment text_alignment
 

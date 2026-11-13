@@ -337,6 +337,29 @@ void RecordingPainter::fill_polygon(std::span<const Point> points, Color color, 
     commands_.push_back(std::move(command));
 }
 
+// The path is recorded as given; validation happens where it is drawn, so a
+// replay refuses exactly what a direct call refuses.
+void RecordingPainter::fill_path(PaintPathView path, Color color, PolygonFillRule rule) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::fill_path, marks);
+    (*marks).path_verbs.assign(path.verbs.begin(), path.verbs.end());
+    (*marks).points.assign(path.points.begin(), path.points.end());
+    (*marks).fill_rule = rule;
+    command.color = color;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
+void RecordingPainter::stroke_path(PaintPathView path, const StrokeStyle& style) {
+    std::shared_ptr<DisplayMarks> marks;
+    DisplayCommand command = marks_command(DisplayOperation::stroke_path, marks);
+    (*marks).path_verbs.assign(path.verbs.begin(), path.verbs.end());
+    (*marks).points.assign(path.points.begin(), path.points.end());
+    (*marks).stroke = style;
+    command.marks = std::move(marks);
+    commands_.push_back(std::move(command));
+}
+
 void RecordingPainter::fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color) {
     std::shared_ptr<DisplayMarks> marks;
     DisplayCommand command = marks_command(DisplayOperation::fill_band, marks);

@@ -91,6 +91,8 @@ void DateTimePicker::prepare_write(const decltype(format_provider)&, DateTimeFor
 }
 
 void DateTimePicker::written(const decltype(format_provider)&) {
+    // A program's own provider replaces the locale's.
+    follows_host_locale_ = false;
     if (dropped_down_) close_drop_down();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
@@ -147,8 +149,22 @@ std::string_view format_pattern(DateTimePickerFormat format, const DateTimeForma
 } // namespace
 
 std::string DateTimePicker::formatted_value() const {
-    const std::string_view pattern = format_pattern(format.read(), format_provider.read(), custom_format.read());
-    return format_date_time(value.read(), pattern, format_provider.read());
+    const DateTimeFormatProvider& provider = effective_format_provider();
+    const std::string_view pattern = format_pattern(format.read(), provider, custom_format.read());
+    return format_date_time(value.read(), pattern, provider);
+}
+
+const DateTimeFormatProvider& DateTimePicker::effective_format_provider() const {
+    if (!follows_host_locale_) return format_provider.read();
+    return locale_format_provider(*this, locale_provider_generation_, locale_provider_);
+}
+
+void DateTimePicker::follow_host_locale() {
+    require_mutable();
+    if (follows_host_locale_) return;
+    follows_host_locale_ = true;
+    if (dropped_down_) close_drop_down();
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
 DateTimePicker::HitPart DateTimePicker::part_at(Point absolute) const noexcept {
@@ -391,7 +407,7 @@ void DateTimePicker::open_drop_down() {
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
     std::shared_ptr<gui_forms::CalendarOverlay> calendar = make_control<CalendarOverlay>(
         StableId(prefix + ".overlay.calendar"), value.read(), minimum.read(), maximum.read(),
-        format_provider.read());
+        effective_format_provider());
     (*calendar).set_requested_bounds({x, y, width, height});
     OverlayToken token = (*window()).open_overlay(owner, layer);
     const std::optional<Rect> face =

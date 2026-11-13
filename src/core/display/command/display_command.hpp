@@ -71,6 +71,10 @@ enum class DisplayOperation : std::uint8_t {
     // width.
     fill_rounded_rect_corners = 37,
     stroke_rounded_rect_corners = 38,
+    // Curved paths (Painter::fill_path, Painter::stroke_path): the verbs
+    // and points in `marks`.
+    fill_path = 39,
+    stroke_path = 40,
 };
 
 // The payload of a batched mark or pattern command: the caller's spans,
@@ -84,7 +88,9 @@ enum class DisplayOperation : std::uint8_t {
 // - fill_rects_each: `rects`, `colors`;
 // - stroke_segments: `segments`, `stroke`;
 // - draw_markers: `points`, `marker`;
-// - fill_checker: `checker`; fill_grid_pattern: `grid`.
+// - fill_checker: `checker`; fill_grid_pattern: `grid`;
+// - fill_path: `path_verbs`, `points`, `color` on the command, `fill_rule`;
+// - stroke_path: `path_verbs`, `points`, `stroke`.
 struct DisplayMarks final {
     std::vector<Point> points;
     std::vector<Point> lower_points;
@@ -96,6 +102,16 @@ struct DisplayMarks final {
     CheckerPattern checker{};
     GridPattern grid{};
     PolygonFillRule fill_rule{PolygonFillRule::nonzero};
+    std::vector<PaintPathVerb> path_verbs;
+
+    // The recorded path, borrowed from these marks.
+    [[nodiscard]] PaintPathView path() const& noexcept {
+        PaintPathView view{};
+        view.verbs = std::span<const PaintPathVerb>(path_verbs.data(), path_verbs.size());
+        view.points = std::span<const Point>(points.data(), points.size());
+        return view;
+    }
+    PaintPathView path() const&& = delete;
 };
 
 struct DisplayCommand final {

@@ -10,6 +10,7 @@
 #include "../../surface_root/access/surface_resource_access.hpp"
 #include "gui_forms/resources/image_atlas/image_atlas.hpp"
 
+#include <atomic>
 #include <cstdio>
 
 #include <stdexcept>
@@ -324,7 +325,43 @@ void ApplicationResources::set_light_plane_directory(std::filesystem::path direc
     // lays out and repaints (cp31 follow-up; a repaint alone left the
     // published part geometry stale until the next layout).
     for (std::size_t index = 0U; index < windows_.size(); ++index) {
-        detail::SurfaceResourceAccess::relayout_for_light_planes(*windows_[index]);
+        detail::SurfaceResourceAccess::relayout_for_resource_content(*windows_[index]);
+    }
+}
+
+namespace {
+
+// Locale generations are drawn from one process-wide count, so a control's
+// cache keyed by a generation never mistakes one resources' locale for
+// another's (0 is the portable default's, outside any resources).
+std::uint64_t next_locale_generation() noexcept {
+    static std::atomic<std::uint64_t> generations{0U};
+    const std::uint64_t generation = generations.fetch_add(1U, std::memory_order_relaxed) + 1U;
+    return generation;
+}
+
+} // namespace
+
+void ApplicationResources::set_locale(HostLocale locale) {
+    require_access("locale");
+    if (!valid_host_locale(locale)) throw std::invalid_argument("ApplicationResources::set_locale: invalid locale");
+    locale_set_by_program_ = true;
+    adopt_locale(std::move(locale));
+}
+
+void ApplicationResources::seed_host_locale(const HostLocale& locale) {
+    require_access("host locale");
+    if (locale_set_by_program_ || host_locale_seeded_ || !valid_host_locale(locale)) return;
+    host_locale_seeded_ = true;
+    adopt_locale(locale);
+}
+
+void ApplicationResources::adopt_locale(HostLocale locale) {
+    if (locale == locale_) return;
+    locale_ = std::move(locale);
+    locale_generation_ = next_locale_generation();
+    for (std::size_t index = 0U; index < windows_.size(); ++index) {
+        detail::SurfaceResourceAccess::relayout_for_resource_content(*windows_[index]);
     }
 }
 

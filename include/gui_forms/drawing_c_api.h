@@ -27,6 +27,9 @@ extern "C" {
    version exposes the table prefix it introduced; a newer version only
    appends. */
 #define GD_ABI_VERSION_0_3 UINT32_C(0x00000003)
+/* 0.4 appends the curved path vocabulary (graphics_path_add_quadratic
+   onwards), for consumers drawing their own curves (exhibit gap E7). */
+#define GD_ABI_VERSION_0_4 UINT32_C(0x00000004)
 
 typedef struct gd_handle {
     uint32_t slot;
@@ -624,6 +627,31 @@ typedef struct gd_api_v0 {
                                         gd_color dark, gd_color* chosen);
     gd_result (*graphics_path_add_rounded_rectangle)(gd_handle path, gd_rect rectangle,
                                                      gd_corner_radii radii);
+    /*
+     * ABI 0.4, curved paths. Each curve appends to the current figure as
+     * graphics_path_add_line does. recorder_fill_path fills by the path's fill mode
+     * (0 alternate, even-odd; 1 winding, non-zero) and recorder_draw_path
+     * strokes with the pen's width, joins, caps and dashes. Every point is
+     * finite; a refused call leaves the path as it was.
+     */
+    /* A quadratic Bezier curve from `from` through the control to `to`. */
+    gd_result (*graphics_path_add_quadratic)(gd_handle path, gd_point from, gd_point control,
+                                             gd_point to);
+    /* A cubic Bezier curve from `from` by two controls to `to`. */
+    gd_result (*graphics_path_add_bezier)(gd_handle path, gd_point from, gd_point first_control,
+                                          gd_point second_control, gd_point to);
+    /* Joined cubic curves: count is 4 + 3n (at most 1,000,000 points); each
+       curve starts at the previous one's end. */
+    gd_result (*graphics_path_add_beziers)(gd_handle path, const gd_point* points, uint64_t count);
+    /* A closed figure through count (3 or more) points. */
+    gd_result (*graphics_path_add_polygon)(gd_handle path, const gd_point* points, uint64_t count);
+    /* A closed pie wedge: the centre of bounds, the arc as add_arc says, and
+       back to the centre. */
+    gd_result (*graphics_path_add_pie)(gd_handle path, gd_rect bounds, double start_angle,
+                                       double sweep_angle);
+    /* 0 alternate (even-odd), 1 winding (non-zero). */
+    gd_result (*graphics_path_set_fill_mode)(gd_handle path, uint32_t fill_mode);
+    gd_result (*graphics_path_fill_mode)(gd_handle path, uint32_t* fill_mode);
 } gd_api_v0;
 
 /*

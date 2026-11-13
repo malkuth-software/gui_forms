@@ -151,6 +151,16 @@ bool civil_in_range(DateTimeValue value, DateTimeValue minimum,
     return !value.empty() && validate_utf8(value).valid();
 }
 
+const DateTimeFormatProvider& locale_format_provider(const Control& control,
+                                                     std::optional<std::uint64_t>& generation,
+                                                     DateTimeFormatProvider& cache) {
+    const std::uint64_t current = control.effective_locale_generation();
+    if (generation.has_value() && *generation == current) return cache;
+    cache = DateTimeFormatProvider::from_locale(control.effective_locale());
+    generation = current;
+    return cache;
+}
+
 void validate_provider(const DateTimeFormatProvider& provider) {
     for (const std::string& value : provider.month_names) {
         if (!valid_provider_text(value))

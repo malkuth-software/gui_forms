@@ -17,6 +17,7 @@
 #include "gui_forms/engine/theme_rules/cascade_facts.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/events.hpp"
+#include "gui_forms/host/types/host_locale/host_locale.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/semantics.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
@@ -580,6 +581,14 @@ public:
     // convention's while detached. A control asks it whether a key event is
     // a named keyboard command instead of naming the keys itself.
     [[nodiscard]] const KeyMap& effective_key_map() const noexcept;
+    // The locale the control formats dates and numbers with (exhibit gap
+    // E11): its window's application locale (ApplicationResources::locale),
+    // or the portable default while detached. The reference stays valid
+    // while the control is attached and the locale unchanged; a control
+    // keeping something derived from it keys it by
+    // effective_locale_generation() (0 while detached).
+    [[nodiscard]] const HostLocale& effective_locale() const noexcept;
+    [[nodiscard]] std::uint64_t effective_locale_generation() const noexcept;
     [[nodiscard]] std::shared_ptr<const Theme> theme_override() const noexcept {
         return theme_override_;
     }

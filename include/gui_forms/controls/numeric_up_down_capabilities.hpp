@@ -128,7 +128,7 @@ struct NumericUpDownScrubCapability {
     }
 };
 
-// Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.
+// Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.
 template <typename Declaring>
 struct NumericUpDownThousandsSeparatorCapability {
     PropertyCell<bool, NumericUpDownThousandsSeparatorCapability<Declaring>> thousands_separator{false};

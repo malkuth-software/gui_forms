@@ -106,6 +106,10 @@ private:
     // Set while the editor's own text is committed to value, so the write
     // leaves the text as the user typed it.
     bool committing_{};
+    // The locale generation the editor's text was last written for
+    // (Control::effective_locale_generation): arrange writes the text again
+    // with the separators of a locale that has changed since.
+    std::uint64_t shown_locale_generation_{};
     Event<double> value_changed_;
     // The scrub mode's drag client and target, made with the control
     // (numeric_up_down.cpp); idle unless scrub is on.

@@ -263,7 +263,7 @@
       "capability": "NumericUpDownThousandsSeparator",
       "value": "bool",
       "initial": "false",
-      "comment": "Whether the editor groups the integer digits in threes with commas (ThousandsSeparator); typed commas are accepted either way. No effect in hexadecimal.",
+      "comment": "Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.",
       "getter": "thousands_separator",
       "setter": "set_thousands_separator",
       "clear": null,

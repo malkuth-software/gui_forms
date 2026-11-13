@@ -54,6 +54,8 @@ public:
     // invalid stops, as the other gradients do.
     void stroke_polyline(std::span<const Point> points, const StrokeStyle& style) override;
     void fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule) override;
+    void fill_path(PaintPathView path, Color color, PolygonFillRule rule) override;
+    void stroke_path(PaintPathView path, const StrokeStyle& style) override;
     void fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color) override;
     void fill_rects(std::span<const Rect> rects, Color color) override;
     void fill_rects_each(std::span<const Rect> rects, std::span<const Color> colors) override;

@@ -500,6 +500,10 @@ Related types
 
       The window's backplane (the theme's window material) under the control, as capture_window draws it, so the picture is what the window shows there; off, what the subtree does not paint stays transparent, as snapshot_control leaves it. Default: ``{true}``.
 
+   .. cpp:member:: bool include_overlays
+
+      The in-surface overlays owned by the control or a descendant (an ErrorProvider's icons, an open drop-down or tooltip), composited over the subtree within the area, as capture_window composites every overlay. Off, only the subtree is drawn. Default: ``{true}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ControlLookup final
@@ -1199,7 +1203,7 @@ Related types
 
    .. cpp:member:: bool include_overlays
 
-      capture_window: the window's in-surface overlays. Default: ``{true}``.
+      capture_window: the window's in-surface overlays; capture_control: those the control or a descendant owns (ControlCaptureOptions). Default: ``{true}``.
 
    .. cpp:member:: double margin
 

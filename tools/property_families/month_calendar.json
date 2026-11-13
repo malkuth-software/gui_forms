@@ -71,7 +71,7 @@
       "capability": "FirstDayOfWeek",
       "value": "CalendarWeekday",
       "initial": "CalendarWeekday::sunday",
-      "comment": "The weekday each week row starts on.",
+      "comment": "The weekday each week row starts on, once written; until then the host locale's first day (effective_first_day_of_week).",
       "getter": "first_day_of_week",
       "setter": "set_first_day_of_week",
       "clear": null,
@@ -81,14 +81,11 @@
       "localizable": null,
       "table": null,
       "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
-      "hooks": "generated",
-      "hand": [],
-      "sample": "CalendarWeekday::monday",
-      "prepare": [
-        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(CalendarWeekday::saturday)) {",
-        "    throw std::invalid_argument(\"MonthCalendar first day of week is invalid\");",
-        "}"
-      ]
+      "hooks": "hand",
+      "hand": [
+        "prepare validates the weekday; written stops following the host locale's first day and invalidates"
+      ],
+      "sample": "CalendarWeekday::monday"
     },
     {
       "name": "calendar_dimensions",
@@ -159,7 +156,7 @@
       "capability": "MonthCalendarFormatProvider",
       "value": "DateTimeFormatProvider",
       "initial": "DateTimeFormatProvider::english_united_states()",
-      "comment": "Month and day names and the \"Today:\" date pattern.",
+      "comment": "Month and day names and the \"Today:\" date pattern, once written; until then the host locale's (effective_format_provider).",
       "getter": "format_provider",
       "setter": "set_format_provider",
       "clear": null,
@@ -169,10 +166,9 @@
       "localizable": null,
       "table": null,
       "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
-      "hooks": "generated",
-      "hand": [],
-      "prepare": [
-        "date_time_detail::validate_provider(incoming);"
+      "hooks": "hand",
+      "hand": [
+        "prepare validates the provider; written stops following the host locale's provider and invalidates"
       ]
     },
     {

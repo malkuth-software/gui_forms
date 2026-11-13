@@ -7,6 +7,7 @@
 #include "gui_forms/events.hpp"
 #include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
 #include "gui_forms/host/types/host_lifecycle_phase/host_lifecycle_phase.hpp"
+#include "gui_forms/host/types/host_locale/host_locale.hpp"
 #include "gui_forms/host/types/host_services_snapshot/host_services_snapshot.hpp"
 #include "gui_forms/host/types/host_session_snapshot/host_session_snapshot.hpp"
 #include "gui_forms/types.hpp"

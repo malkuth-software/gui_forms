@@ -9,6 +9,7 @@
 #include "../compositor/windows_compositor.hpp"
 #include "../input/windows_key_translation.hpp"
 #include "../input/windows_message_queue.hpp"
+#include "../locale/windows_locale.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../fonts/sealed_pages_windows.hpp"
 #include "../../../core/resources/fonts/bundled_font_set.hpp"
@@ -4184,7 +4185,7 @@ void run_windows_prepared_text_fixture(const std::span<const std::byte> fonts) {
 // including the TextPattern, verified by the MSAA and UI Automation client
 // tests over the Gallery (stage A).
 HostCapabilities windows_capabilities() {
-    return {HostCapabilities::current_protocol_version,
+    HostCapabilities capabilities{HostCapabilities::current_protocol_version,
             "win32-dib",
             HostCapability::lifecycle |
                 HostCapability::accessibility |
@@ -4219,6 +4220,14 @@ HostCapabilities windows_capabilities() {
             // Windows follows the PC keyboard convention (Ctrl+F4 closes a
             // document).
             pc_key_map()};
+    // locale: not yet reported (read_windows_locale is the hand-back's
+    // interface and gives nothing until GetLocaleInfoEx is read).
+    const std::optional<HostLocale> locale = read_windows_locale();
+    if (locale.has_value()) {
+        capabilities.locale = *locale;
+        capabilities.available = capabilities.available | HostCapability::locale;
+    }
+    return capabilities;
 }
 
 int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {

@@ -146,6 +146,11 @@ public:
     // which draw through fill_rect and so snap every edge to device pixels.
     void stroke_polyline(std::span<const Point> points, const StrokeStyle& style) override;
     void fill_polygon(std::span<const Point> points, Color color, PolygonFillRule rule) override;
+    // Curved paths as one Skia path each: the verbs drawn exactly (quads,
+    // cubics and elliptical arcs, no flattening here), antialiased; a sweep
+    // of a full turn is drawn as two half turns.
+    void fill_path(PaintPathView path, Color color, PolygonFillRule rule) override;
+    void stroke_path(PaintPathView path, const StrokeStyle& style) override;
     void fill_band(std::span<const Point> upper, std::span<const Point> lower, Color color) override;
     void stroke_segments(std::span<const PaintSegment> segments, const StrokeStyle& style) override;
     void draw_markers(std::span<const Point> centers, const MarkerStyle& style) override;

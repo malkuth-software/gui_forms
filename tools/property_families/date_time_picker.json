@@ -139,7 +139,7 @@
       "capability": "DateTimePickerFormatProvider",
       "value": "DateTimeFormatProvider",
       "initial": "DateTimeFormatProvider::english_united_states()",
-      "comment": "The month and day names and the patterns the value is shown with. An invalid provider throws std::invalid_argument; a change closes an open calendar.",
+      "comment": "The month and day names and the patterns the value is shown with, once written; until then the host locale's (effective_format_provider). An invalid provider throws std::invalid_argument; a change closes an open calendar.",
       "getter": "format_provider",
       "setter": "set_format_provider",
       "clear": null,
@@ -150,7 +150,7 @@
       "table": null,
       "hooks": "hand",
       "hand": [
-        "prepare validates the provider; written closes the calendar and invalidates"
+        "prepare validates the provider; written stops following the host locale, closes the calendar and invalidates"
       ],
       "effects": null
     },

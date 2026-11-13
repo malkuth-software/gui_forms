@@ -125,6 +125,8 @@ Related types
      - A borrowed, top-to-bottom, premultiplied BGRA8 sRGB image: blue, green, red, alpha in memory, each colour channel at most its alpha, as every framebuffer and raster holds pixels.
    * - :cpp:class:`HostInputSettingsEvent <gui_forms::HostInputSettingsEvent>`
      - The platform's input settings that controls read (stage W, ListView label editing): reported after attach and again whenever the system setting changes.
+   * - :cpp:class:`HostLocale <gui_forms::HostLocale>`
+     - The host's locale details GUI.Forms formats with (exhibit gap E11; owner, 2026-11-13: GUI.Forms defers to the host for the date and time and, where possible, the locale details).
    * - :cpp:class:`HostMessageDialogRequest <gui_forms::HostMessageDialogRequest>`
      - HostMessageDialogRequest declares portable title/message, button set, semantic icon, and valid default choice.
    * - :cpp:class:`HostMessageDialogResult <gui_forms::HostMessageDialogResult>`
@@ -709,6 +711,10 @@ Related types
 
       The keys this host's convention gives the named keyboard commands (owner decision DK-30, interview G5-1): host data, not core policy. The first HostSession of an application seeds the application's KeyBindings with it (owner decision DK-44); the application's rebindings stay over it. Default: ``{pc_key_map()}``.
 
+   .. cpp:member:: HostLocale locale
+
+      The platform's locale (exhibit gap E11): what the host read when it reports HostCapability::locale, else the portable default. The first HostSession of an application seeds the application's locale with it (ApplicationResources::locale) unless the program set one. Default: ``{portable_host_locale()}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: HostClipboardFilesResult final
@@ -1062,6 +1068,60 @@ Related types
    .. cpp:member:: CaretSettings caret
 
       The caret's blink phase (protocol version 13, audit N75).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostLocale final
+
+   ``#include <gui_forms/host/types/host_locale/host_locale.hpp>``
+
+   The host's locale details GUI.Forms formats with (exhibit gap E11; owner, 2026-11-13: GUI.Forms defers to the host for the date and time and, where possible, the locale details). Host data, not core policy: a host fills what its platform says (HostCapabilities::locale, reported with HostCapability::locale) and leaves the rest at the portable default. The patterns use the DateTimePicker's custom-format letters (d, dd, ddd, dddd, M to MMMM, yy, yyyy, h, hh, H, HH, m, mm, s, ss, t, tt, text in single quotes); a host converts its platform's pattern language to them. The names run January first and Sunday first. Every text is UTF-8; the names and patterns are never empty (valid_host_locale).
+
+   .. cpp:member:: std::string name
+
+      The platform's name for the locale, a BCP 47 tag where the platform gives one ("en-GB", "de-DE"), else as the platform writes it; "und" (undetermined) for the portable default. Default: ``{"und"}``.
+
+   .. cpp:member:: std::array<std::string, 12> month_names{"January", "February", "March", "April", "May", "June",
+
+   .. cpp:member:: std::array<std::string, 12> abbreviated_month_names{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+
+   .. cpp:member:: std::array<std::string, 7> day_names{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+
+   .. cpp:member:: std::array<std::string, 7> abbreviated_day_names
+
+      Default: ``{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}``.
+
+   .. cpp:member:: std::string long_date_pattern
+
+      Default: ``{"dddd, MMMM d, yyyy"}``.
+
+   .. cpp:member:: std::string short_date_pattern
+
+      Default: ``{"M/d/yyyy"}``.
+
+   .. cpp:member:: std::string time_pattern
+
+      Default: ``{"h:mm tt"}``.
+
+   .. cpp:member:: std::string am_designator
+
+      Default: ``{"AM"}``.
+
+   .. cpp:member:: std::string pm_designator
+
+      Default: ``{"PM"}``.
+
+   .. cpp:member:: std::string decimal_separator
+
+      The separators of formatted numbers: between the integer and the fraction, and between digit groups of the integer. Default: ``{"."}``.
+
+   .. cpp:member:: std::string group_separator
+
+      Default: ``{","}``.
+
+   .. cpp:member:: HostWeekday first_day_of_week
+
+      Default: ``{HostWeekday::sunday}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3531,6 +3591,8 @@ Enumerations
 
    .. cpp:enumerator:: window_state_reports
 
+   .. cpp:enumerator:: locale
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostCloseReason
@@ -3766,6 +3828,26 @@ Enumerations
    .. cpp:enumerator:: warning
 
    .. cpp:enumerator:: error
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostWeekday
+
+   ``#include <gui_forms/host/types/host_locale/host_locale.hpp>``
+
+   .. cpp:enumerator:: sunday
+
+   .. cpp:enumerator:: monday
+
+   .. cpp:enumerator:: tuesday
+
+   .. cpp:enumerator:: wednesday
+
+   .. cpp:enumerator:: thursday
+
+   .. cpp:enumerator:: friday
+
+   .. cpp:enumerator:: saturday
 
 .. cpp:namespace:: gui_forms
 
@@ -4118,7 +4200,7 @@ Functions, constants and aliases
 
    Whether the rows run consecutively from 8, each with a feature.
 
-.. cpp:var:: constexpr std::array<HostProtocolRevision, 6> host_protocol_revisions
+.. cpp:var:: constexpr std::array<HostProtocolRevision, 7> host_protocol_revisions
 
    The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version.
 
@@ -4127,6 +4209,22 @@ Functions, constants and aliases
 ``#include <gui_forms/host/types/host_capability/host_capability.hpp>``
 
 .. cpp:function:: constexpr bool has_capability(HostCapability available, HostCapability requested) noexcept
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/host/types/host_locale/host_locale.hpp>``
+
+.. cpp:function:: HostLocale portable_host_locale()
+
+   The fixed portable default, used where a host cannot say: HostLocale's member defaults. They are the patterns, names and separators the DateTimePicker and NumericUpDown drew before GUI.Forms read a host locale (English names, month-day-year dates, a twelve-hour clock, "." and ","), kept so a host that reports nothing draws as before; a choice, not a claim about any user's locale.
+
+.. cpp:function:: bool valid_host_locale(const HostLocale& locale)
+
+   Whether ``locale`` can be formatted with: every name and pattern non-empty valid UTF-8, the designators and separators valid UTF-8 (they may be empty), the decimal separator non-empty and different from the group separator, and a known first day.
+
+.. cpp:function:: std::string host_locale_json(const HostLocale& locale)
+
+   ``locale`` as one JSON object (HostCapabilities::to_json writes it under "locale").
 
 .. cpp:namespace:: gui_forms
 

@@ -95,6 +95,11 @@ gui_forms::DateTimePicker
       **formatted_value** : ``std::string``, read-only
          The value as the field shows it, in the current format.
 
+      **effective_format_provider** : ``DateTimeFormatProvider``, read-only
+         The provider the picker shows its value with: its window's locale's (Control::effective_locale, DateTimeFormatProvider::from_locale) while it follows the host locale, else format_provider (exhibit gap E11). It follows from construction until format_provider is written with a change; follow_host_locale() returns to following. The reference stays valid until the next call on the picker.
+
+      **follows_host_locale** : ``bool``, read-only
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -128,6 +133,8 @@ gui_forms::DateTimePicker
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`follow_host_locale <gui_forms::DateTimePicker::follow_host_locale>`
+        -  
       * - :cpp:func:`set_range <gui_forms::DateTimePicker::set_range>`
         - Sets :cpp:member:`minimum <gui_forms::DateTimePicker::minimum>` and :cpp:member:`maximum <gui_forms::DateTimePicker::maximum>` together.
 
@@ -332,6 +339,12 @@ gui_forms::DateTimePicker
 
       The value as the field shows it, in the current format.
 
+   .. cpp:function:: const DateTimeFormatProvider& effective_format_provider() const
+
+      The provider the picker shows its value with: its window's locale's (Control::effective_locale, DateTimeFormatProvider::from_locale) while it follows the host locale, else format_provider (exhibit gap E11). It follows from construction until format_provider is written with a change; follow_host_locale() returns to following. The reference stays valid until the next call on the picker.
+
+   .. cpp:function:: bool follows_host_locale() const noexcept
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -357,6 +370,8 @@ gui_forms::DateTimePicker
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: void follow_host_locale()
 
    .. cpp:function:: void set_range(DateTimeValue earliest, DateTimeValue latest)
 

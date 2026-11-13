@@ -9,6 +9,7 @@
 #include "../../../core/application/splashscreen_surface.hpp"
 #include "../../posix/fonts/sealed_pages_posix.hpp"
 #include "../../../core/resources/fonts/bundled_font_set.hpp"
+#include "../locale/posix_locale.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include <thread>
@@ -35,6 +36,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <optional>
 #include <poll.h>
 #include <span>
 #include <stdexcept>
@@ -2232,7 +2234,7 @@ std::unique_ptr<gui_forms::detail::SplashscreenSurface> open_platform_splashscre
 // AtkText, verified by the AT-SPI client tests over a fixture and the
 // Gallery (stage A). ATK is a required dependency of this host.
 HostCapabilities linux_capabilities() {
-  return {HostCapabilities::current_protocol_version, "linux-x11",
+  HostCapabilities capabilities{HostCapabilities::current_protocol_version, "linux-x11",
           HostCapability::lifecycle | HostCapability::scale_notifications |
               HostCapability::accessibility | HostCapability::frame_capture |
               HostCapability::monitor_geometry |
@@ -2252,6 +2254,14 @@ HostCapabilities linux_capabilities() {
               HostCapability::window_state_reports,
           // X11 desktops follow the PC keyboard convention.
           pc_key_map()};
+  // locale: the environment's POSIX locale (read_posix_locale); none for
+  // the C and POSIX locales.
+  const std::optional<HostLocale> locale = read_posix_locale();
+  if (locale.has_value()) {
+    capabilities.locale = *locale;
+    capabilities.available = capabilities.available | HostCapability::locale;
+  }
+  return capabilities;
 }
 int run_linux_application(std::vector<LinuxApplicationWindow> windows,
                           LinuxApplicationOptions application) {

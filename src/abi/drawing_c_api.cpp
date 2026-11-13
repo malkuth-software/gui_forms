@@ -2403,8 +2403,96 @@ gd_result api_graphics_path_add_rounded_rectangle(gd_handle handle, gd_rect rect
                                                       rectangle, radii);
 }
 
+gd_result add_path_quadratic(gui_drawing::GraphicsPath& path, gd_point from, gd_point control, gd_point to) {
+    path.add_quadratic(point_from_c(from), point_from_c(control), point_from_c(to));
+    return GD_OK;
+}
+
+gd_result add_path_bezier(gui_drawing::GraphicsPath& path, gd_point from, gd_point first_control,
+                          gd_point second_control, gd_point to) {
+    path.add_bezier(point_from_c(from), point_from_c(first_control), point_from_c(second_control),
+                    point_from_c(to));
+    return GD_OK;
+}
+
+gd_result add_path_beziers(gui_drawing::GraphicsPath& path, const std::vector<gui_drawing::PointF>& points) {
+    path.add_beziers(points);
+    return GD_OK;
+}
+
+gd_result add_path_polygon(gui_drawing::GraphicsPath& path, const std::vector<gui_drawing::PointF>& points) {
+    path.add_polygon(points);
+    return GD_OK;
+}
+
+gd_result add_path_pie(gui_drawing::GraphicsPath& path, gd_rect bounds, double start_angle, double sweep_angle) {
+    path.add_pie(rect_from_c(bounds), start_angle, sweep_angle);
+    return GD_OK;
+}
+
+gd_result set_path_fill_mode(gui_drawing::GraphicsPath& path, std::uint32_t fill_mode) {
+    path.set_fill_mode(static_cast<gui_drawing::FillMode>(fill_mode));
+    return GD_OK;
+}
+
+gd_result read_path_fill_mode(gui_drawing::GraphicsPath& path, std::uint32_t* fill_mode) {
+    *fill_mode = static_cast<std::uint32_t>(path.fill_mode());
+    return GD_OK;
+}
+
+gd_result add_path_point_list(gd_handle handle, const gd_point* points, std::uint64_t count, bool beziers) {
+    const std::vector<gui_drawing::PointF> native = points_from_c(points, count);
+    if (beziers) {
+        return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &add_path_beziers, native);
+    }
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &add_path_polygon, native);
+}
+
+gd_result api_graphics_path_add_quadratic(gd_handle handle, gd_point from, gd_point control, gd_point to) {
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &add_path_quadratic, from,
+                                                      control, to);
+}
+
+gd_result api_graphics_path_add_bezier(gd_handle handle, gd_point from, gd_point first_control,
+                                       gd_point second_control, gd_point to) {
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &add_path_bezier, from,
+                                                      first_control, second_control, to);
+}
+
+gd_result api_graphics_path_add_beziers(gd_handle handle, const gd_point* points, std::uint64_t count) {
+    const bool shaped = count >= 4U && (count - 1U) % 3U == 0U;
+    if (points == nullptr || !shaped || count > gui_drawing::GraphicsPath::maximum_elements) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "joined Bezier curves require 4 + 3n bounded points");
+    }
+    return translate(&add_path_point_list, handle, points, count, true);
+}
+
+gd_result api_graphics_path_add_polygon(gd_handle handle, const gd_point* points, std::uint64_t count) {
+    if (points == nullptr || count < 3U || count > gui_drawing::GraphicsPath::maximum_elements) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "a path polygon requires 3 or more bounded points");
+    }
+    return translate(&add_path_point_list, handle, points, count, false);
+}
+
+gd_result api_graphics_path_add_pie(gd_handle handle, gd_rect bounds, double start_angle, double sweep_angle) {
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &add_path_pie, bounds,
+                                                      start_angle, sweep_angle);
+}
+
+gd_result api_graphics_path_set_fill_mode(gd_handle handle, std::uint32_t fill_mode) {
+    if (fill_mode > 1U) return fail(GD_ERROR_INVALID_ARGUMENT, "path fill mode is outside the declared enum");
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &set_path_fill_mode,
+                                                      fill_mode);
+}
+
+gd_result api_graphics_path_fill_mode(gd_handle handle, std::uint32_t* fill_mode) {
+    if (fill_mode == nullptr) return fail(GD_ERROR_INVALID_ARGUMENT, "path fill mode requires output");
+    return registry().with<gui_drawing::GraphicsPath>(handle, GD_OBJECT_GRAPHICS_PATH, &read_path_fill_mode,
+                                                      fill_mode);
+}
+
 const gd_api_v0 api_table{
-    sizeof(gd_api_v0), GD_ABI_VERSION_0_3,
+    sizeof(gd_api_v0), GD_ABI_VERSION_0_4,
     &api_last_error, &api_retain, &api_release, &api_dispose,
     &api_object_state, &api_object_kind,
     &api_solid_brush_create, &api_pen_create, &api_pen_set_width,
@@ -2472,6 +2560,10 @@ const gd_api_v0 api_table{
     &api_recorder_draw_string_over_fill,
     &api_contrast_ratio, &api_contrasting_text_color,
     &api_graphics_path_add_rounded_rectangle,
+    &api_graphics_path_add_quadratic, &api_graphics_path_add_bezier,
+    &api_graphics_path_add_beziers, &api_graphics_path_add_polygon,
+    &api_graphics_path_add_pie,
+    &api_graphics_path_set_fill_mode, &api_graphics_path_fill_mode,
 };
 
 } // namespace
@@ -2484,7 +2576,8 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
     }
     if (requested_version != GD_ABI_VERSION_0_1 &&
         requested_version != GD_ABI_VERSION_0_2 &&
-        requested_version != GD_ABI_VERSION_0_3) {
+        requested_version != GD_ABI_VERSION_0_3 &&
+        requested_version != GD_ABI_VERSION_0_4) {
         return fail(GD_ERROR_UNSUPPORTED_VERSION,
                     "requested GUI.Drawing ABI version is unsupported");
     }
@@ -2495,6 +2588,8 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
         available = offsetof(gd_api_v0, bitmap_edit_begin);
     } else if (requested_version == GD_ABI_VERSION_0_2) {
         available = offsetof(gd_api_v0, pen_set_line_join);
+    } else if (requested_version == GD_ABI_VERSION_0_3) {
+        available = offsetof(gd_api_v0, graphics_path_add_quadratic);
     }
     const std::size_t copied = std::min<std::size_t>(caller_size, available);
     std::memcpy(table, &api_table, copied);

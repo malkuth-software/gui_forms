@@ -1,12 +1,15 @@
 // The batched marks and patterns drawn by the Skia raster (painter.hpp,
 // paint_marks.hpp): each call's pixels where its geometry says they land,
 // NaN gaps and dashes, the fill rules, markers, the conic gradient's
-// direction, the per-corner rounding, and the replay of a recording drawing
-// the same bytes as drawing directly.
+// direction, the per-corner rounding, the curved paths (exhibit gap E7:
+// fill rules, strokes, and a frame repainted tile by tile drawing the bytes
+// of one whole paint), and the replay of a recording drawing the same bytes
+// as drawing directly.
 #include "gui_forms/display/types/display_types.hpp"
 #include "gui_forms/types/damage_region/damage_region.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_marks/paint_marks.hpp"
+#include "gui_forms/types/paint_path/paint_path.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "skia_raster.hpp"
@@ -227,6 +230,91 @@ void test_patterns() {
     require(is_white(pixel_at(raster, 45U, 25U)), "between lines the ground must show");
 }
 
+// A ring of two clockwise circles centred on (cx, cy), outer radius 14 and
+// inner 6, each its own closed contour.
+PaintPath ring_path(double cx, double cy) {
+    PaintPath path;
+    path.arc_to(Point{cx, cy}, Size{14.0, 14.0}, 0.0, 360.0);
+    path.close();
+    path.move_to(Point{cx + 6.0, cy});
+    path.arc_to(Point{cx, cy}, Size{6.0, 6.0}, 0.0, 360.0);
+    path.close();
+    return path;
+}
+
+// A cubic from (4, 58) to (92, 58) bowing up to y = 50.5 at its midpoint
+// (45.75, 50.5), with a quadratic hook after it.
+PaintPath curve_path() {
+    PaintPath path;
+    path.move_to(Point{4.0, 58.0});
+    path.cubic_to(Point{30.0, 48.0}, Point{60.0, 48.0}, Point{92.0, 58.0});
+    path.quad_to(Point{94.0, 62.0}, Point{88.0, 62.0});
+    return path;
+}
+
+void path_scene(Painter& painter) {
+    const PaintPath even_odd = ring_path(24.0, 28.0);
+    painter.fill_path(even_odd.view(), black, PolygonFillRule::even_odd);
+    const PaintPath nonzero = ring_path(64.0, 28.0);
+    painter.fill_path(nonzero.view(), blue, PolygonFillRule::nonzero);
+    StrokeStyle stroke = black_stroke(3.0);
+    stroke.cap = StrokeCap::round;
+    stroke.join = StrokeJoin::round;
+    const PaintPath curve = curve_path();
+    painter.stroke_path(curve.view(), stroke);
+}
+
+void test_path_fill_and_stroke() {
+    SkiaRaster raster;
+    paint(raster, &path_scene);
+    require(is_white(pixel_at(raster, 24U, 28U)), "even-odd must leave the ring's hole open");
+    require(is_dark(pixel_at(raster, 24U, 18U)) && is_dark(pixel_at(raster, 14U, 28U)),
+            "even-odd must fill between the circles");
+    require(is_white(pixel_at(raster, 24U, 10U)), "the fill must stop at the outer circle");
+    const Pixel centre = pixel_at(raster, 64U, 28U);
+    require(centre.blue == 255U && centre.red == 0U, "nonzero must fill the same-wound hole");
+    require(is_dark(pixel_at(raster, 45U, 50U)), "the stroke must lie on the cubic's midpoint");
+    require(is_white(pixel_at(raster, 45U, 56U)) && is_white(pixel_at(raster, 45U, 45U)),
+            "the stroke must stay within its width of the curve");
+}
+
+// The scene painted whole at `scale`, then again on a second raster in
+// 16-unit tiles, each its own damaged frame clipped to the tile: the tiled
+// frame must hold the whole frame's bytes (a path drawn under any damage
+// draws the same pixels inside it).
+void test_path_damage_invariance(double scale) {
+    SkiaRaster whole;
+    require(whole.resize(scene_size, scale) || whole.pixel_width() != 0U, "the raster must have a surface");
+    DamageRegion everything;
+    everything.add(Rect{0.0, 0.0, scene_size.width, scene_size.height});
+    whole.begin_frame(everything);
+    whole.fill_rect(Rect{0.0, 0.0, scene_size.width, scene_size.height}, white);
+    path_scene(whole);
+    whole.end_frame();
+
+    SkiaRaster tiled;
+    require(tiled.resize(scene_size, scale) || tiled.pixel_width() != 0U, "the raster must have a surface");
+    tiled.begin_frame(everything);
+    tiled.fill_rect(Rect{0.0, 0.0, scene_size.width, scene_size.height}, red);
+    tiled.end_frame();
+    for (double top = 0.0; top < scene_size.height; top = top + 16.0) {
+        for (double left = 0.0; left < scene_size.width; left = left + 16.0) {
+            DamageRegion tile;
+            tile.add(Rect{left, top, 16.0, 16.0});
+            tiled.begin_frame(tile);
+            tiled.save();
+            tiled.clip_damage(tile);
+            tiled.fill_rect(Rect{0.0, 0.0, scene_size.width, scene_size.height}, white);
+            path_scene(tiled);
+            tiled.restore();
+            tiled.end_frame();
+        }
+    }
+    require(tiled.byte_size() == whole.byte_size() &&
+                std::memcmp(tiled.pixels(), whole.pixels(), whole.byte_size()) == 0,
+            "a path repainted tile by tile must draw the bytes of one whole paint");
+}
+
 // Every new call in one scene, so a recording's replay can be compared with
 // drawing directly.
 void all_marks_scene(Painter& painter) {
@@ -236,6 +324,7 @@ void all_marks_scene(Painter& painter) {
     conic_scene(painter);
     corner_scene(painter);
     pattern_scene(painter);
+    path_scene(painter);
 }
 
 void replayed_scene(Painter& painter) {
@@ -268,6 +357,9 @@ int main() {
         test_conic_direction();
         test_per_corner_rounding();
         test_patterns();
+        test_path_fill_and_stroke();
+        test_path_damage_invariance(1.0);
+        test_path_damage_invariance(2.0);
         test_replay_draws_the_same_bytes();
         std::cout << "gui_forms_paint_marks_raster_tests: all tests passed\n";
         return EXIT_SUCCESS;

@@ -363,6 +363,10 @@ private:
     // Called by HostSession: seeds the window's bindings with the host's
     // defaults unless they are seeded already.
     void install_host_key_map(const KeyMap& defaults);
+    // Called by HostSession when the host reports HostCapability::locale:
+    // seeds the window's application resources with the host's locale
+    // unless the program set one or an earlier session seeded it.
+    void install_host_locale(const HostLocale& locale);
     void initialize_cursor_identity() noexcept;
     void invalidate_cursor_interaction(CursorError cause) noexcept;
     std::uint64_t cursor_window_id_{};
