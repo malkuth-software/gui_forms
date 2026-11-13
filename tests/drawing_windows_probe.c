@@ -63,7 +63,9 @@ int main(void) {
     CHECK(pixel.argb == UINT32_C(0xffff0000));
     CHECK(api.bitmap_acquire_hdc(imported, &leased_hdc, &lease_token) == GD_OK);
     CHECK(leased_hdc != 0 && lease_token != 0);
-    CHECK(api.dispose(imported) == GD_ERROR_INVALID_ARGUMENT);
+    /* A bitmap under a device-context lease refuses disposal as a state
+       fault (seal decision 4). */
+    CHECK(api.dispose(imported) == GD_ERROR_INVALID_STATE);
     CHECK(SetPixel((HDC)leased_hdc, 2, 1, RGB(0, 0, 255)) != CLR_INVALID);
     CHECK(api.bitmap_release_hdc(imported, lease_token) == GD_OK);
     CHECK(api.bitmap_release_hdc(imported, lease_token) == GD_ERROR_INVALID_ARGUMENT);

@@ -66,8 +66,6 @@ Types
      - gd_matrix projects the six coefficients of a 2D affine transform.
    * - :cpp:class:`gd_point <gd_point>`
      - gd_point projects one floating-point drawing coordinate.
-   * - :cpp:class:`gd_raster_service_v0 <gd_raster_service_v0>`
-     - gd_raster_service_v0 is the size-versioned host callback table for registering, updating, unregistering, and invalidating shared raster surfaces.
    * - :cpp:class:`gd_rect <gd_rect>`
      - gd_rect projects floating-point drawing rectangle geometry.
    * - :cpp:class:`gd_rect_i <gd_rect_i>`
@@ -1353,6 +1351,24 @@ Types
 
    .. cpp:member:: gd_result (*recorder_draw_string_rotated)(gd_handle recorder, gd_string_view text, gd_handle font, gd_handle brush, gd_point origin, double degrees, gd_handle format)
 
+   .. cpp:member:: gd_result (*recorder_paint_target)(gd_handle recorder, const struct gf_paint_target* target, uint64_t* commands_executed)
+
+   .. cpp:member:: gd_result (*linear_gradient_brush_set_blend)(gd_handle brush, const double* factors, const double* positions, uint64_t count)
+
+   .. cpp:member:: gd_result (*linear_gradient_brush_set_interpolation)(gd_handle brush, const gd_color* colors, const double* positions, uint64_t count)
+
+   .. cpp:member:: gd_result (*linear_gradient_brush_set_wrap_mode)(gd_handle brush, uint32_t wrap_mode)
+
+   .. cpp:member:: gd_result (*path_gradient_brush_set_center_color)(gd_handle brush, gd_color color)
+
+   .. cpp:member:: gd_result (*path_gradient_brush_set_center_point)(gd_handle brush, gd_point point)
+
+   .. cpp:member:: gd_result (*path_gradient_brush_set_surround_colors)(gd_handle brush, const gd_color* colors, uint64_t count)
+
+   .. cpp:member:: gd_result (*path_gradient_brush_set_interpolation)(gd_handle brush, const gd_color* colors, const double* positions, uint64_t count)
+
+   .. cpp:member:: gd_result (*conic_gradient_brush_set_interpolation)(gd_handle brush, const gd_color* colors, const double* positions, uint64_t count)
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gd_bitmap_damage_summary
@@ -1558,28 +1574,6 @@ Types
    .. cpp:member:: double x
 
    .. cpp:member:: double y
-
-.. cpp:namespace:: 0
-
-.. cpp:struct:: gd_raster_service_v0
-
-   ``#include <gui_forms/drawing_c_api.h>``
-
-   gd_raster_service_v0 is the size-versioned host callback table for registering, updating, unregistering, and invalidating shared raster surfaces.
-
-   .. cpp:member:: uint32_t struct_size
-
-   .. cpp:member:: uint32_t abi_version
-
-   .. cpp:member:: gd_result (*execute)(const void* recorder, void* bitmap, uint64_t first_command, uint64_t* commands_executed)
-
-   .. cpp:member:: gd_result (*encode_png)(const void* bitmap, void* buffer, uint64_t capacity, uint64_t* required_size)
-
-   .. cpp:member:: gd_result (*decode_png)(const void* data, uint64_t size, void** bitmap)
-
-   .. cpp:member:: gd_result (*measure_string)(const void* font, const void* format, gd_string_view text, double layout_width, gd_size* measured)
-
-   .. cpp:member:: gd_result (*resolve_font)(const void* font, gd_font_resolution* resolution)
 
 .. cpp:namespace:: 0
 

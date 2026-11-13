@@ -694,6 +694,54 @@ std::span<const DrawingCommand> GraphicsRecorder::commands() const {
 
 namespace {
 
+// The part of `first` inside `second`; empty (zero width or height) at the
+// nearer edge when they do not meet.
+[[nodiscard]] RectF intersect_rectangles(const RectF first, const RectF second) noexcept {
+    const double left = std::max(first.x, second.x);
+    const double top = std::max(first.y, second.y);
+    const double right = std::max(left, std::min(first.x + first.width, second.x + second.width));
+    const double bottom = std::max(top, std::min(first.y + first.height, second.y + second.height));
+    const RectF result{left, top, right - left, bottom - top};
+    return result;
+}
+
+} // namespace
+
+void GraphicsRecorder::frame_into(GraphicsRecorder& target, const double scale, const RectF device_clip) const {
+    require_alive();
+    target.require_alive();
+    if (&target == this) throw std::invalid_argument("a recording cannot be framed into itself");
+    if (!std::isfinite(scale) || scale <= 0.0) {
+        throw std::invalid_argument("a frame's scale must be finite and positive");
+    }
+    require_finite(device_clip, "frame clip");
+    if (device_clip.width < 0.0 || device_clip.height < 0.0) {
+        throw std::invalid_argument("a frame's clip must have a non-negative size");
+    }
+    const Matrix device(scale, 0.0, 0.0, scale, 0.0, 0.0);
+    // Sized first, then each element assigned in place: the copies reuse
+    // the strings' and arrays' storage target's earlier frames left.
+    target.commands_.resize(commands_.size());
+    for (std::size_t index = 0; index < commands_.size(); ++index) {
+        const DrawingCommand& source = commands_[index];
+        DrawingCommand& framed = target.commands_[index];
+        framed = source;
+        framed.state.transform = source.state.transform.followed_by(device);
+        RectF clip = device_clip;
+        if (source.state.clip) {
+            const RectF scaled = device.transform_bounds(*source.state.clip);
+            clip = intersect_rectangles(scaled, device_clip);
+        }
+        framed.state.clip = clip;
+    }
+    target.state_ = GraphicsState{};
+    target.saved_.clear();
+    target.next_token_ = 1;
+    target.closed_ = false;
+}
+
+namespace {
+
 std::string rects_text(std::span<const RectF> rects) {
     std::string result;
     for (std::size_t index = 0; index < rects.size(); ++index) {

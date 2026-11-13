@@ -20,7 +20,75 @@ extern "C" {
 #define GD_C_API_EXPORT
 #endif
 
-/* Experimental GUI.Drawing ABI. Nothing in this header is a 1.0 promise. */
+/*
+ * GUI.Forms.Drawing, the gd_* ABI: GUI.Forms' drawing library, in the role
+ * WinForms' drawing library plays for WinForms. Sealed at 1.0
+ * (GD_ABI_VERSION_1_0).
+ *
+ * Versions and the table. gd_get_api_v0 is the one exported function. The
+ * caller sets table->struct_size to the size it declares (at least the two
+ * leading fields) and asks for one version. The library copies the common
+ * prefix of the caller's table and that version's table, then writes the
+ * version's full table size to struct_size and the version to abi_version.
+ * The table only ever grows at its end: an entry's slot never moves or
+ * changes meaning, and each version's table is a prefix of the next one's.
+ * A version the library does not have fails GD_ERROR_UNSUPPORTED_VERSION; a
+ * caller built against a newer header retries with an older version. From
+ * 1.0 a version is major << 16 | minor; a new minor only appends, and a new
+ * major would be a new entry point and library (gui_drawing_abi<n>). The
+ * 0.x versions stay accepted with their old prefixes.
+ *
+ * Results. Every entry returns a gd_result. A caller treats any code other
+ * than GD_OK, including one this header does not name, as a failure.
+ * last_error describes the calling thread's most recent failure and is
+ * meaningful only right after a call that failed: a success does not clear
+ * it. A refused call changes nothing unless its entry says otherwise.
+ *
+ * Handles. A gd_handle names one object: {0, 0} is the null handle, accepted
+ * only where an entry says so (a format handle meaning defaults), and every
+ * other use of it fails GD_ERROR_STALE_HANDLE. A create entry returns a
+ * handle holding one reference; retain adds one and release removes one, and
+ * at zero the object ends and its handle goes stale. dispose ends the object
+ * at once while the handle stays valid until its last release: later calls
+ * on it fail GD_ERROR_DISPOSED, and object_state reports DISPOSED. A stale
+ * handle fails GD_ERROR_STALE_HANDLE and a handle of another kind
+ * GD_ERROR_WRONG_HANDLE_KIND. A released slot is reused with its generation
+ * advanced (skipping 0), so a stale handle can name a new object only after
+ * its slot has been reused 2^32 times. Recorded commands hold copies of the
+ * pens, brushes, fonts, formats, paths and images they name, taken at record
+ * time: releasing or changing those objects afterwards does not change a
+ * recording.
+ *
+ * Threads. Any thread may call. Calls on one object are serialized: each
+ * holds the object for the call. An entry that reads or changes an object
+ * (retain and release included) moves it to the calling thread first when
+ * another thread used it last; dispose, object_state and object_kind do not
+ * move it, and fail GD_ERROR_WRONG_THREAD on a thread other than the
+ * object's last one. last_error and the faces font_resolve registers are
+ * per thread.
+ *
+ * Memory. Arrays, strings (gd_string_view: UTF-8 with a byte count; NUL
+ * bytes are refused) and records an entry reads are borrowed for the call
+ * and copied; nothing a caller passes is kept. Views an entry returns are
+ * valid as the entry says (until a lease's token is returned, or while the
+ * library is loaded). Size queries take a buffer and its capacity, write the
+ * size required and fail GD_ERROR_BUFFER_TOO_SMALL when it does not fit.
+ *
+ * Records. The records in this header are frozen at 1.0: a field is never
+ * added to one. A new field means a new record and a new entry, and every
+ * record added after 1.0 starts with a uint32_t struct_size the caller sets,
+ * as gd_font_resolution does.
+ *
+ * Windows entries. bitmap_export_hbitmap, bitmap_import_hbitmap,
+ * native_surface_capture, native_surface_present, bitmap_acquire_hdc,
+ * bitmap_release_hdc, native_surface_refresh and
+ * native_surface_publish_retained work on Windows only; elsewhere they fail
+ * GD_ERROR_NOT_AVAILABLE. Their native handles travel as uintptr_t.
+ *
+ * Names. Entries are <subject>_<verb>; the 0.x gradient setters that drop
+ * "brush" keep their names, with <kind>_gradient_brush_set_* aliases from
+ * 1.0 on the same functions.
+ */
 #define GD_ABI_VERSION_0_1 UINT32_C(0x00000001)
 #define GD_ABI_VERSION_0_2 UINT32_C(0x00000002)
 /* 0.3 appends the drawing primitives (pen_set_line_join onwards). Each
@@ -38,6 +106,9 @@ extern "C" {
 #define GD_ABI_VERSION_0_6 UINT32_C(0x00000006)
 /* 0.7 appends text at any angle (recorder_draw_string_rotated onwards). */
 #define GD_ABI_VERSION_0_7 UINT32_C(0x00000007)
+/* 1.0, the seal: the whole table (recorder_paint_target, the bridge to a
+   GUI.Forms paint target, and the gradient brush aliases onwards). */
+#define GD_ABI_VERSION_1_0 UINT32_C(0x00010000)
 
 typedef struct gd_handle {
     uint32_t slot;
@@ -109,8 +180,18 @@ typedef enum gd_result {
     GD_ERROR_DISPOSED = 5,
     GD_ERROR_BUFFER_TOO_SMALL = 6,
     GD_ERROR_UNSUPPORTED_VERSION = 7,
+    /* A count, size or other quantity above its limit. */
     GD_ERROR_LIMIT_EXCEEDED = 8,
-    GD_ERROR_INTERNAL = 9
+    GD_ERROR_INTERNAL = 9,
+    /* The object is in a state that refuses the call: a closed recorder, a
+       bitmap under a lock, an edit or a device-context lease (1.0). */
+    GD_ERROR_INVALID_STATE = 10,
+    /* Memory ran out (1.0). */
+    GD_ERROR_OUT_OF_MEMORY = 11,
+    /* The entry cannot work here: a Windows entry on another host, or an
+       entry that needs the raster module (gdr_initialize) before it is
+       loaded (1.0). */
+    GD_ERROR_NOT_AVAILABLE = 12
 } gd_result;
 
 typedef enum gd_object_state {
@@ -133,8 +214,13 @@ typedef enum gd_object_kind {
     GD_OBJECT_LINEAR_GRADIENT_BRUSH = 11,
     GD_OBJECT_PATH_GRADIENT_BRUSH = 12,
     GD_OBJECT_REGION = 13,
+    /* 0.3 */
     GD_OBJECT_CONIC_GRADIENT_BRUSH = 14,
-    GD_OBJECT_CHECKER_BRUSH = 15
+    GD_OBJECT_CHECKER_BRUSH = 15,
+    /* Reserved for a depth-composited bitmap (a picture with a depth plane,
+       so a 3D view's overlay can depth-test 2D marks); no entry creates one
+       yet, and no other kind will take the value. */
+    GD_OBJECT_DEPTH_BITMAP_RESERVED = 16
 } gd_object_kind;
 
 typedef enum gd_wrap_mode {
@@ -232,6 +318,84 @@ typedef struct gd_corner_radii {
     double bottom_left;
 } gd_corner_radii;
 
+/* font_create's style: a combination of these bits (other bits refused). */
+typedef enum gd_font_style {
+    GD_FONT_STYLE_REGULAR = 0,
+    GD_FONT_STYLE_BOLD = 1,
+    GD_FONT_STYLE_ITALIC = 2,
+    GD_FONT_STYLE_UNDERLINE = 4,
+    GD_FONT_STYLE_STRIKEOUT = 8
+} gd_font_style;
+
+/* font_create's unit, the unit of its size. */
+typedef enum gd_font_unit {
+    GD_FONT_UNIT_WORLD = 0,
+    GD_FONT_UNIT_DISPLAY = 1,
+    GD_FONT_UNIT_PIXEL = 2,
+    GD_FONT_UNIT_POINT = 3,
+    GD_FONT_UNIT_INCH = 4,
+    GD_FONT_UNIT_DOCUMENT = 5,
+    GD_FONT_UNIT_MILLIMETER = 6
+} gd_font_unit;
+
+/* font_create's charset: a Windows character set number, 0 to 255, kept
+   with the font and not used to choose faces. The two usual values: */
+#define GD_FONT_CHARSET_ANSI UINT32_C(0)
+#define GD_FONT_CHARSET_DEFAULT UINT32_C(1)
+
+/* string_format_create's and string_format_set's flags: a combination of
+   these bits. Other bits are kept with the format and have no effect. */
+#define GD_STRING_FORMAT_FIT_BLACK_BOX UINT32_C(0x0004)
+#define GD_STRING_FORMAT_NO_WRAP UINT32_C(0x1000)
+#define GD_STRING_FORMAT_NO_CLIP UINT32_C(0x4000)
+
+/* recorder_set_quality's five modes, in its parameter order. */
+typedef enum gd_smoothing_mode {
+    GD_SMOOTHING_DEFAULT = 0,
+    GD_SMOOTHING_HIGH_SPEED = 1,
+    GD_SMOOTHING_HIGH_QUALITY = 2,
+    GD_SMOOTHING_NONE = 3,
+    GD_SMOOTHING_ANTI_ALIAS = 4
+} gd_smoothing_mode;
+
+typedef enum gd_interpolation_mode {
+    GD_INTERPOLATION_DEFAULT = 0,
+    GD_INTERPOLATION_LOW = 1,
+    GD_INTERPOLATION_HIGH = 2,
+    GD_INTERPOLATION_NEAREST = 3,
+    GD_INTERPOLATION_BILINEAR = 4,
+    GD_INTERPOLATION_BICUBIC = 5,
+    GD_INTERPOLATION_HIGH_QUALITY_BILINEAR = 6,
+    GD_INTERPOLATION_HIGH_QUALITY_BICUBIC = 7
+} gd_interpolation_mode;
+
+typedef enum gd_pixel_offset_mode {
+    GD_PIXEL_OFFSET_DEFAULT = 0,
+    GD_PIXEL_OFFSET_HIGH_SPEED = 1,
+    GD_PIXEL_OFFSET_HIGH_QUALITY = 2,
+    GD_PIXEL_OFFSET_NONE = 3,
+    GD_PIXEL_OFFSET_HALF = 4
+} gd_pixel_offset_mode;
+
+typedef enum gd_compositing_mode {
+    GD_COMPOSITING_SOURCE_OVER = 0,
+    GD_COMPOSITING_SOURCE_COPY = 1
+} gd_compositing_mode;
+
+typedef enum gd_compositing_quality {
+    GD_COMPOSITING_QUALITY_DEFAULT = 0,
+    GD_COMPOSITING_QUALITY_HIGH_SPEED = 1,
+    GD_COMPOSITING_QUALITY_HIGH_QUALITY = 2,
+    GD_COMPOSITING_QUALITY_GAMMA_CORRECTED = 3,
+    GD_COMPOSITING_QUALITY_ASSUME_LINEAR = 4
+} gd_compositing_quality;
+
+/* graphics_path_add_path's connect: whether the appended path's first
+   figure joins the path's last one. */
+#define GD_PATH_NO_CONNECT UINT32_C(0)
+#define GD_PATH_CONNECT UINT32_C(1)
+
+/* string_format_set's alignment and line_alignment (across and down). */
 typedef enum gd_string_alignment {
     GD_STRING_NEAR = 0,
     GD_STRING_CENTER = 1,
@@ -264,6 +428,7 @@ typedef enum gd_bitmap_lock_mode {
     GD_BITMAP_LOCK_READ_WRITE = 2
 } gd_bitmap_lock_mode;
 
+/* The native surfaces of the Windows entries. */
 typedef enum gd_native_surface_kind {
     GD_NATIVE_SURFACE_HDC = 0,
     GD_NATIVE_SURFACE_HWND = 1
@@ -343,28 +508,17 @@ typedef struct gd_font_resolution {
 } gd_font_resolution;
 
 /*
- * Private same-build renderer attachment. The callbacks receive GUI.Drawing
- * C++ object addresses only after the handle registry has validated kind,
- * lifetime, owner thread, and disposal. This seam keeps gd_get_api_v0 and the
- * semantic ABI renderer-free while allowing a separately packaged raster
- * module to execute retained commands.
+ * The raster module's private attachment (raster_service_install): not part
+ * of the 1.0 ABI. Its callbacks take GUI.Drawing's C++ objects, so only a
+ * raster module built with this library installs it; the record is declared
+ * in the library's own sources (src/abi/drawing_raster_service.h). A program
+ * loads the raster module with gdr_initialize instead.
  */
-typedef struct gd_raster_service_v0 {
-    uint32_t struct_size;
-    uint32_t abi_version;
-    gd_result (*execute)(const void* recorder, void* bitmap,
-                         uint64_t first_command,
-                         uint64_t* commands_executed);
-    gd_result (*encode_png)(const void* bitmap, void* buffer,
-                            uint64_t capacity, uint64_t* required_size);
-    gd_result (*decode_png)(const void* data, uint64_t size,
-                            void** bitmap);
-    gd_result (*measure_string)(const void* font, const void* format,
-                                gd_string_view text, double layout_width,
-                                gd_size* measured);
-    /* Stage F: resolves and registers the font's face on the calling thread. */
-    gd_result (*resolve_font)(const void* font, gd_font_resolution* resolution);
-} gd_raster_service_v0;
+typedef struct gd_raster_service_v0 gd_raster_service_v0;
+
+/* The pixels a GUI.Forms paint callback is lent (gui_forms/c/gf_abi.h), which
+   recorder_paint_target draws into. */
+struct gf_paint_target;
 
 typedef struct gd_api_v0 {
     uint32_t struct_size;
@@ -546,6 +700,7 @@ typedef struct gd_api_v0 {
     gd_result (*region_is_visible)(gd_handle region, gd_point point,
                                    uint32_t* visible);
     gd_result (*region_bounds)(gd_handle region, gd_rect* bounds);
+    /* Private to the raster module (gd_raster_service_v0 above); not 1.0. */
     gd_result (*raster_service_install)(const gd_raster_service_v0* service);
     gd_result (*recorder_execute)(gd_handle recorder, gd_handle bitmap,
                                   uint64_t* commands_executed);
@@ -752,11 +907,63 @@ typedef struct gd_api_v0 {
                                               gd_handle font, gd_handle brush,
                                               gd_point origin, double degrees,
                                               gd_handle format);
+    /*
+     * ABI 1.0, the bridge to GUI.Forms and the gradient brush aliases.
+     *
+     * The recording drawn into the pixels a GUI.Forms paint callback is lent
+     * (gf_custom_control_callbacks.paint), as recorder_execute draws into a
+     * bitmap: its units are the control's logical units, drawn at
+     * target->scale device pixels each, and only inside target->damage
+     * (rounded out to whole device pixels); pixels outside it are left as
+     * they are. The recording is not changed, and may be drawn again. The
+     * target is read for the call and its pixels written in place; a
+     * command the raster module refuses part-way leaves the commands before
+     * it drawn, as a native surface would. commands_executed receives the
+     * number drawn. The target needs struct_size at least gf_paint_target's
+     * 1.0 size, pixels, a width and height of 1 to 32,768 (at most 10^8
+     * pixels), row_bytes a multiple of 4 holding a row, a finite positive
+     * scale and a finite damage rectangle. Needs the raster module
+     * (GD_ERROR_NOT_AVAILABLE before gdr_initialize). Call it from the paint
+     * callback, on its thread, while the pixels are lent.
+     */
+    gd_result (*recorder_paint_target)(gd_handle recorder,
+                                       const struct gf_paint_target* target,
+                                       uint64_t* commands_executed);
+    /* The same functions as linear_gradient_set_blend,
+       linear_gradient_set_interpolation, linear_gradient_set_wrap_mode,
+       path_gradient_set_center_color, path_gradient_set_center_point,
+       path_gradient_set_surround_colors, path_gradient_set_interpolation and
+       conic_gradient_set_interpolation, under the <kind>_gradient_brush_set_*
+       names. */
+    gd_result (*linear_gradient_brush_set_blend)(gd_handle brush,
+                                                 const double* factors,
+                                                 const double* positions,
+                                                 uint64_t count);
+    gd_result (*linear_gradient_brush_set_interpolation)(gd_handle brush,
+                                                         const gd_color* colors,
+                                                         const double* positions,
+                                                         uint64_t count);
+    gd_result (*linear_gradient_brush_set_wrap_mode)(gd_handle brush,
+                                                     uint32_t wrap_mode);
+    gd_result (*path_gradient_brush_set_center_color)(gd_handle brush, gd_color color);
+    gd_result (*path_gradient_brush_set_center_point)(gd_handle brush, gd_point point);
+    gd_result (*path_gradient_brush_set_surround_colors)(gd_handle brush,
+                                                         const gd_color* colors,
+                                                         uint64_t count);
+    gd_result (*path_gradient_brush_set_interpolation)(gd_handle brush,
+                                                       const gd_color* colors,
+                                                       const double* positions,
+                                                       uint64_t count);
+    gd_result (*conic_gradient_brush_set_interpolation)(gd_handle brush,
+                                                        const gd_color* colors,
+                                                        const double* positions,
+                                                        uint64_t count);
 } gd_api_v0;
 
 /*
  * The caller sets table->struct_size. The implementation copies only the
- * common prefix and reports its complete table size on success.
+ * common prefix and reports its complete table size on success (see
+ * "Versions and the table" above).
  */
 GD_C_API_EXPORT gd_result gd_get_api_v0(uint32_t requested_version,
                                         gd_api_v0* table);

@@ -273,6 +273,22 @@ public:
     // storage is kept for the next frame. Throws on a disposed recorder.
     void reset();
     [[nodiscard]] std::span<const DrawingCommand> commands() const;
+
+    // Fills `target` with this recording as drawn on a surface of `scale`
+    // device pixels per unit, inside `device_clip` (device pixels): each
+    // command's transform is followed by the scale, and its clip (device
+    // pixels already) is scaled and intersected with device_clip, or is
+    // device_clip where it had none. target's commands are replaced, their
+    // storage reused, and target is left open with no saved states and the
+    // default state in force; this recording is unchanged. For drawing a
+    // recording in logical units into a scaled, damage-limited target (the
+    // gd_* bridge, recorder_paint_target). Throws std::invalid_argument for
+    // target being this recording, a scale that is not finite and positive,
+    // or a clip that is not finite with a non-negative size, leaving target
+    // unchanged. A throw while copying (out of memory, or a scaled clip that
+    // is no longer finite) leaves target's commands unspecified but its
+    // state reset only on success.
+    void frame_into(GraphicsRecorder& target, double scale, RectF device_clip) const;
     [[nodiscard]] std::string deterministic_trace() const;
 
 protected:

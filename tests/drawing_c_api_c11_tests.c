@@ -1,4 +1,5 @@
 #include "gui_forms/drawing_c_api.h"
+#include "gui_forms/c/gf_abi.h"
 
 #include <math.h>
 #include <stddef.h>
@@ -72,6 +73,155 @@ static int check_curved_paths(const gd_api_v0* api) {
     CHECK((*api).release(path) == GD_OK);
     CHECK((*api).graphics_path_add_quadratic(path, (gd_point){0, 0}, (gd_point){1, 1}, (gd_point){2, 0}) ==
           GD_ERROR_STALE_HANDLE);
+    return 0;
+}
+
+/* The 1.0 seal's error model (decision 4): counts over their limits give
+   LIMIT_EXCEEDED, state refusals INVALID_STATE, and an entry that needs the
+   raster module NOT_AVAILABLE when it is not loaded (this program does not
+   load it). Every refusal leaves its object as it was. */
+static int check_seal_errors(const gd_api_v0* api) {
+    gd_handle recorder = {0};
+    gd_handle pen = {0};
+    gd_handle brush = {0};
+    gd_handle bitmap = {0};
+    gd_handle path = {0};
+    gd_handle font = {0};
+    gd_bitmap_lock_view lock = {0};
+    gd_point points[4] = {{0, 0}, {10, 0}, {10, 10}, {0, 10}};
+    gd_rect rects[1] = {{0, 0, 4, 4}};
+    double dashes[2] = {2.0, 1.0};
+    uint64_t count = 0;
+    uint64_t executed = 7;
+    uint8_t pixels[4 * 4 * 4] = {0};
+    gf_paint_target target;
+    gd_size measured = {0};
+    gd_error_view error = {0};
+    /* Far over every limit; each count is refused before its array is read. */
+    const uint64_t huge = UINT64_C(1) << 40;
+
+    CHECK((*api).recorder_create(&recorder) == GD_OK);
+    CHECK((*api).pen_create((gd_color){UINT32_C(0xff000000), 0}, 1.0, &pen) == GD_OK);
+    CHECK((*api).solid_brush_create((gd_color){UINT32_C(0xffff0000), 0}, &brush) == GD_OK);
+    CHECK((*api).graphics_path_create(GD_FILL_ALTERNATE, &path) == GD_OK);
+
+    CHECK((*api).recorder_draw_lines(recorder, pen, points, huge) == GD_ERROR_LIMIT_EXCEEDED);
+    CHECK((*api).last_error(&error) == GD_OK && error.code == (uint32_t)GD_ERROR_LIMIT_EXCEEDED);
+    CHECK((*api).recorder_draw_line_segments(recorder, pen, points, huge) == GD_ERROR_LIMIT_EXCEEDED);
+    CHECK((*api).recorder_fill_rectangles(recorder, brush, rects, huge) == GD_ERROR_LIMIT_EXCEEDED);
+    CHECK((*api).recorder_fill_polygon(recorder, brush, points, huge, GD_FILL_WINDING) == GD_ERROR_LIMIT_EXCEEDED);
+    CHECK((*api).graphics_path_add_polygon(path, points, huge) == GD_ERROR_LIMIT_EXCEEDED);
+    CHECK((*api).graphics_path_add_beziers(path, points, huge) == GD_ERROR_LIMIT_EXCEEDED);
+    CHECK((*api).pen_set_dash_pattern(pen, dashes, 257) == GD_ERROR_LIMIT_EXCEEDED);
+    CHECK((*api).pen_set_dash_pattern(pen, dashes, 0) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_fill_polygon(recorder, brush, NULL, 3, GD_FILL_WINDING) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 0U);
+
+    /* A closed recorder refuses recording as a state fault, not an argument. */
+    CHECK((*api).recorder_close(recorder) == GD_OK);
+    CHECK((*api).recorder_fill_rectangle(recorder, brush, rects[0]) == GD_ERROR_INVALID_STATE);
+    CHECK((*api).last_error(&error) == GD_OK && error.code == (uint32_t)GD_ERROR_INVALID_STATE);
+    CHECK((*api).recorder_translate(recorder, 1.0, 1.0) == GD_ERROR_INVALID_STATE);
+    CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 0U);
+
+    /* A bitmap under a lock refuses pixel writes and edits. */
+    CHECK((*api).bitmap_create(4, 4, GD_PIXEL_BGRA32_PREMULTIPLIED, &bitmap) == GD_OK);
+    CHECK((*api).bitmap_lock(bitmap, GD_BITMAP_LOCK_READ, &lock) == GD_OK);
+    CHECK((*api).bitmap_set_pixel(bitmap, 0, 0, (gd_color){UINT32_C(0xffffffff), 0}) == GD_ERROR_INVALID_STATE);
+    CHECK((*api).bitmap_unlock(bitmap, lock.token) == GD_OK);
+    CHECK((*api).bitmap_set_pixel(bitmap, 0, 0, (gd_color){UINT32_C(0xffffffff), 0}) == GD_OK);
+
+    /* Entries that need the raster module. */
+    CHECK((*api).recorder_execute(recorder, bitmap, &executed) == GD_ERROR_NOT_AVAILABLE);
+    CHECK((*api).font_create(view_of("Lucida Grande"), 12.0, GD_FONT_STYLE_BOLD, GD_FONT_UNIT_POINT,
+                             GD_FONT_CHARSET_DEFAULT, &font) == GD_OK);
+    CHECK((*api).measure_string(view_of("x"), font, (gd_handle){0, 0}, 0.0, &measured) == GD_ERROR_NOT_AVAILABLE);
+
+    /* The bridge checks its target before it needs the raster module. */
+    memset(&target, 0, sizeof(target));
+    target.struct_size = (uint32_t)sizeof(target);
+    target.width = 4U;
+    target.height = 4U;
+    target.row_bytes = 16U;
+    target.pixels = pixels;
+    target.scale = 1.0;
+    target.damage = (gf_logical_rect){0, 0, 4, 4};
+    CHECK((*api).recorder_paint_target(recorder, &target, NULL) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).recorder_paint_target(recorder, NULL, &executed) == GD_ERROR_INVALID_ARGUMENT);
+    CHECK(executed == 0U);
+    target.row_bytes = 12U;
+    CHECK((*api).recorder_paint_target(recorder, &target, &executed) == GD_ERROR_INVALID_ARGUMENT);
+    target.row_bytes = 16U;
+    target.scale = 0.0;
+    CHECK((*api).recorder_paint_target(recorder, &target, &executed) == GD_ERROR_INVALID_ARGUMENT);
+    target.scale = 1.0;
+    target.damage.width = -1.0;
+    CHECK((*api).recorder_paint_target(recorder, &target, &executed) == GD_ERROR_INVALID_ARGUMENT);
+    target.damage.width = 4.0;
+    target.width = 40000U;
+    target.row_bytes = 160000U;
+    CHECK((*api).recorder_paint_target(recorder, &target, &executed) == GD_ERROR_LIMIT_EXCEEDED);
+    target.width = 4U;
+    target.row_bytes = 16U;
+    target.struct_size = 8U;
+    CHECK((*api).recorder_paint_target(recorder, &target, &executed) == GD_ERROR_INVALID_ARGUMENT);
+    target.struct_size = (uint32_t)sizeof(target);
+    CHECK((*api).recorder_paint_target(recorder, &target, &executed) == GD_ERROR_NOT_AVAILABLE);
+    CHECK(pixels[0] == 0U);
+
+    CHECK((*api).release(font) == GD_OK);
+    CHECK((*api).release(bitmap) == GD_OK);
+    CHECK((*api).release(path) == GD_OK);
+    CHECK((*api).release(brush) == GD_OK);
+    CHECK((*api).release(pen) == GD_OK);
+    CHECK((*api).release(recorder) == GD_OK);
+    return 0;
+}
+
+/* The seal's handle rules (decision 8): {0, 0} is null and stale; a released
+   handle goes stale and stays stale when its slot is reused, while the new
+   handle in that slot works; dispose keeps the handle valid, refusing use
+   with DISPOSED, until its last release. */
+static int check_handle_staleness(const gd_api_v0* api) {
+    gd_handle first = {0};
+    gd_handle second = {0};
+    gd_handle retained = {0};
+    const gd_handle null_handle = {0, 0};
+    gd_handle beyond = {0};
+    uint32_t state = 9U;
+    uint32_t kind = 0U;
+
+    CHECK((*api).pen_set_width(null_handle, 1.0) == GD_ERROR_STALE_HANDLE);
+    CHECK((*api).release(null_handle) == GD_ERROR_STALE_HANDLE);
+    CHECK((*api).object_kind(null_handle, &kind) == GD_ERROR_STALE_HANDLE);
+
+    CHECK((*api).pen_create((gd_color){UINT32_C(0xff000000), 0}, 1.0, &first) == GD_OK);
+    CHECK(first.slot != 0U && first.generation != 0U);
+    beyond.slot = first.slot + 100000U;
+    beyond.generation = first.generation;
+    CHECK((*api).pen_set_width(beyond, 1.0) == GD_ERROR_STALE_HANDLE);
+    CHECK((*api).release(first) == GD_OK);
+    CHECK((*api).pen_set_width(first, 2.0) == GD_ERROR_STALE_HANDLE);
+    /* The freed slot is reused first, with its generation advanced: the old
+       handle names nothing, the new one its own object. */
+    CHECK((*api).pen_create((gd_color){UINT32_C(0xff000000), 0}, 1.0, &second) == GD_OK);
+    CHECK(second.slot == first.slot && second.generation != first.generation && second.generation != 0U);
+    CHECK((*api).pen_set_width(first, 2.0) == GD_ERROR_STALE_HANDLE);
+    CHECK((*api).retain(first) == GD_ERROR_STALE_HANDLE);
+    CHECK((*api).pen_set_width(second, 2.0) == GD_OK);
+    CHECK((*api).object_kind(second, &kind) == GD_OK && kind == (uint32_t)GD_OBJECT_PEN);
+
+    /* dispose against references: the handle stays valid until released. */
+    retained = second;
+    CHECK((*api).retain(retained) == GD_OK);
+    CHECK((*api).dispose(second) == GD_OK);
+    CHECK((*api).object_state(second, &state) == GD_OK && state == (uint32_t)GD_OBJECT_DISPOSED);
+    CHECK((*api).pen_set_width(second, 3.0) == GD_ERROR_DISPOSED);
+    CHECK((*api).release(second) == GD_OK);
+    CHECK((*api).object_state(retained, &state) == GD_OK && state == (uint32_t)GD_OBJECT_DISPOSED);
+    CHECK((*api).release(retained) == GD_OK);
+    CHECK((*api).object_state(retained, &state) == GD_ERROR_STALE_HANDLE);
+    CHECK((*api).release(retained) == GD_ERROR_STALE_HANDLE);
     return 0;
 }
 
@@ -570,9 +720,53 @@ int main(void) {
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_0_7, &api) == GD_OK);
-    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.struct_size == offsetof(gd_api_v0, recorder_paint_target));
     CHECK(api.abi_version == GD_ABI_VERSION_0_7);
     CHECK(api.recorder_draw_string_rotated != NULL);
+    CHECK(api.recorder_paint_target == NULL);
+    /* 1.0 is the whole table: the bridge after 0.7's rotated text, then the
+       eight gradient brush aliases. 144 entries after the two size fields;
+       a mislabelled or reordered append fails here. */
+    CHECK(offsetof(gd_api_v0, recorder_paint_target) ==
+          offsetof(gd_api_v0, recorder_draw_string_rotated) + sizeof(api.recorder_draw_string_rotated));
+    CHECK(offsetof(gd_api_v0, linear_gradient_brush_set_blend) ==
+          offsetof(gd_api_v0, recorder_paint_target) + sizeof(api.recorder_paint_target));
+    CHECK(sizeof(gd_api_v0) ==
+          offsetof(gd_api_v0, conic_gradient_brush_set_interpolation) +
+              sizeof(api.conic_gradient_brush_set_interpolation));
+    CHECK((sizeof(gd_api_v0) - offsetof(gd_api_v0, last_error)) / sizeof(api.last_error) == 144U);
+    CHECK(offsetof(gd_api_v0, recorder_fill_band) - offsetof(gd_api_v0, last_error) ==
+          120U * sizeof(api.last_error));
+    memset(&api, 0, sizeof(api));
+    api.struct_size = sizeof(api);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_1_0, &api) == GD_OK);
+    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.abi_version == GD_ABI_VERSION_1_0);
+    CHECK(api.recorder_paint_target != NULL);
+    CHECK(api.linear_gradient_brush_set_blend == api.linear_gradient_set_blend);
+    CHECK(api.linear_gradient_brush_set_interpolation == api.linear_gradient_set_interpolation);
+    CHECK(api.linear_gradient_brush_set_wrap_mode == api.linear_gradient_set_wrap_mode);
+    CHECK(api.path_gradient_brush_set_center_color == api.path_gradient_set_center_color);
+    CHECK(api.path_gradient_brush_set_center_point == api.path_gradient_set_center_point);
+    CHECK(api.path_gradient_brush_set_surround_colors == api.path_gradient_set_surround_colors);
+    CHECK(api.path_gradient_brush_set_interpolation == api.path_gradient_set_interpolation);
+    CHECK(api.conic_gradient_brush_set_interpolation == api.conic_gradient_set_interpolation);
+    /* A caller with a shorter table (built against 0.7) asking for 1.0 gets
+       its own prefix filled and learns the full size. */
+    {
+        gd_api_v0 shorter;
+        memset(&shorter, 0, sizeof(shorter));
+        shorter.struct_size = (uint32_t)offsetof(gd_api_v0, recorder_paint_target);
+        CHECK(gd_get_api_v0(GD_ABI_VERSION_1_0, &shorter) == GD_OK);
+        CHECK(shorter.struct_size == sizeof(shorter));
+        CHECK(shorter.recorder_draw_string_rotated != NULL);
+        CHECK(shorter.recorder_paint_target == NULL);
+    }
+    CHECK(gd_get_api_v0(UINT32_C(0x00010001), &api) == GD_ERROR_UNSUPPORTED_VERSION);
+    CHECK(gd_get_api_v0(UINT32_C(0x00020000), &api) == GD_ERROR_UNSUPPORTED_VERSION);
+    memset(&api, 0, sizeof(api));
+    api.struct_size = sizeof(api);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_1_0, &api) == GD_OK);
     CHECK(api.graphics_path_add_quadratic != NULL);
     CHECK(api.graphics_path_fill_mode != NULL);
     CHECK(api.recorder_trace != NULL);
@@ -725,27 +919,27 @@ int main(void) {
         uintptr_t native_bitmap = UINTPTR_MAX;
         CHECK(api.bitmap_export_hbitmap(
                   bitmap, (gd_color){UINT32_C(0xffffffff), 0}, &native_bitmap) ==
-              GD_ERROR_UNSUPPORTED_VERSION);
+              GD_ERROR_NOT_AVAILABLE);
         CHECK(native_bitmap == 0);
         CHECK(api.bitmap_import_hbitmap(1, &bitmap_clone) ==
-              GD_ERROR_UNSUPPORTED_VERSION);
+              GD_ERROR_NOT_AVAILABLE);
         CHECK(bitmap_clone.slot == 0 && bitmap_clone.generation == 0);
         {
             gd_rect surface_bounds = {0};
             CHECK(api.native_surface_capture(
                       1, GD_NATIVE_SURFACE_HDC, &bitmap_clone, &surface_bounds) ==
-                  GD_ERROR_UNSUPPORTED_VERSION);
+                  GD_ERROR_NOT_AVAILABLE);
             CHECK(api.native_surface_present(
                       1, GD_NATIVE_SURFACE_HDC, bitmap) ==
-                  GD_ERROR_UNSUPPORTED_VERSION);
+                  GD_ERROR_NOT_AVAILABLE);
             {
                 uintptr_t leased_hdc = 0;
                 uint64_t lease_token = 0;
                 CHECK(api.bitmap_acquire_hdc(bitmap, &leased_hdc, &lease_token) ==
-                      GD_ERROR_UNSUPPORTED_VERSION);
+                      GD_ERROR_NOT_AVAILABLE);
                 CHECK(leased_hdc == 0 && lease_token == 0);
                 CHECK(api.bitmap_release_hdc(bitmap, 1) ==
-                      GD_ERROR_UNSUPPORTED_VERSION);
+                      GD_ERROR_NOT_AVAILABLE);
             }
         }
     }
@@ -861,6 +1055,8 @@ int main(void) {
     CHECK(check_text_and_reuse(&api) == 0);
     CHECK(check_curved_paths(&api) == 0);
     CHECK(check_rotated_text(&api) == 0);
+    CHECK(check_seal_errors(&api) == 0);
+    CHECK(check_handle_staleness(&api) == 0);
     CHECK(api.release(recorder) == GD_OK);
     CHECK(api.release(recorder) == GD_ERROR_STALE_HANDLE);
     CHECK(api.release(format) == GD_OK);

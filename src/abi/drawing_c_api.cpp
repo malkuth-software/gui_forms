@@ -1,8 +1,10 @@
 #include "gui_forms/drawing_c_api.h"
+#include "gui_forms/c/gf_abi.h"
 
 #include "gui_forms/drawing.hpp"
 #include "gui_forms/drawing/font_substitution/font_substitution.hpp"
 #include "drawing_platform.hpp"
+#include "drawing_raster_service.h"
 #include "font_resolution_record.hpp"
 
 #include <algorithm>
@@ -11,6 +13,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <new>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -34,6 +37,25 @@ gd_result fail(gd_result result, std::string message) noexcept {
     return result;
 }
 
+// A count of caller elements checked before any element is read: below
+// minimum, or nonzero with no array, it is an argument fault; above maximum
+// it is over its limit (seal decision 4: every over-limit count gives
+// GD_ERROR_LIMIT_EXCEEDED).
+gd_result check_count(const void* elements, std::uint64_t count, std::uint64_t minimum,
+                      std::uint64_t maximum, const char* refusal) {
+    if (count > maximum) {
+        return fail(GD_ERROR_LIMIT_EXCEEDED, std::string(refusal) + " (the count is over its limit)");
+    }
+    if (count < minimum || (count != 0U && elements == nullptr)) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, refusal);
+    }
+    return GD_OK;
+}
+
+// The C++ failures as codes (seal decision 4). A plain std::logic_error is
+// GUI.Drawing's state refusal (a closed recorder, a bitmap under a lock or
+// an edit); its argument refusals are std::invalid_argument, std::out_of_range
+// and std::domain_error, and its limits std::length_error.
 template <typename Operation, typename... Arguments>
 gd_result translate(Operation operation, Arguments&&... arguments) noexcept {
     try {
@@ -45,12 +67,18 @@ gd_result translate(Operation operation, Arguments&&... arguments) noexcept {
             return std::invoke(operation,
                                std::forward<Arguments>(arguments)...);
         }
+    } catch (const std::bad_alloc& error) {
+        return fail(GD_ERROR_OUT_OF_MEMORY, error.what());
     } catch (const std::length_error& error) {
         return fail(GD_ERROR_LIMIT_EXCEEDED, error.what());
     } catch (const std::invalid_argument& error) {
         return fail(GD_ERROR_INVALID_ARGUMENT, error.what());
-    } catch (const std::logic_error& error) {
+    } catch (const std::out_of_range& error) {
         return fail(GD_ERROR_INVALID_ARGUMENT, error.what());
+    } catch (const std::domain_error& error) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, error.what());
+    } catch (const std::logic_error& error) {
+        return fail(GD_ERROR_INVALID_STATE, error.what());
     } catch (const std::exception& error) {
         return fail(GD_ERROR_INTERNAL, error.what());
     } catch (...) {
@@ -480,7 +508,7 @@ gd_raster_service_v0 raster_service{};
 
 gd_result verify_bitmap_is_not_leased(gui_drawing::Bitmap& bitmap) {
     return gui_drawing::abi::platform::has_hdc_lease(bitmap) ?
-        fail(GD_ERROR_INVALID_ARGUMENT,
+        fail(GD_ERROR_INVALID_STATE,
              "bitmap cannot be disposed during an HDC lease") : GD_OK;
 }
 
@@ -1424,9 +1452,10 @@ gd_result api_pen_set_dash_style(gd_handle handle, std::uint32_t style) {
 
 gd_result api_pen_set_dash_pattern(gd_handle handle, const double* entries,
                                    std::uint64_t count) {
-    if ((count != 0U && entries == nullptr) ||
-        count > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "dash pattern is not a bounded array");
+    if (const gd_result counted = check_count(entries, count, 1U, 256U,
+                                              "dash pattern requires 1 through 256 entries");
+        counted != GD_OK) {
+        return counted;
     }
     const std::span<const double> pattern(
         entries, static_cast<std::size_t>(count));
@@ -1693,10 +1722,13 @@ gd_result api_recorder_fill_ellipse(gd_handle recorder, gd_handle brush,
 gd_result api_recorder_fill_polygon(gd_handle recorder, gd_handle brush,
                                     const gd_point* points, std::uint64_t count,
                                     std::uint32_t fill_mode) {
-    if (points == nullptr || count < 3U ||
-        count > gui_drawing::GraphicsPath::maximum_elements || fill_mode > 1U) {
-        return fail(GD_ERROR_INVALID_ARGUMENT,
-                    "polygon requires bounded points and a declared fill mode");
+    if (const gd_result counted = check_count(points, count, 3U, gui_drawing::GraphicsPath::maximum_elements,
+                                              "polygon requires 3 or more bounded points");
+        counted != GD_OK) {
+        return counted;
+    }
+    if (fill_mode > 1U) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "polygon fill mode is outside the declared enum");
     }
     return translate(&fill_recorder_polygon_from_c, recorder, brush, points,
                      count, fill_mode);
@@ -1918,8 +1950,9 @@ gd_result api_graphics_path_clone(gd_handle handle, gd_handle* output) {
 gd_result api_image_attributes_set_remap_table(gd_handle handle,
                                                const gd_color_remap* entries,
                                                std::uint64_t count) {
-    if ((count != 0U && entries == nullptr) || count > 4096U) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "image remap table is not bounded");
+    if (const gd_result counted = check_count(entries, count, 0U, 4096U, "image remap table is not bounded");
+        counted != GD_OK) {
+        return counted;
     }
     return translate(&set_image_remap_table, handle, entries, count);
 }
@@ -1954,9 +1987,11 @@ gd_result api_linear_gradient_set_blend(gd_handle handle,
                                         const double* factors,
                                         const double* positions,
                                         std::uint64_t count) {
-    if (count < 2U || count > 4096U || factors == nullptr || positions == nullptr) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "gradient blend arrays are not bounded");
+    if (const gd_result counted = check_count(factors, count, 2U, 4096U, "gradient blend arrays are not bounded");
+        counted != GD_OK) {
+        return counted;
     }
+    if (positions == nullptr) return fail(GD_ERROR_INVALID_ARGUMENT, "gradient blend arrays are not bounded");
     return registry().with<gui_drawing::LinearGradientBrush>(
         handle, GD_OBJECT_LINEAR_GRADIENT_BRUSH,
         &set_linear_gradient_blend, factors, positions, count);
@@ -1965,9 +2000,13 @@ gd_result api_linear_gradient_set_blend(gd_handle handle,
 [[nodiscard]] gd_result set_gradient_interpolation(
     gd_handle handle, std::uint32_t kind, const gd_color* colors,
     const double* positions, std::uint64_t count) {
-    if (count < 2U || count > 4096U || colors == nullptr || positions == nullptr) {
-        return fail(GD_ERROR_INVALID_ARGUMENT,
-                    "gradient interpolation arrays are not bounded");
+    if (const gd_result counted = check_count(colors, count, 2U, 4096U,
+                                              "gradient interpolation arrays are not bounded");
+        counted != GD_OK) {
+        return counted;
+    }
+    if (positions == nullptr) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "gradient interpolation arrays are not bounded");
     }
     return translate(&apply_gradient_interpolation, handle, kind, colors,
                      positions, count);
@@ -1996,10 +2035,13 @@ gd_result api_path_gradient_brush_create(const gd_point* points,
                                          std::uint64_t count,
                                          std::uint32_t wrap_mode,
                                          gd_handle* output) {
-    if (points == nullptr || count < 3U ||
-        count > gui_drawing::GraphicsPath::maximum_elements ||
-        wrap_mode > GD_WRAP_CLAMP) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "path gradient inputs are not bounded");
+    if (const gd_result counted = check_count(points, count, 3U, gui_drawing::GraphicsPath::maximum_elements,
+                                              "path gradient requires 3 or more bounded points");
+        counted != GD_OK) {
+        return counted;
+    }
+    if (wrap_mode > GD_WRAP_CLAMP) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "gradient wrap mode is invalid");
     }
     return translate(&create_path_gradient_brush, points, count, wrap_mode,
                      output);
@@ -2018,9 +2060,10 @@ gd_result api_path_gradient_set_center_point(gd_handle handle, gd_point point) {
 gd_result api_path_gradient_set_surround_colors(gd_handle handle,
                                                 const gd_color* colors,
                                                 std::uint64_t count) {
-    if (count == 0U || count > gui_drawing::GraphicsPath::maximum_elements ||
-        colors == nullptr) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "surround color array is not bounded");
+    if (const gd_result counted = check_count(colors, count, 1U, gui_drawing::GraphicsPath::maximum_elements,
+                                              "surround color array is not bounded");
+        counted != GD_OK) {
+        return counted;
     }
     return translate(&set_path_gradient_surround_colors, handle, colors,
                      count);
@@ -2110,7 +2153,7 @@ gd_result api_recorder_execute_from(gd_handle recorder, gd_handle bitmap,
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_INTERNAL, "GUI.Drawing raster service is not installed");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster module is not loaded (gdr_initialize)");
     }
     return registry().with_two<gui_drawing::GraphicsRecorder, gui_drawing::Bitmap>(
         recorder, GD_OBJECT_RECORDER, bitmap, GD_OBJECT_BITMAP,
@@ -2131,7 +2174,7 @@ gd_result api_bitmap_encode_png(gd_handle bitmap, void* buffer,
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_INTERNAL, "GUI.Drawing raster service is not installed");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster module is not loaded (gdr_initialize)");
     }
     return registry().with<gui_drawing::Bitmap>(
         bitmap, GD_OBJECT_BITMAP, &encode_bitmap_png, service, buffer,
@@ -2146,7 +2189,7 @@ gd_result api_bitmap_decode_png(const void* data, std::uint64_t size,
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_INTERNAL, "GUI.Drawing raster service is not installed");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster module is not loaded (gdr_initialize)");
     }
     void* decoded = nullptr;
     const gd_result result = service.decode_png(data, size, &decoded);
@@ -2188,7 +2231,7 @@ gd_result api_measure_string(gd_string_view text, gd_handle font,
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_INTERNAL, "GUI.Drawing raster service is not installed");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster module is not loaded (gdr_initialize)");
     }
     const gd_string_view view{native_text.data(), native_text.size()};
     if (format.slot == 0U && format.generation == 0U) {
@@ -2314,11 +2357,10 @@ gd_result api_bitmap_release_hdc(gd_handle handle, std::uint64_t lease_token) {
     return registry().release(handle);
 }
 
-// A caller array of `count` elements, the batch bounds checked before any
-// element is read.
-[[nodiscard]] bool bounded_batch(const void* elements, std::uint64_t count, std::uint64_t minimum) noexcept {
-    return elements != nullptr && count >= minimum &&
-           count <= gui_drawing::GraphicsRecorder::maximum_batch_elements;
+// A caller array of `count` batch elements, checked before any element is
+// read (check_count with the batch limit).
+gd_result check_batch(const void* elements, std::uint64_t count, std::uint64_t minimum, const char* refusal) {
+    return check_count(elements, count, minimum, gui_drawing::GraphicsRecorder::maximum_batch_elements, refusal);
 }
 
 gd_result api_pen_set_line_join(gd_handle handle, std::uint32_t join, double miter_limit) {
@@ -2348,17 +2390,20 @@ gd_result draw_recorder_lines_from_c(gd_handle recorder, gd_handle pen, const gd
 
 gd_result api_recorder_draw_lines(gd_handle recorder, gd_handle pen, const gd_point* points,
                                   std::uint64_t count) {
-    if (!bounded_batch(points, count, 2U)) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "polyline requires 2 or more bounded points");
+    if (const gd_result counted = check_batch(points, count, 2U, "polyline requires 2 or more bounded points");
+        counted != GD_OK) {
+        return counted;
     }
     return translate(&draw_recorder_lines_from_c, recorder, pen, points, count, false);
 }
 
 gd_result api_recorder_draw_line_segments(gd_handle recorder, gd_handle pen, const gd_point* points,
                                           std::uint64_t count) {
-    if (!bounded_batch(points, count, 2U) || count % 2U != 0U) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "line segments require bounded points in pairs");
+    if (const gd_result counted = check_batch(points, count, 2U, "line segments require bounded points in pairs");
+        counted != GD_OK) {
+        return counted;
     }
+    if (count % 2U != 0U) return fail(GD_ERROR_INVALID_ARGUMENT, "line segments require bounded points in pairs");
     return translate(&draw_recorder_lines_from_c, recorder, pen, points, count, true);
 }
 
@@ -2373,8 +2418,9 @@ gd_result fill_recorder_rectangles_from_c(gd_handle recorder, gd_handle brush, c
 
 gd_result api_recorder_fill_rectangles(gd_handle recorder, gd_handle brush, const gd_rect* rects,
                                        std::uint64_t count) {
-    if (!bounded_batch(rects, count, 1U)) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "fill rectangles requires 1 or more bounded rectangles");
+    if (const gd_result counted = check_batch(rects, count, 1U, "fill rectangles requires 1 or more bounded rectangles");
+        counted != GD_OK) {
+        return counted;
     }
     return translate(&fill_recorder_rectangles_from_c, recorder, brush, rects, count);
 }
@@ -2394,8 +2440,12 @@ gd_result draw_recorder_markers_from_c(gd_handle recorder, const gd_point* cente
 
 gd_result api_recorder_draw_markers(gd_handle recorder, const gd_point* centers, std::uint64_t count,
                                     const gd_marker_style* style) {
-    if (!bounded_batch(centers, count, 1U) || style == nullptr || (*style).shape > GD_MARKER_ASTERISK) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "markers require bounded centres and a declared shape");
+    if (const gd_result counted = check_batch(centers, count, 1U, "markers require 1 or more bounded centres");
+        counted != GD_OK) {
+        return counted;
+    }
+    if (style == nullptr || (*style).shape > GD_MARKER_ASTERISK) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "markers require a style with a declared shape");
     }
     return translate(&draw_recorder_markers_from_c, recorder, centers, count, style);
 }
@@ -2527,16 +2577,22 @@ gd_result api_graphics_path_add_bezier(gd_handle handle, gd_point from, gd_point
 }
 
 gd_result api_graphics_path_add_beziers(gd_handle handle, const gd_point* points, std::uint64_t count) {
-    const bool shaped = count >= 4U && (count - 1U) % 3U == 0U;
-    if (points == nullptr || !shaped || count > gui_drawing::GraphicsPath::maximum_elements) {
+    if (const gd_result counted = check_count(points, count, 4U, gui_drawing::GraphicsPath::maximum_elements,
+                                              "joined Bezier curves require 4 + 3n bounded points");
+        counted != GD_OK) {
+        return counted;
+    }
+    if ((count - 1U) % 3U != 0U) {
         return fail(GD_ERROR_INVALID_ARGUMENT, "joined Bezier curves require 4 + 3n bounded points");
     }
     return translate(&add_path_point_list, handle, points, count, true);
 }
 
 gd_result api_graphics_path_add_polygon(gd_handle handle, const gd_point* points, std::uint64_t count) {
-    if (points == nullptr || count < 3U || count > gui_drawing::GraphicsPath::maximum_elements) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "a path polygon requires 3 or more bounded points");
+    if (const gd_result counted = check_count(points, count, 3U, gui_drawing::GraphicsPath::maximum_elements,
+                                              "a path polygon requires 3 or more bounded points");
+        counted != GD_OK) {
+        return counted;
     }
     return translate(&add_path_point_list, handle, points, count, false);
 }
@@ -2770,8 +2826,106 @@ gd_result api_measure_string_fitted(gd_string_view text, gd_handle font, gd_hand
         max_width, bytes_fitted, fitted_width);
 }
 
+// ABI 1.0, the bridge to a GUI.Forms paint target (seal decision 12: the
+// drawing ABI may take GUI.Forms' own types).
+
+// A gf_paint_target checked and reduced to what recorder_paint_target draws
+// with: the lent pixels, the scale, and the damage in whole device pixels
+// inside the target.
+struct PaintTargetFrame final {
+    std::uint32_t width{};
+    std::uint32_t height{};
+    std::size_t row_bytes{};
+    std::byte* pixels{};
+    double scale{};
+    gui_drawing::RectF device_clip{};
+};
+
+// Checks the lent target before anything is drawn: argument faults give
+// GD_ERROR_INVALID_ARGUMENT and sizes over the bitmap limits
+// GD_ERROR_LIMIT_EXCEEDED. Fills frame only on GD_OK.
+gd_result frame_paint_target(const gf_paint_target* target, PaintTargetFrame& frame) {
+    if (target == nullptr || (*target).struct_size < sizeof(gf_paint_target)) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "a paint target requires a gf_paint_target of its 1.0 size");
+    }
+    const gf_paint_target& lent = *target;
+    if (lent.pixels == nullptr || lent.width == 0U || lent.height == 0U) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "a paint target requires pixels and a nonzero size");
+    }
+    if (lent.width > gui_drawing::Bitmap::maximum_dimension || lent.height > gui_drawing::Bitmap::maximum_dimension) {
+        return fail(GD_ERROR_LIMIT_EXCEEDED, "a paint target is larger than a bitmap may be");
+    }
+    const std::uint64_t pixel_count = static_cast<std::uint64_t>(lent.width) * lent.height;
+    if (pixel_count > gui_drawing::Bitmap::maximum_pixels) {
+        return fail(GD_ERROR_LIMIT_EXCEEDED, "a paint target has more pixels than a bitmap may");
+    }
+    const std::uint64_t row_minimum = static_cast<std::uint64_t>(lent.width) * 4U;
+    if (lent.row_bytes < row_minimum || lent.row_bytes % 4U != 0U) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "a paint target's row_bytes must be a multiple of 4 holding a row");
+    }
+    if (lent.row_bytes > std::numeric_limits<std::size_t>::max() / lent.height) {
+        return fail(GD_ERROR_LIMIT_EXCEEDED, "a paint target's rows do not fit in memory");
+    }
+    if (!std::isfinite(lent.scale) || lent.scale <= 0.0) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "a paint target's scale must be finite and positive");
+    }
+    const gf_logical_rect damage = lent.damage;
+    if (!std::isfinite(damage.x) || !std::isfinite(damage.y) || !std::isfinite(damage.width) ||
+        !std::isfinite(damage.height) || damage.width < 0.0 || damage.height < 0.0) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "a paint target's damage must be finite with a non-negative size");
+    }
+    // Rounded out to whole device pixels and held to the target (a product
+    // that overflows to infinity is held to the target's edge).
+    const double target_width = static_cast<double>(lent.width);
+    const double target_height = static_cast<double>(lent.height);
+    const double left = std::clamp(std::floor(damage.x * lent.scale), 0.0, target_width);
+    const double top = std::clamp(std::floor(damage.y * lent.scale), 0.0, target_height);
+    const double right = std::clamp(std::ceil((damage.x + damage.width) * lent.scale), left, target_width);
+    const double bottom = std::clamp(std::ceil((damage.y + damage.height) * lent.scale), top, target_height);
+    frame.width = lent.width;
+    frame.height = lent.height;
+    frame.row_bytes = static_cast<std::size_t>(lent.row_bytes);
+    frame.pixels = reinterpret_cast<std::byte*>(lent.pixels);
+    frame.scale = lent.scale;
+    frame.device_clip = {left, top, right - left, bottom - top};
+    return GD_OK;
+}
+
+// The recording framed into device pixels and the damage (a copy, so the
+// recording is unchanged), then drawn by the raster module into a bitmap
+// borrowing the target's pixels. Both the copy and the bitmap live for the
+// call only.
+gd_result paint_recorder_onto_target(gui_drawing::GraphicsRecorder& recorder,
+                                     const gd_raster_service_v0& service,
+                                     const PaintTargetFrame& frame,
+                                     std::uint64_t* commands_executed) {
+    gui_drawing::GraphicsRecorder framed;
+    recorder.frame_into(framed, frame.scale, frame.device_clip);
+    const std::unique_ptr<gui_drawing::Bitmap> surface =
+        gui_drawing::Bitmap::borrow(frame.width, frame.height, frame.row_bytes, frame.pixels);
+    const gd_result result = service.execute(&framed, surface.get(), 0U, commands_executed);
+    if (result == GD_OK) return GD_OK;
+    return fail(result, "GUI.Drawing could not draw the recording into the paint target");
+}
+
+gd_result api_recorder_paint_target(gd_handle recorder, const gf_paint_target* target,
+                                    std::uint64_t* commands_executed) {
+    if (commands_executed == nullptr) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "painting a target requires a count output");
+    }
+    *commands_executed = 0U;
+    PaintTargetFrame frame{};
+    if (const gd_result framed = frame_paint_target(target, frame); framed != GD_OK) return framed;
+    gd_raster_service_v0 service{};
+    if (!load_raster_service(service)) {
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster module is not loaded (gdr_initialize)");
+    }
+    return registry().with<gui_drawing::GraphicsRecorder>(
+        recorder, GD_OBJECT_RECORDER, &paint_recorder_onto_target, service, frame, commands_executed);
+}
+
 const gd_api_v0 api_table{
-    sizeof(gd_api_v0), GD_ABI_VERSION_0_7,
+    sizeof(gd_api_v0), GD_ABI_VERSION_1_0,
     &api_last_error, &api_retain, &api_release, &api_dispose,
     &api_object_state, &api_object_kind,
     &api_solid_brush_create, &api_pen_create, &api_pen_set_width,
@@ -2848,6 +3002,13 @@ const gd_api_v0 api_table{
     &api_graphics_path_add_pie,
     &api_graphics_path_set_fill_mode, &api_graphics_path_fill_mode,
     &api_recorder_draw_string_rotated,
+    &api_recorder_paint_target,
+    // The <kind>_gradient_brush_set_* aliases: the 0.x setters' functions.
+    &api_linear_gradient_set_blend, &api_linear_gradient_set_interpolation,
+    &api_linear_gradient_set_wrap_mode,
+    &api_path_gradient_set_center_color, &api_path_gradient_set_center_point,
+    &api_path_gradient_set_surround_colors, &api_path_gradient_set_interpolation,
+    &api_conic_gradient_set_interpolation,
 };
 
 } // namespace
@@ -2864,7 +3025,8 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
         requested_version != GD_ABI_VERSION_0_4 &&
         requested_version != GD_ABI_VERSION_0_5 &&
         requested_version != GD_ABI_VERSION_0_6 &&
-        requested_version != GD_ABI_VERSION_0_7) {
+        requested_version != GD_ABI_VERSION_0_7 &&
+        requested_version != GD_ABI_VERSION_1_0) {
         return fail(GD_ERROR_UNSUPPORTED_VERSION,
                     "requested GUI.Drawing ABI version is unsupported");
     }
@@ -2883,6 +3045,8 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
         available = offsetof(gd_api_v0, graphics_path_add_quadratic);
     } else if (requested_version == GD_ABI_VERSION_0_6) {
         available = offsetof(gd_api_v0, recorder_draw_string_rotated);
+    } else if (requested_version == GD_ABI_VERSION_0_7) {
+        available = offsetof(gd_api_v0, recorder_paint_target);
     }
     const std::size_t copied = std::min<std::size_t>(caller_size, available);
     std::memcpy(table, &api_table, copied);

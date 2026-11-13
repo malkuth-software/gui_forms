@@ -531,18 +531,18 @@ gd_result publish_retained_surface(std::uintptr_t destination,
     const HWND window = kind == GD_NATIVE_SURFACE_HWND
         ? reinterpret_cast<HWND>(destination)
         : WindowFromDC(reinterpret_cast<HDC>(destination));
-    if (window == nullptr) return GD_ERROR_UNSUPPORTED_VERSION;
+    if (window == nullptr) return GD_ERROR_NOT_AVAILABLE;
     // The C ABI's paint endpoint table, resolved by name (the drawing
     // library never links GUI.Forms): submit_bgra publishes to the endpoint
     // behind the window's compatibility handle.
     static const EndpointProbe probe = load_endpoint_probe();
-    if (!probe.table_present || probe.table.submit_bgra == nullptr) return GD_ERROR_UNSUPPORTED_VERSION;
+    if (!probe.table_present || probe.table.submit_bgra == nullptr) return GD_ERROR_NOT_AVAILABLE;
     const ImageSnapshot snapshot = bitmap.snapshot();
     const std::uint64_t handle = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(window));
     const std::uint8_t* const pixels = reinterpret_cast<const std::uint8_t*>(snapshot.pixels().data());
     const gf_status submitted =
         probe.table.submit_bgra(handle, snapshot.width, snapshot.height, snapshot.row_bytes(), pixels);
-    if (submitted != GF_STATUS_OK) return GD_ERROR_UNSUPPORTED_VERSION;
+    if (submitted != GF_STATUS_OK) return GD_ERROR_NOT_AVAILABLE;
     return GD_OK;
 }
 

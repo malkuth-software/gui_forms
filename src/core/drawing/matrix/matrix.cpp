@@ -25,7 +25,7 @@ bool Matrix::finite() const noexcept {
 }
 
 PointF Matrix::transform(PointF point) const {
-    if (!finite()) throw std::logic_error("matrix is not finite");
+    if (!finite()) throw std::invalid_argument("matrix is not finite");
     require_finite(point, "transformed point");
     const PointF result{point.x * m11_ + point.y * m21_ + dx_,
                         point.x * m12_ + point.y * m22_ + dy_};

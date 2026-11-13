@@ -81,6 +81,9 @@ internal static unsafe class NativeDrawingBridge
         fixed (ulong* entries = api.Entries) return (nint)entries[index];
     }
 
+    // The Windows entries below answer 12 (GD_ERROR_NOT_AVAILABLE) on other
+    // hosts since the drawing ABI's 1.0 seal, and 7 before it; both map to
+    // PlatformNotSupportedException. The table is still bound at 0.2 by index.
     private static void Check(int result)
     {
         if (result != 0) throw new InvalidOperationException("GUI.Drawing native operation failed with result " + result + ".");
@@ -1047,7 +1050,7 @@ internal static unsafe class NativeDrawingBridge
                 "|bitmap:" + bitmapHandle.Slot + ":" + bitmapHandle.Generation + "|bounds:" +
                 bounds.X + "," + bounds.Y + "," + bounds.Width + "x" + bounds.Height +
                 "|thread:" + global::System.Environment.CurrentManagedThreadId);
-        if (result == 7) throw new PlatformNotSupportedException(
+        if (result == 7 || result == 12) throw new PlatformNotSupportedException(
             "Native HDC/HWND drawing is available only through the Windows adapter.");
         Check(result);
         Dimensions(bitmapHandle, out var width, out var height);
@@ -1095,7 +1098,7 @@ internal static unsafe class NativeDrawingBridge
         var result = ((delegate* unmanaged[Cdecl]<nuint, uint, Handle*, Rect*, int>)Entry(92))(
             (nuint)graphics.__nativeSurface, graphics.__nativeSurfaceKind,
             &refreshed, &bounds);
-        if (result == 7) throw new PlatformNotSupportedException(
+        if (result == 7 || result == 12) throw new PlatformNotSupportedException(
             "Native surface refresh is available only through the Windows adapter.");
         Check(result);
         Dimensions(refreshed, out var width, out var height);
@@ -1112,7 +1115,7 @@ internal static unsafe class NativeDrawingBridge
         var result = ((delegate* unmanaged[Cdecl]<nuint, uint, Handle, int>)Entry(93))(
             (nuint)graphics.__nativeSurface, graphics.__nativeSurfaceKind,
             graphics.__target.__BitmapHandle);
-        if (result == 7) throw new PlatformNotSupportedException(
+        if (result == 7 || result == 12) throw new PlatformNotSupportedException(
             "Native surface presentation is available only through the Windows adapter.");
         Check(result);
         var retained = ((delegate* unmanaged[Cdecl]<nuint, uint, Handle, int>)Entry(103))(
@@ -1154,7 +1157,7 @@ internal static unsafe class NativeDrawingBridge
         ulong token;
         var result = ((delegate* unmanaged[Cdecl]<Handle, nuint*, ulong*, int>)Entry(94))(
             graphics.__target.__BitmapHandle, &device, &token);
-        if (result == 7) throw new PlatformNotSupportedException(
+        if (result == 7 || result == 12) throw new PlatformNotSupportedException(
             "Bitmap-backed HDC leases are available only through the Windows adapter.");
         Check(result);
         graphics.__leasedHdc = (nint)device;
@@ -1168,7 +1171,7 @@ internal static unsafe class NativeDrawingBridge
             throw new ArgumentException("HDC does not belong to this Graphics lease.", nameof(device));
         var result = ((delegate* unmanaged[Cdecl]<Handle, ulong, int>)Entry(95))(
             graphics.__target.__BitmapHandle, graphics.__hdcLeaseToken);
-        if (result == 7) throw new PlatformNotSupportedException(
+        if (result == 7 || result == 12) throw new PlatformNotSupportedException(
             "Bitmap-backed HDC leases are available only through the Windows adapter.");
         Check(result);
         graphics.__leasedHdc = 0;
@@ -1181,7 +1184,7 @@ internal static unsafe class NativeDrawingBridge
         nuint native;
         var result = ((delegate* unmanaged[Cdecl]<Handle, NativeColor, nuint*, int>)Entry(90))(
             bitmap.__BitmapHandle, Native(background), &native);
-        if (result == 7) throw new PlatformNotSupportedException(
+        if (result == 7 || result == 12) throw new PlatformNotSupportedException(
             "Native HBITMAP export is available only through the Windows adapter.");
         Check(result);
         return (nint)native;
@@ -1192,7 +1195,7 @@ internal static unsafe class NativeDrawingBridge
         Handle handle;
         var result = ((delegate* unmanaged[Cdecl]<nuint, Handle*, int>)Entry(91))(
             (nuint)hbitmap, &handle);
-        if (result == 7) throw new PlatformNotSupportedException(
+        if (result == 7 || result == 12) throw new PlatformNotSupportedException(
             "Native HBITMAP import is available only through the Windows adapter.");
         Check(result);
         Dimensions(handle, out var width, out var height);

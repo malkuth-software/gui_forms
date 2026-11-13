@@ -3,6 +3,7 @@
 
 #include "gui_forms/drawing/font_substitution/font_substitution.hpp"
 #include "drawing_skia.hpp"
+#include "drawing_raster_service.h"
 #include "font_resolution_record.hpp"
 #if defined(__APPLE__)
 #include "core_text_font_bytes.hpp"

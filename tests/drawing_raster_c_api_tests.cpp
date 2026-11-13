@@ -1,4 +1,5 @@
 #include "gui_forms/drawing_c_api.h"
+#include "gui_forms/c/gf_abi.h"
 #include "gui_forms/drawing_raster_c_api.h"
 
 #include <algorithm>
@@ -326,6 +327,99 @@ void rotated_strings_turn_their_ink() {
     CHECK(api.release(draw.font) == GD_OK);
 }
 
+// The BGRA bytes of one pixel of a lent target.
+struct TargetPixel final {
+    std::uint8_t blue{};
+    std::uint8_t green{};
+    std::uint8_t red{};
+    std::uint8_t alpha{};
+};
+
+TargetPixel target_pixel(const std::vector<std::uint8_t>& pixels, std::size_t row_bytes, std::size_t x,
+                         std::size_t y) {
+    const std::size_t at = y * row_bytes + x * 4U;
+    const TargetPixel result{pixels[at], pixels[at + 1U], pixels[at + 2U], pixels[at + 3U]};
+    return result;
+}
+
+bool is_opaque_red(const TargetPixel pixel) {
+    return pixel.blue == 0U && pixel.green == 0U && pixel.red == 255U && pixel.alpha == 255U;
+}
+
+bool is_sentinel_blue(const TargetPixel pixel) {
+    return pixel.blue == 255U && pixel.green == 0U && pixel.red == 0U && pixel.alpha == 255U;
+}
+
+// ABI 1.0's bridge (seal decision 12): a recording in logical units drawn
+// into a lent GUI.Forms paint target at its scale, only inside its damage,
+// rows row_bytes apart; the recording is left as it was.
+void paint_target_draws_scaled_inside_damage(const gd_api_v0& api) {
+    CHECK(api.recorder_paint_target != nullptr);
+    gd_handle recorder{};
+    gd_handle brush{};
+    CHECK(api.recorder_create(&recorder) == GD_OK);
+    CHECK(api.solid_brush_create(gd_color{UINT32_C(0xffff0000), 0}, &brush) == GD_OK);
+    CHECK(api.recorder_fill_rectangle(recorder, brush, gd_rect{0, 0, 4, 4}) == GD_OK);
+
+    // 12 x 10 device pixels with 8 bytes of padding per row; opaque blue
+    // pixels, padding 0xab.
+    constexpr std::size_t width = 12U;
+    constexpr std::size_t height = 10U;
+    constexpr std::size_t row_bytes = width * 4U + 8U;
+    std::vector<std::uint8_t> pixels(row_bytes * height, std::uint8_t{0xab});
+    for (std::size_t y = 0; y < height; ++y) {
+        for (std::size_t x = 0; x < width; ++x) {
+            const std::size_t at = y * row_bytes + x * 4U;
+            pixels[at] = 255U;
+            pixels[at + 1U] = 0U;
+            pixels[at + 2U] = 0U;
+            pixels[at + 3U] = 255U;
+        }
+    }
+    gf_paint_target target{};
+    target.struct_size = sizeof(target);
+    target.width = static_cast<std::uint32_t>(width);
+    target.height = static_cast<std::uint32_t>(height);
+    target.row_bytes = row_bytes;
+    target.pixels = pixels.data();
+    target.scale = 2.0;
+    // Logical 0..3 square: device pixels 0..6.
+    target.damage = gf_logical_rect{0.0, 0.0, 3.0, 3.0};
+    std::uint64_t executed{};
+    CHECK(api.recorder_paint_target(recorder, &target, &executed) == GD_OK);
+    CHECK(executed == 1U);
+    // Inside the rectangle (device 0..8) and the damage: drawn.
+    CHECK(is_opaque_red(target_pixel(pixels, row_bytes, 1U, 1U)));
+    CHECK(is_opaque_red(target_pixel(pixels, row_bytes, 5U, 5U)));
+    // Inside the rectangle, outside the damage: left as it was.
+    CHECK(is_sentinel_blue(target_pixel(pixels, row_bytes, 7U, 7U)));
+    CHECK(is_sentinel_blue(target_pixel(pixels, row_bytes, 6U, 2U)));
+    // Outside both.
+    CHECK(is_sentinel_blue(target_pixel(pixels, row_bytes, 10U, 8U)));
+    // The row padding is never written.
+    for (std::size_t y = 0; y < height; ++y) {
+        for (std::size_t offset = width * 4U; offset < row_bytes; ++offset) {
+            CHECK(pixels[y * row_bytes + offset] == 0xabU);
+        }
+    }
+    // The recording is unchanged and draws again, here over the whole
+    // target at scale 1: device 0..4.
+    std::uint64_t count{};
+    CHECK(api.recorder_command_count(recorder, &count) == GD_OK);
+    CHECK(count == 1U);
+    target.scale = 1.0;
+    target.damage = gf_logical_rect{0.0, 0.0, 12.0, 10.0};
+    CHECK(api.recorder_paint_target(recorder, &target, &executed) == GD_OK);
+    CHECK(executed == 1U);
+    CHECK(is_opaque_red(target_pixel(pixels, row_bytes, 3U, 3U)));
+    CHECK(is_sentinel_blue(target_pixel(pixels, row_bytes, 7U, 7U)));
+    // A wrong kind of handle is refused as a kind, not drawn.
+    CHECK(api.recorder_paint_target(brush, &target, &executed) == GD_ERROR_WRONG_HANDLE_KIND);
+    CHECK(api.release(brush) == GD_OK);
+    CHECK(api.release(recorder) == GD_OK);
+    CHECK(api.recorder_paint_target(recorder, &target, &executed) == GD_ERROR_STALE_HANDLE);
+}
+
 int main() {
     gd_api_v0 api{};
     api.struct_size = sizeof(api);
@@ -428,6 +522,10 @@ int main() {
     CHECK(gd_get_api_v0(GD_ABI_VERSION_0_2, &current) == GD_OK);
     CHECK(current.font_resolve != nullptr);
     fonts_resolve_through_the_substitution_table(current);
+    gd_api_v0 sealed{};
+    sealed.struct_size = sizeof(sealed);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_1_0, &sealed) == GD_OK);
+    paint_target_draws_scaled_inside_damage(sealed);
     curved_paths_fill_and_stroke();
     rotated_strings_turn_their_ink();
     return 0;
