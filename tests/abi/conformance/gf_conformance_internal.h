@@ -39,6 +39,7 @@ typedef struct gf_kit {
     gf_fonts_table fonts;
     gf_help_table help;
     gf_classes_table classes;
+    gf_content_table content;
     /* Loaded by the custom part where the library has it (Windows). */
     gf_windows_paint_endpoint_table windows_paint_endpoint;
 } gf_kit;
@@ -130,6 +131,10 @@ void gf_kit_data_grid(gf_kit* kit);
  * running. */
 void gf_kit_docking(gf_kit* kit);
 void gf_kit_help(gf_kit* kit);
+/* A content surface's channel, a content program, the hosted-content
+ * refusals and a content text editor's layout (GF_TABLE_CONTENT, since 1.4),
+ * with no window running. */
+void gf_kit_content(gf_kit* kit);
 void gf_kit_splashscreen_refusals(gf_kit* kit);
 void gf_kit_splashscreen(gf_kit* kit);
 void gf_kit_host(gf_kit* kit);

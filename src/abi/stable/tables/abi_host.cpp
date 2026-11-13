@@ -55,7 +55,7 @@ struct CapabilityBit final {
     gf_host_capability abi = 0U;
 };
 
-constexpr std::array<CapabilityBit, 35> capability_bits{{
+constexpr std::array<CapabilityBit, 36> capability_bits{{
     {HostCapability::lifecycle, GF_HOST_CAPABILITY_LIFECYCLE},
     {HostCapability::scale_notifications, GF_HOST_CAPABILITY_SCALE_NOTIFICATIONS},
     {HostCapability::monitor_geometry, GF_HOST_CAPABILITY_MONITOR_GEOMETRY},
@@ -91,6 +91,7 @@ constexpr std::array<CapabilityBit, 35> capability_bits{{
     {HostCapability::transient_surfaces, GF_HOST_CAPABILITY_TRANSIENT_SURFACES},
     {HostCapability::window_corners, GF_HOST_CAPABILITY_WINDOW_CORNERS},
     {HostCapability::window_state_reports, GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS},
+    {HostCapability::hosted_content, GF_HOST_CAPABILITY_HOSTED_CONTENT},
 }};
 
 // The corner shapes a host with window_corners may give: square on request

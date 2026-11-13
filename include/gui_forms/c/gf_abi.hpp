@@ -2740,6 +2740,354 @@ private:
     gf_help_table table_;
 };
 
+// gf_content_table, negotiated as GF_TABLE_CONTENT.
+class ContentTable {
+public:
+    ContentTable() noexcept : table_{} {}
+
+    // Negotiates the table at the header's version into output; a refusal
+    // leaves output serving nothing.
+    [[nodiscard]] static gf_status negotiate(ContentTable& output) noexcept {
+        gf_content_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_CONTENT, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                      &negotiated_table, sizeof(negotiated_table));
+        if (negotiated != GF_STATUS_OK) {
+            output = ContentTable{};
+            return negotiated;
+        }
+        output.table_ = negotiated_table;
+        return GF_STATUS_OK;
+    }
+
+    // A table the caller negotiated through gf_abi_get_table.
+    [[nodiscard]] static ContentTable adopt(const gf_content_table& adopted_table) noexcept {
+        ContentTable adopted;
+        adopted.table_ = adopted_table;
+        return adopted;
+    }
+
+    [[nodiscard]] const gf_content_table& c_table() const noexcept { return table_; }
+
+    [[nodiscard]] gf_status open_content(gf_object surface, uint32_t opaque, gf_content_sink* sink) const noexcept {
+        if (table_.struct_size < 16u || table_.open_content == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.open_content(surface, opaque, sink);
+        return called;
+    }
+
+    [[nodiscard]] gf_status close_content(gf_object surface) const noexcept {
+        if (table_.struct_size < 24u || table_.close_content == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.close_content(surface);
+        return called;
+    }
+
+    [[nodiscard]] gf_status start_program(gf_object surface, const gf_content_program* program) const noexcept {
+        if (table_.struct_size < 32u || table_.start_program == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.start_program(surface, program);
+        return called;
+    }
+
+    [[nodiscard]] gf_status start_hosted(gf_object surface, const gf_hosted_options* options) const noexcept {
+        if (table_.struct_size < 40u || table_.start_hosted == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.start_hosted(surface, options);
+        return called;
+    }
+
+    [[nodiscard]] gf_status terminate(gf_object surface) const noexcept {
+        if (table_.struct_size < 48u || table_.terminate == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.terminate(surface);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_termination_grace(gf_object surface, uint64_t milliseconds) const noexcept {
+        if (table_.struct_size < 56u || table_.set_termination_grace == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_termination_grace(surface, milliseconds);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_stale_interval(gf_object surface, uint64_t milliseconds) const noexcept {
+        if (table_.struct_size < 64u || table_.set_stale_interval == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_stale_interval(surface, milliseconds);
+        return called;
+    }
+
+    [[nodiscard]] gf_status status(gf_object surface, gf_content_status* status) const noexcept {
+        if (table_.struct_size < 72u || table_.status == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.status(surface, status);
+        return called;
+    }
+
+    [[nodiscard]] gf_status failure(gf_object surface, char* buffer, uint64_t capacity,
+                                    uint64_t* required) const noexcept {
+        if (table_.struct_size < 80u || table_.failure == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.failure(surface, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status statistics(gf_object surface, gf_content_statistics* statistics) const noexcept {
+        if (table_.struct_size < 88u || table_.statistics == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.statistics(surface, statistics);
+        return called;
+    }
+
+    [[nodiscard]] gf_status request(gf_object surface, gf_content_request* request) const noexcept {
+        if (table_.struct_size < 96u || table_.request == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.request(surface, request);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_status_caption(gf_object surface, gf_content_status status,
+                                               gf_utf8_view caption) const noexcept {
+        if (table_.struct_size < 104u || table_.set_status_caption == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_status_caption(surface, status, caption);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_semantics(gf_object surface, const gf_content_semantics* semantics) const noexcept {
+        if (table_.struct_size < 112u || table_.set_semantics == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_semantics(surface, semantics);
+        return called;
+    }
+
+    [[nodiscard]] gf_status program_running(gf_object surface, uint32_t* running) const noexcept {
+        if (table_.struct_size < 120u || table_.program_running == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.program_running(surface, running);
+        return called;
+    }
+
+    [[nodiscard]] gf_status hosted_input(gf_object surface, gf_hosted_input_report* report) const noexcept {
+        if (table_.struct_size < 128u || table_.hosted_input == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.hosted_input(surface, report);
+        return called;
+    }
+
+    [[nodiscard]] gf_status hosted_support(gf_hosted_support* support) const noexcept {
+        if (table_.struct_size < 136u || table_.hosted_support == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.hosted_support(support);
+        return called;
+    }
+
+    [[nodiscard]] gf_status sink_publish(gf_content_sink sink, const gf_content_frame* frame,
+                                         gf_content_publish_result* result) const noexcept {
+        if (table_.struct_size < 144u || table_.sink_publish == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.sink_publish(sink, frame, result);
+        return called;
+    }
+
+    [[nodiscard]] gf_status sink_heartbeat(gf_content_sink sink) const noexcept {
+        if (table_.struct_size < 152u || table_.sink_heartbeat == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.sink_heartbeat(sink);
+        return called;
+    }
+
+    [[nodiscard]] gf_status sink_publish_semantics(gf_content_sink sink, const gf_content_semantics* semantics,
+                                                   gf_content_semantics_result* result) const noexcept {
+        if (table_.struct_size < 160u || table_.sink_publish_semantics == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.sink_publish_semantics(sink, semantics, result);
+        return called;
+    }
+
+    [[nodiscard]] gf_status sink_request(gf_content_sink sink, gf_content_request* request) const noexcept {
+        if (table_.struct_size < 168u || table_.sink_request == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.sink_request(sink, request);
+        return called;
+    }
+
+    [[nodiscard]] gf_status sink_wait_for_request(gf_content_sink sink, uint64_t seen_generation, uint64_t timeout_ms,
+                                                  gf_content_request* request) const noexcept {
+        if (table_.struct_size < 176u || table_.sink_wait_for_request == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.sink_wait_for_request(sink, seen_generation, timeout_ms, request);
+        return called;
+    }
+
+    [[nodiscard]] gf_status sink_state(gf_content_sink sink, uint32_t* revoked,
+                                       uint32_t* stop_requested) const noexcept {
+        if (table_.struct_size < 184u || table_.sink_state == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.sink_state(sink, revoked, stop_requested);
+        return called;
+    }
+
+    [[nodiscard]] gf_status sink_statistics(gf_content_sink sink, gf_content_statistics* statistics) const noexcept {
+        if (table_.struct_size < 192u || table_.sink_statistics == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.sink_statistics(sink, statistics);
+        return called;
+    }
+
+    [[nodiscard]] gf_status sink_release(gf_content_sink sink) const noexcept {
+        if (table_.struct_size < 200u || table_.sink_release == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.sink_release(sink);
+        return called;
+    }
+
+    [[nodiscard]] gf_status program_sink(gf_content_sink* sink) const noexcept {
+        if (table_.struct_size < 208u || table_.program_sink == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.program_sink(sink);
+        return called;
+    }
+
+    [[nodiscard]] gf_status program_fail(gf_utf8_view message) const noexcept {
+        if (table_.struct_size < 216u || table_.program_fail == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.program_fail(message);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_text_revision(gf_object editor, uint64_t* revision) const noexcept {
+        if (table_.struct_size < 224u || table_.editor_text_revision == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_text_revision(editor, revision);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_text(gf_object editor, char* buffer, uint64_t capacity,
+                                        uint64_t* required) const noexcept {
+        if (table_.struct_size < 232u || table_.editor_text == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_text(editor, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_set_text(gf_object editor, gf_utf8_view text) const noexcept {
+        if (table_.struct_size < 240u || table_.editor_set_text == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_set_text(editor, text);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_submit_layout(gf_object editor, const gf_content_text_layout* layout,
+                                                 gf_content_layout_result* result) const noexcept {
+        if (table_.struct_size < 248u || table_.editor_submit_layout == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_submit_layout(editor, layout, result);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_layout_current(gf_object editor, uint32_t* current) const noexcept {
+        if (table_.struct_size < 256u || table_.editor_layout_current == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_layout_current(editor, current);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_open_frames(gf_object editor, uint32_t opaque,
+                                               gf_content_sink* sink) const noexcept {
+        if (table_.struct_size < 264u || table_.editor_open_frames == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_open_frames(editor, opaque, sink);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_caret_rectangle(gf_object editor, uint32_t* present,
+                                                   gf_logical_rect* rectangle) const noexcept {
+        if (table_.struct_size < 272u || table_.editor_caret_rectangle == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_caret_rectangle(editor, present, rectangle);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_selection_rectangles(gf_object editor, gf_logical_rect* buffer, uint64_t capacity,
+                                                        uint64_t* required) const noexcept {
+        if (table_.struct_size < 280u || table_.editor_selection_rectangles == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_selection_rectangles(editor, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_position_at(gf_object editor, gf_logical_point point,
+                                               uint64_t* offset) const noexcept {
+        if (table_.struct_size < 288u || table_.editor_position_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_position_at(editor, point, offset);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_set_draws_selection(gf_object editor, uint32_t draws) const noexcept {
+        if (table_.struct_size < 296u || table_.editor_set_draws_selection == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_set_draws_selection(editor, draws);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_set_multiline(gf_object editor, uint32_t multiline) const noexcept {
+        if (table_.struct_size < 304u || table_.editor_set_multiline == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_set_multiline(editor, multiline);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_set_read_only(gf_object editor, uint32_t read_only) const noexcept {
+        if (table_.struct_size < 312u || table_.editor_set_read_only == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_set_read_only(editor, read_only);
+        return called;
+    }
+
+private:
+    gf_content_table table_;
+};
+
 // gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.
 class WindowsPaintEndpointTable {
 public:

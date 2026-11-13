@@ -760,6 +760,63 @@ internal static unsafe class Program
                "a font carries its family beside its stack");
     }
 
+    // The content table (C ABI 1.4): a content surface's channel from the
+    // caller's own code, a refusal as a result rather than a failed call,
+    // and a content text editor's text.
+    private static void content()
+    {
+        ref readonly gf_content_table table = ref Abi.content;
+        using ObjectHandle surface = ObjectHandle.create("content_surface"u8, "csharp.content.surface"u8);
+        gf_content_sink sink = 0;
+        Abi.check(table.open_content(surface.value, 1u, &sink));
+        expect(sink != 0, "open_content gives a sink");
+        byte[] pixels = new byte[2 * 2 * 4];
+        gf_content_publish_result result = Constants.GF_CONTENT_PUBLISH_REVOKED;
+        fixed (byte* data = pixels)
+        {
+            gf_content_frame frame = default;
+            frame.struct_size = (uint)sizeof(gf_content_frame);
+            frame.pixel_format = Constants.GF_CONTENT_PIXEL_FORMAT_BGRA32_PREMULTIPLIED_SRGB;
+            frame.width = 2u;
+            frame.height = 2u;
+            frame.row_bytes = 8u;
+            frame.opaque = 1u;
+            frame.damage.width = 2u;
+            frame.damage.height = 2u;
+            frame.pixels.data = data;
+            frame.pixels.size = (ulong)pixels.Length;
+            Abi.check(table.sink_publish(sink, &frame, &result));
+            expect(result == Constants.GF_CONTENT_PUBLISH_PUBLISHED, "a valid frame is published");
+            frame.height = 0u;
+            Abi.check(table.sink_publish(sink, &frame, &result));
+            expect(result == Constants.GF_CONTENT_PUBLISH_REFUSED_EMPTY, "an empty frame is a refusal");
+        }
+        gf_content_statistics statistics = default;
+        statistics.struct_size = (uint)sizeof(gf_content_statistics);
+        Abi.check(table.statistics(surface.value, &statistics));
+        expect(statistics.frames_published == 1 && statistics.frames_refused == 1,
+               "the statistics count the frame and the refusal");
+        Abi.check(table.sink_release(sink));
+        expect(table.sink_release(sink) == Constants.GF_STATUS_STALE_HANDLE, "a released sink is stale");
+        Abi.check(table.close_content(surface.value));
+
+        using ObjectHandle editor = ObjectHandle.create("content_text_editor"u8, "csharp.content.editor"u8);
+        byte[] text = Encoding.UTF8.GetBytes("caf\u00e9");
+        fixed (byte* data = text)
+        {
+            Abi.check(table.editor_set_text(editor.value, Utf8.view(data, text.Length)));
+        }
+        byte[] read = new byte[16];
+        ulong required = 0;
+        fixed (byte* buffer = read)
+        {
+            Abi.check(table.editor_text(editor.value, buffer, (ulong)read.Length, &required));
+        }
+        expect(Encoding.UTF8.GetString(read, 0, checked((int)required)) == "caf\u00e9", "the editor's text reads back");
+        expect(table.open_content(editor.value, 0u, &sink) == Constants.GF_STATUS_WRONG_HANDLE_KIND,
+               "an editor is not a content surface");
+    }
+
     private static int Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -779,6 +836,7 @@ internal static unsafe class Program
         binding_moves_and_filters();
         help_language_files();
         font_families();
+        content();
         expect(unhandled_raised == 0, "no failure in these checks ran under an event loop");
         Console.WriteLine(failures == 0 ? "gui_forms_abi_csharp: all checks passed" :
                                           $"gui_forms_abi_csharp: {failures} checks failed");

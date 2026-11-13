@@ -20,6 +20,8 @@ Types
      - gf_bindings_table, negotiated as GF_TABLE_BINDINGS.
    * - :cpp:class:`ClassesTable <gui_forms::abi::ClassesTable>`
      - gf_classes_table, negotiated as GF_TABLE_CLASSES.
+   * - :cpp:class:`ContentTable <gui_forms::abi::ContentTable>`
+     - gf_content_table, negotiated as GF_TABLE_CONTENT.
    * - :cpp:class:`ControlsTable <gui_forms::abi::ControlsTable>`
      - gf_controls_table, negotiated as GF_TABLE_CONTROLS.
    * - :cpp:class:`CustomControlsTable <gui_forms::abi::CustomControlsTable>`
@@ -122,6 +124,28 @@ Types
      -  
    * - :cpp:class:`gf_container_control_class <gf_container_control_class>`
      -  
+   * - :cpp:class:`gf_content_caret_stop <gf_content_caret_stop>`
+     -  
+   * - :cpp:class:`gf_content_frame <gf_content_frame>`
+     -  
+   * - :cpp:class:`gf_content_pixel_rect <gf_content_pixel_rect>`
+     -  
+   * - :cpp:class:`gf_content_program <gf_content_program>`
+     -  
+   * - :cpp:class:`gf_content_request <gf_content_request>`
+     -  
+   * - :cpp:class:`gf_content_semantics <gf_content_semantics>`
+     -  
+   * - :cpp:class:`gf_content_statistics <gf_content_statistics>`
+     -  
+   * - :cpp:class:`gf_content_table <gf_content_table>`
+     -  
+   * - :cpp:class:`gf_content_text_cluster <gf_content_text_cluster>`
+     -  
+   * - :cpp:class:`gf_content_text_layout <gf_content_text_layout>`
+     -  
+   * - :cpp:class:`gf_content_text_line <gf_content_text_line>`
+     -  
    * - :cpp:class:`gf_control_hooks <gf_control_hooks>`
      -  
    * - :cpp:class:`gf_controls_table <gf_controls_table>`
@@ -203,6 +227,10 @@ Types
    * - :cpp:class:`gf_host_capabilities <gf_host_capabilities>`
      -  
    * - :cpp:class:`gf_host_table <gf_host_table>`
+     -  
+   * - :cpp:class:`gf_hosted_input_report <gf_hosted_input_report>`
+     -  
+   * - :cpp:class:`gf_hosted_options <gf_hosted_options>`
      -  
    * - :cpp:class:`gf_label_class <gf_label_class>`
      -  
@@ -525,6 +553,111 @@ Types
    .. cpp:function:: gf_status create(const gf_class_header* table, gf_utf8_view stable_id, void* instance, gf_object* object) const noexcept
 
    .. cpp:function:: gf_status base_raiser(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: ContentTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_content_table, negotiated as GF_TABLE_CONTENT.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ContentTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_content_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(ContentTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static ContentTable adopt(const gf_content_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status open_content(gf_object surface, uint32_t opaque, gf_content_sink* sink) const noexcept
+
+   .. cpp:function:: gf_status close_content(gf_object surface) const noexcept
+
+   .. cpp:function:: gf_status start_program(gf_object surface, const gf_content_program* program) const noexcept
+
+   .. cpp:function:: gf_status start_hosted(gf_object surface, const gf_hosted_options* options) const noexcept
+
+   .. cpp:function:: gf_status terminate(gf_object surface) const noexcept
+
+   .. cpp:function:: gf_status status(gf_object surface, gf_content_status* status) const noexcept
+
+   .. cpp:function:: gf_status failure(gf_object surface, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status statistics(gf_object surface, gf_content_statistics* statistics) const noexcept
+
+   .. cpp:function:: gf_status request(gf_object surface, gf_content_request* request) const noexcept
+
+   .. cpp:function:: gf_status program_running(gf_object surface, uint32_t* running) const noexcept
+
+   .. cpp:function:: gf_status hosted_input(gf_object surface, gf_hosted_input_report* report) const noexcept
+
+   .. cpp:function:: gf_status hosted_support(gf_hosted_support* support) const noexcept
+
+   .. cpp:function:: gf_status sink_publish(gf_content_sink sink, const gf_content_frame* frame, gf_content_publish_result* result) const noexcept
+
+   .. cpp:function:: gf_status sink_heartbeat(gf_content_sink sink) const noexcept
+
+   .. cpp:function:: gf_status sink_publish_semantics(gf_content_sink sink, const gf_content_semantics* semantics, gf_content_semantics_result* result) const noexcept
+
+   .. cpp:function:: gf_status sink_request(gf_content_sink sink, gf_content_request* request) const noexcept
+
+   .. cpp:function:: gf_status sink_wait_for_request(gf_content_sink sink, uint64_t seen_generation, uint64_t timeout_ms, gf_content_request* request) const noexcept
+
+   .. cpp:function:: gf_status sink_state(gf_content_sink sink, uint32_t* revoked, uint32_t* stop_requested) const noexcept
+
+   .. cpp:function:: gf_status sink_statistics(gf_content_sink sink, gf_content_statistics* statistics) const noexcept
+
+   .. cpp:function:: gf_status sink_release(gf_content_sink sink) const noexcept
+
+   .. cpp:function:: gf_status program_sink(gf_content_sink* sink) const noexcept
+
+   .. cpp:function:: gf_status program_fail(gf_utf8_view message) const noexcept
+
+   .. cpp:function:: gf_status editor_text_revision(gf_object editor, uint64_t* revision) const noexcept
+
+   .. cpp:function:: gf_status editor_text(gf_object editor, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status editor_set_text(gf_object editor, gf_utf8_view text) const noexcept
+
+   .. cpp:function:: gf_status editor_submit_layout(gf_object editor, const gf_content_text_layout* layout, gf_content_layout_result* result) const noexcept
+
+   .. cpp:function:: gf_status editor_layout_current(gf_object editor, uint32_t* current) const noexcept
+
+   .. cpp:function:: gf_status editor_open_frames(gf_object editor, uint32_t opaque, gf_content_sink* sink) const noexcept
+
+   .. cpp:function:: gf_status editor_caret_rectangle(gf_object editor, uint32_t* present, gf_logical_rect* rectangle) const noexcept
+
+   .. cpp:function:: gf_status editor_selection_rectangles(gf_object editor, gf_logical_rect* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status editor_position_at(gf_object editor, gf_logical_point point, uint64_t* offset) const noexcept
+
+   .. cpp:function:: gf_status editor_set_draws_selection(gf_object editor, uint32_t draws) const noexcept
+
+   .. cpp:function:: gf_status editor_set_multiline(gf_object editor, uint32_t multiline) const noexcept
+
+   .. cpp:function:: gf_status editor_set_read_only(gf_object editor, uint32_t read_only) const noexcept
+
+   .. cpp:function:: gf_status set_termination_grace(gf_object surface, uint64_t milliseconds) const noexcept
+
+   .. cpp:function:: gf_status set_stale_interval(gf_object surface, uint64_t milliseconds) const noexcept
+
+   .. cpp:function:: gf_status set_status_caption(gf_object surface, gf_content_status status, gf_utf8_view caption) const noexcept
+
+   .. cpp:function:: gf_status set_semantics(gf_object surface, const gf_content_semantics* semantics) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -1902,6 +2035,269 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_content_caret_stop
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint64_t offset
+
+   .. cpp:member:: gf_logical_rect caret
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_content_frame
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_content_pixel_format pixel_format
+
+   .. cpp:member:: uint32_t width
+
+   .. cpp:member:: uint32_t height
+
+   .. cpp:member:: uint64_t row_bytes
+
+   .. cpp:member:: uint32_t opaque
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_content_pixel_rect damage
+
+   .. cpp:member:: gf_bytes_view pixels
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_content_pixel_rect
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t x
+
+   .. cpp:member:: uint32_t y
+
+   .. cpp:member:: uint32_t width
+
+   .. cpp:member:: uint32_t height
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_content_program
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t opaque
+
+   .. cpp:member:: gf_callback run
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_content_request
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t width
+
+   .. cpp:member:: uint32_t height
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: double scale
+
+   .. cpp:member:: uint64_t generation
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_content_semantics
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_utf8_view text
+
+   .. cpp:member:: gf_utf8_view description
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_content_statistics
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_content_publish_result last_refusal
+
+   .. cpp:member:: uint64_t frames_published
+
+   .. cpp:member:: uint64_t frames_refused
+
+   .. cpp:member:: uint64_t frames_dropped
+
+   .. cpp:member:: uint64_t heartbeats
+
+   .. cpp:member:: uint64_t stale_transitions
+
+   .. cpp:member:: uint64_t recoveries
+
+   .. cpp:member:: uint64_t semantics_published
+
+   .. cpp:member:: uint64_t semantics_refused
+
+   .. cpp:member:: uint64_t after_revocation
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_content_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*open_content)(gf_object surface, uint32_t opaque, gf_content_sink* sink)
+
+   .. cpp:member:: gf_status (*close_content)(gf_object surface)
+
+   .. cpp:member:: gf_status (*start_program)(gf_object surface, const gf_content_program* program)
+
+   .. cpp:member:: gf_status (*start_hosted)(gf_object surface, const gf_hosted_options* options)
+
+   .. cpp:member:: gf_status (*terminate)(gf_object surface)
+
+   .. cpp:member:: gf_status (*set_termination_grace)(gf_object surface, uint64_t milliseconds)
+
+   .. cpp:member:: gf_status (*set_stale_interval)(gf_object surface, uint64_t milliseconds)
+
+   .. cpp:member:: gf_status (*status)(gf_object surface, gf_content_status* status)
+
+   .. cpp:member:: gf_status (*failure)(gf_object surface, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*statistics)(gf_object surface, gf_content_statistics* statistics)
+
+   .. cpp:member:: gf_status (*request)(gf_object surface, gf_content_request* request)
+
+   .. cpp:member:: gf_status (*set_status_caption)(gf_object surface, gf_content_status status, gf_utf8_view caption)
+
+   .. cpp:member:: gf_status (*set_semantics)(gf_object surface, const gf_content_semantics* semantics)
+
+   .. cpp:member:: gf_status (*program_running)(gf_object surface, uint32_t* running)
+
+   .. cpp:member:: gf_status (*hosted_input)(gf_object surface, gf_hosted_input_report* report)
+
+   .. cpp:member:: gf_status (*hosted_support)(gf_hosted_support* support)
+
+   .. cpp:member:: gf_status (*sink_publish)(gf_content_sink sink, const gf_content_frame* frame, gf_content_publish_result* result)
+
+   .. cpp:member:: gf_status (*sink_heartbeat)(gf_content_sink sink)
+
+   .. cpp:member:: gf_status (*sink_publish_semantics)(gf_content_sink sink, const gf_content_semantics* semantics, gf_content_semantics_result* result)
+
+   .. cpp:member:: gf_status (*sink_request)(gf_content_sink sink, gf_content_request* request)
+
+   .. cpp:member:: gf_status (*sink_wait_for_request)(gf_content_sink sink, uint64_t seen_generation, uint64_t timeout_ms, gf_content_request* request)
+
+   .. cpp:member:: gf_status (*sink_state)(gf_content_sink sink, uint32_t* revoked, uint32_t* stop_requested)
+
+   .. cpp:member:: gf_status (*sink_statistics)(gf_content_sink sink, gf_content_statistics* statistics)
+
+   .. cpp:member:: gf_status (*sink_release)(gf_content_sink sink)
+
+   .. cpp:member:: gf_status (*program_sink)(gf_content_sink* sink)
+
+   .. cpp:member:: gf_status (*program_fail)(gf_utf8_view message)
+
+   .. cpp:member:: gf_status (*editor_text_revision)(gf_object editor, uint64_t* revision)
+
+   .. cpp:member:: gf_status (*editor_text)(gf_object editor, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*editor_set_text)(gf_object editor, gf_utf8_view text)
+
+   .. cpp:member:: gf_status (*editor_submit_layout)(gf_object editor, const gf_content_text_layout* layout, gf_content_layout_result* result)
+
+   .. cpp:member:: gf_status (*editor_layout_current)(gf_object editor, uint32_t* current)
+
+   .. cpp:member:: gf_status (*editor_open_frames)(gf_object editor, uint32_t opaque, gf_content_sink* sink)
+
+   .. cpp:member:: gf_status (*editor_caret_rectangle)(gf_object editor, uint32_t* present, gf_logical_rect* rectangle)
+
+   .. cpp:member:: gf_status (*editor_selection_rectangles)(gf_object editor, gf_logical_rect* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*editor_position_at)(gf_object editor, gf_logical_point point, uint64_t* offset)
+
+   .. cpp:member:: gf_status (*editor_set_draws_selection)(gf_object editor, uint32_t draws)
+
+   .. cpp:member:: gf_status (*editor_set_multiline)(gf_object editor, uint32_t multiline)
+
+   .. cpp:member:: gf_status (*editor_set_read_only)(gf_object editor, uint32_t read_only)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_content_text_cluster
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint64_t start
+
+   .. cpp:member:: uint64_t end
+
+   .. cpp:member:: uint32_t line
+
+   .. cpp:member:: uint32_t right_to_left
+
+   .. cpp:member:: gf_logical_rect bounds
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_content_text_layout
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: uint64_t text_revision
+
+   .. cpp:member:: const gf_content_text_line* lines
+
+   .. cpp:member:: uint64_t line_count
+
+   .. cpp:member:: const gf_content_text_cluster* clusters
+
+   .. cpp:member:: uint64_t cluster_count
+
+   .. cpp:member:: const gf_content_caret_stop* carets
+
+   .. cpp:member:: uint64_t caret_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_content_text_line
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint64_t start
+
+   .. cpp:member:: uint64_t end
+
+   .. cpp:member:: gf_logical_rect bounds
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_control_hooks
 
    ``#include <gui_forms/c/gf_abi_classes.h>``
@@ -2939,6 +3335,40 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_hosted_input_report
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t connected
+
+   .. cpp:member:: uint64_t dropped
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_hosted_options
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t opaque
+
+   .. cpp:member:: gf_utf8_view executable
+
+   .. cpp:member:: const gf_utf8_view* arguments
+
+   .. cpp:member:: uint64_t argument_count
+
+   .. cpp:member:: uint64_t slot_bytes
+
+   .. cpp:member:: uint64_t start_timeout_ms
+
+   .. cpp:member:: uint64_t stop_grace_ms
 
 .. cpp:namespace:: 0
 

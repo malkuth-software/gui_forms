@@ -69,9 +69,11 @@ extern "C" {
  * cp24); 1.2 (owner decision D9, cp28) adds the window, focus, decoration,
  * anchored overlay, data grid, docking and fonts surfaces and the slots
  * marked since 1.2, additions only; 1.3 adds the class tables
- * (gf_abi_classes.h, GF_TABLE_CLASSES), additions only. */
+ * (gf_abi_classes.h, GF_TABLE_CLASSES), additions only; 1.4 adds the
+ * content boundary (GF_TABLE_CONTENT, GF_HOST_CAPABILITY_HOSTED_CONTENT),
+ * additions only. */
 #define GF_ABI_MAJOR 1u
-#define GF_ABI_MINOR 3u
+#define GF_ABI_MINOR 4u
 
 /* gf_status: the result of every call. Zero is success; failures are
  * positive and the list only grows. */
@@ -127,6 +129,8 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_HELP 23u
 /* Since 1.3: objects made from class tables (gf_abi_classes.h). */
 #define GF_TABLE_CLASSES 24u
+/* Since 1.4: content surfaces, content editing and hosted content. */
+#define GF_TABLE_CONTENT 25u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -1568,6 +1572,10 @@ typedef uint64_t gf_host_capability;
  * window outer band declared to hide in full screen hides only where the
  * host reports it. Windows, macOS and X11. */
 #define GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS 34359738368ull
+/* Since 1.4: hosted content, a program in a process of its own on a content
+ * surface (GF_TABLE_CONTENT start_hosted). macOS and Linux; not yet
+ * Windows. */
+#define GF_HOST_CAPABILITY_HOSTED_CONTENT 68719476736ull
 
 /* gf_window_corner_shape (since 1.1): the corner shapes a host may give a
  * window, one bit each. A window's corners at a given moment follow its
@@ -3874,6 +3882,426 @@ typedef struct gf_help_table {
     gf_status (GF_CALL* read_field)(gf_object system, gf_utf8_view stable_id, gf_locale_field field, char* buffer,
                                     uint64_t capacity, uint64_t* required, gf_locale_origin* origin);
 } gf_help_table;
+
+/*
+ * GF_TABLE_CONTENT (since 1.4): the content boundary (C++
+ * <gui_forms/content.hpp>; docs/user/content-surfaces.md). A content
+ * surface (objects.create "ContentSurface") shows finished frames that a
+ * consumer renders itself, on a thread of its own with its own engine and
+ * fonts, or in a process of its own (hosted content). A content text
+ * editor (objects.create "ContentTextEditor") keeps the text, caret,
+ * selection, editing keys, input methods, undo, clipboard and
+ * accessibility, while the consumer supplies the text layout and the
+ * pixels. It is an integrity boundary, not a security boundary: what the
+ * content hands over is validated before it is used, and content that
+ * stalls, fails or crashes cannot stop or corrupt the interface; content in
+ * the process, and a hosted program, are not confined.
+ *
+ * Threads. The surface, editor and hosted slots are UI-thread slots;
+ * hosted_support may be called from any thread. A gf_content_sink is the
+ * consumer's end of one channel: any thread may call the sink slots, at
+ * any time, until it releases the sink. Once the surface revokes the
+ * channel (close_content, new content, the surface leaving its window or
+ * its destruction, a termination), every publication reports
+ * GF_CONTENT_PUBLISH_REVOKED and reaches nothing the interface reads; the
+ * sink still answers until it is released. The events (a surface's
+ * status_changed; an editor's layout_requested, text_changed and
+ * selection_changed) are subscribed through GF_TABLE_EVENTS. At most
+ * GF_CONTENT_MAXIMUM_SINKS sinks are held at once (GF_STATUS_LIMIT_EXCEEDED
+ * beyond).
+ *
+ * Programs. start_program runs a gf_content_program's run callback on a
+ * thread the library starts for it, once, with sender zero and the name
+ * "run"; inside it, program_sink gives the run's sink, and program_fail
+ * names a failure the surface reports when run returns (as status failed).
+ * run should return
+ * when the sink reports a stop (sink_state, or sink_wait_for_request
+ * returning early). terminate and the surface's close never wait longer
+ * than the termination grace: a program still running then is abandoned
+ * (its channel is revoked and its thread left to finish on its own). The
+ * library releases run once, on the program's thread after run returns;
+ * when start_program fails the caller keeps it.
+ *
+ * Hosted content. start_hosted starts a program by absolute path in a
+ * process of its own (C++ ContentSurface::start_hosted_content), with its
+ * frames through shared memory and its input through a channel; the
+ * surface forwards its pointer, keys, text and focus to the process in the
+ * owner's input order (manifests/abi/interaction_order.json), and only what
+ * no subscriber or rule handled. A crash ends the process only: the
+ * surface's status becomes GF_CONTENT_STATUS_FAILED with the signal or exit
+ * status as its failure. Where hosted content is not available
+ * (hosted_support; GF_HOST_CAPABILITY_HOSTED_CONTENT) start_hosted gives
+ * GF_STATUS_UNSUPPORTED_CAPABILITY.
+ */
+
+/* A sink: nonzero, never reused; zero is none. */
+typedef uint64_t gf_content_sink;
+
+/* gf_content_status: where a surface's content is in its life. */
+typedef uint32_t gf_content_status;
+/* No content: before open_content, after close_content. */
+#define GF_CONTENT_STATUS_DISCONNECTED 0u
+/* Connected, no frame yet. */
+#define GF_CONTENT_STATUS_WAITING 1u
+/* Publishing, or reporting itself alive, within the stale interval. */
+#define GF_CONTENT_STATUS_LIVE 2u
+/* No frame and no heartbeat for longer than the stale interval: the last
+ * good frame stays under a veil until the next frame or heartbeat. */
+#define GF_CONTENT_STATUS_STALE 3u
+/* A termination was asked for and the content has not finished. */
+#define GF_CONTENT_STATUS_TERMINATING 4u
+/* The content finished, or honoured a termination. */
+#define GF_CONTENT_STATUS_ENDED 5u
+/* The content did not finish within the termination grace, or a hosted
+ * program was killed. */
+#define GF_CONTENT_STATUS_ABANDONED 6u
+/* The program failed (program_fail), or a hosted program crashed or broke
+ * the protocol (the failure slot says how). */
+#define GF_CONTENT_STATUS_FAILED 7u
+
+/* gf_content_publish_result: what one frame publication did. Every result
+ * but PUBLISHED leaves the surface showing what it showed before. */
+typedef uint32_t gf_content_publish_result;
+#define GF_CONTENT_PUBLISH_PUBLISHED 0u
+/* Every buffer is held by readers: publish the next frame. */
+#define GF_CONTENT_PUBLISH_DROPPED_BUSY 1u
+/* The channel is revoked: nothing will be shown again. */
+#define GF_CONTENT_PUBLISH_REVOKED 2u
+/* Width or height zero. */
+#define GF_CONTENT_PUBLISH_REFUSED_EMPTY 3u
+/* An axis over GF_CONTENT_MAXIMUM_FRAME_EXTENT, or more pixel bytes than
+ * GF_CONTENT_MAXIMUM_FRAME_BYTES. */
+#define GF_CONTENT_PUBLISH_REFUSED_TOO_LARGE 4u
+/* row_bytes smaller than width * 4. */
+#define GF_CONTENT_PUBLISH_REFUSED_ROW_BYTES 5u
+/* pixels shorter than the frame it describes. */
+#define GF_CONTENT_PUBLISH_REFUSED_EXTENT 6u
+/* A pixel format the surface does not know. */
+#define GF_CONTENT_PUBLISH_REFUSED_FORMAT 7u
+/* A damage rectangle outside the frame. */
+#define GF_CONTENT_PUBLISH_REFUSED_DAMAGE 8u
+/* The surface could not allocate a buffer of the frame's size. */
+#define GF_CONTENT_PUBLISH_FAILED_ALLOCATION 9u
+
+/* gf_content_semantics_result: what one semantic text publication did. */
+typedef uint32_t gf_content_semantics_result;
+#define GF_CONTENT_SEMANTICS_PUBLISHED 0u
+#define GF_CONTENT_SEMANTICS_REVOKED 1u
+#define GF_CONTENT_SEMANTICS_REFUSED_INVALID_UTF8 2u
+/* The three texts hold more than GF_CONTENT_MAXIMUM_SEMANTIC_TEXT_BYTES. */
+#define GF_CONTENT_SEMANTICS_REFUSED_TOO_LONG 3u
+
+/* gf_content_layout_result: what checking an editor's layout found. Every
+ * result but ACCEPTED leaves the previous layout in force. */
+typedef uint32_t gf_content_layout_result;
+#define GF_CONTENT_LAYOUT_ACCEPTED 0u
+/* Made for another revision of the text than the current one. */
+#define GF_CONTENT_LAYOUT_STALE_REVISION 1u
+/* More than GF_CONTENT_MAXIMUM_LAYOUT_ENTRIES lines, clusters or carets. */
+#define GF_CONTENT_LAYOUT_REFUSED_TOO_LARGE 2u
+/* A range past the text, reversed, out of order or overlapping. */
+#define GF_CONTENT_LAYOUT_REFUSED_RANGE 3u
+/* A range or caret offset that is not a grapheme boundary. */
+#define GF_CONTENT_LAYOUT_REFUSED_BOUNDARY 4u
+/* A cluster naming no line, outside its line or empty; or a line its
+ * clusters do not cover contiguously. */
+#define GF_CONTENT_LAYOUT_REFUSED_CLUSTER 5u
+/* A box that is not finite or has a negative size. */
+#define GF_CONTENT_LAYOUT_REFUSED_GEOMETRY 6u
+/* Caret stops not ascending by offset. */
+#define GF_CONTENT_LAYOUT_REFUSED_CARET 7u
+
+/* gf_content_pixel_format: the frame formats a surface accepts. */
+typedef uint32_t gf_content_pixel_format;
+/* Four bytes a pixel, blue, green, red, alpha, premultiplied, sRGB. */
+#define GF_CONTENT_PIXEL_FORMAT_BGRA32_PREMULTIPLIED_SRGB 0u
+
+/* gf_hosted_support: whether hosted content exists on this platform. */
+typedef uint32_t gf_hosted_support;
+#define GF_HOSTED_SUPPORT_AVAILABLE 0u
+/* Not written for this platform yet (Windows). */
+#define GF_HOSTED_SUPPORT_NOT_REPORTED 1u
+
+#define GF_CONTENT_MAXIMUM_FRAME_EXTENT 16384u
+#define GF_CONTENT_MAXIMUM_FRAME_BYTES 268435456u
+#define GF_CONTENT_MAXIMUM_SEMANTIC_TEXT_BYTES 1048576u
+#define GF_CONTENT_MAXIMUM_LAYOUT_ENTRIES 1000000u
+/* The longest termination grace accepted, in milliseconds (longer ones are
+ * lowered). */
+#define GF_CONTENT_MAXIMUM_TERMINATION_GRACE_MS 10000u
+/* The longest stale interval, wait and hosted timeout accepted, in
+ * milliseconds (an hour); longer ones give GF_STATUS_INVALID_ARGUMENT. */
+#define GF_CONTENT_MAXIMUM_WAIT_MS 3600000u
+/* The most sinks held at once, and the most arguments of a hosted program. */
+#define GF_CONTENT_MAXIMUM_SINKS 65536u
+#define GF_HOSTED_MAXIMUM_ARGUMENTS 4096u
+
+/* A rectangle of a frame's pixels. */
+typedef struct gf_content_pixel_rect {
+    uint32_t x;
+    uint32_t y;
+    uint32_t width;
+    uint32_t height;
+} gf_content_pixel_rect;
+
+/*
+ * One finished frame, an input record: struct_size at least its 1.4 size,
+ * reserved zero, opaque 0 or 1. width by height pixels in pixel_format,
+ * rows row_bytes apart from pixels.data; pixels must hold the frame's
+ * extent, row_bytes * (height - 1) + width * 4 bytes. opaque promises every
+ * pixel has alpha 255 (not checked per pixel; a broken promise shows what
+ * lies under the surface and corrupts nothing). damage is the part that
+ * differs from the previous frame of the same size; all zero for the whole
+ * frame. The library copies the pixels before the call returns.
+ */
+typedef struct gf_content_frame {
+    uint32_t struct_size;
+    gf_content_pixel_format pixel_format;
+    uint32_t width;
+    uint32_t height;
+    uint64_t row_bytes;
+    uint32_t opaque;
+    uint32_t reserved;
+    gf_content_pixel_rect damage;
+    gf_bytes_view pixels;
+} gf_content_frame;
+
+/* What the surface asks of its content, an output record (the caller sets
+ * struct_size): the device size it shows at, the display scale, and a
+ * generation that grows with every change. Zero size before the surface has
+ * been arranged in a window. */
+typedef struct gf_content_request {
+    uint32_t struct_size;
+    uint32_t width;
+    uint32_t height;
+    uint32_t reserved;
+    double scale;
+    uint64_t generation;
+} gf_content_request;
+
+/* The text assistive technology reads for content whose pixels carry none,
+ * an input record (struct_size, reserved zero): the accessible name, the
+ * text shown (the node's value) and a longer description, UTF-8. */
+typedef struct gf_content_semantics {
+    uint32_t struct_size;
+    uint32_t reserved;
+    gf_utf8_view name;
+    gf_utf8_view text;
+    gf_utf8_view description;
+} gf_content_semantics;
+
+/* A channel's counters, an output record (the caller sets struct_size).
+ * last_refusal is GF_CONTENT_PUBLISH_PUBLISHED while there was none. */
+typedef struct gf_content_statistics {
+    uint32_t struct_size;
+    gf_content_publish_result last_refusal;
+    uint64_t frames_published;
+    uint64_t frames_refused;
+    uint64_t frames_dropped;
+    uint64_t heartbeats;
+    uint64_t stale_transitions;
+    uint64_t recoveries;
+    uint64_t semantics_published;
+    uint64_t semantics_refused;
+    uint64_t after_revocation;
+} gf_content_statistics;
+
+/* A content program (start_program), an input record: struct_size at least
+ * its 1.4 size, opaque 0 or 1 (the placeholder's promise until the first
+ * frame), run as the section above describes. */
+typedef struct gf_content_program {
+    uint32_t struct_size;
+    uint32_t opaque;
+    gf_callback run;
+} gf_content_program;
+
+/* A hosted program (start_hosted), an input record: struct_size at least
+ * its 1.4 size, opaque 0 or 1. executable is the program's absolute path
+ * (UTF-8; it is not looked up on PATH), arguments its argument_count
+ * arguments after its name (at most GF_HOSTED_MAXIMUM_ARGUMENTS). slot_bytes
+ * is each frame slot's size (zero: 32 MiB; at most
+ * GF_CONTENT_MAXIMUM_FRAME_BYTES); start_timeout_ms how long the program
+ * may take to connect (zero: 5000); stop_grace_ms how long a stopped
+ * program may take to exit before it is killed (zero: 100; keep it below
+ * the surface's termination grace). Both times at most
+ * GF_CONTENT_MAXIMUM_WAIT_MS. */
+typedef struct gf_hosted_options {
+    uint32_t struct_size;
+    uint32_t opaque;
+    gf_utf8_view executable;
+    const gf_utf8_view* arguments;
+    uint64_t argument_count;
+    uint64_t slot_bytes;
+    uint64_t start_timeout_ms;
+    uint64_t stop_grace_ms;
+} gf_hosted_options;
+
+/* The input channel to a surface's hosted program, an output record (the
+ * caller sets struct_size): connected is 1 while the process runs and is
+ * connected; dropped counts the forwarded events it could not take. */
+typedef struct gf_hosted_input_report {
+    uint32_t struct_size;
+    uint32_t connected;
+    uint64_t dropped;
+} gf_hosted_input_report;
+
+/* One line of an editor's layout: its UTF-8 byte range [start, end) of the
+ * text and its box, in the editor's logical coordinates. */
+typedef struct gf_content_text_line {
+    uint64_t start;
+    uint64_t end;
+    gf_logical_rect bounds;
+} gf_content_text_line;
+
+/* One cluster: a run of whole graphemes on line (an index into the
+ * layout's lines), its byte range, right_to_left 0 or 1, and its box. */
+typedef struct gf_content_text_cluster {
+    uint64_t start;
+    uint64_t end;
+    uint32_t line;
+    uint32_t right_to_left;
+    gf_logical_rect bounds;
+} gf_content_text_cluster;
+
+/* An explicit caret position: a byte offset on a grapheme boundary and the
+ * caret's bar there. */
+typedef struct gf_content_caret_stop {
+    uint64_t offset;
+    gf_logical_rect caret;
+} gf_content_caret_stop;
+
+/* An editor's layout (editor_submit_layout), an input record (struct_size,
+ * reserved zero), made for text_revision: lines in text order, clusters
+ * covering each non-empty line, and optional caret stops ascending by
+ * offset. The library copies the arrays. */
+typedef struct gf_content_text_layout {
+    uint32_t struct_size;
+    uint32_t reserved;
+    uint64_t text_revision;
+    const gf_content_text_line* lines;
+    uint64_t line_count;
+    const gf_content_text_cluster* clusters;
+    uint64_t cluster_count;
+    const gf_content_caret_stop* carets;
+    uint64_t caret_count;
+} gf_content_text_layout;
+
+typedef struct gf_content_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Opens a new channel on surface and gives its sink, revoking any
+     * earlier channel (and stopping a running program, bounded). opaque is
+     * 0 or 1. The status becomes waiting. A surface that is not a
+     * content_surface gives GF_STATUS_WRONG_HANDLE_KIND. */
+    gf_status (GF_CALL* open_content)(gf_object surface, uint32_t opaque, gf_content_sink* sink);
+    /* Stops a running program (bounded), revokes the channel and clears
+     * the region; the status becomes disconnected. */
+    gf_status (GF_CALL* close_content)(gf_object surface);
+    /* Opens a new channel and runs program on a thread of its own. The
+     * library takes program->run only when this returns GF_STATUS_OK. */
+    gf_status (GF_CALL* start_program)(gf_object surface, const gf_content_program* program);
+    /* Starts a hosted program and forwards the surface's input to it (the
+     * section above). GF_STATUS_INVALID_ARGUMENT for an executable that is
+     * not an absolute path or a slot size over the limit. */
+    gf_status (GF_CALL* start_hosted)(gf_object surface, const gf_hosted_options* options);
+    /* Asks the content to stop and returns at once. */
+    gf_status (GF_CALL* terminate)(gf_object surface);
+    /* The bounded wait of a termination, close or replacement (default
+     * 250), at most GF_CONTENT_MAXIMUM_TERMINATION_GRACE_MS. */
+    gf_status (GF_CALL* set_termination_grace)(gf_object surface, uint64_t milliseconds);
+    /* How long content may publish nothing before it is stale (default
+     * 1000; zero turns the watchdog off; short ones are raised to the
+     * minimum; at most GF_CONTENT_MAXIMUM_WAIT_MS). */
+    gf_status (GF_CALL* set_stale_interval)(gf_object surface, uint64_t milliseconds);
+    gf_status (GF_CALL* status)(gf_object surface, gf_content_status* status);
+    /* Why the content failed, as text; empty unless the status is failed. */
+    gf_status (GF_CALL* failure)(gf_object surface, char* buffer, uint64_t capacity, uint64_t* required);
+    /* The channel's counters; all zero without content. */
+    gf_status (GF_CALL* statistics)(gf_object surface, gf_content_statistics* statistics);
+    /* The newest request sent to the content. */
+    gf_status (GF_CALL* request)(gf_object surface, gf_content_request* request);
+    /* The veil's caption for status (stale, abandoned and failed have
+     * English defaults); empty hides it. */
+    gf_status (GF_CALL* set_status_caption)(gf_object surface, gf_content_status status, gf_utf8_view caption);
+    /* Sets the semantic text from the UI thread; GF_STATUS_INVALID_ARGUMENT
+     * when it is not UTF-8 or too long (nothing changes then). */
+    gf_status (GF_CALL* set_semantics)(gf_object surface, const gf_content_semantics* semantics);
+    /* 1 while a program the surface started has not been reaped. */
+    gf_status (GF_CALL* program_running)(gf_object surface, uint32_t* running);
+    /* The surface's hosted input channel; not connected and zero dropped
+     * without hosted content. */
+    gf_status (GF_CALL* hosted_input)(gf_object surface, gf_hosted_input_report* report);
+    /* Whether hosted content exists here. Any thread. */
+    gf_status (GF_CALL* hosted_support)(gf_hosted_support* support);
+    /* Validates frame, then copies it into the surface (result says what
+     * happened; a refusal is not a failed call). Any thread. */
+    gf_status (GF_CALL* sink_publish)(gf_content_sink sink, const gf_content_frame* frame,
+                                      gf_content_publish_result* result);
+    /* Reports the content alive without a new frame. Any thread. */
+    gf_status (GF_CALL* sink_heartbeat)(gf_content_sink sink);
+    /* Replaces the surface's semantic text; the newest wins. Any thread. */
+    gf_status (GF_CALL* sink_publish_semantics)(gf_content_sink sink, const gf_content_semantics* semantics,
+                                                gf_content_semantics_result* result);
+    /* The newest request. Any thread. */
+    gf_status (GF_CALL* sink_request)(gf_content_sink sink, gf_content_request* request);
+    /* Blocks the calling (content) thread until the request's generation
+     * passes seen_generation, the channel is revoked, a stop is asked for,
+     * or timeout_ms passes (at most GF_CONTENT_MAXIMUM_WAIT_MS); gives the
+     * request then. The UI thread must not call it: it would block the
+     * interface. */
+    gf_status (GF_CALL* sink_wait_for_request)(gf_content_sink sink, uint64_t seen_generation, uint64_t timeout_ms,
+                                               gf_content_request* request);
+    /* revoked is 1 once the channel is revoked; stop_requested 1 once the
+     * surface asked the content to stop. Any thread. */
+    gf_status (GF_CALL* sink_state)(gf_content_sink sink, uint32_t* revoked, uint32_t* stop_requested);
+    /* The channel's counters. Any thread. */
+    gf_status (GF_CALL* sink_statistics)(gf_content_sink sink, gf_content_statistics* statistics);
+    /* Ends the caller's handle; the channel itself lives on while the
+     * surface or another handle holds it. A released or unknown sink gives
+     * GF_STATUS_STALE_HANDLE. Any thread. */
+    gf_status (GF_CALL* sink_release)(gf_content_sink sink);
+    /* Inside a program's run callback: a new handle to its sink, which the
+     * caller releases. Elsewhere GF_STATUS_INVALID_STATE. */
+    gf_status (GF_CALL* program_sink)(gf_content_sink* sink);
+    /* Inside a program's run callback: when run returns, the program ends
+     * as failed with message (UTF-8) as its failure. The last call wins.
+     * Elsewhere GF_STATUS_INVALID_STATE. */
+    gf_status (GF_CALL* program_fail)(gf_utf8_view message);
+    /* The editor's text revision, which grows with every change of the
+     * text. A content_text_editor only, else GF_STATUS_WRONG_HANDLE_KIND. */
+    gf_status (GF_CALL* editor_text_revision)(gf_object editor, uint64_t* revision);
+    /* The editor's text (UTF-8). */
+    gf_status (GF_CALL* editor_text)(gf_object editor, char* buffer, uint64_t capacity, uint64_t* required);
+    /* Replaces the text without undo history; the caret goes to the end. */
+    gf_status (GF_CALL* editor_set_text)(gf_object editor, gf_utf8_view text);
+    /* Validates and adopts layout for the current revision; result says
+     * why it was refused otherwise (a refusal is not a failed call). */
+    gf_status (GF_CALL* editor_submit_layout)(gf_object editor, const gf_content_text_layout* layout,
+                                              gf_content_layout_result* result);
+    /* 1 when the adopted layout is for the current revision. */
+    gf_status (GF_CALL* editor_layout_current)(gf_object editor, uint32_t* current);
+    /* Opens the channel the editor's frames are published through and gives
+     * its sink, revoking any earlier one. opaque is 0 or 1. */
+    gf_status (GF_CALL* editor_open_frames)(gf_object editor, uint32_t opaque, gf_content_sink* sink);
+    /* The caret's bar from the current layout: present is 0 without one
+     * (rectangle is then left as it was). */
+    gf_status (GF_CALL* editor_caret_rectangle)(gf_object editor, uint32_t* present, gf_logical_rect* rectangle);
+    /* The selection's boxes from the current layout, in order: required
+     * receives their number; a buffer of fewer than that many gives
+     * GF_STATUS_BUFFER_TOO_SMALL and writes nothing. */
+    gf_status (GF_CALL* editor_selection_rectangles)(gf_object editor, gf_logical_rect* buffer, uint64_t capacity,
+                                                     uint64_t* required);
+    /* The text offset nearest point by the current layout (the end of the
+     * text without one). */
+    gf_status (GF_CALL* editor_position_at)(gf_object editor, gf_logical_point point, uint64_t* offset);
+    /* 1 (the default): the editor draws the selection and caret over the
+     * frame; 0 leaves both to the consumer. */
+    gf_status (GF_CALL* editor_set_draws_selection)(gf_object editor, uint32_t draws);
+    /* 1: Enter inserts a line break and Up, Down, Home and End move by the
+     * layout's lines; 0 (the default): Enter passes on. */
+    gf_status (GF_CALL* editor_set_multiline)(gf_object editor, uint32_t multiline);
+    gf_status (GF_CALL* editor_set_read_only)(gf_object editor, uint32_t read_only);
+} gf_content_table;
 
 /*
  * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability

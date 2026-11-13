@@ -97,6 +97,7 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_fonts.cpp
     src/abi/stable/tables/abi_help.cpp
     src/abi/stable/tables/abi_classes.cpp
+    src/abi/stable/tables/abi_content.cpp
     src/abi/stable/classes/abi_class_bridge.cpp
     src/abi/stable/classes/generated/abi_class_registry.cpp
     src/abi/stable/tables/abi_splashscreen.cpp
@@ -202,6 +203,7 @@ add_library(gui_forms_abi_conformance_kit STATIC
     tests/abi/conformance/gf_conformance_bindings.c
     tests/abi/conformance/gf_conformance_callbacks.c
     tests/abi/conformance/gf_conformance_classes.c
+    tests/abi/conformance/gf_conformance_content.c
     tests/abi/conformance/gf_conformance_create.c
     tests/abi/conformance/gf_conformance_custom.c
     tests/abi/conformance/gf_conformance_diagnostics.c

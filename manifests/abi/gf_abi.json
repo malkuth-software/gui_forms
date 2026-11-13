@@ -7,7 +7,7 @@
   ],
   "abi": {
     "major": 1,
-    "minor": 3
+    "minor": 4
   },
   "targets": [
     "x86_64-w64-windows-gnu",
@@ -23,7 +23,7 @@
     },
     {
       "name": "GF_ABI_MINOR",
-      "value": 3,
+      "value": 4,
       "type": "uint32"
     },
     {
@@ -229,6 +229,11 @@
     {
       "name": "GF_TABLE_CLASSES",
       "value": 24,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TABLE_CONTENT",
+      "value": 25,
       "type": "uint32"
     },
     {
@@ -1024,6 +1029,11 @@
     {
       "name": "GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS",
       "value": 34359738368,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_HOSTED_CONTENT",
+      "value": 68719476736,
       "type": "uint64"
     },
     {
@@ -2427,6 +2437,211 @@
       "type": "uint32"
     },
     {
+      "name": "GF_CONTENT_STATUS_DISCONNECTED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_STATUS_WAITING",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_STATUS_LIVE",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_STATUS_STALE",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_STATUS_TERMINATING",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_STATUS_ENDED",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_STATUS_ABANDONED",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_STATUS_FAILED",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_PUBLISH_PUBLISHED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_PUBLISH_DROPPED_BUSY",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_PUBLISH_REVOKED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_PUBLISH_REFUSED_EMPTY",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_PUBLISH_REFUSED_TOO_LARGE",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_PUBLISH_REFUSED_ROW_BYTES",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_PUBLISH_REFUSED_EXTENT",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_PUBLISH_REFUSED_FORMAT",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_PUBLISH_REFUSED_DAMAGE",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_PUBLISH_FAILED_ALLOCATION",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_SEMANTICS_PUBLISHED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_SEMANTICS_REVOKED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_SEMANTICS_REFUSED_INVALID_UTF8",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_SEMANTICS_REFUSED_TOO_LONG",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_LAYOUT_ACCEPTED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_LAYOUT_STALE_REVISION",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_LAYOUT_REFUSED_TOO_LARGE",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_LAYOUT_REFUSED_RANGE",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_LAYOUT_REFUSED_BOUNDARY",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_LAYOUT_REFUSED_CLUSTER",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_LAYOUT_REFUSED_GEOMETRY",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_LAYOUT_REFUSED_CARET",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_PIXEL_FORMAT_BGRA32_PREMULTIPLIED_SRGB",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_HOSTED_SUPPORT_AVAILABLE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_HOSTED_SUPPORT_NOT_REPORTED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_MAXIMUM_FRAME_EXTENT",
+      "value": 16384,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_MAXIMUM_FRAME_BYTES",
+      "value": 268435456,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_MAXIMUM_SEMANTIC_TEXT_BYTES",
+      "value": 1048576,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_MAXIMUM_LAYOUT_ENTRIES",
+      "value": 1000000,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_MAXIMUM_TERMINATION_GRACE_MS",
+      "value": 10000,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_MAXIMUM_WAIT_MS",
+      "value": 3600000,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_MAXIMUM_SINKS",
+      "value": 65536,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_HOSTED_MAXIMUM_ARGUMENTS",
+      "value": 4096,
+      "type": "uint32"
+    },
+    {
       "name": "GF_PAINT_ENDPOINT_MAXIMUM_SIDE",
       "value": 32768,
       "type": "uint32"
@@ -2948,6 +3163,34 @@
     },
     {
       "name": "gf_locale_origin",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_content_sink",
+      "type": "uint64_t"
+    },
+    {
+      "name": "gf_content_status",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_content_publish_result",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_content_semantics_result",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_content_layout_result",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_content_pixel_format",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_hosted_support",
       "type": "uint32_t"
     },
     {
@@ -12711,6 +12954,1330 @@
             ]
           },
           "since": "1.2"
+        }
+      ]
+    },
+    {
+      "name": "gf_content_pixel_rect",
+      "kind": "record",
+      "size": 16,
+      "align": 4,
+      "fields": [
+        {
+          "name": "x",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "y",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "width",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "height",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_content_frame",
+      "kind": "extensible",
+      "size": 64,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "pixel_format",
+          "type": "gf_content_pixel_format",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "width",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "height",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "row_bytes",
+          "type": "uint64_t",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "opaque",
+          "type": "uint32_t",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 28,
+          "size": 4
+        },
+        {
+          "name": "damage",
+          "type": "gf_content_pixel_rect",
+          "offset": 32,
+          "size": 16
+        },
+        {
+          "name": "pixels",
+          "type": "gf_bytes_view",
+          "offset": 48,
+          "size": 16
+        }
+      ]
+    },
+    {
+      "name": "gf_content_request",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "width",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "height",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "scale",
+          "type": "double",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "generation",
+          "type": "uint64_t",
+          "offset": 24,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_content_semantics",
+      "kind": "extensible",
+      "size": 56,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "text",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "description",
+          "type": "gf_utf8_view",
+          "offset": 40,
+          "size": 16
+        }
+      ]
+    },
+    {
+      "name": "gf_content_statistics",
+      "kind": "extensible",
+      "size": 80,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "last_refusal",
+          "type": "gf_content_publish_result",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "frames_published",
+          "type": "uint64_t",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "frames_refused",
+          "type": "uint64_t",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "frames_dropped",
+          "type": "uint64_t",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "heartbeats",
+          "type": "uint64_t",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "stale_transitions",
+          "type": "uint64_t",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "recoveries",
+          "type": "uint64_t",
+          "offset": 48,
+          "size": 8
+        },
+        {
+          "name": "semantics_published",
+          "type": "uint64_t",
+          "offset": 56,
+          "size": 8
+        },
+        {
+          "name": "semantics_refused",
+          "type": "uint64_t",
+          "offset": 64,
+          "size": 8
+        },
+        {
+          "name": "after_revocation",
+          "type": "uint64_t",
+          "offset": 72,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_content_program",
+      "kind": "extensible",
+      "size": 40,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "opaque",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "run",
+          "type": "gf_callback",
+          "offset": 8,
+          "size": 32
+        }
+      ]
+    },
+    {
+      "name": "gf_hosted_options",
+      "kind": "extensible",
+      "size": 64,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "opaque",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "executable",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "arguments",
+          "type": "const gf_utf8_view*",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "argument_count",
+          "type": "uint64_t",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "slot_bytes",
+          "type": "uint64_t",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "start_timeout_ms",
+          "type": "uint64_t",
+          "offset": 48,
+          "size": 8
+        },
+        {
+          "name": "stop_grace_ms",
+          "type": "uint64_t",
+          "offset": 56,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_hosted_input_report",
+      "kind": "extensible",
+      "size": 16,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "connected",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "dropped",
+          "type": "uint64_t",
+          "offset": 8,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_content_text_line",
+      "kind": "record",
+      "size": 48,
+      "align": 8,
+      "fields": [
+        {
+          "name": "start",
+          "type": "uint64_t",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "end",
+          "type": "uint64_t",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "bounds",
+          "type": "gf_logical_rect",
+          "offset": 16,
+          "size": 32
+        }
+      ]
+    },
+    {
+      "name": "gf_content_text_cluster",
+      "kind": "record",
+      "size": 56,
+      "align": 8,
+      "fields": [
+        {
+          "name": "start",
+          "type": "uint64_t",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "end",
+          "type": "uint64_t",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "line",
+          "type": "uint32_t",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "right_to_left",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "bounds",
+          "type": "gf_logical_rect",
+          "offset": 24,
+          "size": 32
+        }
+      ]
+    },
+    {
+      "name": "gf_content_caret_stop",
+      "kind": "record",
+      "size": 40,
+      "align": 8,
+      "fields": [
+        {
+          "name": "offset",
+          "type": "uint64_t",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "caret",
+          "type": "gf_logical_rect",
+          "offset": 8,
+          "size": 32
+        }
+      ]
+    },
+    {
+      "name": "gf_content_text_layout",
+      "kind": "extensible",
+      "size": 64,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "text_revision",
+          "type": "uint64_t",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "lines",
+          "type": "const gf_content_text_line*",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "line_count",
+          "type": "uint64_t",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "clusters",
+          "type": "const gf_content_text_cluster*",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "cluster_count",
+          "type": "uint64_t",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "carets",
+          "type": "const gf_content_caret_stop*",
+          "offset": 48,
+          "size": 8
+        },
+        {
+          "name": "caret_count",
+          "type": "uint64_t",
+          "offset": 56,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_content_table",
+      "kind": "table",
+      "size": 312,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "open_content",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "opaque",
+                "type": "uint32_t"
+              },
+              {
+                "name": "sink",
+                "type": "gf_content_sink*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "close_content",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "start_program",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "program",
+                "type": "const gf_content_program*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "start_hosted",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "options",
+                "type": "const gf_hosted_options*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "terminate",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "set_termination_grace",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "milliseconds",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "set_stale_interval",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "milliseconds",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "status",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "status",
+                "type": "gf_content_status*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "failure",
+          "type": "function",
+          "offset": 72,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "statistics",
+          "type": "function",
+          "offset": 80,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "statistics",
+                "type": "gf_content_statistics*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "request",
+          "type": "function",
+          "offset": 88,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "request",
+                "type": "gf_content_request*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "set_status_caption",
+          "type": "function",
+          "offset": 96,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "status",
+                "type": "gf_content_status"
+              },
+              {
+                "name": "caption",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "set_semantics",
+          "type": "function",
+          "offset": 104,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "semantics",
+                "type": "const gf_content_semantics*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "program_running",
+          "type": "function",
+          "offset": 112,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "running",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "hosted_input",
+          "type": "function",
+          "offset": 120,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "surface",
+                "type": "gf_object"
+              },
+              {
+                "name": "report",
+                "type": "gf_hosted_input_report*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "hosted_support",
+          "type": "function",
+          "offset": 128,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "support",
+                "type": "gf_hosted_support*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "sink_publish",
+          "type": "function",
+          "offset": 136,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "sink",
+                "type": "gf_content_sink"
+              },
+              {
+                "name": "frame",
+                "type": "const gf_content_frame*"
+              },
+              {
+                "name": "result",
+                "type": "gf_content_publish_result*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "sink_heartbeat",
+          "type": "function",
+          "offset": 144,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "sink",
+                "type": "gf_content_sink"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "sink_publish_semantics",
+          "type": "function",
+          "offset": 152,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "sink",
+                "type": "gf_content_sink"
+              },
+              {
+                "name": "semantics",
+                "type": "const gf_content_semantics*"
+              },
+              {
+                "name": "result",
+                "type": "gf_content_semantics_result*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "sink_request",
+          "type": "function",
+          "offset": 160,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "sink",
+                "type": "gf_content_sink"
+              },
+              {
+                "name": "request",
+                "type": "gf_content_request*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "sink_wait_for_request",
+          "type": "function",
+          "offset": 168,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "sink",
+                "type": "gf_content_sink"
+              },
+              {
+                "name": "seen_generation",
+                "type": "uint64_t"
+              },
+              {
+                "name": "timeout_ms",
+                "type": "uint64_t"
+              },
+              {
+                "name": "request",
+                "type": "gf_content_request*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "sink_state",
+          "type": "function",
+          "offset": 176,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "sink",
+                "type": "gf_content_sink"
+              },
+              {
+                "name": "revoked",
+                "type": "uint32_t*"
+              },
+              {
+                "name": "stop_requested",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "sink_statistics",
+          "type": "function",
+          "offset": 184,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "sink",
+                "type": "gf_content_sink"
+              },
+              {
+                "name": "statistics",
+                "type": "gf_content_statistics*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "sink_release",
+          "type": "function",
+          "offset": 192,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "sink",
+                "type": "gf_content_sink"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "program_sink",
+          "type": "function",
+          "offset": 200,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "sink",
+                "type": "gf_content_sink*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "program_fail",
+          "type": "function",
+          "offset": 208,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "message",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "editor_text_revision",
+          "type": "function",
+          "offset": 216,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "revision",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "editor_text",
+          "type": "function",
+          "offset": 224,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "editor_set_text",
+          "type": "function",
+          "offset": 232,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "text",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "editor_submit_layout",
+          "type": "function",
+          "offset": 240,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "layout",
+                "type": "const gf_content_text_layout*"
+              },
+              {
+                "name": "result",
+                "type": "gf_content_layout_result*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "editor_layout_current",
+          "type": "function",
+          "offset": 248,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "current",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "editor_open_frames",
+          "type": "function",
+          "offset": 256,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "opaque",
+                "type": "uint32_t"
+              },
+              {
+                "name": "sink",
+                "type": "gf_content_sink*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "editor_caret_rectangle",
+          "type": "function",
+          "offset": 264,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "present",
+                "type": "uint32_t*"
+              },
+              {
+                "name": "rectangle",
+                "type": "gf_logical_rect*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "editor_selection_rectangles",
+          "type": "function",
+          "offset": 272,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "gf_logical_rect*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "editor_position_at",
+          "type": "function",
+          "offset": 280,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "point",
+                "type": "gf_logical_point"
+              },
+              {
+                "name": "offset",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "editor_set_draws_selection",
+          "type": "function",
+          "offset": 288,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "draws",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "editor_set_multiline",
+          "type": "function",
+          "offset": 296,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "multiline",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.4"
+        },
+        {
+          "name": "editor_set_read_only",
+          "type": "function",
+          "offset": 304,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "read_only",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.4"
         }
       ]
     },

@@ -1689,7 +1689,7 @@ Types
 
    .. cpp:function:: bool pump(std::chrono::milliseconds timeout)
 
-      Waits up to ``timeout`` for parent messages and handles every one that arrived: configure updates request(), release frees a slot, input is queued for take_input, stop sets stop_requested(). Returns false once a stop was asked for or the channel closed or broke.
+      Waits up to ``timeout`` for parent messages and handles every one that arrived: configure updates request(), release frees a slot, input (key, text, pointer, focus) is queued for take_input, stop sets stop_requested(). Returns false once a stop was asked for or the channel closed or broke.
 
    .. cpp:function:: std::optional<std::uint32_t> acquire_slot(std::chrono::milliseconds timeout)
 
@@ -1721,7 +1721,7 @@ Types
 
    ``#include <gui_forms/content/hosted/hosted_client.hpp>``
 
-   One input event the parent forwarded. ``kind`` is key, text or pointer and says which fields are set.
+   One input event the parent forwarded. ``kind`` is key, text, pointer or focus and says which fields are set. They arrive in the order the surface received them (ContentSurface::start_hosted_content).
 
    .. cpp:member:: HostedMessageKind kind
 
@@ -1734,6 +1734,8 @@ Types
    .. cpp:member:: std::string text
 
    .. cpp:member:: bool composing
+
+   .. cpp:member:: bool focused
 
 .. cpp:namespace:: gui_forms
 
@@ -1869,6 +1871,10 @@ Types
    .. cpp:function:: bool send_pointer(const PointerEvent& event, Point device_position)
 
       A pointer event; ``device_position`` is in the region's device pixels from its top left (the local position times the window's scale).
+
+   .. cpp:function:: bool send_focus(bool focused)
+
+      The surface gained (true) or lost the keyboard focus.
 
 .. cpp:namespace:: gui_forms
 
@@ -3709,6 +3715,8 @@ Enumerations
 
    .. cpp:enumerator:: stop
 
+   .. cpp:enumerator:: focus
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostedReadResult
@@ -4028,6 +4036,8 @@ Functions, constants and aliases
 
 .. cpp:function:: void encode_hosted_configure(std::vector<std::byte>& payload, const HostedConfigureRecord& record)
 
+.. cpp:function:: void encode_hosted_focus(std::vector<std::byte>& payload, bool focused)
+
 .. cpp:function:: void encode_hosted_semantics(std::vector<std::byte>& payload, const ContentSemantics& semantics)
 
    Throws std::length_error when the three strings exceed the payload limit.
@@ -4049,6 +4059,8 @@ Functions, constants and aliases
 .. cpp:function:: bool decode_hosted_configure(std::span<const std::byte> payload, HostedConfigureRecord& out)
 
 .. cpp:function:: bool decode_hosted_semantics(std::span<const std::byte> payload, ContentSemantics& out)
+
+.. cpp:function:: bool decode_hosted_focus(std::span<const std::byte> payload, bool& focused)
 
 .. cpp:function:: HostedFrameView view_hosted_frame(const HostedFrameRecord& record, std::span<const std::byte> region, std::uint32_t slot_count, std::uint64_t slot_bytes) noexcept
 

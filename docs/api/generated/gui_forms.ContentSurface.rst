@@ -35,6 +35,9 @@ gui_forms::ContentSurface
 
       **content_open** : ``bool``, read-only
 
+      **hosted_input** : ``HostedInput``, read-only
+         The input channel the surface forwards to; an empty one (every send dropped) without hosted content.
+
       **program_running** : ``bool``, read-only
          Whether a program the surface started has not yet been reaped.
 
@@ -100,6 +103,8 @@ gui_forms::ContentSurface
         - Revokes the channel and clears the region, stopping a running program first with the bounded wait.
       * - :cpp:func:`start_program <gui_forms::ContentSurface::start_program>`
         - ``start_program(program, opaque)`` opens a channel and runs a :cpp:class:`ContentProgram <gui_forms::ContentProgram>` on a thread of its own (:cpp:class:`ContentWorker <gui_forms::ContentWorker>`).
+      * - :cpp:func:`start_hosted_content <gui_forms::ContentSurface::start_hosted_content>`
+        - Makes a hosted program (make_hosted_content), starts it as start_program does, and forwards the surface's input to its process (the class comment).
       * - :cpp:func:`terminate <gui_forms::ContentSurface::terminate>`
         - Asks the content to stop through its sink's stop token and returns at once.
       * - :cpp:func:`check_watchdog <gui_forms::ContentSurface::check_watchdog>`
@@ -164,6 +169,10 @@ gui_forms::ContentSurface
    .. rubric:: Properties
 
    .. cpp:function:: bool content_open() const noexcept
+
+   .. cpp:function:: const HostedInput& hosted_input() const& noexcept
+
+      The input channel the surface forwards to; an empty one (every send dropped) without hosted content.
 
    .. cpp:function:: bool program_running() const noexcept
 
@@ -255,6 +264,10 @@ gui_forms::ContentSurface
       ``start_program(program, opaque)`` opens a channel and runs a
       :cpp:class:`ContentProgram <gui_forms::ContentProgram>` on a thread of its own (:cpp:class:`ContentWorker <gui_forms::ContentWorker>`).
 
+   .. cpp:function:: HostedInput start_hosted_content(HostedContentOptions options, bool opaque)
+
+      Makes a hosted program (make_hosted_content), starts it as start_program does, and forwards the surface's input to its process (the class comment). Returns the input channel, which the surface also keeps. Throws what make_hosted_content and start_program throw.
+
    .. cpp:function:: void terminate()
 
       Asks the content to stop through its sink's stop token and returns at
@@ -287,6 +300,10 @@ gui_forms::ContentSurface
 
       Composes the newest frame into the region (Painter::draw_live_surface), and the veil and caption while the status asks for them.
 
+   .. cpp:function:: void on_text_input(TextInputEvent& event) override
+
+      Forwards text (an input method's composition included) to hosted content when nothing handled it (the class comment).
+
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
@@ -302,6 +319,40 @@ gui_forms::ContentSurface
       *Protected.*
 
    .. cpp:function:: void on_detaching_from_window(SurfaceRoot& former_window) noexcept override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+      Input forwarding to hosted content (the class comment): each calls the base, then forwards what nothing handled.
+
+   .. cpp:function:: void on_key_up(KeyEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_down(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_mouse_wheel(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_got_focus() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_lost_focus() override
 
       *Protected.*
 
