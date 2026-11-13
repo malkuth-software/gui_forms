@@ -338,6 +338,18 @@ GUI_FORMS_API void paint_canvas_marquee(Painter& painter, const CanvasLook& look
 // line; the width is never below minimum_canvas_focus_width.
 GUI_FORMS_API void paint_canvas_focus(Painter& painter, const CanvasLook& look, Rect target, double target_radius);
 
+// Node silhouettes at the overview level of detail: each of `bodies`
+// filled flat in the node part's fill for `state` (no header, outline or
+// corners at that distance). Draws nothing for no bodies or a clear fill.
+GUI_FORMS_API void paint_canvas_overview(Painter& painter, const CanvasLook& look, std::span<const Rect> bodies,
+                                         CanvasNodeState state);
+
+// A node's title `text` at `baseline` in `font`, in the header part's ink
+// (CanvasLook::titles) for `state`, clipped to `band` (the header band less
+// its corners). Draws nothing for empty text, an empty band or a clear ink.
+GUI_FORMS_API void paint_canvas_node_title(Painter& painter, const CanvasLook& look, Rect band, Point baseline,
+                                           std::string_view text, FontSpec font, CanvasNodeState state);
+
 // A port's label `text` at `baseline` in `font`, in the label ink of the
 // port's `state`. Draws nothing for empty text or a clear ink.
 GUI_FORMS_API void paint_canvas_port_label(Painter& painter, const CanvasLook& look, Point baseline,
