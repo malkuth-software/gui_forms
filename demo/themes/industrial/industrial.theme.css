@@ -29,10 +29,16 @@
   --industrial-well-seat: -10%;
   --industrial-panel-seat: 1px;
   /* The danger key (follow-up 5): signal red, a choice outside the palette
-     (GOST 22133-86 gives no red card), lit from inside. */
+     (GOST 22133-86 gives no red card, and the palette has no red near it),
+     lit from inside. Its legend is the palette's cream (A-270), the
+     warmest light entry, 4.6:1 on the red rim (the integrator's choice,
+     cp31 fold B, not a rule), read through an application colour role so
+     that forced high contrast can replace it as it replaces ink on an
+     accent. */
   --industrial-danger: #9c3128;
   --industrial-danger-heart: #d4553f;
-  --industrial-danger-legend: #fff0e6;
+  color-roles: danger-legend from on-accent-on-accent;
+  danger-legend: var(--gost-a-270) on var(--industrial-danger);
 }
 
 group-box::part(face), scaled-group-box::part(face) {
@@ -68,5 +74,5 @@ button::part(face):state(danger) {
   seat: var(--industrial-key-seat);
 }
 button::part(label):state(danger) {
-  color: var(--industrial-danger-legend);
+  color: role(danger-legend foreground);
 }
