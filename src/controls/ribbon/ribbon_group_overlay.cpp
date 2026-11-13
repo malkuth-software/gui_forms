@@ -7,7 +7,8 @@
 
 namespace gui_forms {
 
-RibbonGroupOverlay::RibbonGroupOverlay(StableId stable_id, Ribbon& ribbon) : Control(std::move(stable_id)), ribbon_(&ribbon) {
+RibbonGroupOverlay::RibbonGroupOverlay(StableId stable_id, Ribbon& ribbon, RibbonOverlayKind kind)
+    : Control(std::move(stable_id)), ribbon_(&ribbon), kind_(kind) {
     focusable = true;
     set_paint_plane(PaintPlane::control);
 }
@@ -36,6 +37,10 @@ void RibbonGroupOverlay::arrange(Rect final_bounds) {
     panel_ = {};
     if (!ribbon_alive()) return;
     const Ribbon& ribbon = *ribbon_;
+    if (kind_ == RibbonOverlayKind::plane) {
+        arrange_plane(final_bounds);
+        return;
+    }
     const Size size = ribbon.overlay_panel_size();
     const double room = std::max(0.0, final_bounds.width - size.width);
     const double x = std::clamp(anchor_x_ - final_bounds.x, 0.0, room);
@@ -56,6 +61,33 @@ void RibbonGroupOverlay::arrange(Rect final_bounds) {
     }
 }
 
+// The plane kind: the panel fills the content, and every hosted control of
+// the selected tab sits where the popup's layout puts it.
+void RibbonGroupOverlay::arrange_plane(Rect final_bounds) {
+    const Ribbon& ribbon = *ribbon_;
+    panel_ = {0.0, 0.0, final_bounds.width, final_bounds.height};
+    if (!ribbon.selected_tab_) return;
+    const std::size_t tab = *ribbon.selected_tab_;
+    const Ribbon::Layout placed = ribbon.popup_layout(panel_);
+    for (std::size_t group = 0; group < ribbon.tabs_[tab].groups.size(); ++group) {
+        const std::vector<Ribbon::CommandRecord>& records = ribbon.records_[tab][group];
+        for (std::size_t command = 0; command < records.size(); ++command) {
+            const Control::Ptr& control = records[command].hosted;
+            if (!control || !is_current_layout_child(control)) continue;
+            const RibbonCommandSpec& spec = ribbon.tabs_[tab].groups[group].commands[command];
+            const Rect field = ribbon.split_field(spec, placed.commands[group][command]).field;
+            const Rect bounds = Rect::intersection(field, placed.groups_area);
+            set_child_layout_collapsed(control, bounds.empty());
+            if (bounds.empty()) continue;
+            set_child_layout(control, bounds);
+            if (spec.kind != RibbonCommandKind::gallery) continue;
+            RibbonGallery& gallery = *spec.gallery;
+            gallery.columns =
+                std::clamp(placed.gallery_columns[group], gallery.minimum_columns(), gallery.maximum_columns());
+        }
+    }
+}
+
 void RibbonGroupOverlay::on_paint(Painter& painter, Rect) {
     if (!ribbon_alive() || panel_.empty()) return;
     PartPaint part;
@@ -65,6 +97,10 @@ void RibbonGroupOverlay::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, part);
     part.role = PartRole::face;
     paint_part(painter, *this, part);
+    if (kind_ == RibbonOverlayKind::plane) {
+        (*ribbon_).popup_paint(painter, panel_);
+        return;
+    }
     (*ribbon_).overlay_paint(painter, panel_);
 }
 
@@ -75,7 +111,11 @@ void RibbonGroupOverlay::forward_mouse(MouseEventArgs& arguments) {
     // The overlay may close (and detach) while the ribbon handles the event.
     const Control::Ptr lifetime = shared_from_this();
     PointerEvent event = pointer_event_of(arguments);
-    (*ribbon_).overlay_pointer(event, panel_);
+    if (kind_ == RibbonOverlayKind::plane) {
+        (*ribbon_).popup_pointer(event, panel_);
+    } else {
+        (*ribbon_).overlay_pointer(event, panel_);
+    }
     arguments.handled = event.handled;
 }
 
@@ -104,7 +144,11 @@ void RibbonGroupOverlay::on_mouse_leave() {
         const Control::Ptr lifetime = shared_from_this();
         PointerEvent leave{};
         leave.action = PointerAction::leave;
-        (*ribbon_).overlay_pointer(leave, panel_);
+        if (kind_ == RibbonOverlayKind::plane) {
+            (*ribbon_).popup_pointer(leave, panel_);
+        } else {
+            (*ribbon_).overlay_pointer(leave, panel_);
+        }
     }
     Control::on_mouse_leave();
 }
@@ -121,7 +165,9 @@ void RibbonGroupOverlay::on_key_up(KeyEventArgs& arguments) {
 
 // A key no subscriber handled.
 void RibbonGroupOverlay::forward_key(KeyEventArgs& arguments, KeyAction action) {
+    // The popup's keys are its hosted controls' and the layer's (Escape).
     if (!ribbon_alive() || arguments.handled || arguments.released_by_deactivation) return;
+    if (kind_ == RibbonOverlayKind::plane) return;
     const Control::Ptr lifetime = shared_from_this();
     KeyEvent event = key_event_of(arguments, action);
     (*ribbon_).overlay_key(event);
@@ -129,7 +175,7 @@ void RibbonGroupOverlay::forward_key(KeyEventArgs& arguments, KeyAction action) 
 }
 
 void RibbonGroupOverlay::on_focus_changed(bool focused) {
-    if (ribbon_alive()) (*ribbon_).overlay_focus_changed(focused);
+    if (ribbon_alive() && kind_ == RibbonOverlayKind::group) (*ribbon_).overlay_focus_changed(focused);
 }
 
 bool RibbonGroupOverlay::hit_test_local(Point local_point) const {
@@ -151,14 +197,16 @@ SemanticDescriptor RibbonGroupOverlay::semantic_descriptor() const {
 }
 
 std::vector<SemanticNode> RibbonGroupOverlay::semantic_virtual_children() const {
-    if (!ribbon_alive()) return {};
+    // The popup publishes its hosted controls (its children) only; the
+    // ribbon's collapsed command plane node restores the plane.
+    if (!ribbon_alive() || kind_ == RibbonOverlayKind::plane) return {};
     std::vector<SemanticNode> nodes = (*ribbon_).overlay_semantic_children(panel_);
     return nodes;
 }
 
 bool RibbonGroupOverlay::on_semantic_child_action(std::string_view stable_id, SemanticAction action,
                                                 std::string_view) {
-    if (!ribbon_alive()) return false;
+    if (!ribbon_alive() || kind_ == RibbonOverlayKind::plane) return false;
     const Control::Ptr lifetime = shared_from_this();
     const bool handled = (*ribbon_).overlay_semantic_action(stable_id, action);
     return handled;

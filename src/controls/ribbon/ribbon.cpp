@@ -107,10 +107,13 @@ Ribbon::~Ribbon() {
 void Ribbon::on_dispose() noexcept {
     close_menus();
     close_group_overlay();
+    close_plane_popup();
     close_backstage();
     if (overlay_) (*overlay_).dispose();
     if (group_overlay_) (*group_overlay_).detach();
     if (group_layer_) (*group_layer_).dispose();
+    if (plane_popup_) (*plane_popup_).detach();
+    if (plane_layer_) (*plane_layer_).dispose();
     if (application_overlay_) (*application_overlay_).detach();
     if (application_panel_) (*application_panel_).detach();
 }
@@ -188,7 +191,7 @@ void Ribbon::follow_theme() {
 // overlay keeps the window's theme.
 void Ribbon::sync_overlay_themes() {
     const std::shared_ptr<const Theme> theme = nearest_theme_override();
-    const std::array<Control*, 2> overlays{group_layer_.get(), application_overlay_.get()};
+    const std::array<Control*, 3> overlays{group_layer_.get(), application_overlay_.get(), plane_layer_.get()};
     for (Control* const overlay : overlays) {
         if (overlay == nullptr) continue;
         try {
@@ -568,6 +571,7 @@ void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetS
     PreparedTabs prepared = prepare_tabs(tabs, sets);
     close_menus();
     close_group_overlay();
+    close_plane_popup();
     // Lives to the end: its records keep their Command watches until then.
     HostedCarryOver carried = take_hosted_controls();
     std::string selected_id;
@@ -694,6 +698,7 @@ void Ribbon::select_tab(std::size_t tab, SelectionCause cause) {
     advance_layout_revision();
     close_menus();
     close_group_overlay();
+    close_plane_popup();
     selected_tab_ = tab;
     advance_layout_revision();
     first_group_ = 0U;
@@ -716,6 +721,7 @@ void Ribbon::prepare_write(const decltype(minimized)&, bool& incoming) {
     if (incoming == minimized.read()) return;
     close_menus();
     close_group_overlay();
+    close_plane_popup();
 }
 
 void Ribbon::written(const decltype(minimized)&) {
@@ -1369,27 +1375,34 @@ void Ribbon::on_paint(Painter& painter, Rect) {
     part.alignment = PartTextAlignment::start;
     part.font = label_font;
     const bool plane = !placed.plane.empty() && selected_tab_.has_value();
-    if (plane) {
-        part.states = {};
-        part.family = ControlVisualRole::panel;
-        part.role = PartRole::face;
-        part.bounds = placed.plane;
-        part.accent = own.command_plane.accent;
-        part.key = PartKey{"command_plane", {}, {}};
-        paint_part(painter, *this, part);
-        part.accent.reset();
-        part.key.reset();
-        painter.save();
-        painter.clip_rect(placed.groups_area);
-        paint_groups(painter, placed);
-        painter.restore();
-    }
+    if (plane) paint_plane(painter, part, placed, own);
     if (selected_tab_ && shown(*selected_tab_)) paint_tab(painter, part, placed, *selected_tab_);
     if (!plane) return;
     part.alignment = PartTextAlignment::start;
     part.font = label_font;
-    // The scroll buttons, over the plane's ends (menu-item family, flat at
-    // rest).
+    paint_scroll_buttons(painter, part, own);
+}
+
+// The plane's face and its groups (clipped to the groups' area), in the
+// ribbon or in the minimized ribbon's popup.
+void Ribbon::paint_plane(Painter& painter, PartPaint& part, const Layout& placed, const Parts& own) const {
+    part.states = {};
+    part.family = ControlVisualRole::panel;
+    part.role = PartRole::face;
+    part.bounds = placed.plane;
+    part.accent = own.command_plane.accent;
+    part.key = PartKey{"command_plane", {}, {}};
+    paint_part(painter, *this, part);
+    part.accent.reset();
+    part.key.reset();
+    painter.save();
+    painter.clip_rect(placed.groups_area);
+    paint_groups(painter, placed);
+    painter.restore();
+}
+
+// The scroll buttons, over the plane's ends (menu-item family, flat at rest).
+void Ribbon::paint_scroll_buttons(Painter& painter, PartPaint& part, const Parts& own) const {
     part.family = ControlVisualRole::menu_item;
     if (own.scroll_left.present) {
         part.role = PartRole::actuator;
@@ -1750,6 +1763,11 @@ void Ribbon::repaint_part(Hit::Kind kind, std::size_t index, CommandAddress comm
     if (overlay_part && group_overlay_ && (*group_overlay_).is_alive()) {
         (*group_overlay_).invalidate(Dirty::paint);
     }
+    // A plane part shows in the popup while it is open.
+    if (plane_popup_open_ && plane_popup_ && (*plane_popup_).is_alive() && kind != Hit::Kind::tab &&
+        kind != Hit::Kind::application && kind != Hit::Kind::help) {
+        (*plane_popup_).invalidate(Dirty::paint);
+    }
     const Layout placed = layout();
     Rect bounds{};
     switch (kind) {
@@ -1832,8 +1850,11 @@ void Ribbon::click_tab(std::size_t tab) {
         minimized = !minimized.read();
         return;
     }
+    // While minimized, another tab opens in the temporary popup (interview
+    // G1); without a window to hold it, the plane shows as before.
     select_tab(tab);
-    if (minimized.read()) minimized = false;
+    if (!minimized.read()) return;
+    if (!show_plane_popup()) minimized = false;
 }
 
 // The one path every activation of a command takes: pointer, keyboard,
@@ -1862,6 +1883,7 @@ void Ribbon::click_command(CommandAddress address) {
     const RibbonCommandClick click{std::string(stable_id().value()), spec.stable_id};
     command_clicked_.emit(click);
     if (is_alive() && overlay_group_ == address.group) close_group_overlay();
+    if (is_alive()) close_plane_popup();
 }
 
 void Ribbon::request_help() {
@@ -1878,6 +1900,7 @@ void Ribbon::launch(std::size_t group) {
     const RibbonDialogLaunch launched{std::string(stable_id().value()), (*found).stable_id};
     dialog_launcher_clicked_.emit(launched);
     if (is_alive() && overlay_group_ == group) close_group_overlay();
+    if (is_alive()) close_plane_popup();
 }
 
 // A primary press on `hit`, in the plane or the overlay. Menus, the group
@@ -2030,10 +2053,20 @@ void Ribbon::on_mouse_up(MouseEventArgs& arguments) {
 void Ribbon::on_pointer_preview(PointerEvent& event) {
     Control::on_pointer_preview(event);
     if (event.action != PointerAction::down || event.button != PointerButton::primary) return;
-    if (!overlay_group_ && !application_overlay_open_ && !backstage_open_) return;
+    if (!overlay_group_ && !application_overlay_open_ && !backstage_open_ && !plane_popup_open_) return;
     const Rect absolute = absolute_bounds();
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
-    const Hit hit = hit_test(layout(), local);
+    const Layout placed = layout();
+    const Hit hit = hit_test(placed, local);
+    // The minimized ribbon's popup closes; a press on a tab, the File tab,
+    // the help button or the Quick Access Toolbar still acts (a tab then
+    // opens its own popup, the selected tab pins the plane), and a press on
+    // the bare tab row only closes it (interview D3).
+    if (plane_popup_open_) {
+        close_plane_popup();
+        if (hit.kind == Hit::Kind::none && !placed.quick_access.contains(local)) event.handled = true;
+        return;
+    }
     if (overlay_group_) {
         const bool same = hit.kind == Hit::Kind::group_button && hit.index == *overlay_group_;
         close_group_overlay();
@@ -2347,8 +2380,9 @@ bool Ribbon::process_mnemonic_self(char32_t character) {
     }
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
         if (!selectable(tab) || !is_mnemonic(character, tabs_[tab].text)) continue;
+        // While minimized the tab opens in the temporary popup.
         select_tab(tab);
-        if (minimized.read()) minimized = false;
+        if (minimized.read() && !show_plane_popup()) minimized = false;
         return true;
     }
     if (minimized.read() || plane_hidden_ || !selected_tab_) return false;
@@ -2375,6 +2409,7 @@ bool Ribbon::show_application_menu(MenuOpenMode mode) {
     if (application_open_ && (*overlay_).is_open()) return true;
     close_menus();
     close_group_overlay();
+    close_plane_popup();
     const Layout placed = layout();
     (*overlay_).set_items(application_menu_);
     const Rect absolute = absolute_bounds();
@@ -2545,7 +2580,7 @@ void Ribbon::close_group_overlay() noexcept {
 // The overlay is gone or going: its hosted controls return to the ribbon and
 // its interaction state is cleared.
 void Ribbon::finish_group_overlay() noexcept {
-    move_hosted_to_ribbon();
+    move_hosted_to_ribbon(group_overlay_);
     if (overlay_group_ && pressed_command_ && (*pressed_command_).group == *overlay_group_) pressed_command_.reset();
     overlay_group_.reset();
     overlay_stop_.reset();
@@ -2586,10 +2621,10 @@ void Ribbon::move_hosted_to_overlay(std::size_t group) {
 
 // Returns the overlay's hosted controls to the ribbon, in record order (the
 // hosted controls' Tab order).
-void Ribbon::move_hosted_to_ribbon() noexcept {
-    if (!group_overlay_) return;
+void Ribbon::move_hosted_to_ribbon(const Control::Ptr& source) noexcept {
+    if (!source) return;
     try {
-        const Control::Ptr overlay = group_overlay_;
+        const Control::Ptr overlay = source;
         std::vector<Control::Ptr> returning;
         for (const Control::Ptr& child : (*overlay).children()) returning.push_back(child);
         for (const Control::Ptr& child : returning) {
@@ -2622,6 +2657,160 @@ void Ribbon::on_group_overlay_revoked() {
     group_scope_ = {};
     finish_group_overlay();
     group_overlay_revoked_.disconnect();
+}
+
+// -- the minimized ribbon's popup ----------------------------------------------
+
+// The popup's view: the selected tab's plane in `panel` (the popup content's
+// local coordinates), at the ladder entry the ribbon's width takes, as the
+// plane would show unminimized.
+Ribbon::Layout Ribbon::popup_layout(Rect panel) const {
+    Layout placed;
+    if (!selected_tab_) return placed;
+    reset_layout_groups(placed);
+    placed.plane = panel;
+    place_plane(placed);
+    return placed;
+}
+
+void Ribbon::popup_paint(Painter& painter, Rect panel) const {
+    if (!selected_tab_) return;
+    const Layout placed = popup_layout(panel);
+    const Parts own = control_parts(placed);
+    PartPaint part;
+    part.font = text_font(font.read());
+    paint_plane(painter, part, placed, own);
+    part.alignment = PartTextAlignment::start;
+    paint_scroll_buttons(painter, part, own);
+}
+
+void Ribbon::popup_pointer(PointerEvent& event, Rect panel) {
+    if (!eligible_for_input() || !plane_popup_ || !plane_popup_open_) return;
+    if (event.action == PointerAction::leave) {
+        set_hot(Hit{});
+        return;
+    }
+    const Rect absolute = (*plane_popup_).absolute_bounds();
+    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const Layout placed = popup_layout(panel);
+    const Hit hit = hit_test(placed, local);
+    if (event.action == PointerAction::move || event.action == PointerAction::enter) {
+        set_hot(hit);
+        return;
+    }
+    if (event.button != PointerButton::primary) return;
+    const Control::Ptr lifetime = shared_from_this();
+    if (event.action == PointerAction::down) {
+        // A press on the popup's plane is the popup's: it never falls
+        // through to the document under it.
+        event.handled = true;
+        if (hit.kind == Hit::Kind::none) return;
+        press(hit, event);
+        return;
+    }
+    if (event.action == PointerAction::up) release(hit, event);
+}
+
+bool Ribbon::show_plane_popup() {
+    require_mutable();
+    Window* const window = attached_window();
+    if (!minimized.read() || !selected_tab_ || window == nullptr || !effectively_enabled()) return false;
+    if (tabs_[*selected_tab_].panel) return false;
+    if (plane_popup_open_) return true;
+    close_menus();
+    close_group_overlay();
+    const std::string ribbon_id(stable_id().value());
+    const Control::Ptr self = shared_from_this();
+    if (!plane_popup_) {
+        plane_popup_ =
+            make_control<RibbonGroupOverlay>(StableId(ribbon_id + ".plane-popup"), *this, RibbonOverlayKind::plane);
+        plane_layer_ = make_control<AnchoredOverlayLayer>(StableId(ribbon_id + ".plane-popup.layer"), self);
+        (*plane_layer_).set_content(plane_popup_);
+        plane_layer_dismissed_ = (*plane_layer_).dismiss_requested().subscribe(
+            Delegate<OverlayDismissReason>::bind<Ribbon, &Ribbon::on_plane_layer_dismissed>(*this));
+    }
+    plane_popup_open_ = true;
+    hot_ = Hit{};
+    const std::size_t tab = *selected_tab_;
+    (*plane_popup_).accessible_name = parse_mnemonic_text(tabs_[tab].text).display_text;
+    // The selected tab's hosted controls move into the popup, in record order.
+    for (std::size_t group = 0; group < records_[tab].size(); ++group) {
+        for (const CommandRecord& record : records_[tab][group]) {
+            const Control::Ptr control = record.hosted;
+            if (!control || (*control).parent().get() != this) continue;
+            Control::Ptr moved = remove_child((*control).runtime_id());
+            if (moved) (*plane_popup_).add_child(std::move(moved));
+        }
+    }
+    // As wide as the ribbon and as tall as its plane, its left edge at the
+    // ribbon's, right under the tab row.
+    const Rect absolute = absolute_bounds();
+    AnchoredOverlayPlacement placement;
+    placement.preferred_size = {absolute.width, plane_height()};
+    placement.horizontal_alignment = OverlayHorizontalAlignment::near;
+    placement.vertical_preference = OverlayVerticalPreference::below;
+    placement.gap = 0.0;
+    sync_overlay_themes();
+    (*plane_layer_).set_anchor(self);
+    (*plane_layer_).placement = placement;
+    const Size client = (*window).client_size();
+    (*plane_layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
+    plane_popup_token_ = (*window).open_overlay(self, plane_layer_);
+    if (Event<>* closed = plane_popup_token_.closed_event()) {
+        plane_popup_revoked_ =
+            (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_plane_popup_revoked>(*this));
+    }
+    plane_scope_ = (*window).begin_focus_scope(plane_layer_, plane_popup_);
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    return true;
+}
+
+void Ribbon::close_plane_popup() noexcept {
+    if (!plane_popup_open_) return;
+    Window* const window = attached_window();
+    if (window != nullptr && plane_scope_) {
+        try {
+            static_cast<void>((*window).end_focus_scope(plane_scope_));
+        } catch (...) {
+        }
+    }
+    plane_scope_ = {};
+    finish_plane_popup();
+    plane_popup_revoked_.disconnect();
+    plane_popup_token_.disconnect();
+}
+
+// The popup is gone or going: its hosted controls return to the ribbon and
+// the interaction state it held is cleared.
+void Ribbon::finish_plane_popup() noexcept {
+    plane_popup_open_ = false;
+    move_hosted_to_ribbon(plane_popup_);
+    pressed_command_.reset();
+    pressed_zone_ = CommandZone::none;
+    pressed_launcher_.reset();
+    pressed_scroll_ = Hit::Kind::none;
+    hot_ = Hit{};
+    if (!is_alive()) return;
+    try {
+        invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    } catch (...) {
+    }
+}
+
+Control::Ptr Ribbon::plane_popup() const noexcept {
+    if (!plane_popup_open_) return {};
+    return plane_popup_;
+}
+
+void Ribbon::on_plane_layer_dismissed(OverlayDismissReason) {
+    close_plane_popup();
+}
+
+void Ribbon::on_plane_popup_revoked() {
+    if (!plane_popup_open_) return;
+    plane_scope_ = {};
+    finish_plane_popup();
+    plane_popup_revoked_.disconnect();
 }
 
 // -- semantics -----------------------------------------------------------------
@@ -2913,7 +3102,8 @@ bool Ribbon::on_semantic_child_action(std::string_view id, SemanticAction action
     const std::string_view command_id = node_suffix(id, ribbon_id, "command");
     if (!command_id.empty()) {
         const std::optional<CommandAddress> address = find_command(command_id);
-        if (!address || minimized.read() || plane_hidden_) return false;
+        // While minimized, only the popup's commands act.
+        if (!address || (minimized.read() && !plane_popup_open_) || (plane_hidden_ && !plane_popup_open_)) return false;
         const RibbonCommandSpec* const target = selected_command(*address);
         if (target == nullptr || text_only((*target).kind)) return false;
         if (action == SemanticAction::press) {

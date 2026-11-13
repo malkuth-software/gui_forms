@@ -123,6 +123,7 @@ void Ribbon::written(const decltype(application_modes)&) {
     // Groups that come and go change the measured ladders.
     ++content_generation_;
     close_group_overlay();
+    close_plane_popup();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     tabs_shown_changed();
 }
@@ -139,6 +140,7 @@ void Ribbon::tabs_shown_changed() {
     if (!selected_tab_) return;
     close_menus();
     close_group_overlay();
+    close_plane_popup();
     selected_tab_.reset();
     hot_ = Hit{};
     pressed_command_.reset();

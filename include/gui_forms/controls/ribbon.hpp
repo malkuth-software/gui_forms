@@ -338,9 +338,13 @@ struct GUI_FORMS_API RibbonTabChange final {
 // control as its command plane; the ribbon and its overlays follow the
 // window's theme and colour scheme as they change.
 //
-// Not yet: hosting the QuickAccessToolbar on the tab row (it is a separate
-// control the application places), the minimized ribbon's temporary overlay,
-// right-to-left mirroring and two-line large labels.
+// The tab row may host the Quick Access Toolbar after the File tab (or on a
+// row of its own below) and a help button at its right end; while minimized,
+// a tab opens in a temporary popup over the document (roadmap 2.11).
+//
+// Not yet: right-to-left mirroring and two-line large labels; in the
+// minimized popup, collapsed groups' overlays, drop-down menus and the
+// keyboard's stops (the popup's hosted controls take focus as usual).
 class GUI_FORMS_API Ribbon final : public Control, public RibbonCapabilities<Ribbon> {
 public:
     // Development bounds, not measured capacity.
@@ -442,6 +446,21 @@ public:
     // removes it (it is detached, not disposed). Throws
     // std::invalid_argument for a toolbar another parent holds.
     void set_quick_access_toolbar(std::shared_ptr<QuickAccessToolbar> toolbar);
+    // The minimized ribbon's temporary popup (interview G1, D3, T7): the
+    // selected tab's plane in an overlay below the tab row, casting the
+    // overlay shadow, over the document instead of pushing it down. While
+    // minimized, clicking a tab other than the selected one selects it and
+    // opens the popup; clicking the selected tab pins the plane open again
+    // (decision 19). A click outside the popup is consumed and only closes
+    // it (a click on a tab still acts); Escape closes it, and so does a
+    // command or launcher run from it. The selected tab's hosted controls
+    // move into the popup while it is open. False when not minimized,
+    // without a selected tab, a window, or while disabled.
+    bool show_plane_popup();
+    void close_plane_popup() noexcept;
+    [[nodiscard]] bool plane_popup_open() const noexcept { return plane_popup_open_; }
+    // The popup's content control while open (for tests and inspection).
+    [[nodiscard]] Control::Ptr plane_popup() const noexcept;
     [[nodiscard]] const std::shared_ptr<QuickAccessToolbar>& quick_access_toolbar() const& noexcept {
         return quick_access_;
     }
@@ -1000,6 +1019,8 @@ private:
     void paint_label_command(Painter& painter, PartPaint& part, const RibbonCommandSpec& spec,
                              const CommandParts& command_part, AnatomyStateSet states) const;
     void paint_tab(Painter& painter, PartPaint& part, const Layout& placed, std::size_t tab) const;
+    void paint_plane(Painter& painter, PartPaint& part, const Layout& placed, const Parts& own) const;
+    void paint_scroll_buttons(Painter& painter, PartPaint& part, const Parts& own) const;
     void append_group_node(SemanticNode& parent, const Layout& placed, std::size_t group, Rect absolute) const;
     [[nodiscard]] std::vector<Group> groups_of(const Layout& placed) const;
     [[nodiscard]] std::vector<CommandItem> commands_of(const Layout& placed) const;
@@ -1037,10 +1058,22 @@ private:
     bool overlay_semantic_action(std::string_view stable_id, SemanticAction action);
     [[nodiscard]] Size overlay_panel_size() const;
     void move_hosted_to_overlay(std::size_t group);
-    void move_hosted_to_ribbon() noexcept;
+    // Returns `source`'s children (an overlay's hosted controls) to the
+    // ribbon, in record order.
+    void move_hosted_to_ribbon(const Control::Ptr& source) noexcept;
     void finish_group_overlay() noexcept;
     void on_group_layer_dismissed(OverlayDismissReason reason);
     void on_group_overlay_revoked();
+
+    // The minimized ribbon's popup (interview G1, D3, T7), driven by its
+    // content control (a RibbonGroupOverlay of the plane kind). `panel` is
+    // the plane's rectangle in the content control's local coordinates.
+    [[nodiscard]] Layout popup_layout(Rect panel) const;
+    void popup_paint(Painter& painter, Rect panel) const;
+    void popup_pointer(PointerEvent& event, Rect panel);
+    void finish_plane_popup() noexcept;
+    void on_plane_layer_dismissed(OverlayDismissReason reason);
+    void on_plane_popup_revoked();
 
     // The file area (ribbon_file_area.cpp): the two-pane application menu
     // and Backstage.
@@ -1125,6 +1158,16 @@ private:
     std::optional<std::size_t> overlay_group_{};
     std::optional<Stop> overlay_stop_{};
     bool overlay_focused_{};
+
+    // The minimized ribbon's popup: its content control and layer (made on
+    // first use), the overlay lease and focus scope while open.
+    std::shared_ptr<RibbonGroupOverlay> plane_popup_{};
+    std::shared_ptr<AnchoredOverlayLayer> plane_layer_{};
+    OverlayToken plane_popup_token_{};
+    FocusScopeId plane_scope_{};
+    SubscriptionToken plane_layer_dismissed_{};
+    SubscriptionToken plane_popup_revoked_{};
+    bool plane_popup_open_{};
 
     Event<const RibbonCommandClick&> command_clicked_{};
     Event<const RibbonDropDownInvocation&> drop_down_item_invoked_{};

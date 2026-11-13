@@ -80,6 +80,7 @@ bool Ribbon::show_application_overlay(MenuOpenMode mode) {
     if (application_overlay_open_) return true;
     close_menus();
     close_group_overlay();
+    close_plane_popup();
     const Control::Ptr self = shared_from_this();
     if (!application_overlay_) {
         application_overlay_ =
@@ -238,6 +239,7 @@ bool Ribbon::show_backstage() {
     if (backstage_open_) return true;
     close_menus();
     close_group_overlay();
+    close_plane_popup();
     place_backstage();
     sync_backstage_theme();
     backstage_token_ = (*window).open_overlay(shared_from_this(), backstage.read());

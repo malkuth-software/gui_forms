@@ -429,9 +429,88 @@ void minimize_by_tab_click() {
     window.perform_layout();
     click(window, centre(tabs[1].parts.tab.bounds));
     window.perform_layout();
-    require(!(*ribbon).minimized.read() && (*ribbon).selected_tab.read() == std::size_t{1U} && !(*font).effectively_visible() &&
+    require((*ribbon).minimized.read() && (*ribbon).plane_popup_open() &&
+                (*ribbon).selected_tab.read() == std::size_t{1U} && !(*font).effectively_visible() &&
                 (*(*ribbon).text_box("find")).effectively_visible(),
-            "clicking another tab while minimized selects it and shows the plane");
+            "clicking another tab while minimized selects it and opens its plane in the popup");
+    (*ribbon).close_plane_popup();
+    click(window, centre(tabs[1].parts.tab.bounds));
+    window.perform_layout();
+    require(!(*ribbon).minimized.read() && !(*ribbon).plane_popup_open() && (*ribbon).parts().command_plane.present &&
+                (*(*ribbon).text_box("find")).effectively_visible(),
+            "clicking the selected tab of a minimized ribbon shows the plane again");
+}
+
+struct CountClicks final {
+    int* count{};
+    void operator()() const { ++*count; }
+};
+
+// The minimized ribbon's temporary popup (interview G1, D3, T7; ledger R17):
+// it opens below the tab row as wide as the ribbon and as tall as the plane,
+// over the document without pushing it; it casts the overlay shadow; the
+// tab's hosted controls move into it and back; a click outside is consumed
+// and only closes it; Escape and a command run from it close it.
+void minimized_popup() {
+    const Commands commands;
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
+    std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
+    (*ribbon).minimized = true;
+    (*ribbon).set_requested_bounds({0.0, 0.0, 900.0, 27.0});
+    std::shared_ptr<Panel> document = make_control<Panel>(StableId("document"));
+    (*document).set_requested_bounds({0.0, 200.0, 900.0, 100.0});
+    (*root).add_child(ribbon);
+    (*root).add_child(document);
+    Window window(root, {900.0, 320.0}, commands.resources);
+    window.perform_layout();
+    int document_clicks = 0;
+    SubscriptionToken clicked = (*document).click().subscribe(CountClicks{&document_clicks});
+    require(!(*ribbon).plane_popup_open() && (*ribbon).plane_popup() == nullptr, "no popup at first");
+    const std::vector<Ribbon::Tab> tabs = (*ribbon).realized_tabs();
+    click(window, centre(tabs[1].parts.tab.bounds));
+    window.perform_layout();
+    const Control::Ptr popup = (*ribbon).plane_popup();
+    require((*ribbon).plane_popup_open() && popup != nullptr && (*ribbon).minimized.read() &&
+                (*ribbon).selected_tab.read() == std::size_t{1U},
+            "while minimized, another tab opens the popup and the ribbon stays minimized");
+    const Rect placed = (*popup).absolute_bounds();
+    require(placed.x == 0.0 && placed.y == 27.0 && placed.width == 900.0 && placed.height > 0.0 &&
+                (*ribbon).measure({900.0, 400.0}).height == 27.0 && (*document).absolute_bounds().y == 200.0,
+            "the popup sits below the tab row, the ribbon's width, over the document");
+    require((*popup).visual_outsets().bottom > 0.0 || (*popup).visual_outsets().right > 0.0 ||
+                (*popup).visual_outsets().left > 0.0,
+            "the popup casts the overlay shadow");
+    const std::shared_ptr<TextBox> find = (*ribbon).text_box("find");
+    require((*find).parent() == popup && (*find).effectively_visible(), "the tab's hosted controls move into it");
+    click(window, Point{450.0, 250.0});
+    window.perform_layout();
+    require(!(*ribbon).plane_popup_open() && document_clicks == 0 && (*find).parent() == ribbon &&
+                !(*find).effectively_visible() && (*ribbon).minimized.read(),
+            "a click outside is consumed and only closes it; the hosted controls return");
+    require((*ribbon).show_plane_popup() && (*ribbon).plane_popup_open(), "show_plane_popup opens it");
+    static_cast<void>(key(window, PhysicalKey::escape));
+    require(!(*ribbon).plane_popup_open(), "Escape closes it");
+    require((*ribbon).show_plane_popup(), "the popup opens again");
+    click(window, centre(tabs[1].parts.tab.bounds));
+    window.perform_layout();
+    require(!(*ribbon).minimized.read() && !(*ribbon).plane_popup_open() && (*find).parent() == ribbon,
+            "clicking the selected tab while the popup shows pins the plane open");
+    (*ribbon).minimized = true;
+    window.perform_layout();
+    // A command run from the popup closes it.
+    (*ribbon).selected_tab = std::size_t{0U};
+    window.perform_layout();
+    require((*ribbon).show_plane_popup(), "the Home tab's popup opens");
+    window.perform_layout();
+    int cuts = 0;
+    SubscriptionToken cut_token = (*commands.cut).invoked().subscribe(CountInvocation{&cuts});
+    require((*ribbon).on_semantic_child_action("ribbon.command.cut", SemanticAction::press, {}) && cuts == 1 &&
+                !(*ribbon).plane_popup_open(),
+            "a command run while the popup shows closes it");
+    require(!(*ribbon).on_semantic_child_action("ribbon.command.cut", SemanticAction::press, {}) && cuts == 1,
+            "with the popup closed, a minimized ribbon's commands do not act");
+    (*ribbon).minimized = false;
+    require(!(*ribbon).show_plane_popup(), "an unminimized ribbon has no popup");
 }
 
 void hosted_controls() {
@@ -849,6 +928,7 @@ int main() {
     labels_and_rows();
     help_button();
     quick_access_on_tab_row();
+    minimized_popup();
     std::cout << "Ribbon: geometry, one command path, item repaint, minimizing, hosted controls, menus, launchers, "
                  "semantics, F6 region and refusals passed\n";
     return 0;
