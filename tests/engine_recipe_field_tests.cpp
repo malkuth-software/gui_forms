@@ -204,8 +204,10 @@ void test_cascade() {
 }
 
 // A family rule and a part rule may both set stroke_width (a dial's arc, a
-// canvas part's line); the resolution records whether the winner names a
-// part, so a family's arc width is never a canvas part's line width.
+// canvas part's line). The family rule outranks the part rule (a class
+// against two types) and wins `fields`; the part rule's declaration is
+// kept apart in `named_part_fields`, so a family's arc width is never a
+// canvas part's line width.
 void test_named_part_winners() {
     ThemeRuleSheet sheet{};
     ThemeRule family = control_rule("family", {});
@@ -225,18 +227,19 @@ void test_named_part_winners() {
     facts.family = "progress";
     CompiledThemeRules::RecipeResolution resolved = rules.resolve_recipe_fields(facts);
     require(resolved.fields[width] != nullptr && (*resolved.fields[width]).number == 6.0 &&
-                !resolved.on_named_part[width],
+                resolved.named_part_fields[width] == nullptr,
             "a family record's stroke width comes from a rule naming no part");
     facts.control_type = "pad";
     facts.part = "lamp";
     resolved = rules.resolve_recipe_fields(facts);
-    require(resolved.fields[width] != nullptr && (*resolved.fields[width]).number == 1.0 &&
-                resolved.on_named_part[width],
+    require(resolved.fields[width] != nullptr && (*resolved.fields[width]).number == 6.0,
+            "the family rule outranks the part rule for the shared field");
+    require(resolved.named_part_fields[width] != nullptr && (*resolved.named_part_fields[width]).number == 1.0,
             "a part's stroke width comes from the rule naming it");
     facts.part = "other";
     resolved = rules.resolve_recipe_fields(facts);
-    require(resolved.fields[width] != nullptr && !resolved.on_named_part[width],
-            "a part no part rule names takes only the family's width, marked as no part's");
+    require(resolved.fields[width] != nullptr && resolved.named_part_fields[width] == nullptr,
+            "a part no part rule names takes only the family's width, which is no part's");
 }
 
 // -- the theme's resolution ------------------------------------------------------------

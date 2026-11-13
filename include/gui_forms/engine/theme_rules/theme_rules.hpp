@@ -1956,12 +1956,14 @@ public:
         // position; built_in where `fields` holds null. An authored colour
         // (PartPaint::authored_foreground) stands under the important ones.
         std::array<CascadeLevel, recipe_field_count> levels{};
-        // Whether each winning declaration's rule names a part (a
-        // `::part(...)` rule, not a role or family rule), by the same
-        // position; false where `fields` holds null. A field two consumers
-        // share (stroke_width: a dial's arc and a canvas part's line) is a
-        // canvas width only from a part rule.
-        std::array<bool, recipe_field_count> on_named_part{};
+        // The winning declaration of each field among the matching rules
+        // that name a part (a `::part(...)` rule, not a role or family
+        // rule), by the same position, or null where none sets it. A field
+        // two consumers share (stroke_width: a dial's arc and a canvas
+        // part's line) is a canvas width only from a part rule, and
+        // `fields` may hold another rule's: `:family(progress)` counts as a
+        // class and outranks `node-canvas::part(lamp)` (two types).
+        std::array<const RecipeDeclaration*, recipe_field_count> named_part_fields{};
         bool authored{};
     };
 

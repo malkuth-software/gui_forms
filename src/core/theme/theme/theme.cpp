@@ -1874,18 +1874,19 @@ void apply_part_metrics(const CompiledThemeRules::RecipeResolution& fields, Cont
 // over `canvas`, in place, with the stroke width (which the dial parts also
 // read as ControlVisualRecipe::stroke_width), so a canvas part can tell a
 // set width from the floor's. Only a rule naming a part sets the canvas's
-// width: a family rule's `stroke-width` is the dial arc's (the floor's
+// width, the last such rule to match (RecipeResolution::named_part_fields):
+// a family rule's `stroke-width` is the dial arc's (the floor's
 // `:family(progress)` 6 units), which neither a family record nor the
-// lamp (a progress part) takes as a canvas width. A texture of no layers
-// is `none`.
+// lamp (a progress part) takes as a canvas width, even where it outranks
+// the part's own rule. A texture of no layers is `none`.
 void apply_canvas_paint(const CompiledThemeRules::RecipeResolution& fields, ControlCanvasPaint& canvas) noexcept {
     const RecipeDeclaration* const fill = set_recipe_field(fields, RecipeField::fill_colour);
     if (fill != nullptr) canvas.fill = (*fill).colour;
     const RecipeDeclaration* const stroke = set_recipe_field(fields, RecipeField::stroke_colour);
     if (stroke != nullptr) canvas.stroke = (*stroke).colour;
-    const RecipeDeclaration* const width = set_recipe_field(fields, RecipeField::stroke_width);
-    const bool width_on_part = fields.on_named_part[static_cast<std::size_t>(RecipeField::stroke_width)];
-    if (width != nullptr && width_on_part) canvas.stroke_width = (*width).number;
+    const RecipeDeclaration* const width =
+        fields.named_part_fields[static_cast<std::size_t>(RecipeField::stroke_width)];
+    if (width != nullptr && !(*width).initial) canvas.stroke_width = (*width).number;
     const RecipeDeclaration* const dash = set_recipe_field(fields, RecipeField::stroke_dash);
     if (dash != nullptr) canvas.dash = (*dash).number;
     const RecipeDeclaration* const gap = set_recipe_field(fields, RecipeField::stroke_gap);
@@ -2304,10 +2305,11 @@ ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlV
     if (written != nullptr) text = (*written).inherit ? inherited_text(control, floor.text) : (*written).colour;
     // The fields relative to the control, copied: an inherited text colour,
     // currentcolor, and lengths in em at the control's em.
-    // At most two copies per field (darkened, then made relative): the
-    // reserve keeps every pointer into the copies valid.
+    // At most two copies per field (darkened, then made relative), and one
+    // per part rule's winner (named_part_fields, scaled to em): the reserve
+    // keeps every pointer into the copies valid.
     std::vector<RecipeDeclaration> scaled{};
-    scaled.reserve(recipe_field_count * 2U);
+    scaled.reserve(recipe_field_count * 3U);
     // A theme that derives its dark variant writes its rules in light terms:
     // in dark, a dark ink a rule authors for text (a named part's, such as a
     // selected Ribbon tab's label) turns to the dark variant's ink by the
@@ -2364,6 +2366,14 @@ ResolvedControlRecipe Theme::resolve_from_rules(const Control& control, ControlV
         copy.current_colour = false;
         if (!copy.em_lengths.empty()) reads_em = true;
         field = &copy;
+    }
+    // A part rule's winner (a canvas part's stroke width) in em, copied
+    // likewise; the copy is a number and darkens with nothing.
+    for (const RecipeDeclaration*& field : fields.named_part_fields) {
+        if (field == nullptr || (*field).initial || (*field).em_lengths.empty()) continue;
+        scaled.push_back(*field);
+        field = &scaled.back();
+        reads_em = true;
     }
     if (reads_em) {
         const FontDeclaration font = engine_.rules().resolve(facts).font;
