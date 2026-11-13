@@ -2,10 +2,16 @@
 
 #include "live-surfaces_form.hpp"
 
+#include "gui_forms/controls/content_surface.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/controls/drawing_surface.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <vector>
 
 namespace gui_forms::gallery::pages {
 
@@ -62,6 +68,10 @@ private:
 
     void build_presenter();
     void build_producer();
+    // The ContentSurface specimen: one frame its consumer (the page)
+    // rendered into its own buffer and published through the sink, with
+    // the semantic text that names it.
+    void build_content_surface();
     [[nodiscard]] LiveSurfaceDescription description() const noexcept;
     [[nodiscard]] bool ensure_timer();
     void on_start();
@@ -89,6 +99,7 @@ private:
     std::shared_ptr<Label> status_;
     std::shared_ptr<Label> telemetry_;
     std::shared_ptr<Button> reconfigure_button_;
+    std::shared_ptr<ContentSurface> content_surface_;
     std::uint64_t frames_{};
     bool large_{};
     bool needs_full_frame_{true};
@@ -105,6 +116,7 @@ LiveSurfacesPage::LiveSurfacesPage(const std::shared_ptr<Surface>& body) {
     build_presenter();
     reconfigure_button_ = document_.gallery_live_surfaces_reconfigure;
     (*document_.gallery_live_surfaces_sub_surface_host).set_content(std::make_unique<SubSurfaceSample>(), true);
+    build_content_surface();
     on(start_.invoked(), *this, &LiveSurfacesPage::on_start);
     on(stop_.invoked(), *this, &LiveSurfacesPage::on_stop);
     on(publish_once_.invoked(), *this, &LiveSurfacesPage::on_publish_once);
@@ -129,6 +141,38 @@ void LiveSurfacesPage::build_presenter() {
     (*view_).set_paint_callback(LiveSurfacePaint(surface_));
     status_ = document_.gallery_live_surfaces_status;
     telemetry_ = document_.gallery_live_surfaces_telemetry;
+}
+
+void LiveSurfacesPage::build_content_surface() {
+    content_surface_ = make_control<ContentSurface>(StableId("gallery.live-surfaces.content-surface"));
+    (*content_surface_).set_requested_bounds({384.0, 40.0, 160.0, 82.0});
+    (*content_surface_).accessible_name = "Content surface";
+    (*document_.gallery_live_surfaces_sub_surface).add_child(content_surface_);
+    // The specimen's content publishes once and stays: no watchdog.
+    (*content_surface_).set_stale_interval(FrameInterval::zero());
+    ContentFrameSink sink = (*content_surface_).open_content(true);
+    constexpr std::uint32_t width = 160U;
+    constexpr std::uint32_t height = 82U;
+    std::vector<std::byte> pixels(static_cast<std::size_t>(width) * height * 4U);
+    // A horizontal ramp from slate to teal, premultiplied BGRA, opaque.
+    for (std::uint32_t row = 0U; row < height; ++row) {
+        for (std::uint32_t column = 0U; column < width; ++column) {
+            const std::size_t offset = (static_cast<std::size_t>(row) * width + column) * 4U;
+            const std::uint32_t ramp = column * 255U / (width - 1U);
+            pixels[offset] = static_cast<std::byte>(80U + ramp / 2U);
+            pixels[offset + 1U] = static_cast<std::byte>(60U + ramp / 3U);
+            pixels[offset + 2U] = static_cast<std::byte>(48U);
+            pixels[offset + 3U] = static_cast<std::byte>(255U);
+        }
+    }
+    ContentFrame frame;
+    frame.width = width;
+    frame.height = height;
+    frame.row_bytes = static_cast<std::uint64_t>(width) * 4U;
+    frame.opaque = true;
+    frame.pixels = std::span<const std::byte>(pixels.data(), pixels.size());
+    static_cast<void>(sink.publish(frame));
+    static_cast<void>(sink.publish_semantics(ContentSemantics{"Content surface", "A ramp the page rendered itself", ""}));
 }
 
 // The page's Commands, which the document's producer buttons bind (the

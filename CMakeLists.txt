@@ -552,6 +552,10 @@ add_library(gui_forms_core STATIC
     src/core/live_surface/surface/live_surface.cpp
     src/core/live_surface/wake_connection/live_surface_wake_connection.cpp
     src/core/live_surface/write_lease/live_surface_write_lease.cpp
+    src/core/content/channel/content_channel.cpp
+    src/core/content/frame_sink/content_frame_sink.cpp
+    src/core/content/types/content_types.cpp
+    src/core/content/watchdog/content_watchdog.cpp
     src/core/semantics/snapshot/semantic_snapshot.cpp
     src/core/semantics/types/semantic_types.cpp
     src/core/anatomy/types/anatomy_types.cpp
@@ -999,6 +1003,7 @@ add_library(gui_forms_controls STATIC
     src/controls/text_block/text_block.cpp
     src/controls/badge/badge.cpp
     src/controls/indicator_lamp/indicator_lamp.cpp
+    src/controls/content_surface/content_surface.cpp
     src/controls/info_banner/info_banner.cpp
     src/controls/empty_state/empty_state.cpp
     src/controls/spinner/spinner.cpp
@@ -3768,6 +3773,10 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_live_surface_pacer_tests tests/live_surface_pacer_tests.cpp)
     target_link_libraries(gui_forms_live_surface_pacer_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_live_surface_pacer_tests COMMAND gui_forms_live_surface_pacer_tests)
+    add_executable(gui_forms_content_surface_tests tests/content_surface_tests.cpp)
+    target_link_libraries(gui_forms_content_surface_tests PRIVATE gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_content_surface_tests COMMAND gui_forms_content_surface_tests)
+    set_tests_properties(gui_forms_content_surface_tests PROPERTIES TIMEOUT 120)
     add_executable(gui_forms_sub_surface_tests tests/sub_surface_tests.cpp)
     target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_sub_surface_tests COMMAND gui_forms_sub_surface_tests)

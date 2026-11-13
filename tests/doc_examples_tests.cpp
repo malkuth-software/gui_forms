@@ -927,6 +927,23 @@ void example() {
 }
 }  // namespace doc_example_ContainerControl_2
 
+namespace doc_example_ContentSurface_1 {
+void example() {
+    std::shared_ptr<gf::ContentSurface> surface =
+        gf::make_control<gf::ContentSurface>(gf::StableId("scene"));
+    gf::ContentFrameSink sink = (*surface).open_content(true);
+    std::vector<std::byte> pixels(64U * 32U * 4U, std::byte{255});
+    gf::ContentFrame frame;
+    frame.width = 64U;
+    frame.height = 32U;
+    frame.row_bytes = 64U * 4U;
+    frame.opaque = true;
+    frame.pixels = std::span<const std::byte>(pixels.data(), pixels.size());
+    const gf::ContentPublishResult result = sink.publish(frame);
+    if (result != gf::ContentPublishResult::published) return;   // refused or dropped: the last frame stays
+}
+}  // namespace doc_example_ContentSurface_1
+
 namespace doc_example_ContextMenu_1 {
 struct Notes final : gf::Component {
     std::shared_ptr<gf::Panel> root =
@@ -4155,6 +4172,7 @@ int main() {
     failures += run("Component example 2", &doc_example_Component_2::example);
     failures += run("ContainerControl example 1", &doc_example_ContainerControl_1::example);
     failures += run("ContainerControl example 2", &doc_example_ContainerControl_2::example);
+    failures += run("ContentSurface example 1", &doc_example_ContentSurface_1::example);
     failures += run("ContextMenu example 1", &doc_example_ContextMenu_1::example);
     failures += run("Control example 1", &doc_example_Control_1::example);
     failures += run("Control example 2", &doc_example_Control_2::example);

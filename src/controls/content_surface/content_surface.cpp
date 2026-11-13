@@ -1,0 +1,407 @@
+#include "gui_forms/controls/content_surface.hpp"
+
+#include "gui_forms/window.hpp"
+#include "../../core/content/channel/content_channel.hpp"
+#include "../../core/surface_root/access/surface_schedule_access.hpp"
+
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <limits>
+#include <stdexcept>
+#include <string_view>
+#include <utility>
+
+namespace gui_forms {
+
+namespace {
+
+// The device extent of a logical one at `scale`, rounded outward; zero when
+// it is empty or does not fit (as the sub-surface host sizes its region).
+[[nodiscard]] std::uint32_t content_device_extent(double logical, double scale) noexcept {
+    const double extent = std::ceil(logical * scale);
+    if (!std::isfinite(extent) || extent < 1.0) return 0U;
+    if (extent > static_cast<double>(std::numeric_limits<std::int32_t>::max())) return 0U;
+    return static_cast<std::uint32_t>(extent);
+}
+
+[[nodiscard]] std::size_t status_index(ContentSurfaceStatus status) noexcept {
+    const std::size_t index = static_cast<std::size_t>(status);
+    return index;
+}
+
+// The veil over a stale or ended frame: black at three eighths, so the frame
+// stays legible under it, and the caption in white over it.
+constexpr Color content_veil_color = Color::rgba(0U, 0U, 0U, 96U);
+constexpr Color content_caption_color = Color::rgba(255U, 255U, 255U, 255U);
+constexpr double content_caption_inset = 8.0;
+
+// The events ContentSurface adds to those of Control, in declaration order.
+constexpr std::array<InteractionDeclaration, 1> content_surface_interactions{{
+    {.name = "status_changed", .payload = "ContentSurfaceStatus", .mutable_payload = false},
+}};
+
+constexpr std::array<PartField<ContentSurface::Parts>, 4> content_surface_part_fields{{
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+     .member = &ContentSurface::Parts::region},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+     .member = &ContentSurface::Parts::content},
+    {.declaration = {.name = "veil", .role = PartRole::fill, .composed_from = {}},
+     .member = &ContentSurface::Parts::veil},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+     .member = &ContentSurface::Parts::focus},
+}};
+
+constexpr std::array<StateField<ContentSurface::States>, 5> content_surface_state_fields{{
+    {.state = AnatomyState::normal, .member = &ContentSurface::States::normal},
+    {.state = AnatomyState::enabled, .member = &ContentSurface::States::enabled},
+    {.state = AnatomyState::disabled, .member = &ContentSurface::States::disabled},
+    {.state = AnatomyState::focused, .member = &ContentSurface::States::focused},
+    {.state = AnatomyState::focus_visible, .member = &ContentSurface::States::focus_visible},
+}};
+
+constexpr std::array<PartDeclaration, 4> content_surface_parts = part_declarations(content_surface_part_fields);
+constexpr std::array<AnatomyState, 5> content_surface_states = state_declarations(content_surface_state_fields);
+
+constexpr ControlAnatomy content_surface_anatomy{
+    .control_id = "content_surface",
+    .parts = content_surface_parts,
+    .states = content_surface_states,
+    .custom_states = {},
+};
+
+} // namespace
+
+// The sink's notices arrive here on the UI thread (posted through the
+// window's dispatcher). The surface owns it and is destroyed on the same
+// thread, so the back reference is valid whenever a notice runs: a notice
+// posted for a destroyed surface finds the listener expired.
+class ContentSurface::Notices final : public detail::ContentChannelListener {
+public:
+    explicit Notices(ContentSurface& surface) noexcept : surface_(surface) {}
+    void content_notice() override { surface_.take_notices(); }
+
+private:
+    ContentSurface& surface_;
+};
+
+// The watchdog timer's callback, holding the surface weakly: a timer that
+// outlives it (the window cancels it with the tree) reaches nothing.
+class ContentSurface::WatchdogTick final {
+public:
+    explicit WatchdogTick(std::weak_ptr<ContentSurface> surface) noexcept : surface_(std::move(surface)) {}
+    void operator()(FrameTime now) const {
+        const std::shared_ptr<ContentSurface> live = surface_.lock();
+        if (live) (*live).watchdog_tick(now);
+    }
+
+private:
+    std::weak_ptr<ContentSurface> surface_;
+};
+
+ContentSurface::ContentSurface(StableId stable_id)
+    : Control(std::move(stable_id)), notices_(std::make_shared<Notices>(*this)) {
+    focusable = true;
+    captions_[status_index(ContentSurfaceStatus::stale)] = "Not responding";
+    captions_[status_index(ContentSurfaceStatus::abandoned)] = "Stopped";
+    captions_[status_index(ContentSurfaceStatus::failed)] = "Failed";
+}
+
+ContentSurface::~ContentSurface() {
+    watchdog_timer_.disconnect();
+    if (channel_) detail::revoke_content_channel(*channel_);
+}
+
+void ContentSurface::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
+    Control::append_interactions(interactions);
+    interactions.insert(interactions.end(), content_surface_interactions.begin(), content_surface_interactions.end());
+}
+
+ContentFrameSink ContentSurface::open_content(bool opaque) {
+    require_mutable();
+    // Made before anything changes, so a failure leaves the old channel.
+    const ContentRequest current = request();
+    std::shared_ptr<detail::ContentChannel> fresh = detail::make_content_channel(current.size, opaque);
+    if (!fresh) throw std::bad_alloc();
+    if (channel_) detail::revoke_content_channel(*channel_);
+    channel_ = std::move(fresh);
+    surface_ = (*channel_).surface;
+    opaque_ = opaque;
+    Window* const window = attached_window();
+    if (window != nullptr) {
+        detail::set_content_listener(*channel_, (*window).dispatcher(), notices_);
+    }
+    semantics_generation_ = 0U;
+    register_presentation();
+    update_request();
+    watchdog_.start(FrameClock::now(), 0U);
+    checked_once_ = false;
+    set_status(ContentSurfaceStatus::waiting);
+    schedule_watchdog();
+    invalidate(Dirty::paint | Dirty::semantics);
+    ContentFrameSink sink = detail::ContentSinkAccess::make(channel_);
+    return sink;
+}
+
+void ContentSurface::close_content() {
+    watchdog_timer_.disconnect();
+    watchdog_.stop();
+    if (channel_) detail::revoke_content_channel(*channel_);
+    channel_.reset();
+    surface_.reset();
+    register_presentation();
+    set_status(ContentSurfaceStatus::disconnected);
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void ContentSurface::set_stale_interval(FrameInterval interval) {
+    require_mutable();
+    watchdog_ = ContentWatchdog(interval);
+    if (channel_) {
+        const std::uint64_t activity = (*channel_).activity.load(std::memory_order_acquire);
+        watchdog_.start(FrameClock::now(), activity);
+        checked_once_ = false;
+        // Stale ends with the restart; the next check decides again.
+        if (status_ == ContentSurfaceStatus::stale) {
+            const bool framed = (*channel_).frames_published.load(std::memory_order_relaxed) != 0U;
+            set_status(framed ? ContentSurfaceStatus::live : ContentSurfaceStatus::waiting);
+        }
+    }
+    schedule_watchdog();
+}
+
+void ContentSurface::check_watchdog(FrameTime now) {
+    if (!channel_) return;
+    detail::ContentChannel& channel = *channel_;
+    // Only a connected, unterminated channel is watched.
+    if (status_ != ContentSurfaceStatus::waiting && status_ != ContentSurfaceStatus::live &&
+        status_ != ContentSurfaceStatus::stale) {
+        return;
+    }
+    const std::uint64_t activity = channel.activity.load(std::memory_order_acquire);
+    const bool framed = channel.frames_published.load(std::memory_order_relaxed) != 0U;
+    const ContentWatchdogVerdict verdict = watchdog_.observe(now, activity);
+    if (verdict == ContentWatchdogVerdict::became_stale) {
+        channel.stale_transitions.fetch_add(1U, std::memory_order_relaxed);
+        set_status(ContentSurfaceStatus::stale);
+        return;
+    }
+    if (verdict == ContentWatchdogVerdict::recovered) {
+        channel.recoveries.fetch_add(1U, std::memory_order_relaxed);
+        set_status(framed ? ContentSurfaceStatus::live : ContentSurfaceStatus::waiting);
+        return;
+    }
+    if (status_ == ContentSurfaceStatus::waiting && framed) set_status(ContentSurfaceStatus::live);
+}
+
+void ContentSurface::watchdog_tick(FrameTime now) {
+    const FrameInterval period = watchdog_.check_period();
+    // A gap of more than two periods since the last check means the timer
+    // rested (the window was occluded) or the UI thread was busy: content
+    // paced by presentation publishes nothing meanwhile, so the interval
+    // restarts instead of calling it stale.
+    const bool gap = checked_once_ && now - last_check_ > period * 2;
+    last_check_ = now;
+    checked_once_ = true;
+    if (gap && channel_) {
+        const std::uint64_t activity = (*channel_).activity.load(std::memory_order_acquire);
+        watchdog_.start(now, activity);
+        return;
+    }
+    check_watchdog(now);
+}
+
+void ContentSurface::set_status_caption(ContentSurfaceStatus status, std::string caption) {
+    require_mutable();
+    const std::size_t index = status_index(status);
+    if (index >= captions_.size()) throw std::invalid_argument("ContentSurface caption for an unknown status");
+    captions_[index] = std::move(caption);
+    if (status == status_) invalidate(Dirty::paint);
+}
+
+const std::string& ContentSurface::status_caption(ContentSurfaceStatus status) const noexcept {
+    const std::size_t index = status_index(status);
+    // An unknown status reads the disconnected caption, which is empty.
+    if (index >= captions_.size()) return captions_[0];
+    return captions_[index];
+}
+
+ContentSurfaceStatistics ContentSurface::statistics() const noexcept {
+    if (!channel_) return ContentSurfaceStatistics{};
+    const ContentSurfaceStatistics result = detail::content_channel_statistics(*channel_);
+    return result;
+}
+
+ContentRequest ContentSurface::request() const noexcept {
+    if (!channel_) return ContentRequest{};
+    const std::scoped_lock lock((*channel_).request_mutex);
+    const ContentRequest result = (*channel_).request;
+    return result;
+}
+
+void ContentSurface::set_content_semantics(ContentSemantics semantics) {
+    require_mutable();
+    const ContentSemanticsResult validity = validate_content_semantics(semantics);
+    if (validity != ContentSemanticsResult::published) {
+        throw std::invalid_argument("ContentSurface semantic text must be valid UTF-8 within the limit");
+    }
+    if (semantics == semantics_) return;
+    semantics_ = std::move(semantics);
+    invalidate(Dirty::semantics);
+}
+
+void ContentSurface::take_notices() {
+    if (!channel_) return;
+    ContentSemantics arrived{};
+    const bool fresh = detail::take_content_semantics(*channel_, semantics_generation_, arrived);
+    if (fresh && !(arrived == semantics_)) {
+        semantics_ = std::move(arrived);
+        invalidate(Dirty::semantics);
+    }
+    const bool framed = (*channel_).frames_published.load(std::memory_order_relaxed) != 0U;
+    if (status_ == ContentSurfaceStatus::waiting && framed) set_status(ContentSurfaceStatus::live);
+    invalidate(Dirty::paint);
+}
+
+void ContentSurface::set_status(ContentSurfaceStatus status) {
+    if (status == status_) return;
+    status_ = status;
+    invalidate(Dirty::paint | Dirty::semantics);
+    publish_change(status_changed_, status_);
+}
+
+void ContentSurface::schedule_watchdog() {
+    watchdog_timer_.disconnect();
+    Window* const window = attached_window();
+    if (window == nullptr || !channel_ || !watchdog_.enabled()) return;
+    const FrameInterval period = watchdog_.check_period();
+    const FrameTime now = FrameClock::now();
+    const std::shared_ptr<ContentSurface> self = std::static_pointer_cast<ContentSurface>(shared_from_this());
+    const WatchdogTick tick{std::weak_ptr<ContentSurface>(self)};
+    checked_once_ = false;
+    watchdog_timer_ = detail::SurfaceScheduleAccess::schedule_resting_ui_timer(*window, *this, period, now + period, tick);
+}
+
+void ContentSurface::update_request() {
+    if (!channel_) return;
+    Window* const window = attached_window();
+    if (window == nullptr) return;
+    const Rect bounds = committed_arranged_bounds();
+    const double scale = (*window).scale();
+    const ContentPixelSize size{content_device_extent(bounds.width, scale), content_device_extent(bounds.height, scale)};
+    static_cast<void>(detail::set_content_request(*channel_, size, scale));
+}
+
+void ContentSurface::register_presentation() {
+    Window* const window = attached_window();
+    if (window == nullptr) return;
+    std::shared_ptr<LiveSurface> shown = surface_;
+    if (!shown) {
+        // The window keeps a control's registration until the control
+        // leaves it, so a closed surface registers an empty one: it holds no
+        // frame, and the window presents nothing for the region.
+        if (!placeholder_) {
+            LiveSurfaceDescription description;
+            description.width = 1U;
+            description.height = 1U;
+            placeholder_ = LiveSurface::create(description);
+        }
+        shown = placeholder_;
+    }
+    if (!shown) return;
+    const Control::Ptr self = shared_from_this();
+    // The window's host samples the newest frame of a registered surface
+    // itself; a publication posts nothing to the UI thread.
+    static_cast<void>((*window).queue_live_surface_presentation(self, std::move(shown)));
+}
+
+bool ContentSurface::veiled() const noexcept {
+    const bool result = status_ == ContentSurfaceStatus::stale || status_ == ContentSurfaceStatus::abandoned ||
+                        status_ == ContentSurfaceStatus::failed;
+    return result;
+}
+
+void ContentSurface::arrange(Rect final_bounds) {
+    Control::arrange(final_bounds);
+    update_request();
+}
+
+void ContentSurface::on_paint(Painter& painter, Rect) {
+    const Rect bounds{0.0, 0.0, committed_arranged_bounds().width, committed_arranged_bounds().height};
+    if (surface_) painter.draw_live_surface(surface_, bounds, 1.0);
+    if (!veiled()) return;
+    painter.fill_rect(bounds, content_veil_color);
+    const std::string& caption = status_caption(status_);
+    if (caption.empty()) return;
+    const FontSpec font{};
+    const Point origin{content_caption_inset, content_caption_inset + font.size};
+    painter.draw_text_utf8(origin, caption, font, content_caption_color);
+}
+
+const ControlAnatomy& ContentSurface::anatomy() const noexcept {
+    return content_surface_anatomy;
+}
+
+SemanticDescriptor ContentSurface::semantic_descriptor() const {
+    SemanticDescriptor descriptor{};
+    descriptor.role = SemanticRole::figure;
+    if (!semantics_.name.empty()) {
+        descriptor.name = semantics_.name;
+    } else if (!accessible_name.read().empty()) {
+        descriptor.name = accessible_name.read();
+    } else {
+        descriptor.name = "Content";
+    }
+    descriptor.value = semantics_.text;
+    descriptor.description = semantics_.description.empty() ? accessible_description.read() : semantics_.description;
+    if (status_ == ContentSurfaceStatus::stale || status_ == ContentSurfaceStatus::terminating) {
+        descriptor.states |= SemanticState::busy;
+    }
+    descriptor.actions = {SemanticAction::focus};
+    descriptor.exposed = true;
+    return descriptor;
+}
+
+void ContentSurface::publish_part_geometry(std::span<PartGeometry> geometry) const {
+    const Rect bounds = client_rectangle();
+    Parts record;
+    record.region = PartGeometry::from_bounds(bounds);
+    if (surface_) record.content = PartGeometry::from_bounds(bounds);
+    if (veiled()) record.veil = PartGeometry::from_bounds(bounds);
+    record.focus = PartGeometry::from_bounds(bounds);
+    write_parts(anatomy(), content_surface_part_fields, record, geometry);
+}
+
+ContentSurface::Parts ContentSurface::parts() const {
+    const PartGeometryBuffer published = published_part_geometry();
+    Parts record;
+    read_parts(anatomy(), content_surface_part_fields, published.parts(), record);
+    return record;
+}
+
+ContentSurface::States ContentSurface::states() const {
+    States record;
+    read_states(content_surface_state_fields, anatomy_states(), record);
+    return record;
+}
+
+void ContentSurface::on_attached_to_window() {
+    Control::on_attached_to_window();
+    Window* const window = attached_window();
+    if (window != nullptr && channel_) {
+        detail::set_content_listener(*channel_, (*window).dispatcher(), notices_);
+        // A frame or text that arrived while detached posted nothing.
+        take_notices();
+    }
+    if (window != nullptr && surface_) register_presentation();
+    update_request();
+    schedule_watchdog();
+}
+
+void ContentSurface::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
+    watchdog_timer_.disconnect();
+    if (channel_) detail::set_content_listener(*channel_, WindowDispatcher{}, std::weak_ptr<detail::ContentChannelListener>{});
+    Control::on_detaching_from_window(former_window);
+}
+
+} // namespace gui_forms

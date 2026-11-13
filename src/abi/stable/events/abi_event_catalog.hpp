@@ -30,6 +30,7 @@
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
+#include "gui_forms/content/types/content_types.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/backstage_view.hpp"
@@ -48,6 +49,7 @@
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/command_bar.hpp"
 #include "gui_forms/controls/container_control.hpp"
+#include "gui_forms/controls/content_surface.hpp"
 #include "gui_forms/controls/data_grid_view.hpp"
 #include "gui_forms/controls/data_grid_view_row_order.hpp"
 #include "gui_forms/controls/data_grid_view_types.hpp"
@@ -262,6 +264,21 @@ struct EnumerationChoices<ColourScheme> {
     static constexpr std::array<EnumerationChoice, 2> choices{{
         {"light", static_cast<std::int64_t>(ColourScheme::light)},
         {"dark", static_cast<std::int64_t>(ColourScheme::dark)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<ContentSurfaceStatus> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 8> choices{{
+        {"disconnected", static_cast<std::int64_t>(ContentSurfaceStatus::disconnected)},
+        {"waiting", static_cast<std::int64_t>(ContentSurfaceStatus::waiting)},
+        {"live", static_cast<std::int64_t>(ContentSurfaceStatus::live)},
+        {"stale", static_cast<std::int64_t>(ContentSurfaceStatus::stale)},
+        {"terminating", static_cast<std::int64_t>(ContentSurfaceStatus::terminating)},
+        {"ended", static_cast<std::int64_t>(ContentSurfaceStatus::ended)},
+        {"abandoned", static_cast<std::int64_t>(ContentSurfaceStatus::abandoned)},
+        {"failed", static_cast<std::int64_t>(ContentSurfaceStatus::failed)},
     }};
 };
 
@@ -5818,6 +5835,15 @@ inline SubscriptionToken connect_command_state_changed(Component& source, const 
     return token;
 }
 
+inline SubscriptionToken connect_content_surface_status_changed(Component& source, const EventSink& sink) {
+    ContentSurface* typed = dynamic_cast<ContentSurface*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).status_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_step_indicator_step_clicked(Component& source, const EventSink& sink) {
     StepIndicator* typed = dynamic_cast<StepIndicator*>(&source);
     if (typed == nullptr) {
@@ -6228,7 +6254,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 338> event_connectors{{
+inline constexpr std::array<EventConnector, 339> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6522,6 +6548,7 @@ inline constexpr std::array<EventConnector, 338> event_connectors{{
     {"splitter_moving", "Splitter", &connect_splitter_splitter_moving},
     {"state_changed", "NavigationPane", &connect_navigation_pane_state_changed},
     {"state_changed", "Command", &connect_command_state_changed},
+    {"status_changed", "ContentSurface", &connect_content_surface_status_changed},
     {"step_clicked", "StepIndicator", &connect_step_indicator_step_clicked},
     {"stopped", "SubSurfaceHost", &connect_sub_surface_host_stopped},
     {"strip_moved", "ToolStripContainer", &connect_tool_strip_container_strip_moved},

@@ -1396,6 +1396,17 @@
       "doc": "api/generated/gui_forms.SubSurfaceHost.rst"
     },
     {
+      "id": "content_surface",
+      "type": "ContentSurface",
+      "header": "gui_forms/controls/content_surface.hpp",
+      "category": "Drawing",
+      "purpose": "Region whose finished frames a consumer renders and publishes from its own execution context; every frame is validated, a missed-frame watchdog marks it stale while the last good frame stays, and the consumer supplies its semantic text.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "live-surfaces",
+      "doc": "api/generated/gui_forms.ContentSurface.rst"
+    },
+    {
       "id": "metrics_view",
       "type": "MetricsView",
       "header": "gui_forms/controls/metrics_view.hpp",

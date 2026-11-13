@@ -124,7 +124,7 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
     Group("drawing", "Drawing",
           "The renderer-neutral drawing vocabulary: bitmaps, brushes, paths, "
           "painters, framebuffers and live surfaces.",
-          ("drawing", "paint_framebuffer", "live_surface")),
+          ("drawing", "paint_framebuffer", "live_surface", "content")),
     Group("text", "Text",
           "The text store, shaping and typography records, and the development "
           "prepared-text, text-mask and document-view services.",

@@ -36,6 +36,22 @@ Types
      - ColorBlend owns equal-length color and monotonic position vectors validated by consuming brushes.
    * - :cpp:class:`ConicGradientBrush <gui_drawing::ConicGradientBrush>`
      - A conic (sweep) gradient (piece C9, a hue wheel): the colour at a point is the blend's colour at its angle about ``center``, measured clockwise (y down) from ``start_angle`` degrees (0 along +x), one full turn from position 0 to position 1.
+   * - :cpp:class:`ContentFrame <gui_forms::ContentFrame>`
+     - One finished frame, described by the consumer for one publish call (ContentFrameSink::publish).
+   * - :cpp:class:`ContentFrameSink <gui_forms::ContentFrameSink>`
+     - The consumer's end of a content channel (ContentSurface::open_content): a handle any thread may hold, copy and call, for as long as it likes.
+   * - :cpp:class:`ContentPixelRect <gui_forms::ContentPixelRect>`
+     - A rectangle of a frame in whole device pixels: x and y are the top-left pixel, width and height the extent.
+   * - :cpp:class:`ContentPixelSize <gui_forms::ContentPixelSize>`
+     - A device size in whole pixels.
+   * - :cpp:class:`ContentRequest <gui_forms::ContentRequest>`
+     - What the surface asks of its content: the device size it shows at and the display scale, under a generation that grows with every change.
+   * - :cpp:class:`ContentSemantics <gui_forms::ContentSemantics>`
+     - The text a consumer supplies for its surface, so that what it draws is not invisible to assistive technology (its pixels carry no text).
+   * - :cpp:class:`ContentSurfaceStatistics <gui_forms::ContentSurfaceStatistics>`
+     - Counters of one content channel, written by the consumer's threads and the interface thread, read by anyone.
+   * - :cpp:class:`ContentWatchdog <gui_forms::ContentWatchdog>`
+     - The missed-frame watchdog of a content surface (owner decisions 2026-11-13, "What this asks of GUI.Forms", item 1).
    * - :cpp:class:`CornerRadii <gui_drawing::CornerRadii>`
      - A rounded rectangle's corner radii: top-left, top-right, bottom-right, bottom-left.
    * - :cpp:class:`DrawingCommand <gui_drawing::DrawingCommand>`
@@ -562,6 +578,232 @@ Types
    .. rubric:: Extension points
 
    .. cpp:function:: BrushSnapshot snapshot() const override
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentFrame final
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   One finished frame, described by the consumer for one publish call (ContentFrameSink::publish). ``pixels`` is borrowed for the call only: the sink copies what it accepts into its own buffer before it returns, and reads nothing else. Rows run top to bottom, ``row_bytes`` apart; a row holds width pixels of ``pixel_format`` and may be followed by padding the sink never reads. The last row need not carry padding: ``pixels`` must hold at least row_bytes * (height - 1) + width * 4 bytes.
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+   .. cpp:member:: std::uint64_t row_bytes
+
+   .. cpp:member:: LiveSurfacePixelFormat pixel_format
+
+      Default: ``{LiveSurfacePixelFormat::bgra32_premultiplied_srgb}``.
+
+   .. cpp:member:: bool opaque
+
+      The consumer promises every pixel has alpha 255. The promise is not checked per pixel (it costs a pass over the frame); a broken promise shows whatever lies under the surface, and corrupts nothing.
+
+   .. cpp:member:: ContentPixelRect damage
+
+      The pixels that differ from the previous frame of the same size, in this frame's pixels; empty for the whole frame. A damage that does not lie inside the frame is refused.
+
+   .. cpp:member:: std::span<const std::byte> pixels
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ContentFrameSink final
+
+   ``#include <gui_forms/content/frame_sink/content_frame_sink.hpp>``
+
+   The consumer's end of a content channel (ContentSurface::open_content): a handle any thread may hold, copy and call, for as long as it likes. It shares the channel's state, never the surface or its window: once the surface revokes the channel every call reports :cpp:func:`revoked <gui_forms::ContentFrameSink::revoked>` and touches nothing the interface reads. Execution: every member is callable from any thread. publish copies the accepted frame into a surface buffer on the calling thread; two threads publishing at once are serialized against each other, never against the interface thread, which only reads the newest finished frame and never waits for a publication (LiveSurface). Nothing here calls back into the consumer.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ContentFrameSink() = default
+
+      An empty sink: every publication reports :cpp:func:`revoked <gui_forms::ContentFrameSink::revoked>`.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: ContentRequest request() const noexcept
+
+      The newest request (device size, scale and generation); a zero size before the surface has been arranged in a window.
+
+   .. cpp:function:: bool revoked() const noexcept
+
+   .. cpp:function:: ContentSurfaceStatistics statistics() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: ContentPublishResult publish(const ContentFrame& frame)
+
+      Validates ``frame`` (validate_content_frame), then copies it into a free buffer and makes it the surface's newest frame. A frame of another size than the last replaces the surface's buffers first (failed_allocation when that fails; the previous frame stays). The first frame, and any frame after a stale period, also counts as activity for the watchdog.
+
+   .. cpp:function:: void heartbeat() noexcept
+
+      Reports the content alive without a new frame, for content that publishes only when something changes: the watchdog counts it as activity. Does nothing once revoked.
+
+   .. cpp:function:: ContentSemanticsResult publish_semantics(ContentSemantics semantics)
+
+      Replaces the surface's semantic text (ContentSemantics) after validate_content_semantics. The interface thread picks it up through its window's dispatcher; the newest publication wins.
+
+   .. cpp:function:: ContentRequest wait_for_request(std::uint64_t seen_generation, std::chrono::milliseconds timeout) const
+
+      Blocks the calling (content) thread until the request's generation passes ``seen_generation``, the channel is revoked, a stop is requested (stop_requested), or ``timeout`` passes. Returns the request then. The interface thread never calls it.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentPixelRect final
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   A rectangle of a frame in whole device pixels: x and y are the top-left pixel, width and height the extent. An empty rectangle names the whole frame where a damage is expected.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:member:: std::uint32_t x
+
+   .. cpp:member:: std::uint32_t y
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentPixelSize final
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   A device size in whole pixels.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:member:: std::uint32_t width
+
+   .. cpp:member:: std::uint32_t height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentRequest final
+
+   ``#include <gui_forms/content/frame_sink/content_frame_sink.hpp>``
+
+   What the surface asks of its content: the device size it shows at and the display scale, under a generation that grows with every change.
+
+   .. cpp:member:: ContentPixelSize size
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: std::uint64_t generation
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentSemantics final
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   The text a consumer supplies for its surface, so that what it draws is not invisible to assistive technology (its pixels carry no text). ``name`` is the surface's accessible name, ``text`` the text it shows (published as the node's value), ``description`` a longer description. All three are UTF-8.
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: std::string description
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentSurfaceStatistics final
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   Counters of one content channel, written by the consumer's threads and the interface thread, read by anyone.
+
+   .. cpp:member:: std::uint64_t frames_published
+
+   .. cpp:member:: std::uint64_t frames_refused
+
+   .. cpp:member:: std::uint64_t frames_dropped
+
+   .. cpp:member:: std::uint64_t heartbeats
+
+   .. cpp:member:: std::uint64_t stale_transitions
+
+      The watchdog's transitions to stale and back to live.
+
+   .. cpp:member:: std::uint64_t recoveries
+
+   .. cpp:member:: std::uint64_t semantics_published
+
+   .. cpp:member:: std::uint64_t semantics_refused
+
+   .. cpp:member:: std::uint64_t after_revocation
+
+      Publications after the channel was revoked.
+
+   .. cpp:member:: ContentPublishResult last_refusal
+
+      The newest refusal, ``published`` while there was none. Default: ``{ContentPublishResult::published}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ContentWatchdog final
+
+   ``#include <gui_forms/content/watchdog/content_watchdog.hpp>``
+
+   The missed-frame watchdog of a content surface (owner decisions 2026-11-13, "What this asks of GUI.Forms", item 1). Pure and deterministic: it never reads a clock or a thread; its owner hands it the time and the channel's activity count (frames published plus heartbeats, which only grows) at each check. Content is stale when the count has not moved for longer than the interval; it recovers on the first observation that sees the count move. An interval of zero disables it (content that publishes only when asked, and says nothing in between, is never stale). Owned and called by one thread (the interface thread for a surface).
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ContentWatchdog() = default
+
+   .. cpp:function:: explicit ContentWatchdog(FrameInterval interval) noexcept
+
+      Intervals below minimum_content_stale_interval, except zero, are raised to it; negative intervals are zero.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: FrameInterval interval() const noexcept
+
+   .. cpp:function:: bool enabled() const noexcept
+
+   .. cpp:function:: bool watching() const noexcept
+
+   .. cpp:function:: bool stale() const noexcept
+
+   .. cpp:function:: FrameTime deadline() const noexcept
+
+      When the content would turn stale if nothing moves: the last movement plus the interval. Meaningful only while watching an enabled watchdog.
+
+   .. cpp:function:: FrameInterval check_period() const noexcept
+
+      How often its owner should observe: a quarter of the interval, at least minimum_content_stale_interval / 2. Zero when disabled.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void start(FrameTime now, std::uint64_t activity) noexcept
+
+      Starts watching at ``now`` with the activity count seen then: the content has a whole interval before it can be stale. Clears stale.
+
+   .. cpp:function:: void stop() noexcept
+
+      Stops watching: observations change nothing until the next start.
+
+   .. cpp:function:: ContentWatchdogVerdict observe(FrameTime now, std::uint64_t activity) noexcept
+
+      One check. Activity that moved since the last observation restarts the interval (and recovers stale content); otherwise content is stale once ``now`` is more than the interval past the last movement. A time earlier than the last observation is treated as equal to it.
 
 .. cpp:namespace:: gui_drawing
 
@@ -2658,6 +2900,80 @@ Enumerations
 
    .. cpp:enumerator:: assume_linear
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ContentPublishResult
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   .. cpp:enumerator:: published
+
+   .. cpp:enumerator:: dropped_busy
+
+   .. cpp:enumerator:: revoked
+
+   .. cpp:enumerator:: refused_empty
+
+   .. cpp:enumerator:: refused_too_large
+
+   .. cpp:enumerator:: refused_row_bytes
+
+   .. cpp:enumerator:: refused_extent
+
+   .. cpp:enumerator:: refused_format
+
+   .. cpp:enumerator:: refused_damage
+
+   .. cpp:enumerator:: failed_allocation
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ContentSemanticsResult
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   .. cpp:enumerator:: published
+
+   .. cpp:enumerator:: revoked
+
+   .. cpp:enumerator:: refused_invalid_utf8
+
+   .. cpp:enumerator:: refused_too_long
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ContentSurfaceStatus
+
+   ``#include <gui_forms/content/types/content_types.hpp>``
+
+   .. cpp:enumerator:: disconnected
+
+   .. cpp:enumerator:: waiting
+
+   .. cpp:enumerator:: live
+
+   .. cpp:enumerator:: stale
+
+   .. cpp:enumerator:: terminating
+
+   .. cpp:enumerator:: ended
+
+   .. cpp:enumerator:: abandoned
+
+   .. cpp:enumerator:: failed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ContentWatchdogVerdict
+
+   ``#include <gui_forms/content/watchdog/content_watchdog.hpp>``
+
+   .. cpp:enumerator:: unchanged
+
+   .. cpp:enumerator:: became_stale
+
+   .. cpp:enumerator:: recovered
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:enum-class:: DashStyle
@@ -3054,6 +3370,56 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/content/types/content_types.hpp>``
+
+.. cpp:function:: std::string_view content_publish_result_name(ContentPublishResult result) noexcept
+
+   The result's name, for logs and tests ("published", "refused_extent").
+
+.. cpp:function:: ContentPublishResult validate_content_frame(const ContentFrame& frame) noexcept
+
+   Checks a frame against the limits without reading its pixels: shape, format, row stride, the extent ``pixels`` must cover (all products checked for overflow first) and the damage. ``published`` when the frame may be copied. The sink, the hosted-mode reader and the editing mode all call it before they touch a byte.
+
+.. cpp:function:: std::uint64_t content_frame_extent_bytes(std::uint32_t width, std::uint32_t height, std::uint64_t row_bytes) noexcept
+
+   The pixel bytes a frame of ``width`` by ``height`` with ``row_bytes`` occupies: row_bytes * (height - 1) + width * 4. Zero when the product does not fit in 64 bits or either axis is zero (callers check validate_content_frame first).
+
+.. cpp:function:: std::string_view content_surface_status_name(ContentSurfaceStatus status) noexcept
+
+.. cpp:function:: ContentSemanticsResult validate_content_semantics(const ContentSemantics& semantics) noexcept
+
+   Checks semantic text without keeping it.
+
+.. cpp:var:: constexpr std::uint32_t maximum_content_frame_extent
+
+   The largest frame a consumer may publish: 16384 pixels on either axis and 256 MiB of pixels in all. Larger frames are refused before anything is allocated or copied. Value: ``16384U``.
+
+.. cpp:var:: constexpr std::uint64_t maximum_content_frame_bytes
+
+   Value: ``256ULL * 1024ULL * 1024ULL``.
+
+.. cpp:var:: constexpr std::size_t maximum_content_semantic_text_bytes
+
+   The most UTF-8 bytes of semantic text one publication may carry (1 MiB). Value: ``1024U * 1024U``.
+
+.. cpp:var:: constexpr std::uint64_t content_frame_pixel_bytes
+
+   Bytes per pixel of the one pixel format (LiveSurfacePixelFormat). Value: ``4U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/content/watchdog/content_watchdog.hpp>``
+
+.. cpp:var:: constexpr FrameInterval default_content_stale_interval
+
+   The default interval after which content that published no frame and reported no heartbeat is stale: one second. Value: ``std::chrono::milliseconds(1000)``.
+
+.. cpp:var:: constexpr FrameInterval minimum_content_stale_interval
+
+   The shortest interval a watchdog accepts (shorter ones are raised to it). Value: ``std::chrono::milliseconds(50)``.
 
 .. cpp:namespace:: gui_drawing
 

@@ -21,6 +21,8 @@ Owner-drawn, live and raster surfaces.
      - A thread-safe exchange that hands the newest frame from a pixel producer to the window.
    * - :cpp:class:`SubSurfaceHost <gui_forms::SubSurfaceHost>`
      - Region control that runs one threaded sub-surface with its own retained tree, sizes and reconfigures it, composes its LiveSurface frames into the window, and forwards input and keyboard focus to it.
+   * - :cpp:class:`ContentSurface <gui_forms::ContentSurface>`
+     - A region whose pixels a consumer renders itself, on its own thread, with its own engine and fonts.
 
 .. toctree::
    :hidden:
@@ -30,6 +32,7 @@ Owner-drawn, live and raster surfaces.
    generated/gui_forms.NodeCanvas
    generated/gui_forms.LiveSurface
    generated/gui_forms.SubSurfaceHost
+   generated/gui_forms.ContentSurface
 
 Related types
 -------------
@@ -38,6 +41,10 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`ContentSurface::Parts <gui_forms::ContentSurface::Parts>`
+     - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`ContentSurface::States <gui_forms::ContentSurface::States>`
+     -  
    * - :cpp:class:`DrawingSurface::Parts <gui_forms::DrawingSurface::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`DrawingSurface::States <gui_forms::DrawingSurface::States>`
@@ -188,6 +195,38 @@ Related types
      - A point in graph space (world units, float64).
    * - :cpp:class:`WorldRect <gui_forms::WorldRect>`
      - An axis-aligned rectangle in graph space: its top-left corner and size.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentSurface::Parts final
+
+   ``#include <gui_forms/controls/content_surface.hpp>``
+
+   Stage T1 anatomy, as dot members. ``content`` is the composed frame, present while there is a surface; ``veil`` covers the region while the status is stale, abandoned or failed.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry content
+
+   .. cpp:member:: PartGeometry veil
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentSurface::States final
+
+   ``#include <gui_forms/controls/content_surface.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool focused
+
+   .. cpp:member:: bool focus_visible
 
 .. cpp:namespace:: gui_forms
 

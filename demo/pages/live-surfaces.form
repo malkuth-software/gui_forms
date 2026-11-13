@@ -1,7 +1,8 @@
 /* The Gallery's live-surfaces page (stage FD, phase FD-4): the presenter
    of one page-owned LiveSurface, the producer controls that publish its
    frames, and a SubSurfaceHost composing a retained tree that runs on its
-   own thread. gui_forms_add_form() compiles this document into
+   own thread, and (added by the page in code at 384 40 160 82) a
+   ContentSurface showing a frame its consumer rendered. gui_forms_add_form() compiles this document into
    live-surfaces_form.hpp at build time.
 
    gallery.live-surfaces.document is a declared boundary only: the page
@@ -115,11 +116,11 @@ scaled-panel gallery.live-surfaces.document {
       bounds: 22 40 340 82;
     }
     label gallery.live-surfaces.sub-surface.note {
-      text: "The host starts the sub-surface's thread when it is first shown and stops it when it leaves the window. Pointer, keys and focus are forwarded to it; its frames never mark the window's tree.";
+      text: "The host starts the sub-surface's thread when it is first shown and stops it when it leaves the window. Its frames never mark the window's tree. Beside it, a ContentSurface shows a frame its consumer rendered itself.";
       classes: "muted" "note";
       text-wrapping: word;
       vertical-alignment: near;
-      bounds: 384 40 524 80;
+      bounds: 560 40 348 80;
     }
   }
 }
