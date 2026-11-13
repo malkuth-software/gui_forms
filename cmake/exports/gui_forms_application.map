@@ -110,6 +110,7 @@
     _ZGVZN9gui_forms10PartMotion*;
     _ZGVZN9gui_forms10PartRaster*;
     _ZGVZN9gui_forms10PictureBox*;
+    _ZGVZN9gui_forms10PlotHandle*;
     _ZGVZN9gui_forms10PortRecord*;
     _ZGVZN9gui_forms10RadialPick*;
     _ZGVZN9gui_forms10RadialSlot*;
@@ -463,6 +464,7 @@
     _ZGVZN9gui_forms14ParagraphPaint*;
     _ZGVZN9gui_forms14ParagraphStyle*;
     _ZGVZN9gui_forms14PartRasterView*;
+    _ZGVZN9gui_forms14PlotHandleMove*;
     _ZGVZN9gui_forms14PlotSeriesItem*;
     _ZGVZN9gui_forms14PlotViewRanges*;
     _ZGVZN9gui_forms14PointerOverlay*;
@@ -1635,6 +1637,7 @@
     _ZGVZNK9gui_forms10PartMotion*;
     _ZGVZNK9gui_forms10PartRaster*;
     _ZGVZNK9gui_forms10PictureBox*;
+    _ZGVZNK9gui_forms10PlotHandle*;
     _ZGVZNK9gui_forms10PortRecord*;
     _ZGVZNK9gui_forms10RadialPick*;
     _ZGVZNK9gui_forms10RadialSlot*;
@@ -1988,6 +1991,7 @@
     _ZGVZNK9gui_forms14ParagraphPaint*;
     _ZGVZNK9gui_forms14ParagraphStyle*;
     _ZGVZNK9gui_forms14PartRasterView*;
+    _ZGVZNK9gui_forms14PlotHandleMove*;
     _ZGVZNK9gui_forms14PlotSeriesItem*;
     _ZGVZNK9gui_forms14PlotViewRanges*;
     _ZGVZNK9gui_forms14PointerOverlay*;
@@ -3212,6 +3216,7 @@
     _ZN9gui_forms10PartMotion*;
     _ZN9gui_forms10PartRaster*;
     _ZN9gui_forms10PictureBox*;
+    _ZN9gui_forms10PlotHandle*;
     _ZN9gui_forms10PortRecord*;
     _ZN9gui_forms10RadialPick*;
     _ZN9gui_forms10RadialSlot*;
@@ -3653,6 +3658,7 @@
     _ZN9gui_forms14ParagraphPaint*;
     _ZN9gui_forms14ParagraphStyle*;
     _ZN9gui_forms14PartRasterView*;
+    _ZN9gui_forms14PlotHandleMove*;
     _ZN9gui_forms14PlotSeriesItem*;
     _ZN9gui_forms14PlotViewRanges*;
     _ZN9gui_forms14PointerOverlay*;
@@ -6063,6 +6069,7 @@
     _ZNK[RO]9gui_forms10PartMotion*;
     _ZNK[RO]9gui_forms10PartRaster*;
     _ZNK[RO]9gui_forms10PictureBox*;
+    _ZNK[RO]9gui_forms10PlotHandle*;
     _ZNK[RO]9gui_forms10PortRecord*;
     _ZNK[RO]9gui_forms10RadialPick*;
     _ZNK[RO]9gui_forms10RadialSlot*;
@@ -6416,6 +6423,7 @@
     _ZNK[RO]9gui_forms14ParagraphPaint*;
     _ZNK[RO]9gui_forms14ParagraphStyle*;
     _ZNK[RO]9gui_forms14PartRasterView*;
+    _ZNK[RO]9gui_forms14PlotHandleMove*;
     _ZNK[RO]9gui_forms14PlotSeriesItem*;
     _ZNK[RO]9gui_forms14PlotViewRanges*;
     _ZNK[RO]9gui_forms14PointerOverlay*;
@@ -7588,6 +7596,7 @@
     _ZN[KRO]9gui_forms10PartMotion*;
     _ZN[KRO]9gui_forms10PartRaster*;
     _ZN[KRO]9gui_forms10PictureBox*;
+    _ZN[KRO]9gui_forms10PlotHandle*;
     _ZN[KRO]9gui_forms10PortRecord*;
     _ZN[KRO]9gui_forms10RadialPick*;
     _ZN[KRO]9gui_forms10RadialSlot*;
@@ -7941,6 +7950,7 @@
     _ZN[KRO]9gui_forms14ParagraphPaint*;
     _ZN[KRO]9gui_forms14ParagraphStyle*;
     _ZN[KRO]9gui_forms14PartRasterView*;
+    _ZN[KRO]9gui_forms14PlotHandleMove*;
     _ZN[KRO]9gui_forms14PlotSeriesItem*;
     _ZN[KRO]9gui_forms14PlotViewRanges*;
     _ZN[KRO]9gui_forms14PointerOverlay*;
@@ -9113,6 +9123,7 @@
     _ZT[VIST]N9gui_forms10PartMotion*E;
     _ZT[VIST]N9gui_forms10PartRaster*E;
     _ZT[VIST]N9gui_forms10PictureBox*E;
+    _ZT[VIST]N9gui_forms10PlotHandle*E;
     _ZT[VIST]N9gui_forms10PortRecord*E;
     _ZT[VIST]N9gui_forms10RadialPick*E;
     _ZT[VIST]N9gui_forms10RadialSlot*E;
@@ -9466,6 +9477,7 @@
     _ZT[VIST]N9gui_forms14ParagraphPaint*E;
     _ZT[VIST]N9gui_forms14ParagraphStyle*E;
     _ZT[VIST]N9gui_forms14PartRasterView*E;
+    _ZT[VIST]N9gui_forms14PlotHandleMove*E;
     _ZT[VIST]N9gui_forms14PlotSeriesItem*E;
     _ZT[VIST]N9gui_forms14PlotViewRanges*E;
     _ZT[VIST]N9gui_forms14PointerOverlay*E;
@@ -10638,6 +10650,7 @@
     _ZT[hvc]*9gui_forms10PartMotion*;
     _ZT[hvc]*9gui_forms10PartRaster*;
     _ZT[hvc]*9gui_forms10PictureBox*;
+    _ZT[hvc]*9gui_forms10PlotHandle*;
     _ZT[hvc]*9gui_forms10PortRecord*;
     _ZT[hvc]*9gui_forms10RadialPick*;
     _ZT[hvc]*9gui_forms10RadialSlot*;
@@ -10991,6 +11004,7 @@
     _ZT[hvc]*9gui_forms14ParagraphPaint*;
     _ZT[hvc]*9gui_forms14ParagraphStyle*;
     _ZT[hvc]*9gui_forms14PartRasterView*;
+    _ZT[hvc]*9gui_forms14PlotHandleMove*;
     _ZT[hvc]*9gui_forms14PlotSeriesItem*;
     _ZT[hvc]*9gui_forms14PlotViewRanges*;
     _ZT[hvc]*9gui_forms14PointerOverlay*;
@@ -12163,6 +12177,7 @@
     _ZZN9gui_forms10PartMotion*;
     _ZZN9gui_forms10PartRaster*;
     _ZZN9gui_forms10PictureBox*;
+    _ZZN9gui_forms10PlotHandle*;
     _ZZN9gui_forms10PortRecord*;
     _ZZN9gui_forms10RadialPick*;
     _ZZN9gui_forms10RadialSlot*;
@@ -12516,6 +12531,7 @@
     _ZZN9gui_forms14ParagraphPaint*;
     _ZZN9gui_forms14ParagraphStyle*;
     _ZZN9gui_forms14PartRasterView*;
+    _ZZN9gui_forms14PlotHandleMove*;
     _ZZN9gui_forms14PlotSeriesItem*;
     _ZZN9gui_forms14PlotViewRanges*;
     _ZZN9gui_forms14PointerOverlay*;
@@ -13688,6 +13704,7 @@
     _ZZNK9gui_forms10PartMotion*;
     _ZZNK9gui_forms10PartRaster*;
     _ZZNK9gui_forms10PictureBox*;
+    _ZZNK9gui_forms10PlotHandle*;
     _ZZNK9gui_forms10PortRecord*;
     _ZZNK9gui_forms10RadialPick*;
     _ZZNK9gui_forms10RadialSlot*;
@@ -14041,6 +14058,7 @@
     _ZZNK9gui_forms14ParagraphPaint*;
     _ZZNK9gui_forms14ParagraphStyle*;
     _ZZNK9gui_forms14PartRasterView*;
+    _ZZNK9gui_forms14PlotHandleMove*;
     _ZZNK9gui_forms14PlotSeriesItem*;
     _ZZNK9gui_forms14PlotViewRanges*;
     _ZZNK9gui_forms14PointerOverlay*;

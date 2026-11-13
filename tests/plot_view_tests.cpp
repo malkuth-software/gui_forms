@@ -850,6 +850,88 @@ void test_sparkline() {
     require(!(*line).hit_test_local(Point{1.0, 1.0}), "a sparkline takes no input");
 }
 
+// Records the handle events.
+struct HandleRecorder final {
+    int moves{};
+    int commits{};
+    PlotHandleMove last_move{};
+    PlotHandleMove last_commit{};
+    void moved(const PlotHandleMove& move) {
+        moves = moves + 1;
+        last_move = move;
+    }
+    void committed(const PlotHandleMove& move) {
+        commits = commits + 1;
+        last_commit = move;
+    }
+};
+
+void drag_pointer(Window& window, Point from, Point to) {
+    PointerEvent down{};
+    down.action = PointerAction::down;
+    down.button = PointerButton::primary;
+    down.position = from;
+    static_cast<void>(window.dispatch_pointer(down));
+    PointerEvent move = down;
+    move.action = PointerAction::move;
+    move.button = PointerButton::none;
+    move.position = Point{(from.x + to.x) * 0.5, (from.y + to.y) * 0.5};
+    static_cast<void>(window.dispatch_pointer(move));
+    move.position = to;
+    static_cast<void>(window.dispatch_pointer(move));
+    PointerEvent up = move;
+    up.action = PointerAction::up;
+    up.button = PointerButton::primary;
+    static_cast<void>(window.dispatch_pointer(up));
+}
+
+void test_handles_drag_on_the_drag_engine() {
+    Fixture fixture = make_plot("plot.handles", false);
+    Window window(fixture.plot, {400.0, 300.0});
+    window.perform_layout();
+    const plots::PlotRange x = (*fixture.plot).x_range(0U);
+    const plots::PlotRange y = (*fixture.plot).y_range(0U);
+    const double middle_x = x.minimum + x.extent() * 0.5;
+    const double middle_y = y.minimum + y.extent() * 0.5;
+    std::vector<PlotHandle> handles;
+    handles.push_back(PlotHandle{1U, PlotHandleKind::point, middle_x, middle_y, true});
+    handles.push_back(PlotHandle{2U, PlotHandleKind::vertical_line, x.minimum + x.extent() * 0.25, 0.0, true});
+    std::vector<PlotHandle> repeated = handles;
+    repeated.push_back(PlotHandle{1U, PlotHandleKind::point, 0.0, 0.0, true});
+    bool refused = false;
+    try {
+        (*fixture.plot).set_handles(repeated);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*fixture.plot).handles().empty(), "a repeated handle id is refused, changing nothing");
+    (*fixture.plot).set_handles(handles);
+    HandleRecorder recorder{};
+    SubscriptionToken moved = (*fixture.plot).handle_moved().subscribe(
+        Delegate<const PlotHandleMove&>::bind<HandleRecorder, &HandleRecorder::moved>(recorder));
+    SubscriptionToken committed = (*fixture.plot).handle_committed().subscribe(
+        Delegate<const PlotHandleMove&>::bind<HandleRecorder, &HandleRecorder::committed>(recorder));
+    const std::optional<Point> point = (*fixture.plot).handle_point(1U);
+    require(point.has_value(), "a laid-out plot places its handles");
+    const plots::PlotRange before = (*fixture.plot).x_range(0U);
+    drag_pointer(window, *point, Point{(*point).x + 40.0, (*point).y - 30.0});
+    require(recorder.moves >= 1 && recorder.commits == 1 && recorder.last_commit.id == 1U,
+            "dragging a point raises handle_moved, then handle_committed once");
+    require((*fixture.plot).handles()[0].x > middle_x && (*fixture.plot).handles()[0].y > middle_y,
+            "the point follows the pointer right and up");
+    require((*fixture.plot).x_range(0U) == before, "a handle drag does not pan the plot");
+    const std::optional<Point> line = (*fixture.plot).handle_point(2U);
+    require(line.has_value(), "the line has a grab point");
+    const double line_y = (*fixture.plot).handles()[1].y;
+    drag_pointer(window, *line, Point{(*line).x + 30.0, (*line).y + 50.0});
+    require(recorder.commits == 2 && (*fixture.plot).handles()[1].x > x.minimum + x.extent() * 0.25 &&
+                (*fixture.plot).handles()[1].y == line_y,
+            "a vertical line moves across x only");
+    require(!(*fixture.plot).dragged_handle().has_value(), "no handle is dragged after the release");
+    moved.disconnect();
+    committed.disconnect();
+}
+
 void test_paint_sparkline_without_control() {
     const std::array<double, 4> values{1.0, std::nan(""), 3.0, 2.0};
     plots::SeriesSpans<double> spans{};
@@ -901,6 +983,7 @@ int main() {
     test_custom_series();
     test_sparkline();
     test_paint_sparkline_without_control();
+    test_handles_drag_on_the_drag_engine();
     std::cout << "gui_forms_plot_view_tests passed\n";
     return 0;
 }

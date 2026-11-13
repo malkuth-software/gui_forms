@@ -499,6 +499,18 @@ plots::PlotTransformResult PlotEngine::transform_for(const PlotEngineSeries& ser
     return result;
 }
 
+plots::PlotTransformResult PlotEngine::first_axes_transform(double device_scale) const noexcept {
+    const std::span<const plots::Axis> xs = model_.x_axes();
+    const std::span<const plots::Axis> ys = model_.y_axes();
+    plots::PlotTransformResult result{};
+    if (xs.empty() || ys.empty()) {
+        result.check = plots::PlotTransformCheck::plot_invalid;
+        return result;
+    }
+    result = plots::PlotTransform::make(xs[0], ys[0], layout_.plot, device_scale);
+    return result;
+}
+
 Color PlotEngine::series_color(const Control& owner, std::size_t position) noexcept {
     const Color color = plot_series_color(owner, position);
     return color;

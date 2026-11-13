@@ -36,6 +36,11 @@ gui_forms::PlotView
       **crosshair** : ``bool``
          Whether a crosshair follows the pointer over the plot, with its coordinates.
 
+      **handles** : ``std::span<const PlotHandle>``
+
+      **dragged_handle** : ``std::optional<std::uint32_t>``, read-only
+         The handle being dragged, if any.
+
       **series_items** : ``std::vector<PlotSeriesItem*>``, read-only
          The item children, in child order, as the plot read them last.
 
@@ -81,6 +86,10 @@ gui_forms::PlotView
 
       **legend_toggled** : ``Event<std::size_t>``
 
+      **handle_moved** : ``Event<const PlotHandleMove&>``
+
+      **handle_committed** : ``Event<const PlotHandleMove&>``
+
    :Inherited:
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
@@ -91,6 +100,8 @@ gui_forms::PlotView
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`handle_point <gui_forms::PlotView::handle_point>`
+        - The handle's centre in local coordinates on the first axes, if the plot is laid out (tests and owner-drawn labels).
       * - :cpp:func:`x_range <gui_forms::PlotView::x_range>`
         - The view: the visible range of axis ``index`` of each orientation (the items' ranges until a gesture, a fit or following moves them).
       * - :cpp:func:`y_range <gui_forms::PlotView::y_range>`
@@ -107,6 +118,8 @@ gui_forms::PlotView
         - A live plot's frame reports a change; raised here on the UI thread (detail::PlotLiveNotice).
       * - :cpp:func:`plot_view_property_entries <gui_forms::PlotView::plot_view_property_entries>`
         -  
+      * - :cpp:func:`set_handle_position <gui_forms::PlotView::set_handle_position>`
+        - Moves a handle (false for an unknown id or a non-finite position); raises nothing.
       * - :cpp:func:`set_x_range <gui_forms::PlotView::set_x_range>`
         - Sets a range (refused, false, when the axis does not exist or the range is inadmissible); raises view_changed for the first axes.
       * - :cpp:func:`set_y_range <gui_forms::PlotView::set_y_range>`
@@ -139,6 +152,16 @@ gui_forms::PlotView
    .. cpp:member:: bool crosshair
 
       Whether a crosshair follows the pointer over the plot, with its coordinates.
+
+   .. cpp:function:: std::span<const PlotHandle> handles() const& noexcept
+
+   .. cpp:function:: void set_handles(std::vector<PlotHandle> handles)
+
+      Replaces the handles. Throws std::invalid_argument, changing nothing, for a non-finite position, a repeated id or more than maximum_plot_handles; a running handle drag is cancelled first (model_changed).
+
+   .. cpp:function:: std::optional<std::uint32_t> dragged_handle() const noexcept
+
+      The handle being dragged, if any.
 
    .. cpp:function:: std::vector<PlotSeriesItem*> series_items() const
 
@@ -199,8 +222,16 @@ gui_forms::PlotView
 
    .. cpp:function:: Event<std::size_t>& legend_toggled() noexcept
 
+   .. cpp:function:: Event<const PlotHandleMove&>& handle_moved() noexcept
+
+   .. cpp:function:: Event<const PlotHandleMove&>& handle_committed() noexcept
+
 
    .. rubric:: Methods
+
+   .. cpp:function:: std::optional<Point> handle_point(std::uint32_t id) const
+
+      The handle's centre in local coordinates on the first axes, if the plot is laid out (tests and owner-drawn labels).
 
    .. cpp:function:: plots::PlotRange x_range(std::size_t index) const
 
@@ -227,6 +258,10 @@ gui_forms::PlotView
       A live plot's frame reports a change; raised here on the UI thread (detail::PlotLiveNotice). Not for applications.
 
    .. cpp:function:: static const std::array<PropertyEntry, plot_view_property_count>& plot_view_property_entries() noexcept
+
+   .. cpp:function:: bool set_handle_position(std::uint32_t id, double x, double y)
+
+      Moves a handle (false for an unknown id or a non-finite position); raises nothing.
 
    .. cpp:function:: bool set_x_range(std::size_t index, plots::PlotRange range)
 
@@ -262,6 +297,10 @@ gui_forms::PlotView
       *Protected.*
 
    .. cpp:function:: void on_detached_from_window() noexcept override
+
+      *Protected.*
+
+   .. cpp:function:: void on_detaching_from_window(SurfaceRoot& former_window) noexcept override
 
       *Protected.*
 
@@ -302,6 +341,10 @@ gui_forms::PlotView
       *Protected.*
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr double handle_pick_radius
+
+      The distance, in logical units, a press finds a handle within. Default: ``6.0``.
 
    .. cpp:member:: constexpr std::size_t plot_view_property_count
 

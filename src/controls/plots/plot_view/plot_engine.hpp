@@ -159,6 +159,8 @@ public:
     // Places the cursor (false when `cursor` names no element).
     bool set_cursor(PlotCursor cursor, std::span<const PlotEngineSeries> series);
     [[nodiscard]] PlotViewRanges ranges() const;
+    // The transform of the first x and y axes over the plot.
+    [[nodiscard]] plots::PlotTransformResult first_axes_transform(double device_scale) const noexcept;
     [[nodiscard]] PlotQuery query() const;
     // The figure's summary for assistive technology: its kind of content,
     // series and visible ranges, and the cursor's point.

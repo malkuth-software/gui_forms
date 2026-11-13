@@ -315,6 +315,10 @@ Related types
      - The data rectangle a custom series covers, in its axes' units; either range invalid (PlotRange::valid) when it covers nothing.
    * - :cpp:class:`PlotCustomSeries <gui_forms::PlotCustomSeries>`
      - A plot kind PlotView does not have, drawn inside PlotView's frame (the plot demonstrator's gap P1): installed on a PlotSeriesItem with set_custom, it gets the plot's margins, axes, ticks, grid, view model (pan, zoom, fit), legend entry, hiding and theme colour, and draws only its marks.
+   * - :cpp:class:`PlotHandle <gui_forms::PlotHandle>`
+     - One handle, in the data coordinates of the plot's first axes: ``x`` and ``y`` for a point, ``x`` for a vertical line and ``y`` for a horizontal one (the other is kept and ignored).
+   * - :cpp:class:`PlotHandleMove <gui_forms::PlotHandleMove>`
+     - A handle's position during or after a drag (PlotView::handle_moved and handle_committed): ``end`` is DragEnd::none while dragging, the commit's end (dropped or free) in handle_committed, and the end that restored the handle (escaped, capture_lost and the rest) in the last handle_moved, whose position is then the position before the drag.
    * - :cpp:class:`PlotHeatmapSeries <gui_forms::PlotHeatmapSeries>`
      - A heatmap (P2): ``values`` row-major, rows × columns, row 0 at the top of the data rectangle [area_x] × [area_y], coloured through a built-in colormap over ``domain`` (the finite values' extent unless set).
    * - :cpp:class:`PlotHistogramSeries <gui_forms::PlotHistogramSeries>`
@@ -2702,6 +2706,46 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PlotHandle final
+
+   ``#include <gui_forms/controls/plot_values.hpp>``
+
+   One handle, in the data coordinates of the plot's first axes: ``x`` and ``y`` for a point, ``x`` for a vertical line and ``y`` for a horizontal one (the other is kept and ignored). ``id`` is the program's name for it, unique in the plot. A disabled handle is drawn but not dragged.
+
+   .. cpp:member:: std::uint32_t id
+
+   .. cpp:member:: PlotHandleKind kind
+
+      Default: ``{PlotHandleKind::point}``.
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+   .. cpp:member:: bool enabled
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotHandleMove final
+
+   ``#include <gui_forms/controls/plot_values.hpp>``
+
+   A handle's position during or after a drag (PlotView::handle_moved and handle_committed): ``end`` is DragEnd::none while dragging, the commit's end (dropped or free) in handle_committed, and the end that restored the handle (escaped, capture_lost and the rest) in the last handle_moved, whose position is then the position before the drag.
+
+   .. cpp:member:: std::uint32_t id
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+   .. cpp:member:: DragEnd end
+
+      Default: ``{DragEnd::none}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: PlotHeatmapSeries final : public PlotCustomSeries
 
    ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
@@ -4628,6 +4672,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: PlotHandleKind
+
+   ``#include <gui_forms/controls/plot_values.hpp>``
+
+   .. cpp:enumerator:: point
+
+   .. cpp:enumerator:: vertical_line
+
+   .. cpp:enumerator:: horizontal_line
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PlotLinkAxes
 
    ``#include <gui_forms/controls/plot_view_links.hpp>``
@@ -4794,6 +4850,14 @@ Functions, constants and aliases
 .. cpp:function:: constexpr Color notice_severity_colour(NoticeSeverity severity) noexcept
 
    A severity's colour, which InfoBanner's keyline and icon, Toast's icon and InstrumentRack's module keyline draw as an authored foreground over the notice's role, under the severity's custom state (``:state(warning)``). Mid-tone, so that each reads on a light face and a dark one; high contrast replaces it with the role's own colour. Provisional until T4's floor gives the status colours roles.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/plot_values.hpp>``
+
+.. cpp:var:: constexpr std::size_t maximum_plot_handles
+
+   The most handles a PlotView holds. Value: ``256U``.
 
 .. cpp:namespace:: gui_forms
 

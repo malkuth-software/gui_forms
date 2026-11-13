@@ -6,6 +6,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/plot_types/plot_types.hpp"
+#include "gui_forms/events/drag_events/drag_events.hpp"
 #include "gui_forms/types.hpp"
 
 #include <cstddef>
@@ -61,6 +62,43 @@ struct GUI_FORMS_API PlotQuery final {
     double x_maximum{};
     double y_minimum{};
     double y_maximum{};
+};
+
+// Draggable handles (PlotView::set_handles; the ImPlot-class
+// demonstrator's P3): a point moved on both axes, or a line across the plot
+// at an x (vertical) or a y (horizontal), moved across it.
+enum class PlotHandleKind : std::uint8_t { point, vertical_line, horizontal_line };
+
+// The most handles a PlotView holds.
+inline constexpr std::size_t maximum_plot_handles = 256U;
+
+// One handle, in the data coordinates of the plot's first axes: `x` and `y`
+// for a point, `x` for a vertical line and `y` for a horizontal one (the
+// other is kept and ignored). `id` is the program's name for it, unique in
+// the plot. A disabled handle is drawn but not dragged.
+struct GUI_FORMS_API PlotHandle final {
+    std::uint32_t id{};
+    PlotHandleKind kind{PlotHandleKind::point};
+    double x{};
+    double y{};
+    bool enabled{true};
+
+    friend bool operator==(const PlotHandle& left, const PlotHandle& right) noexcept {
+        return left.id == right.id && left.kind == right.kind && left.x == right.x && left.y == right.y &&
+               left.enabled == right.enabled;
+    }
+};
+
+// A handle's position during or after a drag (PlotView::handle_moved and
+// handle_committed): `end` is DragEnd::none while dragging, the commit's
+// end (dropped or free) in handle_committed, and the end that restored the
+// handle (escaped, capture_lost and the rest) in the last handle_moved,
+// whose position is then the position before the drag.
+struct GUI_FORMS_API PlotHandleMove final {
+    std::uint32_t id{};
+    double x{};
+    double y{};
+    DragEnd end{DragEnd::none};
 };
 
 } // namespace gui_forms
