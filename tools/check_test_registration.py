@@ -34,6 +34,8 @@ SHARED: dict[str, str] = {
     'tests/windows_message_queue_native_probe.cpp': 'local probe that needs an interactive desktop window',
     'tests/installed_feature_consumer/text_stack.cpp': 'installed-package consumer, built by tools/verify_install.py',
     'tests/hosted_child.cpp': 'the hosted program gui_forms_hosted_content_tests starts (GUI_FORMS_HOSTED_CHILD)',
+    'tests/hosted_client_consumer/parent.cpp': 'installed-package hosted-content parent, built by tools/verify_install.py --hosted-client',
+    'tests/hosted_client_consumer/child.cpp': 'installed-package hosted program, built by tools/verify_install.py --hosted-client',
     'tests/upstream_text_stack_consumer/main.cpp': 'installed-package consumer with upstream HarfBuzz and FreeType, built by tools/verify_install.py --upstream-text-stack',
     'tests/theme_language/theme_request_app.cpp': 'launched by the gui_forms_theme_request_app_* tests, whose add_test names it through gui_forms_theme_request_case',
 }

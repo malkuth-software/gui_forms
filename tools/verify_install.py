@@ -33,6 +33,9 @@ def main() -> None:
     parser.add_argument("--upstream-text-stack", action="store_true",
                         help="Build and run tests/upstream_text_stack_consumer, which links the system's own HarfBuzz "
                              "and FreeType (pkg-config harfbuzz freetype2) beside Application (requires --native)")
+    parser.add_argument("--hosted-client", action="store_true",
+                        help="Build and run tests/hosted_client_consumer: a parent starting a hosted program "
+                             "through Controls, and the program linking HostedClient (macOS and Linux)")
     args: argparse.Namespace = parser.parse_args()
     if args.feature_components and not args.native:
         parser.error("--feature-components requires --native: TextMasks lives in Application")
@@ -82,6 +85,13 @@ def main() -> None:
             run(["cmake", "-S", str(upstream), "-B", str(upstream_build)] + package_arguments)
             run(["cmake", "--build", str(upstream_build), "--parallel", "2"])
             print(run(["ctest", "--test-dir", str(upstream_build), "--output-on-failure"]))
+        if args.hosted_client:
+            hosted: Path = scratch_path / "hosted-client-consumer"
+            shutil.copytree(project / "tests" / "hosted_client_consumer", hosted)
+            hosted_build: Path = scratch_path / "hosted-client-build"
+            run(["cmake", "-S", str(hosted), "-B", str(hosted_build)] + package_arguments)
+            run(["cmake", "--build", str(hosted_build), "--parallel", "2"])
+            print(run(["ctest", "--test-dir", str(hosted_build), "--output-on-failure"]))
         invalid: Path = scratch_path / "invalid"
         invalid.mkdir()
         components: list[str] = ["NotAComponent"]

@@ -752,6 +752,7 @@ if(NOT WIN32)
     add_library(gui_forms_hosted_client STATIC src/host/posix/hosted/hosted_client_posix.cpp)
     target_link_libraries(gui_forms_hosted_client PUBLIC gui_forms_core)
     set_target_properties(gui_forms_hosted_client PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    add_library(GUIForms::HostedClient ALIAS gui_forms_hosted_client)
 endif()
 if(WIN32 AND GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
     # The transactional DIB frame store: the Win32 host and three tests.
@@ -1384,6 +1385,15 @@ install(DIRECTORY include/gui_forms
         PATTERN "text_mask.hpp" EXCLUDE
         PATTERN "text_mask" EXCLUDE
         PATTERN "loop_transport" EXCLUDE)
+# The hosted program's end (macOS and Linux): installed in GUIFormsTargets as
+# GUIForms::HostedClient, the library a program started by
+# make_hosted_content links (tests/hosted_client_consumer).
+if(TARGET gui_forms_hosted_client)
+    set_target_properties(gui_forms_hosted_client PROPERTIES EXPORT_NAME HostedClient)
+    install(TARGETS gui_forms_hosted_client
+            EXPORT GUIFormsTargets
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif()
 install(EXPORT GUIFormsTargets
         FILE GUIFormsTargets.cmake
         NAMESPACE GUIForms::
