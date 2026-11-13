@@ -1204,16 +1204,25 @@ std::vector<SemanticNode> NodeCanvas::semantic_virtual_children() const {
         const NodeGraph& graph = *graph_;
         const std::span<const NodeRecord> slots = graph.node_slots();
         // The visible set, then the focused node wherever it is (the focused
-        // path is always realized, spec 6).
-        std::size_t count = visible_nodes_.size();
+        // path is always realized, spec 6). The set is found here from the
+        // graph and the view, in slot order, as the painted frame finds it
+        // through the node index: the painted frame's own set
+        // (visible_nodes_) would leave a host that reads the tree before the
+        // first paint, or between a pan and its paint, a stale list, and a
+        // paint marks no semantics dirty.
+        const WorldRect shown_world = view_.rect_to_world(client_rectangle());
+        std::vector<std::uint32_t> listed{};
+        listed.reserve(slots.size() + 1U);
         bool focused_listed = !focused_node_.has_value();
-        for (const std::uint32_t slot : visible_nodes_) {
+        for (std::size_t slot = 0U; slot < slots.size(); ++slot) {
+            const bool shown = slots[slot].live && world_rects_intersect(shown_world, slots[slot].bounds);
+            if (!shown) continue;
+            listed.push_back(static_cast<std::uint32_t>(slot));
             if (focused_node_.has_value() && (*focused_node_).index == slot) focused_listed = true;
         }
-        if (!focused_listed) ++count;
-        children.reserve(count + 1U);
-        for (std::size_t index = 0U; index < count; ++index) {
-            const std::uint32_t slot = index < visible_nodes_.size() ? visible_nodes_[index] : (*focused_node_).index;
+        if (!focused_listed) listed.push_back((*focused_node_).index);
+        children.reserve(listed.size() + 1U);
+        for (const std::uint32_t slot : listed) {
             if (slot >= slots.size() || !slots[slot].live) continue;
             const NodeRecord& node = slots[slot];
             SemanticNode item{};

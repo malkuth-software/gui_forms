@@ -23,6 +23,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <span>
 #include <string_view>
 
@@ -101,9 +102,24 @@ public:
                      std::uint64_t sequence) noexcept;
     // A library_call frame.
     ShadowFrameScope(std::uint32_t interface_id, std::uint32_t function_index) noexcept;
-    ~ShadowFrameScope();
+    // Inline on purpose: std::uncaught_exceptions() is read in the module
+    // that holds the scope. Where each module links its own C++ runtime
+    // (Windows, add_link_options(-static)), an exception thrown in that
+    // module counts only in that module's runtime, so the library's own copy
+    // would report no exception while it unwinds the scope. An exception
+    // thrown in another module still unwinds the frame, but is not seen as
+    // an unwinding there, so it leaves no mark.
+    ~ShadowFrameScope() {
+        const bool unwinding = std::uncaught_exceptions() != 0;
+        close_frame(unwinding);
+    }
     ShadowFrameScope(const ShadowFrameScope&) = delete;
     ShadowFrameScope& operator=(const ShadowFrameScope&) = delete;
+
+private:
+    // Pops the innermost frame; unwinding marks the depth for
+    // copy_failure_shadow_frames.
+    static void close_frame(bool unwinding) noexcept;
 };
 
 // Copies the calling thread's recorded frames, outermost first, into the

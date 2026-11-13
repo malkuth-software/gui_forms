@@ -294039,7 +294039,7 @@
       "kind": "struct",
       "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
       "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-      "line": 71,
+      "line": 72,
       "declaration": "struct GUI_FORMS_API ShadowFrame final",
       "comment": "",
       "access": "public",
@@ -294057,7 +294057,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 72,
+          "line": 73,
           "page": "gui-forms-shadowframe-kind-shadowframekind-82b8c63e4a.html"
         },
         {
@@ -294072,7 +294072,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 73,
+          "line": 74,
           "page": "gui-forms-shadowframe-flags-std-uint32-t-4f3e2d3848.html"
         },
         {
@@ -294087,7 +294087,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 74,
+          "line": 75,
           "page": "gui-forms-shadowframe-interface-id-std-uint32-t-b349630744.html"
         },
         {
@@ -294102,7 +294102,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 75,
+          "line": 76,
           "page": "gui-forms-shadowframe-function-index-std-uint32-t-5f9ec24da6.html"
         },
         {
@@ -294117,7 +294117,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 76,
+          "line": 77,
           "page": "gui-forms-shadowframe-sequence-std-uint64-t-1e3f0c5d9a.html"
         },
         {
@@ -294132,7 +294132,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 77,
+          "line": 78,
           "page": "gui-forms-shadowframe-subject-size-std-uint32-t-d0bf20dd5f.html"
         },
         {
@@ -294147,7 +294147,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 78,
+          "line": 79,
           "page": "gui-forms-shadowframe-name-size-std-uint32-t-2e0da924c4.html"
         },
         {
@@ -294162,7 +294162,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 79,
+          "line": 80,
           "page": "gui-forms-shadowframe-subject-std-array-char-shadow-frame-subject-capacity-9163943e3b.html"
         },
         {
@@ -294177,7 +294177,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 80,
+          "line": 81,
           "page": "gui-forms-shadowframe-name-std-array-char-shadow-frame-name-capacity-45c2c21c25.html"
         }
       ],
@@ -294191,7 +294191,7 @@
       "kind": "enum",
       "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
       "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-      "line": 57,
+      "line": 58,
       "declaration": "enum class ShadowFrameFlags : std::uint32_t",
       "comment": "",
       "access": "public",
@@ -294209,7 +294209,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 58,
+          "line": 59,
           "page": "gui-forms-shadowframeflags-none-gui-forms-shadowframeflags-a1ac812f78.html"
         },
         {
@@ -294224,7 +294224,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 59,
+          "line": 60,
           "page": "gui-forms-shadowframeflags-subject-truncated-gui-forms-shadowframeflags-46cf2336d9.html"
         },
         {
@@ -294239,7 +294239,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 60,
+          "line": 61,
           "page": "gui-forms-shadowframeflags-name-truncated-gui-forms-shadowframeflags-b8b7c0b800.html"
         }
       ],
@@ -294253,7 +294253,7 @@
       "kind": "enum",
       "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
       "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-      "line": 33,
+      "line": 34,
       "declaration": "enum class ShadowFrameKind : std::uint32_t",
       "comment": "",
       "access": "public",
@@ -294271,7 +294271,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 36,
+          "line": 37,
           "page": "gui-forms-shadowframekind-library-call-gui-forms-shadowframekind-ca639a94d2.html"
         },
         {
@@ -294286,7 +294286,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 39,
+          "line": 40,
           "page": "gui-forms-shadowframekind-input-dispatch-gui-forms-shadowframekind-0cbda49763.html"
         },
         {
@@ -294301,7 +294301,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 43,
+          "line": 44,
           "page": "gui-forms-shadowframekind-event-callback-gui-forms-shadowframekind-caab664449.html"
         },
         {
@@ -294316,7 +294316,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 46,
+          "line": 47,
           "page": "gui-forms-shadowframekind-layout-pass-gui-forms-shadowframekind-8db9e54f5c.html"
         },
         {
@@ -294331,7 +294331,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 49,
+          "line": 50,
           "page": "gui-forms-shadowframekind-paint-pass-gui-forms-shadowframekind-aaba498a71.html"
         },
         {
@@ -294346,7 +294346,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 52,
+          "line": 53,
           "page": "gui-forms-shadowframekind-posted-callback-gui-forms-shadowframekind-be2ef47653.html"
         }
       ],
@@ -294360,7 +294360,7 @@
       "kind": "class",
       "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
       "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-      "line": 97,
+      "line": 98,
       "declaration": "class GUI_FORMS_API ShadowFrameScope final",
       "comment": "",
       "access": "public",
@@ -294399,7 +294399,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 100,
+          "line": 101,
           "page": "gui-forms-shadowframescope-shadowframescope-void-shadowframekind-std-string-view-std-string-view-std-uint64-t--61674534d1.html"
         },
         {
@@ -294425,13 +294425,13 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 103,
+          "line": 104,
           "page": "gui-forms-shadowframescope-shadowframescope-void-std-uint32-t-std-uint32-t-noexcept-80db23f846.html"
         },
         {
-          "id": "gui_forms::ShadowFrameScope::~ShadowFrameScope|void ()",
+          "id": "gui_forms::ShadowFrameScope::~ShadowFrameScope|void () noexcept",
           "name": "~ShadowFrameScope",
-          "type": "void ()",
+          "type": "void () noexcept",
           "namespace": "gui_forms::ShadowFrameScope",
           "kind": "CXXDestructorDecl",
           "access": "public",
@@ -294440,8 +294440,8 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 104,
-          "page": "gui-forms-shadowframescope-shadowframescope-void-43518096e9.html"
+          "line": 112,
+          "page": "gui-forms-shadowframescope-shadowframescope-void-noexcept-eeeb2bd138.html"
         },
         {
           "id": "gui_forms::ShadowFrameScope::ShadowFrameScope|void (const ShadowFrameScope &)",
@@ -294461,7 +294461,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 105,
+          "line": 116,
           "page": "gui-forms-shadowframescope-shadowframescope-void-const-shadowframescope-e92559a820.html"
         },
         {
@@ -294482,7 +294482,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 106,
+          "line": 117,
           "page": "gui-forms-shadowframescope-operator-shadowframescope-const-shadowframescope-b79803b9da.html"
         }
       ],
@@ -294496,7 +294496,7 @@
       "kind": "struct",
       "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
       "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-      "line": 87,
+      "line": 88,
       "declaration": "struct GUI_FORMS_API ShadowStackState final",
       "comment": "",
       "access": "public",
@@ -294514,7 +294514,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 88,
+          "line": 89,
           "page": "gui-forms-shadowstackstate-depth-std-uint32-t-eb79a750d9.html"
         },
         {
@@ -294529,7 +294529,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 89,
+          "line": 90,
           "page": "gui-forms-shadowstackstate-pushed-std-uint64-t-d0878facc2.html"
         },
         {
@@ -294544,7 +294544,7 @@
           "comment": "",
           "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
           "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-          "line": 90,
+          "line": 91,
           "page": "gui-forms-shadowstackstate-dropped-std-uint64-t-9c9bb2092d.html"
         }
       ],
@@ -394401,11 +394401,11 @@
           "declaration": "ShadowStackState& state"
         }
       ],
-      "declaration": "U, // A window's dispatch of one input: subject is the window root's stable // id, name the input's kind (pointer, key, text, drag). input_dispatch = 2U, // An event delivered to a binding's callback: subject is the sender's // stable id when the sender is a control (else empty), name the event's // name. event_callback = 3U, // A window's layout flush: subject is the window root's stable id, // sequence the window's first layout pass number in it. layout_pass = 4U, // A window's paint: subject is the window root's stable id, sequence the // window's paint lease number. paint_pass = 5U, // Work posted to the UI thread, run by a binding: subject is the // target's stable id when the target is a control (else empty). posted_callback = 6U, }; // Set on a frame whose text was longer than its field and was cut at the // last whole UTF-8 sequence that fits. enum class ShadowFrameFlags : std::uint32_t { none = 0U, subject_truncated = 1U, name_truncated = 2U, }; // The bytes a frame keeps of its subject and of its name. inline constexpr std::size_t shadow_frame_subject_capacity = 48U; inline constexpr std::size_t shadow_frame_name_capacity = 32U; // The frames a thread records. Deeper frames are counted, not recorded. inline constexpr std::size_t shadow_stack_capacity = 64U; // One frame. Fields a kind does not use are zero and empty. The text arrays // hold subject_size and name_size bytes; the bytes past them are stale. struct GUI_FORMS_API ShadowFrame final { ShadowFrameKind kind = ShadowFrameKind::library_call; std::uint32_t flags = 0U; std::uint32_t interface_id = 0U; std::uint32_t function_index = 0U; std::uint64_t sequence = 0U; std::uint32_t subject_size = 0U; std::uint32_t name_size = 0U; std::array<char, shadow_frame_subject_capacity> subject{}; std::array<char, shadow_frame_name_capacity> name{}; }; // The calling thread's stack beside its frames. depth counts every frame // open now, recorded or not; the recorded frames are the outermost // min(depth, shadow_stack_capacity). pushed and dropped count every push, // and every push past the capacity, since the thread began. struct GUI_FORMS_API ShadowStackState final { std::uint32_t depth = 0U; std::uint64_t pushed = 0U; std::uint64_t dropped = 0U; }; // Opens a frame on the calling thread for the scope's lifetime and closes // it on every exit, an exception's included. Never throws or allocates. // Scopes nest strictly (they are not copied or moved), so the frame closed // is always the innermost. class GUI_FORMS_API ShadowFrameScope final { public: // A frame of kind with subject and name (each cut to its capacity). ShadowFrameScope(ShadowFrameKind kind, std::string_view subject, std::string_view name, std::uint64_t sequence) noexcept; // A library_call frame. ShadowFrameScope(std::uint32_t interface_id, std::uint32_t function_index) noexcept; ~ShadowFrameScope(); ShadowFrameScope(const ShadowFrameScope&) = delete; ShadowFrameScope& operator=(const ShadowFrameScope&) = delete; }; // Copies the calling thread's recorded frames, outermost first, into the // leading elements of frames (at most frames.size()), and its state into // state. Returns the number of recorded frames, which may exceed the number // copied. Never throws or allocates. GUI_FORMS_API std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept; // As copy_shadow_frames, but for a boundary that has just caught an // exception: the frames open where the exception was thrown, the frames it // unwound included, when no frame has been opened or closed by a return // since its last unwinding pop; otherwise (no exception unwound a frame, or // the thread has moved on) the frames open now. state.depth is the depth // copied from; pushed and dropped are the thread's. Never throws or // allocates. The mark cannot tell two unwindings apart when nothing opens // or closes a frame between them: an exception caught and handled inside a // frame, then another thrown from that frame or an outer one, shows the // first's deeper frames above the second's. The outer frames are the // second's either way. GUI_FORMS_API std::size_t copy_failure_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept",
+      "declaration": "library_call = 1U, // A window's dispatch of one input: subject is the window root's stable // id, name the input's kind (pointer, key, text, drag). input_dispatch = 2U, // An event delivered to a binding's callback: subject is the sender's // stable id when the sender is a control (else empty), name the event's // name. event_callback = 3U, // A window's layout flush: subject is the window root's stable id, // sequence the window's first layout pass number in it. layout_pass = 4U, // A window's paint: subject is the window root's stable id, sequence the // window's paint lease number. paint_pass = 5U, // Work posted to the UI thread, run by a binding: subject is the // target's stable id when the target is a control (else empty). posted_callback = 6U, }; // Set on a frame whose text was longer than its field and was cut at the // last whole UTF-8 sequence that fits. enum class ShadowFrameFlags : std::uint32_t { none = 0U, subject_truncated = 1U, name_truncated = 2U, }; // The bytes a frame keeps of its subject and of its name. inline constexpr std::size_t shadow_frame_subject_capacity = 48U; inline constexpr std::size_t shadow_frame_name_capacity = 32U; // The frames a thread records. Deeper frames are counted, not recorded. inline constexpr std::size_t shadow_stack_capacity = 64U; // One frame. Fields a kind does not use are zero and empty. The text arrays // hold subject_size and name_size bytes; the bytes past them are stale. struct GUI_FORMS_API ShadowFrame final { ShadowFrameKind kind = ShadowFrameKind::library_call; std::uint32_t flags = 0U; std::uint32_t interface_id = 0U; std::uint32_t function_index = 0U; std::uint64_t sequence = 0U; std::uint32_t subject_size = 0U; std::uint32_t name_size = 0U; std::array<char, shadow_frame_subject_capacity> subject{}; std::array<char, shadow_frame_name_capacity> name{}; }; // The calling thread's stack beside its frames. depth counts every frame // open now, recorded or not; the recorded frames are the outermost // min(depth, shadow_stack_capacity). pushed and dropped count every push, // and every push past the capacity, since the thread began. struct GUI_FORMS_API ShadowStackState final { std::uint32_t depth = 0U; std::uint64_t pushed = 0U; std::uint64_t dropped = 0U; }; // Opens a frame on the calling thread for the scope's lifetime and closes // it on every exit, an exception's included. Never throws or allocates. // Scopes nest strictly (they are not copied or moved), so the frame closed // is always the innermost. class GUI_FORMS_API ShadowFrameScope final { public: // A frame of kind with subject and name (each cut to its capacity). ShadowFrameScope(ShadowFrameKind kind, std::string_view subject, std::string_view name, std::uint64_t sequence) noexcept; // A library_call frame. ShadowFrameScope(std::uint32_t interface_id, std::uint32_t function_index) noexcept; // Inline on purpose: std::uncaught_exceptions() is read in the module // that holds the scope. Where each module links its own C++ runtime // (Windows, add_link_options(-static)), an exception thrown in that // module counts only in that module's runtime, so the library's own copy // would report no exception while it unwinds the scope. An exception // thrown in another module still unwinds the frame, but is not seen as // an unwinding there, so it leaves no mark. ~ShadowFrameScope() { const bool unwinding = std::uncaught_exceptions() != 0; close_frame(unwinding); } ShadowFrameScope(const ShadowFrameScope&) = delete; ShadowFrameScope& operator=(const ShadowFrameScope&) = delete; private: // Pops the innermost frame; unwinding marks the depth for // copy_failure_shadow_frames. static void close_frame(bool unwinding) noexcept; }; // Copies the calling thread's recorded frames, outermost first, into the // leading elements of frames (at most frames.size()), and its state into // state. Returns the number of recorded frames, which may exceed the number // copied. Never throws or allocates. GUI_FORMS_API std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept; // As copy_shadow_frames, but for a boundary that has just caught an // exception: the frames open where the exception was thrown, the frames it // unwound included, when no frame has been opened or closed by a return // since its last unwinding pop; otherwise (no exception unwound a frame, or // the thread has moved on) the frames open now. state.depth is the depth // copied from; pushed and dropped are the thread's. Never throws or // allocates. The mark cannot tell two unwindings apart when nothing opens // or closes a frame between them: an exception caught and handled inside a // frame, then another thrown from that frame or an outer one, shows the // first's deeper frames above the second's. The outer frames are the // second's either way. GUI_FORMS_API std::size_t copy_failure_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept",
       "comment": "",
       "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
       "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-      "line": 126,
+      "line": 142,
       "page": "gui-forms-copy-failure-shadow-frames-std-size-t-std-span-shadowframe-shadowstackstate-noexcept-42c8831773.html"
     },
     {
@@ -394427,11 +394427,11 @@
           "declaration": "ShadowStackState& state"
         }
       ],
-      "declaration": "U, // A window's dispatch of one input: subject is the window root's stable // id, name the input's kind (pointer, key, text, drag). input_dispatch = 2U, // An event delivered to a binding's callback: subject is the sender's // stable id when the sender is a control (else empty), name the event's // name. event_callback = 3U, // A window's layout flush: subject is the window root's stable id, // sequence the window's first layout pass number in it. layout_pass = 4U, // A window's paint: subject is the window root's stable id, sequence the // window's paint lease number. paint_pass = 5U, // Work posted to the UI thread, run by a binding: subject is the // target's stable id when the target is a control (else empty). posted_callback = 6U, }; // Set on a frame whose text was longer than its field and was cut at the // last whole UTF-8 sequence that fits. enum class ShadowFrameFlags : std::uint32_t { none = 0U, subject_truncated = 1U, name_truncated = 2U, }; // The bytes a frame keeps of its subject and of its name. inline constexpr std::size_t shadow_frame_subject_capacity = 48U; inline constexpr std::size_t shadow_frame_name_capacity = 32U; // The frames a thread records. Deeper frames are counted, not recorded. inline constexpr std::size_t shadow_stack_capacity = 64U; // One frame. Fields a kind does not use are zero and empty. The text arrays // hold subject_size and name_size bytes; the bytes past them are stale. struct GUI_FORMS_API ShadowFrame final { ShadowFrameKind kind = ShadowFrameKind::library_call; std::uint32_t flags = 0U; std::uint32_t interface_id = 0U; std::uint32_t function_index = 0U; std::uint64_t sequence = 0U; std::uint32_t subject_size = 0U; std::uint32_t name_size = 0U; std::array<char, shadow_frame_subject_capacity> subject{}; std::array<char, shadow_frame_name_capacity> name{}; }; // The calling thread's stack beside its frames. depth counts every frame // open now, recorded or not; the recorded frames are the outermost // min(depth, shadow_stack_capacity). pushed and dropped count every push, // and every push past the capacity, since the thread began. struct GUI_FORMS_API ShadowStackState final { std::uint32_t depth = 0U; std::uint64_t pushed = 0U; std::uint64_t dropped = 0U; }; // Opens a frame on the calling thread for the scope's lifetime and closes // it on every exit, an exception's included. Never throws or allocates. // Scopes nest strictly (they are not copied or moved), so the frame closed // is always the innermost. class GUI_FORMS_API ShadowFrameScope final { public: // A frame of kind with subject and name (each cut to its capacity). ShadowFrameScope(ShadowFrameKind kind, std::string_view subject, std::string_view name, std::uint64_t sequence) noexcept; // A library_call frame. ShadowFrameScope(std::uint32_t interface_id, std::uint32_t function_index) noexcept; ~ShadowFrameScope(); ShadowFrameScope(const ShadowFrameScope&) = delete; ShadowFrameScope& operator=(const ShadowFrameScope&) = delete; }; // Copies the calling thread's recorded frames, outermost first, into the // leading elements of frames (at most frames.size()), and its state into // state. Returns the number of recorded frames, which may exceed the number // copied. Never throws or allocates. GUI_FORMS_API std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept",
+      "declaration": "library_call = 1U, // A window's dispatch of one input: subject is the window root's stable // id, name the input's kind (pointer, key, text, drag). input_dispatch = 2U, // An event delivered to a binding's callback: subject is the sender's // stable id when the sender is a control (else empty), name the event's // name. event_callback = 3U, // A window's layout flush: subject is the window root's stable id, // sequence the window's first layout pass number in it. layout_pass = 4U, // A window's paint: subject is the window root's stable id, sequence the // window's paint lease number. paint_pass = 5U, // Work posted to the UI thread, run by a binding: subject is the // target's stable id when the target is a control (else empty). posted_callback = 6U, }; // Set on a frame whose text was longer than its field and was cut at the // last whole UTF-8 sequence that fits. enum class ShadowFrameFlags : std::uint32_t { none = 0U, subject_truncated = 1U, name_truncated = 2U, }; // The bytes a frame keeps of its subject and of its name. inline constexpr std::size_t shadow_frame_subject_capacity = 48U; inline constexpr std::size_t shadow_frame_name_capacity = 32U; // The frames a thread records. Deeper frames are counted, not recorded. inline constexpr std::size_t shadow_stack_capacity = 64U; // One frame. Fields a kind does not use are zero and empty. The text arrays // hold subject_size and name_size bytes; the bytes past them are stale. struct GUI_FORMS_API ShadowFrame final { ShadowFrameKind kind = ShadowFrameKind::library_call; std::uint32_t flags = 0U; std::uint32_t interface_id = 0U; std::uint32_t function_index = 0U; std::uint64_t sequence = 0U; std::uint32_t subject_size = 0U; std::uint32_t name_size = 0U; std::array<char, shadow_frame_subject_capacity> subject{}; std::array<char, shadow_frame_name_capacity> name{}; }; // The calling thread's stack beside its frames. depth counts every frame // open now, recorded or not; the recorded frames are the outermost // min(depth, shadow_stack_capacity). pushed and dropped count every push, // and every push past the capacity, since the thread began. struct GUI_FORMS_API ShadowStackState final { std::uint32_t depth = 0U; std::uint64_t pushed = 0U; std::uint64_t dropped = 0U; }; // Opens a frame on the calling thread for the scope's lifetime and closes // it on every exit, an exception's included. Never throws or allocates. // Scopes nest strictly (they are not copied or moved), so the frame closed // is always the innermost. class GUI_FORMS_API ShadowFrameScope final { public: // A frame of kind with subject and name (each cut to its capacity). ShadowFrameScope(ShadowFrameKind kind, std::string_view subject, std::string_view name, std::uint64_t sequence) noexcept; // A library_call frame. ShadowFrameScope(std::uint32_t interface_id, std::uint32_t function_index) noexcept; // Inline on purpose: std::uncaught_exceptions() is read in the module // that holds the scope. Where each module links its own C++ runtime // (Windows, add_link_options(-static)), an exception thrown in that // module counts only in that module's runtime, so the library's own copy // would report no exception while it unwinds the scope. An exception // thrown in another module still unwinds the frame, but is not seen as // an unwinding there, so it leaves no mark. ~ShadowFrameScope() { const bool unwinding = std::uncaught_exceptions() != 0; close_frame(unwinding); } ShadowFrameScope(const ShadowFrameScope&) = delete; ShadowFrameScope& operator=(const ShadowFrameScope&) = delete; private: // Pops the innermost frame; unwinding marks the depth for // copy_failure_shadow_frames. static void close_frame(bool unwinding) noexcept; }; // Copies the calling thread's recorded frames, outermost first, into the // leading elements of frames (at most frames.size()), and its state into // state. Returns the number of recorded frames, which may exceed the number // copied. Never throws or allocates. GUI_FORMS_API std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept",
       "comment": "",
       "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
       "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-      "line": 113,
+      "line": 129,
       "page": "gui-forms-copy-shadow-frames-std-size-t-std-span-shadowframe-shadowstackstate-noexcept-0476fef45e.html"
     },
     {
@@ -427839,7 +427839,7 @@
       "comment": "",
       "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
       "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-      "line": 65,
+      "line": 66,
       "page": "gui-forms-shadow-frame-name-capacity-const-std-size-t-e93fa49bef.html"
     },
     {
@@ -427854,7 +427854,7 @@
       "comment": "",
       "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
       "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-      "line": 64,
+      "line": 65,
       "page": "gui-forms-shadow-frame-subject-capacity-const-std-size-t-0328733e1f.html"
     },
     {
@@ -427869,7 +427869,7 @@
       "comment": "",
       "header": "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
       "source": "include/gui_forms/diagnostics/shadow_frames/shadow_frames.hpp",
-      "line": 67,
+      "line": 68,
       "page": "gui-forms-shadow-stack-capacity-const-std-size-t-dc4b90b130.html"
     },
     {

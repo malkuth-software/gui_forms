@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <exception>
 #include <span>
 #include <string_view>
 
@@ -109,13 +108,13 @@ ShadowFrameScope::ShadowFrameScope(const std::uint32_t interface_id, const std::
     (*frame).name_size = 0U;
 }
 
-ShadowFrameScope::~ShadowFrameScope() {
+void ShadowFrameScope::close_frame(const bool unwinding) noexcept {
     ShadowStack& stack = thread_stack;
     // An exception is unwinding this scope. The first such pop of an
     // unwinding marks the depth; later pops of the same unwinding find the
     // mark current (nothing pushed, the depth where the last pop left it)
     // and only move it along.
-    if (std::uncaught_exceptions() != 0) {
+    if (unwinding) {
         const bool continuing = stack.unwind_pushed == stack.pushed && stack.unwind_next_depth == stack.depth;
         if (!continuing) {
             stack.unwind_depth = stack.depth;
