@@ -1,13 +1,19 @@
 // theme_sheet_package: an application's theme as one plain CSS file. The
 // package compiles as any package does, a changed sheet compiles again
 // without anyone writing its digest, a refused sheet's finding names its
-// line, and a name is escaped so the manifest stays JSON.
+// line, and a name is escaped so the manifest stays JSON. A control's
+// theme sheet (Control::set_theme_sheet) compiles at once when attached and
+// at attachment otherwise, and reports both.
 
+#include "gui_forms/basic_controls.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/window.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
 #include <cstddef>
+#include <memory>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -65,12 +71,57 @@ void test_the_name_is_escaped() {
             "the package holds the one sheet");
 }
 
+// Counts theme_sheet_compiled and keeps the last result's outcome.
+struct SheetReports final {
+    int count{};
+    bool succeeded{};
+    std::size_t diagnostics{};
+    void record(const ThemeCompileResult& result) {
+        count = count + 1;
+        succeeded = result.succeeded();
+        diagnostics = result.diagnostics().size();
+    }
+};
+
+void test_a_control_theme_sheet_compiles_when_set_or_at_attachment() {
+    const std::string_view sheet = "button::part(face) { background-color: #3366cc }\n";
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("sheet.root"));
+    std::shared_ptr<Panel> preview = make_control<Panel>(StableId("sheet.preview"));
+    SheetReports reports{};
+    SubscriptionToken token = (*preview).theme_sheet_compiled().subscribe(
+        Delegate<const ThemeCompileResult&>::bind<SheetReports, &SheetReports::record>(reports));
+    // Detached: the sheet waits.
+    require(!(*preview).set_theme_sheet(sheet, "preview-sheet") && (*preview).theme_sheet_pending(),
+            "a sheet set while detached waits for an attachment");
+    require(reports.count == 0 && (*preview).theme_override() == nullptr, "nothing compiles before the attachment");
+    (*root).add_child(preview);
+    const std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
+    Window window(root, Size{320.0, 160.0}, resources);
+    require(reports.count == 1 && reports.succeeded && !(*preview).theme_sheet_pending(),
+            "the attachment compiles the waiting sheet and reports it");
+    require((*preview).theme_override() != nullptr, "the compiled sheet is the control's theme override");
+    // Attached: a new sheet compiles at once; a refused one keeps the theme.
+    const std::shared_ptr<const Theme> applied = (*preview).theme_override();
+    require(!(*preview).set_theme_sheet("button { opacity: 0.9 }\n/* never closed\n", "preview-sheet"),
+            "a refused sheet returns false");
+    require(reports.count == 2 && !reports.succeeded && reports.diagnostics > 0U,
+            "the refusal is reported with its diagnostics");
+    require((*preview).theme_override() == applied, "a refused sheet keeps the override it found");
+    require((*preview).set_theme_sheet(sheet, "preview-sheet") && reports.count == 3 && reports.succeeded,
+            "an attached control compiles its sheet at once");
+    static_cast<void>((*preview).set_theme_sheet("", "preview-sheet"));
+    require((*preview).theme_override() == nullptr && (*preview).theme_sheet().empty(),
+            "an empty sheet removes the sheet and its override");
+    token.disconnect();
+}
+
 } // namespace
 
 int main() {
     test_a_sheet_compiles_and_recompiles_when_edited();
     test_a_refused_sheet_names_its_line();
     test_the_name_is_escaped();
+    test_a_control_theme_sheet_compiles_when_set_or_at_attachment();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

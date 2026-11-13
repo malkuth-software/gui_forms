@@ -183,6 +183,7 @@
     _ZGVZN9gui_forms11PageContent*;
     _ZGVZN9gui_forms11PartProfile*;
     _ZGVZN9gui_forms11PhysicalKey*;
+    _ZGVZN9gui_forms11PlotPalette*;
     _ZGVZN9gui_forms11PngMetadata*;
     _ZGVZN9gui_forms11ProgressBar*;
     _ZGVZN9gui_forms11RadialGauge*;
@@ -364,6 +365,7 @@
     _ZGVZN9gui_forms13PageSetLimits*;
     _ZGVZN9gui_forms13ParagraphLine*;
     _ZGVZN9gui_forms13PartHitRegion*;
+    _ZGVZN9gui_forms13PlotLinkGroup*;
     _ZGVZN9gui_forms13PlotPointPick*;
     _ZGVZN9gui_forms13PresentedArea*;
     _ZGVZN9gui_forms13PrimitiveCost*;
@@ -474,6 +476,7 @@
     _ZGVZN9gui_forms14ScrollSnapshot*;
     _ZGVZN9gui_forms14ShapingFeature*;
     _ZGVZN9gui_forms14ShapingRequest*;
+    _ZGVZN9gui_forms14SparklineStyle*;
     _ZGVZN9gui_forms14SplitContainer*;
     _ZGVZN9gui_forms14SubSurfaceHost*;
     _ZGVZN9gui_forms14TaskDialogPage*;
@@ -512,6 +515,7 @@
     _ZGVZN9gui_forms15DockLayoutState*;
     _ZGVZN9gui_forms15DockNamedLayout*;
     _ZGVZN9gui_forms15DockPanelRecord*;
+    _ZGVZN9gui_forms15DockPanelsAdded*;
     _ZGVZN9gui_forms15DockTransaction*;
     _ZGVZN9gui_forms15DockWindowFrame*;
     _ZGVZN9gui_forms15DocumentMapSpan*;
@@ -662,6 +666,8 @@
     _ZGVZN9gui_forms16ParagraphStorage*;
     _ZGVZN9gui_forms16PartRasterResult*;
     _ZGVZN9gui_forms16PartRecordHandle*;
+    _ZGVZN9gui_forms16PlotCustomExtent*;
+    _ZGVZN9gui_forms16PlotCustomSeries*;
     _ZGVZN9gui_forms16RangeScrollEvent*;
     _ZGVZN9gui_forms16RetainedDrawMemo*;
     _ZGVZN9gui_forms16RibbonRecentItem*;
@@ -753,6 +759,7 @@
     _ZGVZN9gui_forms17ObjectDetailsCell*;
     _ZGVZN9gui_forms17ObjectDetailsSort*;
     _ZGVZN9gui_forms17PartRasterRequest*;
+    _ZGVZN9gui_forms17PlotHeatmapSeries*;
     _ZGVZN9gui_forms17PresentationState*;
     _ZGVZN9gui_forms17PrimitiveRegistry*;
     _ZGVZN9gui_forms17PropertyEnumValue*;
@@ -875,6 +882,7 @@
     _ZGVZN9gui_forms18ScrollAxisSnapshot*;
     _ZGVZN9gui_forms18SemanticDescriptor*;
     _ZGVZN9gui_forms18SemanticTextLayout*;
+    _ZGVZN9gui_forms18SparklineWorkspace*;
     _ZGVZN9gui_forms18SpatialQueryResult*;
     _ZGVZN9gui_forms18SplashscreenResult*;
     _ZGVZN9gui_forms18TabSelectionChange*;
@@ -914,6 +922,7 @@
     _ZGVZN9gui_forms19DockNavigatorChoice*;
     _ZGVZN9gui_forms19DockPanelDescriptor*;
     _ZGVZN9gui_forms19DocumentPageRequest*;
+    _ZGVZN9gui_forms19DrawingReplayReport*;
     _ZGVZN9gui_forms19ErrorProviderChange*;
     _ZGVZN9gui_forms19FlexAvailableExtent*;
     _ZGVZN9gui_forms19FlexLayoutWorkspace*;
@@ -957,6 +966,7 @@
     _ZGVZN9gui_forms19OffscreenAttachment*;
     _ZGVZN9gui_forms19PageSelectionChange*;
     _ZGVZN9gui_forms19ParameterValidation*;
+    _ZGVZN9gui_forms19PlotHistogramSeries*;
     _ZGVZN9gui_forms19PngValidationResult*;
     _ZGVZN9gui_forms19PreparedTextMetrics*;
     _ZGVZN9gui_forms19PreparedTextService*;
@@ -1696,6 +1706,7 @@
     _ZGVZNK9gui_forms11PageContent*;
     _ZGVZNK9gui_forms11PartProfile*;
     _ZGVZNK9gui_forms11PhysicalKey*;
+    _ZGVZNK9gui_forms11PlotPalette*;
     _ZGVZNK9gui_forms11PngMetadata*;
     _ZGVZNK9gui_forms11ProgressBar*;
     _ZGVZNK9gui_forms11RadialGauge*;
@@ -1877,6 +1888,7 @@
     _ZGVZNK9gui_forms13PageSetLimits*;
     _ZGVZNK9gui_forms13ParagraphLine*;
     _ZGVZNK9gui_forms13PartHitRegion*;
+    _ZGVZNK9gui_forms13PlotLinkGroup*;
     _ZGVZNK9gui_forms13PlotPointPick*;
     _ZGVZNK9gui_forms13PresentedArea*;
     _ZGVZNK9gui_forms13PrimitiveCost*;
@@ -1987,6 +1999,7 @@
     _ZGVZNK9gui_forms14ScrollSnapshot*;
     _ZGVZNK9gui_forms14ShapingFeature*;
     _ZGVZNK9gui_forms14ShapingRequest*;
+    _ZGVZNK9gui_forms14SparklineStyle*;
     _ZGVZNK9gui_forms14SplitContainer*;
     _ZGVZNK9gui_forms14SubSurfaceHost*;
     _ZGVZNK9gui_forms14TaskDialogPage*;
@@ -2025,6 +2038,7 @@
     _ZGVZNK9gui_forms15DockLayoutState*;
     _ZGVZNK9gui_forms15DockNamedLayout*;
     _ZGVZNK9gui_forms15DockPanelRecord*;
+    _ZGVZNK9gui_forms15DockPanelsAdded*;
     _ZGVZNK9gui_forms15DockTransaction*;
     _ZGVZNK9gui_forms15DockWindowFrame*;
     _ZGVZNK9gui_forms15DocumentMapSpan*;
@@ -2175,6 +2189,8 @@
     _ZGVZNK9gui_forms16ParagraphStorage*;
     _ZGVZNK9gui_forms16PartRasterResult*;
     _ZGVZNK9gui_forms16PartRecordHandle*;
+    _ZGVZNK9gui_forms16PlotCustomExtent*;
+    _ZGVZNK9gui_forms16PlotCustomSeries*;
     _ZGVZNK9gui_forms16RangeScrollEvent*;
     _ZGVZNK9gui_forms16RetainedDrawMemo*;
     _ZGVZNK9gui_forms16RibbonRecentItem*;
@@ -2266,6 +2282,7 @@
     _ZGVZNK9gui_forms17ObjectDetailsCell*;
     _ZGVZNK9gui_forms17ObjectDetailsSort*;
     _ZGVZNK9gui_forms17PartRasterRequest*;
+    _ZGVZNK9gui_forms17PlotHeatmapSeries*;
     _ZGVZNK9gui_forms17PresentationState*;
     _ZGVZNK9gui_forms17PrimitiveRegistry*;
     _ZGVZNK9gui_forms17PropertyEnumValue*;
@@ -2388,6 +2405,7 @@
     _ZGVZNK9gui_forms18ScrollAxisSnapshot*;
     _ZGVZNK9gui_forms18SemanticDescriptor*;
     _ZGVZNK9gui_forms18SemanticTextLayout*;
+    _ZGVZNK9gui_forms18SparklineWorkspace*;
     _ZGVZNK9gui_forms18SpatialQueryResult*;
     _ZGVZNK9gui_forms18SplashscreenResult*;
     _ZGVZNK9gui_forms18TabSelectionChange*;
@@ -2427,6 +2445,7 @@
     _ZGVZNK9gui_forms19DockNavigatorChoice*;
     _ZGVZNK9gui_forms19DockPanelDescriptor*;
     _ZGVZNK9gui_forms19DocumentPageRequest*;
+    _ZGVZNK9gui_forms19DrawingReplayReport*;
     _ZGVZNK9gui_forms19ErrorProviderChange*;
     _ZGVZNK9gui_forms19FlexAvailableExtent*;
     _ZGVZNK9gui_forms19FlexLayoutWorkspace*;
@@ -2470,6 +2489,7 @@
     _ZGVZNK9gui_forms19OffscreenAttachment*;
     _ZGVZNK9gui_forms19PageSelectionChange*;
     _ZGVZNK9gui_forms19ParameterValidation*;
+    _ZGVZNK9gui_forms19PlotHistogramSeries*;
     _ZGVZNK9gui_forms19PngValidationResult*;
     _ZGVZNK9gui_forms19PreparedTextMetrics*;
     _ZGVZNK9gui_forms19PreparedTextService*;
@@ -3271,6 +3291,7 @@
     _ZN9gui_forms11PageContent*;
     _ZN9gui_forms11PartProfile*;
     _ZN9gui_forms11PhysicalKey*;
+    _ZN9gui_forms11PlotPalette*;
     _ZN9gui_forms11PngMetadata*;
     _ZN9gui_forms11ProgressBar*;
     _ZN9gui_forms11RadialGauge*;
@@ -3514,6 +3535,7 @@
     _ZN9gui_forms13PageSetLimits*;
     _ZN9gui_forms13ParagraphLine*;
     _ZN9gui_forms13PartHitRegion*;
+    _ZN9gui_forms13PlotLinkGroup*;
     _ZN9gui_forms13PlotPointPick*;
     _ZN9gui_forms13PresentedArea*;
     _ZN9gui_forms13PrimitiveCost*;
@@ -3640,6 +3662,7 @@
     _ZN9gui_forms14ScrollSnapshot*;
     _ZN9gui_forms14ShapingFeature*;
     _ZN9gui_forms14ShapingRequest*;
+    _ZN9gui_forms14SparklineStyle*;
     _ZN9gui_forms14SplitContainer*;
     _ZN9gui_forms14SubSurfaceHost*;
     _ZN9gui_forms14TaskDialogPage*;
@@ -3724,6 +3747,7 @@
     _ZN9gui_forms15DockLayoutState*;
     _ZN9gui_forms15DockNamedLayout*;
     _ZN9gui_forms15DockPanelRecord*;
+    _ZN9gui_forms15DockPanelsAdded*;
     _ZN9gui_forms15DockTransaction*;
     _ZN9gui_forms15DockWindowFrame*;
     _ZN9gui_forms15DocumentMapSpan*;
@@ -3828,6 +3852,8 @@
     _ZN9gui_forms15logical_monitorE*;
     _ZN9gui_forms15paint_paragraphB*;
     _ZN9gui_forms15paint_paragraphE*;
+    _ZN9gui_forms15paint_sparklineB*;
+    _ZN9gui_forms15paint_sparklineE*;
     _ZN9gui_forms15plan_help_printB*;
     _ZN9gui_forms15plan_help_printE*;
     _ZN9gui_forms15proportion_rectB*;
@@ -3914,6 +3940,8 @@
     _ZN9gui_forms16ParagraphStorage*;
     _ZN9gui_forms16PartRasterResult*;
     _ZN9gui_forms16PartRecordHandle*;
+    _ZN9gui_forms16PlotCustomExtent*;
+    _ZN9gui_forms16PlotCustomSeries*;
     _ZN9gui_forms16RangeScrollEvent*;
     _ZN9gui_forms16RetainedDrawMemo*;
     _ZN9gui_forms16RibbonRecentItem*;
@@ -4069,6 +4097,7 @@
     _ZN9gui_forms17ObjectDetailsCell*;
     _ZN9gui_forms17ObjectDetailsSort*;
     _ZN9gui_forms17PartRasterRequest*;
+    _ZN9gui_forms17PlotHeatmapSeries*;
     _ZN9gui_forms17PresentationState*;
     _ZN9gui_forms17PrimitiveRegistry*;
     _ZN9gui_forms17PropertyEnumValue*;
@@ -4149,6 +4178,8 @@
     _ZN9gui_forms17part_corner_radiiE*;
     _ZN9gui_forms17plain_number_textB*;
     _ZN9gui_forms17plain_number_textE*;
+    _ZN9gui_forms17plot_series_colorB*;
+    _ZN9gui_forms17plot_series_colorE*;
     _ZN9gui_forms17process_argumentsB*;
     _ZN9gui_forms17process_argumentsE*;
     _ZN9gui_forms17program_argumentsB*;
@@ -4251,6 +4282,7 @@
     _ZN9gui_forms18ScrollAxisSnapshot*;
     _ZN9gui_forms18SemanticDescriptor*;
     _ZN9gui_forms18SemanticTextLayout*;
+    _ZN9gui_forms18SparklineWorkspace*;
     _ZN9gui_forms18SpatialQueryResult*;
     _ZN9gui_forms18SplashscreenResult*;
     _ZN9gui_forms18TabSelectionChange*;
@@ -4380,6 +4412,7 @@
     _ZN9gui_forms19DockNavigatorChoice*;
     _ZN9gui_forms19DockPanelDescriptor*;
     _ZN9gui_forms19DocumentPageRequest*;
+    _ZN9gui_forms19DrawingReplayReport*;
     _ZN9gui_forms19ErrorProviderChange*;
     _ZN9gui_forms19FlexAvailableExtent*;
     _ZN9gui_forms19FlexLayoutWorkspace*;
@@ -4423,6 +4456,7 @@
     _ZN9gui_forms19OffscreenAttachment*;
     _ZN9gui_forms19PageSelectionChange*;
     _ZN9gui_forms19ParameterValidation*;
+    _ZN9gui_forms19PlotHistogramSeries*;
     _ZN9gui_forms19PngValidationResult*;
     _ZN9gui_forms19PreparedTextMetrics*;
     _ZN9gui_forms19PreparedTextService*;
@@ -4657,6 +4691,8 @@
     _ZN9gui_forms20paint_text_over_fillE*;
     _ZN9gui_forms20reset_property_entryB*;
     _ZN9gui_forms20reset_property_entryE*;
+    _ZN9gui_forms20resolve_plot_paletteB*;
+    _ZN9gui_forms20resolve_plot_paletteE*;
     _ZN9gui_forms20rule_diagnostic_nameB*;
     _ZN9gui_forms20rule_diagnostic_nameE*;
     _ZN9gui_forms20scene_segments_crossB*;
@@ -5058,6 +5094,8 @@
     _ZN9gui_forms23rasterize_prepared_textE*;
     _ZN9gui_forms23read_theme_command_lineB*;
     _ZN9gui_forms23read_theme_command_lineE*;
+    _ZN9gui_forms23replay_drawing_commandsB*;
+    _ZN9gui_forms23replay_drawing_commandsE*;
     _ZN9gui_forms23resolve_flex_main_sizesB*;
     _ZN9gui_forms23resolve_flex_main_sizesE*;
     _ZN9gui_forms23resolve_window_backdropB*;
@@ -6092,6 +6130,7 @@
     _ZNK[RO]9gui_forms11PageContent*;
     _ZNK[RO]9gui_forms11PartProfile*;
     _ZNK[RO]9gui_forms11PhysicalKey*;
+    _ZNK[RO]9gui_forms11PlotPalette*;
     _ZNK[RO]9gui_forms11PngMetadata*;
     _ZNK[RO]9gui_forms11ProgressBar*;
     _ZNK[RO]9gui_forms11RadialGauge*;
@@ -6273,6 +6312,7 @@
     _ZNK[RO]9gui_forms13PageSetLimits*;
     _ZNK[RO]9gui_forms13ParagraphLine*;
     _ZNK[RO]9gui_forms13PartHitRegion*;
+    _ZNK[RO]9gui_forms13PlotLinkGroup*;
     _ZNK[RO]9gui_forms13PlotPointPick*;
     _ZNK[RO]9gui_forms13PresentedArea*;
     _ZNK[RO]9gui_forms13PrimitiveCost*;
@@ -6383,6 +6423,7 @@
     _ZNK[RO]9gui_forms14ScrollSnapshot*;
     _ZNK[RO]9gui_forms14ShapingFeature*;
     _ZNK[RO]9gui_forms14ShapingRequest*;
+    _ZNK[RO]9gui_forms14SparklineStyle*;
     _ZNK[RO]9gui_forms14SplitContainer*;
     _ZNK[RO]9gui_forms14SubSurfaceHost*;
     _ZNK[RO]9gui_forms14TaskDialogPage*;
@@ -6421,6 +6462,7 @@
     _ZNK[RO]9gui_forms15DockLayoutState*;
     _ZNK[RO]9gui_forms15DockNamedLayout*;
     _ZNK[RO]9gui_forms15DockPanelRecord*;
+    _ZNK[RO]9gui_forms15DockPanelsAdded*;
     _ZNK[RO]9gui_forms15DockTransaction*;
     _ZNK[RO]9gui_forms15DockWindowFrame*;
     _ZNK[RO]9gui_forms15DocumentMapSpan*;
@@ -6571,6 +6613,8 @@
     _ZNK[RO]9gui_forms16ParagraphStorage*;
     _ZNK[RO]9gui_forms16PartRasterResult*;
     _ZNK[RO]9gui_forms16PartRecordHandle*;
+    _ZNK[RO]9gui_forms16PlotCustomExtent*;
+    _ZNK[RO]9gui_forms16PlotCustomSeries*;
     _ZNK[RO]9gui_forms16RangeScrollEvent*;
     _ZNK[RO]9gui_forms16RetainedDrawMemo*;
     _ZNK[RO]9gui_forms16RibbonRecentItem*;
@@ -6662,6 +6706,7 @@
     _ZNK[RO]9gui_forms17ObjectDetailsCell*;
     _ZNK[RO]9gui_forms17ObjectDetailsSort*;
     _ZNK[RO]9gui_forms17PartRasterRequest*;
+    _ZNK[RO]9gui_forms17PlotHeatmapSeries*;
     _ZNK[RO]9gui_forms17PresentationState*;
     _ZNK[RO]9gui_forms17PrimitiveRegistry*;
     _ZNK[RO]9gui_forms17PropertyEnumValue*;
@@ -6784,6 +6829,7 @@
     _ZNK[RO]9gui_forms18ScrollAxisSnapshot*;
     _ZNK[RO]9gui_forms18SemanticDescriptor*;
     _ZNK[RO]9gui_forms18SemanticTextLayout*;
+    _ZNK[RO]9gui_forms18SparklineWorkspace*;
     _ZNK[RO]9gui_forms18SpatialQueryResult*;
     _ZNK[RO]9gui_forms18SplashscreenResult*;
     _ZNK[RO]9gui_forms18TabSelectionChange*;
@@ -6823,6 +6869,7 @@
     _ZNK[RO]9gui_forms19DockNavigatorChoice*;
     _ZNK[RO]9gui_forms19DockPanelDescriptor*;
     _ZNK[RO]9gui_forms19DocumentPageRequest*;
+    _ZNK[RO]9gui_forms19DrawingReplayReport*;
     _ZNK[RO]9gui_forms19ErrorProviderChange*;
     _ZNK[RO]9gui_forms19FlexAvailableExtent*;
     _ZNK[RO]9gui_forms19FlexLayoutWorkspace*;
@@ -6866,6 +6913,7 @@
     _ZNK[RO]9gui_forms19OffscreenAttachment*;
     _ZNK[RO]9gui_forms19PageSelectionChange*;
     _ZNK[RO]9gui_forms19ParameterValidation*;
+    _ZNK[RO]9gui_forms19PlotHistogramSeries*;
     _ZNK[RO]9gui_forms19PngValidationResult*;
     _ZNK[RO]9gui_forms19PreparedTextMetrics*;
     _ZNK[RO]9gui_forms19PreparedTextService*;
@@ -7605,6 +7653,7 @@
     _ZN[KRO]9gui_forms11PageContent*;
     _ZN[KRO]9gui_forms11PartProfile*;
     _ZN[KRO]9gui_forms11PhysicalKey*;
+    _ZN[KRO]9gui_forms11PlotPalette*;
     _ZN[KRO]9gui_forms11PngMetadata*;
     _ZN[KRO]9gui_forms11ProgressBar*;
     _ZN[KRO]9gui_forms11RadialGauge*;
@@ -7786,6 +7835,7 @@
     _ZN[KRO]9gui_forms13PageSetLimits*;
     _ZN[KRO]9gui_forms13ParagraphLine*;
     _ZN[KRO]9gui_forms13PartHitRegion*;
+    _ZN[KRO]9gui_forms13PlotLinkGroup*;
     _ZN[KRO]9gui_forms13PlotPointPick*;
     _ZN[KRO]9gui_forms13PresentedArea*;
     _ZN[KRO]9gui_forms13PrimitiveCost*;
@@ -7896,6 +7946,7 @@
     _ZN[KRO]9gui_forms14ScrollSnapshot*;
     _ZN[KRO]9gui_forms14ShapingFeature*;
     _ZN[KRO]9gui_forms14ShapingRequest*;
+    _ZN[KRO]9gui_forms14SparklineStyle*;
     _ZN[KRO]9gui_forms14SplitContainer*;
     _ZN[KRO]9gui_forms14SubSurfaceHost*;
     _ZN[KRO]9gui_forms14TaskDialogPage*;
@@ -7934,6 +7985,7 @@
     _ZN[KRO]9gui_forms15DockLayoutState*;
     _ZN[KRO]9gui_forms15DockNamedLayout*;
     _ZN[KRO]9gui_forms15DockPanelRecord*;
+    _ZN[KRO]9gui_forms15DockPanelsAdded*;
     _ZN[KRO]9gui_forms15DockTransaction*;
     _ZN[KRO]9gui_forms15DockWindowFrame*;
     _ZN[KRO]9gui_forms15DocumentMapSpan*;
@@ -8084,6 +8136,8 @@
     _ZN[KRO]9gui_forms16ParagraphStorage*;
     _ZN[KRO]9gui_forms16PartRasterResult*;
     _ZN[KRO]9gui_forms16PartRecordHandle*;
+    _ZN[KRO]9gui_forms16PlotCustomExtent*;
+    _ZN[KRO]9gui_forms16PlotCustomSeries*;
     _ZN[KRO]9gui_forms16RangeScrollEvent*;
     _ZN[KRO]9gui_forms16RetainedDrawMemo*;
     _ZN[KRO]9gui_forms16RibbonRecentItem*;
@@ -8175,6 +8229,7 @@
     _ZN[KRO]9gui_forms17ObjectDetailsCell*;
     _ZN[KRO]9gui_forms17ObjectDetailsSort*;
     _ZN[KRO]9gui_forms17PartRasterRequest*;
+    _ZN[KRO]9gui_forms17PlotHeatmapSeries*;
     _ZN[KRO]9gui_forms17PresentationState*;
     _ZN[KRO]9gui_forms17PrimitiveRegistry*;
     _ZN[KRO]9gui_forms17PropertyEnumValue*;
@@ -8297,6 +8352,7 @@
     _ZN[KRO]9gui_forms18ScrollAxisSnapshot*;
     _ZN[KRO]9gui_forms18SemanticDescriptor*;
     _ZN[KRO]9gui_forms18SemanticTextLayout*;
+    _ZN[KRO]9gui_forms18SparklineWorkspace*;
     _ZN[KRO]9gui_forms18SpatialQueryResult*;
     _ZN[KRO]9gui_forms18SplashscreenResult*;
     _ZN[KRO]9gui_forms18TabSelectionChange*;
@@ -8336,6 +8392,7 @@
     _ZN[KRO]9gui_forms19DockNavigatorChoice*;
     _ZN[KRO]9gui_forms19DockPanelDescriptor*;
     _ZN[KRO]9gui_forms19DocumentPageRequest*;
+    _ZN[KRO]9gui_forms19DrawingReplayReport*;
     _ZN[KRO]9gui_forms19ErrorProviderChange*;
     _ZN[KRO]9gui_forms19FlexAvailableExtent*;
     _ZN[KRO]9gui_forms19FlexLayoutWorkspace*;
@@ -8379,6 +8436,7 @@
     _ZN[KRO]9gui_forms19OffscreenAttachment*;
     _ZN[KRO]9gui_forms19PageSelectionChange*;
     _ZN[KRO]9gui_forms19ParameterValidation*;
+    _ZN[KRO]9gui_forms19PlotHistogramSeries*;
     _ZN[KRO]9gui_forms19PngValidationResult*;
     _ZN[KRO]9gui_forms19PreparedTextMetrics*;
     _ZN[KRO]9gui_forms19PreparedTextService*;
@@ -9118,6 +9176,7 @@
     _ZT[VIST]N9gui_forms11PageContent*E;
     _ZT[VIST]N9gui_forms11PartProfile*E;
     _ZT[VIST]N9gui_forms11PhysicalKey*E;
+    _ZT[VIST]N9gui_forms11PlotPalette*E;
     _ZT[VIST]N9gui_forms11PngMetadata*E;
     _ZT[VIST]N9gui_forms11ProgressBar*E;
     _ZT[VIST]N9gui_forms11RadialGauge*E;
@@ -9299,6 +9358,7 @@
     _ZT[VIST]N9gui_forms13PageSetLimits*E;
     _ZT[VIST]N9gui_forms13ParagraphLine*E;
     _ZT[VIST]N9gui_forms13PartHitRegion*E;
+    _ZT[VIST]N9gui_forms13PlotLinkGroup*E;
     _ZT[VIST]N9gui_forms13PlotPointPick*E;
     _ZT[VIST]N9gui_forms13PresentedArea*E;
     _ZT[VIST]N9gui_forms13PrimitiveCost*E;
@@ -9409,6 +9469,7 @@
     _ZT[VIST]N9gui_forms14ScrollSnapshot*E;
     _ZT[VIST]N9gui_forms14ShapingFeature*E;
     _ZT[VIST]N9gui_forms14ShapingRequest*E;
+    _ZT[VIST]N9gui_forms14SparklineStyle*E;
     _ZT[VIST]N9gui_forms14SplitContainer*E;
     _ZT[VIST]N9gui_forms14SubSurfaceHost*E;
     _ZT[VIST]N9gui_forms14TaskDialogPage*E;
@@ -9447,6 +9508,7 @@
     _ZT[VIST]N9gui_forms15DockLayoutState*E;
     _ZT[VIST]N9gui_forms15DockNamedLayout*E;
     _ZT[VIST]N9gui_forms15DockPanelRecord*E;
+    _ZT[VIST]N9gui_forms15DockPanelsAdded*E;
     _ZT[VIST]N9gui_forms15DockTransaction*E;
     _ZT[VIST]N9gui_forms15DockWindowFrame*E;
     _ZT[VIST]N9gui_forms15DocumentMapSpan*E;
@@ -9597,6 +9659,8 @@
     _ZT[VIST]N9gui_forms16ParagraphStorage*E;
     _ZT[VIST]N9gui_forms16PartRasterResult*E;
     _ZT[VIST]N9gui_forms16PartRecordHandle*E;
+    _ZT[VIST]N9gui_forms16PlotCustomExtent*E;
+    _ZT[VIST]N9gui_forms16PlotCustomSeries*E;
     _ZT[VIST]N9gui_forms16RangeScrollEvent*E;
     _ZT[VIST]N9gui_forms16RetainedDrawMemo*E;
     _ZT[VIST]N9gui_forms16RibbonRecentItem*E;
@@ -9688,6 +9752,7 @@
     _ZT[VIST]N9gui_forms17ObjectDetailsCell*E;
     _ZT[VIST]N9gui_forms17ObjectDetailsSort*E;
     _ZT[VIST]N9gui_forms17PartRasterRequest*E;
+    _ZT[VIST]N9gui_forms17PlotHeatmapSeries*E;
     _ZT[VIST]N9gui_forms17PresentationState*E;
     _ZT[VIST]N9gui_forms17PrimitiveRegistry*E;
     _ZT[VIST]N9gui_forms17PropertyEnumValue*E;
@@ -9810,6 +9875,7 @@
     _ZT[VIST]N9gui_forms18ScrollAxisSnapshot*E;
     _ZT[VIST]N9gui_forms18SemanticDescriptor*E;
     _ZT[VIST]N9gui_forms18SemanticTextLayout*E;
+    _ZT[VIST]N9gui_forms18SparklineWorkspace*E;
     _ZT[VIST]N9gui_forms18SpatialQueryResult*E;
     _ZT[VIST]N9gui_forms18SplashscreenResult*E;
     _ZT[VIST]N9gui_forms18TabSelectionChange*E;
@@ -9849,6 +9915,7 @@
     _ZT[VIST]N9gui_forms19DockNavigatorChoice*E;
     _ZT[VIST]N9gui_forms19DockPanelDescriptor*E;
     _ZT[VIST]N9gui_forms19DocumentPageRequest*E;
+    _ZT[VIST]N9gui_forms19DrawingReplayReport*E;
     _ZT[VIST]N9gui_forms19ErrorProviderChange*E;
     _ZT[VIST]N9gui_forms19FlexAvailableExtent*E;
     _ZT[VIST]N9gui_forms19FlexLayoutWorkspace*E;
@@ -9892,6 +9959,7 @@
     _ZT[VIST]N9gui_forms19OffscreenAttachment*E;
     _ZT[VIST]N9gui_forms19PageSelectionChange*E;
     _ZT[VIST]N9gui_forms19ParameterValidation*E;
+    _ZT[VIST]N9gui_forms19PlotHistogramSeries*E;
     _ZT[VIST]N9gui_forms19PngValidationResult*E;
     _ZT[VIST]N9gui_forms19PreparedTextMetrics*E;
     _ZT[VIST]N9gui_forms19PreparedTextService*E;
@@ -10631,6 +10699,7 @@
     _ZT[hvc]*9gui_forms11PageContent*;
     _ZT[hvc]*9gui_forms11PartProfile*;
     _ZT[hvc]*9gui_forms11PhysicalKey*;
+    _ZT[hvc]*9gui_forms11PlotPalette*;
     _ZT[hvc]*9gui_forms11PngMetadata*;
     _ZT[hvc]*9gui_forms11ProgressBar*;
     _ZT[hvc]*9gui_forms11RadialGauge*;
@@ -10812,6 +10881,7 @@
     _ZT[hvc]*9gui_forms13PageSetLimits*;
     _ZT[hvc]*9gui_forms13ParagraphLine*;
     _ZT[hvc]*9gui_forms13PartHitRegion*;
+    _ZT[hvc]*9gui_forms13PlotLinkGroup*;
     _ZT[hvc]*9gui_forms13PlotPointPick*;
     _ZT[hvc]*9gui_forms13PresentedArea*;
     _ZT[hvc]*9gui_forms13PrimitiveCost*;
@@ -10922,6 +10992,7 @@
     _ZT[hvc]*9gui_forms14ScrollSnapshot*;
     _ZT[hvc]*9gui_forms14ShapingFeature*;
     _ZT[hvc]*9gui_forms14ShapingRequest*;
+    _ZT[hvc]*9gui_forms14SparklineStyle*;
     _ZT[hvc]*9gui_forms14SplitContainer*;
     _ZT[hvc]*9gui_forms14SubSurfaceHost*;
     _ZT[hvc]*9gui_forms14TaskDialogPage*;
@@ -10960,6 +11031,7 @@
     _ZT[hvc]*9gui_forms15DockLayoutState*;
     _ZT[hvc]*9gui_forms15DockNamedLayout*;
     _ZT[hvc]*9gui_forms15DockPanelRecord*;
+    _ZT[hvc]*9gui_forms15DockPanelsAdded*;
     _ZT[hvc]*9gui_forms15DockTransaction*;
     _ZT[hvc]*9gui_forms15DockWindowFrame*;
     _ZT[hvc]*9gui_forms15DocumentMapSpan*;
@@ -11110,6 +11182,8 @@
     _ZT[hvc]*9gui_forms16ParagraphStorage*;
     _ZT[hvc]*9gui_forms16PartRasterResult*;
     _ZT[hvc]*9gui_forms16PartRecordHandle*;
+    _ZT[hvc]*9gui_forms16PlotCustomExtent*;
+    _ZT[hvc]*9gui_forms16PlotCustomSeries*;
     _ZT[hvc]*9gui_forms16RangeScrollEvent*;
     _ZT[hvc]*9gui_forms16RetainedDrawMemo*;
     _ZT[hvc]*9gui_forms16RibbonRecentItem*;
@@ -11201,6 +11275,7 @@
     _ZT[hvc]*9gui_forms17ObjectDetailsCell*;
     _ZT[hvc]*9gui_forms17ObjectDetailsSort*;
     _ZT[hvc]*9gui_forms17PartRasterRequest*;
+    _ZT[hvc]*9gui_forms17PlotHeatmapSeries*;
     _ZT[hvc]*9gui_forms17PresentationState*;
     _ZT[hvc]*9gui_forms17PrimitiveRegistry*;
     _ZT[hvc]*9gui_forms17PropertyEnumValue*;
@@ -11323,6 +11398,7 @@
     _ZT[hvc]*9gui_forms18ScrollAxisSnapshot*;
     _ZT[hvc]*9gui_forms18SemanticDescriptor*;
     _ZT[hvc]*9gui_forms18SemanticTextLayout*;
+    _ZT[hvc]*9gui_forms18SparklineWorkspace*;
     _ZT[hvc]*9gui_forms18SpatialQueryResult*;
     _ZT[hvc]*9gui_forms18SplashscreenResult*;
     _ZT[hvc]*9gui_forms18TabSelectionChange*;
@@ -11362,6 +11438,7 @@
     _ZT[hvc]*9gui_forms19DockNavigatorChoice*;
     _ZT[hvc]*9gui_forms19DockPanelDescriptor*;
     _ZT[hvc]*9gui_forms19DocumentPageRequest*;
+    _ZT[hvc]*9gui_forms19DrawingReplayReport*;
     _ZT[hvc]*9gui_forms19ErrorProviderChange*;
     _ZT[hvc]*9gui_forms19FlexAvailableExtent*;
     _ZT[hvc]*9gui_forms19FlexLayoutWorkspace*;
@@ -11405,6 +11482,7 @@
     _ZT[hvc]*9gui_forms19OffscreenAttachment*;
     _ZT[hvc]*9gui_forms19PageSelectionChange*;
     _ZT[hvc]*9gui_forms19ParameterValidation*;
+    _ZT[hvc]*9gui_forms19PlotHistogramSeries*;
     _ZT[hvc]*9gui_forms19PngValidationResult*;
     _ZT[hvc]*9gui_forms19PreparedTextMetrics*;
     _ZT[hvc]*9gui_forms19PreparedTextService*;
@@ -12144,6 +12222,7 @@
     _ZZN9gui_forms11PageContent*;
     _ZZN9gui_forms11PartProfile*;
     _ZZN9gui_forms11PhysicalKey*;
+    _ZZN9gui_forms11PlotPalette*;
     _ZZN9gui_forms11PngMetadata*;
     _ZZN9gui_forms11ProgressBar*;
     _ZZN9gui_forms11RadialGauge*;
@@ -12325,6 +12404,7 @@
     _ZZN9gui_forms13PageSetLimits*;
     _ZZN9gui_forms13ParagraphLine*;
     _ZZN9gui_forms13PartHitRegion*;
+    _ZZN9gui_forms13PlotLinkGroup*;
     _ZZN9gui_forms13PlotPointPick*;
     _ZZN9gui_forms13PresentedArea*;
     _ZZN9gui_forms13PrimitiveCost*;
@@ -12435,6 +12515,7 @@
     _ZZN9gui_forms14ScrollSnapshot*;
     _ZZN9gui_forms14ShapingFeature*;
     _ZZN9gui_forms14ShapingRequest*;
+    _ZZN9gui_forms14SparklineStyle*;
     _ZZN9gui_forms14SplitContainer*;
     _ZZN9gui_forms14SubSurfaceHost*;
     _ZZN9gui_forms14TaskDialogPage*;
@@ -12473,6 +12554,7 @@
     _ZZN9gui_forms15DockLayoutState*;
     _ZZN9gui_forms15DockNamedLayout*;
     _ZZN9gui_forms15DockPanelRecord*;
+    _ZZN9gui_forms15DockPanelsAdded*;
     _ZZN9gui_forms15DockTransaction*;
     _ZZN9gui_forms15DockWindowFrame*;
     _ZZN9gui_forms15DocumentMapSpan*;
@@ -12623,6 +12705,8 @@
     _ZZN9gui_forms16ParagraphStorage*;
     _ZZN9gui_forms16PartRasterResult*;
     _ZZN9gui_forms16PartRecordHandle*;
+    _ZZN9gui_forms16PlotCustomExtent*;
+    _ZZN9gui_forms16PlotCustomSeries*;
     _ZZN9gui_forms16RangeScrollEvent*;
     _ZZN9gui_forms16RetainedDrawMemo*;
     _ZZN9gui_forms16RibbonRecentItem*;
@@ -12714,6 +12798,7 @@
     _ZZN9gui_forms17ObjectDetailsCell*;
     _ZZN9gui_forms17ObjectDetailsSort*;
     _ZZN9gui_forms17PartRasterRequest*;
+    _ZZN9gui_forms17PlotHeatmapSeries*;
     _ZZN9gui_forms17PresentationState*;
     _ZZN9gui_forms17PrimitiveRegistry*;
     _ZZN9gui_forms17PropertyEnumValue*;
@@ -12836,6 +12921,7 @@
     _ZZN9gui_forms18ScrollAxisSnapshot*;
     _ZZN9gui_forms18SemanticDescriptor*;
     _ZZN9gui_forms18SemanticTextLayout*;
+    _ZZN9gui_forms18SparklineWorkspace*;
     _ZZN9gui_forms18SpatialQueryResult*;
     _ZZN9gui_forms18SplashscreenResult*;
     _ZZN9gui_forms18TabSelectionChange*;
@@ -12875,6 +12961,7 @@
     _ZZN9gui_forms19DockNavigatorChoice*;
     _ZZN9gui_forms19DockPanelDescriptor*;
     _ZZN9gui_forms19DocumentPageRequest*;
+    _ZZN9gui_forms19DrawingReplayReport*;
     _ZZN9gui_forms19ErrorProviderChange*;
     _ZZN9gui_forms19FlexAvailableExtent*;
     _ZZN9gui_forms19FlexLayoutWorkspace*;
@@ -12918,6 +13005,7 @@
     _ZZN9gui_forms19OffscreenAttachment*;
     _ZZN9gui_forms19PageSelectionChange*;
     _ZZN9gui_forms19ParameterValidation*;
+    _ZZN9gui_forms19PlotHistogramSeries*;
     _ZZN9gui_forms19PngValidationResult*;
     _ZZN9gui_forms19PreparedTextMetrics*;
     _ZZN9gui_forms19PreparedTextService*;
@@ -13657,6 +13745,7 @@
     _ZZNK9gui_forms11PageContent*;
     _ZZNK9gui_forms11PartProfile*;
     _ZZNK9gui_forms11PhysicalKey*;
+    _ZZNK9gui_forms11PlotPalette*;
     _ZZNK9gui_forms11PngMetadata*;
     _ZZNK9gui_forms11ProgressBar*;
     _ZZNK9gui_forms11RadialGauge*;
@@ -13838,6 +13927,7 @@
     _ZZNK9gui_forms13PageSetLimits*;
     _ZZNK9gui_forms13ParagraphLine*;
     _ZZNK9gui_forms13PartHitRegion*;
+    _ZZNK9gui_forms13PlotLinkGroup*;
     _ZZNK9gui_forms13PlotPointPick*;
     _ZZNK9gui_forms13PresentedArea*;
     _ZZNK9gui_forms13PrimitiveCost*;
@@ -13948,6 +14038,7 @@
     _ZZNK9gui_forms14ScrollSnapshot*;
     _ZZNK9gui_forms14ShapingFeature*;
     _ZZNK9gui_forms14ShapingRequest*;
+    _ZZNK9gui_forms14SparklineStyle*;
     _ZZNK9gui_forms14SplitContainer*;
     _ZZNK9gui_forms14SubSurfaceHost*;
     _ZZNK9gui_forms14TaskDialogPage*;
@@ -13986,6 +14077,7 @@
     _ZZNK9gui_forms15DockLayoutState*;
     _ZZNK9gui_forms15DockNamedLayout*;
     _ZZNK9gui_forms15DockPanelRecord*;
+    _ZZNK9gui_forms15DockPanelsAdded*;
     _ZZNK9gui_forms15DockTransaction*;
     _ZZNK9gui_forms15DockWindowFrame*;
     _ZZNK9gui_forms15DocumentMapSpan*;
@@ -14136,6 +14228,8 @@
     _ZZNK9gui_forms16ParagraphStorage*;
     _ZZNK9gui_forms16PartRasterResult*;
     _ZZNK9gui_forms16PartRecordHandle*;
+    _ZZNK9gui_forms16PlotCustomExtent*;
+    _ZZNK9gui_forms16PlotCustomSeries*;
     _ZZNK9gui_forms16RangeScrollEvent*;
     _ZZNK9gui_forms16RetainedDrawMemo*;
     _ZZNK9gui_forms16RibbonRecentItem*;
@@ -14227,6 +14321,7 @@
     _ZZNK9gui_forms17ObjectDetailsCell*;
     _ZZNK9gui_forms17ObjectDetailsSort*;
     _ZZNK9gui_forms17PartRasterRequest*;
+    _ZZNK9gui_forms17PlotHeatmapSeries*;
     _ZZNK9gui_forms17PresentationState*;
     _ZZNK9gui_forms17PrimitiveRegistry*;
     _ZZNK9gui_forms17PropertyEnumValue*;
@@ -14349,6 +14444,7 @@
     _ZZNK9gui_forms18ScrollAxisSnapshot*;
     _ZZNK9gui_forms18SemanticDescriptor*;
     _ZZNK9gui_forms18SemanticTextLayout*;
+    _ZZNK9gui_forms18SparklineWorkspace*;
     _ZZNK9gui_forms18SpatialQueryResult*;
     _ZZNK9gui_forms18SplashscreenResult*;
     _ZZNK9gui_forms18TabSelectionChange*;
@@ -14388,6 +14484,7 @@
     _ZZNK9gui_forms19DockNavigatorChoice*;
     _ZZNK9gui_forms19DockPanelDescriptor*;
     _ZZNK9gui_forms19DocumentPageRequest*;
+    _ZZNK9gui_forms19DrawingReplayReport*;
     _ZZNK9gui_forms19ErrorProviderChange*;
     _ZZNK9gui_forms19FlexAvailableExtent*;
     _ZZNK9gui_forms19FlexLayoutWorkspace*;
@@ -14431,6 +14528,7 @@
     _ZZNK9gui_forms19OffscreenAttachment*;
     _ZZNK9gui_forms19PageSelectionChange*;
     _ZZNK9gui_forms19ParameterValidation*;
+    _ZZNK9gui_forms19PlotHistogramSeries*;
     _ZZNK9gui_forms19PngValidationResult*;
     _ZZNK9gui_forms19PreparedTextMetrics*;
     _ZZNK9gui_forms19PreparedTextService*;
