@@ -26,9 +26,12 @@ target_compile_features(installed_feature_consumer PRIVATE cxx_std_20)
 target_link_libraries(installed_feature_consumer PRIVATE
     GUIForms::Application GUIForms::TextMasks GUIForms::AudioLoopTransport)
 if(WIN32)
+    # The installed DLLs it loads beside it: Application, Threading and
+    # STXlib's shared state (stxlib_state.dll, which Application loads).
     add_custom_command(TARGET installed_feature_consumer POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             "$<TARGET_FILE:GUIForms::Application>" "$<TARGET_FILE:GUIForms::Threading>"
+            "$<TARGET_FILE:stxlib::state>"
             "$<TARGET_FILE_DIR:installed_feature_consumer>")
 endif()
 # Static libraries: nothing to copy beside the executable.

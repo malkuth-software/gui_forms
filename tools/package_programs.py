@@ -424,6 +424,40 @@ def stxlib_license_directory(build_dir: Path | None) -> Path | None:
     return None
 
 
+# STXlib's shared state (libstxlib_state.dylib, libstxlib_state.so or
+# stxlib_state.dll; one per process, stx's cmake/Stxlib.cmake) ships with every
+# program that links libgui_forms_application or the controls. It is a file of
+# the stx package the build linked, <package>/stx/lib (bin on Windows), not of
+# the build directory.
+STXLIB_STATE_LIBRARY_STEM: str = "stxlib_state"
+
+
+def stx_runtime_directories(build_dir: Path | None) -> list[Path]:
+    """The library and program directories of the stx package a build linked.
+
+    For the build directory and its toolkit/ subdirectory, each package the
+    cache names (GUI_FORMS_STX_PREFIX, GUI_FORMS_STX_PACKAGE_DIR) gives
+    <package>/stx/lib and <package>/stx/bin, where they exist, in that order
+    and without repeats.
+    """
+    directories: list[Path] = []
+    if build_dir is None:
+        return directories
+    build: Path
+    for build in (build_dir, build_dir / "toolkit"):
+        variable: str
+        for variable in STX_PACKAGE_VARIABLES:
+            value: str = _cached_value(build, variable)
+            if not value:
+                continue
+            part: str
+            for part in ("lib", "bin"):
+                directory: Path = Path(value) / "stx" / part
+                if directory.is_dir() and directory not in directories:
+                    directories.append(directory)
+    return directories
+
+
 def _is_stx_checkout(directory: Path) -> bool:
     marker: Path = directory / "stx_zlib" / "CMakeLists.txt"
     return marker.is_file()
@@ -671,6 +705,8 @@ class Packager:
                 candidates += [expand(base, original_executable) / relative for base in self.otool_rpaths(original_executable)]
                 if self.runtime is not None:
                     candidates.append(self.runtime / "lib" / relative)
+                # libstxlib_state, from the stx package the build linked.
+                candidates += [directory / relative for directory in stx_runtime_directories(self.build_dir)]
             else:
                 candidates = [expand(value, owner)]
             for candidate in candidates:
@@ -828,7 +864,8 @@ class Packager:
         if objdump is None:
             raise RuntimeError("objdump (or llvm-objdump) is needed to check a Windows package's imports")
         candidates: dict[str, Path] = {}
-        for directory in [self.build_dir, self.build_dir / "toolkit"]:
+        # The build's own DLLs first, then the stx package's (stxlib_state.dll).
+        for directory in [self.build_dir, self.build_dir / "toolkit"] + stx_runtime_directories(self.build_dir):
             if directory.is_dir():
                 for path in directory.glob("*.dll"):
                     candidates.setdefault(path.name.lower(), path)
@@ -943,6 +980,12 @@ class Packager:
     # -- Linux -----------------------------------------------------------------
 
     def linux_closure(self, bundle: Path, executable: Path) -> list[Path]:
+        """Copy the program's first-party shared libraries beside it, rpath $ORIGIN.
+
+        First-party: libgui_forms_* from the build directory and
+        libstxlib_state (STXLIB_STATE_LIBRARY_STEM) from the stx package the
+        build linked; the rest are the system's.
+        """
         patchelf = self.tool("patchelf")
         binaries = [executable]
         if patchelf is None:
@@ -952,13 +995,23 @@ class Packager:
         while pending:
             binary = pending.pop()
             for name in self.run([patchelf, "--print-needed", str(binary)]).splitlines():
-                if name.startswith("libgui_forms_") and not (bundle / name).exists():
+                if (bundle / name).exists():
+                    continue
+                if name.startswith("libgui_forms_"):
                     source = next(iter(sorted(self.build_dir.rglob(name))), None)
                     if source is None:
                         raise RuntimeError(f"{binary.name} needs {name}, which the build directory lacks")
-                    shutil.copy2(source, bundle / name)
-                    binaries.append(bundle / name)
-                    pending.append(bundle / name)
+                elif name.startswith("lib" + STXLIB_STATE_LIBRARY_STEM + ".so"):
+                    found = [directory / name for directory in stx_runtime_directories(self.build_dir)
+                             if (directory / name).is_file()]
+                    if not found:
+                        raise RuntimeError(f"{binary.name} needs {name}, which the linked stx package lacks")
+                    source = found[0]
+                else:
+                    continue
+                shutil.copy2(source, bundle / name)
+                binaries.append(bundle / name)
+                pending.append(bundle / name)
         for binary in binaries:
             self.run([patchelf, "--set-rpath", "$ORIGIN", str(binary)])
         strip = self.tool("strip")
@@ -980,7 +1033,7 @@ class Packager:
         bundle = stage / program.display_name
         self.log(f"  stage {plan.built} -> {bundle}")
         if self.dry_run:
-            for step in ("copy executable; follow libgui_forms_*.so imports (patchelf), rpath $ORIGIN, strip, ldd check",
+            for step in ("copy executable; follow libgui_forms_*.so and libstxlib_state.so imports (patchelf), rpath $ORIGIN, strip, ldd check",
                          "font licences in fonts/ from assets/fonts (no face files); licenses/, README.txt, package-manifest.json",
                          f"tar.gz with top-level folder {program.display_name!r} -> {names['archive']}",
                          f"deb {deb_name} ({arch}) installing to {install_dir}, launcher /usr/bin/{deb_name}, .desktop entry, icon placeholder -> {names['installer']}"):

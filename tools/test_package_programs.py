@@ -137,11 +137,32 @@ class ManifestTests(unittest.TestCase):
             notices.mkdir(parents=True)
             self.assertEqual(pp.stx_source_directory(build, None), notices)
 
+    def test_stxlib_state_resolves_from_the_linked_package(self) -> None:
+        # libstxlib_state ships with the programs from the stx package's lib
+        # (bin on Windows), named by the build's cache, toolkit/ included.
+        with tempfile.TemporaryDirectory() as temporary:
+            build = Path(temporary) / "build"
+            (build / "toolkit").mkdir(parents=True)
+            package = Path(temporary) / "stx-package"
+            given = Path(temporary) / "given-package"
+            (build / "CMakeCache.txt").write_text(
+                "GUI_FORMS_STX_PREFIX:PATH=\nGUI_FORMS_STX_PACKAGE_DIR:PATH=" + str(package) + "\n",
+                encoding="utf-8")
+            (build / "toolkit" / "CMakeCache.txt").write_text(
+                "GUI_FORMS_STX_PREFIX:PATH=" + str(given) + "\n", encoding="utf-8")
+            self.assertEqual(pp.stx_runtime_directories(build), [])
+            self.assertEqual(pp.stx_runtime_directories(None), [])
+            (package / "stx" / "lib").mkdir(parents=True)
+            (package / "stx" / "bin").mkdir(parents=True)
+            (given / "stx" / "lib").mkdir(parents=True)
+            self.assertEqual(pp.stx_runtime_directories(build),
+                             [package / "stx" / "lib", package / "stx" / "bin", given / "stx" / "lib"])
+
     def test_windows_runtime_imports_are_recognised(self) -> None:
         for name in ("libgcc_s_seh-1.dll", "libstdc++-6.dll", "LIBSTDC++-6.DLL", "libc++.dll", "libunwind.dll",
                      "libwinpthread-1.dll", "libgomp-1.dll"):
             self.assertIsNotNone(pp.WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name), name)
-        for name in ("libgui_forms_threading.dll", "gui_forms_abi1.dll", "kernel32.dll"):
+        for name in ("libgui_forms_threading.dll", "gui_forms_abi1.dll", "stxlib_state.dll", "kernel32.dll"):
             self.assertIsNone(pp.WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name), name)
 
     def assert_rejected(self, mutate, pattern: str) -> None:

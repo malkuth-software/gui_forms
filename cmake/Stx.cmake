@@ -27,8 +27,10 @@
 #   the package holds.
 #
 # Outputs:
-# - the imported targets stxlib::state, stxlib::boundary and
-#   stxlib::algorithms (STXlib at stx's stxlib.lock commit),
+# - the imported targets stxlib::state (shared: <package>/stx/lib, or
+#   bin/stxlib_state.dll on Windows, copied beside this build's programs by
+#   gui_forms_stxlib_state_runtime), stxlib::boundary and stxlib::algorithms
+#   (STXlib at stx's stxlib.lock commit),
 #   stx_zlib::stx_zlib, stx_png::stx_png, stx_conv::stx_conv,
 #   stx_rtf2md::stx_rtf2md (and stx_vorbis's when asked);
 #   stx_skia::swizzle and, with the renderer, stx_skia::stx_skia; stx_text::md4c
@@ -280,6 +282,31 @@ list(PREPEND CMAKE_PREFIX_PATH "${GUI_FORMS_STX_PREFIX_DIR}" "${GUI_FORMS_STX_BU
 # STXlib, which stx builds at its stxlib.lock commit and installs beside its
 # packages: stx_conv's SIMD level and the controls' row height index.
 find_package(stxlib CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
+# stxlib::state is a shared library (one allocator, one mimalloc and one SIMD
+# selection per process: libgui_forms_application and each executable link
+# STXlib). macOS and Linux programs find it through the build rpath CMake
+# records for an imported library; Windows finds a DLL beside the program, so
+# every build copies stxlib_state.dll where this build writes its programs
+# (after gui_forms_stx_refresh in lockstep, which may rebuild it).
+if(WIN32)
+    get_target_property(_gui_stxlib_state_type stxlib::state TYPE)
+    if(NOT _gui_stxlib_state_type STREQUAL "SHARED_LIBRARY")
+        message(FATAL_ERROR "the stx package at ${_gui_stx_package} has a static stxlib_state; GUI.Forms needs "
+                            "one shared state per process (stx's cmake/Stxlib.cmake: STXLIB_STATE_SHARED ON)")
+    endif()
+    set(_gui_stxlib_state_directory "${CMAKE_BINARY_DIR}")
+    if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+        set(_gui_stxlib_state_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+    endif()
+    add_custom_target(gui_forms_stxlib_state_runtime ALL
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${_gui_stxlib_state_directory}"
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "$<TARGET_FILE:stxlib::state>" "${_gui_stxlib_state_directory}"
+        COMMENT "stx: stxlib_state.dll beside this build's programs"
+        VERBATIM)
+    if(TARGET gui_forms_stx_refresh)
+        add_dependencies(gui_forms_stxlib_state_runtime gui_forms_stx_refresh)
+    endif()
+endif()
 find_package(stx_zlib CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 find_package(stx_png CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 find_package(stx_conv CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")

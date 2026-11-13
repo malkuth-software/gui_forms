@@ -1795,6 +1795,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         src/runtime/application_bundle.cpp
         src/runtime/application/application.cpp
         src/runtime/offscreen/offscreen_raster_create.cpp
+        src/runtime/stxlib_state_probe.cpp
     )
     add_library(GUIForms::Application ALIAS gui_forms_application)
     set_target_properties(gui_forms_application PROPERTIES
@@ -1899,7 +1900,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XSHM=1)
     endif()
     add_library(gui_forms_application SHARED src/runtime/application_bundle.cpp src/runtime/application/application.cpp
-        src/runtime/offscreen/offscreen_raster_create.cpp)
+        src/runtime/offscreen/offscreen_raster_create.cpp src/runtime/stxlib_state_probe.cpp)
     add_library(GUIForms::Application ALIAS gui_forms_application)
     set_target_properties(gui_forms_application PROPERTIES EXPORT_NAME Application OUTPUT_NAME gui_forms_application VERSION 0.1.0 SOVERSION 0)
     target_include_directories(gui_forms_application PUBLIC
@@ -1985,7 +1986,8 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         add_library(gui_forms_application SHARED
             src/runtime/application_bundle.cpp
             src/runtime/application/application.cpp
-            src/runtime/offscreen/offscreen_raster_create.cpp)
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            src/runtime/stxlib_state_probe.cpp)
         add_library(GUIForms::Application ALIAS gui_forms_application)
         set_target_properties(gui_forms_application PROPERTIES
             EXPORT_NAME Application OUTPUT_NAME gui_forms_application
@@ -3154,6 +3156,12 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_application_native_tests PRIVATE gui_forms_application)
         add_test(NAME gui_forms_application_native_tests COMMAND gui_forms_application_native_tests)
         set_tests_properties(gui_forms_application_native_tests PROPERTIES TIMEOUT 30)
+        # One stxlib_state across libgui_forms_application and an executable
+        # with its own copy of STXlib's static code: a static second state
+        # (two allocators, two identity issuers) fails it.
+        add_executable(gui_forms_stxlib_state_sharing_tests tests/stxlib_state_sharing_tests.cpp)
+        target_link_libraries(gui_forms_stxlib_state_sharing_tests PRIVATE gui_forms_application stxlib::boundary)
+        add_test(NAME gui_forms_stxlib_state_sharing_tests COMMAND gui_forms_stxlib_state_sharing_tests)
         if(WIN32 AND GUI_FORMS_ENABLE_WINDOWS_HOST)
             # Stage T5, phase C2's gate: a non-opaque window on the Windows
             # host through each grant, read off the composed screen. Serial,
@@ -6272,6 +6280,12 @@ endif()
 
 if(TARGET gui_forms_application)
     target_link_libraries(gui_forms_application PUBLIC GUIForms::Threading)
+    # STXlib's shared state (cmake/Stx.cmake): the library's copy of STXlib's
+    # static code (the row height index, src/runtime/stxlib_state_probe.cpp)
+    # reaches it, and every consumer links it too, so the state is in the
+    # consumer's runtime DLL set on Windows ($<TARGET_RUNTIME_DLLS>) and a
+    # consumer that links STXlib itself reaches the same state.
+    target_link_libraries(gui_forms_application PRIVATE stxlib::boundary INTERFACE stxlib::state)
     # libgui_forms_threading, beside it, when a library loads it privately
     # (the C ABI library).
     set_target_properties(gui_forms_application PROPERTIES INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}")

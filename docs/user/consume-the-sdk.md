@@ -135,17 +135,24 @@ your own copies, not both.
 
 ## Runtime files to ship
 
-`Threading` and `Application` are shared libraries. Ship them beside your
-program and use the same copy for every component:
+`Threading` and `Application` are shared libraries, and so is STXlib's
+state (`stxlib_state`: STXlib's allocator with mimalloc, its thread
+identities and its SIMD level), which the controls and `Application` use and
+which must be one copy per process. Ship them beside your program and use
+the same copy for every component:
 
 | Platform | Files | Location |
 |---|---|---|
-| macOS | `libgui_forms_threading.0.dylib`, `libgui_forms_application.0.dylib` and their versioned targets, plus `libc++.1.dylib`, `libc++abi.1.dylib`, `libunwind.1.dylib` from the runtime prefix | `Your.app/Contents/Frameworks`, with `@executable_path/../Frameworks` rpaths; sign the libraries before the bundle |
-| Linux | `libgui_forms_threading.so.0`, `libgui_forms_application.so.0` and the versioned files those symlinks resolve to | the application's runtime library directory |
-| Windows | `libgui_forms_threading.dll` and `libgui_forms_application.dll`; they embed the LLVM runtimes and winpthreads, so no runtime DLL comes with them. Your own program needs runtime DLLs only if you link it dynamically (link it with `-static`, as GUI.Forms' programs are, to need none) | beside the executable |
+| macOS | `libgui_forms_threading.0.dylib`, `libgui_forms_application.0.dylib` and their versioned targets, `libstxlib_state.dylib`, plus `libc++.1.dylib`, `libc++abi.1.dylib`, `libunwind.1.dylib` from the runtime prefix | `Your.app/Contents/Frameworks`, with `@executable_path/../Frameworks` rpaths; sign the libraries before the bundle |
+| Linux | `libgui_forms_threading.so.0`, `libgui_forms_application.so.0` and the versioned files those symlinks resolve to, and `libstxlib_state.so` | the application's runtime library directory |
+| Windows | `libgui_forms_threading.dll`, `libgui_forms_application.dll` and `stxlib_state.dll` (in the SDK's `bin/`); they embed the LLVM runtimes and winpthreads, so no runtime DLL comes with them. Your own program needs runtime DLLs only if you link it dynamically (link it with `-static`, as GUI.Forms' programs are, to need none) | beside the executable |
 
 The reference examples stage Windows DLLs with `$<TARGET_RUNTIME_DLLS:...>`
 in a post-build step; copy that pattern rather than listing DLL names.
+`Application` and the controls carry `stxlib::state` in their link
+interface, so it is in that list. In the SDK the state library sits in the
+same `lib/` as GUI.Forms' libraries (they find it through their
+`@loader_path` or `$ORIGIN` rpath), or in `bin/` on Windows.
 
 ## Fonts
 

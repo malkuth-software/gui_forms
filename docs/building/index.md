@@ -266,7 +266,9 @@ Every Windows executable and DLL links the LLVM runtimes (libc++, libc++abi,
 libunwind, compiler-rt), winpthreads and the MinGW-w64 CRT statically
 (`add_link_options(-static)` in `CMakeLists.txt`), so none imports a runtime
 DLL. `llvm-objdump -p <binary>` lists only Windows system DLLs, and
-GUI.Forms' own DLLs where a program uses them (`libgui_forms_threading.dll`).
+GUI.Forms' own DLLs where a program uses them (`libgui_forms_threading.dll`)
+and STXlib's shared state (`stxlib_state.dll`, copied from the stx package
+beside the build's programs).
 `tools/package_programs.py` fails a package whose binaries import a GCC or
 LLVM runtime DLL.
 
@@ -277,7 +279,8 @@ Windows host build produces `GUI.Forms Gallery.exe` (statically linked),
 directory.
 
 To run a Windows build under Wine, copy its build directory to the Mac and
-run the program from there: `libgui_forms_threading.dll` sits beside it and
+run the program from there: `libgui_forms_threading.dll` and
+`stxlib_state.dll` sit beside it and
 no runtime DLL is needed. Run `wine "GUI.Forms Gallery.exe"`; add
 `--automation` to accept commands from the probe.
 

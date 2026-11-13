@@ -20,6 +20,29 @@ def run(command: list[str], expected_success: bool = True) -> str:
     return result.stdout
 
 
+def check_shared_stxlib_state(prefix: Path) -> None:
+    """The SDK ships STXlib's state as one shared library (stx's cmake/Stxlib.cmake).
+
+    lib/libstxlib_state.dylib or lib/libstxlib_state.so (lib64 where the
+    platform installs there) on macOS and Linux,
+    bin/stxlib_state.dll (with lib/libstxlib_state.dll.a) on Windows. A static
+    lib/libstxlib_state.a would give the Application library and each
+    consumer their own allocator and SIMD selection, so it fails here.
+    """
+    shared: list[Path] = sorted((prefix / "bin").glob("stxlib_state.dll"))
+    library: Path
+    for library in sorted(prefix.glob("lib*")):
+        if not library.is_dir():
+            continue
+        shared += sorted(library.glob("libstxlib_state.dylib")) + sorted(library.glob("libstxlib_state.so*"))
+        if (library / "libstxlib_state.a").exists():
+            raise RuntimeError(f"the SDK has a static {library.name}/libstxlib_state.a; STXlib's state must be one "
+                               "shared library")
+    if not shared:
+        raise RuntimeError("the SDK lacks STXlib's shared state (lib/libstxlib_state.dylib or .so, or bin/stxlib_state.dll)")
+    print("Shared STXlib state: " + ", ".join(str(path.relative_to(prefix)) for path in shared))
+
+
 def main() -> None:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("prefix", type=Path)
@@ -59,6 +82,7 @@ def main() -> None:
             emulator_arguments: list[str] = shlex.split(args.runner)
             emulator_value: str = ";".join(emulator_arguments)
             package_arguments.append("-DCMAKE_CROSSCOMPILING_EMULATOR=" + emulator_value)
+        check_shared_stxlib_state(prefix)
         consumer: Path = scratch_path / "consumer"
         shutil.copytree(project / "examples" / "paint_contract", consumer)
         build: Path = scratch_path / "build"

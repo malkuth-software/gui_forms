@@ -21,8 +21,9 @@ else()
     target_link_libraries(paint_contract PRIVATE GUIForms::Controls GUIForms::Drawing)
 endif()
 if(WIN32)
-    # Every installed DLL the program loads (Threading always, Application when
-    # native) beside it, so it runs without the SDK's bin/ on PATH.
+    # Every installed DLL the program loads (Threading and STXlib's shared
+    # state, stxlib_state.dll, always; Application when native) beside it, so
+    # it runs without the SDK's bin/ on PATH.
     add_custom_command(TARGET paint_contract POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             $<TARGET_RUNTIME_DLLS:paint_contract> $<TARGET_FILE_DIR:paint_contract>

@@ -6146,6 +6146,12 @@
     _ZN9gui_forms7builtin6invokeE*;
     _ZN9gui_forms7builtin6toggleB*;
     _ZN9gui_forms7builtin6toggleE*;
+    _ZN9gui_forms7runtime25stxlib_state_probe_threadB*;
+    _ZN9gui_forms7runtime25stxlib_state_probe_threadE*;
+    _ZN9gui_forms7runtime26stxlib_state_probe_releaseB*;
+    _ZN9gui_forms7runtime26stxlib_state_probe_releaseE*;
+    _ZN9gui_forms7runtime27stxlib_state_probe_allocateB*;
+    _ZN9gui_forms7runtime27stxlib_state_probe_allocateE*;
     _ZN9gui_forms7trigger10focus_lostB*;
     _ZN9gui_forms7trigger10focus_lostE*;
     _ZN9gui_forms7trigger10key_repeatB*;
