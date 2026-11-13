@@ -111,6 +111,12 @@ timeout and a stop grace. It returns a `HostedContent`, which holds:
 The surface's status, watchdog, termination and veil work as they do for
 content in your process.
 
+`ContentSurface::start_hosted_content(options, opaque)` does both steps in
+one call: it starts the program on the surface and keeps the input
+channel. From then on the surface forwards its own input to the program
+(below). `hosted_input()` returns the channel, for its `dropped()` count
+and `connected()` state.
+
 The program connects with `HostedClient::connect()`, then loops:
 
 1. `acquire_slot` gets a frame slot the application has released.
@@ -121,7 +127,46 @@ The program connects with `HostedClient::connect()`, then loops:
 
 `pump` returns false when the application asks the program to stop or goes
 away. The client library is `gui_forms_hosted_client`. It links the
-protocol and nothing of the interface.
+protocol and nothing of the interface. The SDK installs it on macOS and
+Linux as the `HostedClient` component:
+
+```cmake
+find_package(GUIForms CONFIG REQUIRED COMPONENTS HostedClient)
+target_link_libraries(my_hosted_program PRIVATE GUIForms::HostedClient)
+```
+
+`tests/hosted_client_consumer` is an installed consumer with both ends: a
+parent that links `GUIForms::Controls`, and a program that links only
+`GUIForms::HostedClient`. `tools/verify_install.py <prefix> --hosted-client`
+builds and runs it.
+
+### Input to the hosted program
+
+A surface started with `start_hosted_content` forwards its pointer,
+keyboard, text and focus input to the program. The program reads it with
+`HostedClient::take_input` after each `pump`. The order follows the input
+rules in `manifests/abi/interaction_order.json`:
+
+- **GUI.Forms sees each event first.** The surface raises its own event
+  (`key_down`, `mouse_down`, and so on) and runs its rules. Only an event
+  that nobody handled is forwarded. A subscriber that sets `handled`, or
+  `suppress_key_press` for a key, keeps that event from the program.
+- **Only physical events are forwarded:** key down and key up, committed
+  and composing text, pointer press, release, move and wheel. Derived
+  events, such as click, double click and key press, stay in GUI.Forms;
+  the program derives its own.
+- **Focus goes after GUI.Forms' focus events.** The program receives focus
+  on after `got_focus`, and focus off after `lost_focus`. A surface that
+  already has the focus when the program starts sends focus on at once.
+- **Pointer positions are in device pixels,** relative to the surface,
+  like the frames.
+- **Input never blocks the interface.** Messages are sent without waiting.
+  When the program does not read, they queue, and above 1 MiB of backlog,
+  key downs, text and pointer events other than releases are dropped and
+  counted in `dropped()`. Key ups, pointer releases and focus changes are never
+  dropped, so the program never sees a key or button stuck down.
+- **New content ends the forwarding.** `open_content`, `start_program` and
+  `close_content` stop it; only `start_hosted_content` starts it.
 
 The application is promised four things:
 
@@ -155,7 +200,9 @@ Hosted content works on macOS and Linux, and the hosts report it as
 `HostCapability::hosted_content`
 ([Hosts and capabilities](hosts-and-capabilities.md)). The Windows
 implementation is not written yet. On Windows, `hosted_content_support()`
-returns `not_reported` and `make_hosted_content` throws.
+returns `not_reported` and `make_hosted_content` throws. What it must
+provide is listed in [What Windows hosted content must
+provide](#what-windows-hosted-content-must-provide).
 
 ## Editing text you lay out yourself
 
@@ -178,3 +225,104 @@ Until a current layout arrives, editing still works, but the caret and
 selection are not drawn. The editor draws the selection and caret over
 your frame, unless `set_draws_selection(false)` leaves them to you
 (`caret_rectangle`, `selection_rectangles`).
+
+## From C and C#
+
+The C ABI's `GF_TABLE_CONTENT` (since 1.4, `gf_content_table` in
+`gf_abi.h`) covers all of this: a content surface's channel, termination,
+the status and its captions, the statistics and semantic text, content
+programs, hosted content and the content editor. The C# bindings negotiate
+it as `Abi.content`.
+
+- **A sink is a handle** (`gf_content_sink`) that any thread may call.
+  `open_content`, `editor_open_frames` and, inside a program,
+  `program_sink` hand one out; `sink_release` ends it. The channel lives on
+  while a handle or the surface holds it.
+- **A refusal is a result, not a failed call.** `sink_publish`,
+  `sink_publish_semantics` and `editor_submit_layout` return `GF_STATUS_OK`
+  with the outcome in `result`, as the C++ functions return theirs.
+- **A content program is a callback.** `start_program` takes a
+  `gf_content_program` whose `run` is invoked once, on the program's own
+  thread. Inside it, `program_sink` gives the program's sink and
+  `program_fail` names its failure. The library releases the callback on
+  that thread after `run` returns. When `start_program` fails, the caller
+  keeps it.
+- **Hosted content** starts with `start_hosted`. It gives
+  `GF_STATUS_UNSUPPORTED_CAPABILITY` where `hosted_support` answers
+  `GF_HOSTED_SUPPORT_NOT_REPORTED`, and the host reports
+  `GF_HOST_CAPABILITY_HOSTED_CONTENT` where it is available. Input is
+  forwarded as described above; `hosted_input` reads the channel's state.
+- **Times are milliseconds,** at most `GF_CONTENT_MAXIMUM_WAIT_MS` (an hour).
+  The UI thread must not call `sink_wait_for_request`.
+
+The conformance kit's `gf_conformance_content.c` drives every slot.
+
+## What Windows hosted content must provide
+
+The Windows implementation replaces `src/host/windows/hosted/hosted_content_windows.cpp`
+and adds a Windows hosted client. It must keep the portable contract in
+`hosted_content.hpp`, `hosted_client.hpp` and `hosted_protocol.hpp`
+unchanged, and provide exactly this:
+
+1. **Support and capability.** `hosted_content_support()` returns
+   `available`. The Win32 host reports `HostCapability::hosted_content`,
+   the `win32-dib` row of `manifests/abi/host_capabilities.json` lists
+   `hosted_content`, and `start_hosted` stops answering
+   `GF_STATUS_UNSUPPORTED_CAPABILITY`.
+2. **Starting the program.** `make_hosted_content` validates the options
+   as the POSIX version does: an absolute executable path, at most
+   `maximum_hosted_slot_bytes` per slot, and timeouts that are not negative. It
+   refuses before starting anything. The program starts with
+   `CreateProcessW` and an explicit handle list
+   (`PROC_THREAD_ATTRIBUTE_HANDLE_LIST`), so it inherits only the channel
+   and the frame region. The arguments are quoted by the Windows rules.
+3. **The channel.** A byte stream carrying the same messages: an
+   anonymous pipe pair, or a named pipe opened with
+   `FILE_FLAG_OVERLAPPED`. The parent's sends never block. They use the
+   same backlog: whole messages only, never interleaved, and droppable
+   input dropped above 1 MiB of backlog. Key down, text and every pointer
+   event but release are droppable; key up, pointer release and focus are
+   not.
+4. **The frame region.** A pagefile-backed section
+   (`CreateFileMappingW`) of `hosted_slot_count` slots of `slot_bytes`
+   each, sized once. The parent maps it with `FILE_MAP_READ` only, so the
+   program cannot make the parent's reads fault by shrinking it.
+5. **The environment.** The program finds both handles through the same
+   variables: `GUI_FORMS_HOSTED_CHANNEL`, `GUI_FORMS_HOSTED_FRAMES`,
+   `GUI_FORMS_HOSTED_SLOT_BYTES` and `GUI_FORMS_HOSTED_SLOT_COUNT`. On
+   Windows the first two hold handle values in decimal.
+6. **Lifetime.** A job object with `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`,
+   so the program ends with the application even when the application
+   crashes.
+7. **The worker loop.** `ContentProgram::run` waits with
+   `WaitForMultipleObjects` over the channel's event, the process handle
+   and a stop event. It validates every message as the POSIX loop does:
+   hello first and once, within the start timeout; frames against their
+   slot; semantic text as UTF-8 within the limit. It copies each frame out
+   of the region and then sends `release` for the slot. It answers size
+   changes with `configure`. Any protocol break ends the program as
+   `failed`, with the reason as its failure text.
+8. **Stopping.** On a stop request it sends `stop`, waits the stop grace,
+   then calls `TerminateProcess`. A program that closes its channel
+   without exiting is killed after the stop grace and reported as such.
+9. **Exit reports.** Exit code 0 after goodbye is `ended`. Any other exit
+   code is `failed` with "exited with status N". Exit codes of
+   `0xC0000000` and above are crashes, reported with their NTSTATUS in
+   hexadecimal (for example `0xC0000005`, an access violation).
+10. **Input.** `HostedInput` sends key, text, pointer and focus messages
+    with the same encodings (`encode_hosted_key`, `encode_hosted_text`,
+    `encode_hosted_pointer`, `encode_hosted_focus`). `connected()` and
+    `dropped()` behave as on POSIX.
+11. **The hosted client.** `HostedClient::connect()` reads the variables,
+    duplicates nothing it does not own, maps the region read-write, and
+    sends hello. `channel_descriptor()` has no Windows meaning; the
+    Windows client needs a handle accessor in its place, added beside the
+    portable members rather than changing them. `gui_forms_hosted_client`
+    is then built and installed on Windows too, the `HostedClient`
+    component's diagnostic in `GUIFormsConfig.cmake.in` drops "macOS and
+    Linux", and `tests/hosted_client_consumer` runs there.
+12. **The tests.** `tests/hosted_content_tests.cpp` runs on Windows with
+    `tests/hosted_child.cpp` built for it: the same cases (frames, input
+    order, crash, hang, protocol break, start timeout), with the crash
+    case expecting an NTSTATUS instead of a signal name.
+
