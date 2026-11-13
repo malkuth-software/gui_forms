@@ -96,7 +96,7 @@ void run_display_target_tick(GUIFormsDisplayTarget* object, CADisplayLink* sende
         // published), selection, value and expansion changes, a changed
         // live region's announcement and a text node's changed value or
         // selection. Before any client has read it, nothing is built.
-        if ([self accessibilityTreePublished] == YES) {
+        if ([self semanticTreePublished] == YES) {
             static_cast<void>([self accessibilityChildren]);
         }
     }

@@ -134,7 +134,7 @@
     // FocusedUIElementChanged notification was posted for it when it became
     // focused (accessibilityFocusedUIElement answers it).
     GUIFormsAccessibilityElement* _accessibilityFocusedElement;
-    // Tests only (setAccessibilityNotificationLog:): every notification the
+    // Tests only (recordAccessibilityNotificationsInto:): every notification the
     // view and its elements post is appended as @[element, name]; nil,
     // recording nothing, otherwise.
     NSMutableArray<NSArray*>* _accessibilityNotificationLog;
@@ -295,8 +295,11 @@
 - (id)answerAccessibilityFocusedUIElement;
 // Whether an accessibility client has read the published tree: the
 // elements are kept from then on, and a semantic change rebuilds the tree
-// at once so its focus, selection and value changes are posted.
-- (BOOL)accessibilityTreePublished;
+// at once so its focus, selection and value changes are posted. This and
+// recordAccessibilityNotificationsInto: are the library's own calls, named
+// outside AppKit's accessibility* selectors: AppKit never sends them, so
+// they are not native entries (tools/check_native_boundaries.py).
+- (BOOL)semanticTreePublished;
 // Posts the notifications one rebuild of the published tree owes
 // (MacAccessibilityChanges) and records the focused element.
 - (void)postAccessibilityChanges:(const MacAccessibilityChanges&)changes;
@@ -305,7 +308,7 @@
 - (void)postAccessibilityNotification:(NSAccessibilityNotificationName)name element:(id)element;
 // Installs (or, with nil, removes) the notification log: a test's private
 // probe of what VoiceOver is told, read on the main thread.
-- (void)setAccessibilityNotificationLog:(NSMutableArray<NSArray*>*)log;
+- (void)recordAccessibilityNotificationsInto:(NSMutableArray<NSArray*>*)log;
 - (NSRect)answerAccessibilityFrameForSemanticBounds:(GFRect)bounds;
 // Performs `action` on a published node named as the shared routing API
 // names it: the runtime identity of its control and, for a virtual child,

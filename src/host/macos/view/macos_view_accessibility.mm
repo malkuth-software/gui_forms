@@ -94,7 +94,7 @@
     NSAccessibilityPostNotification(element, name);
 }
 
-- (void)setAccessibilityNotificationLog:(NSMutableArray<NSArray*>*)log {
+- (void)recordAccessibilityNotificationsInto:(NSMutableArray<NSArray*>*)log {
     _accessibilityNotificationLog = log;
 }
 
@@ -107,7 +107,7 @@
     return _accessibilityFocusedElement;
 }
 
-- (BOOL)accessibilityTreePublished {
+- (BOOL)semanticTreePublished {
     return _semanticAccessibilityElements.count > 0U ? YES : NO;
 }
 

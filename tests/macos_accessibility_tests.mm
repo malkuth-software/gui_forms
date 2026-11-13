@@ -46,7 +46,7 @@
 // The view's private notification probe (macos_view.hpp) and its damage
 // collection, declared here as the display link test declares its probe.
 @interface NSView (VoiceOverFocusProbe)
-- (void)setAccessibilityNotificationLog:(NSMutableArray<NSArray*>*)log;
+- (void)recordAccessibilityNotificationsInto:(NSMutableArray<NSArray*>*)log;
 - (void)collectDamage;
 @end
 
@@ -723,7 +723,7 @@ bool names_control_or_ancestor(id element, const gui_forms::Control::Ptr& contro
 // The first element, depth first, with role `role` that has a child with
 // role `child_role` whose selected state can be set and is not set; nil
 // when none. `child` receives that child.
-id find_selectable_container(NSArray* elements, NSString* role, NSString* child_role, id& child) {
+id find_selectable_container(NSArray* elements, NSString* role, NSString* child_role, __strong id& child) {
     for (id element in elements) {
         if ([[element accessibilityRole] isEqualToString:role]) {
             for (id candidate in [element accessibilityChildren]) {
@@ -760,7 +760,7 @@ void check_voiceover_focus(gui_forms::Window& window, NSView* view, Report& repo
     // window; from then on semantic changes republish it at once.
     static_cast<void>([view accessibilityChildren]);
     NSMutableArray<NSArray*>* log = [[NSMutableArray alloc] init];
-    [view setAccessibilityNotificationLog:log];
+    [view recordAccessibilityNotificationsInto:log];
     constexpr std::size_t steps = 6U;
     std::vector<id> focused_elements{};
     focused_elements.reserve(steps);
@@ -830,7 +830,7 @@ void check_voiceover_focus(gui_forms::Window& window, NSView* view, Report& repo
         expect_focus(report, posted_for(log, NSAccessibilityValueChangedNotification, check_box),
                      "pressing a check box posts ValueChanged on the check box");
     }
-    [view setAccessibilityNotificationLog:nil];
+    [view recordAccessibilityNotificationsInto:nil];
 }
 
 // ---------------------------------------------------------------------------
