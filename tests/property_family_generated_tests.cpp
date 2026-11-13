@@ -780,6 +780,11 @@ void test_data_grid_view_properties() {
         expect((*control).row_height.read() == sample, "DataGridView.row_height: a write stores");
     }
     {
+        const double sample = 20.0;
+        (*control).minimum_row_height = sample;
+        expect((*control).minimum_row_height.read() == sample, "DataGridView.minimum_row_height: a write stores");
+    }
+    {
         const std::size_t sample = 2U;
         (*control).frozen_row_count = sample;
         expect((*control).frozen_row_count.read() == sample, "DataGridView.frozen_row_count: a write stores");

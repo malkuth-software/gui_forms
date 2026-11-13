@@ -96,6 +96,10 @@ struct GUI_FORMS_API DataGridViewColumn final {
     // A fill column's share of the width the other columns leave, against
     // the other fill columns' weights; finite and positive.
     double fill_weight{100.0};
+    // Whether the user may resize the column (Windows Forms' Resizable):
+    // none inherits allow_user_to_resize_columns, a value overrides it. An
+    // automatically sized column is never resized by the user.
+    std::optional<bool> resizable{};
     // Whether the grid shows the column (Windows Forms' Visible). A hidden
     // column keeps its index, display index, width and values; layout,
     // painting, hit testing, keyboard movement, selection ranges and the
@@ -1999,6 +2003,7 @@ private:
     friend struct DataGridViewColumnHeadersHeightCapability<DataGridView>;
     friend struct DataGridViewRowHeadersWidthCapability<DataGridView>;
     friend struct DataGridViewRowHeightCapability<DataGridView>;
+    friend struct DataGridViewMinimumRowHeightCapability<DataGridView>;
     friend struct DataGridViewFrozenRowCountCapability<DataGridView>;
     friend struct FontCapability<DataGridView>;
     friend struct DataGridViewReadOnlyCapability<DataGridView>;
@@ -2068,6 +2073,8 @@ private:
     void written(const decltype(row_headers_width)& cell);
     void prepare_write(const decltype(row_height)& cell, double& incoming);
     void written(const decltype(row_height)& cell);
+    void prepare_write(const decltype(minimum_row_height)& cell, double& incoming);
+    void written(const decltype(minimum_row_height)& cell);
     void prepare_write(const decltype(frozen_row_count)& cell, std::size_t& incoming);
     void written(const decltype(frozen_row_count)& cell);
     void prepare_write(const decltype(font)& cell, FontSpec& incoming);

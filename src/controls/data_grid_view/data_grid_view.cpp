@@ -1204,6 +1204,18 @@ void DataGridView::prepare_write(const decltype(frozen_row_count)&, std::size_t&
     require_mutable();
 }
 
+void DataGridView::prepare_write(const decltype(minimum_row_height)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 4.0 || incoming > 4096.0) {
+        throw std::out_of_range("DataGridView minimum row height must be between 4 and 4096");
+    }
+}
+
+void DataGridView::written(const decltype(minimum_row_height)&) {
+    row_heights_stale_ = true;
+    structure_changed();
+}
+
 void DataGridView::written(const decltype(frozen_row_count)&) {
     structure_changed();
     // The whole grid moves: a redraw-all, folding the cell region.
@@ -1937,6 +1949,8 @@ void DataGridView::set_row_height_at(DataGridViewRowPosition row, double height)
     if (!std::isfinite(height) || height < 4.0 || height > 4096.0) {
         throw std::out_of_range("DataGridView row height must be between 4 and 4096");
     }
+    // A height under the minimum row height is raised to it.
+    height = std::max(height, minimum_row_height.read());
     const std::string row_id = row_id_text(row);
     const double before = row_height_at(row);
     own_row_heights_.insert_or_assign(row_id, height);
@@ -3683,7 +3697,7 @@ void DataGridView::handle_pointer(PointerEvent& event) {
     if (resizing_row_) {
         if (event.action == PointerAction::move && *resizing_row_ < row_count()) {
             const double delta = (local.y - resize_start_y_) / layout.scale;
-            const double height = std::clamp(resize_start_height_ + delta, 4.0, 4096.0);
+            const double height = std::clamp(resize_start_height_ + delta, minimum_row_height.read(), 4096.0);
             set_row_height_at(DataGridViewRowPosition{*resizing_row_}, height);
         } else if (event.action == PointerAction::up) {
             resizing_row_.reset();

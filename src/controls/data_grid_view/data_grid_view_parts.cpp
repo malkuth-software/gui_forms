@@ -279,8 +279,10 @@ bool DataGridView::row_resizable() const noexcept {
 }
 
 bool DataGridView::column_resizable(std::size_t column) const {
-    const bool result = allow_user_to_resize_columns.read() && column < columns_.size() &&
-                        column_auto_size_mode(column) == DataGridViewAutoSizeColumnMode::none;
+    if (column >= columns_.size()) return false;
+    const std::optional<bool> own = columns_[column].resizable;
+    const bool allowed = own ? *own : allow_user_to_resize_columns.read();
+    const bool result = allowed && column_auto_size_mode(column) == DataGridViewAutoSizeColumnMode::none;
     return result;
 }
 
@@ -628,7 +630,7 @@ std::optional<double> DataGridView::automatic_height(std::size_t position, DataG
         }
     }
     if (tallest <= 0.0) tallest = row_height.read();
-    const double result = std::clamp(tallest, 4.0, 4096.0);
+    const double result = std::clamp(tallest, minimum_row_height.read(), 4096.0);
     return result;
 }
 
@@ -984,8 +986,11 @@ DataGridViewDisplayIndex DataGridView::order_target_at(double x, const GridLayou
 
 const DataGridViewRowHeights& DataGridView::row_heights() const {
     const std::size_t count = row_count();
+    // Heights below the minimum row height are laid out at it.
+    const double minimum = minimum_row_height.read();
+    const double default_height = std::max(row_height.read(), minimum);
     const bool current = !row_heights_stale_ && row_heights_.count() == count &&
-                         row_heights_.default_height() == row_height.read();
+                         row_heights_.default_height() == default_height;
     if (current) return row_heights_;
     // Each own height at its row's present position; rows gone are skipped
     // (drop_missing_rows erases them).
@@ -993,10 +998,10 @@ const DataGridViewRowHeights& DataGridView::row_heights() const {
     for (const RowHeightsById::value_type& own : own_row_heights_) {
         const std::optional<std::size_t> position = find_row(own.first);
         if (!position || *position >= count) continue;
-        const DataGridViewRowHeight given{*position, own.second};
+        const DataGridViewRowHeight given{*position, std::max(own.second, minimum)};
         row_height_scratch_.push_back(given);
     }
-    row_heights_.reset(count, row_height.read(), row_height_scratch_);
+    row_heights_.reset(count, default_height, row_height_scratch_);
     row_heights_stale_ = false;
     return row_heights_;
 }

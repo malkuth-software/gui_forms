@@ -587,6 +587,26 @@
       "sample": "30.0"
     },
     {
+      "name": "minimum_row_height",
+      "capability": "DataGridViewMinimumRowHeight",
+      "value": "double",
+      "initial": "4.0",
+      "comment": "The least height of every row, 4 to 4096 logical units (RowTemplate.MinimumHeight, for every row): user resizing, automatic heights and set_row_height_at stop there, and shorter heights are laid out at it.",
+      "getter": "minimum_row_height",
+      "setter": "set_minimum_row_height",
+      "clear": null,
+      "field": "minimum_row_height_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "prepare checks the range; written calls structure_changed() (the grid's layout, damage and semantics)"
+      ],
+      "sample": "20.0"
+    },
+    {
       "name": "frozen_row_count",
       "capability": "DataGridViewFrozenRowCount",
       "value": "std::size_t",

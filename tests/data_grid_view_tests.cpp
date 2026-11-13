@@ -3915,6 +3915,41 @@ void three_state_and_display_style() {
     require(throws<std::invalid_argument>(AddBadDisplayStyle{grid.get()}), "a display style outside the enumeration is refused");
 }
 
+struct SetMinimumRowHeight final {
+    DataGridView* grid{};
+    double height{};
+    void operator()() const { (*grid).minimum_row_height = height; }
+};
+
+// Windows Forms' column Resizable and RowTemplate.MinimumHeight.
+void column_resizable_and_minimum_row_height() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.resizable");
+    std::vector<DataGridViewColumn> columns = sample_columns();
+    columns[0].resizable = false;
+    (*grid).set_columns(columns);
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    const std::vector<DataGridView::Column> headers = (*grid).realized_columns();
+    require(headers.size() >= 2U && !headers[0].parts.column_grip.present && headers[1].parts.column_grip.present,
+            "a column that is not resizable has no grip while the others keep theirs");
+    (*grid).allow_user_to_resize_columns = false;
+    columns[1].resizable = true;
+    (*grid).set_columns(columns);
+    window.perform_layout();
+    const std::vector<DataGridView::Column> overridden = (*grid).realized_columns();
+    require(overridden.size() >= 3U && overridden[1].parts.column_grip.present && !overridden[2].parts.column_grip.present,
+            "a resizable column overrides the grid's setting; the others inherit it");
+
+    (*grid).minimum_row_height = 30.0;
+    window.perform_layout();
+    require((*grid).row_height_at(row_at(0U)) == 30.0, "rows shorter than the minimum are laid out at it");
+    (*grid).set_row_height_at(row_at(1U), 10.0);
+    require((*grid).row_height_at(row_at(1U)) == 30.0, "a height under the minimum is raised to it");
+    (*grid).set_row_height_at(row_at(1U), 50.0);
+    require((*grid).row_height_at(row_at(1U)) == 50.0, "taller heights stand");
+    require(throws<std::out_of_range>(SetMinimumRowHeight{grid.get(), 2.0}), "the minimum is at least 4");
+}
+
 int main() {
     columns_and_rows();
     layout_and_parts();
@@ -3965,6 +4000,7 @@ int main() {
     column_selection_modes();
     cell_mouse_events();
     three_state_and_display_style();
+    column_resizable_and_minimum_row_height();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";
