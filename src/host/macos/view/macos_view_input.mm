@@ -4,6 +4,7 @@
 
 #include "macos_view.hpp"
 #include "../application/macos_values.hpp"
+#include "macos_scroll_phase.hpp"
 
 static Modifier modifiers_for(NSEventModifierFlags flags) {
     Modifier result = Modifier::none;
@@ -437,9 +438,12 @@ static std::vector<DragDataItem> drag_items_for(NSPasteboard* pasteboard) {
     // A trackpad or smooth-scrolling mouse reports precise deltas in points
     // (logical pixels), its momentum phase included, scrolled exactly; a
     // detented wheel reports lines, possibly fractional where AppKit
-    // accelerates them. Every event is dispatched: none is coalesced.
+    // accelerates them. Every event is dispatched: none is coalesced. The
+    // gesture phase lets the window latch the gesture, momentum included, to
+    // the control it began over (WheelPhase), as AppKit's scroll views do.
     input.wheel_delta = GFPoint{event.scrollingDeltaX, event.scrollingDeltaY};
     input.wheel_unit = event.hasPreciseScrollingDeltas ? WheelDeltaUnit::pixels : WheelDeltaUnit::lines;
+    input.wheel_phase = gui_forms::host::macos::wheel_phase_for(event.phase, event.momentumPhase);
     input.modifiers = modifiers_for(event.modifierFlags);
     input.pointer_id = 1;
     static_cast<void>([self dispatchHostPayload:std::move(input)

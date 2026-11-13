@@ -1029,8 +1029,22 @@ bool ScrollableControl::handle_wheel(PointerEvent& event) {
                              glide_base(ScrollOrientation::horizontal) + delta, type, false);
         }
     }
-    if (changed) event.handled = true;
-    return changed;
+    // Scroll latching's other half (WheelPhase): once this control has
+    // scrolled for a gesture, the gesture's later events stop here, so an
+    // edge reached mid-gesture or in momentum does not pass the rest of the
+    // gesture to a scrolling ancestor.
+    const WheelPhase gesture = event.wheel_phase;
+    const bool continuing = gesture == WheelPhase::changed || gesture == WheelPhase::ended ||
+        gesture == WheelPhase::momentum || gesture == WheelPhase::momentum_ended;
+    const bool absorbed = !changed && continuing && wheel_gesture_owner_;
+    if (gesture == WheelPhase::began || gesture == WheelPhase::changed) {
+        if (changed) wheel_gesture_owner_ = true;
+        if (gesture == WheelPhase::began && !changed) wheel_gesture_owner_ = false;
+    } else if (!continuing || gesture == WheelPhase::momentum_ended) {
+        wheel_gesture_owner_ = false;
+    }
+    if (changed || absorbed) event.handled = true;
+    return changed || absorbed;
 }
 
 // The wheel delta in logical pixels. A precise device's pixels are taken

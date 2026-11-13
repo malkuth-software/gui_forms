@@ -327,6 +327,12 @@ private:
     std::uint64_t pressed_pointer_id_{};
     Point repeat_pointer_{};
     FrameRequestToken repeat_frames_;
+    // This control scrolled for the current scroll gesture (WheelPhase): its
+    // later events, momentum included, stop here even where the position
+    // can move no further, so they do not chain to an ancestor that
+    // scrolls, as on macOS. Set by the gesture's first scroll, cleared by
+    // a new gesture, an event outside one and the gesture's end.
+    bool wheel_gesture_owner_{};
     bool arranging_scroll_{};
     // The scroll copy (SurfaceRoot::request_scroll_copy). Children are placed
     // at the scroll position rounded to whole device pixels, so that a

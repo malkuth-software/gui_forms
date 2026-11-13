@@ -42,6 +42,25 @@ enum class WheelDeltaUnit : std::uint8_t {
     pixels,
 };
 
+// Where a wheel event stands in a precise device's scroll gesture, for a
+// host that reports it (macOS: NSEvent phase and momentumPhase); none for a
+// detented wheel or a host that reports no gestures. A gesture is the
+// fingers' contact (began, changed..., then ended, or cancelled) followed,
+// when the fingers leave moving, by the system's momentum (momentum...,
+// then momentum_ended). The window keeps every event of one gesture, its
+// momentum included, on the control the gesture began over (scroll
+// latching), so momentum that carries the pointer over a nested scrolling
+// control does not start scrolling it.
+enum class WheelPhase : std::uint8_t {
+    none,
+    began,
+    changed,
+    ended,
+    cancelled,
+    momentum,
+    momentum_ended,
+};
+
 enum class KeyAction : std::uint8_t {
     down,
     up,
@@ -84,6 +103,8 @@ struct GUI_FORMS_API PointerEvent {
     std::uint32_t click_count{1U};
     // The unit of wheel_delta (a wheel event's only).
     WheelDeltaUnit wheel_unit{WheelDeltaUnit::lines};
+    // The event's place in a scroll gesture (a wheel event's only).
+    WheelPhase wheel_phase{WheelPhase::none};
 };
 
 struct GUI_FORMS_API KeyEvent {

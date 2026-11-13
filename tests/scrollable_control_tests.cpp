@@ -788,6 +788,77 @@ void test_focus_scrolls_the_focused_control_into_view() {
             "a panel without auto scroll must not scroll on focus");
 }
 
+// A precise wheel event at `position` scrolling down by `pixels`, in
+// gesture phase `phase`.
+PointerEvent gesture_wheel(Point position, double pixels, WheelPhase phase) {
+    PointerEvent event{};
+    event.action = PointerAction::wheel;
+    event.position = position;
+    event.wheel_delta = {0.0, -pixels};
+    event.wheel_unit = WheelDeltaUnit::pixels;
+    event.wheel_phase = phase;
+    return event;
+}
+
+// Scroll latching (WheelPhase, cp33): a gesture and its momentum stay on
+// the control the gesture began over, even when the scrolling content
+// brings a nested scrolling panel under the pointer; a nested panel that
+// scrolled for a gesture keeps the rest of it at its edge instead of
+// chaining it to its ancestor; a detented wheel (no phase) still chains.
+void test_scroll_gesture_latches_and_does_not_chain() {
+    std::shared_ptr<Panel> outer = make_control<Panel>(StableId("latch.outer"));
+    std::shared_ptr<Control> spacer = make_control<Control>(StableId("latch.spacer"));
+    (*spacer).set_requested_bounds({0.0, 0.0, 40.0, 300.0});
+    std::shared_ptr<Panel> inner = make_control<Panel>(StableId("latch.inner"));
+    (*inner).set_requested_bounds({0.0, 120.0, 100.0, 60.0});
+    (*inner).auto_scroll = true;
+    std::shared_ptr<Control> inner_content = make_control<Control>(StableId("latch.inner.content"));
+    (*inner_content).set_requested_bounds({0.0, 0.0, 40.0, 300.0});
+    (*inner).add_child(inner_content);
+    (*outer).add_child(spacer);
+    (*outer).add_child(inner);
+    (*outer).auto_scroll = true;
+    Window window(outer, {100.0, 100.0});
+    reduce_motion(window);
+    window.perform_layout();
+    const Point pointer{20.0, 20.0};
+
+    require(window.dispatch_pointer(gesture_wheel(pointer, 30.0, WheelPhase::began)) &&
+                near((*outer).scroll_position().y, 30.0),
+            "a gesture's first event scrolls the panel under the pointer");
+    for (int step = 0; step < 3; ++step) {
+        static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 30.0, WheelPhase::changed)));
+        window.perform_layout();
+    }
+    require(near((*outer).scroll_position().y, 120.0), "the gesture's changes keep scrolling the outer panel");
+    require(window.hit_test(pointer) == inner_content, "the scroll brought the inner panel under the pointer");
+    static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 0.0, WheelPhase::ended)));
+    static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 30.0, WheelPhase::momentum)));
+    window.perform_layout();
+    static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 30.0, WheelPhase::momentum)));
+    window.perform_layout();
+    require(near((*outer).scroll_position().y, 180.0) && near((*inner).scroll_position().y, 0.0),
+            "momentum stays on the outer panel the gesture began over, not the inner one now under the pointer");
+    static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 0.0, WheelPhase::momentum_ended)));
+
+    // A new gesture begins over the inner panel and scrolls it.
+    require(window.dispatch_pointer(gesture_wheel(pointer, 30.0, WheelPhase::began)) &&
+                near((*inner).scroll_position().y, 30.0) && near((*outer).scroll_position().y, 180.0),
+            "a new gesture begins over the inner panel and scrolls it");
+    static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 500.0, WheelPhase::changed)));
+    require(near((*inner).scroll_position().y, 240.0), "the inner panel scrolls to its end");
+    require(window.dispatch_pointer(gesture_wheel(pointer, 30.0, WheelPhase::momentum)) &&
+                near((*outer).scroll_position().y, 180.0),
+            "momentum at the inner panel's end stops there, not chaining to the outer panel");
+    static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 0.0, WheelPhase::momentum_ended)));
+
+    // A detented wheel (no gesture) at the inner panel's end chains to the
+    // outer panel, as before.
+    PointerEvent line = gesture_wheel(pointer, 10.0, WheelPhase::none);
+    require(window.dispatch_pointer(line) && near((*outer).scroll_position().y, 190.0),
+            "a wheel event outside any gesture chains past an inner panel at its end");
+}
+
 int main() {
     try {
         test_control_family_and_manual_axis_contract();
@@ -799,6 +870,7 @@ int main() {
         test_damage_moves_with_a_scroll_copy();
         test_wheel_glides_on_the_motion_clock();
         test_wheel_scrolls_off_leaves_the_wheel_to_the_consumer();
+        test_scroll_gesture_latches_and_does_not_chain();
         test_bar_glides_and_immediate_input_stops_it();
         test_built_in_bars_hover_press_and_repeat();
         test_built_in_track_repeat_stops_at_the_pointer();

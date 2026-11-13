@@ -1925,9 +1925,11 @@ Control::Ptr SurfaceRoot::reuse_pointer_hit(PointerHit& hit, Point position) {
 bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
                                 PointerHit& hit, bool& click_suppressed) {
     Control::Ptr target = captured_.lock();
+    if (!target && event.action == PointerAction::wheel) target = wheel_latch_target(event);
     if (!target) {
         target = reuse_pointer_hit(hit, event.position);
     }
+    if (event.action == PointerAction::wheel && event.wheel_phase == WheelPhase::began) wheel_latch_ = target;
     if (!target) {
         return false;
     }
@@ -2022,6 +2024,33 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
         }
     }
     return event.handled;
+}
+
+// Scroll latching (WheelPhase): the control a gesture's later events go to.
+// A new gesture, an event outside any gesture, and the gesture's last event
+// (cancelled, momentum_ended) release the latch; the last event still goes
+// to the latched control. Returns null, routing by hit test, without a
+// latch or when the latched control is no longer eligible.
+Control::Ptr SurfaceRoot::wheel_latch_target(const PointerEvent& event) {
+    Control::Ptr latched = wheel_latch_.lock();
+    switch (event.wheel_phase) {
+    case WheelPhase::changed:
+    case WheelPhase::ended:
+    case WheelPhase::momentum:
+        break;
+    case WheelPhase::cancelled:
+    case WheelPhase::momentum_ended:
+        wheel_latch_.reset();
+        break;
+    case WheelPhase::none:
+    case WheelPhase::began:
+    default:
+        wheel_latch_.reset();
+        latched.reset();
+        break;
+    }
+    if (latched && !eligible(latched)) latched.reset();
+    return latched;
 }
 
 MouseEventArgs SurfaceRoot::mouse_event_arguments(const Control& target, const PointerEvent& event) const {

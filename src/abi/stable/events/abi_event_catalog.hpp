@@ -1136,6 +1136,20 @@ struct EnumerationChoices<WheelDeltaUnit> {
 };
 
 template <>
+struct EnumerationChoices<WheelPhase> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 7> choices{{
+        {"none", static_cast<std::int64_t>(WheelPhase::none)},
+        {"began", static_cast<std::int64_t>(WheelPhase::began)},
+        {"changed", static_cast<std::int64_t>(WheelPhase::changed)},
+        {"ended", static_cast<std::int64_t>(WheelPhase::ended)},
+        {"cancelled", static_cast<std::int64_t>(WheelPhase::cancelled)},
+        {"momentum", static_cast<std::int64_t>(WheelPhase::momentum)},
+        {"momentum_ended", static_cast<std::int64_t>(WheelPhase::momentum_ended)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<WindowBackdrop> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 4> choices{{
@@ -2663,6 +2677,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Mouse
     append_field(fields, "phase", value.phase);
     append_field(fields, "handled", value.handled);
     append_field(fields, "suppress_click", value.suppress_click);
+    append_field(fields, "wheel_phase", value.wheel_phase);
     fields.leave(prefix);
 }
 
@@ -2680,6 +2695,7 @@ inline void read_field(EventFields& fields, std::string_view name, MouseEventArg
     read_field(fields, "phase", value.phase);
     read_field(fields, "handled", value.handled);
     read_field(fields, "suppress_click", value.suppress_click);
+    read_field(fields, "wheel_phase", value.wheel_phase);
     fields.leave(prefix);
 }
 
@@ -2922,6 +2938,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Point
     append_field(fields, "handled", value.handled);
     append_field(fields, "click_count", value.click_count);
     append_field(fields, "wheel_unit", value.wheel_unit);
+    append_field(fields, "wheel_phase", value.wheel_phase);
     fields.leave(prefix);
 }
 

@@ -116,6 +116,7 @@ using gui_forms::PointerAction;
 using gui_forms::PointerButton;
 using gui_forms::PointerEvent;
 using gui_forms::WheelDeltaUnit;
+using gui_forms::WheelPhase;
 using gui_forms::SemanticAction;
 using gui_forms::SemanticNode;
 using gui_forms::SemanticOrientation;

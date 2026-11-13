@@ -844,7 +844,7 @@ Types
 
    ``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
 
-   One mouse event as WinForms' MouseEventArgs gives it, with the routed pointer event's own fields. The WinForms members: the button (Button; none for a move or wheel without one), the click count the host reported for the press (Clicks: 1, 2 for the second press of a double-click, and so on; a release carries its press's count; 0 for a move or wheel), the position in the control's own coordinates (Location) and in the window's, the wheel delta (Delta; logical pixels or lines, positive away from the user and to the right) and the modifiers held. handled is HandledMouseEventArgs.Handled: a raiser that sets it ends the pointer event's route at its target, so no ancestor's bubble handler sees it (the subscribers still run when the raiser calls its base); it suppresses nothing else. suppress_click, set by a MouseUp raiser or its override, cancels the release's Click and MouseClick (DoubleClick and MouseDoubleClick on a double-click's second press) and the activation (the owner's input order, rule 3); elsewhere it is ignored. The rest have no WinForms counterpart: what the pointer did (action; enter and leave reach no MouseEventArgs), the host's pointer identity (pointer_id; one for the mouse), the route phase the raiser runs in (phase; target for the raisers) and what wheel_delta counts (wheel_unit). The hosts report no touch or pen data yet, so the record carries none.
+   One mouse event as WinForms' MouseEventArgs gives it, with the routed pointer event's own fields. The WinForms members: the button (Button; none for a move or wheel without one), the click count the host reported for the press (Clicks: 1, 2 for the second press of a double-click, and so on; a release carries its press's count; 0 for a move or wheel), the position in the control's own coordinates (Location) and in the window's, the wheel delta (Delta; logical pixels or lines, positive away from the user and to the right) and the modifiers held. handled is HandledMouseEventArgs.Handled: a raiser that sets it ends the pointer event's route at its target, so no ancestor's bubble handler sees it (the subscribers still run when the raiser calls its base); it suppresses nothing else. suppress_click, set by a MouseUp raiser or its override, cancels the release's Click and MouseClick (DoubleClick and MouseDoubleClick on a double-click's second press) and the activation (the owner's input order, rule 3); elsewhere it is ignored. The rest have no WinForms counterpart: what the pointer did (action; enter and leave reach no MouseEventArgs), the host's pointer identity (pointer_id; one for the mouse), the route phase the raiser runs in (phase; target for the raisers), what wheel_delta counts (wheel_unit) and the event's place in a scroll gesture (wheel_phase). The hosts report no touch or pen data yet, so the record carries none.
 
    .. cpp:member:: PointerButton button
 
@@ -879,6 +879,10 @@ Types
    .. cpp:member:: bool handled
 
    .. cpp:member:: bool suppress_click
+
+   .. cpp:member:: WheelPhase wheel_phase
+
+      Default: ``{WheelPhase::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1195,6 +1199,10 @@ Types
    .. cpp:member:: WheelDeltaUnit wheel_unit
 
       The unit of wheel_delta (a wheel event's only). Default: ``{WheelDeltaUnit::lines}``.
+
+   .. cpp:member:: WheelPhase wheel_phase
+
+      The event's place in a scroll gesture (a wheel event's only). Default: ``{WheelPhase::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2006,6 +2014,26 @@ Enumerations
    .. cpp:enumerator:: lines
 
    .. cpp:enumerator:: pixels
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WheelPhase
+
+   ``#include <gui_forms/events/input_events/input_events.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: began
+
+   .. cpp:enumerator:: changed
+
+   .. cpp:enumerator:: ended
+
+   .. cpp:enumerator:: cancelled
+
+   .. cpp:enumerator:: momentum
+
+   .. cpp:enumerator:: momentum_ended
 
 Functions, constants and aliases
 --------------------------------

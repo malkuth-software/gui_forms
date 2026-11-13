@@ -80,6 +80,9 @@ public sealed unsafe class MouseEventArgs : EventArgs
             case "wheel_unit":
                 wheel_unit = integer_of(value);
                 break;
+            case "wheel_phase":
+                wheel_phase = integer_of(value);
+                break;
             case "pointer_id":
                 pointer_id = (uint)integer_of(value);
                 break;
@@ -132,6 +135,13 @@ public sealed unsafe class MouseEventArgs : EventArgs
 
     /// <summary>The unit of wheel_delta (the C++ WheelDeltaUnit's number).</summary>
     public long wheel_unit { get; }
+
+    /// <summary>
+    /// The wheel event's place in a precise device's scroll gesture (the C++
+    /// WheelPhase's number): zero (none) for a detented wheel or a host that
+    /// reports no gestures.
+    /// </summary>
+    public long wheel_phase { get; }
 
     /// <summary>The pointer's identity, as the host reported it.</summary>
     public uint pointer_id { get; }

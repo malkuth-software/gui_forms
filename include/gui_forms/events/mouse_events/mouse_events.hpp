@@ -32,7 +32,8 @@ namespace gui_forms {
 // have no WinForms counterpart: what the pointer did (action; enter and
 // leave reach no MouseEventArgs), the host's pointer identity (pointer_id;
 // one for the mouse), the route phase the raiser runs in (phase; target
-// for the raisers) and what wheel_delta counts (wheel_unit). The hosts
+// for the raisers), what wheel_delta counts (wheel_unit) and the event's
+// place in a scroll gesture (wheel_phase). The hosts
 // report no touch or pen data yet, so the record carries none.
 struct GUI_FORMS_API MouseEventArgs final {
     PointerButton button{PointerButton::none};
@@ -47,6 +48,7 @@ struct GUI_FORMS_API MouseEventArgs final {
     EventPhase phase{EventPhase::target};
     bool handled{};
     bool suppress_click{};
+    WheelPhase wheel_phase{WheelPhase::none};
 };
 
 // The routed pointer event a MouseEventArgs carries, for code that takes
@@ -65,6 +67,7 @@ struct GUI_FORMS_API MouseEventArgs final {
     event.handled = arguments.handled;
     event.click_count = arguments.clicks;
     event.wheel_unit = arguments.wheel_unit;
+    event.wheel_phase = arguments.wheel_phase;
     return event;
 }
 
@@ -75,7 +78,7 @@ struct GUI_FORMS_API MouseEventArgs final {
 // clicks is `press_clicks` for a press or release (the window passes the
 // count the host reported for the press, which a release carries) and
 // zero otherwise; the button, wheel delta, modifiers, action, wheel unit,
-// pointer identity, phase and handled are the event's, and suppress_click
+// wheel phase, pointer identity, phase and handled are the event's, and suppress_click
 // is false. The window builds its raisers' arguments with this, so the
 // routed and raiser forms cannot drift apart; Control::
 // mouse_event_arguments fills the origin and click count for a handler of
@@ -94,6 +97,7 @@ struct GUI_FORMS_API MouseEventArgs final {
     arguments.modifiers = event.modifiers;
     arguments.action = event.action;
     arguments.wheel_unit = event.wheel_unit;
+    arguments.wheel_phase = event.wheel_phase;
     arguments.pointer_id = event.pointer_id;
     arguments.phase = event.phase;
     arguments.handled = event.handled;

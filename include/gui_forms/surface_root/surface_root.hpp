@@ -1678,6 +1678,10 @@ private:
     // the event's hit test so far (the hover's, for a move).
     bool route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
                        PointerHit& hit, bool& click_suppressed);
+    // The latched control for a wheel event of an ongoing scroll gesture,
+    // releasing the latch at the gesture's end (wheel_latch_); null to route
+    // by hit test.
+    [[nodiscard]] Control::Ptr wheel_latch_target(const PointerEvent& event);
     // The route's target phase: the raiser of the event's action
     // (on_mouse_down, on_mouse_up, on_mouse_move or on_mouse_wheel) on
     // `target`, whose handled comes back into `event`; returns the
@@ -2549,6 +2553,10 @@ private:
     // take no focus and no capture.
     std::array<Control::WeakPtr, 2> pressed_other_{};
     Control::WeakPtr hovered_;
+    // The control the current scroll gesture began over (scroll latching,
+    // WheelPhase): its later events, momentum included, go to it while it
+    // is eligible. Observed; empty between gestures.
+    Control::WeakPtr wheel_latch_;
     // The input state (detail::InteractionState), made by the first pointer
     // or key event; the clock it reads, borrowed (null for the steady
     // clock); and the wake for a pending hover.

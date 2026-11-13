@@ -5778,6 +5778,12 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_macos_damage_rectangles_tests COMMAND gui_forms_macos_damage_rectangles_tests)
         set_tests_properties(gui_forms_macos_damage_rectangles_tests PROPERTIES TIMEOUT 60)
 
+        add_executable(gui_forms_macos_scroll_phase_tests tests/macos_scroll_phase_tests.mm)
+        target_compile_options(gui_forms_macos_scroll_phase_tests PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_macos_scroll_phase_tests PRIVATE gui_forms_host_macos)
+        add_test(NAME gui_forms_macos_scroll_phase_tests COMMAND gui_forms_macos_scroll_phase_tests)
+        set_tests_properties(gui_forms_macos_scroll_phase_tests PROPERTIES TIMEOUT 15 LABELS "mac_conditions")
+
         add_executable(gui_forms_macos_display_link_tests tests/macos_display_link_tests.mm)
         target_compile_options(gui_forms_macos_display_link_tests PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_macos_display_link_tests PRIVATE gui_forms_host_macos gui_forms_controls)
