@@ -889,6 +889,27 @@ void paint_canvas_focus(Painter& painter, const CanvasLook& look, Rect target, d
     painter.stroke_rounded_rect(around, clamped, ring.stroke, width);
 }
 
+void paint_canvas_overview(Painter& painter, const CanvasLook& look, std::span<const Rect> bodies,
+                           CanvasNodeState state) {
+    const std::size_t index = static_cast<std::size_t>(state);
+    if (index >= canvas_node_state_count || bodies.empty()) return;
+    const Color fill = look.nodes[index].fill;
+    if (fill.alpha == 0U) return;
+    painter.fill_rects(bodies, fill);
+}
+
+void paint_canvas_node_title(Painter& painter, const CanvasLook& look, Rect band, Point baseline,
+                             std::string_view text, FontSpec font, CanvasNodeState state) {
+    const std::size_t index = static_cast<std::size_t>(state);
+    if (index >= canvas_node_state_count || text.empty() || band.empty()) return;
+    const Color ink = look.titles[index];
+    if (ink.alpha == 0U) return;
+    painter.save();
+    painter.clip_rect(band);
+    painter.draw_text_utf8(baseline, text, font, ink);
+    painter.restore();
+}
+
 void paint_canvas_port_label(Painter& painter, const CanvasLook& look, Point baseline, std::string_view text,
                              FontSpec font, CanvasPortState state) {
     const std::size_t index = static_cast<std::size_t>(state);

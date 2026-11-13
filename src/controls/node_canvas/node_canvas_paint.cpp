@@ -41,9 +41,6 @@ namespace {
 // Where a title's baseline sits below the middle of its band, as a share of
 // the font size (about half the cap height).
 constexpr double title_baseline_share = 0.35;
-// The overview's silhouettes, the node state's fill.
-constexpr std::size_t node_rest = static_cast<std::size_t>(CanvasNodeState::normal);
-constexpr std::size_t node_chosen = static_cast<std::size_t>(CanvasNodeState::selected);
 constexpr std::size_t link_rest = static_cast<std::size_t>(CanvasLinkState::normal);
 // A socket's item class: "socket-" and the socket type in decimal.
 constexpr std::string_view socket_class_prefix = "socket-";
@@ -361,8 +358,8 @@ void NodeCanvas::paint_flow(Painter& painter) {
 void NodeCanvas::paint_nodes(Painter& painter) {
     const std::span<const NodeRecord> slots = (*graph_).node_slots();
     if (level_ == SceneDetailLevel::overview) {
-        // Silhouettes only: two batched fills in the canvas look's resting
-        // and selected node colours (no item looks at this distance).
+        // Silhouettes only: two batches in the canvas look's resting and
+        // selected node fills (no item looks at this distance).
         overview_rects_.clear();
         overview_selected_.clear();
         for (const std::uint32_t slot : visible_nodes_) {
@@ -375,10 +372,10 @@ void NodeCanvas::paint_nodes(Painter& painter) {
                 overview_rects_.push_back(rect);
             }
         }
-        painter.fill_rects(std::span<const Rect>(overview_rects_.data(), overview_rects_.size()),
-                           look_.nodes[node_rest].fill);
-        painter.fill_rects(std::span<const Rect>(overview_selected_.data(), overview_selected_.size()),
-                           look_.nodes[node_chosen].fill);
+        const std::span<const Rect> resting_bodies(overview_rects_.data(), overview_rects_.size());
+        const std::span<const Rect> selected_bodies(overview_selected_.data(), overview_selected_.size());
+        paint_canvas_overview(painter, look_, resting_bodies, CanvasNodeState::normal);
+        paint_canvas_overview(painter, look_, selected_bodies, CanvasNodeState::selected);
         statistics_.nodes_painted += visible_nodes_.size();
         return;
     }
@@ -419,10 +416,7 @@ void NodeCanvas::paint_node(Painter& painter, std::uint32_t slot, const NodeReco
         base.size = title_size;
         const FontSpec font = effective_font(base);
         const Point baseline{band.x, band.y + band.height / 2.0 + title_baseline_share * title_size};
-        painter.save();
-        painter.clip_rect(band);
-        painter.draw_text_utf8(baseline, node.title, font, look.titles[static_cast<std::size_t>(state)]);
-        painter.restore();
+        paint_canvas_node_title(painter, look, band, baseline, node.title, font, state);
         ++statistics_.captions_drawn;
     } else {
         ++statistics_.text_skipped_small;
