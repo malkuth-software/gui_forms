@@ -5,6 +5,7 @@
 #include "abi_class_bridge.hpp"
 
 #include "../registry/abi_registry.hpp"
+#include "../../../core/failure/fail_fast.hpp"
 
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
@@ -24,6 +25,26 @@ thread_local HookFrame* top_frame = nullptr;
 
 // The first ABI minor with class tables.
 constexpr std::uint32_t first_class_minor = 3U;
+
+// Makes `frame` the thread's innermost entry for the scope's lifetime and
+// restores the previous one on every exit, an exception included, so
+// top_frame never points at a frame that has left the stack.
+class TopFrameScope final {
+public:
+    explicit TopFrameScope(HookFrame& frame) noexcept : frame_(frame) {
+        frame_.previous = top_frame;
+        top_frame = &frame_;
+    }
+    ~TopFrameScope() { top_frame = frame_.previous; }
+    TopFrameScope(const TopFrameScope&) = delete;
+    TopFrameScope& operator=(const TopFrameScope&) = delete;
+
+private:
+    HookFrame& frame_;
+};
+
+// The site the fail-fast report names for a client entry that threw.
+constexpr std::string_view class_entry_site = "abi.class_entry";
 
 bool holds_class(std::span<const gf_class_id> chain, gf_class_id class_id) noexcept {
     std::size_t index = 0U;
@@ -214,16 +235,21 @@ bool ClassBridge::enter_class_frame(Control& control, gf_hook_entry entry, HookK
     frame.bridge = this;
     frame.hook = hook;
     frame.event = &event;
-    frame.previous = top_frame;
     frame.arguments = arguments;
     frame.fields = with_fields ? &(*fields) : nullptr;
     frame.published_event = &event;
     frame.operations = operations;
     frame.name = name;
-    top_frame = &frame;
-    // A C function: it does not throw (the C# entries catch everything).
-    entry(instance_, self, &event, base);
-    top_frame = frame.previous;
+    {
+        const TopFrameScope frame_scope(frame);
+        // A client's entry is foreign code: a C entry cannot throw and the
+        // C# entries catch everything, but a C++ client's entry can. An
+        // exception leaving it is recorded (the failure snapshot) and ends
+        // the process through the fail-fast report (owner's S2 ruling); it
+        // never unwinds into the raiser's frames. The scope restores
+        // top_frame on every exit that leaves this block.
+        detail::call_failing_fast(class_entry_site, entry, instance_, self, &event, base);
+    }
     if (with_fields) {
         // What the entry wrote after base reaches the argument.
         (*fields).end_publication();
