@@ -89,6 +89,10 @@
     // the first presented frame.
     std::uint64_t _frontSurfaceEpoch;
     std::uint64_t _lastSemanticGeneration;
+    // The runtime identity of the control that held keyboard focus at the
+    // last damage collection; 0 for none. A focus move that the semantic
+    // generation does not reflect still republishes the tree.
+    std::uint64_t _lastFocusedRuntimeId;
     // The key the cached accessibility children were built under; read only
     // while _semanticAccessibilityChildren is not nil.
     MacAccessibilityTreeKey _accessibilityCacheKey;
@@ -125,6 +129,15 @@
         _semanticAccessibilityElements;
     NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>*
         _semanticAccessibilityElementsByStableId;
+    // The element of the published tree whose node holds keyboard focus, as
+    // of the last rebuild; nil when none does or before the first. A
+    // FocusedUIElementChanged notification was posted for it when it became
+    // focused (accessibilityFocusedUIElement answers it).
+    GUIFormsAccessibilityElement* _accessibilityFocusedElement;
+    // Tests only (setAccessibilityNotificationLog:): every notification the
+    // view and its elements post is appended as @[element, name]; nil,
+    // recording nothing, otherwise.
+    NSMutableArray<NSArray*>* _accessibilityNotificationLog;
     BOOL _transparentFullSizeContent;
     std::vector<std::string> _windowDragRegionIds;
     // A Control-click is AppKit's context-menu request, not a press: its
@@ -277,6 +290,22 @@
 - (NSArray*)answerAccessibilityChildren;
 - (NSArray*)answerAccessibilityChildrenInNavigationOrder;
 - (NSArray*)answerAccessibilityVisibleChildren;
+// The focused element of the published tree (rebuilt first when stale), or
+// the view itself when no node holds focus.
+- (id)answerAccessibilityFocusedUIElement;
+// Whether an accessibility client has read the published tree: the
+// elements are kept from then on, and a semantic change rebuilds the tree
+// at once so its focus, selection and value changes are posted.
+- (BOOL)accessibilityTreePublished;
+// Posts the notifications one rebuild of the published tree owes
+// (MacAccessibilityChanges) and records the focused element.
+- (void)postAccessibilityChanges:(const MacAccessibilityChanges&)changes;
+// Posts `name` for `element` (this view or one of its elements), appending
+// it to the notification log first when one is installed.
+- (void)postAccessibilityNotification:(NSAccessibilityNotificationName)name element:(id)element;
+// Installs (or, with nil, removes) the notification log: a test's private
+// probe of what VoiceOver is told, read on the main thread.
+- (void)setAccessibilityNotificationLog:(NSMutableArray<NSArray*>*)log;
 - (NSRect)answerAccessibilityFrameForSemanticBounds:(GFRect)bounds;
 // Performs `action` on a published node named as the shared routing API
 // names it: the runtime identity of its control and, for a virtual child,

@@ -40,12 +40,16 @@
         [[NSMutableDictionary alloc] initWithCapacity:snapshot.node_count];
     NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* byStableId =
         [[NSMutableDictionary alloc] initWithCapacity:snapshot.node_count];
+    MacAccessibilityChanges changes{};
+    changes.values = [[NSMutableArray alloc] init];
+    changes.selection_parents = [[NSMutableArray alloc] init];
+    changes.expansions = [[NSMutableArray alloc] init];
     for (SemanticNode& node : snapshot.roots) {
         // Read before reconciling, which empties the node's children.
         if (contains_live_region(node)) live_region = true;
         if (contains_text_ranges(node)) text_ranges = true;
         GUIFormsAccessibilityElement* element = reconcile_accessibility_element(
-            node, self, self, 0U, _semanticAccessibilityElements, next, byStableId);
+            node, self, self, 0U, _semanticAccessibilityElements, next, byStableId, changes);
         [result addObject:element];
     }
     _publishesLiveRegion = live_region ? YES : NO;
@@ -54,7 +58,57 @@
     _semanticAccessibilityElementsByStableId = byStableId;
     _semanticAccessibilityChildren = [result copy];
     _accessibilityCacheKey = after;
+    [self postAccessibilityChanges:changes];
     return _semanticAccessibilityChildren;
+}
+
+// Posts what a rebuild of the published tree owes, after the rebuilt
+// children are in place: value changes, selection changes on their
+// containers, expansion changes, then focus, last, so VoiceOver speaks the
+// newly focused element with its current value and selection. Focus is
+// posted when the focused element differs from the one last posted
+// (elements are kept across rebuilds by key, so an unchanged focus is the
+// same object); a focus that leaves every node is not posted, the view
+// itself then answering accessibilityFocusedUIElement.
+- (void)postAccessibilityChanges:(const MacAccessibilityChanges&)changes {
+    for (GUIFormsAccessibilityElement* element in changes.values) {
+        [self postAccessibilityNotification:NSAccessibilityValueChangedNotification element:element];
+    }
+    for (GUIFormsAccessibilityElement* parent in changes.selection_parents) {
+        [self postAccessibilityNotification:[parent childSelectionChangedNotification] element:parent];
+    }
+    for (GUIFormsAccessibilityElement* element in changes.expansions) {
+        [self postAccessibilityNotification:[element expansionChangedNotification] element:element];
+    }
+    GUIFormsAccessibilityElement* const focused = changes.focused;
+    const BOOL moved = focused != _accessibilityFocusedElement;
+    _accessibilityFocusedElement = focused;
+    if (moved == YES && focused != nil) {
+        [self postAccessibilityNotification:NSAccessibilityFocusedUIElementChangedNotification element:focused];
+    }
+}
+
+- (void)postAccessibilityNotification:(NSAccessibilityNotificationName)name element:(id)element {
+    if (element == nil || name == nil) return;
+    if (_accessibilityNotificationLog != nil) [_accessibilityNotificationLog addObject:@[element, name]];
+    NSAccessibilityPostNotification(element, name);
+}
+
+- (void)setAccessibilityNotificationLog:(NSMutableArray<NSArray*>*)log {
+    _accessibilityNotificationLog = log;
+}
+
+- (id)answerAccessibilityFocusedUIElement {
+    if (!_model) return self;
+    // Rebuilds the published tree when its key moved, which posts and
+    // records the current focus.
+    static_cast<void>([self accessibilityChildren]);
+    if (_accessibilityFocusedElement == nil) return self;
+    return _accessibilityFocusedElement;
+}
+
+- (BOOL)accessibilityTreePublished {
+    return _semanticAccessibilityElements.count > 0U ? YES : NO;
 }
 
 - (NSArray*)answerAccessibilityChildrenInNavigationOrder {
@@ -127,7 +181,7 @@
     }
     if (handled) {
         [self collectDamage];
-        NSAccessibilityPostNotification(self, NSAccessibilityValueChangedNotification);
+        [self postAccessibilityNotification:NSAccessibilityValueChangedNotification element:self];
     }
     return handled ? YES : NO;
 }

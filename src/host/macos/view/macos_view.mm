@@ -115,6 +115,9 @@ NSString* run_view_accessibility_label(GUIFormsView* object) {
 NSArray* run_view_accessibility_children(GUIFormsView* object) {
     return [object answerAccessibilityChildren];
 }
+id run_view_accessibility_focused_ui_element(GUIFormsView* object) {
+    return [object answerAccessibilityFocusedUIElement];
+}
 NSArray* run_view_accessibility_children_in_navigation_order(GUIFormsView* object) {
     return [object answerAccessibilityChildrenInNavigationOrder];
 }
@@ -276,6 +279,7 @@ void link_view_categories() noexcept {
         _nextHostSequence = 1;
         _hostAttached = NO;
         _lastSemanticGeneration = 0;
+        _lastFocusedRuntimeId = 0U;
         _accessibilityCacheKey = MacAccessibilityTreeKey{};
         _initialHostOccluded = YES;
         _scheduledWakeCount = 0;
@@ -302,6 +306,8 @@ void link_view_categories() noexcept {
         _publishesTextRanges = NO;
         _semanticAccessibilityElements = [[NSMutableDictionary alloc] init];
         _semanticAccessibilityElementsByStableId = [[NSMutableDictionary alloc] init];
+        _accessibilityFocusedElement = nil;
+        _accessibilityNotificationLog = nil;
         _markedText = [[NSMutableAttributedString alloc] init];
         _selectedRange = NSMakeRange(NSNotFound, 0);
         _displayLink = nil;
@@ -635,6 +641,13 @@ void link_view_categories() noexcept {
 - (NSArray*)accessibilityChildren {
     return gui_forms::detail::call_failing_fast(
         "macos.view.accessibilityChildren", &run_view_accessibility_children, self);
+}
+
+// VoiceOver asks the application, then its key window, which asks its first
+// responder (this view), for the focused element.
+- (id)accessibilityFocusedUIElement {
+    return gui_forms::detail::call_failing_fast(
+        "macos.view.accessibilityFocusedUIElement", &run_view_accessibility_focused_ui_element, self);
 }
 
 - (NSArray*)accessibilityChildrenInNavigationOrder {

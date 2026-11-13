@@ -9,6 +9,26 @@
 
 namespace {
 
+// Whether `state` is set in one node and not the other.
+bool semantic_state_differs(const SemanticNode& before, const SemanticNode& after, const SemanticState state) {
+    const bool was = gui_forms::has_semantic_state(before.states, state);
+    const bool is = gui_forms::has_semantic_state(after.states, state);
+    return was != is;
+}
+
+// Whether what answerAccessibilityValue publishes differs between the two
+// nodes: the text value, the numeric value, the checked and mixed states
+// (check boxes, check list items, radio buttons, switches) and a tab's
+// selection.
+bool semantic_value_differs(const SemanticNode& before, const SemanticNode& after) {
+    if (before.value != after.value) return true;
+    if (before.numeric_value != after.numeric_value) return true;
+    if (semantic_state_differs(before, after, SemanticState::checked)) return true;
+    if (semantic_state_differs(before, after, SemanticState::mixed)) return true;
+    const bool tab = after.role == SemanticRole::tab;
+    return tab && semantic_state_differs(before, after, SemanticState::selected);
+}
+
 NSString* native_accessibility_role(SemanticRole role) {
     switch (role) {
     case SemanticRole::group: return NSAccessibilityGroupRole;
@@ -335,20 +355,55 @@ BOOL run_accessibility_element_accessibility_is_attribute_settable(
 // it (semantic_announcement_due, the rule every host shares; a new element
 // announces only when it announces on appearance, reconcile_accessibility_element).
 // A text node whose value or selection changed posts it, as AppKit's text
-// views do.
-- (void)updateWithNode:(const SemanticNode&)node
-                 owner:(GUIFormsView*)owner
-                parent:(id)parent {
+// views do. Every other change a client is told about is returned for the
+// view to post once the rebuilt tree is in place.
+- (MacAccessibilityNodeChange)updateWithNode:(const SemanticNode&)node
+                                       owner:(GUIFormsView*)owner
+                                      parent:(id)parent {
     const bool announce = gui_forms::semantic_announcement_due(&_node, node);
     const bool text = publishes_text_ranges(node) && publishes_text_ranges(_node);
     const bool value_changed = text && node.value != _node.value;
     const bool selection_changed = text && node.text_selection != _node.text_selection;
+    MacAccessibilityNodeChange change{};
+    change.value = !publishes_text_ranges(node) && semantic_value_differs(_node, node);
+    change.selected = semantic_state_differs(_node, node, SemanticState::selected);
+    change.expanded = semantic_state_differs(_node, node, SemanticState::expanded);
     _owner = owner;
     _node = node;
     self.accessibilityParent = parent;
     if (announce) announce_live_region(owner, node.name);
-    if (value_changed) NSAccessibilityPostNotification(self, NSAccessibilityValueChangedNotification);
-    if (selection_changed) NSAccessibilityPostNotification(self, NSAccessibilitySelectedTextChangedNotification);
+    if (value_changed) [owner postAccessibilityNotification:NSAccessibilityValueChangedNotification element:self];
+    if (selection_changed) {
+        [owner postAccessibilityNotification:NSAccessibilitySelectedTextChangedNotification element:self];
+    }
+    return change;
+}
+
+- (NSAccessibilityNotificationName)childSelectionChangedNotification {
+    switch (_node.role) {
+    case SemanticRole::list:
+    case SemanticRole::tree:
+    case SemanticRole::table:
+    case SemanticRole::tree_grid:
+        return NSAccessibilitySelectedRowsChangedNotification;
+    default:
+        return NSAccessibilitySelectedChildrenChangedNotification;
+    }
+}
+
+- (NSAccessibilityNotificationName)expansionChangedNotification {
+    const bool expanded = gui_forms::has_semantic_state(_node.states, SemanticState::expanded);
+    switch (_node.role) {
+    case SemanticRole::tree_item:
+    case SemanticRole::row:
+        return expanded ? NSAccessibilityRowExpandedNotification : NSAccessibilityRowCollapsedNotification;
+    default:
+        return NSAccessibilityValueChangedNotification;
+    }
+}
+
+- (BOOL)holdsSemanticFocus {
+    return gui_forms::has_semantic_state(_node.states, SemanticState::focused) ? YES : NO;
 }
 
 - (void)setSemanticChildren:(NSArray*)children {
@@ -1064,7 +1119,8 @@ GUIFormsAccessibilityElement* reconcile_accessibility_element(
     std::uint64_t owner_control,
     NSDictionary<NSString*, GUIFormsAccessibilityElement*>* previous,
     NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* next,
-    NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* by_stable_id) {
+    NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* by_stable_id,
+    MacAccessibilityChanges& changes) {
     std::vector<SemanticNode> child_nodes = std::move(node.children);
     node.children.clear();
     const bool virtual_child = gui_forms::is_virtual_semantic_runtime_id(node.runtime_id);
@@ -1082,8 +1138,18 @@ GUIFormsAccessibilityElement* reconcile_accessibility_element(
         // spoken as it appears.
         if (gui_forms::semantic_announcement_due(nullptr, node)) announce_live_region(owner, node.name);
     } else {
-        [element updateWithNode:node owner:owner parent:parent];
+        const MacAccessibilityNodeChange change = [element updateWithNode:node owner:owner parent:parent];
+        if (change.value) [changes.values addObject:element];
+        if (change.expanded) [changes.expansions addObject:element];
+        // A selection change is posted on the container, once.
+        if (change.selected && [parent isKindOfClass:[GUIFormsAccessibilityElement class]] &&
+            ![changes.selection_parents containsObject:parent]) {
+            [changes.selection_parents addObject:static_cast<GUIFormsAccessibilityElement*>(parent)];
+        }
     }
+    // Children are reconciled after their parent, so where a node and its
+    // ancestor both report focus, the node (the deeper) is kept.
+    if ([element holdsSemanticFocus]) changes.focused = element;
     next[key] = element;
     NSString* stable_identity = native_string(node.stable_id);
     if (by_stable_id[stable_identity] == nil) by_stable_id[stable_identity] = element;
@@ -1091,7 +1157,7 @@ GUIFormsAccessibilityElement* reconcile_accessibility_element(
         initWithCapacity:child_nodes.size()];
     for (SemanticNode& childNode : child_nodes) {
         [children addObject:reconcile_accessibility_element(
-            childNode, owner, element, control, previous, next, by_stable_id)];
+            childNode, owner, element, control, previous, next, by_stable_id, changes)];
     }
     [element setSemanticChildren:children];
     return element;

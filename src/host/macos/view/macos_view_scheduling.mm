@@ -79,17 +79,26 @@ void run_display_target_tick(GUIFormsDisplayTarget* object, CADisplayLink* sende
         (*_causalTrace).record_poll(pollTime, pollResult.deadlines_fired, pollResult.next_wake);
     }
     const std::uint64_t semanticGeneration = (*_model).semantic_generation();
-    if (semanticGeneration != _lastSemanticGeneration) {
+    const gui_forms::Control::Ptr focusedControl = (*_model).focused_control();
+    const std::uint64_t focusedRuntimeId = focusedControl ? (*focusedControl).runtime_id().value : 0U;
+    const bool focusMoved = focusedRuntimeId != _lastFocusedRuntimeId;
+    _lastFocusedRuntimeId = focusedRuntimeId;
+    if (semanticGeneration != _lastSemanticGeneration || focusMoved) {
         _lastSemanticGeneration = semanticGeneration;
         _semanticAccessibilityChildren = nil;
         _accessibilityCacheKey = MacAccessibilityTreeKey{};
-        // Republishing posts a changed live region's announcement, and
-        // a text node's changed value or selection, now.
-        if (_publishesLiveRegion == YES || _publishesTextRanges == YES) {
+        [self postAccessibilityNotification:NSAccessibilityLayoutChangedNotification element:self];
+        // Once a client has read the tree, republishing at once posts what
+        // changed (postAccessibilityChanges:): keyboard focus moving
+        // (FocusedUIElementChanged on the newly focused element; the
+        // focused control's identity is compared as well as the semantic
+        // generation, so a move that does not invalidate semantics is still
+        // published), selection, value and expansion changes, a changed
+        // live region's announcement and a text node's changed value or
+        // selection. Before any client has read it, nothing is built.
+        if ([self accessibilityTreePublished] == YES) {
             static_cast<void>([self accessibilityChildren]);
         }
-        NSAccessibilityPostNotification(
-            self, NSAccessibilityLayoutChangedNotification);
     }
     DamageRegion damage = (*_model).take_damage();
     const double scale =

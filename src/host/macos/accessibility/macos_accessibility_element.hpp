@@ -7,6 +7,7 @@
 #include "../application/macos_host_private.hpp"
 
 @class GUIFormsView;
+@class GUIFormsAccessibilityElement;
 
 namespace gui_forms::host::macos {
 
@@ -37,6 +38,42 @@ MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window);
 
 using gui_forms::host::macos::MacAccessibilityTreeKey;
 using gui_forms::host::macos::read_accessibility_tree_key;
+
+// What one element's update changed that assistive technology is told about
+// (updateWithNode:owner:parent:). A new element reports nothing: it is part
+// of the layout change the view posts.
+struct MacAccessibilityNodeChange final {
+    // The node's value, checked or mixed state, or a tab's selection, for a
+    // node without text ranges (a text node posts its own value change).
+    bool value{false};
+    // The node's selected state.
+    bool selected{false};
+    // The node's expanded state.
+    bool expanded{false};
+};
+
+namespace gui_forms::host::macos {
+
+// The notifications one rebuild of the published tree owes, gathered by
+// reconcile_accessibility_element and posted by the view once the rebuilt
+// children are in place, so a client asking back reads the new tree. The
+// arrays are made by the caller and hold strong references; `focused` is
+// the deepest element in tree order whose node holds keyboard focus (the
+// focused control, or the composite whose hidden inner control holds it),
+// nil when none does.
+struct MacAccessibilityChanges final {
+    GUIFormsAccessibilityElement* focused{nil};
+    // Elements whose value changed (MacAccessibilityNodeChange::value).
+    NSMutableArray<GUIFormsAccessibilityElement*>* values{nil};
+    // Parents of children whose selected state changed, once each.
+    NSMutableArray<GUIFormsAccessibilityElement*>* selection_parents{nil};
+    // Elements whose expanded state changed.
+    NSMutableArray<GUIFormsAccessibilityElement*>* expansions{nil};
+};
+
+} // namespace gui_forms::host::macos
+
+using gui_forms::host::macos::MacAccessibilityChanges;
 
 // One published semantic node. Its identity is the runtime identity of the
 // control that publishes it and, for a virtual child, the child's stable
@@ -70,11 +107,24 @@ using gui_forms::host::macos::read_accessibility_tree_key;
                       parent:(id)parent
                      control:(std::uint64_t)control
                 virtualChild:(const std::string&)virtualChild;
-- (void)updateWithNode:(const SemanticNode&)node
-                 owner:(GUIFormsView*)owner
-                parent:(id)parent;
+// Takes the node's new fields and returns what changed that a client is
+// told about (the view posts it); posts a text node's value and selection
+// changes and a live region's announcement itself.
+- (MacAccessibilityNodeChange)updateWithNode:(const SemanticNode&)node
+                                       owner:(GUIFormsView*)owner
+                                      parent:(id)parent;
 - (void)setSemanticChildren:(NSArray*)children;
 - (BOOL)performNodeAction:(SemanticAction)action value:(NSString*)value;
+// The notification a change of a child's selected state posts on this
+// element: selected rows for a list, tree, table or tree grid, selected
+// children otherwise.
+- (NSAccessibilityNotificationName)childSelectionChangedNotification;
+// The notification a change of this element's expanded state posts: row
+// expanded or collapsed for a tree item or row, otherwise a value change
+// (AppKit's combo boxes and disclosure buttons report expansion so).
+- (NSAccessibilityNotificationName)expansionChangedNotification;
+// Whether the node holds keyboard focus (SemanticState::focused).
+- (BOOL)holdsSemanticFocus;
 // The bodies of this class's native entries (the AppKit overrides and
 // targets below): each entry calls its answer through the fail-fast
 // boundary (call_failing_fast).
@@ -147,7 +197,9 @@ bool contains_live_region(const SemanticNode& node);
 // node at or above `parent`, which publishes `node` when it is a virtual
 // child. The node's children are moved out of it first, so the element
 // keeps a copy of the node's own fields only (audit N100: no element holds
-// a deep copy of its subtree); the snapshot is not read again.
+// a deep copy of its subtree); the snapshot is not read again. What the
+// rebuild owes assistive technology is added to `changes`
+// (MacAccessibilityChanges), which the view posts afterwards.
 GUIFormsAccessibilityElement* reconcile_accessibility_element(
     SemanticNode& node,
     GUIFormsView* owner,
@@ -155,7 +207,8 @@ GUIFormsAccessibilityElement* reconcile_accessibility_element(
     std::uint64_t owner_control,
     NSDictionary<NSString*, GUIFormsAccessibilityElement*>* previous,
     NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* next,
-    NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* by_stable_id);
+    NSMutableDictionary<NSString*, GUIFormsAccessibilityElement*>* by_stable_id,
+    MacAccessibilityChanges& changes);
 
 } // namespace gui_forms::host::macos
 
