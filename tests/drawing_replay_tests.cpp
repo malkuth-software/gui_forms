@@ -1,4 +1,4 @@
-#include "gui_forms/controls/drawing_surface_replay.hpp"
+#include "gui_forms/drawing/drawing_replay/drawing_replay.hpp"
 #include "gui_forms/drawing.hpp"
 
 #include <cstdlib>

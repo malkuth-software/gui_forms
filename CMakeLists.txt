@@ -959,6 +959,10 @@ gui_forms_verify_effects(gui_forms_plot_primitives
     SOURCES src/plots/signal_program/signal_program.cpp)
 
 add_library(gui_forms_controls STATIC
+    # The Painter's bridge for recorded GUI.Drawing (gd_*) commands: core
+    # drawing infrastructure, built here because only this target links both
+    # gui_forms_core (the Painter) and gui_drawing_core (the recorder).
+    src/core/drawing/drawing_replay/drawing_replay.cpp
     src/controls/basic/basic_control_rendering.cpp
     src/controls/connected_controls/connected_controls.cpp
     src/controls/panel/panel.cpp
@@ -1100,7 +1104,6 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/date_time_picker/date_time_picker.cpp
     src/controls/panel/month_calendar/month_calendar.cpp
     src/controls/drawing_surface/drawing_surface.cpp
-    src/controls/drawing_surface/drawing_surface_replay.cpp
     src/controls/metrics_view/metrics_view.cpp
     src/controls/specimen/stock_specimens/stock_specimens.cpp
     src/controls/panel/text_box_base/text_box_base.cpp

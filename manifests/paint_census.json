@@ -48,7 +48,6 @@
     "color_picker/color_picker_gradients.cpp": "draws content colours (design language 8.5, owner decision W-7: a picker's colours are data): ColorPicker's saturation-brightness field, hue spectrum, alpha ramp and swatch over their checkerboard; its wells, thumbs and focus cue go through the theme (pending owner decision, claude/cp32-demonstrator-gaps)",
     "connected_controls/connected_controls.cpp": "the authored-recipe path: the public paint_connected_surface_material paints an application's own recipe, which the theme engine does not draw (owner decision, 2026-11-03)",
     "drawing_surface/drawing_surface.cpp": "draws the application's own drawing (DrawingSurface), not chrome",
-    "drawing_surface/drawing_surface_replay.cpp": "draws application content: replay_drawing_commands draws a program's recorded gd_* drawing into a Painter (pending owner decision, claude/cp32-demonstrator-gaps)",
     "instruments/sparkline/sparkline.cpp": "draws application content: the sparkline's data markers, in the series colours the application gives (as metrics_view, owner decision T4-4); its frame and background go through the theme",
     "metrics_view/metrics_view.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
     "panel/material_panel/material_panel.cpp": "authored material: MaterialPanel paints the material its application gives it, as content (owner decision, 2026-11-03)",
@@ -60,8 +59,8 @@
   },
   "totals": {
     "exempt": {
-      "files": 14,
-      "calls": 60
+      "files": 13,
+      "calls": 48
     },
     "demo": {
       "files": 2,
@@ -92,10 +91,6 @@
     "drawing_surface/drawing_surface.cpp": {
       "category": "exempt",
       "calls": 1
-    },
-    "drawing_surface/drawing_surface_replay.cpp": {
-      "category": "exempt",
-      "calls": 12
     },
     "gallery/pages/live-surfaces.cpp": {
       "category": "demo",

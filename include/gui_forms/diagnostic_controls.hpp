@@ -2,5 +2,5 @@
 
 // Compatibility umbrella. New code may include the control headers directly.
 #include "gui_forms/controls/drawing_surface.hpp"
-#include "gui_forms/controls/drawing_surface_replay.hpp"
+#include "gui_forms/drawing/drawing_replay/drawing_replay.hpp"
 #include "gui_forms/controls/metrics_view.hpp"
