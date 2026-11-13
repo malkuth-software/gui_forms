@@ -63,7 +63,7 @@ indicator-lamp::part(bezel) {
    mark leads the legend. */
 button::part(face):state(danger) {
   background: radial-gradient(circle at 50% 60%, var(--industrial-danger-heart), var(--industrial-danger) 80%);
-  glow: #ff6a4a 6px;
+  glow: #ff6a4a 4px;
   glow-placement: over;
   seat: var(--industrial-key-seat);
 }

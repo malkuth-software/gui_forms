@@ -658,7 +658,7 @@ indicator-lamp::part(lens):state(error) {
 button::part(face):state(danger) {
   background: radial-gradient(circle at 50% 65%, #f3bdb3, #f8e7e4 80%);
   border-color: #a5463b;
-  glow: #e2412c 5px;
+  glow: #e2412c 4px;
   glow-placement: over;
 }
 button::part(label):state(danger) {

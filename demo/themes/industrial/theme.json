@@ -3,6 +3,6 @@
   "name": "industrial",
   "version": "1.0.0",
   "engine": ">=0.3",
-  "sheet": {"path": "industrial.theme.css", "sha256": "cc28dd7496a3e6300a889a57e422d1d10c466c08733574739cc7b9bc4b613ec7"},
+  "sheet": {"path": "industrial.theme.css", "sha256": "ba48955bd4045ca9958f0971895d485f101ee8eee4d3a9d378901d05d3d37d63"},
   "imports": {"gost-paints": "790434d6c447b882447a4858ee53b123336bc513b181bb46214870777db5c6ba"}
 }
