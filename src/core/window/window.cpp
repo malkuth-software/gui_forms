@@ -2024,30 +2024,28 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
     return event.handled;
 }
 
-MouseEventArgs SurfaceRoot::mouse_arguments(const Control& target, const PointerEvent& event) {
-    const bool press = event.action == PointerAction::down;
-    const bool release = event.action == PointerAction::up;
+MouseEventArgs SurfaceRoot::mouse_event_arguments(const Control& target, const PointerEvent& event) const {
     // WinForms' MouseEventArgs: the press's click count (the release
     // carries the count of the press it ends), the control-relative
     // position and the wheel delta; then the routed event's own fields.
     const Rect bounds = target.absolute_bounds();
-    MouseEventArgs arguments{};
-    arguments.button = event.button;
-    arguments.clicks = press || release ? interaction_state().last_click_count() : 0U;
-    arguments.location = Point{event.position.x - bounds.x, event.position.y - bounds.y};
-    arguments.window_position = event.position;
-    arguments.wheel_delta = event.wheel_delta;
-    arguments.modifiers = event.modifiers;
-    arguments.action = event.action;
-    arguments.wheel_unit = event.wheel_unit;
-    arguments.pointer_id = event.pointer_id;
-    arguments.phase = event.phase;
-    arguments.handled = event.handled;
+    const Point origin{bounds.x, bounds.y};
+    const std::uint32_t press_clicks = interaction_ ? (*interaction_).last_click_count() : 0U;
+    const MouseEventArgs arguments = gui_forms::mouse_event_arguments(event, origin, press_clicks);
     return arguments;
 }
 
+PointerLocation SurfaceRoot::pointer_location() const noexcept {
+    PointerLocation location{};
+    if (!interaction_) return location;
+    location.window_position = (*interaction_).pointer_position();
+    location.location = location.window_position;
+    location.inside = (*interaction_).pointer_inside();
+    return location;
+}
+
 bool SurfaceRoot::raise_pointer_target(Control& target, PointerEvent& event) {
-    MouseEventArgs arguments = mouse_arguments(target, event);
+    MouseEventArgs arguments = mouse_event_arguments(target, event);
     switch (event.action) {
     case PointerAction::down:
         target.on_mouse_down(arguments);
@@ -2123,7 +2121,7 @@ void SurfaceRoot::raise_release_clicks(const PointerEvent& event, Control& targe
     // sequence breaks (rule 5: click_sequence_intact after every handler).
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
-    MouseEventArgs args = mouse_arguments(target, event);
+    MouseEventArgs args = mouse_event_arguments(target, event);
     const Control::Ptr released_over = reuse_pointer_hit(hit, event.position);
     const bool primary = event.button == PointerButton::primary;
     const bool clicked = !click_suppressed && pressed_for_release && pressed_for_release == released_over &&
@@ -2176,20 +2174,6 @@ bool SurfaceRoot::offer_mouse_rules(detail::MouseRuleEvent event, Control& contr
     const bool consumed = offer_mouse_rules_(*rules, event, control, arguments);
     return consumed;
 }
-
-namespace {
-
-KeyEventArgs key_arguments(const KeyEvent& event) {
-    KeyEventArgs arguments;
-    arguments.key_code = key_code_from_physical_key(event.physical_key);
-    arguments.physical_key = event.physical_key;
-    arguments.scan_code = event.scan_code;
-    arguments.modifiers = event.modifiers;
-    arguments.repeat = event.repeat;
-    return arguments;
-}
-
-} // namespace
 
 bool SurfaceRoot::dispatch_key(KeyEvent event) {
     require_root_thread("key dispatch");
@@ -2322,7 +2306,7 @@ bool SurfaceRoot::route_key(KeyEvent event) {
 }
 
 bool SurfaceRoot::raise_window_key(const KeyEvent& event, bool& closed) {
-    KeyEventArgs arguments = key_arguments(event);
+    KeyEventArgs arguments = key_event_arguments(event);
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
     if (event.action == KeyAction::down) {
@@ -2343,7 +2327,7 @@ bool SurfaceRoot::raise_window_key(const KeyEvent& event, bool& closed) {
 }
 
 bool SurfaceRoot::raise_control_key(Control& control, const KeyEvent& event, bool& closed) {
-    KeyEventArgs arguments = key_arguments(event);
+    KeyEventArgs arguments = key_event_arguments(event);
     const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
     Window* const presenting = (*lifetime).window;
     // Counted where the events have subscribers, as before the raisers,

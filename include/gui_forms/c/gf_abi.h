@@ -1268,6 +1268,24 @@ typedef struct gf_windows_table {
     /* What the window's host lets its shaping rely on, and its corners now.
      * GF_STATUS_INVALID_ARGUMENT for a null or short record. */
     gf_status (GF_CALL* shaping)(gf_object window, gf_window_shaping* report);
+    /* Where the pointer is, as a window last saw it (since 1.3): the
+     * position of the last pointer event the window dispatched, which
+     * during a callback is the event being dispatched. mouse_enter and
+     * mouse_leave carry no fields (Windows Forms' EventArgs), so their
+     * handlers read the crossing here: during the move that crosses, the
+     * old control's mouse_leave and then the new one's mouse_enter, both
+     * at that move's position, before the move's own route.
+     * window_or_control is a window from create or a control in a window.
+     * location receives the position in the control's coordinates (the
+     * window's for a window), window_position in the window's, and inside
+     * 1 while the pointer is in the window, else 0; all are zero before
+     * the window has seen a pointer event. Any output may be null. UI
+     * thread. GF_STATUS_WRONG_HANDLE_KIND for an object that is neither;
+     * GF_STATUS_INVALID_STATE for a control not in a window;
+     * GF_STATUS_DISPOSED for a window that has been disposed or whose run
+     * has ended. */
+    gf_status (GF_CALL* pointer_location)(gf_object window_or_control, gf_logical_point* location,
+                                          gf_logical_point* window_position, uint32_t* inside);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in

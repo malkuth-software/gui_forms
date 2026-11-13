@@ -80,6 +80,8 @@ Types
      - PhysicalKey preserves host-independent scan position, extended-key state, and location for shortcut and compatibility logic.
    * - :cpp:class:`PointerEvent <gui_forms::PointerEvent>`
      - PointerEvent is the mutable routed pointer record: device phase, window/local coordinates, buttons, modifiers, wheel deltas, click count, capture request, and handled state.
+   * - :cpp:class:`PointerLocation <gui_forms::PointerLocation>`
+     - Where the pointer is, as a window last saw it: the position of the last pointer event the window dispatched, which is the event being dispatched while its raisers run.
    * - :cpp:class:`PreviewKeyDownEventArgs <gui_forms::PreviewKeyDownEventArgs>`
      - Windows Forms' PreviewKeyDownEventArgs: raised on the focused control before anything else sees a key down.
    * - :cpp:class:`SemanticDescriptor <gui_forms::SemanticDescriptor>`
@@ -1196,6 +1198,20 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PointerLocation final
+
+   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
+
+   Where the pointer is, as a window last saw it: the position of the last pointer event the window dispatched, which is the event being dispatched while its raisers run. MouseEnter and MouseLeave carry no arguments (Windows Forms' EventArgs), so their handlers read the crossing here: on_mouse_leave and on_mouse_enter run during the move that crossed (the leave first, then the enter, both at that move's position), and the window's own leave raises on_mouse_leave at the position the host reported for it. location is in the asking control's coordinates (the window's when the window is asked), window_position in the window's; inside is false once the pointer has left the window, and before the window has seen a pointer event (all zero then). A detached control reports all zero.
+
+   .. cpp:member:: Point location
+
+   .. cpp:member:: Point window_position
+
+   .. cpp:member:: bool inside
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PreviewKeyDownEventArgs final
 
    ``#include <gui_forms/events/key_events/key_events.hpp>``
@@ -2060,13 +2076,17 @@ Functions, constants and aliases
 
 ``#include <gui_forms/events/key_events/key_events.hpp>``
 
-.. cpp:function:: inline KeyEvent key_event_of(const KeyEventArgs& arguments, KeyAction action) noexcept
-
-   The routed key event a KeyEventArgs carries, for code that takes the routed form (an editing engine, a key command table): action is the raiser's (down for on_key_down, up for on_key_up); the phase is target. The caller copies handled back.
-
 .. cpp:function:: std::uint32_t key_code_from_physical_key(std::uint32_t physical_key) noexcept
 
    The Windows Forms Keys code of a physical key (a USB HID usage): the key's code on a US layout, the same on every host. The modifier keys give the side-less codes Windows Forms reports in KeyDown (ShiftKey 0x10, ControlKey 0x11, Menu 0x12; the Windows keys 0x5B and 0x5C). Zero for a usage with no Keys code.
+
+.. cpp:function:: inline KeyEventArgs key_event_arguments(const KeyEvent& event) noexcept
+
+   The KeyEventArgs a routed key event carries: the record the window hands on_key_down and on_key_up, for a handler that takes the routed form (on_key_preview, on_key_bubble) and reads the raisers' fields. key_code comes from key_code_from_physical_key; physical_key, scan_code, modifiers, repeat and handled are the event's. released_by_deactivation and suppress_key_press are false: a deactivation release reaches only the raisers and the window's key_up, never a route. The window builds its raisers' arguments with this, so the two forms cannot drift apart; the caller copies handled (and suppress_key_press, which implies it) back.
+
+.. cpp:function:: inline KeyEvent key_event_of(const KeyEventArgs& arguments, KeyAction action) noexcept
+
+   The routed key event a KeyEventArgs carries, for code that takes the routed form (an editing engine, a key command table): action is the raiser's (down for on_key_down, up for on_key_up); the phase is target. The caller copies handled back.
 
 .. cpp:function:: std::uint32_t single_key_char(const std::string& text) noexcept
 
@@ -2079,6 +2099,10 @@ Functions, constants and aliases
 .. cpp:function:: inline PointerEvent pointer_event_of(const MouseEventArgs& arguments) noexcept
 
    The routed pointer event a MouseEventArgs carries, for code that takes the routed form (a gesture engine, ScrollableControl's bar and wheel handling): the window position, the action, the button and the rest, with click_count from clicks. The caller copies handled back.
+
+.. cpp:function:: inline MouseEventArgs mouse_event_arguments(const PointerEvent& event, Point control_origin, std::uint32_t press_clicks) noexcept
+
+   The MouseEventArgs a routed pointer event carries on a control whose absolute bounds start at ``control_origin`` (window coordinates): the record the window hands the mouse raisers. location is the event's position less control_origin, window_position the event's position; clicks is ``press_clicks`` for a press or release (the window passes the count the host reported for the press, which a release carries) and zero otherwise; the button, wheel delta, modifiers, action, wheel unit, pointer identity, phase and handled are the event's, and suppress_click is false. The window builds its raisers' arguments with this, so the routed and raiser forms cannot drift apart; Control:: mouse_event_arguments fills the origin and click count for a handler of the routed form. The caller copies handled (and a release's suppress_click) back.
 
 .. cpp:namespace:: gui_forms
 

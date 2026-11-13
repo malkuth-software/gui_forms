@@ -1106,6 +1106,18 @@ public:
     // maximum_held_keys keys are tracked at once (InteractionSnapshot
     // counts the presses past that). UI thread.
     [[nodiscard]] bool is_key_down(std::uint32_t physical_key) const noexcept;
+    // Where the pointer is, as this window last saw it (PointerLocation):
+    // the last pointer event it dispatched, in window coordinates, so
+    // location and window_position are equal. A sub-surface's root reports
+    // its own coordinates. Readable during on_mouse_enter and
+    // on_mouse_leave, which carry no arguments. UI thread.
+    [[nodiscard]] PointerLocation pointer_location() const noexcept;
+    // The MouseEventArgs a routed pointer event carries on `target`, built
+    // as this window builds its mouse raisers' (mouse_event_arguments):
+    // location relative to target's absolute bounds, and for a press or
+    // release the click count the host reported for the last press. UI
+    // thread; the target is in this window.
+    [[nodiscard]] MouseEventArgs mouse_event_arguments(const Control& target, const PointerEvent& event) const;
     // The interactions a window raises, by the name of their event accessor,
     // appended in declaration order: the window events the C ABI subscribes
     // by name (stage C, tools/abi_event_catalog.py). Window is not a
@@ -1666,8 +1678,6 @@ private:
     // the event's hit test so far (the hover's, for a move).
     bool route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
                        PointerHit& hit, bool& click_suppressed);
-    // The MouseEventArgs of a routed pointer event on `target`.
-    [[nodiscard]] MouseEventArgs mouse_arguments(const Control& target, const PointerEvent& event);
     // The route's target phase: the raiser of the event's action
     // (on_mouse_down, on_mouse_up, on_mouse_move or on_mouse_wheel) on
     // `target`, whose handled comes back into `event`; returns the

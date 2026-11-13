@@ -51,6 +51,7 @@ constexpr SlotIdentity band_report_slot{GF_TABLE_WINDOWS, 14U};
 constexpr SlotIdentity set_corner_preference_slot{GF_TABLE_WINDOWS, 15U};
 constexpr SlotIdentity content_rect_slot{GF_TABLE_WINDOWS, 16U};
 constexpr SlotIdentity shaping_slot{GF_TABLE_WINDOWS, 17U};
+constexpr SlotIdentity pointer_location_slot{GF_TABLE_WINDOWS, 18U};
 
 // The 1.3 sizes of the band and shaping records.
 constexpr std::uint32_t band_options_size_1_3 = 56U;
@@ -960,6 +961,67 @@ gf_status GF_CALL windows_focused_control(gf_object window_or_root, gf_object* c
     }
 }
 
+// Where the pointer is, as the window of window_or_control last saw it:
+// a window from create reports window coordinates, a control in a window
+// its own (Control::pointer_location). The outputs are written only on
+// success, each one given.
+gf_status report_pointer_location(gf_object window_or_control, gf_logical_point* location,
+                                  gf_logical_point* window_position, std::uint32_t* inside) {
+    const gf_status entered = registry().enter_ui(pointer_location_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(window_or_control, pointer_location_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    PointerLocation reported{};
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle != nullptr) {
+        const SurfaceRoot* window = (*handle).window();
+        if (!(*handle).is_alive() || window == nullptr) {
+            return fail(GF_STATUS_DISPOSED, pointer_location_slot, "the window has been disposed or has closed");
+        }
+        reported = (*window).pointer_location();
+    } else {
+        const Control::Ptr control = std::dynamic_pointer_cast<Control>(object);
+        if (!control) {
+            return fail(GF_STATUS_WRONG_HANDLE_KIND, pointer_location_slot,
+                        "pointer_location takes a window or a control in one");
+        }
+        if (!(*control).is_alive()) {
+            return fail(GF_STATUS_DISPOSED, pointer_location_slot, "the object has been disposed");
+        }
+        const SurfaceRoot* attached = (*control).attached_surface_root();
+        if (attached == nullptr) {
+            return fail(GF_STATUS_INVALID_STATE, pointer_location_slot, "the control is not in a window");
+        }
+        reported = (*control).pointer_location();
+    }
+    if (location != nullptr) {
+        *location = gf_logical_point{reported.location.x, reported.location.y};
+    }
+    if (window_position != nullptr) {
+        *window_position = gf_logical_point{reported.window_position.x, reported.window_position.y};
+    }
+    if (inside != nullptr) {
+        *inside = reported.inside ? 1U : 0U;
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_pointer_location(gf_object window_or_control, gf_logical_point* location,
+                                           gf_logical_point* window_position, std::uint32_t* inside) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(pointer_location_slot.table_id, pointer_location_slot.slot_index);
+        const gf_status reported = report_pointer_location(window_or_control, location, window_position, inside);
+        return reported;
+    } catch (...) {
+        return fail_with_current_exception(pointer_location_slot);
+    }
+}
+
 static_assert(static_cast<std::uint32_t>(WindowChromeField::text) == GF_WINDOW_PROPERTY_TEXT &&
                   static_cast<std::uint32_t>(WindowChromeField::show_in_taskbar) ==
                       GF_WINDOW_PROPERTY_SHOW_IN_TASKBAR &&
@@ -1395,6 +1457,7 @@ constexpr gf_windows_table table{
     .set_corner_preference = &windows_set_corner_preference,
     .content_rect = &windows_content_rect,
     .shaping = &windows_shaping,
+    .pointer_location = &windows_pointer_location,
 };
 
 } // namespace

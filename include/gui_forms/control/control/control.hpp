@@ -1177,6 +1177,17 @@ public:
     virtual void on_pointer_bubble(PointerEvent& event);
     virtual void on_key_preview(KeyEvent& event);
     virtual void on_key_bubble(KeyEvent& event);
+    // The MouseEventArgs a routed pointer event carries on this control,
+    // as the window builds its mouse raisers' (SurfaceRoot::
+    // mouse_event_arguments), for a handler of the routed form that reads
+    // the raisers' fields; key_event_arguments is the keys' counterpart.
+    // A detached control takes the event's own click count.
+    [[nodiscard]] MouseEventArgs mouse_event_arguments(const PointerEvent& event) const;
+    // Where the pointer is, as this control's window last saw it, in this
+    // control's coordinates and the window's (PointerLocation): the
+    // position on_mouse_enter and on_mouse_leave, which carry no
+    // arguments, read for the crossing. All zero while detached.
+    [[nodiscard]] PointerLocation pointer_location() const;
     virtual void on_text_input(TextInputEvent& event);
     // Dialog characters are routed by Window only after the focused key route
     // and accelerators decline them. The base implementation traverses the
@@ -1388,8 +1399,12 @@ protected:
     // derived events are dropped (rule 5). The second press of a
     // double-click raises on_double_click and on_mouse_double_click only.
     // on_mouse_enter and on_mouse_leave follow the pointer (the window's
-    // hover tracking, not the route); on_mouse_capture_changed runs on the
-    // control losing the capture, after the release's on_click.
+    // hover tracking, not the route): during the move that crosses, the
+    // old control's leave and then the new one's enter, before the move's
+    // own route. They carry no arguments, as in Windows Forms;
+    // pointer_location() reads where the crossing happened.
+    // on_mouse_capture_changed runs on the control losing the capture,
+    // after the release's on_click.
     virtual void on_mouse_down(MouseEventArgs& arguments);
     virtual void on_mouse_up(MouseEventArgs& arguments);
     virtual void on_mouse_move(MouseEventArgs& arguments);

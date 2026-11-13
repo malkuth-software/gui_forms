@@ -586,6 +586,7 @@ __ZGVZN9gui_forms15PageViewOptions*
 __ZGVZN9gui_forms15PartCornerRadii*
 __ZGVZN9gui_forms15PartDeclaration*
 __ZGVZN9gui_forms15PartLightPlanes*
+__ZGVZN9gui_forms15PointerLocation*
 __ZGVZN9gui_forms15PointerSettings*
 __ZGVZN9gui_forms15PositionedGlyph*
 __ZGVZN9gui_forms15PreparedTextKey*
@@ -2186,6 +2187,7 @@ __ZGVZNK9gui_forms15PageViewOptions*
 __ZGVZNK9gui_forms15PartCornerRadii*
 __ZGVZNK9gui_forms15PartDeclaration*
 __ZGVZNK9gui_forms15PartLightPlanes*
+__ZGVZNK9gui_forms15PointerLocation*
 __ZGVZNK9gui_forms15PointerSettings*
 __ZGVZNK9gui_forms15PositionedGlyph*
 __ZGVZNK9gui_forms15PreparedTextKey*
@@ -3974,6 +3976,7 @@ __ZN9gui_forms15PageViewOptions*
 __ZN9gui_forms15PartCornerRadii*
 __ZN9gui_forms15PartDeclaration*
 __ZN9gui_forms15PartLightPlanes*
+__ZN9gui_forms15PointerLocation*
 __ZN9gui_forms15PointerSettings*
 __ZN9gui_forms15PositionedGlyph*
 __ZN9gui_forms15PreparedTextKey*
@@ -6924,6 +6927,7 @@ __ZNK[RO]9gui_forms15PageViewOptions*
 __ZNK[RO]9gui_forms15PartCornerRadii*
 __ZNK[RO]9gui_forms15PartDeclaration*
 __ZNK[RO]9gui_forms15PartLightPlanes*
+__ZNK[RO]9gui_forms15PointerLocation*
 __ZNK[RO]9gui_forms15PointerSettings*
 __ZNK[RO]9gui_forms15PositionedGlyph*
 __ZNK[RO]9gui_forms15PreparedTextKey*
@@ -8524,6 +8528,7 @@ __ZN[KRO]9gui_forms15PageViewOptions*
 __ZN[KRO]9gui_forms15PartCornerRadii*
 __ZN[KRO]9gui_forms15PartDeclaration*
 __ZN[KRO]9gui_forms15PartLightPlanes*
+__ZN[KRO]9gui_forms15PointerLocation*
 __ZN[KRO]9gui_forms15PointerSettings*
 __ZN[KRO]9gui_forms15PositionedGlyph*
 __ZN[KRO]9gui_forms15PreparedTextKey*
@@ -10124,6 +10129,7 @@ __ZT[VIST]N9gui_forms15PageViewOptions*E
 __ZT[VIST]N9gui_forms15PartCornerRadii*E
 __ZT[VIST]N9gui_forms15PartDeclaration*E
 __ZT[VIST]N9gui_forms15PartLightPlanes*E
+__ZT[VIST]N9gui_forms15PointerLocation*E
 __ZT[VIST]N9gui_forms15PointerSettings*E
 __ZT[VIST]N9gui_forms15PositionedGlyph*E
 __ZT[VIST]N9gui_forms15PreparedTextKey*E
@@ -11724,6 +11730,7 @@ __ZT[hvc]*9gui_forms15PageViewOptions*
 __ZT[hvc]*9gui_forms15PartCornerRadii*
 __ZT[hvc]*9gui_forms15PartDeclaration*
 __ZT[hvc]*9gui_forms15PartLightPlanes*
+__ZT[hvc]*9gui_forms15PointerLocation*
 __ZT[hvc]*9gui_forms15PointerSettings*
 __ZT[hvc]*9gui_forms15PositionedGlyph*
 __ZT[hvc]*9gui_forms15PreparedTextKey*
@@ -13324,6 +13331,7 @@ __ZZN9gui_forms15PageViewOptions*
 __ZZN9gui_forms15PartCornerRadii*
 __ZZN9gui_forms15PartDeclaration*
 __ZZN9gui_forms15PartLightPlanes*
+__ZZN9gui_forms15PointerLocation*
 __ZZN9gui_forms15PointerSettings*
 __ZZN9gui_forms15PositionedGlyph*
 __ZZN9gui_forms15PreparedTextKey*
@@ -14924,6 +14932,7 @@ __ZZNK9gui_forms15PageViewOptions*
 __ZZNK9gui_forms15PartCornerRadii*
 __ZZNK9gui_forms15PartDeclaration*
 __ZZNK9gui_forms15PartLightPlanes*
+__ZZNK9gui_forms15PointerLocation*
 __ZZNK9gui_forms15PointerSettings*
 __ZZNK9gui_forms15PositionedGlyph*
 __ZZNK9gui_forms15PreparedTextKey*

@@ -4,6 +4,7 @@
 
 #include "gf_conformance_internal.h"
 
+#include <stddef.h>
 #include <string.h>
 
 /* What a help_requested subscriber saw, and whether it answers. */
@@ -190,6 +191,34 @@ static void window_help(gf_kit* kit) {
     gf_kit_status(kit, (*kit).events.disconnect(control_press), GF_STATUS_OK, "end the key_press subscription");
     gf_kit_status(kit, (*kit).events.disconnect(control_preview), GF_STATUS_OK,
                   "end the preview_key_down subscription");
+
+    /* Pointer location (since 1.3): a window that has seen no pointer
+     * event reports zero and outside, for the window and for its root;
+     * every output may be null; a control in no window is refused. */
+    const int has_pointer_location =
+        (*kit).windows.struct_size >= offsetof(gf_windows_table, pointer_location) + sizeof(void*) &&
+        (*kit).windows.pointer_location != NULL;
+    gf_kit_check(kit, has_pointer_location, "the windows table has pointer_location");
+    if (has_pointer_location) {
+        gf_logical_point location = {7.0, 7.0};
+        gf_logical_point window_position = {7.0, 7.0};
+        uint32_t inside = 7u;
+        gf_kit_status(kit, (*kit).windows.pointer_location(window, &location, &window_position, &inside),
+                      GF_STATUS_OK, "read a window's pointer location");
+        gf_kit_check(kit, location.x == 0.0 && location.y == 0.0 && window_position.x == 0.0 &&
+                              window_position.y == 0.0 && inside == 0u,
+                     "a window that has seen no pointer event reports zero, outside");
+        inside = 7u;
+        gf_kit_status(kit, (*kit).windows.pointer_location(root, &location, NULL, &inside), GF_STATUS_OK,
+                      "read the pointer location relative to the window's root");
+        gf_kit_check(kit, inside == 0u, "the root reports its window's pointer state");
+        gf_kit_status(kit, (*kit).windows.pointer_location(window, NULL, NULL, NULL), GF_STATUS_OK,
+                      "pointer_location takes null outputs");
+        inside = 7u;
+        gf_kit_status(kit, (*kit).windows.pointer_location(field, &location, &window_position, &inside),
+                      GF_STATUS_INVALID_STATE, "pointer_location of a control not in a window");
+        gf_kit_check(kit, inside == 7u, "a refused pointer_location leaves its outputs");
+    }
     gf_kit_status(kit, (*kit).objects.release(field), GF_STATUS_OK, "release the key events control");
 
     gf_kit_status(kit, (*kit).objects.dispose(window), GF_STATUS_OK, "dispose the window");
@@ -197,6 +226,10 @@ static void window_help(gf_kit* kit) {
                  "destroying the window releases each subscription's callback once");
     gf_kit_status(kit, (*kit).windows.key_state(window, 0x04u, &down), GF_STATUS_DISPOSED,
                   "a disposed window refuses key_state");
+    if (has_pointer_location) {
+        gf_kit_status(kit, (*kit).windows.pointer_location(window, NULL, NULL, NULL), GF_STATUS_DISPOSED,
+                      "a disposed window refuses pointer_location");
+    }
     gf_kit_check(kit, focus.off_thread_calls == 0u, "the releases run on the UI thread");
     gf_kit_status(kit, (*kit).windows.request_help(window, &handled), GF_STATUS_DISPOSED,
                   "a disposed window refuses request_help");

@@ -223,6 +223,20 @@ void focus_slots(const ObjectsTable& objects, const ControlsTable& controls, con
     const WindowsTable without_focused = WindowsTable::adopt(before_focused);
     require(without_focused.focused_control(window.get(), &current) == GF_STATUS_UNSUPPORTED_VERSION,
             "a windows table without focused_control does not serve it");
+
+    // pointer_location (since 1.3): served by a current table, refused by
+    // one that ends before it.
+    gf_logical_point location{7.0, 7.0};
+    std::uint32_t inside = 7u;
+    require(windows.pointer_location(window.get(), &location, nullptr, &inside) == GF_STATUS_OK &&
+                location.x == 0.0 && location.y == 0.0 && inside == 0u,
+            "a window that has seen no pointer event reports zero, outside");
+    gf_windows_table before_pointer = windows.c_table();
+    before_pointer.struct_size = static_cast<std::uint32_t>(offsetof(gf_windows_table, pointer_location));
+    const WindowsTable without_pointer = WindowsTable::adopt(before_pointer);
+    require(without_pointer.pointer_location(window.get(), &location, nullptr, &inside) ==
+                GF_STATUS_UNSUPPORTED_VERSION,
+            "a windows table without pointer_location does not serve it");
 }
 
 } // namespace

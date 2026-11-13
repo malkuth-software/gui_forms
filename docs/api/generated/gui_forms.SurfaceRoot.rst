@@ -206,6 +206,9 @@ gui_forms::SurfaceRoot
       **active_control** : ``Control::Ptr``, read-only
          The focused control as Windows Forms' ActiveControl names it: the outermost composite whose focus target holds focus (a ComboBox while its edit part has it), else focused_control(). Null without focus.
 
+      **pointer_location** : ``PointerLocation``, read-only
+         Where the pointer is, as this window last saw it (PointerLocation): the last pointer event it dispatched, in window coordinates, so location and window_position are equal. A sub-surface's root reports its own coordinates. Readable during on_mouse_enter and on_mouse_leave, which carry no arguments. UI thread.
+
       **focus_cue_visible** : ``bool``, default ``false``, read-only
          Whether focus rectangles are shown. A key press turns them on; a primary
          pointer press turns them off without moving focus.
@@ -530,6 +533,8 @@ gui_forms::SurfaceRoot
         - The window's rules (gui_forms/rules.hpp; notes:planning APP_WINDOW_RULES_DESIGN Part C), made on first use; the window owns them and they end with it.
       * - :cpp:func:`is_key_down <gui_forms::SurfaceRoot::is_key_down>`
         - Whether physical key ``physical_key`` (a USB HID usage, PhysicalKey) is down now, as the window has seen it: pressed and not yet released, nor released by the window losing activation.
+      * - :cpp:func:`mouse_event_arguments <gui_forms::SurfaceRoot::mouse_event_arguments>`
+        - The MouseEventArgs a routed pointer event carries on ``target``, built as this window builds its mouse raisers' (mouse_event_arguments): location relative to target's absolute bounds, and for a press or release the click count the host reported for the last press.
       * - :cpp:func:`append_interactions <gui_forms::SurfaceRoot::append_interactions>`
         - The interactions a window raises, by the name of their event accessor, appended in declaration order: the window events the C ABI subscribes by name (stage C, tools/abi_event_catalog.py).
       * - :cpp:func:`request_help <gui_forms::SurfaceRoot::request_help>`
@@ -898,6 +903,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: Control::Ptr active_control() const
 
       The focused control as Windows Forms' ActiveControl names it: the outermost composite whose focus target holds focus (a ComboBox while its edit part has it), else focused_control(). Null without focus.
+
+   .. cpp:function:: PointerLocation pointer_location() const noexcept
+
+      Where the pointer is, as this window last saw it (PointerLocation): the last pointer event it dispatched, in window coordinates, so location and window_position are equal. A sub-surface's root reports its own coordinates. Readable during on_mouse_enter and on_mouse_leave, which carry no arguments. UI thread.
 
    .. cpp:function:: bool focus_cue_visible() const noexcept
 
@@ -1444,6 +1453,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: bool is_key_down(std::uint32_t physical_key) const noexcept
 
       Whether physical key ``physical_key`` (a USB HID usage, PhysicalKey) is down now, as the window has seen it: pressed and not yet released, nor released by the window losing activation. At most maximum_held_keys keys are tracked at once (InteractionSnapshot counts the presses past that). UI thread.
+
+   .. cpp:function:: MouseEventArgs mouse_event_arguments(const Control& target, const PointerEvent& event) const
+
+      The MouseEventArgs a routed pointer event carries on ``target``, built as this window builds its mouse raisers' (mouse_event_arguments): location relative to target's absolute bounds, and for a press or release the click count the host reported for the last press. UI thread; the target is in this window.
 
    .. cpp:function:: static void append_interactions(std::vector<InteractionDeclaration>& interactions)
 

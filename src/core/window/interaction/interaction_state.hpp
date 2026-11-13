@@ -64,6 +64,12 @@ public:
     // MouseEventArgs carries the count of the press it ends.
     [[nodiscard]] std::uint32_t last_click_count() const noexcept { return last_click_count_; }
 
+    // The position of the last pointer event noted, in window coordinates,
+    // and whether the pointer was in the window then (false after its
+    // leave, and before any pointer event).
+    [[nodiscard]] Point pointer_position() const noexcept { return pointer_position_; }
+    [[nodiscard]] bool pointer_inside() const noexcept { return pointer_inside_; }
+
     // Fills the input fields of `snapshot`.
     void fill_snapshot(InteractionSnapshot& snapshot) const;
 

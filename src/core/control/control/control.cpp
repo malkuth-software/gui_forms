@@ -3731,6 +3731,26 @@ Rect Control::absolute_bounds() const {
     return result;
 }
 
+MouseEventArgs Control::mouse_event_arguments(const PointerEvent& event) const {
+    if (surface_root_ != nullptr) {
+        const MouseEventArgs routed = (*surface_root_).mouse_event_arguments(*this, event);
+        return routed;
+    }
+    const Rect bounds = absolute_bounds();
+    const Point origin{bounds.x, bounds.y};
+    const MouseEventArgs detached = gui_forms::mouse_event_arguments(event, origin, event.click_count);
+    return detached;
+}
+
+PointerLocation Control::pointer_location() const {
+    PointerLocation location{};
+    if (surface_root_ == nullptr) return location;
+    location = (*surface_root_).pointer_location();
+    const Rect bounds = absolute_bounds();
+    location.location = Point{location.window_position.x - bounds.x, location.window_position.y - bounds.y};
+    return location;
+}
+
 Point Control::point_to_window(Point local) const {
     const Rect absolute = absolute_bounds();
     return {absolute.x + local.x, absolute.y + local.y};
