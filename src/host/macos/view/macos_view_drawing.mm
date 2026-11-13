@@ -144,6 +144,12 @@ using gui_forms::host::macos::MacPresentedFrame;
                                                       painted:painted
                                                       started:started];
     [self recordDrawMetrics:plan painted:painted presentation:presentation];
+    if (_drawTrace) {
+        [self recordDrawTrace:dirtyRect
+                      started:started
+                 presentation:presentation.presented ? YES : NO
+                     duration:presentation.elapsed_nanoseconds];
+    }
     [self completeFrameCaptureIfDue:dirtyRect
                           presented:(presentation.presented && painted.receipt) ? YES : NO];
     // Do not collect the next model invalidation from inside AppKit's paint
@@ -784,6 +790,64 @@ using gui_forms::host::macos::MacPresentedFrame;
             (*_model).notify_live_presented(liveDuration, liveCopied);
         }
     }
+}
+
+- (void)setDrawTraceEnabled:(BOOL)enabled
+           captureDirectory:(std::string)directory
+                     stride:(std::size_t)stride
+                      limit:(std::size_t)limit {
+    _drawTrace.reset();
+    if (enabled == NO) return;
+    _drawTrace = std::make_unique<MacDrawTrace>();
+    MacDrawTrace& trace = *_drawTrace;
+    trace.capture_directory = std::move(directory);
+    trace.capture_stride = stride == 0U ? 1U : stride;
+    trace.capture_limit = limit;
+}
+
+- (BOOL)readDrawTrace:(std::vector<MacDrawRecord>&)records {
+    records.clear();
+    if (!_drawTrace) return NO;
+    const MacDrawTrace& trace = *_drawTrace;
+    records.reserve(trace.count);
+    for (std::size_t index = 0U; index < trace.count; ++index) records.push_back(trace.records[index]);
+    return trace.overflow ? YES : NO;
+}
+
+// Appends one record to the enabled draw trace and, for a presented frame
+// the capture stride selects, writes the front raster as a PNG.
+- (void)recordDrawTrace:(NSRect)dirtyRect
+                started:(std::chrono::steady_clock::time_point)started
+           presentation:(BOOL)presented
+               duration:(std::uint64_t)durationNanoseconds {
+    MacDrawTrace& trace = *_drawTrace;
+    if (trace.count < trace.records.size()) {
+        MacDrawRecord& record = trace.records[trace.count];
+        const std::chrono::nanoseconds since = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            started.time_since_epoch());
+        record.started_ns = static_cast<std::uint64_t>(since.count());
+        record.duration_ns = durationNanoseconds;
+        record.width = self.bounds.size.width;
+        record.height = self.bounds.size.height;
+        record.dirty_x = dirtyRect.origin.x;
+        record.dirty_y = dirtyRect.origin.y;
+        record.dirty_width = dirtyRect.size.width;
+        record.dirty_height = dirtyRect.size.height;
+        record.presented = presented == YES;
+        record.live_resize = self.inLiveResize == YES;
+        ++trace.count;
+    } else {
+        trace.overflow = true;
+    }
+    if (presented == NO) return;
+    ++trace.presented;
+    if (trace.capture_directory.empty() || trace.captured >= trace.capture_limit) return;
+    if ((trace.presented - 1U) % trace.capture_stride != 0U) return;
+    char name[32]{};
+    std::snprintf(name, sizeof name, "/frame_%04zu.png", trace.captured);
+    const std::string path = trace.capture_directory + name;
+    const std::vector<std::byte> encoded = _raster.encode_png();
+    if (gui_forms::host::detail::complete_frame_capture(path, encoded)) ++trace.captured;
 }
 
 - (void)installFrameCapturePath:(std::string)path {

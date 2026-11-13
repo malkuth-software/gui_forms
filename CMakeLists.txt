@@ -2448,6 +2448,35 @@ if(GUI_FORMS_BUILD_GALLERY)
             OUTPUT_NAME "GUI.Forms Gallery"
         )
 
+        # Live resize on the Gallery (cp33; tests/macos_live_resize_probe.mm):
+        # a scripted corner drag and a stepped resize, recording each draw's
+        # timing and damage; judged on stale damage, stalls and the final
+        # frame. Its CSVs go to live-resize/ in the build tree; run it by hand
+        # with --capture <dir> to save frames for the owner's verdict.
+        add_executable(gui_forms_macos_live_resize_probe MACOSX_BUNDLE
+            tests/macos_live_resize_probe.mm
+            ${GUI_FORMS_GALLERY_FONTS}
+            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+        )
+        target_compile_options(gui_forms_macos_live_resize_probe PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_macos_live_resize_probe PRIVATE
+            gui_forms_gallery_model
+            gui_forms_host_macos
+        )
+        set_target_properties(gui_forms_macos_live_resize_probe PROPERTIES
+            MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.live-resize-probe")
+        if(GUI_FORMS_BUILD_TESTS)
+            add_test(NAME gui_forms_macos_live_resize_directory
+                     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/live-resize)
+            add_test(NAME gui_forms_macos_live_resize_probe_tests
+                     COMMAND gui_forms_macos_live_resize_probe --out ${CMAKE_CURRENT_BINARY_DIR}/live-resize)
+            set_tests_properties(gui_forms_macos_live_resize_directory PROPERTIES
+                FIXTURES_SETUP gui_forms_live_resize_directory LABELS "mac_conditions")
+            set_tests_properties(gui_forms_macos_live_resize_probe_tests PROPERTIES
+                FIXTURES_REQUIRED gui_forms_live_resize_directory
+                RUN_SERIAL TRUE TIMEOUT 120 LABELS "mac_conditions")
+        endif()
+
         add_executable(gui_forms_vsync_lab MACOSX_BUNDLE
             src/host/macos/vsync_lab_main.mm
             ${GUI_FORMS_PROGRAM_FONT_NOTICES}

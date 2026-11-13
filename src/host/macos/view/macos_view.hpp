@@ -58,6 +58,9 @@
     // made once per view instead of once per draw, released in dealloc.
     CGColorSpaceRef _presentColorSpace;
     std::unique_ptr<MacDisplayLinkTrace> _displayTrace;
+    // The draw trace (live resize probe); null, recording nothing, unless a
+    // probe enabled it.
+    std::unique_ptr<MacDrawTrace> _drawTrace;
     CADisplayLink* _displayLink;
     BOOL _hostOccluded;
     // The full-screen state the session last accepted (notifyWindowState).
@@ -230,6 +233,20 @@
 // capture (macos_view_drawing.mm).
 @interface GUIFormsView (Drawing)
 - (void)installFrameCapturePath:(std::string)path;
+// The draw trace (MacDrawTrace), a private probe: enabling starts an empty
+// trace that captures frames into `directory` (empty for none), one every
+// `stride` presented frames, at most `limit`; disabling drops it. Reading
+// copies its records into `records` (cleared first) and returns whether
+// the bounded trace overflowed.
+- (void)setDrawTraceEnabled:(BOOL)enabled
+           captureDirectory:(std::string)directory
+                     stride:(std::size_t)stride
+                      limit:(std::size_t)limit;
+- (BOOL)readDrawTrace:(std::vector<MacDrawRecord>&)records;
+- (void)recordDrawTrace:(NSRect)dirtyRect
+                started:(std::chrono::steady_clock::time_point)started
+           presentation:(BOOL)presented
+               duration:(std::uint64_t)durationNanoseconds;
 - (BOOL)frameCaptureSaved;
 - (void)completeFrameCaptureIfDue:(NSRect)dirtyRect presented:(BOOL)presented;
 - (void)drawRetainedRect:(NSRect)dirtyRect;
