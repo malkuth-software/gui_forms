@@ -214,6 +214,10 @@ void test_danger_rule_matches() {
     require(compiled.succeeded(), "a sheet with a danger rule compiles");
     if (!compiled.succeeded()) return;
     for (const ThemeCompileDiagnostic& diagnostic : compiled.diagnostics()) {
+        // The sheet's inks are literal on purpose, so that each rule is told
+        // apart; a literal colour warns that a derived variant cannot remap
+        // it (W201), as in the ribbon look's tests.
+        if (diagnostic.code == "W201") continue;
         const std::string line = format_theme_diagnostic(diagnostic);
         require(line.find("danger-rule") == std::string::npos, "the package's rules compile without findings: " + line);
     }
