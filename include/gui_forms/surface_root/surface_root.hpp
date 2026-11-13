@@ -966,6 +966,16 @@ public:
     // Wakes coalesce until the host consumes damage and remain suppressed while
     // the model is explicitly occluded.
     void set_paint_wake_handler(std::function<void()> wake);
+    // Host adapters also install a schedule wake seam: a frame request made
+    // or moved outside poll_frame_schedule (a Timer started or restarted
+    // from posted work or from another window's callback, a paint deadline,
+    // motion frames, the engine's idle frames armed while painting) calls
+    // it, so that the host polls and re-arms its wake for the new deadline
+    // (next_wake). Without it a host re-arms only after its own wakes, and a
+    // deadline set elsewhere waited for unrelated activity; inside a modal
+    // session there may be none. Wakes coalesce until the next poll; a
+    // request made during a poll needs none, since the host arms after it.
+    void set_schedule_wake_handler(std::function<void()> wake);
     // Stops accepting posted work and cancels everything pending. A host
     // releases pointer capture first (see HostSession), so that controls
     // that post about the release meet an accepting dispatcher.
@@ -2116,6 +2126,9 @@ private:
     // decorations or size-dependent authored surface.
     [[nodiscard]] bool keeps_pixels_on_resize(const Control& control) const noexcept;
     void request_paint_wake() noexcept;
+    // Calls the schedule wake handler (set_schedule_wake_handler) unless a
+    // poll is running or a wake is already owed. Never throws.
+    void request_schedule_wake() noexcept;
     void acknowledge_paint_wake_if_damage_drained() noexcept;
     void touch_paint() noexcept;
     // The paint lease's state, derived from the facts each time (in paint,
@@ -2845,6 +2858,9 @@ private:
     bool occluded_{};
     std::function<void()> paint_wake_handler_;
     bool paint_wake_pending_{};
+    std::function<void()> schedule_wake_handler_;
+    // A schedule wake was handed to the host and its poll has not run yet.
+    bool schedule_wake_pending_{};
     std::uint64_t semantic_generation_{1U};
     bool in_semantic_snapshot_{};
     HostServices* host_services_{};

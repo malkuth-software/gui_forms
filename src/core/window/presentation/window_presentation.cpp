@@ -633,6 +633,8 @@ void SurfaceRoot::arm_engine_idle() {
         detail::FrameRequestKind::engine_idle, Control::WeakPtr{}, first, motion_frame_interval);
     frame_requests_.push_back(std::move(idle));
     metrics_.record_frame_request();
+    // Usually armed while painting, after the host armed its wake.
+    request_schedule_wake();
 }
 
 PartRasterResult SurfaceRoot::engine_unkeyed_raster(const PartRasterRequest& request) {
@@ -1471,6 +1473,13 @@ Window::take_live_surface_presentations(const bool include_unchanged,
         ++iterator;
     }
     return result;
+}
+
+void SurfaceRoot::set_schedule_wake_handler(std::function<void()> wake) {
+    require_root_thread("schedule wake-handler mutation");
+    schedule_wake_handler_ = std::move(wake);
+    schedule_wake_pending_ = false;
+    if (schedule_wake_handler_ && next_wake().has_value()) request_schedule_wake();
 }
 
 void SurfaceRoot::set_paint_wake_handler(std::function<void()> wake) {

@@ -4161,6 +4161,17 @@ void SurfaceRoot::request_paint_wake() noexcept {
     }
 }
 
+void SurfaceRoot::request_schedule_wake() noexcept {
+    if (in_frame_poll_ || schedule_wake_pending_ || !schedule_wake_handler_) return;
+    schedule_wake_pending_ = true;
+    try {
+        schedule_wake_handler_();
+    } catch (...) {
+        // Advisory, as the paint wake: a later request retries.
+        schedule_wake_pending_ = false;
+    }
+}
+
 void SurfaceRoot::acknowledge_paint_wake_if_damage_drained() noexcept {
     bool damage_remains = false;
     for (const DamageRegion& damage : plane_damage_) {

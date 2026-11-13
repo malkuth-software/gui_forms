@@ -18,6 +18,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <thread>
 #include <vector>
@@ -70,6 +71,36 @@ public:
 
 private:
     Control::WeakPtr target_;
+};
+
+// A host's schedule wake seam that counts its calls.
+class CountingWake final {
+public:
+    explicit CountingWake(unsigned& calls) : calls_(&calls) {}
+
+    void operator()() const { ++(*calls_); }
+
+private:
+    unsigned* calls_;
+};
+
+// A UI timer target that starts another timer from inside its tick (the
+// poll), as a timer that restarts a peer does.
+class RestartPeerTick final {
+public:
+    RestartPeerTick(Window& window, Control& owner, FrameRequestToken& peer, std::uint64_t& peer_calls)
+        : window_(&window), owner_(&owner), peer_(&peer), peer_calls_(&peer_calls) {}
+
+    void operator()(FrameTime now) const {
+        (*peer_).disconnect();
+        *peer_ = (*window_).schedule_ui_timer(*owner_, 40ms, now + 40ms, CountingTick{*peer_calls_});
+    }
+
+private:
+    Window* window_;
+    Control* owner_;
+    FrameRequestToken* peer_;
+    std::uint64_t* peer_calls_;
 };
 
 struct Fixture {
@@ -364,6 +395,52 @@ void test_ui_timer_bounds_and_thread_affinity() {
 
 } // namespace
 
+// A frame request made outside a poll (a Timer started or restarted from
+// posted work or another window's callback, a paint deadline) wakes the
+// host through the schedule wake seam, so that it polls and arms its wake
+// for the new deadline; without it the deadline waited for unrelated
+// activity, of which a modal session may have none (the macOS modal wake
+// return, 2026-11-13). Wakes coalesce until the host polls, and a request
+// made inside a poll needs none: the host arms after the poll.
+void test_schedule_wake_follows_requests_outside_a_poll() {
+    Fixture fixture;
+    Window& window = *fixture.window;
+    unsigned wakes = 0U;
+    window.set_schedule_wake_handler(CountingWake{wakes});
+    require(wakes == 0U, "a window with nothing scheduled needs no schedule wake");
+
+    const FrameTime start = FrameClock::now();
+    std::uint64_t ticks = 0U;
+    FrameRequestToken timer = window.schedule_ui_timer(*fixture.root, 30ms, start + 30ms, CountingTick{ticks});
+    require(wakes == 1U, "a timer started outside a poll wakes the host to arm for it");
+    FrameRequestToken deadline = window.schedule_paint(fixture.root, start + 50ms);
+    require(wakes == 1U, "requests before the host's poll share its one wake");
+
+    const FramePollResult before = window.poll_frame_schedule(start);
+    require(before.next_wake == std::optional<FrameTime>(start + 30ms), "the host's poll sees the new deadline");
+    timer.disconnect();
+    timer = window.schedule_ui_timer(*fixture.root, 30ms, start + 10ms, CountingTick{ticks});
+    require(wakes == 2U, "a timer restarted after the poll, outside a tick, wakes the host again");
+
+    std::uint64_t peer_ticks = 0U;
+    FrameRequestToken peer{};
+    timer.disconnect();
+    timer = window.schedule_ui_timer(*fixture.root, 30ms, start + 10ms,
+                                     RestartPeerTick{window, *fixture.root, peer, peer_ticks});
+    static_cast<void>(window.poll_frame_schedule(start));
+    const unsigned before_tick = wakes;
+    const FramePollResult ticked = window.poll_frame_schedule(start + 10ms);
+    require(ticked.ui_timer_ticks == 1U && peer.connected(), "the tick restarted its peer");
+    require(wakes == before_tick, "a timer restarted inside a tick needs no wake: the host arms after its poll");
+    require(ticked.next_wake.has_value() && *ticked.next_wake <= start + 50ms,
+            "the poll's next wake covers the restarted peer");
+
+    window.set_schedule_wake_handler({});
+    static_cast<void>(window.schedule_paint(fixture.root, start + 70ms));
+    require(wakes == before_tick, "a removed seam is not called");
+    deadline.disconnect();
+}
+
 int main() {
     try {
         test_deadline_is_exact_and_one_shot();
@@ -374,6 +451,7 @@ int main() {
         test_occlusion_holds_paint_deadline();
         test_thirty_tick_band_stays_localized();
         test_ui_timer_bounds_and_thread_affinity();
+        test_schedule_wake_follows_requests_outside_a_poll();
         std::cout << "gui_forms_frame_scheduler_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

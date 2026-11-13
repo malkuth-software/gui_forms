@@ -475,16 +475,20 @@ HostServiceStatus MacApplicationRun::run_modal_impl(gui_forms::HostWindowId wind
     // close requests (post_main_work), timers and display continue in
     // NSModalPanelRunLoopMode, a common mode.
     NSModalSession session = [NSApp beginModalSessionForWindow:modalWindow];
+    NSRunLoop* const runLoop = [NSRunLoop currentRunLoop];
     while (live(window) && (!main_window.valid() || live(main_window))) {
         const NSModalResponse response = [NSApp runModalSession:session];
         if (response != NSModalResponseContinue) break;
         if (!live(window)) break;
-        // Waits for the next event without taking it (runModalSession takes
-        // it on the next pass), servicing the run loop's sources meanwhile.
-        static_cast<void>([NSApp nextEventMatchingMask:NSEventMaskAny
-                                             untilDate:[NSDate distantFuture]
-                                                inMode:NSModalPanelRunLoopMode
-                                               dequeue:NO]);
+        // Runs the modal mode until one input source is handled: an event
+        // arriving (taken by runModalSession on the next pass), posted work
+        // (post_main_work), a wake timer's post or a display link tick. The
+        // loop then checks its windows again. Waiting for the next event
+        // instead (nextEventMatchingMask) rechecked them only when an event
+        // came, so a close that ran from posted work or a timer and posted
+        // none (close_finished posts one, other paths did not) left the
+        // session waiting for the user's next keystroke or mouse move.
+        static_cast<void>([runLoop runMode:NSModalPanelRunLoopMode beforeDate:[NSDate distantFuture]]);
     }
     [NSApp endModalSession:session];
     // The owner becomes key again with its raster view first responder; its

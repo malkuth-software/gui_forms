@@ -35,13 +35,31 @@ void collect_damage_on_main(void* context) {
     if (view != nil) [view collectDamage];
 }
 
+// The wake, posted by the wake timer's handler (scheduled_wake_fired).
+void scheduled_wake_on_main(void* context) {
+    const std::unique_ptr<WeakViewWork> work(static_cast<WeakViewWork*>(context));
+    GUIFormsView* const view = (*work).view;
+    if (view != nil) [view scheduledWake];
+}
+
 // The wake timer's event handler. Its context belongs to the dispatch
 // source (dispatch_set_context) and is deleted by release_weak_view_work,
 // the source's finalizer, when the source is released.
-void scheduled_wake_on_main(void* context) {
-    WeakViewWork& work = *static_cast<WeakViewWork*>(context);
-    GUIFormsView* const view = work.view;
-    if (view != nil) [view scheduledWake];
+//
+// It only posts the wake (post_main_work) and returns. The wake polls the
+// frame schedule, which runs application code (a Timer's tick, an idle
+// frame); run on the main dispatch queue, a nested event loop entered from
+// that code (a modal window opened from a Timer, say) would hold the serial
+// queue for its whole length, and no wake timer of any window would fire
+// inside it: Timers, motion and the idle frames that make finish tiles
+// would stall until the nested loop ended. A perform request is serviced
+// at any depth.
+void scheduled_wake_fired(void* context) {
+    const WeakViewWork& source = *static_cast<WeakViewWork*>(context);
+    GUIFormsView* const view = source.view;
+    if (view == nil) return;
+    WeakViewWork* const work = new WeakViewWork{view};
+    post_main_work(work, &scheduled_wake_on_main);
 }
 
 void release_weak_view_work(void* context) {
@@ -319,12 +337,17 @@ void link_view_categories() noexcept {
         WeakViewWork* const wakeWork = new WeakViewWork{self};
         dispatch_set_context(_wakeSource, wakeWork);
         dispatch_set_finalizer_f(_wakeSource, &release_weak_view_work);
-        dispatch_source_set_event_handler_f(_wakeSource, &scheduled_wake_on_main);
+        dispatch_source_set_event_handler_f(_wakeSource, &scheduled_wake_fired);
         dispatch_resume(_wakeSource);
         dispatch_source_set_timer(_wakeSource, DISPATCH_TIME_FOREVER,
                                   DISPATCH_TIME_FOREVER, 0);
         (*_model).set_dispatch_wake_handler(DrainPostedWorkWake(self));
         (*_model).set_paint_wake_handler(CollectDamageWake(self));
+        // A frame request made outside this view's own wakes (a Timer
+        // restarted from posted work or another window's callback, idle
+        // frames armed while painting) re-arms the wake timer through a
+        // damage collection, which polls and arms (armWakeTimer).
+        (*_model).set_schedule_wake_handler(CollectDamageWake(self));
         // The raster keeps its pixels between draws, so a scroll's pixels
         // can be moved instead of repainted (drawRetainedRect:).
         (*_model).set_scroll_copies_supported(true);
@@ -825,6 +848,7 @@ void link_view_categories() noexcept {
     if (_model) {
         (*_model).set_live_surface_idle_wake_handler({});
         (*_model).set_paint_wake_handler({});
+        (*_model).set_schedule_wake_handler({});
     }
     // The session's shutdown releases capture while the dispatcher still
     // accepts the work controls post about it, then shuts the dispatcher

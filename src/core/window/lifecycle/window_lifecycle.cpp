@@ -168,6 +168,8 @@ Window::~Window() {
 void SurfaceRoot::release_tree() noexcept {
     paint_wake_handler_ = {};
     paint_wake_pending_ = false;
+    schedule_wake_handler_ = {};
+    schedule_wake_pending_ = false;
     abandon_deferred_input();
     // Teardown order (house style §4): the controls are told everything
     // (overlays closing, capture and focus revoked, the tree detached) while

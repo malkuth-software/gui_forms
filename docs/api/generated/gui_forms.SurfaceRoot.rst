@@ -624,6 +624,8 @@ gui_forms::SurfaceRoot
         - The invalidation overlay (owner request 2026-11-09; see invalidation_overlay.hpp).
       * - :cpp:func:`set_paint_wake_handler <gui_forms::SurfaceRoot::set_paint_wake_handler>`
         - Host adapters also install a paint wake seam.
+      * - :cpp:func:`set_schedule_wake_handler <gui_forms::SurfaceRoot::set_schedule_wake_handler>`
+        - Host adapters also install a schedule wake seam: a frame request made or moved outside poll_frame_schedule (a Timer started or restarted from posted work or from another window's callback, a paint deadline, motion frames, the engine's idle frames armed while painting) calls it, so that the host polls and re-arms its wake for the new deadline (next_wake).
       * - :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`
         - Names the :cpp:class:`CommandTarget <gui_forms::CommandTarget>` of one stage of the command routing chain: the active panel, the active document or the main window, or clears it with null.
       * - :cpp:func:`set_input_time_source <gui_forms::SurfaceRoot::set_input_time_source>`
@@ -1702,6 +1704,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void set_paint_wake_handler(std::function<void()> wake)
 
       Host adapters also install a paint wake seam. Retained invalidation may originate from another Window's callback, so relying only on the host currently dispatching input can strand valid dirty state indefinitely. Wakes coalesce until the host consumes damage and remain suppressed while the model is explicitly occluded.
+
+   .. cpp:function:: void set_schedule_wake_handler(std::function<void()> wake)
+
+      Host adapters also install a schedule wake seam: a frame request made or moved outside poll_frame_schedule (a Timer started or restarted from posted work or from another window's callback, a paint deadline, motion frames, the engine's idle frames armed while painting) calls it, so that the host polls and re-arms its wake for the new deadline (next_wake). Without it a host re-arms only after its own wakes, and a deadline set elsewhere waited for unrelated activity; inside a modal session there may be none. Wakes coalesce until the next poll; a request made during a poll needs none, since the host arms after it.
 
    .. cpp:function:: void set_command_target(CommandRouteStage stage, const std::shared_ptr<CommandTarget>& target)
 
