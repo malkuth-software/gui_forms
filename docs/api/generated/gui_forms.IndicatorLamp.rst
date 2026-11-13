@@ -21,6 +21,13 @@ gui_forms::IndicatorLamp
    lens up or cools it down over a few frames, and at once under reduced
    motion.
 
+   A lamp can also show baked light: name a bake with :cpp:member:`light_planes <gui_forms::IndicatorLamp::light_planes>` and the
+   lens is composited from it, read through the window's resources
+   (``ApplicationResources::set_light_plane_directory``), with the bake's lamps
+   lit in :cpp:member:`lamp_color <gui_forms::IndicatorLamp::lamp_color>` at the warm-up's power, so one bake serves every
+   colour. Where the bake is missing, and in forced high contrast, the
+   theme's lens is drawn instead.
+
    *Status:* provisional.
 
    :Parameters:
@@ -41,12 +48,31 @@ gui_forms::IndicatorLamp
          unless an accessible name is set. Invalid UTF-8 throws
          ``std::invalid_argument``.
 
+      **light_planes** : ``std::string``, default empty
+         The baked light planes the lens is composited from, by name: a bake in
+         the windows' light-plane directory (``<directory>/<name>.f32``). A
+         name is 1 to 64 lower-case letters, digits and ``_``; anything else
+         throws ``std::invalid_argument``. With the bake present the lens takes
+         the bake's aspect (the largest such rectangle in the client area
+         without a legend, else in the bezel's square) and its whole look, its
+         body included, and the bezel gives way.
+
+      **lamp_color** : ``std::optional<Color>``, default empty
+         The colour the lens lights in while on, as sRGB. With a bake it is the
+         bake's lamp light at unit power (``engine_light::lamp_colour_from_srgb``),
+         lamp amber when empty; without one it fills the lit lens over the
+         theme's look as an authored colour, and not in forced high contrast.
+         An error always lights in the error colour (with a bake, lamp red).
+
       **power** : ``double``, read-only
          How lit the lens is now, from 0 to 1: the warm-up's or cool-down's
          current power, or the state's settled one.
 
       **changing** : ``bool``, read-only
          Whether a warm-up or cool-down is running.
+
+      **light_planes_shown** : ``bool``, read-only
+         Whether the lens is composited from its bake now.
 
       **parts** : ``Parts``, read-only
 
@@ -81,7 +107,10 @@ gui_forms::IndicatorLamp
    name or else its legend, with the state as its value (``off``, ``on`` or
    ``error``), so the state never rests on colour alone. The warm-up is the
    light planes' strike envelope (``engine_light::lamp_power``) and the
-   cool-down ``engine_light::lamp_cooling_power``.
+   cool-down ``engine_light::lamp_cooling_power``. A baked lens is one part
+   (``PartPaint::light_planes``), composited at the window's scale and kept
+   between paints (``engine_light::LightPlaneRaster``); it is transparent where
+   the bake's coverage is 0, so its light never reaches past the lens.
 
    .. rubric:: Examples
 
@@ -112,6 +141,24 @@ gui_forms::IndicatorLamp
       unless an accessible name is set. Invalid UTF-8 throws
       ``std::invalid_argument``.
 
+   .. cpp:member:: std::string light_planes
+
+      The baked light planes the lens is composited from, by name: a bake in
+      the windows' light-plane directory (``<directory>/<name>.f32``). A
+      name is 1 to 64 lower-case letters, digits and ``_``; anything else
+      throws ``std::invalid_argument``. With the bake present the lens takes
+      the bake's aspect (the largest such rectangle in the client area
+      without a legend, else in the bezel's square) and its whole look, its
+      body included, and the bezel gives way.
+
+   .. cpp:member:: std::optional<Color> lamp_color
+
+      The colour the lens lights in while on, as sRGB. With a bake it is the
+      bake's lamp light at unit power (``engine_light::lamp_colour_from_srgb``),
+      lamp amber when empty; without one it fills the lit lens over the
+      theme's look as an authored colour, and not in forced high contrast.
+      An error always lights in the error colour (with a bake, lamp red).
+
    .. cpp:function:: double power() const noexcept
 
       How lit the lens is now, from 0 to 1: the warm-up's or cool-down's
@@ -120,6 +167,10 @@ gui_forms::IndicatorLamp
    .. cpp:function:: bool changing() const noexcept
 
       Whether a warm-up or cool-down is running.
+
+   .. cpp:function:: bool light_planes_shown() const
+
+      Whether the lens is composited from its bake now.
 
    .. cpp:function:: Parts parts() const
 
@@ -159,11 +210,11 @@ gui_forms::IndicatorLamp
 
    .. cpp:member:: constexpr std::size_t indicator_lamp_property_count
 
-      IndicatorLamp's property table: Control's entries, then its own. Default: ``Control::control_property_count + 2U``.
+      IndicatorLamp's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 3 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 5 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -177,6 +228,18 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 3 su
    * - property
      - GUI.Forms-only
      - ``changing``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``lamp_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``light_planes``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``light_planes_shown``
      - supported
    * - property
      - GUI.Forms-only
