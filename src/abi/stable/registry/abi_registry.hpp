@@ -408,6 +408,11 @@ gf_status fail_with_record(SlotIdentity slot, const stxlib::ErrorRecord& record)
 // pending capture (stxlib::park_shadow) for the snapshot's frames.
 gf_status fail_with_current_exception(SlotIdentity slot) noexcept;
 
+// As fail_with_current_exception, with the exception's shadow record already
+// parked by the handler (ParkedFailure::park, abi_failure.hpp); takes no
+// capture of its own.
+gf_status fail_with_current_exception(SlotIdentity slot, stxlib::ShadowReference parked) noexcept;
+
 // Adapts a slot body, which returns its gf_status (fail(...) included), to
 // the gate's Result: a status, failed or not, is a success of the gate; only
 // an exception is the gate's failure.

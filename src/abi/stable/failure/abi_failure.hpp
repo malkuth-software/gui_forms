@@ -2,8 +2,11 @@
 
 #include "gui_forms/c/gf_abi.h"
 
+#include <stxlib/error.hpp>
+
 #include <array>
 #include <cstdint>
+#include <exception>
 #include <string_view>
 
 namespace gui_forms::abi1 {
@@ -46,5 +49,30 @@ void clear_failure() noexcept;
 // fit in capacity. Text that is not valid UTF-8 is cut at the last lead byte
 // boundary, never inside a sequence.
 [[nodiscard]] std::size_t utf8_prefix_length(std::string_view text, std::size_t capacity) noexcept;
+
+// A C++ exception carried as a value and rethrown later, with the shadow
+// record of its throw (survey B8; the class bridge's frames, HookFrame). A
+// base function catches the failure of the raiser below inside its slot
+// gate, so the C entry that called base returns normally; once the entry
+// has returned, the raise rethrows the exception, and the outer gate that
+// catches it files the frames of the original throw, not of the rethrow.
+// One per carrying frame, on its thread; the record must still be among the
+// thread's last stxlib::shadow_record_capacity when rethrown (else the outer
+// gate reads no frames for it).
+struct ParkedFailure final {
+    std::exception_ptr exception;
+    stxlib::ShadowReference shadow{};
+
+    // Inside a catch block: parks the current exception's shadow record
+    // (stxlib::park_shadow, which clears the thread's pending capture) and
+    // returns it, for the failure's snapshot. The first failure parked is
+    // the one kept; a later one is only parked and returned.
+    stxlib::ShadowReference park() noexcept;
+
+    // Rethrows the kept exception after making its shadow record the
+    // thread's pending capture again (stxlib::restore_shadow), and holds
+    // nothing afterwards. Returns without throwing when nothing is kept.
+    void rethrow();
+};
 
 } // namespace gui_forms::abi1

@@ -1162,6 +1162,16 @@ gf_status fail_with_current_exception(const SlotIdentity slot) noexcept {
     return failed;
 }
 
+gf_status fail_with_current_exception(const SlotIdentity slot, const stxlib::ShadowReference parked) noexcept {
+    const ExceptionOutcome outcome = classify_current_exception();
+    const gf_status status = filed_status(outcome.status);
+    const std::string_view message = take_slot_message("an unknown exception reached the C ABI");
+    const detail::FailureBoundary boundary{detail::c_abi_failure_site, status, slot.table_id, slot.slot_index};
+    detail::record_failure_snapshot(boundary, message, parked);
+    const gf_status failed = fail(status, slot, message);
+    return failed;
+}
+
 gf_status read_text(gf_utf8_view view, SlotIdentity slot, std::string_view& text) noexcept {
     if (view.data == nullptr && view.size != 0U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "text has a size but no data");

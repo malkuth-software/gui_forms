@@ -91,13 +91,18 @@ void record_failure_snapshot(const FailureBoundary& boundary, const std::string_
 }
 
 void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message) noexcept {
+    const stxlib::ShadowReference parked = stxlib::park_shadow();
+    record_failure_snapshot(boundary, message, parked);
+}
+
+void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message,
+                             const stxlib::ShadowReference parked) noexcept {
     FailureSnapshot& snapshot = thread_snapshot;
-    // The frames open now, in case no capture is pending.
+    // The frames open now, in case parked holds no capture.
     ShadowStackState state{};
     std::size_t recorded = copy_shadow_frames(std::span<ShadowFrame>(snapshot.frames), state);
     std::uint32_t depth = state.depth;
     std::size_t trace_count = 0U;
-    const stxlib::ShadowReference parked = stxlib::park_shadow();
     if (parked.present()) {
         const RecordFrames read = copy_record_frames(parked, std::span<ShadowFrame>(snapshot.frames),
                                                      std::span<std::uint64_t>(snapshot.trace));

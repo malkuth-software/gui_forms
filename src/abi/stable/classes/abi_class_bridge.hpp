@@ -30,7 +30,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <exception>
 #include <memory>
 #include <optional>
 #include <span>
@@ -140,9 +139,10 @@ struct HookFrame final {
     gf_event* published_event = nullptr;
     HookFieldOperations operations{};
     std::string_view name;
-    // A C++ exception base caught from the raiser below, rethrown once the
-    // entry returns so the raise fails as it would without a table.
-    std::exception_ptr failure;
+    // A C++ exception base caught from the raiser below, with the shadow
+    // record of its throw, rethrown once the entry returns so the raise fails
+    // as it would without a table (survey B8).
+    ParkedFailure failure;
 };
 
 // The table-dependent half of every bridge: the caller's view and instance,
@@ -182,7 +182,7 @@ protected:
     // inside a frame, keeping control alive through the call. False, and
     // nothing called, when control is no longer alive: the layer then runs
     // the raiser below as if there were no table. A C++ exception base caught
-    // is rethrown after entry returns.
+    // is rethrown after entry returns, with the shadow record of its throw.
     [[nodiscard]] bool enter_class_hook(Control& control, gf_hook_entry entry, HookKey hook,
                                         std::string_view property, gf_base_raiser base);
     // The same for a raiser with one parameter: argument is lent to base,

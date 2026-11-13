@@ -1,6 +1,9 @@
 #include "abi_failure.hpp"
 
+#include <stxlib/shadow.hpp>
+
 #include <cstring>
+#include <exception>
 
 namespace gui_forms::abi1 {
 
@@ -51,6 +54,27 @@ void clear_failure() noexcept {
     record.status = GF_STATUS_OK;
     record.slot = SlotIdentity{};
     record.message_size = 0U;
+}
+
+stxlib::ShadowReference ParkedFailure::park() noexcept {
+    const stxlib::ShadowReference parked = stxlib::park_shadow();
+    if (!exception) {
+        exception = std::current_exception();
+        shadow = parked;
+    }
+    return parked;
+}
+
+void ParkedFailure::rethrow() {
+    if (!exception) {
+        return;
+    }
+    const std::exception_ptr carried = exception;
+    const stxlib::ShadowReference carried_shadow = shadow;
+    exception = nullptr;
+    shadow = stxlib::ShadowReference{};
+    stxlib::restore_shadow(carried_shadow);
+    std::rethrow_exception(carried);
 }
 
 } // namespace gui_forms::abi1

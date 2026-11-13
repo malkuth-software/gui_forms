@@ -2,7 +2,9 @@
 // a client's callback runs behind STXlib's callback gate inside exactly one
 // shadow frame, the frame the library describes (an event's or a posted
 // callback's); a C++ client that lets an exception out of its callback is
-// recorded and fails fast through GUI.Forms' report.
+// recorded and fails fast through GUI.Forms' report. A failure the class
+// bridge parks and rethrows later (ParkedFailure) keeps the shadow record of
+// its original throw.
 //
 // Without an argument the program checks the returning paths and prints
 // "callback gate tests passed". With a mode it lets an exception out of a
@@ -11,7 +13,9 @@
 
 #include "gui_forms/c/gf_abi.h"
 
+#include "../../../src/abi/stable/failure/abi_failure.hpp"
 #include "../../../src/abi/stable/registry/abi_registry.hpp"
+#include "../../../src/core/failure/failure_snapshot.hpp"
 
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
@@ -131,6 +135,77 @@ void test_client_result() {
     require(status == GF_STATUS_OK && answer == 42U, "a client's status and outputs pass through the gate");
 }
 
+// The class bridge's park (survey B8): base catches the raiser below's
+// exception inside its slot gate and parks it with its shadow record; the
+// raise rethrows it later under another gate, which files the original
+// throw's frames, not the rethrow's.
+constexpr abi1::SlotIdentity parking_slot{GF_TABLE_DIAGNOSTICS, 90U};
+constexpr abi1::SlotIdentity rethrowing_slot{GF_TABLE_DIAGNOSTICS, 91U};
+
+void throw_under_layout_frame() {
+    const ShadowFrameScope layout(ShadowFrameKind::layout_pass, "parked.thrower", "measure", 0U);
+    throw std::runtime_error("thrown before the park");
+}
+
+gf_status parking_body(abi1::ParkedFailure& parked) {
+    try {
+        throw_under_layout_frame();
+    } catch (...) {
+        const stxlib::ShadowReference reference = parked.park();
+        const gf_status failed = abi1::fail_with_current_exception(parking_slot, reference);
+        return failed;
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status rethrowing_body(abi1::ParkedFailure& parked) {
+    parked.rethrow();
+    return GF_STATUS_OK;
+}
+
+std::string_view snapshot_message(const detail::FailureSnapshot& snapshot) {
+    return std::string_view(snapshot.message.data(), snapshot.message_size);
+}
+
+// The snapshot holds the parking slot's frame and the layout frame of the
+// throw, outermost first.
+bool holds_original_throw(const detail::FailureSnapshot& snapshot) {
+    const bool frames = snapshot.frame_count == 2U && snapshot.frames[0].kind == ShadowFrameKind::library_call &&
+                        snapshot.frames[0].interface_id == GF_TABLE_DIAGNOSTICS &&
+                        snapshot.frames[0].function_index == parking_slot.slot_index &&
+                        snapshot.frames[1].kind == ShadowFrameKind::layout_pass &&
+                        text_of(snapshot.frames[1].subject, snapshot.frames[1].subject_size) == "parked.thrower";
+    return frames;
+}
+
+void test_parked_failure() {
+    abi1::ParkedFailure parked;
+    const gf_status first = abi1::call_slot(parking_slot, parking_body, parked);
+    require(first == GF_STATUS_INTERNAL, "a parked failure is filed by the handler that parked it");
+    require(static_cast<bool>(parked.exception) && parked.shadow.present(),
+            "the park keeps the exception and its shadow record");
+    const detail::FailureSnapshot& parked_snapshot = detail::thread_failure_snapshot();
+    require(holds_original_throw(parked_snapshot) && snapshot_message(parked_snapshot) == "thrown before the park",
+            "the park's snapshot holds the frames of the throw");
+    const std::uint64_t parked_sequence = parked_snapshot.sequence;
+
+    const gf_status second = abi1::call_slot(rethrowing_slot, rethrowing_body, parked);
+    require(second == GF_STATUS_INTERNAL, "the rethrown failure fails the outer gate");
+    require(!parked.exception && !parked.shadow.present(), "the rethrow holds nothing afterwards");
+    const detail::FailureSnapshot& rethrown = detail::thread_failure_snapshot();
+    require(rethrown.sequence == parked_sequence + 1U && rethrown.function_index == rethrowing_slot.slot_index,
+            "the outer gate files the rethrown failure at its own slot");
+    require(holds_original_throw(rethrown), "the outer gate files the original throw's frames, not the rethrow's");
+
+    // Nothing parked: rethrow returns and the gate passes.
+    const gf_status empty = abi1::call_slot(rethrowing_slot, rethrowing_body, parked);
+    require(empty == GF_STATUS_OK, "an empty park rethrows nothing");
+
+    ShadowStackState after{};
+    static_cast<void>(copy_shadow_frames(std::span<ShadowFrame>(), after));
+    require(after.depth == 0U, "the park and the rethrow leave no frame open");
+}
+
 void throwing_event_mode() {
     const gf_callback callback{sizeof(gf_callback), 0U, &throwing_invoke, nullptr, nullptr};
     abi1::CallbackBinding binding(callback);
@@ -168,6 +243,7 @@ int main(int argc, char** argv) {
     try {
         test_described_frame();
         test_client_result();
+        test_parked_failure();
     } catch (const std::exception& error) {
         std::cerr << "callback gate test failed: " << error.what() << '\n';
         return 1;

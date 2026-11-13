@@ -259,10 +259,8 @@ bool ClassBridge::enter_class_frame(Control& control, gf_hook_entry entry, HookK
         (*operations.absorb)(*fields, arguments);
         (*fields).release();
     }
-    if (frame.failure) {
-        const std::exception_ptr failure = std::move(frame.failure);
-        std::rethrow_exception(failure);
-    }
+    // The outer gate files the raiser's own throw: its frames and trace.
+    frame.failure.rethrow();
     return true;
 }
 
@@ -291,12 +289,11 @@ gf_status run_class_base_body(gf_object self, gf_event* event, HookKey hook) {
                 republish_frame(*frame);
             }
         } catch (...) {
-            // Rethrown once the entry returns (enter_hook); the first
-            // failure of the frame wins.
-            if (!(*frame).failure) {
-                (*frame).failure = std::current_exception();
-            }
-            const gf_status failed = fail_with_current_exception(base_slot);
+            // Rethrown once the entry returns (enter_class_frame); the
+            // first failure of the frame wins. One park serves both the
+            // snapshot and the rethrow.
+            const stxlib::ShadowReference parked = (*frame).failure.park();
+            const gf_status failed = fail_with_current_exception(base_slot, parked);
             return failed;
         }
         return GF_STATUS_OK;

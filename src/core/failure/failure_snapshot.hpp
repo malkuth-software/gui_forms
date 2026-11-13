@@ -100,6 +100,14 @@ GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std:
 // pending capture, copy_failure_shadow_frames). status must not be zero.
 GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std::string_view message) noexcept;
 
+// As the handler overload above, with the failure's shadow record already
+// parked (stxlib::park_shadow) by a handler that keeps the reference, the
+// class bridge's ParkedFailure: the snapshot takes parked's frames and trace,
+// or the frames open now when parked is not present. Takes no capture of its
+// own, so parked can be restored for a rethrow (stxlib::restore_shadow).
+GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std::string_view message,
+                                           stxlib::ShadowReference parked) noexcept;
+
 // As record_failure_snapshot, with failure's text as the message (what() for
 // a std::exception, else a fixed text).
 GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std::exception_ptr failure) noexcept;
