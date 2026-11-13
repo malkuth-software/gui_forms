@@ -14,6 +14,10 @@
 
 #include "../failure/abi_failure.hpp"
 
+#include <stxlib/error.hpp>
+#include <stxlib/gate.hpp>
+#include <stxlib/result.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -331,12 +335,67 @@ private:
 // destroyed, so no callback is released by a static destructor at exit.
 [[nodiscard]] HandleRegistry& registry() noexcept;
 
-// The status and message for the exception being handled; for use inside a
-// catch block of a slot, which is the subsystem boundary, before anything
-// opens a shadow frame. Takes the thread's failure snapshot (C ABI 1.2), and
-// gives an exception with no status of its own GF_STATUS_NATIVE_EXCEPTION
-// when exception reflection is on, GF_STATUS_INTERNAL when it is off.
+// The exception policy of every slot gate (abi_registry.cpp), STXlib's
+// classifier hook (survey N6): the core's own failure types and the standard
+// ones name the status the header documents. It sets the ErrorRecord's code
+// to that gf_status (INVALID_STATE has no ErrorKind of its own, which is why
+// the code carries it) and copies the whole what(), up to
+// failure_message_capacity bytes, into the calling thread's slot message,
+// which the record's 200 bytes could not hold. An exception that is not a
+// C++ exception of this runtime is left to STXlib (foreign_exception, code 0).
+extern const stxlib::ExceptionClassifier slot_classifier;
+
+// Files a failure a slot gate recorded, on the gate's thread, after the gate
+// returned: the status is the record's code (GF_STATUS_INTERNAL when it has
+// none, and GF_STATUS_NATIVE_EXCEPTION for that when exception reflection is
+// on); the message is the classifier's whole copy (else the record's); the
+// failure snapshot (C ABI 1.2) takes the frames of the record's shadow
+// record. Returns the status, which is never GF_STATUS_OK.
+gf_status fail_with_record(SlotIdentity slot, const stxlib::ErrorRecord& record) noexcept;
+
+// As fail_with_record, for the few slot handlers that must keep the exception
+// itself (the class bridge's park): to be called inside the catch block. It
+// classifies the exception as the slot gate does and takes the thread's
+// pending capture (stxlib::park_shadow) for the snapshot's frames.
 gf_status fail_with_current_exception(SlotIdentity slot) noexcept;
+
+// Adapts a slot body, which returns its gf_status (fail(...) included), to
+// the gate's Result: a status, failed or not, is a success of the gate; only
+// an exception is the gate's failure.
+template <typename Body, typename... Arguments>
+struct SlotCall final {
+    Body& body;
+
+    stxlib::Result<gf_status> operator()(Arguments&... arguments) const {
+        const gf_status status = body(arguments...);
+        stxlib::Result<gf_status> result = stxlib::Result<gf_status>::success(status);
+        return result;
+    }
+};
+
+// Calls body(arguments...) for slot behind STXlib's gate, inside the slot's
+// library_call frame (table id and slot index), and returns its status. An
+// exception that leaves the body is caught by the gate (survey B1), recorded
+// with the frames it was thrown under, and filed by fail_with_record. The
+// body is a named function taking the slot's parameters by value; the
+// arguments are the slot's own parameters.
+template <typename Body, typename... Arguments>
+gf_status call_slot(const SlotIdentity slot, Body& body, Arguments&... arguments) noexcept {
+    SlotCall<Body, Arguments...> call{body};
+    const stxlib::GateFrame frame{
+        .operation = "gui_forms.c_abi",
+        .first = slot.table_id,
+        .second = slot.slot_index,
+        .kind = GF_SHADOW_FRAME_KIND_LIBRARY_CALL,
+    };
+    const stxlib::Result<gf_status> outcome = stxlib::call_gate_classified(slot_classifier, frame, call, arguments...);
+    if (outcome.succeeded()) {
+        const gf_status status = *outcome.value();
+        return status;
+    }
+    const gf_status failed = fail_with_record(slot, *outcome.error());
+    return failed;
+}
 
 // The failure message for a stable id that breaks the rule
 // (valid_stable_id): what the rule is, with an example.

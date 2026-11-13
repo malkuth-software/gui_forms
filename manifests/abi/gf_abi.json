@@ -1552,6 +1552,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_SHADOW_FRAME_KIND_GATE",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
       "name": "GF_SHADOW_FRAME_SUBJECT_TRUNCATED",
       "value": 1,
       "type": "uint32"

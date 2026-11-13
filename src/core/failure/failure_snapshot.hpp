@@ -3,6 +3,8 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
+#include <stxlib/error.hpp>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -12,10 +14,11 @@
 // Failure snapshots (C ABI 1.2, gf_failure_snapshot). Where an exception
 // reaches a boundary, the boundary copies, on its own thread, what failed:
 // its site, its text and the shadow frames it was thrown under (the frames
-// it unwound included: copy_failure_shadow_frames). Two boundaries take one:
-// a C ABI function refusing its call (abi1::fail_with_current_exception) and
-// the fail-fast boundary (call_failing_fast, through fail_fast), whose report
-// prints it before the process ends.
+// it unwound included), read from STXlib's shadow record of the exception.
+// Two boundaries take one: a C ABI function refusing its call (the slot gate,
+// abi1::call_slot, and the few handlers that keep the exception) and the
+// fail-fast boundary (call_failing_fast), whose report prints it before the
+// process ends.
 //
 // Each thread owns its snapshot (thread_local, about 8 KiB, made with the
 // thread), so taking one never allocates and cannot fail; a thread's next
@@ -72,8 +75,17 @@ struct GUI_FORMS_API FailureBoundary final {
 };
 
 // Replaces the calling thread's snapshot with message at boundary and the
-// failure's shadow frames. To be called inside the catch block that caught
-// the exception, before anything opens a frame. status must not be zero.
+// frames of shadow, the shadow record a gate attached to the failure's
+// ErrorRecord (no frames when it is not present). Any time after the gate
+// returned, on the gate's thread, while the record is among the thread's
+// last stxlib::shadow_record_capacity. status must not be zero.
+GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std::string_view message,
+                                           stxlib::ShadowReference shadow) noexcept;
+
+// Replaces the calling thread's snapshot with message at boundary and the
+// failure's shadow frames, for a handler that is not a gate: to be called
+// inside the catch block that caught the exception (it takes the thread's
+// pending capture, copy_failure_shadow_frames). status must not be zero.
 GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std::string_view message) noexcept;
 
 // As record_failure_snapshot, with failure's text as the message (what() for

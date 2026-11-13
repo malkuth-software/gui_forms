@@ -18,7 +18,6 @@
 #include "../registry/abi_registry.hpp"
 
 #include "gui_forms/application/application.hpp"
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
@@ -177,65 +176,62 @@ gf_status create_application(const gf_application_config* config, gf_theme_repor
     return GF_STATUS_OK;
 }
 
+gf_status application_create_body(const gf_application_config* config, gf_theme_report* report) {
+    const gf_status created = create_application(config, report);
+    return created;
+}
+
 gf_status GF_CALL application_create(const gf_application_config* config, gf_theme_report* report) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(create_slot.table_id, create_slot.slot_index);
-        const gf_status created = create_application(config, report);
-        return created;
-    } catch (...) {
-        return fail_with_current_exception(create_slot);
+    return call_slot(create_slot, application_create_body, config, report);
+}
+
+gf_status application_close_body(std::uint64_t* windows_alive) {
+    if (windows_alive == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, close_slot, "close needs a window count output");
     }
+    const gf_status entered = registry().enter_ui(close_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    EngineState& state = engine();
+    Application* const application = state.application();
+    if (application == nullptr) {
+        *windows_alive = 0U;
+        return GF_STATUS_OK;
+    }
+    const std::size_t alive = (*application).window_count();
+    const ApplicationResult closed = (*application).close();
+    if (closed.error == ApplicationError::windows_alive) {
+        *windows_alive = alive;
+        return fail(GF_STATUS_INVALID_STATE, close_slot, "windows of the application are alive");
+    }
+    if (!closed.accepted()) {
+        return fail(GF_STATUS_INTERNAL, close_slot, "the application refused to close");
+    }
+    state.release_application();
+    *windows_alive = 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL application_close(std::uint64_t* windows_alive) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(close_slot.table_id, close_slot.slot_index);
-        if (windows_alive == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, close_slot, "close needs a window count output");
-        }
-        const gf_status entered = registry().enter_ui(close_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        EngineState& state = engine();
-        Application* const application = state.application();
-        if (application == nullptr) {
-            *windows_alive = 0U;
-            return GF_STATUS_OK;
-        }
-        const std::size_t alive = (*application).window_count();
-        const ApplicationResult closed = (*application).close();
-        if (closed.error == ApplicationError::windows_alive) {
-            *windows_alive = alive;
-            return fail(GF_STATUS_INVALID_STATE, close_slot, "windows of the application are alive");
-        }
-        if (!closed.accepted()) {
-            return fail(GF_STATUS_INTERNAL, close_slot, "the application refused to close");
-        }
-        state.release_application();
-        *windows_alive = 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(close_slot);
+    return call_slot(close_slot, application_close_body, windows_alive);
+}
+
+gf_status application_state_body(gf_application_state* state) {
+    if (state == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
     }
+    const gf_status entered = registry().enter_ui(state_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const bool current = engine().application() != nullptr;
+    *state = current ? GF_APPLICATION_STATE_CURRENT : GF_APPLICATION_STATE_NONE;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL application_state(gf_application_state* state) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(state_slot.table_id, state_slot.slot_index);
-        if (state == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
-        }
-        const gf_status entered = registry().enter_ui(state_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const bool current = engine().application() != nullptr;
-        *state = current ? GF_APPLICATION_STATE_CURRENT : GF_APPLICATION_STATE_NONE;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(state_slot);
-    }
+    return call_slot(state_slot, application_state_body, state);
 }
 
 constexpr gf_application_table table{

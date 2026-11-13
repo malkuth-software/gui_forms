@@ -2063,6 +2063,11 @@ typedef uint32_t gf_shadow_frame_kind;
 /* A callback posted with dispatch.begin_invoke: subject is the target's
  * stable id when the target is a control (else empty). */
 #define GF_SHADOW_FRAME_KIND_POSTED_CALLBACK 6u
+/* Since 1.4. A boundary gate of the library's runtime that is none of the
+ * above: name is its operation, such as a native callback entry's site
+ * ("windows.window_procedure"). A reader of an older minor shows an unknown
+ * kind by its number. */
+#define GF_SHADOW_FRAME_KIND_GATE 7u
 
 /* gf_shadow_frame_flags: set on a frame whose text was cut to its field, at
  * the last whole UTF-8 sequence that fits. */

@@ -2,7 +2,10 @@
 // truncation, balance on exceptions, and the frames a window opens for input
 // dispatch, layout and paint. Since C ABI 1.2: the frames an exception was
 // thrown under, as a boundary reads them after catching it, and the
-// thread's failure snapshot built from them.
+// thread's failure snapshot built from them. Since the STXlib swap-in
+// (A2): the stack is STXlib's, a gate's frame carries the library's kind
+// and texts, and a snapshot is read from the shadow record a gate attached
+// to its ErrorRecord.
 
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/control/control/control.hpp"
@@ -14,6 +17,10 @@
 #include "support/clip_tracking_painter.hpp"
 #include "../src/core/failure/failure_snapshot.hpp"
 #include "support/routed_input_probe.hpp"
+
+#include <stxlib/error.hpp>
+#include <stxlib/gate.hpp>
+#include <stxlib/result.hpp>
 
 #include <array>
 #include <cstddef>
@@ -136,9 +143,9 @@ void throw_two_frames_deep() {
     throw std::runtime_error("thrown two frames deep");
 }
 
-// A boundary that catches an exception reads the frames it was thrown
-// under, though unwinding popped them; once the thread opens or closes a
-// frame by returning, it reads the frames open now.
+// A handler that catches an exception reads the frames it was thrown
+// under, though unwinding popped them; with no capture pending (the first
+// read took it), it reads the frames open now.
 void test_failure_frames() {
     const ShadowFrameScope boundary(ShadowFrameKind::posted_callback, "boundary", std::string_view{}, 0U);
     StackCopy caught;
@@ -162,7 +169,7 @@ void test_failure_frames() {
     }
     const StackCopy moved_on = copy_failure_stack();
     require(moved_on.recorded == 1U && moved_on.state.depth == 1U,
-            "after a frame opens and closes, the failure frames are the frames open now");
+            "with no capture pending, the failure frames are the frames open now");
 }
 
 // The body of a framed call: it throws, as an application handler in
@@ -252,6 +259,99 @@ void test_failure_snapshot() {
     detail::set_exception_reflection(false);
 }
 
+// A gate target that copies the stack it runs under.
+struct CopyingTarget final {
+    StackCopy* seen = nullptr;
+
+    stxlib::Status operator()() const {
+        *seen = copy_stack();
+        const stxlib::Status result = stxlib::Status::success();
+        return result;
+    }
+};
+
+// A gate target that throws two frames below the gate.
+struct ThrowingTarget final {
+    stxlib::Status operator()() const {
+        throw_two_frames_deep();
+        const stxlib::Status result = stxlib::Status::success();
+        return result;
+    }
+};
+
+// A gate's frame is the whole frame (the C ABI's slot gate, call_slot): a
+// gate described as a library call is one library_call frame with the
+// slot's numbers, not a library call plus a frame of the gate's own.
+void test_gate_frames() {
+    StackCopy seen;
+    CopyingTarget copying{&seen};
+    const stxlib::GateFrame slot_frame{
+        .operation = "gui_forms.c_abi",
+        .first = 9U,
+        .second = 3U,
+        .kind = static_cast<stxlib::u32>(ShadowFrameKind::library_call),
+    };
+    const stxlib::Status returned = stxlib::call_gate(slot_frame, copying);
+    require(returned.succeeded(), "a returning target passes through its gate");
+    require(seen.recorded == 1U && seen.frames[0].kind == ShadowFrameKind::library_call &&
+                seen.frames[0].interface_id == 9U && seen.frames[0].function_index == 3U &&
+                seen.frames[0].name_size == 0U,
+            "a slot gate is one library_call frame with the slot's numbers");
+
+    // A gate described only by its operation is a gate frame named by it.
+    const stxlib::Status plain = stxlib::call_gate(stxlib::Operation("test.gate"), copying);
+    require(plain.succeeded() && seen.recorded == 1U && seen.frames[0].kind == ShadowFrameKind::gate &&
+                name_of(seen.frames[0]) == "test.gate",
+            "an operation's gate frame is named by its operation");
+    // A gate frame's name field holds 32 bytes (STXlib cda6fb1): a longer
+    // operation name is cut there and says so; the record keeps it whole.
+    const stxlib::Status long_name =
+        stxlib::call_gate(stxlib::Operation("windows.MsaaElement.QueryInterface"), copying);
+    require(long_name.succeeded() && seen.recorded == 1U && seen.frames[0].kind == ShadowFrameKind::gate &&
+                name_of(seen.frames[0]) == "windows.MsaaElement.QueryInterfa" &&
+                seen.frames[0].flags == static_cast<std::uint32_t>(ShadowFrameFlags::name_truncated),
+            "a gate frame's name is its operation's first 32 bytes, marked as cut");
+    require(copy_stack().state.depth == 0U, "a gate closes its frame");
+}
+
+// The snapshot of a gate's failure: taken after the gate returned, from the
+// shadow record on its ErrorRecord, it holds the gate's frame and the frames
+// the exception was thrown under.
+void test_gate_failure_snapshot() {
+    ThrowingTarget throwing;
+    const stxlib::GateFrame slot_frame{
+        .operation = "gui_forms.c_abi",
+        .first = 10U,
+        .second = 7U,
+        .kind = static_cast<stxlib::u32>(ShadowFrameKind::library_call),
+    };
+    const stxlib::Status failed = stxlib::call_gate(slot_frame, throwing);
+    require(!failed.succeeded(), "a throwing target fails its gate");
+    const stxlib::ErrorRecord& record = *failed.error();
+    require(copy_stack().state.depth == 0U, "the gate's failure leaves no frame open");
+
+    const std::uint64_t before = detail::thread_failure_snapshot().sequence;
+    const detail::FailureBoundary boundary{"c_abi", 13, 10U, 7U};
+    detail::record_failure_snapshot(boundary, "thrown two frames deep", record.shadow());
+    const detail::FailureSnapshot& snapshot = detail::thread_failure_snapshot();
+    require(snapshot.sequence == before + 1U && snapshot.status == 13, "the gate's failure is a snapshot");
+    require(snapshot.frame_count == 3U && snapshot.depth == 3U, "the snapshot holds the gate's frame and two more");
+    require(snapshot.frames[0].kind == ShadowFrameKind::library_call && snapshot.frames[0].interface_id == 10U &&
+                snapshot.frames[0].function_index == 7U,
+            "the outermost frame is the slot gate's");
+    require(snapshot.frames[1].kind == ShadowFrameKind::library_call && snapshot.frames[1].interface_id == 2U,
+            "the middle frame is the library call the exception unwound");
+    require(snapshot.frames[2].kind == ShadowFrameKind::event_callback &&
+                subject_of(snapshot.frames[2]) == "button.ok",
+            "the innermost frame is the one the exception was thrown in");
+
+    const stxlib::ShadowReference none{};
+    detail::record_failure_snapshot(boundary, "no record", none);
+    require(detail::thread_failure_snapshot().frame_count == 0U && detail::thread_failure_snapshot().depth == 0U,
+            "a failure with no shadow record has no frames");
+    detail::clear_failure_snapshot();
+}
+
 // Runs on another thread: that thread's depth.
 void copy_depth_into(std::uint32_t& depth) {
     depth = copy_stack().state.depth;
@@ -331,14 +431,16 @@ void test_window_frames() {
 
     seen.throw_on_pointer = true;
     bool caught = false;
+    StackCopy failure;
     try {
         static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, Point{20.0, 20.0}}));
     } catch (const std::runtime_error&) {
         caught = true;
+        // Inside the handler: the read takes the thread's pending capture.
+        failure = copy_failure_stack();
     }
     require(caught, "the probe's failure reaches the caller");
     require(copy_stack().state.depth == 0U, "a failing handler leaves no frame open");
-    const StackCopy failure = copy_failure_stack();
     const ShadowFrame* failed_input = find_kind(failure, ShadowFrameKind::input_dispatch);
     require(failed_input != nullptr && subject_of(*failed_input) == "frames.root",
             "the failure frames hold the input dispatch the handler threw under");
@@ -354,6 +456,8 @@ int main() {
         test_failure_frames();
         test_call_frames();
         test_failure_snapshot();
+        test_gate_frames();
+        test_gate_failure_snapshot();
         test_threads_are_separate();
         test_window_frames();
     } catch (const std::exception& error) {

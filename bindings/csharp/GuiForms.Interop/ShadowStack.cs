@@ -51,6 +51,8 @@ public sealed unsafe class ShadowFrame
                 return "paint_pass";
             case Constants.GF_SHADOW_FRAME_KIND_POSTED_CALLBACK:
                 return "posted_callback";
+            case Constants.GF_SHADOW_FRAME_KIND_GATE:
+                return "gate";
             default:
                 return "kind " + kind;
             }

@@ -54,6 +54,7 @@ static_assert(GF_SHADOW_FRAME_KIND_INPUT_DISPATCH == static_cast<std::uint32_t>(
 static_assert(GF_SHADOW_FRAME_KIND_EVENT_CALLBACK == static_cast<std::uint32_t>(ShadowFrameKind::event_callback));
 static_assert(GF_SHADOW_FRAME_KIND_LAYOUT_PASS == static_cast<std::uint32_t>(ShadowFrameKind::layout_pass));
 static_assert(GF_SHADOW_FRAME_KIND_PAINT_PASS == static_cast<std::uint32_t>(ShadowFrameKind::paint_pass));
+static_assert(GF_SHADOW_FRAME_KIND_GATE == static_cast<std::uint32_t>(ShadowFrameKind::gate));
 static_assert(GF_SHADOW_FRAME_KIND_POSTED_CALLBACK == static_cast<std::uint32_t>(ShadowFrameKind::posted_callback));
 static_assert(GF_SHADOW_FRAME_SUBJECT_TRUNCATED == static_cast<std::uint32_t>(ShadowFrameFlags::subject_truncated));
 static_assert(GF_SHADOW_FRAME_NAME_TRUNCATED == static_cast<std::uint32_t>(ShadowFrameFlags::name_truncated));
@@ -193,10 +194,9 @@ gf_status GF_CALL diagnostics_exception_reflection(std::uint32_t* enabled) noexc
     return GF_STATUS_OK;
 }
 
-// Throws under a frame of its own, inside the boundary every slot has, so a
+// Throws inside the slot gate every slot has, under the slot's frame, so a
 // binding sees exactly what a real failure gives it.
-[[noreturn]] void throw_native_exception(std::string_view message) {
-    const ShadowFrameScope shadow_frame(raise_native_exception_slot.table_id, raise_native_exception_slot.slot_index);
+gf_status raise_native_exception_body(std::string_view message) {
     throw std::runtime_error(std::string(message));
 }
 
@@ -210,11 +210,7 @@ gf_status GF_CALL diagnostics_raise_native_exception(gf_utf8_view message) noexc
         return fail(GF_STATUS_INVALID_ARGUMENT, raise_native_exception_slot,
                     "the message is longer than GF_FAILURE_MESSAGE_CAPACITY bytes");
     }
-    try {
-        throw_native_exception(text);
-    } catch (...) {
-        return fail_with_current_exception(raise_native_exception_slot);
-    }
+    return call_slot(raise_native_exception_slot, raise_native_exception_body, text);
 }
 
 constexpr gf_diagnostics_table table{

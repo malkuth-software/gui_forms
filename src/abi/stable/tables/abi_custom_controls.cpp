@@ -9,7 +9,6 @@
 #include "../schema/abi_schema.hpp"
 #include "../values/abi_values.hpp"
 
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/schema.hpp"
 
 #include <cstddef>
@@ -191,110 +190,117 @@ gf_status read_spec(const gf_custom_control_spec& spec, std::vector<CustomProper
     return GF_STATUS_OK;
 }
 
+// enter_ui bound the thread for this call once *entered_ui is set.
+gf_status custom_controls_create_body(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object,
+                                      bool* entered_ui) {
+    if (spec == nullptr || object == nullptr || (*spec).struct_size < spec_size_1_0) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, create_slot,
+                    "create needs a gf_custom_control_spec of at least the 1.0 size and an object output");
+    }
+    std::string_view id_text;
+    const gf_status read_id = read_text(stable_id, create_slot, id_text);
+    if (read_id != GF_STATUS_OK) {
+        return read_id;
+    }
+    if (!valid_stable_id(id_text)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, create_slot, stable_id_rule);
+    }
+    std::vector<CustomPropertyDefinition> definitions;
+    const gf_status read = read_spec(*spec, definitions);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    // The layout record (since 1.2), read only when the spec covers its
+    // pointer, checked before anything is made.
+    const gf_custom_layout_callbacks* layout_given = nullptr;
+    if ((*spec).struct_size >= spec_size_1_2) {
+        layout_given = (*spec).layout;
+    }
+    if (layout_given != nullptr &&
+        ((*layout_given).struct_size < layout_size_1_2 || (*layout_given).struct_size % 8U != 0U ||
+         (*layout_given).reserved != 0U)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, create_slot,
+                    "the layout callbacks need struct_size of at least 32, a multiple of 8, and reserved zero");
+    }
+    const gf_status entered = registry().enter_ui(create_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *entered_ui = true;
+    // The control copies the callbacks at their 1.0 size; until it
+    // exists, a failure calls none of them, release among them. Only
+    // the bytes the caller declared are read (N14): a later minor's
+    // larger record leaves an older caller's fields zero, not read past
+    // its record.
+    gf_custom_control_callbacks callbacks{};
+    const std::size_t declared = static_cast<std::size_t>((*spec).callbacks.struct_size);
+    const std::size_t copied = declared < sizeof(gf_custom_control_callbacks) ? declared
+                                                                               : sizeof(gf_custom_control_callbacks);
+    std::memcpy(&callbacks, &(*spec).callbacks, copied);
+    callbacks.struct_size = callbacks_size_1_0;
+    gf_custom_layout_callbacks layout{};
+    layout.struct_size = layout_size_1_2;
+    if (layout_given != nullptr) {
+        // A later minor's larger record is read up to this one's size.
+        const std::size_t layout_declared = static_cast<std::size_t>((*layout_given).struct_size);
+        const std::size_t layout_copied = layout_declared < sizeof(gf_custom_layout_callbacks)
+                                              ? layout_declared
+                                              : sizeof(gf_custom_layout_callbacks);
+        std::memcpy(&layout, layout_given, layout_copied);
+        layout.struct_size = layout_size_1_2;
+    }
+    const bool focusable = ((*spec).flags & GF_CUSTOM_CONTROL_FOCUSABLE) != 0U;
+    Component::Ptr made;
+    if ((*spec).base == GF_CUSTOM_BASE_USER_CONTROL) {
+        made = std::make_shared<CustomControl<UserControl>>(StableId(std::string(id_text)), callbacks,
+                                                            layout, definitions, focusable);
+    } else {
+        made = std::make_shared<CustomControl<ScrollableControl>>(StableId(std::string(id_text)), callbacks,
+                                                                  layout, definitions, focusable);
+    }
+    *object = registry().add_reference(made);
+    return GF_STATUS_OK;
+}
+
 gf_status GF_CALL custom_controls_create(const gf_custom_control_spec* spec, gf_utf8_view stable_id,
                                          gf_object* object) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(create_slot.table_id, create_slot.slot_index);
-        if (spec == nullptr || object == nullptr || (*spec).struct_size < spec_size_1_0) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, create_slot,
-                        "create needs a gf_custom_control_spec of at least the 1.0 size and an object output");
-        }
-        std::string_view id_text;
-        const gf_status read_id = read_text(stable_id, create_slot, id_text);
-        if (read_id != GF_STATUS_OK) {
-            return read_id;
-        }
-        if (!valid_stable_id(id_text)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, create_slot, stable_id_rule);
-        }
-        std::vector<CustomPropertyDefinition> definitions;
-        const gf_status read = read_spec(*spec, definitions);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        // The layout record (since 1.2), read only when the spec covers its
-        // pointer, checked before anything is made.
-        const gf_custom_layout_callbacks* layout_given = nullptr;
-        if ((*spec).struct_size >= spec_size_1_2) {
-            layout_given = (*spec).layout;
-        }
-        if (layout_given != nullptr &&
-            ((*layout_given).struct_size < layout_size_1_2 || (*layout_given).struct_size % 8U != 0U ||
-             (*layout_given).reserved != 0U)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, create_slot,
-                        "the layout callbacks need struct_size of at least 32, a multiple of 8, and reserved zero");
-        }
-        const gf_status entered = registry().enter_ui(create_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        // The control copies the callbacks at their 1.0 size; until it
-        // exists, a failure calls none of them, release among them. Only
-        // the bytes the caller declared are read (N14): a later minor's
-        // larger record leaves an older caller's fields zero, not read past
-        // its record.
-        gf_custom_control_callbacks callbacks{};
-        const std::size_t declared = static_cast<std::size_t>((*spec).callbacks.struct_size);
-        const std::size_t copied = declared < sizeof(gf_custom_control_callbacks) ? declared
-                                                                                   : sizeof(gf_custom_control_callbacks);
-        std::memcpy(&callbacks, &(*spec).callbacks, copied);
-        callbacks.struct_size = callbacks_size_1_0;
-        gf_custom_layout_callbacks layout{};
-        layout.struct_size = layout_size_1_2;
-        if (layout_given != nullptr) {
-            // A later minor's larger record is read up to this one's size.
-            const std::size_t layout_declared = static_cast<std::size_t>((*layout_given).struct_size);
-            const std::size_t layout_copied = layout_declared < sizeof(gf_custom_layout_callbacks)
-                                                  ? layout_declared
-                                                  : sizeof(gf_custom_layout_callbacks);
-            std::memcpy(&layout, layout_given, layout_copied);
-            layout.struct_size = layout_size_1_2;
-        }
-        const bool focusable = ((*spec).flags & GF_CUSTOM_CONTROL_FOCUSABLE) != 0U;
-        Component::Ptr made;
-        if ((*spec).base == GF_CUSTOM_BASE_USER_CONTROL) {
-            made = std::make_shared<CustomControl<UserControl>>(StableId(std::string(id_text)), callbacks,
-                                                                layout, definitions, focusable);
-        } else {
-            made = std::make_shared<CustomControl<ScrollableControl>>(StableId(std::string(id_text)), callbacks,
-                                                                      layout, definitions, focusable);
-        }
-        *object = registry().add_reference(made);
-        return GF_STATUS_OK;
-    } catch (...) {
-        const gf_status failed = fail_with_current_exception(create_slot);
-        // As objects.create (N10): a throw after enter_ui leaves no binding.
+    bool entered_ui = false;
+    bool* const entered_flag = &entered_ui;
+    const gf_status status =
+        call_slot(create_slot, custom_controls_create_body, spec, stable_id, object, entered_flag);
+    if (status != GF_STATUS_OK && entered_ui) {
+        // A failure after enter_ui bound the thread for this call must not
+        // leave the library bound to it (N10). Nothing to undo otherwise.
         try {
             registry().unbind_if_idle();
         } catch (...) {
         }
-        return failed;
     }
+    return status;
+}
+
+gf_status custom_controls_notify_changed_body(gf_object object, std::uint64_t index) {
+    Control::Ptr control;
+    const gf_status entered = enter_live_control(object, notify_changed_slot, control);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (index > GF_CUSTOM_MAXIMUM_PROPERTIES) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, notify_changed_slot, "the index is past the properties");
+    }
+    const CustomNotifyResult result = notify_custom_changed(*control, static_cast<std::size_t>(index));
+    if (result == CustomNotifyResult::not_custom) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, notify_changed_slot, "the control is not a custom control");
+    }
+    if (result == CustomNotifyResult::not_notifying) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, notify_changed_slot,
+                    "the property does not exist or was declared without change notifications");
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL custom_controls_notify_changed(gf_object object, std::uint64_t index) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(notify_changed_slot.table_id, notify_changed_slot.slot_index);
-        Control::Ptr control;
-        const gf_status entered = enter_live_control(object, notify_changed_slot, control);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (index > GF_CUSTOM_MAXIMUM_PROPERTIES) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, notify_changed_slot, "the index is past the properties");
-        }
-        const CustomNotifyResult result = notify_custom_changed(*control, static_cast<std::size_t>(index));
-        if (result == CustomNotifyResult::not_custom) {
-            return fail(GF_STATUS_WRONG_HANDLE_KIND, notify_changed_slot, "the control is not a custom control");
-        }
-        if (result == CustomNotifyResult::not_notifying) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, notify_changed_slot,
-                        "the property does not exist or was declared without change notifications");
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(notify_changed_slot);
-    }
+    return call_slot(notify_changed_slot, custom_controls_notify_changed_body, object, index);
 }
 
 constexpr gf_custom_controls_table table{

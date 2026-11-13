@@ -20,7 +20,6 @@
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/detail/storage_growth.hpp"
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/rules.hpp"
 #include "gui_forms/window.hpp"
 #include "../windows/abi_window_handle.hpp"
@@ -630,56 +629,53 @@ gf_status add_rule(gf_object window, const gf_rule* record, gf_rule_token* token
     return GF_STATUS_OK;
 }
 
+gf_status rules_add_body(gf_object window, const gf_rule* rule, gf_rule_token* token) {
+    const gf_status added = add_rule(window, rule, token);
+    return added;
+}
+
 gf_status GF_CALL rules_add(gf_object window, const gf_rule* rule, gf_rule_token* token) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(add_slot.table_id, add_slot.slot_index);
-        const gf_status added = add_rule(window, rule, token);
-        return added;
-    } catch (...) {
-        return fail_with_current_exception(add_slot);
+    return call_slot(add_slot, rules_add_body, window, rule, token);
+}
+
+gf_status rules_remove_body(gf_rule_token token) {
+    const gf_status entered = registry().enter_ui(remove_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    TokenSlot* const slot = find_token(token);
+    if (slot == nullptr) {
+        return fail(GF_STATUS_STALE_HANDLE, remove_slot, "the token was freed or never given");
+    }
+    // The rule's callbacks are released when the rule set drops it.
+    (*slot).token.revoke();
+    free_token(*slot);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL rules_remove(gf_rule_token token) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(remove_slot.table_id, remove_slot.slot_index);
-        const gf_status entered = registry().enter_ui(remove_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        TokenSlot* const slot = find_token(token);
-        if (slot == nullptr) {
-            return fail(GF_STATUS_STALE_HANDLE, remove_slot, "the token was freed or never given");
-        }
-        // The rule's callbacks are released when the rule set drops it.
-        (*slot).token.revoke();
-        free_token(*slot);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(remove_slot);
+    return call_slot(remove_slot, rules_remove_body, token);
+}
+
+gf_status rules_state_body(gf_rule_token token, gf_rule_state* state) {
+    if (state == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
     }
+    const gf_status entered = registry().enter_ui(state_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const TokenSlot* const slot = find_token(token);
+    if (slot == nullptr) {
+        return fail(GF_STATUS_STALE_HANDLE, state_slot, "the token was freed or never given");
+    }
+    const RuleTokenState held = (*slot).token.state();
+    *state = held == RuleTokenState::armed ? GF_RULE_STATE_ARMED : GF_RULE_STATE_STALE;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL rules_state(gf_rule_token token, gf_rule_state* state) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(state_slot.table_id, state_slot.slot_index);
-        if (state == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
-        }
-        const gf_status entered = registry().enter_ui(state_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const TokenSlot* const slot = find_token(token);
-        if (slot == nullptr) {
-            return fail(GF_STATUS_STALE_HANDLE, state_slot, "the token was freed or never given");
-        }
-        const RuleTokenState held = (*slot).token.state();
-        *state = held == RuleTokenState::armed ? GF_RULE_STATE_ARMED : GF_RULE_STATE_STALE;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(state_slot);
-    }
+    return call_slot(state_slot, rules_state_body, token, state);
 }
 
 constexpr gf_rules_table table{

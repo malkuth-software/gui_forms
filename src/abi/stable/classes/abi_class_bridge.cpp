@@ -7,7 +7,6 @@
 #include "../registry/abi_registry.hpp"
 #include "../../../core/failure/fail_fast.hpp"
 
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <cstring>
 #include <limits>
@@ -263,67 +262,69 @@ bool ClassBridge::enter_class_frame(Control& control, gf_hook_entry entry, HookK
     return true;
 }
 
-gf_status run_class_base(gf_object self, gf_event* event, HookKey hook) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(base_slot.table_id, base_slot.slot_index);
-        if (event == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, base_slot, "a base function needs an event");
-        }
-        HookFrame* frame = ClassBridge::find_hook_frame(event);
-        if (frame != nullptr && (*frame).hook.class_id == hook.class_id && (*frame).hook.entry == hook.entry) {
-            ClassBridge& framed = *(*frame).bridge;
-            if (!framed.bridged_control().is_alive()) {
-                return fail(GF_STATUS_STALE_HANDLE, base_slot, "the object was disposed");
-            }
-            try {
-                // What the entry wrote before base reaches the argument the
-                // raiser below receives; afterwards the event shows the
-                // argument as the subscribers left it.
-                if ((*frame).fields != nullptr) {
-                    (*(*frame).operations.absorb)(*(*frame).fields, (*frame).arguments);
-                }
-                const HookRun framed_run = framed.run_class_layer_base(hook, (*frame).arguments);
-                static_cast<void>(framed_run);
-                if ((*frame).fields != nullptr) {
-                    republish_frame(*frame);
-                }
-            } catch (...) {
-                // Rethrown once the entry returns (enter_hook); the first
-                // failure of the frame wins.
-                if (!(*frame).failure) {
-                    (*frame).failure = std::current_exception();
-                }
-                const gf_status failed = fail_with_current_exception(base_slot);
-                return failed;
-            }
-            return GF_STATUS_OK;
-        }
-        Component::Ptr component;
-        const gf_status entered = registry().enter_component(self, base_slot, component);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        ClassBridge* bridge = dynamic_cast<ClassBridge*>(component.get());
-        if (bridge == nullptr) {
-            return fail(GF_STATUS_WRONG_HANDLE_KIND, base_slot, "the object was not made from a class table");
-        }
-        if (!(*bridge).bridged_control().is_alive()) {
+namespace {
+
+gf_status run_class_base_body(gf_object self, gf_event* event, HookKey hook) {
+    if (event == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, base_slot, "a base function needs an event");
+    }
+    HookFrame* frame = ClassBridge::find_hook_frame(event);
+    if (frame != nullptr && (*frame).hook.class_id == hook.class_id && (*frame).hook.entry == hook.entry) {
+        ClassBridge& framed = *(*frame).bridge;
+        if (!framed.bridged_control().is_alive()) {
             return fail(GF_STATUS_STALE_HANDLE, base_slot, "the object was disposed");
         }
-        const HookArguments outside{};
-        const HookRun run = (*bridge).run_class_layer_base(hook, outside);
-        if (run == HookRun::no_segment) {
-            return fail(GF_STATUS_WRONG_HANDLE_KIND, base_slot, "the object's class has no such segment");
-        }
-        if (run == HookRun::needs_arguments) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, base_slot,
-                        "this raiser's argument is lent only by a raise in progress; call base from its entry");
+        try {
+            // What the entry wrote before base reaches the argument the
+            // raiser below receives; afterwards the event shows the
+            // argument as the subscribers left it.
+            if ((*frame).fields != nullptr) {
+                (*(*frame).operations.absorb)(*(*frame).fields, (*frame).arguments);
+            }
+            const HookRun framed_run = framed.run_class_layer_base(hook, (*frame).arguments);
+            static_cast<void>(framed_run);
+            if ((*frame).fields != nullptr) {
+                republish_frame(*frame);
+            }
+        } catch (...) {
+            // Rethrown once the entry returns (enter_hook); the first
+            // failure of the frame wins.
+            if (!(*frame).failure) {
+                (*frame).failure = std::current_exception();
+            }
+            const gf_status failed = fail_with_current_exception(base_slot);
+            return failed;
         }
         return GF_STATUS_OK;
-    } catch (...) {
-        const gf_status failed = fail_with_current_exception(base_slot);
-        return failed;
     }
+    Component::Ptr component;
+    const gf_status entered = registry().enter_component(self, base_slot, component);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    ClassBridge* bridge = dynamic_cast<ClassBridge*>(component.get());
+    if (bridge == nullptr) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, base_slot, "the object was not made from a class table");
+    }
+    if (!(*bridge).bridged_control().is_alive()) {
+        return fail(GF_STATUS_STALE_HANDLE, base_slot, "the object was disposed");
+    }
+    const HookArguments outside{};
+    const HookRun run = (*bridge).run_class_layer_base(hook, outside);
+    if (run == HookRun::no_segment) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, base_slot, "the object's class has no such segment");
+    }
+    if (run == HookRun::needs_arguments) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, base_slot,
+                    "this raiser's argument is lent only by a raise in progress; call base from its entry");
+    }
+    return GF_STATUS_OK;
+}
+
+} // namespace
+
+gf_status run_class_base(gf_object self, gf_event* event, HookKey hook) noexcept {
+    return call_slot(base_slot, run_class_base_body, self, event, hook);
 }
 
 } // namespace gui_forms::abi1

@@ -10,7 +10,10 @@
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
+#include <stxlib/types.hpp>
+
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <limits>
 #include <new>
@@ -997,59 +1000,162 @@ HandleRegistry& registry() noexcept {
 
 namespace {
 
-// The status and message the C ABI gives an exception: the core's own
-// failure types and the standard ones name the status the header documents
-// (N6), whichever table reached them. message borrows the exception's
-// what(), valid while the caller's catch block holds the exception.
+// The calling thread's copy of the whole what() of the exception a slot
+// classified, which the ErrorRecord's 200 bytes could not hold. Written by
+// the classifier inside the gate's handler and read by fail_with_record
+// right after the gate returns, on the same thread; pending says the copy
+// belongs to the failure being filed (a gate built without exceptions never
+// classifies). thread_local in this module: the classifier, the gates and
+// fail_with_record are all this library's.
+struct SlotMessage final {
+    bool pending = false;
+    std::uint32_t size = 0U;
+    std::array<char, failure_message_capacity> text{};
+};
+
+thread_local SlotMessage slot_message;
+
+// Copies text, cut at a whole UTF-8 sequence, into the slot message.
+void keep_slot_message(const std::string_view text) noexcept {
+    SlotMessage& message = slot_message;
+    const std::size_t size = utf8_prefix_length(text, failure_message_capacity);
+    if (size != 0U) {
+        std::memcpy(message.text.data(), text.data(), size);
+    }
+    message.size = static_cast<std::uint32_t>(size);
+    message.pending = true;
+}
+
+// The status the C ABI gives the exception being handled (N6), whichever
+// table reached it; its what() goes to the slot message. recognised is
+// false for an exception that is not a std::exception (STXlib keeps its own
+// foreign_exception classification for it).
 struct ExceptionOutcome final {
     gf_status status = GF_STATUS_INTERNAL;
-    std::string_view message;
+    bool recognised = false;
 };
 
 ExceptionOutcome classify_current_exception() noexcept {
     try {
         throw;
     } catch (const std::bad_alloc&) {
-        return ExceptionOutcome{GF_STATUS_OUT_OF_MEMORY, "out of memory"};
+        keep_slot_message("out of memory");
+        return ExceptionOutcome{GF_STATUS_OUT_OF_MEMORY, true};
     } catch (const WrongThreadError& error) {
-        return ExceptionOutcome{GF_STATUS_WRONG_THREAD, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_WRONG_THREAD, true};
     } catch (const DisposedError& error) {
-        return ExceptionOutcome{GF_STATUS_DISPOSED, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_DISPOSED, true};
     } catch (const std::invalid_argument& error) {
-        return ExceptionOutcome{GF_STATUS_INVALID_ARGUMENT, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_INVALID_ARGUMENT, true};
     } catch (const std::out_of_range& error) {
-        return ExceptionOutcome{GF_STATUS_INVALID_ARGUMENT, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_INVALID_ARGUMENT, true};
     } catch (const std::length_error& error) {
         // The core reports its size and count limits as length_error.
-        return ExceptionOutcome{GF_STATUS_LIMIT_EXCEEDED, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_LIMIT_EXCEEDED, true};
     } catch (const std::logic_error& error) {
-        return ExceptionOutcome{GF_STATUS_INVALID_STATE, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_INVALID_STATE, true};
     } catch (const std::exception& error) {
-        return ExceptionOutcome{GF_STATUS_INTERNAL, error.what()};
+        keep_slot_message(error.what());
+        return ExceptionOutcome{GF_STATUS_INTERNAL, true};
     } catch (...) {
-        return ExceptionOutcome{GF_STATUS_INTERNAL, "an unknown exception reached the C ABI"};
+        keep_slot_message("an unknown exception reached the C ABI");
+        return ExceptionOutcome{GF_STATUS_INTERNAL, false};
     }
+}
+
+// STXlib's nearest kind for a status the classifier gives.
+stxlib::ErrorKind error_kind_of(const gf_status status) noexcept {
+    switch (status) {
+    case GF_STATUS_OUT_OF_MEMORY:
+        return stxlib::ErrorKind::out_of_memory;
+    case GF_STATUS_WRONG_THREAD:
+        return stxlib::ErrorKind::wrong_thread;
+    case GF_STATUS_DISPOSED:
+        return stxlib::ErrorKind::disposed;
+    case GF_STATUS_INVALID_ARGUMENT:
+        return stxlib::ErrorKind::invalid_argument;
+    case GF_STATUS_LIMIT_EXCEEDED:
+        return stxlib::ErrorKind::limit_exceeded;
+    default:
+        // INVALID_STATE and INTERNAL: a broken invariant.
+        return stxlib::ErrorKind::internal_failure;
+    }
+}
+
+// STXlib's classifier hook (gate.hpp): runs inside the gate's handler.
+bool classify_slot_exception(void* const context, stxlib::ExceptionClass& decided) noexcept {
+    static_cast<void>(context);
+    const ExceptionOutcome outcome = classify_current_exception();
+    if (!outcome.recognised) {
+        return false;
+    }
+    decided.kind = error_kind_of(outcome.status);
+    decided.code = static_cast<stxlib::u32>(outcome.status);
+    return true;
+}
+
+// The message of the failure being filed: the classifier's whole copy when
+// it is pending, else fallback. Clears the pending mark. The view borrows
+// the thread's slot message or fallback's storage.
+std::string_view take_slot_message(const std::string_view fallback) noexcept {
+    SlotMessage& message = slot_message;
+    if (!message.pending) {
+        return fallback;
+    }
+    message.pending = false;
+    const std::string_view kept(message.text.data(), message.size);
+    return kept;
+}
+
+// The status, snapshot and error detail of a failure whose status is known.
+gf_status file_failure(const SlotIdentity slot, gf_status status, const std::string_view message,
+                       const stxlib::ShadowReference shadow, const bool from_gate) noexcept {
+    // An exception with no status of its own is the native exception a
+    // binding reflects, when reflection is on.
+    if (status == GF_STATUS_INTERNAL && detail::exception_reflection()) {
+        status = GF_STATUS_NATIVE_EXCEPTION;
+    }
+    const detail::FailureBoundary boundary{detail::c_abi_failure_site, status, slot.table_id, slot.slot_index};
+    if (from_gate) {
+        detail::record_failure_snapshot(boundary, message, shadow);
+    } else {
+        detail::record_failure_snapshot(boundary, message);
+    }
+    const gf_status failed = fail(status, slot, message);
+    return failed;
 }
 
 static_assert(GF_STATUS_NATIVE_EXCEPTION == detail::failure_native_exception_status);
 static_assert(GF_FAILURE_SITE_CAPACITY == detail::failure_site_capacity);
 static_assert(GF_FAILURE_MESSAGE_CAPACITY == detail::failure_snapshot_message_capacity);
+static_assert(failure_message_capacity == detail::failure_snapshot_message_capacity);
+static_assert(GF_SHADOW_FRAME_KIND_LIBRARY_CALL == static_cast<std::uint32_t>(ShadowFrameKind::library_call));
 
 } // namespace
 
-gf_status fail_with_current_exception(SlotIdentity slot) noexcept {
-    ExceptionOutcome outcome = classify_current_exception();
-    // An exception with no status of its own is the native exception a
-    // binding reflects, when reflection is on.
-    if (outcome.status == GF_STATUS_INTERNAL && detail::exception_reflection()) {
-        outcome.status = GF_STATUS_NATIVE_EXCEPTION;
-    }
-    // The snapshot before the error detail: nothing opens a frame between
-    // the slot's catch and here, so the unwind mark is current.
-    const detail::FailureBoundary boundary{detail::c_abi_failure_site, outcome.status, slot.table_id,
-                                           slot.slot_index};
-    detail::record_failure_snapshot(boundary, outcome.message);
-    return fail(outcome.status, slot, outcome.message);
+const stxlib::ExceptionClassifier slot_classifier{&classify_slot_exception, nullptr};
+
+gf_status fail_with_record(const SlotIdentity slot, const stxlib::ErrorRecord& record) noexcept {
+    const stxlib::u32 code = record.code();
+    const gf_status status = code != 0U ? static_cast<gf_status>(code) : GF_STATUS_INTERNAL;
+    const stxlib::TextView recorded = record.message();
+    const std::string_view message = take_slot_message(std::string_view(recorded.data(), recorded.count()));
+    const gf_status failed = file_failure(slot, status, message, record.shadow(), true);
+    return failed;
+}
+
+gf_status fail_with_current_exception(const SlotIdentity slot) noexcept {
+    const ExceptionOutcome outcome = classify_current_exception();
+    const std::string_view message = take_slot_message("an unknown exception reached the C ABI");
+    const stxlib::ShadowReference none{};
+    const gf_status failed = file_failure(slot, outcome.status, message, none, false);
+    return failed;
 }
 
 gf_status read_text(gf_utf8_view view, SlotIdentity slot, std::string_view& text) noexcept {

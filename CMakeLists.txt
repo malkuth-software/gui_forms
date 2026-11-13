@@ -756,6 +756,10 @@ endif()
 if(UNIX)
     target_link_libraries(gui_forms_core PRIVATE ${CMAKE_DL_LIBS})
 endif()
+# The shadow frames and failure snapshots are STXlib's gates and frames
+# (src/core/diagnostics/shadow_frames, src/core/failure); their state is
+# stxlib_state's, shared by every module that links the core.
+target_link_libraries(gui_forms_core PRIVATE stxlib::boundary INTERFACE stxlib::state)
 if(WIN32)
     target_compile_definitions(gui_forms_core PUBLIC _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     target_link_libraries(gui_forms_core PUBLIC winpthread)
@@ -5351,7 +5355,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_program_options_tests COMMAND gui_forms_program_options_tests)
 
     add_executable(gui_forms_shadow_frames_tests tests/shadow_frames_tests.cpp)
-    target_link_libraries(gui_forms_shadow_frames_tests PRIVATE gui_forms_core)
+    target_link_libraries(gui_forms_shadow_frames_tests PRIVATE gui_forms_core stxlib::boundary)
     add_test(NAME gui_forms_shadow_frames_tests COMMAND gui_forms_shadow_frames_tests)
 
     add_executable(gui_forms_timer_tests tests/timer_tests.cpp)

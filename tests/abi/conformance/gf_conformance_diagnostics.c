@@ -215,6 +215,22 @@ static void failure_snapshots(gf_kit* kit) {
                           read.frames[0].table_id == GF_TABLE_DIAGNOSTICS && read.frames[0].slot_index == 7u,
                  "the snapshot holds the frame the exception unwound");
 
+    /* A message longer than an STXlib error record holds (200 bytes) comes
+     * back whole: the slot gate's classifier keeps the full text. */
+    char long_text[GF_FAILURE_MESSAGE_CAPACITY];
+    memset(long_text, 'm', sizeof(long_text));
+    gf_utf8_view long_view;
+    long_view.data = long_text;
+    long_view.size = sizeof(long_text);
+    gf_kit_status(kit, (*kit).diagnostics.raise_native_exception(long_view), GF_STATUS_INTERNAL,
+                  "a long native exception is an internal failure");
+    read_snapshot(kit, &read);
+    gf_kit_check(kit, read.status == GF_STATUS_OK && read.message_required == GF_FAILURE_MESSAGE_CAPACITY &&
+                          memcmp(read.message, long_text, sizeof(long_text)) == 0,
+                 "a refused call keeps a message of the full capacity");
+    gf_kit_status(kit, (*kit).diagnostics.raise_native_exception(gf_kit_text("kit native failure")),
+                  GF_STATUS_INTERNAL, "the short failure again, for the reads below");
+
     /* Too small: the sizes only, the caller's buffers untouched. */
     gf_failure_snapshot untouched;
     memset(&untouched, 0, sizeof(untouched));
@@ -245,7 +261,7 @@ static void failure_snapshots(gf_kit* kit) {
     gf_kit_status(kit, (*kit).diagnostics.raise_native_exception(broken), GF_STATUS_INVALID_ARGUMENT,
                   "a message that is not UTF-8 is refused");
     read_snapshot(kit, &read);
-    gf_kit_check(kit, read.snapshot.sequence == first_sequence, "a refused raise leaves the snapshot as it was");
+    gf_kit_check(kit, read.snapshot.sequence == first_sequence + 2u, "a refused raise leaves the snapshot as it was");
 
     gf_kit_status(kit, (*kit).diagnostics.set_exception_reflection(2u), GF_STATUS_INVALID_ARGUMENT,
                   "a reflection switch other than 0 or 1 is refused");
@@ -263,7 +279,7 @@ static void failure_snapshots(gf_kit* kit) {
     gf_kit_status(kit, probe.raised, GF_STATUS_NATIVE_EXCEPTION, "with reflection on the call is a native exception");
     read_snapshot(kit, &read);
     gf_kit_check(kit, read.status == GF_STATUS_OK && read.snapshot.status == GF_STATUS_NATIVE_EXCEPTION &&
-                          read.snapshot.sequence == first_sequence + 1u,
+                          read.snapshot.sequence == first_sequence + 3u,
                  "the reflected failure left the next snapshot");
     gf_kit_check(kit, read.snapshot.frame_count == 3u && read.frames_required == 3u &&
                           read.frames[0].table_id == GF_TABLE_DISPATCH && read.frames[0].slot_index == 1u &&

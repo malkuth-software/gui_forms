@@ -8,7 +8,6 @@
 #include "../registry/abi_registry.hpp"
 
 #include "gui_forms/control.hpp"
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 
@@ -151,139 +150,135 @@ gf_subsurface_state state_value(SubSurfaceState state) noexcept {
     }
 }
 
-gf_status GF_CALL subsurfaces_set_content(gf_object host, const gf_subsurface_content* content) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_content_slot.table_id, set_content_slot.slot_index);
-        gf_callback build{};
-        bool opaque = false;
-        if (content != nullptr) {
-            if ((*content).struct_size < content_size_1_1 || (*content).opaque > 1U) {
-                return fail(GF_STATUS_INVALID_ARGUMENT, set_content_slot,
-                            "a gf_subsurface_content needs struct_size of at least 40 and opaque 0 or 1");
-            }
-            const gf_status read = read_callback(&(*content).build, set_content_slot, build);
-            if (read != GF_STATUS_OK) {
-                return read;
-            }
-            opaque = (*content).opaque == 1U;
+gf_status subsurfaces_set_content_body(gf_object host, const gf_subsurface_content* content) {
+    gf_callback build{};
+    bool opaque = false;
+    if (content != nullptr) {
+        if ((*content).struct_size < content_size_1_1 || (*content).opaque > 1U) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, set_content_slot,
+                        "a gf_subsurface_content needs struct_size of at least 40 and opaque 0 or 1");
         }
-        std::shared_ptr<SubSurfaceHost> found;
-        const gf_status entered = enter_host(host, set_content_slot, found);
-        if (entered != GF_STATUS_OK) {
-            return entered;
+        const gf_status read = read_callback(&(*content).build, set_content_slot, build);
+        if (read != GF_STATUS_OK) {
+            return read;
         }
-        std::unique_ptr<SubSurfaceContent> made;
-        AbiSubSurfaceContent* view = nullptr;
-        if (content != nullptr) {
-            std::unique_ptr<AbiSubSurfaceContent> typed = std::make_unique<AbiSubSurfaceContent>(build);
-            view = typed.get();
-            made = std::move(typed);
-        }
-        // One rule for every table (N20): the callback is the library's only
-        // when this returns OK. adopt_content moves from `made` at its take;
-        // a throw before it leaves the content here, disarmed, so the caller
-        // keeps the callback and no release follows. Once taken, the host
-        // holds the content and the call succeeds: a failure after the take
-        // (configuring the region, invalidating) is redone by the host's
-        // next layout.
-        try {
-            (*found).adopt_content(made, opaque);
-        } catch (...) {
-            // No content (a stop) or content not taken: the failure stands.
-            if (view == nullptr || made) {
-                if (view != nullptr) (*view).disarm();
-                throw;
-            }
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_content_slot);
+        opaque = (*content).opaque == 1U;
     }
+    std::shared_ptr<SubSurfaceHost> found;
+    const gf_status entered = enter_host(host, set_content_slot, found);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    std::unique_ptr<SubSurfaceContent> made;
+    AbiSubSurfaceContent* view = nullptr;
+    if (content != nullptr) {
+        std::unique_ptr<AbiSubSurfaceContent> typed = std::make_unique<AbiSubSurfaceContent>(build);
+        view = typed.get();
+        made = std::move(typed);
+    }
+    // One rule for every table (N20): the callback is the library's only
+    // when this returns OK. adopt_content moves from `made` at its take;
+    // a throw before it leaves the content here, disarmed, so the caller
+    // keeps the callback and no release follows. Once taken, the host
+    // holds the content and the call succeeds: a failure after the take
+    // (configuring the region, invalidating) is redone by the host's
+    // next layout.
+    try {
+        (*found).adopt_content(made, opaque);
+    } catch (...) {
+        // No content (a stop) or content not taken: the failure stands.
+        if (view == nullptr || made) {
+            if (view != nullptr) (*view).disarm();
+            throw;
+        }
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL subsurfaces_set_content(gf_object host, const gf_subsurface_content* content) noexcept {
+    return call_slot(set_content_slot, subsurfaces_set_content_body, host, content);
+}
+
+gf_status subsurfaces_set_root_body(gf_object root) {
+    const gf_status entered = registry().enter_ui(set_root_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (building_content == nullptr) {
+        return fail(GF_STATUS_INVALID_STATE, set_root_slot,
+                    "set_root is called inside a sub-surface's build callback only");
+    }
+    Control::Ptr control;
+    const gf_status found = registry().find_object(root, set_root_slot, control);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    if (!(*control).is_alive()) {
+        return fail(GF_STATUS_DISPOSED, set_root_slot, "the object has been disposed");
+    }
+    if ((*control).parent()) {
+        return fail(GF_STATUS_INVALID_STATE, set_root_slot, "a sub-surface's root has no parent");
+    }
+    (*building_content).hand_over(std::move(control));
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL subsurfaces_set_root(gf_object root) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_root_slot.table_id, set_root_slot.slot_index);
-        const gf_status entered = registry().enter_ui(set_root_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (building_content == nullptr) {
-            return fail(GF_STATUS_INVALID_STATE, set_root_slot,
-                        "set_root is called inside a sub-surface's build callback only");
-        }
-        Control::Ptr control;
-        const gf_status found = registry().find_object(root, set_root_slot, control);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        if (!(*control).is_alive()) {
-            return fail(GF_STATUS_DISPOSED, set_root_slot, "the object has been disposed");
-        }
-        if ((*control).parent()) {
-            return fail(GF_STATUS_INVALID_STATE, set_root_slot, "a sub-surface's root has no parent");
-        }
-        (*building_content).hand_over(std::move(control));
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_root_slot);
+    return call_slot(set_root_slot, subsurfaces_set_root_body, root);
+}
+
+gf_status subsurfaces_state_body(gf_object host, gf_subsurface_state* state) {
+    if (state == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
     }
+    std::shared_ptr<SubSurfaceHost> found;
+    const gf_status entered = enter_host(host, state_slot, found);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *state = state_value((*found).state());
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL subsurfaces_state(gf_object host, gf_subsurface_state* state) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(state_slot.table_id, state_slot.slot_index);
-        if (state == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
-        }
-        std::shared_ptr<SubSurfaceHost> found;
-        const gf_status entered = enter_host(host, state_slot, found);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *state = state_value((*found).state());
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(state_slot);
+    return call_slot(state_slot, subsurfaces_state_body, host, state);
+}
+
+gf_status subsurfaces_content_epoch_body(gf_object host, std::uint64_t* epoch) {
+    if (epoch == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, content_epoch_slot, "content_epoch needs an output");
     }
+    std::shared_ptr<SubSurfaceHost> found;
+    const gf_status entered = enter_host(host, content_epoch_slot, found);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *epoch = (*found).content_epoch();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL subsurfaces_content_epoch(gf_object host, std::uint64_t* epoch) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(content_epoch_slot.table_id, content_epoch_slot.slot_index);
-        if (epoch == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, content_epoch_slot, "content_epoch needs an output");
-        }
-        std::shared_ptr<SubSurfaceHost> found;
-        const gf_status entered = enter_host(host, content_epoch_slot, found);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        *epoch = (*found).content_epoch();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(content_epoch_slot);
+    return call_slot(content_epoch_slot, subsurfaces_content_epoch_body, host, epoch);
+}
+
+gf_status subsurfaces_failure_body(gf_object host, char* buffer, std::uint64_t capacity,
+                                   std::uint64_t* required) {
+    std::shared_ptr<SubSurfaceHost> found;
+    const gf_status entered = enter_host(host, failure_slot, found);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    std::string text;
+    if ((*found).state() == SubSurfaceState::failed) {
+        text = (*found).failure();
+    }
+    const gf_status written = write_text(text, buffer, capacity, required, failure_slot);
+    return written;
 }
 
 gf_status GF_CALL subsurfaces_failure(gf_object host, char* buffer, std::uint64_t capacity,
                                       std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(failure_slot.table_id, failure_slot.slot_index);
-        std::shared_ptr<SubSurfaceHost> found;
-        const gf_status entered = enter_host(host, failure_slot, found);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        std::string text;
-        if ((*found).state() == SubSurfaceState::failed) {
-            text = (*found).failure();
-        }
-        const gf_status written = write_text(text, buffer, capacity, required, failure_slot);
-        return written;
-    } catch (...) {
-        return fail_with_current_exception(failure_slot);
-    }
+    return call_slot(failure_slot, subsurfaces_failure_body, host, buffer, capacity, required);
 }
 
 constexpr gf_subsurfaces_table table{

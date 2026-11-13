@@ -16,7 +16,6 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/band/window_band.hpp"
 
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -395,14 +394,13 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
     return status;
 }
 
+gf_status windows_run_body(gf_object root, const gf_run_options* options) {
+    const gf_status ran = run_window(root, options);
+    return ran;
+}
+
 gf_status GF_CALL windows_run(gf_object root, const gf_run_options* options) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(run_slot.table_id, run_slot.slot_index);
-        const gf_status ran = run_window(root, options);
-        return ran;
-    } catch (...) {
-        return fail_with_current_exception(run_slot);
-    }
+    return call_slot(run_slot, windows_run_body, root, options);
 }
 
 // ---------------------------------------------------------------------------
@@ -665,15 +663,15 @@ gf_status show_modal_window(gf_object root, const gf_owned_window_options* optio
     return GF_STATUS_OK;
 }
 
+gf_status windows_show_modal_body(gf_object root, const gf_owned_window_options* options,
+                                  gf_dialog_result_code* result) {
+    const gf_status shown = show_modal_window(root, options, result);
+    return shown;
+}
+
 gf_status GF_CALL windows_show_modal(gf_object root, const gf_owned_window_options* options,
                                      gf_dialog_result_code* result) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(show_modal_slot.table_id, show_modal_slot.slot_index);
-        const gf_status shown = show_modal_window(root, options, result);
-        return shown;
-    } catch (...) {
-        return fail_with_current_exception(show_modal_slot);
-    }
+    return call_slot(show_modal_slot, windows_show_modal_body, root, options, result);
 }
 
 gf_status show_owned_window(gf_object root, const gf_owned_window_options* options) {
@@ -698,53 +696,51 @@ gf_status show_owned_window(gf_object root, const gf_owned_window_options* optio
     return GF_STATUS_OK;
 }
 
+gf_status windows_show_owned_body(gf_object root, const gf_owned_window_options* options) {
+    const gf_status shown = show_owned_window(root, options);
+    return shown;
+}
+
 gf_status GF_CALL windows_show_owned(gf_object root, const gf_owned_window_options* options) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(show_owned_slot.table_id, show_owned_slot.slot_index);
-        const gf_status shown = show_owned_window(root, options);
-        return shown;
-    } catch (...) {
-        return fail_with_current_exception(show_owned_slot);
+    return call_slot(show_owned_slot, windows_show_owned_body, root, options);
+}
+
+gf_status windows_request_close_body(gf_object root) {
+    const gf_status entered = registry().enter_ui(request_close_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(root, request_close_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    // A window show_modal or show_owned opened (since 1.1).
+    const std::shared_ptr<OwnedWindow> owned = find_owned(root);
+    if (owned != nullptr) {
+        const HostServiceStatus asked = (*owned).window.request_close();
+        if (!asked.accepted()) {
+            return owned_status(asked, request_close_slot);
+        }
+        return GF_STATUS_OK;
+    }
+    ApplicationWindowHandle window;
+    const gf_status running = registry().running_window(root, request_close_slot, window);
+    if (running != GF_STATUS_OK) {
+        return running;
+    }
+    if (!window.active()) {
+        return fail(GF_STATUS_INVALID_STATE, request_close_slot, "the window is not ready yet or has closed");
+    }
+    const HostServiceStatus requested = window.request_close();
+    if (!requested.accepted()) {
+        return fail(GF_STATUS_INTERNAL, request_close_slot, "the host refused the close request");
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL windows_request_close(gf_object root) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(request_close_slot.table_id, request_close_slot.slot_index);
-        const gf_status entered = registry().enter_ui(request_close_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        Component::Ptr object;
-        const gf_status found = registry().find_component(root, request_close_slot, object);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        // A window show_modal or show_owned opened (since 1.1).
-        const std::shared_ptr<OwnedWindow> owned = find_owned(root);
-        if (owned != nullptr) {
-            const HostServiceStatus asked = (*owned).window.request_close();
-            if (!asked.accepted()) {
-                return owned_status(asked, request_close_slot);
-            }
-            return GF_STATUS_OK;
-        }
-        ApplicationWindowHandle window;
-        const gf_status running = registry().running_window(root, request_close_slot, window);
-        if (running != GF_STATUS_OK) {
-            return running;
-        }
-        if (!window.active()) {
-            return fail(GF_STATUS_INVALID_STATE, request_close_slot, "the window is not ready yet or has closed");
-        }
-        const HostServiceStatus requested = window.request_close();
-        if (!requested.accepted()) {
-            return fail(GF_STATUS_INTERNAL, request_close_slot, "the host refused the close request");
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(request_close_slot);
-    }
+    return call_slot(request_close_slot, windows_request_close_body, root);
 }
 
 // A window over root, not yet running. Validated before anything is made.
@@ -774,14 +770,13 @@ gf_status create_window(gf_object root, gf_object* made) {
     return GF_STATUS_OK;
 }
 
+gf_status windows_create_body(gf_object root, gf_object* window) {
+    const gf_status created = create_window(root, window);
+    return created;
+}
+
 gf_status GF_CALL windows_create(gf_object root, gf_object* window) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(create_slot.table_id, create_slot.slot_index);
-        const gf_status created = create_window(root, window);
-        return created;
-    } catch (...) {
-        return fail_with_current_exception(create_slot);
-    }
+    return call_slot(create_slot, windows_create_body, root, window);
 }
 
 // The interactions every window raises (Window::append_interactions). Their
@@ -793,43 +788,41 @@ std::vector<InteractionDeclaration> window_interactions() {
     return interactions;
 }
 
-gf_status GF_CALL windows_interaction_count(std::uint64_t* count) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(interaction_count_slot.table_id, interaction_count_slot.slot_index);
-        if (count == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, interaction_count_slot, "interaction_count needs a count output");
-        }
-        const std::vector<InteractionDeclaration> interactions = window_interactions();
-        *count = static_cast<std::uint64_t>(interactions.size());
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(interaction_count_slot);
+gf_status windows_interaction_count_body(std::uint64_t* count) {
+    if (count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, interaction_count_slot, "interaction_count needs a count output");
     }
+    const std::vector<InteractionDeclaration> interactions = window_interactions();
+    *count = static_cast<std::uint64_t>(interactions.size());
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_interaction_count(std::uint64_t* count) noexcept {
+    return call_slot(interaction_count_slot, windows_interaction_count_body, count);
+}
+
+gf_status windows_interaction_at_body(std::uint64_t interaction, gf_schema_interaction* record) {
+    const gf_status valid = check_record(record, interaction_at_slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    const std::vector<InteractionDeclaration> interactions = window_interactions();
+    if (interaction >= interactions.size()) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, interaction_at_slot, "the index is past the end of its list");
+    }
+    const InteractionDeclaration& held = interactions[static_cast<std::size_t>(interaction)];
+    gf_schema_interaction complete{};
+    complete.struct_size = sizeof(gf_schema_interaction);
+    complete.mutable_payload = held.mutable_payload ? 1U : 0U;
+    complete.name = gf_utf8_view{held.name.data(), held.name.size()};
+    const std::string_view fields = interaction_payload_fields(held.payload);
+    complete.payload = gf_utf8_view{fields.data(), fields.size()};
+    write_record(complete, record);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL windows_interaction_at(std::uint64_t interaction, gf_schema_interaction* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(interaction_at_slot.table_id, interaction_at_slot.slot_index);
-        const gf_status valid = check_record(record, interaction_at_slot);
-        if (valid != GF_STATUS_OK) {
-            return valid;
-        }
-        const std::vector<InteractionDeclaration> interactions = window_interactions();
-        if (interaction >= interactions.size()) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, interaction_at_slot, "the index is past the end of its list");
-        }
-        const InteractionDeclaration& held = interactions[static_cast<std::size_t>(interaction)];
-        gf_schema_interaction complete{};
-        complete.struct_size = sizeof(gf_schema_interaction);
-        complete.mutable_payload = held.mutable_payload ? 1U : 0U;
-        complete.name = gf_utf8_view{held.name.data(), held.name.size()};
-        const std::string_view fields = interaction_payload_fields(held.payload);
-        complete.payload = gf_utf8_view{fields.data(), fields.size()};
-        write_record(complete, record);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(interaction_at_slot);
-    }
+    return call_slot(interaction_at_slot, windows_interaction_at_body, interaction, record);
 }
 
 // Raises a created or running window's help request, not keyboard-initiated.
@@ -859,14 +852,13 @@ gf_status request_window_help(gf_object window, std::uint32_t* handled) {
     return GF_STATUS_OK;
 }
 
+gf_status windows_request_help_body(gf_object window, std::uint32_t* handled) {
+    const gf_status requested = request_window_help(window, handled);
+    return requested;
+}
+
 gf_status GF_CALL windows_request_help(gf_object window, std::uint32_t* handled) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(request_help_slot.table_id, request_help_slot.slot_index);
-        const gf_status requested = request_window_help(window, handled);
-        return requested;
-    } catch (...) {
-        return fail_with_current_exception(request_help_slot);
-    }
+    return call_slot(request_help_slot, windows_request_help_body, window, handled);
 }
 
 // Window properties (since 1.1): what the window's host applies.
@@ -895,15 +887,15 @@ gf_status report_window_properties(gf_object window, gf_window_property_flags* s
     return GF_STATUS_OK;
 }
 
+gf_status windows_window_properties_body(gf_object window, gf_window_property_flags* supported,
+                                         gf_window_property_flags* applied) {
+    const gf_status reported = report_window_properties(window, supported, applied);
+    return reported;
+}
+
 gf_status GF_CALL windows_window_properties(gf_object window, gf_window_property_flags* supported,
                                             gf_window_property_flags* applied) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(window_properties_slot.table_id, window_properties_slot.slot_index);
-        const gf_status reported = report_window_properties(window, supported, applied);
-        return reported;
-    } catch (...) {
-        return fail_with_current_exception(window_properties_slot);
-    }
+    return call_slot(window_properties_slot, windows_window_properties_body, window, supported, applied);
 }
 
 // The focused control of a window from create, or of the window a control
@@ -951,14 +943,13 @@ gf_status report_focused_control(gf_object window_or_root, gf_object* control) {
     return GF_STATUS_OK;
 }
 
+gf_status windows_focused_control_body(gf_object window_or_root, gf_object* control) {
+    const gf_status reported = report_focused_control(window_or_root, control);
+    return reported;
+}
+
 gf_status GF_CALL windows_focused_control(gf_object window_or_root, gf_object* control) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(focused_control_slot.table_id, focused_control_slot.slot_index);
-        const gf_status reported = report_focused_control(window_or_root, control);
-        return reported;
-    } catch (...) {
-        return fail_with_current_exception(focused_control_slot);
-    }
+    return call_slot(focused_control_slot, windows_focused_control_body, window_or_root, control);
 }
 
 // Where the pointer is, as the window of window_or_control last saw it:
@@ -1056,14 +1047,13 @@ gf_status read_key_state(gf_object window, std::uint32_t physical_key, std::uint
     return GF_STATUS_OK;
 }
 
+gf_status windows_key_state_body(gf_object window, std::uint32_t physical_key, std::uint32_t* down) {
+    const gf_status read = read_key_state(window, physical_key, down);
+    return read;
+}
+
 gf_status GF_CALL windows_key_state(gf_object window, std::uint32_t physical_key, std::uint32_t* down) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(key_state_slot.table_id, key_state_slot.slot_index);
-        const gf_status read = read_key_state(window, physical_key, down);
-        return read;
-    } catch (...) {
-        return fail_with_current_exception(key_state_slot);
-    }
+    return call_slot(key_state_slot, windows_key_state_body, window, physical_key, down);
 }
 
 // --- The window outer band and shaping (since 1.3) ----------------------------

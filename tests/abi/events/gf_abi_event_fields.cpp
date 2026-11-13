@@ -638,7 +638,34 @@ gf_status status_of_thrown(int which) {
     }
 }
 
+// A slot body that throws as status_of_thrown does, or returns its own
+// failure (which 4), for the slot gate (abi1::call_slot).
+gf_status throwing_slot_body(int which) {
+    if (which == 0) throw WrongThreadError("wrong thread");
+    if (which == 1) throw DisposedError("disposed");
+    if (which == 2) throw std::length_error("limit");
+    if (which == 3) throw std::logic_error("state");
+    if (which == 4) return abi1::fail(GF_STATUS_NOT_FOUND, abi1::SlotIdentity{GF_TABLE_OBJECTS, 1U}, "its own");
+    // Longer than an STXlib error record's 200 bytes.
+    throw std::invalid_argument(std::string(300U, 'x'));
+}
+
+gf_status status_through_gate(int which) {
+    const abi1::SlotIdentity slot{GF_TABLE_OBJECTS, 1U};
+    const gf_status status = abi1::call_slot(slot, throwing_slot_body, which);
+    return status;
+}
+
 void failure_statuses() {
+    require(status_through_gate(0) == GF_STATUS_WRONG_THREAD, "the slot gate maps a wrong-thread failure");
+    require(status_through_gate(1) == GF_STATUS_DISPOSED, "the slot gate maps a disposed failure");
+    require(status_through_gate(2) == GF_STATUS_LIMIT_EXCEEDED, "the slot gate maps a limit");
+    require(status_through_gate(3) == GF_STATUS_INVALID_STATE, "the slot gate maps another logic error");
+    require(status_through_gate(4) == GF_STATUS_NOT_FOUND, "a body's own failure passes through the slot gate");
+    require(status_through_gate(5) == GF_STATUS_INVALID_ARGUMENT && abi1::thread_failure().message_size == 300U,
+            "the slot gate keeps a message longer than an error record holds");
+    require(abi1::thread_failure().slot.table_id == GF_TABLE_OBJECTS && abi1::thread_failure().slot.slot_index == 1U,
+            "the slot gate's failure names its slot");
     require(status_of_thrown(0) == GF_STATUS_WRONG_THREAD, "a core wrong-thread failure is GF_STATUS_WRONG_THREAD");
     require(status_of_thrown(1) == GF_STATUS_DISPOSED, "a core disposed failure is GF_STATUS_DISPOSED");
     require(status_of_thrown(2) == GF_STATUS_LIMIT_EXCEEDED, "a core limit is GF_STATUS_LIMIT_EXCEEDED");

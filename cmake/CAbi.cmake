@@ -116,7 +116,9 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/windows/abi_window_handle.cpp
     src/abi/stable/windows/abi_window_properties.cpp
 )
-target_link_libraries(gui_forms_abi_objects PRIVATE gui_forms_application)
+# The slot gates (abi_registry.hpp, call_slot) are STXlib's; their state is
+# stxlib_state's, which gui_forms_application brings.
+target_link_libraries(gui_forms_abi_objects PRIVATE gui_forms_application stxlib::boundary)
 target_include_directories(gui_forms_abi_objects PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(gui_forms_abi_objects PRIVATE cxx_std_20)
 # GF_ABI_BUILD is public: a program linking the objects declares the entry
@@ -141,7 +143,7 @@ set_target_properties(gui_forms_abi_objects PROPERTIES
 )
 
 add_library(gui_forms_abi SHARED $<TARGET_OBJECTS:gui_forms_abi_objects>)
-target_link_libraries(gui_forms_abi PRIVATE gui_forms_application)
+target_link_libraries(gui_forms_abi PRIVATE gui_forms_application stxlib::boundary)
 add_library(GUIForms::CAbi ALIAS gui_forms_abi)
 target_include_directories(gui_forms_abi PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -333,7 +335,7 @@ if(GUI_FORMS_BUILD_TESTS)
     # The stage C4 gate: a theme loaded through the ABI paints a fixture as
     # the C++ path does.
     add_executable(gui_forms_abi_theme_trace tests/abi/themes/gf_abi_theme_trace.cpp)
-    target_link_libraries(gui_forms_abi_theme_trace PRIVATE gui_forms_abi_objects gui_forms_application)
+    target_link_libraries(gui_forms_abi_theme_trace PRIVATE gui_forms_abi_objects gui_forms_application stxlib::boundary)
     target_compile_features(gui_forms_abi_theme_trace PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_theme_trace COMMAND gui_forms_abi_theme_trace ${CMAKE_CURRENT_BINARY_DIR}/gf_abi)
     # The host's capability report through the ABI, against the per-host
@@ -348,7 +350,7 @@ if(GUI_FORMS_BUILD_TESTS)
     # The stage C5 fields: C++ events raised directly reach an ABI callback
     # as named fields, and what the callback writes reaches the C++ payload.
     add_executable(gui_forms_abi_event_fields tests/abi/events/gf_abi_event_fields.cpp)
-    target_link_libraries(gui_forms_abi_event_fields PRIVATE gui_forms_abi_objects gui_forms_application)
+    target_link_libraries(gui_forms_abi_event_fields PRIVATE gui_forms_abi_objects gui_forms_application stxlib::boundary)
     target_compile_features(gui_forms_abi_event_fields PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_event_fields COMMAND gui_forms_abi_event_fields)
     # The checked sanitizer tree poisons an invoke's lent scratch when it
@@ -361,7 +363,7 @@ if(GUI_FORMS_BUILD_TESTS)
     endif()
     # A custom control's paint callback fills the pixels a window presents.
     add_executable(gui_forms_abi_custom_paint tests/abi/custom/gf_abi_custom_paint.cpp)
-    target_link_libraries(gui_forms_abi_custom_paint PRIVATE gui_forms_abi_objects gui_forms_application)
+    target_link_libraries(gui_forms_abi_custom_paint PRIVATE gui_forms_abi_objects gui_forms_application stxlib::boundary)
     target_compile_features(gui_forms_abi_custom_paint PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_custom_paint COMMAND gui_forms_abi_custom_paint)
     # A C++ client's class entry that throws is recorded and ends the process

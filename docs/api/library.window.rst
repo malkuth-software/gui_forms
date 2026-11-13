@@ -1652,7 +1652,7 @@ Related types
 
    ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
 
-   One frame. Fields a kind does not use are zero and empty. The text arrays hold subject_size and name_size bytes; the bytes past them are stale.
+   One frame. Fields a kind does not use are zero and empty. The text arrays hold subject_size and name_size bytes; the bytes past them are zero.
 
    .. cpp:member:: ShadowFrameKind kind
 
@@ -1692,7 +1692,7 @@ Related types
 
    ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
 
-   A frame around an entry that calls into code another module may hold (an application's handlers and controls, under a window's input, layout and paint). The entry opens the frame, calls its body (a named function), then calls returned(); a frame destroyed before returned() is being unwound, whichever module threw, so no runtime is asked. The body's own early returns cannot skip the mark, because the mark follows the body's return. Writes the same stack as ShadowFrameScope (the library's), and never throws or allocates.
+   A frame around an entry that calls into code another module may hold (an application's handlers and controls, under a window's input, layout and paint). The entry opens the frame, calls its body (a named function), then calls returned(); a frame destroyed before returned() is being unwound, whichever module threw, so no runtime is asked. The body's own early returns cannot skip the mark, because the mark follows the body's return. Never throws or allocates.
 
 
    .. rubric:: Construction
@@ -1712,7 +1712,7 @@ Related types
 
    ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
 
-   Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included. Never throws or allocates. Scopes nest strictly (they are not copied or moved), so the frame closed is always the innermost.
+   Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included. Never throws or allocates. Scopes nest strictly (they are not copied or moved), so the frame closed is always the innermost. Kept for the C++ API before 1.0; the library's own frames are gates and ShadowFrameCall, which need no runtime query.
 
 
    .. rubric:: Construction
@@ -2903,6 +2903,8 @@ Enumerations
 
    .. cpp:enumerator:: posted_callback
 
+   .. cpp:enumerator:: gate
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: SpecimenStateRoute
@@ -3154,7 +3156,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::size_t copy_failure_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept
 
-   As copy_shadow_frames, but for a boundary that has just caught an exception: the frames open where the exception was thrown, the frames it unwound included, when no frame has been opened or closed by a return since its last unwinding pop; otherwise (no exception unwound a frame, or the thread has moved on) the frames open now. state.depth is the depth copied from; pushed and dropped are the thread's. Never throws or allocates. The mark cannot tell two unwindings apart when nothing opens or closes a frame between them: an exception caught and handled inside a frame, then another thrown from that frame or an outer one, shows the first's deeper frames above the second's. The outer frames are the second's either way.
+   As copy_shadow_frames, but for a handler that has just caught an exception and is not a gate: the frames open where the exception was thrown, the frames it unwound included, or the frames open now when no frame saw the exception leave. Takes the thread's pending capture (stxlib::park_shadow), so call it once per caught exception, inside the handler. state.depth is the depth copied from; pushed and dropped are the thread's. Never throws or allocates.
 
 .. cpp:var:: constexpr std::size_t shadow_frame_subject_capacity
 

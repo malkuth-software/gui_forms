@@ -14,7 +14,6 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -185,124 +184,119 @@ gf_status load_made_package(const ThemePackage& made, SlotIdentity slot, gf_them
     return GF_STATUS_OK;
 }
 
-gf_status GF_CALL themes_load(const gf_theme_package* package, gf_theme_report* report) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(load_slot.table_id, load_slot.slot_index);
-        const gf_status checked = check_record(report, load_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        ThemePackage made;
-        const gf_status read = read_theme_package(package, load_slot, made);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        const gf_status loaded = load_made_package(made, load_slot, report);
-        return loaded;
-    } catch (...) {
-        return fail_with_current_exception(load_slot);
+gf_status themes_load_body(const gf_theme_package* package, gf_theme_report* report) {
+    const gf_status checked = check_record(report, load_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
     }
+    ThemePackage made;
+    const gf_status read = read_theme_package(package, load_slot, made);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    const gf_status loaded = load_made_package(made, load_slot, report);
+    return loaded;
+}
+
+gf_status GF_CALL themes_load(const gf_theme_package* package, gf_theme_report* report) noexcept {
+    return call_slot(load_slot, themes_load_body, package, report);
+}
+
+gf_status themes_load_sheet_body(gf_utf8_view sheet, gf_utf8_view name, gf_theme_report* report) {
+    const gf_status checked = check_record(report, load_sheet_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    std::string_view sheet_text;
+    const gf_status sheet_read = read_text(sheet, load_sheet_slot, sheet_text);
+    if (sheet_read != GF_STATUS_OK) {
+        return sheet_read;
+    }
+    if (sheet_text.size() > maximum_package_bytes) {
+        return fail(GF_STATUS_LIMIT_EXCEEDED, load_sheet_slot, "a theme sheet holds at most 16 MiB");
+    }
+    std::string_view name_text;
+    const gf_status name_read = read_text(name, load_sheet_slot, name_text);
+    if (name_read != GF_STATUS_OK) {
+        return name_read;
+    }
+    const ThemePackage made = theme_sheet_package(sheet_text, name_text);
+    const gf_status loaded = load_made_package(made, load_sheet_slot, report);
+    return loaded;
 }
 
 gf_status GF_CALL themes_load_sheet(gf_utf8_view sheet, gf_utf8_view name, gf_theme_report* report) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(load_sheet_slot.table_id, load_sheet_slot.slot_index);
-        const gf_status checked = check_record(report, load_sheet_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        std::string_view sheet_text;
-        const gf_status sheet_read = read_text(sheet, load_sheet_slot, sheet_text);
-        if (sheet_read != GF_STATUS_OK) {
-            return sheet_read;
-        }
-        if (sheet_text.size() > maximum_package_bytes) {
-            return fail(GF_STATUS_LIMIT_EXCEEDED, load_sheet_slot, "a theme sheet holds at most 16 MiB");
-        }
-        std::string_view name_text;
-        const gf_status name_read = read_text(name, load_sheet_slot, name_text);
-        if (name_read != GF_STATUS_OK) {
-            return name_read;
-        }
-        const ThemePackage made = theme_sheet_package(sheet_text, name_text);
-        const gf_status loaded = load_made_package(made, load_sheet_slot, report);
-        return loaded;
-    } catch (...) {
-        return fail_with_current_exception(load_sheet_slot);
+    return call_slot(load_sheet_slot, themes_load_sheet_body, sheet, name, report);
+}
+
+gf_status themes_reset_body() {
+    const gf_status entered = registry().enter_ui(reset_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    EngineState& state = engine();
+    try {
+        state.resources().set_theme(default_theme());
+    } catch (const std::invalid_argument& refusal) {
+        return fail(GF_STATUS_INVALID_STATE, reset_slot, refusal.what());
+    }
+    state.clear_diagnostics();
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL themes_reset() noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(reset_slot.table_id, reset_slot.slot_index);
-        const gf_status entered = registry().enter_ui(reset_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        EngineState& state = engine();
-        try {
-            state.resources().set_theme(default_theme());
-        } catch (const std::invalid_argument& refusal) {
-            return fail(GF_STATUS_INVALID_STATE, reset_slot, refusal.what());
-        }
-        state.clear_diagnostics();
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(reset_slot);
+    return call_slot(reset_slot, themes_reset_body);
+}
+
+gf_status themes_install_body(const gf_theme_package* package, gf_theme_report* report) {
+    const gf_status checked = check_record(report, install_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
     }
+    ThemePackage made;
+    const gf_status read = read_theme_package(package, install_slot, made);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    const gf_status entered = registry().enter_ui(install_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    EngineState& state = engine();
+    static_cast<void>(state.resources());
+    const std::vector<ThemeCompileDiagnostic> findings = state.library().install(made);
+    state.replace_diagnostics(findings);
+    const gf_theme_outcome outcome = has_error(findings) ? GF_THEME_OUTCOME_REFUSED : GF_THEME_OUTCOME_APPLIED;
+    write_theme_report(outcome, state.diagnostics().size(), report);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL themes_install(const gf_theme_package* package, gf_theme_report* report) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(install_slot.table_id, install_slot.slot_index);
-        const gf_status checked = check_record(report, install_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        ThemePackage made;
-        const gf_status read = read_theme_package(package, install_slot, made);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        const gf_status entered = registry().enter_ui(install_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        EngineState& state = engine();
-        static_cast<void>(state.resources());
-        const std::vector<ThemeCompileDiagnostic> findings = state.library().install(made);
-        state.replace_diagnostics(findings);
-        const gf_theme_outcome outcome = has_error(findings) ? GF_THEME_OUTCOME_REFUSED : GF_THEME_OUTCOME_APPLIED;
-        write_theme_report(outcome, state.diagnostics().size(), report);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(install_slot);
+    return call_slot(install_slot, themes_install_body, package, report);
+}
+
+gf_status themes_remove_body(gf_utf8_view name, std::uint32_t* removed) {
+    if (removed == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, remove_slot, "removed is null");
     }
+    std::string_view text;
+    const gf_status read = read_text(name, remove_slot, text);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    const gf_status entered = registry().enter_ui(remove_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    EngineState& state = engine();
+    static_cast<void>(state.resources());
+    const bool was_installed = state.library().remove(text);
+    *removed = was_installed ? 1U : 0U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL themes_remove(gf_utf8_view name, std::uint32_t* removed) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(remove_slot.table_id, remove_slot.slot_index);
-        if (removed == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, remove_slot, "removed is null");
-        }
-        std::string_view text;
-        const gf_status read = read_text(name, remove_slot, text);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        const gf_status entered = registry().enter_ui(remove_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        EngineState& state = engine();
-        static_cast<void>(state.resources());
-        const bool was_installed = state.library().remove(text);
-        *removed = was_installed ? 1U : 0U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(remove_slot);
-    }
+    return call_slot(remove_slot, themes_remove_body, name, removed);
 }
 
 // The finding at index, once the UI thread is entered.
@@ -321,29 +315,28 @@ gf_status find_diagnostic(std::uint64_t index, SlotIdentity slot, const ThemeCom
     return GF_STATUS_OK;
 }
 
-gf_status GF_CALL themes_diagnostic_at(std::uint64_t index, gf_theme_diagnostic* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(diagnostic_at_slot.table_id, diagnostic_at_slot.slot_index);
-        const gf_status checked = check_record(record, diagnostic_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        const ThemeCompileDiagnostic* finding = nullptr;
-        const gf_status found = find_diagnostic(index, diagnostic_at_slot, finding);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        gf_theme_diagnostic complete{};
-        complete.struct_size = sizeof(gf_theme_diagnostic);
-        complete.severity = (*finding).severity == ThemeDiagnosticSeverity::error ? GF_THEME_SEVERITY_ERROR
-                                                                                   : GF_THEME_SEVERITY_WARNING;
-        complete.line = (*finding).line;
-        complete.column = (*finding).column;
-        write_record(complete, record);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(diagnostic_at_slot);
+gf_status themes_diagnostic_at_body(std::uint64_t index, gf_theme_diagnostic* record) {
+    const gf_status checked = check_record(record, diagnostic_at_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
     }
+    const ThemeCompileDiagnostic* finding = nullptr;
+    const gf_status found = find_diagnostic(index, diagnostic_at_slot, finding);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    gf_theme_diagnostic complete{};
+    complete.struct_size = sizeof(gf_theme_diagnostic);
+    complete.severity = (*finding).severity == ThemeDiagnosticSeverity::error ? GF_THEME_SEVERITY_ERROR
+                                                                               : GF_THEME_SEVERITY_WARNING;
+    complete.line = (*finding).line;
+    complete.column = (*finding).column;
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL themes_diagnostic_at(std::uint64_t index, gf_theme_diagnostic* record) noexcept {
+    return call_slot(diagnostic_at_slot, themes_diagnostic_at_body, index, record);
 }
 
 // The text of a finding a gf_theme_diagnostic_text names; null for an
@@ -367,147 +360,143 @@ const std::string* diagnostic_text_of(const ThemeCompileDiagnostic& finding, gf_
     }
 }
 
+gf_status themes_diagnostic_text_body(std::uint64_t index, gf_theme_diagnostic_text text, char* buffer,
+                                      std::uint64_t capacity, std::uint64_t* required) {
+    if (text > GF_THEME_DIAGNOSTIC_TEXT_DETAIL) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, diagnostic_text_slot, "unknown diagnostic text");
+    }
+    const ThemeCompileDiagnostic* finding = nullptr;
+    const gf_status found = find_diagnostic(index, diagnostic_text_slot, finding);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const std::string* chosen = diagnostic_text_of(*finding, text);
+    const gf_status written = write_text(*chosen, buffer, capacity, required, diagnostic_text_slot);
+    return written;
+}
+
 gf_status GF_CALL themes_diagnostic_text(std::uint64_t index, gf_theme_diagnostic_text text, char* buffer,
                                          std::uint64_t capacity, std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(diagnostic_text_slot.table_id, diagnostic_text_slot.slot_index);
-        if (text > GF_THEME_DIAGNOSTIC_TEXT_DETAIL) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, diagnostic_text_slot, "unknown diagnostic text");
-        }
-        const ThemeCompileDiagnostic* finding = nullptr;
-        const gf_status found = find_diagnostic(index, diagnostic_text_slot, finding);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        const std::string* chosen = diagnostic_text_of(*finding, text);
-        const gf_status written = write_text(*chosen, buffer, capacity, required, diagnostic_text_slot);
-        return written;
-    } catch (...) {
-        return fail_with_current_exception(diagnostic_text_slot);
+    return call_slot(diagnostic_text_slot, themes_diagnostic_text_body, index, text, buffer, capacity, required);
+}
+
+gf_status themes_theme_id_body(char* buffer, std::uint64_t capacity, std::uint64_t* required) {
+    const gf_status entered = registry().enter_ui(theme_id_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    const Theme& theme = engine().resources().theme();
+    const gf_status written = write_text(theme.id(), buffer, capacity, required, theme_id_slot);
+    return written;
 }
 
 gf_status GF_CALL themes_theme_id(char* buffer, std::uint64_t capacity, std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(theme_id_slot.table_id, theme_id_slot.slot_index);
-        const gf_status entered = registry().enter_ui(theme_id_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const Theme& theme = engine().resources().theme();
-        const gf_status written = write_text(theme.id(), buffer, capacity, required, theme_id_slot);
-        return written;
-    } catch (...) {
-        return fail_with_current_exception(theme_id_slot);
+    return call_slot(theme_id_slot, themes_theme_id_body, buffer, capacity, required);
+}
+
+gf_status themes_publish_value_body(gf_utf8_view name, double value) {
+    std::string_view text;
+    const gf_status read = read_published_name(name, publish_value_slot, text);
+    if (read != GF_STATUS_OK) {
+        return read;
     }
+    if (!std::isfinite(value)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, publish_value_slot, "a published value is finite");
+    }
+    const gf_status entered = registry().enter_ui(publish_value_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    EngineState& state = engine();
+    static_cast<void>(state.resources());
+    PublishedInput* input = state.find_published(text);
+    if (input == nullptr) {
+        if (state.published_count() >= maximum_published_values) {
+            return fail(GF_STATUS_LIMIT_EXCEEDED, publish_value_slot, "the library publishes at most 256 names");
+        }
+        input = &state.add_published(text, value);
+    } else {
+        (*input).value = value;
+        (*input).present = true;
+    }
+    // Every open window: the run's and each owned one, as a theme
+    // switch reaches them all (N33).
+    Window* window = state.running_window();
+    if (window != nullptr) {
+        static_cast<void>((*window).publish_value(text, value));
+    }
+    const std::span<const OpenOwnedWindow> owned = state.owned_windows();
+    std::size_t index = 0U;
+    for (index = 0U; index < owned.size(); ++index) {
+        static_cast<void>((*owned[index].window).publish_value(text, value));
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL themes_publish_value(gf_utf8_view name, double value) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(publish_value_slot.table_id, publish_value_slot.slot_index);
-        std::string_view text;
-        const gf_status read = read_published_name(name, publish_value_slot, text);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        if (!std::isfinite(value)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, publish_value_slot, "a published value is finite");
-        }
-        const gf_status entered = registry().enter_ui(publish_value_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        EngineState& state = engine();
-        static_cast<void>(state.resources());
-        PublishedInput* input = state.find_published(text);
-        if (input == nullptr) {
-            if (state.published_count() >= maximum_published_values) {
-                return fail(GF_STATUS_LIMIT_EXCEEDED, publish_value_slot, "the library publishes at most 256 names");
-            }
-            input = &state.add_published(text, value);
-        } else {
-            (*input).value = value;
-            (*input).present = true;
-        }
-        // Every open window: the run's and each owned one, as a theme
-        // switch reaches them all (N33).
-        Window* window = state.running_window();
-        if (window != nullptr) {
-            static_cast<void>((*window).publish_value(text, value));
-        }
-        const std::span<const OpenOwnedWindow> owned = state.owned_windows();
-        std::size_t index = 0U;
-        for (index = 0U; index < owned.size(); ++index) {
-            static_cast<void>((*owned[index].window).publish_value(text, value));
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(publish_value_slot);
+    return call_slot(publish_value_slot, themes_publish_value_body, name, value);
+}
+
+gf_status themes_withdraw_value_body(gf_utf8_view name) {
+    std::string_view text;
+    const gf_status read = read_published_name(name, withdraw_value_slot, text);
+    if (read != GF_STATUS_OK) {
+        return read;
     }
+    const gf_status entered = registry().enter_ui(withdraw_value_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    EngineState& state = engine();
+    static_cast<void>(state.resources());
+    PublishedInput* input = state.find_published(text);
+    if (input == nullptr || !(*input).present) {
+        return GF_STATUS_OK;
+    }
+    (*input).present = false;
+    Window* window = state.running_window();
+    if (window != nullptr) {
+        (*window).withdraw_value(text);
+    }
+    const std::span<const OpenOwnedWindow> owned = state.owned_windows();
+    std::size_t index = 0U;
+    for (index = 0U; index < owned.size(); ++index) {
+        (*owned[index].window).withdraw_value(text);
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL themes_withdraw_value(gf_utf8_view name) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(withdraw_value_slot.table_id, withdraw_value_slot.slot_index);
-        std::string_view text;
-        const gf_status read = read_published_name(name, withdraw_value_slot, text);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        const gf_status entered = registry().enter_ui(withdraw_value_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        EngineState& state = engine();
-        static_cast<void>(state.resources());
-        PublishedInput* input = state.find_published(text);
-        if (input == nullptr || !(*input).present) {
-            return GF_STATUS_OK;
-        }
-        (*input).present = false;
-        Window* window = state.running_window();
-        if (window != nullptr) {
-            (*window).withdraw_value(text);
-        }
-        const std::span<const OpenOwnedWindow> owned = state.owned_windows();
-        std::size_t index = 0U;
-        for (index = 0U; index < owned.size(); ++index) {
-            (*owned[index].window).withdraw_value(text);
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(withdraw_value_slot);
+    return call_slot(withdraw_value_slot, themes_withdraw_value_body, name);
+}
+
+gf_status themes_published_value_body(gf_utf8_view name, double* value, std::uint32_t* present) {
+    if (value == nullptr || present == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, published_value_slot, "value and present are outputs");
     }
+    std::string_view text;
+    const gf_status read = read_published_name(name, published_value_slot, text);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    const gf_status entered = registry().enter_ui(published_value_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    EngineState& state = engine();
+    static_cast<void>(state.resources());
+    const PublishedInput* input = state.find_published(text);
+    if (input == nullptr || !(*input).present) {
+        *present = 0U;
+        return GF_STATUS_OK;
+    }
+    *value = (*input).value;
+    *present = 1U;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL themes_published_value(gf_utf8_view name, double* value, std::uint32_t* present) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(published_value_slot.table_id, published_value_slot.slot_index);
-        if (value == nullptr || present == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, published_value_slot, "value and present are outputs");
-        }
-        std::string_view text;
-        const gf_status read = read_published_name(name, published_value_slot, text);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        const gf_status entered = registry().enter_ui(published_value_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        EngineState& state = engine();
-        static_cast<void>(state.resources());
-        const PublishedInput* input = state.find_published(text);
-        if (input == nullptr || !(*input).present) {
-            *present = 0U;
-            return GF_STATUS_OK;
-        }
-        *value = (*input).value;
-        *present = 1U;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(published_value_slot);
-    }
+    return call_slot(published_value_slot, themes_published_value_body, name, value, present);
 }
 
 // The status a refused image load gives.
@@ -547,112 +536,108 @@ gf_status image_failure(ImageResourceError error) noexcept {
     return GF_STATUS_INVALID_ARGUMENT;
 }
 
-gf_status GF_CALL themes_load_image(const std::uint8_t* bytes, std::uint64_t size, std::uint64_t* image) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(load_image_slot.table_id, load_image_slot.slot_index);
-        if (image == nullptr || (bytes == nullptr && size != 0U)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, load_image_slot,
-                        "load_image needs an image output, and bytes when size is not zero");
-        }
-        const gf_status entered = registry().enter_ui(load_image_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const std::span<const std::byte> encoded(reinterpret_cast<const std::byte*>(bytes),
-                                                 static_cast<std::size_t>(size));
-        const ImageLoadResult loaded = engine().resources().load_png(encoded);
-        if (!loaded) {
-            return fail(image_failure(loaded.error), load_image_slot, image_resource_error_name(loaded.error));
-        }
-        *image = loaded.image.value;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(load_image_slot);
+gf_status themes_load_image_body(const std::uint8_t* bytes, std::uint64_t size, std::uint64_t* image) {
+    if (image == nullptr || (bytes == nullptr && size != 0U)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, load_image_slot,
+                    "load_image needs an image output, and bytes when size is not zero");
     }
+    const gf_status entered = registry().enter_ui(load_image_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const std::span<const std::byte> encoded(reinterpret_cast<const std::byte*>(bytes),
+                                             static_cast<std::size_t>(size));
+    const ImageLoadResult loaded = engine().resources().load_png(encoded);
+    if (!loaded) {
+        return fail(image_failure(loaded.error), load_image_slot, image_resource_error_name(loaded.error));
+    }
+    *image = loaded.image.value;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL themes_load_image(const std::uint8_t* bytes, std::uint64_t size, std::uint64_t* image) noexcept {
+    return call_slot(load_image_slot, themes_load_image_body, bytes, size, image);
+}
+
+gf_status themes_load_pixels_body(const std::uint8_t* pixels, std::uint32_t width, std::uint32_t height,
+                                  std::uint64_t row_bytes, std::uint64_t* image) {
+    const bool empty = width == 0U || height == 0U;
+    if (image == nullptr || (pixels == nullptr && !empty)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, load_pixels_slot,
+                    "load_pixels needs an image output, and pixels unless the image is empty");
+    }
+    if (!empty && row_bytes < static_cast<std::uint64_t>(width) * 4U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, load_pixels_slot, "a row holds at least width * 4 bytes");
+    }
+    // The rows end within the address space: row_bytes * height bytes.
+    const std::uint64_t address_limit = static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max());
+    if (row_bytes > address_limit || (height != 0U && row_bytes > address_limit / height)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, load_pixels_slot, "the pixel rows exceed the address space");
+    }
+    const gf_status entered = registry().enter_ui(load_pixels_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const std::size_t byte_count = static_cast<std::size_t>(row_bytes) * height;
+    const std::span<const std::byte> bytes(reinterpret_cast<const std::byte*>(pixels), empty ? 0U : byte_count);
+    const ImageLoadResult loaded = engine().resources().load_bgra32_premultiplied(width, height, row_bytes, bytes);
+    if (!loaded) {
+        return fail(image_failure(loaded.error), load_pixels_slot, image_resource_error_name(loaded.error));
+    }
+    *image = loaded.image.value;
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL themes_load_pixels(const std::uint8_t* pixels, std::uint32_t width, std::uint32_t height,
                                      std::uint64_t row_bytes, std::uint64_t* image) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(load_pixels_slot.table_id, load_pixels_slot.slot_index);
-        const bool empty = width == 0U || height == 0U;
-        if (image == nullptr || (pixels == nullptr && !empty)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, load_pixels_slot,
-                        "load_pixels needs an image output, and pixels unless the image is empty");
-        }
-        if (!empty && row_bytes < static_cast<std::uint64_t>(width) * 4U) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, load_pixels_slot, "a row holds at least width * 4 bytes");
-        }
-        // The rows end within the address space: row_bytes * height bytes.
-        const std::uint64_t address_limit = static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max());
-        if (row_bytes > address_limit || (height != 0U && row_bytes > address_limit / height)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, load_pixels_slot, "the pixel rows exceed the address space");
-        }
-        const gf_status entered = registry().enter_ui(load_pixels_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const std::size_t byte_count = static_cast<std::size_t>(row_bytes) * height;
-        const std::span<const std::byte> bytes(reinterpret_cast<const std::byte*>(pixels), empty ? 0U : byte_count);
-        const ImageLoadResult loaded = engine().resources().load_bgra32_premultiplied(width, height, row_bytes, bytes);
-        if (!loaded) {
-            return fail(image_failure(loaded.error), load_pixels_slot, image_resource_error_name(loaded.error));
-        }
-        *image = loaded.image.value;
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(load_pixels_slot);
+    return call_slot(load_pixels_slot, themes_load_pixels_body, pixels, width, height, row_bytes, image);
+}
+
+gf_status themes_remove_image_body(std::uint64_t image) {
+    const gf_status entered = registry().enter_ui(remove_image_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
     }
+    if (!engine().resources().remove_image(ImageId{image})) {
+        return fail(GF_STATUS_NOT_FOUND, remove_image_slot, "the image registry does not hold that image");
+    }
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL themes_remove_image(std::uint64_t image) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(remove_image_slot.table_id, remove_image_slot.slot_index);
-        const gf_status entered = registry().enter_ui(remove_image_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        if (!engine().resources().remove_image(ImageId{image})) {
-            return fail(GF_STATUS_NOT_FOUND, remove_image_slot, "the image registry does not hold that image");
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(remove_image_slot);
+    return call_slot(remove_image_slot, themes_remove_image_body, image);
+}
+
+gf_status themes_set_user_theme_policy_body(gf_user_theme_policy policy) {
+    UserThemePolicy chosen{UserThemePolicy::layered};
+    switch (policy) {
+    case GF_USER_THEME_POLICY_LAYERED:
+        chosen = UserThemePolicy::layered;
+        break;
+    case GF_USER_THEME_POLICY_REPLACES_PROGRAM_SHEET:
+        chosen = UserThemePolicy::replaces_program_sheet;
+        break;
+    case GF_USER_THEME_POLICY_REFUSED:
+        chosen = UserThemePolicy::refused;
+        break;
+    default:
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_user_theme_policy_slot, "the user theme policy is unknown");
     }
+    const gf_status entered = registry().enter_ui(set_user_theme_policy_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    ApplicationResources& resources = engine().resources();
+    if (resources.window_count() != 0U) {
+        return fail(GF_STATUS_INVALID_STATE, set_user_theme_policy_slot,
+                    "the user theme policy is chosen before the first window");
+    }
+    resources.set_user_theme_policy(chosen);
+    return GF_STATUS_OK;
 }
 
 gf_status GF_CALL themes_set_user_theme_policy(gf_user_theme_policy policy) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_user_theme_policy_slot.table_id,
-                                            set_user_theme_policy_slot.slot_index);
-        UserThemePolicy chosen{UserThemePolicy::layered};
-        switch (policy) {
-        case GF_USER_THEME_POLICY_LAYERED:
-            chosen = UserThemePolicy::layered;
-            break;
-        case GF_USER_THEME_POLICY_REPLACES_PROGRAM_SHEET:
-            chosen = UserThemePolicy::replaces_program_sheet;
-            break;
-        case GF_USER_THEME_POLICY_REFUSED:
-            chosen = UserThemePolicy::refused;
-            break;
-        default:
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_user_theme_policy_slot, "the user theme policy is unknown");
-        }
-        const gf_status entered = registry().enter_ui(set_user_theme_policy_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        ApplicationResources& resources = engine().resources();
-        if (resources.window_count() != 0U) {
-            return fail(GF_STATUS_INVALID_STATE, set_user_theme_policy_slot,
-                        "the user theme policy is chosen before the first window");
-        }
-        resources.set_user_theme_policy(chosen);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(set_user_theme_policy_slot);
-    }
+    return call_slot(set_user_theme_policy_slot, themes_set_user_theme_policy_body, policy);
 }
 
 // The C value of a settled request's outcome.
@@ -672,29 +657,28 @@ gf_theme_request_outcome request_outcome_code(ThemeRequestOutcome outcome) noexc
     return GF_THEME_REQUEST_NONE;
 }
 
-gf_status GF_CALL themes_theme_request(gf_theme_request_outcome* outcome) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(theme_request_slot.table_id, theme_request_slot.slot_index);
-        if (outcome == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, theme_request_slot, "theme_request needs an outcome output");
-        }
-        const gf_status entered = registry().enter_ui(theme_request_slot, true);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const ApplicationResources& resources = engine().resources();
-        const ThemeRequestReport* const report = resources.theme_request_report();
-        if (resources.theme_request_held()) {
-            *outcome = GF_THEME_REQUEST_PENDING;
-        } else if (report == nullptr) {
-            *outcome = GF_THEME_REQUEST_NONE;
-        } else {
-            *outcome = request_outcome_code((*report).outcome);
-        }
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(theme_request_slot);
+gf_status themes_theme_request_body(gf_theme_request_outcome* outcome) {
+    if (outcome == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, theme_request_slot, "theme_request needs an outcome output");
     }
+    const gf_status entered = registry().enter_ui(theme_request_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const ApplicationResources& resources = engine().resources();
+    const ThemeRequestReport* const report = resources.theme_request_report();
+    if (resources.theme_request_held()) {
+        *outcome = GF_THEME_REQUEST_PENDING;
+    } else if (report == nullptr) {
+        *outcome = GF_THEME_REQUEST_NONE;
+    } else {
+        *outcome = request_outcome_code((*report).outcome);
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL themes_theme_request(gf_theme_request_outcome* outcome) noexcept {
+    return call_slot(theme_request_slot, themes_theme_request_body, outcome);
 }
 
 constexpr gf_themes_table table{

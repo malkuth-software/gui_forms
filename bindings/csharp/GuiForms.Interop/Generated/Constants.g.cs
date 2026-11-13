@@ -313,6 +313,7 @@ public static class Constants
     public const uint GF_SHADOW_FRAME_KIND_LAYOUT_PASS = 4u;
     public const uint GF_SHADOW_FRAME_KIND_PAINT_PASS = 5u;
     public const uint GF_SHADOW_FRAME_KIND_POSTED_CALLBACK = 6u;
+    public const uint GF_SHADOW_FRAME_KIND_GATE = 7u;
     public const uint GF_SHADOW_FRAME_SUBJECT_TRUNCATED = 1u;
     public const uint GF_SHADOW_FRAME_NAME_TRUNCATED = 2u;
     public const uint GF_SHADOW_FRAME_SUBJECT_CAPACITY = 48u;

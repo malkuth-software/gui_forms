@@ -11,7 +11,6 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 
-#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <array>
 #include <cstddef>
@@ -196,48 +195,46 @@ gf_status owner_services(gf_object owner, SlotIdentity slot, HostServices*& serv
     return GF_STATUS_OK;
 }
 
-gf_status GF_CALL host_capabilities(gf_host_capabilities* record) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(capabilities_slot.table_id, capabilities_slot.slot_index);
-        if (record == nullptr || (*record).struct_size < host_capabilities_size_1_0) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, capabilities_slot,
-                        "the output record is null or smaller than its 1.0 size");
-        }
-        const HostCapabilities report = Application::capabilities();
-        gf_host_capabilities complete{};
-        complete.struct_size = sizeof(gf_host_capabilities);
-        complete.protocol_version = report.protocol_version;
-        complete.available = abi_capabilities(report.available);
-        complete.transient_surfaces = abi_transient_surfaces(report.available);
-        complete.window_corner_shapes = abi_window_corner_shapes(report);
-        complete.window_band_maximum_width = static_cast<std::uint32_t>(maximum_band_width);
-#if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
-        // A capability of this library, not of the host: its Windows build
-        // has the paint endpoint table.
-        complete.available = complete.available | GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT;
-#endif
-        // The fields that fit the caller's record: a 1.0 record ends before
-        // transient_surfaces, an early 1.1 record before window_corner_shapes.
-        const std::size_t declared = (*record).struct_size;
-        const std::size_t writable = declared < sizeof(gf_host_capabilities) ? declared : sizeof(gf_host_capabilities);
-        const std::size_t skipped = sizeof(std::uint32_t);
-        std::memcpy(reinterpret_cast<unsigned char*>(record) + skipped,
-                    reinterpret_cast<const unsigned char*>(&complete) + skipped, writable - skipped);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(capabilities_slot);
+gf_status host_capabilities_body(gf_host_capabilities* record) {
+    if (record == nullptr || (*record).struct_size < host_capabilities_size_1_0) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, capabilities_slot,
+                    "the output record is null or smaller than its 1.0 size");
     }
+    const HostCapabilities report = Application::capabilities();
+    gf_host_capabilities complete{};
+    complete.struct_size = sizeof(gf_host_capabilities);
+    complete.protocol_version = report.protocol_version;
+    complete.available = abi_capabilities(report.available);
+    complete.transient_surfaces = abi_transient_surfaces(report.available);
+    complete.window_corner_shapes = abi_window_corner_shapes(report);
+    complete.window_band_maximum_width = static_cast<std::uint32_t>(maximum_band_width);
+#if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
+    // A capability of this library, not of the host: its Windows build
+    // has the paint endpoint table.
+    complete.available = complete.available | GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT;
+#endif
+    // The fields that fit the caller's record: a 1.0 record ends before
+    // transient_surfaces, an early 1.1 record before window_corner_shapes.
+    const std::size_t declared = (*record).struct_size;
+    const std::size_t writable = declared < sizeof(gf_host_capabilities) ? declared : sizeof(gf_host_capabilities);
+    const std::size_t skipped = sizeof(std::uint32_t);
+    std::memcpy(reinterpret_cast<unsigned char*>(record) + skipped,
+                reinterpret_cast<const unsigned char*>(&complete) + skipped, writable - skipped);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL host_capabilities(gf_host_capabilities* record) noexcept {
+    return call_slot(capabilities_slot, host_capabilities_body, record);
+}
+
+gf_status host_platform_name_body(char* buffer, std::uint64_t capacity, std::uint64_t* required) {
+    const HostCapabilities report = Application::capabilities();
+    const gf_status written = write_text(report.platform, buffer, capacity, required, platform_name_slot);
+    return written;
 }
 
 gf_status GF_CALL host_platform_name(char* buffer, std::uint64_t capacity, std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(platform_name_slot.table_id, platform_name_slot.slot_index);
-        const HostCapabilities report = Application::capabilities();
-        const gf_status written = write_text(report.platform, buffer, capacity, required, platform_name_slot);
-        return written;
-    } catch (...) {
-        return fail_with_current_exception(platform_name_slot);
-    }
+    return call_slot(platform_name_slot, host_platform_name_body, buffer, capacity, required);
 }
 
 constexpr std::array<CursorKind, 11> cursor_kinds{
@@ -255,72 +252,69 @@ constexpr std::array<CursorKind, 11> cursor_kinds{
 };
 static_assert(cursor_kinds.size() == GF_POINTER_CURSOR_HELP + 1U);
 
-gf_status GF_CALL host_set_cursor(gf_pointer_cursor cursor) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_cursor_slot.table_id, set_cursor_slot.slot_index);
-        if (cursor >= cursor_kinds.size()) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, set_cursor_slot, "unknown cursor");
-        }
-        HostServices* services = nullptr;
-        const gf_status found = running_services(set_cursor_slot, services);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        const HostServiceStatus status = (*services).set_cursor(cursor_kinds[cursor]);
-        return service_status(status, set_cursor_slot);
-    } catch (...) {
-        return fail_with_current_exception(set_cursor_slot);
+gf_status host_set_cursor_body(gf_pointer_cursor cursor) {
+    if (cursor >= cursor_kinds.size()) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_cursor_slot, "unknown cursor");
     }
+    HostServices* services = nullptr;
+    const gf_status found = running_services(set_cursor_slot, services);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const HostServiceStatus status = (*services).set_cursor(cursor_kinds[cursor]);
+    return service_status(status, set_cursor_slot);
+}
+
+gf_status GF_CALL host_set_cursor(gf_pointer_cursor cursor) noexcept {
+    return call_slot(set_cursor_slot, host_set_cursor_body, cursor);
+}
+
+gf_status host_read_clipboard_text_body(char* buffer, std::uint64_t capacity, std::uint64_t* required) {
+    if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, read_clipboard_text_slot,
+                    "a text output needs a size output, and a buffer unless its capacity is zero");
+    }
+    HostServices* services = nullptr;
+    const gf_status found = running_services(read_clipboard_text_slot, services);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const HostClipboardTextResult result = (*services).read_clipboard_text();
+    const gf_status status = service_status(result.status, read_clipboard_text_slot);
+    if (status != GF_STATUS_OK) {
+        return status;
+    }
+    if (!result.has_text) {
+        return fail(GF_STATUS_NOT_FOUND, read_clipboard_text_slot, "the clipboard holds no text");
+    }
+    const gf_status written = write_text(result.text_utf8, buffer, capacity, required, read_clipboard_text_slot);
+    return written;
 }
 
 gf_status GF_CALL host_read_clipboard_text(char* buffer, std::uint64_t capacity, std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(read_clipboard_text_slot.table_id, read_clipboard_text_slot.slot_index);
-        if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, read_clipboard_text_slot,
-                        "a text output needs a size output, and a buffer unless its capacity is zero");
-        }
-        HostServices* services = nullptr;
-        const gf_status found = running_services(read_clipboard_text_slot, services);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        const HostClipboardTextResult result = (*services).read_clipboard_text();
-        const gf_status status = service_status(result.status, read_clipboard_text_slot);
-        if (status != GF_STATUS_OK) {
-            return status;
-        }
-        if (!result.has_text) {
-            return fail(GF_STATUS_NOT_FOUND, read_clipboard_text_slot, "the clipboard holds no text");
-        }
-        const gf_status written = write_text(result.text_utf8, buffer, capacity, required, read_clipboard_text_slot);
-        return written;
-    } catch (...) {
-        return fail_with_current_exception(read_clipboard_text_slot);
+    return call_slot(read_clipboard_text_slot, host_read_clipboard_text_body, buffer, capacity, required);
+}
+
+gf_status host_write_clipboard_text_body(gf_utf8_view text) {
+    std::string_view checked;
+    const gf_status read = read_text(text, write_clipboard_text_slot, checked);
+    if (read != GF_STATUS_OK) {
+        return read;
     }
+    if (checked.size() > HostServices::maximum_clipboard_text_bytes) {
+        return fail(GF_STATUS_LIMIT_EXCEEDED, write_clipboard_text_slot, "clipboard text is at most 16 MiB");
+    }
+    HostServices* services = nullptr;
+    const gf_status found = running_services(write_clipboard_text_slot, services);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const HostServiceStatus status = (*services).write_clipboard_text(checked);
+    return service_status(status, write_clipboard_text_slot);
 }
 
 gf_status GF_CALL host_write_clipboard_text(gf_utf8_view text) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(write_clipboard_text_slot.table_id, write_clipboard_text_slot.slot_index);
-        std::string_view checked;
-        const gf_status read = read_text(text, write_clipboard_text_slot, checked);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        if (checked.size() > HostServices::maximum_clipboard_text_bytes) {
-            return fail(GF_STATUS_LIMIT_EXCEEDED, write_clipboard_text_slot, "clipboard text is at most 16 MiB");
-        }
-        HostServices* services = nullptr;
-        const gf_status found = running_services(write_clipboard_text_slot, services);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        const HostServiceStatus status = (*services).write_clipboard_text(checked);
-        return service_status(status, write_clipboard_text_slot);
-    } catch (...) {
-        return fail_with_current_exception(write_clipboard_text_slot);
-    }
+    return call_slot(write_clipboard_text_slot, host_write_clipboard_text_body, text);
 }
 
 // The flags each kind reads.
@@ -550,78 +544,77 @@ gf_dialog_outcome abi_outcome(HostDialogOutcome outcome) noexcept {
     return result;
 }
 
-gf_status GF_CALL host_show_dialog(const gf_dialog_request* request, gf_dialog_result* result) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(show_dialog_slot.table_id, show_dialog_slot.slot_index);
-        const gf_status checked = check_record(result, show_dialog_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        HostDialogRequest made;
-        const gf_status read = read_dialog_request(request, show_dialog_slot, made);
-        if (read != GF_STATUS_OK) {
-            return read;
-        }
-        const gf_object owner = (*request).struct_size >= dialog_request_size_1_2 ? (*request).owner : 0U;
-        HostServices* services = nullptr;
-        const gf_status found = owner_services(owner, show_dialog_slot, services);
-        if (found != GF_STATUS_OK) {
-            return found;
-        }
-        made.request_id = engine().next_dialog_request();
-        // Modal: the window's events and posted callbacks run until it closes.
-        const HostDialogResult shown = (*services).show_dialog(made);
-        const gf_status status = service_status(shown.status, show_dialog_slot);
-        if (status != GF_STATUS_OK) {
-            return status;
-        }
-        gf_dialog_result complete{};
-        complete.struct_size = sizeof(gf_dialog_result);
-        complete.chosen_filter = GF_DIALOG_NO_FILTER;
-        std::vector<std::string> paths;
-        if (std::holds_alternative<HostMessageDialogResult>(shown.payload)) {
-            const HostMessageDialogResult& message = std::get<HostMessageDialogResult>(shown.payload);
-            complete.outcome = abi_outcome(message.outcome);
-            complete.choice = abi_choice(message.choice);
-        } else if (std::holds_alternative<HostPathDialogResult>(shown.payload)) {
-            const HostPathDialogResult& chosen = std::get<HostPathDialogResult>(shown.payload);
-            complete.outcome = abi_outcome(chosen.outcome);
-            paths = chosen.paths;
-            complete.path_count = paths.size();
-            if (chosen.chosen_filter.has_value()) {
-                complete.chosen_filter = *chosen.chosen_filter;
-            }
-        } else {
-            const HostColorDialogResult& colour = std::get<HostColorDialogResult>(shown.payload);
-            complete.outcome = abi_outcome(colour.outcome);
-            complete.rgba = colour.rgba;
-        }
-        engine().dialog_paths() = std::move(paths);
-        write_record(complete, result);
-        return GF_STATUS_OK;
-    } catch (...) {
-        return fail_with_current_exception(show_dialog_slot);
+gf_status host_show_dialog_body(const gf_dialog_request* request, gf_dialog_result* result) {
+    const gf_status checked = check_record(result, show_dialog_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
     }
+    HostDialogRequest made;
+    const gf_status read = read_dialog_request(request, show_dialog_slot, made);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    const gf_object owner = (*request).struct_size >= dialog_request_size_1_2 ? (*request).owner : 0U;
+    HostServices* services = nullptr;
+    const gf_status found = owner_services(owner, show_dialog_slot, services);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    made.request_id = engine().next_dialog_request();
+    // Modal: the window's events and posted callbacks run until it closes.
+    const HostDialogResult shown = (*services).show_dialog(made);
+    const gf_status status = service_status(shown.status, show_dialog_slot);
+    if (status != GF_STATUS_OK) {
+        return status;
+    }
+    gf_dialog_result complete{};
+    complete.struct_size = sizeof(gf_dialog_result);
+    complete.chosen_filter = GF_DIALOG_NO_FILTER;
+    std::vector<std::string> paths;
+    if (std::holds_alternative<HostMessageDialogResult>(shown.payload)) {
+        const HostMessageDialogResult& message = std::get<HostMessageDialogResult>(shown.payload);
+        complete.outcome = abi_outcome(message.outcome);
+        complete.choice = abi_choice(message.choice);
+    } else if (std::holds_alternative<HostPathDialogResult>(shown.payload)) {
+        const HostPathDialogResult& chosen = std::get<HostPathDialogResult>(shown.payload);
+        complete.outcome = abi_outcome(chosen.outcome);
+        paths = chosen.paths;
+        complete.path_count = paths.size();
+        if (chosen.chosen_filter.has_value()) {
+            complete.chosen_filter = *chosen.chosen_filter;
+        }
+    } else {
+        const HostColorDialogResult& colour = std::get<HostColorDialogResult>(shown.payload);
+        complete.outcome = abi_outcome(colour.outcome);
+        complete.rgba = colour.rgba;
+    }
+    engine().dialog_paths() = std::move(paths);
+    write_record(complete, result);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL host_show_dialog(const gf_dialog_request* request, gf_dialog_result* result) noexcept {
+    return call_slot(show_dialog_slot, host_show_dialog_body, request, result);
+}
+
+gf_status host_dialog_path_at_body(std::uint64_t index, char* buffer, std::uint64_t capacity,
+                                   std::uint64_t* required) {
+    const gf_status entered = registry().enter_ui(dialog_path_at_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const std::vector<std::string>& paths = engine().dialog_paths();
+    if (index >= paths.size()) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, dialog_path_at_slot, "the last dialog chose no path at that index");
+    }
+    const gf_status written =
+        write_text(paths[static_cast<std::size_t>(index)], buffer, capacity, required, dialog_path_at_slot);
+    return written;
 }
 
 gf_status GF_CALL host_dialog_path_at(std::uint64_t index, char* buffer, std::uint64_t capacity,
                                       std::uint64_t* required) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(dialog_path_at_slot.table_id, dialog_path_at_slot.slot_index);
-        const gf_status entered = registry().enter_ui(dialog_path_at_slot, false);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const std::vector<std::string>& paths = engine().dialog_paths();
-        if (index >= paths.size()) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, dialog_path_at_slot, "the last dialog chose no path at that index");
-        }
-        const gf_status written =
-            write_text(paths[static_cast<std::size_t>(index)], buffer, capacity, required, dialog_path_at_slot);
-        return written;
-    } catch (...) {
-        return fail_with_current_exception(dialog_path_at_slot);
-    }
+    return call_slot(dialog_path_at_slot, host_dialog_path_at_body, index, buffer, capacity, required);
 }
 
 constexpr gf_host_table table{

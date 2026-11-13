@@ -2,6 +2,8 @@
 
 #include "failure_snapshot.hpp"
 
+#include "../diagnostics/shadow_frames/shadow_frame_records.hpp"
+
 #include <algorithm>
 #include <atomic>
 #include <cstddef>
@@ -46,22 +48,33 @@ std::uint32_t copy_text(std::string_view text, std::array<char, Capacity>& field
     return static_cast<std::uint32_t>(size);
 }
 
-} // namespace
-
-void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message) noexcept {
-    FailureSnapshot& snapshot = thread_snapshot;
-    // The frames first: nothing below opens a frame, but the copy must see
-    // the unwind mark exactly as the catch left it.
-    ShadowStackState state{};
-    const std::size_t recorded = copy_failure_shadow_frames(std::span<ShadowFrame>(snapshot.frames), state);
+// Fills everything but the frames, which the caller has written.
+void fill_snapshot(FailureSnapshot& snapshot, const FailureBoundary& boundary, const std::string_view message,
+                   const std::size_t recorded, const std::uint32_t depth) noexcept {
     snapshot.status = boundary.status;
     snapshot.interface_id = boundary.interface_id;
     snapshot.function_index = boundary.function_index;
     ++snapshot.sequence;
     snapshot.frame_count = static_cast<std::uint32_t>(std::min<std::size_t>(recorded, shadow_stack_capacity));
-    snapshot.depth = state.depth;
+    snapshot.depth = depth;
     snapshot.site_size = copy_text(boundary.site, snapshot.site);
     snapshot.message_size = copy_text(message, snapshot.message);
+}
+
+} // namespace
+
+void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message,
+                             const stxlib::ShadowReference shadow) noexcept {
+    FailureSnapshot& snapshot = thread_snapshot;
+    const RecordFrames read = copy_record_frames(shadow, std::span<ShadowFrame>(snapshot.frames));
+    fill_snapshot(snapshot, boundary, message, read.recorded, read.depth);
+}
+
+void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message) noexcept {
+    FailureSnapshot& snapshot = thread_snapshot;
+    ShadowStackState state{};
+    const std::size_t recorded = copy_failure_shadow_frames(std::span<ShadowFrame>(snapshot.frames), state);
+    fill_snapshot(snapshot, boundary, message, recorded, state.depth);
 }
 
 void record_failure_snapshot(const FailureBoundary& boundary, const std::exception_ptr failure) noexcept {
