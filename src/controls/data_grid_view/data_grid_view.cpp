@@ -22,6 +22,7 @@
 #include <array>
 #include <charconv>
 #include <cmath>
+#include <functional>
 #include <stdexcept>
 #include <system_error>
 #include <unordered_set>
@@ -29,6 +30,13 @@
 
 namespace gui_forms {
 namespace {
+
+// Restores a flag when the scope ends, thrown out of or not.
+struct RestoreFlag final {
+    bool* flag{};
+    bool saved{};
+    ~RestoreFlag() { *flag = saved; }
+};
 
 // Selected cells are reported by row position, then column.
 struct CellAddressOrder final {
@@ -935,6 +943,9 @@ void DataGridView::set_columns(std::vector<DataGridViewColumn> columns) {
         }
     }
     reset_row_state();
+    std::vector<std::string> former_names{};
+    former_names.reserve(columns_.size());
+    for (const DataGridViewColumn& former : columns_) former_names.push_back(former.name);
     columns_ = std::move(columns);
     reset_display_order();
     mark_all_rows(*this);
@@ -947,6 +958,18 @@ void DataGridView::set_columns(std::vector<DataGridViewColumn> columns) {
     resizing_column_.reset();
     end_column_order();
     structure_changed();
+    // A handler that changes the columns ends the events for these.
+    const std::uint64_t revision = structure_revision_;
+    for (std::size_t index = former_names.size(); index > 0U; --index) {
+        const DataGridViewColumnChangedEvent removed{index - 1U, former_names[index - 1U]};
+        column_removed_.emit(removed);
+        if (!is_alive() || structure_revision_ != revision) return;
+    }
+    for (std::size_t index = 0U; index < columns_.size(); ++index) {
+        const DataGridViewColumnChangedEvent added{index, columns_[index].name};
+        column_added_.emit(added);
+        if (!is_alive() || structure_revision_ != revision) return;
+    }
 }
 
 void DataGridView::add_column(DataGridViewColumn column) {
@@ -962,6 +985,8 @@ void DataGridView::add_column(DataGridViewColumn column) {
     for (DataGridViewRow& row : row_elements(*this)) row.cells.resize(columns_.size());
     new_row_.cells.resize(columns_.size());
     structure_changed();
+    const DataGridViewColumnChangedEvent added{columns_.size() - 1U, columns_.back().name};
+    column_added_.emit(added);
 }
 
 void DataGridView::remove_column_at(std::size_t column) {
@@ -969,6 +994,7 @@ void DataGridView::remove_column_at(std::size_t column) {
     require_not_sorting();
     if (column >= columns_.size()) throw std::out_of_range("DataGridView column is past the end");
     reset_row_state();
+    const DataGridViewColumnChangedEvent removed{column, columns_[column].name};
     const std::ptrdiff_t offset = static_cast<std::ptrdiff_t>(column);
     columns_.erase(columns_.begin() + offset);
     remove_display_column(column);
@@ -981,6 +1007,7 @@ void DataGridView::remove_column_at(std::size_t column) {
     resizing_column_.reset();
     end_column_order();
     structure_changed();
+    column_removed_.emit(removed);
 }
 
 void DataGridView::insert_column(std::size_t column, DataGridViewColumn inserted) {
@@ -1010,6 +1037,8 @@ void DataGridView::insert_column(std::size_t column, DataGridViewColumn inserted
     resizing_column_.reset();
     end_column_order();
     structure_changed();
+    const DataGridViewColumnChangedEvent added{column, columns_[column].name};
+    column_added_.emit(added);
 }
 
 void DataGridView::set_column_header_text(std::size_t column, std::string text) {
@@ -1292,15 +1321,41 @@ void DataGridView::validate_row_text(const DataGridViewRow& row) const {
 void DataGridView::clear_rows() {
     require_mutable();
     require_not_sorting();
+    const std::size_t former = data_row_count();
     reset_row_state();
     detach_data_source();
     provider_.reset();
     virtual_order_.clear();
     window_source_.reset();
-    rows.clear();
+    {
+        const RestoreFlag restore{&quiet_row_edits_, quiet_row_edits_};
+        quiet_row_edits_ = true;
+        rows.clear();
+    }
     row_positions_.clear();
     row_source_ = DataGridViewRowSource::unbound;
     rows_changed();
+    static_cast<void>(raise_rows_removed(0U, former));
+}
+
+bool DataGridView::raise_rows_added(std::size_t position, std::size_t count) {
+    if (count == 0U) return is_alive();
+    const DataGridViewRowsChangedEvent added{DataGridViewRowPosition{position}, count};
+    rows_added_.emit(added);
+    return is_alive();
+}
+
+bool DataGridView::raise_rows_removed(std::size_t position, std::size_t count) {
+    if (count == 0U) return is_alive();
+    const DataGridViewRowsChangedEvent removed{DataGridViewRowPosition{position}, count};
+    rows_removed_.emit(removed);
+    return is_alive();
+}
+
+bool DataGridView::raise_rows_reset(std::size_t former) {
+    if (!raise_rows_removed(0U, former)) return false;
+    const bool alive = raise_rows_added(0U, data_row_count());
+    return alive;
 }
 
 void DataGridView::set_row_count(std::size_t count) {
@@ -1340,9 +1395,14 @@ void DataGridView::set_virtual_rows(std::shared_ptr<DataGridViewCellValueProvide
     require_not_sorting();
     if (!provider) throw std::invalid_argument("DataGridView virtual rows require a provider");
     validate_virtual_order(order);
+    const std::size_t former = data_row_count();
     reset_row_state();
     detach_data_source();
-    rows.clear();
+    {
+        const RestoreFlag restore{&quiet_row_edits_, quiet_row_edits_};
+        quiet_row_edits_ = true;
+        rows.clear();
+    }
     row_positions_.clear();
     provider_ = std::move(provider);
     window_source_.reset();
@@ -1354,6 +1414,7 @@ void DataGridView::set_virtual_rows(std::shared_ptr<DataGridViewCellValueProvide
     // to window falls back to automatic.
     if (row_order_policy.read() == DataGridViewRowOrderPolicy::window) row_order_policy = DataGridViewRowOrderPolicy::automatic;
     rows_changed();
+    static_cast<void>(raise_rows_reset(former));
 }
 
 void DataGridView::set_virtual_rows(std::shared_ptr<DataGridViewCellValueProvider> provider,
@@ -1362,9 +1423,14 @@ void DataGridView::set_virtual_rows(std::shared_ptr<DataGridViewCellValueProvide
     require_not_sorting();
     if (!provider) throw std::invalid_argument("DataGridView virtual rows require a provider");
     if (!source) throw std::invalid_argument("DataGridView virtual rows require a row window source");
+    const std::size_t former = data_row_count();
     reset_row_state();
     detach_data_source();
-    rows.clear();
+    {
+        const RestoreFlag restore{&quiet_row_edits_, quiet_row_edits_};
+        quiet_row_edits_ = true;
+        rows.clear();
+    }
     row_positions_.clear();
     provider_ = std::move(provider);
     window_source_ = std::move(source);
@@ -1376,12 +1442,14 @@ void DataGridView::set_virtual_rows(std::shared_ptr<DataGridViewCellValueProvide
     rows_changed();
     // Few rows, or a policy pinned to edit, take the whole order now.
     update_row_order_mode(DataGridViewRowOrderSwitchReason::source);
+    static_cast<void>(raise_rows_reset(former));
 }
 
 void DataGridView::set_virtual_row_order(std::vector<DataGridViewRowId> order) {
     require_mutable();
     require_virtual_rows("DataGridView row order is set only on virtual rows");
     validate_virtual_order(order);
+    const std::size_t former_count = data_row_count();
     // The current row's position in the old order, for the case that it is
     // gone from the new one.
     const std::optional<std::size_t> former =
@@ -1405,6 +1473,7 @@ void DataGridView::set_virtual_row_order(std::vector<DataGridViewRowId> order) {
     drop_missing_rows(former);
     rows_changed();
     update_row_order_mode(DataGridViewRowOrderSwitchReason::source);
+    static_cast<void>(raise_rows_reset(former_count));
 }
 
 std::optional<std::string> DataGridView::held_top_row() const {
@@ -1433,6 +1502,7 @@ void DataGridView::insert_virtual_rows(DataGridViewRowPosition position, std::ve
     // moves no selection, which is kept by ID.
     virtual_order_.insert(position.value, ids);
     after_reported_change(top, ids.size());
+    static_cast<void>(raise_rows_added(position.value, ids.size()));
 }
 
 void DataGridView::remove_virtual_rows(std::vector<DataGridViewRowId> ids) {
@@ -1455,6 +1525,15 @@ void DataGridView::remove_virtual_rows(std::vector<DataGridViewRowId> ids) {
         if (current_ && row.value == (*current_).row_id) current_removed = true;
     }
     if (editing_ && current_removed) cancel_edit();
+    // The removed rows' positions the order holds, last first, so that each
+    // rows_removed names a position in the rows the ones before it left.
+    std::vector<std::size_t> removed_positions{};
+    removed_positions.reserve(ids.size());
+    for (const DataGridViewRowId& row : ids) {
+        const std::optional<std::size_t> held = virtual_order_.held_position(row.value);
+        if (held) removed_positions.push_back(*held);
+    }
+    std::sort(removed_positions.begin(), removed_positions.end(), std::greater<std::size_t>{});
     virtual_order_.remove(ids);
     // Only the removed rows leave the selection: the cost follows the change,
     // not the selection's size.
@@ -1484,6 +1563,9 @@ void DataGridView::remove_virtual_rows(std::vector<DataGridViewRowId> ids) {
     }
     publish_selection(before);
     after_reported_change(top, ids.size());
+    for (const std::size_t position : removed_positions) {
+        if (!raise_rows_removed(position, 1U)) return;
+    }
 }
 
 void DataGridView::move_virtual_row(const DataGridViewRowId& row, DataGridViewRowPosition position) {
@@ -1615,16 +1697,22 @@ std::shared_ptr<BindingSource> DataGridView::read_view(const decltype(data_sourc
 void DataGridView::write_view(const decltype(data_source)&, std::shared_ptr<BindingSource> source) {
     require_mutable();
     require_not_sorting();
+    const std::size_t former = data_row_count();
     reset_row_state();
     detach_data_source();
     provider_.reset();
     virtual_order_.clear();
     window_source_.reset();
-    rows.clear();
+    {
+        const RestoreFlag restore{&quiet_row_edits_, quiet_row_edits_};
+        quiet_row_edits_ = true;
+        rows.clear();
+    }
     row_positions_.clear();
     if (!source) {
         row_source_ = DataGridViewRowSource::unbound;
         rows_changed();
+        static_cast<void>(raise_rows_removed(0U, former));
         return;
     }
     // Columns first, while no rows are bound.
@@ -1638,6 +1726,8 @@ void DataGridView::write_view(const decltype(data_source)&, std::shared_ptr<Bind
         *this, Delegate<std::ptrdiff_t>::bind<DataGridView, &DataGridView::on_source_position_changed>(*this));
     rows_changed();
     on_source_position_changed((*data_source_).position());
+    if (!is_alive()) return;
+    static_cast<void>(raise_rows_reset(former));
 }
 
 void DataGridView::generate_columns(const BindingSchema& schema) {
@@ -1692,6 +1782,8 @@ void DataGridView::on_source_list_changed(const BindingListChange& change) {
         values_changed();
         return;
     }
+    // The rows the index held before a reset, for its rows_removed.
+    const std::size_t indexed_before = bound_index_ ? (*bound_index_).size() : 0U;
     if (!bound_index_) rebuild_row_index();
     // The source has changed already; the index has not, so it still holds
     // the current row's position before this change. The changes of one
@@ -1728,6 +1820,13 @@ void DataGridView::on_source_list_changed(const BindingListChange& change) {
         drop_missing_rows(held);
     }
     rows_changed();
+    if (added && change.index >= 0) {
+        static_cast<void>(raise_rows_added(static_cast<std::size_t>(change.index), 1U));
+    } else if (removed && change.index >= 0) {
+        static_cast<void>(raise_rows_removed(static_cast<std::size_t>(change.index), 1U));
+    } else if (reset) {
+        static_cast<void>(raise_rows_reset(indexed_before));
+    }
 }
 
 void DataGridView::on_source_position_changed(std::ptrdiff_t position) {
@@ -3331,6 +3430,9 @@ bool DataGridView::add_new_row() {
     std::vector<BindingValue> values = std::move(new_row_.cells);
     values.resize(columns_.size());
     const DataGridViewRowPosition position{data_row_count()};
+    // Whether this function raises the added row's rows_added (unbound and
+    // edit-mode virtual rows).
+    bool raised_added = false;
     if (row_source_ == DataGridViewRowSource::binding_source) {
         // The row takes the new row's ID and its values, field by field, in
         // the source's column order. The built-in table grows a field it
@@ -3382,6 +3484,7 @@ bool DataGridView::add_new_row() {
             const std::vector<DataGridViewRowId> inserted{*given};
             virtual_order_.insert(position.value, inserted);
             after_reported_change(top, 1U);
+            raised_added = true;
         }
     } else {
         DataGridViewRow row{};
@@ -3392,11 +3495,15 @@ bool DataGridView::add_new_row() {
         // the insertion's renewal, which would move them.
         new_row_.stable_id.value.clear();
         try {
+            // rows_added is raised below, once the new row is renewed.
+            const RestoreFlag restore{&quiet_row_edits_, quiet_row_edits_};
+            quiet_row_edits_ = true;
             rows.append(std::move(row));
         } catch (...) {
             new_row_.stable_id.value = row_id;
             throw;
         }
+        raised_added = true;
     }
     // A new row appears after the row the user added, which keeps the ID the
     // current cell and the selection hold.
@@ -3405,6 +3512,8 @@ bool DataGridView::add_new_row() {
     new_row_.cells.resize(columns_.size());
     added_row_ = row_id;
     rows_changed();
+    // A bound row's rows_added came with the source's notification.
+    if (raised_added && !raise_rows_added(position.value, 1U)) return false;
     const DataGridViewRowEvent added{DataGridViewRowId{row_id}, position};
     user_added_row_.emit(added);
     const bool present = is_alive() && find_row(row_id).has_value();

@@ -33,6 +33,7 @@ void DataGridView::prepare_edit(const decltype(rows)&, const CollectionEdit& edi
     for (const DataGridViewRow& row : incoming) validate_row_text(row);
     edit_takes_new_row_id_ = false;
     edit_former_current_.reset();
+    edit_former_count_ = rows.read().size();
     switch (edit.kind()) {
     case CollectionEditKind::assign:
         prepare_rows_assignment(incoming);
@@ -181,6 +182,23 @@ void DataGridView::written(const decltype(rows)&, const CollectionEdit& edit) {
         effects |= Dirty::measure;
     }
     invalidate(effects);
+    // The rows' events, unless a larger change raises its own.
+    if (quiet_row_edits_) return;
+    switch (edit.kind()) {
+    case CollectionEditKind::assign:
+        if (!raise_rows_removed(0U, edit_former_count_)) return;
+        static_cast<void>(raise_rows_added(0U, edit.count()));
+        break;
+    case CollectionEditKind::insert:
+        static_cast<void>(raise_rows_added(edit.index(), edit.count()));
+        break;
+    case CollectionEditKind::erase:
+        static_cast<void>(raise_rows_removed(edit.index(), edit.count()));
+        break;
+    case CollectionEditKind::replace:
+    default:
+        break;
+    }
 }
 
 // -- the flush -----------------------------------------------------------------

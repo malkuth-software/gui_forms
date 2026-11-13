@@ -4138,6 +4138,88 @@ void column_headers_height_size_mode() {
     require((*grid).column_headers_height.read() == preferred, "auto_resize_column_headers_height fits the band once");
 }
 
+// Records rows_added or rows_removed as "+position:count" or "-position:count".
+struct RecordRowsChange final {
+    std::vector<std::string>* seen{};
+    char sign{};
+    void operator()(const DataGridViewRowsChangedEvent& event) const {
+        std::string entry(1U, sign);
+        entry += std::to_string(event.position.value);
+        entry += ":";
+        entry += std::to_string(event.count);
+        (*seen).push_back(std::move(entry));
+    }
+};
+
+// Records column_added or column_removed as "+index:name" or "-index:name".
+struct RecordColumnChange final {
+    std::vector<std::string>* seen{};
+    char sign{};
+    void operator()(const DataGridViewColumnChangedEvent& event) const {
+        std::string entry(1U, sign);
+        entry += std::to_string(event.column);
+        entry += ":";
+        entry += event.name;
+        (*seen).push_back(std::move(entry));
+    }
+};
+
+// Windows Forms' RowsAdded, RowsRemoved, ColumnAdded and ColumnRemoved.
+void rows_and_columns_events() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.change.events");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    std::vector<std::string> rows_seen;
+    std::vector<std::string> columns_seen;
+    SubscriptionToken added_token = (*grid).rows_added().subscribe(RecordRowsChange{&rows_seen, '+'});
+    SubscriptionToken removed_token = (*grid).rows_removed().subscribe(RecordRowsChange{&rows_seen, '-'});
+    SubscriptionToken column_added_token = (*grid).column_added().subscribe(RecordColumnChange{&columns_seen, '+'});
+    SubscriptionToken column_removed_token =
+        (*grid).column_removed().subscribe(RecordColumnChange{&columns_seen, '-'});
+
+    (*grid).rows.append({.stable_id = {"delta"}, .cells = {BindingValue{std::string("Delta")}}});
+    require(rows_seen == std::vector<std::string>{"+3:1"}, "an appended row raises rows_added at its position");
+    rows_seen.clear();
+    (*grid).rows.erase(1U, 1U);
+    require(rows_seen == std::vector<std::string>{"-1:1"}, "an erased row raises rows_removed at its former position");
+    rows_seen.clear();
+    (*grid).set_row_count(5U);
+    require(rows_seen == std::vector<std::string>{"+3:2"}, "growing the row count adds the rows at the end");
+    rows_seen.clear();
+    (*grid).allow_user_to_add_rows = true;
+    window.perform_layout();
+    require(rows_seen.empty(), "the new row's appearing raises no rows_added");
+    require(window.request_focus(grid), "the grid takes focus");
+    require((*grid).set_current_cell(cell_at(5U, 0U)), "the new row becomes current");
+    require(window.dispatch_text({"Echo"}) && key(window, PhysicalKey::tab), "typing into the new row and Tab");
+    require(rows_seen == std::vector<std::string>{"+5:1"}, "a row added through the new row raises rows_added");
+    rows_seen.clear();
+    (*grid).allow_user_to_add_rows = false;
+    const std::size_t before = (*grid).row_count();
+    (*grid).clear_rows();
+    require(rows_seen == std::vector<std::string>{"-0:" + std::to_string(before)},
+            "clear_rows raises rows_removed for every row");
+    rows_seen.clear();
+
+    (*grid).add_column({.name = "extra", .header_text = "Extra"});
+    require(columns_seen == std::vector<std::string>{"+4:extra"}, "add_column raises column_added");
+    columns_seen.clear();
+    (*grid).insert_column(0U, {.name = "first", .header_text = "First"});
+    require(columns_seen == std::vector<std::string>{"+0:first"}, "insert_column raises column_added at its index");
+    columns_seen.clear();
+    (*grid).remove_column_at(1U);
+    require(columns_seen == std::vector<std::string>{"-1:name"}, "remove_column_at raises column_removed");
+    columns_seen.clear();
+    (*grid).set_columns({{.name = "only", .header_text = "Only"}});
+    const std::vector<std::string> replaced{"-4:extra", "-3:tune", "-2:mode", "-1:active", "-0:first", "+0:only"};
+    require(columns_seen == replaced, "set_columns removes the former columns last first, then adds the new ones");
+    require(rows_seen.empty(), "column changes raise no row events");
+    added_token.disconnect();
+    removed_token.disconnect();
+    column_added_token.disconnect();
+    column_removed_token.disconnect();
+}
+
 // Windows Forms' AutoGenerateColumns.
 void auto_generated_columns() {
     std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.generated"));
@@ -4248,6 +4330,7 @@ int main() {
     row_paint_hooks();
     standard_tab();
     column_headers_height_size_mode();
+    rows_and_columns_events();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";

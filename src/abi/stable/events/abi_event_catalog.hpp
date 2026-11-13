@@ -1203,6 +1203,7 @@ void append_field(EventFields& fields, std::string_view name, const DataGridView
 void read_field(EventFields& fields, std::string_view name, DataGridViewCellToolTipTextNeededEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellValidatingEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewCellValidatingEvent& value);
+void append_field(EventFields& fields, std::string_view name, const DataGridViewColumnChangedEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewDataErrorEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewDataErrorEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewEditingControlShowingEvent& value);
@@ -1225,6 +1226,7 @@ void append_field(EventFields& fields, std::string_view name, const DataGridView
 void read_field(EventFields& fields, std::string_view name, DataGridViewRowPrePaintEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewRowValuesEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewRowValuesEvent& value);
+void append_field(EventFields& fields, std::string_view name, const DataGridViewRowsChangedEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewSortCompareEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewSortCompareEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DateTimeValue& value);
@@ -1781,6 +1783,13 @@ inline void read_field(EventFields& fields, std::string_view name, DataGridViewC
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const DataGridViewColumnChangedEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "column", value.column);
+    append_field(fields, "name", value.name);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const DataGridViewDataErrorEvent& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "row_id", value.row_id);
@@ -1971,6 +1980,13 @@ inline void read_field(EventFields& fields, std::string_view name, DataGridViewR
     read_field(fields, "row_id", value.row_id);
     read_field(fields, "row", value.row);
     read_field(fields, "values", value.values);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const DataGridViewRowsChangedEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "position", value.position);
+    append_field(fields, "count", value.count);
     fields.leave(prefix);
 }
 
@@ -4119,6 +4135,15 @@ inline SubscriptionToken connect_binding_context_collection_changed(Component& s
     return token;
 }
 
+inline SubscriptionToken connect_data_grid_view_column_added(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).column_added(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_list_view_column_click(Component& source, const EventSink& sink) {
     ListView* typed = dynamic_cast<ListView*>(&source);
     if (typed == nullptr) {
@@ -4152,6 +4177,15 @@ inline SubscriptionToken connect_tree_list_view_column_moved(Component& source, 
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).column_moved(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_column_removed(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).column_removed(), sink);
     return token;
 }
 
@@ -5897,6 +5931,24 @@ inline SubscriptionToken connect_data_grid_view_row_validating(Component& source
     return token;
 }
 
+inline SubscriptionToken connect_data_grid_view_rows_added(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).rows_added(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_rows_removed(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).rows_removed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_background_worker_run_worker_completed(Component& source, const EventSink& sink) {
     BackgroundWorker* typed = dynamic_cast<BackgroundWorker*>(&source);
     if (typed == nullptr) {
@@ -6694,7 +6746,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 353> event_connectors{{
+inline constexpr std::array<EventConnector, 357> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6770,10 +6822,12 @@ inline constexpr std::array<EventConnector, 353> event_connectors{{
     {"closed", "ThreadExceptionDialog", &connect_thread_exception_dialog_closed},
     {"closing", "ModalLayer", &connect_modal_layer_closing},
     {"collection_changed", "BindingContext", &connect_binding_context_collection_changed},
+    {"column_added", "DataGridView", &connect_data_grid_view_column_added},
     {"column_click", "ListView", &connect_list_view_column_click},
     {"column_display_index_changed", "DataGridView", &connect_data_grid_view_column_display_index_changed},
     {"column_header_click", "DataGridView", &connect_data_grid_view_column_header_click},
     {"column_moved", "TreeListView", &connect_tree_list_view_column_moved},
+    {"column_removed", "DataGridView", &connect_data_grid_view_column_removed},
     {"column_width_changed", "DataGridView", &connect_data_grid_view_column_width_changed},
     {"column_width_changed", "ListView", &connect_list_view_column_width_changed},
     {"column_width_changed", "TreeListView", &connect_tree_list_view_column_width_changed},
@@ -6964,6 +7018,8 @@ inline constexpr std::array<EventConnector, 353> event_connectors{{
     {"row_pre_paint", "DataGridView", &connect_data_grid_view_row_pre_paint},
     {"row_validated", "DataGridView", &connect_data_grid_view_row_validated},
     {"row_validating", "DataGridView", &connect_data_grid_view_row_validating},
+    {"rows_added", "DataGridView", &connect_data_grid_view_rows_added},
+    {"rows_removed", "DataGridView", &connect_data_grid_view_rows_removed},
     {"run_worker_completed", "BackgroundWorker", &connect_background_worker_run_worker_completed},
     {"scroll", "RangeControl", &connect_range_control_scroll},
     {"scroll", "ScrollableControl", &connect_scrollable_control_scroll},

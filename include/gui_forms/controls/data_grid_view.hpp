@@ -360,6 +360,27 @@ struct GUI_FORMS_API DataGridViewRowPostPaintEvent final {
 // the combo box cell's choice list.
 enum class DataGridViewEditingControlKind : std::uint8_t { text_box, choice_list };
 
+// Rows added to or removed from the rows before the new row (Windows Forms'
+// RowsAdded and RowsRemoved): the first position, in the rows as they stand
+// after an addition and as they stood before a removal, and how many. The
+// new row's appearing and going raise neither. A replacement of every row
+// (clear_rows, a new data source, virtual rows or order, an assignment to
+// `rows`, a bound reset) raises rows_removed for the former rows, then
+// rows_added for the new ones. Sorting and moving rows raise neither.
+struct GUI_FORMS_API DataGridViewRowsChangedEvent final {
+    DataGridViewRowPosition position{};
+    std::size_t count{};
+};
+
+// A column added or removed (Windows Forms' ColumnAdded and ColumnRemoved):
+// its index, after the addition or before the removal, and its name.
+// set_columns raises column_removed for each former column, last first,
+// then column_added for each new one in order.
+struct GUI_FORMS_API DataGridViewColumnChangedEvent final {
+    std::size_t column{};
+    std::string name{};
+};
+
 // Raised when an edit shows its control (Windows Forms'
 // EditingControlShowing), after cell_begin_edit: for a text edit with the
 // editor holding the cell's text and laid out over the cell, before it
@@ -965,6 +986,12 @@ public:
     // See DataGridViewRowPrePaintEvent and DataGridViewRowPostPaintEvent.
     [[nodiscard]] Event<DataGridViewRowPrePaintEvent&>& row_pre_paint() noexcept { return row_pre_paint_; }
     [[nodiscard]] Event<DataGridViewRowPostPaintEvent&>& row_post_paint() noexcept { return row_post_paint_; }
+    // See DataGridViewRowsChangedEvent and DataGridViewColumnChangedEvent.
+    // Raised after the change, the grid laid out again at the next flush.
+    [[nodiscard]] Event<const DataGridViewRowsChangedEvent&>& rows_added() noexcept { return rows_added_; }
+    [[nodiscard]] Event<const DataGridViewRowsChangedEvent&>& rows_removed() noexcept { return rows_removed_; }
+    [[nodiscard]] Event<const DataGridViewColumnChangedEvent&>& column_added() noexcept { return column_added_; }
+    [[nodiscard]] Event<const DataGridViewColumnChangedEvent&>& column_removed() noexcept { return column_removed_; }
     // See DataGridViewEditingControlShowingEvent.
     [[nodiscard]] Event<const DataGridViewEditingControlShowingEvent&>& editing_control_showing() noexcept {
         return editing_control_showing_;
@@ -1760,6 +1787,12 @@ private:
     // Whether Tab with these modifiers moves between cells (standard_tab
     // swaps Tab and Ctrl+Tab); otherwise the Tab is left to the window.
     [[nodiscard]] bool tabs_between_cells(Modifier modifiers) const;
+    // Raise rows_added and rows_removed (none for a count of 0). The reset
+    // raises rows_removed for `former` rows from 0, then rows_added for the
+    // rows now there. Each returns false when a handler disposed the grid.
+    [[nodiscard]] bool raise_rows_added(std::size_t position, std::size_t count);
+    [[nodiscard]] bool raise_rows_removed(std::size_t position, std::size_t count);
+    [[nodiscard]] bool raise_rows_reset(std::size_t former);
     [[nodiscard]] bool tab_key(bool backward);
 
     // Semantics.
@@ -1781,6 +1814,11 @@ private:
     RowPositions edit_index_{};
     std::optional<std::size_t> edit_former_current_{};
     bool edit_takes_new_row_id_{};
+    // The unbound rows before the edit, for an assignment's rows_removed;
+    // and set while the grid edits `rows` as part of a larger change that
+    // raises its own rows_added and rows_removed.
+    std::size_t edit_former_count_{};
+    bool quiet_row_edits_{};
     // The replaced rows taken at a settle; reused across layouts.
     std::vector<std::uint32_t> settled_rows_{};
     // The cell viewport at the last arrange: a change repaints everything.
@@ -2005,6 +2043,10 @@ private:
     Event<const DataGridViewEditingControlShowingEvent&> editing_control_showing_{};
     Event<DataGridViewRowPrePaintEvent&> row_pre_paint_{};
     Event<DataGridViewRowPostPaintEvent&> row_post_paint_{};
+    Event<const DataGridViewRowsChangedEvent&> rows_added_{};
+    Event<const DataGridViewRowsChangedEvent&> rows_removed_{};
+    Event<const DataGridViewColumnChangedEvent&> column_added_{};
+    Event<const DataGridViewColumnChangedEvent&> column_removed_{};
     // The shown rows' row_pre_paint answers for the paint in progress, in
     // row_span order (reused; prepare_row_paints refills it), and the rows'
     // overlay parts (reused likewise).

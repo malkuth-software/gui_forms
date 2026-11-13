@@ -2475,7 +2475,7 @@ std::vector<DataGridView::Column> DataGridView::realized_columns() const {
 namespace {
 
 // The events DataGridView adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 49> data_grid_view_interactions{{
+constexpr std::array<InteractionDeclaration, 53> data_grid_view_interactions{{
     {.name = "draw_item_content", .payload = "ItemContentPaint", .mutable_payload = true},
     {.name = "selection_changed", .payload = "", .mutable_payload = false},
     {.name = "current_cell_changed", .payload = "std::optional<DataGridViewCellAddress>", .mutable_payload = false},
@@ -2490,6 +2490,10 @@ constexpr std::array<InteractionDeclaration, 49> data_grid_view_interactions{{
     {.name = "editing_control_showing", .payload = "DataGridViewEditingControlShowingEvent", .mutable_payload = false},
     {.name = "row_pre_paint", .payload = "DataGridViewRowPrePaintEvent", .mutable_payload = true},
     {.name = "row_post_paint", .payload = "DataGridViewRowPostPaintEvent", .mutable_payload = true},
+    {.name = "rows_added", .payload = "DataGridViewRowsChangedEvent", .mutable_payload = false},
+    {.name = "rows_removed", .payload = "DataGridViewRowsChangedEvent", .mutable_payload = false},
+    {.name = "column_added", .payload = "DataGridViewColumnChangedEvent", .mutable_payload = false},
+    {.name = "column_removed", .payload = "DataGridViewColumnChangedEvent", .mutable_payload = false},
     {.name = "cell_mouse_enter", .payload = "DataGridViewCellMouseEvent", .mutable_payload = false},
     {.name = "cell_mouse_leave", .payload = "DataGridViewCellMouseEvent", .mutable_payload = false},
     {.name = "cell_mouse_move", .payload = "DataGridViewCellMouseEvent", .mutable_payload = false},
