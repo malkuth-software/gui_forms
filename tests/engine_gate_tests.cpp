@@ -73,6 +73,8 @@
 #include "gui_forms/window/window.hpp"
 
 #include "../src/core/engine/feature_samples/engine_feature_samples.hpp"
+#include "../src/core/engine/primitives/material/material_bake_policy.hpp"
+#include "../src/core/engine/primitives/material/material_primitive.hpp"
 #include "../src/core/image/png_writer.hpp"
 #include "../src/core/text/composite/text_composite.hpp"
 #include "support/rgba_order.hpp"
@@ -702,6 +704,31 @@ struct DrawnSample final {
     std::uint64_t signature{};
 };
 
+// Whether the bake budget refuses `sample` at `scale` by design: an
+// ornament gives way first (coordinator ruling, cp31 fold B). The glint's
+// face is past its cost bound (finish_kernel.hpp) at scale 2, so the
+// built-in recipe draws it there instead.
+bool gives_way(const EngineFeatureSample& sample, double scale) {
+    const bool glint = sample.name == std::string_view("finish_glint");
+    const bool past_bound = glint && scale >= 2.0;
+    return past_bound;
+}
+
+// The bake effort the material primitive charges `sample`'s part at
+// `scale`: its recipe's material over the sample's part box.
+std::uint64_t sample_bake_effort(const EngineFeatureSample& sample, double scale) {
+    const std::unique_ptr<ThemeDefinition> definition = sample_definition(sample, ImageId{});
+    const ControlRoleRecipes& button = (*definition).roles[static_cast<std::size_t>(ControlVisualRole::button)];
+    const SurfaceMaterial& material = button.ordinary.front().material;
+    PrimitiveTarget target{};
+    target.logical_size = Size{engine_samples::feature_sample_bounds.width, engine_samples::feature_sample_bounds.height};
+    target.scale = DeviceScale{scale};
+    target.material = &material;
+    target.corner_radius = engine_samples::feature_sample_corner_radius;
+    const engine_primitives::BakeEffort effort = engine_primitives::material_bake_effort(material, target);
+    return effort.units;
+}
+
 void every_feature_sample() {
     std::vector<DrawnSample> drawn_samples{};
     const std::span<const EngineFeatureSample> samples = engine_samples::builtin_feature_samples();
@@ -726,12 +753,26 @@ void every_feature_sample() {
             Window& window = *made.window;
             const MetricsSnapshot metrics = window.metrics_snapshot();
             const RasterCacheStatistics cache = window.engine_parts().cache_statistics();
-            require(metrics.engine_primitive_refusals == 0U, subject + ": the primitive draws it (nothing refused)");
+            const bool refused_by_design = gives_way(sample, scale);
+            if (refused_by_design) {
+                const std::uint64_t effort = sample_bake_effort(sample, scale);
+                const std::uint64_t budget = engine_primitives::maximum_material_bake_effort.units;
+                require(effort > budget, subject + ": its bake effort is past the budget");
+                require(metrics.engine_primitive_refusals > 0U, subject + ": the primitive gives way (refused)");
+                for (const SampleImage& image : images) {
+                    require(image.painter_calls > 0U, subject + " " + image.frame + ": the built-in recipe draws it");
+                }
+                manifest_lines.push_back("refused\t" + name + '\t' + scale_text.str() + '\t' + std::to_string(effort) +
+                                         '\t' + std::to_string(budget));
+                std::cout << subject << ": refused by design, bake effort " << effort << " of " << budget << '\n';
+            } else {
+                require(metrics.engine_primitive_refusals == 0U, subject + ": the primitive draws it (nothing refused)");
+                for (const SampleImage& image : images) {
+                    require(image.rasters > 0U, subject + " " + image.frame + ": a part raster is composited");
+                }
+            }
             require(cache.image_mask_fallbacks == 0U, subject + ": every image mask is drawn");
             require(cache.procedural_queued == 0U, subject + ": every procedural pattern is generated");
-            for (const SampleImage& image : images) {
-                require(image.rasters > 0U, subject + " " + image.frame + ": a part raster is composited");
-            }
             if (sample.drive != FeatureSampleDrive::rest) {
                 require(shows_drive(images), subject + ": its images show the drive");
             }
