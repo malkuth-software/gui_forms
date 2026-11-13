@@ -11,8 +11,15 @@
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/content_text_editor.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/delegate.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/live_surface/frame/live_surface_frame.hpp"
+#include "gui_forms/live_surface/surface/live_surface.hpp"
+#include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/typography/types/typography_types.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/window.hpp"
 
 #include <cmath>
@@ -22,8 +29,10 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -129,6 +138,81 @@ struct RecordRevisions final {
 struct RecordTexts final {
     std::vector<std::string>* seen{};
     void operator()(const std::string& text) const { (*seen).push_back(text); }
+};
+
+struct RecordSelections final {
+    std::vector<TextSelection>* seen{};
+    void operator()(const TextSelection& selection) const { (*seen).push_back(selection); }
+};
+
+struct RecordUserEdits final {
+    std::vector<ContentUserEdit>* seen{};
+    void operator()(const ContentUserEdit& edit) const { (*seen).push_back(edit); }
+};
+
+// A consumer's edit filter: records each proposal with the text the editor
+// held when it was offered, and refuses or rewrites as configured.
+struct ProposalLog final {
+    ContentTextEditor* editor{};
+    std::vector<TextEdit> proposals{};
+    std::vector<std::string> texts_at_proposal{};
+    bool refuse_digits{false};
+    bool upper_case{false};
+
+    void filter(TextEdit& edit) {
+        texts_at_proposal.push_back((*editor).text());
+        TextEdit copy{};
+        copy.kind = edit.kind;
+        copy.start = edit.start;
+        copy.end = edit.end;
+        proposals.push_back(copy);
+        const bool digit = !edit.replacement.empty() && edit.replacement.front() >= '0' &&
+                           edit.replacement.front() <= '9';
+        if (refuse_digits && digit) {
+            edit.verdict = TextEditVerdict::refuse;
+            return;
+        }
+        if (!upper_case) return;
+        const std::string current = (*editor).text();
+        std::string rewritten = current.substr(0U, edit.start.value());
+        for (const char byte : edit.replacement) {
+            const bool lower = byte >= 'a' && byte <= 'z';
+            rewritten.push_back(lower ? static_cast<char>(byte - 'a' + 'A') : byte);
+        }
+        const std::size_t caret = rewritten.size();
+        rewritten.append(current.substr(edit.end.value()));
+        edit.verdict = TextEditVerdict::rewrite;
+        edit.rewritten_text = rewritten;
+        edit.rewritten_caret = Utf8Offset(caret);
+    }
+};
+
+// Counts every drawing command (fills, strokes, lines, text, images, live
+// surfaces, materials); state changes (save, restore, translate, clips) are
+// not drawing and are not counted.
+class CountingPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void clip_rounded_rect(Rect, double) override {}
+    void fill_rect(Rect, Color) override { ++draws; }
+    void fill_rounded_rect(Rect, double, Color) override { ++draws; }
+    void stroke_rect(Rect, Color, double) override { ++draws; }
+    void stroke_rounded_rect(Rect, double, Color, double) override { ++draws; }
+    void fill_linear_gradient(Rect, Point, Point, std::span<const GradientStop>) override { ++draws; }
+    void draw_line(Point, Point, Color, double) override { ++draws; }
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override { ++draws; }
+    void draw_image(ImageId, Rect, double) override { ++draws; }
+    void draw_live_surface(std::shared_ptr<LiveSurface>, Rect, double) override {
+        ++draws;
+        ++live_surfaces;
+    }
+    void draw_surface_material(Rect, const SurfaceMaterial&) override { ++draws; }
+
+    std::size_t draws{0U};
+    std::size_t live_surfaces{0U};
 };
 
 void layout_validation_refusals() {
@@ -436,6 +520,184 @@ void frames_through_the_sink() {
     require(fresh.publish(frame) == ContentPublishResult::published, "the new sink publishes");
 }
 
+void edit_filter_sees_edits_before_they_apply() {
+    Fixture fixture = make_fixture("content_editor.filter", "ab");
+    Window& window = *fixture.window;
+    ContentTextEditor& editor = *fixture.editor;
+    std::vector<ContentUserEdit> edits;
+    std::vector<std::string> texts;
+    SubscriptionToken edit_token = editor.user_edit().subscribe(RecordUserEdits{&edits});
+    SubscriptionToken text_token = editor.text_changed().subscribe(RecordTexts{&texts});
+    ProposalLog log{};
+    log.editor = &editor;
+    editor.set_edit_filter(Delegate<TextEdit&>::bind<ProposalLog, &ProposalLog::filter>(log));
+    require(window.request_focus(fixture.editor), "the editor takes focus");
+
+    place_caret(editor, 2U);
+    require(type(window, "c") && editor.text() == "abc", "an accepted proposal is applied");
+    require(log.proposals.size() == 1U && log.proposals[0].kind == TextEditKind::typing &&
+                log.proposals[0].start.value() == 2U && log.proposals[0].end.value() == 2U,
+            "the filter sees the typed edit's range");
+    require(log.texts_at_proposal[0] == "ab", "the filter sees the edit before it is applied");
+    require(edits.size() == 1U && edits[0].kind == TextEditKind::typing && !edits[0].composing,
+            "user_edit reports the accepted typing");
+    require(texts.size() == 1U, "the accepted edit raised text_changed once");
+
+    editor.select(Utf8Offset(0U), Utf8Offset(1U));
+    require(press(window, PhysicalKey::backspace) && editor.text() == "bc", "a deletion is offered and applied");
+    require(log.proposals.size() == 2U && log.proposals[1].kind == TextEditKind::deletion &&
+                log.proposals[1].start.value() == 0U && log.proposals[1].end.value() == 1U,
+            "the filter sees the deletion's range");
+    require(edits.size() == 2U && edits[1].kind == TextEditKind::deletion, "user_edit reports the deletion");
+
+    log.refuse_digits = true;
+    const std::uint64_t before_refusal = editor.text_revision();
+    static_cast<void>(type(window, "7"));
+    require(editor.text() == "bc" && editor.text_revision() == before_refusal, "a refused edit changes nothing");
+    require(log.proposals.size() == 3U && edits.size() == 2U && texts.size() == 2U,
+            "a refused edit is offered but raises neither user_edit nor text_changed");
+    log.refuse_digits = false;
+
+    editor.select(Utf8Offset(1U), Utf8Offset(2U));
+    require(type(window, "c") && editor.text() == "bc", "a replacement by the same bytes is accepted");
+    require(log.proposals.size() == 4U && log.proposals[3].start.value() == 1U && log.proposals[3].end.value() == 2U,
+            "a replacement by the same bytes still reaches the filter");
+    require(texts.size() == 2U && edits.size() == 3U,
+            "a replacement by the same bytes raises user_edit and no text_changed");
+
+    log.upper_case = true;
+    place_caret(editor, 2U);
+    require(type(window, "d") && editor.text() == "bcD" && caret_of(editor) == 3U, "a filter may rewrite the edit");
+    log.upper_case = false;
+
+    editor.set_edit_filter(Delegate<TextEdit&>{});
+    const std::size_t offered = log.proposals.size();
+    require(type(window, "e") && editor.text() == "bcDe" && log.proposals.size() == offered,
+            "clearing the filter restores plain editing");
+    editor.set_text("plain");
+    require(edits.back().kind == TextEditKind::typing && edits.size() == 5U, "set_text raises no user_edit");
+}
+
+void no_frames_paint_nothing_over_the_consumer() {
+    Fixture fixture = make_fixture("content_editor.no_frames", "ab");
+    Window& window = *fixture.window;
+    ContentTextEditor& editor = *fixture.editor;
+    require(submit_fixed(editor) == ContentLayoutResult::accepted, "the layout is accepted");
+    const Rect local{0.0, 0.0, 200.0, 100.0};
+    const Rect region{10.0, 10.0, 200.0, 100.0};
+    require(!editor.live_surface(), "an editor without frames has no live surface");
+
+    CountingPainter unfocused{};
+    editor.on_paint(unfocused, local);
+    require(unfocused.draws == 0U, "an unfocused editor without frames draws nothing");
+
+    // The surface registered with the window's presentation has no frame
+    // for a host to show.
+    std::vector<LiveSurfacePresentation> presentations = window.take_live_surface_presentations(true);
+    for (const LiveSurfacePresentation& presentation : presentations) {
+        if (presentation.control != editor.runtime_id() || !presentation.surface) continue;
+        const LiveSurfaceFrame frame = (*presentation.surface).acquire_latest();
+        require(!frame, "the editor's placeholder surface carries no frame");
+    }
+
+    // The whole window paints the same commands over the editor's region
+    // with the editor as without it: no fill, border or surface of its own.
+    CountingPainter with_editor{};
+    static_cast<void>(window.paint(with_editor, region));
+
+    require(window.request_focus(fixture.editor), "the editor takes focus");
+    editor.set_draws_selection(false);
+    editor.select(Utf8Offset(0U), Utf8Offset(1U));
+    CountingPainter consumer_draws{};
+    editor.on_paint(consumer_draws, local);
+    require(consumer_draws.draws == 0U,
+            "a focused editor leaving the selection to the consumer draws nothing");
+    editor.set_draws_selection(true);
+    CountingPainter highlighted{};
+    editor.on_paint(highlighted, local);
+    require(highlighted.draws > 0U && highlighted.live_surfaces == 0U,
+            "with draws_selection only the highlight is drawn, never a surface");
+
+    const Control::Ptr removed = (*fixture.root).remove_child(editor.runtime_id());
+    require(removed != nullptr, "the editor leaves the window");
+    window.perform_layout();
+    CountingPainter without_editor{};
+    static_cast<void>(window.paint(without_editor, region));
+    require(with_editor.draws == without_editor.draws,
+            "an unfocused editor without frames adds no drawing over the consumer's");
+}
+
+struct MeasureAndSubmit final {
+    ContentTextEditor* editor{};
+    Window* window{};
+    std::size_t* submitted{};
+    void operator()(std::uint64_t revision) const {
+        const std::string text = (*editor).text();
+        // The window's text engine, outside paint: the same metrics a
+        // paint's measure_text_utf8 reads.
+        const TextExtent extent = (*window).measure_text_extent_utf8(text, FontSpec{});
+        if (!(extent.logical_size.width >= 0.0)) return;
+        ContentTextLayout layout = fixed_layout(text, revision);
+        if ((*editor).submit_layout(layout) == ContentLayoutResult::accepted) *submitted += 1U;
+    }
+};
+
+void layouts_measured_outside_paint_or_after_it() {
+    Fixture fixture = make_fixture("content_editor.measure", "ab");
+    Window& window = *fixture.window;
+    ContentTextEditor& editor = *fixture.editor;
+    std::size_t submitted = 0U;
+    SubscriptionToken token =
+        editor.layout_requested().subscribe(MeasureAndSubmit{&editor, &window, &submitted});
+    require(window.request_focus(fixture.editor), "the editor takes focus");
+    require(type(window, "c") && submitted == 1U && editor.layout_current(),
+            "a layout measured in layout_requested, outside paint, is accepted at once");
+    token = SubscriptionToken{};
+
+    require(type(window, "d") && !editor.layout_current(), "the next edit waits for a layout");
+    CountingPainter before_layout{};
+    static_cast<void>(window.paint(before_layout, Rect{0.0, 0.0, 320.0, 240.0}));
+    require(!editor.caret_rectangle() && editor.selection_rectangles().empty(),
+            "until the layout comes the editor shows no caret and keeps working");
+    require(press(window, PhysicalKey::left) && caret_of(editor) == 3U, "keys still move the caret without a layout");
+    require(submit_fixed(editor) == ContentLayoutResult::accepted && editor.caret_rectangle(),
+            "a layout submitted after the consumer's paint is accepted");
+}
+
+void resubmitting_the_same_revision_is_silent() {
+    Fixture fixture = make_fixture("content_editor.resubmit", "abc");
+    Window& window = *fixture.window;
+    ContentTextEditor& editor = *fixture.editor;
+    require(submit_fixed(editor) == ContentLayoutResult::accepted, "the first layout is accepted");
+    place_caret(editor, 1U);
+    window.perform_layout();
+    const std::optional<Rect> first = editor.caret_rectangle();
+    std::vector<std::uint64_t> requested;
+    std::vector<std::string> texts;
+    std::vector<TextSelection> selections;
+    std::vector<ContentUserEdit> edits;
+    SubscriptionToken request_token = editor.layout_requested().subscribe(RecordRevisions{&requested});
+    SubscriptionToken text_token = editor.text_changed().subscribe(RecordTexts{&texts});
+    SubscriptionToken selection_token = editor.selection_changed().subscribe(RecordSelections{&selections});
+    SubscriptionToken edit_token = editor.user_edit().subscribe(RecordUserEdits{&edits});
+    const std::uint64_t revision = editor.text_revision();
+    for (int scroll = 1; scroll <= 2; ++scroll) {
+        ContentTextLayout scrolled = fixed_layout(editor.text(), revision);
+        const double shift = -15.0 * static_cast<double>(scroll);
+        for (ContentTextLine& line : scrolled.lines) line.bounds.y += shift;
+        for (ContentTextCluster& cluster : scrolled.clusters) cluster.bounds.y += shift;
+        require(editor.submit_layout(scrolled) == ContentLayoutResult::accepted,
+                "a layout for the same revision is accepted again");
+        window.perform_layout();
+        const std::optional<Rect> moved = editor.caret_rectangle();
+        require(first && moved && near((*moved).y, (*first).y + shift) && near((*moved).x, (*first).x),
+                "the resubmitted layout moves the caret with the consumer's scroll");
+    }
+    require(editor.text_revision() == revision, "resubmitting does not change the revision");
+    require(requested.empty() && texts.empty() && selections.empty() && edits.empty(),
+            "resubmitting raises no event back to the consumer");
+}
+
 } // namespace
 
 int main() {
@@ -448,6 +710,10 @@ int main() {
         input_method_composition();
         accessibility_publication();
         frames_through_the_sink();
+        edit_filter_sees_edits_before_they_apply();
+        no_frames_paint_nothing_over_the_consumer();
+        layouts_measured_outside_paint_or_after_it();
+        resubmitting_the_same_revision_is_silent();
     } catch (const std::exception& error) {
         std::cerr << "content text editor tests failed: " << error.what() << '\n';
         return 1;

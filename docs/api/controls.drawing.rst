@@ -52,6 +52,8 @@ Related types
      - Stage T1 anatomy, as dot members: the panel's scrollable parts, then ``content`` (the consumer's frame), ``caret`` (the bar while it shows), ``selection`` (the union of the highlight's boxes) and ``focus``.
    * - :cpp:class:`ContentTextEditor::States <gui_forms::ContentTextEditor::States>`
      -  
+   * - :cpp:class:`ContentUserEdit <gui_forms::ContentUserEdit>`
+     - One user edit the editor accepted (ContentTextEditor::user_edit): its kind (typing, deletion or paste) and whether the input was an unfinished composition.
    * - :cpp:class:`DrawingSurface::Parts <gui_forms::DrawingSurface::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`DrawingSurface::States <gui_forms::DrawingSurface::States>`
@@ -270,6 +272,22 @@ Related types
    .. cpp:member:: bool focus_visible
 
    .. cpp:member:: bool read_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentUserEdit final
+
+   ``#include <gui_forms/controls/content_text_editor.hpp>``
+
+   One user edit the editor accepted (ContentTextEditor::user_edit): its kind (typing, deletion or paste) and whether the input was an unfinished composition. Raised after the edit's text_changed, or alone when the edit replaced bytes by the same bytes; refused edits, undo, redo and set_text raise none.
+
+   .. cpp:member:: TextEditKind kind
+
+      Default: ``{TextEditKind::typing}``.
+
+   .. cpp:member:: bool composing
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 

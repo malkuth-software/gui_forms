@@ -92,6 +92,9 @@ gui_forms::ContentTextEditor
       **selection_changed** : ``Event<const TextSelection&>``
          Raised with the new selection.
 
+      **user_edit** : ``Event<const ContentUserEdit&>``
+         Raised after each user edit the editor applied (ContentUserEdit).
+
    :Inherited:
 
       From :cpp:class:`TextBoxBase <gui_forms::TextBoxBase>`: properties :cpp:func:`selection <gui_forms::TextBoxBase::selection>`, :cpp:func:`selected_text <gui_forms::TextBoxBase::selected_text>`, :cpp:func:`can_undo <gui_forms::TextBoxBase::can_undo>`; methods :cpp:func:`clear_undo_history <gui_forms::TextBoxBase::clear_undo_history>`, :cpp:func:`copy <gui_forms::TextBoxBase::copy>`, :cpp:func:`cut <gui_forms::TextBoxBase::cut>`, :cpp:func:`paste <gui_forms::TextBoxBase::paste>`, :cpp:func:`select <gui_forms::TextBoxBase::select>`, :cpp:func:`select_all <gui_forms::TextBoxBase::select_all>`, :cpp:func:`undo <gui_forms::TextBoxBase::undo>`.
@@ -116,6 +119,8 @@ gui_forms::ContentTextEditor
         - ``open_frames(opaque)`` opens the channel the consumer publishes the editor's frames through, revoking any earlier one.
       * - :cpp:func:`position_at <gui_forms::ContentTextEditor::position_at>`
         - ``position_at(point)`` returns the text offset nearest a local point by the current layout (the end of the text without one).
+      * - :cpp:func:`set_edit_filter <gui_forms::ContentTextEditor::set_edit_filter>`
+        - The edit filter (TextBox::set_edit_filter, with the same rules): it sees every user edit after the editor's own checks (read-only, UTF-8, grapheme boundaries) and before it is applied, including a replacement by the same bytes, and may refuse or rewrite it.
 
    .. seealso::
 
@@ -249,6 +254,10 @@ gui_forms::ContentTextEditor
 
       Raised with the new selection.
 
+   .. cpp:function:: Event<const ContentUserEdit&>& user_edit() noexcept
+
+      Raised after each user edit the editor applied (ContentUserEdit).
+
 
    .. rubric:: Methods
 
@@ -273,6 +282,10 @@ gui_forms::ContentTextEditor
 
       ``position_at(point)`` returns the text offset nearest a local point by the
       current layout (the end of the text without one).
+
+   .. cpp:function:: void set_edit_filter(Delegate<TextEdit&> filter) noexcept
+
+      The edit filter (TextBox::set_edit_filter, with the same rules): it sees every user edit after the editor's own checks (read-only, UTF-8, grapheme boundaries) and before it is applied, including a replacement by the same bytes, and may refuse or rewrite it. It does not see set_text, undo or redo. The delegate does not own its target; clear it (an empty Delegate) before the target goes away.
 
 
    .. rubric:: Extension points
@@ -355,7 +368,7 @@ gui_forms::ContentTextEditor
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 0 supported, 0 deferred, 0 excluded, 17 unclassified; 17 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 15 supported, 0 deferred, 0 excluded, 2 unclassified; 17 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -373,7 +386,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - property
      - GUI.Forms-only
      - ``caret_rectangle``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``draws_selection``
@@ -381,56 +394,56 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - property
      - GUI.Forms-only
      - ``layout_current``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``live_surface``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``multiline``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``read_only``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``selection_rectangles``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``text``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``text_revision``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``layout_requested``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``selection_changed``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``text_changed``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``open_frames``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``position_at``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``redo``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``submit_layout``
-     - unclassified (untested)
+     - supported

@@ -966,6 +966,17 @@ struct EnumerationChoices<TabControlAction> {
 };
 
 template <>
+struct EnumerationChoices<TextEditKind> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 4> choices{{
+        {"typing", static_cast<std::int64_t>(TextEditKind::typing)},
+        {"deletion", static_cast<std::int64_t>(TextEditKind::deletion)},
+        {"paste", static_cast<std::int64_t>(TextEditKind::paste)},
+        {"value", static_cast<std::int64_t>(TextEditKind::value)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<ToolStripPanelEdge> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 4> choices{{
@@ -1042,6 +1053,7 @@ void append_field(EventFields& fields, std::string_view name, const CommandInvoc
 void append_field(EventFields& fields, std::string_view name, const CommandItem& value);
 void append_field(EventFields& fields, std::string_view name, const CommandState& value);
 void append_field(EventFields& fields, std::string_view name, const CompositorGeneration& value);
+void append_field(EventFields& fields, std::string_view name, const ContentUserEdit& value);
 void append_field(EventFields& fields, std::string_view name, const ContextMenuRequest& value);
 void read_field(EventFields& fields, std::string_view name, ContextMenuRequest& value);
 void append_field(EventFields& fields, std::string_view name, const ControlValidationEvent& value);
@@ -1403,6 +1415,13 @@ inline void append_field(EventFields& fields, std::string_view name, const Comma
 inline void append_field(EventFields& fields, std::string_view name, const CompositorGeneration& value) {
     // An identity: the field is its one value.
     append_field(fields, name, value.value);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const ContentUserEdit& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "kind", value.kind);
+    append_field(fields, "composing", value.composing);
+    fields.leave(prefix);
 }
 
 inline void append_field(EventFields& fields, std::string_view name, const ContextMenuRequest& value) {
@@ -6092,6 +6111,15 @@ inline SubscriptionToken connect_data_grid_view_user_deleting_row(Component& sou
     return token;
 }
 
+inline SubscriptionToken connect_content_text_editor_user_edit(Component& source, const EventSink& sink) {
+    ContentTextEditor* typed = dynamic_cast<ContentTextEditor*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).user_edit(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_control_validated(Component& source, const EventSink& sink) {
     Control* typed = dynamic_cast<Control*>(&source);
     if (typed == nullptr) {
@@ -6282,7 +6310,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 342> event_connectors{{
+inline constexpr std::array<EventConnector, 343> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6604,6 +6632,7 @@ inline constexpr std::array<EventConnector, 342> event_connectors{{
     {"user_added_row", "DataGridView", &connect_data_grid_view_user_added_row},
     {"user_deleted_row", "DataGridView", &connect_data_grid_view_user_deleted_row},
     {"user_deleting_row", "DataGridView", &connect_data_grid_view_user_deleting_row},
+    {"user_edit", "ContentTextEditor", &connect_content_text_editor_user_edit},
     {"validated", "Control", &connect_control_validated},
     {"validating", "Control", &connect_control_validating},
     {"value_changed", "NumericUpDown", &connect_numeric_up_down_value_changed},

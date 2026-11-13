@@ -358,7 +358,7 @@ gui_forms::ContentSurface
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 2 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 2 unclassified; 20 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -380,6 +380,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 16 s
    * - property
      - GUI.Forms-only
      - ``failure``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``hosted_input``
      - supported
    * - property
      - GUI.Forms-only
@@ -429,6 +433,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 16 s
      - GUI.Forms-only
      - ``set_status_caption``
      - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``start_hosted_content``
+     - supported
    * - method
      - GUI.Forms-only
      - ``start_program``

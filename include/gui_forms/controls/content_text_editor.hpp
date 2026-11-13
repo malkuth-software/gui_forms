@@ -3,7 +3,9 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/content/editing/content_text_layout.hpp"
 #include "gui_forms/content/frame_sink/content_frame_sink.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/text_box_base.hpp"
+#include "gui_forms/delegate.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 #include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
 
@@ -17,6 +19,16 @@
 #include <vector>
 
 namespace gui_forms {
+
+// One user edit the editor accepted (ContentTextEditor::user_edit): its kind
+// (typing, deletion or paste) and whether the input was an unfinished
+// composition. Raised after the edit's text_changed, or alone when the edit
+// replaced bytes by the same bytes; refused edits, undo, redo and set_text
+// raise none.
+struct GUI_FORMS_API ContentUserEdit final {
+    TextEditKind kind{TextEditKind::typing};
+    bool composing{false};
+};
 
 namespace detail {
 struct ContentChannel;
@@ -49,7 +61,30 @@ class TextEditingEngine;
 // Painting: the newest frame fills the client area; over it the editor
 // draws the selection highlight and the blinking caret from the layout,
 // unless set_draws_selection(false) leaves both to the consumer (who reads
-// caret_rectangle and selection_rectangles).
+// caret_rectangle and selection_rectangles). Without frames (open_frames
+// never called, or no frame published yet) the editor paints nothing of its
+// content: the empty surface it registers with the window's presentation
+// has no frame for a host to show, and its own paint draws no fill, so a
+// consumer that draws the text itself, under the editor (an ancestor's
+// paint), shows through. Only the selection highlight and the caret are
+// drawn over it while draws_selection() is true, and a back colour or an
+// authored surface if the program sets one.
+//
+// Measuring outside paint: layout_requested is raised outside paint. A
+// consumer measuring with GUI.Forms' own text engine measures through the
+// window (Window::resolve_text_layout_utf8 and measure_text_extent_utf8),
+// which read the same text metrics provider as a paint's
+// Painter::measure_text_utf8. A consumer may also submit the layout later,
+// after its next paint: the revision stays current until the text changes,
+// and until then the editor works without a layout, as described above.
+// Resubmitting a layout for the current revision (after the consumer
+// scrolls its rendering, say) is accepted and replaces the layout; it
+// raises no event (layout_requested, text_changed, selection_changed or
+// user_edit) and only repaints the editor and republishes its text layout.
+//
+// Edits: set_edit_filter offers each user edit, with its range and
+// replacement, before the editor applies it, exactly as TextBox's filter
+// does; user_edit reports each accepted one.
 //
 // Integrity: everything the consumer hands over is validated before use,
 // and a refused layout or frame changes nothing. Text the consumer cannot
@@ -97,12 +132,21 @@ public:
     [[nodiscard]] Utf8Offset position_at(Point local) const;
     void set_draws_selection(bool draws);
     [[nodiscard]] bool draws_selection() const noexcept { return draws_selection_; }
+    // The edit filter (TextBox::set_edit_filter, with the same rules): it
+    // sees every user edit after the editor's own checks (read-only, UTF-8,
+    // grapheme boundaries) and before it is applied, including a replacement
+    // by the same bytes, and may refuse or rewrite it. It does not see
+    // set_text, undo or redo. The delegate does not own its target; clear it
+    // (an empty Delegate) before the target goes away.
+    void set_edit_filter(Delegate<TextEdit&> filter) noexcept;
 
     // Raised with the new revision when the text changed or the region's
     // size did: lay out text() and submit the layout.
     [[nodiscard]] Event<std::uint64_t>& layout_requested() noexcept { return layout_requested_; }
     [[nodiscard]] Event<const std::string&>& text_changed() noexcept { return text_changed_; }
     [[nodiscard]] Event<const TextSelection&>& selection_changed() noexcept { return selection_changed_; }
+    // Raised after each user edit the editor applied (ContentUserEdit).
+    [[nodiscard]] Event<const ContentUserEdit&>& user_edit() noexcept { return user_edit_; }
 
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void arrange(Rect final_bounds) override;
@@ -204,6 +248,7 @@ private:
     Event<std::uint64_t> layout_requested_;
     Event<const std::string&> text_changed_;
     Event<const TextSelection&> selection_changed_;
+    Event<const ContentUserEdit&> user_edit_;
 };
 
 } // namespace gui_forms

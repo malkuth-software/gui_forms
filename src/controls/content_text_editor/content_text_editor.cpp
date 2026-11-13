@@ -83,10 +83,11 @@ struct CaretBefore final {
 constexpr double editor_caret_width = 1.0;
 
 // The events ContentTextEditor adds to those of Panel, in declaration order.
-constexpr std::array<InteractionDeclaration, 3> content_text_editor_interactions{{
+constexpr std::array<InteractionDeclaration, 4> content_text_editor_interactions{{
     {.name = "layout_requested", .payload = "std::uint64_t", .mutable_payload = false},
     {.name = "text_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "selection_changed", .payload = "TextSelection", .mutable_payload = false},
+    {.name = "user_edit", .payload = "ContentUserEdit", .mutable_payload = false},
 }};
 
 constexpr std::array<PartField<ContentTextEditor::Parts>, 4> content_text_editor_extra_part_fields{{
@@ -136,8 +137,8 @@ public:
     void editing_select(TextSelection selection) override { editor_.set_selection(selection); }
     void editing_navigating() override {}
     void editing_user_edit(TextEditKind kind, bool composing) override {
-        static_cast<void>(kind);
-        static_cast<void>(composing);
+        const ContentUserEdit edit{.kind = kind, .composing = composing};
+        editor_.publish_change(editor_.user_edit_, edit);
     }
     [[nodiscard]] HostServices* editing_host_services() const override {
         Window* const owner = editor_.window();
@@ -320,6 +321,10 @@ Utf8Offset ContentTextEditor::position_at(Point local) const {
     }
     const Utf8Offset position = position_on_line(nearest, local.x);
     return position;
+}
+
+void ContentTextEditor::set_edit_filter(Delegate<TextEdit&> filter) noexcept {
+    (*editing_).set_edit_filter(filter);
 }
 
 void ContentTextEditor::set_draws_selection(bool draws) {
