@@ -4798,6 +4798,8 @@
     _ZN9gui_forms21media_condition_holdsE*;
     _ZN9gui_forms21media_condition_validB*;
     _ZN9gui_forms21media_condition_validE*;
+    _ZN9gui_forms21paint_canvas_overviewB*;
+    _ZN9gui_forms21paint_canvas_overviewE*;
     _ZN9gui_forms21paint_joined_segmentsB*;
     _ZN9gui_forms21paint_joined_segmentsE*;
     _ZN9gui_forms21per_user_theme_folderB*;
@@ -5041,6 +5043,8 @@
     _ZN9gui_forms23overridden_presentationE*;
     _ZN9gui_forms23paint_canvas_backgroundB*;
     _ZN9gui_forms23paint_canvas_backgroundE*;
+    _ZN9gui_forms23paint_canvas_node_titleB*;
+    _ZN9gui_forms23paint_canvas_node_titleE*;
     _ZN9gui_forms23paint_canvas_port_labelB*;
     _ZN9gui_forms23paint_canvas_port_labelE*;
     _ZN9gui_forms23paragraph_storage_boundB*;
