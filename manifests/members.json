@@ -5086,7 +5086,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "layout_diagnostics", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/layout_contract_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "layout_pass_sequence", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "metrics_snapshot", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/animation_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "motion_clock", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "motion_clock", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/canvas_look_raster_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "needs_frame", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "next_wake", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/animation_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "non_opaque_declared", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/compositor_backdrop_tests.cpp"},
