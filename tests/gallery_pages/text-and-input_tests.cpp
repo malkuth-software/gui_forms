@@ -1,5 +1,6 @@
 #include "support.hpp"
 #include "gui_forms/controls/combo_box.hpp"
+#include "gui_forms/controls/content_text_editor.hpp"
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/controls/masked_text_box.hpp"
 #include "gui_forms/controls/rich_text_box.hpp"
@@ -142,6 +143,23 @@ void test_text_and_input(gui_forms::Window& window,
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && (*search).text.read().empty() &&
                 (*search_status).text.read() == "Showing everything",
             "Escape clears the field, then searches for everything");
+
+    // The content editor: the page's own engine lays out and draws the text,
+    // and every edit asks it for a new layout, which GUI.Forms accepts.
+    const std::shared_ptr<ContentTextEditor> content =
+        std::dynamic_pointer_cast<ContentTextEditor>(window.find("gallery.text.content-editor.field"));
+    const std::shared_ptr<gui_forms::Label> content_status =
+        std::dynamic_pointer_cast<Label>(window.find("gallery.text.content-editor.status"));
+    require(content && content_status && (*content).layout_current() &&
+                (*content_status).text.read().starts_with("Layout accepted") &&
+                (*content_status).text.read().find("frame published") != std::string::npos,
+            "the content editor specimen shows the page's accepted layout and frame");
+    require(window.request_focus(content) && window.dispatch_text({"!"}) && (*content).text().ends_with("!") &&
+                (*content).layout_current() && (*content).caret_rectangle().has_value(),
+            "typing in the content editor asks the page for a layout, which is accepted at once");
+    require((*content_status).text.read().find("for revision " + std::to_string((*content).text_revision())) !=
+                std::string::npos,
+            "the status reports the newest revision");
 }
 
 } // namespace gallery_pages_tests

@@ -1414,7 +1414,7 @@
       "purpose": "Editable text a consumer lays out and renders with its own engine and fonts, while GUI.Forms keeps the caret, selection, keys, input methods, undo, clipboard and accessibility; every layout and frame is validated.",
       "winforms": "GUI.Forms-only",
       "status": "provisional",
-      "gallery_page": null,
+      "gallery_page": "text-and-input",
       "doc": "api/generated/gui_forms.ContentTextEditor.rst"
     },
     {

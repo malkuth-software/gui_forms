@@ -1,7 +1,8 @@
 /* The Gallery's text-and-input page (stage FD, phase FD6.3): TextBox
    states, a CommandBar of editing commands, MaskedTextBoxes, auto-complete
-   in a TextBox and an editable ComboBox, a TokenBox and a RichTextBox over
-   markdown. gui_forms_add_form() compiles this document into
+   in a TextBox and an editable ComboBox, a TokenBox, a RichTextBox over
+   markdown, a SearchField and a ContentTextEditor whose text the page lays
+   out and draws with its own toy engine. gui_forms_add_form() compiles this document into
    text-and-input_form.hpp at build time.
 
    gallery.text.document is a declared boundary only: the page moves its
@@ -9,10 +10,10 @@
    in design coordinates. The page keeps in code the protected field's
    password character, the CommandBar's items and Commands, the masks, the
    auto-complete sources and modes, the ComboBox's items and style, the
-   initial token, the markdown, every event handler and the status lines'
-   reports. */
+   initial token, the markdown, the content editor's engine, every event
+   handler and the status lines' reports. */
 scaled-panel gallery.text.document {
-  design-size: 1000 1560;
+  design-size: 1000 1830;
 
   label gallery.text.heading {
     text: "TEXT AND INPUT";
@@ -226,6 +227,27 @@ scaled-panel gallery.text.document {
       text: "Type to search; Enter searches now and Escape clears";
       classes: "positive" "emphasis";
       bounds: 154 86 700 26;
+    }
+  }
+
+  scaled-group-box gallery.text.content-editor {
+    text: "ContentTextEditor · text the page lays out and draws itself";
+    design-size: 930 250;
+    bounds: 24 1556 930 250;
+    classes: "paper" "group-caption";
+    label gallery.text.content-editor.caption {
+      text: "Notes";
+      classes: "muted" "emphasis";
+      bounds: 24 42 130 24;
+    }
+    content-text-editor gallery.text.content-editor.field {
+      accessible-name: "Consumer-drawn notes";
+      bounds: 154 36 700 140;
+    }
+    label gallery.text.content-editor.status {
+      text: "Waiting for the first layout";
+      classes: "positive" "emphasis";
+      bounds: 154 190 700 26;
     }
   }
 }
