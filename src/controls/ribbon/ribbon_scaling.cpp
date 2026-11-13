@@ -741,6 +741,19 @@ Ribbon::Layout Ribbon::layout_for(Rect client) const {
     // more than half the narrower tab, so every tab keeps a face to click.
     // File never overlaps the first tab.
     double x = client.x + row_widths.application + std::max(0.0, row_widths.gap);
+    // The Quick Access Toolbar on the tab row (interview D1): after File, as
+    // tall as a tab at rest, at most half the row's free width; the tabs
+    // follow it.
+    if (quick_access_at(QuickAccessToolbarPlacement::above_ribbon)) {
+        const TabMargins margins = row_widths.rest;
+        const double help_side = help_button_visible.read() ? row : 0.0;
+        const double room = std::max(0.0, client.x + client.width - x - help_side) * 0.5;
+        const double width = std::min((*quick_access_).content_length(), room);
+        if (width > 0.0) {
+            placed.quick_access = {x, client.y + margins.top, width, std::max(1.0, row - margins.top - margins.bottom)};
+            x += width + std::max(0.0, row_widths.gap);
+        }
+    }
     placed.tabs.reserve(tabs_.size());
     // A tab's top and bottom follow its state's margins: the selected tab
     // stands taller than the rest and may run into the plane (RENDERING_
@@ -769,6 +782,13 @@ Ribbon::Layout Ribbon::layout_for(Rect client) const {
         const double side = std::max(1.0, row - margins.top - margins.bottom);
         const double left = std::max(client.x, client.x + client.width - side);
         placed.help = {left, client.y + margins.top, std::min(side, client.width), side};
+    }
+    // The Quick Access Toolbar's own row: under the plane, or under the tab
+    // row while the plane does not show.
+    if (quick_access_at(QuickAccessToolbarPlacement::below_ribbon)) {
+        const bool plane_shown = selected_tab_.has_value() && !minimized.read() && !plane_hidden_;
+        const double top = client.y + row + (plane_shown ? plane_height() : 0.0);
+        placed.quick_access = {client.x, top, client.width, row};
     }
     if (!selected_tab_) return placed;
     reset_layout_groups(placed);

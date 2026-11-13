@@ -849,6 +849,43 @@ double Ribbon::plane_height() const {
     return row_metrics().plane_height;
 }
 
+bool Ribbon::quick_access_at(QuickAccessToolbarPlacement placement) const noexcept {
+    const bool shown = quick_access_ && (*quick_access_).visible.read() && (*quick_access_).placement.read() == placement;
+    return shown;
+}
+
+void Ribbon::set_quick_access_toolbar(std::shared_ptr<QuickAccessToolbar> toolbar) {
+    require_mutable();
+    if (toolbar == quick_access_) return;
+    if (toolbar && (*toolbar).parent() != nullptr) {
+        throw std::invalid_argument("Ribbon Quick Access Toolbar already has a parent");
+    }
+    quick_access_placed_.disconnect();
+    quick_access_customized_.disconnect();
+    if (quick_access_ && (*quick_access_).parent().get() == this) {
+        static_cast<void>(remove_child((*quick_access_).runtime_id()));
+    }
+    quick_access_ = std::move(toolbar);
+    advance_layout_revision();
+    if (quick_access_) {
+        add_child(quick_access_);
+        quick_access_placed_ = (*quick_access_).placement_changed().subscribe(QuickAccessWatch{this});
+        quick_access_customized_ = (*quick_access_).customized().subscribe(QuickAccessWatch{this});
+    }
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void Ribbon::QuickAccessWatch::operator()(const QuickAccessToolbarPlacementChange&) const {
+    (*ribbon).hot_ = Hit{};
+    (*ribbon).advance_layout_revision();
+    (*ribbon).invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void Ribbon::QuickAccessWatch::operator()(const QuickAccessToolbarCustomization&) const {
+    (*ribbon).advance_layout_revision();
+    (*ribbon).invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
 // The metrics and shape the theme's rules give `part` (a key's part name)
 // of `family` in `states` (ControlPartMetrics); unset where no rule sets
 // them.
@@ -883,7 +920,9 @@ double Ribbon::tab_label_width(std::string_view text, AnatomyStateSet states) co
 // the minimum plus hide_hysteresis or more. Width never hides it (decision
 // 35): a narrow ribbon scrolls.
 Size Ribbon::measure(Size available) {
-    const double area = available.height - tab_row_height() - plane_height();
+    // The Quick Access Toolbar's own row, when below, takes from the area too.
+    const double below = quick_access_at(QuickAccessToolbarPlacement::below_ribbon) ? tab_row_height() : 0.0;
+    const double area = available.height - tab_row_height() - plane_height() - below;
     bool hidden = plane_hidden_;
     if (!hidden && area < document_minimum_height.read()) {
         hidden = true;
@@ -903,7 +942,7 @@ Size Ribbon::measure(Size available) {
         hot_ = Hit{};
         invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     }
-    const double height = tab_row_height() + (minimized.read() || plane_hidden_ ? 0.0 : plane_height());
+    const double height = tab_row_height() + (minimized.read() || plane_hidden_ ? 0.0 : plane_height()) + below;
     const Size result{available.width, std::min(available.height, height)};
     return result;
 }
@@ -964,6 +1003,11 @@ void Ribbon::arrange(Rect final_bounds) {
                 gallery.columns = columns;
             }
         }
+    }
+    // The Quick Access Toolbar where the layout puts it.
+    if (quick_access_ && is_current_layout_child(quick_access_)) {
+        set_child_layout_collapsed(quick_access_, placed.quick_access.empty());
+        if (!placed.quick_access.empty()) set_child_layout(quick_access_, placed.quick_access);
     }
     // A panel tab's control fills the command plane while its tab is
     // selected and the plane shows; it is collapsed otherwise.

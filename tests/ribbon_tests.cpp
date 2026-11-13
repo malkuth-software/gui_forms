@@ -15,6 +15,7 @@
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/quick_access_toolbar.hpp"
 #include "gui_forms/controls/ribbon.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
@@ -724,6 +725,64 @@ void refusals() {
     require(threw && (*ribbon).tabs().empty(), "a large command may not drop its label, and nothing changes");
 }
 
+// The hosted Quick Access Toolbar (interview D1, ledger R24): on the tab row
+// after File with the tabs after it; on its own row under the plane when
+// placed below (under the tab row while minimized); removed, the tabs go back.
+void quick_access_on_tab_row() {
+    const Commands commands;
+    std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
+    Window window(ribbon, {900.0, 160.0}, commands.resources);
+    window.perform_layout();
+    const double first_tab_alone = (*ribbon).realized_tabs()[0].parts.tab.bounds.x;
+    std::shared_ptr<QuickAccessToolbar> toolbar = make_control<QuickAccessToolbar>(StableId("qat"));
+    std::vector<QuickAccessToolbarCommand> declared;
+    declared.push_back({.command = commands.cut});
+    declared.push_back({.command = commands.paste});
+    (*toolbar).set_commands(std::move(declared));
+    (*ribbon).set_quick_access_toolbar(toolbar);
+    window.perform_layout();
+    const Rect file = (*ribbon).parts().application_button.bounds;
+    const Rect rail = (*ribbon).parts().tab_rail.bounds;
+    Rect placed = (*toolbar).committed_arranged_bounds();
+    const Rect first_tab = (*ribbon).realized_tabs()[0].parts.tab.bounds;
+    require((*toolbar).parent() == ribbon && (*toolbar).effectively_visible() && placed.x >= file.x + file.width &&
+                placed.y >= rail.y && placed.y + placed.height <= rail.y + rail.height && placed.width > 0.0 &&
+                placed.width <= (*toolbar).content_length(),
+            "above the ribbon, the toolbar sits on the tab row after File");
+    require(first_tab.x >= placed.x + placed.width && first_tab.x > first_tab_alone,
+            "the tabs follow the toolbar on the row");
+    const double row = rail.height;
+    const double plane = (*ribbon).parts().command_plane.bounds.height;
+    (*toolbar).placement = QuickAccessToolbarPlacement::below_ribbon;
+    window.perform_layout();
+    placed = (*toolbar).committed_arranged_bounds();
+    require(placed.y == row + plane && placed.height == row && placed.width == 900.0 &&
+                (*ribbon).measure({900.0, 400.0}).height == row + plane + row &&
+                (*ribbon).realized_tabs()[0].parts.tab.bounds.x == first_tab_alone,
+            "below the ribbon, the toolbar takes its own row under the plane and the tabs go back");
+    (*ribbon).minimized = true;
+    window.perform_layout();
+    placed = (*toolbar).committed_arranged_bounds();
+    require(placed.y == row && (*ribbon).measure({900.0, 400.0}).height == row + row,
+            "while minimized, the row sits under the tab row");
+    (*ribbon).minimized = false;
+    (*ribbon).set_quick_access_toolbar(nullptr);
+    window.perform_layout();
+    require((*toolbar).parent() == nullptr && (*ribbon).quick_access_toolbar() == nullptr &&
+                (*ribbon).realized_tabs()[0].parts.tab.bounds.x == first_tab_alone &&
+                (*ribbon).measure({900.0, 400.0}).height == row + plane,
+            "removed, the toolbar is detached and the row is the ribbon's again");
+    std::shared_ptr<Panel> holder = make_control<Panel>(StableId("holder"));
+    (*holder).add_child(toolbar);
+    bool threw = false;
+    try {
+        (*ribbon).set_quick_access_toolbar(toolbar);
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw && (*ribbon).quick_access_toolbar() == nullptr, "a toolbar another parent holds is refused");
+}
+
 // The help button (owner ruling N4): hidden by default; shown, a square at the
 // tab row's right end, painted as a plate and a question mark; a click, and
 // accessibility's press, raise help_requested with the selected tab.
@@ -789,6 +848,7 @@ int main() {
     refusals();
     labels_and_rows();
     help_button();
+    quick_access_on_tab_row();
     std::cout << "Ribbon: geometry, one command path, item repaint, minimizing, hosted controls, menus, launchers, "
                  "semantics, F6 region and refusals passed\n";
     return 0;

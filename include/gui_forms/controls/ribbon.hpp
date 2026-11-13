@@ -9,6 +9,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/controls/quick_access_toolbar.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/ribbon_color_picker.hpp"
 #include "gui_forms/controls/ribbon_font_control.hpp"
@@ -431,6 +432,20 @@ public:
     BorrowedSpan<MenuItemSpec> application_menu() const&& = delete;
     // Throws std::invalid_argument for an invalid menu.
     void set_application_menu(std::vector<MenuItemSpec> items);
+    // The Quick Access Toolbar the ribbon hosts (owner decisions RB-12 and
+    // RB-44, interview D1), a child of the ribbon while set. Its placement
+    // chooses where it shows: above_ribbon on the tab row after the File
+    // tab, the tabs following it, taking at most half the row's free width
+    // (commands that do not fit go to its overflow menu); below_ribbon on a
+    // row of its own under the plane (under the tab row while the plane does
+    // not show). The ribbon follows its placement and customization. Null
+    // removes it (it is detached, not disposed). Throws
+    // std::invalid_argument for a toolbar another parent holds.
+    void set_quick_access_toolbar(std::shared_ptr<QuickAccessToolbar> toolbar);
+    [[nodiscard]] const std::shared_ptr<QuickAccessToolbar>& quick_access_toolbar() const& noexcept {
+        return quick_access_;
+    }
+    const std::shared_ptr<QuickAccessToolbar>& quick_access_toolbar() const&& = delete;
     // Opens the File tab's file area: Backstage when the ribbon has one;
     // otherwise the application menu below the File tab, in two panes while
     // there are recent items. False without items (or Backstage) or a window.
@@ -694,6 +709,9 @@ private:
         std::vector<Rect> tabs;
         // The help button at the tab row's right end (empty while hidden).
         Rect help{};
+        // The hosted Quick Access Toolbar: on the tab row after File, or on
+        // its own row under the plane (empty without one).
+        Rect quick_access{};
         Rect plane{};
         // The part of the plane between its scroll buttons, where groups show.
         Rect groups_area{};
@@ -719,6 +737,13 @@ private:
         // needs layout from one that needs only a repaint.
         std::string text{};
         bool visible{true};
+    };
+    // A named callback: the hosted Quick Access Toolbar's placement or
+    // shown commands changed, so its place and width.
+    struct QuickAccessWatch final {
+        Ribbon* ribbon{};
+        void operator()(const QuickAccessToolbarPlacementChange&) const;
+        void operator()(const QuickAccessToolbarCustomization&) const;
     };
     // A named callback: a Command's state changed. `tab`, `group` and
     // `command` locate the record.
@@ -912,6 +937,9 @@ private:
                                      std::vector<Rect>& commands) const;
     [[nodiscard]] double tab_row_height() const;
     [[nodiscard]] double plane_height() const;
+    // Whether the hosted Quick Access Toolbar shows at `placement` (one is
+    // set, it is visible and that is its placement).
+    [[nodiscard]] bool quick_access_at(QuickAccessToolbarPlacement placement) const noexcept;
     [[nodiscard]] ControlPartMetrics part_metrics(std::string_view part, ControlVisualRole family,
                                                   AnatomyStateSet states) const;
     [[nodiscard]] FontSpec tab_label_font(AnatomyStateSet states) const;
@@ -1062,6 +1090,10 @@ private:
     bool application_pressed_{};
     // The help button was pressed and the release has not come yet.
     bool help_pressed_{};
+    // The hosted Quick Access Toolbar and its watches (set_quick_access_toolbar).
+    std::shared_ptr<QuickAccessToolbar> quick_access_{};
+    SubscriptionToken quick_access_placed_{};
+    SubscriptionToken quick_access_customized_{};
     std::optional<Stop> stop_{};
     bool focused_{};
 
