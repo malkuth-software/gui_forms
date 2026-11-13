@@ -322,7 +322,8 @@ struct GUI_FORMS_API HostMessageDialogRequest final {
     // gap E10; stock_alert_icon_image), at the owner window's scale. A host
     // that can put its own image in the dialog shows it in place of its
     // system icon (the AppKit host does); one that cannot keeps its system
-    // icon for `icon` (the Win32 and X11 hosts for now). Empty for no icon.
+    // icon for `icon` (the Win32 and X11 hosts for now: showing it there is
+    // a Windows hand-back item). Empty for no icon.
     std::optional<HostImage> icon_image{};
 };
 

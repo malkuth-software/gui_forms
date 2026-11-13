@@ -13,6 +13,7 @@
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/controls/wizard.hpp"
 #include "gui_forms/dirty.hpp"
+#include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/event/delegate/delegate.hpp"
 #include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
@@ -304,8 +305,10 @@ void navigation_and_cancel() {
     (*dialog).set_page(first);
     require((*dialog).show(root), "the first page shows");
     window.perform_layout();
-    require((*dialog).parts().icon_glyph.present && !(*dialog).parts().icon_label.present,
-            "an error icon is a plate with a mark");
+    require((*dialog).parts().icon_image.present && nearest_stock_icon("x-circle", StockIconStyle::solid, 32.0).has_value() &&
+                nearest_stock_icon("shield-check", StockIconStyle::solid, 32.0).has_value() &&
+                !(*dialog).parts().footnote_icon.present,
+            "an error icon takes the icon place and is a stock icon");
     require((*dialog).click("next") && (*dialog).shown() && recorder.navigations == 1 &&
                 (*dialog).page().heading == "Step two",
             "a button handler navigates to another page");

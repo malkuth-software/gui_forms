@@ -25,9 +25,9 @@ class Label;
 class ProgressBar;
 class RadioButton;
 
-// The standard icons of a task dialog page (Windows Forms' TaskDialogIcon).
-// The vocabulary has no information, warning, error or shield mark yet; see
-// TaskDialog's notes for how each is drawn.
+// The standard icons of a task dialog page (Windows Forms' TaskDialogIcon),
+// drawn from the stock icon set in its solid style: information-circle,
+// exclamation-triangle, x-circle and shield-check, as MessageBox's alerts.
 enum class TaskDialogIcon : std::uint8_t { none, information, warning, error, shield };
 
 // The standard buttons (Windows Forms' TaskDialogButton.OK and the rest).
@@ -204,10 +204,8 @@ public:
         PartGeometry edge;
         PartGeometry caption_band;
         PartGeometry caption;
-        PartGeometry icon_plate;
+        // The page's icon: its custom image, else its standard stock icon.
         PartGeometry icon_image;
-        PartGeometry icon_glyph;
-        PartGeometry icon_label;
         PartGeometry heading;
         PartGeometry text;
         PartGeometry progress;
@@ -220,9 +218,7 @@ public:
         PartGeometry button_divider;
         PartGeometry button_row;
         PartGeometry footnote_band;
-        PartGeometry footnote_plate;
-        PartGeometry footnote_glyph;
-        PartGeometry footnote_label;
+        PartGeometry footnote_icon;
         PartGeometry footnote;
         PartGeometry focus;
     };
@@ -261,8 +257,7 @@ private:
     [[nodiscard]] std::string cancel_button_id() const;
     [[nodiscard]] std::string default_button_id() const;
     [[nodiscard]] std::optional<std::size_t> button_index(std::string_view button_id) const noexcept;
-    void paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeometry& plate,
-                    const PartGeometry& glyph, const PartGeometry& label) const;
+    void paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeometry& place) const;
 
     TaskDialogPage page_{};
     std::vector<std::shared_ptr<Button>> buttons_{};

@@ -157,12 +157,12 @@ gui_forms::TaskDialog
    The dialog paints its own parts through the by-role paint path: the ``face``
    (card), the ``caption_band``, ``button_band`` and ``footnote_band`` (panel),
    the ``button_divider``, the ``expander_glyph`` (a disclosure chevron, open
-   while expanded) and the icons. The vocabulary has no information, warning,
-   error or shield mark and the library bundles no icon images, so a standard
-   icon is an accent ``icon_plate`` chip carrying the letter ``i``
-   (information) or ``!`` (warning) as its ``icon_label``, the ``close`` mark
-   (error) as its ``icon_glyph``, or nothing (shield); the footnote icon is drawn
-   the same way at a smaller size. A custom image in ``icon_image`` replaces the
+   while expanded) and the icons. A standard icon is a solid stock icon
+   (``information-circle``, ``exclamation-triangle``, ``x-circle`` or
+   ``shield-check``, the icons MessageBox's alerts use) in ``icon_image``, or
+   in ``footnote_icon`` at 16 units for the footnote, coloured by the panel's
+   glyph colour for the icon's state, so dark schemes, high contrast and a
+   theme's replacement follow. A custom image in ``icon_image`` replaces the
    standard icon. Text, buttons, radio buttons, the check box and the progress
    bar are child controls, published as composed parts. The dialog publishes
    the accessibility role ``dialog``, named by its caption or heading, and is

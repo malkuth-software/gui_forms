@@ -3111,10 +3111,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `edge` | edge |  |  |
 | `caption_band` | face |  |  |
 | `caption` | label |  |  |
-| `icon_plate` | chip |  |  |
 | `icon_image` | icon |  |  |
-| `icon_glyph` | glyph |  |  |
-| `icon_label` | label |  |  |
 | `heading` | label | `label` |  |
 | `text` | content | `label` |  |
 | `progress` | track | `progress_bar` |  |
@@ -3127,9 +3124,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `button_divider` | divider |  |  |
 | `button_row` | region | `button` |  |
 | `footnote_band` | face |  |  |
-| `footnote_plate` | chip |  |  |
-| `footnote_glyph` | glyph |  |  |
-| `footnote_label` | label |  |  |
+| `footnote_icon` | icon |  |  |
 | `footnote` | content | `label` |  |
 | `focus` | focus |  |  |
 

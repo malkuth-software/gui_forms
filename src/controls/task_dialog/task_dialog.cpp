@@ -3,7 +3,9 @@
 #include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/resources/stock_icons/stock_icons.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
@@ -25,7 +27,6 @@ constexpr double content_padding = 16.0;
 constexpr double caption_height = 28.0;
 constexpr double icon_size = 32.0;
 constexpr double icon_gap = 12.0;
-constexpr double icon_glyph_size = 14.0;
 constexpr double paragraph_gap = 8.0;
 constexpr double progress_height = 16.0;
 constexpr double radio_height = 24.0;
@@ -39,7 +40,6 @@ constexpr double button_text_padding = 24.0;
 constexpr double button_gap = 8.0;
 constexpr double band_padding = 12.0;
 constexpr double footnote_icon_size = 16.0;
-constexpr double footnote_glyph_size = 8.0;
 constexpr double footnote_padding = 10.0;
 constexpr double heading_size = 14.0;
 constexpr double footnote_size = 10.0;
@@ -76,37 +76,28 @@ bool valid_text(std::string_view text) {
     return result;
 }
 
-// The parts of one icon in `plate`: a standard icon is a chip with a mark or
-// a one-letter label; a custom image fills the plate's place.
-struct IconParts final {
-    PartGeometry plate{};
-    PartGeometry image{};
-    PartGeometry glyph{};
-    PartGeometry label{};
+// The stock icon that draws a standard icon, and the surface state whose
+// glyph colour it takes (the colours MessageBox's alert icons use).
+struct StandardIcon final {
+    std::string_view name{};
+    ControlSurfaceState surface{ControlSurfaceState::normal};
 };
 
-IconParts icon_parts(TaskDialogIcon icon, ImageId image, Rect plate, double glyph_side) {
-    IconParts parts;
-    if (image.value != 0U) {
-        parts.image = PartGeometry::from_bounds(plate);
-        return parts;
+StandardIcon standard_icon(TaskDialogIcon icon) noexcept {
+    switch (icon) {
+    case TaskDialogIcon::information:
+        return StandardIcon{stock_icon_information, ControlSurfaceState::normal};
+    case TaskDialogIcon::warning:
+        return StandardIcon{stock_icon_warning, ControlSurfaceState::pending};
+    case TaskDialogIcon::error:
+        return StandardIcon{"x-circle", ControlSurfaceState::invalid};
+    case TaskDialogIcon::shield:
+        return StandardIcon{"shield-check", ControlSurfaceState::normal};
+    case TaskDialogIcon::none:
+    default:
+        // Fallback: no icon, and a value outside the enumeration draws none.
+        return StandardIcon{};
     }
-    if (icon == TaskDialogIcon::none) return parts;
-    parts.plate = PartGeometry::from_bounds(plate);
-    if (icon == TaskDialogIcon::error) {
-        const Rect glyph{std::floor(plate.x + (plate.width - glyph_side) * 0.5),
-                         std::floor(plate.y + (plate.height - glyph_side) * 0.5), glyph_side, glyph_side};
-        parts.glyph = PartGeometry::from_bounds(glyph);
-    } else if (icon == TaskDialogIcon::information || icon == TaskDialogIcon::warning) {
-        parts.label = PartGeometry::from_bounds(plate);
-    }
-    return parts;
-}
-
-std::string_view icon_letter(TaskDialogIcon icon) noexcept {
-    if (icon == TaskDialogIcon::information) return "i";
-    if (icon == TaskDialogIcon::warning) return "!";
-    return {};
 }
 
 Rect bounds_union(Rect left, Rect right) noexcept {
@@ -641,12 +632,7 @@ TaskDialog::Layout TaskDialog::layout(double width) const {
     double text_x = inset;
     const bool has_icon = page_.icon != TaskDialogIcon::none || page_.icon_image.value != 0U;
     if (has_icon) {
-        const Rect plate{inset, y, icon_size * scale, icon_size * scale};
-        const IconParts icon = icon_parts(page_.icon, page_.icon_image, plate, icon_glyph_size * scale);
-        parts.icon_plate = icon.plate;
-        parts.icon_image = icon.image;
-        parts.icon_glyph = icon.glyph;
-        parts.icon_label = icon.label;
+        parts.icon_image = PartGeometry::from_bounds({inset, y, icon_size * scale, icon_size * scale});
         text_x = inset + (icon_size + icon_gap) * scale;
     }
     const double text_width = std::max(0.0, width - text_x - inset);
@@ -728,11 +714,7 @@ TaskDialog::Layout TaskDialog::layout(double width) const {
         const bool has_note_icon = page_.footnote_icon != TaskDialogIcon::none;
         if (has_note_icon) {
             const double side = footnote_icon_size * scale;
-            const IconParts icon = icon_parts(page_.footnote_icon, ImageId{}, {inset, y + note_inset, side, side},
-                                              footnote_glyph_size * scale);
-            parts.footnote_plate = icon.plate;
-            parts.footnote_glyph = icon.glyph;
-            parts.footnote_label = icon.label;
+            parts.footnote_icon = PartGeometry::from_bounds({inset, y + note_inset, side, side});
             note_x = inset + side + icon_gap * 0.5 * scale;
         }
         const double note_width = std::max(0.0, width - note_x - inset);
@@ -779,37 +761,19 @@ void TaskDialog::arrange(Rect final_bounds) {
 
 // -- paint ---------------------------------------------------------------------
 
-void TaskDialog::paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeometry& plate,
-                            const PartGeometry& glyph, const PartGeometry& label) const {
-    PartPaint part;
-    // Standard icons are an accent chip with a mark or a letter: the
-    // vocabulary has no information, warning, error or shield mark.
-    part.family = ControlVisualRole::accent_button;
-    part.font = text_font(font_);
-    if (plate.present) {
-        part.role = PartRole::chip;
-        part.bounds = plate.bounds;
-        part.corner_radius = plate.bounds.width * 0.5;
-        paint_part(painter, *this, part);
-        part.corner_radius.reset();
-    }
-    if (glyph.present) {
-        part.role = PartRole::glyph;
-        part.bounds = glyph.bounds;
-        part.mark = PartMark::close;
-        paint_part(painter, *this, part);
-        part.mark = PartMark::none;
-    }
-    if (label.present) {
-        part.role = PartRole::label;
-        part.bounds = label.bounds;
-        part.text = lend_paint_text(icon_letter(icon));
-        part.alignment = PartTextAlignment::center;
-        FontSpec letter = part.font;
-        letter.weight = 700;
-        part.font = letter;
-        paint_part(painter, *this, part);
-    }
+void TaskDialog::paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeometry& place) const {
+    // A standard icon is a solid stock icon in the panel's glyph colour for
+    // the icon's surface state (pending for a warning, invalid for an
+    // error), so dark schemes, high contrast and a theme's replacement
+    // follow.
+    if (!place.present) return;
+    const StandardIcon standard = standard_icon(icon);
+    if (standard.name.empty()) return;
+    ControlVisualContext context = visual_context();
+    if (context.surface != ControlSurfaceState::disabled) context.surface = standard.surface;
+    const Color colour = effective_theme().resolve(ControlVisualRole::panel, context).glyph;
+    const ImageId image = stock_icon_image(standard.name, StockIconStyle::solid);
+    paint_stock_icon(painter, *this, image, place.bounds, colour);
 }
 
 void TaskDialog::on_paint(Painter& painter, Rect) {
@@ -832,14 +796,15 @@ void TaskDialog::on_paint(Painter& painter, Rect) {
         paint_part(painter, *this, part);
         part.text = {};
     }
-    if (parts.icon_image.present) {
+    if (parts.icon_image.present && page_.icon_image.value != 0U) {
         part.role = PartRole::icon;
         part.bounds = parts.icon_image.bounds;
         part.image = page_.icon_image;
         paint_part(painter, *this, part);
         part.image = {};
+    } else {
+        paint_icon(painter, page_.icon, parts.icon_image);
     }
-    paint_icon(painter, page_.icon, parts.icon_plate, parts.icon_glyph, parts.icon_label);
     if (parts.expander_glyph.present) {
         part.role = PartRole::disclosure;
         part.bounds = parts.expander_glyph.bounds;
@@ -859,7 +824,7 @@ void TaskDialog::on_paint(Painter& painter, Rect) {
         part.role = PartRole::face;
         part.bounds = parts.footnote_band.bounds;
         paint_part(painter, *this, part);
-        paint_icon(painter, page_.footnote_icon, parts.footnote_plate, parts.footnote_glyph, parts.footnote_label);
+        paint_icon(painter, page_.footnote_icon, parts.footnote_icon);
     }
 }
 
@@ -887,7 +852,7 @@ namespace {
 
 constexpr std::array<AnatomyState, 1> expander_glyph_states{{AnatomyState::open}};
 
-constexpr std::array<PartField<TaskDialog::Parts>, 26> task_dialog_part_fields{{
+constexpr std::array<PartField<TaskDialog::Parts>, 21> task_dialog_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
      .member = &TaskDialog::Parts::region},
     {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}},
@@ -898,14 +863,8 @@ constexpr std::array<PartField<TaskDialog::Parts>, 26> task_dialog_part_fields{{
      .member = &TaskDialog::Parts::caption_band},
     {.declaration = {.name = "caption", .role = PartRole::label, .composed_from = {}},
      .member = &TaskDialog::Parts::caption},
-    {.declaration = {.name = "icon_plate", .role = PartRole::chip, .composed_from = {}},
-     .member = &TaskDialog::Parts::icon_plate},
     {.declaration = {.name = "icon_image", .role = PartRole::icon, .composed_from = {}},
      .member = &TaskDialog::Parts::icon_image},
-    {.declaration = {.name = "icon_glyph", .role = PartRole::glyph, .composed_from = {}},
-     .member = &TaskDialog::Parts::icon_glyph},
-    {.declaration = {.name = "icon_label", .role = PartRole::label, .composed_from = {}},
-     .member = &TaskDialog::Parts::icon_label},
     {.declaration = {.name = "heading", .role = PartRole::label, .composed_from = "label"},
      .member = &TaskDialog::Parts::heading},
     {.declaration = {.name = "text", .role = PartRole::content, .composed_from = "label"},
@@ -931,19 +890,15 @@ constexpr std::array<PartField<TaskDialog::Parts>, 26> task_dialog_part_fields{{
      .member = &TaskDialog::Parts::button_row},
     {.declaration = {.name = "footnote_band", .role = PartRole::face, .composed_from = {}},
      .member = &TaskDialog::Parts::footnote_band},
-    {.declaration = {.name = "footnote_plate", .role = PartRole::chip, .composed_from = {}},
-     .member = &TaskDialog::Parts::footnote_plate},
-    {.declaration = {.name = "footnote_glyph", .role = PartRole::glyph, .composed_from = {}},
-     .member = &TaskDialog::Parts::footnote_glyph},
-    {.declaration = {.name = "footnote_label", .role = PartRole::label, .composed_from = {}},
-     .member = &TaskDialog::Parts::footnote_label},
+    {.declaration = {.name = "footnote_icon", .role = PartRole::icon, .composed_from = {}},
+     .member = &TaskDialog::Parts::footnote_icon},
     {.declaration = {.name = "footnote", .role = PartRole::content, .composed_from = "label"},
      .member = &TaskDialog::Parts::footnote},
     {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
      .member = &TaskDialog::Parts::focus},
 }};
 
-constexpr std::array<PartDeclaration, 26> task_dialog_parts = part_declarations(task_dialog_part_fields);
+constexpr std::array<PartDeclaration, 21> task_dialog_parts = part_declarations(task_dialog_part_fields);
 constexpr std::array<AnatomyState, 5> task_dialog_states{
     AnatomyState::normal, AnatomyState::enabled, AnatomyState::disabled,
     AnatomyState::focused, AnatomyState::focus_visible,

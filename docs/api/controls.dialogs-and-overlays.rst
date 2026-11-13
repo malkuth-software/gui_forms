@@ -1227,13 +1227,9 @@ Related types
 
    .. cpp:member:: PartGeometry caption
 
-   .. cpp:member:: PartGeometry icon_plate
-
    .. cpp:member:: PartGeometry icon_image
 
-   .. cpp:member:: PartGeometry icon_glyph
-
-   .. cpp:member:: PartGeometry icon_label
+      The page's icon: its custom image, else its standard stock icon.
 
    .. cpp:member:: PartGeometry heading
 
@@ -1259,11 +1255,7 @@ Related types
 
    .. cpp:member:: PartGeometry footnote_band
 
-   .. cpp:member:: PartGeometry footnote_plate
-
-   .. cpp:member:: PartGeometry footnote_glyph
-
-   .. cpp:member:: PartGeometry footnote_label
+   .. cpp:member:: PartGeometry footnote_icon
 
    .. cpp:member:: PartGeometry footnote
 
