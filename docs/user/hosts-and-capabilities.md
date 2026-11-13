@@ -398,6 +398,41 @@ tree, including editable text ranges, through the platform's own API
 each host reads it back through that API (stage A). The headless adapter
 publishes nothing and does not advertise it.
 
+## File dialog settings
+
+`OpenFileDialog` and `SaveFileDialog` hold Windows Forms' settings and send
+them in their host requests (`HostOpenFileDialogRequest`,
+`HostSaveFileDialogRequest`); each host applies them to its own dialog.
+
+| Setting | Request field | macOS | Linux (X11) | Windows |
+| --- | --- | --- | --- | --- |
+| `initial_directory` | `initial_directory` | the panel's folder | the listing's folder | the dialog's folder |
+| `filter`, `filter_index` | `filters`, `initial_filter` | a filter menu | a filter box | file types |
+| `multiselect` | `allow_multiple` | yes | yes | yes |
+| `default_ext`, `add_extension` | `default_extension` | yes | yes | yes |
+| `overwrite_prompt` | `confirm_overwrite` | always asks (NSSavePanel) | asks | asks |
+| `check_file_exists` | `check_file_exists` | open: always on; save: told, shown again | refused, the dialog stays open | contract below |
+| `check_path_exists` | `check_path_exists` | always on | refused, the dialog stays open | contract below |
+| `create_prompt` (save) | `create_prompt` | asked, No shows the panel again | asked, No keeps the dialog open | contract below |
+
+The defaults are Windows Forms': opening checks that the file and its
+folder exist; saving checks the folder only and asks before replacing a
+file, not before creating one.
+
+What the Windows host must provide (the hand-back of these settings): the
+common item dialog's options follow the request instead of fixed flags.
+For `IFileOpenDialog`, `FOS_FILEMUSTEXIST` is set exactly when
+`check_file_exists` holds and `FOS_PATHMUSTEXIST` exactly when
+`check_path_exists` holds; with `check_file_exists` false a typed name of a
+missing file is returned as chosen. For `IFileSaveDialog`,
+`FOS_FILEMUSTEXIST` follows `check_file_exists`, `FOS_PATHMUSTEXIST`
+follows `check_path_exists`, and `FOS_CREATEPROMPT` is set exactly when
+`create_prompt` holds; `FOS_OVERWRITEPROMPT` keeps following
+`confirm_overwrite`. A name the dialog refuses never reaches the result:
+the shell keeps its dialog open, as the other hosts do. The existing
+`open_file_dialog_tests` and `save_file_dialog_tests` show what the
+component sends; a Windows host test shows each flag's effect.
+
 ## What stays portable
 
 Event order, focus and capture semantics, the close sequence, dialog request

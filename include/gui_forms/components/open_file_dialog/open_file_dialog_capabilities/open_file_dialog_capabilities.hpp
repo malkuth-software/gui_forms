@@ -106,6 +106,32 @@ struct OpenFileDialogFileNameCapability {
     }
 };
 
+// Whether the host accepts only files that exist (Windows Forms' CheckFileExists; on by default). Off, a typed name of a file that does not exist is accepted where the host can (the X11 dialog, Windows); macOS's open panel always requires an existing file.
+template <typename Declaring>
+struct OpenFileDialogCheckFileExistsCapability {
+    PropertyCell<bool, OpenFileDialogCheckFileExistsCapability<Declaring>> check_file_exists{true};
+
+    static void assign(OpenFileDialogCheckFileExistsCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.check_file_exists), incoming);
+        if (!capability.check_file_exists.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.check_file_exists));
+    }
+};
+
+// Whether the host accepts only names in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's open panel always requires one.
+template <typename Declaring>
+struct OpenFileDialogCheckPathExistsCapability {
+    PropertyCell<bool, OpenFileDialogCheckPathExistsCapability<Declaring>> check_path_exists{true};
+
+    static void assign(OpenFileDialogCheckPathExistsCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.check_path_exists), incoming);
+        if (!capability.check_path_exists.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.check_path_exists));
+    }
+};
+
 // Every OpenFileDialog capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct OpenFileDialogCapabilities : public OpenFileDialogTitleCapability<Declaring>,
@@ -113,6 +139,8 @@ struct OpenFileDialogCapabilities : public OpenFileDialogTitleCapability<Declari
                                     public OpenFileDialogFilterCapability<Declaring>,
                                     public OpenFileDialogFilterIndexCapability<Declaring>,
                                     public OpenFileDialogMultiselectCapability<Declaring>,
-                                    public OpenFileDialogFileNameCapability<Declaring> {};
+                                    public OpenFileDialogFileNameCapability<Declaring>,
+                                    public OpenFileDialogCheckFileExistsCapability<Declaring>,
+                                    public OpenFileDialogCheckPathExistsCapability<Declaring> {};
 
 } // namespace gui_forms

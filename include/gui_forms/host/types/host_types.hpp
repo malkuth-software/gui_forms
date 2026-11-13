@@ -343,6 +343,11 @@ struct GUI_FORMS_API HostOpenFileDialogRequest final {
     // The filter the dialog starts with, an index into `filters`; zero when
     // there are none.
     std::size_t initial_filter{};
+    // Windows Forms' CheckFileExists and CheckPathExists: accept only an
+    // existing file, and only a name in an existing folder. An adapter whose
+    // dialog always requires both (macOS's NSOpenPanel) ignores false.
+    bool check_file_exists{true};
+    bool check_path_exists{true};
 };
 
 struct GUI_FORMS_API HostSaveFileDialogRequest final {
@@ -355,6 +360,14 @@ struct GUI_FORMS_API HostSaveFileDialogRequest final {
     // The filter the dialog starts with, an index into `filters`; zero when
     // there are none.
     std::size_t initial_filter{};
+    // Windows Forms' CheckFileExists, CheckPathExists and CreatePrompt:
+    // accept only an existing file; accept only a name in an existing
+    // folder (macOS's NSSavePanel always requires one and ignores false);
+    // ask before accepting a file that does not exist yet. A refused name
+    // leaves the dialog open (or shows it again) with the name kept.
+    bool check_file_exists{};
+    bool check_path_exists{true};
+    bool create_prompt{};
 };
 
 struct GUI_FORMS_API HostFolderDialogRequest final {

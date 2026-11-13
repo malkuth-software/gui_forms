@@ -89,6 +89,11 @@ struct DialogState final {
   bool folder{};
   bool multiple{};
   bool confirm_overwrite{};
+  // The request's existence checks and create prompt (Windows Forms'
+  // CheckFileExists, CheckPathExists, CreatePrompt).
+  bool check_file_exists{true};
+  bool check_path_exists{true};
+  bool create_prompt{};
   std::string default_extension;
   std::uint32_t color{};
   bool allow_alpha{};
@@ -227,11 +232,31 @@ struct DialogState final {
       if (candidate.extension().empty() && !default_extension.empty())
         candidate += default_extension.front() == '.' ? default_extension
                                                       : "." + default_extension;
-      if (!std::filesystem::is_directory(candidate.parent_path(), error)) {
+      if (check_path_exists &&
+          !std::filesystem::is_directory(candidate.parent_path(), error)) {
         (*status).text = "The destination folder does not exist.";
         return;
       }
-      if (confirm_overwrite && std::filesystem::exists(candidate, error)) {
+      const bool exists = std::filesystem::exists(candidate, error);
+      if (!exists && check_file_exists) {
+        (*status).text = "Choose an existing file.";
+        return;
+      }
+      if (!exists && create_prompt) {
+        HostDialogRequest confirmation;
+        confirmation.request_id = request.request_id + 1;
+        confirmation.payload = HostMessageDialogRequest{
+            "Create file?",
+            candidate.filename().string() + " does not exist. Create it?",
+            HostMessageButtons::yes_no, HostMessageIcon::question,
+            HostDialogChoice::yes};
+        const HostDialogResult answer = retained_dialog(*native, confirmation);
+        const HostMessageDialogResult *message =
+            std::get_if<HostMessageDialogResult>(&answer.payload);
+        if (message == nullptr || (*message).choice != HostDialogChoice::yes)
+          return;
+      }
+      if (confirm_overwrite && exists) {
         HostDialogRequest confirmation;
         confirmation.request_id = request.request_id + 1;
         confirmation.payload = HostMessageDialogRequest{
@@ -253,10 +278,20 @@ struct DialogState final {
         for (std::size_t i = 0; i < selected.size(); ++i)
           if (selected[i] < entries.size() && !entries[selected[i]].directory)
             paths.push_back(entries[selected[i]].path.string());
-      } else if (std::filesystem::is_regular_file(candidate, error))
+      } else if (std::filesystem::is_regular_file(candidate, error)) {
         paths.push_back(candidate.string());
+      } else if (!check_file_exists && !(*name).text.read().empty() &&
+                 (!check_path_exists ||
+                  std::filesystem::is_directory(candidate.parent_path(),
+                                                error))) {
+        // A typed name of a file that does not exist, where the request
+        // allows one (CheckFileExists off).
+        paths.push_back(candidate.string());
+      }
       if (paths.empty()) {
-        (*status).text = "Choose an existing file.";
+        (*status).text = check_file_exists || (*name).text.read().empty()
+                             ? "Choose an existing file."
+                             : "The folder does not exist.";
         return;
       }
     }
@@ -479,6 +514,8 @@ HostDialogResult retained_dialog(NativeWindow &owner,
       state.filters = (*open).filters;
       state.initial_filter = (*open).initial_filter;
       state.multiple = (*open).allow_multiple;
+      state.check_file_exists = (*open).check_file_exists;
+      state.check_path_exists = (*open).check_path_exists;
     } else if (const HostSaveFileDialogRequest *save =
                    std::get_if<HostSaveFileDialogRequest>(&request.payload)) {
       state.save = true;
@@ -489,6 +526,9 @@ HostDialogResult retained_dialog(NativeWindow &owner,
       state.initial_filter = (*save).initial_filter;
       state.default_extension = (*save).default_extension;
       state.confirm_overwrite = (*save).confirm_overwrite;
+      state.check_file_exists = (*save).check_file_exists;
+      state.check_path_exists = (*save).check_path_exists;
+      state.create_prompt = (*save).create_prompt;
     } else if (const HostFolderDialogRequest *folder =
                    std::get_if<HostFolderDialogRequest>(&request.payload)) {
       state.folder = true;

@@ -97,6 +97,9 @@ private:
     friend struct SaveFileDialogAddExtensionCapability<SaveFileDialog>;
     friend struct SaveFileDialogOverwritePromptCapability<SaveFileDialog>;
     friend struct SaveFileDialogFileNameCapability<SaveFileDialog>;
+    friend struct SaveFileDialogCheckFileExistsCapability<SaveFileDialog>;
+    friend struct SaveFileDialogCheckPathExistsCapability<SaveFileDialog>;
+    friend struct SaveFileDialogCreatePromptCapability<SaveFileDialog>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(title)& cell, std::string& incoming);
     void written(const decltype(title)& cell);
@@ -114,6 +117,12 @@ private:
     void written(const decltype(overwrite_prompt)& cell);
     void write_view(const decltype(file_name)& cell, std::string incoming);
     [[nodiscard]] std::string read_view(const decltype(file_name)& cell) const;
+    void prepare_write(const decltype(check_file_exists)& cell, bool& incoming);
+    void written(const decltype(check_file_exists)& cell);
+    void prepare_write(const decltype(check_path_exists)& cell, bool& incoming);
+    void written(const decltype(check_path_exists)& cell);
+    void prepare_write(const decltype(create_prompt)& cell, bool& incoming);
+    void written(const decltype(create_prompt)& cell);
     // property_codemod end SaveFileDialog
 };
 

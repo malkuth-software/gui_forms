@@ -413,6 +413,31 @@ void schedule_test_alert_cancel(NSAlert* alert, bool enabled) {
     dispatch_async_f(dispatch_get_main_queue(), work, &cancel_alert_on_main);
 }
 
+// A save panel's chosen file that does not exist yet: with CheckFileExists
+// the user is told to choose an existing one (false); with CreatePrompt the
+// user is asked whether to create it (true for Yes). The panel is shown
+// again after false, with the name kept.
+bool accept_missing_file(NSURL* url, bool must_exist, bool cancel_for_testing) {
+    NSAlert* alert = [[NSAlert alloc] init];
+    NSString* const name = url.lastPathComponent != nil ? url.lastPathComponent : @"";
+    if (must_exist) {
+        alert.alertStyle = NSAlertStyleWarning;
+        alert.messageText = [NSString stringWithFormat:@"%@ does not exist.", name];
+        alert.informativeText = @"Choose an existing file.";
+        [alert addButtonWithTitle:@"OK"];
+        schedule_test_alert_cancel(alert, cancel_for_testing);
+        static_cast<void>([alert runModal]);
+        return false;
+    }
+    alert.messageText = [NSString stringWithFormat:@"%@ does not exist. Create it?", name];
+    [alert addButtonWithTitle:@"Yes"];
+    [alert addButtonWithTitle:@"No"];
+    schedule_test_alert_cancel(alert, cancel_for_testing);
+    const NSModalResponse response = [alert runModal];
+    const bool accepted = response == NSAlertFirstButtonReturn;
+    return accepted;
+}
+
 class AppKitHostServices final : public HostServices {
 public:
     explicit AppKitHostServices(const gui_forms::host::MacHostServiceOptions& options)
@@ -777,6 +802,9 @@ protected:
         if (const HostOpenFileDialogRequest* payload_pointer =
                 std::get_if<HostOpenFileDialogRequest>(&request.payload)) {
                 const HostOpenFileDialogRequest& payload = *payload_pointer;
+                // NSOpenPanel lets the user choose only existing files in
+                // existing folders: check_file_exists and check_path_exists
+                // false are the platform difference the request documents.
                 NSOpenPanel* panel = [NSOpenPanel openPanel];
                 panel.title = native_string(payload.title);
                 panel.directoryURL = native_directory_url(payload.initial_directory);
@@ -803,32 +831,50 @@ protected:
         if (const HostSaveFileDialogRequest* payload_pointer =
                 std::get_if<HostSaveFileDialogRequest>(&request.payload)) {
                 const HostSaveFileDialogRequest& payload = *payload_pointer;
-                NSSavePanel* panel = [NSSavePanel savePanel];
-                panel.title = native_string(payload.title);
-                panel.directoryURL = native_directory_url(payload.initial_directory);
-                panel.nameFieldStringValue = native_string(payload.suggested_name);
-                GuiFormsFileFilterSwitch* filter_switch = nil;
-                NSPopUpButton* popup = nil;
-                if (payload.filters.empty() && !payload.default_extension.empty()) {
-                    gui_forms::HostFileDialogFilter fallback;
-                    fallback.extensions.push_back(payload.default_extension);
-                    NSArray<UTType*>* types = native_allowed_types({fallback});
-                    if (types.count != 0) {
-                        panel.allowedContentTypes = types;
+                // NSSavePanel always requires an existing folder
+                // (check_path_exists) and asks before replacing a file.
+                // CheckFileExists and CreatePrompt are applied after the
+                // panel closes: a refused name shows a new panel in the
+                // folder chosen, with the name kept.
+                NSURL* directory = native_directory_url(payload.initial_directory);
+                NSString* name = native_string(payload.suggested_name);
+                for (;;) {
+                    NSSavePanel* panel = [NSSavePanel savePanel];
+                    panel.title = native_string(payload.title);
+                    panel.directoryURL = directory;
+                    panel.nameFieldStringValue = name;
+                    GuiFormsFileFilterSwitch* filter_switch = nil;
+                    NSPopUpButton* popup = nil;
+                    if (payload.filters.empty() && !payload.default_extension.empty()) {
+                        gui_forms::HostFileDialogFilter fallback;
+                        fallback.extensions.push_back(payload.default_extension);
+                        NSArray<UTType*>* types = native_allowed_types({fallback});
+                        if (types.count != 0) {
+                            panel.allowedContentTypes = types;
+                        }
+                    } else {
+                        popup = file_filter_popup(panel, payload.filters, payload.initial_filter, &filter_switch);
                     }
-                } else {
-                    popup = file_filter_popup(panel, payload.filters, payload.initial_filter, &filter_switch);
+                    schedule_test_panel_cancel(panel, cancel_dialogs_for_testing_);
+                    const NSModalResponse response = [panel runModal];
+                    // The switch was kept for the run; it stops observing now.
+                    filter_switch.panel = nil;
+                    NSURL* const chosen = panel.URL;
+                    NSArray<NSURL*>* urls = chosen == nil ? @[] : @[chosen];
+                    HostPathDialogResult value = native_path_result(response, urls);
+                    const bool checked = payload.check_file_exists || payload.create_prompt;
+                    if (value.outcome == HostDialogOutcome::accepted && checked && chosen != nil &&
+                        ![[NSFileManager defaultManager] fileExistsAtPath:chosen.path] &&
+                        !accept_missing_file(chosen, payload.check_file_exists, cancel_dialogs_for_testing_)) {
+                        directory = chosen.URLByDeletingLastPathComponent;
+                        name = chosen.lastPathComponent != nil ? chosen.lastPathComponent : @"";
+                        continue;
+                    }
+                    if (value.outcome == HostDialogOutcome::accepted) {
+                        value.chosen_filter = chosen_file_filter(popup, payload.filters.size());
+                    }
+                    return {{}, request.request_id, std::move(value)};
                 }
-                schedule_test_panel_cancel(panel, cancel_dialogs_for_testing_);
-                const NSModalResponse response = [panel runModal];
-                // The switch was kept for the run; it stops observing now.
-                filter_switch.panel = nil;
-                NSArray<NSURL*>* urls = panel.URL == nil ? @[] : @[panel.URL];
-                HostPathDialogResult value = native_path_result(response, urls);
-                if (value.outcome == HostDialogOutcome::accepted) {
-                    value.chosen_filter = chosen_file_filter(popup, payload.filters.size());
-                }
-                return {{}, request.request_id, std::move(value)};
         }
         if (const HostFolderDialogRequest* payload_pointer =
                 std::get_if<HostFolderDialogRequest>(&request.payload)) {

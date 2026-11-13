@@ -96,6 +96,8 @@ private:
     friend struct OpenFileDialogFilterIndexCapability<OpenFileDialog>;
     friend struct OpenFileDialogMultiselectCapability<OpenFileDialog>;
     friend struct OpenFileDialogFileNameCapability<OpenFileDialog>;
+    friend struct OpenFileDialogCheckFileExistsCapability<OpenFileDialog>;
+    friend struct OpenFileDialogCheckPathExistsCapability<OpenFileDialog>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(title)& cell, std::string& incoming);
     void written(const decltype(title)& cell);
@@ -109,6 +111,10 @@ private:
     void written(const decltype(multiselect)& cell);
     void write_view(const decltype(file_name)& cell, std::string incoming);
     [[nodiscard]] std::string read_view(const decltype(file_name)& cell) const;
+    void prepare_write(const decltype(check_file_exists)& cell, bool& incoming);
+    void written(const decltype(check_file_exists)& cell);
+    void prepare_write(const decltype(check_path_exists)& cell, bool& incoming);
+    void written(const decltype(check_path_exists)& cell);
     // property_codemod end OpenFileDialog
 };
 

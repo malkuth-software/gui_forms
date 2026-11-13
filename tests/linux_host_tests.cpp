@@ -371,6 +371,95 @@ void dialog(Runtime &runtime, NativeWindow &window,
       "Retained file dialog returned wrong path");
   wait_child(runtime, child);
 }
+// One key a peer process sends to the window titled `title` once it shows.
+struct PeerKey final {
+  const char *title;
+  KeySym symbol;
+};
+// Shows `request` while a peer sends `keys` in order; returns the result.
+HostDialogResult dialog_with_keys(Runtime &runtime, NativeWindow &window,
+                                  const HostDialogRequest &request,
+                                  const std::vector<PeerKey> &keys) {
+  const pid_t child = fork();
+  require(child >= 0, "Cannot fork dialog peer");
+  if (child == 0) {
+    try {
+      Peer peer;
+      for (const PeerKey &step : keys) {
+        ::Window target = 0;
+        for (unsigned i = 0; i < 300 && target == 0; ++i) {
+          target = find_window(peer.display, DefaultRootWindow(peer.display),
+                               step.title);
+          if (target == 0)
+            usleep(10000);
+        }
+        require(target != 0, "Dialog step window did not appear");
+        usleep(50000);
+        peer.key(target, step.symbol);
+        usleep(100000);
+      }
+      child_result(true);
+    } catch (const std::exception &error) {
+      std::cerr << error.what() << '\n';
+      child_result(false);
+    }
+  }
+  const HostDialogResult result = (*window.services).show_dialog(request);
+  wait_child(runtime, child);
+  return result;
+}
+// The portable file dialog settings the X11 dialog applies: CheckFileExists
+// off accepts a typed missing file; CheckFileExists on refuses one in a save
+// dialog, which stays open until cancelled; CreatePrompt asks before a new
+// file is accepted.
+void dialog_checks(Runtime &runtime, NativeWindow &window,
+                   const std::string &directory) {
+  constexpr const char *title = "GUI.Forms service test";
+  HostDialogRequest open_request;
+  open_request.request_id = 3;
+  HostOpenFileDialogRequest open;
+  open.title = title;
+  open.initial_directory = directory;
+  open.suggested_name = "missing.txt";
+  open.check_file_exists = false;
+  open_request.payload = open;
+  HostDialogResult result =
+      dialog_with_keys(runtime, window, open_request, {{title, XK_Return}});
+  const HostPathDialogResult *paths =
+      std::get_if<HostPathDialogResult>(&result.payload);
+  require(paths != nullptr && (*paths).outcome == HostDialogOutcome::accepted &&
+              (*paths).paths ==
+                  std::vector<std::string>{directory + "/missing.txt"},
+          "CheckFileExists off must accept a typed missing file");
+
+  HostDialogRequest must_exist;
+  must_exist.request_id = 5;
+  HostSaveFileDialogRequest save;
+  save.title = title;
+  save.initial_directory = directory;
+  save.suggested_name = "absent.txt";
+  save.check_file_exists = true;
+  must_exist.payload = save;
+  result = dialog_with_keys(runtime, window, must_exist,
+                            {{title, XK_Return}, {title, XK_Escape}});
+  paths = std::get_if<HostPathDialogResult>(&result.payload);
+  require(paths != nullptr && (*paths).outcome == HostDialogOutcome::cancelled,
+          "CheckFileExists on must refuse a missing file and keep the dialog open");
+
+  HostDialogRequest prompt;
+  prompt.request_id = 7;
+  save.check_file_exists = false;
+  save.create_prompt = true;
+  save.suggested_name = "created.txt";
+  prompt.payload = save;
+  result = dialog_with_keys(runtime, window, prompt,
+                            {{title, XK_Return}, {"Create file?", XK_Return}});
+  paths = std::get_if<HostPathDialogResult>(&result.payload);
+  require(paths != nullptr && (*paths).outcome == HostDialogOutcome::accepted &&
+              (*paths).paths ==
+                  std::vector<std::string>{directory + "/created.txt"},
+          "CreatePrompt must ask, and Yes accept the new file");
+}
 } // namespace
 // The frame sequence (stage DP): an opaque live frame is drawn into the
 // raster directly, and an overlay above a changed frame keeps its pixels
@@ -1018,6 +1107,7 @@ int main() {
     std::ofstream(directory + "/existing.png").put('x');
     dialog(runtime, *window, directory, false);
     dialog(runtime, *window, directory, true);
+    dialog_checks(runtime, *window, directory);
     std::filesystem::remove_all(directory);
     live_frame_sequence(runtime);
     damage_rectangles_gate(runtime);
