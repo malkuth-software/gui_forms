@@ -321,6 +321,8 @@ public static class Constants
     public const uint GF_SHADOW_STACK_CAPACITY = 64u;
     public const uint GF_FAILURE_SITE_CAPACITY = 64u;
     public const uint GF_FAILURE_MESSAGE_CAPACITY = 512u;
+    public const uint GF_FAILURE_TYPE_CAPACITY = 256u;
+    public const uint GF_FAILURE_TRACE_CAPACITY = 32u;
     public const uint GF_SCROLL_ORIENTATION_HORIZONTAL = 0u;
     public const uint GF_SCROLL_ORIENTATION_VERTICAL = 1u;
     public const uint GF_TEXT_INK_ROLE_TEXT = 0u;

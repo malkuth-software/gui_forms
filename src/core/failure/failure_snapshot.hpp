@@ -36,6 +36,10 @@ namespace gui_forms::detail {
 // are cut at the last whole UTF-8 sequence that fits.
 inline constexpr std::size_t failure_site_capacity = 64U;
 inline constexpr std::size_t failure_snapshot_message_capacity = 512U;
+// The bytes a snapshot keeps of the exception's type and the return
+// addresses of the trace at the throw (C ABI 1.4, gf_failure_detail).
+inline constexpr std::size_t failure_type_capacity = 256U;
+inline constexpr std::size_t failure_trace_capacity = 32U;
 
 // The status a snapshot of the fail-fast boundary records: the C ABI's
 // GF_STATUS_NATIVE_EXCEPTION (the ABI checks the two agree).
@@ -50,7 +54,10 @@ inline constexpr std::string_view c_abi_failure_site = "c_abi";
 // depth counts the frames open where the exception was thrown; frame_count
 // (at most shadow_stack_capacity) the recorded ones, the leading elements of
 // frames. The text arrays hold site_size and message_size bytes; the bytes
-// past them are zero.
+// past them are zero. In a development build of STXlib, type holds the
+// exception's demangled type (type_size bytes) and trace the trace_count
+// return addresses at the throw, innermost first (survey S4 = 1); both are
+// empty in a release build and for a failure without an exception.
 struct GUI_FORMS_API FailureSnapshot final {
     std::int32_t status = 0;
     std::uint32_t interface_id = 0U;
@@ -63,6 +70,10 @@ struct GUI_FORMS_API FailureSnapshot final {
     std::array<char, failure_site_capacity> site{};
     std::array<char, failure_snapshot_message_capacity> message{};
     std::array<ShadowFrame, shadow_stack_capacity> frames{};
+    std::uint32_t type_size = 0U;
+    std::uint32_t trace_count = 0U;
+    std::array<char, failure_type_capacity> type{};
+    std::array<std::uint64_t, failure_trace_capacity> trace{};
 };
 
 // Where a snapshot is taken: the boundary's site and status, and the C ABI
@@ -74,13 +85,14 @@ struct GUI_FORMS_API FailureBoundary final {
     std::uint32_t function_index = 0U;
 };
 
-// Replaces the calling thread's snapshot with message at boundary and the
-// frames of shadow, the shadow record a gate attached to the failure's
-// ErrorRecord (no frames when it is not present). Any time after the gate
-// returned, on the gate's thread, while the record is among the thread's
-// last stxlib::shadow_record_capacity. status must not be zero.
+// Replaces the calling thread's snapshot with message at boundary and what
+// record, a gate's ErrorRecord, carries: the frames, the trace and the
+// exception's type of its shadow record (no frames when it has none). Any
+// time after the gate returned, on the gate's thread, while the record's
+// shadow record is among the thread's last stxlib::shadow_record_capacity.
+// status must not be zero.
 GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std::string_view message,
-                                           stxlib::ShadowReference shadow) noexcept;
+                                           const stxlib::ErrorRecord& record) noexcept;
 
 // Replaces the calling thread's snapshot with message at boundary and the
 // failure's shadow frames, for a handler that is not a gate: to be called

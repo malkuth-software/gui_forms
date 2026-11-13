@@ -31,6 +31,15 @@ constexpr SlotIdentity failure_snapshot_slot{GF_TABLE_DIAGNOSTICS, 3U};
 constexpr SlotIdentity set_exception_reflection_slot{GF_TABLE_DIAGNOSTICS, 5U};
 constexpr SlotIdentity exception_reflection_slot{GF_TABLE_DIAGNOSTICS, 6U};
 constexpr SlotIdentity raise_native_exception_slot{GF_TABLE_DIAGNOSTICS, 7U};
+constexpr SlotIdentity failure_detail_slot{GF_TABLE_DIAGNOSTICS, 8U};
+
+// The 1.4 failure detail record; its capacities are the core snapshot's.
+constexpr std::uint32_t failure_detail_size_1_4 = 536U;
+static_assert(sizeof(gf_failure_detail) == failure_detail_size_1_4);
+static_assert(GF_FAILURE_TYPE_CAPACITY == detail::failure_type_capacity);
+static_assert(GF_FAILURE_TRACE_CAPACITY == detail::failure_trace_capacity);
+static_assert(sizeof(gf_failure_detail{}.type) == detail::failure_type_capacity);
+static_assert(sizeof(gf_failure_detail{}.trace) / sizeof(std::uint64_t) == detail::failure_trace_capacity);
 
 // The 1.2 snapshot record.
 constexpr std::uint32_t failure_snapshot_size_1_2 = 104U;
@@ -213,6 +222,30 @@ gf_status GF_CALL diagnostics_raise_native_exception(gf_utf8_view message) noexc
     return call_slot(raise_native_exception_slot, raise_native_exception_body, text);
 }
 
+// Copies the thread's failure detail out. Opens no frame of its own.
+gf_status GF_CALL diagnostics_failure_detail(gf_failure_detail* output) noexcept {
+    const gf_status checked = check_record(output, failure_detail_slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    // The thread's own storage, read on its thread.
+    const detail::FailureSnapshot& source = detail::thread_failure_snapshot();
+    gf_failure_detail complete{};
+    complete.struct_size = sizeof(gf_failure_detail);
+    complete.status = source.status;
+    complete.sequence = source.status == 0 ? 0U : source.sequence;
+    if (source.status != 0) {
+        complete.type_size = source.type_size;
+        complete.trace_count = source.trace_count;
+        std::memcpy(complete.type, source.type.data(), source.type.size());
+        for (std::uint32_t index = 0U; index < source.trace_count; ++index) {
+            complete.trace[index] = source.trace[index];
+        }
+    }
+    write_record(complete, output);
+    return GF_STATUS_OK;
+}
+
 constexpr gf_diagnostics_table table{
     .struct_size = sizeof(gf_diagnostics_table),
     .abi_minor = GF_ABI_MINOR,
@@ -224,6 +257,7 @@ constexpr gf_diagnostics_table table{
     .set_exception_reflection = &diagnostics_set_exception_reflection,
     .exception_reflection = &diagnostics_exception_reflection,
     .raise_native_exception = &diagnostics_raise_native_exception,
+    .failure_detail = &diagnostics_failure_detail,
 };
 
 } // namespace

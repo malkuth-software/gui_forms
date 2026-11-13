@@ -21,6 +21,7 @@
 #include <stxlib/error.hpp>
 #include <stxlib/gate.hpp>
 #include <stxlib/result.hpp>
+#include <stxlib/shadow.hpp>
 
 #include <array>
 #include <cstddef>
@@ -332,7 +333,7 @@ void test_gate_failure_snapshot() {
 
     const std::uint64_t before = detail::thread_failure_snapshot().sequence;
     const detail::FailureBoundary boundary{"c_abi", 13, 10U, 7U};
-    detail::record_failure_snapshot(boundary, "thrown two frames deep", record.shadow());
+    detail::record_failure_snapshot(boundary, "thrown two frames deep", record);
     const detail::FailureSnapshot& snapshot = detail::thread_failure_snapshot();
     require(snapshot.sequence == before + 1U && snapshot.status == 13, "the gate's failure is a snapshot");
     require(snapshot.frame_count == 3U && snapshot.depth == 3U, "the snapshot holds the gate's frame and two more");
@@ -345,10 +346,22 @@ void test_gate_failure_snapshot() {
                 subject_of(snapshot.frames[2]) == "button.ok",
             "the innermost frame is the one the exception was thrown in");
 
-    const stxlib::ShadowReference none{};
-    detail::record_failure_snapshot(boundary, "no record", none);
-    require(detail::thread_failure_snapshot().frame_count == 0U && detail::thread_failure_snapshot().depth == 0U,
-            "a failure with no shadow record has no frames");
+    // The development detail (survey S4): the exception's type and the
+    // trace at the throw, when STXlib keeps them.
+    if (stxlib::shadowing_enabled()) {
+        const std::string_view type(snapshot.type.data(), snapshot.type_size);
+        require(type.find("runtime_error") != std::string_view::npos, "the snapshot names the exception's type");
+        require(snapshot.trace_count != 0U && snapshot.trace[0] != 0U, "the snapshot keeps the trace at the throw");
+    } else {
+        require(snapshot.type_size == 0U && snapshot.trace_count == 0U, "a release build keeps no type or trace");
+    }
+
+    const stxlib::ErrorRecord unshadowed =
+        stxlib::ErrorRecord::make(stxlib::ErrorKind::internal_failure, stxlib::Operation("test.unshadowed"));
+    detail::record_failure_snapshot(boundary, "no record", unshadowed);
+    require(detail::thread_failure_snapshot().frame_count == 0U && detail::thread_failure_snapshot().depth == 0U &&
+                detail::thread_failure_snapshot().type_size == 0U && detail::thread_failure_snapshot().trace_count == 0U,
+            "a failure with no shadow record has no frames, type or trace");
     detail::clear_failure_snapshot();
 }
 

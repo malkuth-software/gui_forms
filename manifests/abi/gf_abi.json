@@ -1592,6 +1592,16 @@
       "type": "uint32"
     },
     {
+      "name": "GF_FAILURE_TYPE_CAPACITY",
+      "value": 256,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_FAILURE_TRACE_CAPACITY",
+      "value": 32,
+      "type": "uint32"
+    },
+    {
       "name": "GF_SCROLL_ORIENTATION_HORIZONTAL",
       "value": 0,
       "type": "uint32"
@@ -7993,9 +8003,59 @@
       ]
     },
     {
+      "name": "gf_failure_detail",
+      "kind": "extensible",
+      "size": 536,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "status",
+          "type": "gf_status",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "sequence",
+          "type": "uint64_t",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "type_size",
+          "type": "uint32_t",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "trace_count",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "type",
+          "type": "uint8_t[256]",
+          "offset": 24,
+          "size": 256
+        },
+        {
+          "name": "trace",
+          "type": "uint64_t[32]",
+          "offset": 280,
+          "size": 256
+        }
+      ]
+    },
+    {
       "name": "gf_diagnostics_table",
       "kind": "table",
-      "size": 72,
+      "size": 80,
       "align": 8,
       "fields": [
         {
@@ -8168,6 +8228,22 @@
             ]
           },
           "since": "1.2"
+        },
+        {
+          "name": "failure_detail",
+          "type": "function",
+          "offset": 72,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "detail",
+                "type": "gf_failure_detail*"
+              }
+            ]
+          },
+          "since": "1.4"
         }
       ]
     },

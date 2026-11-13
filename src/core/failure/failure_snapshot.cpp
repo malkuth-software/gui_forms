@@ -4,7 +4,12 @@
 
 #include "../diagnostics/shadow_frames/shadow_frame_records.hpp"
 
+#include <stxlib/shadow.hpp>
+#include <stxlib/text_view.hpp>
+#include <stxlib/view.hpp>
+
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -48,9 +53,11 @@ std::uint32_t copy_text(std::string_view text, std::array<char, Capacity>& field
     return static_cast<std::uint32_t>(size);
 }
 
-// Fills everything but the frames, which the caller has written.
+// Fills everything but the frames and the trace, which the caller has
+// written.
 void fill_snapshot(FailureSnapshot& snapshot, const FailureBoundary& boundary, const std::string_view message,
-                   const std::size_t recorded, const std::uint32_t depth) noexcept {
+                   const std::size_t recorded, const std::uint32_t depth, const std::size_t trace_count,
+                   const std::string_view type) noexcept {
     snapshot.status = boundary.status;
     snapshot.interface_id = boundary.interface_id;
     snapshot.function_index = boundary.function_index;
@@ -59,22 +66,46 @@ void fill_snapshot(FailureSnapshot& snapshot, const FailureBoundary& boundary, c
     snapshot.depth = depth;
     snapshot.site_size = copy_text(boundary.site, snapshot.site);
     snapshot.message_size = copy_text(message, snapshot.message);
+    snapshot.trace_count = static_cast<std::uint32_t>(std::min<std::size_t>(trace_count, failure_trace_capacity));
+    for (std::size_t index = snapshot.trace_count; index < snapshot.trace.size(); ++index) {
+        snapshot.trace[index] = 0U;
+    }
+    snapshot.type_size = copy_text(type, snapshot.type);
 }
 
 } // namespace
 
 void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message,
-                             const stxlib::ShadowReference shadow) noexcept {
+                             const stxlib::ErrorRecord& record) noexcept {
     FailureSnapshot& snapshot = thread_snapshot;
-    const RecordFrames read = copy_record_frames(shadow, std::span<ShadowFrame>(snapshot.frames));
-    fill_snapshot(snapshot, boundary, message, read.recorded, read.depth);
+    const RecordFrames read = copy_record_frames(record.shadow(), std::span<ShadowFrame>(snapshot.frames),
+                                                 std::span<std::uint64_t>(snapshot.trace));
+    // Demangled here, when the failure is filed, never at the capture
+    // (exception_type_for_display: one __cxa_demangle call, which allocates
+    // and frees its result). The view borrows type_storage or record.
+    std::array<char, stxlib::exception_type_display_capacity> type_storage{};
+    const stxlib::MutableView<char> type_output(type_storage.data(), type_storage.size());
+    const stxlib::TextView type = stxlib::exception_type_for_display(record, type_output);
+    const std::string_view type_text(type.data(), type.count());
+    fill_snapshot(snapshot, boundary, message, read.recorded, read.depth, read.trace_count, type_text);
 }
 
 void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message) noexcept {
     FailureSnapshot& snapshot = thread_snapshot;
+    // The frames open now, in case no capture is pending.
     ShadowStackState state{};
-    const std::size_t recorded = copy_failure_shadow_frames(std::span<ShadowFrame>(snapshot.frames), state);
-    fill_snapshot(snapshot, boundary, message, recorded, state.depth);
+    std::size_t recorded = copy_shadow_frames(std::span<ShadowFrame>(snapshot.frames), state);
+    std::uint32_t depth = state.depth;
+    std::size_t trace_count = 0U;
+    const stxlib::ShadowReference parked = stxlib::park_shadow();
+    if (parked.present()) {
+        const RecordFrames read = copy_record_frames(parked, std::span<ShadowFrame>(snapshot.frames),
+                                                     std::span<std::uint64_t>(snapshot.trace));
+        recorded = read.recorded;
+        depth = read.depth;
+        trace_count = read.trace_count;
+    }
+    fill_snapshot(snapshot, boundary, message, recorded, depth, trace_count, std::string_view{});
 }
 
 void record_failure_snapshot(const FailureBoundary& boundary, const std::exception_ptr failure) noexcept {
@@ -110,6 +141,10 @@ void clear_failure_snapshot() noexcept {
     snapshot.message_size = 0U;
     snapshot.site.fill('\0');
     snapshot.message.fill('\0');
+    snapshot.type_size = 0U;
+    snapshot.trace_count = 0U;
+    snapshot.type.fill('\0');
+    snapshot.trace.fill(0U);
 }
 
 void set_exception_reflection(const bool enabled) noexcept {

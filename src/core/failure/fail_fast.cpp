@@ -330,7 +330,7 @@ void report_fail_fast(void* const context, const stxlib::ErrorRecord& record) no
     const std::string_view message = take_fail_fast_message(record);
     const FailureBoundary boundary{site, failure_native_exception_status, 0U, 0U};
     if (record.shadow().present()) {
-        record_failure_snapshot(boundary, message, record.shadow());
+        record_failure_snapshot(boundary, message, record);
     } else {
         // No shadow record (fail_fast without an exception, or a build that
         // keeps none): the frames open now.

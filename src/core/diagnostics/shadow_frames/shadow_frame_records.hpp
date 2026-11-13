@@ -31,17 +31,21 @@ namespace gui_forms::detail {
 [[nodiscard]] GUI_FORMS_API stxlib::TextView well_formed_text(std::string_view text) noexcept;
 
 // What copy_record_frames read: the frames the record holds (which may
-// exceed the number copied) and the depth at the capture, recorded or not.
+// exceed the number copied), the depth at the capture, recorded or not, and
+// the return addresses copied into the trace.
 struct RecordFrames final {
     std::size_t recorded = 0U;
     std::uint32_t depth = 0U;
+    std::size_t trace_count = 0U;
 };
 
 // Copies the frames of the calling thread's shadow record reference into
-// the leading elements of frames, outermost first. A reference that is not
-// present, or that the thread has overwritten, reads as no frames. Never
-// throws or allocates.
+// the leading elements of frames, outermost first, and its native trace
+// (development builds) into the leading elements of trace, innermost first.
+// A reference that is not present, or that the thread has overwritten,
+// reads as nothing. Never throws or allocates.
 [[nodiscard]] GUI_FORMS_API RecordFrames copy_record_frames(stxlib::ShadowReference reference,
-                                                            std::span<ShadowFrame> frames) noexcept;
+                                                            std::span<ShadowFrame> frames,
+                                                            std::span<std::uint64_t> trace) noexcept;
 
 } // namespace gui_forms::detail

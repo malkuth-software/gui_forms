@@ -292,12 +292,55 @@ static void failure_snapshots(gf_kit* kit) {
     gf_kit_status(kit, (*kit).diagnostics.clear_failure_snapshot(), GF_STATUS_OK, "clear the failure snapshot again");
 }
 
+/* The failure detail (since 1.4, survey S4): the snapshot's exception type
+ * and trace, which a development build of the library keeps and a release
+ * build leaves empty; status and sequence are the snapshot's. */
+static int text_contains(const uint8_t* text, uint32_t size, const char* part) {
+    const size_t part_size = strlen(part);
+    if (part_size > size) return 0;
+    for (size_t start = 0u; start + part_size <= size; ++start) {
+        if (memcmp(text + start, part, part_size) == 0) return 1;
+    }
+    return 0;
+}
+
+static void failure_detail(gf_kit* kit) {
+    if ((*kit).diagnostics.struct_size < 80u) return;
+    gf_failure_detail detail;
+    memset(&detail, 0, sizeof(detail));
+    detail.struct_size = (uint32_t)sizeof(detail);
+    gf_kit_status(kit, (*kit).diagnostics.failure_detail(NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "failure_detail needs an output");
+    gf_kit_status(kit, (*kit).diagnostics.clear_failure_snapshot(), GF_STATUS_OK, "clear for the detail");
+    gf_kit_status(kit, (*kit).diagnostics.failure_detail(&detail), GF_STATUS_OK, "read an empty failure detail");
+    gf_kit_check(kit, detail.status == GF_STATUS_OK && detail.sequence == 0u && detail.type_size == 0u &&
+                          detail.trace_count == 0u,
+                 "a cleared thread has no failure detail");
+
+    gf_kit_status(kit, (*kit).diagnostics.raise_native_exception(gf_kit_text("kit detail failure")),
+                  GF_STATUS_INTERNAL, "a native exception for the detail");
+    snapshot_read read;
+    read_snapshot(kit, &read);
+    memset(&detail, 0, sizeof(detail));
+    detail.struct_size = (uint32_t)sizeof(detail);
+    gf_kit_status(kit, (*kit).diagnostics.failure_detail(&detail), GF_STATUS_OK, "read the failure detail");
+    gf_kit_check(kit, detail.status == GF_STATUS_INTERNAL && detail.sequence == read.snapshot.sequence,
+                 "the detail is the snapshot's failure");
+    gf_kit_check(kit, detail.type_size <= GF_FAILURE_TYPE_CAPACITY && detail.trace_count <= GF_FAILURE_TRACE_CAPACITY,
+                 "the detail's sizes fit its fields");
+    gf_kit_check(kit, detail.type_size == 0u || text_contains(detail.type, detail.type_size, "runtime_error"),
+                 "a kept type names the exception's type");
+    gf_kit_check(kit, detail.trace_count == 0u || detail.trace[0] != 0u, "a kept trace holds addresses");
+    gf_kit_status(kit, (*kit).diagnostics.clear_failure_snapshot(), GF_STATUS_OK, "clear after the detail");
+}
+
 void gf_kit_diagnostics(gf_kit* kit) {
     outside(kit);
     invalidation_overlay(kit);
     in_event(kit);
     in_posted(kit);
     failure_snapshots(kit);
+    failure_detail(kit);
     uint64_t required = 9u;
     gf_shadow_stack_info info = stack_info();
     gf_kit_status(kit, (*kit).diagnostics.shadow_frames(NULL, 0u, &required, &info), GF_STATUS_OK,

@@ -2168,6 +2168,36 @@ typedef struct gf_failure_snapshot {
     uint8_t site[64];
 } gf_failure_snapshot;
 
+/*
+ * Failure detail (since 1.4): what a development build of the library knows
+ * of the failure in the thread's snapshot beyond its frames, for a binding
+ * to attach to its language's exception (GuiFormsException's native detail
+ * in the C# binding). type holds type_size bytes of UTF-8 naming the
+ * exception's C++ type, demangled where the runtime can ("std::runtime_error"),
+ * not terminated, the bytes after it zero; trace holds trace_count return
+ * addresses of the native stack where the exception was thrown, innermost
+ * first, as numbers in this process (a symbolizer reads them against the
+ * process's module map). A release build of the library records neither:
+ * type_size and trace_count are zero. status and sequence are the
+ * snapshot's, so a binding can tell that the detail is its failure's.
+ */
+#define GF_FAILURE_TYPE_CAPACITY 256u
+#define GF_FAILURE_TRACE_CAPACITY 32u
+
+/* The calling thread's last failure detail. An output record, as
+ * gf_abi_version_info. */
+typedef struct gf_failure_detail {
+    uint32_t struct_size;
+    gf_status status;
+    uint64_t sequence;
+    uint32_t type_size;
+    uint32_t trace_count;
+    /* GF_FAILURE_TYPE_CAPACITY bytes. */
+    uint8_t type[256];
+    /* GF_FAILURE_TRACE_CAPACITY addresses. */
+    uint64_t trace[32];
+} gf_failure_detail;
+
 typedef struct gf_diagnostics_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -2235,6 +2265,15 @@ typedef struct gf_diagnostics_table {
      * not UTF-8 or too long.
      */
     gf_status (GF_CALL* raise_native_exception)(gf_utf8_view message);
+    /*
+     * Since 1.4. Copies the calling thread's last failure detail (the
+     * snapshot's exception type and native trace) into detail. A thread
+     * with no snapshot reads status GF_STATUS_OK, sequence zero and nothing
+     * else. The detail stays and is forgotten with the snapshot
+     * (clear_failure_snapshot). GF_STATUS_INVALID_ARGUMENT for a null
+     * detail or one smaller than its 1.4 size.
+     */
+    gf_status (GF_CALL* failure_detail)(gf_failure_detail* detail);
 } gf_diagnostics_table;
 
 /*

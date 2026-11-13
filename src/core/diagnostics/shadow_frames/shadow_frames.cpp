@@ -79,16 +79,18 @@ ShadowFrame frame_of_record(const stxlib::ShadowFrameRecord& record) noexcept {
     return frame;
 }
 
-RecordFrames copy_record_frames(const stxlib::ShadowReference reference, const std::span<ShadowFrame> frames) noexcept {
+RecordFrames copy_record_frames(const stxlib::ShadowReference reference, const std::span<ShadowFrame> frames,
+                                const std::span<std::uint64_t> trace) noexcept {
     RecordFrames result{};
     if (!reference.present()) {
         return result;
     }
-    // About 7.5 KiB of stack, on a failure path only.
+    // About 7.8 KiB of stack, on a failure path only.
     std::array<stxlib::ShadowFrameRecord, shadow_stack_capacity> records{};
+    std::array<stxlib::uptr, stxlib::shadow_trace_capacity> addresses{};
     const stxlib::MutableView<stxlib::ShadowFrameRecord> record_view(records.data(), records.size());
-    const stxlib::MutableView<stxlib::uptr> no_trace{};
-    const stxlib::Result<stxlib::ShadowSummary> read = stxlib::read_shadow(reference, record_view, no_trace);
+    const stxlib::MutableView<stxlib::uptr> address_view(addresses.data(), addresses.size());
+    const stxlib::Result<stxlib::ShadowSummary> read = stxlib::read_shadow(reference, record_view, address_view);
     if (!read.succeeded()) {
         return result;
     }
@@ -98,8 +100,14 @@ RecordFrames copy_record_frames(const stxlib::ShadowReference reference, const s
     for (std::size_t index = 0U; index < copied; ++index) {
         frames[index] = frame_of_record(records[index]);
     }
+    const std::size_t traced = std::min<std::size_t>(summary.trace_count, addresses.size());
+    const std::size_t trace_copied = std::min(traced, trace.size());
+    for (std::size_t index = 0U; index < trace_copied; ++index) {
+        trace[index] = static_cast<std::uint64_t>(addresses[index]);
+    }
     result.recorded = recorded;
     result.depth = static_cast<std::uint32_t>(summary.frame_count + summary.frames_lost);
+    result.trace_count = trace_copied;
     return result;
 }
 
@@ -183,7 +191,7 @@ std::size_t copy_failure_shadow_frames(const std::span<ShadowFrame> frames, Shad
     if (!parked.present()) {
         return open;
     }
-    const detail::RecordFrames read = detail::copy_record_frames(parked, frames);
+    const detail::RecordFrames read = detail::copy_record_frames(parked, frames, std::span<std::uint64_t>());
     state.depth = read.depth;
     return read.recorded;
 }

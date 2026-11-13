@@ -96,6 +96,9 @@ internal static unsafe class Program
                        refused.status == Constants.GF_STATUS_INVALID_ARGUMENT,
                    "the refusal carries its status (" + refused.status + ")");
             expect(refused.Message.Length > 0, "the refusal carries the error detail");
+            // A refusal that was no exception has no native type or trace.
+            expect(refused.native_detail == null && !refused.Data.Contains("native_exception_type"),
+                   "a plain refusal carries no native detail");
         }
     }
 
@@ -323,6 +326,19 @@ internal static unsafe class Program
         expect(trace.Contains("NativeFrames.posted_callback") && trace.Contains("NativeFrames.library_call"),
                "the stack trace reads the library's frames as named thunks");
         expect(native.Data["shadow_frames"] is string, "the exception's data carries the frames as text");
+        // S4 (C ABI 1.4): a development build of the library keeps the C++
+        // type and the trace at the throw; a release build keeps neither.
+        FailureDetail? detail = native.native_detail;
+        if (detail != null)
+        {
+            expect(detail.exception_type.Contains("runtime_error") &&
+                       (string?)native.Data["native_exception_type"] == detail.exception_type,
+                   "the native detail names the C++ type (" + detail.exception_type + ")");
+            expect(detail.trace.Length <= (int)Constants.GF_FAILURE_TRACE_CAPACITY,
+                   "the native trace fits its capacity");
+            expect(detail.trace.Length == 0 || native.Data["native_trace"] is string,
+                   "the exception's data carries the trace as text");
+        }
         expect(CallbackFailure.take_pending().Length == 0, "a caught native exception leaves no callback failure");
         expect(ShadowStack.depth() == 0u, "no frame is left open after the reflected failure");
     }

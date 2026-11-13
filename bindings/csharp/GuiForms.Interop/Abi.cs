@@ -129,6 +129,7 @@ public static unsafe class Abi
             // the thread's failure snapshot becomes the managed exception,
             // thrown through the named frames.
             NativeException native = NativeException.read(status);
+            FailureDetail.attach(native, status);
             CallbackFailure[] carried_under = CallbackFailure.take_pending();
             if (carried_under.Length != 0)
             {
@@ -140,6 +141,7 @@ public static unsafe class Abi
         if (status != Constants.GF_STATUS_OK)
         {
             GuiFormsException refused = new GuiFormsException(status, error_message());
+            FailureDetail.attach(refused, status);
             CallbackFailure[] carried = CallbackFailure.take_pending();
             if (carried.Length != 0)
             {
@@ -158,12 +160,16 @@ public static unsafe class Abi
     {
         if (status == Constants.GF_STATUS_NATIVE_EXCEPTION)
         {
-            NativeFrames.raise(NativeException.read(status));
+            NativeException native = NativeException.read(status);
+            FailureDetail.attach(native, status);
+            NativeFrames.raise(native);
             return;
         }
         if (status != Constants.GF_STATUS_OK)
         {
-            throw new GuiFormsException(status, error_message());
+            GuiFormsException refused = new GuiFormsException(status, error_message());
+            FailureDetail.attach(refused, status);
+            throw refused;
         }
     }
 
@@ -208,6 +214,13 @@ public static unsafe class Abi
 public class GuiFormsException : Exception
 {
     public gf_status status { get; }
+    /// <summary>
+    /// The native detail of the refused call (C ABI 1.4): the C++ exception's
+    /// type and the trace at the throw, from a development build of the
+    /// library; null when the failure was no exception or the library kept
+    /// none.
+    /// </summary>
+    public FailureDetail? native_detail { get; internal set; }
 
     public GuiFormsException(gf_status status, string message)
         : base(message.Length == 0 ? "GUI.Forms status " + status : message)

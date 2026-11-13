@@ -77,6 +77,14 @@ exception's text, the function, and the shadow frames it was thrown under
 unwound). `gf_diagnostics_table.failure_snapshot` copies it out after the
 call has returned; `clear_failure_snapshot` forgets it.
 
+A development build of the library also keeps the exception's C++ type and
+the native return addresses at the throw (C ABI 1.4):
+`gf_diagnostics_table.failure_detail` copies them out for the same failure.
+In C#, `GuiFormsException.native_detail` carries them (`exception_type`,
+`trace`), also as the `native_exception_type` and `native_trace` entries of
+the exception's `Data`; a release build keeps neither, and the property is
+null.
+
 | Where | How |
 |---|---|
 | C ABI | `set_exception_reflection(1)` turns reflection on for the process (it starts off). An exception the library has no status for is then `GF_STATUS_NATIVE_EXCEPTION` instead of `GF_STATUS_INTERNAL`. `raise_native_exception(message)` throws one on purpose, so a binding can test its handling. |

@@ -679,9 +679,21 @@ public static unsafe class Layout
             failures += expect(output, "gf_failure_snapshot.site offset", (long)((byte*)value.site - start), 40);
         }
         {
+            gf_failure_detail value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_failure_detail size", sizeof(gf_failure_detail), 536);
+            failures += expect(output, "gf_failure_detail.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_failure_detail.status offset", (long)((byte*)&value.status - start), 4);
+            failures += expect(output, "gf_failure_detail.sequence offset", (long)((byte*)&value.sequence - start), 8);
+            failures += expect(output, "gf_failure_detail.type_size offset", (long)((byte*)&value.type_size - start), 16);
+            failures += expect(output, "gf_failure_detail.trace_count offset", (long)((byte*)&value.trace_count - start), 20);
+            failures += expect(output, "gf_failure_detail.type offset", (long)((byte*)value.type - start), 24);
+            failures += expect(output, "gf_failure_detail.trace offset", (long)((byte*)value.trace - start), 280);
+        }
+        {
             gf_diagnostics_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_diagnostics_table size", sizeof(gf_diagnostics_table), 72);
+            failures += expect(output, "gf_diagnostics_table size", sizeof(gf_diagnostics_table), 80);
             failures += expect(output, "gf_diagnostics_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_diagnostics_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_diagnostics_table.shadow_frames offset", (long)((byte*)&value.shadow_frames - start), 8);
@@ -692,6 +704,7 @@ public static unsafe class Layout
             failures += expect(output, "gf_diagnostics_table.set_exception_reflection offset", (long)((byte*)&value.set_exception_reflection - start), 48);
             failures += expect(output, "gf_diagnostics_table.exception_reflection offset", (long)((byte*)&value.exception_reflection - start), 56);
             failures += expect(output, "gf_diagnostics_table.raise_native_exception offset", (long)((byte*)&value.raise_native_exception - start), 64);
+            failures += expect(output, "gf_diagnostics_table.failure_detail offset", (long)((byte*)&value.failure_detail - start), 72);
         }
         {
             gf_layout_transaction value = default;

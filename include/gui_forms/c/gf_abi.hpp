@@ -1207,6 +1207,14 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status failure_detail(gf_failure_detail* detail) const noexcept {
+        if (table_.struct_size < 80u || table_.failure_detail == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.failure_detail(detail);
+        return called;
+    }
+
 private:
     gf_diagnostics_table table_;
 };

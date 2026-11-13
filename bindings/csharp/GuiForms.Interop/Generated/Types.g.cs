@@ -723,7 +723,20 @@ public unsafe struct gf_failure_snapshot
     public fixed byte site[64];
 }
 
-/// <summary>gf_diagnostics_table (table, 72 bytes).</summary>
+/// <summary>gf_failure_detail (extensible, 536 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_failure_detail
+{
+    public uint struct_size;
+    public gf_status status;
+    public ulong sequence;
+    public uint type_size;
+    public uint trace_count;
+    public fixed byte type[256];
+    public fixed ulong trace[32];
+}
+
+/// <summary>gf_diagnostics_table (table, 80 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_diagnostics_table
 {
@@ -737,6 +750,7 @@ public unsafe struct gf_diagnostics_table
     public delegate* unmanaged[Cdecl]<uint, gf_status> set_exception_reflection;
     public delegate* unmanaged[Cdecl]<uint*, gf_status> exception_reflection;
     public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> raise_native_exception;
+    public delegate* unmanaged[Cdecl]<gf_failure_detail*, gf_status> failure_detail;
 }
 
 /// <summary>gf_layout_transaction (extensible, 32 bytes).</summary>

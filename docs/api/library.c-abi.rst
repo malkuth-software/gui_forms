@@ -208,6 +208,8 @@ Types
      -  
    * - :cpp:class:`gf_events_table <gf_events_table>`
      -  
+   * - :cpp:class:`gf_failure_detail <gf_failure_detail>`
+     -  
    * - :cpp:class:`gf_failure_snapshot <gf_failure_snapshot>`
      -  
    * - :cpp:class:`gf_file_filter <gf_file_filter>`
@@ -898,6 +900,8 @@ Types
    .. cpp:function:: gf_status exception_reflection(uint32_t* enabled) const noexcept
 
    .. cpp:function:: gf_status raise_native_exception(gf_utf8_view message) const noexcept
+
+   .. cpp:function:: gf_status failure_detail(gf_failure_detail* detail) const noexcept
 
    .. cpp:function:: gf_status set_invalidation_overlay(uint32_t enabled) const noexcept
 
@@ -2828,6 +2832,8 @@ Types
 
    .. cpp:member:: gf_status (*raise_native_exception)(gf_utf8_view message)
 
+   .. cpp:member:: gf_status (*failure_detail)(gf_failure_detail* detail)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3164,6 +3170,26 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_failure_detail
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_status status
+
+   .. cpp:member:: uint64_t sequence
+
+   .. cpp:member:: uint32_t type_size
+
+   .. cpp:member:: uint32_t trace_count
+
+   .. cpp:member:: uint8_t type[256]
+
+   .. cpp:member:: uint64_t trace[32]
 
 .. cpp:namespace:: 0
 

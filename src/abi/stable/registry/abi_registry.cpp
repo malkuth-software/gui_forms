@@ -1122,22 +1122,13 @@ std::string_view take_slot_message(const std::string_view fallback) noexcept {
     return kept;
 }
 
-// The status, snapshot and error detail of a failure whose status is known.
-gf_status file_failure(const SlotIdentity slot, gf_status status, const std::string_view message,
-                       const stxlib::ShadowReference shadow, const bool from_gate) noexcept {
-    // An exception with no status of its own is the native exception a
-    // binding reflects, when reflection is on.
+// The status a failure is filed with: an exception with no status of its
+// own is the native exception a binding reflects, when reflection is on.
+gf_status filed_status(const gf_status status) noexcept {
     if (status == GF_STATUS_INTERNAL && detail::exception_reflection()) {
-        status = GF_STATUS_NATIVE_EXCEPTION;
+        return GF_STATUS_NATIVE_EXCEPTION;
     }
-    const detail::FailureBoundary boundary{detail::c_abi_failure_site, status, slot.table_id, slot.slot_index};
-    if (from_gate) {
-        detail::record_failure_snapshot(boundary, message, shadow);
-    } else {
-        detail::record_failure_snapshot(boundary, message);
-    }
-    const gf_status failed = fail(status, slot, message);
-    return failed;
+    return status;
 }
 
 static_assert(GF_STATUS_NATIVE_EXCEPTION == detail::failure_native_exception_status);
@@ -1152,18 +1143,22 @@ const stxlib::ExceptionClassifier slot_classifier{&classify_slot_exception, null
 
 gf_status fail_with_record(const SlotIdentity slot, const stxlib::ErrorRecord& record) noexcept {
     const stxlib::u32 code = record.code();
-    const gf_status status = code != 0U ? static_cast<gf_status>(code) : GF_STATUS_INTERNAL;
+    const gf_status status = filed_status(code != 0U ? static_cast<gf_status>(code) : GF_STATUS_INTERNAL);
     const stxlib::TextView recorded = record.message();
     const std::string_view message = take_slot_message(std::string_view(recorded.data(), recorded.count()));
-    const gf_status failed = file_failure(slot, status, message, record.shadow(), true);
+    const detail::FailureBoundary boundary{detail::c_abi_failure_site, status, slot.table_id, slot.slot_index};
+    detail::record_failure_snapshot(boundary, message, record);
+    const gf_status failed = fail(status, slot, message);
     return failed;
 }
 
 gf_status fail_with_current_exception(const SlotIdentity slot) noexcept {
     const ExceptionOutcome outcome = classify_current_exception();
+    const gf_status status = filed_status(outcome.status);
     const std::string_view message = take_slot_message("an unknown exception reached the C ABI");
-    const stxlib::ShadowReference none{};
-    const gf_status failed = file_failure(slot, outcome.status, message, none, false);
+    const detail::FailureBoundary boundary{detail::c_abi_failure_site, status, slot.table_id, slot.slot_index};
+    detail::record_failure_snapshot(boundary, message);
+    const gf_status failed = fail(status, slot, message);
     return failed;
 }
 

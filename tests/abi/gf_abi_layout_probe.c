@@ -469,7 +469,15 @@ GF_LAYOUT_ASSERT(offsetof(gf_failure_snapshot, depth) == 28, "gf_failure_snapsho
 GF_LAYOUT_ASSERT(offsetof(gf_failure_snapshot, site_size) == 32, "gf_failure_snapshot.site_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_failure_snapshot, message_size) == 36, "gf_failure_snapshot.message_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_failure_snapshot, site) == 40, "gf_failure_snapshot.site offset");
-GF_LAYOUT_ASSERT(sizeof(gf_diagnostics_table) == 72, "gf_diagnostics_table size");
+GF_LAYOUT_ASSERT(sizeof(gf_failure_detail) == 536, "gf_failure_detail size");
+GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, struct_size) == 0, "gf_failure_detail.struct_size offset");
+GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, status) == 4, "gf_failure_detail.status offset");
+GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, sequence) == 8, "gf_failure_detail.sequence offset");
+GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, type_size) == 16, "gf_failure_detail.type_size offset");
+GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, trace_count) == 20, "gf_failure_detail.trace_count offset");
+GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, type) == 24, "gf_failure_detail.type offset");
+GF_LAYOUT_ASSERT(offsetof(gf_failure_detail, trace) == 280, "gf_failure_detail.trace offset");
+GF_LAYOUT_ASSERT(sizeof(gf_diagnostics_table) == 80, "gf_diagnostics_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, struct_size) == 0, "gf_diagnostics_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, abi_minor) == 4, "gf_diagnostics_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, shadow_frames) == 8, "gf_diagnostics_table.shadow_frames offset");
@@ -480,6 +488,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, clear_failure_snapshot) == 40, "
 GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, set_exception_reflection) == 48, "gf_diagnostics_table.set_exception_reflection offset");
 GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, exception_reflection) == 56, "gf_diagnostics_table.exception_reflection offset");
 GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, raise_native_exception) == 64, "gf_diagnostics_table.raise_native_exception offset");
+GF_LAYOUT_ASSERT(offsetof(gf_diagnostics_table, failure_detail) == 72, "gf_diagnostics_table.failure_detail offset");
 GF_LAYOUT_ASSERT(sizeof(gf_layout_transaction) == 32, "gf_layout_transaction size");
 GF_LAYOUT_ASSERT(offsetof(gf_layout_transaction, struct_size) == 0, "gf_layout_transaction.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_layout_transaction, suspend_depth) == 4, "gf_layout_transaction.suspend_depth offset");
