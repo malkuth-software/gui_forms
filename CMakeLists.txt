@@ -2297,8 +2297,12 @@ if(GUI_FORMS_BUILD_GALLERY)
             PROPERTIES
             MACOSX_PACKAGE_LOCATION "Resources/fonts"
         )
+        # offscreen_raster_create.cpp and the sealed pages: the --headless whole-page
+        # capture (demo/gallery_headless_capture.hpp) draws through OffscreenRaster.
         add_executable(gui_forms_gallery MACOSX_BUNDLE
             src/host/macos/gallery_main.mm
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
             ${GUI_FORMS_GALLERY_FONTS}
             ${GUI_FORMS_GALLERY_FONT_NOTICES}
         )
@@ -2481,6 +2485,8 @@ if(GUI_FORMS_BUILD_GALLERY)
     if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         add_executable(gui_forms_gallery_windows
             src/host/windows/gallery_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
         )
         target_link_libraries(gui_forms_gallery_windows PRIVATE
             gui_forms_gallery_model
@@ -2654,6 +2660,8 @@ if(GUI_FORMS_BUILD_GALLERY)
     if(GUI_FORMS_ENABLE_LINUX_HOST)
         add_executable(gui_forms_gallery_linux
             src/host/linux/gallery_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
         )
         target_link_libraries(gui_forms_gallery_linux PRIVATE
             gui_forms_gallery_model

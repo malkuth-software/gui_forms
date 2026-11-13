@@ -43,6 +43,22 @@ std::string_view picker_conversion(char conversion) {
     }
 }
 
+// The picker text for `%conversion` under glibc's '-' (no padding) or '_'
+// (space padding, which a picker pattern cannot draw: the nearest is no
+// padding) flag; the padded numeric fields lose their padding, every other
+// conversion is as picker_conversion gives it.
+std::string_view unpadded_picker_conversion(char conversion) {
+    switch (conversion) {
+    case 'd': return "d";
+    case 'm': return "M";
+    case 'H': return "H";
+    case 'I': return "h";
+    case 'M': return "m";
+    case 'S': return "s";
+    default: return picker_conversion(conversion);
+    }
+}
+
 bool trimmable(char character) {
     return character == ' ' || character == ',';
 }
@@ -57,16 +73,21 @@ std::string picker_pattern_from_strftime(const std::string_view pattern) {
         const char character = pattern[index];
         if (character == '%') {
             ++index;
-            // Skip glibc's flags and width, and the E and O modifiers.
+            // Skip glibc's flags and width, and the E and O modifiers,
+            // noting a flag that drops the padding.
+            bool unpadded = false;
             while (index < pattern.size() &&
                    (pattern[index] == '_' || pattern[index] == '-' || pattern[index] == '0' ||
                     pattern[index] == '^' || pattern[index] == '#' ||
                     (pattern[index] >= '1' && pattern[index] <= '9') || pattern[index] == 'E' ||
                     pattern[index] == 'O')) {
+                if (pattern[index] == '-' || pattern[index] == '_') unpadded = true;
                 ++index;
             }
             if (index < pattern.size()) {
-                output += picker_conversion(pattern[index]);
+                const std::string_view conversion =
+                    unpadded ? unpadded_picker_conversion(pattern[index]) : picker_conversion(pattern[index]);
+                output += conversion;
                 ++index;
             }
             continue;

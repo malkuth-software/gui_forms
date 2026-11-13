@@ -40,7 +40,9 @@ static int check_curved_paths(const gd_api_v0* api) {
     CHECK((*api).graphics_path_add_bezier(path, (gd_point){20, 0}, (gd_point){25, -10}, (gd_point){35, 10},
                                           (gd_point){40, 0}) == GD_OK);
     CHECK((*api).graphics_path_points(path, NULL, 0, &required) == GD_ERROR_BUFFER_TOO_SMALL);
-    CHECK(required >= 7U && required <= 64U);
+    /* The quadratic's three points, then the Bezier's controls and end: its start is
+       the quadratic's end, which the path keeps once (as for lines). */
+    CHECK(required == 6U);
     CHECK((*api).graphics_path_points(path, kept, 64, &required) == GD_OK);
     CHECK(kept[0].x == 0.0 && kept[0].y == 0.0);
     CHECK((*api).graphics_path_bounds(path, &bounds) == GD_OK);
