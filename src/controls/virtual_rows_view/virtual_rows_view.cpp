@@ -6,6 +6,7 @@
 #include "gui_forms/controls/v_scroll_bar.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text/types/text_types.hpp"
+#include "gui_forms/theme/owner_draw/owner_draw.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
@@ -1107,6 +1108,7 @@ void VirtualRowsView::on_paint(Painter& painter, Rect) {
             request.row = VirtualRowIndex{row};
             request.bounds = bounds;
             request.states = states;
+            request.foreground = item_content_text(*this, ControlVisualRole::selection, states);
             request.selected = states.contains(AnatomyState::selected);
             request.hot = states.contains(AnatomyState::hot);
             request.focused = states.contains(AnatomyState::current);

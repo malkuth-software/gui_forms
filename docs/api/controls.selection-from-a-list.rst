@@ -5287,7 +5287,7 @@ Related types
 
    ``#include <gui_forms/controls/virtual_rows_view.hpp>``
 
-   One row to draw (VirtualRowsCallbacks::paint). ``painter`` is borrowed for the call only and is never null in a call; ``bounds`` is the row's rectangle in the view's local coordinates, logical units, and may reach past the viewport (the painter is clipped to it). The view has already painted the row's plate by role (transparent, hot or selected) and paints the focus cue over the handler's drawing. Right to left, ``mirrored`` is set and the row's reading start is bounds' right edge. ``view`` (never null in a call) and ``states`` (the row item's anatomy states: selected, hot, current, disabled) let the handler draw its content as theme parts with ``paint_part(*painter, *view, part)``, so the row follows the theme.
+   One row to draw (VirtualRowsCallbacks::paint). ``painter`` is borrowed for the call only and is never null in a call; ``bounds`` is the row's rectangle in the view's local coordinates, logical units, and may reach past the viewport (the painter is clipped to it). The view has already painted the row's plate by role (transparent, hot or selected) and paints the focus cue over the handler's drawing. Right to left, ``mirrored`` is set and the row's reading start is bounds' right edge. ``view`` (never null in a call) and ``states`` (the row item's anatomy states: selected, hot, current, disabled) let the handler draw its content as theme parts with ``paint_part(*painter, *view, part)``, so the row follows the theme. ``foreground`` is the text colour the theme gives the row in its states (item_content_text for the selection family: a selected row's text over the selection plate), so drawn text follows the theme and high contrast (the flame graph demonstrator's F5, node graph N14).
 
    .. cpp:member:: Painter* painter
 
@@ -5298,6 +5298,8 @@ Related types
    .. cpp:member:: Rect bounds
 
    .. cpp:member:: AnatomyStateSet states
+
+   .. cpp:member:: Color foreground
 
    .. cpp:member:: bool selected
 

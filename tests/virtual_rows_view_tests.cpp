@@ -17,6 +17,8 @@
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/theme/owner_draw/owner_draw.hpp"
+#include "gui_forms/theme/types/control_visual_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/types/painter/painter.hpp"
@@ -107,6 +109,10 @@ public:
         if (request.painter == nullptr || request.view != view) null_painter = true;
         if (request.selected != request.states.contains(AnatomyState::selected)) states_disagree = true;
         if (request.mirrored) mirrored_seen = true;
+        if (!(request.foreground ==
+              item_content_text(*request.view, ControlVisualRole::selection, request.states))) {
+            foreground_disagrees = true;
+        }
         if (try_reentry && view != nullptr) {
             try {
                 (*view).reset_rows(3U);
@@ -138,6 +144,7 @@ public:
     std::size_t described{};
     bool null_painter{};
     bool states_disagree{};
+    bool foreground_disagrees{};
     bool mirrored_seen{};
     bool try_reentry{};
     bool reentry_refused{};
@@ -435,6 +442,7 @@ void million_rows_bounded_work() {
     static_cast<void>(window.paint(painter, {0.0, 0.0, 400.0, 300.0}));
     require(rows.painted > painted && rows.painted - painted <= paint_bound && !rows.null_painter && !rows.states_disagree,
             "a paint draws only the visible rows");
+    require(!rows.foreground_disagrees, "each row's foreground is the theme's text for its states");
 
     Sequence sequence;
     std::size_t operations = 0U;

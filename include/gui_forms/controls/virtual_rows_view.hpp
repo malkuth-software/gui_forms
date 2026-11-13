@@ -80,12 +80,17 @@ struct GUI_FORMS_API VirtualRowMeasure final {
 // call) and `states` (the row item's anatomy states: selected, hot,
 // current, disabled) let the handler draw its content as theme parts with
 // `paint_part(*painter, *view, part)`, so the row follows the theme.
+// `foreground` is the text colour the theme gives the row in its states
+// (item_content_text for the selection family: a selected row's text over
+// the selection plate), so drawn text follows the theme and high contrast
+// (the flame graph demonstrator's F5, node graph N14).
 struct GUI_FORMS_API VirtualRowPaint final {
     Painter* painter{};
     const Control* view{};
     VirtualRowIndex row{};
     Rect bounds{};
     AnatomyStateSet states{};
+    Color foreground{};
     bool selected{};
     bool hot{};
     bool focused{};
