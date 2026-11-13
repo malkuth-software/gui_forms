@@ -3233,11 +3233,13 @@ if(GUI_FORMS_BUILD_TESTS)
                          ${CMAKE_CURRENT_BINARY_DIR})
             set_tests_properties(gui_forms_macos_open_files_probe_tests PROPERTIES RUN_SERIAL TRUE TIMEOUT 120)
             # Quit, logout and restart checks (Mac handoff 2026-11-09, item
-            # 2e; cp29 row 14): a primary and a secondary window whose closes
-            # are refused while /tmp/gf_term_refuse and
+            # 2e; cp29 row 14; cp33): a primary and a secondary window whose
+            # closes are refused while /tmp/gf_term_refuse and
             # /tmp/gf_term_secondary_refuse exist; it logs to /tmp/gf_term.log.
-            # The driver test covers the quit Apple Event (Cmd-Q); logout and
-            # restart are started by hand with `open -n -a`.
+            # The driver test types Cmd-Q inside the fixture (no permission
+            # grant) and checks the order, the refusals, the saved state and
+            # the run's return; logout and restart are started by hand with
+            # `open -n -a`.
             add_executable(gui_forms_macos_termination_fixture MACOSX_BUNDLE
                 tests/macos_termination_fixture.mm
                 ${GUI_FORMS_PROGRAM_FONT_NOTICES})
@@ -3248,7 +3250,8 @@ if(GUI_FORMS_BUILD_TESTS)
             add_test(NAME gui_forms_macos_termination_fixture_tests
                      COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_macos_termination_fixture.sh
                          $<TARGET_BUNDLE_DIR:gui_forms_macos_termination_fixture>)
-            set_tests_properties(gui_forms_macos_termination_fixture_tests PROPERTIES RUN_SERIAL TRUE TIMEOUT 120)
+            set_tests_properties(gui_forms_macos_termination_fixture_tests PROPERTIES
+                RUN_SERIAL TRUE TIMEOUT 120 LABELS "mac_conditions")
         endif()
         # Stage DK W0 measurement (notes:results/2026-10-18-dk-w0-capture-drag/): it
         # puts windows on the desktop, so it is built but never run by ctest.

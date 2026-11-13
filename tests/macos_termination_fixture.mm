@@ -1,9 +1,12 @@
+#import <AppKit/AppKit.h>
 #import <Foundation/Foundation.h>
+#include <dispatch/dispatch.h>
 
 #include "gui_forms/application.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/window/window.hpp"
 
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
@@ -17,15 +20,28 @@
 
 // Two windows whose closing handlers refuse while a flag file exists, as
 // Cancel on an unsaved-changes prompt does, and accept otherwise (Mac
-// handoff 2026-11-09, item 2e; cp29 row 14): the primary window, which ends
-// the run, refuses while /tmp/gf_term_refuse exists, and a secondary window
-// (a floating document owned by it) while /tmp/gf_term_secondary_refuse
-// exists. It is started with `open -n -a` and ended by Cmd-Q (the quit
-// Apple Event), a logout or a restart; it never ends itself. Each event
-// appends one line with a timestamp to /tmp/gf_term.log: start, each
-// window's ready, closing asked (with its reason), refused or accepted and
-// closed, and the process exit (an atexit handler, since a quit ends the
-// process inside -[NSApplication terminate:]).
+// handoff 2026-11-09, item 2e; cp29 row 14; cp33): the primary window,
+// which ends the run, refuses while /tmp/gf_term_refuse exists, and a
+// secondary window (a floating document owned by it) while
+// /tmp/gf_term_secondary_refuse exists. It is started with `open -n -a` and
+// ended by Cmd-Q, the quit Apple Event, a logout or a restart; it never ends
+// itself. Each event appends one line with a timestamp to /tmp/gf_term.log:
+// start, each window's ready, closing asked (with its reason), refused or
+// accepted and closed, the run's return, the saved state it found, the exit
+// code and the process exit (an atexit handler, which a session end reaches
+// from inside -[NSApplication terminate:]).
+//
+// Cmd-Q without an Automation grant (cp33): while the fixture runs it polls
+// for /tmp/gf_term_cmd_q every 100 ms; on finding it, it removes it and
+// posts a Command-Q key-down and key-up to its own NSApp, which goes through
+// the application menu's Quit item and -[NSApplication terminate:] as a
+// typed Cmd-Q does. An event posted to the process's own queue needs no
+// privacy grant.
+//
+// No lost state: an accepting closing handler saves its window's state, a
+// line "saved reason=<reason>", to /tmp/gf_term_<window>.state, and after
+// the run returns the fixture logs what each state file holds. A refusing
+// handler saves nothing.
 //
 // A quit asks every window that does not end the run first, then the
 // primary one (audit P2), and the first refusal cancels it. With only the
@@ -37,9 +53,10 @@
 //     reason=session_end" and "secondary refused", and the system reports
 //     that the application cancelled it.
 // With no flag, both windows accept (the secondary first), the primary
-// closes and the process exits. tests/run_macos_termination_fixture.sh
-// drives the Cmd-Q case with the quit Apple Event; logout and restart are
-// checked by hand.
+// closes, the run returns (a plain quit cancels AppKit's termination, so
+// main's code after the run runs) and the process exits with status 0.
+// tests/run_macos_termination_fixture.sh drives the Cmd-Q case; logout and
+// restart are checked by hand.
 
 namespace {
 using namespace gui_forms;
@@ -47,6 +64,9 @@ using namespace gui_forms;
 constexpr const char* log_path = "/tmp/gf_term.log";
 constexpr const char* refuse_flag = "/tmp/gf_term_refuse";
 constexpr const char* secondary_refuse_flag = "/tmp/gf_term_secondary_refuse";
+constexpr const char* cmd_q_trigger = "/tmp/gf_term_cmd_q";
+constexpr const char* main_state_path = "/tmp/gf_term_main.state";
+constexpr const char* secondary_state_path = "/tmp/gf_term_secondary.state";
 
 // Appends "<UTC time>.<ms> pid=<pid> <event>" to the log, opening and
 // closing it each time so every line is on disk at once. UTC, not local
@@ -85,11 +105,91 @@ const char* reason_name(const HostCloseReason reason) {
 
 void log_process_exit() { append_line("process exit"); }
 
-// One window's closing handler: `window` names it in the log, and it
-// refuses while the file at `flag` exists. Both are string literals.
+// Replaces the state file at `path` with one line "saved reason=<reason>".
+// Returns whether the line reached the file.
+bool save_state(const char* const path, const HostCloseReason reason) {
+    std::FILE* const file = std::fopen(path, "w");
+    if (file == nullptr) return false;
+    const int written = std::fprintf(file, "saved reason=%s\n", reason_name(reason));
+    const int closed = std::fclose(file);
+    return written > 0 && closed == 0;
+}
+
+// Logs "state <window>=<first line of path>", or "=missing" when the file
+// cannot be read.
+void log_state(const char* const window, const char* const path) {
+    char line[128]{};
+    std::FILE* const file = std::fopen(path, "r");
+    bool read{false};
+    if (file != nullptr) {
+        read = std::fgets(line, sizeof line, file) != nullptr;
+        std::fclose(file);
+    }
+    std::string text = std::string("state ") + window + "=";
+    if (read) {
+        std::string content(line);
+        if (!content.empty() && content.back() == '\n') content.pop_back();
+        text += content;
+    } else {
+        text += "missing";
+    }
+    append_line(text.c_str());
+}
+
+// Posts Command-Q, down then up, to the process's own event queue, for the
+// key window when there is one. The application menu's Quit item takes the
+// key-down as its key equivalent.
+void post_command_q() {
+    NSWindow* const key = [NSApp keyWindow];
+    const NSInteger window_number = key == nil ? 0 : [key windowNumber];
+    const NSTimeInterval now = [[NSProcessInfo processInfo] systemUptime];
+    // kVK_ANSI_Q: the Q key's virtual key code on an ANSI layout.
+    const unsigned short q_key_code = 12U;
+    NSEvent* const down = [NSEvent keyEventWithType:NSEventTypeKeyDown
+                                           location:NSZeroPoint
+                                      modifierFlags:NSEventModifierFlagCommand
+                                          timestamp:now
+                                       windowNumber:window_number
+                                            context:nil
+                                         characters:@"q"
+                        charactersIgnoringModifiers:@"q"
+                                          isARepeat:NO
+                                            keyCode:q_key_code];
+    NSEvent* const up = [NSEvent keyEventWithType:NSEventTypeKeyUp
+                                         location:NSZeroPoint
+                                    modifierFlags:NSEventModifierFlagCommand
+                                        timestamp:now
+                                     windowNumber:window_number
+                                          context:nil
+                                       characters:@"q"
+                      charactersIgnoringModifiers:@"q"
+                                        isARepeat:NO
+                                          keyCode:q_key_code];
+    if (down == nil || up == nil) {
+        append_line("cmd-q not posted");
+        return;
+    }
+    [NSApp postEvent:down atStart:NO];
+    [NSApp postEvent:up atStart:NO];
+    append_line(key == nil ? "cmd-q posted (no key window)" : "cmd-q posted");
+}
+
+// The main-queue timer's handler (dispatch_source_set_event_handler_f): a
+// Cmd-Q trigger file found is removed, then Command-Q is posted. Context is
+// unused.
+void poll_cmd_q_trigger(void* const context) {
+    static_cast<void>(context);
+    if (unlink(cmd_q_trigger) != 0) return;
+    post_command_q();
+}
+
+// One window's closing handler: `window` names it in the log, it refuses
+// while the file at `flag` exists, and on accepting it saves its state to
+// `state`. All three are string literals.
 struct RefuseWhileFlagged final {
     const char* window{};
     const char* flag{};
+    const char* state{};
 
     void operator()(HostCloseRequest& request) const {
         const std::string asked = std::string(window) + " closing asked reason=" + reason_name(request.reason);
@@ -99,6 +199,11 @@ struct RefuseWhileFlagged final {
         request.cancel = refuse;
         const std::string answer = std::string(window) + (refuse ? " refused (flag file present)" : " accepted");
         append_line(answer.c_str());
+        if (refuse) return;
+        if (!save_state(state, request.reason)) {
+            const std::string failed = std::string(window) + " state not saved";
+            append_line(failed.c_str());
+        }
     }
 };
 
@@ -123,7 +228,7 @@ struct LogClosed final {
 };
 
 ApplicationWindow make_window(const char* const stable_id, const char* const owner_id, const char* const name,
-                              const char* const flag, const char* const title) {
+                              const char* const flag, const char* const state, const char* const title) {
     ApplicationWindow entry{};
     entry.stable_id = stable_id;
     entry.owner_id = owner_id;
@@ -132,7 +237,7 @@ ApplicationWindow make_window(const char* const stable_id, const char* const own
     entry.options.title = title;
     entry.options.initial_size = {360.0, 200.0};
     entry.options.ready = LogReady{name};
-    entry.options.closing = RefuseWhileFlagged{name, flag};
+    entry.options.closing = RefuseWhileFlagged{name, flag, state};
     entry.options.closed = LogClosed{name};
     return entry;
 }
@@ -141,22 +246,44 @@ ApplicationWindow make_window(const char* const stable_id, const char* const own
 
 int main() {
     std::atexit(&log_process_exit);
+    unlink(main_state_path);
+    unlink(secondary_state_path);
+    unlink(cmd_q_trigger);
     append_line("start");
     ApplicationCreateResult created = Application::create(ApplicationConfig{});
     if (!created) {
         append_line("application refused");
         return 1;
     }
+    // The Cmd-Q trigger's poll: a main-queue timer every 100 ms, with 10 ms
+    // leeway, cancelled after the run. The queue is drained in AppKit's
+    // run loop.
+    dispatch_source_t const poll = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0U, 0U, dispatch_get_main_queue());
+    if (poll == nullptr) {
+        append_line("cmd-q poll not created");
+        return 1;
+    }
+    const std::uint64_t poll_interval_ns = 100U * NSEC_PER_MSEC;
+    dispatch_source_set_timer(poll, dispatch_time(DISPATCH_TIME_NOW, static_cast<std::int64_t>(poll_interval_ns)),
+                              poll_interval_ns, 10U * NSEC_PER_MSEC);
+    dispatch_source_set_event_handler_f(poll, &poll_cmd_q_trigger);
+    dispatch_resume(poll);
     std::vector<ApplicationWindow> windows{};
     windows.reserve(2U);
-    windows.push_back(make_window("termination.fixture.main", "", "main", refuse_flag,
+    windows.push_back(make_window("termination.fixture.main", "", "main", refuse_flag, main_state_path,
                                   "GUI.Forms termination fixture"));
     ApplicationWindow secondary = make_window("termination.fixture.secondary", "termination.fixture.main",
-                                              "secondary", secondary_refuse_flag,
+                                              "secondary", secondary_refuse_flag, secondary_state_path,
                                               "GUI.Forms termination fixture: secondary");
     secondary.floating = HostWindowFloating::document;
     windows.push_back(std::move(secondary));
     const ApplicationResult result = (*created.application).run(std::move(windows));
+    dispatch_source_cancel(poll);
     append_line(result.accepted() ? "run returned accepted" : "run returned refused");
-    return result.accepted() ? 0 : 1;
+    log_state("main", main_state_path);
+    log_state("secondary", secondary_state_path);
+    const int exit_code = result.accepted() ? 0 : 1;
+    const std::string exit_line = "exit code " + std::to_string(exit_code);
+    append_line(exit_line.c_str());
+    return exit_code;
 }

@@ -54,8 +54,8 @@ enum class MacTerminationClose : std::uint8_t {
 
 // The end of a run: what it does once the window that ends it has closed
 // (close metrics, final snapshots, the capture check, shutdown). It runs
-// once: after [NSApp run] returns or, for a quit request, from the
-// application delegate before AppKit ends the process.
+// once: after [NSApp run] returns or, for a log-out, restart or shut-down,
+// from the application delegate before AppKit ends the process.
 struct MacRunEnd final {
     void (*finish)(void* context){};
     void* context{};
@@ -121,15 +121,21 @@ void finish_run(MacRunEnd& end);
 // The application delegate for a run. AppKit's terminate: ends the process
 // before [NSApp run] returns, which would skip everything a run does after
 // its window closes. A quit request therefore closes the window that ends
-// the run, as its close button does, then ends the run in place (the run's
-// MacRunEnd) and lets the termination proceed, so a log-out or restart goes
-// on. Every other window's closing handler is asked first (audit P2). When
-// a closing handler refuses, the termination is cancelled, as an
-// application with unsaved work cancels it. With no such window, the
-// termination proceeds. The work is synchronous, so the reply is given at
-// once rather than deferred with NSTerminateLater.
-// After a quit, the process ends inside terminate: with status 0: the run's
-// own exit code and the program's code after the run do not apply.
+// the run, as its close button does, after every other window's closing
+// handler has been asked (audit P2). When a closing handler refuses, the
+// termination is cancelled, as an application with unsaved work cancels it.
+// Otherwise:
+//   - a plain quit (reason quit: Cmd-Q, the Dock, a quit Apple event) stops
+//     [NSApp run] and cancels the termination, so Application::run returns
+//     and the program's code after the run applies, with its exit code, as
+//     on Windows and Linux (cp33). Another application that sent the quit
+//     event is answered userCanceledErr although the run ended;
+//   - a session end (log out, restart, shut down) ends the run in place
+//     (the run's MacRunEnd) and lets the termination proceed, so the
+//     log-out goes on; the process ends inside terminate: with status 0.
+// With no window that ends the run, the termination proceeds. The work is
+// synchronous, so the reply is given at once rather than deferred with
+// NSTerminateLater.
 //
 // It also takes the system's requests to open files (application:openURLs:,
 // which AppKit sends instead of application:openFiles: when implemented) and

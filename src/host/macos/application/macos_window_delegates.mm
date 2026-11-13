@@ -297,6 +297,23 @@ void run_window_delegate_window_did_exit_full_screen(GUIFormsWindowDelegate* obj
 @end
 
 namespace {
+// Stops [NSApp run] after a quit closed the window that ends the run, and
+// posts an application-defined event for the loop to wake on, since the
+// stop takes effect only once the loop has finished an event.
+void stop_run_after_quit() {
+    [NSApp stop:nil];
+    NSEvent* wake = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
+                                       location:NSZeroPoint
+                                  modifierFlags:0
+                                      timestamp:0.0
+                                   windowNumber:0
+                                        context:nil
+                                        subtype:0
+                                          data1:0
+                                          data2:0];
+    if (wake != nil) [NSApp postEvent:wake atStart:NO];
+}
+
 // The named targets the fail-fast boundary (call_failing_fast) calls for
 // GUIFormsTerminationDelegate's native entries: each sends the entry's answer message.
 NSApplicationTerminateReply run_termination_application_should_terminate(
@@ -385,6 +402,20 @@ static HostCloseReason termination_close_reason() {
             [windowDelegate closeForTermination:window reason:reason];
         if (outcome == gui_forms::host::MacTerminationClose::not_ending) continue;
         if (outcome == gui_forms::host::MacTerminationClose::refused) return NSTerminateCancel;
+        if (reason == HostCloseReason::quit) {
+            // A plain quit (Cmd-Q, the Dock, a quit Apple event) ends the
+            // run, not the process: closing the window stopped [NSApp run]
+            // (windowWillClose:), and cancelling AppKit's termination lets
+            // it return, so the run ends in its own frame (MacRunEnd) and
+            // the program's code after the run runs with its exit code, as
+            // on Windows and Linux. Stopped again here in case the closed
+            // callback started a nested loop.
+            stop_run_after_quit();
+            return NSTerminateCancel;
+        }
+        // A session end (log out, restart, shut down) lets the termination
+        // proceed: cancelling it would cancel the log-out. The run ends in
+        // place first.
         if (_end != nullptr) gui_forms::host::finish_run(*_end);
         return NSTerminateNow;
     }
