@@ -34,6 +34,11 @@
 #include "../paint_endpoint/windows_compatibility_paint_endpoint_metrics.hpp"
 #include "../../../core/host/frame_capture/frame_capture.hpp"
 #include "../../../core/image/png_writer.hpp"
+#if defined(GUI_FORMS_DIB_LIFECYCLE_TEST)
+// The DIB lifecycle fixture builds a tinted Windows-professional theme
+// (Theme, ThemeDefinition and the role recipes).
+#include "gui_forms/theme/theme/theme.hpp"
+#endif
 
 #include <windows.h>
 #include <windowsx.h>
