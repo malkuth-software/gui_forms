@@ -754,8 +754,16 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
     }
     if (occluded_) return std::nullopt;
     // The lease this paint starts, when it paints anything.
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::paint_pass, (*root_).stable_id().value(), std::string_view{},
-                                        paint_leases_started_ + 1U);
+    ShadowFrameCall shadow_frame(ShadowFrameKind::paint_pass, (*root_).stable_id().value(), std::string_view{},
+                                 paint_leases_started_ + 1U);
+    std::optional<PaintReceipt> receipt = paint_rectangles_in_frame(painter, rectangles, explicit_request);
+    shadow_frame.returned();
+    return receipt;
+}
+
+// The paint pass itself, inside paint_rectangles' frame.
+std::optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
+                                                                   bool explicit_request) {
     ensure_layout(true);
 
     if (!(*root_).is_alive()) {

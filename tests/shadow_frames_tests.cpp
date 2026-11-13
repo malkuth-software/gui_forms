@@ -165,6 +165,41 @@ void test_failure_frames() {
             "after a frame opens and closes, the failure frames are the frames open now");
 }
 
+// The body of a framed call: it throws, as an application handler in
+// another module would; no runtime is asked whether it is unwinding.
+int throwing_body(int value) {
+    if (value != 0) throw std::runtime_error("a framed body failed");
+    return value;
+}
+
+// A call frame's entry: open, call the body, mark returned.
+int framed_entry(int value) {
+    ShadowFrameCall frame(ShadowFrameKind::input_dispatch, "entry", "pointer", 0U);
+    const int result = throwing_body(value);
+    frame.returned();
+    return result;
+}
+
+// A call frame closed by its returned() mark closes as a return does; one
+// destroyed before the mark is unwinding and marks the depth, whichever
+// module threw.
+void test_call_frames() {
+    const ShadowFrameScope boundary(ShadowFrameKind::posted_callback, "call-boundary", std::string_view{}, 0U);
+    require(framed_entry(0) == 0 && copy_stack().state.depth == 1U, "a returned call frame closes");
+    const StackCopy after_return = copy_failure_stack();
+    require(after_return.state.depth == 1U, "a returned call frame leaves no failure mark");
+    StackCopy caught;
+    try {
+        static_cast<void>(framed_entry(1));
+    } catch (const std::runtime_error&) {
+        caught = copy_failure_stack();
+    }
+    require(copy_stack().state.depth == 1U, "an unwound call frame closes");
+    require(caught.recorded == 2U && caught.frames[1].kind == ShadowFrameKind::input_dispatch &&
+                subject_of(caught.frames[1]) == "entry",
+            "an unwound call frame is in the failure frames");
+}
+
 // The thread's snapshot: taken in a catch block, it holds the boundary, the
 // message cut to its capacity and the frames of the throw; clearing it keeps
 // the sequence counting.
@@ -317,6 +352,7 @@ int main() {
         test_truncation();
         test_exception_balance();
         test_failure_frames();
+        test_call_frames();
         test_failure_snapshot();
         test_threads_are_separate();
         test_window_frames();

@@ -1797,7 +1797,13 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
 
 bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
     require_root_thread("pointer dispatch");
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "pointer", 0U);
+    ShadowFrameCall shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "pointer", 0U);
+    const bool handled = dispatch_pointer_in_frame(std::move(event));
+    shadow_frame.returned();
+    return handled;
+}
+
+bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
     }
@@ -2178,7 +2184,13 @@ KeyEventArgs key_arguments(const KeyEvent& event) {
 
 bool SurfaceRoot::dispatch_key(KeyEvent event) {
     require_root_thread("key dispatch");
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "key", 0U);
+    ShadowFrameCall shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "key", 0U);
+    const bool handled = dispatch_key_in_frame(std::move(event));
+    shadow_frame.returned();
+    return handled;
+}
+
+bool SurfaceRoot::dispatch_key_in_frame(KeyEvent event) {
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
     }
@@ -2428,7 +2440,13 @@ bool SurfaceRoot::resume_unhandled_key(const Control::Ptr& from, KeyEvent event)
 
 bool SurfaceRoot::dispatch_text(TextInputEvent event) {
     require_root_thread("text dispatch");
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "text", 0U);
+    ShadowFrameCall shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "text", 0U);
+    const bool handled = dispatch_text_in_frame(std::move(event));
+    shadow_frame.returned();
+    return handled;
+}
+
+bool SurfaceRoot::dispatch_text_in_frame(TextInputEvent event) {
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
     }
@@ -2699,7 +2717,13 @@ void SurfaceRoot::leave_drag_target(const DragEvent& event,
 
 DragDispatchResult SurfaceRoot::dispatch_drag(DragEvent event) {
     require_root_thread("drag dispatch");
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "drag", 0U);
+    ShadowFrameCall shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "drag", 0U);
+    const DragDispatchResult result = dispatch_drag_in_frame(std::move(event));
+    shadow_frame.returned();
+    return result;
+}
+
+DragDispatchResult SurfaceRoot::dispatch_drag_in_frame(DragEvent event) {
     if (in_paint_) {
         const std::uint64_t session = event.session_id;
         const DragEffect allowed = event.allowed_effects;
@@ -4337,8 +4361,14 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
     }
 
     metrics_.record_flush(read_barrier);
-    const ShadowFrameScope shadow_frame(ShadowFrameKind::layout_pass, (*root_).stable_id().value(), std::string_view{},
-                                        layout_pass_sequence_ + 1U);
+    ShadowFrameCall shadow_frame(ShadowFrameKind::layout_pass, (*root_).stable_id().value(), std::string_view{},
+                                 layout_pass_sequence_ + 1U);
+    flush_layout_in_frame(read_barrier);
+    shadow_frame.returned();
+}
+
+// The layout flush itself, inside ensure_layout's frame.
+void SurfaceRoot::flush_layout_in_frame(bool read_barrier) {
     in_layout_ = true;
     scroll_translating_ = nullptr;
     try {

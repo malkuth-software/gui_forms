@@ -566,6 +566,7 @@
     _ZGVZN9gui_forms15RuleDeclaration*;
     _ZGVZN9gui_forms15RuleSpecificity*;
     _ZGVZN9gui_forms15ScopedCondition*;
+    _ZGVZN9gui_forms15ShadowFrameCall*;
     _ZGVZN9gui_forms15SourceByteRange*;
     _ZGVZN9gui_forms15StableIdLiteral*;
     _ZGVZN9gui_forms15SubSurfaceInput*;
@@ -2078,6 +2079,7 @@
     _ZGVZNK9gui_forms15RuleDeclaration*;
     _ZGVZNK9gui_forms15RuleSpecificity*;
     _ZGVZNK9gui_forms15ScopedCondition*;
+    _ZGVZNK9gui_forms15ShadowFrameCall*;
     _ZGVZNK9gui_forms15SourceByteRange*;
     _ZGVZNK9gui_forms15StableIdLiteral*;
     _ZGVZNK9gui_forms15SubSurfaceInput*;
@@ -3776,6 +3778,7 @@
     _ZN9gui_forms15RuleDeclaration*;
     _ZN9gui_forms15RuleSpecificity*;
     _ZN9gui_forms15ScopedCondition*;
+    _ZN9gui_forms15ShadowFrameCall*;
     _ZN9gui_forms15SourceByteRange*;
     _ZN9gui_forms15StableIdLiteral*;
     _ZN9gui_forms15SubSurfaceInput*;
@@ -6472,6 +6475,7 @@
     _ZNK[RO]9gui_forms15RuleDeclaration*;
     _ZNK[RO]9gui_forms15RuleSpecificity*;
     _ZNK[RO]9gui_forms15ScopedCondition*;
+    _ZNK[RO]9gui_forms15ShadowFrameCall*;
     _ZNK[RO]9gui_forms15SourceByteRange*;
     _ZNK[RO]9gui_forms15StableIdLiteral*;
     _ZNK[RO]9gui_forms15SubSurfaceInput*;
@@ -7984,6 +7988,7 @@
     _ZN[KRO]9gui_forms15RuleDeclaration*;
     _ZN[KRO]9gui_forms15RuleSpecificity*;
     _ZN[KRO]9gui_forms15ScopedCondition*;
+    _ZN[KRO]9gui_forms15ShadowFrameCall*;
     _ZN[KRO]9gui_forms15SourceByteRange*;
     _ZN[KRO]9gui_forms15StableIdLiteral*;
     _ZN[KRO]9gui_forms15SubSurfaceInput*;
@@ -9496,6 +9501,7 @@
     _ZT[VIST]N9gui_forms15RuleDeclaration*E;
     _ZT[VIST]N9gui_forms15RuleSpecificity*E;
     _ZT[VIST]N9gui_forms15ScopedCondition*E;
+    _ZT[VIST]N9gui_forms15ShadowFrameCall*E;
     _ZT[VIST]N9gui_forms15SourceByteRange*E;
     _ZT[VIST]N9gui_forms15StableIdLiteral*E;
     _ZT[VIST]N9gui_forms15SubSurfaceInput*E;
@@ -11008,6 +11014,7 @@
     _ZT[hvc]*9gui_forms15RuleDeclaration*;
     _ZT[hvc]*9gui_forms15RuleSpecificity*;
     _ZT[hvc]*9gui_forms15ScopedCondition*;
+    _ZT[hvc]*9gui_forms15ShadowFrameCall*;
     _ZT[hvc]*9gui_forms15SourceByteRange*;
     _ZT[hvc]*9gui_forms15StableIdLiteral*;
     _ZT[hvc]*9gui_forms15SubSurfaceInput*;
@@ -12520,6 +12527,7 @@
     _ZZN9gui_forms15RuleDeclaration*;
     _ZZN9gui_forms15RuleSpecificity*;
     _ZZN9gui_forms15ScopedCondition*;
+    _ZZN9gui_forms15ShadowFrameCall*;
     _ZZN9gui_forms15SourceByteRange*;
     _ZZN9gui_forms15StableIdLiteral*;
     _ZZN9gui_forms15SubSurfaceInput*;
@@ -14032,6 +14040,7 @@
     _ZZNK9gui_forms15RuleDeclaration*;
     _ZZNK9gui_forms15RuleSpecificity*;
     _ZZNK9gui_forms15ScopedCondition*;
+    _ZZNK9gui_forms15ShadowFrameCall*;
     _ZZNK9gui_forms15SourceByteRange*;
     _ZZNK9gui_forms15StableIdLiteral*;
     _ZZNK9gui_forms15SubSurfaceInput*;

@@ -2123,6 +2123,15 @@ private:
     void add_subtree_damage(const Control::Ptr& control);
     void add_descendant_damage(const Control& parent, Point parent_origin, Rect covered);
     void ensure_layout(bool read_barrier);
+    // The bodies of the frame entries (shadow frames, ShadowFrameCall): each
+    // entry opens its frame, calls its body and marks the frame returned.
+    bool dispatch_pointer_in_frame(PointerEvent event);
+    bool dispatch_key_in_frame(KeyEvent event);
+    bool dispatch_text_in_frame(TextInputEvent event);
+    DragDispatchResult dispatch_drag_in_frame(DragEvent event);
+    void flush_layout_in_frame(bool read_barrier);
+    std::optional<PaintReceipt> paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
+                                                          bool explicit_request);
     void leave_update_scope();
     void flush_if_outermost();
     [[nodiscard]] std::vector<Control::Ptr> route_to(const Control::Ptr& target) const;

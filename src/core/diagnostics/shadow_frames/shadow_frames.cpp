@@ -62,10 +62,9 @@ ShadowFrame* open_frame() noexcept {
     return &stack.frames[index];
 }
 
-} // namespace
-
-ShadowFrameScope::ShadowFrameScope(const ShadowFrameKind kind, const std::string_view subject,
-                                   const std::string_view name, const std::uint64_t sequence) noexcept {
+// Opens a frame of kind with subject and name (each cut to its capacity).
+void open_described_frame(const ShadowFrameKind kind, const std::string_view subject, const std::string_view name,
+                          const std::uint64_t sequence) noexcept {
     ShadowFrame* frame = open_frame();
     if (frame == nullptr) {
         return;
@@ -94,6 +93,31 @@ ShadowFrameScope::ShadowFrameScope(const ShadowFrameKind kind, const std::string
     }
 }
 
+// Pops the innermost frame. An unwinding pop keeps the failure's story: the
+// first such pop of an unwinding marks the depth; later pops of the same
+// unwinding find the mark current (nothing pushed, the depth where the last
+// pop left it) and only move it along.
+void pop_frame(const bool unwinding) noexcept {
+    ShadowStack& stack = thread_stack;
+    if (unwinding) {
+        const bool continuing = stack.unwind_pushed == stack.pushed && stack.unwind_next_depth == stack.depth;
+        if (!continuing) {
+            stack.unwind_depth = stack.depth;
+            stack.unwind_pushed = stack.pushed;
+        }
+        // Scopes nest strictly, so the stack is never empty here.
+        stack.unwind_next_depth = stack.depth - 1U;
+    }
+    --stack.depth;
+}
+
+} // namespace
+
+ShadowFrameScope::ShadowFrameScope(const ShadowFrameKind kind, const std::string_view subject,
+                                   const std::string_view name, const std::uint64_t sequence) noexcept {
+    open_described_frame(kind, subject, name, sequence);
+}
+
 ShadowFrameScope::ShadowFrameScope(const std::uint32_t interface_id, const std::uint32_t function_index) noexcept {
     ShadowFrame* frame = open_frame();
     if (frame == nullptr) {
@@ -109,21 +133,17 @@ ShadowFrameScope::ShadowFrameScope(const std::uint32_t interface_id, const std::
 }
 
 void ShadowFrameScope::close_frame(const bool unwinding) noexcept {
-    ShadowStack& stack = thread_stack;
-    // An exception is unwinding this scope. The first such pop of an
-    // unwinding marks the depth; later pops of the same unwinding find the
-    // mark current (nothing pushed, the depth where the last pop left it)
-    // and only move it along.
-    if (unwinding) {
-        const bool continuing = stack.unwind_pushed == stack.pushed && stack.unwind_next_depth == stack.depth;
-        if (!continuing) {
-            stack.unwind_depth = stack.depth;
-            stack.unwind_pushed = stack.pushed;
-        }
-        // Scopes nest strictly, so the stack is never empty here.
-        stack.unwind_next_depth = stack.depth - 1U;
-    }
-    --stack.depth;
+    pop_frame(unwinding);
+}
+
+ShadowFrameCall::ShadowFrameCall(const ShadowFrameKind kind, const std::string_view subject,
+                                 const std::string_view name, const std::uint64_t sequence) noexcept {
+    open_described_frame(kind, subject, name, sequence);
+}
+
+ShadowFrameCall::~ShadowFrameCall() {
+    const bool unwinding = !returned_;
+    pop_frame(unwinding);
 }
 
 namespace {

@@ -108,7 +108,8 @@ public:
     // module counts only in that module's runtime, so the library's own copy
     // would report no exception while it unwinds the scope. An exception
     // thrown in another module still unwinds the frame, but is not seen as
-    // an unwinding there, so it leaves no mark.
+    // an unwinding there, so it leaves no mark: a frame whose callees may
+    // throw from another module is a ShadowFrameCall.
     ~ShadowFrameScope() {
         const bool unwinding = std::uncaught_exceptions() != 0;
         close_frame(unwinding);
@@ -120,6 +121,29 @@ private:
     // Pops the innermost frame; unwinding marks the depth for
     // copy_failure_shadow_frames.
     static void close_frame(bool unwinding) noexcept;
+};
+
+// A frame around an entry that calls into code another module may hold
+// (an application's handlers and controls, under a window's input, layout
+// and paint). The entry opens the frame, calls its body (a named function),
+// then calls returned(); a frame destroyed before returned() is being
+// unwound, whichever module threw, so no runtime is asked. The body's own
+// early returns cannot skip the mark, because the mark follows the body's
+// return. Writes the same stack as ShadowFrameScope (the library's), and
+// never throws or allocates.
+class GUI_FORMS_API ShadowFrameCall final {
+public:
+    ShadowFrameCall(ShadowFrameKind kind, std::string_view subject, std::string_view name,
+                    std::uint64_t sequence) noexcept;
+    ~ShadowFrameCall();
+    ShadowFrameCall(const ShadowFrameCall&) = delete;
+    ShadowFrameCall& operator=(const ShadowFrameCall&) = delete;
+
+    // The body returned: the frame closes as a return closes it.
+    void returned() noexcept { returned_ = true; }
+
+private:
+    bool returned_ = false;
 };
 
 // Copies the calling thread's recorded frames, outermost first, into the

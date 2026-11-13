@@ -155,6 +155,8 @@ Related types
      - A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels it holds inside ``clip`` by ``offset``, both in window coordinates and whole device pixels, before painting the damage taken with it.
    * - :cpp:class:`ShadowFrame <gui_forms::ShadowFrame>`
      - One frame.
+   * - :cpp:class:`ShadowFrameCall <gui_forms::ShadowFrameCall>`
+     - A frame around an entry that calls into code another module may hold (an application's handlers and controls, under a window's input, layout and paint).
    * - :cpp:class:`ShadowFrameScope <gui_forms::ShadowFrameScope>`
      - Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included.
    * - :cpp:class:`ShadowStackState <gui_forms::ShadowStackState>`
@@ -1671,6 +1673,26 @@ Related types
    .. cpp:member:: std::array<char, shadow_frame_subject_capacity> subject
 
    .. cpp:member:: std::array<char, shadow_frame_name_capacity> name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ShadowFrameCall final
+
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+
+   A frame around an entry that calls into code another module may hold (an application's handlers and controls, under a window's input, layout and paint). The entry opens the frame, calls its body (a named function), then calls returned(); a frame destroyed before returned() is being unwound, whichever module threw, so no runtime is asked. The body's own early returns cannot skip the mark, because the mark follows the body's return. Writes the same stack as ShadowFrameScope (the library's), and never throws or allocates.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ShadowFrameCall(ShadowFrameKind kind, std::string_view subject, std::string_view name, std::uint64_t sequence) noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void returned() noexcept
+
+      The body returned: the frame closes as a return closes it.
 
 .. cpp:namespace:: gui_forms
 
