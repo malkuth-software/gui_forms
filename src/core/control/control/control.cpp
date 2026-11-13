@@ -17,6 +17,7 @@
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/theme/theme_overrides/theme_overrides.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 
 #include <algorithm>
@@ -1549,6 +1550,12 @@ bool Control::set_theme_sheet(std::string_view text, std::string_view name) {
     (*theme_sheet_).text.assign(text);
     (*theme_sheet_).name.assign(name);
     const bool applied = compile_theme_sheet();
+    return applied;
+}
+
+bool Control::set_theme_overrides(const ThemeOverrides& overrides) {
+    const std::string sheet = overrides.sheet_text();
+    const bool applied = set_theme_sheet(sheet, "overrides");
     return applied;
 }
 

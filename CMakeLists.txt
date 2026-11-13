@@ -401,6 +401,7 @@ add_library(gui_forms_core STATIC
     src/core/theme/familiar_themes/familiar_themes.cpp
     src/core/theme/gui_forms_theme/gui_forms_theme.cpp
     src/core/theme/stock_anatomies/stock_anatomies.cpp
+    src/core/theme/theme_overrides/theme_overrides.cpp
     src/core/theme/canvas_look/canvas_look.cpp
     src/core/theme/theme_compiler/theme_compiler.cpp
     src/core/theme/part_painting/part_painting.cpp

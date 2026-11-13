@@ -8,5 +8,6 @@
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/theme/theme_overrides/theme_overrides.hpp"
 #include "gui_forms/application/user_themes/user_themes.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"

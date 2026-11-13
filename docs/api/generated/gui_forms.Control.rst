@@ -652,6 +652,8 @@ gui_forms::Control
         - Changes the fields of :cpp:func:`requested_bounds <gui_forms::Control::requested_bounds>` selected by :cpp:enum:`BoundsSpecified <gui_forms::BoundsSpecified>`, all of them by default.
       * - :cpp:func:`set_style <gui_forms::Control::set_style>`
         - Sets or clears :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags, retained for Windows Forms compatibility.
+      * - :cpp:func:`set_theme_overrides <gui_forms::Control::set_theme_overrides>`
+        - Typed run-time styling (the ImGui-class demonstrator's I6): the overrides' sheet (ThemeOverrides::sheet_text) set as the theme sheet, named ``overrides``, with set_theme_sheet's timing, reports and result.
       * - :cpp:func:`set_custom_cursor <gui_forms::Control::set_custom_cursor>`
         - A stock assignment clears the image override.
       * - :cpp:func:`set_pointer_capture <gui_forms::Control::set_pointer_capture>`
@@ -1684,6 +1686,10 @@ gui_forms::Control
 
       Sets or clears :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags, retained for Windows Forms
       compatibility. Buffering flags never enable partial painting.
+
+   .. cpp:function:: bool set_theme_overrides(const ThemeOverrides& overrides)
+
+      Typed run-time styling (the ImGui-class demonstrator's I6): the overrides' sheet (ThemeOverrides::sheet_text) set as the theme sheet, named ``overrides``, with set_theme_sheet's timing, reports and result. Empty overrides remove the sheet.
 
    .. cpp:function:: void set_custom_cursor(CursorImagesPtr images, CursorKind fallback = CursorKind::arrow)
 

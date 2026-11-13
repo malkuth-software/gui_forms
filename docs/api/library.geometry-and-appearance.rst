@@ -432,6 +432,10 @@ Types
      - The installed theme packages an ``@import`` may name (D2): each verified whole when installed (its manifest, every file's hash, and every ``@import`` of its sheet listed in its manifest), and found by its name.
    * - :cpp:class:`ThemeMotionTokens <gui_forms::ThemeMotionTokens>`
      - ThemeMotionTokens defines quick, standard, emphasized, and busy-cycle durations without prescribing an animation engine.
+   * - :cpp:class:`ThemeOverrides <gui_forms::ThemeOverrides>`
+     -  
+   * - :cpp:class:`ThemeOverrideTarget <gui_forms::ThemeOverrideTarget>`
+     - Where an entry applies: a stock control type by its id (``button``, ``track_bar``), optionally one of its parts by name (``face``, empty for the control as a whole) and one of its states (none for every state).
    * - :cpp:class:`ThemePackage <gui_forms::ThemePackage>`
      - A theme package: its manifest's bytes and its files.
    * - :cpp:class:`ThemePackageExport <gui_forms::ThemePackageExport>`
@@ -6435,6 +6439,62 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: ThemeOverrides final
+
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:function:: std::size_t size() const noexcept
+
+      The number of entries, roles included.
+
+   .. cpp:function:: std::string sheet_text() const
+
+      The program theme sheet the entries write: the roles in one ``:root`` block, then one rule per target in the order targets were first set, its properties in the order they were first set. Deterministic: the same entries write the same text. Empty overrides write an empty sheet.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void clear() noexcept
+
+      Removes every entry.
+
+   .. cpp:function:: ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, std::optional<Color> background = {})
+
+      Redefines a colour role: ``foreground`` alone for a single role, ``foreground`` on ``background`` for a paired one (colour_role_paired). Setting a role again replaces its colours in place.
+
+   .. cpp:function:: ThemeOverrideCheck set_colour(const ThemeOverrideTarget& target, ThemeOverrideProperty property, Color colour)
+
+      Sets a colour property (background_colour, border_colour or text_colour) for ``target``. Setting the same target and property again replaces the value in place.
+
+   .. cpp:function:: ThemeOverrideCheck set_length(const ThemeOverrideTarget& target, ThemeOverrideProperty property, double value)
+
+      Sets a length or fraction property (corner_radius, border_width or opacity) for ``target``, within the property's range.
+
+   .. cpp:member:: constexpr std::size_t maximum_entries
+
+      The most entries, roles and properties together, a set holds. Default: ``4096U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ThemeOverrideTarget final
+
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+
+   Where an entry applies: a stock control type by its id (``button``, ``track_bar``), optionally one of its parts by name (``face``, empty for the control as a whole) and one of its states (none for every state).
+
+   .. cpp:member:: std::string control
+
+   .. cpp:member:: std::string part
+
+   .. cpp:member:: std::optional<AnatomyState> state
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ThemePackage final
 
    ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
@@ -8712,6 +8772,44 @@ Enumerations
    .. cpp:enumerator:: fallback_theme
 
    .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeOverrideCheck
+
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+
+   .. cpp:enumerator:: accepted
+
+   .. cpp:enumerator:: unknown_control
+
+   .. cpp:enumerator:: unknown_part
+
+   .. cpp:enumerator:: unknown_state
+
+   .. cpp:enumerator:: wrong_value_kind
+
+   .. cpp:enumerator:: value_out_of_range
+
+   .. cpp:enumerator:: too_many
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeOverrideProperty
+
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+
+   .. cpp:enumerator:: background_colour
+
+   .. cpp:enumerator:: border_colour
+
+   .. cpp:enumerator:: text_colour
+
+   .. cpp:enumerator:: corner_radius
+
+   .. cpp:enumerator:: border_width
+
+   .. cpp:enumerator:: opacity
 
 .. cpp:namespace:: gui_forms
 

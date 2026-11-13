@@ -483,6 +483,7 @@ __ZGVZN9gui_forms14TextEditResult*
 __ZGVZN9gui_forms14TextInputEvent*
 __ZGVZN9gui_forms14TextMaskResult*
 __ZGVZN9gui_forms14TextMatchRange*
+__ZGVZN9gui_forms14ThemeOverrides*
 __ZGVZN9gui_forms14ThemeRuleSheet*
 __ZGVZN9gui_forms14ToastDismissal*
 __ZGVZN9gui_forms14ToolStripPanel*
@@ -987,6 +988,7 @@ __ZGVZN9gui_forms19TextDecorationStyle*
 __ZGVZN9gui_forms19TextMetricsProvider*
 __ZGVZN9gui_forms19ThemeCompileOptions*
 __ZGVZN9gui_forms19ThemeGeometryTokens*
+__ZGVZN9gui_forms19ThemeOverrideTarget*
 __ZGVZN9gui_forms19ThemeRequestContext*
 __ZGVZN9gui_forms19ThemeWindowBackdrop*
 __ZGVZN9gui_forms19ToolStripDropTarget*
@@ -2006,6 +2008,7 @@ __ZGVZNK9gui_forms14TextEditResult*
 __ZGVZNK9gui_forms14TextInputEvent*
 __ZGVZNK9gui_forms14TextMaskResult*
 __ZGVZNK9gui_forms14TextMatchRange*
+__ZGVZNK9gui_forms14ThemeOverrides*
 __ZGVZNK9gui_forms14ThemeRuleSheet*
 __ZGVZNK9gui_forms14ToastDismissal*
 __ZGVZNK9gui_forms14ToolStripPanel*
@@ -2510,6 +2513,7 @@ __ZGVZNK9gui_forms19TextDecorationStyle*
 __ZGVZNK9gui_forms19TextMetricsProvider*
 __ZGVZNK9gui_forms19ThemeCompileOptions*
 __ZGVZNK9gui_forms19ThemeGeometryTokens*
+__ZGVZNK9gui_forms19ThemeOverrideTarget*
 __ZGVZNK9gui_forms19ThemeRequestContext*
 __ZGVZNK9gui_forms19ThemeWindowBackdrop*
 __ZGVZNK9gui_forms19ToolStripDropTarget*
@@ -3669,6 +3673,7 @@ __ZN9gui_forms14TextEditResult*
 __ZN9gui_forms14TextInputEvent*
 __ZN9gui_forms14TextMaskResult*
 __ZN9gui_forms14TextMatchRange*
+__ZN9gui_forms14ThemeOverrides*
 __ZN9gui_forms14ThemeRuleSheet*
 __ZN9gui_forms14ToastDismissal*
 __ZN9gui_forms14ToolStripPanel*
@@ -4477,6 +4482,7 @@ __ZN9gui_forms19TextDecorationStyle*
 __ZN9gui_forms19TextMetricsProvider*
 __ZN9gui_forms19ThemeCompileOptions*
 __ZN9gui_forms19ThemeGeometryTokens*
+__ZN9gui_forms19ThemeOverrideTarget*
 __ZN9gui_forms19ThemeRequestContext*
 __ZN9gui_forms19ThemeWindowBackdrop*
 __ZN9gui_forms19ToolStripDropTarget*
@@ -6430,6 +6436,7 @@ __ZNK[RO]9gui_forms14TextEditResult*
 __ZNK[RO]9gui_forms14TextInputEvent*
 __ZNK[RO]9gui_forms14TextMaskResult*
 __ZNK[RO]9gui_forms14TextMatchRange*
+__ZNK[RO]9gui_forms14ThemeOverrides*
 __ZNK[RO]9gui_forms14ThemeRuleSheet*
 __ZNK[RO]9gui_forms14ToastDismissal*
 __ZNK[RO]9gui_forms14ToolStripPanel*
@@ -6934,6 +6941,7 @@ __ZNK[RO]9gui_forms19TextDecorationStyle*
 __ZNK[RO]9gui_forms19TextMetricsProvider*
 __ZNK[RO]9gui_forms19ThemeCompileOptions*
 __ZNK[RO]9gui_forms19ThemeGeometryTokens*
+__ZNK[RO]9gui_forms19ThemeOverrideTarget*
 __ZNK[RO]9gui_forms19ThemeRequestContext*
 __ZNK[RO]9gui_forms19ThemeWindowBackdrop*
 __ZNK[RO]9gui_forms19ToolStripDropTarget*
@@ -7953,6 +7961,7 @@ __ZN[KRO]9gui_forms14TextEditResult*
 __ZN[KRO]9gui_forms14TextInputEvent*
 __ZN[KRO]9gui_forms14TextMaskResult*
 __ZN[KRO]9gui_forms14TextMatchRange*
+__ZN[KRO]9gui_forms14ThemeOverrides*
 __ZN[KRO]9gui_forms14ThemeRuleSheet*
 __ZN[KRO]9gui_forms14ToastDismissal*
 __ZN[KRO]9gui_forms14ToolStripPanel*
@@ -8457,6 +8466,7 @@ __ZN[KRO]9gui_forms19TextDecorationStyle*
 __ZN[KRO]9gui_forms19TextMetricsProvider*
 __ZN[KRO]9gui_forms19ThemeCompileOptions*
 __ZN[KRO]9gui_forms19ThemeGeometryTokens*
+__ZN[KRO]9gui_forms19ThemeOverrideTarget*
 __ZN[KRO]9gui_forms19ThemeRequestContext*
 __ZN[KRO]9gui_forms19ThemeWindowBackdrop*
 __ZN[KRO]9gui_forms19ToolStripDropTarget*
@@ -9476,6 +9486,7 @@ __ZT[VIST]N9gui_forms14TextEditResult*E
 __ZT[VIST]N9gui_forms14TextInputEvent*E
 __ZT[VIST]N9gui_forms14TextMaskResult*E
 __ZT[VIST]N9gui_forms14TextMatchRange*E
+__ZT[VIST]N9gui_forms14ThemeOverrides*E
 __ZT[VIST]N9gui_forms14ThemeRuleSheet*E
 __ZT[VIST]N9gui_forms14ToastDismissal*E
 __ZT[VIST]N9gui_forms14ToolStripPanel*E
@@ -9980,6 +9991,7 @@ __ZT[VIST]N9gui_forms19TextDecorationStyle*E
 __ZT[VIST]N9gui_forms19TextMetricsProvider*E
 __ZT[VIST]N9gui_forms19ThemeCompileOptions*E
 __ZT[VIST]N9gui_forms19ThemeGeometryTokens*E
+__ZT[VIST]N9gui_forms19ThemeOverrideTarget*E
 __ZT[VIST]N9gui_forms19ThemeRequestContext*E
 __ZT[VIST]N9gui_forms19ThemeWindowBackdrop*E
 __ZT[VIST]N9gui_forms19ToolStripDropTarget*E
@@ -10999,6 +11011,7 @@ __ZT[hvc]*9gui_forms14TextEditResult*
 __ZT[hvc]*9gui_forms14TextInputEvent*
 __ZT[hvc]*9gui_forms14TextMaskResult*
 __ZT[hvc]*9gui_forms14TextMatchRange*
+__ZT[hvc]*9gui_forms14ThemeOverrides*
 __ZT[hvc]*9gui_forms14ThemeRuleSheet*
 __ZT[hvc]*9gui_forms14ToastDismissal*
 __ZT[hvc]*9gui_forms14ToolStripPanel*
@@ -11503,6 +11516,7 @@ __ZT[hvc]*9gui_forms19TextDecorationStyle*
 __ZT[hvc]*9gui_forms19TextMetricsProvider*
 __ZT[hvc]*9gui_forms19ThemeCompileOptions*
 __ZT[hvc]*9gui_forms19ThemeGeometryTokens*
+__ZT[hvc]*9gui_forms19ThemeOverrideTarget*
 __ZT[hvc]*9gui_forms19ThemeRequestContext*
 __ZT[hvc]*9gui_forms19ThemeWindowBackdrop*
 __ZT[hvc]*9gui_forms19ToolStripDropTarget*
@@ -12522,6 +12536,7 @@ __ZZN9gui_forms14TextEditResult*
 __ZZN9gui_forms14TextInputEvent*
 __ZZN9gui_forms14TextMaskResult*
 __ZZN9gui_forms14TextMatchRange*
+__ZZN9gui_forms14ThemeOverrides*
 __ZZN9gui_forms14ThemeRuleSheet*
 __ZZN9gui_forms14ToastDismissal*
 __ZZN9gui_forms14ToolStripPanel*
@@ -13026,6 +13041,7 @@ __ZZN9gui_forms19TextDecorationStyle*
 __ZZN9gui_forms19TextMetricsProvider*
 __ZZN9gui_forms19ThemeCompileOptions*
 __ZZN9gui_forms19ThemeGeometryTokens*
+__ZZN9gui_forms19ThemeOverrideTarget*
 __ZZN9gui_forms19ThemeRequestContext*
 __ZZN9gui_forms19ThemeWindowBackdrop*
 __ZZN9gui_forms19ToolStripDropTarget*
@@ -14045,6 +14061,7 @@ __ZZNK9gui_forms14TextEditResult*
 __ZZNK9gui_forms14TextInputEvent*
 __ZZNK9gui_forms14TextMaskResult*
 __ZZNK9gui_forms14TextMatchRange*
+__ZZNK9gui_forms14ThemeOverrides*
 __ZZNK9gui_forms14ThemeRuleSheet*
 __ZZNK9gui_forms14ToastDismissal*
 __ZZNK9gui_forms14ToolStripPanel*
@@ -14549,6 +14566,7 @@ __ZZNK9gui_forms19TextDecorationStyle*
 __ZZNK9gui_forms19TextMetricsProvider*
 __ZZNK9gui_forms19ThemeCompileOptions*
 __ZZNK9gui_forms19ThemeGeometryTokens*
+__ZZNK9gui_forms19ThemeOverrideTarget*
 __ZZNK9gui_forms19ThemeRequestContext*
 __ZZNK9gui_forms19ThemeWindowBackdrop*
 __ZZNK9gui_forms19ToolStripDropTarget*

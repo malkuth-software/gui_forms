@@ -62,6 +62,7 @@ struct ThemeRoleColours;
 class InlineStyleResult;
 struct ThemeCompileDiagnostic;
 class ThemeCompileResult;
+class ThemeOverrides;
 class CompiledThemeRules;
 class ContainerControl;
 class CommandTarget;
@@ -762,6 +763,11 @@ public:
     [[nodiscard]] bool theme_sheet_pending() const noexcept;
     // Raised after each compilation of the sheet, on the control's thread.
     [[nodiscard]] Event<const ThemeCompileResult&>& theme_sheet_compiled();
+    // Typed run-time styling (the ImGui-class demonstrator's I6): the
+    // overrides' sheet (ThemeOverrides::sheet_text) set as the theme sheet,
+    // named `overrides`, with set_theme_sheet's timing, reports and result.
+    // Empty overrides remove the sheet.
+    bool set_theme_overrides(const ThemeOverrides& overrides);
     // The inline style's text in force; empty without one. Valid until the
     // style is set, cleared or recompiled for a theme change (checked
     // builds fail fast on a later read).
