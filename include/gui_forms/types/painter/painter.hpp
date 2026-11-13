@@ -90,6 +90,18 @@ inline constexpr std::size_t maximum_paint_group_depth = 4;
 // The most cells Painter::fill_checker draws one by one.
 inline constexpr std::size_t maximum_checker_cells = 65536U;
 
+// How draw_text_utf8_fitted shortens text that does not fit: cut it at
+// the last code point that fits, or cut it so U+2026 fits after it.
+enum class TextTrim : std::uint8_t { cut, ellipsis };
+
+// One run of Painter::draw_text_runs: its baseline origin, its UTF-8 text
+// (lent for the call) and its colour.
+struct GUI_FORMS_API TextRun final {
+    Point origin{};
+    std::string_view text{};
+    Color color{};
+};
+
 class GUI_FORMS_API Painter : public TextMetricsProvider {
 public:
     virtual ~Painter() = default;
@@ -246,6 +258,24 @@ public:
     // recording painter keeps (a recorded line is shaped again on replay);
     // the Skia painter draws the runs.
     virtual void draw_glyph_runs(Point origin, const GlyphRunsView& view, FontSpec font, Color color);
+    // Many runs in one font (the flame graph demonstrator's F3), each at its
+    // origin in its colour, in order. The base implementation draws each
+    // with draw_text_utf8; a renderer may share the font's setup across
+    // them. Each run is as draw_text_utf8 would draw it.
+    virtual void draw_text_runs(FontSpec font, std::span<const TextRun> runs);
+    // The longest prefix of `text`, in whole code points, whose
+    // measure_text_utf8 width is at most `max_width` (the flame graph
+    // demonstrator's F2): its byte count. A binary search over byte lengths,
+    // so about log2(bytes) measures; 0 when nothing fits or `max_width` is
+    // not a finite non-negative number.
+    [[nodiscard]] std::size_t fit_text_utf8(std::string_view text, FontSpec font, double max_width);
+    // `text` at `origin`, shortened to `max_width` when it does not fit:
+    // `trim` cut draws the fitted prefix, ellipsis the prefix that leaves
+    // room for U+2026 and then U+2026. Returns the width drawn (0 when
+    // nothing was). Trailing spaces before the ellipsis are dropped. Two
+    // draw_text_utf8 calls at most, no allocation.
+    double draw_text_utf8_fitted(Point origin, std::string_view text, FontSpec font, Color color, double max_width,
+                                 TextTrim trim);
     // Text controls need the same metrics used by the painter for caret hit
     // testing, selection geometry, and horizontal viewport maintenance.  The
     // renderer owns those metrics; controls must not guess a fixed glyph width.

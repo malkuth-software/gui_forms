@@ -18,6 +18,7 @@
     "draw_retained_box_shadow",
     "draw_retained_text_utf8",
     "draw_surface_material",
+    "draw_text_runs",
     "draw_text_utf8",
     "draw_turned_text_utf8",
     "fill_band",

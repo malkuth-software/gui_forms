@@ -408,6 +408,8 @@ Types
      - A stroke's colour, width, joins, caps and dashes, in the painter's current coordinates.
    * - :cpp:class:`SurfaceMaterial <gui_forms::SurfaceMaterial>`
      - SurfaceMaterial is a bounded ordered fill stack plus optional border, bounded shadow stack, and shared corner radius.
+   * - :cpp:class:`TextRun <gui_forms::TextRun>`
+     - One run of Painter::draw_text_runs: its baseline origin, its UTF-8 text (lent for the call) and its colour.
    * - :cpp:class:`Theme <gui_forms::Theme>`
      - Theme is an immutable validated role/state recipe table plus structural spacing, geometry, typography, and motion tokens; it resolves logical visual context without exposing renderer or platform objects.
    * - :cpp:class:`ThemeBackdropBase <gui_forms::ThemeBackdropBase>`
@@ -4393,6 +4395,17 @@ Types
    Painter is the renderer-neutral command vocabulary for transforms, clips, solids, rounded geometry, gradients, shadows, text, registered images, live surfaces, sampled regions, and bounded patterns; rich operations provide coherent minimal-host fallbacks.
 
 
+   .. rubric:: Methods
+
+   .. cpp:function:: std::size_t fit_text_utf8(std::string_view text, FontSpec font, double max_width)
+
+      The longest prefix of ``text``, in whole code points, whose measure_text_utf8 width is at most ``max_width`` (the flame graph demonstrator's F2): its byte count. A binary search over byte lengths, so about log2(bytes) measures; 0 when nothing fits or ``max_width`` is not a finite non-negative number.
+
+   .. cpp:function:: double draw_text_utf8_fitted(Point origin, std::string_view text, FontSpec font, Color color, double max_width, TextTrim trim)
+
+      ``text`` at ``origin``, shortened to ``max_width`` when it does not fit: ``trim`` cut draws the fitted prefix, ellipsis the prefix that leaves room for U+2026 and then U+2026. Returns the width drawn (0 when nothing was). Trailing spaces before the ellipsis are dropped. Two draw_text_utf8 calls at most, no allocation.
+
+
    .. rubric:: Extension points
 
    .. cpp:function:: virtual void begin_group(const PaintGroup& group)
@@ -4512,6 +4525,10 @@ Types
    .. cpp:function:: virtual void draw_glyph_runs(Point origin, const GlyphRunsView& view, FontSpec font, Color color)
 
       One line of glyph runs a provider shaped earlier (GlyphRunsView, as a paragraph layout fills them), drawn at ``origin`` (the start of the baseline, as for draw_text_utf8) in ``font``'s size and colour without shaping again. A painter whose own engine shaped them, in its current face table (view.source), draws exactly the pixels draw_text_utf8 draws for view.text; for any other source, or runs whose glyph indices fall outside view.glyphs, it draws view.text with draw_text_utf8. That fallback is the base implementation, which the recording painter keeps (a recorded line is shaped again on replay); the Skia painter draws the runs.
+
+   .. cpp:function:: virtual void draw_text_runs(FontSpec font, std::span<const TextRun> runs)
+
+      Many runs in one font (the flame graph demonstrator's F3), each at its origin in its colour, in order. The base implementation draws each with draw_text_utf8; a renderer may share the font's setup across them. Each run is as draw_text_utf8 would draw it.
 
    .. cpp:function:: virtual Size measure_text_utf8(std::string_view text, FontSpec font)
 
@@ -5966,6 +5983,20 @@ Types
    .. cpp:member:: MaterialDither dither
 
       The final quantization (MaterialDither); none by default. Default: ``{MaterialDither::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: TextRun final
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   One run of Painter::draw_text_runs: its baseline origin, its UTF-8 text (lent for the call) and its colour.
+
+   .. cpp:member:: Point origin
+
+   .. cpp:member:: std::string_view text
+
+   .. cpp:member:: Color color
 
 .. cpp:namespace:: gui_forms
 
@@ -8700,6 +8731,16 @@ Enumerations
    .. cpp:enumerator:: monospace
 
    .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: TextTrim
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   .. cpp:enumerator:: cut
+
+   .. cpp:enumerator:: ellipsis
 
 .. cpp:namespace:: gui_forms
 

@@ -1458,6 +1458,7 @@
     _ZGVZN9gui_forms7Spinner*;
     _ZGVZN9gui_forms7TabPage*;
     _ZGVZN9gui_forms7TextBox*;
+    _ZGVZN9gui_forms7TextRun*;
     _ZGVZN9gui_forms7TokenId*;
     _ZGVZN9gui_forms7ToolTip*;
     _ZGVZN9gui_forms8CheckBox*;
@@ -2988,6 +2989,7 @@
     _ZGVZNK9gui_forms7Spinner*;
     _ZGVZNK9gui_forms7TabPage*;
     _ZGVZNK9gui_forms7TextBox*;
+    _ZGVZNK9gui_forms7TextRun*;
     _ZGVZNK9gui_forms7TokenId*;
     _ZGVZNK9gui_forms7ToolTip*;
     _ZGVZNK9gui_forms8CheckBox*;
@@ -5790,6 +5792,7 @@
     _ZN9gui_forms7Spinner*;
     _ZN9gui_forms7TabPage*;
     _ZN9gui_forms7TextBox*;
+    _ZN9gui_forms7TextRun*;
     _ZN9gui_forms7TokenId*;
     _ZN9gui_forms7ToolTip*;
     _ZN9gui_forms7builtin19begin_keyboard_dragB*;
@@ -7426,6 +7429,7 @@
     _ZNK[RO]9gui_forms7Spinner*;
     _ZNK[RO]9gui_forms7TabPage*;
     _ZNK[RO]9gui_forms7TextBox*;
+    _ZNK[RO]9gui_forms7TextRun*;
     _ZNK[RO]9gui_forms7TokenId*;
     _ZNK[RO]9gui_forms7ToolTip*;
     _ZNK[RO]9gui_forms8CheckBox*;
@@ -8956,6 +8960,7 @@
     _ZN[KRO]9gui_forms7Spinner*;
     _ZN[KRO]9gui_forms7TabPage*;
     _ZN[KRO]9gui_forms7TextBox*;
+    _ZN[KRO]9gui_forms7TextRun*;
     _ZN[KRO]9gui_forms7TokenId*;
     _ZN[KRO]9gui_forms7ToolTip*;
     _ZN[KRO]9gui_forms8CheckBox*;
@@ -10486,6 +10491,7 @@
     _ZT[VIST]N9gui_forms7Spinner*E;
     _ZT[VIST]N9gui_forms7TabPage*E;
     _ZT[VIST]N9gui_forms7TextBox*E;
+    _ZT[VIST]N9gui_forms7TextRun*E;
     _ZT[VIST]N9gui_forms7TokenId*E;
     _ZT[VIST]N9gui_forms7ToolTip*E;
     _ZT[VIST]N9gui_forms8CheckBox*E;
@@ -12016,6 +12022,7 @@
     _ZT[hvc]*9gui_forms7Spinner*;
     _ZT[hvc]*9gui_forms7TabPage*;
     _ZT[hvc]*9gui_forms7TextBox*;
+    _ZT[hvc]*9gui_forms7TextRun*;
     _ZT[hvc]*9gui_forms7TokenId*;
     _ZT[hvc]*9gui_forms7ToolTip*;
     _ZT[hvc]*9gui_forms8CheckBox*;
@@ -13546,6 +13553,7 @@
     _ZZN9gui_forms7Spinner*;
     _ZZN9gui_forms7TabPage*;
     _ZZN9gui_forms7TextBox*;
+    _ZZN9gui_forms7TextRun*;
     _ZZN9gui_forms7TokenId*;
     _ZZN9gui_forms7ToolTip*;
     _ZZN9gui_forms8CheckBox*;
@@ -15076,6 +15084,7 @@
     _ZZNK9gui_forms7Spinner*;
     _ZZNK9gui_forms7TabPage*;
     _ZZNK9gui_forms7TextBox*;
+    _ZZNK9gui_forms7TextRun*;
     _ZZNK9gui_forms7TokenId*;
     _ZZNK9gui_forms7ToolTip*;
     _ZZNK9gui_forms8CheckBox*;
