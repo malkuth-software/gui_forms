@@ -91,7 +91,7 @@ gui_forms::Plot3DView
         -  
       * - :cpp:func:`hit_at <gui_forms::Plot3DView::hit_at>`
         - -- picking ----------------------------------------------------------------- What lies under a local point (from the control's top left) in the kept picture.
-      * - :cpp:func:`plot3_d_view_property_entries <gui_forms::Plot3DView::plot3_d_view_property_entries>`
+      * - :cpp:func:`plot3d_view_property_entries <gui_forms::Plot3DView::plot3d_view_property_entries>`
         -  
       * - :cpp:func:`set_axis_title <gui_forms::Plot3DView::set_axis_title>`
         - An axis's title, drawn beside its ticks; empty draws none.
@@ -190,7 +190,7 @@ gui_forms::Plot3DView
 
       -- picking ----------------------------------------------------------------- What lies under a local point (from the control's top left) in the kept picture.
 
-   .. cpp:function:: static const std::array<PropertyEntry, plot3_d_view_property_count>& plot3_d_view_property_entries() noexcept
+   .. cpp:function:: static const std::array<PropertyEntry, plot3d_view_property_count>& plot3d_view_property_entries() noexcept
 
    .. cpp:function:: void set_axis_title(plots::Plot3DAxis axis, std::string_view title)
 
@@ -251,13 +251,13 @@ gui_forms::Plot3DView
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
-   .. cpp:member:: constexpr std::size_t plot3_d_view_property_count
+   .. cpp:member:: constexpr std::size_t plot3d_view_property_count
 
       Plot3DView's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 0 supported, 0 deferred, 0 excluded, 25 unclassified; 25 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 14 supported, 0 deferred, 0 excluded, 11 unclassified; 25 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -271,7 +271,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - property
      - GUI.Forms-only
      - ``camera``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``hover``
@@ -283,19 +283,19 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - property
      - GUI.Forms-only
      - ``picture_renders``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``plot_bounds``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``readout``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``scene``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``show_axes``
@@ -315,31 +315,31 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - event
      - GUI.Forms-only
      - ``camera_changed``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``hovered``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``picked``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``add_line``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``add_scatter``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``add_surface``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``axis_title``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``clear_items``
@@ -350,7 +350,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
      - unclassified (untested)
    * - method
      - GUI.Forms-only
-     - ``plot3_d_view_property_entries``
+     - ``plot3d_view_property_entries``
      - unclassified (untested)
    * - method
      - GUI.Forms-only
@@ -363,8 +363,8 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - method
      - GUI.Forms-only
      - ``set_axis_title``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``set_box_aspect``
-     - unclassified (untested)
+     - supported

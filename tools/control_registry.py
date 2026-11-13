@@ -107,9 +107,24 @@ SNAKE_CASE: re.Pattern[str] = re.compile(r"^[a-z][a-z0-9]*(_[a-z0-9]+)*$")
 _TYPE_WORD: re.Pattern[str] = re.compile(r"[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z0-9]+|[A-Z]+")
 
 
+def type_words(type_name: str) -> list[str]:
+    """The words of a type's name. An all-capitals word right after a digit
+    stays with the word before it, so "Plot3DView" is "Plot3D", "View"
+    (a "3D" or "2D" is one word); a capitalised word after a digit is its
+    own ("Utf8Offset" is "Utf8", "Offset")."""
+    words: list[str] = []
+    for word in _TYPE_WORD.findall(type_name):
+        if words and words[-1][-1].isdigit() and word.isupper():
+            words[-1] = words[-1] + word
+        else:
+            words.append(word)
+    return words
+
+
 def registered_id(type_name: str) -> str:
-    """The registry id a type's name spells: "HScrollBar" is "h_scroll_bar"."""
-    return "_".join(word.lower() for word in _TYPE_WORD.findall(type_name))
+    """The registry id a type's name spells: "HScrollBar" is "h_scroll_bar",
+    "Plot3DView" is "plot3d_view"."""
+    return "_".join(word.lower() for word in type_words(type_name))
 CPP_IDENTIFIER: re.Pattern[str] = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 # Namespace-level class/struct declarations with a base-clause. Column 0 only:

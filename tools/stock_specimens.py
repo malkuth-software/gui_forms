@@ -58,7 +58,7 @@ MAKERS: Mapping[str, str] = {
     "sweep_scope": "make_sweep_scope",
     "sparkline": "make_sparkline",
     "plot_view": "make_plot_view",
-    "plot3_d_view": "make_plot3_d_view",
+    "plot3d_view": "make_plot3d_view",
     "plot_axis_item": "make_plot_axis_item",
     "plot_series_item": "make_plot_series_item",
     "plot_annotation_item": "make_plot_annotation_item",
@@ -180,7 +180,7 @@ TEXTS: Mapping[str, str] = {
     "label": "Display name",
     "toast": "Theme saved",
     "callout": "Pinned panels stay open while you work.",
-    "plot3_d_view": "3D plot",
+    "plot3d_view": "3D plot",
 }
 
 # Logical sizes by registry category, then by control id.
@@ -216,7 +216,7 @@ SIZES: Mapping[str, tuple[float, float]] = {
     "sweep_scope": (240.0, 80.0),
     "sparkline": (224.0, 48.0),
     "plot_view": (340.0, 200.0),
-    "plot3_d_view": (340.0, 260.0),
+    "plot3d_view": (340.0, 260.0),
     "node_canvas": (368.0, 152.0),
     "plot_axis_item": (340.0, 200.0),
     "plot_series_item": (340.0, 200.0),

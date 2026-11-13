@@ -543,7 +543,7 @@ void test_view_semantics_and_interactions() {
         if (declared.name == "camera_changed") camera = true;
     }
     require(hovered && picked && camera, "the three events are declared");
-    require((*plot).anatomy().control_id == "plot3_d_view", "the anatomy carries the registry id");
+    require((*plot).anatomy().control_id == "plot3d_view", "the anatomy carries the registry id");
     require((*plot).axis_title(plots::Plot3DAxis::z) == "z", "an axis keeps its title");
     bool refused = false;
     try {

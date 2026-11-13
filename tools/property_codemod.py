@@ -107,11 +107,20 @@ END = "// property_codemod end "
 
 # Names and configs ------------------------------------------------------
 
+_WORD = re.compile(r"[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z0-9]+|[A-Z]+")
+
+
 def snake(name):
-    """ButtonBase -> button_base."""
-    first = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
-    second = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", first)
-    return second.lower()
+    """ButtonBase -> button_base; Plot3DView -> plot3d_view. The words are
+    control_registry.registered_id's: an all-capitals word right after a
+    digit stays with the word before it."""
+    words = []
+    for word in _WORD.findall(name):
+        if words and words[-1][-1].isdigit() and word.isupper():
+            words[-1] = words[-1] + word
+        else:
+            words.append(word)
+    return "_".join(word.lower() for word in words)
 
 
 def load(path):

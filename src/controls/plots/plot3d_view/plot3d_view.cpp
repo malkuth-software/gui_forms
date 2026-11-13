@@ -75,7 +75,7 @@ constexpr std::array<PartDeclaration, 7> plot3d_view_parts = part_declarations(p
 constexpr std::array<AnatomyState, 5> plot3d_view_states = state_declarations(plot3d_view_state_fields);
 
 constexpr ControlAnatomy plot3d_view_anatomy{
-    .control_id = "plot3_d_view",
+    .control_id = "plot3d_view",
     .parts = plot3d_view_parts,
     .states = plot3d_view_states,
     .custom_states = {},
@@ -750,7 +750,7 @@ void Plot3DView::written(const decltype(labels_along_axis)&) {
 
 namespace {
 
-PropertyDescriptor plot3_d_view_show_panes_descriptor() {
+PropertyDescriptor plot3d_view_show_panes_descriptor() {
     PropertyDescriptor descriptor;
     descriptor.name = "show_panes";
     descriptor.kind = BindingValueKind::boolean;
@@ -763,13 +763,13 @@ PropertyDescriptor plot3_d_view_show_panes_descriptor() {
     return descriptor;
 }
 
-const PropertyDescriptor& describe_plot3_d_view_show_panes() {
+const PropertyDescriptor& describe_plot3d_view_show_panes() {
     static const PropertyDescriptor descriptor = property_table_descriptor(
-        plot3_d_view_show_panes_descriptor(), PropertyOperations{true, true, false, false});
+        plot3d_view_show_panes_descriptor(), PropertyOperations{true, true, false, false});
     return descriptor;
 }
 
-PropertyDescriptor plot3_d_view_show_grid_descriptor() {
+PropertyDescriptor plot3d_view_show_grid_descriptor() {
     PropertyDescriptor descriptor;
     descriptor.name = "show_grid";
     descriptor.kind = BindingValueKind::boolean;
@@ -782,13 +782,13 @@ PropertyDescriptor plot3_d_view_show_grid_descriptor() {
     return descriptor;
 }
 
-const PropertyDescriptor& describe_plot3_d_view_show_grid() {
+const PropertyDescriptor& describe_plot3d_view_show_grid() {
     static const PropertyDescriptor descriptor = property_table_descriptor(
-        plot3_d_view_show_grid_descriptor(), PropertyOperations{true, true, false, false});
+        plot3d_view_show_grid_descriptor(), PropertyOperations{true, true, false, false});
     return descriptor;
 }
 
-PropertyDescriptor plot3_d_view_show_axes_descriptor() {
+PropertyDescriptor plot3d_view_show_axes_descriptor() {
     PropertyDescriptor descriptor;
     descriptor.name = "show_axes";
     descriptor.kind = BindingValueKind::boolean;
@@ -801,13 +801,13 @@ PropertyDescriptor plot3_d_view_show_axes_descriptor() {
     return descriptor;
 }
 
-const PropertyDescriptor& describe_plot3_d_view_show_axes() {
+const PropertyDescriptor& describe_plot3d_view_show_axes() {
     static const PropertyDescriptor descriptor = property_table_descriptor(
-        plot3_d_view_show_axes_descriptor(), PropertyOperations{true, true, false, false});
+        plot3d_view_show_axes_descriptor(), PropertyOperations{true, true, false, false});
     return descriptor;
 }
 
-PropertyDescriptor plot3_d_view_wheel_zoom_descriptor() {
+PropertyDescriptor plot3d_view_wheel_zoom_descriptor() {
     PropertyDescriptor descriptor;
     descriptor.name = "wheel_zoom";
     descriptor.kind = BindingValueKind::boolean;
@@ -820,13 +820,13 @@ PropertyDescriptor plot3_d_view_wheel_zoom_descriptor() {
     return descriptor;
 }
 
-const PropertyDescriptor& describe_plot3_d_view_wheel_zoom() {
+const PropertyDescriptor& describe_plot3d_view_wheel_zoom() {
     static const PropertyDescriptor descriptor = property_table_descriptor(
-        plot3_d_view_wheel_zoom_descriptor(), PropertyOperations{true, true, false, false});
+        plot3d_view_wheel_zoom_descriptor(), PropertyOperations{true, true, false, false});
     return descriptor;
 }
 
-PropertyDescriptor plot3_d_view_labels_along_axis_descriptor() {
+PropertyDescriptor plot3d_view_labels_along_axis_descriptor() {
     PropertyDescriptor descriptor;
     descriptor.name = "labels_along_axis";
     descriptor.kind = BindingValueKind::boolean;
@@ -839,50 +839,50 @@ PropertyDescriptor plot3_d_view_labels_along_axis_descriptor() {
     return descriptor;
 }
 
-const PropertyDescriptor& describe_plot3_d_view_labels_along_axis() {
+const PropertyDescriptor& describe_plot3d_view_labels_along_axis() {
     static const PropertyDescriptor descriptor = property_table_descriptor(
-        plot3_d_view_labels_along_axis_descriptor(), PropertyOperations{true, true, false, false});
+        plot3d_view_labels_along_axis_descriptor(), PropertyOperations{true, true, false, false});
     return descriptor;
 }
 
 } // namespace
 
-const std::array<PropertyEntry, Plot3DView::plot3_d_view_property_count>& Plot3DView::plot3_d_view_property_entries() noexcept {
+const std::array<PropertyEntry, Plot3DView::plot3d_view_property_count>& Plot3DView::plot3d_view_property_entries() noexcept {
     static constexpr std::array<PropertyEntry, 5U> own{{
-        {"show_panes", &describe_plot3_d_view_show_panes,
+        {"show_panes", &describe_plot3d_view_show_panes,
          &read_cell_entry<Plot3DView, decltype(&Plot3DView::show_panes), &Plot3DView::show_panes>,
          &write_cell_entry<Plot3DView, decltype(&Plot3DView::show_panes), &Plot3DView::show_panes>,
          nullptr, nullptr, nullptr,
          nullptr},
-        {"show_grid", &describe_plot3_d_view_show_grid,
+        {"show_grid", &describe_plot3d_view_show_grid,
          &read_cell_entry<Plot3DView, decltype(&Plot3DView::show_grid), &Plot3DView::show_grid>,
          &write_cell_entry<Plot3DView, decltype(&Plot3DView::show_grid), &Plot3DView::show_grid>,
          nullptr, nullptr, nullptr,
          nullptr},
-        {"show_axes", &describe_plot3_d_view_show_axes,
+        {"show_axes", &describe_plot3d_view_show_axes,
          &read_cell_entry<Plot3DView, decltype(&Plot3DView::show_axes), &Plot3DView::show_axes>,
          &write_cell_entry<Plot3DView, decltype(&Plot3DView::show_axes), &Plot3DView::show_axes>,
          nullptr, nullptr, nullptr,
          nullptr},
-        {"wheel_zoom", &describe_plot3_d_view_wheel_zoom,
+        {"wheel_zoom", &describe_plot3d_view_wheel_zoom,
          &read_cell_entry<Plot3DView, decltype(&Plot3DView::wheel_zoom), &Plot3DView::wheel_zoom>,
          &write_cell_entry<Plot3DView, decltype(&Plot3DView::wheel_zoom), &Plot3DView::wheel_zoom>,
          nullptr, nullptr, nullptr,
          nullptr},
-        {"labels_along_axis", &describe_plot3_d_view_labels_along_axis,
+        {"labels_along_axis", &describe_plot3d_view_labels_along_axis,
          &read_cell_entry<Plot3DView, decltype(&Plot3DView::labels_along_axis), &Plot3DView::labels_along_axis>,
          &write_cell_entry<Plot3DView, decltype(&Plot3DView::labels_along_axis), &Plot3DView::labels_along_axis>,
          nullptr, nullptr, nullptr,
          nullptr},
     }};
     static_assert(property_names_distinct(own), "Plot3DView's property table names a property twice");
-    static const std::array<PropertyEntry, plot3_d_view_property_count> entries =
+    static const std::array<PropertyEntry, plot3d_view_property_count> entries =
         join_property_tables(Control::control_property_entries(), own);
     return entries;
 }
 
 std::span<const PropertyEntry> Plot3DView::property_table() const noexcept {
-    const std::array<PropertyEntry, plot3_d_view_property_count>& entries = plot3_d_view_property_entries();
+    const std::array<PropertyEntry, plot3d_view_property_count>& entries = plot3d_view_property_entries();
     return std::span<const PropertyEntry>(entries);
 }
 

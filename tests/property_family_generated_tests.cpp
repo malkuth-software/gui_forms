@@ -2003,7 +2003,7 @@ void test_picture_box_properties() {
     }
 }
 
-void test_plot3_d_view_properties() {
+void test_plot3d_view_properties() {
     std::shared_ptr<Plot3DView> control = make_control<Plot3DView>(StableId("generated.plot3dview"));
     {
         const bool sample = false;
@@ -3498,7 +3498,7 @@ int main() {
     test_page_view_properties();
     test_panel_properties();
     test_picture_box_properties();
-    test_plot3_d_view_properties();
+    test_plot3d_view_properties();
     test_plot_annotation_item_properties();
     test_plot_axis_item_properties();
     test_plot_series_item_properties();

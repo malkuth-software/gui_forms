@@ -603,7 +603,7 @@ Properties beyond every control's: `crosshair` (boolean), `live` (boolean), `sho
 | `handle_moved` | `PlotHandleMove` |
 | `handle_committed` | `PlotHandleMove` |
 
-## `plot3_d_view` (Plot3DView, control)
+## `plot3d_view` (Plot3DView, control)
 
 | Part | Role | Reuses | Own states |
 |---|---|---|---|

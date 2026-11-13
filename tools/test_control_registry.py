@@ -31,6 +31,25 @@ def _record(**overrides: object) -> dict[str, object]:
     return base
 
 
+class RegisteredIdTests(unittest.TestCase):
+    def test_words_of_type_names(self) -> None:
+        self.assertEqual(cr.registered_id("HScrollBar"), "h_scroll_bar")
+        self.assertEqual(cr.registered_id("RichTextBox"), "rich_text_box")
+        # An all-capitals word after a digit stays with it ("3D" is one word);
+        # a capitalised word after a digit is its own.
+        self.assertEqual(cr.registered_id("Plot3DView"), "plot3d_view")
+        self.assertEqual(cr.registered_id("Point2D"), "point2d")
+        self.assertEqual(cr.registered_id("Utf8OffsetTag"), "utf8_offset_tag")
+        self.assertEqual(cr.registered_id("Sha256Digest"), "sha256_digest")
+
+    def test_codemod_and_members_spell_the_same_words(self) -> None:
+        import member_manifest
+        import property_codemod
+        for name in ("Plot3DView", "HScrollBar", "ButtonBase", "Utf8OffsetTag", "Point2D", "TextBox"):
+            self.assertEqual(property_codemod.snake(name), cr.registered_id(name), name)
+            self.assertEqual(member_manifest.snake_name(name), cr.registered_id(name), name)
+
+
 class RealRegistryTests(unittest.TestCase):
     def test_check_passes_on_committed_registry(self) -> None:
         registry: cr.Registry = cr.load_registry()

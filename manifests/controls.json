@@ -272,7 +272,7 @@
       "doc": "api/generated/gui_forms.PlotView.rst"
     },
     {
-      "id": "plot3_d_view",
+      "id": "plot3d_view",
       "type": "Plot3DView",
       "header": "gui_forms/controls/plot3d_view.hpp",
       "category": "Information display",

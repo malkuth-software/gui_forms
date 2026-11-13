@@ -500,7 +500,7 @@ StockSpecimenInstance make_plot_view(const StockSpecimen&, StableId id) {
 // A 3D plot of a fixed 9 x 9 surface, z = (x^2 - y^2) / 2 over [-1, 1]^2
 // (a saddle, exact on the grid; no clock, no random source), with titled
 // axes.
-StockSpecimenInstance make_plot3_d_view(const StockSpecimen&, StableId id) {
+StockSpecimenInstance make_plot3d_view(const StockSpecimen&, StableId id) {
     constexpr std::size_t side = 9U;
     std::array<double, side> along{};
     for (std::size_t index = 0U; index < side; ++index) {

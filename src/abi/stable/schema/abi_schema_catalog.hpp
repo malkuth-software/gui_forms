@@ -188,7 +188,7 @@ inline constexpr std::array<SchemaCatalogEntry, 151> schema_catalog{{
     {"sweep_scope", "SweepScope", &describe_type<SweepScope>, &create_type<SweepScope>, &is_exact_type<SweepScope>},
     {"sparkline", "Sparkline", &describe_type<Sparkline>, &create_type<Sparkline>, &is_exact_type<Sparkline>},
     {"plot_view", "PlotView", &describe_type<PlotView>, &create_type<PlotView>, &is_exact_type<PlotView>},
-    {"plot3_d_view", "Plot3DView", &describe_type<Plot3DView>, &create_type<Plot3DView>, &is_exact_type<Plot3DView>},
+    {"plot3d_view", "Plot3DView", &describe_type<Plot3DView>, &create_type<Plot3DView>, &is_exact_type<Plot3DView>},
     {"plot_axis_item", "PlotAxisItem", &describe_type<PlotAxisItem>, &create_type<PlotAxisItem>, &is_exact_type<PlotAxisItem>},
     {"plot_series_item", "PlotSeriesItem", &describe_type<PlotSeriesItem>, &create_type<PlotSeriesItem>, &is_exact_type<PlotSeriesItem>},
     {"plot_annotation_item", "PlotAnnotationItem", &describe_type<PlotAnnotationItem>, &create_type<PlotAnnotationItem>, &is_exact_type<PlotAnnotationItem>},

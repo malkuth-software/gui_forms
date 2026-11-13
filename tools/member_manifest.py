@@ -294,8 +294,16 @@ _WORD: re.Pattern[str] = re.compile(r"[A-Z]+(?=[A-Z][a-z])|[A-Z]?[a-z0-9]+|[A-Z]
 
 
 def snake_name(winforms_name: str) -> str:
-    """The GUI.Forms spelling of a Windows Forms name: "SelectedIndexChanged" is "selected_index_changed"."""
-    return "_".join(word.lower() for word in _WORD.findall(winforms_name))
+    """The GUI.Forms spelling of a Windows Forms name: "SelectedIndexChanged" is "selected_index_changed".
+    An all-capitals word right after a digit stays with the word before it
+    ("Plot3DView" is "plot3d_view"), as control_registry.registered_id spells ids."""
+    words: list[str] = []
+    for word in _WORD.findall(winforms_name):
+        if words and words[-1][-1].isdigit() and word.isupper():
+            words[-1] = words[-1] + word
+        else:
+            words.append(word)
+    return "_".join(word.lower() for word in words)
 
 
 # --------------------------------------------------------- Windows Forms side

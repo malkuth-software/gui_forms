@@ -188,7 +188,7 @@ inline constexpr std::array<FormCatalogEntry, 151> form_catalog{{
     {"sweep_scope", "SweepScope", "gui_forms/controls/sweep_scope.hpp", &add_catalog_type<SweepScope>},
     {"sparkline", "Sparkline", "gui_forms/controls/sparkline.hpp", &add_catalog_type<Sparkline>},
     {"plot_view", "PlotView", "gui_forms/controls/plot_view.hpp", &add_catalog_type<PlotView>},
-    {"plot3_d_view", "Plot3DView", "gui_forms/controls/plot3d_view.hpp", &add_catalog_type<Plot3DView>},
+    {"plot3d_view", "Plot3DView", "gui_forms/controls/plot3d_view.hpp", &add_catalog_type<Plot3DView>},
     {"plot_axis_item", "PlotAxisItem", "gui_forms/controls/plot_axis_item.hpp", &add_catalog_type<PlotAxisItem>},
     {"plot_series_item", "PlotSeriesItem", "gui_forms/controls/plot_series_item.hpp", &add_catalog_type<PlotSeriesItem>},
     {"plot_annotation_item", "PlotAnnotationItem", "gui_forms/controls/plot_annotation_item.hpp", &add_catalog_type<PlotAnnotationItem>},

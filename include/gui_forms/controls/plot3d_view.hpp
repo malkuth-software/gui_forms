@@ -189,8 +189,8 @@ private:
     // property_codemod begin Plot3DView (tools/property_families/plot3d_view.json; generated, do not edit)
 public:
     // Plot3DView's property table: Control's entries, then its own.
-    static constexpr std::size_t plot3_d_view_property_count = Control::control_property_count + 5U;
-    [[nodiscard]] static const std::array<PropertyEntry, plot3_d_view_property_count>& plot3_d_view_property_entries() noexcept;
+    static constexpr std::size_t plot3d_view_property_count = Control::control_property_count + 5U;
+    [[nodiscard]] static const std::array<PropertyEntry, plot3d_view_property_count>& plot3d_view_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
 private:
