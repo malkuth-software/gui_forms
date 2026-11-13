@@ -4363,12 +4363,12 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
     metrics_.record_flush(read_barrier);
     ShadowFrameCall shadow_frame(ShadowFrameKind::layout_pass, (*root_).stable_id().value(), std::string_view{},
                                  layout_pass_sequence_ + 1U);
-    flush_layout_in_frame(read_barrier);
+    flush_layout_in_frame();
     shadow_frame.returned();
 }
 
 // The layout flush itself, inside ensure_layout's frame.
-void SurfaceRoot::flush_layout_in_frame(bool read_barrier) {
+void SurfaceRoot::flush_layout_in_frame() {
     in_layout_ = true;
     scroll_translating_ = nullptr;
     try {

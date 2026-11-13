@@ -2129,7 +2129,7 @@ private:
     bool dispatch_key_in_frame(KeyEvent event);
     bool dispatch_text_in_frame(TextInputEvent event);
     DragDispatchResult dispatch_drag_in_frame(DragEvent event);
-    void flush_layout_in_frame(bool read_barrier);
+    void flush_layout_in_frame();
     std::optional<PaintReceipt> paint_rectangles_in_frame(Painter& painter, std::span<const Rect> rectangles,
                                                           bool explicit_request);
     void leave_update_scope();
