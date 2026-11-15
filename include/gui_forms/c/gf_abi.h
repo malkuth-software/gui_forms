@@ -4606,6 +4606,8 @@ typedef struct gf_content_table {
     gf_status (GF_CALL* editor_set_multiline)(gf_object editor, uint32_t multiline);
     gf_status (GF_CALL* editor_set_read_only)(gf_object editor, uint32_t read_only);
 } gf_content_table;
+
+/*
  * GF_TABLE_LIST_VIEW (since 1.5): a list_view's columns, items, groups,
  * selection, focus and sort glyph (C++ ListView, Windows Forms' ListView).
  * Its events (selection_changed, item_activated, column_click,
