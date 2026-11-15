@@ -52,6 +52,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <locale>
 #include <memory>
 #include <optional>
 #include <span>
@@ -63,6 +64,14 @@
 
 namespace {
 using namespace gui_forms;
+
+// A global C++ locale with a comma decimal mark and grouping by threes, which a
+// default std::ostringstream follows.
+struct CommaNumbers final : std::numpunct<char> {
+    char do_decimal_point() const override { return ','; }
+    char do_thousands_sep() const override { return '.'; }
+    std::string do_grouping() const override { return std::string("\3"); }
+};
 
 void require(bool condition, const char* message) {
     if (condition) return;
@@ -1222,6 +1231,15 @@ void test_progress_ring() {
                 amount.minimum_value == 0.0 && amount.maximum_value == 50.0 && amount.value == "20" &&
                 !has_semantic_state(amount.states, SemanticState::busy),
             "a determinate ring publishes its value and range");
+    // A-gf-controls-10-F10: the published value does not follow the program's global locale.
+    // std::locale takes ownership of the facet (reference counted); the previous global
+    // locale is restored before the check, so a failure leaves the process as it was.
+    (*loose).maximum = 5000.0;
+    (*loose).value = 1234.5;
+    const std::locale previous = std::locale::global(std::locale(std::locale::classic(), new CommaNumbers()));
+    const SemanticDescriptor localized = (*loose).semantic_descriptor();
+    static_cast<void>(std::locale::global(previous));
+    require(localized.value == "1234.5", "the ring's value is written in the C locale's form");
 
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.ring.root"));
     const std::shared_ptr<ProgressRing> ring = make_control<ProgressRing>(StableId("display.ring"));

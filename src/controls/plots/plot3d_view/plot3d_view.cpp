@@ -5,6 +5,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
+#include "../../number_text/number_text.hpp"
 
 #include <algorithm>
 #include <array>
@@ -294,11 +295,13 @@ void Plot3DView::clear_hover() {
 
 std::string Plot3DView::angle_readout() const {
     const plots::Plot3DCamera& camera = scene_.camera();
-    std::array<char, 96> text{};
-    const int written = std::snprintf(text.data(), text.size(), "azimuth=%.0f\xc2\xb0, elevation=%.0f\xc2\xb0, roll=%.0f\xc2\xb0",
-                                      camera.azimuth, camera.elevation, camera.roll);
-    const std::size_t length = written > 0 ? std::min(static_cast<std::size_t>(written), text.size() - 1U) : 0U;
-    std::string result(text.data(), length);
+    std::string result = "azimuth=";
+    detail::append_number_text(result, camera.azimuth, std::chars_format::fixed, 0);
+    result += "\xc2\xb0, elevation=";
+    detail::append_number_text(result, camera.elevation, std::chars_format::fixed, 0);
+    result += "\xc2\xb0, roll=";
+    detail::append_number_text(result, camera.roll, std::chars_format::fixed, 0);
+    result += "\xc2\xb0";
     return result;
 }
 
@@ -723,11 +726,13 @@ SemanticDescriptor Plot3DView::semantic_descriptor() const {
     descriptor.role = SemanticRole::figure;
     descriptor.name = accessible_name.read();
     const plots::Plot3DCamera& camera = scene_.camera();
-    std::array<char, 160> text{};
-    const int written = std::snprintf(text.data(), text.size(),
-                                      "3D plot of %zu items, azimuth %.0f degrees, elevation %.0f degrees, zoom %.2g",
-                                      scene_.item_count(), camera.azimuth, camera.elevation, camera.zoom);
-    if (written > 0) descriptor.description = std::string(text.data());
+    std::string text = "3D plot of " + std::to_string(scene_.item_count()) + " items, azimuth ";
+    detail::append_number_text(text, camera.azimuth, std::chars_format::fixed, 0);
+    text += " degrees, elevation ";
+    detail::append_number_text(text, camera.elevation, std::chars_format::fixed, 0);
+    text += " degrees, zoom ";
+    detail::append_number_text(text, camera.zoom, std::chars_format::general, 2);
+    descriptor.description = text;
     if (!accessible_description.read().empty()) descriptor.description = accessible_description.read();
     descriptor.value = readout_;
     descriptor.include_descendants = false;

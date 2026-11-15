@@ -6,13 +6,13 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/window.hpp"
+#include "../number_text/number_text.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
 #include <memory>
-#include <sstream>
 #include <stdexcept>
 #include <utility>
 
@@ -175,9 +175,12 @@ SemanticDescriptor ProgressRing::semantic_descriptor() const {
         descriptor.states |= SemanticState::busy;
     } else {
         const double shown = std::clamp(value.read(), 0.0, maximum.read());
-        std::ostringstream text;
-        text << shown;
-        descriptor.value = text.str();
+        // A default stream writes "%g" (six digits), but in the global C++
+        // locale; this is the same text in the C locale
+        // (A-gf-controls-10-F10).
+        std::string text;
+        detail::append_number_text(text, shown, std::chars_format::general, 6);
+        descriptor.value = text;
         descriptor.numeric_value = shown;
         descriptor.minimum_value = 0.0;
         descriptor.maximum_value = maximum.read();

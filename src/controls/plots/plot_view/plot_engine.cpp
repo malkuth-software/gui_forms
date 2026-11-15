@@ -5,6 +5,7 @@
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
+#include "../../number_text/number_text.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -48,11 +49,11 @@ constexpr std::size_t legend_capacity = 32U;
     return recipe.text;
 }
 
+// "%.6g" in the C locale, whatever locale the program sets
+// (A-gf-controls-10-F10).
 [[nodiscard]] std::string format_value(double value) {
-    std::array<char, 32> text{};
-    const int written = std::snprintf(text.data(), text.size(), "%.6g", value);
-    const std::size_t length = written > 0 ? static_cast<std::size_t>(written) : 0U;
-    std::string result(text.data(), std::min(length, text.size() - 1U));
+    std::string result;
+    append_number_text(result, value, std::chars_format::general, 6);
     return result;
 }
 
