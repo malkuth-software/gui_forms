@@ -270,6 +270,26 @@ void test_scene_picking() {
     require(dot.kind == plots::Plot3DHitKind::scatter && dot.item == dots && dot.index == 2U,
             "the centre hits the scatter's third point");
     require(dot.data_point[2] == 0.5, "a scatter hit reports its point exactly");
+    // A-gf-core-09-F1: replacing the data leaves the picture's slot numbers
+    // naming the old items until the next render. A pick in between finds
+    // nothing, rather than the new scatter's point 2, which it does not
+    // have.
+    require(scatter_scene.remove(dots), "the scatter is removed");
+    const std::array<double, 1> one_x{0.0};
+    const std::array<double, 1> one_y{0.0};
+    const std::array<double, 1> one_z{0.5};
+    plots::Plot3DScatterSpec single{};
+    single.x = one_x;
+    single.y = one_y;
+    single.z = one_z;
+    single.size = 10.0;
+    const plots::Plot3DItemId lone = scatter_scene.add_scatter(single);
+    require(scatter_scene.hit(Point{100.0, 80.0}).kind == plots::Plot3DHitKind::none,
+            "a pick between a data change and the next render finds nothing");
+    require(scatter_scene.render(dots_picture.frame, dots_picture.view) == plots::Plot3DCheck::ok, "the new data renders");
+    const plots::Plot3DHit lone_hit = scatter_scene.hit(Point{100.0, 80.0});
+    require(lone_hit.kind == plots::Plot3DHitKind::scatter && lone_hit.item == lone && lone_hit.index == 0U,
+            "after the render the pick names the new point");
 
     plots::Plot3DScene line_scene;
     const std::array<double, 3> line_x{-1.0, 0.0, 1.0};

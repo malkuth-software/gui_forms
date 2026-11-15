@@ -147,6 +147,11 @@ struct Plot3DSceneState final {
     double distance{1.0};
     std::array<double, 3> back_side{-1.0, -1.0, -1.0};
     bool rendered{};
+    // Whether the last picture's slot numbers still name the items: false
+    // from any add, remove or clear until the next render rebuilds the
+    // picture's tables. A pick against a stale picture finds nothing
+    // (A-gf-core-09-F1).
+    bool picture_items_current{};
     std::array<TickSet, 3> ticks{};
     std::array<bool, 3> ticks_valid{};
     std::vector<Plot3DLabel> labels{};
@@ -906,6 +911,7 @@ Plot3DItemId add_item(State& state, SceneItem&& item) {
     state.items.push_back(std::move(item));
     state.next_id = state.next_id + 1U;
     state.data_dirty = true;
+    state.picture_items_current = false;
     return state.items.back().id;
 }
 
@@ -995,6 +1001,7 @@ bool Plot3DScene::remove(Plot3DItemId item) {
     if (slot == state.items.size()) return false;
     state.items.erase(state.items.begin() + static_cast<std::ptrdiff_t>(slot));
     state.data_dirty = true;
+    state.picture_items_current = false;
     return true;
 }
 
@@ -1002,6 +1009,7 @@ void Plot3DScene::clear() {
     State& state = *state_;
     state.items.clear();
     state.data_dirty = true;
+    state.picture_items_current = false;
 }
 
 std::size_t Plot3DScene::item_count() const noexcept {
@@ -1200,6 +1208,7 @@ Plot3DCheck Plot3DScene::render(const Plot3DFrame& frame, const PartRasterView& 
     state.view_height = frame.height;
     state.view_scale = frame.scale.value;
     state.rendered = true;
+    state.picture_items_current = true;
     lay_out_labels(state, view, frame, edges);
     state.renders = state.renders + 1U;
     return Plot3DCheck::ok;
@@ -1213,7 +1222,9 @@ std::span<const Plot3DLabel> Plot3DScene::labels() const& noexcept {
 Plot3DHit Plot3DScene::hit(Point point) const {
     const State& state = *state_;
     Plot3DHit result{};
-    if (!state.rendered || !std::isfinite(point.x) || !std::isfinite(point.y)) return result;
+    if (!state.rendered || !state.picture_items_current || !std::isfinite(point.x) || !std::isfinite(point.y)) {
+        return result;
+    }
     const double x = point.x * state.view_scale;
     const double y = point.y * state.view_scale;
     if (!(x >= 0.0) || !(y >= 0.0)) return result;
@@ -1231,6 +1242,12 @@ Plot3DHit Plot3DScene::hit(Point point) const {
         const std::size_t slot = found.item - pane_parts;
         if (slot >= state.items.size()) return Plot3DHit{};
         const SceneItem& item = state.items[slot];
+        // The picture is current, so the slot is this surface; its node
+        // tables are still checked before they are indexed.
+        if (item.kind != ItemKind::surface || item.row_nodes.empty() || item.column_nodes.empty() || item.rows == 0U ||
+            item.columns == 0U) {
+            return Plot3DHit{};
+        }
         double u = found.u;
         double v = found.v;
         stx_raster3d::Vec3 position = found.position;
@@ -1271,6 +1288,7 @@ Plot3DHit Plot3DScene::hit(Point point) const {
         const std::size_t slot = strip.item;
         if (slot >= state.items.size()) return Plot3DHit{};
         const SceneItem& item = state.items[slot];
+        if (item.kind != ItemKind::line) return Plot3DHit{};
         // The nearer end of the hit segment on screen.
         const std::size_t first = static_cast<std::size_t>(strip.first) + found.segment;
         const std::size_t last = std::min(first + 1U, static_cast<std::size_t>(strip.first + strip.count - 1U));
@@ -1292,7 +1310,9 @@ Plot3DHit Plot3DScene::hit(Point point) const {
         const std::size_t slot = state.data_markers[found.index].item;
         if (slot >= state.items.size()) return Plot3DHit{};
         const SceneItem& item = state.items[slot];
+        if (found.index >= state.marker_points.size()) return Plot3DHit{};
         const std::size_t index = state.marker_points[found.index];
+        if (item.kind != ItemKind::scatter || index >= item.x.size()) return Plot3DHit{};
         result.kind = Plot3DHitKind::scatter;
         result.item = item.id;
         result.index = index;

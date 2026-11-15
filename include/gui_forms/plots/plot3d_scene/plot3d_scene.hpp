@@ -308,7 +308,8 @@ public:
     [[nodiscard]] std::span<const Plot3DLabel> labels() const& noexcept;
     std::span<const Plot3DLabel> labels() const&& = delete;
     // What lies under `point` (logical, from the picture's top left) in the
-    // last picture; none before the first render.
+    // last picture; none before the first render, and none after an add,
+    // remove or clear until the next render (the picture's items are gone).
     [[nodiscard]] Plot3DHit hit(Point point) const;
     // The status-line readout of a hit (matplotlib's coordinate readout):
     // "x=…, y=…, z=…", after the item's label when it has one; empty for
