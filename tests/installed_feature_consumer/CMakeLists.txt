@@ -11,10 +11,6 @@ cmake_minimum_required(VERSION 3.25)
 project(GUIFormsInstalledFeatureConsumer LANGUAGES CXX)
 find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS
     Application TextMasks Audio AudioLoopTransport FreeType HarfBuzz)
-get_target_property(text_core GUIForms::TextMasks INTERFACE_GUI_FORMS_CORE_LINKAGE)
-if(NOT text_core STREQUAL "application")
-    message(FATAL_ERROR "The installed TextMasks must advertise Application's Core, not '${text_core}'")
-endif()
 if(NOT EXISTS "${GUI_FORMS_CONSUMER_MAIN}")
     message(FATAL_ERROR "Set GUI_FORMS_CONSUMER_MAIN to tests/application_text_consumer/main.cpp")
 endif()
@@ -25,15 +21,8 @@ add_executable(installed_feature_consumer "${GUI_FORMS_CONSUMER_MAIN}")
 target_compile_features(installed_feature_consumer PRIVATE cxx_std_20)
 target_link_libraries(installed_feature_consumer PRIVATE
     GUIForms::Application GUIForms::TextMasks GUIForms::AudioLoopTransport)
-if(WIN32)
-    # The installed DLLs it loads beside it: Application, Threading and
-    # STXlib's shared state (stxlib_state.dll, which Application loads).
-    add_custom_command(TARGET installed_feature_consumer POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-            "$<TARGET_FILE:GUIForms::Application>" "$<TARGET_FILE:GUIForms::Threading>"
-            "$<TARGET_FILE:stxlib::state>"
-            "$<TARGET_FILE_DIR:installed_feature_consumer>")
-endif()
+# One module: Application, Threading and STXlib's state are static archives
+# linked into it, so nothing is copied beside it.
 # Static libraries: nothing to copy beside the executable.
 add_executable(installed_text_stack_consumer text_stack.cpp)
 target_compile_features(installed_text_stack_consumer PRIVATE cxx_std_20)

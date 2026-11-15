@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """Export annotations of the public headers (CP29 handoff section 2.2).
 
-A shipped shared library exports only the declarations that carry its export
-macro (coordinator, 2026-11-12: controlled at the link, not by compile-time
+The marks record the public C++ surface. Since the one-module decision
+(owner, 2026-11-15) the Application and Threading libraries are static
+archives linked into each program's one module, and no shipped library
+exports these marks: the C ABI library exports only its gf_*, gd_* and gdr_*
+entry points. The lists below stay in step with the marks for a consumer
+that builds its own shared library from the archives, and the shared test
+runtime, which exports everything, is the only first-party shared library
+that holds the archives. What follows describes the marks as written
+(coordinator, 2026-11-12: controlled at the link, not by compile-time
 visibility):
 
 - GUI_FORMS_API (gui_forms/export/application_export.hpp): the Application
@@ -37,7 +44,7 @@ include/gui_forms/ that belongs to those archives, and writes the lists:
         library's export patterns.
 
 The lists also cover the private headers under src/ that mark a declaration
-GUI_FORMS_API (what the C ABI library, gui_drawing_raster0 and the ABI tests
+GUI_FORMS_API (what the C ABI library and the ABI tests
 call); `check` does not require marks there. What a mark exports, as
 mangled-name globs, is described at patterns_of.
 
@@ -682,8 +689,8 @@ class ExportLibrary:
 
 def application_headers():
     """The public headers, and the private headers under src/ that mark a
-    declaration GUI_FORMS_API (what the C ABI library, gui_drawing_raster0
-    and the ABI tests call in the Application library)."""
+    declaration GUI_FORMS_API (what the C ABI library and the ABI tests call
+    in the Application archive)."""
     selected = headers([])
     for path in sorted(SOURCE.rglob('*')):
         if path.suffix in ('.hpp', '.h') and path.is_file() and MACRO in path.read_text():

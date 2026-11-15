@@ -1,6 +1,7 @@
 # Development text implementations use static Core for provider-only tests.
-# Native consumers use the same implementation inside Application, never a
-# second Core archive. Keep the old source-target names as consumer interfaces.
+# Native consumers use the same implementation inside Application, linked
+# whole with the engine's archives. Keep the old source-target names as
+# consumer interfaces.
 function(gui_forms_application_text consumer implementation public_name)
     if(NOT TARGET ${implementation})
         return()
@@ -9,20 +10,13 @@ function(gui_forms_application_text consumer implementation public_name)
     add_library(GUIForms::${public_name} ALIAS ${consumer})
     if(NOT TARGET gui_forms_application)
         target_link_libraries(${consumer} INTERFACE ${implementation})
-        set_property(TARGET ${consumer} PROPERTY INTERFACE_GUI_FORMS_CORE_LINKAGE static)
-        set_property(TARGET ${consumer} APPEND PROPERTY COMPATIBLE_INTERFACE_STRING GUI_FORMS_CORE_LINKAGE)
         return()
     endif()
 
-    # Include every public entry point, even when the host itself never calls it.
-    # The override also covers an ordinary private reference from a host/renderer.
-    set_property(TARGET gui_forms_application PROPERTY
-        LINK_LIBRARY_OVERRIDE_${implementation} WHOLE_ARCHIVE)
-    target_link_libraries(gui_forms_application PRIVATE
-        "$<LINK_LIBRARY:WHOLE_ARCHIVE,${implementation}>")
+    # Include every public entry point, even when the host itself never calls
+    # it: the implementation joins the archives Application links whole.
+    gui_forms_application_add_archives(gui_forms_application ${implementation})
     target_link_libraries(${consumer} INTERFACE GUIForms::Application)
-    set_property(TARGET ${consumer} PROPERTY INTERFACE_GUI_FORMS_CORE_LINKAGE application)
-    set_property(TARGET ${consumer} APPEND PROPERTY COMPATIBLE_INTERFACE_STRING GUI_FORMS_CORE_LINKAGE)
 endfunction()
 
 gui_forms_application_text(gui_forms_text_masks gui_forms_text_masks_impl TextMasks)
@@ -84,7 +78,7 @@ if(GUI_FORMS_BUILD_TESTS AND TARGET GUIForms::Application AND
     # the package in place, past the test's timeout.
     file(APPEND "${application_text_cache}"
         "set(GUI_FORMS_STX_PREFIX [==[${GUI_FORMS_STX_PACKAGE_ROOT}]==] CACHE PATH \"Parent stx package\" FORCE)\n")
-    foreach(link_case IN ITEMS accepted static_core)
+    foreach(link_case IN ITEMS accepted)
         add_test(NAME gui_forms_application_text_configure_${link_case}
             COMMAND "${CMAKE_COMMAND}"
                 "-DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/tests/application_text_consumer"

@@ -20,24 +20,17 @@ if(GUI_FORMS_EXAMPLE_NATIVE)
 else()
     target_link_libraries(paint_contract PRIVATE GUIForms::Controls GUIForms::Drawing)
 endif()
-if(WIN32)
-    # Every installed DLL the program loads (Threading and STXlib's shared
-    # state, stxlib_state.dll, always; Application when native) beside it, so
-    # it runs without the SDK's bin/ on PATH.
-    add_custom_command(TARGET paint_contract POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_RUNTIME_DLLS:paint_contract> $<TARGET_FILE_DIR:paint_contract>
-        COMMAND_EXPAND_LISTS)
-endif()
+# The program is one module: every GUI.Forms library and STXlib's state are
+# static archives linked into it, so nothing is copied beside it.
 enable_testing()
 add_test(NAME paint_contract COMMAND paint_contract)
-# The drawing ABI, where the SDK installed it: a C program through the
-# installed header and shared library alone.
-if(GUIForms_DrawingCApi_FOUND)
+# The drawing ABI, where the SDK installed the C ABI library that holds it: a
+# C program through the installed header and that one library alone.
+if(TARGET GUIForms::CAbi)
     enable_language(C)
     add_executable(drawing_abi_consumer drawing_abi_consumer.c)
     set_target_properties(drawing_abi_consumer PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
-    target_link_libraries(drawing_abi_consumer PRIVATE GUIForms::DrawingCApi)
+    target_link_libraries(drawing_abi_consumer PRIVATE GUIForms::CAbi)
     if(WIN32)
         add_custom_command(TARGET drawing_abi_consumer POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different

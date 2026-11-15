@@ -137,32 +137,59 @@ class ManifestTests(unittest.TestCase):
             notices.mkdir(parents=True)
             self.assertEqual(pp.stx_source_directory(build, None), notices)
 
-    def test_stxlib_state_resolves_from_the_linked_package(self) -> None:
-        # libstxlib_state ships with the programs from the stx package's lib
-        # (bin on Windows), named by the build's cache, toolkit/ included.
+    def test_only_system_libraries_are_accepted(self) -> None:
+        # One module: a program names no GUI.Forms, STXlib or bundled library
+        # and no compiler runtime, whatever the platform's spelling.
+        for name in ("libgui_forms_threading.so.0", "libgui_forms_application.dylib", "gui_forms_abi1.dll",
+                     "libgui_drawing_raster.so", "gui_drawing_abi0.dll", "libstxlib_state.so",
+                     "stxlib_state.dll", "@rpath/libstxlib_state.dylib", "libfreetype.so.6",
+                     "libharfbuzz.so.0", "libc++.so.1", "libunwind.so.1", "libstdc++-6.dll",
+                     "libwinpthread-1.dll", "C:\\build\\libgui_forms_threading.dll"):
+            self.assertIsNotNone(pp.refused_dependency(name), name)
+        for name in ("libc.so.6", "libm.so.6", "libX11.so.6", "libatk-1.0.so.0", "kernel32.dll",
+                     "/usr/lib/libSystem.B.dylib", "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit",
+                     "libc++.1.dylib"):
+            self.assertIsNone(pp.refused_dependency(name), name)
+        self.assertTrue(pp.windows_system_import("KERNEL32.dll"))
+        self.assertTrue(pp.windows_system_import("api-ms-win-crt-runtime-l1-1-0.dll"))
+        self.assertFalse(pp.windows_system_import("gui_forms_abi1.dll"))
+        # macOS bundles only the LLVM runtime dylibs, while the runtime tree has no archives.
+        for name in ("libc++.1.dylib", "libc++abi.1.dylib", "libunwind.1.dylib"):
+            self.assertIsNotNone(pp.MACOS_BUNDLED_RUNTIME.fullmatch(name), name)
+        for name in ("libgui_forms_threading.dylib", "libstxlib_state.dylib", "libfoo.dylib"):
+            self.assertIsNone(pp.MACOS_BUNDLED_RUNTIME.fullmatch(name), name)
+
+    def test_linux_needed_libraries_are_read_from_readelf(self) -> None:
+        readelf = (" 0x0000000000000001 (NEEDED)             Shared library: [libX11.so.6]\n"
+                   " 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]\n"
+                   " 0x0000000000000001 (NEEDED)             Shared library: [libX11.so.6]\n"
+                   " 0x000000000000000e (SONAME)             Library soname: [libother.so.1]\n")
+        self.assertEqual(pp.linux_needed_libraries(readelf), ["libX11.so.6", "libc.so.6"])
+        self.assertEqual(pp.linux_needed_libraries(""), [])
+
+    def test_windows_closure_refuses_a_non_system_import(self) -> None:
+        packager = pp.Packager.__new__(pp.Packager)
+        packager.log = lambda message: None
+        packager.tool = lambda name: "objdump" if name == "objdump" else None
         with tempfile.TemporaryDirectory() as temporary:
-            build = Path(temporary) / "build"
-            (build / "toolkit").mkdir(parents=True)
-            package = Path(temporary) / "stx-package"
-            given = Path(temporary) / "given-package"
-            (build / "CMakeCache.txt").write_text(
-                "GUI_FORMS_STX_PREFIX:PATH=\nGUI_FORMS_STX_PACKAGE_DIR:PATH=" + str(package) + "\n",
-                encoding="utf-8")
-            (build / "toolkit" / "CMakeCache.txt").write_text(
-                "GUI_FORMS_STX_PREFIX:PATH=" + str(given) + "\n", encoding="utf-8")
-            self.assertEqual(pp.stx_runtime_directories(build), [])
-            self.assertEqual(pp.stx_runtime_directories(None), [])
-            (package / "stx" / "lib").mkdir(parents=True)
-            (package / "stx" / "bin").mkdir(parents=True)
-            (given / "stx" / "lib").mkdir(parents=True)
-            self.assertEqual(pp.stx_runtime_directories(build),
-                             [package / "stx" / "lib", package / "stx" / "bin", given / "stx" / "lib"])
+            bundle = Path(temporary)
+            executable = bundle / "Program.exe"
+            executable.write_bytes(b"MZ")
+            packager.run = lambda command, **options: "\tDLL Name: KERNEL32.dll\n\tDLL Name: USER32.dll\n"
+            packager.windows_closure(bundle, executable)
+            packager.run = lambda command, **options: "\tDLL Name: KERNEL32.dll\n\tDLL Name: gui_forms_abi1.dll\n"
+            with self.assertRaisesRegex(RuntimeError, "one module"):
+                packager.windows_closure(bundle, executable)
+            packager.run = lambda command, **options: "\tDLL Name: somevendor.dll\n"
+            with self.assertRaisesRegex(RuntimeError, "not a system DLL"):
+                packager.windows_closure(bundle, executable)
+            self.assertEqual(sorted(path.name for path in bundle.iterdir()), ["Program.exe"])
 
     def test_windows_runtime_imports_are_recognised(self) -> None:
         for name in ("libgcc_s_seh-1.dll", "libstdc++-6.dll", "LIBSTDC++-6.DLL", "libc++.dll", "libunwind.dll",
                      "libwinpthread-1.dll", "libgomp-1.dll"):
             self.assertIsNotNone(pp.WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name), name)
-        for name in ("libgui_forms_threading.dll", "gui_forms_abi1.dll", "stxlib_state.dll", "kernel32.dll"):
+        for name in ("gui_forms_abi1.dll", "kernel32.dll"):
             self.assertIsNone(pp.WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name), name)
 
     def test_linux_runtime_dependencies_are_read_from_ldd_and_readelf(self) -> None:

@@ -97,6 +97,7 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_workflow_pipelines.py
           python3 -B -m unittest discover -s tools -p test_workflow_cache_saves.py
           python3 -B -m unittest discover -s tools -p test_control_registry.py
+          python3 -B -m unittest discover -s tools -p test_verify_install.py
           python3 tools/control_registry.py check
           python3 tools/control_registry.py emit-cpp --check
           python3 tools/control_registry.py emit-abi --check

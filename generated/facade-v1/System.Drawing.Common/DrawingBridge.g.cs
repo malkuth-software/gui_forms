@@ -42,9 +42,9 @@ internal static unsafe class NativeDrawingBridge
         internal fixed ulong Entries[104];
     }
 
-    [DllImport("gui_drawing_abi0", EntryPoint = "gd_get_api_v0", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport("gui_forms_abi1", EntryPoint = "gd_get_api_v0", CallingConvention = CallingConvention.Cdecl)]
     private static extern int GetApi(uint requestedVersion, ref Api api);
-    [DllImport("gui_drawing_raster0", EntryPoint = "gdr_initialize", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport("gui_forms_abi1", EntryPoint = "gdr_initialize", CallingConvention = CallingConvention.Cdecl)]
     private static extern int InitializeRaster();
     [DllImport("user32.dll")]
     private static extern nint WindowFromDC(nint device);

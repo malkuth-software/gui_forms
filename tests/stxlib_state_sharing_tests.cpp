@@ -1,9 +1,10 @@
-// libgui_forms_application and this executable share one stxlib_state
-// (stx's cmake/Stxlib.cmake: STXLIB_STATE_SHARED ON). Each holds its own copy
-// of STXlib's static code: the library through the controls' row height
-// index, this program through stxlib::boundary. Blocks of STXlib's allocator
-// cross between the copies both ways, and both copies read the same thread
-// identities. A static second stxlib_state in either image (two allocators,
+// The Application archive and this executable reach one stxlib_state. The
+// program is one module (owner decision, 2026-11-15): STXlib's state is a
+// static archive (STXLIB_STATE_SHARED OFF, cmake/Stx.cmake) linked once, and
+// STXlib's other code reaches it both through the controls' row height index
+// and through this program's own stxlib::boundary link. Blocks of STXlib's
+// allocator cross between the two paths both ways, and both read the same
+// thread identities. A second stxlib_state in the program (two allocators,
 // two mimallocs, two identity issuers, two SIMD selections) fails here: a
 // release of a foreign block ends the process in tag-checking builds (Debug
 // and sanitizer builds, stxlib/memory.hpp), and the identity checks fail in
@@ -107,6 +108,6 @@ int main() {
         std::cerr << "stxlib_state_sharing_tests: " << error.what() << '\n';
         return 1;
     }
-    std::cout << "stxlib_state_sharing_tests: one stxlib_state across libgui_forms_application and this program\n";
+    std::cout << "stxlib_state_sharing_tests: one stxlib_state across the Application archive and this program\n";
     return 0;
 }

@@ -8,9 +8,15 @@
 extern "C" {
 #endif
 
+/* The drawing ABI is part of the C ABI library (gui_forms_abi), the one
+ * self-contained shared library a C or C# program loads. GD_C_API_BUILD is
+ * defined while compiling it; GD_C_API_STATIC by a program that links the
+ * static test archive (gui_drawing_c_api), which imports nothing. */
 #if defined(_WIN32)
 #if defined(GD_C_API_BUILD)
 #define GD_C_API_EXPORT __declspec(dllexport)
+#elif defined(GD_C_API_STATIC)
+#define GD_C_API_EXPORT
 #else
 #define GD_C_API_EXPORT __declspec(dllimport)
 #endif
@@ -35,7 +41,7 @@ extern "C" {
  * A version the library does not have fails GD_ERROR_UNSUPPORTED_VERSION; a
  * caller built against a newer header retries with an older version. From
  * 1.0 a version is major << 16 | minor; a new minor only appends, and a new
- * major would be a new entry point and library (gui_drawing_abi<n>). The
+ * major would be a new entry point (gd_get_api_v<n>). The
  * 0.x versions stay accepted with their old prefixes.
  *
  * Results. Every entry returns a gd_result. A caller treats any code other

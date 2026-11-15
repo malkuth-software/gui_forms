@@ -5,8 +5,8 @@
 # change to any library source relinked each program that links it (about
 # 210 for a core source). gui_forms_link_tests_to_runtime() builds one
 # shared library, gui_forms_test_runtime, holding the whole of the
-# toolkit's own libraries (the core, drawing core, plot primitives,
-# controls and headless host, each whole), and links to it instead every
+# toolkit's own libraries (the threading library, core, drawing core, plot
+# primitives, controls and headless host, each whole), and links to it instead every
 # test program whose libraries are all among those. The program keeps the
 # libraries' compile usage ($<COMPILE_ONLY:...>: include directories,
 # definitions, options) and links only the runtime, and LINK_DEPENDS_NO_SHARED
@@ -16,10 +16,10 @@
 # Each program is still its own process with its own main, so the tests
 # stay independent. A program that links anything else (another library,
 # a host, Skia, a system library) keeps its static libraries, so that no
-# program holds two copies of a library's state. Unlike the Application
-# library, which exports only the declarations marked GUI_FORMS_API through
-# its export list (CMakeLists.txt, gui_forms_export_list), the runtime
-# exports everything the archives define with default visibility (and, on
+# program holds two copies of a library's state. Shipped programs are one
+# module each and export nothing (one module, owner decision 2026-11-15);
+# this test-only runtime is the exception, never installed, and exports
+# everything the archives define with default visibility (and, on
 # MinGW, everything: --export-all-symbols, which CP29 handoff section 2.2
 # leaves to the test runtime), because the tests call private functions.
 # On Windows the runtime lands beside the programs, which find it first.
@@ -95,7 +95,10 @@ function(gui_forms_link_tests_to_runtime)
         message(STATUS "Test programs: static links (the shared test runtime needs CMake 3.27)")
         return()
     endif()
-    set(runtime_libraries gui_forms_core gui_drawing_core gui_forms_plot_primitives gui_forms_controls)
+    # The threading library is a static archive like the others (one module),
+    # so the runtime holds it whole: a program reaching it only through the
+    # runtime would otherwise miss the objects the core does not reference.
+    set(runtime_libraries gui_forms_threading gui_forms_core gui_drawing_core gui_forms_plot_primitives gui_forms_controls)
     if(TARGET gui_forms_host_headless)
         list(APPEND runtime_libraries gui_forms_host_headless)
     endif()
@@ -146,9 +149,9 @@ function(gui_forms_link_tests_to_runtime)
     if(MINGW)
         target_link_options(gui_forms_test_runtime PRIVATE "-Wl,--export-all-symbols")
     endif()
-    # A shared library the libraries link (the Threading library) stays a
-    # library of its own, which the runtime does not re-export: the programs
-    # link it themselves.
+    # A shared library the libraries link stays a library of its own, which
+    # the runtime does not re-export: the programs link it themselves. No
+    # first-party library is shared now; the rule stays for a system one.
     foreach(library IN LISTS runtime_libraries)
         get_target_property(interface_links ${library} INTERFACE_LINK_LIBRARIES)
         if(NOT interface_links)

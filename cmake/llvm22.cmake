@@ -18,7 +18,22 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
     set(_gf_cxx "-stdlib=libc++ -nostdinc++ -isystem \"${_gf_runtime}/include/c++/v1\"")
     set(CMAKE_CXX_FLAGS_INIT "${_gf_cxx}")
     set(CMAKE_OBJCXX_FLAGS_INIT "${_gf_cxx}")
-    set(_gf_link "-L\"${_gf_runtime}/lib\" -Wl,-rpath,\"${_gf_runtime}/lib\" -lunwind")
+    # A program is one module (owner decision, 2026-11-15): it links the
+    # runtime's libc++ and libc++abi archives, and the unwinder is the
+    # system's (libSystem), when the runtime tree carries the archives. A
+    # runtime tree built with shared libraries only (template_harness's
+    # build_macos_runtimes.py before it builds the archives) is linked as
+    # before, through the dylibs and the rpath; GUI_FORMS_STATIC_CXX_RUNTIME
+    # says which, for the checks that refuse a shared C++ runtime.
+    if(EXISTS "${_gf_runtime}/lib/libc++.a" AND EXISTS "${_gf_runtime}/lib/libc++abi.a")
+        set(_gf_link "-nostdlib++")
+        set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "\"${_gf_runtime}/lib/libc++.a\" \"${_gf_runtime}/lib/libc++abi.a\"")
+        set(CMAKE_OBJCXX_STANDARD_LIBRARIES_INIT "${CMAKE_CXX_STANDARD_LIBRARIES_INIT}")
+        set(GUI_FORMS_STATIC_CXX_RUNTIME ON CACHE BOOL "The C++ runtime is linked statically (cmake/llvm22.cmake)" FORCE)
+    else()
+        set(_gf_link "-L\"${_gf_runtime}/lib\" -Wl,-rpath,\"${_gf_runtime}/lib\" -lunwind")
+        set(GUI_FORMS_STATIC_CXX_RUNTIME OFF CACHE BOOL "The C++ runtime is linked statically (cmake/llvm22.cmake)" FORCE)
+    endif()
     set(CMAKE_EXE_LINKER_FLAGS_INIT "${_gf_link}")
     set(CMAKE_SHARED_LINKER_FLAGS_INIT "${_gf_link}")
     set(CMAKE_MODULE_LINKER_FLAGS_INIT "${_gf_link}")
@@ -54,6 +69,7 @@ elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
     set(CMAKE_SHARED_LINKER_FLAGS_INIT "${_gf_link}")
     set(CMAKE_MODULE_LINKER_FLAGS_INIT "${_gf_link}")
     set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "${_gf_runtime_archives}")
+    set(GUI_FORMS_STATIC_CXX_RUNTIME ON CACHE BOOL "The C++ runtime is linked statically (cmake/llvm22.cmake)" FORCE)
     # A -DCMAKE_<...>_FLAGS on the command line replaces the _INIT value
     # (template_harness sanitizer_options passes the sanitizer flags that way
     # on Linux), which would silently select libstdc++; a tree configured

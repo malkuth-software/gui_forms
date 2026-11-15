@@ -42,13 +42,14 @@ def main() -> None:
             if not library.is_symlink():
                 if not audit(library):
                     raise RuntimeError('Restored runtime is not a Mach-O image: ' + str(library))
-        threading: Path = relocate_library(executable.parent / 'libgui_forms_threading.0.dylib',
-                                           scratch, original, payload)
-        # Test executables also link the shared test runtime (cmake/TestRuntime.cmake),
-        # which the build tree supplies through the rpath this script replaces.
+        # The Threading library is a static archive (one module, owner decision
+        # 2026-11-15). A test executable may still link the shared test runtime
+        # (cmake/TestRuntime.cmake), which the build tree supplies through the
+        # rpath this script replaces; it is never shipped.
         test_runtime_source: Path = executable.parent / 'libgui_forms_test_runtime.dylib'
+        test_runtime: Path | None = None
         if test_runtime_source.is_file():
-            relocate_library(test_runtime_source, scratch, original, payload)
+            test_runtime = relocate_library(test_runtime_source, scratch, original, payload)
         copied: Path = scratch / executable.name
         shutil.copy2(executable, copied)
         # Match application packaging: change only this executable's runtime
@@ -69,10 +70,10 @@ def main() -> None:
             if not library.is_symlink():
                 if str(library) not in result.stderr:
                     raise RuntimeError('Restored library was not loaded: ' + str(library))
-        if str(threading) not in result.stderr:
-            raise RuntimeError('Relocated Threading library was not loaded')
+        if test_runtime is not None and str(test_runtime) not in result.stderr:
+            raise RuntimeError('Relocated test runtime was not loaded')
         print(result.stdout, end='')
-        print('Archived runtime restored; all three relocated dylibs loaded; native test passed')
+        print('Archived runtime restored; its dylibs loaded; native test passed')
 
 
 if __name__ == '__main__':

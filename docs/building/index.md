@@ -303,23 +303,45 @@ retired on 2026-10-21. Windows binaries never use a GCC runtime.
 Every Windows executable and DLL links the LLVM runtimes (libc++, libc++abi,
 libunwind, compiler-rt), winpthreads and the MinGW-w64 CRT statically
 (`add_link_options(-static)` in `CMakeLists.txt`), so none imports a runtime
-DLL. `llvm-objdump -p <binary>` lists only Windows system DLLs, and
-GUI.Forms' own DLLs where a program uses them (`libgui_forms_threading.dll`)
-and STXlib's shared state (`stxlib_state.dll`, copied from the stx package
-beside the build's programs).
-`tools/package_programs.py` fails a package whose binaries import a GCC or
-LLVM runtime DLL.
+DLL. Every GUI.Forms library and STXlib's state are static archives linked
+into the program, so it is one module (owner decision, 2026-11-15) and
+`llvm-objdump -p <binary>` lists only Windows system DLLs.
+`tools/package_programs.py` fails a package whose binaries import any other
+DLL: a GUI.Forms, STXlib or bundled library, or a GCC or LLVM runtime.
+
+## One module per program
+
+Each independently delivered program holds exactly one copy of any routine.
+A C++ program links `Threading`, `Application` (the engine, its renderer and
+the host), STXlib's state and the text stack statically, so `otool -L`,
+`ldd` or the PE imports show only system libraries. A C or C# program loads
+one library, the C ABI library (`gui_forms_abi1.dll`,
+`libgui_forms_abi.so.1`, `libgui_forms_abi.1.dylib`), which holds its own
+engine with the drawing ABI and its raster service folded in, imports only
+system libraries and exports only its `gf_*`, `gd_*` and `gdr_*` entry
+points (the `gui_forms_abi_exports_only_entry_points` and
+`gui_forms_abi_system_imports_only` tests). A process uses one or the other,
+never both. The localizable-literal plugin is a Clang plugin loaded by the
+compiler, and the shared test runtime (`cmake/TestRuntime.cmake`) is
+test-only; neither ships in a program.
+
+Release links prune what a program does not reach: sources are compiled
+with `-ffunction-sections -fdata-sections` and linked with `--gc-sections`
+(`-dead_strip` on macOS). `GUI_FORMS_LTO` (default on) adds link-time
+optimisation where the toolchain is pinned for it, the MinGW LLVM 22
+toolchain. `tools/package_programs.py` strips the shipped binaries. On macOS
+the C++ runtime is linked statically when the pinned runtime tree carries
+`libc++.a` and `libc++abi.a` (`GUI_FORMS_STATIC_CXX_RUNTIME`); until then a
+macOS package bundles the LLVM runtime dylibs and nothing else.
 
 Windows builds target the Windows 10 API level (`_WIN32_WINNT=0x0A00`). A
-Windows host build produces `GUI.Forms Gallery.exe` (statically linked),
-`libgui_forms_threading.dll`, the automation client
-`gui_forms_windows_probe.exe` and a `fonts/` directory, all in the build
-directory.
+Windows host build produces `GUI.Forms Gallery.exe` (one module), the
+automation client `gui_forms_windows_probe.exe` and a `fonts/` directory, all
+in the build directory.
 
 To run a Windows build under Wine, copy its build directory to the Mac and
-run the program from there: `libgui_forms_threading.dll` and
-`stxlib_state.dll` sit beside it and
-no runtime DLL is needed. Run `wine "GUI.Forms Gallery.exe"`; add
+run the program from there: it loads no DLL of its own and no runtime
+DLL. Run `wine "GUI.Forms Gallery.exe"`; add
 `--automation` to accept commands from the probe.
 
 `tools/run_windows_wine_smoke.sh <build-dir>` launches the gallery with

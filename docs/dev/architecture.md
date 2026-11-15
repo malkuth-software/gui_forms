@@ -67,8 +67,6 @@ build inspect symbols, imports and sources:
   runtime.
 - `cmake/check_drawing_boundaries.cmake`: no renderer or host dependency in
   the drawing libraries.
-- `cmake/check_core_linkage.cmake`, run by the reference examples: a project
-  that links static `Core` beside `Application` fails at generation time.
 
 One Apple-framework file lives outside `src/host/macos/`:
 `src/render/skia/executor/core_text_font_bytes.cpp`, inside the private

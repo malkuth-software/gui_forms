@@ -1,18 +1,18 @@
 #pragma once
 
-// STXlib's process state as libgui_forms_application's own copy of STXlib's
-// code sees it, for tests/stxlib_state_sharing_tests.cpp. stxlib_state (the
-// allocator with mimalloc, the thread identity issuer, the SIMD level) is a
-// shared library, one per process; STXlib's other code (stxlib::boundary,
-// stxlib::algorithms) is a static archive, copied into this library and into
-// each executable that links it. The test compares what the two copies reach:
-// a block allocated through one copy and released through the other, and the
-// thread identities each copy reads. A static second stxlib_state (two
-// allocators, two issuers) fails it, by a refused release in tag-checking
-// builds and by differing identities in every build.
+// STXlib's process state as the Application archive's code sees it, for
+// tests/stxlib_state_sharing_tests.cpp. stxlib_state (the allocator with
+// mimalloc, the thread identity issuer, the SIMD level) is a static archive
+// linked once into each module (one module, owner decision 2026-11-15), as
+// are STXlib's other archives (stxlib::boundary, stxlib::algorithms). The test
+// compares what the Application's path and the program's own path reach: a
+// block allocated through one and released through the other, and the thread
+// identities each reads. A second stxlib_state in the module (two allocators,
+// two issuers) fails it, by a refused release in tag-checking builds and by
+// differing identities in every build.
 //
-// Private: declared here for the test only, exported because the test is a
-// separate image (tools/export_annotations.py covers marks under src/).
+// Private: declared here for the test only. The mark is kept, though no
+// shared library exports it now.
 
 #include "gui_forms/export/application_export.hpp"
 

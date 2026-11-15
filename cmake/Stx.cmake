@@ -27,9 +27,8 @@
 #   the package holds.
 #
 # Outputs:
-# - the imported targets stxlib::state (shared: <package>/stx/lib, or
-#   bin/stxlib_state.dll on Windows, copied beside this build's programs by
-#   gui_forms_stxlib_state_runtime), stxlib::boundary and stxlib::algorithms
+# - the imported targets stxlib::state (a static archive: one module per
+#   program, owner decision 2026-11-15), stxlib::boundary and stxlib::algorithms
 #   (STXlib at stx's stxlib.lock commit),
 #   stx_zlib::stx_zlib, stx_png::stx_png, stx_conv::stx_conv, stx_raster3d::stx_raster3d,
 #   stx_rtf2md::stx_rtf2md (and stx_vorbis's when asked);
@@ -141,6 +140,11 @@ else()
         -DGUI_FORMS_STX_PACKAGE_SKIA=${_gui_stx_with_skia}
         -DGUI_FORMS_STX_PACKAGE_TEXT=${_gui_stx_with_text}
         -DSTX_WITH_VORBIS=${_gui_stx_with_vorbis}
+        # One module (owner decision, 2026-11-15): STXlib's state is a static
+        # archive linked into the one module that holds it, a program or the C
+        # ABI library, whose shared object needs position-independent code.
+        -DSTXLIB_STATE_SHARED=OFF
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
         "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
         "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
     set(_gui_stx_settings CMAKE_BUILD_TYPE CMAKE_TOOLCHAIN_FILE CMAKE_MAKE_PROGRAM
@@ -282,30 +286,17 @@ list(PREPEND CMAKE_PREFIX_PATH "${GUI_FORMS_STX_PREFIX_DIR}" "${GUI_FORMS_STX_BU
 # STXlib, which stx builds at its stxlib.lock commit and installs beside its
 # packages: stx_conv's SIMD level and the controls' row height index.
 find_package(stxlib CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
-# stxlib::state is a shared library (one allocator, one mimalloc and one SIMD
-# selection per process: libgui_forms_application and each executable link
-# STXlib). macOS and Linux programs find it through the build rpath CMake
-# records for an imported library; Windows finds a DLL beside the program, so
-# every build copies stxlib_state.dll where this build writes its programs
-# (after gui_forms_stx_refresh in lockstep, which may rebuild it).
-if(WIN32)
-    get_target_property(_gui_stxlib_state_type stxlib::state TYPE)
-    if(NOT _gui_stxlib_state_type STREQUAL "SHARED_LIBRARY")
-        message(FATAL_ERROR "the stx package at ${_gui_stx_package} has a static stxlib_state; GUI.Forms needs "
-                            "one shared state per process (stx's cmake/Stxlib.cmake: STXLIB_STATE_SHARED ON)")
-    endif()
-    set(_gui_stxlib_state_directory "${CMAKE_BINARY_DIR}")
-    if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
-        set(_gui_stxlib_state_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-    endif()
-    add_custom_target(gui_forms_stxlib_state_runtime ALL
-        COMMAND "${CMAKE_COMMAND}" -E make_directory "${_gui_stxlib_state_directory}"
-        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "$<TARGET_FILE:stxlib::state>" "${_gui_stxlib_state_directory}"
-        COMMENT "stx: stxlib_state.dll beside this build's programs"
-        VERBATIM)
-    if(TARGET gui_forms_stx_refresh)
-        add_dependencies(gui_forms_stxlib_state_runtime gui_forms_stx_refresh)
-    endif()
+# stxlib::state is a static archive (STXLIB_STATE_SHARED OFF above): each
+# module, a program or the C ABI library, holds the one allocator, identity
+# issuer and SIMD selection, which the engine's STXlib code and the module's
+# own reach alike. A package built with a shared state (an older stamp, or one
+# given read-only through GUI_FORMS_STX_PREFIX) would put a second module in
+# every program, so it is refused.
+get_target_property(_gui_stxlib_state_type stxlib::state TYPE)
+if(NOT _gui_stxlib_state_type STREQUAL "STATIC_LIBRARY")
+    message(FATAL_ERROR "the stx package at ${_gui_stx_package} has a shared stxlib_state; GUI.Forms links "
+                        "STXlib's state statically into each module (stx's cmake/Stxlib.cmake: "
+                        "STXLIB_STATE_SHARED OFF; cmake/Stx.cmake passes it when it builds the package)")
 endif()
 find_package(stx_zlib CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 find_package(stx_png CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")

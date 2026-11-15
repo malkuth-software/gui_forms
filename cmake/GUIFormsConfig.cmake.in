@@ -55,18 +55,15 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsGalleryModelTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsGalleryModelTargets.cmake")
 endif()
-# The drawing ABI, GUIForms::DrawingCApi (a renderer-free shared library with
-# the C header gui_forms/drawing_c_api.h), and its raster module,
-# GUIForms::DrawingRaster (gui_forms/drawing_raster_c_api.h), where the
-# producer built the renderer.
-if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsDrawingCApiTargets.cmake")
-    include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsDrawingCApiTargets.cmake")
-endif()
-# The C ABI (cmake/CAbi.cmake): a shared library with a C header. It links the
-# Application library (one engine per process), so it is installed only with it.
-# Its conformance kit, GUIForms::CAbiConformance, is a static library that
-# links Threads (found above).
-if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsCAbiTargets.cmake" AND TARGET GUIForms::Application)
+# The C ABI (cmake/CAbi.cmake): the one self-contained shared library a C or
+# C# program loads, with the C headers gui_forms/c/*.h, the drawing ABI
+# (gui_forms/drawing_c_api.h) and its raster service
+# (gui_forms/drawing_raster_c_api.h) folded in. It holds its own engine and
+# imports only system libraries, so it names no other GUIForms target. Its
+# conformance kit, GUIForms::CAbiConformance, is a static library that links
+# Threads (found above). A process uses either this library or a statically
+# linked C++ engine, never both.
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsCAbiTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsCAbiTargets.cmake")
 endif()
 
@@ -158,7 +155,7 @@ endif()
 
 # Components describe installed targets, not the producer's build options.
 # Set these explicitly so REQUIRED COMPONENTS works and missing hosts fail here.
-foreach(_gui_forms_component IN ITEMS Core Controls Drawing DrawingCApi DrawingRaster Threading HostedClient Application Audio TextMasks AudioLoopTransport FreeType HarfBuzz CAbi CAbiConformance GalleryModel Lab DemoControls)
+foreach(_gui_forms_component IN ITEMS Core Controls Drawing Threading HostedClient Application Audio TextMasks AudioLoopTransport FreeType HarfBuzz CAbi CAbiConformance GalleryModel Lab DemoControls)
     if(TARGET GUIForms::${_gui_forms_component})
         set(GUIForms_${_gui_forms_component}_FOUND TRUE)
     else()
@@ -168,7 +165,7 @@ endforeach()
 foreach(_gui_forms_component IN LISTS GUIForms_FIND_COMPONENTS)
     if(NOT GUIForms_${_gui_forms_component}_FOUND)
         set(GUIForms_NOT_FOUND_MESSAGE
-            "Requested GUIForms component '${_gui_forms_component}' is not installed. Core, Controls, Drawing, DrawingCApi and Threading are portable components; DrawingRaster requires a build with the renderer; HostedClient, the hosted program's library, is installed on macOS and Linux. Application, CAbi and CAbiConformance require a supported native host build; Audio requires an audio-enabled build; TextMasks requires a native host build with GUI_FORMS_BUILD_TEXT_MASKS; AudioLoopTransport requires an audio build with GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT; FreeType and HarfBuzz require a build with GUI_FORMS_INSTALL_TEXT_STACK; GalleryModel requires GUI_FORMS_INSTALL_GALLERY_MODEL, with Lab (GUI_FORMS_INSTALL_LAB) and DemoControls beside it (tools/build_sdk.py --features all builds them all).")
+            "Requested GUIForms component '${_gui_forms_component}' is not installed. Core, Controls, Drawing and Threading are portable components (the drawing ABI is part of CAbi); HostedClient, the hosted program's library, is installed on macOS and Linux. Application, CAbi and CAbiConformance require a supported native host build; Audio requires an audio-enabled build; TextMasks requires a native host build with GUI_FORMS_BUILD_TEXT_MASKS; AudioLoopTransport requires an audio build with GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT; FreeType and HarfBuzz require a build with GUI_FORMS_INSTALL_TEXT_STACK; GalleryModel requires GUI_FORMS_INSTALL_GALLERY_MODEL, with Lab (GUI_FORMS_INSTALL_LAB) and DemoControls beside it (tools/build_sdk.py --features all builds them all).")
     endif()
 endforeach()
 unset(_gui_forms_component)

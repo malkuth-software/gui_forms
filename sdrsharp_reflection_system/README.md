@@ -52,9 +52,7 @@ Prepare these inputs before launching:
 - a legitimately obtained SDRSharp directory containing `SDRSharp.exe` and its
   adjacent native/plugin files;
 - a completed GUI.Forms Windows x64 build containing:
-  - `gui_forms_abi1.dll`
-  - `gui_drawing_abi0.dll`
-  - `gui_drawing_raster0.dll`
+  - `gui_forms_abi1.dll` (with the drawing ABI and its raster service in it)
   - `fonts/PortsmouthRapids.ttf`
 - Release builds of the facade (with its `GuiForms.Interop.dll` beside them)
   and the runner:

@@ -2,10 +2,11 @@
 #define GUI_FORMS_DRAWING_RASTER_C_API_H
 
 /*
- * The GUI.Drawing raster module (gui_drawing_raster0): the CPU renderer
- * behind the drawing ABI's recorder_execute, bitmap PNG coding, measured
- * text and font resolution. It is a separate shared library so that the
- * drawing ABI (gui_drawing_abi0) stays renderer-free.
+ * The GUI.Drawing raster service: the CPU renderer behind the drawing ABI's
+ * recorder_execute, bitmap PNG coding, measured text and font resolution.
+ * It is part of the C ABI library (gui_forms_abi), which holds the drawing
+ * ABI and the engine's one renderer; the drawing ABI's own objects stay
+ * renderer-free and reach the renderer only through this service.
  */
 
 #include "gui_forms/drawing_c_api.h"
@@ -17,6 +18,8 @@ extern "C" {
 #if defined(_WIN32)
 #if defined(GDR_C_API_BUILD)
 #define GDR_C_API_EXPORT __declspec(dllexport)
+#elif defined(GDR_C_API_STATIC)
+#define GDR_C_API_EXPORT
 #else
 #define GDR_C_API_EXPORT __declspec(dllimport)
 #endif

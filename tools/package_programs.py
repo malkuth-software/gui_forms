@@ -84,6 +84,22 @@ LINUX_LLVM_RUNTIME_MENTION: re.Pattern[str] = re.compile(
     r"(?<![\w+.-])(lib(?:c\+\+abi|c\+\+|unwind)\.so\.\d+)(?![\w+.-])")
 
 
+# A needed library's name where readelf -d prints one:
+# " 0x0000000000000001 (NEEDED)  Shared library: [libc.so.6]".
+LINUX_NEEDED_ENTRY: re.Pattern[str] = re.compile(r"\(NEEDED\)\s+Shared library: \[([^\]]+)\]")
+
+
+def linux_needed_libraries(listing: str) -> list[str]:
+    """Every library readelf -d lists as NEEDED, in order, once each."""
+    names: list[str] = []
+    match: re.Match[str]
+    for match in LINUX_NEEDED_ENTRY.finditer(listing):
+        name: str = match.group(1)
+        if name not in names:
+            names.append(name)
+    return names
+
+
 def linux_runtime_dependencies(listing: str) -> list[str]:
     """The LLVM runtime libraries named in ldd or readelf -d output, in order.
 
@@ -98,6 +114,50 @@ def linux_runtime_dependencies(listing: str) -> list[str]:
         if LINUX_LLVM_RUNTIME.fullmatch(name) is not None and name not in names:
             names.append(name)
     return names
+
+
+# One module (owner decision, 2026-11-15): a shipped program is one image that
+# holds every GUI.Forms library, STXlib (its state included), the text stack
+# and the renderer, and imports only the operating system's libraries. A
+# package whose binary names a first-party or bundled third-party library is
+# refused, never completed by copying the library beside it.
+FIRST_PARTY_LIBRARY: re.Pattern[str] = re.compile(
+    r"(?:lib)?(?:gui_forms_|gui_drawing_|stxlib_|stx_|freetype|harfbuzz|sheenbidi|unibreak|md4c)[^/\\]*",
+    re.IGNORECASE)
+# The LLVM runtime dylibs a macOS program may still name while the pinned
+# runtime tree has no static libc++ archives (cmake/llvm22.cmake sets
+# GUI_FORMS_STATIC_CXX_RUNTIME when it has them; template_harness builds the
+# tree). They are bundled into Contents/Frameworks until then; nothing else
+# outside /System and /usr/lib is.
+MACOS_BUNDLED_RUNTIME: re.Pattern[str] = re.compile(r"lib(?:c\+\+|c\+\+abi|unwind)(?:\.\d+)?\.dylib")
+
+
+def refused_dependency(name: str) -> str | None:
+    """Why a shipped binary may not depend on the library `name`, or None.
+
+    `name` is a dependency's file name as otool -L, objdump -p or readelf -d
+    prints it (a path is reduced to its last component). A first-party or
+    bundled third-party library is refused (FIRST_PARTY_LIBRARY), and so is a
+    compiler runtime: the LLVM runtime on Linux (LINUX_LLVM_RUNTIME) and any
+    GCC, LLVM or winpthreads DLL on Windows (WINDOWS_FORBIDDEN_RUNTIME_DLL).
+    Every other name is left to the platform's own check of system libraries.
+    """
+    base: str = re.split(r"[/\\]", name)[-1]
+    if FIRST_PARTY_LIBRARY.fullmatch(base) is not None:
+        return (f"{base} is a GUI.Forms, STXlib or bundled library; a program is one module "
+                "and links it statically")
+    if LINUX_LLVM_RUNTIME.fullmatch(base) is not None:
+        return f"{base} is the LLVM runtime, which Linux programs link statically (cmake/llvm22.cmake)"
+    if WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(base) is not None:
+        return (f"{base} is a compiler runtime; Windows binaries link the LLVM runtimes and "
+                "winpthreads statically and never a GCC runtime")
+    return None
+
+
+def windows_system_import(name: str) -> bool:
+    """Whether a Windows DLL import is the operating system's own."""
+    key: str = name.lower()
+    return key in WINDOWS_SYSTEM_DLLS or key.startswith(("api-ms-win-", "ext-ms-win-"))
 
 
 LINUX_FALLBACK_DEPENDS: str = "libc6, libx11-6, libxcursor1, libxfixes3, libxrender1, libatk1.0-0t64 | libatk1.0-0, libatk-bridge2.0-0t64 | libatk-bridge2.0-0"
@@ -454,40 +514,6 @@ def stxlib_license_directory(build_dir: Path | None) -> Path | None:
     return None
 
 
-# STXlib's shared state (libstxlib_state.dylib, libstxlib_state.so or
-# stxlib_state.dll; one per process, stx's cmake/Stxlib.cmake) ships with every
-# program that links libgui_forms_application or the controls. It is a file of
-# the stx package the build linked, <package>/stx/lib (bin on Windows), not of
-# the build directory.
-STXLIB_STATE_LIBRARY_STEM: str = "stxlib_state"
-
-
-def stx_runtime_directories(build_dir: Path | None) -> list[Path]:
-    """The library and program directories of the stx package a build linked.
-
-    For the build directory and its toolkit/ subdirectory, each package the
-    cache names (GUI_FORMS_STX_PREFIX, GUI_FORMS_STX_PACKAGE_DIR) gives
-    <package>/stx/lib and <package>/stx/bin, where they exist, in that order
-    and without repeats.
-    """
-    directories: list[Path] = []
-    if build_dir is None:
-        return directories
-    build: Path
-    for build in (build_dir, build_dir / "toolkit"):
-        variable: str
-        for variable in STX_PACKAGE_VARIABLES:
-            value: str = _cached_value(build, variable)
-            if not value:
-                continue
-            part: str
-            for part in ("lib", "bin"):
-                directory: Path = Path(value) / "stx" / part
-                if directory.is_dir() and directory not in directories:
-                    directories.append(directory)
-    return directories
-
-
 def _is_stx_checkout(directory: Path) -> bool:
     marker: Path = directory / "stx_zlib" / "CMakeLists.txt"
     return marker.is_file()
@@ -721,7 +747,11 @@ class Packager:
         return lines[0].strip() if lines else None
 
     def bundle_macos_dependencies(self, app: Path, executable: Path, original_executable: Path) -> set[Path]:
-        """Copy the non-system dylib closure into Contents/Frameworks and point every image at it."""
+        """Copy the LLVM runtime dylibs, if the program names them, into Contents/Frameworks.
+
+        A program is one module: any other dependency outside /System and
+        /usr/lib (refused_dependency, MACOS_BUNDLED_RUNTIME) fails the package.
+        """
         frameworks = app / "Contents/Frameworks"
         frameworks.mkdir(exist_ok=True)
 
@@ -735,8 +765,6 @@ class Packager:
                 candidates += [expand(base, original_executable) / relative for base in self.otool_rpaths(original_executable)]
                 if self.runtime is not None:
                     candidates.append(self.runtime / "lib" / relative)
-                # libstxlib_state, from the stx package the build linked.
-                candidates += [directory / relative for directory in stx_runtime_directories(self.build_dir)]
             else:
                 candidates = [expand(value, owner)]
             for candidate in candidates:
@@ -757,9 +785,15 @@ class Packager:
             for dependency in self.otool_dependencies(original):
                 if dependency == own_id or dependency.startswith(("/System/", "/usr/lib/")):
                     continue
+                name = Path(dependency).name
+                refusal = refused_dependency(name)
+                if refusal is not None:
+                    raise RuntimeError(f"{original.name} depends on {dependency}: {refusal}")
+                if MACOS_BUNDLED_RUNTIME.fullmatch(name) is None:
+                    raise RuntimeError(f"{original.name} depends on {dependency}, which is not a system library; "
+                                       "a program is one module")
                 needs_rpath = needs_rpath or dependency.startswith("@rpath/")
                 source = resolve(dependency, original)
-                name = Path(dependency).name
                 destination = frameworks / name
                 digest = sha256_file(source)
                 if origins.get(name, digest) != digest:
@@ -885,46 +919,27 @@ class Packager:
         return shutil.which("makensis") or "makensis"
 
     def windows_closure(self, bundle: Path, executable: Path) -> None:
-        """Copy the program's non-system DLL imports from the build into the bundle.
+        """Check that the program imports only system DLLs.
 
-        Every binary is inspected with objdump; a compiler runtime import
-        (WINDOWS_FORBIDDEN_RUNTIME_DLL) fails the package.
+        A program is one module: every GUI.Forms library, STXlib and the
+        compiler runtimes are linked into the executable, so an import that is
+        not the system's (windows_system_import) fails the package, with the
+        reason refused_dependency gives where it has one. Nothing is copied
+        beside the executable; `bundle` is where it was staged.
         """
         objdump = self.tool("objdump") or self.tool("llvm-objdump")
         if objdump is None:
             raise RuntimeError("objdump (or llvm-objdump) is needed to check a Windows package's imports")
-        candidates: dict[str, Path] = {}
-        # The build's own DLLs first, then the stx package's (stxlib_state.dll).
-        for directory in [self.build_dir, self.build_dir / "toolkit"] + stx_runtime_directories(self.build_dir):
-            if directory.is_dir():
-                for path in directory.glob("*.dll"):
-                    candidates.setdefault(path.name.lower(), path)
-        pending = [executable]
-        inspected: set[str] = set()
-        while pending:
-            binary = pending.pop()
-            if binary.name.lower() in inspected:
+        imports = self.run([objdump, "-p", str(executable)])
+        names = re.findall(r"DLL Name:\s*(\S+)", imports)
+        self.log(f"  imports of {executable.name} in {bundle.name}: {len(names)} system DLLs")
+        for name in names:
+            if windows_system_import(name):
                 continue
-            inspected.add(binary.name.lower())
-            imports = self.run([objdump, "-p", str(binary)])
-            names = re.findall(r"DLL Name:\s*(\S+)", imports)
-            own = [name for name in names
-                   if name.lower() not in WINDOWS_SYSTEM_DLLS and not name.lower().startswith(("api-ms-win-", "ext-ms-win-"))]
-            self.log(f"  imports of {binary.name}: {len(names) - len(own)} system DLLs"
-                     + (", and " + ", ".join(own) if own else "; no other DLL"))
-            for name in names:
-                key = name.lower()
-                if key in WINDOWS_SYSTEM_DLLS or key.startswith(("api-ms-win-", "ext-ms-win-")):
-                    continue
-                if WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name):
-                    raise RuntimeError(f"{binary.name} imports the compiler runtime {name}; Windows binaries link "
-                                       "the LLVM runtimes and winpthreads statically and never a GCC runtime")
-                if key not in candidates:
-                    raise RuntimeError(f"missing runtime import {name} for {binary.name}")
-                target = bundle / name
-                if not target.exists():
-                    shutil.copy2(candidates[key], target)
-                pending.append(target)
+            refusal = refused_dependency(name)
+            if refusal is not None:
+                raise RuntimeError(f"{executable.name} imports {name}: {refusal}")
+            raise RuntimeError(f"{executable.name} imports {name}, which is not a system DLL; a program is one module")
 
     def write_nsis_script(self, bundle: Path, program: Program, entry: PlatformEntry, installer: Path, script: Path) -> None:
         template = (ROOT / "packaging/windows_installer.nsi.in").read_text(encoding="utf-8")
@@ -966,8 +981,8 @@ class Packager:
         bundle = stage / program.display_name
         self.log(f"  stage {plan.built} -> {bundle}")
         if self.dry_run:
-            for step in ("copy executable; copy non-system DLL imports (objdump) from the build dir; "
-                         "a compiler runtime import (GCC, libc++, libunwind, winpthreads) fails",
+            for step in ("copy executable; check it imports only system DLLs (objdump): a first-party, "
+                         "bundled or compiler runtime import (GCC, libc++, libunwind, winpthreads) fails",
                          "strip --strip-unneeded when available",
                          "font licences in fonts/ from assets/fonts (no face files); licenses/, README.txt, package-manifest.json",
                          f"zip with top-level folder {program.display_name!r} -> {names['archive']}",
@@ -1010,64 +1025,42 @@ class Packager:
     # -- Linux -----------------------------------------------------------------
 
     def linux_closure(self, bundle: Path, executable: Path) -> list[Path]:
-        """Copy the program's first-party shared libraries beside it, rpath $ORIGIN.
+        """Check that the program needs only the system's shared libraries; strip it.
 
-        First-party: libgui_forms_* from the build directory and
-        libstxlib_state (STXLIB_STATE_LIBRARY_STEM) from the stx package the
-        build linked. The rest are the system's, except the LLVM runtime
-        (LINUX_LLVM_RUNTIME: libc++, libc++abi, libunwind), which every binary
-        carries statically: a binary that needs one as a shared library, by
-        patchelf's, readelf's or ldd's account, fails the package.
+        A program is one module: a needed library that refused_dependency
+        refuses (a GUI.Forms, STXlib or bundled library, or the LLVM runtime,
+        which every binary carries statically), by patchelf's, readelf's or
+        ldd's account, fails the package. Nothing is copied beside it, so the
+        build-tree rpath is removed rather than pointed at $ORIGIN.
         """
-        patchelf = self.tool("patchelf")
         binaries = [executable]
+        patchelf = self.tool("patchelf")
         if patchelf is None:
-            self.log("  shared-library closure not checked: patchelf is not on PATH")
-            return binaries
-        pending = [executable]
-        while pending:
-            binary = pending.pop()
-            for name in self.run([patchelf, "--print-needed", str(binary)]).splitlines():
-                if (bundle / name).exists():
-                    continue
-                if name.startswith("libgui_forms_"):
-                    source = next(iter(sorted(self.build_dir.rglob(name))), None)
-                    if source is None:
-                        raise RuntimeError(f"{binary.name} needs {name}, which the build directory lacks")
-                elif LINUX_LLVM_RUNTIME.fullmatch(name) is not None:
-                    raise RuntimeError(f"{binary.name} needs {name} as a shared library; Linux programs link "
-                                       "the LLVM runtime statically (cmake/llvm22.cmake)")
-                elif name.startswith("lib" + STXLIB_STATE_LIBRARY_STEM + ".so"):
-                    found = [directory / name for directory in stx_runtime_directories(self.build_dir)
-                             if (directory / name).is_file()]
-                    if not found:
-                        raise RuntimeError(f"{binary.name} needs {name}, which the linked stx package lacks")
-                    source = found[0]
-                else:
-                    continue
-                shutil.copy2(source, bundle / name)
-                binaries.append(bundle / name)
-                pending.append(bundle / name)
-        for binary in binaries:
-            self.run([patchelf, "--set-rpath", "$ORIGIN", str(binary)])
+            self.log("  needed libraries not checked by patchelf: it is not on PATH")
+        else:
+            for name in self.run([patchelf, "--print-needed", str(executable)]).splitlines():
+                refusal = refused_dependency(name.strip())
+                if refusal is not None:
+                    raise RuntimeError(f"{executable.name} needs {name.strip()}: {refusal}")
+            self.run([patchelf, "--remove-rpath", str(executable)])
         strip = self.tool("strip")
-        for binary in binaries:
-            if strip:
-                self.run([strip, "--strip-unneeded", str(binary)])
-            readelf = self.tool("readelf")
-            if readelf:
-                needed = linux_runtime_dependencies(self.run([readelf, "-d", str(binary)]))
-                if needed:
-                    raise RuntimeError(f"{binary.name} needs {', '.join(needed)} (readelf -d); Linux programs "
-                                       "link the LLVM runtime statically (cmake/llvm22.cmake)")
-            if self.tool("ldd"):
-                resolved = self.run(["ldd", str(binary)])
-                needed = linux_runtime_dependencies(resolved)
-                if needed:
-                    raise RuntimeError(f"{binary.name} loads {', '.join(needed)} (ldd); Linux programs "
-                                       "link the LLVM runtime statically (cmake/llvm22.cmake)")
-                if "not found" in resolved:
-                    raise RuntimeError(f"{binary.name} has unresolved shared libraries")
+        if strip:
+            self.run([strip, "--strip-unneeded", str(executable)])
+        readelf = self.tool("readelf")
+        if readelf:
+            listing = self.run([readelf, "-d", str(executable)])
+            for name in linux_needed_libraries(listing):
+                refusal = refused_dependency(name)
+                if refusal is not None:
+                    raise RuntimeError(f"{executable.name} needs {name} (readelf -d): {refusal}")
+        if self.tool("ldd"):
+            resolved = self.run(["ldd", str(executable)])
+            needed = linux_runtime_dependencies(resolved)
+            if needed:
+                raise RuntimeError(f"{executable.name} loads {', '.join(needed)} (ldd); Linux programs "
+                                   "link the LLVM runtime statically (cmake/llvm22.cmake)")
+            if "not found" in resolved:
+                raise RuntimeError(f"{executable.name} has unresolved shared libraries")
         return binaries
 
     def package_linux(self, plan: Plan) -> dict[str, str]:
@@ -1081,7 +1074,7 @@ class Packager:
         bundle = stage / program.display_name
         self.log(f"  stage {plan.built} -> {bundle}")
         if self.dry_run:
-            for step in ("copy executable; follow libgui_forms_*.so and libstxlib_state.so imports (patchelf), rpath $ORIGIN, strip, ldd check; refuse a shared LLVM runtime (readelf -d, ldd)",
+            for step in ("copy executable; check it needs only system libraries (patchelf, readelf -d, ldd): a first-party, bundled or LLVM runtime library fails; remove the rpath, strip",
                          "font licences in fonts/ from assets/fonts (no face files); licenses/, README.txt, package-manifest.json",
                          f"tar.gz with top-level folder {program.display_name!r} -> {names['archive']}",
                          f"deb {deb_name} ({arch}) installing to {install_dir}, launcher /usr/bin/{deb_name}, .desktop entry, icon placeholder -> {names['installer']}"):

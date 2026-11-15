@@ -162,37 +162,28 @@ your own copies, not both.
 
 ## Runtime files to ship
 
-`Threading` and `Application` are shared libraries, and so is STXlib's
-state (`stxlib_state`: STXlib's allocator with mimalloc, its thread
-identities and its SIMD level), which the controls and `Application` use and
-which must be one copy per process. Ship them beside your program and use
-the same copy for every component:
+A program is one module (owner decision, 2026-11-15): it holds exactly one
+copy of any routine and ships no GUI.Forms library beside it.
 
-| Platform | Files | Location |
+| Consumer | Links | Ships |
 |---|---|---|
-| macOS | `libgui_forms_threading.0.dylib`, `libgui_forms_application.0.dylib` and their versioned targets, `libstxlib_state.dylib`, plus `libc++.1.dylib`, `libc++abi.1.dylib`, `libunwind.1.dylib` from the runtime prefix | `Your.app/Contents/Frameworks`, with `@executable_path/../Frameworks` rpaths; sign the libraries before the bundle |
-| Linux | `libgui_forms_threading.so.0`, `libgui_forms_application.so.0` and the versioned files those symlinks resolve to, and `libstxlib_state.so` | the application's runtime library directory |
-| Windows | `libgui_forms_threading.dll`, `libgui_forms_application.dll` and `stxlib_state.dll` (in the SDK's `bin/`); they embed the LLVM runtimes and winpthreads, so no runtime DLL comes with them. Your own program needs runtime DLLs only if you link it dynamically (link it with `-static`, as GUI.Forms' programs are, to need none) | beside the executable |
+| C++ | `GUIForms::Application` (or `Core` and `Controls` for a headless program): static archives. The installed `Application` is `lib/libgui_forms_application.a` (the engine, renderer and host, linked whole because its controls and themes register themselves at static initialization) and `lib/libgui_forms_application_deps.a` (Skia and the text stack), with `Threading`, STXlib (its state included) and the stx archives beside them | the executable alone. On macOS add `libc++.1.dylib`, `libc++abi.1.dylib` and `libunwind.1.dylib` from the runtime prefix to `Contents/Frameworks` only while the pinned runtime has no static archives |
+| C or C# | `GUIForms::CAbi`: the C ABI library, self-contained, with the drawing ABI (`gui_forms/drawing_c_api.h`) and its raster service (`gui_forms/drawing_raster_c_api.h`) in it | `gui_forms_abi1.dll`, `libgui_forms_abi.so.1` or `libgui_forms_abi.1.dylib`, beside the executable (in `Contents/Frameworks` on macOS), and its `fonts/` licences |
 
-The reference examples stage Windows DLLs with `$<TARGET_RUNTIME_DLLS:...>`
-in a post-build step; copy that pattern rather than listing DLL names.
-`Application` and the controls carry `stxlib::state` in their link
-interface, so it is in that list. In the SDK the state library sits in the
-same `lib/` as GUI.Forms' libraries (they find it through their
-`@loader_path` or `$ORIGIN` rpath), or in `bin/` on Windows.
+A process uses either the C ABI library or a statically linked C++ engine,
+never both: each holds its own STXlib state (allocator, thread identities and
+SIMD level) and its own engine. Link your C++ program with `-static` on
+Windows, as GUI.Forms' programs are, so it needs no runtime DLL.
 
-## What the shared libraries export
+## What is exported
 
-`Application` and `Threading` export only the declarations their public
-headers mark with the library's export macro (`GUI_FORMS_API`). On Windows the
-mark is `dllexport`; on macOS and Linux each library links with an export
-list generated from the marks (`cmake/exports/<library>.exports` and
-`.map`, written by `tools/export_annotations.py`). A class's mark covers its
-members, its vtable and its type information. A declaration without the mark,
-such as anything in a `detail` namespace or a private header, is not exported,
-and a program that names it fails to link against the shared library even
-though its header compiles. The C ABI library exports only the functions its
-allowlist names (`share/GUIForms/abi/gf_abi_exports.txt`).
+A C++ program exports nothing of GUI.Forms: the archives are linked into it.
+The public headers still mark their declarations with `GUI_FORMS_API` and
+`GUI_FORMS_THREADING_API`; on Windows the marks are empty for the static
+archives, and on macOS and Linux they are default visibility, so your own
+export policy decides. The C ABI library exports only `gf_*`, `gd_*` and
+`gdr_*` entry points (its allowlist is `share/GUIForms/abi/gf_abi_exports.txt`)
+and keeps libc++, STXlib, Skia and the text stack hidden inside it.
 
 ## Checked builds
 

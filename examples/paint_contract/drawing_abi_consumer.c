@@ -1,6 +1,7 @@
-/* An installed consumer of the drawing ABI (GUIForms::DrawingCApi): it
-   negotiates ABI 0.4 and records a gapped band, a gapped polyline and
-   per-cell colours through the installed header and shared library. */
+/* An installed consumer of the drawing ABI, which the C ABI library
+   (GUIForms::CAbi) holds: it negotiates ABI 0.4 and records a gapped band, a
+   gapped polyline and per-cell colours through the installed header and that
+   one shared library. */
 #include <gui_forms/drawing_c_api.h>
 
 #include <math.h>

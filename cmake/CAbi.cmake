@@ -3,13 +3,24 @@
 # It is the library's only C surface: the experimental 0.x ABI and its
 # facade generator were retired before 1.0 (owner decision D5, 2026-11-10).
 #
-# The library links the Application shared library (owner decision C-2), so
-# a process has one GUI.Forms engine whether it uses C++, the C ABI or both.
-# A build without a native host has no Application library and no C ABI.
+# The library is one module (owner decision, 2026-11-15: every independently
+# delivered program holds exactly one copy of any routine): it links the
+# Application archives whole, with libc++, STXlib's state and the GUI.Drawing
+# C APIs (gui_drawing_c_api_objects and gui_drawing_raster_c_api_objects in
+# CMakeLists.txt), and exports only the gf_ entry points of the allowlist and
+# GUI.Drawing's gd_get_api_v0 and gdr_initialize. Everything else, libc++
+# included, stays local (the version script on ELF, the exported-symbols list
+# on Mach-O; on Windows only the dllexport entry points leave the DLL). A C or
+# C# program loads it alone. This replaces decision C-2's shared engine: a
+# program that used both the C++ library and the C ABI would hold two
+# engines, so a C++ program that wants the C entry points links
+# gui_forms_abi_objects statically beside Application instead, as the trace
+# gates below do. A build without a native host has no Application library
+# and no C ABI.
 #
 # Installed:
 #   include/gui_forms/c/gf_abi.h          the contract (with the other headers)
-#   bin/gui_forms_abi1.dll, lib/libgui_forms_abi1.dll.a and the MSVC-format
+#   bin/gui_forms_abi1.dll (self-contained), lib/libgui_forms_abi1.dll.a and the MSVC-format
 #   lib/gui_forms_abi1.lib (Windows); lib/libgui_forms_abi.so.1 (Linux);
 #   lib/libgui_forms_abi.1.dylib (macOS)
 #   lib/cmake/GUIForms/GUIFormsCAbiTargets.cmake, lib/pkgconfig/gui_forms_abi.pc
@@ -50,6 +61,12 @@ foreach(_gf_abi_line IN LISTS _gf_abi_allowlist_lines)
 endforeach()
 if(NOT _gf_abi_exports)
     message(FATAL_ERROR "${_gf_abi_allowlist} names no symbol")
+endif()
+# GUI.Drawing's entry points, folded into the library: the drawing ABI's and,
+# where the renderer is built, the raster module's.
+list(APPEND _gf_abi_exports gd_get_api_v0)
+if(TARGET gui_drawing_raster_c_api_objects)
+    list(APPEND _gf_abi_exports gdr_initialize)
 endif()
 
 if(WIN32)
@@ -148,8 +165,20 @@ set_target_properties(gui_forms_abi_objects PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
-add_library(gui_forms_abi SHARED $<TARGET_OBJECTS:gui_forms_abi_objects>)
+add_library(gui_forms_abi SHARED
+    $<TARGET_OBJECTS:gui_forms_abi_objects>
+    $<TARGET_OBJECTS:gui_drawing_c_api_objects>)
+# gui_forms_application links the engine's archives whole into the library
+# (gui_forms_application_library); the raster module's objects add the
+# drawing executor, whose archive is linked ordinarily.
 target_link_libraries(gui_forms_abi PRIVATE gui_forms_application stxlib::boundary)
+if(TARGET gui_drawing_raster_c_api_objects)
+    target_sources(gui_forms_abi PRIVATE $<TARGET_OBJECTS:gui_drawing_raster_c_api_objects>)
+    target_link_libraries(gui_forms_abi PRIVATE gui_drawing_skia)
+endif()
+if(WIN32)
+    target_link_libraries(gui_forms_abi PRIVATE advapi32)
+endif()
 add_library(GUIForms::CAbi ALIAS gui_forms_abi)
 target_include_directories(gui_forms_abi PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -165,9 +194,6 @@ set_target_properties(gui_forms_abi PROPERTIES
     VERSION "${GUI_FORMS_ABI_MAJOR}.${GUI_FORMS_ABI_MINOR}.0"
     SOVERSION "${GUI_FORMS_ABI_MAJOR}"
 )
-# The library links libgui_forms_application privately, so it finds it, and
-# what it needs, beside itself once installed (GUI_FORMS_INSTALLED_LIBRARY_RPATH).
-set_target_properties(gui_forms_abi PROPERTIES INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}")
 if(APPLE)
     target_link_options(gui_forms_abi PRIVATE
         "LINKER:-exported_symbols_list,${_gf_abi_generated}/gf_abi_exports_macos.txt")
@@ -271,6 +297,20 @@ install(FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/manifests/abi/gf_abi.json"
         "${_gf_abi_allowlist}"
         DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/abi)
+# The substitution faces' licences and attribution, in the fonts directory
+# beside the library, where gdr_initialize looks (CMakeLists.txt,
+# gui_drawing_raster_fonts), and beside it in the build.
+if(TARGET gui_drawing_raster_c_api_objects)
+    add_custom_command(TARGET gui_forms_abi POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:gui_forms_abi>/fonts"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${gui_drawing_raster_fonts} "$<TARGET_FILE_DIR:gui_forms_abi>/fonts"
+        VERBATIM)
+    if(WIN32)
+        install(FILES ${gui_drawing_raster_fonts} DESTINATION ${CMAKE_INSTALL_BINDIR}/fonts)
+    else()
+        install(FILES ${gui_drawing_raster_fonts} DESTINATION ${CMAKE_INSTALL_LIBDIR}/fonts)
+    endif()
+endif()
 set(GUI_FORMS_ABI_PKGCONFIG_LIBRARY "${_gf_abi_output_name}")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/gui_forms_abi.pc.in"
                "${_gf_abi_generated}/gui_forms_abi.pc" @ONLY)
@@ -321,8 +361,24 @@ if(GUI_FORMS_BUILD_TESTS)
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_audit.py coverage
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/conformance ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/schema
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/host)
-    # The C ABI library exports its gf_ entry points alone: no symbol of
-    # the pinned text stack (cmake/CheckForeignTextSymbols.cmake).
+    # The C ABI library exports its gf_ entry points and GUI.Drawing's gd_
+    # and gdr_ ones alone (cmake/CheckCAbiExports.cmake: no libc++, STXlib
+    # or engine symbol), and no symbol of the pinned text stack
+    # (cmake/CheckForeignTextSymbols.cmake). It is one module: it imports no
+    # library but the system's (cmake/CheckSystemImports.cmake).
+    add_test(NAME gui_forms_abi_exports_only_entry_points
+        COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
+            "-DLIBRARY=$<TARGET_FILE:gui_forms_abi>"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckCAbiExports.cmake")
+    set(_gf_abi_shared_runtime OFF)
+    if(APPLE AND NOT GUI_FORMS_STATIC_CXX_RUNTIME)
+        set(_gf_abi_shared_runtime ON)
+    endif()
+    add_test(NAME gui_forms_abi_system_imports_only
+        COMMAND "${CMAKE_COMMAND}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
+            "-DALLOW_SHARED_CXX_RUNTIME=${_gf_abi_shared_runtime}"
+            "-DBINARIES=$<TARGET_FILE:gui_forms_abi>"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckSystemImports.cmake")
     add_test(NAME gui_forms_abi_foreign_text_symbols
         COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
             "-DLIBRARIES=$<TARGET_FILE:gui_forms_abi>"
@@ -505,6 +561,7 @@ endif()
 if(GUI_FORMS_BUILD_TESTS)
     set(_gf_abi_label_candidates
         gui_drawing_c_api_c11_tests gui_drawing_raster_c_api_tests
+        gui_forms_abi_exports_only_entry_points gui_forms_abi_system_imports_only
         gui_forms_windows_gdi_compat_shim_tests
         gui_forms_binding_tests gui_forms_binding_provider_tests gui_forms_binding_navigator_tests
         gui_forms_shadow_frames_tests

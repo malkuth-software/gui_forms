@@ -20,27 +20,46 @@ def run(command: list[str], expected_success: bool = True) -> str:
     return result.stdout
 
 
-def check_shared_stxlib_state(prefix: Path) -> None:
-    """The SDK ships STXlib's state as one shared library (stx's cmake/Stxlib.cmake).
+# The shared libraries an SDK may hold (one module, owner decision 2026-11-15):
+# the C ABI library, which holds its own engine for C and C# programs, and the
+# localizable-literal compiler plugin, which Clang loads and no program ships.
+# Every other GUI.Forms or STXlib library is a static archive.
+ALLOWED_SHARED_STEMS: tuple[str, ...] = ("gui_forms_abi", "libgui_forms_abi", "gui_forms_localizable")
+FIRST_PARTY_STEMS: tuple[str, ...] = ("gui_forms_", "libgui_forms_", "gui_drawing_", "libgui_drawing_",
+                                      "stxlib_", "libstxlib_")
 
-    lib/libstxlib_state.dylib or lib/libstxlib_state.so (lib64 where the
-    platform installs there) on macOS and Linux,
-    bin/stxlib_state.dll (with lib/libstxlib_state.dll.a) on Windows. A static
-    lib/libstxlib_state.a would give the Application library and each
-    consumer their own allocator and SIMD selection, so it fails here.
+
+def shared_library_name(name: str) -> bool:
+    """Whether a file name is a shared library's: .dll, .dylib, .so or .so.N."""
+    lowered: str = name.lower()
+    return lowered.endswith((".dll", ".dylib", ".so")) or ".so." in lowered
+
+
+def check_one_module_sdk(prefix: Path) -> None:
+    """The SDK holds no first-party shared library but the C ABI library.
+
+    A C++ program links every GUI.Forms library and STXlib's state statically
+    into its one module, so a shared Threading, Application, drawing or
+    STXlib state library in bin/ or lib*/ fails here.
     """
-    shared: list[Path] = sorted((prefix / "bin").glob("stxlib_state.dll"))
-    library: Path
-    for library in sorted(prefix.glob("lib*")):
-        if not library.is_dir():
+    found: list[Path] = []
+    directory: Path
+    for directory in [prefix / "bin"] + sorted(prefix.glob("lib*")):
+        if not directory.is_dir():
             continue
-        shared += sorted(library.glob("libstxlib_state.dylib")) + sorted(library.glob("libstxlib_state.so*"))
-        if (library / "libstxlib_state.a").exists():
-            raise RuntimeError(f"the SDK has a static {library.name}/libstxlib_state.a; STXlib's state must be one "
-                               "shared library")
-    if not shared:
-        raise RuntimeError("the SDK lacks STXlib's shared state (lib/libstxlib_state.dylib or .so, or bin/stxlib_state.dll)")
-    print("Shared STXlib state: " + ", ".join(str(path.relative_to(prefix)) for path in shared))
+        path: Path
+        for path in sorted(directory.rglob("*")):
+            if not path.is_file() or not shared_library_name(path.name):
+                continue
+            if not path.name.lower().startswith(FIRST_PARTY_STEMS):
+                continue
+            if path.name.lower().startswith(ALLOWED_SHARED_STEMS):
+                continue
+            found.append(path)
+    if found:
+        raise RuntimeError("the SDK has first-party shared libraries; a program is one module: "
+                           + ", ".join(str(path.relative_to(prefix)) for path in found))
+    print("One module: no first-party shared library besides the C ABI library")
 
 
 def main() -> None:
@@ -82,7 +101,7 @@ def main() -> None:
             emulator_arguments: list[str] = shlex.split(args.runner)
             emulator_value: str = ";".join(emulator_arguments)
             package_arguments.append("-DCMAKE_CROSSCOMPILING_EMULATOR=" + emulator_value)
-        check_shared_stxlib_state(prefix)
+        check_one_module_sdk(prefix)
         consumer: Path = scratch_path / "consumer"
         shutil.copytree(project / "examples" / "paint_contract", consumer)
         build: Path = scratch_path / "build"

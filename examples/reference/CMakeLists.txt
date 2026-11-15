@@ -173,30 +173,17 @@ if(TARGET GUIForms::Audio)
     endif()
 endif()
 
-if(TARGET GUIForms::Application)
-    foreach(link_case IN ITEMS direct static_adapter interface_adapter)
-        add_test(NAME reject_mixed_core_${link_case} COMMAND ${CMAKE_COMMAND}
-            "-DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/../linkage_rejection"
-            "-DBINARY=${CMAKE_CURRENT_BINARY_DIR}/reject-${link_case}"
-            "-DSDK=${CMAKE_PREFIX_PATH}"
-            "-DTOOLCHAIN=${CMAKE_TOOLCHAIN_FILE}"
-            "-DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
-            "-DLINK_CASE=${link_case}"
-            -P "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/check_core_linkage.cmake")
-    endforeach()
-endif()
-
-# Installed Windows SDKs keep DLLs in bin. Stage the actual transitive runtime
-# targets alongside each executable; no Core archive is copied into consumers.
+# Installed Windows SDKs keep DLLs in bin. A C++ program is one module and
+# loads none; a C program loads the C ABI library, which is staged beside it.
+# A program with no DLL to stage runs `cmake -E true` instead of a copy with
+# no sources.
 if(WIN32)
     get_property(reference_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
     foreach(reference_target IN LISTS reference_targets)
         get_target_property(reference_type ${reference_target} TYPE)
         if(reference_type STREQUAL "EXECUTABLE")
             add_custom_command(TARGET ${reference_target} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    $<TARGET_RUNTIME_DLLS:${reference_target}>
-                    $<TARGET_FILE_DIR:${reference_target}>
+                COMMAND "$<IF:$<BOOL:$<TARGET_RUNTIME_DLLS:${reference_target}>>,${CMAKE_COMMAND};-E;copy_if_different;$<TARGET_RUNTIME_DLLS:${reference_target}>;$<TARGET_FILE_DIR:${reference_target}>,${CMAKE_COMMAND};-E;true>"
                 COMMAND_EXPAND_LISTS)
         endif()
     endforeach()

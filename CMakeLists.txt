@@ -199,25 +199,46 @@ include(cmake/LocalizablePlugin.cmake)
 # and DLL this project builds links the LLVM runtimes (libc++, libc++abi,
 # libunwind, compiler-rt) and winpthreads statically, so no build output or
 # program package imports a runtime DLL, and none can import a GCC runtime
-# (libgcc_s, libstdc++). Each DLL then holds its own copy of those runtimes;
-# the C++ boundaries between DLLs and their consumers (Threading,
-# Application) pass heap blocks, which every copy takes from the one UCRT
-# heap, and exceptions, whose propagation across the Threading boundary
-# gui_forms_threading_tests checks (a worker entry's failure is rethrown by
-# join in the test executable). tools/package_programs.py rejects a package
-# that imports a GCC or LLVM runtime DLL.
+# (libgcc_s, libstdc++). A program is one module (owner, 2026-11-15: every
+# independently delivered program holds exactly one copy of any routine):
+# the C++ libraries are static archives linked into it, so it holds one copy
+# of the runtimes; the C ABI library (cmake/CAbi.cmake) is one module of its
+# own for C and C# programs. tools/package_programs.py rejects a package
+# that imports a GCC or LLVM runtime DLL, or any DLL but the system's.
 if(WIN32 AND NOT MSVC)
     add_link_options(-static)
 endif()
-# Linker pruning for the Release DLLs (MinGW). Every function and datum gets
-# its own section and each DLL drops the sections nothing reaches from its
-# exports. Sections the localizable-literal plugin and the effect pass write
-# (.gfloc) are not COMDAT and are always kept; the code that remains is
-# unchanged. Identical-code folding is left off: it would merge functions
-# whose addresses the code may compare, and it saved nothing measurable here.
-if(MINGW)
-    add_compile_options($<$<CONFIG:Release>:-ffunction-sections> $<$<CONFIG:Release>:-fdata-sections>)
-    add_link_options($<$<AND:$<CONFIG:Release>,$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>>:LINKER:--gc-sections>)
+# Linker pruning for Release programs and the C ABI library, the modules
+# that ship (one module each, above). Every function and datum gets its own
+# section (ELF and PE; Mach-O's subsections need no flag), and each linked
+# module drops the sections nothing reaches from its entry or exports:
+# --gc-sections on ELF and PE, -dead_strip on Mach-O. Sections the
+# localizable-literal plugin and the effect pass write (.gfloc) are not COMDAT
+# and are always kept; the code that remains is unchanged. Identical-code
+# folding is left off: it would merge functions whose addresses the code may
+# compare, and it saved nothing measurable here. Stripping is the packaging
+# step's (tools/package_programs.py strips every shipped binary).
+if(NOT MSVC AND NOT EMSCRIPTEN)
+    if(NOT APPLE)
+        add_compile_options($<$<CONFIG:Release>:-ffunction-sections> $<$<CONFIG:Release>:-fdata-sections>)
+    endif()
+    set(_gf_linked_module "$<OR:$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>,$<STREQUAL:$<TARGET_PROPERTY:TYPE>,MODULE_LIBRARY>,$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>>")
+    if(APPLE)
+        add_link_options($<$<AND:$<CONFIG:Release>,${_gf_linked_module}>:LINKER:-dead_strip>)
+    else()
+        add_link_options($<$<AND:$<CONFIG:Release>,${_gf_linked_module}>:LINKER:--gc-sections>)
+    endif()
+    unset(_gf_linked_module)
+endif()
+# Link-time optimisation of Release builds where the pinned toolchain links
+# with lld, which reads LLVM 22's bitcode: MinGW (CLANG64's lld) always. The
+# macOS linker reads bitcode through Xcode's libLTO, not LLVM 22's, and the
+# Linux link uses the system linker, so both stay off until their toolchains
+# pin an LLVM 22 linker. The archives then hold bitcode, which a consumer
+# links with the same pinned toolchain (docs/user/consume-the-sdk.md).
+option(GUI_FORMS_LTO "Link Release builds with ThinLTO where the pinned toolchain's linker is lld (MinGW)" ON)
+if(GUI_FORMS_LTO AND MINGW)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 endif()
 include(CMakePackageConfigHelpers)
 # Everything from malkuth-software/stx at stx.lock's commit, as one built
@@ -260,12 +281,14 @@ if(GUI_FORMS_ENABLE_MACOS_HOST AND NOT GUI_FORMS_ENABLE_SKIA)
     message(FATAL_ERROR "The current macOS proving host requires the private Skia adapter")
 endif()
 
-add_library(gui_forms_threading SHARED
+# A static archive linked into each program (one module, above); position
+# independent, since the C ABI library holds it too.
+add_library(gui_forms_threading STATIC
     src/core/threading/atomic_pool/atomic_pool.c
     src/core/threading/worker.cpp)
 add_library(GUIForms::Threading ALIAS gui_forms_threading)
 set_target_properties(gui_forms_threading PROPERTIES
-    EXPORT_NAME Threading OUTPUT_NAME gui_forms_threading VERSION 0.1.0 SOVERSION 0)
+    EXPORT_NAME Threading OUTPUT_NAME gui_forms_threading POSITION_INDEPENDENT_CODE ON)
 target_include_directories(gui_forms_threading PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
@@ -273,79 +296,76 @@ target_compile_features(gui_forms_threading PUBLIC cxx_std_20)
 # Its pool threads end their STXlib thread records before they return
 # (worker.cpp, gui_forms_atomic_pool_thread_ending).
 target_link_libraries(gui_forms_threading PRIVATE Threads::Threads stxlib::boundary stxlib::state)
-# Exports only what gui_forms/threading.hpp marks GUI_FORMS_THREADING_API
-# (gui_forms/export/threading_export.hpp; CP29 handoff section 2.2): through
-# the generated export list at the link on ELF and Mach-O
-# (gui_forms_export_list below), dllexport on Windows. Inline functions are
-# hidden: each consumer compiles its own copy, and the exceptions crossing
-# the boundary (a worker entry's failure, rethrown by join, and
-# std::logic_error) carry the typeinfo of their own image or of the C++
-# runtime, never of an inline function here.
-target_compile_definitions(gui_forms_threading PRIVATE GUI_FORMS_THREADING_BUILD=1)
+# GUI_FORMS_THREADING_API (gui_forms/export/threading_export.hpp) marks the
+# public declarations; in an archive it adds nothing on Windows, and default
+# visibility on ELF and Mach-O, which the C ABI library's export list then
+# keeps local. Inline functions are hidden.
 set_target_properties(gui_forms_threading PROPERTIES VISIBILITY_INLINES_HIDDEN YES)
 if(WIN32)
     target_compile_definitions(gui_forms_threading PUBLIC _WIN32_WINNT=0x0A00 WINVER=0x0A00)
     target_link_libraries(gui_forms_threading PRIVATE winpthread)
 endif()
 
-# A shipped shared library exports only the declarations its macro marks
-# (CP29 handoff section 2.2; coordinator, 2026-11-12): on ELF and Mach-O
-# through the export list tools/export_annotations.py generates from the
-# marks (cmake/exports/<library>.map, a version script, and
-# cmake/exports/<library>.exports, an -exported_symbols_list; `check`
-# fails when a list and the marks differ), on Windows through the macro's
-# dllexport. The archives are compiled with default visibility, because the
-# shared test runtime (cmake/TestRuntime.cmake) holds the same archives and
-# exports everything to the tests, which call private functions; hidden
-# visibility is fixed per object at compile time and would hide them from
-# it as well. The list leaves everything else local, so -dead_strip and
-# --gc-sections still drop what no export reaches.
-function(gui_forms_export_list target)
-    set(list_stem ${CMAKE_CURRENT_SOURCE_DIR}/cmake/exports/${target})
-    if(APPLE)
-        target_link_options(${target} PRIVATE "LINKER:-exported_symbols_list,${list_stem}.exports")
-        set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS ${list_stem}.exports)
-    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        target_link_options(${target} PRIVATE "LINKER:--version-script=${list_stem}.map")
-        set_property(TARGET ${target} APPEND PROPERTY LINK_DEPENDS ${list_stem}.map)
-    endif()
-endfunction()
-gui_forms_export_list(gui_forms_threading)
 
 # The archives the Application library (and the shared test runtime) holds
-# whole, compiled with GUI_FORMS_API_BUILD (dllexport on Windows). Inline
-# functions are hidden: each consumer compiles its own copy, no first-party
-# code compares the address of an inline function across images, and a
-# static local of an inline function keeps default visibility (Clang's
-# -fvisibility-inlines-hidden-static-local-var is not used). Hiding them
-# keeps the many inline definitions out of the test runtime's dynamic
-# symbol table and spares dyld their weak-definition coalescing at load; on
-# ELF the compiler also calls them directly instead of through the PLT. On
-# ELF each function and datum gets its own section, so the Application
-# library's --gc-sections drops what no export reaches (Mach-O's -dead_strip
-# needs no flag; MinGW Release has the sections already, above).
+# whole. They are linked into one module, a program or the C ABI library, so
+# GUI_FORMS_API (gui_forms/export/application_export.hpp) adds nothing on
+# Windows and default visibility elsewhere, which the C ABI library's export
+# list keeps local. Inline functions are hidden: each image compiles its own
+# copy, no first-party code compares the address of an inline function
+# across images, and a static local of an inline function keeps default
+# visibility (Clang's -fvisibility-inlines-hidden-static-local-var is not
+# used). Hiding them keeps the many inline definitions out of the test
+# runtime's dynamic symbol table and spares dyld their weak-definition
+# coalescing at load. Every archive is position independent: the C ABI
+# library holds them.
 function(gui_forms_application_archive target)
-    target_compile_definitions(${target} PRIVATE GUI_FORMS_API_BUILD=1)
-    set_target_properties(${target} PROPERTIES VISIBILITY_INLINES_HIDDEN YES)
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        target_compile_options(${target} PRIVATE
-            $<$<CONFIG:Release>:-ffunction-sections> $<$<CONFIG:Release>:-fdata-sections>)
-    endif()
+    set_target_properties(${target} PROPERTIES VISIBILITY_INLINES_HIDDEN YES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
-# The usage requirement of a shipped shared library holding those archives:
-# its consumers import the marked declarations (dllimport on Windows), it
-# exports only them (its export list on ELF and Mach-O), and the linker drops
-# the sections no export reaches.
+# The Application library: a static archive of the runtime's own sources,
+# whose usage requirement links the engine's archives whole into the
+# consumer (one module: a program, or the C ABI library). Whole, because a
+# program reaches the controls and services through registries the archives
+# fill at static initialisation, which an ordinary archive link would drop;
+# the consumer's --gc-sections or -dead_strip (above) then removes what
+# nothing reaches. `archives` are linked whole, `libraries` ordinarily after
+# them (the text stack, the stx packages, the system's libraries). The
+# whole-archive options name build-tree files, so they are BUILD_INTERFACE
+# only: the installed Application is the merged archive
+# cmake/ApplicationPackage.cmake writes.
 function(gui_forms_application_library target)
+    cmake_parse_arguments(PARSE_ARGV 1 _gf "" "" "ARCHIVES;LIBRARIES")
     gui_forms_application_archive(${target})
-    target_compile_definitions(${target} INTERFACE GUI_FORMS_API_IMPORT=1)
-    gui_forms_export_list(${target})
-    if(APPLE)
-        target_link_options(${target} PRIVATE $<$<CONFIG:Release>:LINKER:-dead_strip>)
-    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        target_link_options(${target} PRIVATE $<$<CONFIG:Release>:LINKER:--gc-sections>)
+    gui_forms_application_add_archives(${target} ${_gf_ARCHIVES})
+    target_link_libraries(${target} PUBLIC ${_gf_LIBRARIES})
+endfunction()
+
+# Adds archives to those `target` (the Application library) links whole into
+# its consumer: the whole-archive options for each, and the archive again as
+# an ordinary library for its own usage requirements (include directories,
+# definitions, its dependencies) and the build order. A member already linked
+# whole defines every symbol it could resolve, so the ordinary mention adds
+# nothing. GUI_FORMS_APPLICATION_ARCHIVES lists them for the installed,
+# merged archive (cmake/ApplicationPackage.cmake).
+function(gui_forms_application_add_archives target)
+    set(_gf_whole "")
+    foreach(_gf_archive IN LISTS ARGN)
+        if(APPLE)
+            list(APPEND _gf_whole "LINKER:-force_load,$<TARGET_FILE:${_gf_archive}>")
+        else()
+            list(APPEND _gf_whole "$<TARGET_FILE:${_gf_archive}>")
+        endif()
+        target_link_libraries(${target} PUBLIC "$<BUILD_INTERFACE:${_gf_archive}>")
+    endforeach()
+    if(NOT APPLE)
+        # SHELL: keeps each group whole: CMake removes repeated link options,
+        # which would otherwise merge the --whole-archive of two groups.
+        string(JOIN " " _gf_group ${_gf_whole})
+        set(_gf_whole "SHELL:-Wl,--whole-archive ${_gf_group} -Wl,--no-whole-archive")
     endif()
+    target_link_options(${target} INTERFACE "$<BUILD_INTERFACE:${_gf_whole}>")
+    set_property(TARGET ${target} APPEND PROPERTY GUI_FORMS_APPLICATION_ARCHIVES ${ARGN})
 endfunction()
 
 # The bundled fallback faces (owner ruling 2026-11-11): the seven Noto faces and their OFL texts.
@@ -791,14 +811,11 @@ if(GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY)
 endif()
 set_source_files_properties(src/core/text/markdown/markdown.cpp PROPERTIES
     INCLUDE_DIRECTORIES "${GUI_FORMS_STX_BUILD_PREFIX_DIR}/include/md4c")
-set_property(TARGET gui_forms_core PROPERTY INTERFACE_GUI_FORMS_CORE_LINKAGE static)
-set_property(TARGET gui_forms_core APPEND PROPERTY COMPATIBLE_INTERFACE_STRING GUI_FORMS_CORE_LINKAGE)
-# Compatibility properties alone do not traverse LINK_ONLY dependencies of
-# private static adapters. Link options do. Deliberately diagnose the forbidden
-# combination at generation by querying a named, nonexistent diagnostic target.
-# This contributes no linker option to valid Core or Application consumers.
-target_link_options(gui_forms_core INTERFACE
-    "$<$<STREQUAL:$<TARGET_PROPERTY:GUI_FORMS_CORE_LINKAGE>,application>:$<TARGET_PROPERTY:GUIForms::ERROR_do_not_link_static_Core_with_Application,TYPE>>")
+# A program may link Core beside Application: Application links Core's
+# archive whole into the program (gui_forms_application_library), so the
+# ordinary mention draws no second copy. The generation-time refusal of the
+# combination, which guarded against a static Core beside a shared
+# Application, was retired with the shared library (one module, 2026-11-15).
 if(GUI_FORMS_CHECKED_BORROWS)
     target_compile_definitions(gui_forms_core PUBLIC GUI_FORMS_CHECKED_BORROWS=1)
 endif()
@@ -1039,60 +1056,46 @@ target_include_directories(gui_drawing_core PRIVATE
 target_compile_features(gui_drawing_core PUBLIC cxx_std_20)
 set_target_properties(gui_drawing_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-add_library(gui_drawing_c_api SHARED
+# The GUI.Drawing C API (gui_forms/drawing_c_api.h). Its objects ship inside
+# the C ABI library (cmake/CAbi.cmake), the one module for C and C#
+# programs, which exports gd_get_api_v0 beside the gf_ entry points; the
+# static archive made of them is for the in-tree tests, each its own module.
+# A program that links the archive defines GD_C_API_STATIC, so the header
+# declares the entry point without dllimport.
+add_library(gui_drawing_c_api_objects OBJECT
     src/abi/drawing_c_api.cpp
 )
 if(WIN32)
-    target_sources(gui_drawing_c_api PRIVATE src/abi/drawing_platform_windows.cpp)
-    target_link_libraries(gui_drawing_c_api PRIVATE gdi32 user32)
+    target_sources(gui_drawing_c_api_objects PRIVATE src/abi/drawing_platform_windows.cpp)
 else()
-    target_sources(gui_drawing_c_api PRIVATE src/abi/drawing_platform_stub.cpp)
+    target_sources(gui_drawing_c_api_objects PRIVATE src/abi/drawing_platform_stub.cpp)
 endif()
-target_link_libraries(gui_drawing_c_api PRIVATE gui_drawing_core)
-target_include_directories(gui_drawing_c_api PUBLIC
+# The thread's last error is an STXlib thread record (stxlib::state's
+# registry; stxlib/thread_records.hpp).
+target_link_libraries(gui_drawing_c_api_objects PRIVATE gui_drawing_core stxlib::boundary stxlib::state)
+target_include_directories(gui_drawing_c_api_objects PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
-target_compile_definitions(gui_drawing_c_api PRIVATE GD_C_API_BUILD)
-set_target_properties(gui_drawing_c_api PROPERTIES
+target_compile_definitions(gui_drawing_c_api_objects PRIVATE GD_C_API_BUILD)
+set_target_properties(gui_drawing_c_api_objects PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES
-    OUTPUT_NAME gui_drawing_abi0
-    VERSION 0.1.0
-    SOVERSION 0
+    POSITION_INDEPENDENT_CODE ON
 )
+add_library(gui_drawing_c_api STATIC $<TARGET_OBJECTS:gui_drawing_c_api_objects>)
+target_link_libraries(gui_drawing_c_api PUBLIC gui_drawing_core stxlib::boundary stxlib::state)
 if(WIN32)
-    set_target_properties(gui_drawing_c_api PROPERTIES PREFIX "")
+    target_link_libraries(gui_drawing_c_api PUBLIC gdi32 user32)
 endif()
-if(APPLE)
-    target_link_options(gui_drawing_c_api PRIVATE
-        "LINKER:-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_c_api_exports_macos.txt"
-    )
-elseif(UNIX)
-    # Without this the library also exports Drawing Core's C++ symbols, which
-    # duplicate a static Drawing Core in the same process.
-    target_link_options(gui_drawing_c_api PRIVATE
-        "LINKER:--version-script=${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_c_api_exports_linux.map"
-    )
-    set_property(TARGET gui_drawing_c_api APPEND PROPERTY LINK_DEPENDS
-        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_c_api_exports_linux.map)
-endif()
-# The drawing ABI installs with the SDK as GUIForms::DrawingCApi (a shared
-# library with the C header gui_forms/drawing_c_api.h), and the raster
-# module beside it as GUIForms::DrawingRaster where the renderer is built
-# (below). Both are in GUIFormsDrawingCApiTargets, which GUIFormsConfig
-# includes when it was installed.
-add_library(GUIForms::DrawingCApi ALIAS gui_drawing_c_api)
-set_target_properties(gui_drawing_c_api PROPERTIES EXPORT_NAME DrawingCApi)
-install(TARGETS gui_drawing_c_api
-        EXPORT GUIFormsDrawingCApiTargets
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(EXPORT GUIFormsDrawingCApiTargets
-        FILE GUIFormsDrawingCApiTargets.cmake
-        NAMESPACE GUIForms::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+target_include_directories(gui_drawing_c_api PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+target_compile_definitions(gui_drawing_c_api INTERFACE GD_C_API_STATIC)
+set_target_properties(gui_drawing_c_api PROPERTIES LINKER_LANGUAGE CXX)
+# The drawing ABI and its raster module are installed inside the C ABI
+# library (cmake/CAbi.cmake: GUIForms::CAbi exports gd_get_api_v0 and
+# gdr_initialize), not as libraries of their own: a C or C# program loads one
+# module.
 
 add_library(gui_forms_host_headless STATIC
     src/host/headless/capabilities/headless_capabilities.cpp
@@ -1718,101 +1721,50 @@ if(GUI_FORMS_ENABLE_SKIA)
     target_compile_definitions(gui_forms_lamp_keys PRIVATE
         GUI_FORMS_LEGEND_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthMono.ttf")
 
-    add_library(gui_drawing_raster_c_api SHARED
+    # The GUI.Drawing raster module (gui_forms/drawing_raster_c_api.h): its
+    # objects ship inside the C ABI library (cmake/CAbi.cmake), which exports
+    # gdr_initialize and holds the drawing executor, the text engine and the
+    # Skia derivative once, with the rest of the engine. The static archive
+    # made of them is for the in-tree tests (GDR_C_API_STATIC: no dllimport).
+    add_library(gui_drawing_raster_c_api_objects OBJECT
         src/abi/drawing_skia_c_api.cpp
     )
-    target_include_directories(gui_drawing_raster_c_api PRIVATE
+    target_include_directories(gui_drawing_raster_c_api_objects PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/executor
     )
-    # One copy of the renderer. Where the application DLL is built (MinGW,
-    # below), it carries the drawing executor (gui_drawing_skia), the text
-    # engine and the Skia derivative, and this module calls into it instead
-    # of linking a second copy of all three. The two modules pass heap
-    # blocks only through the one UCRT heap (see add_link_options(-static)).
-    # The application's import library comes first on the link line, so no
-    # static archive member is drawn in for a symbol it exports. Elsewhere
-    # the module links the executor statically.
-    if(MINGW AND GUI_FORMS_ENABLE_WINDOWS_HOST)
-        target_link_libraries(gui_drawing_raster_c_api PRIVATE
-            gui_forms_application
-            gui_drawing_c_api
-        )
-        target_include_directories(gui_drawing_raster_c_api PRIVATE
-            $<TARGET_PROPERTY:gui_drawing_core,INTERFACE_INCLUDE_DIRECTORIES>
-        )
-        target_compile_features(gui_drawing_raster_c_api PRIVATE cxx_std_20)
-    else()
-        target_link_libraries(gui_drawing_raster_c_api PRIVATE
-            gui_drawing_skia
-            gui_drawing_c_api
-        )
-        target_sources(gui_drawing_raster_c_api PRIVATE $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
-    endif()
+    target_link_libraries(gui_drawing_raster_c_api_objects PRIVATE gui_drawing_skia gui_drawing_c_api_objects)
     # The thread's executor and font registrations are an STXlib thread
     # record (stxlib/thread_records.hpp).
-    target_link_libraries(gui_drawing_raster_c_api PRIVATE stxlib::boundary stxlib::state)
-    target_compile_definitions(gui_drawing_raster_c_api PRIVATE GDR_C_API_BUILD)
-    target_include_directories(gui_drawing_raster_c_api INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    )
-    set_target_properties(gui_drawing_raster_c_api PROPERTIES
+    target_link_libraries(gui_drawing_raster_c_api_objects PRIVATE stxlib::boundary stxlib::state)
+    target_compile_definitions(gui_drawing_raster_c_api_objects PRIVATE GDR_C_API_BUILD)
+    set_target_properties(gui_drawing_raster_c_api_objects PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN YES
-        OUTPUT_NAME gui_drawing_raster0
-        EXPORT_NAME DrawingRaster
+        POSITION_INDEPENDENT_CODE ON
     )
-    add_library(GUIForms::DrawingRaster ALIAS gui_drawing_raster_c_api)
-    # The module exports gdr_initialize alone. Hidden visibility covers only
-    # its own source: the archives it links statically (the drawing
-    # executor, the Skia derivative and the pinned FreeType, HarfBuzz and
-    # SheenBidi) are compiled with default visibility, so without a list
-    # their symbols leave the module and could bind to a consumer's own text
-    # stack (cmake/CheckForeignTextSymbols.cmake).
-    if(APPLE)
-        target_link_options(gui_drawing_raster_c_api PRIVATE
-            "LINKER:-exported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_raster_c_api_exports_macos.txt")
-        set_property(TARGET gui_drawing_raster_c_api APPEND PROPERTY LINK_DEPENDS
-            ${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_raster_c_api_exports_macos.txt)
-    elseif(UNIX)
-        target_link_options(gui_drawing_raster_c_api PRIVATE
-            "LINKER:--version-script=${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_raster_c_api_exports_linux.map")
-        set_property(TARGET gui_drawing_raster_c_api APPEND PROPERTY LINK_DEPENDS
-            ${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_raster_c_api_exports_linux.map)
-    endif()
+    add_library(gui_drawing_raster_c_api STATIC
+        $<TARGET_OBJECTS:gui_drawing_raster_c_api_objects>
+        $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+    target_link_libraries(gui_drawing_raster_c_api PUBLIC gui_drawing_skia gui_drawing_c_api)
     if(WIN32)
-        set_target_properties(gui_drawing_raster_c_api PROPERTIES PREFIX "")
-        target_link_libraries(gui_drawing_raster_c_api PRIVATE advapi32)
+        target_link_libraries(gui_drawing_raster_c_api PUBLIC advapi32)
     endif()
+    target_include_directories(gui_drawing_raster_c_api INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    )
+    target_compile_definitions(gui_drawing_raster_c_api INTERFACE GDR_C_API_STATIC)
+    set_target_properties(gui_drawing_raster_c_api PROPERTIES LINKER_LANGUAGE CXX)
     # The licences of the faces the substitution table names, and the
-    # attribution, beside the raster module (stage F). The faces themselves
+    # attribution, in the fonts directory beside the module that holds
+    # gdr_initialize (stage F): the C ABI library once installed
+    # (cmake/CAbi.cmake), the test program in the build. The faces themselves
     # come from Core's embedded font pack (font pack stage 4), so none is
     # copied.
     set(gui_drawing_raster_fonts
         ${GUI_FORMS_SUBSTITUTION_FONT_LICENCES}
         ATTRIBUTION.md)
     list(TRANSFORM gui_drawing_raster_fonts PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/)
-    add_custom_command(TARGET gui_drawing_raster_c_api POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory
-            "$<TARGET_FILE_DIR:gui_drawing_raster_c_api>/fonts"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${gui_drawing_raster_fonts}
-            "$<TARGET_FILE_DIR:gui_drawing_raster_c_api>/fonts"
-        VERBATIM
-    )
-    # Installed beside the drawing ABI, its faces in the fonts directory
-    # beside the module, where gdr_initialize registers them.
-    install(TARGETS gui_drawing_raster_c_api
-            EXPORT GUIFormsDrawingCApiTargets
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-    if(WIN32)
-        install(FILES ${gui_drawing_raster_fonts} DESTINATION ${CMAKE_INSTALL_BINDIR}/fonts)
-    else()
-        install(FILES ${gui_drawing_raster_fonts} DESTINATION ${CMAKE_INSTALL_LIBDIR}/fonts)
-    endif()
 endif()
 
 if(GUI_FORMS_ENABLE_MACOS_HOST)
@@ -1861,11 +1813,10 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
                 ${GUI_FORMS_COREFOUNDATION}
     )
 
-    # First-party native applications consume one installed dynamic boundary.
-    # The renderer, text stack, controls, and AppKit adapter remain private
-    # implementation details; force-loading the internal archives keeps the
-    # public C++ surface available without exporting source-tree-only targets.
-    add_library(gui_forms_application SHARED
+    # The Application library (gui_forms_application_library above): the
+    # runtime's sources in a static archive, and the engine's archives linked
+    # whole into the consumer, a program or the C ABI library.
+    add_library(gui_forms_application STATIC
         src/runtime/application_bundle.cpp
         src/runtime/application/application.cpp
         src/runtime/offscreen/offscreen_raster_create.cpp
@@ -1875,8 +1826,6 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     set_target_properties(gui_forms_application PROPERTIES
         EXPORT_NAME Application
         OUTPUT_NAME gui_forms_application
-        VERSION 0.1.0
-        SOVERSION 0
     )
     target_include_directories(gui_forms_application PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -1885,39 +1834,18 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     target_compile_features(gui_forms_application PUBLIC cxx_std_20)
     target_compile_definitions(gui_forms_application PRIVATE
         GUI_FORMS_APPLICATION_MACOS=1 GUI_FORMS_APPLICATION_SKIA=1)
-    target_link_libraries(gui_forms_application PRIVATE
-        gui_forms_core
-        gui_drawing_core
-        gui_forms_controls
-        gui_forms_skia
-        gui_forms_host_macos
-        ${GUI_FORMS_APPKIT}
-        ${GUI_FORMS_QUARTZCORE}
-        ${GUI_FORMS_COREGRAPHICS}
-        ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS}
-    )
-    target_link_options(gui_forms_application PRIVATE
-        "LINKER:-force_load,$<TARGET_FILE:gui_forms_core>"
-        "LINKER:-force_load,$<TARGET_FILE:gui_drawing_core>"
-        "LINKER:-force_load,$<TARGET_FILE:gui_forms_controls>"
-        "LINKER:-force_load,$<TARGET_FILE:gui_forms_skia>"
-        "LINKER:-force_load,$<TARGET_FILE:gui_forms_host_macos>"
-    )
+    set(_gf_application_archives gui_forms_core gui_drawing_core gui_forms_controls gui_forms_skia
+        gui_forms_host_macos)
+    set(_gf_application_libraries)
     if(TARGET gui_forms_text_engine)
-        target_link_libraries(gui_forms_application PRIVATE
-            gui_forms_text_engine stx_text::freetype stx_text::harfbuzz)
-        target_link_options(gui_forms_application PRIVATE
-            "LINKER:-force_load,$<TARGET_FILE:gui_forms_text_engine>")
+        list(APPEND _gf_application_archives gui_forms_text_engine)
+        list(APPEND _gf_application_libraries stx_text::freetype stx_text::harfbuzz)
     endif()
-
-    install(TARGETS gui_forms_application
-            EXPORT GUIFormsApplicationTargets
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(EXPORT GUIFormsApplicationTargets
-            FILE GUIFormsApplicationTargets.cmake
-            NAMESPACE GUIForms::
-            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+    set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE}
+        ${GUI_FORMS_COREGRAPHICS} ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS} ${GUI_FORMS_COREFOUNDATION})
+    gui_forms_application_library(gui_forms_application
+        ARCHIVES ${_gf_application_archives}
+        LIBRARIES ${_gf_application_libraries} ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
     gui_forms_install_bundled_fonts()
 endif()
 
@@ -1979,37 +1907,32 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xi)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XI2=1)
     endif()
-    add_library(gui_forms_application SHARED src/runtime/application_bundle.cpp src/runtime/application/application.cpp
+    add_library(gui_forms_application STATIC src/runtime/application_bundle.cpp src/runtime/application/application.cpp
         src/runtime/offscreen/offscreen_raster_create.cpp src/runtime/stxlib_state_probe.cpp)
     add_library(GUIForms::Application ALIAS gui_forms_application)
-    set_target_properties(gui_forms_application PROPERTIES EXPORT_NAME Application OUTPUT_NAME gui_forms_application VERSION 0.1.0 SOVERSION 0)
+    set_target_properties(gui_forms_application PROPERTIES EXPORT_NAME Application OUTPUT_NAME gui_forms_application)
     target_include_directories(gui_forms_application PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
     target_compile_definitions(gui_forms_application PRIVATE
         GUI_FORMS_APPLICATION_LINUX=1 GUI_FORMS_APPLICATION_SKIA=1)
-    target_link_libraries(gui_forms_application PRIVATE
-        "-Wl,--whole-archive" gui_forms_core gui_drawing_core gui_forms_controls gui_forms_host_linux gui_forms_skia
-        "-Wl,--no-whole-archive" X11::X11 X11::Xfixes X11::Xrender)
-    if(GUI_FORMS_XCURSOR_AVAILABLE)
-        target_link_libraries(gui_forms_application PRIVATE X11::Xcursor)
-    endif()
-    if(TARGET X11::Xrandr)
-        target_link_libraries(gui_forms_application PRIVATE X11::Xrandr)
-    endif()
-    if(TARGET X11::Xext)
-        target_link_libraries(gui_forms_application PRIVATE X11::Xext)
-    endif()
-    if(TARGET X11::Xi)
-        target_link_libraries(gui_forms_application PRIVATE X11::Xi)
-    endif()
+    set(_gf_application_archives gui_forms_core gui_drawing_core gui_forms_controls gui_forms_host_linux gui_forms_skia)
+    set(_gf_application_libraries)
     if(TARGET gui_forms_text_engine)
-        target_link_libraries(gui_forms_application PRIVATE gui_forms_text_engine stx_text::freetype stx_text::harfbuzz)
+        list(APPEND _gf_application_archives gui_forms_text_engine)
+        list(APPEND _gf_application_libraries stx_text::freetype stx_text::harfbuzz)
     endif()
-    install(TARGETS gui_forms_application EXPORT GUIFormsApplicationTargets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(EXPORT GUIFormsApplicationTargets FILE GUIFormsApplicationTargets.cmake
-        NAMESPACE GUIForms:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+    # The host's system libraries, which the installed package names again
+    # (cmake/ApplicationPackage.cmake).
+    set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES X11::X11 X11::Xfixes X11::Xrender PkgConfig::GUI_FORMS_ATK ${CMAKE_DL_LIBS})
+    foreach(_gf_x11 IN ITEMS Xcursor Xrandr Xext Xi)
+        if(TARGET X11::${_gf_x11})
+            list(APPEND GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES X11::${_gf_x11})
+        endif()
+    endforeach()
+    gui_forms_application_library(gui_forms_application
+        ARCHIVES ${_gf_application_archives}
+        LIBRARIES ${_gf_application_libraries} ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
     gui_forms_install_bundled_fonts()
 endif()
 
@@ -2054,8 +1977,8 @@ if(GUI_FORMS_ENABLE_WEB_HOST)
         -sINVOKE_RUN=0 -lidbfs.js
         "SHELL:-sEXPORTED_FUNCTIONS=_main,_malloc,_free"
         "SHELL:-sEXPORTED_RUNTIME_METHODS=FS,IDBFS,callMain,UTF8ToString,stringToNewUTF8,addRunDependency,removeRunDependency")
-    # One static library: Emscripten links no shared libraries here, so the
-    # Application library whole-archives the engine for the program's link.
+    # One static library, as on every platform (one module): the
+    # Application library links the engine whole into the program.
     add_library(gui_forms_application STATIC src/runtime/application_bundle.cpp src/runtime/application/application.cpp
         src/runtime/offscreen/offscreen_raster_create.cpp)
     add_library(GUIForms::Application ALIAS gui_forms_application)
@@ -2065,11 +1988,16 @@ if(GUI_FORMS_ENABLE_WEB_HOST)
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
     target_compile_definitions(gui_forms_application PRIVATE
         GUI_FORMS_APPLICATION_WEB=1 GUI_FORMS_APPLICATION_SKIA=1)
-    target_link_libraries(gui_forms_application PUBLIC
-        "$<LINK_LIBRARY:WHOLE_ARCHIVE,gui_forms_core,gui_drawing_core,gui_forms_controls,gui_forms_host_surface,gui_forms_host_web,gui_forms_skia>")
+    set(_gf_application_archives gui_forms_core gui_drawing_core gui_forms_controls gui_forms_host_surface
+        gui_forms_host_web gui_forms_skia)
+    set(_gf_application_libraries)
     if(TARGET gui_forms_text_engine)
-        target_link_libraries(gui_forms_application PUBLIC gui_forms_text_engine stx_text::freetype stx_text::harfbuzz)
+        list(APPEND _gf_application_archives gui_forms_text_engine)
+        list(APPEND _gf_application_libraries stx_text::freetype stx_text::harfbuzz)
     endif()
+    set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES)
+    gui_forms_application_library(gui_forms_application
+        ARCHIVES ${_gf_application_archives} LIBRARIES ${_gf_application_libraries})
 endif()
 
 if(GUI_FORMS_ENABLE_WINDOWS_HOST)
@@ -2125,35 +2053,27 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         PRIVATE gui_forms_text_engine user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32
     )
     if(MINGW)
-        add_library(gui_forms_application SHARED
+        add_library(gui_forms_application STATIC
             src/runtime/application_bundle.cpp
             src/runtime/application/application.cpp
             src/runtime/offscreen/offscreen_raster_create.cpp
             src/runtime/stxlib_state_probe.cpp)
         add_library(GUIForms::Application ALIAS gui_forms_application)
         set_target_properties(gui_forms_application PROPERTIES
-            EXPORT_NAME Application OUTPUT_NAME gui_forms_application
-            VERSION 0.1.0 SOVERSION 0)
+            EXPORT_NAME Application OUTPUT_NAME gui_forms_application)
         target_include_directories(gui_forms_application PUBLIC
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
         target_compile_features(gui_forms_application PUBLIC cxx_std_20)
         target_compile_definitions(gui_forms_application PRIVATE
             GUI_FORMS_APPLICATION_WINDOWS=1 GUI_FORMS_APPLICATION_SKIA=1)
-        # gui_drawing_skia: the drawing executor gui_drawing_raster0 calls
-        # into, so the renderer exists once (gui_drawing_raster_c_api above).
-        target_link_libraries(gui_forms_application PRIVATE
-            "-Wl,--whole-archive" gui_forms_core gui_drawing_core
-            gui_forms_controls gui_forms_host_windows gui_forms_skia
-            $<TARGET_NAME_IF_EXISTS:gui_drawing_skia> "-Wl,--no-whole-archive"
-            gui_forms_text_engine stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi
-            user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32)
-        install(TARGETS gui_forms_application EXPORT GUIFormsApplicationTargets
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-        install(EXPORT GUIFormsApplicationTargets FILE GUIFormsApplicationTargets.cmake
-            NAMESPACE GUIForms:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+        set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES
+            user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32)
+        gui_forms_application_library(gui_forms_application
+            ARCHIVES gui_forms_core gui_drawing_core gui_forms_controls gui_forms_host_windows gui_forms_skia
+                     gui_forms_text_engine
+            LIBRARIES stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi
+                      ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
         gui_forms_install_bundled_fonts()
     endif()
     add_library(gui_forms_win32_compat SHARED
@@ -2219,10 +2139,10 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     endif()
 endif()
 
-# Export annotations (CP29 handoff section 2.2): every archive the
-# Application library or the shared test runtime holds whole, and the
-# Application library itself. gui_forms_application_archive and
-# gui_forms_application_library are defined beside the Threading library.
+# Every archive the Application library or the shared test runtime holds
+# whole (gui_forms_application_archive, beside the Threading library; the
+# Application library itself is made by gui_forms_application_library in
+# each host's block).
 foreach(_gf_archive IN ITEMS
         gui_forms_core gui_drawing_core gui_forms_controls gui_forms_plot_primitives
         gui_forms_host_headless gui_forms_text_engine gui_forms_prepared_text_impl
@@ -2233,9 +2153,6 @@ foreach(_gf_archive IN ITEMS
         gui_forms_application_archive(${_gf_archive})
     endif()
 endforeach()
-if(TARGET gui_forms_application)
-    gui_forms_application_library(gui_forms_application)
-endif()
 
 if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # One demonstration program (decision F.1): the registry-driven Gallery.
@@ -3339,9 +3256,11 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_application_native_tests PRIVATE gui_forms_application)
         add_test(NAME gui_forms_application_native_tests COMMAND gui_forms_application_native_tests)
         set_tests_properties(gui_forms_application_native_tests PROPERTIES TIMEOUT 30)
-        # One stxlib_state across libgui_forms_application and an executable
-        # with its own copy of STXlib's static code: a static second state
-        # (two allocators, two identity issuers) fails it.
+        # One stxlib_state in a program that reaches STXlib through the
+        # Application archive and through its own stxlib::boundary link: the
+        # static state archive is linked once, so a second state (two
+        # allocators, two identity issuers) can only come from a duplicated
+        # link, and fails it.
         add_executable(gui_forms_stxlib_state_sharing_tests tests/stxlib_state_sharing_tests.cpp)
         target_link_libraries(gui_forms_stxlib_state_sharing_tests PRIVATE gui_forms_application stxlib::boundary)
         add_test(NAME gui_forms_stxlib_state_sharing_tests COMMAND gui_forms_stxlib_state_sharing_tests)
@@ -3758,21 +3677,14 @@ if(GUI_FORMS_BUILD_TESTS)
         NAME gui_drawing_renderer_boundary_audit
         COMMAND ${CMAKE_COMMAND}
             -DDRAWING_CORE=$<TARGET_FILE:gui_drawing_core>
-            -DDRAWING_C_API=$<TARGET_FILE:gui_drawing_c_api>
+            -DDRAWING_C_API=$<TARGET_FILE:gui_drawing_c_api_c11_tests>
             -DDRAWING_TEST_BINARY=$<TARGET_FILE:gui_drawing_core_tests>
             -DSOURCE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_drawing_boundaries.cmake
     )
-
-    if(APPLE)
-        add_test(
-            NAME gui_drawing_c_api_export_policy
-            COMMAND ${CMAKE_COMMAND}
-                -DC_API_LIBRARY=$<TARGET_FILE:gui_drawing_c_api>
-                -DEXPECTED_SYMBOL=_gd_get_api_v0
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_single_c_api_export.cmake
-        )
-    endif()
+    # The drawing ABI's export policy is the C ABI library's
+    # (gui_forms_abi_exports_only_entry_points, cmake/CAbi.cmake): it has no
+    # shared library of its own.
 
     add_executable(gui_forms_host_image_tests tests/host_image_tests.cpp)
     target_link_libraries(gui_forms_host_image_tests PRIVATE gui_forms_host_headless)
@@ -4155,17 +4067,14 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_example_hosted_crash COMMAND gui_forms_example_hosted_crash)
         set_tests_properties(gui_forms_example_hosted_crash PROPERTIES TIMEOUT 60)
     endif()
-    # No shared GUI.Forms library exports a symbol of the pinned text stack
-    # (cmake/CheckForeignTextSymbols.cmake), so a consumer's own HarfBuzz and
-    # FreeType never meet ours.
-    if(TARGET gui_forms_application)
-        set(foreign_symbol_libraries "$<TARGET_FILE:gui_forms_application>")
-        if(TARGET gui_drawing_raster_c_api)
-            string(APPEND foreign_symbol_libraries "|$<TARGET_FILE:gui_drawing_raster_c_api>")
-        endif()
+    # The one shared GUI.Forms library, the C ABI library, exports no symbol
+    # of the pinned text stack (cmake/CheckForeignTextSymbols.cmake), so a
+    # consumer's own HarfBuzz and FreeType never meet ours. A C++ program
+    # links the stack statically into its one module and exports nothing.
+    if(TARGET gui_forms_abi)
         add_test(NAME gui_forms_foreign_text_symbols_tests
             COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
-                "-DLIBRARIES=${foreign_symbol_libraries}"
+                "-DLIBRARIES=$<TARGET_FILE:gui_forms_abi>"
                 -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckForeignTextSymbols.cmake")
         set_tests_properties(gui_forms_foreign_text_symbols_tests PROPERTIES TIMEOUT 120)
     endif()
@@ -5761,15 +5670,6 @@ if(GUI_FORMS_BUILD_TESTS)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_host_boundaries.cmake
     )
 
-    if(UNIX AND NOT APPLE)
-        add_test(
-            NAME gui_drawing_c_api_export_policy
-            COMMAND ${CMAKE_COMMAND}
-                -DC_API_LIBRARY=$<TARGET_FILE:gui_drawing_c_api>
-                -DEXPECTED_SYMBOL=gd_get_api_v0
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_linux_c_api_exports.cmake
-        )
-    endif()
 
     # The semantic half of the Windows MSAA and UI Automation Gallery
     # clients' checks (registry coverage, identities, and one default
@@ -6654,47 +6554,21 @@ if(GUI_FORMS_BUILD_AUDIO)
     endif()
 endif()
 
-# An installed shared library finds the shared libraries it needs beside
-# itself: libraries are installed into one directory, and a consumer's own
-# search path covers only the libraries it links directly (a library's
-# private dependencies are found through that library's own RUNPATH, or its
-# LC_RPATH on macOS). Windows finds DLLs beside the program instead.
-if(APPLE)
-    set(GUI_FORMS_INSTALLED_LIBRARY_RPATH "@loader_path")
-elseif(UNIX)
-    set(GUI_FORMS_INSTALLED_LIBRARY_RPATH "$ORIGIN")
-else()
-    set(GUI_FORMS_INSTALLED_LIBRARY_RPATH "")
-endif()
-
-# An installed program finds the shared libraries it needs in the library
-# directory beside its own (bin/../lib): the form compiler links the
-# controls, core and libgui_forms_threading.
-if(TARGET gui_forms_form_compiler AND NOT GUI_FORMS_INSTALLED_LIBRARY_RPATH STREQUAL "")
-    file(RELATIVE_PATH GUI_FORMS_BIN_TO_LIB "/${CMAKE_INSTALL_BINDIR}" "/${CMAKE_INSTALL_LIBDIR}")
-    set_target_properties(gui_forms_form_compiler PROPERTIES
-        INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}/${GUI_FORMS_BIN_TO_LIB}")
-endif()
-if(TARGET gui_forms_form_compiler_lab AND NOT GUI_FORMS_INSTALLED_LIBRARY_RPATH STREQUAL "")
-    file(RELATIVE_PATH GUI_FORMS_BIN_TO_LIB "/${CMAKE_INSTALL_BINDIR}" "/${CMAKE_INSTALL_LIBDIR}")
-    set_target_properties(gui_forms_form_compiler_lab PROPERTIES
-        INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}/${GUI_FORMS_BIN_TO_LIB}")
-endif()
+# No installed GUI.Forms program or library needs a run-time search path for
+# another: every first-party library is a static archive linked into its
+# module (one module, 2026-11-15), and the C ABI library holds the engine
+# itself.
 
 if(TARGET gui_forms_application)
     target_link_libraries(gui_forms_application PUBLIC GUIForms::Threading)
-    # STXlib's shared state (cmake/Stx.cmake): the library's copy of STXlib's
-    # static code (the row height index, src/runtime/stxlib_state_probe.cpp)
-    # reaches it, and every consumer links it too, so the state is in the
-    # consumer's runtime DLL set on Windows ($<TARGET_RUNTIME_DLLS>) and a
-    # consumer that links STXlib itself reaches the same state.
-    target_link_libraries(gui_forms_application PRIVATE stxlib::boundary INTERFACE stxlib::state)
-    # libgui_forms_threading, beside it, when a library loads it privately
-    # (the C ABI library).
-    set_target_properties(gui_forms_application PROPERTIES INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}")
-    set_property(TARGET gui_forms_application PROPERTY INTERFACE_GUI_FORMS_CORE_LINKAGE application)
-    set_property(TARGET gui_forms_application APPEND PROPERTY COMPATIBLE_INTERFACE_STRING GUI_FORMS_CORE_LINKAGE)
+    # STXlib's state (cmake/Stx.cmake): a static archive since the one-module
+    # decision, so the program holds the one allocator, identity issuer and
+    # SIMD selection, which the engine's copy of STXlib's static code (the
+    # row height index, src/runtime/stxlib_state_probe.cpp) and the program's
+    # own STXlib code both reach.
+    target_link_libraries(gui_forms_application PUBLIC stxlib::boundary stxlib::state)
 endif()
+include(cmake/ApplicationPackage.cmake)
 
 include(cmake/ApplicationText.cmake)
 include(cmake/TextStackExport.cmake)
@@ -7001,10 +6875,11 @@ if(gui_forms_font_programs)
 endif()
 
 # The targets that compile the red/blue swap loops' replacements link stx_skia::swizzle: the
-# core (material images), the controls (the raster canvas), the Windows drawing C API, and
+# core (material images), the controls (the raster canvas), the Windows drawing C API (its
+# objects, which the C ABI library holds, and the static test archive made of them), and
 # the Windows host with the tests that compile windows_host.cpp, the last seven by including it textually.
 foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
-        gui_drawing_c_api gui_forms_host_windows
+        gui_drawing_c_api_objects gui_drawing_c_api gui_forms_host_windows
         gui_forms_windows_dib_lifecycle_tests
         gui_forms_windows_prepared_text_tests gui_forms_windows_backplane_replay_tests
         gui_forms_windows_canvas_raster_tests gui_forms_windows_content_pixels_tests

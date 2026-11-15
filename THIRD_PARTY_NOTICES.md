@@ -30,7 +30,7 @@ source files carry "Copyright (C) 1996-2025".)
 | Component | Version or revision | Licence used | Ships on | Package licence file | SDK licence file |
 |---|---|---|---|---|---|
 | GUI.Forms | this release | MIT | all | `licenses/GUIForms.txt` | `LICENSE` |
-| threadpool_atomic_fast (the owner's thread pool) | falseywinchnet/backend `6eb51f84` | MIT | all (in `libgui_forms_threading`) | `licenses/threadpool_atomic_fast.txt` | `threadpool_atomic_fast-LICENSE.txt` |
+| threadpool_atomic_fast (the owner's thread pool) | falseywinchnet/backend `6eb51f84` | MIT | all (in the Threading archive, linked into each program) | `licenses/threadpool_atomic_fast.txt` | `threadpool_atomic_fast-LICENSE.txt` |
 | HarfBuzz | 14.6.0, `c7a7457b` | HarfBuzz licence ("Old MIT") | all (the `--features all` SDK also installs the static library and headers) | `licenses/HarfBuzz.txt` | `HarfBuzz-COPYING.txt` |
 | FreeType | 2.14.2, `f4205da1` | FreeType License (FTL), elected from FTL/GPLv2 | all (the `--features all` SDK also installs the static library and headers) | `licenses/FreeType-FTL.txt` | `FreeType-FTL.txt` |
 | SheenBidi | 2.9.0, `829d9991` | Apache-2.0 | all | `licenses/SheenBidi.txt` | `SheenBidi-LICENSE.txt` |
@@ -40,9 +40,9 @@ source files carry "Copyright (C) 1996-2025".)
 | stx_conv (the owner's CONV resampler) | in this repository | MIT | all | `licenses/stx_conv.txt` | `stx_conv-LICENSE.txt` (and `share/licenses/stx_conv/`) |
 | stx_raster3d (the 3D plot renderer, from conv-teapot) | in this repository | MIT | all | `licenses/stx_raster3d.txt` | `stx_raster3d-LICENSE.txt` (and `share/licenses/stx_raster3d/`) |
 | stx_rtf2md (the owner's RTF and markdown converter) | in this repository | MIT | all | `licenses/stx_rtf2md.txt` | `stx_rtf2md-LICENSE.txt` (and `share/licenses/stx_rtf2md/`) |
-| STXlib (the boundary library: the row height index, the SIMD level; its shared state library ships beside the programs) | malkuth-software/stxlib, at stx's `stxlib.lock` commit (in the stx package, at `stx.lock`'s commit) | MIT | all | `licenses/STXlib.txt` | `stxlib-LICENSE.txt` (and `share/licenses/stxlib/`) |
+| STXlib (the boundary library: the row height index, the SIMD level; its state is a static archive in each program) | malkuth-software/stxlib, at stx's `stxlib.lock` commit (in the stx package, at `stx.lock`'s commit) | MIT | all | `licenses/STXlib.txt` | `stxlib-LICENSE.txt` (and `share/licenses/stxlib/`) |
 | stx_btree (the row height index's sequence tree, in STXlib) | in STXlib (`src/algorithms/stx_btree/`), at stx's `stxlib.lock` commit | MIT; a C++ form of bbtree by Xiangpeng Hao (MIT OR Apache-2.0, MIT taken), whose notice is retained | all | `licenses/stx_btree.txt` and `licenses/stx_btree-NOTICE.txt` | `stx_btree-LICENSE.txt` and `stx_btree-NOTICE.txt` |
-| mimalloc (STXlib's allocator, in its shared state library) | 3.5.3, in STXlib (`third_party/mimalloc/`) | MIT | all (compiled into STXlib's shared state library, libstxlib_state or stxlib_state.dll, which the SDK and the programs carry; sanitizer builds use the host allocator) | `licenses/mimalloc.txt` | `mimalloc-LICENSE.txt` |
+| mimalloc (STXlib's allocator, in its state library) | 3.5.3, in STXlib (`third_party/mimalloc/`) | MIT | all (compiled into STXlib's static state archive, which each program and the C ABI library link once; sanitizer builds use the host allocator) | `licenses/mimalloc.txt` | `mimalloc-LICENSE.txt` |
 | tz database (STXlib's zone data) | in STXlib (`third_party/tzdata/`) | public domain (its LICENSE) | all | `licenses/tzdata.txt` | `tzdata-LICENSE.txt` |
 | Heroicons (the stock icons) | 2.2.0, `ca7b62e`, converted into the library at build time (`assets/icons/heroicons/PROVENANCE.md`) | MIT | all | `licenses/Heroicons.txt` | `Heroicons-LICENSE.txt` and `Heroicons-PROVENANCE.md` |
 | Unicode Character Database (grapheme tables) | Unicode 17.0.0 | Unicode License v3 | all | `licenses/Unicode.txt` | `Unicode-LICENSE.txt` |
