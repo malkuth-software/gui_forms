@@ -4182,7 +4182,9 @@ HostCapabilities windows_capabilities() {
                 HostCapability::window_corners |
                 // HostCapability::hosted_content is not reported until
                 // src/host/windows/hosted/ is written (the hand-back).
-                HostCapability::window_state_reports,
+                HostCapability::window_state_reports |
+                // Addresses open through the shell (open_url_impl).
+                HostCapability::open_url,
             // Windows follows the PC keyboard convention (Ctrl+F4 closes a
             // document).
             pc_key_map()};

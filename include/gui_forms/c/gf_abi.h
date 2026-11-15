@@ -1871,6 +1871,10 @@ typedef uint64_t gf_host_capability;
 #define GF_HOST_CAPABILITY_RAW_POINTER_MOTION 274877906944ull
 #define GF_HOST_CAPABILITY_POINTER_CONFINEMENT 549755813888ull
 #define GF_HOST_CAPABILITY_POINTER_WARP 1099511627776ull
+/* Since 1.5: the host opens a web or mail address (http, https or mailto)
+ * in the user's own browser or mail program; the business card's website
+ * opens through it. Windows, macOS and X11. */
+#define GF_HOST_CAPABILITY_OPEN_URL 2199023255552ull
 
 /* gf_window_corner_shape (since 1.1): the corner shapes a host may give a
  * window, one bit each. A window's corners at a given moment follow its

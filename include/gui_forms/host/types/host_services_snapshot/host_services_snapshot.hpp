@@ -22,6 +22,8 @@ struct GUI_FORMS_API HostServicesSnapshot final {
     bool relative_pointer_active{};
     std::uint64_t relative_pointer_updates{};
     std::uint64_t pointer_warps{};
+    // Addresses handed to the platform (open_url, accepted).
+    std::uint64_t opened_urls{};
     std::uint64_t clipboard_reads{};
     std::uint64_t clipboard_writes{};
     std::uint64_t clipboard_generation{};

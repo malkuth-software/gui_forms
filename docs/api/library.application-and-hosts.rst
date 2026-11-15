@@ -1528,6 +1528,10 @@ Related types
 
       Moves the pointer to ``position``, window logical units (capability pointer_warp). invalid_argument for a position that is not finite.
 
+   .. cpp:function:: HostServiceStatus open_url(std::string_view url_utf8)
+
+      Hands ``url`` to the platform, which opens it in the user's browser or mail program (capability open_url); it returns once the platform has the address, not when anything opened. Refused, changing nothing: unsupported without open_url; invalid_argument for an address that is not valid UTF-8, is longer than maximum_url_bytes, holds a space or a control character, or does not begin "https://", "http://" (each with something after it) or "mailto:" (with an address after it). No other scheme reaches the platform: a file, a program or a custom handler is never opened this way. UI thread.
+
    .. cpp:function:: HostClipboardTextResult read_clipboard_text()
 
       Validates service policy, delegates native read, enforces UTF-8/size/generation rules, and accounts failures.
@@ -1673,6 +1677,12 @@ Related types
 
       *Protected.*
 
+   .. cpp:function:: virtual HostServiceStatus open_url_impl(std::string_view url_utf8)
+
+      *Protected.*
+
+      Called with an address open_url validated, on a host that advertises open_url. The default refuses as unsupported.
+
    .. cpp:function:: virtual HostClipboardTextResult read_clipboard_text_impl() = 0
 
       *Protected.*
@@ -1775,6 +1785,10 @@ Related types
 
       Default: ``64U * 1024U``.
 
+   .. cpp:member:: constexpr std::size_t maximum_url_bytes
+
+      Default: ``8U * 1024U``.
+
    .. cpp:member:: constexpr std::size_t maximum_dialog_filters
 
       Default: ``64U``.
@@ -1857,6 +1871,10 @@ Related types
    .. cpp:member:: std::uint64_t relative_pointer_updates
 
    .. cpp:member:: std::uint64_t pointer_warps
+
+   .. cpp:member:: std::uint64_t opened_urls
+
+      Addresses handed to the platform (open_url, accepted).
 
    .. cpp:member:: std::uint64_t clipboard_reads
 
@@ -3823,6 +3841,8 @@ Enumerations
    .. cpp:enumerator:: pointer_confinement
 
    .. cpp:enumerator:: pointer_warp
+
+   .. cpp:enumerator:: open_url
 
 .. cpp:namespace:: gui_forms
 

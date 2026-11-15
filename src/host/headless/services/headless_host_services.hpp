@@ -9,6 +9,8 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace gui_forms::host {
 
@@ -80,6 +82,9 @@ public:
     }
     const HostRelativePointerRequest& relative_pointer_request() const&& = delete;
     [[nodiscard]] std::optional<Point> last_pointer_warp() const noexcept { return last_pointer_warp_; }
+    // The addresses open_url accepted, oldest first; nothing is opened.
+    [[nodiscard]] const std::vector<std::string>& opened_urls() const& noexcept { return opened_urls_; }
+    const std::vector<std::string>& opened_urls() const&& = delete;
 
 protected:
     [[nodiscard]] HostMonitorResult query_monitors_impl() override;
@@ -88,6 +93,7 @@ protected:
         bool captured, std::uint64_t pointer_id) override;
     [[nodiscard]] HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest& request) override;
     [[nodiscard]] HostServiceStatus warp_pointer_impl(Point position) override;
+    [[nodiscard]] HostServiceStatus open_url_impl(std::string_view url_utf8) override;
     [[nodiscard]] HostClipboardTextResult read_clipboard_text_impl() override;
     [[nodiscard]] HostServiceStatus write_clipboard_text_impl(
         std::string_view text_utf8) override;
@@ -120,6 +126,7 @@ private:
     std::vector<HostMonitor> monitors_;
     HostRelativePointerRequest relative_pointer_request_{};
     std::optional<Point> last_pointer_warp_{};
+    std::vector<std::string> opened_urls_{};
     // The clipboard's image; absent while it holds none.
     std::optional<HostImage> clipboard_image_;
     std::string clipboard_text_;

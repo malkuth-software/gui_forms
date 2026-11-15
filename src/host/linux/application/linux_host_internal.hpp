@@ -164,6 +164,7 @@ protected:
                                              std::uint64_t) override;
   HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest &request) override;
   HostServiceStatus warp_pointer_impl(Point position) override;
+  HostServiceStatus open_url_impl(std::string_view url_utf8) override;
   HostClipboardTextResult read_clipboard_text_impl() override;
   HostServiceStatus write_clipboard_text_impl(std::string_view text) override;
   HostClipboardImageResult read_clipboard_image_impl() override;

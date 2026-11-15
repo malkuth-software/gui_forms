@@ -14,10 +14,22 @@
 // card; the overlay is one process switch that the same gesture turns on
 // and off.
 //
-// Version 1 is a flat card (decision 1a): drawn through the theme engine,
+// The card is drawn through the theme engine, its stock a theme material
+// (the default theme's is a bone paper stock: business-card::part(stock)),
 // lying on the page or held in the hand over the window, tilting slightly
-// toward the pointer (its face leans toward it and its shadow away). The
-// card turned in three dimensions comes later.
+// toward the pointer (its face leans toward it and its shadow away). In
+// the hand it also turns in three dimensions (PlaySuite and Plan Paint
+// parity, 2026-11-15): dragged, it turns about its vertical axis, and a
+// little about its horizontal one; let go, it springs to rest face up or
+// face down, whichever is nearer along its spin; Left and Right turn it
+// over. The turn's angles are motion values on the window's clock, so
+// reduced motion ends each turn at once. Its two faces are painted flat
+// through the theme engine into an offscreen raster of the host's renderer
+// and drawn turned and lit (card_turn.hpp); a window whose host lends no
+// offscreen renderer (turn_available() false) shows the flat card only.
+// Around the card in the hand, remarks rise and fade while the pointer is
+// over it (the remark source); and links open through the host's open-URL
+// capability (HostCapability::open_url).
 //
 // The gesture: holding D while pressing the secondary button on the card's
 // vendor name toggles the diagnostic overlay; pressing it again turns the
@@ -27,13 +39,16 @@
 // Threading: everything here is used on the UI thread of the window
 // concerned, except the overlay switch, which any thread may read or set.
 
+#include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/control/control/control.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/export/application_export.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -41,7 +56,13 @@
 
 namespace gui_forms {
 
+class PartRaster;
+class SurfaceRoot;
 class Window;
+
+// The card's largest turn about its horizontal axis while dragged, in
+// radians: it never turns over that way.
+inline constexpr double maximum_business_card_pitch = 0.6;
 
 // The program's identity, as the business card shows it. `vendor` is the
 // display name printed large on the card (package names carry no vendor;
@@ -69,17 +90,25 @@ GUI_FORMS_API void set_program_identity(const ProgramIdentity& identity);
 [[nodiscard]] GUI_FORMS_API const ProgramIdentity& program_identity() noexcept;
 
 // The optional remark source (decision 2a): a program that speaks through
-// its card (PlaySuite's remarks) names a function that writes one remark
-// for the card in the hand into `remark` (cleared before the call; UTF-8;
-// the card shows at most maximum_business_card_remark bytes, cut at a
-// character boundary). It is called on the UI thread each time a card is
-// shown in the hand; `context` is passed back and must stay valid until
-// the source is replaced or cleared. An empty source gives no remark.
+// its card (PlaySuite's remarks, the ones made when such cards are
+// compared) names a function that writes one remark into `remark` (cleared
+// before the call; UTF-8; the card shows at most
+// maximum_business_card_remark bytes, cut at a character boundary; text
+// that is not UTF-8 is dropped). While the pointer is over the card in the
+// hand, the card asks for a remark a moment after the pointer arrives and
+// then every one to two and a half seconds, and shows each around the card
+// (the remark part, clear of the card and of the others), rising and
+// fading over two and a half to nine seconds, at most
+// maximum_business_card_remarks at once. It is called on the UI thread;
+// `context` is passed back and must stay valid until the source is
+// replaced or cleared. An empty source gives no remarks, and the card
+// shows its copyright line alone.
 struct GUI_FORMS_API BusinessCardRemarkSource final {
     void* context{nullptr};
     void (*write_remark)(void* context, std::string& remark){nullptr};
 };
 inline constexpr std::size_t maximum_business_card_remark = 160U;
+inline constexpr std::size_t maximum_business_card_remarks = 3U;
 // UI thread.
 GUI_FORMS_API void set_business_card_remark_source(BusinessCardRemarkSource source) noexcept;
 [[nodiscard]] GUI_FORMS_API BusinessCardRemarkSource business_card_remark_source() noexcept;
@@ -120,12 +149,25 @@ struct GUI_FORMS_API BusinessCardRequest final {
     bool handled{false};
 };
 
+// What became of the last request for the website (BusinessCard::
+// last_website_request): none yet; a handler answered it; the host took
+// the address (HostServices::open_url accepted it); the window's host has
+// no open-URL capability (or the card is in no window); or the host
+// refused or failed it.
+enum class BusinessCardLinkOutcome : std::uint8_t {
+    none,
+    handled,
+    opened,
+    unavailable,
+    refused,
+};
+
 // The card. Drawn through the theme engine in the card family (parts:
-// region, shadow, stock, vendor_name, rule, product, website, remark,
-// close_mark, focus), so a theme gives it its stock and inks. Its text is
-// the process identity's: the vendor large, a rule, the product and
-// version, the website, and in the hand the remark (or, without one, the
-// copyright). Its accessible name is "<vendor> business card", with the
+// region, shadow, stock, vendor_name, rule, product, website, copyright,
+// remark, close_mark, focus), so a theme gives it its stock and inks. Its
+// text is the process identity's: the vendor large, a rule, the product
+// and version, the website, and in the hand the copyright; the remarks lie
+// around the card in the hand, never on it. Its accessible name is "<vendor> business card", with the
 // credits in its description; the press action opens it (page) or asks
 // for the website (hand), and in the hand the close action puts it away.
 class GUI_FORMS_API BusinessCard final : public Control {
@@ -144,10 +186,35 @@ public:
     // off it, or hide_business_card).
     [[nodiscard]] Event<>& put_away() noexcept { return put_away_; }
     // The website was asked for (a click on it in the hand, or the press
-    // action there). GUI.Forms has no host service that opens an address
-    // yet: a program opens it in a handler and sets handled; unhandled, the
-    // request ends here.
+    // action there). A handler that opens it itself sets handled;
+    // unhandled, the card hands the address to its window's host
+    // (HostServices::open_url), where the host reports open_url.
     [[nodiscard]] Event<BusinessCardRequest&>& website_requested() noexcept { return website_requested_; }
+    [[nodiscard]] BusinessCardLinkOutcome last_website_request() const noexcept { return last_website_request_; }
+
+    // The heading band layout rule (page): the card lies under `band`, a
+    // control of the same window drawn over the page above the card (a help
+    // book's heading band), so that a page scrolled up carries the card
+    // under the band rather than over it. The card and its shadow are
+    // drawn, and take the pointer, only below the band's lower edge. The
+    // card observes the band and never keeps it alive: a band destroyed or
+    // in another window sets no rule. Null clears the rule. Ignored in the
+    // hand. UI thread.
+    void set_heading_band(const std::shared_ptr<const Control>& band);
+    // The band's lower edge in this control's coordinates, or none without
+    // a rule in force.
+    [[nodiscard]] std::optional<double> heading_band_bottom() const noexcept;
+
+    // The turn (hand): whether this card can show it (it is in a window
+    // and, at its last try, its host lent an offscreen renderer for the
+    // faces; a drag or Left and Right try again); the card's turn about its vertical
+    // axis in radians (0 face up at rest, pi face down) and about its
+    // horizontal axis (within plus or minus maximum_business_card_pitch);
+    // and whether it shows its front.
+    [[nodiscard]] bool turn_available() const;
+    [[nodiscard]] double turn() const noexcept;
+    [[nodiscard]] double pitch() const noexcept;
+    [[nodiscard]] bool face_up() const noexcept;
 
     // The card's stock, in this control's coordinates, before the tilt: the
     // control keeps a margin around it for the shadow and the tilt.
@@ -162,14 +229,18 @@ public:
     // The face's offset toward the pointer, in logical units (the tilt):
     // zero with the pointer away or under reduced motion.
     [[nodiscard]] Point tilt() const noexcept { return tilt_; }
-    // The remark the card in the hand shows (from the remark source when it
-    // was shown; empty otherwise).
-    [[nodiscard]] const std::string& remark() const& noexcept { return remark_; }
+    // The newest remark around the card in the hand (empty while none is
+    // shown), and how many are shown.
+    [[nodiscard]] const std::string& remark() const& noexcept;
     const std::string& remark() const&& = delete;
+    [[nodiscard]] std::size_t remark_count() const noexcept { return remarks_.size(); }
 
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
+    // In the hand, the remarks paint around the card: the outsets reach the
+    // window's client edges.
+    [[nodiscard]] Insets visual_outsets() const noexcept override;
     void on_key_bubble(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action, std::string_view value) override;
@@ -185,6 +256,7 @@ public:
         PartGeometry rule;
         PartGeometry product;
         PartGeometry website;
+        PartGeometry copyright;
         PartGeometry remark;
         PartGeometry close_mark;
         PartGeometry focus;
@@ -210,10 +282,57 @@ private:
         Rect rule{};
         Rect product{};
         Rect website{};
-        Rect remark{};
+        Rect copyright{};
         Rect close_mark{};
     };
     [[nodiscard]] Layout layout() const noexcept;
+    // One face of the card as painted flat, in device pixels
+    // (premultiplied BGRA8, rows tight), and the scale it was painted at.
+    struct FacePixels final {
+        std::vector<std::uint8_t> pixels{};
+        std::uint32_t width{};
+        std::uint32_t height{};
+        double scale{};
+    };
+    // One remark around the card: its text, its box in this control's
+    // coordinates, when it was said and how many seconds it stays.
+    struct SaidRemark final {
+        std::string text{};
+        Rect box{};
+        FrameTime born{};
+        double life{};
+    };
+    // The remark timer's target. Observes the card.
+    struct RemarkTick final {
+        std::weak_ptr<BusinessCard> card;
+        AnimationTickResult operator()(FrameTime now) const;
+    };
+    // Paints the face (`front`) or the back of the card laid out as
+    // `placed`, moved by `offset`; `keyed` gives each part its engine key
+    // (false for the offscreen faces, which are drawn statically).
+    void paint_face(Painter& painter, const Layout& placed, Point offset, bool front, bool keyed) const;
+    void paint_turned(Painter& painter, const Layout& placed);
+    void paint_remarks(Painter& painter);
+    // Paints both faces offscreen (the host's renderer); false, keeping
+    // none, where the window lends no offscreen renderer.
+    bool render_faces();
+    bool render_face(SurfaceRoot& root, const Layout& at_origin, Size logical, double scale, bool front,
+                     FacePixels& face) const;
+    [[nodiscard]] bool turning() const noexcept;
+    [[nodiscard]] bool faces_ready(double scale) const noexcept;
+    // The point on the card's face (as laid out at rest) under
+    // `local_point` while the card is turned, or none off the card or on
+    // its back.
+    [[nodiscard]] std::optional<Point> face_point(Point local_point) const noexcept;
+    void begin_turn_gesture();
+    void settle_turn();
+    void turn_over(double direction);
+    [[nodiscard]] FrameTime card_now() const noexcept;
+    AnimationTickResult on_remark_tick(FrameTime now);
+    void start_remarks();
+    void say_remark(FrameTime now);
+    [[nodiscard]] Rect remark_room() const noexcept;
+    [[nodiscard]] double remark_opacity(const SaidRemark& remark, FrameTime now) const noexcept;
     [[nodiscard]] Size card_size() const noexcept;
     [[nodiscard]] bool reduced_motion() const noexcept;
     void follow_pointer(Point local_point);
@@ -233,12 +352,39 @@ private:
     [[nodiscard]] PressTarget target_at(Point local_point) const noexcept;
 
     BusinessCardPresentation presentation_{BusinessCardPresentation::page};
+    // The turn (hand): radians about the vertical axis and the horizontal
+    // one, on the window's motion clock.
+    MotionValue turn_;
+    MotionValue pitch_;
+    // The drag that turns the card: where it began, the angles then, the
+    // last sample and the turn's speed (radians a second) for the release.
+    bool dragging_{false};
+    Point drag_origin_{};
+    double drag_turn_{};
+    double drag_pitch_{};
+    Point drag_last_{};
+    FrameTime drag_last_time_{};
+    double drag_speed_{};
+    // The faces could not be painted offscreen at the last try.
+    bool faces_refused_{false};
+    FacePixels front_face_{};
+    FacePixels back_face_{};
+    // The turned picture, reused while nothing else holds it.
+    std::shared_ptr<PartRaster> picture_{};
+    // The remarks around the card in the hand, oldest first, and when the
+    // next is due; their xorshift state for placement and timing.
+    std::vector<SaidRemark> remarks_{};
+    FrameTime next_remark_{};
+    bool pointer_over_{false};
+    std::uint32_t remark_seed_{0x51ED2701U};
+    AnimationTimer remark_frames_{};
+    std::weak_ptr<const Control> heading_band_{};
+    BusinessCardLinkOutcome last_website_request_{BusinessCardLinkOutcome::none};
     Point tilt_{};
     bool vendor_hot_{false};
     bool website_hot_{false};
     bool close_hot_{false};
     PressTarget press_target_{PressTarget::none};
-    std::string remark_{};
     Event<BusinessCardRequest&> open_requested_{};
     Event<> put_away_{};
     Event<BusinessCardRequest&> website_requested_{};

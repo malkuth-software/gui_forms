@@ -35,6 +35,7 @@ class GUI_FORMS_API HostServices {
 public:
     static constexpr std::size_t maximum_clipboard_text_bytes = 16U * 1024U * 1024U;
     static constexpr std::size_t maximum_dialog_text_bytes = 64U * 1024U;
+    static constexpr std::size_t maximum_url_bytes = 8U * 1024U;
     static constexpr std::size_t maximum_dialog_filters = 64U;
     static constexpr std::size_t maximum_dialog_extensions = 64U;
     static constexpr std::size_t maximum_dialog_paths = 64U;
@@ -81,6 +82,16 @@ public:
     // Moves the pointer to `position`, window logical units (capability
     // pointer_warp). invalid_argument for a position that is not finite.
     [[nodiscard]] HostServiceStatus warp_pointer(Point position);
+    // Hands `url` to the platform, which opens it in the user's browser or
+    // mail program (capability open_url); it returns once the platform has
+    // the address, not when anything opened. Refused, changing nothing:
+    // unsupported without open_url; invalid_argument for an address that
+    // is not valid UTF-8, is longer than maximum_url_bytes, holds a space
+    // or a control character, or does not begin "https://", "http://"
+    // (each with something after it) or "mailto:" (with an address after
+    // it). No other scheme reaches the platform: a file, a program or a
+    // custom handler is never opened this way. UI thread.
+    [[nodiscard]] HostServiceStatus open_url(std::string_view url_utf8);
     [[nodiscard]] HostClipboardTextResult read_clipboard_text();
     [[nodiscard]] HostServiceStatus write_clipboard_text(
         std::string_view text_utf8);
@@ -192,6 +203,9 @@ protected:
     // it reports a failure. The defaults refuse as unsupported.
     [[nodiscard]] virtual HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest& request);
     [[nodiscard]] virtual HostServiceStatus warp_pointer_impl(Point position);
+    // Called with an address open_url validated, on a host that advertises
+    // open_url. The default refuses as unsupported.
+    [[nodiscard]] virtual HostServiceStatus open_url_impl(std::string_view url_utf8);
     [[nodiscard]] virtual HostClipboardTextResult read_clipboard_text_impl() = 0;
     [[nodiscard]] virtual HostServiceStatus write_clipboard_text_impl(
         std::string_view text_utf8) = 0;

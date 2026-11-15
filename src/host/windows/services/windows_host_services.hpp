@@ -403,6 +403,19 @@ protected:
             std::get<HostColorDialogRequest>(request.payload), custom_colors_);
     }
 
+    // The shell opens the address in the user's browser or mail program
+    // (HostServices::open_url validated it: an http, https or mailto
+    // address). ShellExecuteW returns a value above 32 on success.
+    HostServiceStatus open_url_impl(std::string_view url_utf8) override {
+        const std::wstring address = wide_from_utf8(url_utf8);
+        if (address.empty()) {
+            return HostServiceStatus{HostServiceError::invalid_argument};
+        }
+        const HINSTANCE opened = ShellExecuteW(nullptr, L"open", address.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+        const bool started = reinterpret_cast<INT_PTR>(opened) > 32;
+        return started ? HostServiceStatus{} : HostServiceStatus{HostServiceError::backend_failure};
+    }
+
     HostServiceStatus play_sound_cue_impl(
         const HostSoundCueRequest& request) override {
         const UINT type = sound_cue_beep(request.cue);

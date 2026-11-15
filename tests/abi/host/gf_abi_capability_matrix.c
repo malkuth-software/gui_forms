@@ -65,6 +65,7 @@ static const capability_name capability_names[] = {
     {"raw_pointer_motion", GF_HOST_CAPABILITY_RAW_POINTER_MOTION},
     {"pointer_confinement", GF_HOST_CAPABILITY_POINTER_CONFINEMENT},
     {"pointer_warp", GF_HOST_CAPABILITY_POINTER_WARP},
+    {"open_url", GF_HOST_CAPABILITY_OPEN_URL},
 };
 
 enum { capability_name_count = (int)(sizeof(capability_names) / sizeof(capability_names[0])) };

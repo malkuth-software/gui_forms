@@ -1251,6 +1251,7 @@ add_library(gui_forms_controls STATIC
     src/controls/thread_exception_dialog/thread_exception_dialog.cpp
     src/controls/about_dialog/about_dialog.cpp
     src/controls/business_card/business_card.cpp
+    src/controls/business_card/card_turn.cpp
     src/controls/callout/callout.cpp
     src/controls/instruments/dial/dial.cpp
     src/controls/instruments/gauge_base/gauge_base.cpp
@@ -3981,7 +3982,8 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_invalidation_overlay_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_invalidation_overlay_tests COMMAND gui_forms_invalidation_overlay_tests)
     add_executable(gui_forms_business_card_tests tests/business_card_tests.cpp)
-    target_link_libraries(gui_forms_business_card_tests PRIVATE gui_forms_controls)
+    target_include_directories(gui_forms_business_card_tests PRIVATE tests)
+    target_link_libraries(gui_forms_business_card_tests PRIVATE gui_forms_host_headless)
     add_test(NAME gui_forms_business_card_tests COMMAND gui_forms_business_card_tests)
 
     add_executable(gui_forms_control_table_tests tests/control_table_tests.cpp)

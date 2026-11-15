@@ -69,7 +69,9 @@ HostCapabilities macos_capabilities() {
                 // no raw_pointer_motion: AppKit's deltas are accelerated.
                 HostCapability::relative_pointer |
                 HostCapability::pointer_confinement |
-                HostCapability::pointer_warp,
+                HostCapability::pointer_warp |
+                // Addresses open through NSWorkspace (open_url_impl).
+                HostCapability::open_url,
             macos_key_map()};
     capabilities.window_corner_shapes = WindowCornerShapes{true, false};
     // locale: the user's locale and calendar from CoreFoundation, the

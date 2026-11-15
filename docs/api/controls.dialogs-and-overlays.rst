@@ -81,7 +81,7 @@ Related types
    * - :cpp:class:`BusinessCard::Parts <gui_forms::BusinessCard::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`BusinessCardRemarkSource <gui_forms::BusinessCardRemarkSource>`
-     - The optional remark source (decision 2a): a program that speaks through its card (PlaySuite's remarks) names a function that writes one remark for the card in the hand into ``remark`` (cleared before the call; UTF-8; the card shows at most maximum_business_card_remark bytes, cut at a character boundary).
+     - The optional remark source (decision 2a): a program that speaks through its card (PlaySuite's remarks, the ones made when such cards are compared) names a function that writes one remark into ``remark`` (cleared before the call; UTF-8; the card shows at most maximum_business_card_remark bytes, cut at a character boundary; text that is not UTF-8 is dropped).
    * - :cpp:class:`BusinessCardRequest <gui_forms::BusinessCardRequest>`
      - The argument of BusinessCard::open_requested and website_requested: a handler that answers the request itself sets handled.
    * - :cpp:class:`Callout::Parts <gui_forms::Callout::Parts>`
@@ -403,6 +403,8 @@ Related types
 
    .. cpp:member:: PartGeometry website
 
+   .. cpp:member:: PartGeometry copyright
+
    .. cpp:member:: PartGeometry remark
 
    .. cpp:member:: PartGeometry close_mark
@@ -415,7 +417,7 @@ Related types
 
    ``#include <gui_forms/components/business_card/business_card.hpp>``
 
-   The optional remark source (decision 2a): a program that speaks through its card (PlaySuite's remarks) names a function that writes one remark for the card in the hand into ``remark`` (cleared before the call; UTF-8; the card shows at most maximum_business_card_remark bytes, cut at a character boundary). It is called on the UI thread each time a card is shown in the hand; ``context`` is passed back and must stay valid until the source is replaced or cleared. An empty source gives no remark.
+   The optional remark source (decision 2a): a program that speaks through its card (PlaySuite's remarks, the ones made when such cards are compared) names a function that writes one remark into ``remark`` (cleared before the call; UTF-8; the card shows at most maximum_business_card_remark bytes, cut at a character boundary; text that is not UTF-8 is dropped). While the pointer is over the card in the hand, the card asks for a remark a moment after the pointer arrives and then every one to two and a half seconds, and shows each around the card (the remark part, clear of the card and of the others), rising and fading over two and a half to nine seconds, at most maximum_business_card_remarks at once. It is called on the UI thread; ``context`` is passed back and must stay valid until the source is replaced or cleared. An empty source gives no remarks, and the card shows its copyright line alone.
 
    .. cpp:member:: void* context
 
@@ -1801,6 +1803,22 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: BusinessCardLinkOutcome
+
+   ``#include <gui_forms/components/business_card/business_card.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: handled
+
+   .. cpp:enumerator:: opened
+
+   .. cpp:enumerator:: unavailable
+
+   .. cpp:enumerator:: refused
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: BusinessCardPresentation
 
    ``#include <gui_forms/components/business_card/business_card.hpp>``
@@ -1992,9 +2010,17 @@ Functions, constants and aliases
 
    The card the window shows in the hand, else null (for tests and inspection). UI thread.
 
+.. cpp:var:: constexpr double maximum_business_card_pitch
+
+   The card's largest turn about its horizontal axis while dragged, in radians: it never turns over that way. Value: ``0.6``.
+
 .. cpp:var:: constexpr std::size_t maximum_business_card_remark
 
    Value: ``160U``.
+
+.. cpp:var:: constexpr std::size_t maximum_business_card_remarks
+
+   Value: ``3U``.
 
 .. cpp:namespace:: gui_forms
 

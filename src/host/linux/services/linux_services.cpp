@@ -23,6 +23,14 @@
 #include <chrono>
 #include <cstring>
 #include <poll.h>
+#include <cerrno>
+#include <spawn.h>
+#include <string>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+// The process environment, handed to the address opener (posix_spawn).
+extern char** environ;
 
 namespace gui_forms::host::linux_detail {
 thread_local ForeignWindowScope *ForeignWindowScope::active_ = nullptr;
@@ -565,6 +573,37 @@ HostServiceStatus Services::warp_pointer_impl(Point position) {
     lock_y_ = y;
   }
   XFlush(display);
+  return {};
+}
+
+// open_url: the desktop's address opener, xdg-open, found on PATH. A
+// shell starts it in the background and exits at once, and that shell is
+// reaped here, so the opener is never a child of this process and nothing
+// waits for the browser. The address is the shell's first argument,
+// quoted in the script, so it is never parsed as shell text (open_url has
+// already refused spaces and control characters). Exit 127 from the shell:
+// no xdg-open on PATH.
+HostServiceStatus Services::open_url_impl(std::string_view url_utf8) {
+  char shell_path[] = "/bin/sh";
+  char command_flag[] = "-c";
+  char script[] = "command -v xdg-open >/dev/null 2>&1 || exit 127; "
+                  "xdg-open \"$1\" </dev/null >/dev/null 2>&1 & exit 0";
+  char script_name[] = "gui-forms-open-url";
+  std::vector<char> address(url_utf8.begin(), url_utf8.end());
+  address.push_back('\0');
+  char *const arguments[] = {shell_path, command_flag, script, script_name, address.data(), nullptr};
+  pid_t child = 0;
+  const int spawned = posix_spawn(&child, shell_path, nullptr, nullptr, arguments, environ);
+  if (spawned != 0)
+    return {HostServiceError::backend_failure};
+  int status = 0;
+  pid_t waited = -1;
+  do {
+    waited = waitpid(child, &status, 0);
+  } while (waited < 0 && errno == EINTR);
+  const bool started = waited == child && WIFEXITED(status) && WEXITSTATUS(status) == 0;
+  if (!started)
+    return {HostServiceError::backend_failure};
   return {};
 }
 

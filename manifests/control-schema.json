@@ -14240,6 +14240,7 @@
         {"name": "rule", "role": "divider", "composed_from": null, "states": []},
         {"name": "product", "role": "label", "composed_from": null, "states": []},
         {"name": "website", "role": "label", "composed_from": null, "states": []},
+        {"name": "copyright", "role": "label", "composed_from": null, "states": []},
         {"name": "remark", "role": "label", "composed_from": null, "states": []},
         {"name": "close_mark", "role": "glyph", "composed_from": null, "states": []},
         {"name": "focus", "role": "focus", "composed_from": null, "states": []}

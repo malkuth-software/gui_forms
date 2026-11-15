@@ -2319,7 +2319,9 @@ HostCapabilities linux_capabilities() {
               // Relative pointer mode (Services): confinement and warps
               // are core X; the deltas need XI 2 raw motion, which
               // Services drops from its report where the server lacks it.
-              HostCapability::pointer_confinement | HostCapability::pointer_warp
+              HostCapability::pointer_confinement | HostCapability::pointer_warp |
+              // Addresses open through xdg-open (Services::open_url_impl).
+              HostCapability::open_url
 #if defined(GUI_FORMS_HAVE_XI2)
               | HostCapability::relative_pointer | HostCapability::raw_pointer_motion
 #endif

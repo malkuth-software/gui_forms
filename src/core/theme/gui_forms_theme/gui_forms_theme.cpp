@@ -650,6 +650,32 @@ indicator-lamp::part(lens):state(error) {
   box-shadow: inset 0 0 3px #ffe4dab0;
 }
 
+/* The business card (PlaySuite and Plan Paint parity, 2026-11-15): a bone
+   paper stock with a faint fibre, edged a shade darker, printed in a warm
+   black; the vendor name turns to gold foil under the pointer. The card
+   in the hand paints its two faces through these rules before it turns
+   them, so a theme that restyles the stock restyles the turned card too.
+   The remarks lie around the card, over the dimmed window, in a pale
+   ink. */
+business-card::part(stock) {
+  background: pattern(paper-fibre, #e9e3d2, #d6cdb4, 48px);
+  border: 1px solid #c9bfa3;
+  box-shadow: inset 0 1px 0 #f7f3e8;
+}
+business-card::part(vendor-name), business-card::part(product) {
+  color: #1d1a16;
+}
+business-card::part(vendor-name):hover {
+  color: #a8710f;
+}
+business-card::part(rule) {
+  background: #8c836f;
+  border: none;
+}
+business-card::part(remark) {
+  color: #f3efe4;
+}
+
 /* The danger key (skeudoindustrial surfaces, follow-up 5): a button that
    marks a dangerous or irreversible action (Button::danger) is lit red from
    inside its face, standing out from the quiet chrome around it. The glow

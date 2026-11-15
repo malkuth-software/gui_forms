@@ -25,6 +25,20 @@ gui_forms::BusinessCard
 
       **presentation** : ``BusinessCardPresentation``, read-only
 
+      **last_website_request** : ``BusinessCardLinkOutcome``, read-only
+
+      **heading_band_bottom** : ``std::optional<double>``, read-only
+         The band's lower edge in this control's coordinates, or none without a rule in force.
+
+      **turn_available** : ``bool``, read-only
+         The turn (hand): whether this card can show it (it is in a window and, at its last try, its host lent an offscreen renderer for the faces; a drag or Left and Right try again); the card's turn about its vertical axis in radians (0 face up at rest, pi face down) and about its horizontal axis (within plus or minus maximum_business_card_pitch); and whether it shows its front.
+
+      **turn** : ``double``, read-only
+
+      **pitch** : ``double``, read-only
+
+      **face_up** : ``bool``, read-only
+
       **card_bounds** : ``Rect``, read-only
          The card's stock, in this control's coordinates, before the tilt: the control keeps a margin around it for the shadow and the tilt.
 
@@ -40,7 +54,9 @@ gui_forms::BusinessCard
          The face's offset toward the pointer, in logical units (the tilt): zero with the pointer away or under reduced motion.
 
       **remark** : ``std::string``, read-only
-         The remark the card in the hand shows (from the remark source when it was shown; empty otherwise).
+         The newest remark around the card in the hand (empty while none is shown), and how many are shown.
+
+      **remark_count** : ``std::size_t``, read-only
 
       **parts** : ``Parts``, read-only
 
@@ -53,11 +69,20 @@ gui_forms::BusinessCard
          In the hand: the card was put away (Escape, its close mark, a click off it, or hide_business_card).
 
       **website_requested** : ``Event<BusinessCardRequest&>``
-         The website was asked for (a click on it in the hand, or the press action there). GUI.Forms has no host service that opens an address yet: a program opens it in a handler and sets handled; unhandled, the request ends here.
+         The website was asked for (a click on it in the hand, or the press action there). A handler that opens it itself sets handled; unhandled, the card hands the address to its window's host (HostServices::open_url), where the host reports open_url.
 
    :Inherited:
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
+
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`set_heading_band <gui_forms::BusinessCard::set_heading_band>`
+        - The heading band layout rule (page): the card lies under ``band``, a control of the same window drawn over the page above the card (a help book's heading band), so that a page scrolled up carries the card under the band rather than over it.
 
 
    .. rubric:: Construction
@@ -68,6 +93,22 @@ gui_forms::BusinessCard
    .. rubric:: Properties
 
    .. cpp:function:: BusinessCardPresentation presentation() const noexcept
+
+   .. cpp:function:: BusinessCardLinkOutcome last_website_request() const noexcept
+
+   .. cpp:function:: std::optional<double> heading_band_bottom() const noexcept
+
+      The band's lower edge in this control's coordinates, or none without a rule in force.
+
+   .. cpp:function:: bool turn_available() const
+
+      The turn (hand): whether this card can show it (it is in a window and, at its last try, its host lent an offscreen renderer for the faces; a drag or Left and Right try again); the card's turn about its vertical axis in radians (0 face up at rest, pi face down) and about its horizontal axis (within plus or minus maximum_business_card_pitch); and whether it shows its front.
+
+   .. cpp:function:: double turn() const noexcept
+
+   .. cpp:function:: double pitch() const noexcept
+
+   .. cpp:function:: bool face_up() const noexcept
 
    .. cpp:function:: Rect card_bounds() const noexcept
 
@@ -89,7 +130,9 @@ gui_forms::BusinessCard
 
    .. cpp:function:: const std::string& remark() const& noexcept
 
-      The remark the card in the hand shows (from the remark source when it was shown; empty otherwise).
+      The newest remark around the card in the hand (empty while none is shown), and how many are shown.
+
+   .. cpp:function:: std::size_t remark_count() const noexcept
 
    .. cpp:function:: Parts parts() const
 
@@ -106,7 +149,14 @@ gui_forms::BusinessCard
 
    .. cpp:function:: Event<BusinessCardRequest&>& website_requested() noexcept
 
-      The website was asked for (a click on it in the hand, or the press action there). GUI.Forms has no host service that opens an address yet: a program opens it in a handler and sets handled; unhandled, the request ends here.
+      The website was asked for (a click on it in the hand, or the press action there). A handler that opens it itself sets handled; unhandled, the card hands the address to its window's host (HostServices::open_url), where the host reports open_url.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void set_heading_band(const std::shared_ptr<const Control>& band)
+
+      The heading band layout rule (page): the card lies under ``band``, a control of the same window drawn over the page above the card (a help book's heading band), so that a page scrolled up carries the card under the band rather than over it. The card and its shadow are drawn, and take the pointer, only below the band's lower edge. The card observes the band and never keeps it alive: a band destroyed or in another window sets no rule. Null clears the rule. Ignored in the hand. UI thread.
 
 
    .. rubric:: Extension points
@@ -116,6 +166,10 @@ gui_forms::BusinessCard
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
    .. cpp:function:: bool hit_test_local(Point local_point) const override
+
+   .. cpp:function:: Insets visual_outsets() const noexcept override
+
+      In the hand, the remarks paint around the card: the outsets reach the window's client edges.
 
    .. cpp:function:: void on_key_bubble(KeyEvent& event) override
 
@@ -151,7 +205,7 @@ gui_forms::BusinessCard
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 1 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 2 unclassified; 18 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -172,6 +226,22 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 9 su
      - supported
    * - property
      - GUI.Forms-only
+     - ``face_up``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``heading_band_bottom``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``last_website_request``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``pitch``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``presentation``
      - supported
    * - property
@@ -180,8 +250,20 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 9 su
      - supported
    * - property
      - GUI.Forms-only
+     - ``remark_count``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``tilt``
      - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``turn``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``turn_available``
+     - supported
    * - property
      - GUI.Forms-only
      - ``vendor_name_band``
@@ -201,4 +283,8 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 9 su
    * - event
      - GUI.Forms-only
      - ``website_requested``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_heading_band``
      - supported

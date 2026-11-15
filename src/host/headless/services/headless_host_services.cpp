@@ -46,6 +46,11 @@ HostServiceStatus HeadlessHostServices::warp_pointer_impl(Point position) {
     return {};
 }
 
+HostServiceStatus HeadlessHostServices::open_url_impl(std::string_view url_utf8) {
+    opened_urls_.emplace_back(url_utf8);
+    return {};
+}
+
 HostClipboardTextResult HeadlessHostServices::read_clipboard_text_impl() {
     return {{}, clipboard_text_, clipboard_generation_, clipboard_has_text_};
 }

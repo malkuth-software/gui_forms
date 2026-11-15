@@ -119,6 +119,12 @@ enum class HostCapability : std::uint64_t {
     raw_pointer_motion = 1ULL << 39U,
     pointer_confinement = 1ULL << 40U,
     pointer_warp = 1ULL << 41U,
+    // The host opens a web or mail address in the user's own browser or
+    // mail program (HostServices::open_url; the business card's website).
+    // Each host reports it where it has the platform's handler: Windows
+    // (ShellExecuteW), macOS (NSWorkspace) and X11 (xdg-open, found when
+    // the address is opened). Additive flag; no protocol version change.
+    open_url = 1ULL << 42U,
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,

@@ -51,7 +51,10 @@ HostCapabilities headless_capabilities() {
                 HostCapability::relative_pointer |
                 HostCapability::raw_pointer_motion |
                 HostCapability::pointer_confinement |
-                HostCapability::pointer_warp
+                HostCapability::pointer_warp |
+                // The reference host records each address it is asked to
+                // open (HeadlessHostServices::opened_urls) and opens none.
+                HostCapability::open_url
 #if !defined(_WIN32)
                 // Hosted content is real where it exists (POSIX).
                 | HostCapability::hosted_content

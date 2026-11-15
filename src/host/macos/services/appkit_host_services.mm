@@ -676,6 +676,24 @@ protected:
         return {};
     }
 
+    // The address goes to Launch Services, which opens it in the user's
+    // browser or mail program and returns at once (HostServices::open_url
+    // validated it: an http, https or mailto address).
+    HostServiceStatus open_url_impl(std::string_view url_utf8) override {
+        NSString* const text = [[NSString alloc] initWithBytes:url_utf8.data()
+                                                        length:url_utf8.size()
+                                                      encoding:NSUTF8StringEncoding];
+        NSURL* const address = text != nil ? [NSURL URLWithString:text] : nil;
+        if (address == nil) {
+            return {HostServiceError::invalid_argument};
+        }
+        const BOOL opened = [NSWorkspace.sharedWorkspace openURL:address];
+        if (!opened) {
+            return {HostServiceError::backend_failure};
+        }
+        return {};
+    }
+
     HostServiceStatus warp_pointer_impl(gui_forms::Point position) override {
         NSView* const view = backdrop_view_;
         NSWindow* const window = view.window;

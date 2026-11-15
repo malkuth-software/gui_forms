@@ -630,6 +630,49 @@ HostServiceStatus HostServices::warp_pointer(Point position) {
     return status;
 }
 
+namespace {
+
+// Whether `url` is an address open_url hands on: a web address with
+// something after its scheme, or a mail address; no space or control
+// character anywhere (the address reaches a platform handler as one
+// argument, so nothing in it may split or end it).
+bool openable_url(std::string_view url) noexcept {
+    if (url.empty() || url.size() > HostServices::maximum_url_bytes || !valid_utf8(url)) return false;
+    for (const char character : url) {
+        const unsigned char byte = static_cast<unsigned char>(character);
+        if (byte <= 0x20U || byte == 0x7FU) return false;
+    }
+    constexpr std::array<std::string_view, 3> schemes{"https://", "http://", "mailto:"};
+    for (const std::string_view scheme : schemes) {
+        const bool starts = url.size() > scheme.size() && url.substr(0U, scheme.size()) == scheme;
+        if (starts) return true;
+    }
+    return false;
+}
+
+} // namespace
+
+HostServiceStatus HostServices::open_url(std::string_view url_utf8) {
+    HostServiceStatus status = validate_request(HostCapability::open_url);
+    if (!status.accepted()) {
+        return status;
+    }
+    if (!openable_url(url_utf8)) {
+        return reject(HostServiceError::invalid_argument);
+    }
+    status = open_url_impl(url_utf8);
+    if (status.accepted()) {
+        ++snapshot_.opened_urls;
+    } else {
+        ++snapshot_.rejected_requests;
+    }
+    return status;
+}
+
+HostServiceStatus HostServices::open_url_impl(std::string_view) {
+    return {HostServiceError::unsupported};
+}
+
 HostServiceStatus HostServices::set_relative_pointer_impl(const HostRelativePointerRequest&) {
     return {HostServiceError::unsupported};
 }
