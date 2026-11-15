@@ -70,7 +70,7 @@
         "bindable": false,
         "browsable": true,
         "nullable": false,
-        "enumeration": "horizontal_alignment_enum()",
+        "enumeration": "label_detail::horizontal_alignment_enum()",
         "reset": null,
         "registry": false
       },

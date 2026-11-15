@@ -120,6 +120,8 @@ jobs:
           python3 tools/winforms_divergences.py render --check
           # Stage T4: direct drawing in controls may only fall (manifests/paint_census.json).
           python3 -B -m unittest discover -s tools -p test_paint_census.py
+          # Property families: shared enumerations get their traits once.
+          python3 -B -m unittest discover -s tools -p test_property_codemod.py
           python3 -B tools/paint_census.py check
           # Theme variants stage B: the colour relocation instrument.
           python3 -B -m unittest discover -s tools -p test_relocate_colours.py

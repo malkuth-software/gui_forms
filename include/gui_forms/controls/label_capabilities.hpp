@@ -3,6 +3,7 @@
 #include "gui_forms/binding/property_cell/property_cell.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/control/shared_capabilities/shared_capabilities.hpp"
+#include "gui_forms/controls/shared_property_enums.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/controls/label_values.hpp"
 
@@ -142,14 +143,6 @@ struct LabelUseMnemonicCapability {
         if (!capability.use_mnemonic.replace(std::move(incoming))) return;
         control.written(std::as_const(capability.use_mnemonic));
     }
-};
-
-// HorizontalAlignment as a property value; defined beside Label's table.
-template <>
-struct PropertyValueTraits<HorizontalAlignment> {
-    static PropertyType type();
-    static BindingValue to_binding(HorizontalAlignment value);
-    static HorizontalAlignment from_binding(const BindingValue& value);
 };
 
 // VerticalAlignment as a property value; defined beside Label's table.

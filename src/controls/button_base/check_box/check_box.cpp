@@ -502,25 +502,6 @@ CheckState PropertyValueTraits<CheckState>::from_binding(const BindingValue& val
     return static_cast<CheckState>(choice.value);
 }
 
-PropertyType PropertyValueTraits<ChoiceIndicatorStyle>::type() {
-    return PropertyType{BindingValueKind::enumeration, false, button_base_detail::choice_indicator_style_enum()};
-}
-
-BindingValue PropertyValueTraits<ChoiceIndicatorStyle>::to_binding(ChoiceIndicatorStyle value) {
-    PropertyDescriptor descriptor;
-    descriptor.kind = BindingValueKind::enumeration;
-    descriptor.enumeration = button_base_detail::choice_indicator_style_enum();
-    const std::optional<BindingValue> converted =
-        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
-    return *converted;
-}
-
-ChoiceIndicatorStyle PropertyValueTraits<ChoiceIndicatorStyle>::from_binding(const BindingValue& value) {
-    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
-    return static_cast<ChoiceIndicatorStyle>(choice.value);
-}
-
 const std::array<PropertyEntry, CheckBox::check_box_property_count>& CheckBox::check_box_property_entries() noexcept {
     static constexpr std::array<PropertyEntry, 4U> own{{
         {"check_state", &describe_check_box_check_state,

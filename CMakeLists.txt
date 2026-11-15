@@ -1043,6 +1043,7 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/group_box/group_box.cpp
     src/controls/panel/picture_box/picture_box.cpp
     src/controls/label/label.cpp
+    src/controls/shared_property_enums/shared_property_enums.cpp
     src/controls/text_block/text_block.cpp
     src/controls/badge/badge.cpp
     src/controls/indicator_lamp/indicator_lamp.cpp

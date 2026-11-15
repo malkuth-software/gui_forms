@@ -56,7 +56,18 @@ Config keys are the study's (section 15.2) plus these, all optional:
              "written_effects": the dirty mask a generated written touches
              when it differs from the descriptor's (table.effects).
              "traits": "hand" when the value type's PropertyValueTraits are
-             declared elsewhere (an enumeration shared between families).
+             written by hand elsewhere.
+Shared enumerations: an enumeration value type that more than one family's
+table names is listed once under "enumerations" in shared.json (beside the
+family configs): {"value": the C++ type, "value_header": the public header
+declaring it, "enumeration": the C++ expression of its choice set,
+"enumeration_header": the source-tree header declaring that expression}.
+Generating shared.json writes their PropertyValueTraits once, declared in
+include/gui_forms/controls/shared_property_enums.hpp and defined in
+src/controls/shared_property_enums/shared_property_enums.cpp; a family
+naming one declares no traits for it and its capabilities header includes the
+shared header. Generating a family refuses an enumeration it would declare
+that another family declares too, until it is listed there.
              "sample": a C++ expression the generated test writes.
 Paths in a config are relative to the gui_forms checkout (the current
 directory). Outputs use LF line endings.
@@ -64,6 +75,7 @@ directory). Outputs use LF line endings.
 
 import argparse
 import json
+import os
 import pathlib
 import re
 import shlex
@@ -78,14 +90,17 @@ PROPERTY_KEYS = {
 TOP_KEYS = {
     "family", "declaring", "header", "source", "capabilities_header", "properties", "step", "shared",
     "not_properties", "base", "includes", "table_source", "test", "shared_header", "mutation_check",
-    "overrides", "extra_entries",
+    "overrides", "extra_entries", "enumerations",
 }
+ENUMERATION_KEYS = {"value", "value_header", "enumeration", "enumeration_header"}
 TABLE_KEYS = {
     "kind", "category", "description", "default", "effects", "subtree", "bindable", "browsable", "nullable",
     "enumeration", "reset", "registry", "serialization", "binding_direction", "content_value",
 }
 THUNK_KEYS = {"read", "write", "reset", "should_serialize", "origin"}
 SHARED_HEADER = "include/gui_forms/control/shared_capabilities/shared_capabilities.hpp"
+SHARED_ENUM_HEADER = "include/gui_forms/controls/shared_property_enums.hpp"
+SHARED_ENUM_SOURCE = "src/controls/shared_property_enums/shared_property_enums.cpp"
 BEGIN = "// property_codemod begin "
 END = "// property_codemod end "
 
@@ -148,6 +163,19 @@ def validate(config):
     for key in required:
         if key not in config:
             errors.append(f"{where}: missing {key!r}")
+    if config.get("enumerations") is not None and config.get("family") != "Shared":
+        errors.append(f"{where}: 'enumerations' belongs in shared.json")
+    shared_values = set()
+    for entry in config.get("enumerations") or []:
+        for key in entry:
+            if key not in ENUMERATION_KEYS:
+                errors.append(f"{where}: enumeration {entry.get('value')!r}: unknown key {key!r}")
+        for key in ENUMERATION_KEYS:
+            if not entry.get(key):
+                errors.append(f"{where}: enumeration {entry.get('value')!r}: missing {key!r}")
+        if entry.get("value") in shared_values:
+            errors.append(f"{where}: enumeration {entry.get('value')!r} listed twice")
+        shared_values.add(entry.get("value"))
     if errors:
         return errors, notes
     config.setdefault("declaring", "Declaring")
@@ -291,8 +319,24 @@ HEADER_COMMENT = """
 """
 
 
-def enum_traits_needed(config):
-    """The enumeration value types whose traits this family declares."""
+def shared_config_path(config):
+    """shared.json beside a family config."""
+    return pathlib.Path(config["_path"]).parent / "shared.json"
+
+
+def shared_enumerations(config):
+    """The value types shared.json lists under "enumerations", for the
+    family config `config` (none when there is no shared.json)."""
+    path = shared_config_path(config)
+    if not path.exists():
+        return []
+    shared = json.loads(path.read_text(encoding="utf-8"))
+    return shared.get("enumerations") or []
+
+
+def own_enum_values(config):
+    """Every enumeration value type the family's table names, with its choice
+    set, before shared enumerations are taken out (hand traits excluded)."""
     seen = []
     for prop in table_properties(config):
         table = prop["table"]
@@ -303,12 +347,54 @@ def enum_traits_needed(config):
     return seen
 
 
+def enum_traits_needed(config):
+    """The enumeration value types whose traits this family declares: its
+    own, less the shared ones."""
+    shared = [entry["value"] for entry in shared_enumerations(config)]
+    needed = [(value, enumeration) for value, enumeration in own_enum_values(config) if value not in shared]
+    return needed
+
+
+def uses_shared_enumeration(config):
+    """Whether the family's table names a shared enumeration."""
+    shared = [entry["value"] for entry in shared_enumerations(config)]
+    for prop in table_properties(config):
+        if prop["table"].get("kind") == "enumeration" and prop["value"] in shared:
+            return True
+    return False
+
+
+def duplicate_enum_traits(config):
+    """Errors for each enumeration this family would declare traits for that
+    another family config beside it declares too."""
+    errors = []
+    needed = [value for value, _ in enum_traits_needed(config)]
+    if not needed:
+        return errors
+    directory = pathlib.Path(config["_path"]).parent
+    for other_path in sorted(directory.glob("*.json")):
+        if other_path.as_posix() == pathlib.Path(config["_path"]).as_posix() or other_path.name == "shared.json":
+            continue
+        other = load(other_path)
+        if "properties" not in other or other.get("family") == "Shared":
+            continue
+        other_values = [value for value, _ in enum_traits_needed(other)]
+        for value in needed:
+            if value in other_values:
+                errors.append(f"{config['_path']}: {value} is an enumeration {other['family']} "
+                              f"({other_path.as_posix()}) also names; list it under \"enumerations\" in "
+                              f"{shared_config_path(config).as_posix()} so its traits are written once")
+    return errors
+
+
 def capabilities_header(config):
     includes = ['"gui_forms/binding/property_cell/property_cell.hpp"']
     if any(prop.get("localizable") for prop in config["properties"]):
         includes.append('"gui_forms/text/localizable/localizable_property.hpp"')
     if config.get("shared"):
         includes.append('"%s"' % SHARED_HEADER[len("include/"):])
+    if uses_shared_enumeration(config):
+        includes.append('"%s"' % SHARED_ENUM_HEADER[len("include/"):])
     system = ["<cstdint>", "<optional>", "<string>", "<utility>"]
     # An include spelled with angle brackets is a standard header.
     for extra in config.get("includes") or []:
@@ -377,6 +463,47 @@ def shared_header(shared_config):
     for prop in shared_config["properties"]:
         text += capability_text(prop, True)
     text += "\n} // namespace gui_forms\n"
+    return text
+
+
+def shared_enum_header(shared_config):
+    """The PropertyValueTraits declarations of the shared enumerations."""
+    out = ["#pragma once", "", '#include "gui_forms/binding/property_type/property_type.hpp"']
+    headers = sorted({entry["value_header"] for entry in shared_config["enumerations"]})
+    out += ['#include "%s"' % header for header in headers]
+    out += ["", "namespace gui_forms {", ""]
+    out.append("// The enumerations several property families name, each made a property")
+    out.append("// value once here; generated by tools/property_codemod.py from")
+    out.append("// " + shared_config["_path"] + " (\"enumerations\"). Defined in")
+    out.append("// " + SHARED_ENUM_SOURCE + ".")
+    text = "\n".join(out) + "\n"
+    for entry in shared_config["enumerations"]:
+        value = entry["value"]
+        text += f"""
+template <>
+struct PropertyValueTraits<{value}> {{
+    static PropertyType type();
+    static BindingValue to_binding({value} value);
+    static {value} from_binding(const BindingValue& value);
+}};
+"""
+    text += "\n} // namespace gui_forms\n"
+    return text
+
+
+def shared_enum_source(shared_config):
+    """The PropertyValueTraits definitions of the shared enumerations."""
+    source_directory = pathlib.Path(SHARED_ENUM_SOURCE).parent
+    out = ["// Generated by tools/property_codemod.py from " + shared_config["_path"] + "; do not edit.",
+           "", '#include "%s"' % SHARED_ENUM_HEADER[len("include/"):], ""]
+    headers = sorted({entry["enumeration_header"] for entry in shared_config["enumerations"]})
+    out += ['#include "%s"' % os.path.relpath(header, source_directory).replace(os.sep, "/") for header in headers]
+    out += ["", "#include <cstdint>", "#include <optional>", "#include <stdexcept>", "#include <variant>", "",
+            "namespace gui_forms {", ""]
+    text = "\n".join(out) + "\n"
+    for entry in shared_config["enumerations"]:
+        text += enum_traits_text(entry["value"], entry["enumeration"])
+    text = text.rstrip("\n") + "\n\n} // namespace gui_forms\n"
     return text
 
 
@@ -930,7 +1057,13 @@ def virtual_bodies(config, prop):
 def enum_traits_definitions(config):
     out = ""
     for value, enumeration in enum_traits_needed(config):
-        out += f"""PropertyType PropertyValueTraits<{value}>::type() {{
+        out += enum_traits_text(value, enumeration)
+    return out
+
+
+def enum_traits_text(value, enumeration):
+    """One enumeration's PropertyValueTraits definitions."""
+    out = f"""PropertyType PropertyValueTraits<{value}>::type() {{
     return PropertyType{{BindingValueKind::enumeration, false, {enumeration}}};
 }}
 
@@ -1098,7 +1231,19 @@ def command_generate(arguments):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(shared_header(config).encode("utf-8"))
         print(f"wrote {path}")
+        if config.get("enumerations"):
+            for target, text in ((SHARED_ENUM_HEADER, shared_enum_header(config)),
+                                 (SHARED_ENUM_SOURCE, shared_enum_source(config))):
+                target_path = pathlib.Path(target)
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                target_path.write_bytes(text.encode("utf-8"))
+                print(f"wrote {target_path}")
         return 0
+    duplicates = duplicate_enum_traits(config)
+    if duplicates:
+        for line in duplicates:
+            print("error: " + line)
+        return 1
     if config["properties"]:
         header_path = pathlib.Path(config["capabilities_header"])
         header_path.parent.mkdir(parents=True, exist_ok=True)

@@ -1,5 +1,6 @@
 #include "gui_forms/controls/form_layout.hpp"
 #include "../panel_anatomy.hpp"
+#include "../../label/horizontal_alignment_property.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
@@ -13,13 +14,6 @@
 namespace gui_forms {
 
 namespace {
-
-std::shared_ptr<const PropertyEnumDescriptor> horizontal_alignment_enum() {
-    static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
-            "horizontal_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
-    return value;
-}
 
 constexpr ControlAnatomy form_layout_anatomy{
     .control_id = "form_layout",
@@ -233,7 +227,7 @@ PropertyDescriptor form_layout_caption_alignment_descriptor() {
     descriptor.default_value = BindingValue{PropertyEnumValue{"horizontal_alignment", "near", 0}};
     descriptor.invalidation_effects = Dirty::paint;
     descriptor.bindable = false;
-    descriptor.enumeration = horizontal_alignment_enum();
+    descriptor.enumeration = label_detail::horizontal_alignment_enum();
     descriptor.assignable_member = true;
     return descriptor;
 }
@@ -283,25 +277,6 @@ const PropertyDescriptor& describe_form_layout_column_spacing() {
 }
 
 } // namespace
-
-PropertyType PropertyValueTraits<HorizontalAlignment>::type() {
-    return PropertyType{BindingValueKind::enumeration, false, horizontal_alignment_enum()};
-}
-
-BindingValue PropertyValueTraits<HorizontalAlignment>::to_binding(HorizontalAlignment value) {
-    PropertyDescriptor descriptor;
-    descriptor.kind = BindingValueKind::enumeration;
-    descriptor.enumeration = horizontal_alignment_enum();
-    const std::optional<BindingValue> converted =
-        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
-    return *converted;
-}
-
-HorizontalAlignment PropertyValueTraits<HorizontalAlignment>::from_binding(const BindingValue& value) {
-    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
-    return static_cast<HorizontalAlignment>(choice.value);
-}
 
 const std::array<PropertyEntry, FormLayout::form_layout_property_count>& FormLayout::form_layout_property_entries() noexcept {
     static constexpr std::array<PropertyEntry, 4U> own{{

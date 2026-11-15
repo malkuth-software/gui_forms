@@ -4,6 +4,20 @@
   "includes": [
     "gui_forms/types.hpp"
   ],
+  "enumerations": [
+    {
+      "value": "ChoiceIndicatorStyle",
+      "value_header": "gui_forms/controls/button_base.hpp",
+      "enumeration": "button_base_detail::choice_indicator_style_enum()",
+      "enumeration_header": "src/controls/button_base/choice_indicator_property.hpp"
+    },
+    {
+      "value": "HorizontalAlignment",
+      "value_header": "gui_forms/controls/label_values.hpp",
+      "enumeration": "label_detail::horizontal_alignment_enum()",
+      "enumeration_header": "src/controls/label/horizontal_alignment_property.hpp"
+    }
+  ],
   "properties": [
     {
       "name": "text",

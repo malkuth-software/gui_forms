@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/binding/property_cell/property_cell.hpp"
+#include "gui_forms/controls/shared_property_enums.hpp"
 #include "gui_forms/controls/label_values.hpp"
 
 #include <cstdint>
@@ -74,14 +75,6 @@ struct FormLayoutColumnSpacingCapability {
         if (!capability.column_spacing.replace(std::move(incoming))) return;
         control.written(std::as_const(capability.column_spacing));
     }
-};
-
-// HorizontalAlignment as a property value; defined beside FormLayout's table.
-template <>
-struct PropertyValueTraits<HorizontalAlignment> {
-    static PropertyType type();
-    static BindingValue to_binding(HorizontalAlignment value);
-    static HorizontalAlignment from_binding(const BindingValue& value);
 };
 
 // Every FormLayout capability, in the order the declaring class takes them.

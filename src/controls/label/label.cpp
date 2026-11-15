@@ -1,4 +1,5 @@
 #include "gui_forms/controls/label.hpp"
+#include "horizontal_alignment_property.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
@@ -46,13 +47,6 @@ struct PainterLabelWidth final {
         return extent.logical_size.width;
     }
 };
-std::shared_ptr<const PropertyEnumDescriptor> horizontal_alignment_enum() {
-    static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
-            "horizontal_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
-    return value;
-}
-
 std::shared_ptr<const PropertyEnumDescriptor> vertical_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
         std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
@@ -87,6 +81,13 @@ const PropertyDescriptor& describe_label_fore_color() {
 }
 
 } // namespace
+
+std::shared_ptr<const PropertyEnumDescriptor> label_detail::horizontal_alignment_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "horizontal_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
+    return value;
+}
 
 Label::Label(StableId stable_id, std::string initial_text) : Control(std::move(stable_id)) {
     text = std::move(initial_text);
@@ -556,7 +557,7 @@ PropertyDescriptor label_alignment_descriptor() {
     descriptor.default_value = BindingValue{PropertyEnumValue{"horizontal_alignment", "near", 0}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
-    descriptor.enumeration = horizontal_alignment_enum();
+    descriptor.enumeration = label_detail::horizontal_alignment_enum();
     descriptor.assignable_member = true;
     return descriptor;
 }
@@ -627,25 +628,6 @@ const PropertyDescriptor& describe_label_maximum_lines() {
 }
 
 } // namespace
-
-PropertyType PropertyValueTraits<HorizontalAlignment>::type() {
-    return PropertyType{BindingValueKind::enumeration, false, horizontal_alignment_enum()};
-}
-
-BindingValue PropertyValueTraits<HorizontalAlignment>::to_binding(HorizontalAlignment value) {
-    PropertyDescriptor descriptor;
-    descriptor.kind = BindingValueKind::enumeration;
-    descriptor.enumeration = horizontal_alignment_enum();
-    const std::optional<BindingValue> converted =
-        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
-    return *converted;
-}
-
-HorizontalAlignment PropertyValueTraits<HorizontalAlignment>::from_binding(const BindingValue& value) {
-    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
-    return static_cast<HorizontalAlignment>(choice.value);
-}
 
 PropertyType PropertyValueTraits<VerticalAlignment>::type() {
     return PropertyType{BindingValueKind::enumeration, false, vertical_alignment_enum()};

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/binding/property_cell/property_cell.hpp"
+#include "gui_forms/controls/shared_property_enums.hpp"
 #include "gui_forms/controls/button_base.hpp"
 #include "gui_forms/controls/check_box_values.hpp"
 
@@ -117,14 +118,6 @@ struct PropertyValueTraits<CheckState> {
     static PropertyType type();
     static BindingValue to_binding(CheckState value);
     static CheckState from_binding(const BindingValue& value);
-};
-
-// ChoiceIndicatorStyle as a property value; defined beside CheckBox's table.
-template <>
-struct PropertyValueTraits<ChoiceIndicatorStyle> {
-    static PropertyType type();
-    static BindingValue to_binding(ChoiceIndicatorStyle value);
-    static ChoiceIndicatorStyle from_binding(const BindingValue& value);
 };
 
 // Every CheckBox capability, in the order the declaring class takes them.
