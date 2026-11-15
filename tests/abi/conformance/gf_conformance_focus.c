@@ -145,6 +145,56 @@ static void composite_focus(gf_kit* kit) {
 }
 
 /* Focus on a window that has not run: it is recorded, not yet the keyboard's. */
+/* A-gf-abi-03-F3: a focused_control_changed callback that disposes the
+ * window (one that has not run, so the dispose destroys it). controls.focus
+ * must not read the window it held before the focus change; it refuses
+ * with INVALID_STATE and leaves its output. */
+typedef struct focus_disposer {
+    gf_kit* kit;
+    gf_object window;
+    uint32_t invoked;
+    gf_status disposed;
+} focus_disposer;
+
+static void GF_CALL dispose_on_focus(void* context, gf_event* event) {
+    focus_disposer* disposer = (focus_disposer*)context;
+    (void)event;
+    ++(*disposer).invoked;
+    if ((*disposer).invoked == 1u) {
+        (*disposer).disposed = (*(*disposer).kit).objects.dispose((*disposer).window);
+    }
+}
+
+static void focus_disposes_window(gf_kit* kit) {
+    const gf_object root = gf_kit_create(kit, "Panel", "kit.focus.disposed");
+    const gf_object field = gf_kit_create(kit, "Button", "kit.focus.disposed.field");
+    gf_kit_status(kit, (*kit).objects.insert_child(root, field, 0u), GF_STATUS_OK, "put the field in the root");
+    gf_object window = 0u;
+    gf_kit_status(kit, (*kit).windows.create(root, &window), GF_STATUS_OK, "create a window a focus callback disposes");
+    focus_disposer disposer;
+    memset(&disposer, 0, sizeof(disposer));
+    disposer.kit = kit;
+    disposer.window = window;
+    disposer.disposed = GF_STATUS_INTERNAL;
+    const gf_callback callback = gf_kit_callback(&dispose_on_focus, NULL, &disposer);
+    gf_subscription subscription = 0u;
+    gf_kit_status(kit, (*kit).events.subscribe(window, gf_kit_text("focused_control_changed"), &callback,
+                                               &subscription),
+                  GF_STATUS_OK, "subscribe a callback that disposes the window");
+    uint32_t focused = 9u;
+    const gf_status status = (*kit).controls.focus(field, &focused);
+    if (disposer.invoked > 0u) {
+        gf_kit_status(kit, disposer.disposed, GF_STATUS_OK, "the focus callback disposed the window");
+        gf_kit_status(kit, status, GF_STATUS_INVALID_STATE, "focus whose callback disposed the window is refused");
+        gf_kit_check(kit, focused == 9u, "the refused focus leaves its output");
+    } else {
+        gf_kit_status(kit, status, GF_STATUS_OK, "focus without a focus callback");
+    }
+    gf_kit_status(kit, (*kit).objects.release(window), GF_STATUS_OK, "release the disposed window");
+    gf_kit_status(kit, (*kit).objects.release(field), GF_STATUS_OK, "release the field");
+    gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the disposed window's root");
+}
+
 void gf_kit_focus_refusals(gf_kit* kit) {
     gf_kit_check(kit, tables_have_focus(kit), "the controls and windows tables have the focus slots");
     if (!tables_have_focus(kit)) {
@@ -234,6 +284,7 @@ void gf_kit_focus_refusals(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the focus window's root");
     gf_kit_status(kit, (*kit).objects.release(loose), GF_STATUS_OK, "release the loose button");
     composite_focus(kit);
+    focus_disposes_window(kit);
 }
 
 /* The window part: what the ready callback saw. */

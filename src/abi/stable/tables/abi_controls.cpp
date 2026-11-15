@@ -357,8 +357,22 @@ gf_status focus_control(gf_object object, std::uint32_t* focused) {
     if (!(*target).eligible_for_input() || !(*target).focusable.read()) {
         return fail(GF_STATUS_INVALID_STATE, focus_slot, "the control cannot take focus: it is not focusable");
     }
+    // The focus change runs focus and validation callbacks, which may
+    // dispose the window or take the control out of it: the window is
+    // watched across the change and read again through the control (held
+    // by its Ptr), never through the pointer taken before it
+    // (A-gf-abi-03-F3). A root that is not a Window has no lifetime to
+    // watch and is found again through the control alone.
+    const WindowRef watched = (*window).window_ref();
+    const bool watched_window = watched.get() != nullptr;
     const bool moved = (*window).request_focus(control);
-    if (!moved || (*window).focused_control() != target) {
+    const bool window_gone = watched_window && watched.get() == nullptr;
+    SurfaceRoot* const after = window_gone ? nullptr : (*control).attached_surface_root();
+    if (after == nullptr) {
+        return fail(GF_STATUS_INVALID_STATE, focus_slot,
+                    "the control left its window while focus moved: a callback removed it or disposed the window");
+    }
+    if (!moved || (*after).focused_control() != target) {
         return fail(GF_STATUS_INVALID_STATE, focus_slot,
                     "focus was refused: the control is outside the window's open focus scope, or validation "
                     "kept focus where it was");
@@ -366,7 +380,7 @@ gf_status focus_control(gf_object object, std::uint32_t* focused) {
     // A window counts as active only once a host session presents it: a
     // window that has not run keeps SurfaceRoot's headless default
     // (active) but does not have the keyboard.
-    const bool keyboard = (*window).active() && (*window).host_services() != nullptr;
+    const bool keyboard = (*after).active() && (*after).host_services() != nullptr;
     if (focused != nullptr) *focused = keyboard ? 1U : 0U;
     return GF_STATUS_OK;
 }
