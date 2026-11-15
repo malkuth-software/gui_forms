@@ -151,6 +151,8 @@ Related types
      - PresentationSettings keeps logical text scaling, contrast, motion, and sound preferences independent from device scale and native host mechanics.
    * - :cpp:class:`PresentedArea <gui_forms::PresentedArea>`
      - The screen area one presentation copied (stage DP): device pixels, the rectangles they were copied in, and the time spent only copying them (pixel conversion and the native copy, not painting).
+   * - :cpp:class:`PressTrace <gui_forms::PressTrace>`
+     - The last primary press: where it landed and how the route treated it.
    * - :cpp:class:`ScrollCopy <gui_forms::ScrollCopy>`
      - A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels it holds inside ``clip`` by ``offset``, both in window coordinates and whole device pixels, before painting the damage taken with it.
    * - :cpp:class:`ShadowFrame <gui_forms::ShadowFrame>`
@@ -1646,6 +1648,36 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PressTrace final
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   The last primary press: where it landed and how the route treated it. Strings are copied, so the record outlives the controls it names. A control without a stable ID is named by its anatomy's control ID alone.
+
+   .. cpp:member:: std::uint64_t presses
+
+      Primary presses routed by this window so far.
+
+   .. cpp:member:: std::string target_stable_id
+
+      The hit (or captured) control the press was routed to; empty for no_target.
+
+   .. cpp:member:: std::string target_control_id
+
+   .. cpp:member:: std::string handled_by
+
+      The control whose preview handler took the press (preview_handled).
+
+   .. cpp:member:: Point position
+
+      The press's window position.
+
+   .. cpp:member:: PressOutcome outcome
+
+      Default: ``{PressOutcome::none}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ScrollCopy final
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>``
@@ -2872,6 +2904,22 @@ Enumerations
    .. cpp:enumerator:: forwarded
 
    .. cpp:enumerator:: kept_by_owner
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PressOutcome
+
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: no_target
+
+   .. cpp:enumerator:: preview_handled
+
+   .. cpp:enumerator:: focus_refused
+
+   .. cpp:enumerator:: delivered
 
 .. cpp:namespace:: gui_forms
 

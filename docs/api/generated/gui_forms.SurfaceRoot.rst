@@ -200,6 +200,9 @@ gui_forms::SurfaceRoot
       **image_resource_snapshot** : ``ImageRegistrySnapshot``, read-only
          Returns generational image counts and byte/accounting telemetry.
 
+      **last_press_trace** : ``PressTrace``, read-only
+         The last primary press's trace (PressTrace): the control it landed on and what the route did with it. Written by every primary press, read by tests and diagnostics; GUI_FORMS_TRACE_PRESS also logs each.
+
       **focused_control** : ``Control::Ptr``, read-only
          The control with keyboard focus, or null.
 
@@ -912,6 +915,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: const ImageRegistry& image_resources() const noexcept
 
    .. cpp:function:: ImageRegistrySnapshot image_resource_snapshot() const noexcept
+
+   .. cpp:function:: const PressTrace& last_press_trace() const noexcept
+
+      The last primary press's trace (PressTrace): the control it landed on and what the route did with it. Written by every primary press, read by tests and diagnostics; GUI_FORMS_TRACE_PRESS also logs each.
 
    .. cpp:function:: Control::Ptr focused_control() const noexcept
 

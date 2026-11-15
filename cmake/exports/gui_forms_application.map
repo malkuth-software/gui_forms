@@ -118,6 +118,7 @@
     _ZGVZN9gui_forms10Plot3DView*;
     _ZGVZN9gui_forms10PlotHandle*;
     _ZGVZN9gui_forms10PortRecord*;
+    _ZGVZN9gui_forms10PressTrace*;
     _ZGVZN9gui_forms10RadialPick*;
     _ZGVZN9gui_forms10RadialSlot*;
     _ZGVZN9gui_forms10RisingBody*;
@@ -1775,6 +1776,7 @@
     _ZGVZNK9gui_forms10Plot3DView*;
     _ZGVZNK9gui_forms10PlotHandle*;
     _ZGVZNK9gui_forms10PortRecord*;
+    _ZGVZNK9gui_forms10PressTrace*;
     _ZGVZNK9gui_forms10RadialPick*;
     _ZGVZNK9gui_forms10RadialSlot*;
     _ZGVZNK9gui_forms10RisingBody*;
@@ -3486,6 +3488,7 @@
     _ZN9gui_forms10Plot3DView*;
     _ZN9gui_forms10PlotHandle*;
     _ZN9gui_forms10PortRecord*;
+    _ZN9gui_forms10PressTrace*;
     _ZN9gui_forms10RadialPick*;
     _ZN9gui_forms10RadialSlot*;
     _ZN9gui_forms10RisingBody*;
@@ -6711,6 +6714,7 @@
     _ZNK[RO]9gui_forms10Plot3DView*;
     _ZNK[RO]9gui_forms10PlotHandle*;
     _ZNK[RO]9gui_forms10PortRecord*;
+    _ZNK[RO]9gui_forms10PressTrace*;
     _ZNK[RO]9gui_forms10RadialPick*;
     _ZNK[RO]9gui_forms10RadialSlot*;
     _ZNK[RO]9gui_forms10RisingBody*;
@@ -8368,6 +8372,7 @@
     _ZN[KRO]9gui_forms10Plot3DView*;
     _ZN[KRO]9gui_forms10PlotHandle*;
     _ZN[KRO]9gui_forms10PortRecord*;
+    _ZN[KRO]9gui_forms10PressTrace*;
     _ZN[KRO]9gui_forms10RadialPick*;
     _ZN[KRO]9gui_forms10RadialSlot*;
     _ZN[KRO]9gui_forms10RisingBody*;
@@ -10025,6 +10030,7 @@
     _ZT[VIST]N9gui_forms10Plot3DView*E;
     _ZT[VIST]N9gui_forms10PlotHandle*E;
     _ZT[VIST]N9gui_forms10PortRecord*E;
+    _ZT[VIST]N9gui_forms10PressTrace*E;
     _ZT[VIST]N9gui_forms10RadialPick*E;
     _ZT[VIST]N9gui_forms10RadialSlot*E;
     _ZT[VIST]N9gui_forms10RisingBody*E;
@@ -11682,6 +11688,7 @@
     _ZT[hvc]*9gui_forms10Plot3DView*;
     _ZT[hvc]*9gui_forms10PlotHandle*;
     _ZT[hvc]*9gui_forms10PortRecord*;
+    _ZT[hvc]*9gui_forms10PressTrace*;
     _ZT[hvc]*9gui_forms10RadialPick*;
     _ZT[hvc]*9gui_forms10RadialSlot*;
     _ZT[hvc]*9gui_forms10RisingBody*;
@@ -13339,6 +13346,7 @@
     _ZZN9gui_forms10Plot3DView*;
     _ZZN9gui_forms10PlotHandle*;
     _ZZN9gui_forms10PortRecord*;
+    _ZZN9gui_forms10PressTrace*;
     _ZZN9gui_forms10RadialPick*;
     _ZZN9gui_forms10RadialSlot*;
     _ZZN9gui_forms10RisingBody*;
@@ -14996,6 +15004,7 @@
     _ZZNK9gui_forms10Plot3DView*;
     _ZZNK9gui_forms10PlotHandle*;
     _ZZNK9gui_forms10PortRecord*;
+    _ZZNK9gui_forms10PressTrace*;
     _ZZNK9gui_forms10RadialPick*;
     _ZZNK9gui_forms10RadialSlot*;
     _ZZNK9gui_forms10RisingBody*;
