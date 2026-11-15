@@ -110,8 +110,12 @@ struct HeldAppFonts final {
 };
 
 [[nodiscard]] HeldAppFonts& held_app_fonts() {
-    static HeldAppFonts held{};
-    return held;
+    // Never destroyed (termination releases none of our state, rule 1;
+    // A-gf-abi-03-F2): the held families are not unloaded by a static
+    // destructor at exit, and another thread's load or unload never meets a
+    // destroyed lock.
+    static HeldAppFonts* const held = new HeldAppFonts();
+    return *held;
 }
 
 [[nodiscard]] const char* app_font_status_name(AppFontStatus status) noexcept {

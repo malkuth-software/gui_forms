@@ -54,8 +54,12 @@ struct ProviderRegistry final {
 };
 
 ProviderRegistry& provider_registry() {
-    static ProviderRegistry registry;
-    return registry;
+    // Never destroyed (termination releases none of our state, rule 1;
+    // A-gf-abi-03-F2): bindings.notify may be called from any thread, so the
+    // mutex and the links outlive every caller, and no link is released by a
+    // static destructor at exit.
+    static ProviderRegistry* const registry = new ProviderRegistry();
+    return *registry;
 }
 
 std::atomic<std::uint64_t>& provider_counter() noexcept {

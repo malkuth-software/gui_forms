@@ -8,8 +8,9 @@ fails clearly when the harness is not beside this checkout
 (tools/harness_link.py, docs/building/template-harness.md).
 
 Run, it then applies GUI.Forms' own member-accessor rule
-(tools/check_member_views.py) to the same paths, and fails when either the
-harness's rules or that rule report a finding. Imported, the name resolves
+(tools/check_member_views.py) and the C ABI's termination rule
+(tools/check_exit_statics.py, src/abi/ only) to the same paths, and fails
+when the harness's rules or either of those report a finding. Imported, the name resolves
 to the harness's module (forward_import), which is how the run below reads
 the harness's file selection and masking.
 """
@@ -18,6 +19,7 @@ import harness_link
 if __name__ == '__main__':
     import sys
     from pathlib import Path
+    import check_exit_statics
     import check_member_views
     harness_status: int = 0
     try:
@@ -39,8 +41,14 @@ if __name__ == '__main__':
     finding: check_member_views.Finding
     for finding in findings:
         print(f'{finding.path}:{finding.line}: {finding.rule}: {finding.detail}')
-    print(f'{len(selected)} files; {len(findings)} member-view findings.')
-    if harness_status != 0 or findings:
+    exit_findings: list[check_exit_statics.Finding] = []
+    for path in selected:
+        exit_findings.extend(check_exit_statics.check_exit_statics(path, harness_rules.masked_source(path)))
+    exit_finding: check_exit_statics.Finding
+    for exit_finding in exit_findings:
+        print(f'{exit_finding.path}:{exit_finding.line}: {exit_finding.rule}: {exit_finding.detail}')
+    print(f'{len(selected)} files; {len(findings)} member-view findings; {len(exit_findings)} exit-static findings.')
+    if harness_status != 0 or findings or exit_findings:
         raise SystemExit(1)
     raise SystemExit(0)
 else:

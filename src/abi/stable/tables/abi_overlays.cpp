@@ -45,10 +45,14 @@ struct OpenOverlay final {
 };
 
 // The open overlays, by the overlay's identity. Owned here and used on the UI
-// thread only; the rest close when the process ends.
+// thread only; those still open when the process ends are left as they are.
 std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>& open_overlays() {
-    static std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>> overlays;
-    return overlays;
+    // Never destroyed (termination releases none of our state, rule 1;
+    // A-gf-abi-03-F2): no client callback or control is released by a static
+    // destructor at exit.
+    static std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>* const overlays =
+        new std::unordered_map<gf_object, std::shared_ptr<OpenOverlay>>();
+    return *overlays;
 }
 
 // The token's closed event: the window closed the overlay. Drops the entry
@@ -250,8 +254,12 @@ struct AnchoredSession final {
 
 // The open anchored overlays, by their content's identity.
 std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>& anchored_overlays() {
-    static std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>> sessions;
-    return sessions;
+    // Never destroyed (termination releases none of our state, rule 1;
+    // A-gf-abi-03-F2): no client callback or control is released by a static
+    // destructor at exit.
+    static std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>* const sessions =
+        new std::unordered_map<gf_object, std::shared_ptr<AnchoredSession>>();
+    return *sessions;
 }
 
 // Sends one event to the session's callback with the content as sender.

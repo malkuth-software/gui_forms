@@ -434,8 +434,11 @@ struct OwnedWindow final {
 // The owned windows from ready until closed, in opening order. UI thread
 // only; bounded by the host's window table (HostWindowing::maximum_windows).
 std::vector<std::shared_ptr<OwnedWindow>>& owned_windows() {
-    static std::vector<std::shared_ptr<OwnedWindow>> windows;
-    return windows;
+    // Never destroyed (termination releases none of our state, rule 1;
+    // A-gf-abi-03-F2): no client callback or control is released by a static
+    // destructor at exit.
+    static std::vector<std::shared_ptr<OwnedWindow>>* const windows = new std::vector<std::shared_ptr<OwnedWindow>>();
+    return *windows;
 }
 
 // The open owned window over root, or null.

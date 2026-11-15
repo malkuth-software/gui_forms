@@ -43,8 +43,11 @@ struct SplashscreenState final {
 };
 
 SplashscreenState& splashscreen_state() noexcept {
-    static SplashscreenState state;
-    return state;
+    // Never destroyed (termination releases none of our state, rule 1;
+    // A-gf-abi-03-F2): no client callback or control is released by a static
+    // destructor at exit.
+    static SplashscreenState* const state = new SplashscreenState();
+    return *state;
 }
 
 gf_status splashscreen_status(const SplashscreenError error) noexcept {

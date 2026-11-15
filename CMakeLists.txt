@@ -3541,6 +3541,11 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_test_assert_check_unit
             COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
                 -p test_check_test_asserts.py)
+        # The C ABI's termination rule (tools/check_exit_statics.py): static
+        # state in src/abi/ is never destroyed or trivially destructible.
+        add_test(NAME gui_forms_exit_statics_check_unit
+            COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
+                -p test_check_exit_statics.py)
         # Every native entry (window procedure, COM method, ATK callback,
         # AppKit selector) runs through the fail-fast boundary, or is listed
         # in tools/native_boundary_baseline.txt, which may only shrink.

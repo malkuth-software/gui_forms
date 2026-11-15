@@ -80,8 +80,11 @@ struct TokenTable final {
 };
 
 TokenTable& tokens() noexcept {
-    static TokenTable table{};
-    return table;
+    // Never destroyed (termination releases none of our state, rule 1;
+    // A-gf-abi-03-F2): no client callback or control is released by a static
+    // destructor at exit.
+    static TokenTable* const table = new TokenTable();
+    return *table;
 }
 
 // The slot of a token add gave and remove has not freed, or null.
