@@ -420,13 +420,16 @@ gd_result capture_surface(std::uintptr_t source, std::uint32_t kind,
         if (window_surface) compatibility.release_dc(window, device);
         throw std::invalid_argument("native surface has empty bounds");
     }
-    if (width64 > Bitmap::maximum_dimension || height64 > Bitmap::maximum_dimension) {
+    // The pixel count too, before anything is allocated: each side may be
+    // within the limit while their product is not (A-gf-abi-01-F11).
+    if (width64 > Bitmap::maximum_dimension || height64 > Bitmap::maximum_dimension ||
+        static_cast<std::uint64_t>(width64) * static_cast<std::uint64_t>(height64) > Bitmap::maximum_pixels) {
         if (window_surface) compatibility.release_dc(window, device);
         throw std::length_error("native surface exceeds bitmap limits");
     }
     const std::uint32_t width = static_cast<std::uint32_t>(width64);
     const std::uint32_t height = static_cast<std::uint32_t>(height64);
-    std::vector<std::byte> captured(static_cast<std::size_t>(width) * height * 4U);
+    const std::size_t byte_count = static_cast<std::size_t>(width) * height * 4U;
     BITMAPINFO info = bitmap_info(width, height);
     void* pixels = nullptr;
     HBITMAP dib = CreateDIBSection(device, &info, DIB_RGB_COLORS,
@@ -447,23 +450,24 @@ gd_result capture_surface(std::uintptr_t source, std::uint32_t kind,
                      static_cast<void*>(dib), static_cast<void*>(memory),
                      previous, static_cast<unsigned long>(GetLastError()));
     }
+    // The window DC is given back before anything below can throw; the
+    // capture's DIB and memory DC go with this scope however it leaves.
     if (window_surface) compatibility.release_dc(window, device);
-    if (!ok) {
-        if (memory != nullptr && previous != nullptr && previous != HGDI_ERROR) {
-            SelectObject(memory, previous);
+    struct CaptureCleanup final {
+        HDC memory;
+        HBITMAP dib;
+        HGDIOBJ previous;
+        ~CaptureCleanup() {
+            if (memory != nullptr && previous != nullptr && previous != HGDI_ERROR) SelectObject(memory, previous);
+            if (memory != nullptr) DeleteDC(memory);
+            if (dib != nullptr) DeleteObject(dib);
         }
-        if (memory != nullptr) DeleteDC(memory);
-        if (dib != nullptr) DeleteObject(dib);
-        throw std::runtime_error("BitBlt failed");
-    }
-    std::memcpy(captured.data(), pixels, captured.size());
-    SelectObject(memory, previous);
-    DeleteDC(memory);
-    DeleteObject(dib);
+    } cleanup{memory, dib, previous};
+    if (!ok) throw std::runtime_error("BitBlt failed");
     std::unique_ptr<Bitmap> bitmap = std::make_unique<Bitmap>(
         width, height, PixelFormat::bgra32_premultiplied);
     BitmapLockView lock = (*bitmap).lock(BitmapLockMode::write);
-    std::memcpy(lock.writable_data, captured.data(), captured.size());
+    std::memcpy(lock.writable_data, pixels, byte_count);
     for (std::uint32_t y = 0; y < height; ++y) {
         std::uint8_t* row = reinterpret_cast<std::uint8_t*>(lock.writable_data) +
                     static_cast<std::size_t>(y) * lock.row_bytes;
