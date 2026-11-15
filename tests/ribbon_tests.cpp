@@ -864,7 +864,7 @@ void quick_access_on_tab_row() {
 
 // The help button (owner ruling N4): hidden by default; shown, a square at the
 // tab row's right end, painted as a plate and a question mark; a click, and
-// accessibility's press, raise help_requested with the selected tab.
+// accessibility's press, raise help_button_clicked with the selected tab.
 void help_button() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
@@ -873,7 +873,7 @@ void help_button() {
     require(!(*ribbon).help_button_visible.read() && !(*ribbon).parts().help_button.present,
             "the help button is hidden by default");
     std::vector<std::string> requests;
-    SubscriptionToken requested = (*ribbon).help_requested().subscribe(RecordHelp{&requests});
+    SubscriptionToken requested = (*ribbon).help_button_clicked().subscribe(RecordHelp{&requests});
     (*ribbon).help_button_visible = true;
     window.perform_layout();
     const Ribbon::Parts parts = (*ribbon).parts();
@@ -887,7 +887,7 @@ void help_button() {
     static_cast<void>(window.paint(painter, {0.0, 0.0, 900.0, 115.0}));
     require(painted(painter, "?"), "the help button paints its question mark");
     click(window, centre(help));
-    require(requests.size() == 1U && requests[0] == "home", "a click raises help_requested with the selected tab");
+    require(requests.size() == 1U && requests[0] == "home", "a click raises help_button_clicked with the selected tab");
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, centre(help)}));
     require((*ribbon).parts().help_button.states.contains(AnatomyState::pressed), "the press shows pressed");
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, Point{rail.x + 1.0, 60.0}}));
@@ -900,14 +900,14 @@ void help_button() {
     }
     require(published, "the help button is published as a button");
     require((*ribbon).on_semantic_child_action("ribbon.help", SemanticAction::press, {}) && requests.size() == 2U,
-            "accessibility's press raises help_requested");
+            "accessibility's press raises help_button_clicked");
     (*ribbon).help_button_visible = false;
     window.perform_layout();
     require(!(*ribbon).parts().help_button.present &&
                 !(*ribbon).on_semantic_child_action("ribbon.help", SemanticAction::press, {}),
             "hidden again, the button is gone and its press refused");
     (*ribbon).request_help();
-    require(requests.size() == 3U, "request_help raises help_requested without the button (an F1 binding)");
+    require(requests.size() == 3U, "request_help raises help_button_clicked without the button (an F1 binding)");
 }
 
 } // namespace

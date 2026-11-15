@@ -1890,7 +1890,7 @@ void Ribbon::request_help() {
     const Control::Ptr lifetime = shared_from_this();
     const RibbonHelpRequest request{std::string(stable_id().value()),
                                     selected_tab_ ? tabs_[*selected_tab_].stable_id : std::string{}};
-    help_requested_.emit(request);
+    help_button_clicked_.emit(request);
 }
 
 void Ribbon::launch(std::size_t group) {
@@ -3502,7 +3502,7 @@ constexpr std::array<InteractionDeclaration, 9> ribbon_interactions{{
     {.name = "drop_down_item_invoked", .payload = "RibbonDropDownInvocation", .mutable_payload = false},
     {.name = "dialog_launcher_clicked", .payload = "RibbonDialogLaunch", .mutable_payload = false},
     {.name = "selected_tab_changed", .payload = "RibbonTabChange", .mutable_payload = false},
-    {.name = "help_requested", .payload = "RibbonHelpRequest", .mutable_payload = false},
+    {.name = "help_button_clicked", .payload = "RibbonHelpRequest", .mutable_payload = false},
     {.name = "minimized_changed", .payload = "bool", .mutable_payload = false},
     {.name = "application_menu_item_invoked", .payload = "MenuItemInvocation", .mutable_payload = false},
     {.name = "recent_item_invoked", .payload = "RibbonRecentItemInvocation", .mutable_payload = false},

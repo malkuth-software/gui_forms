@@ -86,7 +86,7 @@ gui_forms::Ribbon
          was pressed on, instead of on the press (Office's way, the default).
 
       **help_button_visible** : ``bool``
-         Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_requested; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
+         Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_button_clicked; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
 
       **tabs** : ``std::span<const RibbonTabSpec>``
          The tabs, each with its groups and their commands: the core tabs, then
@@ -206,8 +206,8 @@ gui_forms::Ribbon
       **selected_tab_changed** : ``Event<const RibbonTabChange&>``
          Raised after the selected tab changes.
 
-      **help_requested** : ``Event<const RibbonHelpRequest&>``
-         Raised by a click on the help button and by request_help.
+      **help_button_clicked** : ``Event<const RibbonHelpRequest&>``
+         Raised by a click on the help button and by request_help. Named apart from Control::help_requested (F1's HelpRequestEvent), which a Ribbon also raises.
 
       **minimized_changed** : ``Event<bool>``
          Raised after the command plane is hidden or shown.
@@ -269,7 +269,7 @@ gui_forms::Ribbon
       * - :cpp:func:`text_box <gui_forms::Ribbon::text_box>`
         -  
       * - :cpp:func:`request_help <gui_forms::Ribbon::request_help>`
-        - Raises help_requested, as a click on the help button does, whether or not the button shows (an F1 binding may call it).
+        - Raises help_button_clicked, as a click on the help button does, whether or not the button shows (an F1 binding may call it).
       * - :cpp:func:`set_tab_set_availability <gui_forms::Ribbon::set_tab_set_availability>`
         -  
 
@@ -511,7 +511,7 @@ gui_forms::Ribbon
 
    .. cpp:member:: bool help_button_visible
 
-      Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_requested; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
+      Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_button_clicked; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
 
    .. cpp:function:: std::span<const RibbonTabSpec> tabs() const& noexcept
 
@@ -672,9 +672,9 @@ gui_forms::Ribbon
 
       Raised after the selected tab changes.
 
-   .. cpp:function:: Event<const RibbonHelpRequest&>& help_requested() noexcept
+   .. cpp:function:: Event<const RibbonHelpRequest&>& help_button_clicked() noexcept
 
-      Raised by a click on the help button and by request_help.
+      Raised by a click on the help button and by request_help. Named apart from Control::help_requested (F1's HelpRequestEvent), which a Ribbon also raises.
 
    .. cpp:function:: Event<bool>& minimized_changed() noexcept
 
@@ -778,7 +778,7 @@ gui_forms::Ribbon
 
    .. cpp:function:: void request_help()
 
-      Raises help_requested, as a click on the help button does, whether or not the button shows (an F1 binding may call it).
+      Raises help_button_clicked, as a click on the help button does, whether or not the button shows (an F1 binding may call it).
 
    .. cpp:function:: void set_tab_set_availability(std::string_view set_id, RibbonTabSetAvailability availability)
 

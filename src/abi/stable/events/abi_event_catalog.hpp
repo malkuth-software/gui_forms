@@ -5015,12 +5015,12 @@ inline SubscriptionToken connect_virtual_rows_view_header_clicked(Component& sou
     return token;
 }
 
-inline SubscriptionToken connect_ribbon_help_requested(Component& source, const EventSink& sink) {
+inline SubscriptionToken connect_ribbon_help_button_clicked(Component& source, const EventSink& sink) {
     Ribbon* typed = dynamic_cast<Ribbon*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
-    SubscriptionToken token = subscribe_forwarded((*typed).help_requested(), sink);
+    SubscriptionToken token = subscribe_forwarded((*typed).help_button_clicked(), sink);
     return token;
 }
 
@@ -7040,7 +7040,7 @@ inline constexpr std::array<EventConnector, 371> event_connectors{{
     {"handle_committed", "PlotView", &connect_plot_view_handle_committed},
     {"handle_moved", "PlotView", &connect_plot_view_handle_moved},
     {"header_clicked", "VirtualRowsView", &connect_virtual_rows_view_header_clicked},
-    {"help_requested", "Ribbon", &connect_ribbon_help_requested},
+    {"help_button_clicked", "Ribbon", &connect_ribbon_help_button_clicked},
     {"help_requested", "Control", &connect_control_help_requested},
     {"help_requested", "HelpProvider", &connect_help_provider_help_requested},
     {"help_requested", "RibbonToolTip", &connect_ribbon_tool_tip_help_requested},

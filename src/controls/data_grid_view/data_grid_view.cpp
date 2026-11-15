@@ -2623,8 +2623,15 @@ bool DataGridView::move_current(DataGridViewCellAddress target, SelectionGesture
         anchor_ = target_key;
     } else {
         clear_selection_state();
-        if (full_row) insert_selected_row(target_key.row_id);
-        else insert_selected_cell(target_key.row_id, target_key.column);
+        // A plain move selects what the mode selects: the row, the column
+        // (full column selection), else the cell.
+        if (full_row) {
+            insert_selected_row(target_key.row_id);
+        } else if (selection_mode.read() == DataGridViewSelectionMode::full_column_select) {
+            insert_selected_column(target_key.column);
+        } else {
+            insert_selected_cell(target_key.row_id, target_key.column);
+        }
         anchor_ = target_key;
     }
     apply_current(target_key, validated);

@@ -83,7 +83,7 @@ gui_forms::HelpBookSystem
       * - :cpp:func:`attach_ribbon_tool_tip <gui_forms::HelpBookSystem::attach_ribbon_tool_tip>`
         -  
       * - :cpp:func:`attach_ribbon <gui_forms::HelpBookSystem::attach_ribbon>`
-        - Answers the ribbon's help button (Ribbon::help_requested) with the window card: the ribbon's window's help line and "More..." to its page, beside the ribbon.
+        - Answers the ribbon's help button (Ribbon::help_button_clicked) with the window card: the ribbon's window's help line and "More..." to its page, beside the ribbon.
       * - :cpp:func:`resolve <gui_forms::HelpBookSystem::resolve>`
         -  
       * - :cpp:func:`show <gui_forms::HelpBookSystem::show>`
@@ -209,7 +209,7 @@ gui_forms::HelpBookSystem
 
    .. cpp:function:: void attach_ribbon(Ribbon& ribbon)
 
-      Answers the ribbon's help button (Ribbon::help_requested) with the window card: the ribbon's window's help line and "More..." to its page, beside the ribbon. The ribbon must sit in an attached window.
+      Answers the ribbon's help button (Ribbon::help_button_clicked) with the window card: the ribbon's window's help line and "More..." to its page, beside the ribbon. The ribbon must sit in an attached window.
 
    .. cpp:function:: HelpTarget resolve(const Control& control)
 

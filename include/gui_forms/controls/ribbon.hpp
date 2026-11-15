@@ -521,9 +521,11 @@ public:
         return dialog_launcher_clicked_;
     }
     [[nodiscard]] Event<const RibbonTabChange&>& selected_tab_changed() noexcept { return selected_tab_changed_; }
-    // Raised by a click on the help button and by request_help.
-    [[nodiscard]] Event<const RibbonHelpRequest&>& help_requested() noexcept { return help_requested_; }
-    // Raises help_requested, as a click on the help button does, whether or
+    // Raised by a click on the help button and by request_help. Named apart
+    // from Control::help_requested (F1's HelpRequestEvent), which a Ribbon
+    // also raises.
+    [[nodiscard]] Event<const RibbonHelpRequest&>& help_button_clicked() noexcept { return help_button_clicked_; }
+    // Raises help_button_clicked, as a click on the help button does, whether or
     // not the button shows (an F1 binding may call it).
     void request_help();
     [[nodiscard]] Event<bool>& minimized_changed() noexcept { return minimized_changed_; }
@@ -1173,7 +1175,7 @@ private:
     Event<const RibbonDropDownInvocation&> drop_down_item_invoked_{};
     Event<const RibbonDialogLaunch&> dialog_launcher_clicked_{};
     Event<const RibbonTabChange&> selected_tab_changed_{};
-    Event<const RibbonHelpRequest&> help_requested_{};
+    Event<const RibbonHelpRequest&> help_button_clicked_{};
     Event<bool> minimized_changed_{};
     Event<const MenuItemInvocation&> application_menu_item_invoked_{};
 

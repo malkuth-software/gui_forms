@@ -336,7 +336,7 @@ void HelpBookSystem::attach_ribbon_tool_tip(RibbonToolTip& tool_tip) {
 }
 
 void HelpBookSystem::attach_ribbon(Ribbon& ribbon) {
-    on(ribbon.help_requested(), *this, &HelpBookSystem::on_ribbon_button_help);
+    on(ribbon.help_button_clicked(), *this, &HelpBookSystem::on_ribbon_button_help);
 }
 
 void HelpBookSystem::wire_viewer(HelpBookViewer& viewer) {

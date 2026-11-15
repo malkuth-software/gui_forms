@@ -194,7 +194,7 @@ public:
     void set_viewer(std::shared_ptr<HelpBookViewer> viewer);
     [[nodiscard]] std::shared_ptr<HelpBookViewer> active_viewer() const;
     void attach_ribbon_tool_tip(RibbonToolTip& tool_tip);
-    // Answers the ribbon's help button (Ribbon::help_requested) with the
+    // Answers the ribbon's help button (Ribbon::help_button_clicked) with the
     // window card: the ribbon's window's help line and "More..." to its
     // page, beside the ribbon. The ribbon must sit in an attached window.
     void attach_ribbon(Ribbon& ribbon);

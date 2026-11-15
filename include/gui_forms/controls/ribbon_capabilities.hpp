@@ -147,7 +147,7 @@ struct RibbonTabsActivateOnReleaseCapability {
     }
 };
 
-// Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_requested; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
+// Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_button_clicked; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
 template <typename Declaring>
 struct RibbonHelpButtonVisibleCapability {
     PropertyCell<bool, RibbonHelpButtonVisibleCapability<Declaring>> help_button_visible{false};

@@ -3083,6 +3083,7 @@ Properties beyond every control's: none.
 | `drop_down_item_invoked` | `RibbonDropDownInvocation` |
 | `dialog_launcher_clicked` | `RibbonDialogLaunch` |
 | `selected_tab_changed` | `RibbonTabChange` |
+| `help_button_clicked` | `RibbonHelpRequest` |
 | `minimized_changed` | `bool` |
 | `application_menu_item_invoked` | `MenuItemInvocation` |
 | `recent_item_invoked` | `RibbonRecentItemInvocation` |

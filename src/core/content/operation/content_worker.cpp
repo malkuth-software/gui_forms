@@ -9,7 +9,9 @@
 #include <mutex>
 #include <stdexcept>
 #include <system_error>
+#include <thread>
 #include <utility>
+#include <vector>
 
 namespace gui_forms {
 
@@ -30,6 +32,13 @@ struct ContentWorkerShared final {
     bool abandoned{};
     ContentWorkerState state{ContentWorkerState::running};
     std::string failure{};
+    // The standard library's own record of the worker's thread, which only
+    // that thread's thread-local storage refers to (libc++ allocates it in
+    // std::thread's constructor and frees it when the thread ends); null
+    // with a library that keeps none. Opaque: never dereferenced, only kept
+    // reachable while the thread is abandoned (abandoned_worker_root).
+    // Written once by the worker's thread, under `mutex`.
+    const void* thread_record{};
 };
 
 } // namespace detail
@@ -41,6 +50,65 @@ namespace {
 // thread that ends during static destruction may still decrement it.
 std::atomic<std::uint64_t> abandoned_worker_count{0U};
 
+// The abandoned workers, still running: a process-lifetime root, created on
+// first use and deliberately never destroyed or freed. An abandoned thread
+// is left to the operating system, which reclaims it, its program and its
+// thread's library record at process exit (the answer STXlib gives for a
+// record never released). Holding each worker's shared state here keeps
+// all of it reachable, through thread_record also the library's per-thread
+// record, so a leak checker sees the abandonment as the deliberate, named
+// ownership it is rather than lost memory. A worker leaves the root when its
+// thread finally returns. The vector and its mutex live in the leaked
+// object, so threads that end during static destruction still find them.
+struct AbandonedWorkerRoot final {
+    std::mutex mutex{};
+    std::vector<std::shared_ptr<detail::ContentWorkerShared>> workers{};
+};
+
+AbandonedWorkerRoot& abandoned_worker_root() {
+    static AbandonedWorkerRoot* const root = new AbandonedWorkerRoot();
+    return *root;
+}
+
+// Puts an abandoned worker under the root. A refused allocation leaves it
+// out (only a leak checker's report differs).
+void keep_abandoned_worker(const std::shared_ptr<detail::ContentWorkerShared>& shared) noexcept {
+    AbandonedWorkerRoot& root = abandoned_worker_root();
+    try {
+        const std::scoped_lock lock(root.mutex);
+        root.workers.push_back(shared);
+    } catch (...) {
+        static_cast<void>(0);
+    }
+}
+
+struct SameWorker final {
+    const detail::ContentWorkerShared* shared{};
+    bool operator()(const std::shared_ptr<detail::ContentWorkerShared>& held) const noexcept {
+        return held.get() == shared;
+    }
+};
+
+// Takes a finished abandoned worker out of the root.
+void release_abandoned_worker(const detail::ContentWorkerShared& shared) noexcept {
+    AbandonedWorkerRoot& root = abandoned_worker_root();
+    const std::scoped_lock lock(root.mutex);
+    const std::vector<std::shared_ptr<detail::ContentWorkerShared>>::iterator found =
+        std::find_if(root.workers.begin(), root.workers.end(), SameWorker{&shared});
+    if (found != root.workers.end()) root.workers.erase(found);
+}
+
+// The library's record of the calling thread (see thread_record), or null.
+// libc++ keeps it in the thread's storage, out of a leak checker's reach.
+const void* current_thread_record() noexcept {
+#if defined(_LIBCPP_VERSION)
+    const void* const record = std::__thread_local_data().get();
+    return record;
+#else
+    return nullptr;
+#endif
+}
+
 // The worker thread's body: runs the program, destroys it on this thread,
 // then records the outcome and signals. An abandoned worker's outcome is not
 // recorded (its owner already reported abandoned); it only leaves the count.
@@ -51,6 +119,10 @@ public:
 
     void operator()() const noexcept {
         detail::ContentWorkerShared& shared = *shared_;
+        {
+            const std::scoped_lock lock(shared.mutex);
+            shared.thread_record = current_thread_record();
+        }
         ContentWorkerState outcome = ContentWorkerState::finished;
         std::string failure{};
         // Exceptions end at this boundary: they never cross into the owner's
@@ -79,6 +151,7 @@ public:
         }
         shared.finished.notify_all();
         if (abandoned) {
+            release_abandoned_worker(shared);
             abandoned_worker_count.fetch_sub(1U, std::memory_order_acq_rel);
             return;
         }
@@ -180,6 +253,12 @@ void ContentWorker::abandon() noexcept {
             (*shared_).abandoned = true;
             (*shared_).state = ContentWorkerState::abandoned;
             abandoned_worker_count.fetch_add(1U, std::memory_order_acq_rel);
+            // Left to the operating system under a named root
+            // (abandoned_worker_root). Kept under the worker's mutex, so the
+            // thread, which reads `abandoned` under it after setting done,
+            // takes itself out only after it was put in. Lock order: the
+            // worker's mutex, then the root's; the thread never holds both.
+            keep_abandoned_worker(shared_);
         }
     }
     if (join_if_done()) return;
