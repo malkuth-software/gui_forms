@@ -459,6 +459,11 @@ private:
     bool fail(DiagnosticCode code, std::uint32_t token, std::string detail);
     bool drop_unknown_functions(MaterialProperty property);
     [[nodiscard]] std::size_t next(std::size_t index) const noexcept;
+    // The token a "one value" problem is placed at: the second top-level
+    // component's, or the last component's when the value has no second
+    // (one function with arguments, or a lone component a shape needs two
+    // of: A-gf-core-15-F1). The value has at least one component.
+    [[nodiscard]] std::uint32_t after_first_token() const noexcept;
     [[nodiscard]] std::size_t count(ComponentRange range) const noexcept;
     void split(ComponentRange range, std::vector<ComponentRange>& parts) const;
     [[nodiscard]] bool keyword(std::size_t index, std::string_view lower_name) const noexcept;
@@ -597,6 +602,16 @@ bool MaterialReader::drop_unknown_functions(MaterialProperty property) {
 std::size_t MaterialReader::next(std::size_t index) const noexcept {
     const std::size_t after = value_.components[index].subtree_end;
     return after;
+}
+
+std::uint32_t MaterialReader::after_first_token() const noexcept {
+    const std::size_t second = next(0U);
+    if (second < value_.components.size()) {
+        const std::uint32_t token = value_.components[second].token;
+        return token;
+    }
+    const std::uint32_t last = value_.components.back().token;
+    return last;
 }
 
 std::size_t MaterialReader::count(ComponentRange range) const noexcept {
@@ -1447,7 +1462,7 @@ bool MaterialReader::lower_sides(std::size_t part) {
 
 bool MaterialReader::lower_edge_field(std::size_t edge, std::size_t part) {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one value");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one value");
     }
     MaterialDeclaration declaration{};
     declaration.field = edge_field(edge, part);
@@ -1676,7 +1691,7 @@ bool MaterialReader::lower_radii() {
 
 bool MaterialReader::lower_corner(std::size_t corner) {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_form_not_admitted, value_.components[next(0U)].token, "elliptical radii");
+        return fail(DiagnosticCode::value_form_not_admitted, after_first_token(), "elliptical radii");
     }
     MaterialDeclaration declaration{};
     declaration.field = corner_field(corner);
@@ -1940,7 +1955,7 @@ bool MaterialReader::lower_filter() {
 // number or a percentage.
 bool MaterialReader::lower_finish() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one amount");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one amount");
     }
     const ValueComponent& component = value_.components[0];
     if (component.kind == ValueComponentKind::expression) {
@@ -1991,7 +2006,7 @@ bool MaterialReader::lower_seat() {
 // Bayer matrix, `blue-noise` by the 64 x 64 blue-noise table.
 bool MaterialReader::lower_gradient_dither() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one dither");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one dither");
     }
     const ValueComponent& component = value_.components[0];
     MaterialDeclaration declaration{};
@@ -2268,7 +2283,7 @@ bool MaterialReader::lower_reflection() {
 
 bool MaterialReader::lower_background_colour() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one colour");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one colour");
     }
     MaterialDeclaration declaration{};
     declaration.field = MaterialField::background_colour;
@@ -2508,7 +2523,7 @@ bool MaterialReader::read_outline_width(std::size_t index, double& width) {
 // `color`: one colour, the recipe's text colour.
 bool MaterialReader::lower_text_colour() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one colour");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one colour");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::text);
     if (!read_colour(0U, declaration.colour)) return false;
@@ -2520,7 +2535,7 @@ bool MaterialReader::lower_text_colour() {
 // glyph colour (`field`).
 bool MaterialReader::lower_recipe_colour(RecipeField field) {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one colour");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one colour");
     }
     RecipeDeclaration declaration = recipe_declaration(field);
     if (!read_colour(0U, declaration.colour)) return false;
@@ -2532,7 +2547,7 @@ bool MaterialReader::lower_recipe_colour(RecipeField field) {
 // its hub, at most maximum_recipe_stroke_width.
 bool MaterialReader::lower_stroke_width() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one width");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one width");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::stroke_width);
     if (!read_width(0U, declaration.number)) return false;
@@ -2547,7 +2562,7 @@ bool MaterialReader::lower_stroke_width() {
 // `needle-shape`: `line`, `tapered` or `dot` (NeedleShape).
 bool MaterialReader::lower_needle_shape() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one needle shape");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one needle shape");
     }
     const ValueComponent& component = value_.components[0U];
     if (component.kind != ValueComponentKind::keyword) {
@@ -2633,7 +2648,7 @@ bool MaterialReader::lower_outline() {
 
 bool MaterialReader::lower_outline_style() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one outline style");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one outline style");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::outline_style);
     if (!read_outline_style(0U, declaration.outline_style)) return false;
@@ -2643,7 +2658,7 @@ bool MaterialReader::lower_outline_style() {
 
 bool MaterialReader::lower_outline_colour() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one colour");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one colour");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::outline_colour);
     if (!read_colour(0U, declaration.colour)) return false;
@@ -2653,7 +2668,7 @@ bool MaterialReader::lower_outline_colour() {
 
 bool MaterialReader::lower_outline_width() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one width");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one width");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::outline_width);
     if (!read_outline_width(0U, declaration.number)) return false;
@@ -2665,7 +2680,7 @@ bool MaterialReader::lower_outline_width() {
 // ±maximum_recipe_outline_offset. The theme's ring (`auto`) has none.
 bool MaterialReader::lower_outline_offset() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one length");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one length");
     }
     BoxLength length{};
     if (!read_length(0U, false, true, length)) return false;
@@ -2687,7 +2702,7 @@ bool MaterialReader::lower_outline_offset() {
 // a gap overlapping the parts it separates).
 bool MaterialReader::lower_part_length(RecipeField field, double minimum, double maximum) {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one length");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one length");
     }
     BoxLength length{};
     const bool negatives = minimum < 0.0;
@@ -2706,7 +2721,7 @@ bool MaterialReader::lower_part_length(RecipeField field, double minimum, double
 // length from minimum_stripe_pitch to maximum_stripe_pitch.
 bool MaterialReader::lower_stripe_pitch() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "auto or one length");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "auto or one length");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::stripe_pitch);
     if (keyword(0U, "auto")) {
@@ -2729,7 +2744,7 @@ bool MaterialReader::lower_stripe_pitch() {
 // range.
 bool MaterialReader::lower_stripe_number(RecipeField field, double minimum, double maximum) {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one number");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one number");
     }
     const ValueComponent& component = value_.components[0U];
     const bool plain = component.kind == ValueComponentKind::number && component.unit == ValueUnit::none;
@@ -2747,7 +2762,7 @@ bool MaterialReader::lower_stripe_number(RecipeField field, double minimum, doub
 // maximum_stripe_angle degrees.
 bool MaterialReader::lower_stripe_angle() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one angle");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one angle");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::stripe_angle);
     if (!read_angle(0U, declaration.number)) return false;
@@ -2763,7 +2778,7 @@ bool MaterialReader::lower_stripe_angle() {
 // (StripeSense).
 bool MaterialReader::lower_stripe_sense(RecipeField field) {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "forward or backward");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "forward or backward");
     }
     const ValueComponent& component = value_.components[0U];
     if (component.kind != ValueComponentKind::keyword) {
@@ -2784,7 +2799,7 @@ bool MaterialReader::lower_stripe_sense(RecipeField field) {
 // `stripe-gloss`: `auto` or `none` (StripeGloss).
 bool MaterialReader::lower_stripe_gloss() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "auto or none");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "auto or none");
     }
     const ValueComponent& component = value_.components[0U];
     if (component.kind != ValueComponentKind::keyword) {
@@ -2805,7 +2820,7 @@ bool MaterialReader::lower_stripe_gloss() {
 // `stripe-reduced-motion`: `still` or `none` (StripeReducedMotion).
 bool MaterialReader::lower_stripe_reduced_motion() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "still or none");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "still or none");
     }
     const ValueComponent& component = value_.components[0U];
     if (component.kind != ValueComponentKind::keyword) {
@@ -2904,7 +2919,7 @@ bool MaterialReader::lower_halo() {
 // (CanvasFlowStyle).
 bool MaterialReader::lower_flow_style() {
     if (next(0U) < value_.components.size()) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "none, dots or dashes");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "none, dots or dashes");
     }
     const ValueComponent& component = value_.components[0U];
     if (component.kind != ValueComponentKind::keyword) {
@@ -3080,9 +3095,9 @@ bool MaterialReader::lower_part_shape(RecipeField length_field, RecipeField colo
         coloured = true;
         if (!read_colour(index, colour.colour)) return false;
     }
-    if (!sized) return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "a length");
+    if (!sized) return fail(DiagnosticCode::value_syntax, after_first_token(), "a length");
     if (colour_required && !coloured) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "a length and a colour");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "a length and a colour");
     }
     colour.initial = !coloured;
     lowering_.recipe_fields.push_back(length);
@@ -3232,7 +3247,7 @@ bool MaterialReader::lower_font_family() {
 // bounded when it resolves).
 bool MaterialReader::lower_font_size() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one length");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one length");
     }
     BoxLength length{};
     if (!read_length(0U, false, false, length)) return false;
@@ -3253,7 +3268,7 @@ bool MaterialReader::lower_font_size() {
 // draw, is refused.
 bool MaterialReader::lower_font_style() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_form_not_admitted, value_.components[next(0U)].token, "normal or italic");
+        return fail(DiagnosticCode::value_form_not_admitted, after_first_token(), "normal or italic");
     }
     const ValueComponent& component = value_.components[0];
     if (component.kind != ValueComponentKind::keyword) {
@@ -3276,7 +3291,7 @@ bool MaterialReader::lower_font_style() {
 // 900. bolder and lighter, relative to a parent's weight, are refused.
 bool MaterialReader::lower_font_weight() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one weight");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one weight");
     }
     const ValueComponent& component = value_.components[0];
     RecipeDeclaration declaration = recipe_declaration(RecipeField::font_weight);
@@ -3311,7 +3326,7 @@ bool MaterialReader::lower_font_weight() {
 // em (of the resolved size); valid_font_spec bounds it at that size.
 bool MaterialReader::lower_letter_spacing() {
     if (value_.components.size() != 1U) {
-        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one length");
+        return fail(DiagnosticCode::value_syntax, after_first_token(), "one length");
     }
     RecipeDeclaration declaration = recipe_declaration(RecipeField::letter_spacing);
     if (keyword(0U, "normal")) {

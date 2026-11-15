@@ -3971,7 +3971,14 @@ void CompilePass::report(DiagnosticCode code, std::uint32_t token, std::string d
     ThemeDiagnostic diagnostic{};
     diagnostic.code = code;
     diagnostic.file = std::string(input_.source.file);
-    const ByteOffset offset = tokens_.tokens.empty() ? ByteOffset{} : tokens_.tokens[token].offset;
+    // A token past the table (a reader's mistake, as A-gf-core-15-F1 was)
+    // is placed at the sheet's last token rather than read past the table.
+    ByteOffset offset{};
+    if (token < tokens_.tokens.size()) {
+        offset = tokens_.tokens[token].offset;
+    } else if (!tokens_.tokens.empty()) {
+        offset = tokens_.tokens.back().offset;
+    }
     diagnostic.position = cursor_.locate(offset);
     diagnostic.rule = rule_;
     diagnostic.property = property_;

@@ -925,6 +925,31 @@ void test_refusals() {
             "an unknown filter function drops the declaration with a warning");
 }
 
+// A-gf-core-15-F1: a "one value" problem whose value has no second
+// top-level component (one function with arguments, or a part shape
+// missing its length or colour) is refused and placed inside the value,
+// not at a component read past the value's end. Each sheet is compiled
+// first, so nothing earlier left a longer value in the storage past it.
+void test_one_value_without_a_second() {
+    const std::array<std::string_view, 6> sheets{{
+        "#a { outline-width: blur(2px) }",
+        "#a { border-top-color: linear-gradient(red, blue) }",
+        "#pad::part(face) { taper: red }",
+        "#pad::part(face) { flare: red }",
+        "#pad::part(face) { edge-shadow: 10px }",
+        "#pad::part(face) { edge-shadow: red }",
+    }};
+    for (const std::string_view sheet : sheets) {
+        const Compilation compiled = compile(sheet);
+        require(!compiled.diagnostics.empty(), std::string("a problem is reported: ") + std::string(sheet));
+        const ThemeDiagnostic& last = compiled.diagnostics.back();
+        require(last.position.offset.value < sheet.size(),
+                std::string("the problem is placed inside the sheet: ") + std::string(sheet));
+        require(compiled.outcome == CompileOutcome::refused || last.code == DiagnosticCode::unknown_function,
+                std::string("the value is refused: ") + std::string(sheet));
+    }
+}
+
 // -- the gate: a sheet and C++ bake the same pixels ------------------------------------
 
 class RasterWatch final : public Painter {
@@ -1286,6 +1311,7 @@ void test_gate() {
 } // namespace
 
 int main() {
+    test_one_value_without_a_second();
     test_placement();
     test_linear_geometry();
     test_radial_geometry();
