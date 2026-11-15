@@ -737,6 +737,33 @@ void writable_arrays() {
     fields.release();
 }
 
+// A-gf-abi-02-F8: an object element of a collection is read through a
+// scratch frame; the identity it lends must outlive that scratch and stay
+// valid until the event's frame is released. The control here is unknown to
+// the registry when the element is read, so the read makes its identity.
+void object_element_identity(const Tables& tables) {
+    const abi1::SlotIdentity slot{GF_TABLE_EVENTS, 0U};
+    const gf_object made = create(tables, "button", "fields.element_button");
+    const std::shared_ptr<Button> button = control_of<Button>(made);
+    require_ok(tables.objects.release(made), "release the made handle; the test's pointer keeps the button");
+    const std::vector<const Control*> items{button.get()};
+    abi1::EventFields fields;
+    require(fields.claim(), "fresh fields are claimed");
+    abi1::append_field(fields, "items", items);
+    gf_event event{};
+    fields.publish(event, false);
+    gf_value element = blank_value(GF_VALUE_KIND_NULL);
+    require(fields.element(0U, 0U, &element, slot) == GF_STATUS_OK && element.kind == GF_VALUE_KIND_OBJECT &&
+                element.unsigned_integer != 0U,
+            "an object element reads as an identity");
+    const gf_object lent = static_cast<gf_object>(element.unsigned_integer);
+    require(tables.objects.retain(lent) == GF_STATUS_OK, "the element's identity is live after the read");
+    require_ok(tables.objects.release(lent), "give back the test's reference");
+    fields.end_publication();
+    fields.release();
+    require(tables.objects.retain(lent) == GF_STATUS_STALE_HANDLE, "the frame's release ends the identity");
+}
+
 // A-gf-abi-02-F1: a COLLECTION written to an any-kind field (a Binding's
 // format or parse value, a grid cell's formatted value) is converted when it
 // is written. The caller's elements and their texts live only for the
@@ -1027,6 +1054,7 @@ int main(int argc, char** argv) {
         plot_camera(tables);
         writable_arrays();
         any_kind_collection_write();
+        object_element_identity(tables);
         key_events(tables);
         emission_allocations(tables);
         failure_statuses();

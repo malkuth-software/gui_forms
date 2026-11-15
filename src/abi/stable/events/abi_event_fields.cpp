@@ -279,6 +279,15 @@ gf_object EventFields::lend(const Component* object) {
     return lent;
 }
 
+void EventFields::take_lent(EventFields& from) {
+    if (from.lent_.empty()) {
+        return;
+    }
+    detail::reserve_at_least(lent_, lent_.size() + from.lent_.size());
+    lent_.insert(lent_.end(), from.lent_.begin(), from.lent_.end());
+    from.lent_.clear();
+}
+
 std::size_t EventFields::count() const noexcept {
     return fields_.size();
 }

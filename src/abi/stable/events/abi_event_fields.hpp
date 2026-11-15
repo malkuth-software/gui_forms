@@ -135,6 +135,10 @@ public:
     // Lends object an identity for the frame: a control owned by a shared
     // pointer, or a component the registry already knows. Zero otherwise.
     [[nodiscard]] gf_object lend(const Component* object);
+    // Moves the identities `from` has lent into this frame, which then gives
+    // them back at its release instead. Reserves first: std::bad_alloc
+    // leaves both as they were.
+    void take_lent(EventFields& from);
     // The fields appended since mark: an empty optional is one field.
     [[nodiscard]] std::size_t count() const noexcept;
     // Marks the fields appended since mark as an optional named name. When
@@ -687,6 +691,10 @@ bool read_element(EventFields& fields, const void* items, std::size_t index, gf_
     if (!scratch.single(single, text)) {
         return false;
     }
+    // An object element's identity was lent by scratch; the frame keeps it
+    // (A-gf-abi-02-F8), or it would end with scratch before the caller
+    // reads it.
+    fields.take_lent(scratch);
     out = single;
     // A nested collection's lent elements end with scratch: not lent here.
     out.elements = nullptr;
