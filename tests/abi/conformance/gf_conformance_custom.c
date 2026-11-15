@@ -360,7 +360,8 @@ static void paint_endpoint(gf_kit* kit) {
 }
 
 /* A composite control's document (since 1.5): a property its title child
- * shows, a boolean a command toggles and whose change raises an event,
+ * shows, a boolean a command toggles (reached as the press semantic
+ * action, so E912 does not refuse it) and whose change raises an event,
  * and a button child. */
 static const char kit_card_document[] =
     "<control xmlns=\"urn:gui-forms:control:1\" name=\"kit-card\" version=\"1.0\"\n"
@@ -369,7 +370,8 @@ static const char kit_card_document[] =
     "  <property name=\"checked\" kind=\"boolean\" default=\"false\" category=\"Behavior\"\n"
     "            changed=\"checked-changed\"/>\n"
     "  <event name=\"checked-changed\" payload=\"boolean\"/>\n"
-    "  <command name=\"toggle\" enabled=\"enabled(self)\" run=\"toggle(checked)\"/>\n"
+    "  <command name=\"toggle\" enabled=\"enabled(self)\" run=\"toggle(checked)\"\n"
+    "           semantic-action=\"press\"/>\n"
     "  <part name=\"face\" role=\"face\" box=\"inset(region, 0)\"/>\n"
     "  <children>\n"
     "    <flex-panel id=\"@header\" dock=\"top\">\n"
