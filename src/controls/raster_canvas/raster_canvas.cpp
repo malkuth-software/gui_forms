@@ -2,6 +2,7 @@
 
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../basic/number_text.hpp"
 
 #include <array>
 #include <algorithm>
@@ -376,9 +377,13 @@ SemanticDescriptor RasterCanvas::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
     if (bitmap_) {
-        descriptor.value = std::to_string((*bitmap_).width()) + " x " +
-            std::to_string((*bitmap_).height()) + " at " +
-            std::to_string(zoom_ * 100.0) + "%";
+        // std::to_string(double) is "%f" in the C locale a program may set;
+        // this is the same text in the C locale's form (A-gf-controls-11-F5).
+        std::string value = std::to_string((*bitmap_).width()) + " x " +
+            std::to_string((*bitmap_).height()) + " at ";
+        number_text::append_number_text(value, zoom_ * 100.0, std::chars_format::fixed, 6);
+        value += "%";
+        descriptor.value = value;
     }
     descriptor.exposed = bitmap_ != nullptr || !descriptor.name.empty() ||
                          !descriptor.description.empty();

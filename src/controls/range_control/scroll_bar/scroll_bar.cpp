@@ -12,7 +12,6 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <sstream>
 #include <stdexcept>
 #include <utility>
 
@@ -472,9 +471,12 @@ SemanticDescriptor ScrollBar::semantic_descriptor() const {
     descriptor.role = SemanticRole::scroll_bar;
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
-    std::ostringstream value_text;
-    value_text << value.read();
-    descriptor.value = value_text.str();
+    // A default stream writes "%g" in the global C++ locale; this is that
+    // text in the C locale's form, which set_value parses back
+    // (A-gf-controls-11-F5).
+    std::string value_text;
+    number_text::append_number_text(value_text, value.read(), std::chars_format::general, 6);
+    descriptor.value = value_text;
     descriptor.numeric_value = value.read();
     descriptor.minimum_value = minimum.read();
     descriptor.maximum_value = maximum.read();
