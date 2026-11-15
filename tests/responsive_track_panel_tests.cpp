@@ -407,6 +407,30 @@ void test_track_settings_as_properties() {
             "track settings: orientation and gap by name");
 }
 
+// A-gf-controls-12-F2: a child that answers more than the solver's limit
+// (1,000,000) along the main axis is clamped to it; layout neither throws
+// nor refuses the form.
+void test_oversized_demand_is_clamped() {
+    std::shared_ptr<ResponsiveTrackPanel> panel =
+        make_control<ResponsiveTrackPanel>(StableId("responsive.huge"));
+    (*panel).set_track_specs({{ResponsiveTrackSizeMode::content, 0.0, 10.0, 0.0, 1.0}});
+    std::shared_ptr<Panel> tall = make_control<Panel>(StableId("responsive.huge.tall"));
+    (*tall).set_requested_bounds({0.0, 0.0, 2'000'000.0, 20.0});
+    (*panel).add_child(tall);
+    bool threw = false;
+    try {
+        Window window(panel, {300.0, 60.0});
+        window.perform_layout();
+        const ResponsiveLayoutSnapshot snapshot = (*panel).layout_snapshot();
+        require(snapshot.resolution.tracks.size() == 1U &&
+                    snapshot.resolution.tracks[0].measured_content <= 1'000'000.0,
+                "an oversized demand reaches the solver clamped to its limit");
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(!threw, "an oversized child demand must not make layout throw");
+}
+
 int main() {
     test_fixed_content_remaining_gap_minimum_and_maximum();
     test_content_shrink_precedes_authored_collapse();
@@ -417,6 +441,7 @@ int main() {
     test_invalid_specs_reject_atomically();
     test_child_track_child_property();
     test_track_settings_as_properties();
+    test_oversized_demand_is_clamped();
     std::cout << "responsive-track-panel-tests: pass\n";
     return EXIT_SUCCESS;
 }

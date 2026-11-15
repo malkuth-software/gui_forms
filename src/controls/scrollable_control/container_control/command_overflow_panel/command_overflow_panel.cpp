@@ -11,12 +11,14 @@
 #include <array>
 #include <charconv>
 #include <cmath>
+#include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace gui_forms {
 namespace {
@@ -27,6 +29,20 @@ using GroupSpecMap =
     std::unordered_map<std::uint64_t, CommandOverflowGroupSpec>;
 
 constexpr std::size_t maximum_command_groups = 32U;
+// resolve_responsive_tracks' limit for an extent and for a measured demand
+// (maximum_track_extent in responsive_track_panel.cpp).
+constexpr double maximum_solver_extent = 1'000'000.0;
+
+// An extent or demand as the solver takes it: a max-content query's
+// practical_unbounded_extent (1e9), or a child answering more than the
+// solver's limit, is clamped to the limit instead of making measure and
+// arrange throw (A-gf-controls-12-F2). Smaller values pass through; NaN
+// becomes 0.
+[[nodiscard]] double solver_extent(const double extent) noexcept {
+    if (!(extent > 0.0)) return 0.0;
+    const double bounded = std::min(extent, maximum_solver_extent);
+    return bounded;
+}
 constexpr double maximum_extent = 1'000'000.0;
 
 [[nodiscard]] double bounded_maximum(
@@ -290,7 +306,7 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
         const GroupSpecMap::iterator found = group_specs_.find((*child).runtime_id().value);
         CommandOverflowGroupSpec spec;
         if (found == group_specs_.end()) {
-            spec.minimum = desired.width + horizontal_extent((*child).margin.read());
+            spec.minimum = solver_extent(desired.width + horizontal_extent((*child).margin.read()));
             spec.preferred = spec.minimum;
             spec.maximum = spec.minimum;
         } else {
@@ -298,8 +314,18 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
         }
         items.push_back({child, spec, desired, (*child).margin.read()});
     }
+    // The solver resolves at most 32 groups. Only authored group specs are
+    // refused at their write; a thirty-third visible child is admitted by
+    // add_child, so layout must not throw for it (that made every measure
+    // and arrange fail, inside host event delivery). The first 32 groups are
+    // resolved and every later child goes to the overflow, collapsed, which
+    // also shows the actuator (A-gf-controls-12-F3).
+    std::vector<Item> beyond;
     if (items.size() > maximum_command_groups) {
-        throw std::logic_error("CommandOverflowPanel retained group count exceeds 32");
+        const std::vector<Item>::iterator first_beyond =
+            items.begin() + static_cast<std::ptrdiff_t>(maximum_command_groups);
+        beyond.assign(std::make_move_iterator(first_beyond), std::make_move_iterator(items.end()));
+        items.erase(first_beyond, items.end());
     }
 
     std::vector<ResponsiveTrackSpec> tracks;
@@ -311,7 +337,7 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
                           item.spec.minimum, item.spec.preferred,
                           item.spec.maximum, 1.0, false,
                           item.spec.collapse_priority});
-        measured.push_back(item.desired.width + horizontal_extent(item.margin));
+        measured.push_back(solver_extent(item.desired.width + horizontal_extent(item.margin)));
     }
     Window* const owner = attached_window();
     const double device_scale = owner == nullptr ? 1.0 : (*owner).scale();
@@ -335,10 +361,10 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
     resolution.gap = group_gap.read();
     resolution.device_scale = device_scale;
     if (!tracks.empty()) {
-        resolution = resolve_responsive_tracks(tracks, measured, inner.width, group_gap.read(), device_scale,
-                                               protected_tracks);
+        resolution = resolve_responsive_tracks(tracks, measured, solver_extent(inner.width), group_gap.read(),
+                                               device_scale, protected_tracks);
     }
-    bool needs_actuator = !resolution.collapse_order.empty();
+    bool needs_actuator = !resolution.collapse_order.empty() || !beyond.empty();
     const Control::Ptr actuator = overflow_actuator_.lock();
     Size actuator_desired{};
     Insets actuator_margin{};
@@ -351,12 +377,12 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
     if (needs_actuator && actuator) {
         const double reserved = actuator_extent + (items.empty() ? 0.0 : group_gap.read());
         resolution = resolve_responsive_tracks(
-            tracks, measured, std::max(0.0, inner.width - reserved),
+            tracks, measured, solver_extent(inner.width - reserved),
             group_gap.read(), device_scale, protected_tracks);
         needs_actuator = true;
         if (assign && focused_track && resolution.overflow && owner != nullptr) {
             ResponsiveTrackResolution alternative = resolve_responsive_tracks(
-                tracks, measured, std::max(0.0, inner.width - reserved),
+                tracks, measured, solver_extent(inner.width - reserved),
                 group_gap.read(), device_scale);
             if (alternative.tracks[*focused_track].collapsed() &&
                 (*actuator).focusable.read() && (*owner).request_focus(actuator)) {
@@ -370,13 +396,18 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
     snapshot.group_gap = group_gap.read();
     snapshot.overflow_actuator_visible = needs_actuator && bool(actuator);
     snapshot.overflow = resolution.overflow || (needs_actuator && !actuator);
-    snapshot.groups.reserve(items.size());
+    snapshot.groups.reserve(items.size() + beyond.size());
     for (std::size_t index = 0U; index < items.size(); ++index) {
         snapshot.groups.push_back({
             std::string((*items[index].control).stable_id().value()),
             measured[index], resolution.tracks[index].allocated,
             resolution.tracks[index].collapsed(),
             items[index].spec.collapse_priority});
+    }
+    for (const Item& item : beyond) {
+        snapshot.groups.push_back({std::string((*item.control).stable_id().value()),
+                                   solver_extent(item.desired.width + horizontal_extent(item.margin)), 0.0, true,
+                                   item.spec.collapse_priority});
     }
     const double desired_groups = desired_track_extent(tracks, group_gap.read());
 
@@ -396,6 +427,10 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
                  inset.top + items[index].margin.top,
                  std::max(0.0, end - start - horizontal_extent(items[index].margin)),
                  std::max(0.0, inner.height - vertical_extent(items[index].margin))});
+        }
+        for (const Item& item : beyond) {
+            set_child_layout_collapsed(item.control, true);
+            set_child_layout(item.control, {inset.left, inset.top, 0.0, 0.0});
         }
         if (actuator) {
             set_child_layout_collapsed(actuator, !needs_actuator);

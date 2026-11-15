@@ -171,6 +171,18 @@ void write_child_track(Component& container, const Control& child, const Binding
 constexpr std::size_t maximum_responsive_tracks = 64U;
 constexpr double maximum_track_extent = 1'000'000.0;
 
+// An extent or demand as the solver takes it. Layout hands a max-content
+// query practical_unbounded_extent (1e9), and a child may answer a size above
+// the solver's limit; both mean "more than the solver resolves", so they are
+// clamped to maximum_track_extent rather than refused from measure or
+// arrange, which run inside host event delivery (A-gf-controls-12-F2).
+// Extents within the limit pass through unchanged; NaN becomes 0.
+[[nodiscard]] double solver_extent(const double extent) noexcept {
+    if (!(extent > 0.0)) return 0.0;
+    const double bounded = std::min(extent, maximum_track_extent);
+    return bounded;
+}
+
 [[nodiscard]] double bounded_maximum(const ResponsiveTrackSpec& spec) noexcept {
     return spec.maximum > 0.0 ? spec.maximum
                               : std::numeric_limits<double>::infinity();
@@ -673,7 +685,7 @@ ResponsiveTrackResolution ResponsiveTrackPanel::layout_children(
         std::max(0.0, available.height - vertical_extent(inset))};
     const bool horizontal =
         orientation.read() == ResponsiveTrackOrientation::horizontal;
-    const double main_extent = horizontal ? inner.width : inner.height;
+    const double main_extent = solver_extent(horizontal ? inner.width : inner.height);
 
     struct Item final {
         Control::Ptr control;
@@ -711,7 +723,7 @@ ResponsiveTrackResolution ResponsiveTrackPanel::layout_children(
         const double demand = horizontal
             ? desired.width + horizontal_extent(margin)
             : desired.height + vertical_extent(margin);
-        measured[track] = std::max(measured[track], demand);
+        measured[track] = std::max(measured[track], solver_extent(demand));
         items.push_back({child, track, desired, margin});
     }
 

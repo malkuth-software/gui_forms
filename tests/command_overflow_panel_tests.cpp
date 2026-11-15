@@ -11,6 +11,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <string>
 #include <variant>
@@ -151,11 +152,53 @@ void test_group_spec_child_property() {
     require(!shelf.group_spec[*fixture.selection].read(), "group spec: the value is dropped when the child leaves");
 }
 
+// A-gf-controls-12-F2 and F3: a child wider than the solver's limit is
+// clamped to it, and visible children past the 32 groups the solver resolves
+// go to the overflow, collapsed, instead of making every layout throw.
+void test_oversized_and_excess_children_lay_out() {
+    Fixture fixture;
+    std::shared_ptr<Panel> wide = make_control<Panel>(StableId("overflow.shelf.wide"));
+    (*wide).set_requested_bounds({0.0, 0.0, 2'000'000.0, 40.0});
+    (*fixture.shelf).add_child(wide);
+    bool threw = false;
+    try {
+        fixture.window.perform_layout();
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    require(!threw, "a child wider than the solver's limit must not make layout throw");
+    const CommandOverflowSnapshot clamped = (*fixture.shelf).layout_snapshot();
+    require(clamped.groups.size() == 3U && clamped.groups[2].measured <= 1'000'000.0,
+            "the oversized child reaches the solver clamped to its limit");
+
+    std::vector<std::shared_ptr<Panel>> extra;
+    for (int index = 0; index < 32; ++index) {
+        std::shared_ptr<Panel> group =
+            make_control<Panel>(StableId("overflow.shelf.extra-" + std::to_string(index)));
+        (*group).set_requested_bounds({0.0, 0.0, 4.0, 40.0});
+        (*fixture.shelf).add_child(group);
+        extra.push_back(group);
+    }
+    threw = false;
+    try {
+        fixture.window.perform_layout();
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    require(!threw, "more than 32 visible children must not make layout throw");
+    const CommandOverflowSnapshot excess = (*fixture.shelf).layout_snapshot();
+    require(excess.groups.size() == 35U && excess.groups[34].collapsed &&
+                excess.groups[34].stable_id == "overflow.shelf.extra-31" &&
+                (*extra.back()).layout_collapsed() && excess.overflow_actuator_visible,
+            "children past the 32nd group are collapsed into the overflow and show the actuator");
+}
+
 int main() {
     try {
         test_full_and_collapsed_projection();
         test_focus_protection_and_atomic_metadata();
         test_group_spec_child_property();
+        test_oversized_and_excess_children_lay_out();
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
         std::cerr << "command_overflow_panel_tests: " << error.what() << '\n';
