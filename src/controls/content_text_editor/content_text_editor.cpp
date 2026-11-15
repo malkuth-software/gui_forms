@@ -15,7 +15,11 @@
 #include <cstddef>
 #include <limits>
 #include <new>
+#include <optional>
+#include <stdexcept>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 namespace gui_forms {
 using namespace input_control_detail;
@@ -276,15 +280,22 @@ ContentFrameSink ContentTextEditor::open_frames(bool opaque) {
 std::optional<Rect> ContentTextEditor::caret_rectangle() const {
     if (!layout_current()) return std::nullopt;
     const std::optional<Rect> caret = caret_at((*editing_).selection().caret);
-    return caret;
+    if (!caret) return std::nullopt;
+    const Rect local = local_bounds(*caret);
+    return local;
 }
 
-std::vector<Rect> ContentTextEditor::selection_rectangles() const {
+std::optional<ContentQuad> ContentTextEditor::caret_quad() const {
+    if (!layout_current()) return std::nullopt;
+    const std::optional<Rect> caret = caret_at((*editing_).selection().caret);
+    if (!caret) return std::nullopt;
+    const ContentQuad quad = local_quad(*caret);
+    return quad;
+}
+
+std::vector<Rect> ContentTextEditor::range_boxes(Utf8Offset start, Utf8Offset end) const {
     std::vector<Rect> boxes{};
-    const TextSelection selection = (*editing_).selection();
-    if (!layout_current() || selection.empty()) return boxes;
-    const Utf8Offset start = selection.start();
-    const Utf8Offset end = selection.end();
+    if (!layout_current() || !(start < end)) return boxes;
     std::vector<ContentTextCluster>::const_iterator cluster =
         std::upper_bound(layout_.clusters.begin(), layout_.clusters.end(), start, EndsAfter{});
     for (; cluster != layout_.clusters.end() && (*cluster).range.start < end; ++cluster) {
@@ -300,9 +311,83 @@ std::vector<Rect> ContentTextEditor::selection_rectangles() const {
     return boxes;
 }
 
-Utf8Offset ContentTextEditor::position_at(Point local) const {
+ContentQuad ContentTextEditor::local_quad(Rect box) const {
+    const ContentLayoutTransform transform = layout_.transform ? *layout_.transform : ContentLayoutTransform{};
+    const ContentQuad quad = map_content_box(transform, box);
+    return quad;
+}
+
+Rect ContentTextEditor::local_bounds(Rect box) const {
+    // Without a transform the box is local already, exactly as given.
+    if (!layout_.transform) return box;
+    const Rect bounds = local_quad(box).bounds();
+    return bounds;
+}
+
+Point ContentTextEditor::layout_point(Point local) const {
+    if (!layout_.transform) return local;
+    // The inverse of a validated transform: its determinant is finite and
+    // not zero (validate_content_text_layout).
+    const ContentLayoutTransform& transform = *layout_.transform;
+    const double determinant = transform.determinant();
+    const double x = local.x - transform.dx;
+    const double y = local.y - transform.dy;
+    const double layout_x = (transform.yy * x - transform.xy * y) / determinant;
+    const double layout_y = (transform.xx * y - transform.yx * x) / determinant;
+    const Point point{layout_x, layout_y};
+    return point;
+}
+
+bool ContentTextEditor::paints_selection() const noexcept {
+    const bool turned = layout_.transform && !(*layout_.transform).axis_aligned();
+    const bool result = draws_selection_ && !turned;
+    return result;
+}
+
+std::vector<Rect> ContentTextEditor::selection_rectangles() const {
+    const TextSelection selection = (*editing_).selection();
+    std::vector<Rect> boxes = range_boxes(selection.start(), selection.end());
+    for (Rect& box : boxes) box = local_bounds(box);
+    return boxes;
+}
+
+std::vector<ContentQuad> ContentTextEditor::selection_quads() const {
+    const TextSelection selection = (*editing_).selection();
+    const std::vector<Rect> boxes = range_boxes(selection.start(), selection.end());
+    std::vector<ContentQuad> quads{};
+    quads.reserve(boxes.size());
+    for (const Rect& box : boxes) quads.push_back(local_quad(box));
+    return quads;
+}
+
+std::optional<Utf8Range> ContentTextEditor::composition_range() const {
+    const std::optional<Utf8Range> range = (*editing_).composition_range();
+    return range;
+}
+
+std::vector<Rect> ContentTextEditor::composition_rectangles() const {
+    std::vector<Rect> boxes{};
+    const std::optional<Utf8Range> range = (*editing_).composition_range();
+    if (!range) return boxes;
+    boxes = range_boxes((*range).start, (*range).end);
+    for (Rect& box : boxes) box = local_bounds(box);
+    return boxes;
+}
+
+std::vector<ContentQuad> ContentTextEditor::composition_quads() const {
+    std::vector<ContentQuad> quads{};
+    const std::optional<Utf8Range> range = (*editing_).composition_range();
+    if (!range) return quads;
+    const std::vector<Rect> boxes = range_boxes((*range).start, (*range).end);
+    quads.reserve(boxes.size());
+    for (const Rect& box : boxes) quads.push_back(local_quad(box));
+    return quads;
+}
+
+Utf8Offset ContentTextEditor::position_at(Point at) const {
     const Utf8Offset end = (*editing_).store().utf8_size();
     if (!layout_current() || layout_.lines.empty()) return end;
+    const Point local = layout_point(at);
     // The nearest line by its vertical distance from the point (0 inside
     // it); the first such line wins a tie.
     const std::size_t line_count = layout_.lines.size();
@@ -321,6 +406,26 @@ Utf8Offset ContentTextEditor::position_at(Point local) const {
     }
     const Utf8Offset position = position_on_line(nearest, local.x);
     return position;
+}
+
+void ContentTextEditor::set_accepts_tab(bool accepts) {
+    require_mutable();
+    accepts_tab_ = accepts;
+}
+
+bool ContentTextEditor::replace_selection(std::string_view replacement) {
+    require_mutable();
+    if (!validate_utf8(replacement).valid()) {
+        throw std::invalid_argument("ContentTextEditor::replace_selection: the replacement is not UTF-8");
+    }
+    const bool applied = (*editing_).replace_selection(replacement);
+    return applied;
+}
+
+bool ContentTextEditor::delete_selection() {
+    require_mutable();
+    const bool applied = (*editing_).delete_selection();
+    return applied;
 }
 
 void ContentTextEditor::set_edit_filter(Delegate<TextEdit&> filter) noexcept {
@@ -497,6 +602,18 @@ void ContentTextEditor::handle_key(KeyEvent& event) {
             event.handled = true;
         }
         // A single-line editor lets Enter go on to the accept button.
+        return;
+    }
+    if (event.physical_key == PhysicalKey::tab) {
+        // A multiline editor that accepts Tab inserts one (TextBox's
+        // accepts_tab); otherwise Tab goes on to focus navigation. A
+        // composition's Tab is the input method's, and a command chord is
+        // the window's.
+        const bool command = command_modifier(event.modifiers);
+        if (multiline_ && accepts_tab_ && !command && !(*editing_).composing()) {
+            if (!(*editing_).read_only()) static_cast<void>((*editing_).replace_selection("\t"));
+            event.handled = true;
+        }
         return;
     }
     if (event.physical_key == PhysicalKey::escape) {
@@ -692,7 +809,7 @@ void ContentTextEditor::on_paint(Painter& painter, Rect local_damage) {
         frame.live_surface = surface_;
         paint_part(painter, *this, frame);
     }
-    if (!draws_selection_ || !layout_current()) return;
+    if (!paints_selection() || !layout_current()) return;
     const std::vector<Rect> highlight = selection_rectangles();
     for (const Rect& box : highlight) {
         PartPaint plate;
@@ -757,7 +874,7 @@ SemanticTextResult ContentTextEditor::on_semantic_text_layout(SemanticTextLayout
     if (layout_current()) {
         layout.lines.reserve(layout_.lines.size());
         for (const ContentTextLine& line : layout_.lines) {
-            layout.lines.push_back({.range = line.range, .bounds = rectangle_to_window(line.bounds)});
+            layout.lines.push_back({.range = line.range, .bounds = rectangle_to_window(local_bounds(line.bounds))});
         }
         for (const ContentTextCluster& cluster : layout_.clusters) {
             Utf8Offset cursor = cluster.range.start;
@@ -769,7 +886,7 @@ SemanticTextResult ContentTextEditor::on_semantic_text_layout(SemanticTextLayout
                                cluster.bounds.height};
                 const TextRange<Utf8Offset> range{cursor, next};
                 layout.graphemes.push_back(
-                    {.range = range, .line = LineIndex(cluster.line), .bounds = rectangle_to_window(box)});
+                    {.range = range, .line = LineIndex(cluster.line), .bounds = rectangle_to_window(local_bounds(box))});
                 cursor = next;
             }
         }

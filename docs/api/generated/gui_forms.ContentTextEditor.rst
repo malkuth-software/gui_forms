@@ -54,6 +54,8 @@ gui_forms::ContentTextEditor
          Whether Enter inserts a line break and Up, Down, Home and End move by the
          layout's lines (:cpp:func:`set_multiline <gui_forms::ContentTextEditor::set_multiline>`); false by default.
 
+      **accepts_tab** : ``bool``
+
       **can_redo** : ``bool``, read-only
          Whether redo would change the text.
 
@@ -70,6 +72,18 @@ gui_forms::ContentTextEditor
       **selection_rectangles** : ``std::vector<Rect>``, read-only
          The selection's boxes in local coordinates, one for each part of a
          cluster it covers.
+
+      **caret_quad** : ``std::optional<ContentQuad>``, read-only
+         The same boxes as quads (ContentQuad), mapped by the layout's transform: exact for turned or sheared text, where caret_rectangle and selection_rectangles give each quad's axis-aligned bounds. Without a transform a quad's corners are its rectangle's.
+
+      **selection_quads** : ``std::vector<ContentQuad>``, read-only
+
+      **composition_range** : ``std::optional<Utf8Range>``, read-only
+         The input method's unfinished composition (marked text) as a range of the text, for a consumer that draws the text and underlines it: set while a composition is open and the text has not changed by another edit since its last update, none otherwise. It changes only with the text, so read it after text_changed. composition_rectangles and composition_quads are its boxes by the current layout (empty without one), as the selection's.
+
+      **composition_rectangles** : ``std::vector<Rect>``, read-only
+
+      **composition_quads** : ``std::vector<ContentQuad>``, read-only
 
       **draws_selection** : ``bool``
          Whether the editor draws the selection highlight and the caret over the
@@ -111,6 +125,10 @@ gui_forms::ContentTextEditor
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`replace_selection <gui_forms::ContentTextEditor::replace_selection>`
+        - Programmatic edits at the selection, for a consumer's own commands (a ribbon's Delete, an inserted symbol): replace_selection puts ``replacement`` (UTF-8) in place of the selection, or inserts it at the caret when the selection is empty, and leaves the caret after it; delete_selection removes a non-empty selection.
+      * - :cpp:func:`delete_selection <gui_forms::ContentTextEditor::delete_selection>`
+        -  
       * - :cpp:func:`redo <gui_forms::ContentTextEditor::redo>`
         - Redoes the last undone edit; returns whether the text changed.
       * - :cpp:func:`submit_layout <gui_forms::ContentTextEditor::submit_layout>`
@@ -202,6 +220,12 @@ gui_forms::ContentTextEditor
 
       Sets :cpp:func:`multiline <gui_forms::ContentTextEditor::multiline>`; see the property's description above.
 
+   .. cpp:function:: bool accepts_tab() const noexcept
+
+   .. cpp:function:: void set_accepts_tab(bool accepts)
+
+      Whether Tab inserts a tab in a multiline editor (Windows Forms' AcceptsTab, as TextBox's accepts_tab) instead of going on to focus navigation; false (the default) leaves Tab to the window. A single-line editor always lets Tab go on, and so does any editor while an input method composes or with Ctrl or Command held.
+
    .. cpp:function:: bool can_redo() const noexcept
 
       Whether redo would change the text.
@@ -223,6 +247,20 @@ gui_forms::ContentTextEditor
 
       The selection's boxes in local coordinates, one for each part of a
       cluster it covers.
+
+   .. cpp:function:: std::optional<ContentQuad> caret_quad() const
+
+      The same boxes as quads (ContentQuad), mapped by the layout's transform: exact for turned or sheared text, where caret_rectangle and selection_rectangles give each quad's axis-aligned bounds. Without a transform a quad's corners are its rectangle's.
+
+   .. cpp:function:: std::vector<ContentQuad> selection_quads() const
+
+   .. cpp:function:: std::optional<Utf8Range> composition_range() const
+
+      The input method's unfinished composition (marked text) as a range of the text, for a consumer that draws the text and underlines it: set while a composition is open and the text has not changed by another edit since its last update, none otherwise. It changes only with the text, so read it after text_changed. composition_rectangles and composition_quads are its boxes by the current layout (empty without one), as the selection's.
+
+   .. cpp:function:: std::vector<Rect> composition_rectangles() const
+
+   .. cpp:function:: std::vector<ContentQuad> composition_quads() const
 
    .. cpp:function:: bool draws_selection() const noexcept
 
@@ -260,6 +298,12 @@ gui_forms::ContentTextEditor
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: bool replace_selection(std::string_view replacement)
+
+      Programmatic edits at the selection, for a consumer's own commands (a ribbon's Delete, an inserted symbol): replace_selection puts ``replacement`` (UTF-8) in place of the selection, or inserts it at the caret when the selection is empty, and leaves the caret after it; delete_selection removes a non-empty selection. Each is one undo step and goes through the read-only state, the grapheme boundaries, the edit filter and the limits, as TextBox's do; it raises text_changed and layout_requested when the text changes, but not user_edit (which is the user's input alone). Return whether the edit was applied; false changes nothing (read-only, refused by the filter, an empty selection to delete). std::invalid_argument for a replacement that is not UTF-8.
+
+   .. cpp:function:: bool delete_selection()
 
    .. cpp:function:: bool redo()
 

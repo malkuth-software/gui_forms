@@ -2,6 +2,8 @@
 
 #include "gui_forms/text/text_store/text_store.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <limits>
 
@@ -97,7 +99,59 @@ constexpr std::size_t no_line = std::numeric_limits<std::size_t>::max();
     return ContentLayoutResult::accepted;
 }
 
+// Whether `transform` is finite and keeps the plane (a determinant that is
+// finite and not zero), so its inverse exists.
+[[nodiscard]] bool valid_transform(const ContentLayoutTransform& transform) noexcept {
+    const bool finite = std::isfinite(transform.xx) && std::isfinite(transform.xy) && std::isfinite(transform.yx) &&
+                        std::isfinite(transform.yy) && std::isfinite(transform.dx) && std::isfinite(transform.dy);
+    if (!finite) return false;
+    const double determinant = transform.determinant();
+    const bool result = std::isfinite(determinant) && determinant != 0.0;
+    return result;
+}
+
 } // namespace
+
+Point ContentLayoutTransform::map(Point point) const noexcept {
+    const double x = xx * point.x + xy * point.y + dx;
+    const double y = yx * point.x + yy * point.y + dy;
+    const Point mapped{x, y};
+    return mapped;
+}
+
+double ContentLayoutTransform::determinant() const noexcept {
+    const double result = xx * yy - xy * yx;
+    return result;
+}
+
+bool ContentLayoutTransform::axis_aligned() const noexcept {
+    const bool result = xy == 0.0 && yx == 0.0;
+    return result;
+}
+
+Rect ContentQuad::bounds() const noexcept {
+    double left = corners[0].x;
+    double right = corners[0].x;
+    double top = corners[0].y;
+    double bottom = corners[0].y;
+    for (const Point& corner : corners) {
+        left = std::min(left, corner.x);
+        right = std::max(right, corner.x);
+        top = std::min(top, corner.y);
+        bottom = std::max(bottom, corner.y);
+    }
+    const Rect result{left, top, right - left, bottom - top};
+    return result;
+}
+
+ContentQuad map_content_box(const ContentLayoutTransform& transform, Rect box) noexcept {
+    ContentQuad quad{};
+    quad.corners[0] = transform.map(Point{box.x, box.y});
+    quad.corners[1] = transform.map(Point{box.x + box.width, box.y});
+    quad.corners[2] = transform.map(Point{box.x + box.width, box.y + box.height});
+    quad.corners[3] = transform.map(Point{box.x, box.y + box.height});
+    return quad;
+}
 
 std::string_view content_layout_result_name(ContentLayoutResult result) noexcept {
     switch (result) {
@@ -122,6 +176,7 @@ ContentLayoutResult validate_content_text_layout(const ContentTextLayout& layout
         return ContentLayoutResult::refused_too_large;
     }
     if (layout.text_revision != revision) return ContentLayoutResult::stale_revision;
+    if (layout.transform && !valid_transform(*layout.transform)) return ContentLayoutResult::refused_geometry;
     const ContentLayoutResult lines = validate_lines(layout, text);
     if (lines != ContentLayoutResult::accepted) return lines;
     const ContentLayoutResult clusters = validate_clusters(layout, text);

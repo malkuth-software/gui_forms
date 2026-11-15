@@ -12,7 +12,9 @@
 #include "gui_forms/types.hpp"
 
 #include <cstddef>
+#include <array>
 #include <cstdint>
+#include <optional>
 #include <string_view>
 #include <vector>
 
@@ -51,6 +53,52 @@ struct GUI_FORMS_API ContentCaretStop final {
     Rect caret{};
 };
 
+// An affine map from a layout's own coordinates to the editor's local
+// coordinates, for text the consumer draws turned, scaled or sheared (a
+// rotated card's text, say): local.x = xx * x + xy * y + dx and
+// local.y = yx * x + yy * y + dy. The shape is that of a painter transform
+// (rotation, scale, shear and translation), so a consumer that draws through
+// one passes the same numbers here. Perspective and warps are not affine;
+// for them the consumer submits boxes already mapped, as bounding boxes.
+// The default is the identity.
+struct GUI_FORMS_API ContentLayoutTransform final {
+    double xx{1.0};
+    double xy{};
+    double yx{};
+    double yy{1.0};
+    double dx{};
+    double dy{};
+
+    // `point` (layout coordinates) in local coordinates.
+    [[nodiscard]] Point map(Point point) const noexcept;
+    // xx * yy - xy * yx: zero for a map that flattens the plane, which a
+    // layout refuses.
+    [[nodiscard]] double determinant() const noexcept;
+    // Whether the map keeps boxes axis-aligned (no rotation or shear: xy and
+    // yx are zero), so a box maps to a box.
+    [[nodiscard]] bool axis_aligned() const noexcept;
+    friend bool operator==(const ContentLayoutTransform& left, const ContentLayoutTransform& right) noexcept {
+        return left.xx == right.xx && left.xy == right.xy && left.yx == right.yx && left.yy == right.yy &&
+               left.dx == right.dx && left.dy == right.dy;
+    }
+};
+
+// A box of a layout mapped to local coordinates: its corners in the order
+// top-left, top-right, bottom-right, bottom-left of the unmapped box (a
+// parallelogram under a ContentLayoutTransform).
+struct GUI_FORMS_API ContentQuad final {
+    std::array<Point, 4> corners{};
+
+    // The smallest axis-aligned box holding the corners.
+    [[nodiscard]] Rect bounds() const noexcept;
+    friend bool operator==(const ContentQuad& left, const ContentQuad& right) noexcept {
+        return left.corners == right.corners;
+    }
+};
+
+// `box` (layout coordinates) mapped by `transform`.
+[[nodiscard]] GUI_FORMS_API ContentQuad map_content_box(const ContentLayoutTransform& transform, Rect box) noexcept;
+
 // A whole layout for one revision of the editor's text
 // (ContentTextEditor::text_revision). Lines and clusters are in text order;
 // caret stops, when given, ascend by offset and override the edge-derived
@@ -60,6 +108,12 @@ struct GUI_FORMS_API ContentTextLayout final {
     std::vector<ContentTextLine> lines{};
     std::vector<ContentTextCluster> clusters{};
     std::vector<ContentCaretStop> carets{};
+    // When set, every box above (lines, clusters, caret stops) is in the
+    // layout's own coordinates and this maps them to local coordinates: the
+    // editor's caret, selection, hit testing, input-method caret and
+    // published text layout follow the mapped text. Unset, the boxes are
+    // local coordinates, as before.
+    std::optional<ContentLayoutTransform> transform{};
 };
 
 // What validation found. Every result but `accepted` leaves the editor's
@@ -78,7 +132,8 @@ enum class ContentLayoutResult : std::uint8_t {
     // A cluster naming no line, lying outside its line's range, or empty;
     // or a line whose bytes its clusters do not cover contiguously.
     refused_cluster,
-    // A box that is not finite or has a negative size.
+    // A box that is not finite or has a negative size, or a transform that
+    // is not finite or whose determinant is zero (or not finite).
     refused_geometry,
     // Caret stops not ascending by offset.
     refused_caret,
@@ -89,7 +144,7 @@ enum class ContentLayoutResult : std::uint8_t {
 // Checks `layout` against `text` (the editor's text store) without keeping
 // either: counts first, then every range against the text's size and
 // grapheme boundaries, the order of lines and clusters, the coverage of each
-// line by its clusters, and every box. `revision` is the text's revision the
+// line by its clusters, every box and the transform. `revision` is the text's revision the
 // layout must name.
 [[nodiscard]] GUI_FORMS_API ContentLayoutResult validate_content_text_layout(const ContentTextLayout& layout,
                                                                              const TextStore& text,

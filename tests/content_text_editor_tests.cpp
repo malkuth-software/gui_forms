@@ -701,6 +701,155 @@ void resubmitting_the_same_revision_is_silent() {
             "resubmitting raises no event back to the consumer");
 }
 
+// Tab: a multiline editor that accepts Tab inserts one (TextBox's
+// accepts_tab); otherwise, single-line, while composing or with Ctrl, Tab
+// is not the editor's input.
+void tab_is_input_when_accepted() {
+    Fixture fixture = make_fixture("content-editor.tab", "ab");
+    Window& window = *fixture.window;
+    ContentTextEditor& editor = *fixture.editor;
+    editor.set_multiline(true);
+    require(window.request_focus(fixture.editor), "the editor takes focus");
+    place_caret(editor, 1U);
+    require(!editor.accepts_tab(), "Tab is not accepted by default");
+    static_cast<void>(press(window, PhysicalKey::tab));
+    require(editor.text() == "ab", "without accepts_tab Tab inserts nothing");
+    editor.set_accepts_tab(true);
+    if (window.focused_control() != fixture.editor) require(window.request_focus(fixture.editor), "focus again");
+    place_caret(editor, 1U);
+    require(press(window, PhysicalKey::tab) && editor.text() == "a\tb" && caret_of(editor) == 2U,
+            "an accepting multiline editor inserts a tab at the caret");
+    require(editor.undo() && editor.text() == "ab", "the tab is one undo step");
+    static_cast<void>(press(window, PhysicalKey::tab, Modifier::control));
+    require(editor.text() == "ab", "Ctrl+Tab is not input");
+    require(type(window, "k", true) && editor.text().find('k') != std::string::npos, "a composition opens");
+    const std::string composing = editor.text();
+    static_cast<void>(press(window, PhysicalKey::tab));
+    require(editor.text() == composing, "Tab during a composition is the input method's");
+    // An empty composition cancels it.
+    static_cast<void>(type(window, ""));
+    editor.set_text("ab");
+    editor.set_multiline(false);
+    if (window.focused_control() != fixture.editor) require(window.request_focus(fixture.editor), "focus again");
+    static_cast<void>(press(window, PhysicalKey::tab));
+    require(editor.text() == "ab", "a single-line editor never takes Tab");
+}
+
+// replace_selection and delete_selection: one undo step each, through the
+// read-only state and the filter, raising text_changed but not user_edit.
+void programmatic_edits_at_the_selection() {
+    std::shared_ptr<ContentTextEditor> editor =
+        make_control<ContentTextEditor>(StableId("content-editor.programmatic"), std::string("hello"));
+    std::vector<ContentUserEdit> edits{};
+    std::vector<std::string> texts{};
+    SubscriptionToken edit_token = (*editor).user_edit().subscribe(RecordUserEdits{&edits});
+    SubscriptionToken text_token = (*editor).text_changed().subscribe(RecordTexts{&texts});
+    place_caret(*editor, 5U);
+    require((*editor).replace_selection(" world") && (*editor).text() == "hello world" && caret_of(*editor) == 11U,
+            "an empty selection inserts at the caret, leaving the caret after the text");
+    (*editor).select(Utf8Offset(0U), Utf8Offset(5U));
+    require((*editor).replace_selection("HELLO") && (*editor).text() == "HELLO world",
+            "a selection is replaced");
+    (*editor).select(Utf8Offset(5U), Utf8Offset(11U));
+    require((*editor).delete_selection() && (*editor).text() == "HELLO", "delete_selection removes the selection");
+    require(!(*editor).delete_selection() && (*editor).text() == "HELLO", "an empty selection deletes nothing");
+    require(texts.size() == 3U && edits.empty(), "each edit raises text_changed and none raises user_edit");
+    require((*editor).undo() && (*editor).text() == "HELLO world", "each is one undo step");
+    bool refused = false;
+    try {
+        static_cast<void>((*editor).replace_selection(std::string_view("\xFF", 1U)));
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*editor).text() == "HELLO world", "a replacement that is not UTF-8 is refused");
+    (*editor).set_read_only(true);
+    place_caret(*editor, 0U);
+    require(!(*editor).replace_selection("x") && (*editor).text() == "HELLO world",
+            "a read-only editor refuses programmatic edits");
+    edit_token.disconnect();
+    text_token.disconnect();
+}
+
+// The composition range is public, with its boxes by the current layout.
+void composition_range_is_public() {
+    Fixture fixture = make_fixture("content-editor.marked", "ab");
+    Window& window = *fixture.window;
+    ContentTextEditor& editor = *fixture.editor;
+    require(window.request_focus(fixture.editor), "the editor takes focus");
+    place_caret(editor, 2U);
+    require(!editor.composition_range(), "no composition at first");
+    require(type(window, "kk", true) && editor.text() == "abkk", "a composition inserts its marked text");
+    const std::optional<Utf8Range> marked = editor.composition_range();
+    require(marked && (*marked).start.value() == 2U && (*marked).end.value() == 4U,
+            "the composition range is the marked text");
+    require(editor.composition_rectangles().empty(), "without a current layout it has no boxes");
+    require(submit_fixed(editor) == ContentLayoutResult::accepted, "the layout is accepted");
+    const std::vector<Rect> boxes = editor.composition_rectangles();
+    require(boxes.size() == 2U && near(boxes[0].x, origin_x + 2.0 * advance) && near(boxes[1].x, origin_x + 3.0 * advance),
+            "its boxes are its clusters'");
+    require(editor.composition_quads().size() == 2U && editor.composition_quads()[0].bounds() == boxes[0],
+            "its quads are its boxes without a transform");
+    require(type(window, "\xE3\x81\x8B") && !editor.composition_range(), "committing ends the composition");
+}
+
+// A layout transform: caret, selection, hit testing and the published
+// boxes follow the turned text.
+void transformed_layout_boxes() {
+    Fixture fixture = make_fixture("content-editor.turned", "ab");
+    ContentTextEditor& editor = *fixture.editor;
+    ContentTextLayout plain = fixed_layout(editor.text(), editor.text_revision());
+    require(editor.submit_layout(plain) == ContentLayoutResult::accepted, "the plain layout is accepted");
+    place_caret(editor, 1U);
+    const std::optional<Rect> plain_caret = editor.caret_rectangle();
+    require(plain_caret.has_value(), "the plain layout has a caret");
+    const std::optional<ContentQuad> plain_quad = editor.caret_quad();
+    require(plain_quad && (*plain_quad).bounds() == *plain_caret, "without a transform the quad is the rectangle");
+
+    // A quarter turn: local.x = 100 - y, local.y = x.
+    ContentLayoutTransform turn{};
+    turn.xx = 0.0;
+    turn.xy = -1.0;
+    turn.yx = 1.0;
+    turn.yy = 0.0;
+    turn.dx = 100.0;
+    turn.dy = 0.0;
+    ContentTextLayout turned = plain;
+    turned.transform = turn;
+    require(editor.submit_layout(turned) == ContentLayoutResult::accepted, "a turned layout is accepted");
+    const std::optional<ContentQuad> quad = editor.caret_quad();
+    require(quad && *quad == map_content_box(turn, *plain_caret), "the caret's quad is the mapped bar");
+    const std::optional<Rect> caret = editor.caret_rectangle();
+    require(caret && *caret == (*quad).bounds(), "caret_rectangle is the quad's bounds");
+    editor.select(Utf8Offset(0U), Utf8Offset(1U));
+    const std::vector<ContentQuad> selection = editor.selection_quads();
+    const Rect a_box{origin_x, origin_y, advance, line_height};
+    require(selection.size() == 1U && selection[0] == map_content_box(turn, a_box),
+            "the selection's quads are the mapped clusters");
+    // Hit testing through the inverse: the right part of 'b' in layout
+    // coordinates, mapped to local, is nearest the end of the text.
+    const Point inside_b{origin_x + advance + 8.0, origin_y + 5.0};
+    require(editor.position_at(turn.map(inside_b)).value() == 2U, "a press on the turned 'b' maps back to it");
+    const Point inside_a{origin_x + 2.0, origin_y + 5.0};
+    require(editor.position_at(turn.map(inside_a)).value() == 0U, "a press on the turned 'a' maps back to it");
+
+    ContentTextLayout flat = plain;
+    ContentLayoutTransform flattening{};
+    flattening.xx = 1.0;
+    flattening.xy = 2.0;
+    flattening.yx = 0.5;
+    flattening.yy = 1.0;
+    flat.transform = flattening;
+    require(editor.submit_layout(flat) == ContentLayoutResult::refused_geometry,
+            "a transform with a zero determinant is refused");
+    ContentTextLayout broken = plain;
+    ContentLayoutTransform not_finite{};
+    not_finite.dx = std::numeric_limits<double>::infinity();
+    broken.transform = not_finite;
+    require(editor.submit_layout(broken) == ContentLayoutResult::refused_geometry,
+            "a transform that is not finite is refused");
+    require(editor.position_at(turn.map(inside_b)).value() == 2U, "a refused layout leaves the turned one in force");
+}
+
 } // namespace
 
 int main() {
@@ -717,6 +866,10 @@ int main() {
         no_frames_paint_nothing_over_the_consumer();
         layouts_measured_outside_paint_or_after_it();
         resubmitting_the_same_revision_is_silent();
+        tab_is_input_when_accepted();
+        programmatic_edits_at_the_selection();
+        composition_range_is_public();
+        transformed_layout_boxes();
     } catch (const std::exception& error) {
         std::cerr << "content text editor tests failed: " << error.what() << '\n';
         return 1;

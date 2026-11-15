@@ -61,7 +61,12 @@ class TextEditingEngine;
 // Painting: the newest frame fills the client area; over it the editor
 // draws the selection highlight and the blinking caret from the layout,
 // unless set_draws_selection(false) leaves both to the consumer (who reads
-// caret_rectangle and selection_rectangles). Without frames (open_frames
+// caret_rectangle and selection_rectangles, or their quads). Under a layout
+// transform that turns or shears the boxes (ContentLayoutTransform::
+// axis_aligned is false) the editor draws neither, since its theme parts are
+// axis-aligned boxes: the consumer draws them from caret_quad and
+// selection_quads. A transform that only scales and moves keeps the editor's
+// own drawing, at the mapped boxes. Without frames (open_frames
 // never called, or no frame published yet) the editor paints nothing of its
 // content: the empty surface it registers with the window's presentation
 // has no frame for a host to show, and its own paint draws no fill, so a
@@ -108,6 +113,26 @@ public:
     // the layout's lines (true), or Enter passes on (false, the default).
     void set_multiline(bool multiline);
     [[nodiscard]] bool multiline() const noexcept { return multiline_; }
+    // Whether Tab inserts a tab in a multiline editor (Windows Forms'
+    // AcceptsTab, as TextBox's accepts_tab) instead of going on to focus
+    // navigation; false (the default) leaves Tab to the window. A
+    // single-line editor always lets Tab go on, and so does any editor while
+    // an input method composes or with Ctrl or Command held.
+    void set_accepts_tab(bool accepts);
+    [[nodiscard]] bool accepts_tab() const noexcept { return accepts_tab_; }
+    // Programmatic edits at the selection, for a consumer's own commands (a
+    // ribbon's Delete, an inserted symbol): replace_selection puts
+    // `replacement` (UTF-8) in place of the selection, or inserts it at the
+    // caret when the selection is empty, and leaves the caret after it;
+    // delete_selection removes a non-empty selection. Each is one undo step
+    // and goes through the read-only state, the grapheme boundaries, the edit
+    // filter and the limits, as TextBox's do; it raises text_changed and
+    // layout_requested when the text changes, but not user_edit (which is
+    // the user's input alone). Return whether the edit was applied; false
+    // changes nothing (read-only, refused by the filter, an empty selection
+    // to delete). std::invalid_argument for a replacement that is not UTF-8.
+    bool replace_selection(std::string_view replacement);
+    bool delete_selection();
     bool redo();
     [[nodiscard]] bool can_redo() const noexcept;
 
@@ -122,14 +147,33 @@ public:
     [[nodiscard]] std::shared_ptr<LiveSurface> live_surface() const noexcept { return surface_; }
 
     // The caret's bar in local coordinates, from the current layout; none
-    // without one.
+    // without one. With a layout transform, the bounds of its mapped quad.
     [[nodiscard]] std::optional<Rect> caret_rectangle() const;
     // The selection's boxes in local coordinates, one per cluster part it
-    // covers, from the current layout.
+    // covers, from the current layout. With a layout transform, the bounds
+    // of their mapped quads.
     [[nodiscard]] std::vector<Rect> selection_rectangles() const;
     // The text offset nearest `local` by the current layout (the end of the
-    // text without one).
+    // text without one). Under the layout's transform the point is mapped
+    // back into the layout's coordinates first, so hit testing follows the
+    // turned text.
     [[nodiscard]] Utf8Offset position_at(Point local) const;
+    // The same boxes as quads (ContentQuad), mapped by the layout's
+    // transform: exact for turned or sheared text, where caret_rectangle and
+    // selection_rectangles give each quad's axis-aligned bounds. Without a
+    // transform a quad's corners are its rectangle's.
+    [[nodiscard]] std::optional<ContentQuad> caret_quad() const;
+    [[nodiscard]] std::vector<ContentQuad> selection_quads() const;
+    // The input method's unfinished composition (marked text) as a range of
+    // the text, for a consumer that draws the text and underlines it: set
+    // while a composition is open and the text has not changed by another
+    // edit since its last update, none otherwise. It changes only with the
+    // text, so read it after text_changed. composition_rectangles and
+    // composition_quads are its boxes by the current layout (empty without
+    // one), as the selection's.
+    [[nodiscard]] std::optional<Utf8Range> composition_range() const;
+    [[nodiscard]] std::vector<Rect> composition_rectangles() const;
+    [[nodiscard]] std::vector<ContentQuad> composition_quads() const;
     void set_draws_selection(bool draws);
     [[nodiscard]] bool draws_selection() const noexcept { return draws_selection_; }
     // The edit filter (TextBox::set_edit_filter, with the same rules): it
@@ -221,6 +265,19 @@ private:
     [[nodiscard]] double boundary_x_on_line(std::size_t line, Utf8Offset offset) const;
     // The offset nearest `x` on line `line` of the current layout.
     [[nodiscard]] Utf8Offset position_on_line(std::size_t line, double x) const;
+    // The boxes of [start, end) in the layout's coordinates, one per cluster
+    // part it covers, from the current layout (empty without one).
+    [[nodiscard]] std::vector<Rect> range_boxes(Utf8Offset start, Utf8Offset end) const;
+    // A box of the current layout in local coordinates: unchanged without a
+    // transform, else the mapped quad (or its bounds).
+    [[nodiscard]] ContentQuad local_quad(Rect box) const;
+    [[nodiscard]] Rect local_bounds(Rect box) const;
+    // `local` in the current layout's coordinates (the inverse transform;
+    // unchanged without one).
+    [[nodiscard]] Point layout_point(Point local) const;
+    // Whether the editor draws its own highlight and caret: draws_selection
+    // and no layout transform that turns or shears.
+    [[nodiscard]] bool paints_selection() const noexcept;
     void reset_caret_blink();
     void toggle_caret();
     // Registers the newest frame (or an empty placeholder) with the window's
@@ -240,6 +297,7 @@ private:
     // The x the caret keeps across Up and Down; negative when unset.
     double preferred_x_{-1.0};
     bool multiline_{};
+    bool accepts_tab_{};
     bool draws_selection_{true};
     bool focused_{};
     bool selecting_{};

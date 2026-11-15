@@ -89,6 +89,10 @@ public:
     // Whether the last text input was an unfinished composition with text.
     [[nodiscard]] bool composing() const noexcept { return composing_; }
     void end_composition() noexcept { composing_ = false; }
+    // The unfinished composition's marked text: the range the last composing
+    // input inserted, while the composition is open and no other edit has
+    // changed the text since; none otherwise.
+    [[nodiscard]] std::optional<Utf8Range> composition_range() const noexcept;
 
     // Replaces the whole text without history: the caret goes to the end,
     // the history and any composition end. No host call.

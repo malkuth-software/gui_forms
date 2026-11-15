@@ -44,12 +44,16 @@ Types
      - One finished frame, described by the consumer for one publish call (ContentFrameSink::publish).
    * - :cpp:class:`ContentFrameSink <gui_forms::ContentFrameSink>`
      - The consumer's end of a content channel (ContentSurface::open_content): a handle any thread may hold, copy and call, for as long as it likes.
+   * - :cpp:class:`ContentLayoutTransform <gui_forms::ContentLayoutTransform>`
+     - An affine map from a layout's own coordinates to the editor's local coordinates, for text the consumer draws turned, scaled or sheared (a rotated card's text, say): local.x = xx * x + xy * y + dx and local.y = yx * x + yy * y + dy.
    * - :cpp:class:`ContentPixelRect <gui_forms::ContentPixelRect>`
      - A rectangle of a frame in whole device pixels: x and y are the top-left pixel, width and height the extent.
    * - :cpp:class:`ContentPixelSize <gui_forms::ContentPixelSize>`
      - A device size in whole pixels.
    * - :cpp:class:`ContentProgram <gui_forms::ContentProgram>`
      - A consumer's content operation, run on a thread GUI.Forms starts for it (ContentWorker).
+   * - :cpp:class:`ContentQuad <gui_forms::ContentQuad>`
+     - A box of a layout mapped to local coordinates: its corners in the order top-left, top-right, bottom-right, bottom-left of the unmapped box (a parallelogram under a ContentLayoutTransform).
    * - :cpp:class:`ContentRequest <gui_forms::ContentRequest>`
      - What the surface asks of its content: the device size it shows at and the display scale, under a generation that grows with every change.
    * - :cpp:class:`ContentSemantics <gui_forms::ContentSemantics>`
@@ -749,6 +753,48 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ContentLayoutTransform final
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   An affine map from a layout's own coordinates to the editor's local coordinates, for text the consumer draws turned, scaled or sheared (a rotated card's text, say): local.x = xx * x + xy * y + dx and local.y = yx * x + yy * y + dy. The shape is that of a painter transform (rotation, scale, shear and translation), so a consumer that draws through one passes the same numbers here. Perspective and warps are not affine; for them the consumer submits boxes already mapped, as bounding boxes. The default is the identity.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: double determinant() const noexcept
+
+      xx * yy - xy * yx: zero for a map that flattens the plane, which a layout refuses.
+
+   .. cpp:function:: bool axis_aligned() const noexcept
+
+      Whether the map keeps boxes axis-aligned (no rotation or shear: xy and yx are zero), so a box maps to a box.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: Point map(Point point) const noexcept
+
+      ``point`` (layout coordinates) in local coordinates.
+
+   .. cpp:member:: double xx
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double xy
+
+   .. cpp:member:: double yx
+
+   .. cpp:member:: double yy
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double dx
+
+   .. cpp:member:: double dy
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ContentPixelRect final
 
    ``#include <gui_forms/content/types/content_types.hpp>``
@@ -797,6 +843,23 @@ Types
    .. rubric:: Extension points
 
    .. cpp:function:: virtual void run(ContentContext& context) = 0
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ContentQuad final
+
+   ``#include <gui_forms/content/editing/content_text_layout.hpp>``
+
+   A box of a layout mapped to local coordinates: its corners in the order top-left, top-right, bottom-right, bottom-left of the unmapped box (a parallelogram under a ContentLayoutTransform).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Rect bounds() const noexcept
+
+      The smallest axis-aligned box holding the corners.
+
+   .. cpp:member:: std::array<Point, 4> corners
 
 .. cpp:namespace:: gui_forms
 
@@ -893,6 +956,10 @@ Types
    .. cpp:member:: std::vector<ContentTextCluster> clusters
 
    .. cpp:member:: std::vector<ContentCaretStop> carets
+
+   .. cpp:member:: std::optional<ContentLayoutTransform> transform
+
+      When set, every box above (lines, clusters, caret stops) is in the layout's own coordinates and this maps them to local coordinates: the editor's caret, selection, hit testing, input-method caret and published text layout follow the mapped text. Unset, the boxes are local coordinates, as before.
 
 .. cpp:namespace:: gui_forms
 
@@ -4070,11 +4137,15 @@ Functions, constants and aliases
 
 ``#include <gui_forms/content/editing/content_text_layout.hpp>``
 
+.. cpp:function:: ContentQuad map_content_box(const ContentLayoutTransform& transform, Rect box) noexcept
+
+   ``box`` (layout coordinates) mapped by ``transform``.
+
 .. cpp:function:: std::string_view content_layout_result_name(ContentLayoutResult result) noexcept
 
 .. cpp:function:: ContentLayoutResult validate_content_text_layout(const ContentTextLayout& layout, const TextStore& text, std::uint64_t revision)
 
-   Checks ``layout`` against ``text`` (the editor's text store) without keeping either: counts first, then every range against the text's size and grapheme boundaries, the order of lines and clusters, the coverage of each line by its clusters, and every box. ``revision`` is the text's revision the layout must name.
+   Checks ``layout`` against ``text`` (the editor's text store) without keeping either: counts first, then every range against the text's size and grapheme boundaries, the order of lines and clusters, the coverage of each line by its clusters, every box and the transform. ``revision`` is the text's revision the layout must name.
 
 .. cpp:var:: constexpr std::size_t maximum_content_layout_entries
 

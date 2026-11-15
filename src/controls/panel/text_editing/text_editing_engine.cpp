@@ -543,6 +543,15 @@ void TextEditingEngine::handle_key(KeyEvent& event) {
     }
 }
 
+std::optional<Utf8Range> TextEditingEngine::composition_range() const noexcept {
+    const bool marked_current = composing_ && store_.revision() == marked_revision_ &&
+                                marked_start_.value() <= marked_end_.value() &&
+                                marked_end_.value() <= store_.utf8_size().value();
+    if (!marked_current) return std::nullopt;
+    const Utf8Range range{marked_start_, marked_end_};
+    return range;
+}
+
 void TextEditingEngine::handle_text_input(TextInputEvent& event) {
     if (read_only_ || !validate_utf8(event.text_utf8).valid()) {
         return;
