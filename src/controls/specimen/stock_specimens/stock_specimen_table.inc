@@ -6,6 +6,7 @@
     {"drop_down_button", "Commands", Size{128.0, 32.0}, "Drop down button", &make_text<DropDownButton>, nullptr, ""},
     {"link_label", "Commands", Size{144.0, 32.0}, "Open the guide", &make_text<LinkLabel>, nullptr, ""},
     {"command_bar", "Commands", Size{320.0, 36.0}, "Command bar", &make_command_bar, nullptr, ""},
+    {"window_capsule", "Commands", Size{128.0, 32.0}, "Window capsule", &make_plain<WindowCapsule>, nullptr, ""},
     {"text_box", "Text editing", Size{224.0, 30.0}, "Harbour Quay", &make_text<TextBox>, nullptr, ""},
     {"token_box", "Text editing", Size{300.0, 32.0}, "Token box", &make_token_box, nullptr, ""},
     {"search_field", "Text editing", Size{224.0, 30.0}, "lighthouse", &make_text<SearchField>, nullptr, ""},

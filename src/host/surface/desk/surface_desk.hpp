@@ -18,9 +18,9 @@
 // (with the windows they own) and appear as tabs along the surface's bottom
 // edge, above the window band and below the popups.
 //
-// The window controls are the title bar's boxes or, by the theme's choice
-// (SurfaceFrameTheme::window_controls), the window capsule
-// (capsule/surface_capsule.hpp): the desk places the capsule's three
+// The window controls are the window capsule (the default,
+// gui_forms/controls/window_capsule.hpp) or, by the theme's choice
+// (SurfaceFrameTheme::window_controls), the title bar's boxes: the desk places the capsule's three
 // sections at the controls' end of the title bar and tiles windows to a
 // half of the surface for the capsule's move.
 
@@ -163,9 +163,9 @@ struct SurfaceFrameTheme final {
     // close outermost, then maximise, then minimise.
     double title_box_width{40.0};
     SurfaceControlsSide controls{SurfaceControlsSide::right};
-    // The boxes or the capsule. The boxes stay the default until the owner
-    // chooses (an open decision of 2026-11-15).
-    SurfaceWindowControls window_controls{SurfaceWindowControls::boxes};
+    // The capsule (the owner's choice of default, 2026-11-15) or the
+    // classic boxes.
+    SurfaceWindowControls window_controls{SurfaceWindowControls::capsule};
     // The capsule: its size, the question mark's middle section (at least
     // the capsule's height, so the halves' rounded inner ends lie under
     // it), and its gap from the controls' end of the title bar, centred
@@ -174,7 +174,7 @@ struct SurfaceFrameTheme final {
     double capsule_height{20.0};
     double capsule_help_width{20.0};
     double capsule_margin{6.0};
-    // The capsule's gestures (SurfaceCapsuleMeasures): the click slop, the
+    // The capsule's gestures (WindowCapsuleMeasures): the click slop, the
     // minimise drag, the snap zone at the surface's left and right edges
     // and its release distance, the animation, and the keyboard's move.
     double capsule_slop{4.0};
@@ -202,7 +202,9 @@ struct SurfaceFrameTheme final {
     std::uint32_t title_text{0xF0F0F0U};
     // The capsule's face and glyphs; the half that invites the close's
     // second click (green) and the X (red); the snap target shown during a
-    // move, drawn over the scene with snap_preview_alpha (0 to 255).
+    // move, drawn over the scene with snap_preview_alpha (0 to 255). These
+    // are defaults (2026-11-15), standing until the theme engine supplies
+    // frame and capsule colours.
     std::uint32_t capsule_face{0x3F3F46U};
     std::uint32_t capsule_glyph{0xF0F0F0U};
     std::uint32_t capsule_ready{0x2EA043U};

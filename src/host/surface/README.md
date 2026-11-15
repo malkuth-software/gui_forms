@@ -58,9 +58,10 @@ GUI.Forms' own window manager for hosts with one surface (owner decision,
 
 ## The window capsule
 
-The theme may show the window capsule in place of the boxes
+The window capsule is the default window controls (owner, 2026-11-15); the
+classic boxes stay available through the theme
 (`SurfaceFrameTheme::window_controls`). It is one control in three
-sections, worked by gestures (`capsule/surface_capsule.hpp`):
+sections, worked by gestures (`gui_forms/controls/window_capsule.hpp`):
 - **Left half.** A double click maximises or restores. Dragged down far
   enough, it minimises.
 - **Question mark.** A click opens the help; hovering it shows the window's
@@ -75,9 +76,14 @@ sections, worked by gestures (`capsule/surface_capsule.hpp`):
 
 Every action has a keyboard path: Alt+Space, then the arrows, Enter and
 Escape. The colours and the spring-back animate, and with reduced motion
-they change at once. The capsule is drawn from theme parts by a private
-control in the title strip (`CapsuleView`). The gestures are plain values,
-tested headless (`tests/surface_capsule_tests.cpp`).
+they change at once.
+
+`WindowCapsule` is a public, registered control with its own anatomy and
+theme parts. The manager shows one, not interactive, in each title strip
+and runs the gesture (`WindowCapsuleGesture`) in surface coordinates. A
+program without a title bar puts an interactive one in a corner of its
+own content and carries out its `requested` commands on its window. The
+gestures are tested headless (`tests/window_capsule_tests.cpp`).
 
 ## Tests
 

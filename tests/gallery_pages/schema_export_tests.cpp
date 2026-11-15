@@ -15,6 +15,7 @@
 #include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/virtual_rows_view.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/controls/plot_annotation_item.hpp"
@@ -1029,8 +1030,9 @@ void test_schema_export() {
     const std::shared_ptr<Toast> toast = make_control<Toast>(StableId("schema.toast"), std::move(toast_content));
     record_control(*toast, records);
     // Types no Gallery page shows yet: the plots and instruments packages'
-    // PlotView with its item children and Sparkline, the ValueBar and the
-    // VirtualRowsView (the NodeCanvas is on node-graphs). The
+    // PlotView with its item children and Sparkline, the ValueBar, the
+    // VirtualRowsView and the WindowCapsule (the NodeCanvas is on
+    // node-graphs). The
     // items have no anatomy of their own: they are recorded by their ids
     // with the base anatomy, as the C ABI describes them.
     const std::shared_ptr<PlotView> plot_view = make_control<PlotView>(StableId("schema.plot-view"));
@@ -1050,6 +1052,9 @@ void test_schema_export() {
     record_control(*sparkline, records);
     record_control(*value_bar, records);
     record_control(*virtual_rows, records);
+    const std::shared_ptr<WindowCapsule> window_capsule =
+        make_control<WindowCapsule>(StableId("schema.window-capsule"));
+    record_control(*window_capsule, records);
     // The final controls and the help system shown only inside another or
     // on demand. WizardPage and HelpBookViewer have no anatomy of their own
     // yet and GaugeBase, TextBoxBase, ListControl and UpDownBase are bases:

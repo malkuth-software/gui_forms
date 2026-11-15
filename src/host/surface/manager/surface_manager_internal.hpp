@@ -22,10 +22,10 @@
 // handlers it installs are called from other threads, and they only wake
 // the host's input queue.
 #include "surface_host.hpp"
-#include "../capsule/surface_capsule.hpp"
 #include "../desk/surface_desk.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
 
 #include <array>
 #include <chrono>
@@ -133,52 +133,20 @@ private:
     NativeWindow& window_;
 };
 
-// The window capsule as a strip draws it (SurfaceCapsuleGesture's look for
-// the strip's window, or the resting look).
-struct CapsuleLook final {
-    SurfaceCapsuleArm arm{SurfaceCapsuleArm::idle};
-    double intent{};
-    double minimize_offset{};
-    SurfaceCapsuleSection hovered{SurfaceCapsuleSection::none};
-    SurfaceCapsuleSection pressed{SurfaceCapsuleSection::none};
-    SurfaceCapsuleSection focused{SurfaceCapsuleSection::none};
-
-    friend bool operator==(const CapsuleLook& a, const CapsuleLook& b) noexcept {
-        const bool equal = a.arm == b.arm && a.intent == b.intent && a.minimize_offset == b.minimize_offset &&
-                           a.hovered == b.hovered && a.pressed == b.pressed && a.focused == b.focused;
-        return equal;
-    }
-};
-
 // The capsule section a desk part is, or none.
-[[nodiscard]] SurfaceCapsuleSection capsule_section(SurfaceDeskPart part) noexcept;
+[[nodiscard]] WindowCapsuleSection capsule_section(SurfaceDeskPart part) noexcept;
 
-// The capsule's look for `window`: the gesture's while it concerns that
-// window, else the resting look.
-[[nodiscard]] CapsuleLook capsule_look(const SurfaceCapsuleGesture& gesture, HostWindowId window) noexcept;
-
-// The capsule drawn from theme parts (paint_part), composite style: one
-// face for the whole capsule, the halves' fills (the armed half's X half,
-// the other half's green invitation, the whole X in red), the question
-// mark, the halves' marks and the keyboard's focus ring. A private control
-// of the strip; it takes no input (the desk hit-tests the capsule).
-class CapsuleView final : public Control {
-public:
-    explicit CapsuleView(StableId stable_id);
-    // Paints again only when the look or a colour changed.
-    void set_look(const CapsuleLook& look, const SurfaceFrameTheme& theme);
-
-protected:
-    void on_paint(Painter& painter, Rect local_damage) override;
-
-private:
-    CapsuleLook look_{};
-    double help_width_{20.0};
-    double minimize_distance_{40.0};
-    std::uint32_t face_{0x3F3F46U};
-    std::uint32_t glyph_{0xF0F0F0U};
-    std::uint32_t ready_{0x2EA043U};
-    std::uint32_t close_{0xD1242FU};
+// The call point of the capsule's help (WINDOW_MANAGER_SPEC: the business
+// card and the diagnostic overlay, unified across GUI.Forms programs, come
+// from a separate task and attach here; so does the overlay's own toggle,
+// holding D and right-clicking again). `open` is called on the manager's
+// thread with `context` and the window whose capsule asked; `context` must
+// outlive the run or be cleared first. Without one the manager shows the
+// capsule's own help (window_capsule_help_text) in a message box over the
+// window.
+struct SurfaceCapsuleHelpTarget final {
+    void* context{};
+    void (*open)(void* context, HostWindowId window){};
 };
 
 // The title strip of a framed window: its title and the window controls
@@ -200,7 +168,7 @@ public:
     // Whether the strip shows the capsule (then no boxes), its look, and
     // whether the title shows (with the capsule, only while its question
     // mark is hovered).
-    void set_capsule(bool shown, const CapsuleLook& look, bool title_shown);
+    void set_capsule(bool shown, const WindowCapsuleLook& look, bool title_shown);
     // The strip's logical width (the client width) and scale.
     void resize(double width, double scale);
     // Paints its damage into the raster, as NativeWindow::paint does, and
@@ -224,7 +192,9 @@ private:
     std::shared_ptr<Label> minimize_;
     std::shared_ptr<Label> maximize_;
     std::shared_ptr<Label> close_;
-    std::shared_ptr<CapsuleView> capsule_;
+    // The window capsule control, not interactive: the desk hit-tests it and
+    // the manager's gesture gives it its look.
+    std::shared_ptr<WindowCapsule> capsule_;
     std::unique_ptr<Window> model_;
     std::unique_ptr<HostSession> session_;
     DamageRegion damage_;
@@ -384,7 +354,7 @@ public:
     // Maximises a normal or tiled window and restores a maximised one.
     bool toggle_maximized(HostWindowId window);
     // Carries out one of the capsule's commands and shows its look.
-    void capsule_outcome(const SurfaceCapsuleOutcome& outcome);
+    void capsule_outcome(const WindowCapsuleOutcome& outcome);
     // Pushes the capsule's look to the strip of its window, and the resting
     // look to the strip that showed it before.
     void show_capsule_look();
@@ -439,7 +409,7 @@ public:
     // The window capsule's gestures (one at a time across the run), and
     // the call point of its help (SurfaceCapsuleHelpTarget), empty until
     // the business card and diagnostic overlay task attaches it.
-    SurfaceCapsuleGesture capsule;
+    WindowCapsuleGesture capsule;
     SurfaceCapsuleHelpTarget capsule_help{};
     bool quitting{};
 

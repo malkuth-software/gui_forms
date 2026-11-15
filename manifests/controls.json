@@ -63,6 +63,17 @@
       "doc": "api/generated/gui_forms.CommandBar.rst"
     },
     {
+      "id": "window_capsule",
+      "type": "WindowCapsule",
+      "header": "gui_forms/controls/window_capsule.hpp",
+      "category": "Commands",
+      "purpose": "A window's controls as one capsule worked by gestures: double click or drag down the left half to maximise or minimise, the question mark for help, drag the right half to move, three clicks to close; the surface window manager's title bar controls and a program's own corner controls.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.WindowCapsule.rst"
+    },
+    {
       "id": "text_box",
       "type": "TextBox",
       "header": "gui_forms/controls/text_box.hpp",

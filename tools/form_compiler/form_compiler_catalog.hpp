@@ -151,6 +151,7 @@
 #include "gui_forms/controls/v_scroll_bar.hpp"
 #include "gui_forms/controls/value_bar.hpp"
 #include "gui_forms/controls/virtual_rows_view.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
 #include "gui_forms/controls/wizard.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
@@ -163,12 +164,13 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 151> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 152> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
     {"link_label", "LinkLabel", "gui_forms/controls/link_label.hpp", &add_catalog_type<LinkLabel>},
     {"command_bar", "CommandBar", "gui_forms/controls/command_bar.hpp", &add_catalog_type<CommandBar>},
+    {"window_capsule", "WindowCapsule", "gui_forms/controls/window_capsule.hpp", &add_catalog_type<WindowCapsule>},
     {"text_box", "TextBox", "gui_forms/controls/text_box.hpp", &add_catalog_type<TextBox>},
     {"token_box", "TokenBox", "gui_forms/controls/token_box.hpp", &add_catalog_type<TokenBox>},
     {"search_field", "SearchField", "gui_forms/controls/search_field.hpp", &add_catalog_type<SearchField>},

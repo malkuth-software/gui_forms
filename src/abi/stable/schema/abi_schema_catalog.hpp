@@ -151,6 +151,7 @@
 #include "gui_forms/controls/v_scroll_bar.hpp"
 #include "gui_forms/controls/value_bar.hpp"
 #include "gui_forms/controls/virtual_rows_view.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
 #include "gui_forms/controls/wizard.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
@@ -163,12 +164,13 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 151> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 152> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
     {"link_label", "LinkLabel", &describe_type<LinkLabel>, &create_type<LinkLabel>, &is_exact_type<LinkLabel>},
     {"command_bar", "CommandBar", &describe_type<CommandBar>, &create_type<CommandBar>, &is_exact_type<CommandBar>},
+    {"window_capsule", "WindowCapsule", &describe_type<WindowCapsule>, &create_type<WindowCapsule>, &is_exact_type<WindowCapsule>},
     {"text_box", "TextBox", &describe_type<TextBox>, &create_type<TextBox>, &is_exact_type<TextBox>},
     {"token_box", "TokenBox", &describe_type<TokenBox>, &create_type<TokenBox>, &is_exact_type<TokenBox>},
     {"search_field", "SearchField", &describe_type<SearchField>, &create_type<SearchField>, &is_exact_type<SearchField>},

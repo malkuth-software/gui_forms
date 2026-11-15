@@ -1,10 +1,10 @@
-// The window capsule's gesture model (surface_capsule.hpp).
-#include "surface_capsule.hpp"
+// The window capsule's gesture model (gui_forms/controls/window_capsule.hpp).
+#include "gui_forms/controls/window_capsule.hpp"
 
 #include <algorithm>
 #include <cmath>
 
-namespace gui_forms::host::surface_detail {
+namespace gui_forms {
 namespace {
 
 double measure_or(double value, double fallback) noexcept {
@@ -26,8 +26,8 @@ double approach(double shown, double target, double step) noexcept {
 
 } // namespace
 
-void SurfaceCapsuleGesture::set_measures(const SurfaceCapsuleMeasures& measures) noexcept {
-    const SurfaceCapsuleMeasures defaults{};
+void WindowCapsuleGesture::set_measures(const WindowCapsuleMeasures& measures) noexcept {
+    const WindowCapsuleMeasures defaults{};
     measures_.slop = measure_or(measures.slop, defaults.slop);
     measures_.minimize_distance = measure_or(measures.minimize_distance, defaults.minimize_distance);
     measures_.snap_edge = measure_or(measures.snap_edge, defaults.snap_edge);
@@ -36,81 +36,83 @@ void SurfaceCapsuleGesture::set_measures(const SurfaceCapsuleMeasures& measures)
     measures_.nudge = measure_or(measures.nudge, defaults.nudge);
 }
 
-void SurfaceCapsuleGesture::reset() noexcept {
+void WindowCapsuleGesture::reset() noexcept {
     window_ = {};
-    arm_ = SurfaceCapsuleArm::idle;
+    arm_ = WindowCapsuleArm::idle;
     mode_ = Mode::idle;
-    pressed_ = SurfaceCapsuleSection::none;
-    hovered_ = SurfaceCapsuleSection::none;
-    focused_ = SurfaceCapsuleSection::none;
+    pressed_ = WindowCapsuleSection::none;
+    hovered_ = WindowCapsuleSection::none;
+    focused_ = WindowCapsuleSection::none;
     keyboard_ = false;
     origin_ = {};
-    snap_ = SurfaceCapsuleSnap::none;
+    snap_ = WindowCapsuleSnap::none;
     offset_live_ = 0.0;
     offset_shown_ = 0.0;
     intent_shown_ = 0.0;
 }
 
-double SurfaceCapsuleGesture::intent_target() const noexcept {
+double WindowCapsuleGesture::intent_target() const noexcept {
     switch (arm_) {
-    case SurfaceCapsuleArm::left:
-    case SurfaceCapsuleArm::right:
+    case WindowCapsuleArm::left:
+    case WindowCapsuleArm::right:
         return 0.5;
-    case SurfaceCapsuleArm::close:
+    case WindowCapsuleArm::close:
         return 1.0;
-    case SurfaceCapsuleArm::idle:
+    case WindowCapsuleArm::idle:
     default:
         return 0.0;
     }
 }
 
-void SurfaceCapsuleGesture::set_arm(SurfaceCapsuleArm arm, SurfaceCapsuleOutcome& outcome) noexcept {
+void WindowCapsuleGesture::set_arm(WindowCapsuleArm arm, WindowCapsuleOutcome& outcome) noexcept {
     if (arm == arm_) return;
     arm_ = arm;
     outcome.redraw = true;
 }
 
-void SurfaceCapsuleGesture::click(SurfaceCapsuleSection section, SurfaceCapsuleOutcome& outcome) noexcept {
+void WindowCapsuleGesture::click(WindowCapsuleSection section, WindowCapsuleOutcome& outcome) noexcept {
     outcome.window = window_;
-    if (arm_ == SurfaceCapsuleArm::close) {
+    if (arm_ == WindowCapsuleArm::close) {
         // The whole capsule is the X.
-        outcome.command = SurfaceCapsuleCommand::close;
-        set_arm(SurfaceCapsuleArm::idle, outcome);
+        outcome.command = WindowCapsuleCommand::close;
+        set_arm(WindowCapsuleArm::idle, outcome);
         return;
     }
     switch (section) {
-    case SurfaceCapsuleSection::left:
-        set_arm(arm_ == SurfaceCapsuleArm::right ? SurfaceCapsuleArm::close : SurfaceCapsuleArm::left, outcome);
+    case WindowCapsuleSection::left:
+        set_arm(arm_ == WindowCapsuleArm::right ? WindowCapsuleArm::close : WindowCapsuleArm::left, outcome);
         break;
-    case SurfaceCapsuleSection::right:
-        set_arm(arm_ == SurfaceCapsuleArm::left ? SurfaceCapsuleArm::close : SurfaceCapsuleArm::right, outcome);
+    case WindowCapsuleSection::right:
+        set_arm(arm_ == WindowCapsuleArm::left ? WindowCapsuleArm::close : WindowCapsuleArm::right, outcome);
         break;
-    case SurfaceCapsuleSection::help:
-        outcome.command = SurfaceCapsuleCommand::open_help;
-        set_arm(SurfaceCapsuleArm::idle, outcome);
+    case WindowCapsuleSection::help:
+        outcome.command = WindowCapsuleCommand::open_help;
+        set_arm(WindowCapsuleArm::idle, outcome);
         break;
-    case SurfaceCapsuleSection::none:
+    case WindowCapsuleSection::none:
     default:
         break;
     }
 }
 
-SurfaceCapsuleSnap SurfaceCapsuleGesture::next_snap(Point point, Size extent) const noexcept {
+WindowCapsuleSnap WindowCapsuleGesture::next_snap(Point point, Size extent) const noexcept {
     const double edge = measures_.snap_edge;
     const double held = measures_.snap_edge + measures_.snap_release;
     const double width = extent.width;
+    // An empty extent has no snap targets.
+    if (!(width > 0.0) || !std::isfinite(width)) return WindowCapsuleSnap::none;
     // An armed snap holds through the release distance (hysteresis).
-    if (snap_ == SurfaceCapsuleSnap::left_half && point.x <= held) return SurfaceCapsuleSnap::left_half;
-    if (snap_ == SurfaceCapsuleSnap::right_half && point.x >= width - held) return SurfaceCapsuleSnap::right_half;
-    if (point.x <= edge) return SurfaceCapsuleSnap::left_half;
-    if (point.x >= width - edge) return SurfaceCapsuleSnap::right_half;
-    return SurfaceCapsuleSnap::none;
+    if (snap_ == WindowCapsuleSnap::left_half && point.x <= held) return WindowCapsuleSnap::left_half;
+    if (snap_ == WindowCapsuleSnap::right_half && point.x >= width - held) return WindowCapsuleSnap::right_half;
+    if (point.x <= edge) return WindowCapsuleSnap::left_half;
+    if (point.x >= width - edge) return WindowCapsuleSnap::right_half;
+    return WindowCapsuleSnap::none;
 }
 
-SurfaceCapsuleOutcome SurfaceCapsuleGesture::press(HostWindowId window, SurfaceCapsuleSection section, Point point,
+WindowCapsuleOutcome WindowCapsuleGesture::press(HostWindowId window, WindowCapsuleSection section, Point point,
                                                    std::uint32_t clicks) noexcept {
-    SurfaceCapsuleOutcome outcome{};
-    if (section == SurfaceCapsuleSection::none || !window.valid() || !finite_point(point)) return outcome;
+    WindowCapsuleOutcome outcome{};
+    if (section == WindowCapsuleSection::none || !window.valid() || !finite_point(point)) return outcome;
     if (window != window_) reset();
     window_ = window;
     outcome.window = window;
@@ -118,14 +120,14 @@ SurfaceCapsuleOutcome SurfaceCapsuleGesture::press(HostWindowId window, SurfaceC
     outcome.redraw = true;
     // The pointer takes over from the keyboard.
     keyboard_ = false;
-    focused_ = SurfaceCapsuleSection::none;
-    if (section == SurfaceCapsuleSection::left && clicks == 2U && arm_ != SurfaceCapsuleArm::close) {
+    focused_ = WindowCapsuleSection::none;
+    if (section == WindowCapsuleSection::left && clicks == 2U && arm_ != WindowCapsuleArm::close) {
         // The double click's first click armed the left half; the double
         // click maximises instead and disarms.
-        set_arm(SurfaceCapsuleArm::idle, outcome);
-        outcome.command = SurfaceCapsuleCommand::toggle_maximize;
+        set_arm(WindowCapsuleArm::idle, outcome);
+        outcome.command = WindowCapsuleCommand::toggle_maximize;
         mode_ = Mode::idle;
-        pressed_ = SurfaceCapsuleSection::none;
+        pressed_ = WindowCapsuleSection::none;
         return outcome;
     }
     mode_ = Mode::pressed;
@@ -135,8 +137,8 @@ SurfaceCapsuleOutcome SurfaceCapsuleGesture::press(HostWindowId window, SurfaceC
     return outcome;
 }
 
-SurfaceCapsuleOutcome SurfaceCapsuleGesture::drag(Point point, Size extent) noexcept {
-    SurfaceCapsuleOutcome outcome{};
+WindowCapsuleOutcome WindowCapsuleGesture::drag(Point point, Size extent) noexcept {
+    WindowCapsuleOutcome outcome{};
     outcome.window = window_;
     if (!finite_point(point)) return outcome;
     const double dx = point.x - origin_.x;
@@ -145,11 +147,11 @@ SurfaceCapsuleOutcome SurfaceCapsuleGesture::drag(Point point, Size extent) noex
     case Mode::pressed: {
         outcome.handled = true;
         if (std::max(std::abs(dx), std::abs(dy)) <= measures_.slop) return outcome;
-        if (arm_ == SurfaceCapsuleArm::close || pressed_ == SurfaceCapsuleSection::help) {
+        if (arm_ == WindowCapsuleArm::close || pressed_ == WindowCapsuleSection::help) {
             mode_ = Mode::abandoned;
             return outcome;
         }
-        if (pressed_ == SurfaceCapsuleSection::left) {
+        if (pressed_ == WindowCapsuleSection::left) {
             if (dy <= std::abs(dx)) {
                 mode_ = Mode::abandoned;
                 return outcome;
@@ -162,7 +164,7 @@ SurfaceCapsuleOutcome SurfaceCapsuleGesture::drag(Point point, Size extent) noex
         }
         mode_ = Mode::moving;
         snap_ = next_snap(point, extent);
-        outcome.command = SurfaceCapsuleCommand::begin_move;
+        outcome.command = WindowCapsuleCommand::begin_move;
         outcome.origin = origin_;
         outcome.point = point;
         outcome.snap = snap_;
@@ -179,10 +181,10 @@ SurfaceCapsuleOutcome SurfaceCapsuleGesture::drag(Point point, Size extent) noex
     }
     case Mode::moving: {
         outcome.handled = true;
-        const SurfaceCapsuleSnap snap = next_snap(point, extent);
+        const WindowCapsuleSnap snap = next_snap(point, extent);
         outcome.redraw = snap != snap_;
         snap_ = snap;
-        outcome.command = SurfaceCapsuleCommand::move;
+        outcome.command = WindowCapsuleCommand::move;
         outcome.point = point;
         outcome.snap = snap_;
         return outcome;
@@ -196,36 +198,36 @@ SurfaceCapsuleOutcome SurfaceCapsuleGesture::drag(Point point, Size extent) noex
     }
 }
 
-SurfaceCapsuleOutcome SurfaceCapsuleGesture::release(SurfaceCapsuleSection section) noexcept {
-    SurfaceCapsuleOutcome outcome{};
+WindowCapsuleOutcome WindowCapsuleGesture::release(WindowCapsuleSection section) noexcept {
+    WindowCapsuleOutcome outcome{};
     outcome.window = window_;
     if (mode_ == Mode::idle) return outcome;
     outcome.handled = true;
     outcome.redraw = true;
     const Mode ended = mode_;
-    const SurfaceCapsuleSection pressed = pressed_;
+    const WindowCapsuleSection pressed = pressed_;
     mode_ = Mode::idle;
-    pressed_ = SurfaceCapsuleSection::none;
+    pressed_ = WindowCapsuleSection::none;
     switch (ended) {
     case Mode::pressed: {
         // A click: released on the pressed section, or anywhere on the X.
-        const bool on_x = arm_ == SurfaceCapsuleArm::close && section != SurfaceCapsuleSection::none;
+        const bool on_x = arm_ == WindowCapsuleArm::close && section != WindowCapsuleSection::none;
         if (section == pressed || on_x) click(section, outcome);
         break;
     }
     case Mode::minimizing:
         if (offset_live_ >= measures_.minimize_distance) {
-            outcome.command = SurfaceCapsuleCommand::minimize;
-            set_arm(SurfaceCapsuleArm::idle, outcome);
+            outcome.command = WindowCapsuleCommand::minimize;
+            set_arm(WindowCapsuleArm::idle, outcome);
         }
         // The shown offset springs back (advance).
         offset_live_ = 0.0;
         break;
     case Mode::moving:
-        outcome.command = SurfaceCapsuleCommand::finish_move;
+        outcome.command = WindowCapsuleCommand::finish_move;
         outcome.snap = snap_;
-        snap_ = SurfaceCapsuleSnap::none;
-        set_arm(SurfaceCapsuleArm::idle, outcome);
+        snap_ = WindowCapsuleSnap::none;
+        set_arm(WindowCapsuleArm::idle, outcome);
         break;
     case Mode::abandoned:
     case Mode::idle:
@@ -235,26 +237,26 @@ SurfaceCapsuleOutcome SurfaceCapsuleGesture::release(SurfaceCapsuleSection secti
     return outcome;
 }
 
-SurfaceCapsuleOutcome SurfaceCapsuleGesture::cancel() noexcept {
-    SurfaceCapsuleOutcome outcome{};
+WindowCapsuleOutcome WindowCapsuleGesture::cancel() noexcept {
+    WindowCapsuleOutcome outcome{};
     outcome.window = window_;
     if (mode_ == Mode::idle) return outcome;
     outcome.handled = true;
     outcome.redraw = true;
-    if (mode_ == Mode::moving) outcome.command = SurfaceCapsuleCommand::cancel_move;
+    if (mode_ == Mode::moving) outcome.command = WindowCapsuleCommand::cancel_move;
     mode_ = Mode::idle;
-    pressed_ = SurfaceCapsuleSection::none;
-    snap_ = SurfaceCapsuleSnap::none;
+    pressed_ = WindowCapsuleSection::none;
+    snap_ = WindowCapsuleSnap::none;
     offset_live_ = 0.0;
     return outcome;
 }
 
-SurfaceCapsuleOutcome SurfaceCapsuleGesture::hover(HostWindowId window, SurfaceCapsuleSection section) noexcept {
-    SurfaceCapsuleOutcome outcome{};
+WindowCapsuleOutcome WindowCapsuleGesture::hover(HostWindowId window, WindowCapsuleSection section) noexcept {
+    WindowCapsuleOutcome outcome{};
     // A press keeps its capsule until the release.
     if (mode_ != Mode::idle) return outcome;
-    if (section != SurfaceCapsuleSection::none && window.valid() && window != window_) {
-        const bool kept = keyboard_ || arm_ != SurfaceCapsuleArm::idle;
+    if (section != WindowCapsuleSection::none && window.valid() && window != window_) {
+        const bool kept = keyboard_ || arm_ != WindowCapsuleArm::idle;
         if (kept || window_.valid()) outcome.redraw = true;
         reset();
         window_ = window;
@@ -265,25 +267,25 @@ SurfaceCapsuleOutcome SurfaceCapsuleGesture::hover(HostWindowId window, SurfaceC
         outcome.redraw = true;
     }
     // Leaving the capsule disarms it, unless the keyboard holds it.
-    if (section == SurfaceCapsuleSection::none && !keyboard_) set_arm(SurfaceCapsuleArm::idle, outcome);
+    if (section == WindowCapsuleSection::none && !keyboard_) set_arm(WindowCapsuleArm::idle, outcome);
     return outcome;
 }
 
-SurfaceCapsuleOutcome SurfaceCapsuleGesture::focus(HostWindowId window) noexcept {
-    SurfaceCapsuleOutcome outcome{};
+WindowCapsuleOutcome WindowCapsuleGesture::focus(HostWindowId window) noexcept {
+    WindowCapsuleOutcome outcome{};
     if (!window.valid()) return outcome;
     if (window != window_) reset();
     window_ = window;
     keyboard_ = true;
-    focused_ = SurfaceCapsuleSection::left;
+    focused_ = WindowCapsuleSection::left;
     outcome.window = window;
     outcome.handled = true;
     outcome.redraw = true;
     return outcome;
 }
 
-SurfaceCapsuleOutcome SurfaceCapsuleGesture::key(std::uint32_t physical_key, Modifier modifiers) noexcept {
-    SurfaceCapsuleOutcome outcome{};
+WindowCapsuleOutcome WindowCapsuleGesture::key(std::uint32_t physical_key, Modifier modifiers) noexcept {
+    WindowCapsuleOutcome outcome{};
     outcome.window = window_;
     if (!keyboard_ || mode_ != Mode::idle) return outcome;
     outcome.handled = true;
@@ -293,48 +295,48 @@ SurfaceCapsuleOutcome SurfaceCapsuleGesture::key(std::uint32_t physical_key, Mod
     const bool arrow = physical_key == PhysicalKey::left || physical_key == PhysicalKey::right ||
                        physical_key == PhysicalKey::up || physical_key == PhysicalKey::down;
     if (physical_key == PhysicalKey::escape && plain) {
-        if (arm_ != SurfaceCapsuleArm::idle) {
-            set_arm(SurfaceCapsuleArm::idle, outcome);
+        if (arm_ != WindowCapsuleArm::idle) {
+            set_arm(WindowCapsuleArm::idle, outcome);
         } else {
             keyboard_ = false;
-            focused_ = SurfaceCapsuleSection::none;
+            focused_ = WindowCapsuleSection::none;
             outcome.redraw = true;
         }
         return outcome;
     }
     if (plain && (physical_key == PhysicalKey::left || physical_key == PhysicalKey::right)) {
         const bool forward = physical_key == PhysicalKey::right;
-        SurfaceCapsuleSection next = focused_;
-        if (focused_ == SurfaceCapsuleSection::left) next = forward ? SurfaceCapsuleSection::help : focused_;
-        if (focused_ == SurfaceCapsuleSection::help)
-            next = forward ? SurfaceCapsuleSection::right : SurfaceCapsuleSection::left;
-        if (focused_ == SurfaceCapsuleSection::right) next = forward ? focused_ : SurfaceCapsuleSection::help;
+        WindowCapsuleSection next = focused_;
+        if (focused_ == WindowCapsuleSection::left) next = forward ? WindowCapsuleSection::help : focused_;
+        if (focused_ == WindowCapsuleSection::help)
+            next = forward ? WindowCapsuleSection::right : WindowCapsuleSection::left;
+        if (focused_ == WindowCapsuleSection::right) next = forward ? focused_ : WindowCapsuleSection::help;
         outcome.redraw = next != focused_;
         focused_ = next;
         return outcome;
     }
     if (plain && physical_key == PhysicalKey::up) {
-        outcome.command = SurfaceCapsuleCommand::toggle_maximize;
-        set_arm(SurfaceCapsuleArm::idle, outcome);
+        outcome.command = WindowCapsuleCommand::toggle_maximize;
+        set_arm(WindowCapsuleArm::idle, outcome);
         return outcome;
     }
     if (plain && physical_key == PhysicalKey::down) {
-        outcome.command = SurfaceCapsuleCommand::minimize;
-        set_arm(SurfaceCapsuleArm::idle, outcome);
+        outcome.command = WindowCapsuleCommand::minimize;
+        set_arm(WindowCapsuleArm::idle, outcome);
         return outcome;
     }
     if (shift && (physical_key == PhysicalKey::left || physical_key == PhysicalKey::right ||
                   physical_key == PhysicalKey::down)) {
-        outcome.command = SurfaceCapsuleCommand::tile;
-        outcome.snap = SurfaceCapsuleSnap::none;
-        if (physical_key == PhysicalKey::left) outcome.snap = SurfaceCapsuleSnap::left_half;
-        if (physical_key == PhysicalKey::right) outcome.snap = SurfaceCapsuleSnap::right_half;
-        set_arm(SurfaceCapsuleArm::idle, outcome);
+        outcome.command = WindowCapsuleCommand::tile;
+        outcome.snap = WindowCapsuleSnap::none;
+        if (physical_key == PhysicalKey::left) outcome.snap = WindowCapsuleSnap::left_half;
+        if (physical_key == PhysicalKey::right) outcome.snap = WindowCapsuleSnap::right_half;
+        set_arm(WindowCapsuleArm::idle, outcome);
         return outcome;
     }
     if (control && arrow) {
         const double step = measures_.nudge;
-        outcome.command = SurfaceCapsuleCommand::nudge;
+        outcome.command = WindowCapsuleCommand::nudge;
         if (physical_key == PhysicalKey::left) outcome.offset = Point{-step, 0.0};
         if (physical_key == PhysicalKey::right) outcome.offset = Point{step, 0.0};
         if (physical_key == PhysicalKey::up) outcome.offset = Point{0.0, -step};
@@ -345,32 +347,32 @@ SurfaceCapsuleOutcome SurfaceCapsuleGesture::key(std::uint32_t physical_key, Mod
         click(focused_, outcome);
         // Arming one half moves the focus to the other, so Enter three
         // times closes, as three clicks do.
-        if (arm_ == SurfaceCapsuleArm::left) focused_ = SurfaceCapsuleSection::right;
-        if (arm_ == SurfaceCapsuleArm::right) focused_ = SurfaceCapsuleSection::left;
+        if (arm_ == WindowCapsuleArm::left) focused_ = WindowCapsuleSection::right;
+        if (arm_ == WindowCapsuleArm::right) focused_ = WindowCapsuleSection::left;
         outcome.redraw = true;
         return outcome;
     }
     if (plain && physical_key == PhysicalKey::f1) {
-        outcome.command = SurfaceCapsuleCommand::open_help;
-        set_arm(SurfaceCapsuleArm::idle, outcome);
+        outcome.command = WindowCapsuleCommand::open_help;
+        set_arm(WindowCapsuleArm::idle, outcome);
         return outcome;
     }
     // Any other key leaves the capsule and goes to the window.
     keyboard_ = false;
-    focused_ = SurfaceCapsuleSection::none;
-    set_arm(SurfaceCapsuleArm::idle, outcome);
+    focused_ = WindowCapsuleSection::none;
+    set_arm(WindowCapsuleArm::idle, outcome);
     outcome.handled = false;
     outcome.redraw = true;
     return outcome;
 }
 
-bool SurfaceCapsuleGesture::forget(HostWindowId window) noexcept {
+bool WindowCapsuleGesture::forget(HostWindowId window) noexcept {
     if (!window.valid() || window != window_) return false;
     reset();
     return true;
 }
 
-bool SurfaceCapsuleGesture::advance(double milliseconds, bool reduced_motion) noexcept {
+bool WindowCapsuleGesture::advance(double milliseconds, bool reduced_motion) noexcept {
     const double intent_goal = intent_target();
     const double offset_goal = mode_ == Mode::minimizing ? offset_live_ : 0.0;
     const double before_intent = intent_shown_;
@@ -390,19 +392,31 @@ bool SurfaceCapsuleGesture::advance(double milliseconds, bool reduced_motion) no
     return changed;
 }
 
-bool SurfaceCapsuleGesture::animating() const noexcept {
+bool WindowCapsuleGesture::animating() const noexcept {
     const double offset_goal = mode_ == Mode::minimizing ? offset_live_ : 0.0;
     const bool moving_values = intent_shown_ != intent_target() || offset_shown_ != offset_goal;
     return moving_values;
 }
 
-bool SurfaceCapsuleGesture::title_shown() const noexcept {
-    const bool shown = hovered_ == SurfaceCapsuleSection::help && mode_ == Mode::idle &&
-                       arm_ != SurfaceCapsuleArm::close;
+bool WindowCapsuleGesture::title_shown() const noexcept {
+    const bool shown = hovered_ == WindowCapsuleSection::help && mode_ == Mode::idle &&
+                       arm_ != WindowCapsuleArm::close;
     return shown;
 }
 
-std::string_view surface_capsule_help_text() noexcept {
+WindowCapsuleLook window_capsule_look(const WindowCapsuleGesture& gesture, HostWindowId window) noexcept {
+    WindowCapsuleLook look{};
+    if (!window.valid() || gesture.window() != window) return look;
+    look.arm = gesture.arm();
+    look.intent = gesture.intent();
+    look.minimize_offset = gesture.minimize_offset();
+    look.hovered = gesture.hovered();
+    look.pressed = gesture.pressed();
+    look.focused = gesture.keyboard() ? gesture.focused_section() : WindowCapsuleSection::none;
+    return look;
+}
+
+std::string_view window_capsule_help_text() noexcept {
     const std::string_view text =
         "The window capsule. Left half: double-click to maximise or restore; drag it down to minimise. "
         "Question mark: this help; hover it to see the window's title. Right half: drag to move the window, "
@@ -411,4 +425,4 @@ std::string_view surface_capsule_help_text() noexcept {
     return text;
 }
 
-} // namespace gui_forms::host::surface_detail
+} // namespace gui_forms

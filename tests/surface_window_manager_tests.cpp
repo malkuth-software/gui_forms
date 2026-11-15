@@ -202,10 +202,16 @@ struct Harness final {
         record.time = time;
         static_cast<void>(host.queue.post(record));
     }
-    // The capsule instead of the title bar boxes, for windows opened after.
+    // The capsule (the default) or the classic title bar boxes, for windows
+    // opened after.
     void use_capsule() {
         SurfaceFrameTheme theme = (*runtime).desk.theme();
         theme.window_controls = SurfaceWindowControls::capsule;
+        (*runtime).desk.set_theme(theme);
+    }
+    void use_boxes() {
+        SurfaceFrameTheme theme = (*runtime).desk.theme();
+        theme.window_controls = SurfaceWindowControls::boxes;
         (*runtime).desk.set_theme(theme);
     }
     void post_key(std::uint32_t physical_key, Modifier modifiers) {
@@ -229,8 +235,9 @@ struct Harness final {
 };
 
 // An owned 300 by 200 window opens centred: client (250, 200, 300, 200),
-// frame (249, 172, 302, 229); its title bar spans y 173 to 200, with the
-// close box at x 510 to 550, maximise 470 to 510 and minimise 430 to 470.
+// frame (249, 172, 302, 229); its title bar spans y 173 to 200. With the
+// classic boxes (Harness::use_boxes), the close box is at x 510 to 550,
+// maximise 470 to 510 and minimise 430 to 470.
 void test_compose_and_damage() {
     Harness harness;
     TestWindow owned;
@@ -274,6 +281,7 @@ void test_resize_by_grip() {
 
 void test_minimize_maximize_restore() {
     Harness harness;
+    harness.use_boxes();
     TestWindow owned;
     const HostWindowId window = harness.open(owned, "owned");
     harness.click(Point{490.0, 186.0});
@@ -296,6 +304,7 @@ void test_minimize_maximize_restore() {
 
 void test_close_box() {
     Harness harness;
+    harness.use_boxes();
     TestWindow owned;
     const HostWindowId window = harness.open(owned, "owned");
     harness.post_pointer(SurfacePointerAction::down, Point{530.0, 186.0}, 0.0);
@@ -326,6 +335,7 @@ void test_focus_order() {
 
 void test_modal_blocking() {
     Harness harness;
+    harness.use_boxes();
     TestWindow dialog;
     const HostWindowId window = harness.open(dialog, "dialog");
     // Queued for the modal loop: a click on the primary window's button,
@@ -360,9 +370,9 @@ void test_capsule_three_click_close() {
     require((*harness.runtime).desk.capsule(window) == (Rect{468.0, 176.5, 76.0, 20.0}),
             "the capsule sits at the title bar's right end");
     harness.click(capsule_left, 0.0);
-    require((*harness.runtime).capsule.arm() == SurfaceCapsuleArm::left, "the first click arms the left half");
+    require((*harness.runtime).capsule.arm() == WindowCapsuleArm::left, "the first click arms the left half");
     harness.click(capsule_right, 100.0);
-    require((*harness.runtime).capsule.arm() == SurfaceCapsuleArm::close, "the second makes the X");
+    require((*harness.runtime).capsule.arm() == WindowCapsuleArm::close, "the second makes the X");
     require(!owned.closed, "two clicks do not close");
     harness.click(capsule_help, 200.0);
     require(owned.closed && (*harness.runtime).window(window) == nullptr, "the third click closes the window");
@@ -373,9 +383,9 @@ void test_capsule_three_click_close() {
     harness.click(capsule_left, 1000.0);
     harness.post_pointer(SurfacePointerAction::move, Point{300.0, 300.0}, 1050.0);
     harness.settle();
-    require((*harness.runtime).capsule.arm() == SurfaceCapsuleArm::idle, "leaving the capsule disarms it");
+    require((*harness.runtime).capsule.arm() == WindowCapsuleArm::idle, "leaving the capsule disarms it");
     harness.click(capsule_right, 1100.0);
-    require((*harness.runtime).capsule.arm() == SurfaceCapsuleArm::right,
+    require((*harness.runtime).capsule.arm() == WindowCapsuleArm::right,
             "so the next click arms one half again, not the X");
     require(!kept.closed && (*harness.runtime).window(second) != nullptr, "and nothing closed");
 }
@@ -389,7 +399,7 @@ void test_capsule_left_half() {
     harness.click(capsule_left, 1100.0);
     require((*harness.runtime).desk.state(window) == SurfaceWindowState::maximized,
             "a double click on the left half maximises");
-    require((*harness.runtime).capsule.arm() == SurfaceCapsuleArm::idle, "and leaves nothing armed");
+    require((*harness.runtime).capsule.arm() == WindowCapsuleArm::idle, "and leaves nothing armed");
     // Maximised, the frame is the surface: the capsule at x 717, y 4.5.
     harness.click(Point{729.0, 14.0}, 2000.0);
     harness.click(Point{729.0, 14.0}, 2100.0);
@@ -425,7 +435,7 @@ void test_capsule_right_half_moves() {
     require(harness.content(window) == (Rect{280.0, 214.0, 300.0, 200.0}), "the window moves with the pointer");
     harness.post_pointer(SurfacePointerAction::move, Point{5.0, 300.0}, 20.0);
     harness.settle();
-    require((*harness.runtime).capsule.snap() == SurfaceCapsuleSnap::left_half, "the left edge arms the left half");
+    require((*harness.runtime).capsule.snap() == WindowCapsuleSnap::left_half, "the left edge arms the left half");
     require(harness.host.rgb(100U, 500U) != before, "and its snap preview is composed");
     harness.post_pointer(SurfacePointerAction::up, Point{5.0, 300.0}, 30.0);
     harness.settle();

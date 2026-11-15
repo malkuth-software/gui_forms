@@ -7,7 +7,7 @@
 // (src/host/surface/compose/surface_compose.hpp: device rectangles, the
 // compose kernel and its tint, cursor sprites). The desk's capsule parts,
 // half-surface tiling and capsule moves are here too; the capsule's
-// gestures are tests/surface_capsule_tests.cpp. Tested on every platform.
+// gestures are tests/window_capsule_tests.cpp. Tested on every platform.
 
 #include "../src/host/surface/compose/surface_compose.hpp"
 #include "../src/host/surface/desk/surface_desk.hpp"
@@ -105,8 +105,16 @@ void test_popups_above_windows() {
     require(popup_rect == (Rect{120.0, 120.0, 80.0, 40.0}), "a popup is placed as given");
 }
 
+// The classic title bar boxes instead of the default capsule.
+void use_boxes(SurfaceDesk& desk) {
+    SurfaceFrameTheme theme = desk.theme();
+    theme.window_controls = SurfaceWindowControls::boxes;
+    desk.set_theme(theme);
+}
+
 void test_hit_parts() {
     SurfaceDesk desk = three_windows();
+    use_boxes(desk);
     desk.raise(id(2U));
     // Window 2's client area is (100, 100, 300, 200); its frame starts 28
     // above and 1 to each side.
@@ -358,6 +366,7 @@ void test_frame_theme() {
     theme.grip_outside = 6.0;
     theme.grip_inside = 3.0;
     theme.controls = SurfaceControlsSide::left;
+    theme.window_controls = SurfaceWindowControls::boxes;
     desk.set_theme(theme);
     require(desk.theme().title_bar_height == 32.0, "the theme is kept");
     const Rect content = *desk.content(id(2U));
@@ -387,6 +396,8 @@ bool near(double a, double b) {
 
 void test_capsule_parts() {
     SurfaceDesk desk = three_windows();
+    require(desk.theme().window_controls == SurfaceWindowControls::capsule,
+            "the capsule is the default window controls (owner, 2026-11-15)");
     SurfaceFrameTheme theme{};
     theme.window_controls = SurfaceWindowControls::capsule;
     desk.set_theme(theme);

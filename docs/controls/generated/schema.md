@@ -182,6 +182,27 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `scroll` | `ScrollEvent`, by reference |
 | `invoked` | `CommandItem` |
 
+## `window_capsule` (WindowCapsule, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `face` | face |  |  |
+| `left_half` | fill |  |  |
+| `help` | face |  |  |
+| `right_half` | fill |  |  |
+| `glyph` | glyph |  |  |
+| `label` | label |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `hot`, `pressed`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: none.
+
+| Interaction | Payload |
+|---|---|
+| `requested` | `WindowCapsuleRequest` |
+
 ## `text_box` (TextBox, control)
 
 | Part | Role | Reuses | Own states |

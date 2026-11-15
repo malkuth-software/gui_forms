@@ -285,7 +285,8 @@ FrameChrome::FrameChrome(Runtime& runtime, std::string_view title, double width,
     (*root_).add_child(minimize_);
     (*root_).add_child(maximize_);
     (*root_).add_child(close_);
-    capsule_ = make_control<CapsuleView>(StableId("host.frame.capsule"));
+    capsule_ = make_control<WindowCapsule>(StableId("host.frame.capsule"));
+    (*capsule_).set_interactive(false);
     (*root_).add_child(capsule_);
     title_text_ = std::string(title);
     register_fonts(raster_, runtime_.fonts);
@@ -619,7 +620,7 @@ void NativeWindow::refresh_chrome() {
     (*chrome).set_boxes(minimize, maximize, state == SurfaceWindowState::maximized);
     const bool capsule = runtime.desk.capsule(window_id).width > 0.0;
     const bool title = runtime.capsule.window() == window_id && runtime.capsule.title_shown();
-    (*chrome).set_capsule(capsule, capsule_look(runtime.capsule, window_id), title);
+    (*chrome).set_capsule(capsule, window_capsule_look(runtime.capsule, window_id), title);
 }
 
 void NativeWindow::update_cursor(Point position) {
@@ -945,7 +946,7 @@ void Runtime::activation_moved(HostWindowId before) {
     // A capsule the keyboard held, or one armed, belongs to the window that
     // lost the keyboard.
     const HostWindowId held = capsule.window();
-    if (held.valid() && held != after && (capsule.keyboard() || capsule.arm() != SurfaceCapsuleArm::idle))
+    if (held.valid() && held != after && (capsule.keyboard() || capsule.arm() != WindowCapsuleArm::idle))
         forget_capsule(held);
     NativeWindow* lost = window(before);
     if (lost != nullptr) (*lost).set_active(false);
@@ -1482,12 +1483,12 @@ void Runtime::handle_frame_press(const SurfaceInputRecord& record, const Surface
         pressed_part = PressedPart{hit.window, hit.part};
         return;
     }
-    const SurfaceCapsuleSection section = capsule_section(hit.part);
-    if (section != SurfaceCapsuleSection::none) {
+    const WindowCapsuleSection section = capsule_section(hit.part);
+    if (section != WindowCapsuleSection::none) {
         const std::uint32_t clicks =
             next_surface_click_count(title_clicks_, record.button, record.time, record.position,
                                      default_double_click_milliseconds, default_double_click_distance);
-        const SurfaceCapsuleOutcome outcome = capsule.press(hit.window, section, record.position, clicks);
+        const WindowCapsuleOutcome outcome = capsule.press(hit.window, section, record.position, clicks);
         if (capsule.pressing()) host.pointer_capture(true);
         capsule_outcome(outcome);
         return;
@@ -1531,8 +1532,8 @@ void Runtime::handle_pointer(const SurfaceInputRecord& record) {
         return;
     }
     if (action == SurfacePointerAction::leave) {
-        if (capsule.hovered() != SurfaceCapsuleSection::none)
-            capsule_outcome(capsule.hover(HostWindowId{}, SurfaceCapsuleSection::none));
+        if (capsule.hovered() != WindowCapsuleSection::none)
+            capsule_outcome(capsule.hover(HostWindowId{}, WindowCapsuleSection::none));
         leave_pointer_window(point);
         return;
     }
@@ -1540,10 +1541,10 @@ void Runtime::handle_pointer(const SurfaceInputRecord& record) {
     if (action == SurfacePointerAction::move || action == SurfacePointerAction::enter) {
         // The capsule under the pointer, if any: hovering its question mark
         // shows the title, and leaving it disarms it.
-        const SurfaceCapsuleSection hovered =
-            desk.blocked(hit.window) ? SurfaceCapsuleSection::none : capsule_section(hit.part);
+        const WindowCapsuleSection hovered =
+            desk.blocked(hit.window) ? WindowCapsuleSection::none : capsule_section(hit.part);
         const bool changed = hovered != capsule.hovered() ||
-                             (hovered != SurfaceCapsuleSection::none && hit.window != capsule.window());
+                             (hovered != WindowCapsuleSection::none && hit.window != capsule.window());
         if (changed) capsule_outcome(capsule.hover(hit.window, hovered));
     }
     if (action == SurfacePointerAction::down) {
@@ -1667,7 +1668,7 @@ void Runtime::handle_key(const SurfaceInputRecord& record) {
     // releases.
     if (capsule.keyboard() && capsule.window() == (*target).window_id) {
         if (!record.down) return;
-        const SurfaceCapsuleOutcome outcome = capsule.key(record.physical_key, record.modifiers);
+        const WindowCapsuleOutcome outcome = capsule.key(record.physical_key, record.modifiers);
         capsule_outcome(outcome);
         if (outcome.handled) return;
         target = keyboard_window();

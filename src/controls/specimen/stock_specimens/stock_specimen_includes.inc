@@ -6,6 +6,7 @@
 #include "gui_forms/controls/drop_down_button.hpp"
 #include "gui_forms/controls/link_label.hpp"
 #include "gui_forms/controls/command_bar.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/token_box.hpp"
 #include "gui_forms/controls/search_field.hpp"
