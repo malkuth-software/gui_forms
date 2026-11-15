@@ -635,11 +635,13 @@ public:
 };
 
 void slide_frames() {
+    // The time source outlives the window that borrows it
+    // (B-gf-tests-03-F1): the clock reads it until the window is gone.
+    ManualTime time{};
     std::unique_ptr<Fixture> fixture = make_fixture();
     DockWorkspace& workspace = *(*fixture).workspace;
     DockSite& site = *(*fixture).site;
     Window& window = *(*fixture).window;
-    ManualTime time{};
     window.motion_clock().set_time_source(&time);
     apply(workspace, DockEdit::auto_hide(DockSubject::of_stack(stack_of(workspace, "output")), DockSide::bottom, 150.0));
     window.perform_layout();
