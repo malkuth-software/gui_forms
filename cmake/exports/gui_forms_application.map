@@ -6142,6 +6142,8 @@
     _ZN9gui_forms4host25WindowsApplicationOptions*;
     _ZN9gui_forms4host26HeadlessSplashscreenRecord*;
     _ZN9gui_forms4host27HeadlessSplashscreenSurface*;
+    _ZN9gui_forms4host29accept_automation_environmentB*;
+    _ZN9gui_forms4host29accept_automation_environmentE*;
     _ZN9gui_forms4host33WindowsCompatibilityPaintEndpoint*;
     _ZN9gui_forms4host7run_webB*;
     _ZN9gui_forms4host7run_webE*;
