@@ -154,6 +154,12 @@ bool NativeWindow::drag_message(const XClientMessageEvent &message) {
         drag.session_id = ++drag_sequence;
         drag.allowed_effects = DragEffect::copy;
         drag.items.push_back(std::move(files));
+      } else {
+        // Tried once per XdndEnter (A-gf-host-01-F6): a source with no
+        // local files, or one that never answers, is not asked again on
+        // every position message, each read waiting up to 5 seconds. The
+        // next XdndEnter sets drag_type again.
+        drag_type = None;
       }
     }
     // Window device pixels to logical units, at the boundary.
