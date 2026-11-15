@@ -258,8 +258,12 @@ void CustomControlState::paint(Control& control, Painter& painter, Rect local_da
         // frame published while it ran asks for exactly one more repaint.
         if (wake_state_) {
             (*wake_state_).queued.store(false, std::memory_order_release);
-            if ((*bound_surface_).snapshot().published_generation != sampled) {
-                const BoundSurfaceWakeCallback wake(control.weak_from_this(), wake_state_);
+            // The wake posts through the window's dispatcher, as the one
+            // connected to the surface does (A-gf-abi-02-F2); a control no
+            // longer in a window has nothing to repaint.
+            const Window* window = control.attached_window();
+            if ((*bound_surface_).snapshot().published_generation != sampled && window != nullptr) {
+                const BoundSurfaceWakeCallback wake((*window).dispatcher(), control.weak_from_this(), wake_state_);
                 wake();
             }
         }

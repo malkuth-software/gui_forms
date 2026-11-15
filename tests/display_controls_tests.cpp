@@ -1236,9 +1236,10 @@ void test_progress_ring() {
     // locale is restored before the check, so a failure leaves the process as it was.
     (*loose).maximum = 5000.0;
     (*loose).value = 1234.5;
+    // std-rules: allow(locale-change) the test sets a comma-decimal global locale to prove the published value ignores it, and restores the previous one at once
     const std::locale previous = std::locale::global(std::locale(std::locale::classic(), new CommaNumbers()));
     const SemanticDescriptor localized = (*loose).semantic_descriptor();
-    static_cast<void>(std::locale::global(previous));
+    static_cast<void>(std::locale::global(previous));  // std-rules: allow(locale-change) restores the locale the test replaced
     require(localized.value == "1234.5", "the ring's value is written in the C locale's form");
 
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.ring.root"));
