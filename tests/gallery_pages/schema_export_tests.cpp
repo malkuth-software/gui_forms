@@ -18,6 +18,7 @@
 #include "gui_forms/controls/window_capsule.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/controls/sparkline.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_annotation_item.hpp"
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/controls/plot_series_item.hpp"
@@ -1065,6 +1066,10 @@ void test_schema_export() {
     const std::shared_ptr<WindowCapsule> window_capsule =
         make_control<WindowCapsule>(StableId("schema.window-capsule"));
     record_control(*window_capsule, records);
+    // Plot3DView has no Gallery page yet, so it is recorded here as
+    // WindowCapsule is; otherwise it would count as a second service.
+    const std::shared_ptr<Plot3DView> plot3d_view = make_control<Plot3DView>(StableId("schema.plot3d-view"));
+    record_control(*plot3d_view, records);
     // The final controls and the help system shown only inside another or
     // on demand. WizardPage and HelpBookViewer have no anatomy of their own
     // yet and GaugeBase, TextBoxBase, ListControl and UpDownBase are bases:
