@@ -187,10 +187,19 @@ public:
     }
 
     void on_paint(Painter& painter, Rect) override {
+        // The fallback wake path's queued paint is being served: clearing
+        // paint_queued_ before drawing lets a producer wake during or after
+        // this paint post the next one. Until now nothing cleared it, so the
+        // waterfall froze on its first frame (B-gf-tests-misc-01-F1).
+        paint_queued_.store(false, std::memory_order_release);
         const Rect bounds = client_rectangle();
         const Rect image = bounds;
         if (surface_ && !image.empty()) {
             painter.draw_live_surface(surface_, image, 1.0);
+            // The sample: the newest generation a renderer has read.
+            const LiveSurfaceSnapshot sampled = (*surface_).snapshot();
+            last_painted_generation_.store(sampled.last_read_generation, std::memory_order_release);
+            paint_samples_.fetch_add(1U, std::memory_order_relaxed);
         }
     }
 
@@ -254,8 +263,8 @@ private:
                 Window* owner = (*target).window();
                 if (owner) (*(*owner).root()).invalidate(invalidation::paint_only);
             }
-            // paint_queued_ remains set until on_paint samples a generation.
-            // The producer therefore cannot create a UI callback flood.
+            // paint_queued_ remains set until on_paint serves this request,
+            // so the producer cannot create a UI callback flood.
         }
     };
 
