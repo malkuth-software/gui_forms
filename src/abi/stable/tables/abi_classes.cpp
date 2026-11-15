@@ -70,15 +70,19 @@ gf_status classes_create_body(const gf_class_header* table, gf_utf8_view stable_
         return entered;
     }
     *entered_ui = true;
-    // The bridge is armed only once constructed: a throw before then
-    // calls no release (the caller still owns instance).
+    // The bridge is armed only once the registry holds it: a throw before
+    // then (construction, add_reference's storage) calls no release, and
+    // the caller still owns instance (A-gf-abi-01-F6).
     const Control::Ptr made = (*(*description).create)(StableId(std::string(id_text)), view, instance);
     if (made == nullptr) {
         registry().unbind_if_idle();
         return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, create_slot,
                     "this class is not made from a stable id alone; it has no class table object yet");
     }
-    *object = registry().add_reference(made);
+    const gf_object identity = registry().add_reference(made);
+    ClassBridge* const bridge = dynamic_cast<ClassBridge*>(made.get());
+    if (bridge != nullptr) (*bridge).arm_class_table();
+    *object = identity;
     return GF_STATUS_OK;
 }
 

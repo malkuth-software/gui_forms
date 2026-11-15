@@ -282,8 +282,9 @@ public:
     [[nodiscard]] Control& bridged_control() noexcept override { return *this; }
 };
 
-// Makes a bridge over Layers from stable_id, bound to view and instance and
-// armed; null when the stock class is not made from a stable id alone (an
+// Makes a bridge over Layers from stable_id, bound to view and instance but
+// not armed (classes.create arms it once the registry has taken it, so a
+// failure before then calls no release, A-gf-abi-01-F6); null when the stock class is not made from a stable id alone (an
 // abstract base, a class whose constructor needs more), so classes.create
 // refuses with GF_STATUS_UNSUPPORTED_CAPABILITY.
 using BridgeFactory = Control::Ptr (*)(StableId stable_id, const ClassTableView& view, void* instance);
@@ -294,7 +295,6 @@ Control::Ptr create_bridge(StableId stable_id, const ClassTableView& view, void*
     if constexpr (std::is_constructible_v<Stock, StableId> && !std::is_abstract_v<Stock>) {
         std::shared_ptr<FinalBridge<Layers>> made = make_control<FinalBridge<Layers>>(std::move(stable_id));
         (*made).bind_class_table(view, instance);
-        (*made).arm_class_table();
         Control::Ptr control = std::move(made);
         return control;
     } else {
