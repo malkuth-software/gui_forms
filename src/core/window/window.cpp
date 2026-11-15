@@ -2866,6 +2866,9 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     // Its content regions' pending items go: no window gathers them now.
     static_cast<void>((*control).fold_content_regions());
     (*control).on_detaching_from_window(*this);
+    // Detached, the control shows no theme: its look's compilation is no
+    // longer held for it.
+    (*control).release_composite_look();
     (*control).window_ = nullptr;
     (*control).surface_root_ = nullptr;
     (*control).layout_deferred_listed_in_ = nullptr;

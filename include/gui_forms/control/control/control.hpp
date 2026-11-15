@@ -1724,9 +1724,12 @@ private:
     // The fixed points of a composite look (detail::CompositeLook::
     // prepare): prepares this control's look for the theme in effect, or,
     // for the subtree form, every look of this subtree for each control's
-    // theme in effect. Called on attachment, when a window shows a theme
-    // and when a theme override changes; never from the cascade.
+    // theme in effect, holding that compilation. Called on attachment, when
+    // a window shows a theme and when a theme override changes; never from
+    // the cascade. release_composite_look drops the hold (detachment,
+    // destruction, another look).
     void prepare_composite_look();
+    void release_composite_look() noexcept;
     void prepare_composite_looks();
     // Whether the theme sheet must compile now that the control is attached:
     // it waits, or was compiled into other resources.
@@ -2141,8 +2144,11 @@ private:
     [[no_unique_address]] detail::BorrowLender inline_style_lender_{};
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
-    // The composite look (look_rules); null for most controls.
+    // The composite look (look_rules); null for most controls. The serial
+    // of the theme whose compilation this control holds (CompositeLook::
+    // prepare, release), 0 for none.
     std::shared_ptr<detail::CompositeLook> composite_look_;
+    std::uint64_t composite_look_held_{};
     // The theme sheet, its compiled theme and its event; null until a sheet
     // or a subscription needs them (one pointer on every control).
     std::unique_ptr<detail::ControlThemeSheet> theme_sheet_;

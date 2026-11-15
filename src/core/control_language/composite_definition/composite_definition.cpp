@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <span>
@@ -988,18 +989,23 @@ CompositeLook::CompositeLook(std::string text, std::string file, std::shared_ptr
 
 CompositeLook::CompositeLook(std::string text, std::string file, std::vector<ControlAnatomy> controls)
     : text_(std::move(text)), file_(std::move(file)), controls_(std::move(controls)), theme_bound_(true) {
-    entries_.reserve(maximum_composite_look_entries);
+    entries_.reserve(maximum_composite_look_entries + 1U);
 }
 
 CompositeLook::~CompositeLook() = default;
 
-void CompositeLook::prepare(const Theme& theme) {
+void CompositeLook::prepare(const Theme& theme, std::uint64_t& held) {
     if (!theme_bound_) return;
     const std::uint64_t serial = theme.engine().rules().serial();
     use_clock_ = use_clock_ + 1U;
+    if (held != serial) release(held);
     for (ThemeEntry& entry : entries_) {
         if (entry.theme_serial != serial) continue;
         entry.used = use_clock_;
+        if (held != serial) {
+            entry.holders = entry.holders + 1U;
+            held = serial;
+        }
         if (last_serial_ != 0U && last_serial_ != serial) theme_reuses_ = theme_reuses_ + 1U;
         last_serial_ = serial;
         return;
@@ -1023,16 +1029,46 @@ void CompositeLook::prepare(const Theme& theme) {
     made.theme_serial = serial;
     made.rules = std::move(compiled);
     made.used = use_clock_;
+    made.holders = 1U;
+    entries_.push_back(std::move(made));
+    held = serial;
     last_serial_ = serial;
-    if (entries_.size() < maximum_composite_look_entries) {
-        entries_.push_back(std::move(made));
-        return;
+    evict_unheld();
+}
+
+void CompositeLook::release(std::uint64_t& held) noexcept {
+    if (held == 0U) return;
+    for (ThemeEntry& entry : entries_) {
+        if (entry.theme_serial != held || entry.holders == 0U) continue;
+        entry.holders = entry.holders - 1U;
+        break;
     }
-    std::size_t oldest = 0U;
-    for (std::size_t index = 1U; index < entries_.size(); ++index) {
-        if (entries_[index].used < entries_[oldest].used) oldest = index;
+    held = 0U;
+    evict_unheld();
+}
+
+void CompositeLook::evict_unheld() noexcept {
+    std::size_t unheld = 0U;
+    for (const ThemeEntry& entry : entries_) {
+        if (entry.holders == 0U) unheld = unheld + 1U;
     }
-    entries_[oldest] = std::move(made);
+    while (unheld > maximum_composite_look_entries) {
+        std::size_t oldest = entries_.size();
+        for (std::size_t index = 0U; index < entries_.size(); ++index) {
+            if (entries_[index].holders != 0U) continue;
+            if (oldest == entries_.size() || entries_[index].used < entries_[oldest].used) oldest = index;
+        }
+        entries_.erase(entries_.begin() + static_cast<std::ptrdiff_t>(oldest));
+        unheld = unheld - 1U;
+    }
+}
+
+std::size_t CompositeLook::held_count() const noexcept {
+    std::size_t held = 0U;
+    for (const ThemeEntry& entry : entries_) {
+        if (entry.holders != 0U) held = held + 1U;
+    }
+    return held;
 }
 
 const CompiledThemeRules* CompositeLook::rules_for(const Theme& theme) noexcept {

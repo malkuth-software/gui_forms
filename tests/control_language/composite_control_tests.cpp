@@ -657,6 +657,72 @@ void theme_bound_hundred_one_compile() {
             "the statistics report both counts");
 }
 
+// Ten windows showing ten theme-bound themes at once each hold their
+// compilation: none is evicted (more than maximum_composite_look_entries
+// are kept while held), every window keeps drawing its look and nothing is
+// missing. When the windows go, the compilations become evictable, not
+// freed: the most recently prepared maximum_composite_look_entries stay.
+void ten_themes_held() {
+    const CompositeLoadResult loaded =
+        load_composite_definition("branded-pair.control", branded_pair, example_child_types);
+    require(static_cast<bool>(loaded), "the branded pair loads for ten windows");
+    if (!loaded || (*loaded.definition).compiled_look == nullptr) return;
+    const detail::CompositeLook& look = *(*loaded.definition).compiled_look;
+    constexpr std::size_t count = 10U;
+    std::vector<std::shared_ptr<const Theme>> themes{};
+    std::vector<Color> brands{};
+    themes.reserve(count);
+    brands.reserve(count);
+    for (std::size_t index = 0U; index < count; ++index) {
+        const std::uint8_t red = static_cast<std::uint8_t>(0x10U + index * 0x10U);
+        const std::string hex = "0123456789abcdef";
+        std::string sheet = ":root { --brand: #";
+        sheet += hex[red / 16U];
+        sheet += hex[red % 16U];
+        sheet += "2030; }\n";
+        std::shared_ptr<const Theme> theme = app_theme(sheet);
+        if (theme == nullptr) return;
+        themes.push_back(std::move(theme));
+        brands.push_back(Color::rgba(red, 0x20, 0x30));
+    }
+    std::vector<std::shared_ptr<CompositeControl>> pairs{};
+    std::vector<std::unique_ptr<Window>> windows{};
+    pairs.reserve(count);
+    windows.reserve(count);
+    const std::uint64_t before = look.theme_compiles();
+    for (std::size_t index = 0U; index < count; ++index) {
+        std::shared_ptr<CompositeControl> pair =
+            make_control<CompositeControl>(StableId("held" + std::to_string(index)), loaded.definition);
+        (*pair).set_requested_bounds({0.0, 0.0, 200.0, 80.0});
+        std::unique_ptr<Window> window = std::make_unique<Window>(pair, Size{200.0, 80.0});
+        (*window).set_theme_override(themes[index]);
+        (*window).perform_layout();
+        pairs.push_back(std::move(pair));
+        windows.push_back(std::move(window));
+    }
+    require(look.theme_compiles() >= before + count, "each of the ten themes compiles the look");
+    require(look.held_count() == count, "the ten shown themes each hold their compilation");
+    // Every window draws again, in turn, after all ten were shown.
+    std::size_t drawing = 0U;
+    for (std::size_t round = 0U; round < 2U; ++round) {
+        for (std::size_t index = 0U; index < count; ++index) {
+            test_support::ClipTrackingPainter painter{};
+            (*windows[index]).paint(painter);
+            const Color text = recipe_of(*pairs[index], "face", ControlVisualContext{}).text;
+            if (text == brands[index]) drawing = drawing + 1U;
+        }
+    }
+    require(drawing == 2U * count, "all ten windows keep drawing their looks");
+    require(look.missing() == 0U && (*pairs[0]).statistics().look_missing == 0U, "no compilation is missing");
+    const std::uint64_t settled = look.theme_compiles();
+    windows.clear();
+    pairs.clear();
+    require(look.held_count() == 0U, "with the windows gone no theme holds a compilation");
+    require(look.entry_count() == maximum_composite_look_entries,
+            "the unheld compilations stay kept, evictable, up to the bound");
+    require(look.theme_compiles() == settled, "releasing compiles nothing");
+}
+
 } // namespace
 
 int main() {
@@ -673,6 +739,7 @@ int main() {
     theme_bound_look_follows_switch();
     theme_bound_hundred_one_compile();
     resolution_never_compiles();
+    ten_themes_held();
     if (failures != 0) {
         std::cerr << failures << " composite control check(s) failed\n";
         return 1;

@@ -183,8 +183,11 @@ inline constexpr std::size_t maximum_composite_rule_depth = 8U;
 //     pass), and those refused; the definition's counts, read when asked,
 //     so the same in every instance;
 //   look_theme_reuses: preparations that reused a kept compilation after
-//     another theme's (switching back to a theme reuses its compilation
-//     while it is among the last maximum_composite_look_entries themes);
+//     another theme's. A theme some instance shows (its window's, or an
+//     override) holds its compilation, never evicted; one no instance
+//     shows any more stays kept, evictable, among the last
+//     maximum_composite_look_entries such themes, so switching back to it
+//     reuses its compilation;
 //   look_missing: resolutions that found no prepared compilation, a defect
 //     (the look draws nothing there; nothing compiles).
 struct GUI_FORMS_API CompositeStatistics final {

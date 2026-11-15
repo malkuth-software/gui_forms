@@ -1428,6 +1428,8 @@ std::span<const PropertyEntry> Control::property_table() const noexcept {
 }
 
 Control::~Control() {
+    // The theme compilation this control's look holds becomes evictable.
+    release_composite_look();
     // Normally a control leaves its window (detach) before it is destroyed.
     // One destroyed while still attached is forgotten here, so no window
     // registry keeps its address (owner, 2026-11-05).
@@ -4027,6 +4029,7 @@ const CompiledThemeRules* Control::look_rules() const noexcept {
 void Control::set_composite_look(std::shared_ptr<detail::CompositeLook> look) {
     require_mutable();
     if (composite_look_ == look) return;
+    release_composite_look();
     composite_look_ = std::move(look);
     // Attached, the theme in effect is known now: prepared before any
     // resolution reads the look. Detached, attachment prepares it.
@@ -4036,7 +4039,12 @@ void Control::set_composite_look(std::shared_ptr<detail::CompositeLook> look) {
 
 void Control::prepare_composite_look() {
     if (composite_look_ == nullptr) return;
-    (*composite_look_).prepare(effective_theme());
+    (*composite_look_).prepare(effective_theme(), composite_look_held_);
+}
+
+void Control::release_composite_look() noexcept {
+    if (composite_look_ == nullptr) return;
+    (*composite_look_).release(composite_look_held_);
 }
 
 void Control::prepare_composite_looks() {
