@@ -420,7 +420,19 @@ ControlVisualRecipe recipe_of(const Control& control, const std::string_view par
 // the composite sees the theme alone.
 void look_layers_over_theme_switch() {
     const CompositeLoadResult loaded = load_composite_definition("looked-pair.control", looked_pair, example_child_types);
-    for (const std::string& line : loaded.diagnostics) std::cerr << "  " << line << '\n';
+    // A look is an application sheet, not the colour authority: its literal
+    // text colours cannot follow forced high contrast's remapping, and each
+    // warns W201 literal_colour_unremappable, as the rule says. Expected
+    // here; anything else is printed.
+    std::size_t literal_warnings = 0U;
+    for (const std::string& line : loaded.diagnostics) {
+        if (line.find("W201") != std::string::npos) {
+            literal_warnings = literal_warnings + 1U;
+            continue;
+        }
+        std::cerr << "  " << line << '\n';
+    }
+    require(literal_warnings > 0U, "the look's literal text colours warn W201");
     require(static_cast<bool>(loaded), "the looked pair loads");
     if (!loaded) return;
     const std::shared_ptr<CompositeControl> pair =

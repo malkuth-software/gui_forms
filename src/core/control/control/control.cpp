@@ -1644,13 +1644,17 @@ const Theme& Control::effective_theme() const noexcept {
 }
 
 // The nearest override is kept (inherited_values); without one, the
-// window's application theme, read now, as the topmost ancestor shares this
-// control's surface root.
+// window's theme override (SurfaceRoot::set_theme_override: the window's
+// theme alone), else its application theme, read now, as the topmost
+// ancestor shares this control's surface root.
 const Theme& Control::chosen_theme() const noexcept {
     const Theme* const nearest = inherited_values().theme_override;
     if (nearest != nullptr) return *nearest;
-    if (surface_root_ != nullptr) return (*surface_root_).application_theme();
-    return *default_theme();
+    if (surface_root_ == nullptr) return *default_theme();
+    const WindowOverrides* const window_overrides = (*surface_root_).overrides();
+    if (window_overrides != nullptr && (*window_overrides).theme) return *(*window_overrides).theme;
+    const Theme& application = (*surface_root_).application_theme();
+    return application;
 }
 
 bool Control::application_colours_suspended() const noexcept {
