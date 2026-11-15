@@ -173,6 +173,8 @@ gui_forms::BusinessCard
 
    .. cpp:function:: void on_key_bubble(KeyEvent& event) override
 
+      The card's keys (Escape, Left and Right in the hand; Enter and Space) reach it as the focused control (on_key_down) and from a focused descendant (on_key_bubble); the window's bubble phase skips the focused control itself, so both are needed.
+
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override
@@ -188,6 +190,10 @@ gui_forms::BusinessCard
       *Protected.*
 
    .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
 
       *Protected.*
 

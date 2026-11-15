@@ -897,7 +897,7 @@ gui_forms::ListView
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supported, 0 deferred, 2 excluded, 106 unclassified; 46 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supported, 0 deferred, 2 excluded, 101 unclassified; 40 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -914,8 +914,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - supported
    * - property
      - ``Activation``
-     - none
-     - unclassified (unmatched)
+     - ``activation``
+     - unclassified (untested)
    * - property
      - ``Alignment``
      - none
@@ -938,8 +938,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (carried)
    * - property
      - ``CheckBoxes``
-     - none
-     - unclassified (unmatched)
+     - ``check_boxes``
+     - unclassified (untested)
    * - property
      - ``CheckedIndices``
      - none
@@ -958,8 +958,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - ``FullRowSelect``
-     - none
-     - unclassified (unmatched)
+     - ``full_row_select``
+     - unclassified (untested)
    * - property
      - ``GridLines``
      - none
@@ -974,8 +974,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - supported
    * - property
      - ``HeaderStyle``
-     - none
-     - unclassified (unmatched)
+     - ``header_style``
+     - unclassified (untested)
    * - property
      - ``HideSelection``
      - none
@@ -998,8 +998,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - supported
    * - property
      - ``LabelEdit``
-     - none
-     - unclassified (unmatched)
+     - ``label_edit``
+     - unclassified (untested)
    * - property
      - ``LabelWrap``
      - none
@@ -1014,8 +1014,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - ``MultiSelect``
-     - none
-     - unclassified (unmatched)
+     - ``multi_select``
+     - unclassified (untested)
    * - property
      - ``OwnerDraw``
      - none
@@ -1042,8 +1042,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - ``ShowGroups``
-     - none
-     - unclassified (unmatched)
+     - ``show_groups``
+     - unclassified (untested)
    * - property
      - ``ShowItemToolTips``
      - none
@@ -1062,8 +1062,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - ``TileSize``
-     - none
-     - unclassified (unmatched)
+     - ``tile_size``
+     - unclassified (untested)
    * - property
      - ``TopItem``
      - none
@@ -1074,8 +1074,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - ``View``
-     - none
-     - unclassified (unmatched)
+     - ``view``
+     - unclassified (untested)
    * - property
      - ``VirtualListSize``
      - none
@@ -1350,36 +1350,16 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - GUI.Forms-only
-     - ``active_border_alternate_color``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_color``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_corner_radius``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_frequency``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_motion``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_offset``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_width``
+     - ``default_group_header``
      - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``focused_index``
      - supported
+   * - property
+     - ``Control.Font``
+     - ``font``
+     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``grouped``

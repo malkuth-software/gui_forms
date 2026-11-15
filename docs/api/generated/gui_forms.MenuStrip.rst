@@ -370,7 +370,7 @@ gui_forms::MenuStrip
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``MenuStrip``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 16 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``MenuStrip``. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 9 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -421,34 +421,6 @@ Counterpart: ``MenuStrip``. Members declared here and by the counterpart: 9 supp
      - ``OnMenuDeactivate``
      - none
      - unclassified (hook)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_alternate_color``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_color``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_corner_radius``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_frequency``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_motion``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_offset``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_width``
-     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``active_index``

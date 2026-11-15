@@ -2473,7 +2473,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 248 supported, 0 deferred, 12 excluded, 316 unclassified; 219 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 248 supported, 0 deferred, 12 excluded, 323 unclassified; 226 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -2690,7 +2690,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 248 supp
      - unclassified (unmatched)
    * - property
      - ``Font``
-     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``Label``, ``CheckBox``, ``RadioButton``, ``GroupBox``
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``Label``, ``ListView``, ``CheckBox``, ``RadioButton``, ``GroupBox``
      - unclassified (carried)
    * - property
      - ``FontHeight``
@@ -3922,12 +3922,40 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 248 supp
      - supported
    * - property
      - GUI.Forms-only
+     - ``active_border_alternate_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``active_border_animating``
      - supported
    * - property
      - GUI.Forms-only
+     - ``active_border_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_corner_radius``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_frequency``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_motion``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_offset``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``active_border_pose``
      - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_border_width``
+     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``align_self``

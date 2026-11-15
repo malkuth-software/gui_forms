@@ -323,7 +323,7 @@ gui_forms::Label
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Label``. Members declared here and by the counterpart: 7 supported, 0 deferred, 1 excluded, 43 unclassified; 16 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Label``. Members declared here and by the counterpart: 7 supported, 0 deferred, 1 excluded, 36 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -454,34 +454,6 @@ Counterpart: ``Label``. Members declared here and by the counterpart: 7 supporte
      - ``OnTextAlignChanged``
      - none
      - unclassified (hook)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_alternate_color``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_color``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_corner_radius``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_frequency``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_motion``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_offset``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_width``
-     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``alignment``

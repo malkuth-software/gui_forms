@@ -721,7 +721,7 @@ gui_forms::PageStrip
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 30 supported, 0 deferred, 0 excluded, 14 unclassified; 44 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 30 supported, 0 deferred, 0 excluded, 7 unclassified; 37 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -732,34 +732,6 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 30 s
      - Windows Forms
      - GUI.Forms
      - Status
-   * - property
-     - GUI.Forms-only
-     - ``active_border_alternate_color``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_color``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_corner_radius``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_frequency``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_motion``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_offset``
-     - unclassified (untested)
-   * - property
-     - GUI.Forms-only
-     - ``active_border_width``
-     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``dragged_page``
