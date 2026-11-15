@@ -51,8 +51,7 @@ function(raw_literal text name result)
     endif()
     # A carriage return in a raw string literal may become a newline in
     # translation, and the bytes would no longer have the manifest's sha256.
-    string(FIND "${text}" "
-" carriage_return)
+    string(FIND "${text}" "" carriage_return)
     if(NOT carriage_return EQUAL -1)
         message(FATAL_ERROR "gui_forms_add_theme: ${name} must have LF line endings")
     endif()
@@ -114,7 +113,6 @@ foreach(form IN LISTS form_files)
         string(REGEX REPLACE "^[ \t\r\n]id[ \t\r\n]*=[ \t\r\n]*[\"']([^\"']*)[\"']$" "\\1" id "${opening}")
         list(APPEND known_ids "${id}")
     endforeach()
-endforeach()
 endforeach()
 
 # -- the sheets' stable-ID selectors ---------------------------------------------
