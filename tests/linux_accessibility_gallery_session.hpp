@@ -19,7 +19,9 @@
 //   supplement      answers the supplement window's report
 //   reset           closes overlays and dialogs (Escape), hides a toast and
 //                   reselects the page
-//   arm STABLE_ID   counts the clicks of that ButtonBase; answers "armed 1" or "armed 0"
+//   arm STABLE_ID   puts away a business card shown in the supplement's hand,
+//                   then counts the clicks of that ButtonBase; answers
+//                   "armed 1" or "armed 0"
 //   replace STABLE_ID  disposes that Button and inserts a new Button with the
 //                   same stable identity and text at its index; answers the report
 //   quit            answers "bye"
@@ -32,6 +34,7 @@
 #include "demo/gallery_page_specs.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/components/business_card/business_card.hpp"
+#include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/controls/help_book_viewer.hpp"
 #include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
@@ -178,7 +181,8 @@ inline void append_node(std::ostringstream& stream, const SemanticNode& node) {
 
 // Appends every control of the tree under `root`, root first, in
 // depth-first child order: its registry id (the anatomy's control id, as
-// manifests/controls.json names it), stable identity, runtime identity,
+// manifests/controls.json names it, or composite_control for a composite),
+// stable identity, runtime identity,
 // whether it is visible (hidden pages' controls are in the tree too), and
 // whether its semantic descriptor is exposed.
 inline void append_controls(std::ostringstream& stream, const Control::Ptr& root, bool& first) {
@@ -189,7 +193,14 @@ inline void append_controls(std::ostringstream& stream, const Control::Ptr& root
         if (!first) stream << ',';
         first = false;
         stream << "{\"type\":";
-        append_string(stream, (*control).anatomy().control_id);
+        // A composite's anatomy is named for its composite type; it is the
+        // registry's composite_control, made only from a definition (as the
+        // semantic and anatomy Gallery tests name it).
+        if (dynamic_cast<const CompositeControl*>(control.get()) != nullptr) {
+            append_string(stream, "composite_control");
+        } else {
+            append_string(stream, (*control).anatomy().control_id);
+        }
         stream << ",\"stable_id\":";
         append_string(stream, (*control).stable_id().value());
         const SemanticDescriptor descriptor = (*control).semantic_descriptor();
@@ -235,13 +246,11 @@ struct ClickCounter final {
 // capsule), each placed bare, as the headless semantic test's off-tree
 // fixture places them (the capsule not interactive, as the surface window
 // manager shows it). The
-// business card's press asks to open the card in the hand; the supplement
-// answers it, so no modal layer covers the window for later targets.
+// business card's press (its default action, as Enter and Space are) opens
+// the card in the hand over the supplement, a new root the client sees; the
+// next `arm` puts it away, so no modal layer covers the window for later
+// targets.
 inline constexpr Size supplement_size{800.0, 600.0};
-
-struct AnswerCardOpening final {
-    void operator()(BusinessCardRequest& request) const { request.handled = true; }
-};
 
 inline std::unique_ptr<Window> make_supplement() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("supplement"));
@@ -278,7 +287,6 @@ inline std::unique_ptr<Window> make_supplement() {
     (*root).add_child(help_book_viewer);
     std::shared_ptr<BusinessCard> business_card = make_control<BusinessCard>(StableId("supplement.business-card"));
     (*business_card).set_requested_bounds({520, 340, 272, 164});
-    (*root).own_subscription((*business_card).open_requested().subscribe(AnswerCardOpening{}));
     (*root).add_child(business_card);
     std::shared_ptr<Plot3DView> plot3d_view = make_control<Plot3DView>(StableId("supplement.plot3d-view"));
     std::shared_ptr<WindowCapsule> window_capsule = make_control<WindowCapsule>(StableId("supplement.window-capsule"));
@@ -442,6 +450,12 @@ private:
     }
 
     std::string arm(std::string_view stable_id) {
+        // A card the previous target opened in the hand is put away first:
+        // its modal layer would take the next target's input.
+        if (business_card_shown(supplement_)) {
+            hide_business_card(supplement_);
+            supplement_.perform_layout();
+        }
         clicked_ = SubscriptionToken{};
         counter_.clicks = 0;
         armed_id_ = std::string(stable_id);
