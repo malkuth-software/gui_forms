@@ -247,7 +247,11 @@ void check_provider_toggle(Checks& checks, Window& window, ProviderFixture& fixt
 
 void check_provider_value(Checks& checks, Window& window, ProviderFixture& fixture) {
     const std::optional<SemanticNode> text = read_node(window, "uia.text");
-    if (!text) return;
+    // A missing node is a failure, not a skip (B-gf-tests-10-F5).
+    if (!text) {
+        expect(checks, false, "the text box publishes its node");
+        return;
+    }
     expect(checks, (*text).role == SemanticRole::text_box, "the text box's role");
     expect(checks,
            perform_on_control(window, *fixture.text, SemanticAction::set_value, "Hello, UIA") &&
@@ -259,7 +263,10 @@ void check_provider_value(Checks& checks, Window& window, ProviderFixture& fixtu
 
 void check_provider_range(Checks& checks, Window& window, ProviderFixture& fixture) {
     const std::optional<SemanticNode> number = read_node(window, "uia.number");
-    if (!number) return;
+    if (!number) {
+        expect(checks, false, "the numeric field publishes its node");
+        return;
+    }
     expect(checks,
            (*number).numeric_value.has_value() && (*number).minimum_value == 0.0 && (*number).maximum_value == 10.0,
            "the numeric field publishes its value and range");
