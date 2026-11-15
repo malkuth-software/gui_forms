@@ -302,11 +302,16 @@ void test_scroll_bar_press_and_hold_repeats_on_a_ui_timer() {
     press.action = PointerAction::down;
     press.button = PointerButton::primary;
     press.position = {195.0, 8.0};
+    // The clock is read on both sides of the press, so the first repeat's
+    // wake is bounded from both whatever the dispatch takes
+    // (B-gf-tests-10-F2).
+    const FrameTime before_press = FrameClock::now();
     require(window.dispatch_pointer(press) && near((*bar).value.read(), 1.0),
             "pressing the increment button must step once");
-    const FrameTime pressed = FrameClock::now();
-    require(window.next_wake().has_value() &&
-                *window.next_wake() >= pressed + (*bar).initial_repeat_delay.read() - std::chrono::milliseconds(5),
+    const FrameTime after_press = FrameClock::now();
+    const FrameInterval initial_delay = (*bar).initial_repeat_delay.read();
+    require(window.next_wake().has_value() && *window.next_wake() >= before_press + initial_delay &&
+                *window.next_wake() <= after_press + initial_delay,
             "holding must schedule the first repeat after the initial delay, on a UI timer");
     const FrameTime first = *window.next_wake();
     const FramePollResult repeat = window.poll_frame_schedule(first);
