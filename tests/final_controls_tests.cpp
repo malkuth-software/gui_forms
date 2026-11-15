@@ -877,7 +877,12 @@ struct ReplaceSectionsWhenHidden final {
 // Runs the window's frames until the sections' reveal ends, at most
 // `frames` of them.
 void run_reveal(Window& window, const ExpandableSections& sections, int frames) {
+    // The reveal's animation is paint-gated: one tick, then a paint before
+    // the next is scheduled, so each frame lays out and paints first.
+    LinePainter painter;
     for (int frame = 0; frame < frames && sections.revealing(); ++frame) {
+        window.perform_layout();
+        window.paint(painter);
         const std::optional<FrameTime> wake = window.next_wake();
         if (!wake) return;
         static_cast<void>(window.poll_frame_schedule(*wake));
