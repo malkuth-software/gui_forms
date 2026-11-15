@@ -1006,6 +1006,7 @@ Properties beyond every control's: none.
 | `well` | well |  |  |
 | `vertical_scroll_bar` | track | `v_scroll_bar` |  |
 | `focus` | focus |  |  |
+| `column_headers` | region |  |  |
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
@@ -1019,6 +1020,17 @@ Item system `row`:
 
 Item states: `selected`, `hot`, `current`, `disabled`, `focus_visible`.
 
+Item system `column_header`:
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `column_header` | face |  |  |
+| `column_label` | label |  |  |
+| `sort_glyph` | glyph |  |  |
+| `column_divider` | divider |  |  |
+
+Item states: `hot`, `pressed`, `selected`.
+
 Properties beyond every control's: none.
 
 | Interaction | Payload |
@@ -1026,6 +1038,10 @@ Properties beyond every control's: none.
 | `selection_changed` | `VirtualRowSelection` |
 | `row_activated` | `VirtualRowIndex` |
 | `scrolled` | `VirtualRowScroll` |
+| `header_clicked` | `VirtualRowsHeaderClick` |
+| `column_resized` | `std::size_t` |
+| `column_moved` | `VirtualRowsColumnMove` |
+| `cell_content_paint` | `ItemContentPaint`, by reference |
 
 ## `data_grid_view` (DataGridView, control)
 
@@ -1080,7 +1096,7 @@ Item system `cell`:
 | `cell_focus` | focus |  |  |
 | `cell_error` | glyph |  |  |
 
-Item states: `selected`, `current`, `read_only`, `invalid`, `checked`, `pressed`, `open`, `focus_visible`. Application-defined: `visited`.
+Item states: `selected`, `current`, `read_only`, `invalid`, `checked`, `indeterminate`, `pressed`, `open`, `focus_visible`. Application-defined: `visited`.
 
 Item system `column`:
 
@@ -1106,6 +1122,24 @@ Properties beyond every control's: `allow_user_to_add_rows` (boolean), `multi_se
 | `cell_validating` | `DataGridViewCellValidatingEvent`, by reference |
 | `cell_value_changed` | `DataGridViewCellEvent` |
 | `cell_content_click` | `DataGridViewCellEvent` |
+| `cell_click` | `DataGridViewCellEvent` |
+| `cell_double_click` | `DataGridViewCellEvent` |
+| `row_header_click` | `DataGridViewRowEvent` |
+| `editing_control_showing` | `DataGridViewEditingControlShowingEvent` |
+| `row_pre_paint` | `DataGridViewRowPrePaintEvent`, by reference |
+| `row_post_paint` | `DataGridViewRowPostPaintEvent`, by reference |
+| `rows_added` | `DataGridViewRowsChangedEvent` |
+| `rows_removed` | `DataGridViewRowsChangedEvent` |
+| `column_added` | `DataGridViewColumnChangedEvent` |
+| `column_removed` | `DataGridViewColumnChangedEvent` |
+| `cell_mouse_enter` | `DataGridViewCellMouseEvent` |
+| `cell_mouse_leave` | `DataGridViewCellMouseEvent` |
+| `cell_mouse_move` | `DataGridViewCellMouseEvent` |
+| `cell_mouse_down` | `DataGridViewCellMouseEvent` |
+| `cell_mouse_up` | `DataGridViewCellMouseEvent` |
+| `cell_mouse_click` | `DataGridViewCellMouseEvent` |
+| `cell_mouse_double_click` | `DataGridViewCellMouseEvent` |
+| `cell_tool_tip_text_needed` | `DataGridViewCellToolTipTextNeededEvent`, by reference |
 | `row_order_mode_changed` | `DataGridViewRowOrderModeChange` |
 | `data_error` | `DataGridViewDataErrorEvent`, by reference |
 | `cell_validated` | `DataGridViewCellEvent` |
@@ -1408,6 +1442,29 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
 | `selected_index_changed` | `std::optional<std::size_t>` |
+
+## `color_picker` (ColorPicker, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `field` | well |  |  |
+| `field_thumb` | thumb |  | pressed, captured |
+| `hue_track` | track |  |  |
+| `hue_thumb` | thumb |  | pressed, captured |
+| `alpha_track` | track |  |  |
+| `alpha_thumb` | thumb |  | pressed, captured |
+| `swatch` | chip |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `alpha_enabled` (boolean), `value` (color).
+
+| Interaction | Payload |
+|---|---|
+| `value_changed` | `Color` |
+| `value_committed` | `Color` |
 
 ## `color_value_editor` (ColorValueEditor, control)
 
@@ -2320,6 +2377,33 @@ Properties it provides to its children: `child_track` (unsigned_integer).
 | `scroll` | `ScrollEvent`, by reference |
 | `auto_validate_changed` | `AutoValidate` |
 
+## `form_layout` (FormLayout, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `viewport` | region |  |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
+| `scroll_corner` | face |  |  |
+| `focus` | focus |  |  |
+| `face` | face |  |  |
+| `edge` | edge |  |  |
+
+States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `caption_alignment` (enumeration), `caption_width` (number), `column_spacing` (number), `row_spacing` (number), `wheel_scrolls` (boolean).
+
+| Interaction | Payload |
+|---|---|
+| `scroll` | `ScrollEvent`, by reference |
+
 ## `scaled_panel` (ScaledPanel, control)
 
 | Part | Role | Reuses | Own states |
@@ -2935,6 +3019,7 @@ Properties beyond every control's: none.
 | `scroll_right` | actuator | `button` | hot, pressed |
 | `scroll_right_glyph` | glyph |  | hot, pressed |
 | `help_button` | actuator | `button` | hot, pressed, focus_visible |
+| `help_label` | label |  | hot, pressed, focus_visible |
 | `focus` | focus |  |  |
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
@@ -3479,6 +3564,57 @@ Properties beyond every control's: none.
 | `stopped` | `SubSurfaceStopped` |
 | `pairing_missed` | `std::uint64_t` |
 
+## `content_surface` (ContentSurface, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `content` | image |  |  |
+| `veil` | scrim |  |  |
+| `caption` | caption |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`, `interrupted`.
+
+Properties beyond every control's: none.
+
+| Interaction | Payload |
+|---|---|
+| `status_changed` | `ContentSurfaceStatus` |
+
+## `content_text_editor` (ContentTextEditor, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `viewport` | region |  |  |
+| `horizontal_decrement_arrow` | actuator | `button` | hot, pressed |
+| `horizontal_track` | track |  | hot, pressed |
+| `horizontal_thumb` | thumb |  | hot, pressed, captured |
+| `horizontal_increment_arrow` | actuator | `button` | hot, pressed |
+| `vertical_decrement_arrow` | actuator | `button` | hot, pressed |
+| `vertical_track` | track |  | hot, pressed |
+| `vertical_thumb` | thumb |  | hot, pressed, captured |
+| `vertical_increment_arrow` | actuator | `button` | hot, pressed |
+| `scroll_corner` | face |  |  |
+| `focus` | focus |  |  |
+| `content` | image |  |  |
+| `caret` | caret |  |  |
+| `selection` | selection |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`, `read_only`.
+
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
+
+| Interaction | Payload |
+|---|---|
+| `scroll` | `ScrollEvent`, by reference |
+| `layout_requested` | `std::uint64_t` |
+| `text_changed` | `std::string` |
+| `selection_changed` | `TextSelection` |
+| `user_edit` | `ContentUserEdit` |
+
 ## `metrics_view` (MetricsView, control)
 
 | Part | Role | Reuses | Own states |
@@ -3493,6 +3629,10 @@ States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 Properties beyond every control's: none.
 
 Interactions beyond every control's: none.
+
+## `plot_link_group` (PlotLinkGroup, component)
+
+Interactions: none.
 
 ## `timer` (Timer, component)
 
