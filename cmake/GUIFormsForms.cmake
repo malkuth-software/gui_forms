@@ -40,9 +40,12 @@
 #                name the lab and demonstration controls (audit F9).
 # The header is regenerated when the document, a composite's document or the
 # compiler changes; the compiler writes it only when its bytes change. The
-# target builds after the header's generation (a per-target dependency; no
-# source-file property, so a source the target shares with another target is
-# left alone); likewise for gui_forms_add_control.
+# target builds after the header's generation (a per-target dependency), and
+# each of its own sources' objects depends on the header (OBJECT_DEPENDS,
+# so a depfile spelled another way, as ccache with CCACHE_BASEDIR writes it
+# under a symlinked build directory, cannot hide a change). A source another
+# target of the same directory also compiles is left without the property,
+# so it reaches no other target; likewise for gui_forms_add_control.
 
 if(COMMAND gui_forms_add_form)
     return()
@@ -70,17 +73,82 @@ function(gui_forms_composite_arguments composites_variable arguments_variable do
     set(${documents_variable} ${read} PARENT_SCOPE)
 endfunction()
 
-# Orders `target` after the generation of its `header` (cp33). The header
-# is a source of the target, so the compiler's dependency file tracks every
-# object that includes it, and a per-target generation target, added as a
+# Makes the objects of `target`'s own sources depend on its generated
+# `header` (cpfix-c7). The compiler's dependency file alone is not enough:
+# under ccache with CCACHE_BASEDIR set, its paths are rewritten relative to
+# the compiler's real working directory, and with the build directory
+# behind a symlink that spelling (a long "../../.../gui_forms_forms/x.hpp")
+# is another Ninja node than the custom command's output, so a regenerated
+# header dirtied nothing. OBJECT_DEPENDS names the header as the custom
+# command spells it, so the dependency holds whatever the depfile says.
+# OBJECT_DEPENDS is a source property of a directory and reaches every
+# target there that compiles the source; a source another target of the
+# same directory also compiles is therefore left out (it keeps the ordering
+# below): the cp33 cycle came from a source shared with the form compiler,
+# whose object then depended on the header it generates. Other directories
+# keep their own source properties. It runs deferred, at the end of the
+# target's directory, so it sees every target and every source added
+# after gui_forms_add_form or gui_forms_add_control; sources named by a
+# generator expression and sources that are not compiled are left alone.
+function(gui_forms_generated_header_dependents target header)
+    get_target_property(source_directory ${target} SOURCE_DIR)
+    get_target_property(sources ${target} SOURCES)
+    if(NOT sources)
+        return()
+    endif()
+    # Every source the directory's other targets compile, as absolute paths.
+    get_property(targets DIRECTORY "${source_directory}" PROPERTY BUILDSYSTEM_TARGETS)
+    set(shared "")
+    foreach(other IN LISTS targets)
+        if(other STREQUAL target)
+            continue()
+        endif()
+        get_target_property(other_sources ${other} SOURCES)
+        if(NOT other_sources)
+            continue()
+        endif()
+        get_target_property(other_directory ${other} SOURCE_DIR)
+        foreach(other_source IN LISTS other_sources)
+            if(other_source MATCHES "\\$<")
+                continue()
+            endif()
+            get_filename_component(other_path "${other_source}" ABSOLUTE BASE_DIR "${other_directory}")
+            list(APPEND shared "${other_path}")
+        endforeach()
+    endforeach()
+    foreach(source IN LISTS sources)
+        if(source MATCHES "\\$<")
+            continue()
+        endif()
+        if(NOT source MATCHES "\\.(c|cc|cpp|cxx|m|mm)$")
+            continue()
+        endif()
+        get_filename_component(path "${source}" ABSOLUTE BASE_DIR "${source_directory}")
+        list(FIND shared "${path}" shared_index)
+        if(NOT shared_index EQUAL -1)
+            continue()
+        endif()
+        set_property(SOURCE "${path}" TARGET_DIRECTORY ${target} APPEND PROPERTY OBJECT_DEPENDS "${header}")
+    endforeach()
+endfunction()
+
+# Defers gui_forms_generated_header_dependents to the end of the current
+# directory. The deferred call's arguments would be read at the end of the
+# directory, where this function's variables no longer exist, so they are
+# written into the call as bracket arguments now.
+function(gui_forms_defer_generated_header_dependents target header)
+    cmake_language(EVAL CODE
+        "cmake_language(DEFER CALL gui_forms_generated_header_dependents [==[${target}]==] [==[${header}]==])")
+endfunction()
+
+# Orders `target` after the generation of its `header` (cp33), and makes
+# its own objects depend on it (cpfix-c7, above). The header is a source
+# of the target, and a per-target generation target, added as a
 # dependency, has it generated before any of the target's objects compile:
 # an object that includes it only through another generated header, or
 # whose dependency file predates it, still builds against the current
-# bytes. Nothing here sets a source-file property: such a property belongs
-# to the directory's source file and reaches every target compiling it (a
-# source shared with the form compiler itself made a dependency cycle).
-# The generation target's name joins the target to a digest of the header's
-# path, so two headers with one stem stay apart.
+# bytes. The generation target's name joins the target to a digest of the
+# header's path, so two headers with one stem stay apart.
 function(gui_forms_order_generated_header target header)
     string(MD5 digest "${header}")
     string(SUBSTRING "${digest}" 0 12 digest)
@@ -88,6 +156,7 @@ function(gui_forms_order_generated_header target header)
     add_custom_target(${generation} DEPENDS "${header}")
     add_dependencies(${target} ${generation})
     target_sources(${target} PRIVATE "${header}")
+    gui_forms_defer_generated_header_dependents(${target} "${header}")
 endfunction()
 
 function(gui_forms_add_form target document)

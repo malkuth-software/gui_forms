@@ -20,10 +20,14 @@ foreach(required IN ITEMS WORK_DIRECTORY SOURCE_DIRECTORY GENERATOR)
 endforeach()
 # Each run works in a directory of its own under WORK_DIRECTORY, so two runs
 # in one build tree (a gate's ctest and a manual rerun) never share a
-# document or a nested build. This was first suspected as the cause of the
-# cp33 failure; the integrator ruled it out (one registration, ctest
-# --parallel 1, nothing else in the tree), and the cause is still open. A
-# run's directory is removed when the run passes and kept when it fails.
+# document or a nested build. The cp33 failure's cause was ccache: with
+# CCACHE_BASEDIR set and this directory behind a symlink, the depfile named
+# the generated header by another spelling, so the regenerated header did
+# not rebuild form_reader.cpp. gui_forms_add_form now makes the header an
+# explicit dependency of the target's own objects (cpfix-c7); this test is
+# the guard, so WORK_DIRECTORY is used as given (never resolved to its real
+# path) and the launcher is kept. A run's directory is removed when the run
+# passes and kept when it fails.
 file(MAKE_DIRECTORY "${WORK_DIRECTORY}")
 string(TIMESTAMP run_time "%Y%m%d%H%M%S%f" UTC)
 string(RANDOM LENGTH 8 ALPHABET "0123456789abcdef" run_salt)

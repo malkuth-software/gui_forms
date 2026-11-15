@@ -109,6 +109,16 @@ leading argument (`cmake/TestPrecompiledHeader.cmake`). Without that sloppiness
 come from CMake, so a local build tree caches the same units as CI whatever
 its shell exports.
 
+`ccache` also rewrites the paths in each object's dependency file, relative to
+the compiler's real working directory. With the build tree behind a symlink,
+its real depth differs from the logical one, so a header comes back spelled
+as a long `../../…` path that Ninja treats as a different file. A header
+generated in the build tree (a form or control header) would then not rebuild
+the objects that include it. `gui_forms_add_form` and `gui_forms_add_control`
+name the generated header as an explicit dependency of their target's own
+objects, so this cannot happen to them; any other generated header of your
+own needs the same (`OBJECT_DEPENDS`), or keep the build tree off symlinks.
+
 ### Local builds
 
 Every local workspace shares one cache directory. Its size limit lives in

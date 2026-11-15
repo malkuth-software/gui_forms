@@ -2,7 +2,9 @@
 # gui_forms_add_form on a target that compiles a source shared with the
 # stand-in form compiler and with a third target. A per-source property
 # would make the compiler's own object depend on the header it generates (a
-# ninja dependency cycle, cp33); the per-target ordering must not.
+# ninja dependency cycle, cp33); the per-target ordering must not, and the
+# header must still rebuild form_reader.cpp's object (its own source) when
+# the depfile spells the header another way (ccache, cpfix-c7).
 cmake_minimum_required(VERSION 3.25)
 project(gui_forms_form_shared_source LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
