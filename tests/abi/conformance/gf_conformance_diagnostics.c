@@ -100,16 +100,23 @@ static void in_event(gf_kit* kit) {
     gf_kit_check(kit, probe.required >= 2u && probe.required == probe.info.depth, "the callback sees its frames");
     gf_kit_check(kit, probe.small_status == GF_STATUS_BUFFER_TOO_SMALL && probe.small_required == probe.required,
                  "a small buffer reports the frames needed");
-    const gf_shadow_frame* outer = &probe.frames[0];
-    gf_kit_check(kit, (*outer).kind == GF_SHADOW_FRAME_KIND_LIBRARY_CALL && (*outer).table_id == GF_TABLE_PROPERTIES &&
-                          (*outer).slot_index == 1u && (*outer).subject_size == 0u,
-                 "the outermost frame is the properties.set call");
-    const gf_shadow_frame* inner = &probe.frames[probe.required - 1u];
-    gf_kit_check(kit, (*inner).kind == GF_SHADOW_FRAME_KIND_EVENT_CALLBACK &&
-                          text_is((*inner).subject, (*inner).subject_size, "kit.diag.check") &&
-                          text_is((*inner).name, (*inner).name_size, "check_state_changed") && (*inner).flags == 0u,
-                 "the innermost frame is the event, with its sender and name");
-    gf_kit_check(kit, (*inner).subject[(*inner).subject_size] == 0u, "the bytes after a frame's text are zero");
+    /* The library under test may report no frames or more than the buffer
+     * holds; the checks above have failed then, and the frames are not read. */
+    if (probe.required >= 2u && probe.required <= GF_SHADOW_STACK_CAPACITY) {
+        const gf_shadow_frame* outer = &probe.frames[0];
+        gf_kit_check(kit, (*outer).kind == GF_SHADOW_FRAME_KIND_LIBRARY_CALL &&
+                              (*outer).table_id == GF_TABLE_PROPERTIES && (*outer).slot_index == 1u &&
+                              (*outer).subject_size == 0u,
+                     "the outermost frame is the properties.set call");
+        const gf_shadow_frame* inner = &probe.frames[probe.required - 1u];
+        gf_kit_check(kit, (*inner).kind == GF_SHADOW_FRAME_KIND_EVENT_CALLBACK &&
+                              text_is((*inner).subject, (*inner).subject_size, "kit.diag.check") &&
+                              text_is((*inner).name, (*inner).name_size, "check_state_changed") && (*inner).flags == 0u,
+                     "the innermost frame is the event, with its sender and name");
+        gf_kit_check(kit, (*inner).subject_size < sizeof((*inner).subject) &&
+                              (*inner).subject[(*inner).subject_size] == 0u,
+                     "the bytes after a frame's text are zero");
+    }
 
     gf_kit_status(kit, (*kit).events.disconnect(subscription), GF_STATUS_OK, "disconnect the frames probe");
     gf_kit_status(kit, (*kit).objects.release(probe.check), GF_STATUS_OK, "release the frames check box");
@@ -233,6 +240,7 @@ static void failure_snapshots(gf_kit* kit) {
                           read.snapshot.slot_index == 7u && first_sequence != 0u,
                  "the snapshot names the refused call and its status");
     gf_kit_check(kit, text_is(read.snapshot.site, read.snapshot.site_size, "c_abi") &&
+                          read.snapshot.site_size < sizeof(read.snapshot.site) &&
                           read.snapshot.site[read.snapshot.site_size] == 0u,
                  "the snapshot's site is the C ABI boundary");
     gf_kit_check(kit, read.message_required == 18u && read.snapshot.message_size == 18u &&
