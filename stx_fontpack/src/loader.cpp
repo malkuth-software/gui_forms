@@ -6,7 +6,8 @@
 //      rebuild plan are derived from (triplet flags, CFF operator/count
 //      pairs and their tables, the recipes), and plan the rebuild; the
 //      font storage is allocated only after the plan has confirmed every
-//      font's size;
+//      font's size; then, in one forward pass per stream, record where each
+//      chunk's class walk starts (job_class_starts);
 //   2. decode every other stream;
 //   3. rebuild the fonts: one job per font, plus one job per chunk of CFF
 //      charstrings;
@@ -166,6 +167,15 @@ struct CffChunk {
     std::uint32_t data_end;      // where the chunk's last item must end
 };
 
+// Where one chunk's class walk starts: the walk's state at the last step
+// boundary at or before the chunk's first position. source_at indexes the
+// stream the walk reads (triplet flags, or CFF operator pairs); position is
+// the derived stream's position at that boundary.
+struct ClassStart {
+    std::uint32_t source_at;
+    std::uint32_t position;
+};
+
 struct Worker {
     std::uint8_t* class_buffer;
     std::size_t class_capacity;
@@ -205,6 +215,10 @@ struct Loader {
     OwnedArray<TablePlan> tables;
     OwnedArray<RegionPlan> regions;
     OwnedArray<CffChunk> cff_chunks;
+    // One per chunk of kStreamGlyphCoords and of the number stream, filled by
+    // job_class_starts before step 2 when the stream derives classes.
+    OwnedArray<ClassStart> coords_starts;
+    OwnedArray<ClassStart> number_starts;
     std::uint32_t pair_base[kCffPairCount];   // number context base of each pair symbol
     std::uint8_t pair_op[kCffPairCount];
     std::uint8_t pair_count[kCffPairCount];
@@ -356,22 +370,15 @@ bool is_leading_stream(std::uint32_t stream) {
 }
 
 // Classes of kStreamGlyphCoords positions [start, start + length): which payload
-// byte of which triplet form. Walks the flags from the nearest font start.
-bool coords_classes(const Loader& loader, std::uint32_t start, std::uint32_t length, std::uint8_t* classes) {
-    std::uint32_t low = 0;
-    std::uint32_t high = loader.font_count;
-    while (high - low > 1) {
-        const std::uint32_t middle = (low + high) / 2;
-        if (loader.fonts[middle].starts[kStreamGlyphCoords] <= start) {
-            low = middle;
-        } else {
-            high = middle;
-        }
-    }
+// byte of which triplet form. Walks the flags from the chunk's recorded start
+// (job_class_starts), the boundary at or before start reached by walking
+// from the nearest font start.
+bool coords_classes(const Loader& loader, const ClassStart& from, std::uint32_t start, std::uint32_t length,
+                    std::uint8_t* classes) {
     const std::uint8_t* flags = loader.decoded[kStreamGlyphFlags];
     const std::uint32_t flag_count = loader.decoders[kStreamGlyphFlags].size;
-    std::uint32_t flag_at = loader.fonts[low].starts[kStreamGlyphFlags];
-    std::uint32_t position = loader.fonts[low].starts[kStreamGlyphCoords];
+    std::uint32_t flag_at = from.source_at;
+    std::uint32_t position = from.position;
     if (position > start) {
         // Every class of the range must be written; pack_load_group already
         // refuses a first font that does not start at 0, which is the only way here.
@@ -398,28 +405,18 @@ bool coords_classes(const Loader& loader, std::uint32_t start, std::uint32_t len
 
 // Classes of the numbers [start, start + length) of kStreamCffNumbers: the stored class of
 // each number's (operator, count, index) context. Walks the pair stream from
-// the nearest chunk entry of kStreamCffIndex.
-bool number_classes(const Loader& loader, std::uint32_t start, std::uint32_t length, std::uint8_t* classes) {
-    const std::uint8_t* index = loader.decoded[kStreamCffIndex];
-    const std::uint32_t entries = loader.decoders[kStreamCffIndex].size / kCffIndexEntryBytes;
-    if (entries == 0 || le32(index + kCffIndexNumbers * 4) > start) {
-        return false;
-    }
-    std::uint32_t low = 0;
-    std::uint32_t high = entries;
-    while (high - low > 1) {
-        const std::uint32_t middle = (low + high) / 2;
-        if (le32(index + middle * kCffIndexEntryBytes + kCffIndexNumbers * 4) <= start) {
-            low = middle;
-        } else {
-            high = middle;
-        }
-    }
+// the chunk's recorded start (job_class_starts), the boundary at or before
+// start reached from the nearest chunk entry of kStreamCffIndex.
+bool number_classes(const Loader& loader, const ClassStart& from, std::uint32_t start, std::uint32_t length,
+                    std::uint8_t* classes) {
     const std::uint8_t* pairs = loader.decoded[kStreamCffOps];
     const std::uint32_t pair_size = loader.decoders[kStreamCffOps].size;
     const std::uint8_t* map = loader.decoded[kStreamCffNumMap];
-    std::uint32_t pair_at = le32(index + low * kCffIndexEntryBytes + kCffIndexOps * 4);
-    std::uint32_t position = le32(index + low * kCffIndexEntryBytes + kCffIndexNumbers * 4);
+    std::uint32_t pair_at = from.source_at;
+    std::uint32_t position = from.position;
+    if (position > start) {
+        return false;
+    }
     const std::uint32_t end = start + length;
     while (position < end) {
         if (pair_at >= pair_size) {
@@ -465,6 +462,128 @@ bool number_classes(const Loader& loader, std::uint32_t start, std::uint32_t len
         }
     }
     return true;
+}
+
+// One step of a pair walk: the numbers pair_at's symbol stands for, and the
+// pair bytes it takes. False for a damaged escape.
+bool pair_step(const Loader& loader, std::uint32_t pair_at, std::uint32_t& count, std::uint32_t& taken) {
+    const std::uint8_t* pairs = loader.decoded[kStreamCffOps];
+    const std::uint32_t pair_size = loader.decoders[kStreamCffOps].size;
+    const std::uint32_t symbol = pairs[pair_at];
+    if (symbol != kCffPairEscape) {
+        count = loader.pair_count[symbol];
+        taken = 1;
+        return true;
+    }
+    if (pair_size - pair_at - 1 < 2 || pairs[pair_at + 1] >= kCffOpCount) {
+        return false;
+    }
+    count = pairs[pair_at + 2];
+    taken = 3;
+    return true;
+}
+
+// a: 0 for kStreamGlyphCoords, 1 for the number stream. Records where each
+// chunk's class walk starts, in one forward pass over the stream the classes
+// come from (A-gf-typography-01-F5). Restarting every chunk's walk from the
+// nearest font start (or index entry) cost chunks times stream length on a
+// pack cut into many small chunks; the pass costs one walk of the stream.
+// Each chunk's walk still begins exactly where the restart would have put
+// it, so the classes are unchanged.
+void job_class_starts(Loader& loader, const Job& job, Worker& worker) {
+    static_cast<void>(worker);
+    if (job.a == 0) {
+        const StreamDecoder& decoder = loader.decoders[kStreamGlyphCoords];
+        if (decoder.stored || decoder.class_count <= 1) {
+            return;
+        }
+        if (!owned_array_resize_zeroed(loader.coords_starts, loader.scratch, decoder.chunk_count)) {
+            loader.failed.store(true);
+            return;
+        }
+        const std::uint8_t* flags = loader.decoded[kStreamGlyphFlags];
+        const std::uint32_t flag_count = loader.decoders[kStreamGlyphFlags].size;
+        // Font 0 starts every stream at 0 (pack_load_group checks it).
+        std::uint32_t font = 0;
+        std::uint32_t flag_at = loader.fonts[0].starts[kStreamGlyphFlags];
+        std::uint32_t position = loader.fonts[0].starts[kStreamGlyphCoords];
+        for (std::uint32_t c = 0; c < decoder.chunk_count; c += 1) {
+            const std::uint32_t start = decoder.chunks[c].out_start;
+            // The last font whose start is at or before start; starts never decrease.
+            std::uint32_t low = font;
+            while (low + 1 < loader.font_count && loader.fonts[low + 1].starts[kStreamGlyphCoords] <= start) {
+                low += 1;
+            }
+            if (low != font) {
+                font = low;
+                flag_at = loader.fonts[low].starts[kStreamGlyphFlags];
+                position = loader.fonts[low].starts[kStreamGlyphCoords];
+            }
+            // Whole triplets that end at or before start; a walk that runs out
+            // of flags stops here and the chunk's own walk refuses.
+            while (position <= start && flag_at < flag_count) {
+                const std::uint32_t bytes = triplet_bytes(flags[flag_at]);
+                if (position + bytes > start) {
+                    break;
+                }
+                position += bytes;
+                flag_at += 1;
+            }
+            loader.coords_starts.data[c].source_at = flag_at;
+            loader.coords_starts.data[c].position = position;
+        }
+        return;
+    }
+    const NumberDecoder& decoder = loader.number_decoder;
+    if (decoder.count == 0 || decoder.class_count <= 1) {
+        return;
+    }
+    if (!owned_array_resize_zeroed(loader.number_starts, loader.scratch, decoder.chunk_count)) {
+        loader.failed.store(true);
+        return;
+    }
+    const std::uint8_t* index = loader.decoded[kStreamCffIndex];
+    const std::uint32_t entries = loader.decoders[kStreamCffIndex].size / kCffIndexEntryBytes;
+    const std::uint32_t pair_size = loader.decoders[kStreamCffOps].size;
+    // The index entries' positions never decrease (checked after step 1), so
+    // the entry each chunk starts from never moves back, and a walk that
+    // changes entry starts past everything walked for earlier chunks.
+    std::uint32_t entry = 0;
+    std::uint32_t pair_at = 0;
+    std::uint32_t position = 0;
+    bool walking = false;
+    for (std::uint32_t c = 0; c < decoder.chunk_count; c += 1) {
+        const std::uint32_t start = decoder.chunks[c].out_start;
+        if (entries == 0 || le32(index + kCffIndexNumbers * 4) > start) {
+            // number_classes refuses a chunk before the first entry.
+            loader.failed.store(true);
+            return;
+        }
+        std::uint32_t low = walking ? entry : 0;
+        while (low + 1 < entries && le32(index + (low + 1) * kCffIndexEntryBytes + kCffIndexNumbers * 4) <= start) {
+            low += 1;
+        }
+        if (!walking || low != entry) {
+            walking = true;
+            entry = low;
+            pair_at = le32(index + low * kCffIndexEntryBytes + kCffIndexOps * 4);
+            position = le32(index + low * kCffIndexEntryBytes + kCffIndexNumbers * 4);
+        }
+        while (position <= start && pair_at < pair_size) {
+            std::uint32_t count = 0;
+            std::uint32_t taken = 0;
+            if (!pair_step(loader, pair_at, count, taken)) {
+                break;
+            }
+            if (position + count > start) {
+                break;
+            }
+            position += count;
+            pair_at += taken;
+        }
+        loader.number_starts.data[c].source_at = pair_at;
+        loader.number_starts.data[c].position = position;
+    }
 }
 
 // a: stream. Parses the stream's header, builds its tables and takes its output buffer.
@@ -524,8 +643,9 @@ void job_decode_chunk(Loader& loader, const Job& job, Worker& worker) {
         }
         bool ok = true;
         if (stream == kStreamGlyphCoords) {
-            ok = decoder.class_count == kTripletClassCount &&
-                 coords_classes(loader, chunk.out_start, chunk.out_length, worker.class_buffer);
+            ok = decoder.class_count == kTripletClassCount && job.b < loader.coords_starts.length &&
+                 coords_classes(loader, loader.coords_starts.data[job.b], chunk.out_start, chunk.out_length,
+                                worker.class_buffer);
         } else if (is_period_stream(stream) && (decoder.class_count & (decoder.class_count - 1)) == 0) {
             // Periods are powers of two.
             const std::uint32_t mask = decoder.class_count - 1;
@@ -600,7 +720,9 @@ void job_number_chunk(Loader& loader, const Job& job, Worker& worker) {
     }
     const std::uint8_t* classes = nullptr;
     if (decoder.class_count > 1) {
-        if (!number_classes(loader, chunk.out_start, chunk.out_length, worker.class_buffer)) {
+        if (job.a >= loader.number_starts.length ||
+            !number_classes(loader, loader.number_starts.data[job.a], chunk.out_start, chunk.out_length,
+                            worker.class_buffer)) {
             loader.failed.store(true);
             return;
         }
@@ -1425,6 +1547,8 @@ void loader_release(Loader& loader) {
     owned_array_release(loader.tables, loader.scratch);
     owned_array_release(loader.regions, loader.scratch);
     owned_array_release(loader.cff_chunks, loader.scratch);
+    owned_array_release(loader.coords_starts, loader.scratch);
+    owned_array_release(loader.number_starts, loader.scratch);
     owned_array_release(loader.piece_first, loader.scratch);
     owned_array_release(loader.piece_crc, loader.scratch);
     if (loader.fonts != nullptr) {
@@ -1477,6 +1601,8 @@ void loader_reset(Loader& loader, const Allocator& caller, const Executor& execu
     owned_array_reset(loader.tables);
     owned_array_reset(loader.regions);
     owned_array_reset(loader.cff_chunks);
+    owned_array_reset(loader.coords_starts);
+    owned_array_reset(loader.number_starts);
     owned_array_reset(loader.piece_first);
     owned_array_reset(loader.piece_crc);
     loader.failed.store(false);
@@ -1813,12 +1939,36 @@ bool pack_load_group(const PackIndex& index, std::uint32_t group_index, const Al
             }
         }
         ok = ok && loader.decoders[kStreamCffIndex].size % kCffIndexEntryBytes == 0;
+        // The positions the class walks start from never decrease from one
+        // entry to the next (the packer appends entries in stream order);
+        // job_class_starts relies on it to stay one forward pass.
+        const std::uint8_t* index = loader.decoded[kStreamCffIndex];
+        const std::uint32_t entries = ok ? loader.decoders[kStreamCffIndex].size / kCffIndexEntryBytes : 0;
+        for (std::uint32_t k = 1; k < entries && ok; k += 1) {
+            const std::uint8_t* previous = index + (k - 1) * kCffIndexEntryBytes;
+            const std::uint8_t* current = index + k * kCffIndexEntryBytes;
+            ok = le32(current + kCffIndexOps * 4) >= le32(previous + kCffIndexOps * 4) &&
+                 le32(current + kCffIndexNumbers * 4) >= le32(previous + kCffIndexNumbers * 4);
+        }
     }
     if (ok) {
         ok = plan_fonts(loader);
     }
     refuse(refusal, ok || !loader.no_memory.load(), kGroupNoMemory);
     refuse(refusal, ok, kGroupBadStreams);
+
+    // Where each chunk's class walk starts, for the two streams whose classes
+    // are walked: one forward pass each, as two jobs.
+    if (ok) {
+        ok = job_add(loader, jobs, job_class_starts, 0, 0) && job_add(loader, jobs, job_class_starts, 1, 0);
+        if (ok) {
+            run_jobs(loader, jobs);
+        }
+        jobs.length = 0;
+        ok = !loader.failed.load();
+        refuse(refusal, ok || !loader.no_memory.load(), kGroupNoMemory);
+        refuse(refusal, ok, kGroupBadStreams);
+    }
 
     // Output storage, only now: plan_fonts has tied every font's size to its
     // decoded recipe (table placement and tail, or a verbatim font's extent),
