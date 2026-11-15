@@ -184,10 +184,14 @@ bool EventFields::name_matches(const std::string& stored, std::string_view name)
 gf_value& EventFields::append(std::string_view name, gf_value_kind kind, gf_event_field_flags flags,
                               EventFieldAccepts accepts) {
     // The pool's entry for the next field, grown only past the largest
-    // event this EventFields has built.
+    // event this EventFields has built. Each pool grows on its own test
+    // (A-gf-abi-02-F4): a refused allocation in the second leaves the first
+    // one longer, and the next append grows only the one that is short.
     const std::size_t index = fields_.size();
     if (index == names_.size()) {
         names_.emplace_back();
+    }
+    if (index == values_.size()) {
         values_.emplace_back();
     }
     compose_name(name, names_[index]);
