@@ -388,6 +388,10 @@ static std::vector<DragDataItem> drag_items_for(NSPasteboard* pasteboard) {
         static_cast<void>([self menuForEvent:event]);
         return;
     }
+    // A nested loop (a native modal the context request opened) may have
+    // taken the Control-click's release; an ordinary press ends it, so its
+    // own release is not swallowed (A-gf-host-02-F16).
+    _controlClickInProgress = NO;
     if (event.buttonNumber == 0 && !_windowDragRegionIds.empty() && _model) {
         const GFPoint point = [self modelPointForEvent:event];
         const gui_forms::WindowChromeHit hit =

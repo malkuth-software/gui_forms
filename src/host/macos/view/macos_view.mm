@@ -561,6 +561,9 @@ void link_view_categories() noexcept {
 }
 
 - (void)notifyActivation:(BOOL)active {
+    // Resigning key ends a Control-click whose release another loop took
+    // (A-gf-host-02-F16).
+    if (active == NO) _controlClickInProgress = NO;
     if (_hostAttached == NO) return;
     if (active == YES) [self reportInputSettings];
     static_cast<void>([self dispatchHostPayload:HostActivationEvent{active == YES}
