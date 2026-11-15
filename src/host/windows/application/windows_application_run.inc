@@ -644,6 +644,10 @@ HostServiceStatus WindowsApplicationRun::bring_to_front_impl(HostWindowId window
     return {};
 }
 
+// The longest wait of a turn whose clocks did not all fit in the wait set:
+// a near wake of a window past the 63rd clock is late by at most this.
+constexpr DWORD truncated_clock_wait_milliseconds = 10U;
+
 bool WindowsApplicationRun::turn(MSG& quit_message, const bool outermost) {
     // A window opened or closed in the previous turn changes the slots;
     // their count is read afresh in every turn.
@@ -655,12 +659,17 @@ bool WindowsApplicationRun::turn(MSG& quit_message, const bool outermost) {
         const HANDLE scheduler = (*(*slots_[index]).state).scheduler_clock();
         if (scheduler != nullptr) clocks_.push_back(scheduler);
     }
-    if (clocks_.size() >= MAXIMUM_WAIT_OBJECTS) {
+    // More clocks than one wait takes (32 or more slots): the wait is
+    // bounded instead, and every clock is polled after the batch, so a
+    // later slot's near wake still fires (A-gf-host-03-F5).
+    const bool truncated = clocks_.size() >= MAXIMUM_WAIT_OBJECTS;
+    if (truncated) {
         clocks_.resize(MAXIMUM_WAIT_OBJECTS - 1U);
     }
+    const DWORD wait_bound = truncated ? truncated_clock_wait_milliseconds : INFINITE;
     const DWORD wait = MsgWaitForMultipleObjectsEx(
         static_cast<DWORD>(clocks_.size()),
-        clocks_.empty() ? nullptr : clocks_.data(), INFINITE,
+        clocks_.empty() ? nullptr : clocks_.data(), wait_bound,
         QS_ALLINPUT, MWMO_INPUTAVAILABLE);
     if (wait == WAIT_FAILED) {
         quit_message = MSG{};
@@ -706,6 +715,11 @@ bool WindowsApplicationRun::turn(MSG& quit_message, const bool outermost) {
         const HANDLE clock = state.live_frame_clock();
         if (clock != nullptr && WaitForSingleObject(clock, 0U) == WAIT_OBJECT_0) {
             state.mark_live_frame_due();
+        }
+        // The scheduler clock too, as run_windows polls it (A-gf-host-03-F5).
+        const HANDLE scheduler = state.scheduler_clock();
+        if (scheduler != nullptr && WaitForSingleObject(scheduler, 0U) == WAIT_OBJECT_0) {
+            state.scheduler_clock_signalled();
         }
     }
     if (!quit) {
