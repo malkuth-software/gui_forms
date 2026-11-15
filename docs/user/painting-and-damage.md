@@ -178,18 +178,18 @@ Host contracts for the schedule wake:
 - Linux (X11, including under XWayland): a write to the run's wake pipe.
   `Runtime::step` reads every window's `next_wake` after its update each
   turn, so ending the wait is enough.
-- Windows (owed): the same gap exists. `arm_scheduled_wake` runs only at
-  the end of `collect_damage`, and `WM_PAINT` paints without re-arming, so
-  idle frames armed during a paint and Timers restarted from another
-  window's callback wait for the next message that collects damage. The
-  host must install `set_schedule_wake_handler` in `initialize` next to the
-  paint wake, with a `noexcept` target that posts a window message (or
-  reuses `render_dispatch_message` with its coalescing flag) and returns.
-  The message's handler calls `collect_damage`, which polls and calls
-  `arm_scheduled_wake`. Clear the handler wherever the paint wake handler
-  is cleared (destruction and close). It must not call into the model
-  synchronously, and it must work inside the window's own nested modal
-  loops (size/move, the modal dialog loop), which pump posted messages.
+- Windows: a posted window message, `schedule_wake_message`. `initialize`
+  installs the seam next to the paint wake; its `noexcept` target only posts
+  the message and returns, and the model coalesces its calls until the
+  next poll. The message's handler calls `collect_damage`, which polls and
+  calls `arm_scheduled_wake`. Posted messages are pumped by the window's own
+  nested loops (the native size/move loop and modal loops), so the wake
+  works inside them. The handler is cleared wherever the paint wake handler
+  is (destruction and `WM_DESTROY`). A refused post leaves the wake owed
+  until the window's next poll.
+  `gui_forms_windows_schedule_wake_tests` restarts a Timer from another
+  window's posted work and requires the tick with no other input, and
+  requires a paint deadline set from `on_paint` to repaint by itself.
 
 ## Live surfaces
 
