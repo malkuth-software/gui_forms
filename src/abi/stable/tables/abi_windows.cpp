@@ -326,8 +326,11 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
     Size client_size = window_options.initial_size;
     if ((*options).width > 0.0) client_size.width = (*options).width;
     if ((*options).height > 0.0) client_size.height = (*options).height;
-    // Admitted first (N21): a refused run leaves a created window as it was
-    // and builds no window around a bare root.
+    // Admitted first (N21): a run refused here (another run under way)
+    // leaves a created window as it was and builds no window around a bare
+    // root. Past this point the window is handed to Application::run, which
+    // destroys it on its own refusals too (A-gf-abi-03-F8; the header says
+    // so). Giving it back would need Application::run to return it.
     const gf_status began = registry().begin_run(root, run_slot);
     if (began != GF_STATUS_OK) {
         disarm_all(callbacks);

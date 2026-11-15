@@ -1186,7 +1186,10 @@ typedef struct gf_windows_table {
      * GF_STATUS_INVALID_STATE while another run is under way.
      * GF_STATUS_INVALID_ARGUMENT for a window the run refuses, with a
      * message naming the reason (for a client size below the minimum, both
-     * sizes). */
+     * sizes). Once admitted, a run ends a window from create whatever its
+     * result: after a refusal by the run (INVALID_ARGUMENT,
+     * UNSUPPORTED_CAPABILITY) the window is disposed, so a caller makes a
+     * new one to try again. Only the INVALID_STATE refusal leaves it. */
     gf_status (GF_CALL* run)(gf_object window_or_root, const gf_run_options* options);
     /* Asks the running window, given as the object passed to run, to close;
      * closing may cancel it. GF_STATUS_INVALID_STATE when it is not
