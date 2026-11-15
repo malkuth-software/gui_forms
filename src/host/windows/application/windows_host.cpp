@@ -105,20 +105,17 @@ bool present_bgra_area(HDC target, const std::byte* pixels, std::size_t row_byte
     const int right = std::clamp<int>(area.right, left, width);
     const int bottom = std::clamp<int>(area.bottom, top, height);
     if (right == left || bottom == top) return true;
-    BITMAPINFO info{};
-    info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    info.bmiHeader.biWidth = static_cast<LONG>(row_bytes / 4U);
-    info.bmiHeader.biHeight = -height;
-    info.bmiHeader.biPlanes = 1;
-    info.bmiHeader.biBitCount = 32;
-    info.bmiHeader.biCompression = BI_RGB;
-    const int columns = right - left;
-    const int rows = bottom - top;
-    // GDI measures a top-down source's y from its bottom row.
-    const int source_y = height - bottom;
-    const int copied = StretchDIBits(target, left, top, columns, rows, left, source_y, columns, rows, pixels, &info,
-                                     DIB_RGB_COLORS, SRCCOPY);
-    const bool presented = copied != 0 && copied != static_cast<int>(GDI_ERROR);
+    // Through present_dib_band, which describes exactly the box's rows: a
+    // partial-height source rectangle of a whole-frame top-down DIB is read
+    // from the top rows when its y is 0 (dib_band_present.hpp), so a box
+    // touching the frame's bottom showed the wrong rows (A-gf-host-03-F4).
+    detail::DibBandSource source{};
+    source.pixels = pixels;
+    source.row_bytes = row_bytes;
+    source.width = width;
+    source.height = height;
+    const RECT band{left, top, right, bottom};
+    const bool presented = detail::present_dib_band(target, source, band);
     return presented;
 }
 
