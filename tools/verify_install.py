@@ -8,6 +8,8 @@ import shutil
 import subprocess
 import tempfile
 
+import sdk_consumer_link
+
 # The components tools/build_sdk.py --features all adds to the default SDK.
 FEATURE_COMPONENTS: tuple[str, ...] = ("TextMasks", "AudioLoopTransport", "FreeType", "HarfBuzz")
 
@@ -78,7 +80,17 @@ def main() -> None:
     parser.add_argument("--hosted-client", action="store_true",
                         help="Build and run tests/hosted_client_consumer: a parent starting a hosted program "
                              "through Controls, and the program linking HostedClient (macOS and Linux)")
+    parser.add_argument("--sdk-consumer", action="store_true",
+                        help="Build and run tests/sdk_consumer, which links every public component (the controls, "
+                             "a composite, an application font family, the drawing raster seam, TextMasks and the "
+                             "C ABI) from the prefix's archives (requires --native)")
+    parser.add_argument("--sdk-consumer-text-masks", default="ON",
+                        help="Whether the prefix holds TextMasks for --sdk-consumer (ON or OFF)")
+    parser.add_argument("--sdk-consumer-c-abi", default="ON",
+                        help="Whether the prefix holds the C ABI library for --sdk-consumer (ON or OFF)")
     args: argparse.Namespace = parser.parse_args()
+    if args.sdk_consumer and not args.native:
+        parser.error("--sdk-consumer requires --native: the consumer links Application")
     if args.feature_components and not args.native:
         parser.error("--feature-components requires --native: TextMasks lives in Application")
     if args.upstream_text_stack and not args.native:
@@ -137,6 +149,13 @@ def main() -> None:
             run(["cmake", "-S", str(hosted), "-B", str(hosted_build)] + package_arguments)
             run(["cmake", "--build", str(hosted_build), "--parallel", "2"])
             print(run(["ctest", "--test-dir", str(hosted_build), "--output-on-failure"]))
+        if args.sdk_consumer:
+            # The SDK-consumer link test against this prefix (tools/sdk_consumer_link.py).
+            consumer_arguments: list[str] = list(package_arguments[1:])
+            print(sdk_consumer_link.build_consumer(
+                prefix, scratch_path, sdk_consumer_link.DEFAULT_FACE,
+                sdk_consumer_link.switch(args.sdk_consumer_text_masks),
+                sdk_consumer_link.switch(args.sdk_consumer_c_abi), consumer_arguments))
         invalid: Path = scratch_path / "invalid"
         invalid.mkdir()
         components: list[str] = ["NotAComponent"]

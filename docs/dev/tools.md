@@ -244,7 +244,21 @@ the change that needs it.
   (with `--native`) also builds and runs `tests/installed_feature_consumer/`
   against a `build_sdk.py --features all` prefix, through the `TextMasks` and
   `AudioLoopTransport` components. Without it, those two must be rejected.
+  `--sdk-consumer` (with `--native`) builds and runs `tests/sdk_consumer/`,
+  which links every public component from the prefix's archives (the
+  controls, a composite, an application font family, the drawing raster
+  seam, `TextMasks` and the C ABI with `gd_get_api_v0`);
+  `--sdk-consumer-text-masks OFF` and `--sdk-consumer-c-abi OFF` describe a
+  prefix without those components.
   `python3 tools/verify_install.py /path/to/prefix --native`
+
+`tools/sdk_consumer_link.py`
+: The SDK-consumer link test, the `gui_forms_sdk_consumer_link` test: installs
+  a build tree into a temporary prefix and builds `tests/sdk_consumer/`
+  against that prefix alone, configured as the tree was. A symbol the
+  installed archives lack fails the link. The suite registers it in an
+  installable tree (a native host, and no development prepared text).
+  `python3 tools/sdk_consumer_link.py --build-dir build --scratch build/sdk-consumer-link -- -GNinja`
 
 `tools/package_programs.py`
 : Packages the programs listed in `packaging/programs.json` from a build
