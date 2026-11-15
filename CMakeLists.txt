@@ -1698,6 +1698,13 @@ if(GUI_FORMS_ENABLE_SKIA)
         # Finds installed families nobody registered (ADR-004 phase 7).
         target_sources(gui_drawing_skia PRIVATE
             src/render/skia/executor/core_text_font_bytes.cpp)
+    elseif(WIN32)
+        # The same through GDI and the registry, kept with the Windows host
+        # (Win32 types stay in src/host/windows/).
+        target_sources(gui_drawing_skia PRIVATE src/host/windows/fonts/gdi_font_bytes.cpp)
+        set_source_files_properties(src/host/windows/fonts/gdi_font_bytes.cpp PROPERTIES
+            COMPILE_DEFINITIONS "${GUI_FORMS_WINDOWS_DEFINITIONS}")
+        target_include_directories(gui_drawing_skia PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows/fonts)
     endif()
     target_include_directories(gui_drawing_skia
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/executor

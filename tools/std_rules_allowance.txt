@@ -1,6 +1,5 @@
 # check_std_rules allowance: existing findings, one line per rule and file.
 # Shrink-only: lower a count (or drop the line) as findings are fixed; never raise one.
-wide-text src/render/skia/executor/drawing_raster_state.cpp 13
 pthread src/core/content/operation/content_worker.cpp 5
 pthread src/core/threading/atomic_pool/atomic_pool.c 53
 pthread src/runtime/application/application.cpp 3
