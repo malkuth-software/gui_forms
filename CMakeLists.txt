@@ -2256,85 +2256,129 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             "gallery_instrument,gui_forms::gallery::Instrument,user_control,gallery_instrument.hpp")
     # The pages converted to form documents (FD6.3), one class each.
     gui_forms_add_form(gui_forms_gallery_model demo/pages/typography-and-inspection.form
-        CLASS TypographyDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
+        CLASS TypographyDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab
+        USED_BY src/controls/gallery/pages/typography-and-inspection.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/animation-laboratory.form
-        CLASS AnimationDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
+        CLASS AnimationDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab
+        USED_BY src/controls/gallery/pages/animation-laboratory.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/collections-and-overlays.form
-        CLASS CollectionsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS CollectionsDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/collections-and-overlays.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/images-and-drawing.form
-        CLASS ImagesDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS ImagesDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/images-and-drawing.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/ranges-and-progress.form
-        CLASS RangesDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS RangesDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/ranges-and-progress.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/checked-collections.form
-        CLASS CheckedCollectionsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS CheckedCollectionsDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/checked-collections.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/choices-and-sections.form
-        CLASS ChoicesDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
+        CLASS ChoicesDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab
+        USED_BY src/controls/gallery/pages/choices-and-sections.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/tree-and-object-views.form
-        CLASS TreeAndObjectViewsDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
+        CLASS TreeAndObjectViewsDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab
+        USED_BY src/controls/gallery/pages/tree-and-object-views.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/text-and-input.form
-        CLASS TextAndInputDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS TextAndInputDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/text-and-input.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/states-and-diagnostics.form
-        CLASS StatesDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS StatesDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/states-and-diagnostics.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/timing-and-tooltips.form
-        CLASS TimingDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS TimingDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/timing-and-tooltips.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/dates-and-calendar.form
-        CLASS DatesDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS DatesDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/dates-and-calendar.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/values-and-spinners.form
-        CLASS ValuesDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS ValuesDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/values-and-spinners.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/value-editors.form
-        CLASS ValueEditorsDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab)
+        CLASS ValueEditorsDocument NAMESPACE gui_forms::gallery::pages COMPILER gui_forms_form_compiler_lab
+        USED_BY src/controls/gallery/pages/value-editors.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/dialogs-and-host-services.form
-        CLASS HostServicesDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS HostServicesDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/dialogs-and-host-services.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/semantic-feedback.form
-        CLASS SemanticFeedbackDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS SemanticFeedbackDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/semantic-feedback.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/notices-and-badges.form
-        CLASS NoticesAndBadgesDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS NoticesAndBadgesDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/notices-and-badges.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/input-and-rules.form
-        CLASS InputAndRulesDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS InputAndRulesDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/input-and-rules.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/theme-settings.form
-        CLASS ThemeSettingsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS ThemeSettingsDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/theme-settings.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/spinners-and-rings.form
-        CLASS SpinnersAndRingsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS SpinnersAndRingsDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/spinners-and-rings.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/instruments.form
-        CLASS InstrumentsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS InstrumentsDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/instruments.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/guided-tasks.form
-        CLASS GuidedTasksDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS GuidedTasksDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/guided-tasks.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/industrial-surfaces.form
-        CLASS IndustrialSurfacesDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS IndustrialSurfacesDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/industrial-surfaces.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/node-graphs.form
-        CLASS NodeGraphsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS NodeGraphsDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/node-graphs.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/help-book.form
-        CLASS HelpBookPageDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS HelpBookPageDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/help-book.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
-        CLASS ControlSpectrumDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS ControlSpectrumDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/control-spectrum.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/retained-layout-panels.form
-        CLASS RetainedLayoutDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS RetainedLayoutDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/retained-layout-panels.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/responsive-layouts.form
-        CLASS ResponsiveLayoutsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS ResponsiveLayoutsDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/responsive-layouts.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/css-layout-panels.form
-        CLASS CssLayoutDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS CssLayoutDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/css-layout-panels.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/dock-and-anchor.form
-        CLASS DockAnchorDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS DockAnchorDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/dock-and-anchor.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/docking-workspace.form
-        CLASS DockingWorkspaceDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS DockingWorkspaceDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/docking-workspace.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/containers-and-focus.form
-        CLASS ContainersDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS ContainersDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/containers-and-focus.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/tabs-and-pages.form
-        CLASS TabsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS TabsDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/tabs-and-pages.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/anchored-overlays.form
-        CLASS AnchoredOverlaysDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS AnchoredOverlaysDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/anchored-overlays.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/commands-and-menus.form
-        CLASS CommandsDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS CommandsDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/commands-and-menus.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/live-surfaces.form
-        CLASS LiveSurfacesDocument NAMESPACE gui_forms::gallery::pages)
+        CLASS LiveSurfacesDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/live-surfaces.cpp)
     # The composite-controls page (cp34): the worked examples generated as
     # classes, and a form naming them whose children fill the card's slot.
+    # Each generated page header is included only by its page's source (the
+    # composite classes through the composite-controls page's header), so
+    # USED_BY keeps a changed document from rebuilding every gallery object.
+    # The window and the form pages are included through gallery_context.hpp
+    # by most sources, so they keep the default (every source).
     gui_forms_add_control(gui_forms_gallery_model demo/composites/toggle-pill.control
-        CLASS TogglePill NAMESPACE gui_forms::gallery::composites)
+        CLASS TogglePill NAMESPACE gui_forms::gallery::composites
+        USED_BY src/controls/gallery/pages/composite-controls.cpp)
     gui_forms_add_control(gui_forms_gallery_model demo/composites/card-with-action.control
-        CLASS CardWithAction NAMESPACE gui_forms::gallery::composites)
+        CLASS CardWithAction NAMESPACE gui_forms::gallery::composites
+        USED_BY src/controls/gallery/pages/composite-controls.cpp)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/composite-controls.form
         CLASS CompositeControlsDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/composite-controls.cpp
         COMPOSITES
             "demo/composites/toggle-pill.control,gui_forms::gallery::composites::TogglePill,toggle_pill_control.hpp"
             "demo/composites/card-with-action.control,gui_forms::gallery::composites::CardWithAction,card_with_action_control.hpp")
@@ -3469,23 +3513,31 @@ if(GUI_FORMS_BUILD_TESTS)
         target_include_directories(gui_forms_reference_form_examples PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/examples/reference)
         gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/owned_events.form
-            CLASS ExampleWindow NAMESPACE reference DERIVED)
+            CLASS ExampleWindow NAMESPACE reference DERIVED
+            USED_BY ${reference_forms}/owned_events.cpp)
         gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/bound_values.form
-            CLASS SettingsWindow NAMESPACE reference DERIVED)
+            CLASS SettingsWindow NAMESPACE reference DERIVED
+            USED_BY ${reference_forms}/bound_values.cpp)
         gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/shared_state.form
             CLASS SharedWindow NAMESPACE reference
-            MODEL reference::SharedModel MODEL_HEADER shared_state_model.hpp)
+            MODEL reference::SharedModel MODEL_HEADER shared_state_model.hpp
+            USED_BY ${reference_forms}/shared_state.cpp)
         gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/collection_state.form
-            CLASS CollectionsWindow NAMESPACE reference DERIVED)
+            CLASS CollectionsWindow NAMESPACE reference DERIVED
+            USED_BY ${reference_forms}/collection_state.cpp)
         gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/multiline_scrollbars.form
-            CLASS ViewerWindow NAMESPACE reference DERIVED)
+            CLASS ViewerWindow NAMESPACE reference DERIVED
+            USED_BY ${reference_forms}/multiline_scrollbars.cpp)
         gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/window_rules.form
-            CLASS RulesWindow NAMESPACE reference DERIVED)
+            CLASS RulesWindow NAMESPACE reference DERIVED
+            USED_BY ${reference_forms}/window_rules.cpp)
         gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/mouse_events.form
-            CLASS MouseWindow NAMESPACE reference DERIVED)
+            CLASS MouseWindow NAMESPACE reference DERIVED
+            USED_BY ${reference_forms}/mouse_events.cpp)
         gui_forms_add_form(gui_forms_reference_form_examples ${reference_forms}/forms/collection_gallery.form
             CLASS GalleryWindow NAMESPACE reference
-            MODEL reference::GalleryModel MODEL_HEADER collection_gallery_model.hpp)
+            MODEL reference::GalleryModel MODEL_HEADER collection_gallery_model.hpp
+            USED_BY ${reference_forms}/collection_gallery.cpp)
         gui_forms_add_theme(gui_forms_reference_form_examples ${reference_forms}/themes/collection_gallery
             FUNCTION collection_gallery_theme NAMESPACE reference
             FORMS ${reference_forms}/forms/collection_gallery.form)

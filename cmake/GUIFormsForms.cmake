@@ -24,6 +24,13 @@
 #                compiler's --composite). A form names one by the document's
 #                name and fills its slot with its children; one without a
 #                slot refuses them (E809). Later entries may name earlier ones.
+#   USED_BY      the target's sources that include the header, directly or
+#                through another header (relative to the current source
+#                directory). Only their objects then depend on it, so a
+#                changed document rebuilds those alone. Without USED_BY every
+#                source of the target depends on it, which is always correct;
+#                a source left out of USED_BY that does include the header
+#                may not rebuild when the header changes.
 #   DERIVED      generate the class deriving from the root's type (stage B):
 #                a gui_forms::Window subclass for a form root, a subclass of
 #                the root control's type otherwise, instead of the document
@@ -134,10 +141,16 @@ endfunction()
 # keep their own source properties. It runs deferred, at the end of the
 # target's directory, so it sees every target and every source added after
 # gui_forms_add_form or gui_forms_add_control; sources named by a generator
-# expression and sources that are not compiled are left alone.
-function(gui_forms_generated_header_dependents target header generator)
+# expression and sources that are not compiled are left alone. `used_by`
+# (USED_BY, absolute paths) narrows the sources to those that include the
+# header; empty, every own source of the target gets the dependency.
+function(gui_forms_generated_header_dependents target header generator used_by)
     get_target_property(source_directory ${target} SOURCE_DIR)
-    get_target_property(sources ${target} SOURCES)
+    if(used_by)
+        set(sources "${used_by}")
+    else()
+        get_target_property(sources ${target} SOURCES)
+    endif()
     if(NOT sources)
         return()
     endif()
@@ -188,9 +201,21 @@ endfunction()
 # directory. The deferred call's arguments would be read at the end of the
 # directory, where this function's variables no longer exist, so they are
 # written into the call as bracket arguments now.
-function(gui_forms_defer_generated_header_dependents target header generator)
+function(gui_forms_defer_generated_header_dependents target header generator used_by)
     cmake_language(EVAL CODE
-        "cmake_language(DEFER CALL gui_forms_generated_header_dependents [==[${target}]==] [==[${header}]==] [==[${generator}]==])")
+        "cmake_language(DEFER CALL gui_forms_generated_header_dependents [==[${target}]==] [==[${header}]==] [==[${generator}]==] [==[${used_by}]==])")
+endfunction()
+
+# The USED_BY sources in the list named by `sources_variable`, made absolute
+# against the current source directory, into the list named by
+# `paths_variable` (empty when USED_BY was not given).
+function(gui_forms_used_by_paths sources_variable paths_variable)
+    set(paths "")
+    foreach(source IN LISTS ${sources_variable})
+        get_filename_component(path "${source}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+        list(APPEND paths "${path}")
+    endforeach()
+    set(${paths_variable} "${paths}" PARENT_SCOPE)
 endfunction()
 
 # Orders `target` after the generation of its `header` by `generator`
@@ -201,19 +226,19 @@ endfunction()
 # whose dependency file predates it, still builds against the current
 # bytes. The generation target's name joins the target to a digest of the
 # header's path, so two headers with one stem stay apart.
-function(gui_forms_order_generated_header target header generator)
+function(gui_forms_order_generated_header target header generator used_by)
     string(MD5 digest "${header}")
     string(SUBSTRING "${digest}" 0 12 digest)
     string(MAKE_C_IDENTIFIER "gui_forms_generate_${target}_${digest}" generation)
     add_custom_target(${generation} DEPENDS "${header}")
     add_dependencies(${target} ${generation})
     target_sources(${target} PRIVATE "${header}")
-    gui_forms_defer_generated_header_dependents(${target} "${header}" "${generator}")
+    gui_forms_defer_generated_header_dependents(${target} "${header}" "${generator}" "${used_by}")
 endfunction()
 
 function(gui_forms_add_form target document)
     cmake_parse_arguments(PARSE_ARGV 2 FORM "DERIVED" "CLASS;NAMESPACE;OUTPUT;MODEL;MODEL_HEADER;COMPILER"
-                          "TYPES;COMPOSITES")
+                          "TYPES;COMPOSITES;USED_BY")
     if(FORM_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR "gui_forms_add_form: unknown arguments ${FORM_UNPARSED_ARGUMENTS}")
     endif()
@@ -262,7 +287,8 @@ function(gui_forms_add_form target document)
         DEPENDS ${documents} "$<TARGET_FILE:${compiler}>"
         COMMENT "Generating ${stem}_form.hpp from ${document}"
         VERBATIM)
-    gui_forms_order_generated_header(${target} "${output}" "${compiler}")
+    gui_forms_used_by_paths(FORM_USED_BY used_by)
+    gui_forms_order_generated_header(${target} "${output}" "${compiler}" "${used_by}")
     target_include_directories(${target} PRIVATE "${output_directory}")
 endfunction()
 
@@ -278,14 +304,16 @@ endfunction()
 # MODEL_HEADER: the target, the document, CLASS, NAMESPACE, OUTPUT (default
 # <binary dir>/gui_forms_controls/<stem>_control.hpp, a '-' in the stem
 # becoming '_'), TYPES (application types the children may name),
-# COMPOSITES (composite controls the children may name) and COMPILER.
+# COMPOSITES (composite controls the children may name), USED_BY (the
+# sources that include the header, also through a generated form header
+# naming the control) and COMPILER.
 
 if(COMMAND gui_forms_add_control)
     return()
 endif()
 
 function(gui_forms_add_control target document)
-    cmake_parse_arguments(PARSE_ARGV 2 CONTROL "" "CLASS;NAMESPACE;OUTPUT;COMPILER" "TYPES;COMPOSITES")
+    cmake_parse_arguments(PARSE_ARGV 2 CONTROL "" "CLASS;NAMESPACE;OUTPUT;COMPILER" "TYPES;COMPOSITES;USED_BY")
     if(CONTROL_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR "gui_forms_add_control: unknown arguments ${CONTROL_UNPARSED_ARGUMENTS}")
     endif()
@@ -326,7 +354,8 @@ function(gui_forms_add_control target document)
         DEPENDS ${documents} "$<TARGET_FILE:${compiler}>"
         COMMENT "Generating ${stem}_control.hpp from ${document}"
         VERBATIM)
-    gui_forms_order_generated_header(${target} "${output}" "${compiler}")
+    gui_forms_used_by_paths(CONTROL_USED_BY used_by)
+    gui_forms_order_generated_header(${target} "${output}" "${compiler}" "${used_by}")
     target_include_directories(${target} PRIVATE "${output_directory}")
 endfunction()
 

@@ -59,6 +59,28 @@ gui_forms_add_form(my_forms forms/settings.form CLASS SettingsForm NAMESPACE gre
                    COMPOSITES "controls/toggle-pill.control,greeter::TogglePill,toggle_pill_control.hpp")
 ```
 
+### Rebuilding after a document changes
+
+Each generated header is a build dependency of the objects that include it,
+so a changed document rebuilds them even when the compiler's dependency
+files spell the header another way (for example under `ccache` with
+`CCACHE_BASEDIR` and a build tree behind a symlink). By default every source
+of the target depends on every header it generates, which is always correct.
+In a target with many forms, one edited document then rebuilds all of its
+sources. `USED_BY` names the sources that include the header, directly or
+through another header, and only they rebuild:
+
+```cmake
+gui_forms_add_form(my_forms forms/settings.form CLASS SettingsForm NAMESPACE greeter
+                   USED_BY src/settings_page.cpp)
+gui_forms_add_control(my_forms controls/toggle-pill.control CLASS TogglePill NAMESPACE greeter
+                      USED_BY src/settings_page.cpp)
+```
+
+Name every source that includes the header: one left out of `USED_BY` may
+not rebuild when the document changes. A control's header is included by
+the form headers that name it, so its `USED_BY` lists those forms' sources.
+
 ## Components
 
 | Component | Target | Kind | Use it for |
