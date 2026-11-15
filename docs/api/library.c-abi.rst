@@ -128,9 +128,13 @@ Types
      -  
    * - :cpp:class:`gf_content_frame <gf_content_frame>`
      -  
+   * - :cpp:class:`gf_content_layout_transform <gf_content_layout_transform>`
+     -  
    * - :cpp:class:`gf_content_pixel_rect <gf_content_pixel_rect>`
      -  
    * - :cpp:class:`gf_content_program <gf_content_program>`
+     -  
+   * - :cpp:class:`gf_content_quad <gf_content_quad>`
      -  
    * - :cpp:class:`gf_content_request <gf_content_request>`
      -  
@@ -678,6 +682,20 @@ Types
    .. cpp:function:: gf_status editor_set_multiline(gf_object editor, uint32_t multiline) const noexcept
 
    .. cpp:function:: gf_status editor_set_read_only(gf_object editor, uint32_t read_only) const noexcept
+
+   .. cpp:function:: gf_status editor_set_accepts_tab(gf_object editor, uint32_t accepts) const noexcept
+
+   .. cpp:function:: gf_status editor_replace_selection(gf_object editor, gf_utf8_view replacement, uint32_t* applied) const noexcept
+
+   .. cpp:function:: gf_status editor_delete_selection(gf_object editor, uint32_t* applied) const noexcept
+
+   .. cpp:function:: gf_status editor_composition_range(gf_object editor, uint32_t* present, uint64_t* start, uint64_t* end) const noexcept
+
+   .. cpp:function:: gf_status editor_caret_quad(gf_object editor, uint32_t* present, gf_content_quad* quad) const noexcept
+
+   .. cpp:function:: gf_status editor_selection_quads(gf_object editor, gf_content_quad* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status editor_composition_quads(gf_object editor, gf_content_quad* buffer, uint64_t capacity, uint64_t* required) const noexcept
 
    .. cpp:function:: gf_status set_termination_grace(gf_object surface, uint64_t milliseconds) const noexcept
 
@@ -2125,6 +2143,24 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_content_layout_transform
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: double xx
+
+   .. cpp:member:: double xy
+
+   .. cpp:member:: double yx
+
+   .. cpp:member:: double yy
+
+   .. cpp:member:: double dx
+
+   .. cpp:member:: double dy
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_content_pixel_rect
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2148,6 +2184,20 @@ Types
    .. cpp:member:: uint32_t opaque
 
    .. cpp:member:: gf_callback run
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_content_quad
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: gf_logical_point top_left
+
+   .. cpp:member:: gf_logical_point top_right
+
+   .. cpp:member:: gf_logical_point bottom_right
+
+   .. cpp:member:: gf_logical_point bottom_left
 
 .. cpp:namespace:: 0
 
@@ -2296,6 +2346,20 @@ Types
 
    .. cpp:member:: gf_status (*editor_set_read_only)(gf_object editor, uint32_t read_only)
 
+   .. cpp:member:: gf_status (*editor_set_accepts_tab)(gf_object editor, uint32_t accepts)
+
+   .. cpp:member:: gf_status (*editor_replace_selection)(gf_object editor, gf_utf8_view replacement, uint32_t* applied)
+
+   .. cpp:member:: gf_status (*editor_delete_selection)(gf_object editor, uint32_t* applied)
+
+   .. cpp:member:: gf_status (*editor_composition_range)(gf_object editor, uint32_t* present, uint64_t* start, uint64_t* end)
+
+   .. cpp:member:: gf_status (*editor_caret_quad)(gf_object editor, uint32_t* present, gf_content_quad* quad)
+
+   .. cpp:member:: gf_status (*editor_selection_quads)(gf_object editor, gf_content_quad* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*editor_composition_quads)(gf_object editor, gf_content_quad* buffer, uint64_t capacity, uint64_t* required)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -2339,6 +2403,12 @@ Types
    .. cpp:member:: const gf_content_caret_stop* carets
 
    .. cpp:member:: uint64_t caret_count
+
+   .. cpp:member:: uint32_t transformed
+
+   .. cpp:member:: uint32_t transform_reserved
+
+   .. cpp:member:: gf_content_layout_transform transform
 
 .. cpp:namespace:: 0
 

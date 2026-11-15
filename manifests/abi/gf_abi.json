@@ -14404,9 +14404,85 @@
       ]
     },
     {
+      "name": "gf_content_layout_transform",
+      "kind": "record",
+      "size": 48,
+      "align": 8,
+      "fields": [
+        {
+          "name": "xx",
+          "type": "double",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "xy",
+          "type": "double",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "yx",
+          "type": "double",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "yy",
+          "type": "double",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "dx",
+          "type": "double",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "dy",
+          "type": "double",
+          "offset": 40,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_content_quad",
+      "kind": "record",
+      "size": 64,
+      "align": 8,
+      "fields": [
+        {
+          "name": "top_left",
+          "type": "gf_logical_point",
+          "offset": 0,
+          "size": 16
+        },
+        {
+          "name": "top_right",
+          "type": "gf_logical_point",
+          "offset": 16,
+          "size": 16
+        },
+        {
+          "name": "bottom_right",
+          "type": "gf_logical_point",
+          "offset": 32,
+          "size": 16
+        },
+        {
+          "name": "bottom_left",
+          "type": "gf_logical_point",
+          "offset": 48,
+          "size": 16
+        }
+      ]
+    },
+    {
       "name": "gf_content_text_layout",
       "kind": "extensible",
-      "size": 64,
+      "size": 120,
       "align": 8,
       "fields": [
         {
@@ -14462,13 +14538,31 @@
           "type": "uint64_t",
           "offset": 56,
           "size": 8
+        },
+        {
+          "name": "transformed",
+          "type": "uint32_t",
+          "offset": 64,
+          "size": 4
+        },
+        {
+          "name": "transform_reserved",
+          "type": "uint32_t",
+          "offset": 68,
+          "size": 4
+        },
+        {
+          "name": "transform",
+          "type": "gf_content_layout_transform",
+          "offset": 72,
+          "size": 48
         }
       ]
     },
     {
       "name": "gf_content_table",
       "kind": "table",
-      "size": 312,
+      "size": 368,
       "align": 8,
       "fields": [
         {
@@ -15282,6 +15376,178 @@
             ]
           },
           "since": "1.4"
+        },
+        {
+          "name": "editor_set_accepts_tab",
+          "type": "function",
+          "offset": 312,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "accepts",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "editor_replace_selection",
+          "type": "function",
+          "offset": 320,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "replacement",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "applied",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "editor_delete_selection",
+          "type": "function",
+          "offset": 328,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "applied",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "editor_composition_range",
+          "type": "function",
+          "offset": 336,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "present",
+                "type": "uint32_t*"
+              },
+              {
+                "name": "start",
+                "type": "uint64_t*"
+              },
+              {
+                "name": "end",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "editor_caret_quad",
+          "type": "function",
+          "offset": 344,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "present",
+                "type": "uint32_t*"
+              },
+              {
+                "name": "quad",
+                "type": "gf_content_quad*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "editor_selection_quads",
+          "type": "function",
+          "offset": 352,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "gf_content_quad*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "editor_composition_quads",
+          "type": "function",
+          "offset": 360,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "editor",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "gf_content_quad*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
         }
       ]
     },

@@ -903,6 +903,25 @@ internal static unsafe class Program
         expect(Encoding.UTF8.GetString(read, 0, checked((int)required)) == "caf\u00e9", "the editor's text reads back");
         expect(table.open_content(editor.value, 0u, &sink) == Constants.GF_STATUS_WRONG_HANDLE_KIND,
                "an editor is not a content surface");
+
+        // The provisional editor slots: Tab, an edit at the selection and
+        // the composition (none open).
+        Abi.check(table.editor_set_accepts_tab(editor.value, 1u));
+        uint applied = 0u;
+        fixed (byte* bang = "!"u8)
+        {
+            Abi.check(table.editor_replace_selection(editor.value, Utf8.view(bang, 1), &applied));
+        }
+        expect(applied == 1u, "replace_selection inserts at the caret");
+        uint composing = 9u;
+        ulong marked_start = 0;
+        ulong marked_end = 0;
+        Abi.check(table.editor_composition_range(editor.value, &composing, &marked_start, &marked_end));
+        expect(composing == 0u, "no composition is open");
+        Abi.check(table.editor_delete_selection(editor.value, &applied));
+        expect(applied == 0u, "an empty selection deletes nothing");
+    }
+
     // GF_TABLE_LIST_VIEW (since 1.5) from C#: one column and two items
     // through the table, read back, and the header style as a property.
     private static void list_view_items()

@@ -77,6 +77,14 @@ constexpr SlotIdentity editor_position_at_slot{GF_TABLE_CONTENT, 34U};
 constexpr SlotIdentity editor_set_draws_selection_slot{GF_TABLE_CONTENT, 35U};
 constexpr SlotIdentity editor_set_multiline_slot{GF_TABLE_CONTENT, 36U};
 constexpr SlotIdentity editor_set_read_only_slot{GF_TABLE_CONTENT, 37U};
+// Provisional slots (gf_abi.h: 1.5 while it is unreleased, else 1.6).
+constexpr SlotIdentity editor_set_accepts_tab_slot{GF_TABLE_CONTENT, 38U};
+constexpr SlotIdentity editor_replace_selection_slot{GF_TABLE_CONTENT, 39U};
+constexpr SlotIdentity editor_delete_selection_slot{GF_TABLE_CONTENT, 40U};
+constexpr SlotIdentity editor_composition_range_slot{GF_TABLE_CONTENT, 41U};
+constexpr SlotIdentity editor_caret_quad_slot{GF_TABLE_CONTENT, 42U};
+constexpr SlotIdentity editor_selection_quads_slot{GF_TABLE_CONTENT, 43U};
+constexpr SlotIdentity editor_composition_quads_slot{GF_TABLE_CONTENT, 44U};
 
 // The 1.4 sizes of the records this table reads and writes.
 constexpr std::uint32_t frame_size_1_4 = 64U;
@@ -94,7 +102,11 @@ static_assert(sizeof(gf_content_statistics) == statistics_size_1_4);
 static_assert(sizeof(gf_content_program) == program_size_1_4);
 static_assert(sizeof(gf_hosted_options) == hosted_options_size_1_4);
 static_assert(sizeof(gf_hosted_input_report) == hosted_input_report_size_1_4);
-static_assert(sizeof(gf_content_text_layout) == text_layout_size_1_4);
+// The layout's provisional transform follows its 1.4 fields; a record of
+// at least this size carries it.
+constexpr std::uint32_t text_layout_size_transformed = 120U;
+static_assert(offsetof(gf_content_text_layout, transformed) == text_layout_size_1_4);
+static_assert(sizeof(gf_content_text_layout) == text_layout_size_transformed);
 static_assert(GF_CONTENT_MAXIMUM_FRAME_EXTENT == maximum_content_frame_extent);
 static_assert(GF_CONTENT_MAXIMUM_FRAME_BYTES == maximum_content_frame_bytes);
 static_assert(GF_CONTENT_MAXIMUM_SEMANTIC_TEXT_BYTES == maximum_content_semantic_text_bytes);
@@ -280,6 +292,15 @@ void write_request(const ContentRequest& source, gf_content_request& target) noe
     target.reserved = 0U;
     target.scale = source.scale;
     target.generation = source.generation;
+}
+
+gf_content_quad quad_value(const ContentQuad& quad) noexcept {
+    gf_content_quad value{};
+    value.top_left = gf_logical_point{quad.corners[0].x, quad.corners[0].y};
+    value.top_right = gf_logical_point{quad.corners[1].x, quad.corners[1].y};
+    value.bottom_right = gf_logical_point{quad.corners[2].x, quad.corners[2].y};
+    value.bottom_left = gf_logical_point{quad.corners[3].x, quad.corners[3].y};
+    return value;
 }
 
 gf_logical_rect rect_value(const Rect& rect) noexcept {
@@ -995,6 +1016,24 @@ gf_status content_editor_submit_layout_body(gf_object editor, const gf_content_t
     }
     ContentTextLayout made{};
     made.text_revision = (*layout).text_revision;
+    // The transform, when the caller's record is large enough to carry it.
+    if ((*layout).struct_size >= text_layout_size_transformed) {
+        if ((*layout).transformed > 1U || (*layout).transform_reserved != 0U) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, editor_submit_layout_slot,
+                        "transformed is 0 or 1 and transform_reserved zero");
+        }
+        if ((*layout).transformed == 1U) {
+            const gf_content_layout_transform& given = (*layout).transform;
+            ContentLayoutTransform transform{};
+            transform.xx = given.xx;
+            transform.xy = given.xy;
+            transform.yx = given.yx;
+            transform.yy = given.yy;
+            transform.dx = given.dx;
+            transform.dy = given.dy;
+            made.transform = transform;
+        }
+    }
     made.lines.reserve(lines.size());
     made.clusters.reserve(clusters.size());
     made.carets.reserve(carets.size());
@@ -1175,6 +1214,156 @@ gf_status GF_CALL content_editor_set_read_only(gf_object editor, std::uint32_t r
     return call_slot(editor_set_read_only_slot, content_editor_set_read_only_body, editor, read_only);
 }
 
+gf_status content_editor_set_accepts_tab_body(gf_object editor, std::uint32_t accepts) {
+    bool value = false;
+    const gf_status flag = read_flag(accepts, editor_set_accepts_tab_slot, value);
+    if (flag != GF_STATUS_OK) return flag;
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_set_accepts_tab_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    (*found).set_accepts_tab(value);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL content_editor_set_accepts_tab(gf_object editor, std::uint32_t accepts) noexcept {
+    return call_slot(editor_set_accepts_tab_slot, content_editor_set_accepts_tab_body, editor, accepts);
+}
+
+gf_status content_editor_replace_selection_body(gf_object editor, gf_utf8_view replacement,
+                                                std::uint32_t* applied) {
+    if (applied == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_replace_selection_slot,
+                    "editor_replace_selection needs an output");
+    }
+    std::string_view read{};
+    const gf_status valid = read_text(replacement, editor_replace_selection_slot, read);
+    if (valid != GF_STATUS_OK) return valid;
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_replace_selection_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    const bool made = (*found).replace_selection(read);
+    *applied = made ? 1U : 0U;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL content_editor_replace_selection(gf_object editor, gf_utf8_view replacement,
+                                                   std::uint32_t* applied) noexcept {
+    return call_slot(editor_replace_selection_slot, content_editor_replace_selection_body, editor, replacement,
+                     applied);
+}
+
+gf_status content_editor_delete_selection_body(gf_object editor, std::uint32_t* applied) {
+    if (applied == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_delete_selection_slot,
+                    "editor_delete_selection needs an output");
+    }
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_delete_selection_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    const bool made = (*found).delete_selection();
+    *applied = made ? 1U : 0U;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL content_editor_delete_selection(gf_object editor, std::uint32_t* applied) noexcept {
+    return call_slot(editor_delete_selection_slot, content_editor_delete_selection_body, editor, applied);
+}
+
+gf_status content_editor_composition_range_body(gf_object editor, std::uint32_t* present, std::uint64_t* start,
+                                                std::uint64_t* end) {
+    if (present == nullptr || start == nullptr || end == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_composition_range_slot,
+                    "editor_composition_range needs all three outputs");
+    }
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_composition_range_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    const std::optional<Utf8Range> range = (*found).composition_range();
+    *present = range ? 1U : 0U;
+    if (range) {
+        *start = (*range).start.value();
+        *end = (*range).end.value();
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL content_editor_composition_range(gf_object editor, std::uint32_t* present, std::uint64_t* start,
+                                                   std::uint64_t* end) noexcept {
+    return call_slot(editor_composition_range_slot, content_editor_composition_range_body, editor, present, start,
+                     end);
+}
+
+gf_status content_editor_caret_quad_body(gf_object editor, std::uint32_t* present, gf_content_quad* quad) {
+    if (present == nullptr || quad == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_caret_quad_slot, "editor_caret_quad needs both outputs");
+    }
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_caret_quad_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    const std::optional<ContentQuad> caret = (*found).caret_quad();
+    *present = caret ? 1U : 0U;
+    if (caret) *quad = quad_value(*caret);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL content_editor_caret_quad(gf_object editor, std::uint32_t* present,
+                                            gf_content_quad* quad) noexcept {
+    return call_slot(editor_caret_quad_slot, content_editor_caret_quad_body, editor, present, quad);
+}
+
+// Copies `quads` into the caller's buffer, as editor_selection_rectangles
+// copies its boxes: required first, then nothing on a short buffer.
+gf_status write_quads(const std::vector<ContentQuad>& quads, gf_content_quad* buffer, std::uint64_t capacity,
+                      std::uint64_t* required, SlotIdentity slot) {
+    *required = quads.size();
+    if (capacity < quads.size()) {
+        return fail(GF_STATUS_BUFFER_TOO_SMALL, slot, "the buffer holds fewer quads than there are");
+    }
+    const std::span<gf_content_quad> out(buffer, quads.size());
+    for (std::size_t index = 0U; index < quads.size(); ++index) out[index] = quad_value(quads[index]);
+    return GF_STATUS_OK;
+}
+
+gf_status content_editor_selection_quads_body(gf_object editor, gf_content_quad* buffer, std::uint64_t capacity,
+                                              std::uint64_t* required) {
+    if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_selection_quads_slot,
+                    "editor_selection_quads needs required, and a buffer for a nonzero capacity");
+    }
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_selection_quads_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    const std::vector<ContentQuad> quads = (*found).selection_quads();
+    const gf_status written = write_quads(quads, buffer, capacity, required, editor_selection_quads_slot);
+    return written;
+}
+
+gf_status GF_CALL content_editor_selection_quads(gf_object editor, gf_content_quad* buffer, std::uint64_t capacity,
+                                                 std::uint64_t* required) noexcept {
+    return call_slot(editor_selection_quads_slot, content_editor_selection_quads_body, editor, buffer, capacity,
+                     required);
+}
+
+gf_status content_editor_composition_quads_body(gf_object editor, gf_content_quad* buffer, std::uint64_t capacity,
+                                                std::uint64_t* required) {
+    if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, editor_composition_quads_slot,
+                    "editor_composition_quads needs required, and a buffer for a nonzero capacity");
+    }
+    std::shared_ptr<ContentTextEditor> found;
+    const gf_status entered = enter_editor(editor, editor_composition_quads_slot, found);
+    if (entered != GF_STATUS_OK) return entered;
+    const std::vector<ContentQuad> quads = (*found).composition_quads();
+    const gf_status written = write_quads(quads, buffer, capacity, required, editor_composition_quads_slot);
+    return written;
+}
+
+gf_status GF_CALL content_editor_composition_quads(gf_object editor, gf_content_quad* buffer,
+                                                   std::uint64_t capacity, std::uint64_t* required) noexcept {
+    return call_slot(editor_composition_quads_slot, content_editor_composition_quads_body, editor, buffer, capacity,
+                     required);
+}
+
 constexpr gf_content_table table{
     .struct_size = sizeof(gf_content_table),
     .abi_minor = GF_ABI_MINOR,
@@ -1216,6 +1405,13 @@ constexpr gf_content_table table{
     .editor_set_draws_selection = &content_editor_set_draws_selection,
     .editor_set_multiline = &content_editor_set_multiline,
     .editor_set_read_only = &content_editor_set_read_only,
+    .editor_set_accepts_tab = &content_editor_set_accepts_tab,
+    .editor_replace_selection = &content_editor_replace_selection,
+    .editor_delete_selection = &content_editor_delete_selection,
+    .editor_composition_range = &content_editor_composition_range,
+    .editor_caret_quad = &content_editor_caret_quad,
+    .editor_selection_quads = &content_editor_selection_quads,
+    .editor_composition_quads = &content_editor_composition_quads,
 };
 
 } // namespace

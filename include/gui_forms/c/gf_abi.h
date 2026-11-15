@@ -4718,10 +4718,42 @@ typedef struct gf_content_caret_stop {
     gf_logical_rect caret;
 } gf_content_caret_stop;
 
+/* An affine map from a layout's own coordinates to the editor's logical
+ * coordinates (provisional, see gf_content_text_layout's transformed):
+ * x' = xx * x + xy * y + dx and y' = yx * x + yy * y + dy, the shape of a
+ * painter transform (rotation, scale, shear and translation). */
+typedef struct gf_content_layout_transform {
+    double xx;
+    double xy;
+    double yx;
+    double yy;
+    double dx;
+    double dy;
+} gf_content_layout_transform;
+
+/* A layout box mapped to the editor's logical coordinates (provisional): the
+ * images of the unmapped box's corners. */
+typedef struct gf_content_quad {
+    gf_logical_point top_left;
+    gf_logical_point top_right;
+    gf_logical_point bottom_right;
+    gf_logical_point bottom_left;
+} gf_content_quad;
+
 /* An editor's layout (editor_submit_layout), an input record (struct_size,
  * reserved zero), made for text_revision: lines in text order, clusters
  * covering each non-empty line, and optional caret stops ascending by
- * offset. The library copies the arrays. */
+ * offset. The library copies the arrays.
+ *
+ * transformed and transform are provisional additions to the 1.4 record
+ * (64 bytes before them), numbered 1.5 while 1.5 is unreleased and 1.6
+ * otherwise: transformed 1 says every box is in the layout's own
+ * coordinates and transform maps them to the editor's, so its caret,
+ * selection, hit testing and published boxes follow the turned text
+ * (C++ ContentTextLayout::transform); 0 (and a record of the 1.4 size)
+ * means the boxes are the editor's coordinates. transform_reserved is
+ * zero. A transform that is not finite or flattens the plane is refused as
+ * GF_CONTENT_LAYOUT_REFUSED_GEOMETRY. */
 typedef struct gf_content_text_layout {
     uint32_t struct_size;
     uint32_t reserved;
@@ -4732,6 +4764,10 @@ typedef struct gf_content_text_layout {
     uint64_t cluster_count;
     const gf_content_caret_stop* carets;
     uint64_t caret_count;
+    /* Provisional (above). */
+    uint32_t transformed;
+    uint32_t transform_reserved;
+    gf_content_layout_transform transform;
 } gf_content_text_layout;
 
 typedef struct gf_content_table {
@@ -4849,6 +4885,37 @@ typedef struct gf_content_table {
      * layout's lines; 0 (the default): Enter passes on. */
     gf_status (GF_CALL* editor_set_multiline)(gf_object editor, uint32_t multiline);
     gf_status (GF_CALL* editor_set_read_only)(gf_object editor, uint32_t read_only);
+    /*
+     * The slots below are provisional additions (numbered 1.5 while 1.5 is
+     * unreleased, else 1.6); a table whose struct_size ends before one does
+     * not have it.
+     */
+    /* 1: a multiline editor inserts a tab for Tab (C++ set_accepts_tab);
+     * 0 (the default): Tab goes on to focus navigation. */
+    gf_status (GF_CALL* editor_set_accepts_tab)(gf_object editor, uint32_t accepts);
+    /* Puts replacement (UTF-8) in place of the selection, or inserts it at
+     * the caret, as one undo step through the read-only state and the edit
+     * filter; applied is 1 when the edit was made. GF_STATUS_INVALID_ARGUMENT
+     * for text that is not UTF-8. */
+    gf_status (GF_CALL* editor_replace_selection)(gf_object editor, gf_utf8_view replacement, uint32_t* applied);
+    /* Removes a non-empty selection; applied is 0 when there was nothing to
+     * remove or the edit was refused. */
+    gf_status (GF_CALL* editor_delete_selection)(gf_object editor, uint32_t* applied);
+    /* The input method's unfinished composition as a byte range [start,
+     * end) of the text: present is 0 without one (start and end are then
+     * left as they were). */
+    gf_status (GF_CALL* editor_composition_range)(gf_object editor, uint32_t* present, uint64_t* start,
+                                                  uint64_t* end);
+    /* The caret's bar as a quad mapped by the layout's transform: present is
+     * 0 without a current layout (quad is then left as it was). */
+    gf_status (GF_CALL* editor_caret_quad)(gf_object editor, uint32_t* present, gf_content_quad* quad);
+    /* The selection's, and the composition's, boxes as mapped quads, in
+     * order, as editor_selection_rectangles: required receives their number;
+     * a buffer of fewer gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing. */
+    gf_status (GF_CALL* editor_selection_quads)(gf_object editor, gf_content_quad* buffer, uint64_t capacity,
+                                                uint64_t* required);
+    gf_status (GF_CALL* editor_composition_quads)(gf_object editor, gf_content_quad* buffer, uint64_t capacity,
+                                                  uint64_t* required);
 } gf_content_table;
 
 /*

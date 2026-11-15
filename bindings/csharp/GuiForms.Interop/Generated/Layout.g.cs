@@ -1441,9 +1441,29 @@ public static unsafe class Layout
             failures += expect(output, "gf_content_caret_stop.caret offset", (long)((byte*)&value.caret - start), 8);
         }
         {
+            gf_content_layout_transform value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_content_layout_transform size", sizeof(gf_content_layout_transform), 48);
+            failures += expect(output, "gf_content_layout_transform.xx offset", (long)((byte*)&value.xx - start), 0);
+            failures += expect(output, "gf_content_layout_transform.xy offset", (long)((byte*)&value.xy - start), 8);
+            failures += expect(output, "gf_content_layout_transform.yx offset", (long)((byte*)&value.yx - start), 16);
+            failures += expect(output, "gf_content_layout_transform.yy offset", (long)((byte*)&value.yy - start), 24);
+            failures += expect(output, "gf_content_layout_transform.dx offset", (long)((byte*)&value.dx - start), 32);
+            failures += expect(output, "gf_content_layout_transform.dy offset", (long)((byte*)&value.dy - start), 40);
+        }
+        {
+            gf_content_quad value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_content_quad size", sizeof(gf_content_quad), 64);
+            failures += expect(output, "gf_content_quad.top_left offset", (long)((byte*)&value.top_left - start), 0);
+            failures += expect(output, "gf_content_quad.top_right offset", (long)((byte*)&value.top_right - start), 16);
+            failures += expect(output, "gf_content_quad.bottom_right offset", (long)((byte*)&value.bottom_right - start), 32);
+            failures += expect(output, "gf_content_quad.bottom_left offset", (long)((byte*)&value.bottom_left - start), 48);
+        }
+        {
             gf_content_text_layout value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_content_text_layout size", sizeof(gf_content_text_layout), 64);
+            failures += expect(output, "gf_content_text_layout size", sizeof(gf_content_text_layout), 120);
             failures += expect(output, "gf_content_text_layout.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_content_text_layout.reserved offset", (long)((byte*)&value.reserved - start), 4);
             failures += expect(output, "gf_content_text_layout.text_revision offset", (long)((byte*)&value.text_revision - start), 8);
@@ -1453,11 +1473,14 @@ public static unsafe class Layout
             failures += expect(output, "gf_content_text_layout.cluster_count offset", (long)((byte*)&value.cluster_count - start), 40);
             failures += expect(output, "gf_content_text_layout.carets offset", (long)((byte*)&value.carets - start), 48);
             failures += expect(output, "gf_content_text_layout.caret_count offset", (long)((byte*)&value.caret_count - start), 56);
+            failures += expect(output, "gf_content_text_layout.transformed offset", (long)((byte*)&value.transformed - start), 64);
+            failures += expect(output, "gf_content_text_layout.transform_reserved offset", (long)((byte*)&value.transform_reserved - start), 68);
+            failures += expect(output, "gf_content_text_layout.transform offset", (long)((byte*)&value.transform - start), 72);
         }
         {
             gf_content_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_content_table size", sizeof(gf_content_table), 312);
+            failures += expect(output, "gf_content_table size", sizeof(gf_content_table), 368);
             failures += expect(output, "gf_content_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_content_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_content_table.open_content offset", (long)((byte*)&value.open_content - start), 8);
@@ -1498,6 +1521,13 @@ public static unsafe class Layout
             failures += expect(output, "gf_content_table.editor_set_draws_selection offset", (long)((byte*)&value.editor_set_draws_selection - start), 288);
             failures += expect(output, "gf_content_table.editor_set_multiline offset", (long)((byte*)&value.editor_set_multiline - start), 296);
             failures += expect(output, "gf_content_table.editor_set_read_only offset", (long)((byte*)&value.editor_set_read_only - start), 304);
+            failures += expect(output, "gf_content_table.editor_set_accepts_tab offset", (long)((byte*)&value.editor_set_accepts_tab - start), 312);
+            failures += expect(output, "gf_content_table.editor_replace_selection offset", (long)((byte*)&value.editor_replace_selection - start), 320);
+            failures += expect(output, "gf_content_table.editor_delete_selection offset", (long)((byte*)&value.editor_delete_selection - start), 328);
+            failures += expect(output, "gf_content_table.editor_composition_range offset", (long)((byte*)&value.editor_composition_range - start), 336);
+            failures += expect(output, "gf_content_table.editor_caret_quad offset", (long)((byte*)&value.editor_caret_quad - start), 344);
+            failures += expect(output, "gf_content_table.editor_selection_quads offset", (long)((byte*)&value.editor_selection_quads - start), 352);
+            failures += expect(output, "gf_content_table.editor_composition_quads offset", (long)((byte*)&value.editor_composition_quads - start), 360);
         }
         {
             gf_list_view_column value = default;

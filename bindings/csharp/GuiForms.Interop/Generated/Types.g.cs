@@ -1542,7 +1542,29 @@ public unsafe struct gf_content_caret_stop
     public gf_logical_rect caret;
 }
 
-/// <summary>gf_content_text_layout (extensible, 64 bytes).</summary>
+/// <summary>gf_content_layout_transform (record, 48 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_layout_transform
+{
+    public double xx;
+    public double xy;
+    public double yx;
+    public double yy;
+    public double dx;
+    public double dy;
+}
+
+/// <summary>gf_content_quad (record, 64 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_content_quad
+{
+    public gf_logical_point top_left;
+    public gf_logical_point top_right;
+    public gf_logical_point bottom_right;
+    public gf_logical_point bottom_left;
+}
+
+/// <summary>gf_content_text_layout (extensible, 120 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_content_text_layout
 {
@@ -1555,9 +1577,12 @@ public unsafe struct gf_content_text_layout
     public ulong cluster_count;
     public gf_content_caret_stop* carets;
     public ulong caret_count;
+    public uint transformed;
+    public uint transform_reserved;
+    public gf_content_layout_transform transform;
 }
 
-/// <summary>gf_content_table (table, 312 bytes).</summary>
+/// <summary>gf_content_table (table, 368 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_content_table
 {
@@ -1601,6 +1626,13 @@ public unsafe struct gf_content_table
     public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> editor_set_draws_selection;
     public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> editor_set_multiline;
     public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> editor_set_read_only;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> editor_set_accepts_tab;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, uint*, gf_status> editor_replace_selection;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> editor_delete_selection;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, ulong*, ulong*, gf_status> editor_composition_range;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_content_quad*, gf_status> editor_caret_quad;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_quad*, ulong, ulong*, gf_status> editor_selection_quads;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_content_quad*, ulong, ulong*, gf_status> editor_composition_quads;
 }
 
 /// <summary>gf_list_view_column (extensible, 48 bytes).</summary>

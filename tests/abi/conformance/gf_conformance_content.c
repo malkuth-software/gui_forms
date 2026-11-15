@@ -403,6 +403,80 @@ static void content_editor(gf_kit* kit, gf_object editor, gf_object surface) {
                   "map a point to a text position");
     gf_kit_check(kit, offset == 2u, "the nearest cluster edge is the position");
 
+    /* Provisional additions: the composition, quads and the layout's
+     * transform. No composition is open. */
+    uint32_t composing = 9u;
+    uint64_t marked_start = 7u;
+    uint64_t marked_end = 7u;
+    gf_kit_status(kit, (*kit).content.editor_composition_range(editor, &composing, &marked_start, &marked_end),
+                  GF_STATUS_OK, "read the composition range");
+    gf_kit_check(kit, composing == 0u && marked_start == 7u && marked_end == 7u,
+                 "without a composition the range is absent and its outputs untouched");
+    gf_content_quad quad;
+    memset(&quad, 0, sizeof(quad));
+    present = 0u;
+    gf_kit_status(kit, (*kit).content.editor_caret_quad(editor, &present, &quad), GF_STATUS_OK, "read the caret quad");
+    gf_kit_check(kit, present == 1u && quad.top_left.x == caret.x && quad.bottom_left.y == caret.y + caret.height,
+                 "without a transform the caret quad is its rectangle's corners");
+    gf_content_quad quads[4];
+    required = 99u;
+    gf_kit_status(kit, (*kit).content.editor_selection_quads(editor, quads, 4u, &required), GF_STATUS_OK,
+                  "read the selection quads");
+    gf_kit_check(kit, required <= 4u, "the selection quads fit");
+    gf_kit_status(kit, (*kit).content.editor_selection_quads(editor, NULL, 4u, &required),
+                  GF_STATUS_INVALID_ARGUMENT, "a nonzero capacity needs a buffer for quads");
+    required = 99u;
+    gf_kit_status(kit, (*kit).content.editor_composition_quads(editor, quads, 4u, &required), GF_STATUS_OK,
+                  "read the composition quads");
+    gf_kit_check(kit, required == 0u, "without a composition there are no composition quads");
+
+    layout.transformed = 1u;
+    layout.transform.xx = 1.0;
+    layout.transform.yy = 1.0;
+    layout.transform.dx = 100.0;
+    gf_kit_status(kit, (*kit).content.editor_submit_layout(editor, &layout, &result), GF_STATUS_OK,
+                  "submit a moved layout");
+    gf_kit_check(kit, result == GF_CONTENT_LAYOUT_ACCEPTED, "a transformed layout is accepted");
+    gf_kit_status(kit, (*kit).content.editor_caret_quad(editor, &present, &quad), GF_STATUS_OK,
+                  "read the moved caret quad");
+    gf_kit_check(kit, present == 1u && quad.top_left.x == caret.x + 100.0, "the caret quad follows the transform");
+    point.x = 117.0;
+    gf_kit_status(kit, (*kit).content.editor_position_at(editor, point, &offset), GF_STATUS_OK,
+                  "map a point through the transform");
+    gf_kit_check(kit, offset == 2u, "hit testing maps the point back through the transform");
+    layout.transform.xx = 0.0;
+    layout.transform.yy = 0.0;
+    gf_kit_status(kit, (*kit).content.editor_submit_layout(editor, &layout, &result), GF_STATUS_OK,
+                  "submit a flattening transform");
+    gf_kit_check(kit, result == GF_CONTENT_LAYOUT_REFUSED_GEOMETRY, "a flattening transform is refused");
+    layout.transformed = 2u;
+    gf_kit_status(kit, (*kit).content.editor_submit_layout(editor, &layout, &result), GF_STATUS_INVALID_ARGUMENT,
+                  "transformed is 0 or 1");
+    layout.transformed = 0u;
+    gf_kit_status(kit, (*kit).content.editor_submit_layout(editor, &layout, &result), GF_STATUS_OK,
+                  "submit the plain layout again");
+    gf_kit_check(kit, result == GF_CONTENT_LAYOUT_ACCEPTED, "the plain layout is accepted again");
+
+    gf_kit_status(kit, (*kit).content.editor_set_accepts_tab(editor, 2u), GF_STATUS_INVALID_ARGUMENT,
+                  "accepts_tab is 0 or 1");
+    gf_kit_status(kit, (*kit).content.editor_set_accepts_tab(editor, 1u), GF_STATUS_OK, "let the editor take Tab");
+    uint32_t applied = 9u;
+    gf_kit_status(kit, (*kit).content.editor_delete_selection(editor, &applied), GF_STATUS_OK,
+                  "delete an empty selection");
+    gf_kit_check(kit, applied == 0u, "an empty selection deletes nothing");
+    const char not_utf8[1] = {(char)0xFF};
+    gf_utf8_view broken;
+    broken.data = not_utf8;
+    broken.size = 1u;
+    gf_kit_status(kit, (*kit).content.editor_replace_selection(editor, broken, &applied), GF_STATUS_INVALID_ARGUMENT,
+                  "a replacement that is not UTF-8 is refused");
+    gf_kit_status(kit, (*kit).content.editor_replace_selection(editor, gf_kit_text("!"), &applied), GF_STATUS_OK,
+                  "insert at the caret");
+    gf_kit_status(kit, (*kit).content.editor_text(editor, text, sizeof(text) - 1u, &required), GF_STATUS_OK,
+                  "read the edited text");
+    text[required < sizeof(text) ? required : 0u] = '\0';
+    gf_kit_check(kit, applied == 1u && strcmp(text, "hello!") == 0, "the replacement is inserted at the caret");
+
     gf_kit_status(kit, (*kit).content.editor_set_draws_selection(editor, 1u), GF_STATUS_OK,
                   "let the editor draw the selection");
     gf_kit_status(kit, (*kit).content.editor_set_multiline(editor, 1u), GF_STATUS_OK, "make the editor multiline");

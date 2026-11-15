@@ -3193,6 +3193,67 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status editor_set_accepts_tab(gf_object editor, uint32_t accepts) const noexcept {
+        if (table_.struct_size < 320u || table_.editor_set_accepts_tab == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_set_accepts_tab(editor, accepts);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_replace_selection(gf_object editor, gf_utf8_view replacement,
+                                                     uint32_t* applied) const noexcept {
+        if (table_.struct_size < 328u || table_.editor_replace_selection == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_replace_selection(editor, replacement, applied);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_delete_selection(gf_object editor, uint32_t* applied) const noexcept {
+        if (table_.struct_size < 336u || table_.editor_delete_selection == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_delete_selection(editor, applied);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_composition_range(gf_object editor, uint32_t* present, uint64_t* start,
+                                                     uint64_t* end) const noexcept {
+        if (table_.struct_size < 344u || table_.editor_composition_range == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_composition_range(editor, present, start, end);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_caret_quad(gf_object editor, uint32_t* present,
+                                              gf_content_quad* quad) const noexcept {
+        if (table_.struct_size < 352u || table_.editor_caret_quad == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_caret_quad(editor, present, quad);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_selection_quads(gf_object editor, gf_content_quad* buffer, uint64_t capacity,
+                                                   uint64_t* required) const noexcept {
+        if (table_.struct_size < 360u || table_.editor_selection_quads == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_selection_quads(editor, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status editor_composition_quads(gf_object editor, gf_content_quad* buffer, uint64_t capacity,
+                                                     uint64_t* required) const noexcept {
+        if (table_.struct_size < 368u || table_.editor_composition_quads == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.editor_composition_quads(editor, buffer, capacity, required);
+        return called;
+    }
+
 private:
     gf_content_table table_;
 };
