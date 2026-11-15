@@ -1973,6 +1973,30 @@ ElementReference element_at(IUIAutomationTreeWalker& walker, IUIAutomationElemen
     return current;
 }
 
+// Ends an action's subscriptions on the UI thread on every way out of
+// perform_job: the lost returns and any throw, not only the paths that
+// release them explicitly. Without it the client thread's destruction of
+// ActionState disconnected UI-thread events while the UI thread ran
+// (B-gf-tests-12-F1). Declared after the state it releases. Releasing
+// twice is harmless (the tokens are empty the second time). When the window
+// has closed, its events are gone with it and nothing is left to release.
+struct ReleaseOnUiThread final {
+    const WindowDispatcher* dispatcher{};
+    ActionState* state{};
+    ReleaseOnUiThread(const WindowDispatcher* used, ActionState* released) noexcept
+        : dispatcher(used), state(released) {}
+    ReleaseOnUiThread(const ReleaseOnUiThread&) = delete;
+    ReleaseOnUiThread& operator=(const ReleaseOnUiThread&) = delete;
+    ~ReleaseOnUiThread() {
+        // A destructor must not throw: a closed window reports through
+        // on_ui_thread's exception, and the run already fails for it.
+        try {
+            on_ui_thread(*dispatcher, std::function<void()>(ReleaseSubscriptions{state}));
+        } catch (const std::exception&) {
+        }
+    }
+};
+
 void perform_job(ClientRun& run, IUIAutomationTreeWalker& walker, IUIAutomationElement& window_element,
                  const ActionJob& job) {
     const ActionCandidate& candidate = *job.candidate;
@@ -1984,6 +2008,7 @@ void perform_job(ClientRun& run, IUIAutomationTreeWalker& walker, IUIAutomationE
     on_ui_thread(run.dispatcher, std::function<void()>(PreparePage{run.window, run.hwnd, candidate.page, &shown}));
     if (!shown.shown) throw std::runtime_error("a Gallery page cannot be selected: " + candidate.page);
     ActionState state;
+    const ReleaseOnUiThread release_state(&run.dispatcher, &state);
     on_ui_thread(run.dispatcher, std::function<void()>(BeginAction{run.window, &candidate, &state}));
     if (!state.node) {
         result.outcome = ActionOutcome::lost;
