@@ -387,12 +387,22 @@ void test_tick_golden_tables() {
     // A-gf-core-09-F2: a domain too narrow for its magnitude (tick positions
     // past 2^53, where adding 1 does not move them) returns at once with no
     // ticks instead of looping for ever or repeating one tick.
+    // Doubles near 1E17 are 16 apart, so [1E17, 1E17 + 16] is one ulp wide:
+    // its step is 5, and its first position, 2E16, is past 2^53.
     TickSet noise{};
     TickRequest plain{};
-    require(generate_ticks(horizontal(ScaleKind::linear, 0.29999999999999993, 0.30000000000000004, 300.0), plain,
-                           nullptr, noise) == TickOutcome::too_small &&
-                noise.major_count == 0U && noise.minor_count == 0U,
+    require(generate_ticks(horizontal(ScaleKind::linear, 1e17, 1e17 + 16.0, 300.0), plain, nullptr, noise) ==
+                    TickOutcome::too_small &&
+                noise.major_count == 0U && noise.minor_count == 0U && noise.step == 0.0,
             "a constant with rounding noise has no ticks");
+    // Two ulp around 0.3 stay within 2^53 positions (step 5E-17, positions
+    // near 6E15), so the guard does not apply: the loops run over at most
+    // three exact positions and end. Their values may round together, so
+    // distinctness is not required here.
+    TickSet small_noise{};
+    static_cast<void>(generate_ticks(horizontal(ScaleKind::linear, 0.29999999999999993, 0.30000000000000004, 300.0),
+                                     plain, nullptr, small_noise));
+    require(small_noise.major_count <= 3U, "a constant with rounding noise near one ends after a few ticks");
     // A few ulp of a large magnitude: whatever ticks remain are distinct.
     TickSet far{};
     static_cast<void>(generate_ticks(horizontal(ScaleKind::linear, 1e17, 1e17 + 64.0, 300.0), plain, nullptr, far));
