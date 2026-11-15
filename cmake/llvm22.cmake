@@ -19,15 +19,17 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
     set(CMAKE_CXX_FLAGS_INIT "${_gf_cxx}")
     set(CMAKE_OBJCXX_FLAGS_INIT "${_gf_cxx}")
     # A program is one module (owner decision, 2026-11-15): it links the
-    # runtime's libc++ and libc++abi archives, and the unwinder is the
-    # system's (libSystem), when the runtime tree carries the archives. A
-    # runtime tree built with shared libraries only (template_harness's
-    # build_macos_runtimes.py before it builds the archives) is linked as
-    # before, through the dylibs and the rpath; GUI_FORMS_STATIC_CXX_RUNTIME
-    # says which, for the checks that refuse a shared C++ runtime.
-    if(EXISTS "${_gf_runtime}/lib/libc++.a" AND EXISTS "${_gf_runtime}/lib/libc++abi.a")
+    # runtime's libc++, libc++abi and libunwind archives statically, as on
+    # Linux and Windows, when the runtime tree carries them (template_harness's
+    # build_macos_runtimes.py builds them hermetic, claude/macos-static-libcxx).
+    # A runtime tree with dylibs only is linked as before, through the dylibs
+    # and the rpath; GUI_FORMS_STATIC_CXX_RUNTIME says which, for the checks
+    # that refuse a shared C++ runtime.
+    if(EXISTS "${_gf_runtime}/lib/libc++.a" AND EXISTS "${_gf_runtime}/lib/libc++abi.a"
+       AND EXISTS "${_gf_runtime}/lib/libunwind.a")
         set(_gf_link "-nostdlib++")
-        set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "\"${_gf_runtime}/lib/libc++.a\" \"${_gf_runtime}/lib/libc++abi.a\"")
+        set(CMAKE_CXX_STANDARD_LIBRARIES_INIT
+            "\"${_gf_runtime}/lib/libc++.a\" \"${_gf_runtime}/lib/libc++abi.a\" \"${_gf_runtime}/lib/libunwind.a\"")
         set(CMAKE_OBJCXX_STANDARD_LIBRARIES_INIT "${CMAKE_CXX_STANDARD_LIBRARIES_INIT}")
         set(GUI_FORMS_STATIC_CXX_RUNTIME ON CACHE BOOL "The C++ runtime is linked statically (cmake/llvm22.cmake)" FORCE)
     else()
