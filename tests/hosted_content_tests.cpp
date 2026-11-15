@@ -1,11 +1,12 @@
 // Hosted content (owner decisions 2026-11-13, "The two topologies"): a
 // sub-surface program in its own process, frames through shared memory,
-// input through a channel, behind ContentSurface. The protocol checks run
-// everywhere; the process cases run on macOS and Linux, starting
+// input through a channel, behind ContentSurface. The protocol checks and
+// the process cases run on macOS, Linux and Windows, starting
 // gui_forms_hosted_child (tests/hosted_child.cpp) in its modes: a program
 // that publishes and answers input, one that crashes for real, one that
 // hangs, one that writes garbage, one whose frame is too large, one that
-// exits with a status and one that never connects.
+// exits with a status, one that never connects, and one that reports the
+// arguments it was given.
 
 #include "gui_forms/content/hosted/hosted_content.hpp"
 #include "gui_forms/content/hosted/hosted_protocol.hpp"
@@ -190,7 +191,8 @@ void options_are_checked() {
     } catch (const std::invalid_argument&) {
         threw = true;
     } catch (const std::runtime_error&) {
-        // Windows refuses every program before looking at it.
+        // A platform without hosted content refuses every program before
+        // looking at it.
         threw = hosted_content_support() == HostedContentSupport::not_reported;
     }
     require(threw, "a program not named by an absolute path is refused");
@@ -198,8 +200,6 @@ void options_are_checked() {
     const bool available = hosted_content_support() == HostedContentSupport::available;
     require(reported == available, "the capability is reported exactly where hosted content exists");
 }
-
-#if !defined(_WIN32)
 
 // -- the process ---------------------------------------------------------------
 
@@ -379,6 +379,11 @@ void a_crash_ends_only_the_program() {
     Fixture fixture = start_child("hosted.crash", "crash");
     require(settle(fixture, StatusIs{ContentSurfaceStatus::failed}), "a crashed program fails the surface");
     require((*fixture.surface).failure().find("crashed") != std::string::npos, "the failure says it crashed");
+#if defined(_WIN32)
+    // The trap's exception code, STATUS_ILLEGAL_INSTRUCTION.
+    require((*fixture.surface).failure().find("NTSTATUS 0xC000001D") != std::string::npos,
+            "the failure names the NTSTATUS the program crashed with");
+#endif
     // The application goes on: the window lays out and the surface takes a
     // new program.
     (*fixture.window).perform_layout();
@@ -468,7 +473,70 @@ void closing_the_window_ends_the_process() {
             "closing the window waited only the bounded grace");
 }
 
+struct SemanticTextIs final {
+    std::string wanted{};
+    bool operator()(const ContentSurface& surface) const { return surface.content_semantics().text == wanted; }
+};
+
+// The arguments reach the program unchanged: on Windows through the
+// command line's quoting rules (spaces, quotes, trailing backslashes,
+// backslashes before a quote, an empty argument), on POSIX as argv.
+void arguments_arrive_intact() {
+    Fixture fixture;
+    fixture.root = make_control<Panel>(StableId("hosted.arguments.root"));
+    fixture.surface = make_control<ContentSurface>(StableId("hosted.arguments.surface"));
+    (*fixture.surface).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
+    (*fixture.root).add_child(fixture.surface);
+    fixture.window = std::make_unique<Window>(fixture.root, Size{200.0, 120.0});
+    (*fixture.window).perform_layout();
+    (*fixture.surface).set_stale_interval(FrameInterval::zero());
+    (*fixture.surface).set_termination_grace(std::chrono::milliseconds(2000));
+    HostedContentOptions options{};
+    options.executable = GUI_FORMS_HOSTED_CHILD;
+    options.arguments = {"arguments", "two words", "a\"b", "c\\", "d\\\"e", "", "f\\g", "tab\there"};
+    options.slot_bytes = 1024U * 1024U;
+    options.stop_grace = std::chrono::milliseconds(200);
+    fixture.input = (*fixture.surface).start_hosted_content(options, true);
+    const std::string expected = "two words|a\"b|c\\|d\\\"e||f\\g|tab\there";
+    require(settle(fixture, SemanticTextIs{expected}), "every argument arrives as it was given");
+    (*fixture.surface).terminate();
+    require(settle(fixture, StatusIs{ContentSurfaceStatus::ended}), "the program ends on request");
+}
+
+// Arguments the platform cannot pass are refused before anything starts.
+void unpassable_arguments_are_refused() {
+    HostedContentOptions options{};
+    options.executable = GUI_FORMS_HOSTED_CHILD;
+    options.arguments = {"frames", std::string("nul\0inside", 10U)};
+    bool threw = false;
+    try {
+        static_cast<void>(make_hosted_content(options));
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+#if defined(_WIN32)
+    require(threw, "an argument holding a NUL is refused on Windows");
+    options.arguments = {"frames", "\xFF"};
+    threw = false;
+    try {
+        static_cast<void>(make_hosted_content(options));
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw, "an argument that is not UTF-8 is refused on Windows");
+    options.arguments = {"frames", std::string(40000U, 'x')};
+    threw = false;
+    try {
+        static_cast<void>(make_hosted_content(options));
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw, "a command line over 32767 characters is refused");
+#else
+    // POSIX passes argv as C strings; the NUL ends the argument there.
+    static_cast<void>(threw);
 #endif
+}
 
 } // namespace
 
@@ -478,7 +546,7 @@ int main() {
         the_reader_refuses_broken_streams();
         frame_records_are_checked_against_their_slot();
         options_are_checked();
-#if !defined(_WIN32)
+        unpassable_arguments_are_refused();
         frames_and_input_cross_the_process_boundary();
         oversized_text_is_dropped_and_counted();
         the_surface_forwards_its_input_in_order();
@@ -489,7 +557,7 @@ int main() {
         an_oversized_frame_is_refused_and_counted();
         exit_status_and_start_timeout();
         closing_the_window_ends_the_process();
-#endif
+        arguments_arrive_intact();
     } catch (const std::exception& error) {
         std::cerr << "hosted content tests failed: " << error.what() << '\n';
         return 1;

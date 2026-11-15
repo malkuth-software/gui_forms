@@ -54,7 +54,9 @@ inline constexpr std::uint64_t maximum_hosted_slot_bytes = maximum_content_frame
 
 // The descriptors and environment the parent gives the child. The channel
 // and the frame region are inherited at these descriptor numbers on POSIX;
-// the environment names them as well, with the slot shape.
+// the environment names them as well, with the slot shape. On Windows the
+// two are inherited handles, and the channel and frames variables hold
+// their values in decimal.
 inline constexpr int hosted_channel_descriptor = 3;
 inline constexpr int hosted_frames_descriptor = 4;
 inline constexpr std::string_view hosted_environment_channel = "GUI_FORMS_HOSTED_CHANNEL";

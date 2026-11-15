@@ -54,12 +54,10 @@ HostCapabilities headless_capabilities() {
                 HostCapability::pointer_warp |
                 // The reference host records each address it is asked to
                 // open (HeadlessHostServices::opened_urls) and opens none.
-                HostCapability::open_url
-#if !defined(_WIN32)
-                // Hosted content is real where it exists (POSIX).
-                | HostCapability::hosted_content
-#endif
-                ,
+                HostCapability::open_url |
+                // Hosted content is real: the platform's process
+                // implementation runs under the reference host too.
+                HostCapability::hosted_content,
             // The reference host reports the PC convention.
             pc_key_map()};
     // The simulated platform may report either corner shape.

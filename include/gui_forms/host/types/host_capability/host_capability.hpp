@@ -103,8 +103,8 @@ enum class HostCapability : std::uint64_t {
     // Hosted content runs here (content/hosted/hosted_content.hpp): a
     // sub-surface program in its own process, frames through shared memory
     // and input through a channel; its crash leaves the application running
-    // (owner decisions 2026-11-13, "The two topologies"). macOS and Linux;
-    // the Windows host does not report it until its implementation exists.
+    // (owner decisions 2026-11-13, "The two topologies"). macOS, Linux and
+    // Windows.
     // In the C ABI as GF_HOST_CAPABILITY_HOSTED_CONTENT (since 1.4).
     // Additive flag; no protocol version change.
     hosted_content = 1ULL << 37U,

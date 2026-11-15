@@ -25,10 +25,11 @@
 // It is an integrity boundary, not a security boundary: the process runs
 // with the application's rights.
 //
-// Platforms: macOS and Linux (posix_spawn, shared memory, a socket pair),
-// reported as HostCapability::hosted_content. The Windows implementation is
-// not written yet: hosted_content_support() reports `not_reported` there and
-// make_hosted_content throws.
+// Platforms: macOS and Linux (posix_spawn, shared memory, a socket pair) and
+// Windows (CreateProcessW in a job object, a pagefile-backed section, an
+// overlapped named pipe), reported as HostCapability::hosted_content. On
+// Windows a crash's failure text carries the NTSTATUS the process ended
+// with where POSIX names the signal.
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/content/hosted/hosted_protocol.hpp"
@@ -52,7 +53,8 @@ struct HostedInputState;
 
 enum class HostedContentSupport : std::uint8_t {
     available,
-    // This platform's implementation does not exist yet (Windows).
+    // This platform has no implementation (no supported platform at
+    // present; kept for ports that have none yet).
     not_reported,
 };
 
@@ -121,8 +123,10 @@ struct GUI_FORMS_API HostedContent final {
 
 // Checks `options` and makes the program; nothing starts until the surface
 // runs it. Throws std::invalid_argument for an executable that is not an
-// absolute path or a slot size of zero or over the limit, and
-// std::runtime_error where hosted content is not supported.
+// absolute path, a slot size of zero or over the limit, or a negative
+// timeout; on Windows also for an argument that is not UTF-8 or holds a NUL,
+// and for a command line over 32,767 characters. Throws std::runtime_error
+// where hosted content is not supported.
 [[nodiscard]] GUI_FORMS_API HostedContent make_hosted_content(HostedContentOptions options);
 
 } // namespace gui_forms

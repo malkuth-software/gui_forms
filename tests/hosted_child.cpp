@@ -7,7 +7,8 @@
 //             and "c<text>" for committed and composing text, "pd", "pu"
 //             and "pw" for pointer presses, releases and wheel (moves are
 //             not logged), "f1" and "f0" for focus, separated by spaces
-//   crash     publishes one frame, then aborts (a real crash: SIGABRT)
+//   crash     publishes one frame, then crashes for real (SIGABRT on POSIX,
+//             an unhandled illegal instruction, 0xC000001D, on Windows)
 //   hang      publishes one frame, then ignores everything forever
 //   garbage   writes bytes that are no message, then waits forever
 //   oversize  publishes a frame larger than any frame may be, then frames
@@ -15,20 +16,34 @@
 //   standard3 connects, then exits with status 3 when standard input,
 //             output and error are all open, 4 when any is closed
 //   silent    never connects (the parent's start timeout ends it)
+//   arguments publishes its arguments after the mode, joined by '|', as its
+//             semantic text, then frames (the command line round trip)
 
 #include "gui_forms/content/hosted/hosted_client.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 
+#if defined(_WIN32)
+#if !defined(WIN32_LEAN_AND_MEAN)
+#define WIN32_LEAN_AND_MEAN
+#endif
+#if !defined(NOMINMAX)
+#define NOMINMAX
+#endif
+#include <windows.h>
+#else
 #include <fcntl.h>
 #include <unistd.h>
+#endif
 
 #include <stxlib/optional.hpp>
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -40,6 +55,59 @@ using namespace gui_forms;
 
 [[noreturn]] void wait_forever() {
     for (;;) std::this_thread::sleep_for(std::chrono::seconds(1));
+}
+
+// A real crash. On Windows, abort() may end the process with status 3
+// through the C runtime instead of crashing it, so the program executes a
+// trap instruction: an unhandled STATUS_ILLEGAL_INSTRUCTION (0xC000001D),
+// which the hosted job turns into the exit code.
+[[noreturn]] void crash_for_real() {
+#if defined(_WIN32)
+    __builtin_trap();
+#else
+    std::abort();
+#endif
+}
+
+// Whether standard input, output and error are all open: on Windows each
+// standard handle names an object of a known type, on POSIX each of
+// descriptors 0 to 2 is open.
+bool standard_streams_open() {
+#if defined(_WIN32)
+    const std::array<DWORD, 3> which{STD_INPUT_HANDLE, STD_OUTPUT_HANDLE, STD_ERROR_HANDLE};
+    for (const DWORD standard : which) {
+        const HANDLE handle = GetStdHandle(standard);
+        if (handle == nullptr || handle == INVALID_HANDLE_VALUE) return false;
+        if (GetFileType(handle) == FILE_TYPE_UNKNOWN) return false;
+    }
+    return true;
+#else
+    bool all_open = true;
+    for (int standard = 0; standard <= 2; ++standard) {
+        if (fcntl(standard, F_GETFD) == -1) all_open = false;
+    }
+    return all_open;
+#endif
+}
+
+// Writes `bytes` to the channel outside the protocol.
+void write_raw(HostedClient& client, std::span<const std::byte> bytes) {
+#if defined(_WIN32)
+    // The channel is overlapped (hosted_client.hpp, channel_handle).
+    const HANDLE channel = reinterpret_cast<HANDLE>(client.channel_handle());
+    const HANDLE event = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    if (event == nullptr) return;
+    OVERLAPPED overlapped{};
+    overlapped.hEvent = event;
+    const BOOL written = WriteFile(channel, bytes.data(), static_cast<DWORD>(bytes.size()), nullptr, &overlapped);
+    if (written != FALSE || GetLastError() == ERROR_IO_PENDING) {
+        DWORD transferred = 0U;
+        static_cast<void>(GetOverlappedResult(channel, &overlapped, &transferred, TRUE));
+    }
+    static_cast<void>(CloseHandle(event));
+#else
+    static_cast<void>(write(client.channel_descriptor(), bytes.data(), bytes.size()));
+#endif
 }
 
 // Fills `slot` with one opaque colour at the requested size (32 by 32
@@ -143,16 +211,12 @@ int main(int argc, char** argv) {
     if (!client) return 2;
     if (mode == "exit3") return 3;
     if (mode == "standard3") {
-        bool all_open = true;
-        for (int standard = 0; standard <= 2; ++standard) {
-            if (fcntl(standard, F_GETFD) == -1) all_open = false;
-        }
-        const int status = all_open ? 3 : 4;
+        const int status = standard_streams_open() ? 3 : 4;
         return status;
     }
     if (mode == "crash") {
         static_cast<void>(publish_one(*client));
-        std::abort();
+        crash_for_real();
     }
     if (mode == "hang") {
         static_cast<void>(publish_one(*client));
@@ -160,7 +224,7 @@ int main(int argc, char** argv) {
     }
     if (mode == "garbage") {
         const std::vector<std::byte> nonsense(16U, std::byte{0xFF});
-        static_cast<void>(write((*client).channel_descriptor(), nonsense.data(), nonsense.size()));
+        write_raw(*client, nonsense);
         wait_forever();
     }
     if (mode == "oversize") {
@@ -174,6 +238,15 @@ int main(int argc, char** argv) {
             record.row_bytes = 20000U * 4U;
             static_cast<void>((*client).publish(record));
         }
+    }
+    if (mode == "arguments") {
+        std::string joined{};
+        for (int index = 2; index < argc; ++index) {
+            if (index > 2) joined.push_back('|');
+            joined += argv[index];
+        }
+        const ContentSemantics answer{"Hosted child", joined, ""};
+        static_cast<void>((*client).publish_semantics(answer));
     }
     const int status = run_frames(*client);
     return status;

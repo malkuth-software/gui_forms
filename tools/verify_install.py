@@ -76,7 +76,7 @@ def main() -> None:
                              "of Application, TextMasks, Audio and AudioLoopTransport (requires --native)")
     parser.add_argument("--hosted-client", action="store_true",
                         help="Build and run tests/hosted_client_consumer: a parent starting a hosted program "
-                             "through Controls, and the program linking HostedClient (macOS and Linux)")
+                             "through Controls, and the program linking HostedClient")
     parser.add_argument("--sdk-consumer", action="store_true",
                         help="Build and run tests/sdk_consumer, which links every public component (the controls, "
                              "a composite, an application font family, the drawing raster seam, TextMasks and the "

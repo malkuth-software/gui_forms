@@ -1,14 +1,15 @@
 // A hosted program that really crashes (docs/user/content-surfaces.md,
 // "Hosted content"), driven headless. The application starts
 // crashing_program in a process of its own on a ContentSurface; the program
-// shows frames and then aborts (SIGABRT). Only its process ends: the surface
-// reports `failed` with the signal, keeps the last frame under a veil, and
+// shows frames and then crashes (SIGABRT on macOS and Linux, an unhandled
+// exception on Windows). Only its process ends: the surface reports `failed`
+// with the signal or the NTSTATUS, keeps the last frame under a veil, and
 // the application goes on. A counter button keeps counting throughout, and
 // Restart runs a new copy of the program on the same surface.
 //
 // The program's path is the first argument, or the one the build compiled
-// in. macOS and Linux; on Windows hosted content is not reported yet and
-// the example says so and exits 0.
+// in. macOS, Linux and Windows; on a platform without hosted content the
+// example says so and exits 0.
 //
 // This is integrity, not security: the program runs with the application's
 // rights; the boundary keeps its crash, hang or nonsense away from the
@@ -145,7 +146,7 @@ std::filesystem::path program_path(int argument_count, char** arguments) {
 
 int main(int argument_count, char** arguments) {
     if (gf::hosted_content_support() != gf::HostedContentSupport::available) {
-        std::cout << "Hosted content is not reported on this platform yet\n";
+        std::cout << "Hosted content is not reported on this platform\n";
         return 0;
     }
     const std::filesystem::path executable = program_path(argument_count, arguments);

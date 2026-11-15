@@ -1948,8 +1948,7 @@ typedef uint64_t gf_host_capability;
  * host reports it. Windows, macOS and X11. */
 #define GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS 34359738368ull
 /* Since 1.4: hosted content, a program in a process of its own on a content
- * surface (GF_TABLE_CONTENT start_hosted). macOS and Linux; not yet
- * Windows. */
+ * surface (GF_TABLE_CONTENT start_hosted). macOS, Linux and Windows. */
 #define GF_HOST_CAPABILITY_HOSTED_CONTENT 68719476736ull
 /* Since 1.5: relative pointer mode (gf_controls_table
  * request_relative_pointer). RELATIVE_POINTER: the host delivers motion

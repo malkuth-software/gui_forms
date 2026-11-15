@@ -2,8 +2,7 @@
 # a parent that starts a hosted program on a ContentSurface through
 # GUIForms::Controls, and the program itself, which links GUIForms::HostedClient
 # alone. tools/verify_install.py --hosted-client builds and runs it against a
-# prefix. macOS and Linux: Windows hosted content is not written yet, and the
-# HostedClient component is not installed there.
+# prefix, on macOS, Linux and Windows.
 cmake_minimum_required(VERSION 3.25)
 project(GUIFormsHostedClientConsumer LANGUAGES CXX)
 find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Controls HostedClient)

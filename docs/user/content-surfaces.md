@@ -127,8 +127,8 @@ The program connects with `HostedClient::connect()`, then loops:
 
 `pump` returns false when the application asks the program to stop or goes
 away. The client library is `gui_forms_hosted_client`. It links the
-protocol and nothing of the interface. The SDK installs it on macOS and
-Linux as the `HostedClient` component:
+protocol and nothing of the interface. The SDK installs it on macOS,
+Linux and Windows as the `HostedClient` component:
 
 ```cmake
 find_package(GUIForms CONFIG REQUIRED COMPONENTS HostedClient)
@@ -171,8 +171,9 @@ rules in `manifests/abi/interaction_order.json`:
 The application is promised four things:
 
 - **A crash ends only the program.** The surface becomes `failed`, and its
-  failure text names the signal or exit status. The application keeps
-  running and can start the program again.
+  failure text names the signal (macOS and Linux), the NTSTATUS the process
+  ended with (Windows), or the exit status. The application keeps running
+  and can start the program again.
 - **A hang leaves the interface responsive.** The watchdog marks the
   surface stale, and `terminate()` ends the process: first a stop message,
   then, after the stop grace, a kill. Keep the stop grace below the
@@ -186,23 +187,21 @@ The application is promised four things:
 
 Pixels travel through a shared region of two slots: the program draws one
 slot while the application copies the other. Messages travel through a
-socket pair. Every integer on the wire is little-endian and written byte by
+socket pair (a named pipe on Windows). Every integer on the wire is little-endian and written byte by
 byte, so the two ends need not share a compiler. The protocol is in
 `hosted_protocol.hpp`.
 
 `examples/content_boundary/hosted_crash.cpp` starts `crashing_program`,
-which shows frames and then aborts. The surface reports the crash, the
+which shows frames and then crashes. The surface reports the crash, the
 application's counter keeps counting, and Restart runs a new copy on the
 same surface. That copy crashes too, and the application is still
 unaffected.
 
-Hosted content works on macOS and Linux, and the hosts report it as
-`HostCapability::hosted_content`
-([Hosts and capabilities](hosts-and-capabilities.md)). The Windows
-implementation is not written yet. On Windows, `hosted_content_support()`
-returns `not_reported` and `make_hosted_content` throws. What it must
-provide is listed in [What Windows hosted content must
-provide](#what-windows-hosted-content-must-provide).
+Hosted content works on macOS, Linux and Windows, and the hosts report it
+as `HostCapability::hosted_content`
+([Hosts and capabilities](hosts-and-capabilities.md)). How Windows
+provides it is described in [Hosted content on
+Windows](#hosted-content-on-windows).
 
 ## Editing text you lay out yourself
 
@@ -257,72 +256,86 @@ it as `Abi.content`.
 
 The conformance kit's `gf_conformance_content.c` drives every slot.
 
-## What Windows hosted content must provide
+## Hosted content on Windows
 
-The Windows implementation replaces `src/surface/windows/hosted/hosted_content_windows.cpp`
-and adds a Windows hosted client. It must keep the portable contract in
-`hosted_content.hpp`, `hosted_client.hpp` and `hosted_protocol.hpp`
-unchanged, and provide exactly this:
+The Windows implementation
+(`src/surface/windows/hosted/hosted_content_windows.cpp` and
+`hosted_client_windows.cpp`) keeps the portable contract in
+`hosted_content.hpp`, `hosted_client.hpp` and `hosted_protocol.hpp`, with
+Win32 primitives in place of the POSIX ones:
 
 1. **Support and capability.** `hosted_content_support()` returns
    `available`. The Win32 host reports `HostCapability::hosted_content`,
    the `win32-dib` row of `manifests/abi/host_capabilities.json` lists
-   `hosted_content`, and `start_hosted` stops answering
-   `GF_STATUS_UNSUPPORTED_CAPABILITY`.
+   `hosted_content`, and the C ABI's `start_hosted` starts the program.
 2. **Starting the program.** `make_hosted_content` validates the options
-   as the POSIX version does: an absolute executable path, at most
-   `maximum_hosted_slot_bytes` per slot, and timeouts that are not negative. It
-   refuses before starting anything. The program starts with
-   `CreateProcessW` and an explicit handle list
-   (`PROC_THREAD_ATTRIBUTE_HANDLE_LIST`), so it inherits only the channel
-   and the frame region. The arguments are quoted by the Windows rules.
-3. **The channel.** A byte stream carrying the same messages: an
-   anonymous pipe pair, or a named pipe opened with
-   `FILE_FLAG_OVERLAPPED`. The parent's sends never block. They use the
-   same backlog: whole messages only, never interleaved, and droppable
-   input dropped above 1 MiB of backlog. Key down, text and every pointer
-   event but release are droppable; key up, pointer release and focus are
-   not.
-4. **The frame region.** A pagefile-backed section
-   (`CreateFileMappingW`) of `hosted_slot_count` slots of `slot_bytes`
-   each, sized once. The parent maps it with `FILE_MAP_READ` only, so the
-   program cannot make the parent's reads fault by shrinking it.
+   as the POSIX version does (an absolute executable path, at most
+   `maximum_hosted_slot_bytes` per slot, timeouts that are not negative),
+   and also refuses an argument that is not UTF-8 or holds a NUL, and a
+   command line over 32,767 characters. It refuses before starting
+   anything. The program starts with `CreateProcessW` and an explicit
+   handle list (`PROC_THREAD_ATTRIBUTE_HANDLE_LIST`), so it inherits only
+   the channel, the frame region and its standard input, output and error
+   (the application's, or the NUL device where it has none). The arguments are quoted by the C
+   runtime's rules, so the program's `argv` holds them unchanged.
+3. **The channel.** A one-instance, local-only named pipe in byte mode,
+   opened with `FILE_FLAG_OVERLAPPED` at both ends. The application's
+   sends never block: one overlapped write is in flight, and whole
+   messages queue behind it, never interleaved. Above 1 MiB of backlog,
+   key downs, text and pointer events other than releases are dropped and
+   counted; key ups, pointer releases and focus are not. A backlog past
+   8 MiB means the program stopped reading, and ends it as `failed`.
+4. **The frame region.** A pagefile-backed section (`CreateFileMappingW`)
+   of `hosted_slot_count` slots of `slot_bytes` each, sized once. The
+   application maps it with `FILE_MAP_READ` only, and the program's handle
+   can only map it, so the program cannot make the application's reads
+   fault by resizing it.
 5. **The environment.** The program finds both handles through the same
    variables: `GUI_FORMS_HOSTED_CHANNEL`, `GUI_FORMS_HOSTED_FRAMES`,
    `GUI_FORMS_HOSTED_SLOT_BYTES` and `GUI_FORMS_HOSTED_SLOT_COUNT`. On
-   Windows the first two hold handle values in decimal.
-6. **Lifetime.** A job object with `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`,
-   so the program ends with the application even when the application
-   crashes.
-7. **The worker loop.** `ContentProgram::run` waits with
-   `WaitForMultipleObjects` over the channel's event, the process handle
-   and a stop event. It validates every message as the POSIX loop does:
-   hello first and once, within the start timeout; frames against their
-   slot; semantic text as UTF-8 within the limit. It copies each frame out
-   of the region and then sends `release` for the slot. It answers size
-   changes with `configure`. Any protocol break ends the program as
-   `failed`, with the reason as its failure text.
-8. **Stopping.** On a stop request it sends `stop`, waits the stop grace,
-   then calls `TerminateProcess`. A program that closes its channel
-   without exiting is killed after the stop grace and reported as such.
-9. **Exit reports.** Exit code 0 after goodbye is `ended`. Any other exit
-   code is `failed` with "exited with status N". Exit codes of
-   `0xC0000000` and above are crashes, reported with their NTSTATUS in
-   hexadecimal (for example `0xC0000005`, an access violation).
+   Windows the first two hold handle values in decimal; an inherited
+   handle has the same value in the child.
+6. **Lifetime.** Each program runs in a job object of its own with
+   `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, so it ends with the application
+   even when the application crashes, and with
+   `JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION`, so a crash ends the
+   process at once, without an error dialog.
+7. **The worker loop.** The content worker waits with
+   `WaitForMultipleObjects` on the channel's read, the process, a stop
+   event and a write in flight. It validates every message as the POSIX
+   loop does: hello first and once, within the start timeout; frames
+   against their slot; semantic text as UTF-8 within the limit. It copies
+   each frame out of the region and then sends `release` for the slot,
+   and answers size changes with `configure`. Any protocol break ends the
+   program as `failed`, with the reason as its failure text.
+8. **Stopping.** On a stop request it sends `stop`, waits the stop grace
+   (reading and discarding what the program still writes), then calls
+   `TerminateProcess`. A program that closes its channel without exiting
+   is killed after the stop grace and reported as such. A program that
+   exits while something else still holds its channel ends the session
+   after the stop grace.
+9. **Exit reports.** Exit code 0 is `ended`. Exit codes of `0xC0000000`
+   and above are crashes, reported as "crashed: NTSTATUS 0xC0000005"
+   (an access violation; `0xC000001D` is an illegal instruction). Any
+   other code is `failed` with "exited with status N".
 10. **Input.** `HostedInput` sends key, text, pointer and focus messages
-    with the same encodings (`encode_hosted_key`, `encode_hosted_text`,
-    `encode_hosted_pointer`, `encode_hosted_focus`). `connected()` and
-    `dropped()` behave as on POSIX.
+    with the same encodings; `connected()` and `dropped()` behave as on
+    POSIX.
 11. **The hosted client.** `HostedClient::connect()` reads the variables,
-    duplicates nothing it does not own, maps the region read-write, and
-    sends hello. `channel_descriptor()` has no Windows meaning; the
-    Windows client needs a handle accessor in its place, added beside the
-    portable members rather than changing them. `gui_forms_hosted_client`
-    is then built and installed on Windows too, the `HostedClient`
-    component's diagnostic in `GUIFormsConfig.cmake.in` drops "macOS and
-    Linux", and `tests/hosted_client_consumer` runs there.
-12. **The tests.** `tests/hosted_content_tests.cpp` runs on Windows with
-    `tests/hosted_child.cpp` built for it: the same cases (frames, input
-    order, crash, hang, protocol break, start timeout), with the crash
-    case expecting an NTSTATUS instead of a signal name.
-
+    checks that the channel is a pipe and that the region holds every
+    slot, maps the region read-write, closes its section handle (the view
+    keeps the region), stops its channel from being inherited by the
+    program's own children, and sends hello. `channel_descriptor()` is -1
+    on Windows; `channel_handle()` gives the channel's `HANDLE` value
+    instead, for a program with its own wait loop. The handle is
+    overlapped, so every `ReadFile` and `WriteFile` on it passes an
+    `OVERLAPPED`. `gui_forms_hosted_client` is built and installed on
+    Windows too, and `tests/hosted_client_consumer` runs there.
+12. **The tests.** `tests/hosted_content_tests.cpp` runs every case on
+    Windows with `tests/hosted_child.cpp`: frames, input order, crash,
+    restart, hang, protocol break, oversized frame, exit status, start
+    timeout, closing the window, and the command line's round trip. The
+    crash case also expects `NTSTATUS 0xC000001D`, the trap the child
+    executes. `abort()` is not used to crash on
+    Windows, because the C runtime may end the process with status 3
+    instead.
