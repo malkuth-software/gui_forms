@@ -262,6 +262,10 @@ private:
     [[nodiscard]] ApplicationWindowOpenResult open(ApplicationWindow&& entry, bool runtime);
     [[nodiscard]] HostServiceStatus destroy(HostWindowId window);
     void close(WindowEntry& entry, HostCloseReason reason);
+    // Closes every open window, newest first, detaches the run's windowing
+    // and shuts it down: the destructor, and a constructor that refuses a
+    // window after the run was attached (A-gf-host-01-F13).
+    void end_run() noexcept;
     void request_close(HostWindowId window);
     void show(HostWindowId window, bool visible);
     [[nodiscard]] HostServiceStatus resize(HostWindowId window, Size client_size);

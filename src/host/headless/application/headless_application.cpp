@@ -465,29 +465,41 @@ HeadlessApplication::HeadlessApplication(std::vector<ApplicationWindow> windows,
         throw std::invalid_argument("HeadlessApplication: Application::validate refused the windows");
     }
     detail::attach_run_windowing(run_, windowing_, HeadlessOpen{this});
-    entries_.reserve(HostWindowing::maximum_windows);
-    // Open owners before the windows they own; validation has excluded
-    // cycles and unknown owners, so each pass opens at least one window.
-    std::vector<bool> opened(windows.size(), false);
-    std::size_t remaining = windows.size();
-    while (remaining > 0U) {
-        for (std::size_t index = 0U; index < windows.size(); ++index) {
-            if (opened[index]) continue;
-            const bool owner_open = windows[index].owner_id.empty() ||
-                windowing_.find(windows[index].owner_id).has_value();
-            if (!owner_open) continue;
-            const ApplicationWindowOpenResult result = open(std::move(windows[index]), false);
-            if (!result.status.accepted()) {
-                throw std::invalid_argument("HeadlessApplication: a window was refused");
+    // From here a throw leaves no destructor to run: end_run closes what
+    // opened and detaches the run, so a handle an earlier window's ready
+    // callback kept no longer reaches this object (A-gf-host-01-F13).
+    try {
+        entries_.reserve(HostWindowing::maximum_windows);
+        // Open owners before the windows they own; validation has excluded
+        // cycles and unknown owners, so each pass opens at least one window.
+        std::vector<bool> opened(windows.size(), false);
+        std::size_t remaining = windows.size();
+        while (remaining > 0U) {
+            for (std::size_t index = 0U; index < windows.size(); ++index) {
+                if (opened[index]) continue;
+                const bool owner_open = windows[index].owner_id.empty() ||
+                    windowing_.find(windows[index].owner_id).has_value();
+                if (!owner_open) continue;
+                const ApplicationWindowOpenResult result = open(std::move(windows[index]), false);
+                if (!result.status.accepted()) {
+                    throw std::invalid_argument("HeadlessApplication: a window was refused");
+                }
+                opened[index] = true;
+                --remaining;
             }
-            opened[index] = true;
-            --remaining;
         }
+    } catch (...) {
+        end_run();
+        throw;
     }
     windowing_.mark_started();
 }
 
 HeadlessApplication::~HeadlessApplication() {
+    end_run();
+}
+
+void HeadlessApplication::end_run() noexcept {
     for (std::size_t index = entries_.size(); index > 0U; --index) {
         WindowEntry& entry = *entries_[index - 1U];
         if (!entry.closed) close(entry, HostCloseReason::application);
