@@ -279,7 +279,16 @@ static_assert(std::is_trivially_destructible_v<EndpointProbe>);
 // endpoints to exclude.
 EndpointProbe load_endpoint_probe() noexcept {
     EndpointProbe probe{};
-    const HMODULE stable = GetModuleHandleW(L"gui_forms_abi1.dll");
+    // The module this code is linked into, found from its own address as
+    // CompatibilityUser32 finds it, never by file name: a renamed or later
+    // library still finds its own table, and another module of that name is
+    // never called (A-gf-abi-01-F10). A static test archive's program
+    // exports no table, so it has no endpoints to exclude.
+    HMODULE stable = nullptr;
+    const DWORD flags =
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+    const LPCWSTR address = reinterpret_cast<LPCWSTR>(&compatibility_module_marker);
+    if (GetModuleHandleExW(flags, address, &stable) == 0) stable = nullptr;
     if (stable != nullptr) {
         FARPROC raw = GetProcAddress(stable, "gf_abi_get_table");
         GetStableTable get_table{};
