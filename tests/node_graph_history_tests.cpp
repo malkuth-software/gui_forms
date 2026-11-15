@@ -174,6 +174,17 @@ void tolerant_load() {
         crlf.push_back(byte);
     }
     require(graph.load(crlf).error == GraphLoadError::ok && saved(graph) == sample_document, "CRLF loads");
+    // A-gf-controls-07-F3: the words "node" and "link" in a comment count toward the parse's
+    // reserve only up to the statements the document's bytes can hold; the result is the
+    // same as without the comment.
+    const std::string_view header = "gui-forms-graph 1;\n";
+    std::string worded(header);
+    worded += "#";
+    for (std::size_t index = 0U; index < 50000U; ++index) worded += " nodelink";
+    worded += "\n";
+    worded.append(sample_document.substr(header.size()));
+    require(graph.load(worded).error == GraphLoadError::ok && saved(graph) == sample_document,
+            "a comment full of statement words loads as the sample");
 }
 
 void link_ids() {

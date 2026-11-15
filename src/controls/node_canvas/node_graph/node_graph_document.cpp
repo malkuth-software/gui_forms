@@ -637,8 +637,15 @@ GraphLoadError read_link(DocumentReader& reader, ParsedLink& link) {
     return error;
 }
 
-// How often `word` occurs: an upper bound on its statements, for one
-// reserve (at most a quarter of the document's bytes).
+// Lower bounds on a statement's bytes, which bound how many statements a
+// document can hold. "node k {" with kind, title and bounds lines and the
+// closing brace, each line ended, is at least 40 bytes; "link a k:0 -> k:0;"
+// and its line end at least 17.
+constexpr std::size_t minimum_node_statement_bytes = 32U;
+constexpr std::size_t minimum_link_statement_bytes = 16U;
+
+// How often `word` occurs, up to `cap`: an upper bound on its statements,
+// for one reserve.
 std::size_t count_occurrences(std::string_view text, std::string_view word, std::size_t cap) noexcept {
     std::size_t count = 0U;
     std::size_t at = 0U;
@@ -686,9 +693,16 @@ GraphLoadError read_document(std::string_view text, DocumentReader& reader, Pars
     if (version != graph_document_version) return reader.fail(GraphLoadError::unsupported_version, version_offset);
     error = field_end(reader);
     if (error != GraphLoadError::ok) return error;
-    // One reserve for the whole parse.
-    const std::size_t nodes = count_occurrences(text, "node", maximum_document_nodes);
-    const std::size_t links = count_occurrences(text, "link", maximum_document_links);
+    // One reserve for the whole parse. The words also count in comments and
+    // texts, so the counts are bounded by the statements the document's bytes
+    // can hold: a node statement (header, kind, title and bounds lines and
+    // its brace) takes more than 32 bytes and a link line more than 16
+    // (A-gf-controls-07-F3). A count above what is read only reserves more;
+    // one below it lets the vectors grow. Either way the result is the same.
+    const std::size_t node_room = text.size() / minimum_node_statement_bytes;
+    const std::size_t link_room = text.size() / minimum_link_statement_bytes;
+    const std::size_t nodes = count_occurrences(text, "node", std::min(maximum_document_nodes, node_room));
+    const std::size_t links = count_occurrences(text, "link", std::min(maximum_document_links, link_room));
     parsed.nodes.reserve(nodes);
     parsed.key_offsets.reserve(nodes);
     parsed.links.reserve(links);
