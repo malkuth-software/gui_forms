@@ -139,7 +139,10 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_engine_gate.py
           python3 -B -m unittest discover -s tools -p test_profile_hot_paths.py
           python3 -B -m unittest discover -s tools/layout_oracle -p test_layout_oracle.py
-          python3 -B ../template_harness/harness/check_lifetime_rules.py include src lab demo tests examples tools file_manager_demoboard fuzz stx_fontpack
+          # The shim: the harness's lifetime rules, then GUI.Forms' member-view
+          # rule and the termination rule for statics in src/ (exit-releases-nothing).
+          python3 -B -m unittest discover -s tools -p test_check_exit_statics.py
+          python3 -B tools/check_lifetime_rules.py include src lab demo tests examples tools file_manager_demoboard fuzz stx_fontpack
           # D15 (decision 6a): the standard-library rules, STXlib's check_std_rules
           # copied at 60dea8f; tools/std_rules_allowance.txt only shrinks.
           python3 -I tools/check_std_rules.py --config tools/std_rules.toml
