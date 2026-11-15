@@ -28,7 +28,6 @@
 #include <array>
 #include <bit>
 #include <chrono>
-#include <clocale>
 #include <cmath>
 #include <csignal>
 #include <cstring>
@@ -831,7 +830,13 @@ void WindowAction::operator()() const {
     (*target).post({window, kind});
 }
 Runtime::Runtime() {
-  std::setlocale(LC_CTYPE, "");
+  // The process locale is the program's, not the library's: the host does
+  // not change it (setlocale would change number text and character classes
+  // for the whole process; std-rules locale-change). Xlib's input method
+  // below follows whatever LC_CTYPE the program set: in the C locale
+  // Xutf8LookupString still gives each key's UTF-8 text, and a program that
+  // wants the environment's input methods and compose sequences calls
+  // setlocale(LC_CTYPE, "") itself before the application starts.
   display = XOpenDisplay(nullptr);
   if (display == nullptr)
     throw std::runtime_error("Cannot open the X11 display");

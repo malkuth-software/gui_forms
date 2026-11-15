@@ -55,6 +55,7 @@ int main() {
         const char* const candidates[] = {"de_DE.UTF-8", "de_DE", "German_Germany.1252", "de-DE"};
         bool switched = false;
         for (const char* const candidate : candidates) {
+            // std-rules: allow(locale-change) the test sets a comma locale to prove number text ignores it
             if (std::setlocale(LC_NUMERIC, candidate) != nullptr) {
                 switched = true;
                 break;
@@ -62,6 +63,7 @@ int main() {
         }
         check_decimal_forms();
         check_hexadecimal_forms();
+        // std-rules: allow(locale-change) the test restores the classic locale it changed above
         static_cast<void>(std::setlocale(LC_NUMERIC, "C"));
         std::cout << "number text tests passed" << (switched ? " (also under a comma locale)" : "") << '\n';
         return 0;

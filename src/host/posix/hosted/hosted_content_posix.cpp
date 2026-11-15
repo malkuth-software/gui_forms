@@ -35,7 +35,6 @@
 #include <cerrno>
 #include <chrono>
 #include <cstdint>
-#include <cstring>
 #include <filesystem>
 #include <mutex>
 #include <span>
@@ -192,12 +191,15 @@ private:
     return result;
 }
 
+// The failed step and errno's number: the number is the same on every
+// host and in every locale, where strerror's text is neither (and it
+// returns a static buffer; std-rules strerror).
 [[noreturn]] void fail_system(const char* step) {
     const int error = errno;
     std::string message = "hosted content: ";
     message += step;
-    message += " failed: ";
-    message += std::strerror(error);
+    message += " failed: errno ";
+    message += std::to_string(error);
     throw std::runtime_error(message);
 }
 

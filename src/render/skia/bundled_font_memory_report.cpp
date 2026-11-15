@@ -21,6 +21,7 @@
 #include <mach/mach.h>
 #endif
 
+#include <charconv>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -30,6 +31,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <vector>
 
 namespace {
@@ -95,6 +97,18 @@ void print(const char* label, const MemorySample& sample) {
                 static_cast<unsigned long long>(sample.file_bytes));
 }
 
+// A decimal count argument: the whole text as an int, else 0 (a value the
+// caller refuses). Locale-free, and reports overflow (atoi does neither).
+[[nodiscard]] int parsed_count(const std::string_view text) noexcept {
+    int value = 0;
+    const char* const end = text.data() + text.size();
+    const std::from_chars_result parsed = std::from_chars(text.data(), end, value);
+    if (parsed.ec != std::errc{} || parsed.ptr != end) {
+        return 0;
+    }
+    return value;
+}
+
 } // namespace
 
 int main(int argument_count, char** arguments) {
@@ -105,7 +119,7 @@ int main(int argument_count, char** arguments) {
     }
     const std::filesystem::path directory(arguments[1]);
     const std::string_view mode(arguments[2]);
-    const int windows = std::atoi(arguments[3]);
+    const int windows = parsed_count(arguments[3]);
     const std::string_view text = sample_text(arguments[4]);
     if ((mode != "files" && mode != "shared") || windows < 1 || windows > 64) return 2;
 #if defined(_WIN32)

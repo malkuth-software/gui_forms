@@ -79,6 +79,7 @@ python3 -B tools/check_lifetime_rules.py include src lab demo tests examples too
 python3 -B tools/export_annotations.py check
 python3 -B tools/control_registry.py members --check
 python3 -B tools/abi_class_tables.py --check
+python3 -I tools/check_std_rules.py --config tools/std_rules.toml
 ```
 
 The third fails on a public declaration under `include/gui_forms/` that lacks
@@ -101,6 +102,16 @@ bridges, the C# hook classes, the conformance part and their ledger
 `raiser` fields and the public headers give, or when the ledger would lose,
 reorder or renumber an entry, a segment or a class id (append-only, the class
 tables decision). `python3 -B tools/abi_class_tables.py` writes them again.
+
+The sixth (D15, decision 6a) checks the standard-library rules STXlib's audit
+B governs (`rand`, `strerror`, `setlocale`, `atoi`, pthread and `wchar_t`
+outside native code, and the rest; `--list-rules` prints them). It is
+STXlib's `check_std_rules.py`, copied with its source commit in its first
+lines, configured by `tools/std_rules.toml` (whose `host_paths` name the
+native code), and fails on any finding its shrink-only allowance
+(`tools/std_rules_allowance.txt`) does not admit. Fix a finding and lower its
+count, or allow one use in the source with `// std-rules: allow(<rule>)
+<reason>`; never raise a count.
 
 `stx_skia/` and every third-party source (FreeType, HarfBuzz, libunibreak,
 md4c, SheenBidi, the Unicode data) live in the stx repository since

@@ -9,6 +9,7 @@
 #include "../../src/core/image/png_writer.hpp"
 
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -17,6 +18,8 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <string_view>
+#include <system_error>
 #include <vector>
 
 namespace {
@@ -49,6 +52,18 @@ bool load(const char* path, Image& image_out) {
     return decoded.error == image::PngPixelError::none;
 }
 
+// A decimal count argument: the whole text as an int, else 0 (a value the
+// caller refuses). Locale-free, and reports overflow (atoi does neither).
+[[nodiscard]] int parsed_count(const std::string_view text) noexcept {
+    int value = 0;
+    const char* const end = text.data() + text.size();
+    const std::from_chars_result parsed = std::from_chars(text.data(), end, value);
+    if (parsed.ec != std::errc{} || parsed.ptr != end) {
+        return 0;
+    }
+    return value;
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -56,7 +71,7 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "usage: %s <repetitions> <file.png>...\n", argv[0]);
         return 2;
     }
-    const int repetitions = std::atoi(argv[1]);
+    const int repetitions = parsed_count(argv[1]);
     if (repetitions < 1) return 2;
     std::vector<Image> images{};
     for (int index = 2; index < argc; ++index) {
