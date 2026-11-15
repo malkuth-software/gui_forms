@@ -4280,6 +4280,57 @@ void first_displayed_scrolling_column() {
     require(throws<std::logic_error>(ScrollToFrozenColumn{grid.get()}), "a frozen column is not a scrolling column");
 }
 
+// A row_enter handler that erases the rows before the one entered, once,
+// moving that row to the top while the grid still holds its old position.
+struct EraseRowsBefore final {
+    DataGridView* grid{};
+    bool* erased{};
+    void operator()(const DataGridViewRowEvent&) const {
+        if (*erased || (*grid).row_count() < 3U) return;
+        *erased = true;
+        (*grid).rows.erase(0U, 2U);
+    }
+};
+
+// A-gf-controls-02-F6: a row header press, a row select and a cell press
+// whose handlers move or remove rows act on the row's present position, never
+// on the one taken before the handlers ran (past the rows here).
+void handlers_move_the_pressed_row() {
+    {
+        std::shared_ptr<DataGridView> grid = make_grid("grid.moved.header");
+        (*grid).selection_mode = DataGridViewSelectionMode::cell_select;
+        Window window(grid, {360.0, 160.0});
+        window.perform_layout();
+        bool erased = false;
+        SubscriptionToken token = (*grid).row_enter().subscribe(EraseRowsBefore{grid.get(), &erased});
+        require((*grid).on_semantic_child_action("grid.moved.header.row-header.charlie", SemanticAction::press, {}) &&
+                    erased && (*grid).row_count() == 1U && (*grid).current_row_id() == id("charlie") &&
+                    (*grid).is_cell_selected(row_at(0U), 0U),
+                "a row header press selects its row at the position the handlers left it");
+    }
+    {
+        std::shared_ptr<DataGridView> grid = make_grid("grid.moved.row");
+        Window window(grid, {360.0, 160.0});
+        window.perform_layout();
+        bool erased = false;
+        SubscriptionToken token = (*grid).row_enter().subscribe(EraseRowsBefore{grid.get(), &erased});
+        require((*grid).on_semantic_child_action("charlie", SemanticAction::select, {}) && erased &&
+                    (*grid).row_count() == 1U && (*grid).is_row_selected(row_at(0U)),
+                "a row select selects the row where the handlers left it");
+    }
+    {
+        std::shared_ptr<DataGridView> grid = make_grid("grid.moved.cell");
+        Window window(grid, {360.0, 160.0});
+        window.perform_layout();
+        bool erased = false;
+        SubscriptionToken token = (*grid).row_enter().subscribe(EraseRowsBefore{grid.get(), &erased});
+        const bool pressed = (*grid).on_semantic_child_action("charlie.active", SemanticAction::press, {});
+        require(erased && (*grid).row_count() == 1U && (*grid).current_row_id() == id("charlie") &&
+                    (!pressed || (*grid).cell_value(row_at(0U), 1U) == BindingValue{true}),
+                "a cell press acts on the cell where the handlers left it");
+    }
+}
+
 int main() {
     columns_and_rows();
     layout_and_parts();
@@ -4338,6 +4389,7 @@ int main() {
     standard_tab();
     column_headers_height_size_mode();
     rows_and_columns_events();
+    handlers_move_the_pressed_row();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
                  "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";

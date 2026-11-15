@@ -1338,6 +1338,20 @@ private:
         // the strip.
         bool edge_column{};
     };
+    // A press's row and column by identity (the row's ID, the column's
+    // name), taken before the press runs the program's handlers, which may
+    // remove or move rows and columns (A-gf-controls-02-F6). `row` and
+    // `column` say which the zone names.
+    struct PressIdentity final {
+        std::string row_id{};
+        std::string column_name{};
+        bool row{};
+        bool column{};
+    };
+    [[nodiscard]] PressIdentity press_identity(const HitResult& hit) const;
+    // The press at its row's and column's present positions, or none when
+    // the handlers removed either.
+    [[nodiscard]] std::optional<HitResult> resolve_press(const HitResult& hit, const PressIdentity& pressed) const;
     // How a key or click moves the current cell and the selection.
     enum class SelectionGesture : std::uint8_t { replace, extend, toggle };
     // The kind of edit in progress.

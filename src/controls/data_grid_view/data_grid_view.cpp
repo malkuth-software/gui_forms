@@ -788,6 +788,38 @@ std::optional<DataGridViewCellAddress> DataGridView::address_of(const CellKey& c
     return address;
 }
 
+DataGridView::PressIdentity DataGridView::press_identity(const HitResult& hit) const {
+    PressIdentity pressed{};
+    const bool row_zone = hit.zone == HitZone::cell || hit.zone == HitZone::row_header || hit.zone == HitZone::row_divider;
+    const bool column_zone =
+        hit.zone == HitZone::cell || hit.zone == HitZone::column_header || hit.zone == HitZone::column_divider;
+    if (row_zone && hit.row.value < row_count()) {
+        pressed.row_id = row_id_text(hit.row);
+        pressed.row = true;
+    }
+    if (column_zone && hit.column < columns_.size()) {
+        pressed.column_name = columns_[hit.column].name;
+        pressed.column = true;
+    }
+    return pressed;
+}
+
+std::optional<DataGridView::HitResult> DataGridView::resolve_press(const HitResult& hit,
+                                                                   const PressIdentity& pressed) const {
+    HitResult resolved = hit;
+    if (pressed.row) {
+        const std::optional<std::size_t> row = find_row(pressed.row_id);
+        if (!row) return std::nullopt;
+        resolved.row = DataGridViewRowPosition{*row};
+    }
+    if (pressed.column) {
+        const std::optional<std::size_t> column = column_index(pressed.column_name);
+        if (!column) return std::nullopt;
+        resolved.column = *column;
+    }
+    return resolved;
+}
+
 std::optional<std::size_t> DataGridView::current_position() const {
     if (!current_) return std::nullopt;
     return find_row((*current_).row_id);
@@ -4197,6 +4229,10 @@ void DataGridView::handle_pointer(PointerEvent& event) {
     if (event.button != PointerButton::primary) return;
     if (event.action == PointerAction::down) {
         event.handled = true;
+        // end_edit and request_focus run the program's handlers, which may
+        // remove or move rows and columns: the press keeps its row and column
+        // by identity and finds them again after them (A-gf-controls-02-F6).
+        const PressIdentity pressed = press_identity(hit);
         if (editing_ && !end_edit()) {
             // The edit stays open (its text is refused): the editor keeps
             // the focus. end_edit runs the program's handlers, so the
@@ -4209,22 +4245,26 @@ void DataGridView::handle_pointer(PointerEvent& event) {
         }
         Window* const host = window();
         if (host != nullptr) static_cast<void>((*host).request_focus(lifetime));
+        if (!is_alive()) return;
+        const std::optional<HitResult> resolved = resolve_press(hit, pressed);
+        if (!resolved) return;
+        const HitResult target = *resolved;
         const bool shift = has_modifier(event.modifiers, Modifier::shift);
         const bool control = has_modifier(event.modifiers, Modifier::control);
         SelectionGesture gesture = SelectionGesture::replace;
         if (shift) gesture = SelectionGesture::extend;
         else if (control) gesture = SelectionGesture::toggle;
-        if (hit.zone == HitZone::column_divider && column_resizable(hit.column)) {
-            resizing_column_ = hit.column;
+        if (target.zone == HitZone::column_divider && column_resizable(target.column)) {
+            resizing_column_ = target.column;
             resize_start_x_ = local.x;
-            resize_start_width_ = columns_[hit.column].width;
+            resize_start_width_ = columns_[target.column].width;
             // Read again: the focus change above ran the program's handlers.
             Window* const capture_host = window();
             if (capture_host != nullptr) (*capture_host).capture_pointer(lifetime, event.pointer_id);
             invalidate(Dirty::paint | Dirty::semantics);
             return;
         }
-        if (hit.zone == HitZone::column_headers_divider) {
+        if (target.zone == HitZone::column_headers_divider) {
             resizing_headers_ = true;
             resize_start_y_ = local.y;
             resize_start_height_ = column_headers_height.read();
@@ -4233,17 +4273,17 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             invalidate(Dirty::paint | Dirty::semantics);
             return;
         }
-        if (hit.zone == HitZone::row_divider) {
-            resizing_row_ = hit.row.value;
+        if (target.zone == HitZone::row_divider) {
+            resizing_row_ = target.row.value;
             resize_start_y_ = local.y;
-            resize_start_height_ = row_height_at(hit.row);
+            resize_start_height_ = row_height_at(target.row);
             Window* const capture_host = window();
             if (capture_host != nullptr) (*capture_host).capture_pointer(lifetime, event.pointer_id);
             invalidate(Dirty::paint | Dirty::semantics);
             return;
         }
-        if (hit.zone == HitZone::column_header || hit.zone == HitZone::column_divider) {
-            pressed_column_ = hit.column;
+        if (target.zone == HitZone::column_header || target.zone == HitZone::column_divider) {
+            pressed_column_ = target.column;
             if (allow_user_to_order_columns.read()) {
                 // Captured, so that a drag can leave the header band.
                 order_start_x_ = local.x;
@@ -4253,22 +4293,26 @@ void DataGridView::handle_pointer(PointerEvent& event) {
             invalidate(Dirty::paint);
             return;
         }
-        if (hit.zone == HitZone::top_left) {
+        if (target.zone == HitZone::top_left) {
             select_all();
             return;
         }
-        if (hit.zone == HitZone::row_header) {
-            const std::string row_id = row_id_text(hit.row);
-            if (!click_row_header(hit.row, gesture) || !is_alive() || !find_row(row_id)) return;
+        if (target.zone == HitZone::row_header) {
+            const std::string row_id = row_id_text(target.row);
+            if (!click_row_header(target.row, gesture) || !is_alive() || !find_row(row_id)) return;
             row_header_click_.emit(row_event(row_id));
             return;
         }
-        if (hit.zone != HitZone::cell) return;
-        const DataGridViewCellAddress cell{hit.row, hit.column};
-        if (!move_current(cell, gesture)) return;
+        if (target.zone != HitZone::cell) return;
+        const DataGridViewCellAddress pressed_at{target.row, target.column};
+        if (!move_current(pressed_at, gesture)) return;
         // move_current ran the program's handlers, which may have moved or
-        // removed the row: the cell is kept by identity until the release.
+        // removed the row or the column: the cell is found again by identity
+        // and kept by it until the release.
         if (!is_alive()) return;
+        const std::optional<HitResult> moved = resolve_press(target, pressed);
+        if (!moved) return;
+        const DataGridViewCellAddress cell{(*moved).row, (*moved).column};
         pressed_cell_ = key_of(cell);
         pressed_cell_double_ = event.click_count >= 2U;
         if (gesture != SelectionGesture::replace) return;
@@ -4907,16 +4951,24 @@ std::string DataGridView::row_header_prefix() const {
 }
 
 bool DataGridView::click_row_header(DataGridViewRowPosition row, SelectionGesture gesture) {
-    if (shown_order_.empty()) return false;
+    if (shown_order_.empty() || row.value >= row_count()) return false;
     const std::size_t column = current_ ? (*current_).column : shown_order_.front();
+    // move_current runs the program's handlers, which may move or remove
+    // the row or the columns: the row is found again by its ID after it
+    // (A-gf-controls-02-F6).
+    const std::string row_id = row_id_text(row);
     if (!move_current({row, column}, gesture)) return false;
+    if (!is_alive()) return true;
+    const std::optional<std::size_t> settled = find_row(row_id);
+    if (!settled || shown_order_.empty()) return false;
+    const DataGridViewRowPosition at{*settled};
     const DataGridViewSelectionMode mode = selection_mode.read();
     const bool cell_mode = mode == DataGridViewSelectionMode::cell_select ||
                            mode == DataGridViewSelectionMode::row_header_select ||
                            mode == DataGridViewSelectionMode::column_header_select;
     if (cell_mode && gesture == SelectionGesture::replace) {
         const std::uint64_t before = selection_revision_;
-        select_range({row, shown_order_.front()}, {row, shown_order_.back()});
+        select_range({at, shown_order_.front()}, {at, shown_order_.back()});
         publish_selection(before);
     }
     return true;
@@ -5107,9 +5159,14 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
     if (id.compare(0U, column_prefix.size(), column_prefix) == 0) {
         const std::optional<std::size_t> column = column_index(id.substr(column_prefix.size()));
         if (!column || action != SemanticAction::press) return false;
-        const std::size_t pressed = *column;
-        column_header_click_.emit(pressed);
-        if (!is_alive() || pressed >= columns_.size()) return true;
+        const std::string column_name(id.substr(column_prefix.size()));
+        column_header_click_.emit(*column);
+        // The click's handlers may have moved or removed the column: it is
+        // found again by its name (A-gf-controls-02-F6).
+        if (!is_alive()) return true;
+        const std::optional<std::size_t> clicked = column_index(column_name);
+        if (!clicked) return true;
+        const std::size_t pressed = *clicked;
         if (header_selects_column()) {
             select_column_from_header(pressed, false);
         } else {
@@ -5121,10 +5178,16 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
     if (id.compare(0U, header_prefix.size(), header_prefix) == 0) {
         const std::optional<std::size_t> row = find_row(id.substr(header_prefix.size()));
         if (!row || columns_.empty() || action != SemanticAction::press) return false;
+        const Control::Ptr lifetime = shared_from_this();
         Window* const host = window();
-        if (host != nullptr) static_cast<void>((*host).request_focus(shared_from_this()));
+        if (host != nullptr) static_cast<void>((*host).request_focus(lifetime));
+        // The focus change ran the program's handlers: the row is found
+        // again by its ID (A-gf-controls-02-F6).
+        if (!is_alive()) return true;
         const std::string row_id(id.substr(header_prefix.size()));
-        const bool clicked = click_row_header(DataGridViewRowPosition{*row}, SelectionGesture::replace);
+        const std::optional<std::size_t> focused_row = find_row(row_id);
+        if (!focused_row) return false;
+        const bool clicked = click_row_header(DataGridViewRowPosition{*focused_row}, SelectionGesture::replace);
         if (clicked && is_alive() && find_row(row_id)) row_header_click_.emit(row_event(row_id));
         return clicked;
     }
@@ -5133,25 +5196,46 @@ bool DataGridView::on_semantic_child_action(std::string_view id, SemanticAction 
         const std::optional<std::size_t> row = find_row(id);
         if (!row || columns_.empty()) return false;
         if (action != SemanticAction::focus && action != SemanticAction::select) return false;
+        const Control::Ptr lifetime = shared_from_this();
         Window* const host = window();
         if (action == SemanticAction::focus && host != nullptr) {
-            static_cast<void>((*host).request_focus(shared_from_this()));
+            static_cast<void>((*host).request_focus(lifetime));
         }
+        // The focus change and the move run the program's handlers: the row
+        // is found again by its ID after each (A-gf-controls-02-F6).
+        if (!is_alive()) return true;
+        const std::optional<std::size_t> focused_row = find_row(id);
+        if (!focused_row) return false;
         const std::size_t column = current_ ? (*current_).column : 0U;
-        const bool moved = move_current({DataGridViewRowPosition{*row}, column}, SelectionGesture::replace);
+        const bool moved = move_current({DataGridViewRowPosition{*focused_row}, column}, SelectionGesture::replace);
         if (!moved) return false;
+        if (!is_alive()) return true;
         // A row's select selects the row, as its published state reports it:
         // in cell mode moving the current cell selects only that cell.
-        if (action == SemanticAction::select) set_row_selected(DataGridViewRowPosition{*row}, true);
+        if (action == SemanticAction::select) {
+            const std::optional<std::size_t> moved_row = find_row(id);
+            if (!moved_row) return false;
+            set_row_selected(DataGridViewRowPosition{*moved_row}, true);
+        }
         return true;
     }
+    const Control::Ptr lifetime = shared_from_this();
     Window* const host = window();
     if (action == SemanticAction::focus && host != nullptr) {
-        static_cast<void>((*host).request_focus(shared_from_this()));
+        static_cast<void>((*host).request_focus(lifetime));
     }
-    if (!move_current(*cell, SelectionGesture::replace)) return false;
+    // The focus change and the move run the program's handlers, which may
+    // move or remove the row or the column: the cell is found again by its
+    // identity after each (A-gf-controls-02-F6).
+    if (!is_alive()) return true;
+    const std::optional<DataGridViewCellAddress> focused_cell = cell_from_stable_id(id);
+    if (!focused_cell) return false;
+    if (!move_current(*focused_cell, SelectionGesture::replace)) return false;
+    if (!is_alive()) return true;
     if (action == SemanticAction::focus || action == SemanticAction::select) return true;
-    const DataGridViewColumn& column = columns_[(*cell).column];
+    const std::optional<DataGridViewCellAddress> moved_cell = cell_from_stable_id(id);
+    if (!moved_cell) return false;
+    const DataGridViewColumn& column = columns_[(*moved_cell).column];
     if (action == SemanticAction::press) {
         if (column.kind != DataGridViewColumnKind::check_box && column.kind != DataGridViewColumnKind::button &&
             column.kind != DataGridViewColumnKind::link) {
