@@ -353,7 +353,11 @@ SemanticDescriptor Splitter::semantic_descriptor() const {
     if (resized) {
         const double extent = extent_of(*resized);
         const SplitLimits bounds = limits(*resized);
-        descriptor.value = std::to_string(extent);
+        // "%f" in the C locale's form, which the value action parses back
+        // (A-gf-controls-13-F9).
+        std::string extent_text;
+        number_text::append_number_text(extent_text, extent, std::chars_format::fixed, 6);
+        descriptor.value = extent_text;
         descriptor.numeric_value = extent;
         descriptor.minimum_value = bounds.minimum;
         descriptor.maximum_value = bounds.maximum;
