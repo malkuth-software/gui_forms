@@ -2097,23 +2097,10 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
                       ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
         gui_forms_install_bundled_fonts()
     endif()
-    add_library(gui_forms_win32_compat SHARED
-        src/host/windows/win32_compat_shim.cpp
-        src/host/windows/win32_compat_shim.def
-    )
-    target_compile_features(gui_forms_win32_compat PRIVATE cxx_std_20)
-    # Declarations only: the shim checks its run-time entry-point types
-    # against gf_abi.h and resolves the ABI by name; it does not link it.
-    target_include_directories(gui_forms_win32_compat PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-    )
-    target_compile_definitions(gui_forms_win32_compat PRIVATE
-        ${GUI_FORMS_WINDOWS_DEFINITIONS}
-    )
-    target_link_libraries(gui_forms_win32_compat PRIVATE user32 gdi32)
-    set_target_properties(gui_forms_win32_compat PROPERTIES
-        PREFIX ""
-        OUTPUT_NAME "gui_forms_win32_compat")
+    # The Win32 compatibility shim (src/host/windows/win32_compat_shim.cpp)
+    # is part of the C ABI library on Windows (one module, owner decision
+    # 2026-11-15, "Fold it in"): cmake/CAbi.cmake compiles it with the
+    # library's objects and exports its Win32 names.
     add_executable(gui_forms_windows_probe
         tools/windows_automation_probe.cpp
     )
@@ -2153,8 +2140,6 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         target_link_libraries(gui_forms_windows_gdi_compat_shim_tests PRIVATE
             gui_forms_abi gdi32 user32
         )
-        add_dependencies(gui_forms_windows_gdi_compat_shim_tests
-                         gui_forms_win32_compat)
         add_test(NAME gui_forms_windows_gdi_compat_shim_tests
                  COMMAND gui_forms_windows_gdi_compat_shim_tests)
     endif()

@@ -1,4 +1,11 @@
-LIBRARY gui_forms_win32_compat
+; The Win32 compatibility shim's exports: user32's and gdi32's own names,
+; each bound to the shim's gf_compat_ function. They are exports of the C ABI
+; library (gui_forms_abi1.dll) on Windows since the one-module decision
+; (owner, 2026-11-15, "Fold it in"): cmake/CAbi.cmake reads the NAME=target
+; lines below into the library's link .def, and the export check
+; (cmake/CheckCAbiExports.cmake) admits exactly these names besides gf_, gd_
+; and gdr_. The import libraries leave them out, so a program that links the
+; library never binds user32's names to the shim by accident.
 EXPORTS
     IsWindow=gf_compat_IsWindow
     IsWindowEnabled=gf_compat_IsWindowEnabled

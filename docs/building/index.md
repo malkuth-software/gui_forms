@@ -320,8 +320,11 @@ one library, the C ABI library (`gui_forms_abi1.dll`,
 engine with the drawing ABI and its raster folded in, imports only system
 libraries and exports exactly its allowlisted `gf_*` entry points and
 `gd_get_api_v0` (the raster is installed through the drawing table's
-`raster_initialize`) (the `gui_forms_abi_exports_only_entry_points` and
-`gui_forms_abi_system_imports_only` tests). A process uses one or the other,
+`raster_initialize`), and on Windows the Win32 compatibility shim's user32
+and gdi32 names (`IsWindow`, `GetDC`, `BitBlt` and the rest of
+`src/host/windows/win32_compat_shim.def`; the import libraries leave them
+out), as the `gui_forms_abi_exports_only_entry_points` and
+`gui_forms_abi_system_imports_only` tests check. A process uses one or the other,
 never both. The localizable-literal plugin is a Clang plugin loaded by the
 compiler, and the shared test runtime (`cmake/TestRuntime.cmake`) is
 test-only; neither ships in a program.

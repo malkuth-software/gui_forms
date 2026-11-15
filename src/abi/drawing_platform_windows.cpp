@@ -47,6 +47,9 @@ std::uint8_t composite_channel(std::uint8_t foreground,
         (static_cast<unsigned>(backdrop) * (255U - alpha) + 127U) / 255U);
 }
 
+// An object in this module whose address names the module (CompatibilityUser32).
+const char compatibility_module_marker = 0;
+
 struct CompatibilityUser32 final {
     // The compatibility shim exports user32's own names and signatures, so
     // the entry-point types come from user32's declarations (house style
@@ -60,9 +63,17 @@ struct CompatibilityUser32 final {
     ReleaseDc release_dc{::ReleaseDC};
     GetClientBounds get_client_rect{::GetClientRect};
 
+    // The shim's GetDC, ReleaseDC and GetClientRect are exports of the module
+    // this code is linked into: the C ABI library (gui_forms_abi1.dll), which
+    // holds the Win32 compatibility shim since the one-module decision. The
+    // module is found from this constructor's own address, never by name. A
+    // static test archive's program exports no such name, so it draws through
+    // user32 itself.
     CompatibilityUser32() {
-        module = GetModuleHandleW(L"gui_forms_win32_compat.dll");
-        if (module == nullptr) module = LoadLibraryW(L"gui_forms_win32_compat.dll");
+        const DWORD flags =
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+        const LPCWSTR address = reinterpret_cast<LPCWSTR>(&compatibility_module_marker);
+        if (GetModuleHandleExW(flags, address, &module) == 0) module = nullptr;
         if (module == nullptr) return;
         if (const FARPROC value = GetProcAddress(module, "GetDC")) {
             get_dc = reinterpret_cast<GetDc>(value);

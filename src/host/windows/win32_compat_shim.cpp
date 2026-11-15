@@ -8,7 +8,6 @@
 #include <cstddef>
 #include <cstring>
 #include <mutex>
-#include <type_traits>
 #include <unordered_set>
 
 namespace {
@@ -80,31 +79,22 @@ void forget_bitmap(HGDIOBJ object) noexcept {
     top_down_bitmaps.erase(reinterpret_cast<HBITMAP>(object));
 }
 
-// The paint endpoint table of the C ABI (gui_forms_abi1.dll), resolved once,
-// by name: the shim never links the library, so a process that has not
-// loaded it falls through to the system for every handle (present is false
-// when the library or its table is missing). The entry point's type is held
-// to its declaration in gf_abi.h: a call through a pointer of another
-// function type is undefined behaviour even where the convention agrees.
+// The paint endpoint table of the C ABI, negotiated once. The shim is part
+// of the C ABI library (gui_forms_abi1.dll; one module, owner decision
+// 2026-11-15, "Fold it in"), so it calls gf_abi_get_table directly: the
+// table is the library's own, never resolved by name from another module.
+// present is false only when the library has no endpoint table (a build
+// without the Windows host), and every handle then falls through to the
+// system.
 struct StableEndpoints final {
     bool present{};
     gf_windows_paint_endpoint_table table{};
 };
 
-using GetStableTable = gf_status(GF_CALL*)(gf_table_id, std::uint32_t, std::uint32_t, void*, std::uint64_t);
-static_assert(std::is_same_v<GetStableTable, decltype(&gf_abi_get_table)>);
-
 StableEndpoints load_stable_endpoints() noexcept {
     StableEndpoints loaded{};
-    HMODULE module = GetModuleHandleW(L"gui_forms_abi1.dll");
-    if (module == nullptr) return loaded;
-    FARPROC raw = GetProcAddress(module, "gf_abi_get_table");
-    GetStableTable get_table{};
-    static_assert(sizeof(get_table) == sizeof(raw));
-    std::memcpy(&get_table, &raw, sizeof(get_table));
-    if (get_table == nullptr) return loaded;
-    const gf_status negotiated = get_table(GF_TABLE_WINDOWS_PAINT_ENDPOINT, GF_ABI_MAJOR, GF_ABI_MINOR,
-                                           &loaded.table, sizeof(loaded.table));
+    const gf_status negotiated = gf_abi_get_table(GF_TABLE_WINDOWS_PAINT_ENDPOINT, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                  &loaded.table, sizeof(loaded.table));
     loaded.present = negotiated == GF_STATUS_OK && loaded.table.get_dc != nullptr &&
         loaded.table.release_dc != nullptr && loaded.table.publish_dc != nullptr &&
         loaded.table.begin_write != nullptr && loaded.table.end_write != nullptr;

@@ -11,8 +11,10 @@
 # GUI.Drawing's gd_get_api_v0 (whose table carries raster_initialize).
 # Everything else, libc++
 # included, stays local (the version script on ELF, the exported-symbols list
-# on Mach-O; on Windows only the dllexport entry points leave the DLL). A C or
-# C# program loads it alone. This replaces decision C-2's shared engine: a
+# on Mach-O; on Windows the link .def's entry points). On Windows it also
+# holds the Win32 compatibility shim (owner, 2026-11-15, "Fold it in") and
+# exports its user32 and gdi32 names, so C, C# and Win32 consumers load one
+# DLL. A C or C# program loads it alone. This replaces decision C-2's shared engine: a
 # program that used both the C++ library and the C ABI would hold two
 # engines, so a C++ program that wants the C entry points links
 # gui_forms_abi_objects statically beside Application instead, as the trace
@@ -92,6 +94,28 @@ file(CONFIGURE OUTPUT "${_gf_abi_generated}/${_gf_abi_output_name}.def" CONTENT 
 # The exact export set, one name per line, for the export check below.
 string(JOIN "\n" _gf_abi_expected_text ${_gf_abi_exports})
 file(CONFIGURE OUTPUT "${_gf_abi_generated}/gf_abi_exports.txt" CONTENT "${_gf_abi_expected_text}\n" @ONLY)
+# Windows: the link .def adds the Win32 compatibility shim's exports, each
+# `Name=gf_compat_Name` line of src/host/windows/win32_compat_shim.def, to the
+# entry points; GUI_FORMS_ABI_WIN32_SHIM_EXPORTS lists the names for the
+# export check. The .def above, without them, makes both import libraries.
+set(GUI_FORMS_ABI_WIN32_SHIM_EXPORTS "")
+if(WIN32)
+    set(_gf_abi_shim_def "${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows/win32_compat_shim.def")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_gf_abi_shim_def}")
+    file(STRINGS "${_gf_abi_shim_def}" _gf_abi_shim_lines)
+    set(_gf_abi_link_def_text "${_gf_abi_def_text}")
+    foreach(_gf_abi_shim_line IN LISTS _gf_abi_shim_lines)
+        if(_gf_abi_shim_line MATCHES "^[ \t]+([A-Za-z][A-Za-z0-9]*)=(gf_compat_[A-Za-z0-9]+)[ \t]*$")
+            list(APPEND GUI_FORMS_ABI_WIN32_SHIM_EXPORTS "${CMAKE_MATCH_1}")
+            string(APPEND _gf_abi_link_def_text "    ${CMAKE_MATCH_1}=${CMAKE_MATCH_2}\n")
+        endif()
+    endforeach()
+    if(NOT GUI_FORMS_ABI_WIN32_SHIM_EXPORTS)
+        message(FATAL_ERROR "${_gf_abi_shim_def} names no export")
+    endif()
+    file(CONFIGURE OUTPUT "${_gf_abi_generated}/${_gf_abi_output_name}-link.def"
+         CONTENT "${_gf_abi_link_def_text}" @ONLY)
+endif()
 
 # The library's objects, compiled once: the shared library is made from
 # them, and the stage C4 trace gate links them statically beside the C++
@@ -161,6 +185,18 @@ target_compile_definitions(gui_forms_abi_objects
 if(TARGET gui_forms_host_windows)
     target_compile_definitions(gui_forms_abi_objects PRIVATE GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT=1)
 endif()
+# The Win32 compatibility shim, part of the library on Windows (one module,
+# owner decision 2026-11-15, "Fold it in"): its gf_compat_ functions call the
+# paint endpoint table directly, and the link .def below exports them under
+# user32's and gdi32's names (src/host/windows/win32_compat_shim.def). The
+# Windows definitions are the shim's alone, so the other objects compile as
+# before.
+if(WIN32)
+    set(_gf_abi_shim_source "${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows/win32_compat_shim.cpp")
+    target_sources(gui_forms_abi_objects PRIVATE "${_gf_abi_shim_source}")
+    set_source_files_properties("${_gf_abi_shim_source}" PROPERTIES
+        COMPILE_DEFINITIONS "${GUI_FORMS_WINDOWS_DEFINITIONS}")
+endif()
 set_target_properties(gui_forms_abi_objects PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES
@@ -183,7 +219,9 @@ else()
     target_sources(gui_forms_abi PRIVATE src/abi/drawing_raster_absent.cpp)
 endif()
 if(WIN32)
-    target_link_libraries(gui_forms_abi PRIVATE advapi32)
+    target_link_libraries(gui_forms_abi PRIVATE advapi32 user32 gdi32)
+    # The exports: the allowlist's entry points and the shim's Win32 names.
+    target_sources(gui_forms_abi PRIVATE "${_gf_abi_generated}/${_gf_abi_output_name}-link.def")
 endif()
 add_library(GUIForms::CAbi ALIAS gui_forms_abi)
 target_include_directories(gui_forms_abi PUBLIC
@@ -224,11 +262,20 @@ if(WIN32 AND MINGW)
         set(_gf_abi_machine i386:x86-64)
     endif()
     set(_gf_abi_msvc_import "${CMAKE_CURRENT_BINARY_DIR}/${_gf_abi_output_name}.lib")
+    # Both import libraries come from the entry points' .def, without the
+    # shim's Win32 names: the MinGW one the linker wrote (from the link .def)
+    # is written again, so a program linking the library still binds GetDC
+    # and the rest to user32 and gdi32. A consumer that wants the shim's
+    # names resolves them from the DLL at run time.
     add_custom_command(TARGET gui_forms_abi POST_BUILD
         COMMAND "${GUI_FORMS_LLVM_DLLTOOL}" -m ${_gf_abi_machine}
             -d "${_gf_abi_generated}/${_gf_abi_output_name}.def"
             -D "${_gf_abi_output_name}.dll"
             -l "${_gf_abi_msvc_import}"
+        COMMAND "${GUI_FORMS_LLVM_DLLTOOL}" -m ${_gf_abi_machine}
+            -d "${_gf_abi_generated}/${_gf_abi_output_name}.def"
+            -D "${_gf_abi_output_name}.dll"
+            -l "$<TARGET_LINKER_FILE:gui_forms_abi>"
         BYPRODUCTS "${_gf_abi_msvc_import}"
         VERBATIM)
 endif()
