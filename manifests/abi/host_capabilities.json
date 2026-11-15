@@ -12,7 +12,7 @@
         "notification_area_messages", "notification_area_menus", "runtime_windows", "window_frames",
         "screen_pointer", "window_at_point", "window_ordering", "transparent_windows", "window_backdrops",
         "compositor_notifications", "presentation_preferences", "windows_paint_endpoint", "transient_surfaces",
-        "window_corners", "window_state_reports", "open_url"
+        "window_corners", "window_state_reports", "hosted_content", "open_url"
       ]
     },
     {

@@ -25,6 +25,13 @@
 
 namespace gui_forms {
 
+namespace detail {
+
+// POSIX needs nothing beyond the descriptor (hosted_client.hpp).
+struct HostedClientChannelState final {};
+
+} // namespace detail
+
 namespace {
 
 constexpr std::size_t hosted_client_read_chunk = 64U * 1024U;

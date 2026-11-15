@@ -830,7 +830,8 @@ target_link_libraries(gui_forms_core PRIVATE stx_conv::stx_conv)
 target_link_libraries(gui_forms_core PRIVATE stx_rtf2md::stx_rtf2md)
 # Hosted content's parent end (include/gui_forms/content/hosted): POSIX
 # processes, shared memory and a socket pair on macOS and Linux; on Windows
-# an implementation that reports itself absent (the hand-back writes it).
+# CreateProcessW in a job object, a pagefile-backed section and an
+# overlapped named pipe.
 if(WIN32)
     target_sources(gui_forms_core PRIVATE src/surface/windows/hosted/hosted_content_windows.cpp)
 else()
@@ -915,13 +916,16 @@ endif()
 target_link_libraries(gui_forms_sealed_pages_objects PRIVATE gui_forms_core)
 set_target_properties(gui_forms_sealed_pages_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # The hosted program's end (include/gui_forms/content/hosted/hosted_client.hpp):
-# what a program started by make_hosted_content links. macOS and Linux.
-if(NOT WIN32)
+# what a program started by make_hosted_content links. macOS, Linux and
+# Windows.
+if(WIN32)
+    add_library(gui_forms_hosted_client STATIC src/surface/windows/hosted/hosted_client_windows.cpp)
+else()
     add_library(gui_forms_hosted_client STATIC src/surface/posix/hosted/hosted_client_posix.cpp)
-    target_link_libraries(gui_forms_hosted_client PUBLIC gui_forms_core)
-    set_target_properties(gui_forms_hosted_client PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    add_library(GUIForms::HostedClient ALIAS gui_forms_hosted_client)
 endif()
+target_link_libraries(gui_forms_hosted_client PUBLIC gui_forms_core)
+set_target_properties(gui_forms_hosted_client PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library(GUIForms::HostedClient ALIAS gui_forms_hosted_client)
 if(WIN32 AND GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
     # The transactional DIB frame store: the Win32 host and three tests.
     add_library(gui_forms_dib_frame_store_objects OBJECT src/surface/windows/raster/dib_frame_store.cpp)
@@ -1596,7 +1600,7 @@ install(DIRECTORY include/gui_forms
 # The full consumer-macro shield, generated into the build tree and installed
 # beside these headers (cmake/ConsumerShield.cmake).
 include(cmake/ConsumerShield.cmake)
-# The hosted program's end (macOS and Linux): installed in GUIFormsTargets as
+# The hosted program's end: installed in GUIFormsTargets as
 # GUIForms::HostedClient, the library a program started by
 # make_hosted_content links (tests/hosted_client_consumer).
 if(TARGET gui_forms_hosted_client)
@@ -4281,38 +4285,33 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_content_text_editor_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_content_text_editor_tests COMMAND gui_forms_content_text_editor_tests)
     set_tests_properties(gui_forms_content_text_editor_tests PROPERTIES TIMEOUT 120)
-    # Hosted content: the protocol everywhere, the process cases (with the
-    # child program they start) on macOS and Linux.
+    # Hosted content: the protocol and the process cases, with the child
+    # program they start.
     add_executable(gui_forms_hosted_content_tests tests/hosted_content_tests.cpp)
     target_link_libraries(gui_forms_hosted_content_tests PRIVATE gui_forms_controls gui_forms_host_headless)
-    if(NOT WIN32)
-        add_executable(gui_forms_hosted_child tests/hosted_child.cpp)
-        target_link_libraries(gui_forms_hosted_child PRIVATE gui_forms_hosted_client)
-        add_dependencies(gui_forms_hosted_content_tests gui_forms_hosted_child)
-        target_compile_definitions(gui_forms_hosted_content_tests PRIVATE
-            "GUI_FORMS_HOSTED_CHILD=\"$<TARGET_FILE:gui_forms_hosted_child>\"")
-    endif()
+    add_executable(gui_forms_hosted_child tests/hosted_child.cpp)
+    target_link_libraries(gui_forms_hosted_child PRIVATE gui_forms_hosted_client)
+    add_dependencies(gui_forms_hosted_content_tests gui_forms_hosted_child)
+    target_compile_definitions(gui_forms_hosted_content_tests PRIVATE
+        "GUI_FORMS_HOSTED_CHILD=\"$<TARGET_FILE:gui_forms_hosted_child>\"")
     add_test(NAME gui_forms_hosted_content_tests COMMAND gui_forms_hosted_content_tests)
     set_tests_properties(gui_forms_hosted_content_tests PROPERTIES TIMEOUT 120)
     # The content boundary's examples (examples/content_boundary,
-    # docs/user/content-surfaces.md): a renderer that freezes everywhere, a
-    # hosted program that crashes on macOS and Linux. Each runs headless as a
-    # test.
+    # docs/user/content-surfaces.md): a renderer that freezes and a hosted
+    # program that crashes. Each runs headless as a test.
     add_executable(gui_forms_example_freezing_renderer examples/content_boundary/freezing_renderer.cpp)
     target_link_libraries(gui_forms_example_freezing_renderer PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_example_freezing_renderer COMMAND gui_forms_example_freezing_renderer)
     set_tests_properties(gui_forms_example_freezing_renderer PROPERTIES TIMEOUT 60)
-    if(NOT WIN32)
-        add_executable(gui_forms_example_crashing_program examples/content_boundary/crashing_program.cpp)
-        target_link_libraries(gui_forms_example_crashing_program PRIVATE gui_forms_hosted_client)
-        add_executable(gui_forms_example_hosted_crash examples/content_boundary/hosted_crash.cpp)
-        target_link_libraries(gui_forms_example_hosted_crash PRIVATE gui_forms_controls gui_forms_host_headless)
-        add_dependencies(gui_forms_example_hosted_crash gui_forms_example_crashing_program)
-        target_compile_definitions(gui_forms_example_hosted_crash PRIVATE
-            "GUI_FORMS_CRASHING_PROGRAM=\"$<TARGET_FILE:gui_forms_example_crashing_program>\"")
-        add_test(NAME gui_forms_example_hosted_crash COMMAND gui_forms_example_hosted_crash)
-        set_tests_properties(gui_forms_example_hosted_crash PROPERTIES TIMEOUT 60)
-    endif()
+    add_executable(gui_forms_example_crashing_program examples/content_boundary/crashing_program.cpp)
+    target_link_libraries(gui_forms_example_crashing_program PRIVATE gui_forms_hosted_client)
+    add_executable(gui_forms_example_hosted_crash examples/content_boundary/hosted_crash.cpp)
+    target_link_libraries(gui_forms_example_hosted_crash PRIVATE gui_forms_controls gui_forms_host_headless)
+    add_dependencies(gui_forms_example_hosted_crash gui_forms_example_crashing_program)
+    target_compile_definitions(gui_forms_example_hosted_crash PRIVATE
+        "GUI_FORMS_CRASHING_PROGRAM=\"$<TARGET_FILE:gui_forms_example_crashing_program>\"")
+    add_test(NAME gui_forms_example_hosted_crash COMMAND gui_forms_example_hosted_crash)
+    set_tests_properties(gui_forms_example_hosted_crash PROPERTIES TIMEOUT 60)
     add_executable(gui_forms_sub_surface_tests tests/sub_surface_tests.cpp)
     target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_sub_surface_tests COMMAND gui_forms_sub_surface_tests)

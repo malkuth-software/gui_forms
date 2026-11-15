@@ -4,8 +4,8 @@
 // program GUI.Forms started with make_hosted_content connects with
 // HostedClient::connect, draws into the frame slots the parent releases and
 // publishes them, and reads its input. One thread uses a client. The client
-// library (gui_forms_hosted_client, macOS and Linux) links the protocol and
-// nothing of the interface.
+// library (gui_forms_hosted_client: macOS, Linux and Windows) links the
+// protocol and nothing of the interface.
 //
 //     std::unique_ptr<HostedClient> client = HostedClient::connect();
 //     if (!client) return 1;                         // not started by GUI.Forms
@@ -33,6 +33,12 @@
 #include <vector>
 
 namespace gui_forms {
+
+namespace detail {
+// The channel's platform state beyond its descriptor or handle: on Windows
+// the overlapped read and write; empty elsewhere.
+struct HostedClientChannelState;
+} // namespace detail
 
 // One input event the parent forwarded. `kind` is key, text, pointer or
 // focus and says which fields are set. They arrive in the order the
@@ -69,7 +75,7 @@ public:
     // the first configure).
     [[nodiscard]] HostedConfigureRecord request() const noexcept { return request_; }
     [[nodiscard]] bool stop_requested() const noexcept { return stop_requested_; }
-    [[nodiscard]] bool connected() const noexcept { return channel_ >= 0; }
+    [[nodiscard]] bool connected() const noexcept { return channel_ >= 0 || channel_handle_ != 0U; }
 
     // A slot the parent has released, pumping up to `timeout` for one; none
     // on timeout, stop or a closed channel.
@@ -88,8 +94,14 @@ public:
     // Moves the input received so far to the end of `out`.
     void take_input(std::vector<HostedClientInput>& out);
     // The channel's descriptor, for a program that waits on it with its own
-    // loop (and for tests that write malformed bytes); -1 once closed.
+    // loop (and for tests that write malformed bytes); -1 once closed, and
+    // always on Windows, which has channel_handle() instead.
     [[nodiscard]] int channel_descriptor() const noexcept { return channel_; }
+    // Windows: the channel's HANDLE value, for the same uses; 0 once closed,
+    // and always elsewhere. It is the child end of a named pipe opened with
+    // FILE_FLAG_OVERLAPPED, so every ReadFile and WriteFile on it passes an
+    // OVERLAPPED; the client may have a read of its own pending on it.
+    [[nodiscard]] std::uintptr_t channel_handle() const noexcept { return channel_handle_; }
 
 private:
     HostedClient(int channel, std::byte* region, std::uint64_t slot_bytes, std::uint32_t slot_count) noexcept;
@@ -98,6 +110,8 @@ private:
     void close_channel() noexcept;
 
     int channel_{-1};
+    std::uintptr_t channel_handle_{};
+    std::unique_ptr<detail::HostedClientChannelState> channel_state_{};
     std::byte* region_{};
     std::uint64_t slot_bytes_{};
     std::uint32_t slot_count_{};

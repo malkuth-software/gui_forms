@@ -1893,7 +1893,11 @@ Types
 
    .. cpp:function:: int channel_descriptor() const noexcept
 
-      The channel's descriptor, for a program that waits on it with its own loop (and for tests that write malformed bytes); -1 once closed.
+      The channel's descriptor, for a program that waits on it with its own loop (and for tests that write malformed bytes); -1 once closed, and always on Windows, which has channel_handle() instead.
+
+   .. cpp:function:: std::uintptr_t channel_handle() const noexcept
+
+      Windows: the channel's HANDLE value, for the same uses; 0 once closed, and always elsewhere. It is the child end of a named pipe opened with FILE_FLAG_OVERLAPPED, so every ReadFile and WriteFile on it passes an OVERLAPPED; the client may have a read of its own pending on it.
 
 
    .. rubric:: Methods
@@ -4332,7 +4336,7 @@ Functions, constants and aliases
 
 .. cpp:function:: HostedContent make_hosted_content(HostedContentOptions options)
 
-   Checks ``options`` and makes the program; nothing starts until the surface runs it. Throws std::invalid_argument for an executable that is not an absolute path or a slot size of zero or over the limit, and std::runtime_error where hosted content is not supported.
+   Checks ``options`` and makes the program; nothing starts until the surface runs it. Throws std::invalid_argument for an executable that is not an absolute path, a slot size of zero or over the limit, or a negative timeout; on Windows also for an argument that is not UTF-8 or holds a NUL, and for a command line over 32,767 characters. Throws std::runtime_error where hosted content is not supported.
 
 .. cpp:var:: constexpr std::chrono::milliseconds default_hosted_start_timeout
 
@@ -4432,7 +4436,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr int hosted_channel_descriptor
 
-   The descriptors and environment the parent gives the child. The channel and the frame region are inherited at these descriptor numbers on POSIX; the environment names them as well, with the slot shape. Value: ``3``.
+   The descriptors and environment the parent gives the child. The channel and the frame region are inherited at these descriptor numbers on POSIX; the environment names them as well, with the slot shape. On Windows the two are inherited handles, and the channel and frames variables hold their values in decimal. Value: ``3``.
 
 .. cpp:var:: constexpr int hosted_frames_descriptor
 

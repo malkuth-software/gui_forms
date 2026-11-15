@@ -4426,9 +4426,10 @@ HostCapabilities windows_capabilities() {
                 HostCapability::presentation_preferences |
                 HostCapability::transient_surfaces |
                 HostCapability::window_corners |
-                // HostCapability::hosted_content is not reported until
-                // src/surface/windows/hosted/ is written (the hand-back).
                 HostCapability::window_state_reports |
+                // A program in a process of its own on a content surface
+                // (src/surface/windows/hosted/hosted_content_windows.cpp).
+                HostCapability::hosted_content |
                 // Addresses open through the shell (open_url_impl).
                 HostCapability::open_url,
             // Windows follows the PC keyboard convention (Ctrl+F4 closes a

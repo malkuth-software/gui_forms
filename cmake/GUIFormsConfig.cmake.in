@@ -195,7 +195,7 @@ endforeach()
 foreach(_gui_forms_component IN LISTS GUIForms_FIND_COMPONENTS)
     if(NOT GUIForms_${_gui_forms_component}_FOUND)
         set(GUIForms_NOT_FOUND_MESSAGE
-            "Requested GUIForms component '${_gui_forms_component}' is not installed. Core, Controls, Drawing and Threading are portable components (the drawing ABI is part of CAbi); HostedClient, the hosted program's library, is installed on macOS and Linux. Application, CAbi and CAbiConformance require a supported native host build; Audio requires an audio-enabled build; TextMasks requires a native host build with GUI_FORMS_BUILD_TEXT_MASKS; AudioLoopTransport requires an audio build with GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT; GalleryModel requires GUI_FORMS_INSTALL_GALLERY_MODEL, with Lab (GUI_FORMS_INSTALL_LAB) and DemoControls beside it (tools/build_sdk.py --features all builds them all).")
+            "Requested GUIForms component '${_gui_forms_component}' is not installed. Core, Controls, Drawing and Threading are portable components (the drawing ABI is part of CAbi); HostedClient is the hosted program's library. Application, CAbi and CAbiConformance require a supported native host build; Audio requires an audio-enabled build; TextMasks requires a native host build with GUI_FORMS_BUILD_TEXT_MASKS; AudioLoopTransport requires an audio build with GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT; GalleryModel requires GUI_FORMS_INSTALL_GALLERY_MODEL, with Lab (GUI_FORMS_INSTALL_LAB) and DemoControls beside it (tools/build_sdk.py --features all builds them all).")
     endif()
 endforeach()
 unset(_gui_forms_component)

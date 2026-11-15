@@ -1,10 +1,13 @@
 // The hosted program hosted_crash.cpp starts (docs/user/content-surfaces.md,
 // "Hosted content"). It connects to GUI.Forms through HostedClient, draws a
 // band that moves across its region for a while, and then really crashes:
-// it aborts (SIGABRT, what a failed assertion or a corrupted heap ends in),
-// and the system ends its process. SIGABRT rather than SIGSEGV keeps the
-// crash a crash under the sanitizers, which turn a SIGSEGV into a report and
-// an ordinary exit. Run by itself (not started by GUI.Forms) it says so and
+// on macOS and Linux it aborts (SIGABRT, what a failed assertion or a
+// corrupted heap ends in), and the system ends its process. SIGABRT rather
+// than SIGSEGV keeps the crash a crash under the sanitizers, which turn a
+// SIGSEGV into a report and an ordinary exit. On Windows abort() may end the
+// process with status 3 through the C runtime, so the program executes a
+// trap instruction instead: an unhandled STATUS_ILLEGAL_INSTRUCTION
+// (0xC000001D). Run by itself (not started by GUI.Forms) it says so and
 // exits 2.
 
 #include <gui_forms/content/hosted/hosted_client.hpp>
@@ -73,7 +76,11 @@ int main() {
     while ((*client).pump(std::chrono::milliseconds(0))) {
         if (step == frames_before_crashing) {
             // The defect this example is about. Only this process ends.
+#if defined(_WIN32)
+            __builtin_trap();
+#else
             std::abort();
+#endif
         }
         const stxlib::Optional<std::uint32_t> slot = (*client).acquire_slot(std::chrono::milliseconds(100));
         if (slot.absent()) continue;
