@@ -83,6 +83,13 @@ struct ListCounter final : Component {
     }
 };
 
+// Counts a source's current-row announcements.
+struct CurrentCounter final : Component {
+    std::size_t changes{};
+
+    void on_current() { ++changes; }
+};
+
 // ---------------------------------------------------------------------------
 // A million rows computed on demand: id (signed) and name (text), with the
 // edits written to it kept aside. Counts its calls.
@@ -755,6 +762,38 @@ void test_add_rows_is_all_or_none() {
     require((*fixed).values.size() == 3U, "one row needs no undo");
 }
 
+// Removing the current row when its ID has left the row cache
+// (A-gf-core-01-F2): by the time the source hears of the removal the table
+// has changed, so the ID read at the old position is the next row's. The
+// source compares with the ID it kept when the position was placed, and
+// announces the new current row.
+void test_removing_an_uncached_current_row_announces_the_next() {
+    Host host;
+    std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(host.window);
+    BindingTable& table = *(*source).table();
+    static_cast<void>(table.add_column(BindingColumn{"Name", BindingValueKind::text}));
+    constexpr std::size_t rows = BindingSource::row_cache_rows + 1U;
+    std::vector<BindingRow> written;
+    written.reserve(rows);
+    for (std::size_t row = 0U; row < rows; ++row) {
+        BindingRow made;
+        made.stable_id = "r." + std::to_string(row);
+        made.values.push_back(std::string("row"));
+        written.push_back(std::move(made));
+    }
+    table.assign(std::move(written));
+    static_cast<void>((*source).set_position(0));
+    require((*source).position() == 0 && (*source).current_stable_id() == "r.0", "r.0 is current");
+    // Every other row read once: whatever the cache's capacity, row 0's
+    // place in it is taken.
+    for (std::size_t row = 1U; row < rows; ++row) static_cast<void>((*source).stable_id(row));
+    CurrentCounter counter;
+    on((*source).current_changed(), counter, &CurrentCounter::on_current);
+    require((*source).remove_current(), "the current row is removed");
+    require((*source).position() == 0 && (*source).current_stable_id() == "r.1", "r.1 is current");
+    require(counter.changes == 1U, "the change of current row from r.0 to r.1 is announced once");
+}
+
 void test_text_compares_ignoring_case_by_code_point() {
     require(compare_binding_keys(std::string("apple"), std::string("APPLE")) == 0 &&
                 compare_binding_keys(std::string("apple"), std::string("Banana")) < 0 &&
@@ -855,6 +894,7 @@ int main() {
         test_sort_and_filter_views_match_brute_force_under_changes();
         test_list_changes_replay_to_the_view_and_moves_are_not_resets();
         test_add_rows_is_all_or_none();
+        test_removing_an_uncached_current_row_announces_the_next();
         test_text_compares_ignoring_case_by_code_point();
         test_order_tree_matches_a_vector();
         test_order_tree_depth_follows_the_count();

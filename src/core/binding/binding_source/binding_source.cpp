@@ -295,10 +295,11 @@ void BindingSource::set_provider(std::shared_ptr<BindingProvider> provider) {
     // A new provider starts at its first row, placed before the reset is
     // published so a bound control reads a row that exists.
     position_ = count() > 0U ? 0 : -1;
+    current_identity_ = current_stable_id();
     data_source_changed_.emit();
     publish_model_change({BindingListChangeKind::reset, -1, {}, {}, true});
     ++resets_;
-    if (position_ != old_position || current_stable_id() != old_current) {
+    if (position_ != old_position || current_identity_ != old_current) {
         ++position_changes_;
         position_changed_.emit(position_);
         current_changed_.emit();
@@ -1113,7 +1114,9 @@ void BindingSource::apply_posted(const std::vector<BindingNotification>& notific
 
 void BindingSource::reset_view_state(bool metadata_changed) {
     const std::ptrdiff_t old_position = position_;
-    const std::string old_current = current_stable_id();
+    // The provider has already changed: the ID kept when the position was
+    // last placed, not one read at the old position now.
+    const std::string old_current = current_identity_;
     // The schema may have changed: re-read it, and drop a sort or filter
     // whose columns are gone.
     BindingSchema reread = schema_;
@@ -1224,7 +1227,8 @@ void BindingSource::apply_notification(const BindingNotification& notification) 
         return;
     }
     const std::ptrdiff_t old_position = position_;
-    const std::string old_current = current_stable_id();
+    // As in reset_view_state: the provider changed before this notification.
+    const std::string old_current = current_identity_;
     std::size_t anchor = position_ >= 0 ? provider_row(static_cast<std::size_t>(position_)) : binding_whole_row;
     provider_count_ = expected;
     bump_generation();
@@ -1399,8 +1403,11 @@ void BindingSource::place_position(std::size_t anchor, std::ptrdiff_t old_positi
 }
 
 void BindingSource::announce_position(std::ptrdiff_t old_position, const std::string& old_current) {
-    const std::string current = current_stable_id();
-    if (position_ != old_position || current != old_current) {
+    std::string current = current_stable_id();
+    const bool moved = position_ != old_position || current != old_current;
+    // Kept before the events, so a handler's own move compares with it.
+    current_identity_ = std::move(current);
+    if (moved) {
         ++position_changes_;
         position_changed_.emit(position_);
         current_changed_.emit();
@@ -1525,8 +1532,9 @@ void BindingSource::publish_model_change(const BindingListChange& change) {
 
 void BindingSource::publish_current_transition(std::ptrdiff_t old_position) {
     ++position_changes_;
+    current_identity_ = current_stable_id();
     publish_model_change({BindingListChangeKind::position_changed, position_,
-                          current_stable_id(), {}, false});
+                          current_identity_, {}, false});
     static_cast<void>(old_position);
     position_changed_.emit(position_);
     current_changed_.emit();
@@ -1561,6 +1569,7 @@ void BindingSource::on_dispose() noexcept {
     currency_manager_.reset();
     window_lifetime_.reset();
     position_ = -1;
+    current_identity_.clear();
 }
 
 // ---------------------------------------------------------------------------

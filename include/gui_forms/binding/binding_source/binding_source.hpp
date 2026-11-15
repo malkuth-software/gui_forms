@@ -304,6 +304,11 @@ private:
     std::string edit_stable_id_;
     std::string data_member_;
     std::ptrdiff_t position_{-1};
+    // The current row's stable ID as last placed and announced: what a
+    // notification or reset compares with, because by then the provider
+    // has changed and reading the ID at the old position finds another row
+    // (A-gf-core-01-F2). Empty while there is no current row.
+    std::string current_identity_;
     std::uint64_t revision_{1U};
     std::uint64_t resets_{};
     std::uint64_t field_changes_{};
