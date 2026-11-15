@@ -6633,12 +6633,17 @@ install(FILES ${gui_forms_stx_licenses}/stx_raster3d/PROVENANCE.md DESTINATION $
 # STXlib's licences, as stx installs them beside its packages (cmake/Stxlib.cmake
 # there): STXlib, stx_btree (the row height index's sequence tree),
 # stx_minmallocpp (STXlib's allocator, STXlib's own code; its NOTICE carries
-# mimalloc's MIT notice, which it derives from) and tzdata (its zone data).
+# mimalloc's MIT notice, which it derives from), tzdata (its zone data) and
+# the Unicode License v3 of its case-folding tables (CaseFolding.txt). That
+# one is installed as stxlib-unicode-LICENSE.txt: Unicode-LICENSE.txt, the
+# grapheme tables' licence below, differs from unicode-LICENSE.txt only in
+# case, and the two would overwrite each other on macOS and Windows.
 install(FILES ${gui_forms_stx_licenses}/stxlib/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stxlib-LICENSE.txt)
 install(FILES ${gui_forms_stx_licenses}/stxlib/stx_btree-LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-LICENSE.txt)
 install(FILES ${gui_forms_stx_licenses}/stxlib/stx_btree-NOTICE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-NOTICE.txt)
 install(FILES ${gui_forms_stx_licenses}/stxlib/stx_minmallocpp-NOTICE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_minmallocpp-NOTICE.txt)
 install(FILES ${gui_forms_stx_licenses}/stxlib/tzdata-LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME tzdata-LICENSE.txt)
+install(FILES ${gui_forms_stx_licenses}/stxlib/unicode-LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stxlib-unicode-LICENSE.txt)
 # The stock icons are Heroicons vectors converted into the library at build
 # time (assets/icons/heroicons/PROVENANCE.md); their MIT licence ships with it.
 install(FILES assets/icons/heroicons/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME Heroicons-LICENSE.txt)

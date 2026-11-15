@@ -27,6 +27,7 @@
     {"name": "stx_btree-NOTICE.txt", "source": "$STXLIB/stx_btree-NOTICE", "component": "stx_btree (the row height index's sequence tree, in STXlib)"},
     {"name": "stx_minmallocpp-NOTICE.txt", "source": "$STXLIB/stx_minmallocpp-NOTICE", "component": "stx_minmallocpp (STXlib's allocator, in its state archive)"},
     {"name": "tzdata.txt", "source": "$STXLIB/tzdata-LICENSE", "component": "tz database (STXlib's zone data)"},
+    {"name": "stxlib-Unicode.txt", "source": "$STXLIB/unicode-LICENSE", "component": "Unicode Character Database (STXlib's case-folding tables)"},
     {"name": "HarfBuzz.txt", "source": "$STX/third_party/harfbuzz/COPYING", "component": "HarfBuzz"},
     {"name": "FreeType-FTL.txt", "source": "$STX/third_party/freetype/docs/FTL.TXT", "component": "FreeType"},
     {"name": "Skia.txt", "source": "$STX/stx_skia/LICENSE-Skia", "component": "Skia (in stx_skia)"},
