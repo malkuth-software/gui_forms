@@ -937,7 +937,7 @@ void test_choice_group_state_and_rebuild() {
     // item is then no change rather than an exception out of activation.
     (*group).set_items({{.id = 10, .label = "First"}, {.id = 20, .label = "Second"}});
     const std::shared_ptr<gf::ChoiceGroup> narrow =
-        gf::make_control<gf::ChoiceGroup>(gf::StableId("narrow_choices"));
+        gf::make_control<gf::ChoiceGroup>(gf::StableId("narrow-choices"));
     (*narrow).set_items({{.id = 10, .label = "Only"}});
     (*narrow).bind(model);
     const int selected_before = model.get();

@@ -4333,6 +4333,8 @@ void handlers_move_the_pressed_row() {
                     (!pressed || (*grid).cell_value(row_at(0U), 1U) == BindingValue{true}),
                 "a cell press acts on the cell where the handlers left it");
     }
+}
+
 // Removes one named column of the grid the first time the current cell
 // changes, as a handler reacting to the row reset of a column change might.
 struct RemoveColumnOnce final {
