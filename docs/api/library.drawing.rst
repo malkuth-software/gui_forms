@@ -78,6 +78,8 @@ Types
      - DrawingObject is the thread-affine disposable base for mutable drawing resources, with explicit alive/disposing/disposed transitions and controlled serialized handoff.
    * - :cpp:class:`DrawingReplayReport <gui_forms::DrawingReplayReport>`
      - What replay_drawing_commands drew and what it left out (the plot demonstrator's gap G6).
+   * - :cpp:class:`FlattenedFigure <gui_drawing::FlattenedFigure>`
+     - One figure of a flattened path (GraphicsPath::flatten): its points are those of the flattened point array from the previous figure's ``end`` (0 for the first) to its own ``end``, exclusive.
    * - :cpp:class:`Font <gui_drawing::Font>`
      - Font retains validated UTF-8 family, bounded size, style bits, unit, and charset without exposing a platform font object.
    * - :cpp:class:`FontFamilyResolution <gui_drawing::FontFamilyResolution>`
@@ -172,6 +174,8 @@ Types
      - Offscreen instance of the host's renderer, made on the UI thread (SurfaceRoot::create_framebuffer).
    * - :cpp:class:`PathElement <gui_drawing::PathElement>`
      - PathElement is the closed storage record for one retained figure/path verb and its relevant points, bounds, and angles.
+   * - :cpp:class:`PathFlattening <gui_drawing::PathFlattening>`
+     - What a flattening needs or wrote: the points and figures, and the status.
    * - :cpp:class:`PathGradientBrush <gui_drawing::PathGradientBrush>`
      - PathGradientBrush retains a bounded point boundary, center, center/surround colors, wrap policy, and optional interpolation stops.
    * - :cpp:class:`PathSnapshot <gui_drawing::PathSnapshot>`
@@ -184,6 +188,8 @@ Types
      - PointF is a finite logical-coordinate pair.
    * - :cpp:class:`PointI <gui_drawing::PointI>`
      - PointI is a signed integer pixel-coordinate pair.
+   * - :cpp:class:`RecorderRasterResult <gui_drawing::RecorderRasterResult>`
+     -  
    * - :cpp:class:`RectF <gui_drawing::RectF>`
      - RectF provides validated finite logical containment, intersection, union, translation, and inflation.
    * - :cpp:class:`RectI <gui_drawing::RectI>`
@@ -1239,6 +1245,18 @@ Types
 
 .. cpp:namespace:: gui_drawing
 
+.. cpp:struct:: FlattenedFigure final
+
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+
+   One figure of a flattened path (GraphicsPath::flatten): its points are those of the flattened point array from the previous figure's ``end`` (0 for the first) to its own ``end``, exclusive. A closed figure repeats its first point last, so every figure is a polyline as it stands.
+
+   .. cpp:member:: std::size_t end
+
+   .. cpp:member:: bool closed
+
+.. cpp:namespace:: gui_drawing
+
 .. cpp:class:: Font final : public DrawingObject
 
    ``#include <gui_forms/drawing/font/font.hpp>``
@@ -1486,9 +1504,19 @@ Types
 
       Projects a snapshot through deterministic fill-rule hit testing.
 
+   .. cpp:function:: PathFlattening flattened_size(double tolerance) const
+
+      Flattening: the path as polylines, every curve within ``tolerance`` of the polyline that replaces it. Provisional, numbered 0.8 of the drawing seam as a placeholder (the integrator assigns the real number in fold order); the C ABI's graphics_path_flatten and C#'s GraphicsPath.Flatten are the same operation. ``tolerance`` is a distance in the path's own coordinate units (the units its points are stored in, after any transform()): no point of a curve, arc or ellipse lies farther than ``tolerance`` from its chords (up to rounding). A caller drawing the path at scale s passes the device tolerance divided by s. It must be positive and finite, else std::invalid_argument is thrown. Figures follow the raster's reading of the elements: a line, curve or arc that does not start where the figure stands starts a new figure (an arc joins it with a straight edge instead, as GDI+ AddArc does); start_figure ends the figure open, close_figure ends it closed; a rectangle (clockwise from its top-left corner) and an ellipse (clockwise from its right-middle point) are closed figures of their own. Arc angles are the ellipse's parameter angles in degrees, as the raster draws them, with the sweep held to one turn either way. Lines keep their end points; a curve's last point is its end point exactly. A figure of fewer than two points is left out. flattened_size returns the counts flatten would write (status complete or limit_exceeded). flatten fills ``points`` and ``figures``, which the caller owns and sizes, and returns what it wrote. When either array is smaller than needed it writes nothing and returns the counts needed with status storage_too_small. The chord counts are a function of the tolerance and each element's geometry alone, so the two calls agree.
+
+   .. cpp:function:: PathFlattening flatten(double tolerance, std::span<PointF> points, std::span<FlattenedFigure> figures) const
+
    .. cpp:member:: constexpr std::size_t maximum_elements
 
       Default: ``1'000'000``.
+
+   .. cpp:member:: constexpr std::size_t maximum_flattened_points
+
+      The most points one flattening writes (2^24, 128 MiB of PointF): a tolerance tiny against the path's size is refused, not truncated. Default: ``16'777'216``.
 
 .. cpp:namespace:: gui_drawing
 
@@ -2805,6 +2833,22 @@ Types
 
 .. cpp:namespace:: gui_drawing
 
+.. cpp:struct:: PathFlattening final
+
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+
+   What a flattening needs or wrote: the points and figures, and the status.
+
+   .. cpp:member:: std::size_t point_count
+
+   .. cpp:member:: std::size_t figure_count
+
+   .. cpp:member:: PathFlatteningStatus status
+
+      Default: ``{PathFlatteningStatus::complete}``.
+
+.. cpp:namespace:: gui_drawing
+
 .. cpp:class:: PathGradientBrush final : public Brush
 
    ``#include <gui_forms/drawing/brush/path_gradient_brush.hpp>``
@@ -2974,6 +3018,20 @@ Types
    .. cpp:member:: std::int32_t x
 
    .. cpp:member:: std::int32_t y
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:struct:: RecorderRasterResult final
+
+   ``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>``
+
+   .. cpp:member:: RecorderRasterStatus status
+
+      Default: ``{RecorderRasterStatus::executed}``.
+
+   .. cpp:member:: std::uint64_t commands_executed
+
+      The commands drawn from ``first_command`` on.
 
 .. cpp:namespace:: gui_drawing
 
@@ -4024,6 +4082,18 @@ Enumerations
 
 .. cpp:namespace:: gui_drawing
 
+.. cpp:enum-class:: PathFlatteningStatus
+
+   ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
+
+   .. cpp:enumerator:: complete
+
+   .. cpp:enumerator:: storage_too_small
+
+   .. cpp:enumerator:: limit_exceeded
+
+.. cpp:namespace:: gui_drawing
+
 .. cpp:enum-class:: PathVerb
 
    ``#include <gui_forms/drawing/graphics_path/graphics_path.hpp>``
@@ -4067,6 +4137,26 @@ Enumerations
    .. cpp:enumerator:: none
 
    .. cpp:enumerator:: half
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:enum-class:: RecorderRasterStatus
+
+   ``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>``
+
+   .. cpp:enumerator:: executed
+
+   .. cpp:enumerator:: wrong_thread
+
+   .. cpp:enumerator:: invalid_argument
+
+   .. cpp:enumerator:: limit_exceeded
+
+   .. cpp:enumerator:: out_of_memory
+
+   .. cpp:enumerator:: not_available
+
+   .. cpp:enumerator:: internal_error
 
 .. cpp:namespace:: gui_drawing
 
@@ -4442,6 +4532,14 @@ Functions, constants and aliases
 .. cpp:function:: std::span<const FontGateException> font_gate_exceptions() noexcept
 
 .. cpp:function:: const char* font_gate_criterion_name(FontGateCriterion criterion) noexcept
+
+.. cpp:namespace:: gui_drawing
+
+``#include <gui_forms/drawing/recorder_raster/recorder_raster.hpp>``
+
+.. cpp:function:: RecorderRasterResult execute_recorder(const GraphicsRecorder& recorder, Bitmap& target, std::uint64_t first_command) noexcept
+
+   Draws ``recorder``'s commands from ``first_command`` on into ``target``, in place, on the calling thread, which must own both objects. The caller keeps both alive for the call; nothing is retained after it. ``target`` may borrow the caller's pixels (Bitmap::borrow), which are then written directly, with no copy. What a failure leaves: for a bitmap owning its pixels the commands are checked first and a refusal leaves it untouched; a borrowed bitmap, or a failure during drawing, keeps the commands before the failing one drawn (commands_executed counts them). Fonts the commands name are resolved and registered on this thread first, as recorder_execute does; no gdr_initialize call is needed. Never throws.
 
 .. cpp:namespace:: gui_forms
 

@@ -1675,8 +1675,15 @@ if(GUI_FORMS_ENABLE_SKIA)
         )
     endif()
 
+    # The drawing executor and the raster both GUI.Drawing raster entries
+    # share: the per-thread state (drawing_raster_state.cpp) and the C++
+    # seam's execute_recorder (drawing/recorder_raster/recorder_raster.hpp),
+    # which the C ABI's raster service calls too. C++ programs take it in
+    # the Application archive; the C ABI library links it once.
     add_library(gui_drawing_skia STATIC
         src/render/skia/executor/skia_executor.cpp
+        src/render/skia/executor/drawing_raster_state.cpp
+        src/render/skia/executor/recorder_raster.cpp
     )
     if(APPLE)
         # Finds installed families nobody registered (ADR-004 phase 7).
@@ -1694,6 +1701,8 @@ if(GUI_FORMS_ENABLE_SKIA)
     target_link_libraries(gui_drawing_skia
         PUBLIC gui_drawing_core
         PRIVATE
+            stxlib::boundary
+            stxlib::state
             gui_forms_text_engine
             gui_forms_core
             stx_text::freetype
@@ -1834,8 +1843,8 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     target_compile_features(gui_forms_application PUBLIC cxx_std_20)
     target_compile_definitions(gui_forms_application PRIVATE
         GUI_FORMS_APPLICATION_MACOS=1 GUI_FORMS_APPLICATION_SKIA=1)
-    set(_gf_application_archives gui_forms_core gui_drawing_core gui_forms_controls gui_forms_skia
-        gui_forms_host_macos)
+    set(_gf_application_archives gui_forms_core gui_drawing_core gui_drawing_skia gui_forms_controls
+        gui_forms_skia gui_forms_host_macos)
     set(_gf_application_libraries)
     if(TARGET gui_forms_text_engine)
         list(APPEND _gf_application_archives gui_forms_text_engine)
@@ -1916,7 +1925,8 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
     target_compile_definitions(gui_forms_application PRIVATE
         GUI_FORMS_APPLICATION_LINUX=1 GUI_FORMS_APPLICATION_SKIA=1)
-    set(_gf_application_archives gui_forms_core gui_drawing_core gui_forms_controls gui_forms_host_linux gui_forms_skia)
+    set(_gf_application_archives gui_forms_core gui_drawing_core gui_drawing_skia gui_forms_controls
+        gui_forms_host_linux gui_forms_skia)
     set(_gf_application_libraries)
     if(TARGET gui_forms_text_engine)
         list(APPEND _gf_application_archives gui_forms_text_engine)
@@ -1988,8 +1998,8 @@ if(GUI_FORMS_ENABLE_WEB_HOST)
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
     target_compile_definitions(gui_forms_application PRIVATE
         GUI_FORMS_APPLICATION_WEB=1 GUI_FORMS_APPLICATION_SKIA=1)
-    set(_gf_application_archives gui_forms_core gui_drawing_core gui_forms_controls gui_forms_host_surface
-        gui_forms_host_web gui_forms_skia)
+    set(_gf_application_archives gui_forms_core gui_drawing_core gui_drawing_skia gui_forms_controls
+        gui_forms_host_surface gui_forms_host_web gui_forms_skia)
     set(_gf_application_libraries)
     if(TARGET gui_forms_text_engine)
         list(APPEND _gf_application_archives gui_forms_text_engine)
@@ -2070,8 +2080,8 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES
             user32 gdi32 imm32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32)
         gui_forms_application_library(gui_forms_application
-            ARCHIVES gui_forms_core gui_drawing_core gui_forms_controls gui_forms_host_windows gui_forms_skia
-                     gui_forms_text_engine
+            ARCHIVES gui_forms_core gui_drawing_core gui_drawing_skia gui_forms_controls gui_forms_host_windows
+                     gui_forms_skia gui_forms_text_engine
             LIBRARIES stx_text::freetype stx_text::harfbuzz stx_text::sheenbidi
                       ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
         gui_forms_install_bundled_fonts()
@@ -6440,6 +6450,20 @@ if(GUI_FORMS_BUILD_TESTS)
         )
         add_test(NAME gui_drawing_raster_c_api_tests
                  COMMAND gui_drawing_raster_c_api_tests)
+
+        # The C++ seam's execute_recorder (drawing/recorder_raster/), from
+        # the static drawing raster archive the Application archive carries.
+        add_executable(gui_drawing_raster_cxx_tests
+            tests/drawing_raster_cxx_tests.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_link_libraries(gui_drawing_raster_cxx_tests PRIVATE
+            gui_drawing_skia
+            gui_forms_core
+            stxlib::boundary
+            stxlib::state
+        )
+        add_test(NAME gui_drawing_raster_cxx_tests
+                 COMMAND gui_drawing_raster_cxx_tests)
     endif()
 
     if(TARGET gui_forms_renderer_benchmark)

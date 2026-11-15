@@ -322,6 +322,29 @@ namespace System.Drawing.Drawing2D {
         public void Reset() { global::System.Drawing.FacadeCallTelemetry.Hit("System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|Reset|System.Void ()");  global::System.Drawing.NativeDrawingBridge.GraphicsPathReset(__handle); }
         public void StartFigure() { global::System.Drawing.FacadeCallTelemetry.Hit("System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|StartFigure|System.Void ()");  global::System.Drawing.NativeDrawingBridge.GraphicsPathStart(__handle); }
         public void AddPath(global::System.Drawing.Drawing2D.GraphicsPath addingPath, bool connect) { global::System.Drawing.FacadeCallTelemetry.Hit("System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|AddPath|System.Void (System.Drawing.Drawing2D.GraphicsPath,System.Boolean)");  if (addingPath is null) throw new global::System.ArgumentNullException(nameof(addingPath)); global::System.Drawing.NativeDrawingBridge.GraphicsPathAddPath(__handle, addingPath.__handle, connect); }
+        // Flatten (System.Drawing's GraphicsPath.Flatten): the path's curves
+        // replaced by line segments no farther than `flatness` (0.25 by
+        // default, in the path's units after `matrix`) from them, figure by
+        // figure, through graphics_path_flatten (ABI 1.1, provisional).
+        public void Flatten() { global::System.Drawing.FacadeCallTelemetry.Hit("System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|Flatten|System.Void ()");  __Flatten(null, 0.25f); }
+        public void Flatten(global::System.Drawing.Drawing2D.Matrix? matrix) { global::System.Drawing.FacadeCallTelemetry.Hit("System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|Flatten|System.Void (System.Drawing.Drawing2D.Matrix)");  __Flatten(matrix, 0.25f); }
+        public void Flatten(global::System.Drawing.Drawing2D.Matrix? matrix, float flatness) { global::System.Drawing.FacadeCallTelemetry.Hit("System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|Flatten|System.Void (System.Drawing.Drawing2D.Matrix,System.Single)");  __Flatten(matrix, flatness); }
+        private void __Flatten(global::System.Drawing.Drawing2D.Matrix? matrix, float flatness)
+        {
+            if (!(flatness > 0f) || float.IsInfinity(flatness)) throw new global::System.ArgumentOutOfRangeException(nameof(flatness));
+            if (matrix is not null) global::System.Drawing.NativeDrawingBridge.GraphicsPathTransform(__handle, matrix);
+            var figures = global::System.Drawing.NativeDrawingBridge.GraphicsPathFlatten(__handle, flatness);
+            global::System.Drawing.NativeDrawingBridge.GraphicsPathReset(__handle);
+            foreach (var figure in figures)
+            {
+                global::System.Drawing.NativeDrawingBridge.GraphicsPathStart(__handle);
+                // A closed figure's repeated first point is left to CloseFigure.
+                var last = figure.Closed ? figure.Points.Length - 1 : figure.Points.Length;
+                for (var index = 1; index < last; ++index)
+                    global::System.Drawing.NativeDrawingBridge.GraphicsPathAddLine(__handle, figure.Points[index - 1], figure.Points[index]);
+                if (figure.Closed) global::System.Drawing.NativeDrawingBridge.GraphicsPathClose(__handle);
+            }
+        }
         public void Transform(global::System.Drawing.Drawing2D.Matrix matrix) { global::System.Drawing.FacadeCallTelemetry.Hit("System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|Transform|System.Void (System.Drawing.Drawing2D.Matrix)");  if (matrix is null) throw new global::System.ArgumentNullException(nameof(matrix)); global::System.Drawing.NativeDrawingBridge.GraphicsPathTransform(__handle, matrix); }
         public void AddLine(global::System.Drawing.PointF pt1, global::System.Drawing.PointF pt2) { global::System.Drawing.FacadeCallTelemetry.Hit("System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|AddLine|System.Void (System.Drawing.PointF,System.Drawing.PointF)");  global::System.Drawing.NativeDrawingBridge.GraphicsPathAddLine(__handle, pt1, pt2); }
         public void AddRectangle(global::System.Drawing.Rectangle rect) { global::System.Drawing.FacadeCallTelemetry.Hit("System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|AddRectangle|System.Void (System.Drawing.Rectangle)");  global::System.Drawing.NativeDrawingBridge.GraphicsPathAddRectangle(__handle, new global::System.Drawing.RectangleF(rect.X, rect.Y, rect.Width, rect.Height)); }
@@ -604,6 +627,9 @@ namespace System.Drawing {
             "System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|Clone|System.Object ()",
             "System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|CloseFigure|System.Void ()",
             "System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|Dispose|System.Void ()",
+            "System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|Flatten|System.Void ()",
+            "System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|Flatten|System.Void (System.Drawing.Drawing2D.Matrix)",
+            "System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|Flatten|System.Void (System.Drawing.Drawing2D.Matrix,System.Single)",
             "System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|GetBounds|System.Drawing.RectangleF ()",
             "System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|IsVisible|System.Boolean (System.Drawing.Point)",
             "System.Drawing.Common|System.Drawing.Drawing2D.GraphicsPath|Reset|System.Void ()",

@@ -76,6 +76,56 @@ static int check_curved_paths(const gd_api_v0* api) {
     return 0;
 }
 
+/* ABI 1.1, provisional: path flattening into the caller's three arrays,
+   counted first; short arrays and bad tolerances leave the arrays as they
+   were. The quadratic needs 5 chords at 0.25 (Wang's formula), six points;
+   the rectangle is a closed figure of five. */
+static int check_path_flattening(const gd_api_v0* api) {
+    gd_handle path = {0};
+    gd_point points[16];
+    uint64_t ends[4] = {0};
+    uint32_t closed[4] = {9U, 9U, 9U, 9U};
+    uint64_t point_count = 0;
+    uint64_t figure_count = 0;
+
+    CHECK((*api).graphics_path_create(GD_FILL_ALTERNATE, &path) == GD_OK);
+    CHECK((*api).graphics_path_add_quadratic(path, (gd_point){0, 10}, (gd_point){5, 0}, (gd_point){10, 10}) == GD_OK);
+    CHECK((*api).graphics_path_add_rectangle(path, (gd_rect){1, 2, 3, 4}) == GD_OK);
+    CHECK((*api).graphics_path_flatten(path, 0.25, NULL, 0, NULL, NULL, 0, &point_count, &figure_count) ==
+          GD_ERROR_BUFFER_TOO_SMALL);
+    CHECK(point_count == 11U && figure_count == 2U);
+    points[0].x = -7.0;
+    CHECK((*api).graphics_path_flatten(path, 0.25, points, 10, ends, closed, 4, &point_count, &figure_count) ==
+          GD_ERROR_BUFFER_TOO_SMALL);
+    CHECK(points[0].x == -7.0 && closed[0] == 9U);
+    CHECK((*api).graphics_path_flatten(path, 0.25, points, 16, ends, closed, 4, &point_count, &figure_count) ==
+          GD_OK);
+    CHECK(point_count == 11U && figure_count == 2U);
+    CHECK(ends[0] == 6U && closed[0] == 0U);
+    CHECK(ends[1] == 11U && closed[1] == 1U);
+    CHECK(points[0].x == 0.0 && points[0].y == 10.0);
+    CHECK(points[5].x == 10.0 && points[5].y == 10.0);
+    CHECK(points[6].x == 1.0 && points[6].y == 2.0);
+    CHECK(points[10].x == 1.0 && points[10].y == 2.0);
+    CHECK((*api).graphics_path_flatten(path, 0.0, points, 16, ends, closed, 4, &point_count, &figure_count) ==
+          GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).graphics_path_flatten(path, NAN, points, 16, ends, closed, 4, &point_count, &figure_count) ==
+          GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).graphics_path_flatten(path, 0.25, points, 16, ends, closed, 4, NULL, &figure_count) ==
+          GD_ERROR_INVALID_ARGUMENT);
+    CHECK((*api).release(path) == GD_OK);
+
+    CHECK((*api).graphics_path_create(GD_FILL_ALTERNATE, &path) == GD_OK);
+    CHECK((*api).graphics_path_add_ellipse(path, (gd_rect){0, 0, 1e9, 1e9}) == GD_OK);
+    CHECK((*api).graphics_path_flatten(path, 1e-9, NULL, 0, NULL, NULL, 0, &point_count, &figure_count) ==
+          GD_ERROR_LIMIT_EXCEEDED);
+    CHECK(point_count == 0U && figure_count == 0U);
+    CHECK((*api).release(path) == GD_OK);
+    CHECK((*api).graphics_path_flatten(path, 0.25, NULL, 0, NULL, NULL, 0, &point_count, &figure_count) ==
+          GD_ERROR_STALE_HANDLE);
+    return 0;
+}
+
 /* The 1.0 seal's error model (decision 4): counts over their limits give
    LIMIT_EXCEEDED, state refusals INVALID_STATE, and an entry that needs the
    raster module NOT_AVAILABLE when it is not loaded (this program does not
@@ -731,18 +781,20 @@ int main(void) {
           offsetof(gd_api_v0, recorder_draw_string_rotated) + sizeof(api.recorder_draw_string_rotated));
     CHECK(offsetof(gd_api_v0, linear_gradient_brush_set_blend) ==
           offsetof(gd_api_v0, recorder_paint_target) + sizeof(api.recorder_paint_target));
-    CHECK(sizeof(gd_api_v0) ==
+    CHECK(offsetof(gd_api_v0, graphics_path_flatten) ==
           offsetof(gd_api_v0, conic_gradient_brush_set_interpolation) +
               sizeof(api.conic_gradient_brush_set_interpolation));
-    CHECK((sizeof(gd_api_v0) - offsetof(gd_api_v0, last_error)) / sizeof(api.last_error) == 144U);
+    CHECK((offsetof(gd_api_v0, graphics_path_flatten) - offsetof(gd_api_v0, last_error)) /
+              sizeof(api.last_error) == 144U);
     CHECK(offsetof(gd_api_v0, recorder_fill_band) - offsetof(gd_api_v0, last_error) ==
           120U * sizeof(api.last_error));
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_1_0, &api) == GD_OK);
-    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.struct_size == offsetof(gd_api_v0, graphics_path_flatten));
     CHECK(api.abi_version == GD_ABI_VERSION_1_0);
     CHECK(api.recorder_paint_target != NULL);
+    CHECK(api.graphics_path_flatten == NULL);
     CHECK(api.linear_gradient_brush_set_blend == api.linear_gradient_set_blend);
     CHECK(api.linear_gradient_brush_set_interpolation == api.linear_gradient_set_interpolation);
     CHECK(api.linear_gradient_brush_set_wrap_mode == api.linear_gradient_set_wrap_mode);
@@ -758,15 +810,25 @@ int main(void) {
         memset(&shorter, 0, sizeof(shorter));
         shorter.struct_size = (uint32_t)offsetof(gd_api_v0, recorder_paint_target);
         CHECK(gd_get_api_v0(GD_ABI_VERSION_1_0, &shorter) == GD_OK);
-        CHECK(shorter.struct_size == sizeof(shorter));
+        CHECK(shorter.struct_size == offsetof(gd_api_v0, graphics_path_flatten));
         CHECK(shorter.recorder_draw_string_rotated != NULL);
         CHECK(shorter.recorder_paint_target == NULL);
     }
-    CHECK(gd_get_api_v0(UINT32_C(0x00010001), &api) == GD_ERROR_UNSUPPORTED_VERSION);
+    /* 1.1 (provisional, the number a placeholder) is the whole table:
+       graphics_path_flatten after the 1.0 aliases. */
+    CHECK(sizeof(gd_api_v0) ==
+          offsetof(gd_api_v0, graphics_path_flatten) + sizeof(api.graphics_path_flatten));
+    memset(&api, 0, sizeof(api));
+    api.struct_size = sizeof(api);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_1_1, &api) == GD_OK);
+    CHECK(api.struct_size == sizeof(api));
+    CHECK(api.abi_version == GD_ABI_VERSION_1_1);
+    CHECK(api.graphics_path_flatten != NULL);
+    CHECK(gd_get_api_v0(UINT32_C(0x00010002), &api) == GD_ERROR_UNSUPPORTED_VERSION);
     CHECK(gd_get_api_v0(UINT32_C(0x00020000), &api) == GD_ERROR_UNSUPPORTED_VERSION);
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
-    CHECK(gd_get_api_v0(GD_ABI_VERSION_1_0, &api) == GD_OK);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_1_1, &api) == GD_OK);
     CHECK(api.graphics_path_add_quadratic != NULL);
     CHECK(api.graphics_path_fill_mode != NULL);
     CHECK(api.recorder_trace != NULL);
@@ -1054,6 +1116,7 @@ int main(void) {
     CHECK(check_gapped_marks(&api) == 0);
     CHECK(check_text_and_reuse(&api) == 0);
     CHECK(check_curved_paths(&api) == 0);
+    CHECK(check_path_flattening(&api) == 0);
     CHECK(check_rotated_text(&api) == 0);
     CHECK(check_seal_errors(&api) == 0);
     CHECK(check_handle_staleness(&api) == 0);

@@ -1409,6 +1409,8 @@ Types
 
    .. cpp:member:: gd_result (*conic_gradient_brush_set_interpolation)(gd_handle brush, const gd_color* colors, const double* positions, uint64_t count)
 
+   .. cpp:member:: gd_result (*graphics_path_flatten)(gd_handle path, double tolerance, gd_point* points, uint64_t point_capacity, uint64_t* figure_ends, uint32_t* figure_closed, uint64_t figure_capacity, uint64_t* point_count, uint64_t* figure_count)
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gd_bitmap_damage_summary

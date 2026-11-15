@@ -1,16 +1,19 @@
 #include "drawing_test_trace.hpp"
 #include "gui_forms/drawing.hpp"
 
-#include <atomic>
+#include <algorithm>
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace {
 
@@ -786,6 +789,151 @@ void bounded_bitmap_edits_publish_local_damage_and_cancel_atomically() {
     CHECK((damage.rectangles == std::vector<RectI>{{0, 0, 1, 1}}));
 }
 
+// The distance from `point` to the segment from `from` to `to`.
+double distance_to_segment(PointF point, PointF from, PointF to) {
+    const double dx = to.x - from.x;
+    const double dy = to.y - from.y;
+    const double length_squared = dx * dx + dy * dy;
+    double t = 0.0;
+    if (length_squared > 0.0) {
+        t = ((point.x - from.x) * dx + (point.y - from.y) * dy) / length_squared;
+        t = std::clamp(t, 0.0, 1.0);
+    }
+    const double x = from.x + t * dx - point.x;
+    const double y = from.y + t * dy - point.y;
+    const double distance = std::sqrt(x * x + y * y);
+    return distance;
+}
+
+// The distance from `point` to the polyline `points`.
+double distance_to_polyline(PointF point, std::span<const PointF> points) {
+    double nearest = std::numeric_limits<double>::infinity();
+    for (std::size_t index = 1U; index < points.size(); ++index) {
+        nearest = std::min(nearest, distance_to_segment(point, points[index - 1U], points[index]));
+    }
+    return nearest;
+}
+
+void flattened_paths_stay_within_tolerance_in_caller_storage() {
+    // A quadratic: second difference (0, 20), so Wang's formula asks for
+    // ceil(sqrt(1/4 * 20 / 0.25)) = 5 chords, six points.
+    GraphicsPath quadratic;
+    quadratic.add_quadratic({0, 10}, {5, 0}, {10, 10});
+    const PathFlattening size = quadratic.flattened_size(0.25);
+    CHECK(size.status == PathFlatteningStatus::complete);
+    CHECK(size.point_count == 6U);
+    CHECK(size.figure_count == 1U);
+    std::vector<PointF> points(size.point_count);
+    std::vector<FlattenedFigure> figures(size.figure_count);
+    const PathFlattening written = quadratic.flatten(0.25, points, figures);
+    CHECK(written.status == PathFlatteningStatus::complete);
+    CHECK(written.point_count == 6U && written.figure_count == 1U);
+    CHECK(figures[0].end == 6U && !figures[0].closed);
+    CHECK(points.front() == (PointF{0, 10}));
+    CHECK(points.back() == (PointF{10, 10}));
+    for (int step = 0; step <= 1000; ++step) {
+        const double t = static_cast<double>(step) / 1000.0;
+        const double u = 1.0 - t;
+        const PointF on_curve{2.0 * u * t * 5.0 + t * t * 10.0, u * u * 10.0 + t * t * 10.0};
+        CHECK(distance_to_polyline(on_curve, points) <= 0.25 + 1e-9);
+    }
+
+    // Storage one point short: nothing written, the counts needed returned.
+    std::vector<PointF> short_points(5U, PointF{-7, -7});
+    const PathFlattening refused = quadratic.flatten(0.25, short_points, figures);
+    CHECK(refused.status == PathFlatteningStatus::storage_too_small);
+    CHECK(refused.point_count == 6U && refused.figure_count == 1U);
+    for (const PointF point : short_points) CHECK(point == (PointF{-7, -7}));
+    std::vector<FlattenedFigure> no_figures;
+    CHECK(quadratic.flatten(0.25, points, no_figures).status == PathFlatteningStatus::storage_too_small);
+
+    // A tighter tolerance needs more chords; the tolerance is in path units.
+    CHECK(quadratic.flattened_size(0.01).point_count > size.point_count);
+
+    // A rectangle: clockwise from the top-left corner, closed, the first
+    // point repeated last.
+    GraphicsPath box;
+    box.add_rectangle({1, 2, 3, 4});
+    std::array<PointF, 5> box_points{};
+    std::array<FlattenedFigure, 1> box_figures{};
+    const PathFlattening box_written = box.flatten(0.5, box_points, box_figures);
+    CHECK(box_written.point_count == 5U && box_written.figure_count == 1U);
+    CHECK(box_figures[0].closed);
+    CHECK(box_points[0] == (PointF{1, 2}));
+    CHECK(box_points[1] == (PointF{4, 2}));
+    CHECK(box_points[2] == (PointF{4, 6}));
+    CHECK(box_points[3] == (PointF{1, 6}));
+    CHECK(box_points[4] == (PointF{1, 2}));
+
+    // An ellipse: from the right middle, closed exactly, within tolerance.
+    GraphicsPath ellipse;
+    ellipse.add_ellipse({0, 0, 20, 10});
+    const PathFlattening ellipse_size = ellipse.flattened_size(0.1);
+    CHECK(ellipse_size.figure_count == 1U && ellipse_size.point_count >= 5U);
+    std::vector<PointF> ellipse_points(ellipse_size.point_count);
+    std::vector<FlattenedFigure> ellipse_figures(1U);
+    CHECK(ellipse.flatten(0.1, ellipse_points, ellipse_figures).status == PathFlatteningStatus::complete);
+    CHECK(ellipse_figures[0].closed);
+    CHECK(ellipse_points.front() == (PointF{20, 5}));
+    CHECK(ellipse_points.back() == ellipse_points.front());
+    for (int step = 0; step < 720; ++step) {
+        const double angle = static_cast<double>(step) * 3.14159265358979323846 / 360.0;
+        const PointF on_curve{10.0 + 10.0 * std::cos(angle), 5.0 + 5.0 * std::sin(angle)};
+        CHECK(distance_to_polyline(on_curve, ellipse_points) <= 0.1 + 1e-9);
+    }
+
+    // Figure rules: joined lines stay one figure; a line elsewhere starts
+    // another; close_figure closes it; start_figure ends one open.
+    GraphicsPath figures_path;
+    figures_path.add_line({0, 0}, {10, 0});
+    figures_path.add_line({10, 0}, {10, 10});
+    figures_path.add_line({20, 0}, {30, 0});
+    figures_path.add_line({30, 0}, {30, 10});
+    figures_path.close_figure();
+    figures_path.add_line({40, 0}, {50, 0});
+    figures_path.start_figure();
+    figures_path.add_line({50, 0}, {60, 0});
+    std::array<PointF, 16> rule_points{};
+    std::array<FlattenedFigure, 8> rule_figures{};
+    const PathFlattening rules = figures_path.flatten(0.25, rule_points, rule_figures);
+    CHECK(rules.status == PathFlatteningStatus::complete);
+    CHECK(rules.figure_count == 4U);
+    CHECK(rule_figures[0].end == 3U && !rule_figures[0].closed);
+    CHECK(rule_figures[1].end == 7U && rule_figures[1].closed);
+    CHECK(rule_points[6] == (PointF{20, 0}));
+    CHECK(rule_figures[2].end == 9U && !rule_figures[2].closed);
+    CHECK(rule_figures[3].end == 11U && !rule_figures[3].closed);
+    CHECK(rules.point_count == 11U);
+
+    // An arc joins the figure with a straight edge to its start.
+    GraphicsPath joined;
+    joined.add_line({0, 0}, {5, 0});
+    joined.add_arc({10, -5, 10, 10}, 180.0, 180.0);
+    const PathFlattening joined_size = joined.flattened_size(0.05);
+    CHECK(joined_size.figure_count == 1U);
+    std::vector<PointF> joined_points(joined_size.point_count);
+    std::vector<FlattenedFigure> joined_figures(1U);
+    CHECK(joined.flatten(0.05, joined_points, joined_figures).status == PathFlatteningStatus::complete);
+    CHECK(std::abs(joined_points[2].x - 10.0) < 1e-9 && std::abs(joined_points[2].y) < 1e-9);
+    CHECK(std::abs(joined_points.back().x - 20.0) < 1e-9);
+
+    // An empty path flattens to nothing; a bad tolerance is refused; a
+    // tolerance tiny against the path's size exceeds the point limit.
+    GraphicsPath empty;
+    const PathFlattening nothing = empty.flattened_size(1.0);
+    CHECK(nothing.status == PathFlatteningStatus::complete && nothing.point_count == 0U && nothing.figure_count == 0U);
+    CHECK_THROWS(std::invalid_argument, quadratic.flattened_size(0.0));
+    CHECK_THROWS(std::invalid_argument, quadratic.flattened_size(-1.0));
+    CHECK_THROWS(std::invalid_argument, quadratic.flattened_size(std::numeric_limits<double>::quiet_NaN()));
+    CHECK_THROWS(std::invalid_argument, quadratic.flattened_size(std::numeric_limits<double>::infinity()));
+    GraphicsPath huge;
+    huge.add_ellipse({0, 0, 1e9, 1e9});
+    const PathFlattening over = huge.flattened_size(1e-9);
+    CHECK(over.status == PathFlatteningStatus::limit_exceeded);
+    CHECK(over.point_count == 0U && over.figure_count == 0U);
+    CHECK(huge.flatten(1e-9, points, figures).status == PathFlatteningStatus::limit_exceeded);
+}
+
 } // namespace
 
 int main() {
@@ -794,6 +942,7 @@ int main() {
     transforms_resources_and_metrics_obey_contracts();
     extended_vocabulary_snapshots_resources();
     curve_polygon_and_pie_paths_are_retained_and_bounded();
+    flattened_paths_stay_within_tolerance_in_caller_storage();
     batched_marks_record_one_command_each();
     gapped_marks_record_runs();
     primitive_brushes_contrast_and_text_over_fill();

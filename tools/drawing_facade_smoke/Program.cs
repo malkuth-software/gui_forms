@@ -73,6 +73,20 @@ transform.Translate(2, 1);
 pathClone.Transform(transform);
 Require(path.PathPoints.Length >= 10 && path.GetBounds().Width == 12,
         "native path vocabulary");
+// Flatten (graphics_path_flatten, ABI 1.1 provisional): the ellipse
+// becomes a closed polygon whose points all lie on or inside its box, and
+// a tighter flatness needs more of them.
+using var flattened = new GraphicsPath();
+flattened.AddEllipse(new RectangleF(0, 0, 40, 20));
+using var flattenedFine = (GraphicsPath)flattened.Clone();
+flattened.Flatten();
+flattenedFine.Flatten(null, 0.01f);
+var coarsePoints = flattened.PathPoints;
+Require(coarsePoints.Length >= 8 && flattenedFine.PathPoints.Length > coarsePoints.Length,
+        "path flattening at a stated flatness");
+foreach (var point in coarsePoints)
+    Require(point.X >= -0.001f && point.X <= 40.001f && point.Y >= -0.001f && point.Y <= 20.001f,
+            "flattened points stay on the ellipse's box");
 using var gradientBitmap = new Bitmap(16, 16);
 using (var gradientGraphics = Graphics.FromImage(gradientBitmap))
 using (var gradient = new LinearGradientBrush(new Rectangle(0, 0, 16, 16),

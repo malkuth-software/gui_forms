@@ -115,6 +115,10 @@ extern "C" {
 /* 1.0, the seal: the whole table (recorder_paint_target, the bridge to a
    GUI.Forms paint target, and the gradient brush aliases onwards). */
 #define GD_ABI_VERSION_1_0 UINT32_C(0x00010000)
+/* 1.1, provisional, appends path flattening (graphics_path_flatten
+   onwards). The number is a placeholder that the integrator assigns in
+   fold order; these slots may still change until it is fixed. */
+#define GD_ABI_VERSION_1_1 UINT32_C(0x00010001)
 
 typedef struct gd_handle {
     uint32_t slot;
@@ -964,6 +968,37 @@ typedef struct gd_api_v0 {
                                                         const gd_color* colors,
                                                         const double* positions,
                                                         uint64_t count);
+    /*
+     * ABI 1.1, provisional (the number is a placeholder): path flattening,
+     * GraphicsPath::flatten in C++ and GraphicsPath.Flatten in C#.
+     *
+     * The path as polylines: every curve, arc and ellipse replaced by chords
+     * none of whose points of the curve lies farther than tolerance from
+     * them. tolerance is a distance in the path's own coordinate units (its
+     * points as stored, after any graphics_path_transform), positive and
+     * finite; a caller drawing at scale s passes its device tolerance / s.
+     * Figures follow the raster's reading of the path: an element not
+     * starting where the figure stands starts a new figure (an arc joins it
+     * with a straight edge instead); start_figure ends a figure open and
+     * close_figure closed; a rectangle and an ellipse are closed figures of
+     * their own. A closed figure repeats its first point last. Figure i's
+     * points run from figure_ends[i - 1] (0 for the first) to
+     * figure_ends[i], exclusive, and figure_closed[i] is 1 when it is
+     * closed, else 0.
+     *
+     * point_count and figure_count receive the counts the flattening needs.
+     * When point_capacity or figure_capacity is smaller, nothing is written
+     * to the arrays and the entry fails GD_ERROR_BUFFER_TOO_SMALL (a null
+     * array with capacity 0 asks for the counts). A flattening of more than
+     * 16,777,216 points fails GD_ERROR_LIMIT_EXCEEDED with both counts 0; a
+     * tolerance that is not positive and finite fails
+     * GD_ERROR_INVALID_ARGUMENT.
+     */
+    gd_result (*graphics_path_flatten)(gd_handle path, double tolerance,
+                                       gd_point* points, uint64_t point_capacity,
+                                       uint64_t* figure_ends, uint32_t* figure_closed,
+                                       uint64_t figure_capacity,
+                                       uint64_t* point_count, uint64_t* figure_count);
 } gd_api_v0;
 
 /*

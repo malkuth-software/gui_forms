@@ -1019,6 +1019,42 @@ gd_result read_path_points(gui_drawing::GraphicsPath& path, gd_point* points,
     return GD_OK;
 }
 
+// graphics_path_flatten: counted first, so short arrays are reported
+// before anything is written; the C++ flattening writes into scratch that
+// is then copied into the caller's three arrays.
+gd_result flatten_path(gui_drawing::GraphicsPath& path, double tolerance, gd_point* points,
+                       std::uint64_t point_capacity, std::uint64_t* figure_ends,
+                       std::uint32_t* figure_closed, std::uint64_t figure_capacity,
+                       std::uint64_t* point_count, std::uint64_t* figure_count) {
+    *point_count = 0U;
+    *figure_count = 0U;
+    const gui_drawing::PathFlattening needed = path.flattened_size(tolerance);
+    if (needed.status == gui_drawing::PathFlatteningStatus::limit_exceeded) {
+        return fail(GD_ERROR_LIMIT_EXCEEDED, "path flattening exceeds its point limit");
+    }
+    *point_count = needed.point_count;
+    *figure_count = needed.figure_count;
+    if (point_capacity < needed.point_count || figure_capacity < needed.figure_count ||
+        (needed.point_count != 0U && points == nullptr) ||
+        (needed.figure_count != 0U && (figure_ends == nullptr || figure_closed == nullptr))) {
+        return fail(GD_ERROR_BUFFER_TOO_SMALL, "path flattening arrays are smaller than the counts");
+    }
+    std::vector<gui_drawing::PointF> native_points(needed.point_count);
+    std::vector<gui_drawing::FlattenedFigure> native_figures(needed.figure_count);
+    const gui_drawing::PathFlattening written = path.flatten(tolerance, native_points, native_figures);
+    if (written.status != gui_drawing::PathFlatteningStatus::complete) {
+        return fail(GD_ERROR_INTERNAL, "path flattening changed between counting and writing");
+    }
+    for (std::size_t index = 0U; index < native_points.size(); ++index) {
+        points[index] = {native_points[index].x, native_points[index].y};
+    }
+    for (std::size_t index = 0U; index < native_figures.size(); ++index) {
+        figure_ends[index] = native_figures[index].end;
+        figure_closed[index] = native_figures[index].closed ? 1U : 0U;
+    }
+    return GD_OK;
+}
+
 gd_result clone_path(gui_drawing::GraphicsPath& path, gd_handle* output) {
     return registry().adopt(GD_OBJECT_GRAPHICS_PATH, output, path.clone());
 }
@@ -1992,6 +2028,21 @@ gd_result api_graphics_path_points(gd_handle handle, gd_point* points,
     return registry().with<gui_drawing::GraphicsPath>(
         handle, GD_OBJECT_GRAPHICS_PATH, &read_path_points, points, capacity,
         required_count);
+}
+
+gd_result api_graphics_path_flatten(gd_handle handle, double tolerance, gd_point* points,
+                                    std::uint64_t point_capacity, std::uint64_t* figure_ends,
+                                    std::uint32_t* figure_closed, std::uint64_t figure_capacity,
+                                    std::uint64_t* point_count, std::uint64_t* figure_count) {
+    if (point_count == nullptr || figure_count == nullptr) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "path flattening requires count outputs");
+    }
+    if (!std::isfinite(tolerance) || !(tolerance > 0.0)) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, "path flattening tolerance must be positive and finite");
+    }
+    return registry().with<gui_drawing::GraphicsPath>(
+        handle, GD_OBJECT_GRAPHICS_PATH, &flatten_path, tolerance, points, point_capacity,
+        figure_ends, figure_closed, figure_capacity, point_count, figure_count);
 }
 
 gd_result api_graphics_path_clone(gd_handle handle, gd_handle* output) {
@@ -2994,7 +3045,7 @@ gd_result api_recorder_paint_target(gd_handle recorder, const gf_paint_target* t
 }
 
 const gd_api_v0 api_table{
-    sizeof(gd_api_v0), GD_ABI_VERSION_1_0,
+    sizeof(gd_api_v0), GD_ABI_VERSION_1_1,
     &api_last_error, &api_retain, &api_release, &api_dispose,
     &api_object_state, &api_object_kind,
     &api_solid_brush_create, &api_pen_create, &api_pen_set_width,
@@ -3078,6 +3129,8 @@ const gd_api_v0 api_table{
     &api_path_gradient_set_center_color, &api_path_gradient_set_center_point,
     &api_path_gradient_set_surround_colors, &api_path_gradient_set_interpolation,
     &api_conic_gradient_set_interpolation,
+    // 1.1, provisional.
+    &api_graphics_path_flatten,
 };
 
 } // namespace
@@ -3095,7 +3148,8 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
         requested_version != GD_ABI_VERSION_0_5 &&
         requested_version != GD_ABI_VERSION_0_6 &&
         requested_version != GD_ABI_VERSION_0_7 &&
-        requested_version != GD_ABI_VERSION_1_0) {
+        requested_version != GD_ABI_VERSION_1_0 &&
+        requested_version != GD_ABI_VERSION_1_1) {
         return fail(GD_ERROR_UNSUPPORTED_VERSION,
                     "requested GUI.Drawing ABI version is unsupported");
     }
@@ -3116,6 +3170,8 @@ extern "C" GD_C_API_EXPORT gd_result gd_get_api_v0(
         available = offsetof(gd_api_v0, recorder_draw_string_rotated);
     } else if (requested_version == GD_ABI_VERSION_0_7) {
         available = offsetof(gd_api_v0, recorder_paint_target);
+    } else if (requested_version == GD_ABI_VERSION_1_0) {
+        available = offsetof(gd_api_v0, graphics_path_flatten);
     }
     const std::size_t copied = std::min<std::size_t>(caller_size, available);
     std::memcpy(table, &api_table, copied);

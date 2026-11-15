@@ -24,9 +24,11 @@
     _ZGVZN11gui_drawing14BitmapLockView*;
     _ZGVZN11gui_drawing14DrawingCommand*;
     _ZGVZN11gui_drawing14ImageReference*;
+    _ZGVZN11gui_drawing14PathFlattening*;
     _ZGVZN11gui_drawing14RegionSnapshot*;
     _ZGVZN11gui_drawing14SrgbConversion*;
     _ZGVZN11gui_drawing15BundledFontFace*;
+    _ZGVZN11gui_drawing15FlattenedFigure*;
     _ZGVZN11gui_drawing15ImageAttributes*;
     _ZGVZN11gui_drawing16FontSubstitution*;
     _ZGVZN11gui_drawing16GraphicsRecorder*;
@@ -40,6 +42,7 @@
     _ZGVZN11gui_drawing19TextMetricsProvider*;
     _ZGVZN11gui_drawing20BitmapDamageSnapshot*;
     _ZGVZN11gui_drawing20FontFamilyResolution*;
+    _ZGVZN11gui_drawing20RecorderRasterResult*;
     _ZGVZN11gui_drawing20StringFormatSnapshot*;
     _ZGVZN11gui_drawing23ImageAttributesSnapshot*;
     _ZGVZN11gui_drawing3Pen*;
@@ -1670,9 +1673,11 @@
     _ZGVZNK11gui_drawing14BitmapLockView*;
     _ZGVZNK11gui_drawing14DrawingCommand*;
     _ZGVZNK11gui_drawing14ImageReference*;
+    _ZGVZNK11gui_drawing14PathFlattening*;
     _ZGVZNK11gui_drawing14RegionSnapshot*;
     _ZGVZNK11gui_drawing14SrgbConversion*;
     _ZGVZNK11gui_drawing15BundledFontFace*;
+    _ZGVZNK11gui_drawing15FlattenedFigure*;
     _ZGVZNK11gui_drawing15ImageAttributes*;
     _ZGVZNK11gui_drawing16FontSubstitution*;
     _ZGVZNK11gui_drawing16GraphicsRecorder*;
@@ -1686,6 +1691,7 @@
     _ZGVZNK11gui_drawing19TextMetricsProvider*;
     _ZGVZNK11gui_drawing20BitmapDamageSnapshot*;
     _ZGVZNK11gui_drawing20FontFamilyResolution*;
+    _ZGVZNK11gui_drawing20RecorderRasterResult*;
     _ZGVZNK11gui_drawing20StringFormatSnapshot*;
     _ZGVZNK11gui_drawing23ImageAttributesSnapshot*;
     _ZGVZNK11gui_drawing3Pen*;
@@ -3318,6 +3324,7 @@
     _ZN11gui_drawing14BitmapLockView*;
     _ZN11gui_drawing14DrawingCommand*;
     _ZN11gui_drawing14ImageReference*;
+    _ZN11gui_drawing14PathFlattening*;
     _ZN11gui_drawing14RegionSnapshot*;
     _ZN11gui_drawing14SrgbConversion*;
     _ZN11gui_drawing14contrast_ratioB*;
@@ -3331,12 +3338,15 @@
     _ZN11gui_drawing14srgb_to_linearB*;
     _ZN11gui_drawing14srgb_to_linearE*;
     _ZN11gui_drawing15BundledFontFace*;
+    _ZN11gui_drawing15FlattenedFigure*;
     _ZN11gui_drawing15ImageAttributes*;
     _ZN11gui_drawing15font_face_styleB*;
     _ZN11gui_drawing15font_face_styleE*;
     _ZN11gui_drawing16FontSubstitution*;
     _ZN11gui_drawing16GraphicsRecorder*;
     _ZN11gui_drawing16GridPatternStyle*;
+    _ZN11gui_drawing16execute_recorderB*;
+    _ZN11gui_drawing16execute_recorderE*;
     _ZN11gui_drawing16oklab_to_xyz_d65B*;
     _ZN11gui_drawing16oklab_to_xyz_d65E*;
     _ZN11gui_drawing16xyz_d65_to_oklabB*;
@@ -3358,6 +3368,7 @@
     _ZN11gui_drawing19resolve_font_familyE*;
     _ZN11gui_drawing20BitmapDamageSnapshot*;
     _ZN11gui_drawing20FontFamilyResolution*;
+    _ZN11gui_drawing20RecorderRasterResult*;
     _ZN11gui_drawing20StringFormatSnapshot*;
     _ZN11gui_drawing20font_gate_exceptionsB*;
     _ZN11gui_drawing20font_gate_exceptionsE*;
@@ -6556,9 +6567,11 @@
     _ZNK[RO]11gui_drawing14BitmapLockView*;
     _ZNK[RO]11gui_drawing14DrawingCommand*;
     _ZNK[RO]11gui_drawing14ImageReference*;
+    _ZNK[RO]11gui_drawing14PathFlattening*;
     _ZNK[RO]11gui_drawing14RegionSnapshot*;
     _ZNK[RO]11gui_drawing14SrgbConversion*;
     _ZNK[RO]11gui_drawing15BundledFontFace*;
+    _ZNK[RO]11gui_drawing15FlattenedFigure*;
     _ZNK[RO]11gui_drawing15ImageAttributes*;
     _ZNK[RO]11gui_drawing16FontSubstitution*;
     _ZNK[RO]11gui_drawing16GraphicsRecorder*;
@@ -6572,6 +6585,7 @@
     _ZNK[RO]11gui_drawing19TextMetricsProvider*;
     _ZNK[RO]11gui_drawing20BitmapDamageSnapshot*;
     _ZNK[RO]11gui_drawing20FontFamilyResolution*;
+    _ZNK[RO]11gui_drawing20RecorderRasterResult*;
     _ZNK[RO]11gui_drawing20StringFormatSnapshot*;
     _ZNK[RO]11gui_drawing23ImageAttributesSnapshot*;
     _ZNK[RO]11gui_drawing3Pen*;
@@ -8202,9 +8216,11 @@
     _ZN[KRO]11gui_drawing14BitmapLockView*;
     _ZN[KRO]11gui_drawing14DrawingCommand*;
     _ZN[KRO]11gui_drawing14ImageReference*;
+    _ZN[KRO]11gui_drawing14PathFlattening*;
     _ZN[KRO]11gui_drawing14RegionSnapshot*;
     _ZN[KRO]11gui_drawing14SrgbConversion*;
     _ZN[KRO]11gui_drawing15BundledFontFace*;
+    _ZN[KRO]11gui_drawing15FlattenedFigure*;
     _ZN[KRO]11gui_drawing15ImageAttributes*;
     _ZN[KRO]11gui_drawing16FontSubstitution*;
     _ZN[KRO]11gui_drawing16GraphicsRecorder*;
@@ -8218,6 +8234,7 @@
     _ZN[KRO]11gui_drawing19TextMetricsProvider*;
     _ZN[KRO]11gui_drawing20BitmapDamageSnapshot*;
     _ZN[KRO]11gui_drawing20FontFamilyResolution*;
+    _ZN[KRO]11gui_drawing20RecorderRasterResult*;
     _ZN[KRO]11gui_drawing20StringFormatSnapshot*;
     _ZN[KRO]11gui_drawing23ImageAttributesSnapshot*;
     _ZN[KRO]11gui_drawing3Pen*;
@@ -9848,9 +9865,11 @@
     _ZT[VIST]N11gui_drawing14BitmapLockView*E;
     _ZT[VIST]N11gui_drawing14DrawingCommand*E;
     _ZT[VIST]N11gui_drawing14ImageReference*E;
+    _ZT[VIST]N11gui_drawing14PathFlattening*E;
     _ZT[VIST]N11gui_drawing14RegionSnapshot*E;
     _ZT[VIST]N11gui_drawing14SrgbConversion*E;
     _ZT[VIST]N11gui_drawing15BundledFontFace*E;
+    _ZT[VIST]N11gui_drawing15FlattenedFigure*E;
     _ZT[VIST]N11gui_drawing15ImageAttributes*E;
     _ZT[VIST]N11gui_drawing16FontSubstitution*E;
     _ZT[VIST]N11gui_drawing16GraphicsRecorder*E;
@@ -9864,6 +9883,7 @@
     _ZT[VIST]N11gui_drawing19TextMetricsProvider*E;
     _ZT[VIST]N11gui_drawing20BitmapDamageSnapshot*E;
     _ZT[VIST]N11gui_drawing20FontFamilyResolution*E;
+    _ZT[VIST]N11gui_drawing20RecorderRasterResult*E;
     _ZT[VIST]N11gui_drawing20StringFormatSnapshot*E;
     _ZT[VIST]N11gui_drawing23ImageAttributesSnapshot*E;
     _ZT[VIST]N11gui_drawing3Pen*E;
@@ -11494,9 +11514,11 @@
     _ZT[hvc]*11gui_drawing14BitmapLockView*;
     _ZT[hvc]*11gui_drawing14DrawingCommand*;
     _ZT[hvc]*11gui_drawing14ImageReference*;
+    _ZT[hvc]*11gui_drawing14PathFlattening*;
     _ZT[hvc]*11gui_drawing14RegionSnapshot*;
     _ZT[hvc]*11gui_drawing14SrgbConversion*;
     _ZT[hvc]*11gui_drawing15BundledFontFace*;
+    _ZT[hvc]*11gui_drawing15FlattenedFigure*;
     _ZT[hvc]*11gui_drawing15ImageAttributes*;
     _ZT[hvc]*11gui_drawing16FontSubstitution*;
     _ZT[hvc]*11gui_drawing16GraphicsRecorder*;
@@ -11510,6 +11532,7 @@
     _ZT[hvc]*11gui_drawing19TextMetricsProvider*;
     _ZT[hvc]*11gui_drawing20BitmapDamageSnapshot*;
     _ZT[hvc]*11gui_drawing20FontFamilyResolution*;
+    _ZT[hvc]*11gui_drawing20RecorderRasterResult*;
     _ZT[hvc]*11gui_drawing20StringFormatSnapshot*;
     _ZT[hvc]*11gui_drawing23ImageAttributesSnapshot*;
     _ZT[hvc]*11gui_drawing3Pen*;
@@ -13140,9 +13163,11 @@
     _ZZN11gui_drawing14BitmapLockView*;
     _ZZN11gui_drawing14DrawingCommand*;
     _ZZN11gui_drawing14ImageReference*;
+    _ZZN11gui_drawing14PathFlattening*;
     _ZZN11gui_drawing14RegionSnapshot*;
     _ZZN11gui_drawing14SrgbConversion*;
     _ZZN11gui_drawing15BundledFontFace*;
+    _ZZN11gui_drawing15FlattenedFigure*;
     _ZZN11gui_drawing15ImageAttributes*;
     _ZZN11gui_drawing16FontSubstitution*;
     _ZZN11gui_drawing16GraphicsRecorder*;
@@ -13156,6 +13181,7 @@
     _ZZN11gui_drawing19TextMetricsProvider*;
     _ZZN11gui_drawing20BitmapDamageSnapshot*;
     _ZZN11gui_drawing20FontFamilyResolution*;
+    _ZZN11gui_drawing20RecorderRasterResult*;
     _ZZN11gui_drawing20StringFormatSnapshot*;
     _ZZN11gui_drawing23ImageAttributesSnapshot*;
     _ZZN11gui_drawing3Pen*;
@@ -14786,9 +14812,11 @@
     _ZZNK11gui_drawing14BitmapLockView*;
     _ZZNK11gui_drawing14DrawingCommand*;
     _ZZNK11gui_drawing14ImageReference*;
+    _ZZNK11gui_drawing14PathFlattening*;
     _ZZNK11gui_drawing14RegionSnapshot*;
     _ZZNK11gui_drawing14SrgbConversion*;
     _ZZNK11gui_drawing15BundledFontFace*;
+    _ZZNK11gui_drawing15FlattenedFigure*;
     _ZZNK11gui_drawing15ImageAttributes*;
     _ZZNK11gui_drawing16FontSubstitution*;
     _ZZNK11gui_drawing16GraphicsRecorder*;
@@ -14802,6 +14830,7 @@
     _ZZNK11gui_drawing19TextMetricsProvider*;
     _ZZNK11gui_drawing20BitmapDamageSnapshot*;
     _ZZNK11gui_drawing20FontFamilyResolution*;
+    _ZZNK11gui_drawing20RecorderRasterResult*;
     _ZZNK11gui_drawing20StringFormatSnapshot*;
     _ZZNK11gui_drawing23ImageAttributesSnapshot*;
     _ZZNK11gui_drawing3Pen*;

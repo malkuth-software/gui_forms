@@ -39,7 +39,9 @@ internal static unsafe class NativeDrawingBridge
     [StructLayout(LayoutKind.Sequential)] private struct Api
     {
         internal uint StructSize, AbiVersion;
-        internal fixed ulong Entries[104];
+        // Every slot through graphics_path_flatten (ABI 1.1, provisional;
+        // the version number is a placeholder): 145 entries.
+        internal fixed ulong Entries[145];
     }
 
     [DllImport("gui_forms_abi1", EntryPoint = "gd_get_api_v0", CallingConvention = CallingConvention.Cdecl)]
@@ -52,14 +54,18 @@ internal static unsafe class NativeDrawingBridge
     private static extern nint SendMessageW(nint window, uint message, nint wParam, nint lParam);
     private const uint NativeSurfacePresentedMessage = 0x83f1u;
 
+    // GD_ABI_VERSION_1_1 (provisional; the integrator assigns the number).
+    private const uint AbiVersion = 0x00010001u;
     private static Api api = Load();
 
     private static Api Load()
     {
         var value = new Api { StructSize = (uint)sizeof(Api) };
-        Check(GetApi(2, ref value));
-        if (value.AbiVersion != 2 || value.StructSize < sizeof(Api))
-            throw new InvalidOperationException("GUI.Drawing ABI 0.2 table is incomplete.");
+        // The table only grows at its end, so the 0.2 slots used below keep
+        // their indices in the 1.1 table.
+        Check(GetApi(AbiVersion, ref value));
+        if (value.AbiVersion != AbiVersion || value.StructSize < sizeof(Api))
+            throw new InvalidOperationException("GUI.Drawing ABI 1.1 table is incomplete.");
         return value;
     }
 
@@ -588,6 +594,40 @@ internal static unsafe class NativeDrawingBridge
         var result = new global::System.Drawing.PointF[native.Length];
         for (var index = 0; index < result.Length; ++index)
             result[index] = new((float)native[index].X, (float)native[index].Y);
+        return result;
+    }
+    // graphics_path_flatten (slot 144): the path's figures as polylines,
+    // every curve within `tolerance` path units of its chords. Each figure
+    // is its points and whether it is closed (a closed figure repeats its
+    // first point last).
+    internal static (global::System.Drawing.PointF[] Points, bool Closed)[] GraphicsPathFlatten(Handle path,
+        double tolerance)
+    {
+        ulong pointCount, figureCount;
+        var first = ((delegate* unmanaged[Cdecl]<Handle, double, Point*, ulong, ulong*, uint*, ulong, ulong*, ulong*, int>)
+            Entry(144))(path, tolerance, null, 0, null, null, 0, &pointCount, &figureCount);
+        if (first == 0) return [];
+        if (first != 6) Check(first);
+        var points = new Point[checked((int)pointCount)];
+        var ends = new ulong[checked((int)figureCount)];
+        var closed = new uint[ends.Length];
+        fixed (Point* pointPointer = points)
+        fixed (ulong* endPointer = ends)
+        fixed (uint* closedPointer = closed)
+            Check(((delegate* unmanaged[Cdecl]<Handle, double, Point*, ulong, ulong*, uint*, ulong, ulong*, ulong*, int>)
+                Entry(144))(path, tolerance, pointPointer, (ulong)points.Length, endPointer, closedPointer,
+                    (ulong)ends.Length, &pointCount, &figureCount));
+        var result = new (global::System.Drawing.PointF[] Points, bool Closed)[ends.Length];
+        var start = 0;
+        for (var figure = 0; figure < ends.Length; ++figure)
+        {
+            var end = checked((int)ends[figure]);
+            var figurePoints = new global::System.Drawing.PointF[end - start];
+            for (var index = start; index < end; ++index)
+                figurePoints[index - start] = new((float)points[index].X, (float)points[index].Y);
+            result[figure] = (figurePoints, closed[figure] != 0);
+            start = end;
+        }
         return result;
     }
     internal static global::System.Drawing.Drawing2D.GraphicsPath GraphicsPathClone(Handle path)
