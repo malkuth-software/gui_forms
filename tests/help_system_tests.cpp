@@ -303,11 +303,12 @@ void system_routes() {
     require(card != nullptr && (*card).page().links.size() == 1U && (*card).page().links[0].target == "app.tools" &&
                 (*card).page().links[0].fragment == "app.tools.pen",
             "More goes to the pen's line on the tools page");
-    require((*program.window).dispatch_key({KeyAction::down, PhysicalKey::escape, Modifier::none}) ||
+    // The card takes the focus into its layer, which dismisses on Escape.
+    require((*program.window).dispatch_key({KeyAction::down, PhysicalKey::escape, Modifier::none}) &&
                 !help.popup_open(),
-            "Escape is taken");
+            "Escape is taken and closes the card");
     help.close_popup();
-    require(!help.popup_open(), "the popup closes");
+    require(!help.popup_open(), "closing a closed popup leaves it closed");
     require(help.show_popup("app.tools", program.tools) && help.popup_open(), "a page popup opens");
     help.close_popup();
     // What's This: Shift+F1, then a click on the eraser.
