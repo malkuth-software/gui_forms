@@ -190,6 +190,16 @@ stx_fontpack::PackInput sfnt_input(const char* name, std::uint32_t table_count, 
     return input;
 }
 
+// An sfnt whose second table's directory offset lies far past the end of
+// the file (A-gf-typography-01-F4: 0x4F54544F is "OTTO", what a one-font
+// collection's header shows where a table offset would be). The packer must
+// keep it verbatim, and the pack must round-trip it.
+stx_fontpack::PackInput sfnt_past_end_input() {
+    stx_fontpack::PackInput input = sfnt_input("past-end.ttf", 2, 7);
+    put_be32(input.data, 12 + 16 + 8, 0x4F54544Fu);
+    return input;
+}
+
 bool read_file(const std::filesystem::path& path, Bytes& bytes) {
     std::FILE* file = std::fopen(path.string().c_str(), "rb");
     if (file == nullptr) {
@@ -967,6 +977,7 @@ int main(int argc, char** argv) {
     fonts.push_back(sfnt_input("raw-b.ttf", 4, 4));
     fonts.push_back(blob_input("noise-b.bin", 1500000, 5, false));
     fonts.push_back(sfnt_input("raw-c.ttf", 2, 6));
+    fonts.push_back(sfnt_past_end_input());
     if (argc > 1) {
         directory_inputs(argv[1], fonts);
     }

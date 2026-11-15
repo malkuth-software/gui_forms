@@ -1117,7 +1117,10 @@ void font_transform(const Bytes& file, Streams& streams) {
     std::sort(physical.begin(), physical.end(), ByOffset());
     std::size_t previous_end = directory_size;
     for (std::uint32_t t = 0; t < table_count; t += 1) {
-        if (physical[t].offset < previous_end || physical[t].length > size - physical[t].offset) {
+        // offset is tested against size first, so size - offset cannot wrap
+        // (A-gf-typography-01-F4; the loader's plan has the same test).
+        if (physical[t].offset > size || physical[t].offset < previous_end ||
+            physical[t].length > size - physical[t].offset) {
             font_verbatim(file, streams);
             return;
         }
