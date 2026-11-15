@@ -353,12 +353,14 @@ std::shared_ptr<const Theme> procedural_theme(const ProceduralFill& fill) {
     return theme;
 }
 
+// The clock and the painter come first so they outlive the window that
+// borrows them (B-gf-tests-05-F1).
 struct Fixture final {
+    ManualTime time{};
+    RasterWatch painter{};
     std::shared_ptr<Panel> root;
     std::shared_ptr<Pad> pad;
     std::unique_ptr<Window> window;
-    ManualTime time{};
-    RasterWatch painter{};
 };
 
 void repaint(Fixture& fixture) {
