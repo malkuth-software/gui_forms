@@ -246,12 +246,10 @@ gf_value_kind value_kind_of(BindingValueKind kind) noexcept {
 
 const Schema& schema() {
     // Leaked on purpose: the text it lends lives until the process ends.
-    // Only the UI thread reaches here, so no two builds run at once, and the
-    // registry's lock orders this write before any later thread's read.
-    static Schema* built = nullptr;
-    if (built == nullptr) {
-        built = build_schema().release();
-    }
+    // The UI thread and, since 1.1, a sub-surface's thread reach here
+    // (A-gf-abi-02-F5), so the build is a function-local static: the
+    // language runs it once and makes a racing first caller wait for it.
+    static const Schema* const built = build_schema().release();
     return *built;
 }
 
