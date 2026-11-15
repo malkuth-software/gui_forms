@@ -168,7 +168,7 @@ copy of any routine and ships no GUI.Forms library beside it.
 | Consumer | Links | Ships |
 |---|---|---|
 | C++ | `GUIForms::Application` (or `Core` and `Controls` for a headless program): static archives. The installed `Application` is `lib/libgui_forms_application.a` (the engine, renderer and host, linked whole because its controls and themes register themselves at static initialization) and `lib/libgui_forms_application_deps.a` (Skia and the text stack), with `Threading`, STXlib (its state included) and the stx archives beside them | the executable alone. On macOS add `libc++.1.dylib`, `libc++abi.1.dylib` and `libunwind.1.dylib` from the runtime prefix to `Contents/Frameworks` only while the pinned runtime has no static archives |
-| C or C# | `GUIForms::CAbi`: the C ABI library, self-contained, with the drawing ABI (`gui_forms/drawing_c_api.h`) and its raster service (`gui_forms/drawing_raster_c_api.h`) in it | `gui_forms_abi1.dll`, `libgui_forms_abi.so.1` or `libgui_forms_abi.1.dylib`, beside the executable (in `Contents/Frameworks` on macOS), and its `fonts/` licences |
+| C or C# | `GUIForms::CAbi`: the C ABI library, self-contained, with the drawing ABI (`gui_forms/drawing_c_api.h`) and its raster (installed by the drawing table's `raster_initialize`) in it | `gui_forms_abi1.dll`, `libgui_forms_abi.so.1` or `libgui_forms_abi.1.dylib`, beside the executable (in `Contents/Frameworks` on macOS), and its `fonts/` licences |
 
 A process uses either the C ABI library or a statically linked C++ engine,
 never both: each holds its own STXlib state (allocator, thread identities and
@@ -181,8 +181,9 @@ A C++ program exports nothing of GUI.Forms: the archives are linked into it.
 The public headers still mark their declarations with `GUI_FORMS_API` and
 `GUI_FORMS_THREADING_API`; on Windows the marks are empty for the static
 archives, and on macOS and Linux they are default visibility, so your own
-export policy decides. The C ABI library exports only `gf_*`, `gd_*` and
-`gdr_*` entry points (its allowlist is `share/GUIForms/abi/gf_abi_exports.txt`)
+export policy decides. The C ABI library exports exactly the `gf_*` entry
+points of its allowlist (`share/GUIForms/abi/gf_abi_exports.txt`) and
+`gd_get_api_v0`; there is no `gdr_*` export
 and keeps libc++, STXlib, Skia and the text stack hidden inside it.
 
 ## Checked builds

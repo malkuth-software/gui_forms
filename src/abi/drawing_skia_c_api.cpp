@@ -1,5 +1,4 @@
 #include "gui_forms/drawing_c_api.h"
-#include "gui_forms/drawing_raster_c_api.h"
 #include "gui_forms/drawing/recorder_raster/recorder_raster.hpp"
 
 #include "drawing_raster_service.h"
@@ -169,7 +168,7 @@ gd_result resolve_font(const void* font, gd_font_resolution* resolution) {
 
 } // namespace
 
-extern "C" gd_result gdr_initialize(void) {
+extern "C" gd_result gui_drawing_raster_module_initialize(void) {
     gd_api_v0 api{};
     api.struct_size = sizeof(api);
     const gd_result loaded = gd_get_api_v0(GD_ABI_VERSION_0_1, &api);

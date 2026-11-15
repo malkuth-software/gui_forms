@@ -39,15 +39,17 @@ internal static unsafe class NativeDrawingBridge
     [StructLayout(LayoutKind.Sequential)] private struct Api
     {
         internal uint StructSize, AbiVersion;
-        // Every slot through graphics_path_flatten (ABI 1.1, provisional;
-        // the version number is a placeholder): 145 entries.
-        internal fixed ulong Entries[145];
+        // Every slot through raster_initialize (ABI 1.1, provisional; the
+        // version number is a placeholder): 146 entries.
+        internal fixed ulong Entries[146];
     }
 
     [DllImport("gui_forms_abi1", EntryPoint = "gd_get_api_v0", CallingConvention = CallingConvention.Cdecl)]
     private static extern int GetApi(uint requestedVersion, ref Api api);
-    [DllImport("gui_forms_abi1", EntryPoint = "gdr_initialize", CallingConvention = CallingConvention.Cdecl)]
-    private static extern int InitializeRaster();
+    // The raster is installed through the drawing table's raster_initialize
+    // (slot 145, after graphics_path_flatten; ABI 1.1 provisional); there is
+    // no gdr_initialize export.
+    private static int InitializeRaster() => ((delegate* unmanaged[Cdecl]<int>)Entry(145))();
     [DllImport("user32.dll")]
     private static extern nint WindowFromDC(nint device);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]

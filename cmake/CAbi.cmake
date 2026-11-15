@@ -8,7 +8,8 @@
 # Application archives whole, with libc++, STXlib's state and the GUI.Drawing
 # C APIs (gui_drawing_c_api_objects and gui_drawing_raster_c_api_objects in
 # CMakeLists.txt), and exports only the gf_ entry points of the allowlist and
-# GUI.Drawing's gd_get_api_v0 and gdr_initialize. Everything else, libc++
+# GUI.Drawing's gd_get_api_v0 (whose table carries raster_initialize).
+# Everything else, libc++
 # included, stays local (the version script on ELF, the exported-symbols list
 # on Mach-O; on Windows only the dllexport entry points leave the DLL). A C or
 # C# program loads it alone. This replaces decision C-2's shared engine: a
@@ -62,12 +63,10 @@ endforeach()
 if(NOT _gf_abi_exports)
     message(FATAL_ERROR "${_gf_abi_allowlist} names no symbol")
 endif()
-# GUI.Drawing's entry points, folded into the library: the drawing ABI's and,
-# where the renderer is built, the raster module's.
+# GUI.Drawing's one entry point, folded into the library: gd_get_api_v0,
+# whose table's raster_initialize installs the raster (there is no gdr_
+# export any more).
 list(APPEND _gf_abi_exports gd_get_api_v0)
-if(TARGET gui_drawing_raster_c_api_objects)
-    list(APPEND _gf_abi_exports gdr_initialize)
-endif()
 
 if(WIN32)
     set(_gf_abi_output_name "gui_forms_abi${GUI_FORMS_ABI_MAJOR}")
@@ -90,6 +89,9 @@ string(APPEND _gf_abi_map_text "    local: *;\n};\n")
 file(CONFIGURE OUTPUT "${_gf_abi_generated}/gf_abi_exports.map" CONTENT "${_gf_abi_map_text}" @ONLY)
 file(CONFIGURE OUTPUT "${_gf_abi_generated}/gf_abi_exports_macos.txt" CONTENT "${_gf_abi_macos_text}" @ONLY)
 file(CONFIGURE OUTPUT "${_gf_abi_generated}/${_gf_abi_output_name}.def" CONTENT "${_gf_abi_def_text}" @ONLY)
+# The exact export set, one name per line, for the export check below.
+string(JOIN "\n" _gf_abi_expected_text ${_gf_abi_exports})
+file(CONFIGURE OUTPUT "${_gf_abi_generated}/gf_abi_exports.txt" CONTENT "${_gf_abi_expected_text}\n" @ONLY)
 
 # The library's objects, compiled once: the shared library is made from
 # them, and the stage C4 trace gate links them statically beside the C++
@@ -175,6 +177,10 @@ target_link_libraries(gui_forms_abi PRIVATE gui_forms_application stxlib::bounda
 if(TARGET gui_drawing_raster_c_api_objects)
     target_sources(gui_forms_abi PRIVATE $<TARGET_OBJECTS:gui_drawing_raster_c_api_objects>)
     target_link_libraries(gui_forms_abi PRIVATE gui_drawing_skia)
+else()
+    # Without the renderer the table's raster_initialize fails
+    # GD_ERROR_NOT_AVAILABLE (src/abi/drawing_raster_service.h).
+    target_sources(gui_forms_abi PRIVATE src/abi/drawing_raster_absent.cpp)
 endif()
 if(WIN32)
     target_link_libraries(gui_forms_abi PRIVATE advapi32)
@@ -298,7 +304,7 @@ install(FILES
         "${_gf_abi_allowlist}"
         DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/abi)
 # The substitution faces' licences and attribution, in the fonts directory
-# beside the library, where gdr_initialize looks (CMakeLists.txt,
+# beside the library, where raster_initialize looks (CMakeLists.txt,
 # gui_drawing_raster_fonts), and beside it in the build.
 if(TARGET gui_drawing_raster_c_api_objects)
     add_custom_command(TARGET gui_forms_abi POST_BUILD
@@ -361,14 +367,21 @@ if(GUI_FORMS_BUILD_TESTS)
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_audit.py coverage
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/conformance ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/schema
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/host)
-    # The C ABI library exports its gf_ entry points and GUI.Drawing's gd_
-    # and gdr_ ones alone (cmake/CheckCAbiExports.cmake: no libc++, STXlib
-    # or engine symbol), and no symbol of the pinned text stack
+    # The C ABI library exports exactly its allowlisted gf_ entry points and
+    # gd_get_api_v0 (cmake/CheckCAbiExports.cmake against the generated
+    # gf_abi_exports.txt: no gdr_, libc++, STXlib or engine symbol, none
+    # missing; on Windows the Win32 shim's export names are accepted too), and no symbol of the pinned text stack
     # (cmake/CheckForeignTextSymbols.cmake). It is one module: it imports no
     # library but the system's (cmake/CheckSystemImports.cmake).
+    set(_gf_abi_extra_exports "")
+    if(WIN32)
+        set(_gf_abi_extra_exports "-DEXTRA_DEF=${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows/win32_compat_shim.def")
+    endif()
     add_test(NAME gui_forms_abi_exports_only_entry_points
         COMMAND "${CMAKE_COMMAND}" "-DTOOL_NM=${CMAKE_NM}" "-DTOOL_OBJDUMP=${CMAKE_OBJDUMP}"
             "-DLIBRARY=$<TARGET_FILE:gui_forms_abi>"
+            "-DEXPECTED=${_gf_abi_generated}/gf_abi_exports.txt"
+            ${_gf_abi_extra_exports}
             -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckCAbiExports.cmake")
     set(_gf_abi_shared_runtime OFF)
     if(APPLE AND NOT GUI_FORMS_STATIC_CXX_RUNTIME)

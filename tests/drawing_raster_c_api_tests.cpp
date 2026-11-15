@@ -1,6 +1,5 @@
 #include "gui_forms/drawing_c_api.h"
 #include "gui_forms/c/gf_abi.h"
-#include "gui_forms/drawing_raster_c_api.h"
 
 #include <stxlib/thread_records.hpp>
 
@@ -487,8 +486,21 @@ int main() {
     CHECK(api.bitmap_decode_png != nullptr);
     CHECK(api.measure_string != nullptr);
     CHECK(api.recorder_execute_from != nullptr);
-    CHECK(gdr_initialize() == GD_OK);
-    CHECK(gdr_initialize() == GD_OK);
+    // The raster is installed through the table (1.1, provisional): its
+    // 0.1 prefix has no raster_initialize, and the 1.0 one stops before it.
+    CHECK(api.struct_size == offsetof(gd_api_v0, bitmap_edit_begin));
+    gd_api_v0 raster{};
+    raster.struct_size = sizeof(raster);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_1_0, &raster) == GD_OK);
+    CHECK(raster.struct_size == offsetof(gd_api_v0, raster_initialize));
+    CHECK(raster.raster_initialize == nullptr);
+    raster = gd_api_v0{};
+    raster.struct_size = sizeof(raster);
+    CHECK(gd_get_api_v0(GD_ABI_VERSION_1_1, &raster) == GD_OK);
+    CHECK(raster.struct_size == sizeof(raster));
+    CHECK(raster.raster_initialize != nullptr);
+    CHECK(raster.raster_initialize() == GD_OK);
+    CHECK(raster.raster_initialize() == GD_OK);
 
     gd_handle bitmap{};
     gd_handle recorder{};

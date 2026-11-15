@@ -4,9 +4,9 @@
 // name), libgui_forms_abi.so.1 on Linux and libgui_forms_abi.1.dylib on macOS
 // (the major is the SOVERSION). It is the one native library a C# program
 // loads: self-contained (one module, owner decision 2026-11-15), with the
-// engine, the drawing ABI (gd_*) and its raster service (gdr_initialize)
-// inside, importing only system libraries and exporting only gf_*, gd_* and
-// gdr_* entry points.
+// engine, the drawing ABI (gd_*) and its raster (the drawing table's
+// raster_initialize) inside, importing only system libraries and exporting
+// only its gf_* entry points and gd_get_api_v0.
 using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;

@@ -795,6 +795,7 @@ int main(void) {
     CHECK(api.abi_version == GD_ABI_VERSION_1_0);
     CHECK(api.recorder_paint_target != NULL);
     CHECK(api.graphics_path_flatten == NULL);
+    CHECK(api.raster_initialize == NULL);
     CHECK(api.linear_gradient_brush_set_blend == api.linear_gradient_set_blend);
     CHECK(api.linear_gradient_brush_set_interpolation == api.linear_gradient_set_interpolation);
     CHECK(api.linear_gradient_brush_set_wrap_mode == api.linear_gradient_set_wrap_mode);
@@ -815,15 +816,21 @@ int main(void) {
         CHECK(shorter.recorder_paint_target == NULL);
     }
     /* 1.1 (provisional, the number a placeholder) is the whole table:
-       graphics_path_flatten after the 1.0 aliases. */
-    CHECK(sizeof(gd_api_v0) ==
+       graphics_path_flatten after the 1.0 aliases, then the raster's
+       raster_initialize. This program links no raster, so it answers
+       NOT_AVAILABLE and leaves the raster entries refusing as before. */
+    CHECK(offsetof(gd_api_v0, raster_initialize) ==
           offsetof(gd_api_v0, graphics_path_flatten) + sizeof(api.graphics_path_flatten));
+    CHECK(sizeof(gd_api_v0) ==
+          offsetof(gd_api_v0, raster_initialize) + sizeof(api.raster_initialize));
     memset(&api, 0, sizeof(api));
     api.struct_size = sizeof(api);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_1_1, &api) == GD_OK);
     CHECK(api.struct_size == sizeof(api));
     CHECK(api.abi_version == GD_ABI_VERSION_1_1);
     CHECK(api.graphics_path_flatten != NULL);
+    CHECK(api.raster_initialize != NULL);
+    CHECK(api.raster_initialize() == GD_ERROR_NOT_AVAILABLE);
     CHECK(gd_get_api_v0(UINT32_C(0x00010002), &api) == GD_ERROR_UNSUPPORTED_VERSION);
     CHECK(gd_get_api_v0(UINT32_C(0x00020000), &api) == GD_ERROR_UNSUPPORTED_VERSION);
     memset(&api, 0, sizeof(api));

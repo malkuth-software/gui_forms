@@ -4,7 +4,7 @@
 The marks record the public C++ surface. Since the one-module decision
 (owner, 2026-11-15) the Application and Threading libraries are static
 archives linked into each program's one module, and no shipped library
-exports these marks: the C ABI library exports only its gf_*, gd_* and gdr_*
+exports these marks: the C ABI library exports only its gf_* and gd_*
 entry points. The lists below stay in step with the marks for a consumer
 that builds its own shared library from the archives, and the shared test
 runtime, which exports everything, is the only first-party shared library
@@ -63,9 +63,8 @@ What it marks, outside templates:
 A class's mark covers its members, static data members, vtable and typeinfo,
 which classes thrown, caught or dynamic_cast across the boundary need.
 
-Not annotated: include/gui_forms/c/, drawing_c_api.h and
-drawing_raster_c_api.h (the C interfaces carry their own macros and
-allowlists), include/gui_forms/audio/ (a static library outside the
+Not annotated: include/gui_forms/c/ and drawing_c_api.h (the C
+interfaces carry their own macros and allowlists), include/gui_forms/audio/ (a static library outside the
 Application archives), threading.hpp (its own library),
 the export headers themselves, and class templates (their members are
 instantiated in each consumer; none is explicitly instantiated in a library).
@@ -87,7 +86,7 @@ MACROS = (MACRO, THREADING_MACRO)
 EXPORT_INCLUDE = '#include "gui_forms/export/application_export.hpp"'
 
 EXCLUDED_DIRECTORIES = ('c', 'audio', 'export')
-EXCLUDED_FILES = ('drawing_c_api.h', 'drawing_raster_c_api.h', 'threading.hpp')
+EXCLUDED_FILES = ('drawing_c_api.h', 'threading.hpp')
 
 CLASS_KEYS = ('class', 'struct', 'union')
 ACCESS_KEYS = ('public', 'protected', 'private')

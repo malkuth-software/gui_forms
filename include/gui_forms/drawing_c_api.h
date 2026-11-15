@@ -115,9 +115,11 @@ extern "C" {
 /* 1.0, the seal: the whole table (recorder_paint_target, the bridge to a
    GUI.Forms paint target, and the gradient brush aliases onwards). */
 #define GD_ABI_VERSION_1_0 UINT32_C(0x00010000)
-/* 1.1, provisional, appends path flattening (graphics_path_flatten
-   onwards). The number is a placeholder that the integrator assigns in
-   fold order; these slots may still change until it is fixed. */
+/* 1.1, provisional, appends path flattening (graphics_path_flatten)
+   and then the raster's entry (raster_initialize), which replaces the
+   former gdr_initialize export. The number is a placeholder that the
+   integrator assigns in fold order; these slots may still change until it
+   is fixed. */
 #define GD_ABI_VERSION_1_1 UINT32_C(0x00010001)
 
 typedef struct gd_handle {
@@ -199,8 +201,8 @@ typedef enum gd_result {
     /* Memory ran out (1.0). */
     GD_ERROR_OUT_OF_MEMORY = 11,
     /* The entry cannot work here: a Windows entry on another host, or an
-       entry that needs the raster module (gdr_initialize) before it is
-       loaded (1.0). */
+       entry that needs the raster before raster_initialize has installed
+       it, or in a library built without it (1.0). */
     GD_ERROR_NOT_AVAILABLE = 12
 } gd_result;
 
@@ -522,7 +524,7 @@ typedef struct gd_font_resolution {
  * of the 1.0 ABI. Its callbacks take GUI.Drawing's C++ objects, so only a
  * raster module built with this library installs it; the record is declared
  * in the library's own sources (src/abi/drawing_raster_service.h). A program
- * loads the raster module with gdr_initialize instead.
+ * installs the raster through the table's raster_initialize instead.
  */
 typedef struct gd_raster_service_v0 gd_raster_service_v0;
 
@@ -933,7 +935,7 @@ typedef struct gd_api_v0 {
      * 1.0 size, pixels, a width and height of 1 to 32,768 (at most 10^8
      * pixels), row_bytes a multiple of 4 holding a row, a finite positive
      * scale and a finite damage rectangle. Needs the raster module
-     * (GD_ERROR_NOT_AVAILABLE before gdr_initialize). Call it from the paint
+     * (GD_ERROR_NOT_AVAILABLE before raster_initialize). Call it from the paint
      * callback, on its thread, while the pixels are lent.
      */
     gd_result (*recorder_paint_target)(gd_handle recorder,
@@ -999,6 +1001,19 @@ typedef struct gd_api_v0 {
                                        uint64_t* figure_ends, uint32_t* figure_closed,
                                        uint64_t figure_capacity,
                                        uint64_t* point_count, uint64_t* figure_count);
+    /*
+     * ABI 1.1, provisional (the number is a placeholder): the raster.
+     *
+     * Installs the CPU raster this library carries as the table's raster
+     * service (recorder_execute, the PNG entries, measured text, font
+     * resolution and recorder_paint_target need it) and registers its
+     * packaged faces on the calling thread. Call it once per process before
+     * those entries; a later call changes nothing and returns GD_OK. A
+     * library built without the renderer fails GD_ERROR_NOT_AVAILABLE. It
+     * replaces gdr_initialize, which is no longer exported: the library
+     * exports gd_get_api_v0 and its gf_ entry points alone.
+     */
+    gd_result (*raster_initialize)(void);
 } gd_api_v0;
 
 /*

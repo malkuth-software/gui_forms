@@ -2259,7 +2259,7 @@ gd_result api_recorder_execute_from(gd_handle recorder, gd_handle bitmap,
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster module is not loaded (gdr_initialize)");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster is not installed (raster_initialize)");
     }
     return registry().with_two<gui_drawing::GraphicsRecorder, gui_drawing::Bitmap>(
         recorder, GD_OBJECT_RECORDER, bitmap, GD_OBJECT_BITMAP,
@@ -2280,7 +2280,7 @@ gd_result api_bitmap_encode_png(gd_handle bitmap, void* buffer,
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster module is not loaded (gdr_initialize)");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster is not installed (raster_initialize)");
     }
     return registry().with<gui_drawing::Bitmap>(
         bitmap, GD_OBJECT_BITMAP, &encode_bitmap_png, service, buffer,
@@ -2295,7 +2295,7 @@ gd_result api_bitmap_decode_png(const void* data, std::uint64_t size,
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster module is not loaded (gdr_initialize)");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster is not installed (raster_initialize)");
     }
     void* decoded = nullptr;
     const gd_result result = service.decode_png(data, size, &decoded);
@@ -2337,7 +2337,7 @@ gd_result api_measure_string(gd_string_view text, gd_handle font,
     }
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster module is not loaded (gdr_initialize)");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster is not installed (raster_initialize)");
     }
     const gd_string_view view{native_text.data(), native_text.size()};
     if (format.slot == 0U && format.generation == 0U) {
@@ -3038,10 +3038,21 @@ gd_result api_recorder_paint_target(gd_handle recorder, const gf_paint_target* t
     if (const gd_result framed = frame_paint_target(target, frame); framed != GD_OK) return framed;
     gd_raster_service_v0 service{};
     if (!load_raster_service(service)) {
-        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster module is not loaded (gdr_initialize)");
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing raster is not installed (raster_initialize)");
     }
     return registry().with<gui_drawing::GraphicsRecorder>(
         recorder, GD_OBJECT_RECORDER, &paint_recorder_onto_target, service, frame, commands_executed);
+}
+
+// raster_initialize (1.1, provisional): the raster objects' installer, or
+// the absent one in a build without the renderer.
+gd_result api_raster_initialize() {
+    const gd_result installed = gui_drawing_raster_module_initialize();
+    if (installed == GD_ERROR_NOT_AVAILABLE) {
+        return fail(GD_ERROR_NOT_AVAILABLE, "GUI.Drawing was built without its raster");
+    }
+    if (installed != GD_OK) return fail(installed, "GUI.Drawing raster could not be installed");
+    return GD_OK;
 }
 
 const gd_api_v0 api_table{
@@ -3131,6 +3142,7 @@ const gd_api_v0 api_table{
     &api_conic_gradient_set_interpolation,
     // 1.1, provisional.
     &api_graphics_path_flatten,
+    &api_raster_initialize,
 };
 
 } // namespace

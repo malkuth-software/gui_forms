@@ -1092,10 +1092,21 @@ target_include_directories(gui_drawing_c_api PUBLIC
 )
 target_compile_definitions(gui_drawing_c_api INTERFACE GD_C_API_STATIC)
 set_target_properties(gui_drawing_c_api PROPERTIES LINKER_LANGUAGE CXX)
-# The drawing ABI and its raster module are installed inside the C ABI
-# library (cmake/CAbi.cmake: GUIForms::CAbi exports gd_get_api_v0 and
-# gdr_initialize), not as libraries of their own: a C or C# program loads one
-# module.
+# The drawing ABI and its raster are installed inside the C ABI library
+# (cmake/CAbi.cmake: GUIForms::CAbi exports gd_get_api_v0, whose table's
+# raster_initialize installs the raster), not as libraries of their own: a C
+# or C# program loads one module.
+#
+# The table's raster_initialize calls gui_drawing_raster_module_initialize
+# (src/abi/drawing_raster_service.h), which the raster objects define. A
+# program of the archive above without them links this one instead, whose
+# raster_initialize fails GD_ERROR_NOT_AVAILABLE; never both.
+add_library(gui_drawing_raster_absent STATIC src/abi/drawing_raster_absent.cpp)
+target_include_directories(gui_drawing_raster_absent PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set_target_properties(gui_drawing_raster_absent PROPERTIES
+    CXX_VISIBILITY_PRESET hidden
+    POSITION_INDEPENDENT_CODE ON)
 
 add_library(gui_forms_host_headless STATIC
     src/host/headless/capabilities/headless_capabilities.cpp
@@ -1730,11 +1741,12 @@ if(GUI_FORMS_ENABLE_SKIA)
     target_compile_definitions(gui_forms_lamp_keys PRIVATE
         GUI_FORMS_LEGEND_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthMono.ttf")
 
-    # The GUI.Drawing raster module (gui_forms/drawing_raster_c_api.h): its
-    # objects ship inside the C ABI library (cmake/CAbi.cmake), which exports
-    # gdr_initialize and holds the drawing executor, the text engine and the
-    # Skia derivative once, with the rest of the engine. The static archive
-    # made of them is for the in-tree tests (GDR_C_API_STATIC: no dllimport).
+    # The GUI.Drawing raster: its objects ship inside the C ABI library
+    # (cmake/CAbi.cmake), whose drawing table's raster_initialize installs
+    # it, and hold the drawing executor, the text engine and the Skia
+    # derivative once, with the rest of the engine. The static archive made
+    # of them is for the in-tree tests; it defines the raster installer the
+    # drawing archive calls, so a test lists gui_drawing_c_api before it.
     add_library(gui_drawing_raster_c_api_objects OBJECT
         src/abi/drawing_skia_c_api.cpp
     )
@@ -1746,7 +1758,6 @@ if(GUI_FORMS_ENABLE_SKIA)
     # The thread's executor and font registrations are an STXlib thread
     # record (stxlib/thread_records.hpp).
     target_link_libraries(gui_drawing_raster_c_api_objects PRIVATE stxlib::boundary stxlib::state)
-    target_compile_definitions(gui_drawing_raster_c_api_objects PRIVATE GDR_C_API_BUILD)
     set_target_properties(gui_drawing_raster_c_api_objects PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN YES
@@ -1762,11 +1773,10 @@ if(GUI_FORMS_ENABLE_SKIA)
     target_include_directories(gui_drawing_raster_c_api INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     )
-    target_compile_definitions(gui_drawing_raster_c_api INTERFACE GDR_C_API_STATIC)
     set_target_properties(gui_drawing_raster_c_api PROPERTIES LINKER_LANGUAGE CXX)
     # The licences of the faces the substitution table names, and the
     # attribution, in the fonts directory beside the module that holds
-    # gdr_initialize (stage F): the C ABI library once installed
+    # the raster (stage F): the C ABI library once installed
     # (cmake/CAbi.cmake), the test program in the build. The faces themselves
     # come from Core's embedded font pack (font pack stage 4), so none is
     # copied.
@@ -2116,7 +2126,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         ${GUI_FORMS_WINDOWS_DEFINITIONS}
     )
     target_link_libraries(gui_drawing_windows_probe PRIVATE
-        gui_drawing_c_api gdi32 user32
+        gui_drawing_c_api gui_drawing_raster_absent gdi32 user32
     )
     if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_drawing_windows_probe COMMAND gui_drawing_windows_probe)
@@ -3644,11 +3654,11 @@ if(GUI_FORMS_BUILD_TESTS)
 
     # The drawing library's per-thread last error (plain thread_local data).
     add_executable(gui_drawing_last_error_tests tests/drawing_last_error_tests.cpp)
-    target_link_libraries(gui_drawing_last_error_tests PRIVATE gui_drawing_c_api)
+    target_link_libraries(gui_drawing_last_error_tests PRIVATE gui_drawing_c_api gui_drawing_raster_absent)
     add_test(NAME gui_drawing_last_error_tests COMMAND gui_drawing_last_error_tests)
 
     add_executable(gui_drawing_c_api_c11_tests tests/drawing_c_api_c11_tests.c)
-    target_link_libraries(gui_drawing_c_api_c11_tests PRIVATE gui_drawing_c_api)
+    target_link_libraries(gui_drawing_c_api_c11_tests PRIVATE gui_drawing_c_api gui_drawing_raster_absent)
     add_test(NAME gui_drawing_c_api_c11_tests COMMAND gui_drawing_c_api_c11_tests)
 
     add_executable(gui_drawing_trace_equivalence_tests
@@ -3657,6 +3667,7 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_drawing_trace_equivalence_tests PRIVATE
         gui_drawing_core
         gui_drawing_c_api
+        gui_drawing_raster_absent
     )
     add_test(NAME gui_drawing_trace_equivalence_tests
              COMMAND gui_drawing_trace_equivalence_tests)

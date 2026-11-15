@@ -317,9 +317,10 @@ the host), STXlib's state and the text stack statically, so `otool -L`,
 `ldd` or the PE imports show only system libraries. A C or C# program loads
 one library, the C ABI library (`gui_forms_abi1.dll`,
 `libgui_forms_abi.so.1`, `libgui_forms_abi.1.dylib`), which holds its own
-engine with the drawing ABI and its raster service folded in, imports only
-system libraries and exports only its `gf_*`, `gd_*` and `gdr_*` entry
-points (the `gui_forms_abi_exports_only_entry_points` and
+engine with the drawing ABI and its raster folded in, imports only system
+libraries and exports exactly its allowlisted `gf_*` entry points and
+`gd_get_api_v0` (the raster is installed through the drawing table's
+`raster_initialize`) (the `gui_forms_abi_exports_only_entry_points` and
 `gui_forms_abi_system_imports_only` tests). A process uses one or the other,
 never both. The localizable-literal plugin is a Clang plugin loaded by the
 compiler, and the shared test runtime (`cmake/TestRuntime.cmake`) is
