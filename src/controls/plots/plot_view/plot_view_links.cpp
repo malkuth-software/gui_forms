@@ -6,6 +6,24 @@
 #include <stdexcept>
 
 namespace gui_forms {
+namespace {
+
+// Marks the group as propagating for its lifetime, so the flag is cleared on
+// every exit, including an exception from a member's range write or from a
+// view_changed handler. A flag left set counted every later change as an
+// echo and the group never linked again (A-gf-controls-10-F5).
+class PropagationScope final {
+public:
+    explicit PropagationScope(bool& propagating) noexcept : propagating_(propagating) { propagating_ = true; }
+    ~PropagationScope() { propagating_ = false; }
+    PropagationScope(const PropagationScope&) = delete;
+    PropagationScope& operator=(const PropagationScope&) = delete;
+
+private:
+    bool& propagating_;
+};
+
+} // namespace
 
 PlotLinkGroup::PlotLinkGroup(PlotLinkAxes axes, plots::PlotRange x, plots::PlotRange y)
     : axes_(axes), x_link_(x), y_link_(y) {
@@ -14,16 +32,16 @@ PlotLinkGroup::PlotLinkGroup(PlotLinkAxes axes, plots::PlotRange x, plots::PlotR
 
 void PlotLinkGroup::add(const std::shared_ptr<PlotView>& plot) {
     if (!plot) throw std::invalid_argument("a linked plot must not be null");
+    if (!(*plot).is_alive()) throw std::invalid_argument("a disposed plot cannot be linked");
     for (const std::weak_ptr<PlotView>& member : members_) {
         if (member.lock() == plot) throw std::invalid_argument("the plot is already linked");
     }
     const std::size_t index = members_.size();
     members_.push_back(plot);
     on((*plot).view_changed(), *this, &PlotLinkGroup::on_view_changed, index);
-    propagating_ = true;
+    const PropagationScope scope(propagating_);
     if (links_x() && (*plot).set_x_range(0U, x_link_.range())) ++propagations_;
     if (links_y() && (*plot).set_y_range(0U, y_link_.range())) ++propagations_;
-    propagating_ = false;
 }
 
 void PlotLinkGroup::set_axes(PlotLinkAxes axes) {
@@ -48,15 +66,18 @@ void PlotLinkGroup::on_view_changed(const std::size_t& index, const PlotViewRang
 
 void PlotLinkGroup::propagate(std::size_t skipped, bool x_axis, bool y_axis) {
     if (!x_axis && !y_axis) return;
-    propagating_ = true;
+    const PropagationScope scope(propagating_);
     for (std::size_t index = 0U; index < members_.size(); ++index) {
         if (index == skipped) continue;
         const std::shared_ptr<PlotView> member = members_[index].lock();
-        if (!member) continue;
+        // A member disposed while the application still holds it (its page
+        // closed) refuses range writes with an exception; it is skipped, as
+        // an expired one is, so a pan on another member does not throw out
+        // of pointer handling (A-gf-controls-10-F5).
+        if (!member || !(*member).is_alive()) continue;
         if (x_axis && (*member).set_x_range(0U, x_link_.range())) ++propagations_;
         if (y_axis && (*member).set_y_range(0U, y_link_.range())) ++propagations_;
     }
-    propagating_ = false;
 }
 
 } // namespace gui_forms

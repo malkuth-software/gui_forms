@@ -735,6 +735,33 @@ void test_link_group() {
     require((*first.plot).y_range(0U) == group.y_link().range() &&
                 (*second.plot).y_range(0U) == group.y_link().range(),
             "linking y gives every member the y link's range");
+
+    // A-gf-controls-10-F5: a member disposed while still held is skipped, so
+    // a pan on another member neither throws nor leaves the group stuck in
+    // its propagating state.
+    Fixture third = make_plot("plot.link-c", false);
+    group.add(third.plot);
+    (*third.plot).dispose();
+    bool propagation_threw = false;
+    try {
+        static_cast<void>((*first.plot).set_x_range(0U, plots::PlotRange{1.0, 4.0}));
+    } catch (const std::exception&) {
+        propagation_threw = true;
+    }
+    require(!propagation_threw && (*second.plot).x_range(0U) == (plots::PlotRange{1.0, 4.0}),
+            "a disposed member is skipped and the others still follow");
+    require((*second.plot).set_x_range(0U, plots::PlotRange{3.0, 6.0}) &&
+                (*first.plot).x_range(0U) == (plots::PlotRange{3.0, 6.0}),
+            "the group keeps linking after skipping a disposed member");
+    Fixture fourth = make_plot("plot.link-d", false);
+    (*fourth.plot).dispose();
+    bool disposed_refused = false;
+    try {
+        group.add(fourth.plot);
+    } catch (const std::invalid_argument&) {
+        disposed_refused = true;
+    }
+    require(disposed_refused && group.member_count() == 3U, "a disposed plot cannot join a group");
 }
 
 // resolve_plot_palette and plot_series_color give a custom kind PlotView's
