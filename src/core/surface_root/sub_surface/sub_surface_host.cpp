@@ -364,6 +364,7 @@ constexpr ControlAnatomy sub_surface_host_anatomy{
     .parts = sub_surface_host_parts,
     .states = sub_surface_host_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

@@ -47,6 +47,7 @@ constexpr ControlAnatomy splitter_panel_anatomy{
     .parts = splitter_panel_parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

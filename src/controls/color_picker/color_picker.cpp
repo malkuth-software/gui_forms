@@ -98,6 +98,7 @@ constexpr ControlAnatomy color_picker_anatomy{
     .parts = color_picker_parts,
     .states = color_picker_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events ColorPicker adds to those of Control, in declaration order.

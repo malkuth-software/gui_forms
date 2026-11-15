@@ -466,6 +466,7 @@ constexpr ControlAnatomy grid_panel_anatomy{
     .parts = scrollable_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

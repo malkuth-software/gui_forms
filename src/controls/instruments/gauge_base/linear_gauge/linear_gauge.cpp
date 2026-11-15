@@ -51,6 +51,7 @@ constexpr ControlAnatomy linear_gauge_anatomy{
     .parts = linear_gauge_parts,
     .states = linear_gauge_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 Rect joined(Rect left, Rect right) noexcept {

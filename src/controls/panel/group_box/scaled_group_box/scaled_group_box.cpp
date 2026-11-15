@@ -71,6 +71,7 @@ constexpr ControlAnatomy scaled_group_box_anatomy{
     .parts = group_box_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

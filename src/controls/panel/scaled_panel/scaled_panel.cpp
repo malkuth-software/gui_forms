@@ -70,6 +70,7 @@ constexpr ControlAnatomy scaled_panel_anatomy{
     .parts = panel_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

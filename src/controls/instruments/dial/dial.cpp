@@ -59,6 +59,7 @@ constexpr ControlAnatomy dial_anatomy{
     .parts = dial_parts,
     .states = dial_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 Rect joined(Rect left, Rect right) noexcept {

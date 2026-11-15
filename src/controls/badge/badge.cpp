@@ -58,6 +58,7 @@ constexpr ControlAnatomy badge_anatomy{
     .parts = badge_parts,
     .states = badge_states,
     .custom_states = badge_custom_states,
+    .item_systems = {},
 };
 
 } // namespace

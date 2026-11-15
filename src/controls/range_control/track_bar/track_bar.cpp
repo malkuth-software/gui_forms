@@ -89,6 +89,7 @@ constexpr ControlAnatomy track_bar_anatomy{
     .parts = track_bar_parts,
     .states = track_bar_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

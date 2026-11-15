@@ -99,6 +99,7 @@ constexpr ControlAnatomy button_anatomy{
     .parts = button_parts,
     .states = button_states,
     .custom_states = button_custom_states,
+    .item_systems = {},
 };
 
 // The theme role a button of `style` is drawn with.

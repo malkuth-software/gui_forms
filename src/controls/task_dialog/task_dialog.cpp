@@ -909,6 +909,7 @@ constexpr ControlAnatomy task_dialog_anatomy{
     .parts = task_dialog_parts,
     .states = task_dialog_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events TaskDialog adds to those of Control, in declaration order.

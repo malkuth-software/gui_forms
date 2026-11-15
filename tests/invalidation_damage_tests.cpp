@@ -535,6 +535,7 @@ constexpr ControlAnatomy hot_pad_anatomy{
     .parts = {},
     .states = hot_pad_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 class HotPad final : public Control {

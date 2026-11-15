@@ -61,6 +61,7 @@ constexpr ControlAnatomy radial_gauge_anatomy{
     .parts = radial_gauge_parts,
     .states = radial_gauge_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 Rect joined(Rect left, Rect right) noexcept {

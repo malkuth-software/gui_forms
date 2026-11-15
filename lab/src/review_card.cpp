@@ -122,6 +122,7 @@ constexpr ControlAnatomy review_card_anatomy{
     .parts = panel_detail::parts,
     .states = card_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

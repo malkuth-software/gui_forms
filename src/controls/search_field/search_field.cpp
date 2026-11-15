@@ -66,6 +66,7 @@ constexpr ControlAnatomy search_field_anatomy{
     .parts = search_field_parts,
     .states = search_field_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events SearchField adds to those of Control, in declaration order.

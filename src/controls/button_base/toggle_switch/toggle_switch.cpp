@@ -55,6 +55,7 @@ constexpr ControlAnatomy toggle_switch_anatomy{
     .parts = toggle_switch_parts,
     .states = toggle_switch_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The event ToggleSwitch adds to those of ButtonBase.

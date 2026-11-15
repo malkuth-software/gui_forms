@@ -378,6 +378,7 @@ constexpr ControlAnatomy text_block_anatomy{
     .parts = text_block_parts,
     .states = text_block_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events TextBlock adds to those of Control, in declaration order.

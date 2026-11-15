@@ -45,6 +45,8 @@ constexpr ControlAnatomy progress_ring_anatomy{
     .control_id = "progress_ring",
     .parts = progress_ring_parts,
     .states = progress_ring_states,
+    .custom_states = {},
+    .item_systems = {},
 };
 
 constexpr FrameInterval step_interval =

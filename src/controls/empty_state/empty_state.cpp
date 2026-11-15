@@ -48,6 +48,7 @@ constexpr ControlAnatomy empty_state_anatomy{
     .parts = empty_state_parts,
     .states = empty_state_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // A rectangle of `size` centred across a column `width` wide, at `top`.

@@ -468,6 +468,7 @@ constexpr ControlAnatomy command_overflow_panel_anatomy{
     .parts = scrollable_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

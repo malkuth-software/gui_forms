@@ -5138,6 +5138,7 @@ constexpr ControlAnatomy base_anatomy{
     .parts = control_parts,
     .states = control_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

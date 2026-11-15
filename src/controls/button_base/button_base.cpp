@@ -754,6 +754,7 @@ constexpr ControlAnatomy button_base_anatomy{
     .parts = button_base_parts,
     .states = button_base_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

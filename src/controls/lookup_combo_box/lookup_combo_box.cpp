@@ -56,6 +56,7 @@ constexpr ControlAnatomy lookup_anatomy{
     .parts = lookup_parts,
     .states = lookup_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 char ascii_lower(char letter) noexcept {

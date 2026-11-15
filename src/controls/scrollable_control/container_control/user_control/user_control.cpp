@@ -44,6 +44,7 @@ constexpr ControlAnatomy user_control_anatomy{
     .parts = scrollable_detail::grounded_parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

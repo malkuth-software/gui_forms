@@ -439,6 +439,7 @@ constexpr ControlAnatomy label_anatomy{
     .parts = label_parts,
     .states = label_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

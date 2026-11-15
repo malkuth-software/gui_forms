@@ -741,6 +741,7 @@ constexpr ControlAnatomy probe_anatomy{
     .parts = {},
     .states = {},
     .custom_states = {},
+    .item_systems = {},
 };
 
 class Probe final : public Control {

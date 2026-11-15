@@ -623,6 +623,7 @@ constexpr ControlAnatomy date_time_picker_anatomy{
     .parts = date_time_picker_parts,
     .states = date_time_picker_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

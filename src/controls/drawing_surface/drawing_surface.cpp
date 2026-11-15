@@ -64,6 +64,7 @@ constexpr ControlAnatomy drawing_surface_anatomy{
     .parts = drawing_surface_parts,
     .states = drawing_surface_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

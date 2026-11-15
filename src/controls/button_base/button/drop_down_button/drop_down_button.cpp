@@ -143,6 +143,7 @@ constexpr ControlAnatomy drop_down_button_anatomy{
     .parts = drop_down_button_parts,
     .states = drop_down_button_states,
     .custom_states = drop_down_button_custom_states,
+    .item_systems = {},
 };
 
 } // namespace

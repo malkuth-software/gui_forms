@@ -54,6 +54,7 @@ constexpr ControlAnatomy sparkline_anatomy{
     .parts = sparkline_parts,
     .states = sparkline_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 [[nodiscard]] bool has_infinity(std::span<const double> values) noexcept {

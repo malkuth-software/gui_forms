@@ -117,6 +117,7 @@ constexpr ControlAnatomy radio_button_anatomy{
     .parts = radio_button_parts,
     .states = radio_button_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

@@ -38,6 +38,7 @@ constexpr ControlAnatomy spinner_anatomy{
     .parts = spinner_parts,
     .states = spinner_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The time one dot's step takes.

@@ -53,6 +53,7 @@ constexpr ControlAnatomy wizard_anatomy{
     .parts = wizard_parts,
     .states = wizard_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

@@ -441,6 +441,7 @@ constexpr ControlAnatomy raster_canvas_anatomy{
     .parts = raster_canvas_parts,
     .states = raster_canvas_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

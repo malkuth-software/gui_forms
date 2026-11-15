@@ -614,6 +614,7 @@ constexpr ControlAnatomy numeric_up_down_anatomy{
     .parts = numeric_up_down_parts,
     .states = numeric_up_down_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

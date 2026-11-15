@@ -165,19 +165,19 @@ void test_validation_rejects_malformed_anatomy() {
             "the base anatomy must validate");
 
     const ControlAnatomy no_parts{
-        .control_id = "empty", .parts = {}, .states = {}, .custom_states = {}};
+        .control_id = "empty", .parts = {}, .states = {}, .custom_states = {}, .item_systems = {}};
     require(defect_of(no_parts) == AnatomyDefect::no_parts,
             "an anatomy without parts must be rejected");
 
     const ControlAnatomy bad_id{
         .control_id = "TrackBar", .parts = single_region, .states = {},
-        .custom_states = {}};
+        .custom_states = {}, .item_systems = {}};
     require(defect_of(bad_id) == AnatomyDefect::control_id_not_snake_case,
             "a control id must be snake_case");
 
     const ControlAnatomy duplicated{
         .control_id = "dial", .parts = duplicate_parts, .states = {},
-        .custom_states = {}};
+        .custom_states = {}, .item_systems = {}};
     const AnatomyValidation duplicate_result = validate_control_anatomy(duplicated);
     require(duplicate_result.defect == AnatomyDefect::duplicate_part_name &&
                 duplicate_result.index == 1U,
@@ -185,19 +185,19 @@ void test_validation_rejects_malformed_anatomy() {
 
     const ControlAnatomy repeated_state{
         .control_id = "dial", .parts = single_region, .states = duplicate_states,
-        .custom_states = {}};
+        .custom_states = {}, .item_systems = {}};
     require(defect_of(repeated_state) == AnatomyDefect::duplicate_state,
             "a repeated state must be rejected");
 
     const ControlAnatomy shadowing{
         .control_id = "dial", .parts = single_region, .states = {},
-        .custom_states = shadowing_custom_state};
+        .custom_states = shadowing_custom_state, .item_systems = {}};
     require(defect_of(shadowing) == AnatomyDefect::custom_state_shadows_standard_state,
             "a custom state may not reuse a standard state's name");
 
     const ControlAnatomy with_custom{
         .control_id = "dial", .parts = single_region, .states = {},
-        .custom_states = custom_states};
+        .custom_states = custom_states, .item_systems = {}};
     require(defect_of(with_custom) == AnatomyDefect::none,
             "declared custom states must validate");
     const std::optional<CustomStateIndex> recording =

@@ -163,6 +163,7 @@ constexpr ControlAnatomy check_box_anatomy{
     .parts = check_box_parts,
     .states = check_box_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

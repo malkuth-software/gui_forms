@@ -164,6 +164,7 @@ constexpr ControlAnatomy flex_panel_anatomy{
     .parts = scrollable_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The item_style child property: a child's flex item settings as one CSS

@@ -121,6 +121,7 @@ constexpr ControlAnatomy block_panel_anatomy{
     .parts = scrollable_detail::parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The item_style child property: a child's block flow settings as one CSS

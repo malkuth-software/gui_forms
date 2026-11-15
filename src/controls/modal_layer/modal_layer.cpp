@@ -40,6 +40,7 @@ constexpr ControlAnatomy modal_layer_anatomy{
     .parts = modal_layer_parts,
     .states = modal_layer_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

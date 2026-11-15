@@ -618,6 +618,7 @@ constexpr ControlAnatomy flags_value_editor_anatomy{
     .parts = flags_value_editor_parts,
     .states = flags_value_editor_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

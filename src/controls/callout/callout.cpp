@@ -62,6 +62,7 @@ constexpr ControlAnatomy callout_anatomy{
     .parts = callout_parts,
     .states = callout_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

@@ -99,6 +99,7 @@ constexpr ControlAnatomy info_banner_anatomy{
     .parts = info_banner_parts,
     .states = info_banner_states,
     .custom_states = info_banner_custom_states,
+    .item_systems = {},
 };
 
 } // namespace

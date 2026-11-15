@@ -924,6 +924,7 @@ constexpr ControlAnatomy split_container_anatomy{
     .parts = split_container_parts,
     .states = split_container_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

@@ -1514,6 +1514,7 @@ constexpr ControlAnatomy text_box_anatomy{
     .parts = text_box_parts,
     .states = text_box_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

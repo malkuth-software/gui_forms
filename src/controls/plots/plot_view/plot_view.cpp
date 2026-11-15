@@ -71,6 +71,7 @@ constexpr ControlAnatomy plot_view_anatomy{
     .parts = plot_view_parts,
     .states = plot_view_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events PlotView adds to those of Control, in declaration order.

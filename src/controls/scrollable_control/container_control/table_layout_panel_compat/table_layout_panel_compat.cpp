@@ -985,6 +985,7 @@ constexpr ControlAnatomy table_layout_panel_compat_anatomy{
     .parts = table_layout_panel_compat_parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

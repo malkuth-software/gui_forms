@@ -404,6 +404,7 @@ constexpr ControlAnatomy easing_preview_anatomy{
     .parts = easing_preview_parts,
     .states = easing_preview_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

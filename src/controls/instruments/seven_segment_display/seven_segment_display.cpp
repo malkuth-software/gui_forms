@@ -81,6 +81,7 @@ constexpr ControlAnatomy seven_segment_anatomy{
     .parts = seven_segment_parts,
     .states = seven_segment_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The bars of a digit cell at `cell` with bars `thickness` thick, in the

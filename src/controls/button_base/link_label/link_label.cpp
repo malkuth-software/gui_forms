@@ -62,6 +62,7 @@ constexpr ControlAnatomy link_label_anatomy{
     .parts = link_label_parts,
     .states = link_label_states,
     .custom_states = link_label_custom_states,
+    .item_systems = {},
 };
 
 } // namespace

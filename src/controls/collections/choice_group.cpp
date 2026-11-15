@@ -440,6 +440,7 @@ constexpr ControlAnatomy choice_group_anatomy{
     .parts = choice_group_parts,
     .states = scrollable_detail::states,
     .custom_states = choice_group_custom_states,
+    .item_systems = {},
 };
 
 } // namespace

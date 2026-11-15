@@ -169,6 +169,7 @@ constexpr ControlAnatomy picture_box_anatomy{
     .parts = picture_box_parts,
     .states = scrollable_detail::states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

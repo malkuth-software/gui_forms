@@ -76,6 +76,7 @@ constexpr ControlAnatomy content_surface_anatomy{
     .parts = content_surface_parts,
     .states = content_surface_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

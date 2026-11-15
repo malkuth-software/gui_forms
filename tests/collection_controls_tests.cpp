@@ -393,11 +393,11 @@ void test_tree_bulk_expansion() {
     std::shared_ptr<gui_forms::TreeView> tree = make_control<TreeView>(StableId("tree.bulk"));
     (*tree).set_requested_bounds({0.0, 0.0, 240.0, 40.0});
     (*tree).set_items({
-        {"a", "A", 0, true, false},
-        {"a.b", "B", 1, true, false},
-        {"a.b.c", "C", 2},
-        {"d", "D", 0, true, false},
-        {"d.e", "E", 1},
+        {.stable_id = "a", .text = "A", .depth = 0, .expandable = true, .expanded = false, .enabled = true, .image_key = {}},
+        {.stable_id = "a.b", .text = "B", .depth = 1, .expandable = true, .expanded = false, .enabled = true, .image_key = {}},
+        {.stable_id = "a.b.c", .text = "C", .depth = 2, .expandable = false, .expanded = false, .enabled = true, .image_key = {}},
+        {.stable_id = "d", .text = "D", .depth = 0, .expandable = true, .expanded = false, .enabled = true, .image_key = {}},
+        {.stable_id = "d.e", .text = "E", .depth = 1, .expandable = false, .expanded = false, .enabled = true, .image_key = {}},
     });
     Window window(tree, {240.0, 40.0});
     window.perform_layout();

@@ -413,6 +413,7 @@ constexpr ControlAnatomy splitter_anatomy{
     .parts = splitter_parts,
     .states = splitter_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events Splitter adds to those of Control, in declaration order.

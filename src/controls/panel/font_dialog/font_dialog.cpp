@@ -532,6 +532,7 @@ constexpr ControlAnatomy font_dialog_anatomy{
     .parts = font_dialog_parts,
     .states = font_dialog_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events FontDialog adds to those of Panel, in declaration order.

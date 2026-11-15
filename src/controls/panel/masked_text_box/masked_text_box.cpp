@@ -637,6 +637,7 @@ constexpr ControlAnatomy masked_text_box_anatomy{
     .parts = masked_text_box_parts,
     .states = masked_text_box_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

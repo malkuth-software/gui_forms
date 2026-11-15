@@ -120,6 +120,7 @@ constexpr ControlAnatomy metrics_view_anatomy{
     .parts = metrics_view_parts,
     .states = metrics_view_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

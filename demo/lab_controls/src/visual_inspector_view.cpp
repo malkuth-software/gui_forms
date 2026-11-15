@@ -514,6 +514,7 @@ constexpr ControlAnatomy visual_inspector_view_anatomy{
     .parts = visual_inspector_view_parts,
     .states = visual_inspector_view_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
@@ -579,6 +580,7 @@ constexpr ControlAnatomy visual_inspector_overlay_anatomy{
     .parts = visual_inspector_overlay_parts,
     .states = visual_inspector_overlay_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

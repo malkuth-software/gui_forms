@@ -119,6 +119,7 @@ constexpr ControlAnatomy content_text_editor_anatomy{
     .parts = content_text_editor_parts,
     .states = content_text_editor_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

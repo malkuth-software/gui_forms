@@ -180,6 +180,7 @@ constexpr ControlAnatomy range_control_anatomy{
     .parts = range_control_parts,
     .states = range_control_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

@@ -452,6 +452,7 @@ constexpr ControlAnatomy value_bar_anatomy{
     .parts = value_bar_parts,
     .states = value_bar_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 // The events ValueBar adds to those of RangeControl, in declaration order.

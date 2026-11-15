@@ -51,6 +51,7 @@ constexpr ControlAnatomy step_indicator_anatomy{
     .parts = step_indicator_parts,
     .states = step_indicator_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 Rect joined(Rect left, Rect right) noexcept {

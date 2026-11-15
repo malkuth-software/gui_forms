@@ -384,6 +384,7 @@ constexpr ControlAnatomy color_value_editor_anatomy{
     .parts = color_value_editor_parts,
     .states = color_value_editor_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

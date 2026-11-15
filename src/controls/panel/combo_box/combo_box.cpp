@@ -1080,6 +1080,7 @@ constexpr ControlAnatomy combo_box_anatomy{
     .parts = combo_box_parts,
     .states = combo_box_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

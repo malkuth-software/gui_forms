@@ -432,6 +432,7 @@ constexpr ControlAnatomy domain_up_down_anatomy{
     .parts = domain_up_down_parts,
     .states = domain_up_down_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace

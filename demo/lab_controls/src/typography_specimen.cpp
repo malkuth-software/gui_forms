@@ -229,6 +229,7 @@ constexpr ControlAnatomy typography_specimen_anatomy{
     .parts = typography_specimen_parts,
     .states = typography_specimen_states,
     .custom_states = {},
+    .item_systems = {},
 };
 
 } // namespace
