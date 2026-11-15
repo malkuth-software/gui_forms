@@ -7,6 +7,8 @@
 #include "../registry/abi_registry.hpp"
 #include "../values/abi_values.hpp"
 
+#include "gui_forms/text/types/text_types.hpp"
+
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -116,6 +118,18 @@ CallbackFrame provider_frame(std::string_view name) noexcept {
     return frame;
 }
 
+// Whether a provider's answer text is well-formed UTF-8 (A-gf-abi-03-F11):
+// every other text entering through the ABI is validated by the library's
+// strict validator, and an identity or error text that is not is no answer.
+bool well_formed_answer(gf_utf8_view view) noexcept {
+    if (view.data == nullptr || view.size == 0U) {
+        return view.size == 0U;
+    }
+    const std::string_view text(view.data, static_cast<std::size_t>(view.size));
+    const Utf8ValidationResult validation = validate_utf8(text);
+    return validation.valid();
+}
+
 gf_utf8_view view_of(std::string_view text) noexcept {
     gf_utf8_view view{};
     view.data = text.data();
@@ -212,7 +226,7 @@ bool AbiBindingProvider::read_stable_id(std::size_t row, std::string& stable_id)
     const gf_status status =
         call_client(provider_frame("read_stable_id"), callbacks_.read_stable_id, context, row_index, answer_view);
     if (status != GF_STATUS_OK || (identity.data == nullptr && identity.size != 0U) ||
-        identity.size > binding_maximum_text_bytes) {
+        identity.size > binding_maximum_text_bytes || !well_formed_answer(identity)) {
         return false;
     }
     stable_id = copy_lent(lend_caller_text(answer, identity));
@@ -244,6 +258,9 @@ BindingWriteResult AbiBindingProvider::write_cell(std::size_t row, std::size_t c
     }
     if (accepted == 1U) {
         return BindingWriteResult{BindingWriteStatus::accepted, {}};
+    }
+    if (!well_formed_answer(reason)) {
+        return BindingWriteResult{BindingWriteStatus::refused, "the provider's refusal reason is not UTF-8"};
     }
     return BindingWriteResult{BindingWriteStatus::refused,
                               copy_lent_bounded(lend_caller_text(answer, reason), binding_maximum_error_bytes)};
@@ -282,7 +299,7 @@ bool AbiBindingProvider::read_error(std::size_t row, std::size_t column, std::st
     gf_utf8_view* error_answer = &error;
     const gf_status status = call_client(provider_frame("read_cell_state"), callbacks_.read_cell_state, context,
                                          row_index, column_index, read_only_answer, error_answer);
-    if (status != GF_STATUS_OK || error.size == 0U) {
+    if (status != GF_STATUS_OK || error.size == 0U || !well_formed_answer(error)) {
         return false;
     }
     text = copy_lent_bounded(lend_caller_text(answer, error), binding_maximum_error_bytes);
