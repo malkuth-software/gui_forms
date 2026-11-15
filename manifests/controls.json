@@ -521,7 +521,7 @@
       "purpose": "Colour picker with a saturation-brightness field, a hue track, an optional alpha track and a swatch, picked by pointer drags or the keyboard.",
       "winforms": "GUI.Forms-only",
       "status": "provisional",
-      "gallery_page": null,
+      "gallery_page": "value-editors",
       "doc": "api/generated/gui_forms.ColorPicker.rst"
     },
     {
@@ -831,7 +831,7 @@
       "purpose": "Panel of labelled rows: a caption column sized to the widest caption (or a fixed width) beside a column of controls, with captions naming their controls.",
       "winforms": "GUI.Forms-only",
       "status": "provisional",
-      "gallery_page": null,
+      "gallery_page": "value-editors",
       "doc": "api/generated/gui_forms.FormLayout.rst"
     },
     {

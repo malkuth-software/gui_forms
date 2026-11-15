@@ -1,7 +1,7 @@
 /* The Gallery's value-editors page (stage FD, phase FD6.3): one record
-   edited through a ColorValueEditor and a FlagsValueEditor, a PropertyList
-   and an InstrumentRack module, with a CommandBar over the Window's
-   BindingContext. gui_forms_add_form() compiles this document into
+   edited through a ColorValueEditor and a FlagsValueEditor, a PropertyList,
+   an InstrumentRack module and a ColorPicker read back in a FormLayout,
+   with a CommandBar over the Window's BindingContext. gui_forms_add_form() compiles this document into
    value-editors_form.hpp at build time.
 
    gallery.value-editors.document is a declared boundary only: the page
@@ -13,7 +13,7 @@
    status lines' reports; the flags editor's
    enumeration and value are in the document. */
 scaled-panel gallery.value-editors.document {
-  design-size: 1000 640;
+  design-size: 1000 900;
 
   label gallery.value-editors.heading {
     text: "VALUE EDITORS";
@@ -103,6 +103,21 @@ scaled-panel gallery.value-editors.document {
     instrument-rack gallery.value-editors.rack {
       accessible-name: "Lamp profile rack";
       bounds: 20 36 890 140;
+    }
+  }
+
+  scaled-group-box gallery.value-editors.picker-group {
+    text: "ColorPicker · FormLayout · the tint picked, and read back in labelled rows";
+    design-size: 930 230;
+    bounds: 24 648 930 230;
+    classes: "paper" "group-caption";
+    color-picker gallery.value-editors.picker {
+      accessible-name: "Lamp tint picker";
+      bounds: 20 36 280 178;
+    }
+    form-layout gallery.value-editors.readout {
+      accessible-name: "Tint readout";
+      bounds: 330 36 580 178;
     }
   }
 }

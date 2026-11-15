@@ -4,9 +4,11 @@
 #include "gui_forms/binding/binding_source/binding_source.hpp"
 #include "gui_forms/binding/binding_table/binding_table.hpp"
 #include "gui_forms/binding/types/binding_contract_types.hpp"
+#include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/controls/command_bar.hpp"
 #include "gui_forms/controls/flags_value_editor.hpp"
+#include "gui_forms/controls/form_layout.hpp"
 #include "gui_forms/controls/property_list.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 #include "gui_forms/inspection/types/property_editor_kind/property_editor_kind.hpp"
@@ -21,9 +23,10 @@ namespace gui_forms::gallery::pages {
 namespace {
 
 // The controls demo/pages/value-editors.form describes, and their
-// behaviour. One fixture record (a signal-lamp profile) is edited through four views:
+// behaviour. One fixture record (a signal-lamp profile) is edited through five views:
 // a ColorValueEditor and a FlagsValueEditor for its typed fields, a
-// PropertyList of grouped rows, and an InstrumentRack module. The owner
+// PropertyList of grouped rows, an InstrumentRack module, and a ColorPicker
+// whose position a FormLayout of labelled rows reads back. The owner
 // holds the record; each view reports a user commit through a named member
 // and the owner projects the change into the other views with programmatic
 // setters, which emit no user commits. The record's enabled flag is a
@@ -38,8 +41,11 @@ public:
         build_binding();
         build_properties();
         build_rack();
+        build_picker();
         on((*color_).value_changed(), *this, &ValueEditorsPage::color_changed);
         on((*color_).edit_failed(), *this, &ValueEditorsPage::color_failed);
+        on((*picker_).value_changed(), *this, &ValueEditorsPage::picker_moved);
+        on((*picker_).value_committed(), *this, &ValueEditorsPage::picker_committed);
         on((*flags_).value_changed(), *this, &ValueEditorsPage::flags_changed);
         on((*flags_).drop_down_changed(), *this, &ValueEditorsPage::flags_drop_down);
         on((*properties_).value_committed(), *this, &ValueEditorsPage::property_committed);
@@ -85,6 +91,8 @@ private:
         binding_status_ = document_.gallery_value_editors_binding_status;
         properties_ = document_.gallery_value_editors_properties;
         rack_ = document_.gallery_value_editors_rack;
+        picker_ = document_.gallery_value_editors_picker;
+        readout_ = document_.gallery_value_editors_readout;
     }
 
     void build_editors() {
@@ -151,6 +159,38 @@ private:
         (*rack_).set_action_content(reset, 170.0);
     }
 
+    // The picker starts at the record's tint; its readout is four rows the
+    // FormLayout captions, each caption naming its value label.
+    void build_picker() {
+        readout_hex_ = make_control<Label>(StableId("gallery.value-editors.readout.hex"));
+        readout_hue_ = make_control<Label>(StableId("gallery.value-editors.readout.hue"));
+        readout_saturation_ = make_control<Label>(StableId("gallery.value-editors.readout.saturation"));
+        readout_brightness_ = make_control<Label>(StableId("gallery.value-editors.readout.brightness"));
+        static_cast<void>((*readout_).add_row("Hex", readout_hex_));
+        static_cast<void>((*readout_).add_row("Hue", readout_hue_));
+        static_cast<void>((*readout_).add_row("Saturation", readout_saturation_));
+        static_cast<void>((*readout_).add_row("Brightness", readout_brightness_));
+        (*picker_).value = fixture_tint;
+        picker_moved(fixture_tint);
+    }
+
+    // Every move of the picker, by the user or the owner: the readout
+    // follows the picker's HSV position.
+    void picker_moved(const Color value) {
+        const ColorPickerHsv hsv = (*picker_).hsv();
+        (*readout_hex_).text = ColorValueEditor::format_value(value);
+        (*readout_hue_).text = std::to_string(static_cast<int>(hsv.hue + 0.5)) + " degrees";
+        (*readout_saturation_).text = std::to_string(static_cast<int>(hsv.saturation * 100.0 + 0.5)) + "%";
+        (*readout_brightness_).text = std::to_string(static_cast<int>(hsv.brightness * 100.0 + 0.5)) + "%";
+    }
+
+    // A finished pick is a user commit of the tint: the owner's one
+    // projection serves every view, the colour editor included.
+    void picker_committed(const Color value) {
+        (*color_).value = value;
+        color_changed(value);
+    }
+
     // ColorValueEditor commit: project the typed color into the list row, the
     // rack field and the preview; clear any stale rack validation.
     void color_changed(const Color value) {
@@ -160,7 +200,9 @@ private:
         static_cast<void>((*rack_).set_field_value(module_id, "tint", text));
         static_cast<void>((*rack_).set_field_validation(module_id, "tint", {}));
         (*preview_).set_background(value);
-        (*editor_status_).text = "Tint committed " + text + " · projected to list, rack and preview";
+        // A program's write raises value_changed only, never value_committed.
+        if ((*picker_).value.read() != value) (*picker_).value = value;
+        (*editor_status_).text = "Tint committed " + text + " · projected to list, rack, preview and picker";
     }
 
     void color_failed(const PropertyEditorInputError& error) {
@@ -321,6 +363,12 @@ private:
     std::shared_ptr<Label> binding_status_;
     std::shared_ptr<PropertyList> properties_;
     std::shared_ptr<InstrumentRack> rack_;
+    std::shared_ptr<ColorPicker> picker_;
+    std::shared_ptr<FormLayout> readout_;
+    std::shared_ptr<Label> readout_hex_;
+    std::shared_ptr<Label> readout_hue_;
+    std::shared_ptr<Label> readout_saturation_;
+    std::shared_ptr<Label> readout_brightness_;
     std::shared_ptr<BindingContext> binding_context_;
     std::shared_ptr<BindingSource> source_;
     std::string trace_;

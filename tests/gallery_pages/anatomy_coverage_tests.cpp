@@ -37,7 +37,7 @@ constexpr std::array<std::string_view, 2> anatomy_pending{
 // Registry entries that are not controls: nonvisual components and the
 // LiveSurface service type. They have no parts; a component that shows
 // something (a context menu, a tool tip) does so through an internal control.
-constexpr std::array<std::string_view, 33> nonvisual_entries{
+constexpr std::array<std::string_view, 34> nonvisual_entries{
     "command",
     "gallery_command",
     "font_command",
@@ -62,6 +62,8 @@ constexpr std::array<std::string_view, 33> nonvisual_entries{
     "binding_context",
     "live_surface",
     "dock_workspace",
+    // Links the axes of PlotViews; it shows nothing of its own.
+    "plot_link_group",
     // A PlotView's item children declare its axes, series and annotations;
     // the PlotView paints them as its own parts.
     "plot_axis_item",

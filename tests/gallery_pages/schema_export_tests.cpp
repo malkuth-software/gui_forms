@@ -43,6 +43,7 @@
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/controls/plot_view_links.hpp"
 
 #include "gui_forms/controls/toast.hpp"
 #include "gui_forms/engine.hpp"
@@ -1028,6 +1029,11 @@ void test_schema_export() {
     record_component("binding_source", *binding_source, records);
     record_component("binding_context", *binding_context, records);
     record_component("dock_workspace", *dock_workspace, records);
+    // A non-visual component, recorded as binding_source is: it links the
+    // axes of PlotViews and has no form of its own on a page.
+    const std::shared_ptr<PlotLinkGroup> plot_link_group = std::make_shared<PlotLinkGroup>(
+        PlotLinkAxes::x, plots::PlotRange{0.0, 1.0}, plots::PlotRange{0.0, 1.0});
+    record_component("plot_link_group", *plot_link_group, records);
     const std::shared_ptr<AboutDialog> about_dialog =
         std::make_shared<AboutDialog>(StableId("schema.about"), AboutInfo{});
     const std::shared_ptr<HelpBookSystem> help_system = std::make_shared<HelpBookSystem>();

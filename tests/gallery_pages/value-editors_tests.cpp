@@ -1,7 +1,9 @@
 #include "page_tests.hpp"
+#include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/controls/command_bar.hpp"
 #include "gui_forms/controls/flags_value_editor.hpp"
+#include "gui_forms/controls/form_layout.hpp"
 #include "gui_forms/controls/property_list.hpp"
 #include "gui_forms_lab/instrument_rack.hpp"
 
@@ -126,13 +128,41 @@ void test_value_editors(gui_forms::Window& window) {
                 (*properties).value("gallery.value-editors.properties.enabled") == "True",
             "re-enabling from the rack must flow back into the bound CheckBox and its row");
 
+    // ColorPicker: the owner's projection moves it (no user commit), and the
+    // FormLayout's rows read it back; a key pick commits like a typed tint.
+    const std::shared_ptr<gui_forms::ColorPicker> picker =
+        std::dynamic_pointer_cast<ColorPicker>(window.find("gallery.value-editors.picker"));
+    const std::shared_ptr<gui_forms::FormLayout> readout =
+        std::dynamic_pointer_cast<FormLayout>(window.find("gallery.value-editors.readout"));
+    const std::shared_ptr<gui_forms::Label> readout_hex =
+        std::dynamic_pointer_cast<Label>(window.find("gallery.value-editors.readout.hex"));
+    require(picker && readout && readout_hex && (*readout).row_count() == 4U,
+            "the picker and its four-row readout are on the page");
+    require(picker && readout_hex && (*picker).value.read() == Color::rgba(16, 32, 48, 255) &&
+                (*readout_hex).text.read() == "#102030FF",
+            "a rack tint commit moves the picker and its readout");
+    require(readout && readout_hex && (*readout).caption_of(*readout_hex) != nullptr &&
+                (*(*readout).caption_of(*readout_hex)).text.read() == "Hex",
+            "each readout row is captioned");
+    if (picker && readout_hex) {
+        require(window.request_focus(picker), "the picker must focus");
+        require(window.dispatch_key({KeyAction::down, PhysicalKey::page_up}), "Page Up moves the hue");
+        const Color picked = (*picker).value.read();
+        require(picked != Color::rgba(16, 32, 48, 255) && (*color).value.read() == picked &&
+                    (*properties).value("gallery.value-editors.properties.tint") ==
+                        ColorValueEditor::format_value(picked) &&
+                    (*readout_hex).text.read() == ColorValueEditor::format_value(picked),
+                "a key pick commits the tint to the colour editor, the list and the readout");
+    }
+
     // Reset record: programmatic setters restore every view.
     click(window, window.find("gallery.value-editors.reset"));
     require((*color).value.read() == Color::rgba(39, 116, 184, 255) &&
                 (*flags).value.read().name == "Top, Left" &&
                 (*properties).value("gallery.value-editors.properties.channel") == "FM" &&
-                (*rack_channel).selected_index.read() == std::optional<std::size_t>{1U},
-            "the reset Command must restore the fixture in every view");
+                (*rack_channel).selected_index.read() == std::optional<std::size_t>{1U} &&
+                (!picker || (*picker).value.read() == Color::rgba(39, 116, 184, 255)),
+            "the reset Command must restore the fixture in every view, the picker included");
 
     // BindingContext membership through two Commands shown by one CommandBar.
     require((*binding_commands).items().size() == 2U && (*binding_commands).item(0).enabled.read() &&

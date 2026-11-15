@@ -93,7 +93,7 @@ NONVISUAL: tuple[str, ...] = (
     'ribbon_tool_tip', 'timer', 'background_worker', 'notify_icon', 'thread_exception_dialog',
     'image_list', 'error_provider',
     'help_provider', 'semantic_feedback', 'binding', 'binding_source', 'binding_context', 'live_surface',
-    'dock_workspace', 'open_file_dialog', 'save_file_dialog', 'folder_browser_dialog',
+    'dock_workspace', 'plot_link_group', 'open_file_dialog', 'save_file_dialog', 'folder_browser_dialog',
     'color_dialog',
     # A PlotView's item children, which it paints as its own parts; the
     # About box and the help system, components shown through their dialog
@@ -178,11 +178,15 @@ ROLE_NAMES: dict[str, str] = {
     'row': 'TABLE_ROW', 'cell': 'TABLE_CELL', 'column_header': 'COLUMN_HEADER', 'row_header': 'ROW_HEADER',
     'tree_grid': 'TREE_TABLE', 'dialog': 'DIALOG', 'status_bar': 'STATUS_BAR', 'live_region': 'PANEL',
     'toggle_switch': 'TOGGLE_BUTTON', 'search_box': 'ENTRY', 'figure': 'CHART',
+    'document': 'DOCUMENT_FRAME', 'heading': 'HEADING',
 }
 
 # The role whose states and interfaces a newer role shares
 # (semantic_role_fallback in semantic_types.hpp); every other role is its own.
-ROLE_FALLBACKS: dict[str, str] = {'toggle_switch': 'check_box', 'search_box': 'text_box', 'figure': 'image'}
+ROLE_FALLBACKS: dict[str, str] = {
+    'toggle_switch': 'check_box', 'search_box': 'text_box', 'figure': 'image', 'document': 'pane',
+    'heading': 'static_text',
+}
 
 
 def acting_role(node: dict[str, Any]) -> str:
