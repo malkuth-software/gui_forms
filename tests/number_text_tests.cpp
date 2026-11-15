@@ -11,6 +11,9 @@
 
 namespace {
 
+// The exit code ctest reads as a skip (SKIP_RETURN_CODE in CMakeLists.txt).
+constexpr int skipped_exit_code = 77;
+
 void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
 }
@@ -61,11 +64,19 @@ int main() {
                 break;
             }
         }
+        if (!switched) {
+            // Without a comma locale the property this half exists for is
+            // not shown; report a skip (ctest's SKIP_RETURN_CODE) rather
+            // than a pass (B-gf-tests-08-F1).
+            std::cout << "number text tests: the C-locale forms passed; no comma locale is installed, "
+                         "so the comma-locale half was skipped\n";
+            return skipped_exit_code;
+        }
         check_decimal_forms();
         check_hexadecimal_forms();
         // std-rules: allow(locale-change) the test restores the classic locale it changed above
         static_cast<void>(std::setlocale(LC_NUMERIC, "C"));
-        std::cout << "number text tests passed" << (switched ? " (also under a comma locale)" : "") << '\n';
+        std::cout << "number text tests passed (also under a comma locale)\n";
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "number text tests failed: " << error.what() << '\n';

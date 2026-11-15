@@ -4960,6 +4960,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_number_text_tests tests/number_text_tests.cpp)
     target_link_libraries(gui_forms_number_text_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_number_text_tests COMMAND gui_forms_number_text_tests)
+    # 77: the C-locale half passed but no comma locale is installed, so the
+    # half that proves the parser ignores LC_NUMERIC did not run.
+    set_tests_properties(gui_forms_number_text_tests PROPERTIES SKIP_RETURN_CODE 77)
 
     add_executable(gui_forms_row_height_index_tests tests/row_height_index_tests.cpp)
     target_link_libraries(gui_forms_row_height_index_tests PRIVATE gui_forms_controls)
