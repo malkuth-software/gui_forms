@@ -42,9 +42,6 @@ private:
     HookFrame& frame_;
 };
 
-// The site the fail-fast report names for a client entry that threw.
-constexpr std::string_view class_entry_site = "abi.class_entry";
-
 bool holds_class(std::span<const gf_class_id> chain, gf_class_id class_id) noexcept {
     std::size_t index = 0U;
     for (index = 0U; index < chain.size(); ++index) {

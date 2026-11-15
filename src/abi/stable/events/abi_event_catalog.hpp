@@ -94,6 +94,7 @@
 #include "gui_forms/controls/page_strip.hpp"
 #include "gui_forms/controls/page_view.hpp"
 #include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/controls/plot_view.hpp"
 #include "gui_forms/controls/property_grid.hpp"
@@ -3746,6 +3747,15 @@ inline SubscriptionToken connect_task_dialog_button_clicked(Component& source, c
     return token;
 }
 
+inline SubscriptionToken connect_plot3_d_view_camera_changed(Component& source, const EventSink& sink) {
+    Plot3DView* typed = dynamic_cast<Plot3DView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).camera_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_text_box_cancelled(Component& source, const EventSink& sink) {
     TextBox* typed = dynamic_cast<TextBox*>(&source);
     if (typed == nullptr) {
@@ -5081,6 +5091,15 @@ inline SubscriptionToken connect_window_help_requested(Component& source, const 
     return token;
 }
 
+inline SubscriptionToken connect_plot3_d_view_hovered(Component& source, const EventSink& sink) {
+    Plot3DView* typed = dynamic_cast<Plot3DView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).hovered(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_picture_box_image_changed(Component& source, const EventSink& sink) {
     PictureBox* typed = dynamic_cast<PictureBox*>(&source);
     if (typed == nullptr) {
@@ -5724,6 +5743,15 @@ inline SubscriptionToken connect_binding_parse(Component& source, const EventSin
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).parse(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_plot3_d_view_picked(Component& source, const EventSink& sink) {
+    Plot3DView* typed = dynamic_cast<Plot3DView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).picked(), sink);
     return token;
 }
 
@@ -6888,7 +6916,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 371> event_connectors{{
+inline constexpr std::array<EventConnector, 374> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -6915,6 +6943,7 @@ inline constexpr std::array<EventConnector, 371> event_connectors{{
     {"bookmarks_changed", "HelpBookSystem", &connect_help_book_system_bookmarks_changed},
     {"built_in_language_requested", "HelpBookViewer", &connect_help_book_viewer_built_in_language_requested},
     {"button_clicked", "TaskDialog", &connect_task_dialog_button_clicked},
+    {"camera_changed", "Plot3DView", &connect_plot3_d_view_camera_changed},
     {"cancelled", "TextBox", &connect_text_box_cancelled},
     {"cancelled", "DockNavigator", &connect_dock_navigator_cancelled},
     {"cancelled", "Wizard", &connect_wizard_cancelled},
@@ -7062,6 +7091,7 @@ inline constexpr std::array<EventConnector, 371> event_connectors{{
     {"help_requested", "HelpProvider", &connect_help_provider_help_requested},
     {"help_requested", "RibbonToolTip", &connect_ribbon_tool_tip_help_requested},
     {"help_requested", "Window", &connect_window_help_requested},
+    {"hovered", "Plot3DView", &connect_plot3_d_view_hovered},
     {"image_changed", "PictureBox", &connect_picture_box_image_changed},
     {"initialization_completed", "Control", &connect_control_initialization_completed},
     {"invoked", "CommandBar", &connect_command_bar_invoked},
@@ -7132,6 +7162,7 @@ inline constexpr std::array<EventConnector, 371> event_connectors{{
     {"palette_open_changed", "RibbonColorPicker", &connect_ribbon_color_picker_palette_open_changed},
     {"palette_requested", "NodeCanvas", &connect_node_canvas_palette_requested},
     {"parse", "Binding", &connect_binding_parse},
+    {"picked", "Plot3DView", &connect_plot3_d_view_picked},
     {"placement_changed", "QuickAccessToolbar", &connect_quick_access_toolbar_placement_changed},
     {"point_picked", "PlotView", &connect_plot_view_point_picked},
     {"pointer_observed", "Control", &connect_control_pointer_observed},

@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 187> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 189> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -190,6 +190,8 @@ inline constexpr std::array<InteractionFieldsEntry, 187> interaction_fields{{
     {"double, double", "value_1: number, value_2: number"},
     {"int", "value: signed_integer"},
     {"int, bool", "value_1: signed_integer, value_2: boolean"},
+    {"plots::Plot3DCamera", ""},
+    {"plots::Plot3DHit", ""},
     {"std::optional<Color>", "value: color optional"},
     {"std::optional<DataGridViewCellAddress>", "row.value: unsigned_integer optional, column: unsigned_integer optional"},
     {"std::optional<TokenId>", "value: unsigned_integer optional"},

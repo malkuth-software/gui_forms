@@ -112,6 +112,7 @@
     _ZGVZN9gui_forms10PartMotion*;
     _ZGVZN9gui_forms10PartRaster*;
     _ZGVZN9gui_forms10PictureBox*;
+    _ZGVZN9gui_forms10Plot3DView*;
     _ZGVZN9gui_forms10PlotHandle*;
     _ZGVZN9gui_forms10PortRecord*;
     _ZGVZN9gui_forms10RadialPick*;
@@ -145,6 +146,7 @@
     _ZGVZN9gui_forms11ChoiceGroup*;
     _ZGVZN9gui_forms11ColorDialog*;
     _ZGVZN9gui_forms11ColorPicker*;
+    _ZGVZN9gui_forms11ColumnStrip*;
     _ZGVZN9gui_forms11CommandItem*;
     _ZGVZN9gui_forms11ContextMenu*;
     _ZGVZN9gui_forms11CursorImage*;
@@ -1356,6 +1358,7 @@
     _ZGVZN9gui_forms28DataGridViewCellsTextRequest*;
     _ZGVZN9gui_forms28DataGridViewRowPrePaintEvent*;
     _ZGVZN9gui_forms28DataGridViewRowsChangedEvent*;
+    _ZGVZN9gui_forms28DataGridViewScrollStatistics*;
     _ZGVZN9gui_forms28DataGridViewSortCompareEvent*;
     _ZGVZN9gui_forms28NavigationPaneOptionsRequest*;
     _ZGVZN9gui_forms28VisualPaintOperationSnapshot*;
@@ -1420,6 +1423,9 @@
     _ZGVZN9gui_forms5plots11ChirpSignal*;
     _ZGVZN9gui_forms5plots11LegendStyle*;
     _ZGVZN9gui_forms5plots11NoiseSignal*;
+    _ZGVZN9gui_forms5plots11Plot3DFrame*;
+    _ZGVZN9gui_forms5plots11Plot3DLabel*;
+    _ZGVZN9gui_forms5plots11Plot3DScene*;
     _ZGVZN9gui_forms5plots11SeriesLease*;
     _ZGVZN9gui_forms5plots11SignalClock*;
     _ZGVZN9gui_forms5plots11SignalEntry*;
@@ -1430,10 +1436,14 @@
     _ZGVZN9gui_forms5plots12ElementIndex*;
     _ZGVZN9gui_forms5plots12ElementRange*;
     _ZGVZN9gui_forms5plots12LegendLayout*;
+    _ZGVZN9gui_forms5plots12Plot3DCamera*;
+    _ZGVZN9gui_forms5plots12Plot3DColors*;
+    _ZGVZN9gui_forms5plots12Plot3DItemId*;
     _ZGVZN9gui_forms5plots12ScaleMapping*;
     _ZGVZN9gui_forms5plots12SeriesPicker*;
     _ZGVZN9gui_forms5plots12SquareSignal*;
     _ZGVZN9gui_forms5plots13OccupancyGrid*;
+    _ZGVZN9gui_forms5plots13Plot3DOptions*;
     _ZGVZN9gui_forms5plots13PlotModifiers*;
     _ZGVZN9gui_forms5plots13PlotSelection*;
     _ZGVZN9gui_forms5plots13PlotTransform*;
@@ -1441,6 +1451,7 @@
     _ZGVZN9gui_forms5plots13SignalProgram*;
     _ZGVZN9gui_forms5plots14MarkStatistics*;
     _ZGVZN9gui_forms5plots14OscillatorBank*;
+    _ZGVZN9gui_forms5plots14Plot3DLineSpec*;
     _ZGVZN9gui_forms5plots14PlotDataBounds*;
     _ZGVZN9gui_forms5plots14PlotViewChange*;
     _ZGVZN9gui_forms5plots14SeriesIdentity*;
@@ -1452,6 +1463,8 @@
     _ZGVZN9gui_forms5plots16TickLabelMetrics*;
     _ZGVZN9gui_forms5plots17AnnotationRequest*;
     _ZGVZN9gui_forms5plots17LegendEntryLayout*;
+    _ZGVZN9gui_forms5plots17Plot3DScatterSpec*;
+    _ZGVZN9gui_forms5plots17Plot3DSurfaceSpec*;
     _ZGVZN9gui_forms5plots17SeriesMarkPainter*;
     _ZGVZN9gui_forms5plots17SeriesRingChannel*;
     _ZGVZN9gui_forms5plots17SignalDeclaration*;
@@ -1474,6 +1487,7 @@
     _ZGVZN9gui_forms5plots8RectPick*;
     _ZGVZN9gui_forms5plots9CivilTime*;
     _ZGVZN9gui_forms5plots9MajorTick*;
+    _ZGVZN9gui_forms5plots9Plot3DHit*;
     _ZGVZN9gui_forms5plots9PlotRange*;
     _ZGVZN9gui_forms5plots9SawSignal*;
     _ZGVZN9gui_forms5plots9SeriesPin*;
@@ -1714,6 +1728,7 @@
     _ZGVZNK9gui_forms10PartMotion*;
     _ZGVZNK9gui_forms10PartRaster*;
     _ZGVZNK9gui_forms10PictureBox*;
+    _ZGVZNK9gui_forms10Plot3DView*;
     _ZGVZNK9gui_forms10PlotHandle*;
     _ZGVZNK9gui_forms10PortRecord*;
     _ZGVZNK9gui_forms10RadialPick*;
@@ -1747,6 +1762,7 @@
     _ZGVZNK9gui_forms11ChoiceGroup*;
     _ZGVZNK9gui_forms11ColorDialog*;
     _ZGVZNK9gui_forms11ColorPicker*;
+    _ZGVZNK9gui_forms11ColumnStrip*;
     _ZGVZNK9gui_forms11CommandItem*;
     _ZGVZNK9gui_forms11ContextMenu*;
     _ZGVZNK9gui_forms11CursorImage*;
@@ -2958,6 +2974,7 @@
     _ZGVZNK9gui_forms28DataGridViewCellsTextRequest*;
     _ZGVZNK9gui_forms28DataGridViewRowPrePaintEvent*;
     _ZGVZNK9gui_forms28DataGridViewRowsChangedEvent*;
+    _ZGVZNK9gui_forms28DataGridViewScrollStatistics*;
     _ZGVZNK9gui_forms28DataGridViewSortCompareEvent*;
     _ZGVZNK9gui_forms28NavigationPaneOptionsRequest*;
     _ZGVZNK9gui_forms28VisualPaintOperationSnapshot*;
@@ -3022,6 +3039,9 @@
     _ZGVZNK9gui_forms5plots11ChirpSignal*;
     _ZGVZNK9gui_forms5plots11LegendStyle*;
     _ZGVZNK9gui_forms5plots11NoiseSignal*;
+    _ZGVZNK9gui_forms5plots11Plot3DFrame*;
+    _ZGVZNK9gui_forms5plots11Plot3DLabel*;
+    _ZGVZNK9gui_forms5plots11Plot3DScene*;
     _ZGVZNK9gui_forms5plots11SeriesLease*;
     _ZGVZNK9gui_forms5plots11SignalClock*;
     _ZGVZNK9gui_forms5plots11SignalEntry*;
@@ -3032,10 +3052,14 @@
     _ZGVZNK9gui_forms5plots12ElementIndex*;
     _ZGVZNK9gui_forms5plots12ElementRange*;
     _ZGVZNK9gui_forms5plots12LegendLayout*;
+    _ZGVZNK9gui_forms5plots12Plot3DCamera*;
+    _ZGVZNK9gui_forms5plots12Plot3DColors*;
+    _ZGVZNK9gui_forms5plots12Plot3DItemId*;
     _ZGVZNK9gui_forms5plots12ScaleMapping*;
     _ZGVZNK9gui_forms5plots12SeriesPicker*;
     _ZGVZNK9gui_forms5plots12SquareSignal*;
     _ZGVZNK9gui_forms5plots13OccupancyGrid*;
+    _ZGVZNK9gui_forms5plots13Plot3DOptions*;
     _ZGVZNK9gui_forms5plots13PlotModifiers*;
     _ZGVZNK9gui_forms5plots13PlotSelection*;
     _ZGVZNK9gui_forms5plots13PlotTransform*;
@@ -3043,6 +3067,7 @@
     _ZGVZNK9gui_forms5plots13SignalProgram*;
     _ZGVZNK9gui_forms5plots14MarkStatistics*;
     _ZGVZNK9gui_forms5plots14OscillatorBank*;
+    _ZGVZNK9gui_forms5plots14Plot3DLineSpec*;
     _ZGVZNK9gui_forms5plots14PlotDataBounds*;
     _ZGVZNK9gui_forms5plots14PlotViewChange*;
     _ZGVZNK9gui_forms5plots14SeriesIdentity*;
@@ -3054,6 +3079,8 @@
     _ZGVZNK9gui_forms5plots16TickLabelMetrics*;
     _ZGVZNK9gui_forms5plots17AnnotationRequest*;
     _ZGVZNK9gui_forms5plots17LegendEntryLayout*;
+    _ZGVZNK9gui_forms5plots17Plot3DScatterSpec*;
+    _ZGVZNK9gui_forms5plots17Plot3DSurfaceSpec*;
     _ZGVZNK9gui_forms5plots17SeriesMarkPainter*;
     _ZGVZNK9gui_forms5plots17SeriesRingChannel*;
     _ZGVZNK9gui_forms5plots17SignalDeclaration*;
@@ -3076,6 +3103,7 @@
     _ZGVZNK9gui_forms5plots8RectPick*;
     _ZGVZNK9gui_forms5plots9CivilTime*;
     _ZGVZNK9gui_forms5plots9MajorTick*;
+    _ZGVZNK9gui_forms5plots9Plot3DHit*;
     _ZGVZNK9gui_forms5plots9PlotRange*;
     _ZGVZNK9gui_forms5plots9SawSignal*;
     _ZGVZNK9gui_forms5plots9SeriesPin*;
@@ -3368,6 +3396,7 @@
     _ZN9gui_forms10PartMotion*;
     _ZN9gui_forms10PartRaster*;
     _ZN9gui_forms10PictureBox*;
+    _ZN9gui_forms10Plot3DView*;
     _ZN9gui_forms10PlotHandle*;
     _ZN9gui_forms10PortRecord*;
     _ZN9gui_forms10RadialPick*;
@@ -3411,6 +3440,7 @@
     _ZN9gui_forms11ChoiceGroup*;
     _ZN9gui_forms11ColorDialog*;
     _ZN9gui_forms11ColorPicker*;
+    _ZN9gui_forms11ColumnStrip*;
     _ZN9gui_forms11CommandItem*;
     _ZN9gui_forms11ContextMenu*;
     _ZN9gui_forms11CursorImage*;
@@ -5742,6 +5772,7 @@
     _ZN9gui_forms28DataGridViewCellsTextRequest*;
     _ZN9gui_forms28DataGridViewRowPrePaintEvent*;
     _ZN9gui_forms28DataGridViewRowsChangedEvent*;
+    _ZN9gui_forms28DataGridViewScrollStatistics*;
     _ZN9gui_forms28DataGridViewSortCompareEvent*;
     _ZN9gui_forms28NavigationPaneOptionsRequest*;
     _ZN9gui_forms28VisualPaintOperationSnapshot*;
@@ -5954,6 +5985,9 @@
     _ZN9gui_forms5plots11ChirpSignal*;
     _ZN9gui_forms5plots11LegendStyle*;
     _ZN9gui_forms5plots11NoiseSignal*;
+    _ZN9gui_forms5plots11Plot3DFrame*;
+    _ZN9gui_forms5plots11Plot3DLabel*;
+    _ZN9gui_forms5plots11Plot3DScene*;
     _ZN9gui_forms5plots11SeriesLease*;
     _ZN9gui_forms5plots11SignalClock*;
     _ZN9gui_forms5plots11SignalEntry*;
@@ -5966,6 +6000,9 @@
     _ZN9gui_forms5plots12ElementIndex*;
     _ZN9gui_forms5plots12ElementRange*;
     _ZN9gui_forms5plots12LegendLayout*;
+    _ZN9gui_forms5plots12Plot3DCamera*;
+    _ZN9gui_forms5plots12Plot3DColors*;
+    _ZN9gui_forms5plots12Plot3DItemId*;
     _ZN9gui_forms5plots12ScaleMapping*;
     _ZN9gui_forms5plots12SeriesPicker*;
     _ZN9gui_forms5plots12SquareSignal*;
@@ -5976,6 +6013,7 @@
     _ZN9gui_forms5plots12engine_log10B*;
     _ZN9gui_forms5plots12engine_log10E*;
     _ZN9gui_forms5plots13OccupancyGrid*;
+    _ZN9gui_forms5plots13Plot3DOptions*;
     _ZN9gui_forms5plots13PlotModifiers*;
     _ZN9gui_forms5plots13PlotSelection*;
     _ZN9gui_forms5plots13PlotTransform*;
@@ -5985,6 +6023,7 @@
     _ZN9gui_forms5plots13layout_legendE*;
     _ZN9gui_forms5plots14MarkStatistics*;
     _ZN9gui_forms5plots14OscillatorBank*;
+    _ZN9gui_forms5plots14Plot3DLineSpec*;
     _ZN9gui_forms5plots14PlotDataBounds*;
     _ZN9gui_forms5plots14PlotViewChange*;
     _ZN9gui_forms5plots14SeriesIdentity*;
@@ -6010,6 +6049,8 @@
     _ZN9gui_forms5plots16admissible_rangeE*;
     _ZN9gui_forms5plots17AnnotationRequest*;
     _ZN9gui_forms5plots17LegendEntryLayout*;
+    _ZN9gui_forms5plots17Plot3DScatterSpec*;
+    _ZN9gui_forms5plots17Plot3DSurfaceSpec*;
     _ZN9gui_forms5plots17SeriesMarkPainter*;
     _ZN9gui_forms5plots17SeriesRingChannel*;
     _ZN9gui_forms5plots17SignalDeclaration*;
@@ -6052,6 +6093,7 @@
     _ZN9gui_forms5plots8RectPick*;
     _ZN9gui_forms5plots9CivilTime*;
     _ZN9gui_forms5plots9MajorTick*;
+    _ZN9gui_forms5plots9Plot3DHit*;
     _ZN9gui_forms5plots9PlotRange*;
     _ZN9gui_forms5plots9SawSignal*;
     _ZN9gui_forms5plots9SeriesPin*;
@@ -6091,17 +6133,25 @@
     _ZN9gui_forms6detail14WindowLifetime*;
     _ZN9gui_forms6detail15FailureBoundary*;
     _ZN9gui_forms6detail15FailureSnapshot*;
+    _ZN9gui_forms6detail15frame_of_recordB*;
+    _ZN9gui_forms6detail15frame_of_recordE*;
     _ZN9gui_forms6detail16BorrowOwnerState*;
     _ZN9gui_forms6detail16count_allocationB*;
     _ZN9gui_forms6detail16count_allocationE*;
     _ZN9gui_forms6detail16straight_channelB*;
     _ZN9gui_forms6detail16straight_channelE*;
+    _ZN9gui_forms6detail16well_formed_textB*;
+    _ZN9gui_forms6detail16well_formed_textE*;
     _ZN9gui_forms6detail17ControlHelpFields*;
     _ZN9gui_forms6detail17toggle_rule_valueB*;
     _ZN9gui_forms6detail17toggle_rule_valueE*;
     _ZN9gui_forms6detail18WindowHelpFallback*;
+    _ZN9gui_forms6detail18copy_record_framesB*;
+    _ZN9gui_forms6detail18copy_record_framesE*;
     _ZN9gui_forms6detail18set_layout_keepingB*;
     _ZN9gui_forms6detail18set_layout_keepingE*;
+    _ZN9gui_forms6detail18write_code_addressB*;
+    _ZN9gui_forms6detail18write_code_addressE*;
     _ZN9gui_forms6detail19NestedEmissionScope*;
     _ZN9gui_forms6detail19kept_resolutions_ofB*;
     _ZN9gui_forms6detail19kept_resolutions_ofE*;
@@ -6112,10 +6162,14 @@
     _ZN9gui_forms6detail20encode_clipboard_dibE*;
     _ZN9gui_forms6detail20exception_reflectionB*;
     _ZN9gui_forms6detail20exception_reflectionE*;
+    _ZN9gui_forms6detail20fail_fast_classifierB*;
+    _ZN9gui_forms6detail20fail_fast_classifierE*;
     _ZN9gui_forms6detail20property_write_epochB*;
     _ZN9gui_forms6detail20property_write_epochE*;
     _ZN9gui_forms6detail21premultiplied_channelB*;
     _ZN9gui_forms6detail21premultiplied_channelE*;
+    _ZN9gui_forms6detail21write_fail_fast_stackB*;
+    _ZN9gui_forms6detail21write_fail_fast_stackE*;
     _ZN9gui_forms6detail22clear_failure_snapshotB*;
     _ZN9gui_forms6detail22clear_failure_snapshotE*;
     _ZN9gui_forms6detail22decode_clipboard_imageB*;
@@ -6130,6 +6184,8 @@
     _ZN9gui_forms6detail24set_exception_reflectionE*;
     _ZN9gui_forms6detail25attach_application_windowB*;
     _ZN9gui_forms6detail25attach_application_windowE*;
+    _ZN9gui_forms6detail25ensure_fail_fast_reporterB*;
+    _ZN9gui_forms6detail25ensure_fail_fast_reporterE*;
     _ZN9gui_forms6detail28advance_property_write_epochB*;
     _ZN9gui_forms6detail28advance_property_write_epochE*;
     _ZN9gui_forms6detail35premultiplied_bgra_to_straight_bgraB*;
@@ -6460,6 +6516,7 @@
     _ZNK[RO]9gui_forms10PartMotion*;
     _ZNK[RO]9gui_forms10PartRaster*;
     _ZNK[RO]9gui_forms10PictureBox*;
+    _ZNK[RO]9gui_forms10Plot3DView*;
     _ZNK[RO]9gui_forms10PlotHandle*;
     _ZNK[RO]9gui_forms10PortRecord*;
     _ZNK[RO]9gui_forms10RadialPick*;
@@ -6493,6 +6550,7 @@
     _ZNK[RO]9gui_forms11ChoiceGroup*;
     _ZNK[RO]9gui_forms11ColorDialog*;
     _ZNK[RO]9gui_forms11ColorPicker*;
+    _ZNK[RO]9gui_forms11ColumnStrip*;
     _ZNK[RO]9gui_forms11CommandItem*;
     _ZNK[RO]9gui_forms11ContextMenu*;
     _ZNK[RO]9gui_forms11CursorImage*;
@@ -7704,6 +7762,7 @@
     _ZNK[RO]9gui_forms28DataGridViewCellsTextRequest*;
     _ZNK[RO]9gui_forms28DataGridViewRowPrePaintEvent*;
     _ZNK[RO]9gui_forms28DataGridViewRowsChangedEvent*;
+    _ZNK[RO]9gui_forms28DataGridViewScrollStatistics*;
     _ZNK[RO]9gui_forms28DataGridViewSortCompareEvent*;
     _ZNK[RO]9gui_forms28NavigationPaneOptionsRequest*;
     _ZNK[RO]9gui_forms28VisualPaintOperationSnapshot*;
@@ -7768,6 +7827,9 @@
     _ZNK[RO]9gui_forms5plots11ChirpSignal*;
     _ZNK[RO]9gui_forms5plots11LegendStyle*;
     _ZNK[RO]9gui_forms5plots11NoiseSignal*;
+    _ZNK[RO]9gui_forms5plots11Plot3DFrame*;
+    _ZNK[RO]9gui_forms5plots11Plot3DLabel*;
+    _ZNK[RO]9gui_forms5plots11Plot3DScene*;
     _ZNK[RO]9gui_forms5plots11SeriesLease*;
     _ZNK[RO]9gui_forms5plots11SignalClock*;
     _ZNK[RO]9gui_forms5plots11SignalEntry*;
@@ -7778,10 +7840,14 @@
     _ZNK[RO]9gui_forms5plots12ElementIndex*;
     _ZNK[RO]9gui_forms5plots12ElementRange*;
     _ZNK[RO]9gui_forms5plots12LegendLayout*;
+    _ZNK[RO]9gui_forms5plots12Plot3DCamera*;
+    _ZNK[RO]9gui_forms5plots12Plot3DColors*;
+    _ZNK[RO]9gui_forms5plots12Plot3DItemId*;
     _ZNK[RO]9gui_forms5plots12ScaleMapping*;
     _ZNK[RO]9gui_forms5plots12SeriesPicker*;
     _ZNK[RO]9gui_forms5plots12SquareSignal*;
     _ZNK[RO]9gui_forms5plots13OccupancyGrid*;
+    _ZNK[RO]9gui_forms5plots13Plot3DOptions*;
     _ZNK[RO]9gui_forms5plots13PlotModifiers*;
     _ZNK[RO]9gui_forms5plots13PlotSelection*;
     _ZNK[RO]9gui_forms5plots13PlotTransform*;
@@ -7789,6 +7855,7 @@
     _ZNK[RO]9gui_forms5plots13SignalProgram*;
     _ZNK[RO]9gui_forms5plots14MarkStatistics*;
     _ZNK[RO]9gui_forms5plots14OscillatorBank*;
+    _ZNK[RO]9gui_forms5plots14Plot3DLineSpec*;
     _ZNK[RO]9gui_forms5plots14PlotDataBounds*;
     _ZNK[RO]9gui_forms5plots14PlotViewChange*;
     _ZNK[RO]9gui_forms5plots14SeriesIdentity*;
@@ -7800,6 +7867,8 @@
     _ZNK[RO]9gui_forms5plots16TickLabelMetrics*;
     _ZNK[RO]9gui_forms5plots17AnnotationRequest*;
     _ZNK[RO]9gui_forms5plots17LegendEntryLayout*;
+    _ZNK[RO]9gui_forms5plots17Plot3DScatterSpec*;
+    _ZNK[RO]9gui_forms5plots17Plot3DSurfaceSpec*;
     _ZNK[RO]9gui_forms5plots17SeriesMarkPainter*;
     _ZNK[RO]9gui_forms5plots17SeriesRingChannel*;
     _ZNK[RO]9gui_forms5plots17SignalDeclaration*;
@@ -7822,6 +7891,7 @@
     _ZNK[RO]9gui_forms5plots8RectPick*;
     _ZNK[RO]9gui_forms5plots9CivilTime*;
     _ZNK[RO]9gui_forms5plots9MajorTick*;
+    _ZNK[RO]9gui_forms5plots9Plot3DHit*;
     _ZNK[RO]9gui_forms5plots9PlotRange*;
     _ZNK[RO]9gui_forms5plots9SawSignal*;
     _ZNK[RO]9gui_forms5plots9SeriesPin*;
@@ -8062,6 +8132,7 @@
     _ZN[KRO]9gui_forms10PartMotion*;
     _ZN[KRO]9gui_forms10PartRaster*;
     _ZN[KRO]9gui_forms10PictureBox*;
+    _ZN[KRO]9gui_forms10Plot3DView*;
     _ZN[KRO]9gui_forms10PlotHandle*;
     _ZN[KRO]9gui_forms10PortRecord*;
     _ZN[KRO]9gui_forms10RadialPick*;
@@ -8095,6 +8166,7 @@
     _ZN[KRO]9gui_forms11ChoiceGroup*;
     _ZN[KRO]9gui_forms11ColorDialog*;
     _ZN[KRO]9gui_forms11ColorPicker*;
+    _ZN[KRO]9gui_forms11ColumnStrip*;
     _ZN[KRO]9gui_forms11CommandItem*;
     _ZN[KRO]9gui_forms11ContextMenu*;
     _ZN[KRO]9gui_forms11CursorImage*;
@@ -9306,6 +9378,7 @@
     _ZN[KRO]9gui_forms28DataGridViewCellsTextRequest*;
     _ZN[KRO]9gui_forms28DataGridViewRowPrePaintEvent*;
     _ZN[KRO]9gui_forms28DataGridViewRowsChangedEvent*;
+    _ZN[KRO]9gui_forms28DataGridViewScrollStatistics*;
     _ZN[KRO]9gui_forms28DataGridViewSortCompareEvent*;
     _ZN[KRO]9gui_forms28NavigationPaneOptionsRequest*;
     _ZN[KRO]9gui_forms28VisualPaintOperationSnapshot*;
@@ -9370,6 +9443,9 @@
     _ZN[KRO]9gui_forms5plots11ChirpSignal*;
     _ZN[KRO]9gui_forms5plots11LegendStyle*;
     _ZN[KRO]9gui_forms5plots11NoiseSignal*;
+    _ZN[KRO]9gui_forms5plots11Plot3DFrame*;
+    _ZN[KRO]9gui_forms5plots11Plot3DLabel*;
+    _ZN[KRO]9gui_forms5plots11Plot3DScene*;
     _ZN[KRO]9gui_forms5plots11SeriesLease*;
     _ZN[KRO]9gui_forms5plots11SignalClock*;
     _ZN[KRO]9gui_forms5plots11SignalEntry*;
@@ -9380,10 +9456,14 @@
     _ZN[KRO]9gui_forms5plots12ElementIndex*;
     _ZN[KRO]9gui_forms5plots12ElementRange*;
     _ZN[KRO]9gui_forms5plots12LegendLayout*;
+    _ZN[KRO]9gui_forms5plots12Plot3DCamera*;
+    _ZN[KRO]9gui_forms5plots12Plot3DColors*;
+    _ZN[KRO]9gui_forms5plots12Plot3DItemId*;
     _ZN[KRO]9gui_forms5plots12ScaleMapping*;
     _ZN[KRO]9gui_forms5plots12SeriesPicker*;
     _ZN[KRO]9gui_forms5plots12SquareSignal*;
     _ZN[KRO]9gui_forms5plots13OccupancyGrid*;
+    _ZN[KRO]9gui_forms5plots13Plot3DOptions*;
     _ZN[KRO]9gui_forms5plots13PlotModifiers*;
     _ZN[KRO]9gui_forms5plots13PlotSelection*;
     _ZN[KRO]9gui_forms5plots13PlotTransform*;
@@ -9391,6 +9471,7 @@
     _ZN[KRO]9gui_forms5plots13SignalProgram*;
     _ZN[KRO]9gui_forms5plots14MarkStatistics*;
     _ZN[KRO]9gui_forms5plots14OscillatorBank*;
+    _ZN[KRO]9gui_forms5plots14Plot3DLineSpec*;
     _ZN[KRO]9gui_forms5plots14PlotDataBounds*;
     _ZN[KRO]9gui_forms5plots14PlotViewChange*;
     _ZN[KRO]9gui_forms5plots14SeriesIdentity*;
@@ -9402,6 +9483,8 @@
     _ZN[KRO]9gui_forms5plots16TickLabelMetrics*;
     _ZN[KRO]9gui_forms5plots17AnnotationRequest*;
     _ZN[KRO]9gui_forms5plots17LegendEntryLayout*;
+    _ZN[KRO]9gui_forms5plots17Plot3DScatterSpec*;
+    _ZN[KRO]9gui_forms5plots17Plot3DSurfaceSpec*;
     _ZN[KRO]9gui_forms5plots17SeriesMarkPainter*;
     _ZN[KRO]9gui_forms5plots17SeriesRingChannel*;
     _ZN[KRO]9gui_forms5plots17SignalDeclaration*;
@@ -9424,6 +9507,7 @@
     _ZN[KRO]9gui_forms5plots8RectPick*;
     _ZN[KRO]9gui_forms5plots9CivilTime*;
     _ZN[KRO]9gui_forms5plots9MajorTick*;
+    _ZN[KRO]9gui_forms5plots9Plot3DHit*;
     _ZN[KRO]9gui_forms5plots9PlotRange*;
     _ZN[KRO]9gui_forms5plots9SawSignal*;
     _ZN[KRO]9gui_forms5plots9SeriesPin*;
@@ -9664,6 +9748,7 @@
     _ZT[VIST]N9gui_forms10PartMotion*E;
     _ZT[VIST]N9gui_forms10PartRaster*E;
     _ZT[VIST]N9gui_forms10PictureBox*E;
+    _ZT[VIST]N9gui_forms10Plot3DView*E;
     _ZT[VIST]N9gui_forms10PlotHandle*E;
     _ZT[VIST]N9gui_forms10PortRecord*E;
     _ZT[VIST]N9gui_forms10RadialPick*E;
@@ -9697,6 +9782,7 @@
     _ZT[VIST]N9gui_forms11ChoiceGroup*E;
     _ZT[VIST]N9gui_forms11ColorDialog*E;
     _ZT[VIST]N9gui_forms11ColorPicker*E;
+    _ZT[VIST]N9gui_forms11ColumnStrip*E;
     _ZT[VIST]N9gui_forms11CommandItem*E;
     _ZT[VIST]N9gui_forms11ContextMenu*E;
     _ZT[VIST]N9gui_forms11CursorImage*E;
@@ -10908,6 +10994,7 @@
     _ZT[VIST]N9gui_forms28DataGridViewCellsTextRequest*E;
     _ZT[VIST]N9gui_forms28DataGridViewRowPrePaintEvent*E;
     _ZT[VIST]N9gui_forms28DataGridViewRowsChangedEvent*E;
+    _ZT[VIST]N9gui_forms28DataGridViewScrollStatistics*E;
     _ZT[VIST]N9gui_forms28DataGridViewSortCompareEvent*E;
     _ZT[VIST]N9gui_forms28NavigationPaneOptionsRequest*E;
     _ZT[VIST]N9gui_forms28VisualPaintOperationSnapshot*E;
@@ -10972,6 +11059,9 @@
     _ZT[VIST]N9gui_forms5plots11ChirpSignal*E;
     _ZT[VIST]N9gui_forms5plots11LegendStyle*E;
     _ZT[VIST]N9gui_forms5plots11NoiseSignal*E;
+    _ZT[VIST]N9gui_forms5plots11Plot3DFrame*E;
+    _ZT[VIST]N9gui_forms5plots11Plot3DLabel*E;
+    _ZT[VIST]N9gui_forms5plots11Plot3DScene*E;
     _ZT[VIST]N9gui_forms5plots11SeriesLease*E;
     _ZT[VIST]N9gui_forms5plots11SignalClock*E;
     _ZT[VIST]N9gui_forms5plots11SignalEntry*E;
@@ -10982,10 +11072,14 @@
     _ZT[VIST]N9gui_forms5plots12ElementIndex*E;
     _ZT[VIST]N9gui_forms5plots12ElementRange*E;
     _ZT[VIST]N9gui_forms5plots12LegendLayout*E;
+    _ZT[VIST]N9gui_forms5plots12Plot3DCamera*E;
+    _ZT[VIST]N9gui_forms5plots12Plot3DColors*E;
+    _ZT[VIST]N9gui_forms5plots12Plot3DItemId*E;
     _ZT[VIST]N9gui_forms5plots12ScaleMapping*E;
     _ZT[VIST]N9gui_forms5plots12SeriesPicker*E;
     _ZT[VIST]N9gui_forms5plots12SquareSignal*E;
     _ZT[VIST]N9gui_forms5plots13OccupancyGrid*E;
+    _ZT[VIST]N9gui_forms5plots13Plot3DOptions*E;
     _ZT[VIST]N9gui_forms5plots13PlotModifiers*E;
     _ZT[VIST]N9gui_forms5plots13PlotSelection*E;
     _ZT[VIST]N9gui_forms5plots13PlotTransform*E;
@@ -10993,6 +11087,7 @@
     _ZT[VIST]N9gui_forms5plots13SignalProgram*E;
     _ZT[VIST]N9gui_forms5plots14MarkStatistics*E;
     _ZT[VIST]N9gui_forms5plots14OscillatorBank*E;
+    _ZT[VIST]N9gui_forms5plots14Plot3DLineSpec*E;
     _ZT[VIST]N9gui_forms5plots14PlotDataBounds*E;
     _ZT[VIST]N9gui_forms5plots14PlotViewChange*E;
     _ZT[VIST]N9gui_forms5plots14SeriesIdentity*E;
@@ -11004,6 +11099,8 @@
     _ZT[VIST]N9gui_forms5plots16TickLabelMetrics*E;
     _ZT[VIST]N9gui_forms5plots17AnnotationRequest*E;
     _ZT[VIST]N9gui_forms5plots17LegendEntryLayout*E;
+    _ZT[VIST]N9gui_forms5plots17Plot3DScatterSpec*E;
+    _ZT[VIST]N9gui_forms5plots17Plot3DSurfaceSpec*E;
     _ZT[VIST]N9gui_forms5plots17SeriesMarkPainter*E;
     _ZT[VIST]N9gui_forms5plots17SeriesRingChannel*E;
     _ZT[VIST]N9gui_forms5plots17SignalDeclaration*E;
@@ -11026,6 +11123,7 @@
     _ZT[VIST]N9gui_forms5plots8RectPick*E;
     _ZT[VIST]N9gui_forms5plots9CivilTime*E;
     _ZT[VIST]N9gui_forms5plots9MajorTick*E;
+    _ZT[VIST]N9gui_forms5plots9Plot3DHit*E;
     _ZT[VIST]N9gui_forms5plots9PlotRange*E;
     _ZT[VIST]N9gui_forms5plots9SawSignal*E;
     _ZT[VIST]N9gui_forms5plots9SeriesPin*E;
@@ -11266,6 +11364,7 @@
     _ZT[hvc]*9gui_forms10PartMotion*;
     _ZT[hvc]*9gui_forms10PartRaster*;
     _ZT[hvc]*9gui_forms10PictureBox*;
+    _ZT[hvc]*9gui_forms10Plot3DView*;
     _ZT[hvc]*9gui_forms10PlotHandle*;
     _ZT[hvc]*9gui_forms10PortRecord*;
     _ZT[hvc]*9gui_forms10RadialPick*;
@@ -11299,6 +11398,7 @@
     _ZT[hvc]*9gui_forms11ChoiceGroup*;
     _ZT[hvc]*9gui_forms11ColorDialog*;
     _ZT[hvc]*9gui_forms11ColorPicker*;
+    _ZT[hvc]*9gui_forms11ColumnStrip*;
     _ZT[hvc]*9gui_forms11CommandItem*;
     _ZT[hvc]*9gui_forms11ContextMenu*;
     _ZT[hvc]*9gui_forms11CursorImage*;
@@ -12510,6 +12610,7 @@
     _ZT[hvc]*9gui_forms28DataGridViewCellsTextRequest*;
     _ZT[hvc]*9gui_forms28DataGridViewRowPrePaintEvent*;
     _ZT[hvc]*9gui_forms28DataGridViewRowsChangedEvent*;
+    _ZT[hvc]*9gui_forms28DataGridViewScrollStatistics*;
     _ZT[hvc]*9gui_forms28DataGridViewSortCompareEvent*;
     _ZT[hvc]*9gui_forms28NavigationPaneOptionsRequest*;
     _ZT[hvc]*9gui_forms28VisualPaintOperationSnapshot*;
@@ -12574,6 +12675,9 @@
     _ZT[hvc]*9gui_forms5plots11ChirpSignal*;
     _ZT[hvc]*9gui_forms5plots11LegendStyle*;
     _ZT[hvc]*9gui_forms5plots11NoiseSignal*;
+    _ZT[hvc]*9gui_forms5plots11Plot3DFrame*;
+    _ZT[hvc]*9gui_forms5plots11Plot3DLabel*;
+    _ZT[hvc]*9gui_forms5plots11Plot3DScene*;
     _ZT[hvc]*9gui_forms5plots11SeriesLease*;
     _ZT[hvc]*9gui_forms5plots11SignalClock*;
     _ZT[hvc]*9gui_forms5plots11SignalEntry*;
@@ -12584,10 +12688,14 @@
     _ZT[hvc]*9gui_forms5plots12ElementIndex*;
     _ZT[hvc]*9gui_forms5plots12ElementRange*;
     _ZT[hvc]*9gui_forms5plots12LegendLayout*;
+    _ZT[hvc]*9gui_forms5plots12Plot3DCamera*;
+    _ZT[hvc]*9gui_forms5plots12Plot3DColors*;
+    _ZT[hvc]*9gui_forms5plots12Plot3DItemId*;
     _ZT[hvc]*9gui_forms5plots12ScaleMapping*;
     _ZT[hvc]*9gui_forms5plots12SeriesPicker*;
     _ZT[hvc]*9gui_forms5plots12SquareSignal*;
     _ZT[hvc]*9gui_forms5plots13OccupancyGrid*;
+    _ZT[hvc]*9gui_forms5plots13Plot3DOptions*;
     _ZT[hvc]*9gui_forms5plots13PlotModifiers*;
     _ZT[hvc]*9gui_forms5plots13PlotSelection*;
     _ZT[hvc]*9gui_forms5plots13PlotTransform*;
@@ -12595,6 +12703,7 @@
     _ZT[hvc]*9gui_forms5plots13SignalProgram*;
     _ZT[hvc]*9gui_forms5plots14MarkStatistics*;
     _ZT[hvc]*9gui_forms5plots14OscillatorBank*;
+    _ZT[hvc]*9gui_forms5plots14Plot3DLineSpec*;
     _ZT[hvc]*9gui_forms5plots14PlotDataBounds*;
     _ZT[hvc]*9gui_forms5plots14PlotViewChange*;
     _ZT[hvc]*9gui_forms5plots14SeriesIdentity*;
@@ -12606,6 +12715,8 @@
     _ZT[hvc]*9gui_forms5plots16TickLabelMetrics*;
     _ZT[hvc]*9gui_forms5plots17AnnotationRequest*;
     _ZT[hvc]*9gui_forms5plots17LegendEntryLayout*;
+    _ZT[hvc]*9gui_forms5plots17Plot3DScatterSpec*;
+    _ZT[hvc]*9gui_forms5plots17Plot3DSurfaceSpec*;
     _ZT[hvc]*9gui_forms5plots17SeriesMarkPainter*;
     _ZT[hvc]*9gui_forms5plots17SeriesRingChannel*;
     _ZT[hvc]*9gui_forms5plots17SignalDeclaration*;
@@ -12628,6 +12739,7 @@
     _ZT[hvc]*9gui_forms5plots8RectPick*;
     _ZT[hvc]*9gui_forms5plots9CivilTime*;
     _ZT[hvc]*9gui_forms5plots9MajorTick*;
+    _ZT[hvc]*9gui_forms5plots9Plot3DHit*;
     _ZT[hvc]*9gui_forms5plots9PlotRange*;
     _ZT[hvc]*9gui_forms5plots9SawSignal*;
     _ZT[hvc]*9gui_forms5plots9SeriesPin*;
@@ -12868,6 +12980,7 @@
     _ZZN9gui_forms10PartMotion*;
     _ZZN9gui_forms10PartRaster*;
     _ZZN9gui_forms10PictureBox*;
+    _ZZN9gui_forms10Plot3DView*;
     _ZZN9gui_forms10PlotHandle*;
     _ZZN9gui_forms10PortRecord*;
     _ZZN9gui_forms10RadialPick*;
@@ -12901,6 +13014,7 @@
     _ZZN9gui_forms11ChoiceGroup*;
     _ZZN9gui_forms11ColorDialog*;
     _ZZN9gui_forms11ColorPicker*;
+    _ZZN9gui_forms11ColumnStrip*;
     _ZZN9gui_forms11CommandItem*;
     _ZZN9gui_forms11ContextMenu*;
     _ZZN9gui_forms11CursorImage*;
@@ -14112,6 +14226,7 @@
     _ZZN9gui_forms28DataGridViewCellsTextRequest*;
     _ZZN9gui_forms28DataGridViewRowPrePaintEvent*;
     _ZZN9gui_forms28DataGridViewRowsChangedEvent*;
+    _ZZN9gui_forms28DataGridViewScrollStatistics*;
     _ZZN9gui_forms28DataGridViewSortCompareEvent*;
     _ZZN9gui_forms28NavigationPaneOptionsRequest*;
     _ZZN9gui_forms28VisualPaintOperationSnapshot*;
@@ -14176,6 +14291,9 @@
     _ZZN9gui_forms5plots11ChirpSignal*;
     _ZZN9gui_forms5plots11LegendStyle*;
     _ZZN9gui_forms5plots11NoiseSignal*;
+    _ZZN9gui_forms5plots11Plot3DFrame*;
+    _ZZN9gui_forms5plots11Plot3DLabel*;
+    _ZZN9gui_forms5plots11Plot3DScene*;
     _ZZN9gui_forms5plots11SeriesLease*;
     _ZZN9gui_forms5plots11SignalClock*;
     _ZZN9gui_forms5plots11SignalEntry*;
@@ -14186,10 +14304,14 @@
     _ZZN9gui_forms5plots12ElementIndex*;
     _ZZN9gui_forms5plots12ElementRange*;
     _ZZN9gui_forms5plots12LegendLayout*;
+    _ZZN9gui_forms5plots12Plot3DCamera*;
+    _ZZN9gui_forms5plots12Plot3DColors*;
+    _ZZN9gui_forms5plots12Plot3DItemId*;
     _ZZN9gui_forms5plots12ScaleMapping*;
     _ZZN9gui_forms5plots12SeriesPicker*;
     _ZZN9gui_forms5plots12SquareSignal*;
     _ZZN9gui_forms5plots13OccupancyGrid*;
+    _ZZN9gui_forms5plots13Plot3DOptions*;
     _ZZN9gui_forms5plots13PlotModifiers*;
     _ZZN9gui_forms5plots13PlotSelection*;
     _ZZN9gui_forms5plots13PlotTransform*;
@@ -14197,6 +14319,7 @@
     _ZZN9gui_forms5plots13SignalProgram*;
     _ZZN9gui_forms5plots14MarkStatistics*;
     _ZZN9gui_forms5plots14OscillatorBank*;
+    _ZZN9gui_forms5plots14Plot3DLineSpec*;
     _ZZN9gui_forms5plots14PlotDataBounds*;
     _ZZN9gui_forms5plots14PlotViewChange*;
     _ZZN9gui_forms5plots14SeriesIdentity*;
@@ -14208,6 +14331,8 @@
     _ZZN9gui_forms5plots16TickLabelMetrics*;
     _ZZN9gui_forms5plots17AnnotationRequest*;
     _ZZN9gui_forms5plots17LegendEntryLayout*;
+    _ZZN9gui_forms5plots17Plot3DScatterSpec*;
+    _ZZN9gui_forms5plots17Plot3DSurfaceSpec*;
     _ZZN9gui_forms5plots17SeriesMarkPainter*;
     _ZZN9gui_forms5plots17SeriesRingChannel*;
     _ZZN9gui_forms5plots17SignalDeclaration*;
@@ -14230,6 +14355,7 @@
     _ZZN9gui_forms5plots8RectPick*;
     _ZZN9gui_forms5plots9CivilTime*;
     _ZZN9gui_forms5plots9MajorTick*;
+    _ZZN9gui_forms5plots9Plot3DHit*;
     _ZZN9gui_forms5plots9PlotRange*;
     _ZZN9gui_forms5plots9SawSignal*;
     _ZZN9gui_forms5plots9SeriesPin*;
@@ -14470,6 +14596,7 @@
     _ZZNK9gui_forms10PartMotion*;
     _ZZNK9gui_forms10PartRaster*;
     _ZZNK9gui_forms10PictureBox*;
+    _ZZNK9gui_forms10Plot3DView*;
     _ZZNK9gui_forms10PlotHandle*;
     _ZZNK9gui_forms10PortRecord*;
     _ZZNK9gui_forms10RadialPick*;
@@ -14503,6 +14630,7 @@
     _ZZNK9gui_forms11ChoiceGroup*;
     _ZZNK9gui_forms11ColorDialog*;
     _ZZNK9gui_forms11ColorPicker*;
+    _ZZNK9gui_forms11ColumnStrip*;
     _ZZNK9gui_forms11CommandItem*;
     _ZZNK9gui_forms11ContextMenu*;
     _ZZNK9gui_forms11CursorImage*;
@@ -15714,6 +15842,7 @@
     _ZZNK9gui_forms28DataGridViewCellsTextRequest*;
     _ZZNK9gui_forms28DataGridViewRowPrePaintEvent*;
     _ZZNK9gui_forms28DataGridViewRowsChangedEvent*;
+    _ZZNK9gui_forms28DataGridViewScrollStatistics*;
     _ZZNK9gui_forms28DataGridViewSortCompareEvent*;
     _ZZNK9gui_forms28NavigationPaneOptionsRequest*;
     _ZZNK9gui_forms28VisualPaintOperationSnapshot*;
@@ -15778,6 +15907,9 @@
     _ZZNK9gui_forms5plots11ChirpSignal*;
     _ZZNK9gui_forms5plots11LegendStyle*;
     _ZZNK9gui_forms5plots11NoiseSignal*;
+    _ZZNK9gui_forms5plots11Plot3DFrame*;
+    _ZZNK9gui_forms5plots11Plot3DLabel*;
+    _ZZNK9gui_forms5plots11Plot3DScene*;
     _ZZNK9gui_forms5plots11SeriesLease*;
     _ZZNK9gui_forms5plots11SignalClock*;
     _ZZNK9gui_forms5plots11SignalEntry*;
@@ -15788,10 +15920,14 @@
     _ZZNK9gui_forms5plots12ElementIndex*;
     _ZZNK9gui_forms5plots12ElementRange*;
     _ZZNK9gui_forms5plots12LegendLayout*;
+    _ZZNK9gui_forms5plots12Plot3DCamera*;
+    _ZZNK9gui_forms5plots12Plot3DColors*;
+    _ZZNK9gui_forms5plots12Plot3DItemId*;
     _ZZNK9gui_forms5plots12ScaleMapping*;
     _ZZNK9gui_forms5plots12SeriesPicker*;
     _ZZNK9gui_forms5plots12SquareSignal*;
     _ZZNK9gui_forms5plots13OccupancyGrid*;
+    _ZZNK9gui_forms5plots13Plot3DOptions*;
     _ZZNK9gui_forms5plots13PlotModifiers*;
     _ZZNK9gui_forms5plots13PlotSelection*;
     _ZZNK9gui_forms5plots13PlotTransform*;
@@ -15799,6 +15935,7 @@
     _ZZNK9gui_forms5plots13SignalProgram*;
     _ZZNK9gui_forms5plots14MarkStatistics*;
     _ZZNK9gui_forms5plots14OscillatorBank*;
+    _ZZNK9gui_forms5plots14Plot3DLineSpec*;
     _ZZNK9gui_forms5plots14PlotDataBounds*;
     _ZZNK9gui_forms5plots14PlotViewChange*;
     _ZZNK9gui_forms5plots14SeriesIdentity*;
@@ -15810,6 +15947,8 @@
     _ZZNK9gui_forms5plots16TickLabelMetrics*;
     _ZZNK9gui_forms5plots17AnnotationRequest*;
     _ZZNK9gui_forms5plots17LegendEntryLayout*;
+    _ZZNK9gui_forms5plots17Plot3DScatterSpec*;
+    _ZZNK9gui_forms5plots17Plot3DSurfaceSpec*;
     _ZZNK9gui_forms5plots17SeriesMarkPainter*;
     _ZZNK9gui_forms5plots17SeriesRingChannel*;
     _ZZNK9gui_forms5plots17SignalDeclaration*;
@@ -15832,6 +15971,7 @@
     _ZZNK9gui_forms5plots8RectPick*;
     _ZZNK9gui_forms5plots9CivilTime*;
     _ZZNK9gui_forms5plots9MajorTick*;
+    _ZZNK9gui_forms5plots9Plot3DHit*;
     _ZZNK9gui_forms5plots9PlotRange*;
     _ZZNK9gui_forms5plots9SawSignal*;
     _ZZNK9gui_forms5plots9SeriesPin*;

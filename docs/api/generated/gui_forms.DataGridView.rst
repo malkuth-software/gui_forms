@@ -2111,11 +2111,7 @@ gui_forms::DataGridView
 
 .. rubric:: Windows Forms correspondence
 
-<<<<<<< HEAD
 Counterpart: ``DataGridView``. Members declared here and by the counterpart: 157 supported, 0 deferred, 0 excluded, 310 unclassified; 86 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
-=======
-Counterpart: ``DataGridView``. Members declared here and by the counterpart: 162 supported, 0 deferred, 0 excluded, 307 unclassified; 88 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
->>>>>>> 5a61a5887 (DataGridView: program-drawn rows are repainted on scroll; invalidate_row/cell/column)
 
 .. list-table::
    :class: longtable
@@ -3712,13 +3708,6 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 162
      - supported
    * - property
      - GUI.Forms-only
-<<<<<<< HEAD
-=======
-     - ``scroll_statistics``
-     - supported
-   * - property
-     - GUI.Forms-only
->>>>>>> 5a61a5887 (DataGridView: program-drawn rows are repainted on scroll; invalidate_row/cell/column)
      - ``virtual_row_window_source``
      - supported
    * - event
@@ -3999,12 +3988,5 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 162
      - supported
    * - method
      - GUI.Forms-only
-<<<<<<< HEAD
-=======
-     - ``shared_row``
-     - supported
-   * - method
-     - GUI.Forms-only
->>>>>>> 5a61a5887 (DataGridView: program-drawn rows are repainted on scroll; invalidate_row/cell/column)
      - ``written``
      - unclassified (untested)
