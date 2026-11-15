@@ -112,7 +112,6 @@
    "src/core/control/control": 3,
    "src/core/display/recording_painter": 1,
    "src/core/drawing/support": 24,
-   "src/core/engine/effect_registry": 1,
    "src/core/host/services": 1,
    "src/core/surface_root/sub_surface": 4,
    "src/core/theme/theme_compiler": 1,
