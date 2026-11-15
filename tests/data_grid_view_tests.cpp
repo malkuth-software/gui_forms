@@ -3525,11 +3525,6 @@ void bound_identity_follows_list_changes() {
 
 } // namespace
 
-struct RecordRow final {
-    std::vector<DataGridViewRowEvent>* seen{};
-    void operator()(const DataGridViewRowEvent& event) const { (*seen).push_back(event); }
-};
-
 // Tips column 0 of each row with its row ID, and counts the calls.
 struct GiveCellTip final {
     int* calls{};

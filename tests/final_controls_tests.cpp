@@ -698,6 +698,8 @@ public:
     void fill_rect(Rect, Color) override {}
     void stroke_rect(Rect, Color, double) override {}
     void draw_line(Point, Point, Color, double width) override { widths.push_back(width); }
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
 
     std::vector<double> widths;
 };

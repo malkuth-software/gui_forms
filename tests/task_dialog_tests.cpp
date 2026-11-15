@@ -208,13 +208,12 @@ void modal_presentation() {
     const TaskDialog::Parts parts = (*dialog).parts();
     require(parts.caption_band.present && parts.caption.present && parts.heading.present && parts.text.present,
             "the caption, heading and text are laid out");
-    require(parts.icon_plate.present && parts.icon_label.present && !parts.icon_glyph.present,
-            "a warning icon is a plate with a letter");
+    require(parts.icon_image.present, "a warning icon is the stock icon image");
     require(parts.progress.present && parts.radio_group.present && parts.expander_glyph.present &&
                 parts.expander_button.present && !parts.expanded_text.present && parts.verification.present,
             "progress, radio buttons, the collapsed expander and the check box are laid out");
     require(parts.button_band.present && parts.button_row.present && parts.footnote_band.present &&
-                parts.footnote_plate.present && parts.footnote.present,
+                parts.footnote_icon.present && parts.footnote.present,
             "the button band and the footnote are laid out");
     require(parts.heading.bounds.y < parts.text.bounds.y && parts.text.bounds.y < parts.button_band.bounds.y &&
                 parts.button_band.bounds.y < parts.footnote_band.bounds.y,
