@@ -923,9 +923,25 @@ struct ExpandedList final {
     std::uint32_t fit_end{};
 };
 
-ExpandedList expand_track_list(const GridTrackList& list, const GridAvailableExtent& extent, double gap,
-                               std::vector<GridTrackSize>& expanded) {
-    const std::size_t count = repetitions(list, extent, gap);
+// Whether the list, its automatic repeat counted `count` times, has more
+// tracks than maximum_grid_cells. Such an axis alone covers more cells than
+// the limit, so the solve is refused with refused_too_many_cells, as the
+// cell check after placement refused it; checking first keeps the expansion
+// from reserving and filling up to 10,000 x 10,000 track records (8.8 GB)
+// before that refusal (A-gf-core-08-F1).
+bool expansion_too_large(const GridTrackList& list, std::size_t count) noexcept {
+    const std::size_t written = list.tracks.size();
+    const std::size_t repeated = list.auto_repeat_tracks.size();
+    if (written > maximum_grid_cells) return true;
+    if (repeated == 0U || count == 0U) return false;
+    const bool too_large = count > (maximum_grid_cells - written) / repeated;
+    return too_large;
+}
+
+// Fills `expanded` with the list's tracks, its automatic repeat counted
+// `count` times (repetitions()); the caller has refused a count
+// expansion_too_large reports.
+ExpandedList expand_track_list(const GridTrackList& list, std::size_t count, std::vector<GridTrackSize>& expanded) {
     expanded.clear();
     expanded.reserve(list.tracks.size() + count * list.auto_repeat_tracks.size());
     const std::size_t insert_at = std::min<std::size_t>(list.auto_repeat_index, list.tracks.size());
@@ -1087,10 +1103,18 @@ GridSolveOutcome place_grid_items(const GridContainerStyle& style, const GridCon
 
     // The explicit grid: the template lists with any automatic repeat
     // counted, widened to the template areas.
+    const std::size_t column_repetitions = repetitions(style.template_columns, container.width, container.column_gap);
+    const std::size_t row_repetitions = repetitions(style.template_rows, container.height, container.row_gap);
+    if (expansion_too_large(style.template_columns, column_repetitions) ||
+        expansion_too_large(style.template_rows, row_repetitions)) {
+        workspace.explicit_columns_.clear();
+        workspace.explicit_rows_.clear();
+        clear_layout(workspace.items_, workspace.columns_, workspace.rows_);
+        return GridSolveOutcome::refused_too_many_cells;
+    }
     const ExpandedList fit_columns =
-        expand_track_list(style.template_columns, container.width, container.column_gap, workspace.explicit_columns_);
-    const ExpandedList fit_rows =
-        expand_track_list(style.template_rows, container.height, container.row_gap, workspace.explicit_rows_);
+        expand_track_list(style.template_columns, column_repetitions, workspace.explicit_columns_);
+    const ExpandedList fit_rows = expand_track_list(style.template_rows, row_repetitions, workspace.explicit_rows_);
     const std::uint32_t explicit_columns =
         std::max(static_cast<std::uint32_t>(workspace.explicit_columns_.size()), style.template_areas.columns);
     const std::uint32_t explicit_rows =
