@@ -9,6 +9,7 @@
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -190,6 +191,14 @@ VirtualRowsView::ColumnHeaderParts VirtualRowsView::column_header_parts(std::siz
     return record;
 }
 
+FontSpec VirtualRowsView::part_text_font(const std::string_view part, const AnatomyStateSet states) const {
+    const Theme& theme = effective_theme();
+    const FontSpec base = theme.structure().typography.control;
+    const ResolvedFont resolved = theme.resolve_font(*this, base, part, states);
+    const FontSpec scaled = effective_font(resolved.font);
+    return scaled;
+}
+
 void VirtualRowsView::paint_column_headers(Painter& painter) const {
     if (header_.empty()) return;
     painter.save();
@@ -201,7 +210,6 @@ void VirtualRowsView::paint_column_headers(Painter& painter) const {
     paint_part(painter, *this, band);
     PartPaint part;
     part.family = ControlVisualRole::panel;
-    part.font = text_font(font.read());
     for (std::size_t column = 0U; column < columns_.size(); ++column) {
         const ColumnHeaderParts parts = column_header_parts(column);
         if (!parts.column_header.present) continue;
@@ -212,6 +220,7 @@ void VirtualRowsView::paint_column_headers(Painter& painter) const {
         if (parts.column_label.present && !columns_[column].header.empty()) {
             part.role = PartRole::label;
             part.bounds = parts.column_label.bounds;
+            part.font = part_text_font("column_label", part.states);
             part.text = lend_paint_text(columns_[column].header);
             part.alignment = columns_[column].alignment;
             paint_part(painter, *this, part);

@@ -714,6 +714,12 @@ private:
     [[nodiscard]] AnatomyStateSet column_states(std::size_t column) const noexcept;
     [[nodiscard]] ColumnHeaderParts column_header_parts(std::size_t column) const;
     void paint_column_headers(Painter& painter) const;
+    // The font of `part` ("column_label", a header's text, or "row", a
+    // row's cells) in `states`: the theme's control font with the font
+    // fields of the rules naming the part in place (Theme::resolve_font),
+    // scaled with the text. The view has no font property of its own (cp32
+    // ruling): its text takes its font from the theme, as other themed text.
+    [[nodiscard]] FontSpec part_text_font(std::string_view part, AnatomyStateSet states) const;
     // Raises cell_content_paint for the owner-drawn columns' cells of `row`.
     void paint_owner_cells(Painter& painter, std::size_t row, Rect bounds, AnatomyStateSet states, Color foreground);
     // The header's pointer: a press, a move and a release in local

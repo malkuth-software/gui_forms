@@ -19,6 +19,7 @@
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/types/control_visual_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
@@ -58,11 +59,17 @@ public:
     void fill_rounded_rect(Rect, double, Color color) override { fills.push_back(color); }
     void stroke_rect(Rect, Color, double) override {}
     void draw_line(Point, Point, Color, double) override {}
-    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_text_utf8(Point, std::string_view text, FontSpec font, Color) override {
+        texts.emplace_back(text);
+        text_fonts.push_back(font);
+    }
     void draw_image(ImageId, Rect, double) override {}
 
     // Every fill's colour, in order (the background test reads them).
     std::vector<Color> fills;
+    // Every text run and its font, in order (the theme font test reads them).
+    std::vector<std::string> texts;
+    std::vector<FontSpec> text_fonts;
 };
 
 bool contains_colour(const std::vector<Color>& colours, Color wanted) {
@@ -981,6 +988,7 @@ struct SeenCell final {
     std::size_t column{};
     std::string stable_id;
     Rect content{};
+    FontSpec font{};
 };
 
 struct RecordCells final {
@@ -991,6 +999,7 @@ struct RecordCells final {
         cell.column = item.column;
         cell.stable_id.assign(item.stable_id);
         cell.content = item.content;
+        cell.font = item.font;
         (*seen).push_back(cell);
     }
 };
@@ -1241,6 +1250,23 @@ void column_owner_draw() {
         if (!right) ordered = false;
     }
     require(ordered, "the cells come in row order, clipped to the cell and the viewport");
+    // The view has no font property (cp32 ruling): the owner-drawn cell and
+    // the header labels take the theme's control font through their parts,
+    // scaled with the text. The stock theme styles neither part's font.
+    const FontSpec themed = (*view).effective_font((*view).effective_theme().structure().typography.control);
+    bool cell_fonts = true;
+    for (const SeenCell& cell : cells) {
+        if (!(cell.font == themed)) cell_fonts = false;
+    }
+    require(cell_fonts, "an owner-drawn cell is offered the theme's control font");
+    bool header_found = false;
+    bool header_font = true;
+    for (std::size_t index = 0U; index < painter.texts.size(); ++index) {
+        if (painter.texts[index] != "Name") continue;
+        header_found = true;
+        if (!(painter.text_fonts[index] == themed)) header_font = false;
+    }
+    require(header_found && header_font, "a header label is drawn in the theme's control font");
     static_cast<void>(token);
 }
 

@@ -1194,7 +1194,7 @@ void VirtualRowsView::paint_owner_cells(Painter& painter, std::size_t row, Rect 
                                         Color foreground) {
     if (columns_.empty()) return;
     std::string identity{};
-    const FontSpec face = text_font(font.read());
+    const FontSpec face = part_text_font("row", states);
     for (std::size_t column = 0U; column < columns_.size(); ++column) {
         if (columns_[column].draw_mode != ItemDrawMode::owner_draw) continue;
         if (identity.empty()) row_identity(row, identity);
