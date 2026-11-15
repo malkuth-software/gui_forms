@@ -326,7 +326,11 @@ Types
 
    .. cpp:member:: DataSourceUpdateMode data_source_update_mode
 
+      Default: ``{DataSourceUpdateMode::on_validation}``.
+
    .. cpp:member:: ControlUpdateMode control_update_mode
+
+      Default: ``{ControlUpdateMode::on_property_changed}``.
 
    .. cpp:member:: bool formatting_enabled
 
@@ -1258,6 +1262,8 @@ Types
    .. cpp:member:: bool invalidates_subtree
 
    .. cpp:member:: PropertySerializationVisibility serialization_visibility
+
+      Default: ``{PropertySerializationVisibility::visible}``.
 
    .. cpp:member:: bool readable
 

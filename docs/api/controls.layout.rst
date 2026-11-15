@@ -1006,6 +1006,8 @@ Related types
 
    .. cpp:member:: constexpr EffectDeclaration declaration
 
+      Default: ``{.name = "drop_pulse", .engine_version = 2U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 2000U, .per_device_pixel = 2U}, .state_budget = 16U}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: FlexItemLayout final
@@ -1908,6 +1910,8 @@ Related types
 
    .. cpp:member:: ResponsiveTrackOrientation orientation
 
+      Default: ``{ResponsiveTrackOrientation::horizontal}``.
+
    .. cpp:member:: ResponsiveTrackResolution resolution
 
    .. cpp:member:: LayoutTransactionState transaction
@@ -2023,6 +2027,8 @@ Related types
    .. cpp:member:: double collapse_threshold
 
    .. cpp:member:: ResponsiveTrackCollapseReason collapse_reason
+
+      Default: ``{ResponsiveTrackCollapseReason::none}``.
 
    .. cpp:member:: bool collapse_protected
 
@@ -2483,6 +2489,8 @@ Related types
       Default: ``{3.0}``.
 
    .. cpp:member:: SplitSeamThicknessPolicy thickness_policy
+
+      Default: ``{SplitSeamThicknessPolicy::logical}``.
 
    .. cpp:member:: double hit_before
 

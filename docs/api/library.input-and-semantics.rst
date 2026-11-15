@@ -2182,7 +2182,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr SemanticState semantic_states[]
 
-   Every semantic state, in bit order, for tables and the schema export.
+   Every semantic state, in bit order, for tables and the schema export. Value: ``{SemanticState::enabled, SemanticState::visible, SemanticState::focusable, SemanticState::focused, SemanticState::selected, SemanticState::checked, SemanticState::mixed, SemanticState::read_only, SemanticState::expanded, SemanticState::busy, SemanticState::protected_content, SemanticState::invalid, SemanticState::checkable, SemanticState::multiselectable}``.
 
 .. cpp:var:: constexpr std::size_t semantic_action_count
 

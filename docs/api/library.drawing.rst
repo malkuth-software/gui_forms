@@ -2297,6 +2297,8 @@ Types
 
    .. cpp:member:: LiveSurfacePixelFormat pixel_format
 
+      Default: ``{LiveSurfacePixelFormat::bgra32_premultiplied_srgb}``.
+
    .. cpp:member:: std::size_t buffer_count
 
       A smaller pool favors latency and memory; a larger pool tolerates more compositor-held read leases before a producer must drop a frame. Default: ``{default_live_surface_buffer_count}``.

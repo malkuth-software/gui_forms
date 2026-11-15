@@ -2443,6 +2443,8 @@ Related types
 
    .. cpp:member:: constexpr EffectDeclaration declaration
 
+      Default: ``{.name = "scrub_glow", .engine_version = 2U, .time_model = EffectTimeModel::transition, .cost = {.fixed = 1200U, .per_device_pixel = 2U}, .state_budget = 8U}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ToggleSwitch::Parts final

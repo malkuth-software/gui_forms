@@ -2492,6 +2492,8 @@ Related types
 
    .. cpp:member:: BoxSides<AutoLengthPercentage> inset
 
+      Default: ``{AutoLengthPercentage{true, {}}, AutoLengthPercentage{true, {}}, AutoLengthPercentage{true, {}}, AutoLengthPercentage{true, {}}}``.
+
    .. cpp:member:: SizeValue width
 
    .. cpp:member:: SizeValue height
@@ -4115,6 +4117,8 @@ Functions, constants and aliases
    Value: ``{.name = "pinned"}``.
 
 .. cpp:var:: constexpr std::array<CustomStateDeclaration, 2> admitted_custom_states
+
+   Value: ``{{modified_custom_state, pinned_custom_state}}``.
 
 .. cpp:namespace:: gui_forms
 

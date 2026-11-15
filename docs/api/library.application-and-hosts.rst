@@ -471,6 +471,8 @@ Related types
 
    .. cpp:member:: std::array<WindowBackdropSupport, window_backdrop_count> support
 
+      Default: ``{WindowBackdropSupport::supported, WindowBackdropSupport::host_unsupported, WindowBackdropSupport::host_unsupported, WindowBackdropSupport::host_unsupported}``.
+
    .. cpp:member:: bool transparency_enabled
 
       The user's transparency-effects setting (Windows); true where the host has no such setting. Default: ``{true}``.
@@ -1085,11 +1087,17 @@ Related types
 
       The platform's name for the locale, a BCP 47 tag where the platform gives one ("en-GB", "de-DE"), else as the platform writes it; "und" (undetermined) for the portable default. Default: ``{"und"}``.
 
-   .. cpp:member:: std::array<std::string, 12> month_names{"January", "February", "March", "April", "May", "June",
+   .. cpp:member:: std::array<std::string, 12> month_names
 
-   .. cpp:member:: std::array<std::string, 12> abbreviated_month_names{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      Default: ``{"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"}``.
 
-   .. cpp:member:: std::array<std::string, 7> day_names{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+   .. cpp:member:: std::array<std::string, 12> abbreviated_month_names
+
+      Default: ``{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}``.
+
+   .. cpp:member:: std::array<std::string, 7> day_names
+
+      Default: ``{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"}``.
 
    .. cpp:member:: std::array<std::string, 7> abbreviated_day_names
 
@@ -2659,7 +2667,7 @@ Related types
 
    .. cpp:member:: MacTitlebarPresentation titlebar_presentation
 
-      Full-size content retains the native titled window, traffic-light controls, resize behavior, system title, and accessibility identity. It only makes the title material transparent and lets retained content occupy that region.
+      Full-size content retains the native titled window, traffic-light controls, resize behavior, system title, and accessibility identity. It only makes the title material transparent and lets retained content occupy that region. Default: ``{MacTitlebarPresentation::standard}``.
 
    .. cpp:member:: std::string window_drag_region_id
 
@@ -4230,7 +4238,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::array<HostProtocolRevision, 7> host_protocol_revisions
 
-   The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version.
+   The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version. Value: ``{{{8U, "the host's keyboard-command defaults (HostCapabilities::key_map)"}, {9U, "the compositor state report (HostCompositorEvent, stage T5)"}, {10U, "the platform's input settings (HostInputSettingsEvent: the double-click interval)"}, {11U, "the platform's mouse conventions: context requests (HostContextRequestEvent), native hover " "(HostHoverEvent) and the drag and hover settings (HostInputSettingsEvent::pointer)"}, {12U, "the native window's state (HostWindowStateEvent: full screen and corner-reshaping changes)"}, {13U, "the caret's blink phase (HostInputSettingsEvent::caret)"}, {14U, "the platform's locale (HostCapabilities::locale, HostCapability::locale)"}}}``.
 
 .. cpp:namespace:: gui_forms
 

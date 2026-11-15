@@ -460,6 +460,8 @@ Related types
 
    .. cpp:member:: constexpr EffectDeclaration declaration
 
+      Default: ``{.name = "link_flow", .engine_version = 2U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 8000U, .per_device_pixel = 4U}, .state_budget = 16U}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: LinkId final

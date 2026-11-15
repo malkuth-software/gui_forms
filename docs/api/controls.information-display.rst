@@ -3688,6 +3688,8 @@ Related types
 
    .. cpp:member:: constexpr EffectDeclaration declaration
 
+      Default: ``{.name = "progress_bubbles", .engine_version = 1U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 12000U, .per_device_pixel = 8U}, .state_budget = 2048U, .outsets = {.left = 0.0, .top = steam_outset, .right = 0.0, .bottom = 0.0}, .input = EffectInputKind::pointer}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ProgressLaser final
@@ -3705,6 +3707,8 @@ Related types
 
    .. cpp:member:: constexpr EffectDeclaration declaration
 
+      Default: ``{.name = "progress_laser", .engine_version = 1U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 3000U, .per_device_pixel = 12U}, .state_budget = 16U}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ProgressPulse final
@@ -3721,6 +3725,8 @@ Related types
    .. cpp:type:: parent_type = ProgressBar
 
    .. cpp:member:: constexpr EffectDeclaration declaration
+
+      Default: ``{.name = "progress_pulse", .engine_version = 1U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 400U, .per_device_pixel = 4U}, .state_budget = 16U}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3833,6 +3839,8 @@ Related types
 
    .. cpp:member:: constexpr EffectDeclaration declaration
 
+      Default: ``{.name = "progress_stripes", .engine_version = 1U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 40000U, .per_device_pixel = 6U}, .state_budget = 16U}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ProgressStripeView final
@@ -3908,6 +3916,8 @@ Related types
 
    .. cpp:member:: constexpr EffectDeclaration declaration
 
+      Default: ``{.name = "progress_woven_stripes", .engine_version = 1U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 6000U, .per_device_pixel = 8U}, .setup_cost = 8000U, .setup_on_geometry = true, .state_budget = 1600U}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: RadialGauge::Parts final
@@ -3974,6 +3984,8 @@ Related types
       Default: ``1.0``.
 
    .. cpp:member:: constexpr EffectDeclaration declaration
+
+      Default: ``{.name = "scope_sweep", .engine_version = 1U, .time_model = EffectTimeModel::ambient, .cost = {.fixed = 400U, .per_device_pixel = 4U}, .state_budget = 16U}``.
 
 .. cpp:namespace:: gui_forms
 

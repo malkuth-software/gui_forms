@@ -320,7 +320,11 @@ Related types
 
    .. cpp:member:: OverlayHorizontalAlignment horizontal_alignment
 
+      Default: ``{OverlayHorizontalAlignment::near}``.
+
    .. cpp:member:: OverlayVerticalPreference vertical_preference
+
+      Default: ``{OverlayVerticalPreference::below}``.
 
    .. cpp:member:: double gap
 

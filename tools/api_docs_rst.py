@@ -339,6 +339,10 @@ def member_directive(item: Declaration) -> tuple[str, str]:
     elif "=" in text:
         text, _, default = (part.strip() for part in text.partition("="))
     text = re.sub(r"^(?:inline\s+|static\s+)*", "", text)
+    # An initializer continued over several lines joins with a space after
+    # its opening brace and a trailing comma before its closing one.
+    default = re.sub(r"\{\s+", "{", default)
+    default = re.sub(r",?\s+\}", "}", default)
     if default in {"{}", ""}:
         default = ""
     return f".. cpp:member:: {text}", default

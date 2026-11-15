@@ -6058,6 +6058,8 @@ Types
 
    .. cpp:member:: std::vector<MaterialFillLayer> fills
 
+      Default: ``{MaterialFillLayer::solid(Color::rgba(255, 255, 255))}``.
+
    .. cpp:member:: std::vector<MaterialShadow> shadows
 
    .. cpp:member:: std::vector<MaterialGlow> glows
@@ -9379,6 +9381,8 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr LitKeyBake dialog_key_study_bake
 
+   Value: ``{.height_share = 0.57, .camera_tilt_degrees = 16.0, .bake_width = 240U, .display_width = 180.0, .room = 1.0}``.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/engine/motion_clock/motion_clock.hpp>``
@@ -9467,7 +9471,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::array<std::string_view, part_shape_kind_count> part_shape_names
 
-   The shapes' registered names, in PartShapeKind order: the choices of a primitive's ``shape`` parameter.
+   The shapes' registered names, in PartShapeKind order: the choices of a primitive's ``shape`` parameter. Value: ``{"rounded_rectangle", "pill", "circle", "cap_start", "cap_end"}``.
 
 .. cpp:var:: constexpr double minimum_hit_target
 
@@ -10399,7 +10403,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::array<std::string_view, 9> part_value_names
 
-   The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in.
+   The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in. Value: ``{{"accent_index", "text_orientation", "dock_region", "content_color", "authored_color", "text_tone", "pointed_face", "part_profile", "arc_angles"}}``.
 
 .. cpp:namespace:: gui_forms
 
