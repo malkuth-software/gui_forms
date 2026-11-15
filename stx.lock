@@ -10,13 +10,13 @@
 # commit with -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<dir>, and
 # -DGUI_FORMS_STX_PREFIX=<dir> links a package built elsewhere.
 #
-# PLACEHOLDER until the owner pushes the stx line: 676277b is the local
+# PLACEHOLDER until the owner pushes the stx line: eff120d is the local
 # integrator branch claude/stx-cp33: claude/stx-stxlib-a2 f71e538 (D5's
 # claude/cp33-stx-raster3d 321e56c, then claude/stx-to-stxlib 2571785 with
 # STXlib in place of stx_auxlib and its state library shared, then
-# stxlib.lock at STXlib main cda6fb1) plus stx_raster3d's compile fix. Not
-# yet on GitHub. Replace it with the pushed commit before this lands; until
+# stxlib.lock at STXlib main cda6fb1) plus two integrator fixes
+# (stx_raster3d's compile, STXlib's export names). Not yet on GitHub. Replace it with the pushed commit before this lands; until
 # then build with -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<that checkout>.
 [stx]
 repository = "malkuth-software/stx"
-commit = "676277be704cdb1579d0be1b451e33662f966156"
+commit = "eff120d976d16701804c29a7d361ef15a8a6f446"
