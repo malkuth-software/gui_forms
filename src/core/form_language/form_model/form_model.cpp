@@ -4,6 +4,7 @@
 // none.
 
 #include "form_model.hpp"
+#include "../../theme_language/tokenizer/theme_tokenizer.hpp"
 
 #include "gui_forms/control.hpp"
 

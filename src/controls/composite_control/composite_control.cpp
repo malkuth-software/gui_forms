@@ -42,7 +42,9 @@ using control_language::ExpressionNode;
 using control_language::ExpressionNodeIndex;
 using control_language::ExpressionNodeKind;
 
-std::shared_ptr<const CompositeDefinition> validated(std::shared_ptr<const CompositeDefinition> definition) {
+// Named apart from Control::validated() (the event), which a call inside a
+// member would find first.
+std::shared_ptr<const CompositeDefinition> required_definition(std::shared_ptr<const CompositeDefinition> definition) {
     if (definition == nullptr) throw std::invalid_argument("CompositeControl: a null definition");
     return definition;
 }
@@ -137,7 +139,7 @@ struct CompositeRepeatTick final {
 // -- construction and properties ---------------------------------------------------
 
 CompositeControl::CompositeControl(StableId stable_id, std::shared_ptr<const CompositeDefinition> definition)
-    : UserControl(std::move(stable_id)), definition_(validated(std::move(definition))) {
+    : UserControl(std::move(stable_id)), definition_(required_definition(std::move(definition))) {
     const std::size_t count = (*definition_).properties.size();
     values_.reserve(count);
     changed_events_.reserve(count);

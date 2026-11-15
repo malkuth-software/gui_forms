@@ -376,7 +376,7 @@ bool CompositeEvaluator::subject_state(const std::string_view subject, const std
     const Control& target = self ? static_cast<const Control&>(control_) : *child;
     if (state == "enabled") return target.effectively_enabled();
     if (state == "focus-within") {
-        const BorrowedPointer<SurfaceRoot> root = target.surface_root();
+        const BorrowedPointer<SurfaceRoot> root = target.attached_surface_root();
         if (root == nullptr) return false;
         const Control::Ptr focused = (*root).focused_control();
         return focused != nullptr && (focused.get() == &target || target.contains(*focused));
