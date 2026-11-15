@@ -601,12 +601,17 @@ void DockSite::on_view_selection(DockNodeId stack, const PageSelectionChange& ch
     DockTransaction transaction{};
     transaction.origin = DockEditOrigin::user;
     transaction.edits.push_back(DockEdit::select(panel));
+    // Held across the layout change's and activation's handlers, which may
+    // release the workspace or edit the layout (A-gf-controls-03-F3).
+    const Control::Ptr retained = weak_from_this().lock();
     static_cast<void>((*workspace_).apply(transaction));
+    if (workspace_ == nullptr || !is_alive()) return;
     // A stack that held the active panel now shows another: it becomes
     // active (focus, if it moved, says the same).
     const std::optional<DockPanelId>& active = (*workspace_).active_panel();
     if (change.old_page && active && (*active).value == (*change.old_page).value) {
         (*workspace_).note_active(panel, DockActivationCause::keyboard);
+        if (workspace_ == nullptr || !is_alive()) return;
     }
     StackSlot* const slot = slot_for(stack);
     if (slot != nullptr) {
@@ -667,10 +672,20 @@ void DockSite::on_focus_moved(const FocusedControlChange&) {
     if (index >= stacks_.size()) return;
     const std::optional<DockPanelId> panel = selected_panel(stacks_[index]);
     if (!panel) return;
+    // The view and the site held, and both checked again, across
+    // activation_changed's handlers: one may hide or close a panel
+    // (stacks_ shrinks or is replaced) or release the workspace
+    // (A-gf-controls-03-F3).
+    const DockNodeId stack = stacks_[index].stack;
+    const std::shared_ptr<StackView> view = stacks_[index].view;
+    const Control::Ptr retained = weak_from_this().lock();
     (*workspace_).note_active(*panel, DockActivationCause::focus);
+    if (workspace_ == nullptr || !is_alive() || !view) return;
+    const StackSlot* const slot = slot_for(stack);
+    if (slot == nullptr || (*slot).view != view) return;
     // Only a control in the panel's content is remembered (not the stack's
     // tabs), so activation returns into the panel itself.
-    const Control::Ptr content = (*stacks_[index].view).page_content(PageId{(*panel).value});
+    const Control::Ptr content = (*view).page_content(PageId{(*panel).value});
     const bool in_content =
         content && ((*content).runtime_id() == (*focused).runtime_id() || (*content).contains(*focused));
     if (!in_content) return;

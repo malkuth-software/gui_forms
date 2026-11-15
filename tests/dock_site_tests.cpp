@@ -429,6 +429,39 @@ void factory_edits_the_layout() {
     require((*(*fixture).site).realized_stacks().size() == 3U, "the site shows the three stacks left");
 }
 
+// Hides a panel when another becomes active, as a program closing a
+// transient tool panel might.
+struct HideOnActivation final {
+    DockWorkspace* workspace{};
+    std::string when;
+    std::string hides;
+    void operator()(const DockActivationChange& change) const {
+        if (!change.new_panel || (*change.new_panel).value != when) return;
+        static_cast<void>((*workspace).hide_panel(DockPanelId(hides)));
+    }
+};
+
+// An activation_changed handler that hides a panel while focus enters
+// another (A-gf-controls-03-F3): the site holds the stack's view and finds
+// the slot again after the handler, so the focus move is remembered from
+// the view it started with, not a moved slot.
+void activation_handler_edits_the_layout() {
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockWorkspace& workspace = *(*fixture).workspace;
+    Window& window = *(*fixture).window;
+    const SubscriptionToken token =
+        workspace.activation_changed().subscribe(HideOnActivation{&workspace, "classes", "output"});
+    const Control::Ptr edit = content_edit(window, "classes");
+    require(edit != nullptr, "Classes' content is made");
+    require(window.request_focus(edit), "focus enters Classes' content");
+    const std::optional<DockPanelId>& active = workspace.active_panel();
+    require(active && (*active).value == "classes", "Classes is active");
+    require(workspace.layout().locate(DockPanelId("output")).placement == DockPlacementKind::hidden,
+            "the handler hid Output");
+    window.perform_layout();
+    require((*(*fixture).site).realized_stacks().size() == 3U, "the site shows the three stacks left");
+}
+
 // -- seams --------------------------------------------------------------------
 
 void seam_keyboard_and_pointer() {
@@ -1413,6 +1446,7 @@ int main() {
     add_panels_docked_only();
     lazy_creation();
     factory_edits_the_layout();
+    activation_handler_edits_the_layout();
     seam_keyboard_and_pointer();
     collapse_by_priority();
     activation_and_commands();
