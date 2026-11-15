@@ -946,8 +946,12 @@ void slow_click_label_editing() {
     require((*view).focused_index() == 2U && (*view).is_selected(2U) && !(*view).label_edit_index(),
             "a press that focuses and selects an item begins no edit");
 
+    // The clock is read before the click, so the poll at half the interval
+    // from it stays before the click's own deadline however long the click
+    // takes to dispatch (B-gf-tests-07-F3).
+    const FrameTime before_second_click = FrameClock::now();
     click(window, second);
-    static_cast<void>(window.poll_frame_schedule(FrameClock::now() + interval / 2));
+    static_cast<void>(window.poll_frame_schedule(before_second_click + interval / 2));
     require(!(*view).label_edit_index(), "the slow click waits for the double-click interval");
     static_cast<void>(window.poll_frame_schedule(FrameClock::now() + interval + margin));
     require((*view).label_edit_index() == 2U, "a slow second click on the focused item's text begins its edit");

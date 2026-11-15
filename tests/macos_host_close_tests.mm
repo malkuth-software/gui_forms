@@ -251,14 +251,28 @@ void post_after(std::int64_t delay_nanoseconds, void* context, dispatch_function
 
 // The window probe's two delayed steps, with what the replaced blocks
 // captured: the probe state, the window (kept alive) and the close request.
+// polls counts the looks at the window's state for the current step.
 struct NativeWindowProbeWork final {
     std::shared_ptr<NativeWindowProbeState> probe;
     NSWindow* window;
     std::function<void()> request_close;
+    std::uint32_t polls;
 };
 
+// The window's and the timer's states are polled every probe_poll_interval
+// up to probe_poll_limit times (5 s) rather than read once after a short
+// delay, so a loaded machine or a sanitizer run does not fail a step that
+// only took longer (B-gf-tests-07-F3). The bound guards against "never".
+constexpr std::int64_t probe_poll_interval = 10 * NSEC_PER_MSEC;
+constexpr std::uint32_t probe_poll_limit = 500U;
+
 void probe_restored(void* context) {
-    const std::unique_ptr<NativeWindowProbeWork> work(static_cast<NativeWindowProbeWork*>(context));
+    std::unique_ptr<NativeWindowProbeWork> work(static_cast<NativeWindowProbeWork*>(context));
+    if ((*work).window.isMiniaturized && (*work).polls < probe_poll_limit) {
+        ++(*work).polls;
+        post_after(probe_poll_interval, work.release(), &probe_restored);
+        return;
+    }
     (*(*work).probe).restored = !(*work).window.isMiniaturized;
     (*work).request_close();
     (*work).request_close();
@@ -266,9 +280,15 @@ void probe_restored(void* context) {
 
 void probe_minimized(void* context) {
     std::unique_ptr<NativeWindowProbeWork> work(static_cast<NativeWindowProbeWork*>(context));
+    if (!(*work).window.isMiniaturized && (*work).polls < probe_poll_limit) {
+        ++(*work).polls;
+        post_after(probe_poll_interval, work.release(), &probe_minimized);
+        return;
+    }
     (*(*work).probe).minimized = (*work).window.isMiniaturized;
     [(*work).window deminiaturize:nil];
-    post_after(80 * NSEC_PER_MSEC, work.release(), &probe_restored);
+    (*work).polls = 0U;
+    post_after(probe_poll_interval, work.release(), &probe_restored);
 }
 
 class ProbeNativeWindow final {
@@ -314,8 +334,9 @@ public:
             !NSEqualRects(nativeWindow.frame, committed);
         [nativeWindow zoom:nil];
         [nativeWindow miniaturize:nil];
-        NativeWindowProbeWork* const work = new NativeWindowProbeWork{nativeWindowProbe, nativeWindow, requestClose};
-        post_after(80 * NSEC_PER_MSEC, work, &probe_minimized);
+        NativeWindowProbeWork* const work =
+            new NativeWindowProbeWork{nativeWindowProbe, nativeWindow, requestClose, 0U};
+        post_after(probe_poll_interval, work, &probe_minimized);
     }
 
 private:
@@ -329,9 +350,11 @@ struct RearmStartWork final {
     std::shared_ptr<FrameProbe> surface;
 };
 
+// polls counts the looks for the replacement timer's tick in this cycle.
 struct RearmCycleWork final {
     std::shared_ptr<RearmProbeState> state;
     std::size_t cycle;
+    std::uint32_t polls;
 };
 
 void rearm_first_cycle(void* context) {
@@ -356,6 +379,12 @@ void rearm_measure(void* context) {
     RearmProbeState& state = *(*work).state;
     const std::size_t current = (*work).cycle;
     state.ticks_after[current] = (*state.root).ticks;
+    // The replacement's 10 ms tick is polled for up to the probe's bound.
+    if (state.ticks_after[current] <= state.ticks_at_rearm[current] && (*work).polls < probe_poll_limit) {
+        ++(*work).polls;
+        post_after(probe_poll_interval, work.release(), &rearm_measure);
+        return;
+    }
     if (state.ticks_after[current] > state.ticks_at_rearm[current]) {
         ++state.successful_cycles;
     }
@@ -385,7 +414,7 @@ void rearm_after_disconnect(void* context) {
         gui_forms::FrameClock::now() + std::chrono::milliseconds(10),
         FrameProbeTick{state.root});
     state.wake();
-    post_after(70 * NSEC_PER_MSEC, work.release(), &rearm_measure);
+    post_after(probe_poll_interval, work.release(), &rearm_measure);
 }
 
 class PrepareCloseTestHost final {
@@ -452,7 +481,7 @@ void run_rearm_cycle(const std::shared_ptr<RearmProbeState>& state) {
         (*state).replacement.disconnect();
     }
     (*state).wake();
-    RearmCycleWork* const work = new RearmCycleWork{state, current};
+    RearmCycleWork* const work = new RearmCycleWork{state, current, 0U};
     post_after(12 * NSEC_PER_MSEC, work, &rearm_after_disconnect);
 }
 
