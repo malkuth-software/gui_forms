@@ -96,9 +96,10 @@ bool table_names(std::span<const std::byte> table, std::string_view name, std::s
         const std::optional<std::string_view> recorded = reader.text();
         const std::optional<std::uint32_t> bound = reader.u32();
         const std::optional<std::uint32_t> setup_bound = reader.u32();
-        const std::optional<std::uint32_t> state_size = reader.u32();
-        if (!recorded || !bound || !setup_bound || !state_size) return false;
-        if (*recorded == name && *state_size == state_size) return true;
+        const std::optional<std::uint32_t> recorded_state = reader.u32();
+        if (!recorded || !bound || !setup_bound || !recorded_state) return false;
+        const bool same_state = static_cast<std::size_t>(*recorded_state) == state_size;
+        if (*recorded == name && same_state) return true;
     }
     return false;
 }
