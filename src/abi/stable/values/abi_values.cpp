@@ -122,7 +122,7 @@ gf_status read_font(const gf_font& font, SlotIdentity slot, BindingValue& conver
                     "a font has a known role, a weight from 1 to 1000 and italic 0 or 1");
     }
     // reserved's low half is the family id (since 1.2, K1): zero, an id
-    // fonts.family_id gives, or (since 1.6) an application family's id
+    // fonts.family_id gives, or (since 1.5) an application family's id
     // fonts.load_family gave; its high half the family stack's number
     // (since 1.3): zero, or one read from a font in this process. Where an
     // application family may draw is decided when the font is drawn

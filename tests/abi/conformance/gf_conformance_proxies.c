@@ -232,7 +232,7 @@ static void app_fonts(gf_kit* kit) {
 
     /* A gf_font may carry the family: where it draws is decided when the
      * font is drawn (a stock label draws its bundled faces). */
-    const gf_object label = gf_kit_create(kit, "label", "kit.proxies.app_font");
+    const gf_object label = gf_kit_create(kit, "label", "kit.proxies.app-font");
     gf_value font = blank_value();
     font.kind = GF_VALUE_KIND_FONT;
     font.font.role = GF_FONT_ROLE_CONTENT;
