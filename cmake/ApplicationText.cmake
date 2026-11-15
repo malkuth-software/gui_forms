@@ -17,10 +17,12 @@ function(gui_forms_application_text consumer implementation public_name)
     # it: the implementation joins the archives Application links whole.
     gui_forms_application_add_archives(gui_forms_application ${implementation})
     # Application is not an exported target since one module (the SDK's
-    # GUIForms::Application is an interface over the merged archives), so the
-    # install names that interface and the build tree the library itself.
-    target_link_libraries(${consumer} INTERFACE $<BUILD_INTERFACE:gui_forms_application>
-                                                $<INSTALL_INTERFACE:GUIForms::Application>)
+    # GUIForms::Application is an interface over the merged archives, and an
+    # install interface naming it would resolve to the build tree's alias of
+    # the unexported library). The build tree links the library; an SDK
+    # consumer links GUIForms::Application itself, which already holds the
+    # text masks.
+    target_link_libraries(${consumer} INTERFACE $<BUILD_INTERFACE:gui_forms_application>)
 endfunction()
 
 gui_forms_application_text(gui_forms_text_masks gui_forms_text_masks_impl TextMasks)
