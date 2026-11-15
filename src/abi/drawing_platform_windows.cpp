@@ -370,8 +370,11 @@ bool borrowable_dib(HDC device, BorrowableDib& dib) noexcept {
         clip.right != section.dsBm.bmWidth || clip.bottom != section.dsBm.bmHeight) {
         return false;
     }
-    if (!top_down_section(device, selected, section)) return false;
+    // An endpoint's pixels are read by its publisher on another thread:
+    // asked first, so the orientation probe below never writes a pixel of
+    // one outside a write lease (A-gf-abi-01-F9).
     if (is_endpoint_dc(device)) return false;
+    if (!top_down_section(device, selected, section)) return false;
     dib.pixels = static_cast<std::byte*>(section.dsBm.bmBits);
     dib.width = static_cast<std::uint32_t>(section.dsBm.bmWidth);
     dib.height = static_cast<std::uint32_t>(section.dsBm.bmHeight);
