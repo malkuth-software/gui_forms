@@ -34,9 +34,8 @@ int main() { return 0; }
         # Not cached as a failure: the next configure checks again.
         unset(GUI_FORMS_LINUX_LIBCXX_22 CACHE)
         message(FATAL_ERROR "GUI.Forms on Linux builds against libc++ 22 and libc++abi, linked "
-                            "statically: use cmake/llvm22.cmake and install libc++-22-dev, "
-                            "libc++abi-22-dev and libunwind-22-dev (Alpine: libc++-dev, "
-                            "libc++-static, llvm-libunwind-static, compiler-rt)")
+                            "statically: use cmake/llvm22.cmake with GUI_FORMS_LLVM_RUNTIME naming "
+                            "the static runtime template_harness/harness/build_linux_runtimes.py builds")
     endif()
 endif()
 # The browser target builds the library and its web host. The gallery, the

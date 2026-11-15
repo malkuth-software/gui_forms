@@ -44,14 +44,26 @@ Linux (Ubuntu 24.04)
   libxcursor-dev libxfixes-dev libatk1.0-dev libatk-bridge2.0-dev`. Put
   `/usr/lib/llvm-22/bin` first on `PATH`. GUI.Forms builds against LLVM's
   libc++ 22 and libc++abi on Linux, as on macOS and Windows, never the
-  distribution's libstdc++: `cmake/llvm22.cmake` adds `-stdlib=libc++`, and
-  the configure fails when the tree would use another C++ library. The
-  toolchain file links libc++, libc++abi and LLVM's libunwind statically, so
-  Linux programs carry libc++ and need no C++ runtime library installed. A
-  C++ program that uses the SDK builds with the same toolchain file. On musl
-  (Alpine 3.24) the packages are `clang22 libc++-dev libc++-static
-  llvm-libunwind-dev llvm-libunwind-static compiler-rt`, and the toolchain
-  file also links compiler-rt.
+  distribution's libstdc++, and the C++ runtime is the harness's own, not
+  the distribution's libc++ packages: that clang only bootstraps it. Build
+  it once with that compiler and point `GUI_FORMS_LLVM_RUNTIME` at it:
+
+  ```sh
+  runtime="$PWD/.build/toolchain/$(python3 template_harness/harness/linux_runtime_manifest.py --directory-name)"
+  python3 template_harness/harness/build_linux_runtimes.py --work "$PWD/.build/llvm-runtimes" \
+      --prefix "$runtime" --jobs 4
+  export GUI_FORMS_LLVM_RUNTIME="$runtime"
+  ```
+
+  It holds position-independent, hermetic static archives of libc++,
+  libc++abi and libunwind from LLVM 22.1.8 for your C library (glibc or
+  musl). `cmake/llvm22.cmake` refuses to configure without them, compiles
+  against their headers and links them statically, so Linux programs carry
+  libc++ and need no C++ runtime library installed, and `gui_forms_abi`
+  carries it too. A C++ program that uses the SDK builds with the same
+  toolchain file and runtime. On musl (Alpine 3.24) install `clang22
+  compiler-rt` as the bootstrap compiler; the toolchain file also links
+  compiler-rt there.
 
 Windows
 : Install MSYS2 and, in the CLANG64 environment, the packages listed in

@@ -11,13 +11,20 @@ First follow [Installation](../user/install.md#configure-build-install) to confi
 your platform. Linux requires an enabled X11 host; the CPU renderer,
 `stx_skia` from the stx package (below), is linked on every platform.
 Every platform builds against LLVM's libc++ 22: the pinned macOS 14
-runtime, MSYS2 CLANG64's static libc++ on Windows, and apt.llvm.org's
-`libc++-22-dev`, `libc++abi-22-dev` and `libunwind-22-dev` on Linux (Alpine:
-`libc++-dev`, `libc++-static`, `llvm-libunwind-dev`,
-`llvm-libunwind-static`, `compiler-rt`). On Linux `cmake/llvm22.cmake` adds
-`-stdlib=libc++ -nostdlib++` and links libc++, libc++abi and libunwind
-statically (their archives end every C++ link line), and the configure
-refuses a tree whose C++ library is not libc++ 22. The Clang plugin
+runtime, MSYS2 CLANG64's static libc++ on Windows, and on Linux the
+harness's own runtime. `template_harness/harness/build_linux_runtimes.py`
+builds libc++, libc++abi and libunwind from the pinned LLVM 22.1.8 as
+position-independent, hermetic static archives for the host's C library
+(glibc or musl) into `.build/toolchain/llvm-22.1.8-linux-<arch>-<libc>`;
+set `GUI_FORMS_LLVM_RUNTIME` to that prefix, as on macOS. The runtime is
+then the same on every distribution, and `gui_forms_abi` can carry it
+(Alpine's own `libc++abi.a` is not position independent). The
+distribution's clang 22 (apt.llvm.org's `clang-22`; Alpine's `clang`,
+`compiler-rt`) is only the bootstrap compiler. On Linux
+`cmake/llvm22.cmake` refuses to configure without the archives, compiles
+against the runtime's headers, links the archives with `-nostdlib++` (they
+end every C++ link line), and the configure refuses a tree whose C++
+library is not libc++ 22. The Clang plugin
 (`GUI_FORMS_LOCALIZABLE_PLUGIN`) is the exception: it is built with the
 distribution's libstdc++, because the compiler it loads into links that.
 Linux programs, like Windows ones, carry libc++ statically: each

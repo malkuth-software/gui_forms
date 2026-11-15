@@ -41,31 +41,45 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
     set(CMAKE_MODULE_LINKER_FLAGS_INIT "${_gf_link}")
 elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
     # Linux builds against LLVM's libc++ 22 and libc++abi, as macOS and
-    # Windows do (owner decision, 2026-11-15; STXlib's Linux CI is the
-    # model), and links them statically, with LLVM's unwinder, as Windows
-    # does: a shipped program depends on no C++ runtime library, the owner's
-    # rule for every shipped product (2026-11-15). Each executable and shared
-    # library this toolchain links holds its own copy; on ELF their symbols
-    # stay exported, so the dynamic linker binds every module to one of the
-    # copies (the first loaded).
+    # Windows do (owner decision, 2026-11-15), and links them statically,
+    # with LLVM's unwinder: a shipped program depends on no C++ runtime
+    # library (2026-11-15). The runtime is the harness's own on every Linux,
+    # glibc or musl: template_harness's build_linux_runtimes.py builds
+    # libc++, libc++abi and libunwind from the pinned LLVM 22.1.8 as
+    # position-independent, hermetic static archives into the prefix named by
+    # GUI_FORMS_LLVM_RUNTIME (.build/toolchain/llvm-22.1.8-linux-<arch>-<libc>).
+    # Position independence lets gui_forms_abi, a shared library, carry it
+    # (Alpine's own libc++abi.a is not PIC); hidden visibility keeps it from
+    # exporting the runtime's symbols. A distribution's archives are refused:
+    # its packages are only the bootstrap compiler.
     #
-    # -nostdlib++ drops the driver's own -lc++ (a shared libc++ when one is
-    # installed; clang's -static-libstdc++ does not cover libc++abi or the
-    # unwinder), and the archives come last on every C++ link line through
-    # CMAKE_CXX_STANDARD_LIBRARIES, after the objects that need them.
-    # Packages: Ubuntu, apt.llvm.org's libc++-22-dev, libc++abi-22-dev and
-    # libunwind-22-dev (libc++.a, libc++abi.a, libunwind.a); musl (Alpine
-    # 3.24), libc++-dev, libc++-static, llvm-libunwind-static and
-    # compiler-rt. musl's libc++ is built over compiler-rt, so the link names
-    # it, and -unwindlib=none keeps the driver from adding a shared
-    # libunwind beside the archive; musl is recognised by its dynamic loader.
-    set(_gf_cxx "-stdlib=libc++")
+    # -nostdinc++ and -isystem select the runtime's configured headers;
+    # -nostdlib++ drops the driver's own -lc++ (and the -lm it adds for C++),
+    # and the archives come last on every C++ link line through
+    # CMAKE_CXX_STANDARD_LIBRARIES, after the objects that need them. musl's
+    # clang uses compiler-rt, so the link names it, and -unwindlib=none keeps
+    # the driver from adding a shared libunwind beside the archive; musl is
+    # recognised by its dynamic loader.
+    if(NOT DEFINED ENV{GUI_FORMS_LLVM_RUNTIME})
+        message(FATAL_ERROR "Set GUI_FORMS_LLVM_RUNTIME to the LLVM 22.1.8 Linux runtime prefix "
+                            "(template_harness/harness/build_linux_runtimes.py)")
+    endif()
+    file(TO_CMAKE_PATH "$ENV{GUI_FORMS_LLVM_RUNTIME}" _gf_runtime)
+    foreach(_gf_required IN ITEMS lib/libc++.a lib/libc++abi.a lib/libunwind.a include/c++/v1/__config_site
+                                  runtime-manifest.json)
+        if(NOT EXISTS "${_gf_runtime}/${_gf_required}")
+            message(FATAL_ERROR "GUI_FORMS_LLVM_RUNTIME (${_gf_runtime}) lacks ${_gf_required}; build it with "
+                                "template_harness/harness/build_linux_runtimes.py")
+        endif()
+    endforeach()
+    set(_gf_cxx "-stdlib=libc++ -nostdinc++ -isystem \"${_gf_runtime}/include/c++/v1\"")
     set(_gf_link "-stdlib=libc++ -nostdlib++")
     file(GLOB _gf_musl_loader "/lib/ld-musl-*.so.1")
     if(_gf_musl_loader)
         string(APPEND _gf_link " -rtlib=compiler-rt -unwindlib=none")
     endif()
-    set(_gf_runtime_archives "-Wl,-Bstatic -lc++ -lc++abi -lunwind -Wl,-Bdynamic")
+    set(_gf_runtime_archives
+        "\"${_gf_runtime}/lib/libc++.a\" \"${_gf_runtime}/lib/libc++abi.a\" \"${_gf_runtime}/lib/libunwind.a\" -lm")
     set(CMAKE_CXX_FLAGS_INIT "${_gf_cxx}")
     set(CMAKE_EXE_LINKER_FLAGS_INIT "${_gf_link}")
     set(CMAKE_SHARED_LINKER_FLAGS_INIT "${_gf_link}")
@@ -74,21 +88,21 @@ elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
     set(GUI_FORMS_STATIC_CXX_RUNTIME ON CACHE BOOL "The C++ runtime is linked statically (cmake/llvm22.cmake)" FORCE)
     # A -DCMAKE_<...>_FLAGS on the command line replaces the _INIT value
     # (template_harness sanitizer_options passes the sanitizer flags that way
-    # on Linux), which would silently select libstdc++; a tree configured
-    # before the static link has the old cached values. Such a value gets the
-    # library flags appended once, at the configure that first sees it:
-    # compile flags until they name -stdlib=libc++, link flags until they
-    # name -nostdlib++, and the standard libraries until they name
-    # -lc++abi. CMakeLists.txt then refuses any tree whose C++ library is not
-    # libc++ 22.
+    # on Linux), which would silently select libstdc++ or the distribution's
+    # libc++; a tree configured before the harness runtime has the old cached
+    # values. Such a value gets the library flags appended once, at the
+    # configure that first sees it: compile flags until they name -nostdinc++,
+    # link flags until they name -nostdlib++, and the standard libraries
+    # until they name libc++abi.a. CMakeLists.txt then refuses any tree whose
+    # C++ library is not libc++ 22.
     foreach(_gf_variable CMAKE_CXX_FLAGS CMAKE_EXE_LINKER_FLAGS CMAKE_SHARED_LINKER_FLAGS
             CMAKE_MODULE_LINKER_FLAGS CMAKE_CXX_STANDARD_LIBRARIES)
         if(_gf_variable STREQUAL "CMAKE_CXX_FLAGS")
             set(_gf_added "${_gf_cxx}")
-            set(_gf_marker "-stdlib=libc\\+\\+")
+            set(_gf_marker "-nostdinc\\+\\+")
         elseif(_gf_variable STREQUAL "CMAKE_CXX_STANDARD_LIBRARIES")
             set(_gf_added "${_gf_runtime_archives}")
-            set(_gf_marker "-lc\\+\\+abi")
+            set(_gf_marker "libc\\+\\+abi\\.a")
         else()
             set(_gf_added "${_gf_link}")
             set(_gf_marker "-nostdlib\\+\\+")

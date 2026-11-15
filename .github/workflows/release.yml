@@ -226,6 +226,28 @@ jobs:
           fi
           python gui_forms/tools/macos_runtime_manifest.py "$GUI_FORMS_LLVM_RUNTIME"
           python gui_forms/tools/audit_macos_minimum.py "$GUI_FORMS_LLVM_RUNTIME/lib"
+      # Linux links the harness's static position-independent C++ runtime
+      # (template_harness build_linux_runtimes.py), the same on every
+      # distribution; the packages above are only the bootstrap compiler.
+      - name: Select the Linux runtime prefix
+        id: linux-runtime
+        if: runner.os == 'Linux'
+        run: |
+          directory="$(python template_harness/harness/linux_runtime_manifest.py --directory-name)"
+          echo "GUI_FORMS_LLVM_RUNTIME=$PWD/.build/toolchain/$directory" >> "$GITHUB_ENV"
+          echo "directory=$directory" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        if: runner.os == 'Linux'
+        with:
+          path: .build/toolchain/${{ steps.linux-runtime.outputs.directory }}
+          key: gui-linux-runtimes-v1-${{ steps.linux-runtime.outputs.directory }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('template_harness/harness/build_linux_runtimes.py', 'template_harness/harness/linux_runtime_manifest.py', 'template_harness/harness/macos_runtime_manifest.py') }}
+      - name: Build the static Linux runtimes
+        if: runner.os == 'Linux'
+        run: |
+          if [ ! -f "$GUI_FORMS_LLVM_RUNTIME/runtime-manifest.json" ]; then
+            python template_harness/harness/build_linux_runtimes.py --work "$RUNNER_TEMP/llvm-runtimes" --prefix "$GUI_FORMS_LLVM_RUNTIME" --jobs 4
+          fi
+          python template_harness/harness/linux_runtime_manifest.py "$GUI_FORMS_LLVM_RUNTIME"
       - name: Configure compiler cache
         run: |
           cache_dir="$PWD/.ccache"

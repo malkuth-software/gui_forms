@@ -28,7 +28,26 @@ jobs:
           sudo apt-get install -y cmake ninja-build ccache clang-22 libc++-22-dev libc++abi-22-dev
           echo /usr/lib/llvm-22/bin >> "$GITHUB_PATH"
       - name: Require the supported compiler
+        id: compiler
         run: python3 template_harness/harness/compiler_identity.py
+      # cmake/llvm22.cmake links the harness's static Linux runtime; clang-22
+      # above is only its bootstrap compiler.
+      - name: Select the Linux runtime prefix
+        id: linux-runtime
+        run: |
+          directory="$(python3 template_harness/harness/linux_runtime_manifest.py --directory-name)"
+          echo "GUI_FORMS_LLVM_RUNTIME=$PWD/.build/toolchain/$directory" >> "$GITHUB_ENV"
+          echo "directory=$directory" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: .build/toolchain/${{ steps.linux-runtime.outputs.directory }}
+          key: gui-linux-runtimes-v1-${{ steps.linux-runtime.outputs.directory }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('template_harness/harness/build_linux_runtimes.py', 'template_harness/harness/linux_runtime_manifest.py', 'template_harness/harness/macos_runtime_manifest.py') }}
+      - name: Build the static Linux runtimes
+        run: |
+          if [ ! -f "$GUI_FORMS_LLVM_RUNTIME/runtime-manifest.json" ]; then
+            python3 template_harness/harness/build_linux_runtimes.py --work "$RUNNER_TEMP/llvm-runtimes" --prefix "$GUI_FORMS_LLVM_RUNTIME" --jobs 4
+          fi
+          python3 template_harness/harness/linux_runtime_manifest.py "$GUI_FORMS_LLVM_RUNTIME"
       - name: Prove cold, relocated, source, header and option behavior
         run: python3 gui_forms/tools/prove_compiler_cache.py --source gui_forms --scratch cache-proof --jobs 4
       - uses: actions/upload-artifact@v4
