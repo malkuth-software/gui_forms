@@ -1028,7 +1028,15 @@ void DataGridView::remove_column_at(std::size_t column) {
     require_mutable();
     require_not_sorting();
     if (column >= columns_.size()) throw std::out_of_range("DataGridView column is past the end");
+    // reset_row_state raises the edit, cell, row, current-cell and
+    // selection events, whose handlers may change the columns: the column
+    // is named before them and found again after (A-gf-controls-02-F7). A
+    // handler that removed it already did what was asked.
+    const std::string name = columns_[column].name;
     reset_row_state();
+    const std::optional<std::size_t> found = column_index(name);
+    if (!found) return;
+    column = *found;
     const DataGridViewColumnChangedEvent removed{column, columns_[column].name};
     const std::ptrdiff_t offset = static_cast<std::ptrdiff_t>(column);
     columns_.erase(columns_.begin() + offset);
@@ -1053,9 +1061,15 @@ void DataGridView::insert_column(std::size_t column, DataGridViewColumn inserted
     if (column_index(inserted.name)) {
         throw std::invalid_argument("DataGridView column names must be unique");
     }
-    // Validated: from here nothing refuses. The row state is keyed by column
-    // index, which the insertion shifts.
+    // Validated. The row state is keyed by column index, which the
+    // insertion shifts. reset_row_state raises events whose handlers may
+    // change the columns: the checks are made again after it, and a change
+    // that makes the insertion invalid refuses it with the row state reset
+    // and the columns as the handlers left them (A-gf-controls-02-F7).
     reset_row_state();
+    if (column > columns_.size() || column_index(inserted.name)) {
+        throw std::logic_error("DataGridView columns changed under the insertion's row reset");
+    }
     const std::ptrdiff_t offset = static_cast<std::ptrdiff_t>(column);
     columns_.insert(columns_.begin() + offset, std::move(inserted));
     insert_display_column(column);

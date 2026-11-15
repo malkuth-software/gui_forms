@@ -518,7 +518,9 @@ public:
     // enumeration.
     void set_columns(std::vector<DataGridViewColumn> columns);
     void add_column(DataGridViewColumn column);
-    // Throws std::out_of_range for an index past the end.
+    // Throws std::out_of_range for an index past the end. The column is
+    // named before the row reset's events and found again by name after
+    // them; a handler that removed it leaves nothing more to do.
     void remove_column_at(std::size_t column);
     // Inserts a column at an index, at most the column count (the count
     // appends, as add_column does). The columns from that index on move up
@@ -528,7 +530,10 @@ public:
     // move up one. As remove_column_at, it ends any edit and clears the
     // selection, the current cell and what the grid keeps by row ID and
     // column index (error text, styles, visited links, a sort). Throws as
-    // add_column does, and std::out_of_range for an index past the count.
+    // add_column does, and std::out_of_range for an index past the count;
+    // std::logic_error when a handler of the row reset (the events above)
+    // changed the columns so that the insertion no longer fits, leaving the
+    // row state reset and the columns as the handlers left them.
     void insert_column(std::size_t column, DataGridViewColumn inserted);
     // A column's header text (Windows Forms' HeaderText). Throws
     // std::out_of_range for an unknown column and std::invalid_argument for

@@ -4329,10 +4329,54 @@ void handlers_move_the_pressed_row() {
                     (!pressed || (*grid).cell_value(row_at(0U), 1U) == BindingValue{true}),
                 "a cell press acts on the cell where the handlers left it");
     }
+// Removes one named column of the grid the first time the current cell
+// changes, as a handler reacting to the row reset of a column change might.
+struct RemoveColumnOnce final {
+    DataGridView* grid{};
+    std::string name;
+    bool* done{};
+    void operator()(std::optional<DataGridViewCellAddress>) const {
+        if (*done) return;
+        *done = true;
+        const std::optional<std::size_t> column = (*grid).column_index(name);
+        if (column) (*grid).remove_column_at(*column);
+    }
+};
+
+// A handler of the row reset that a column change raises removes a column
+// (A-gf-controls-02-F7): the removal finds its column again by name, and
+// an insertion the change made invalid is refused with the columns as the
+// handler left them, never erased or inserted past the end.
+void column_change_under_reset_handlers() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.column.reset");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).set_current_cell(cell_at(0U, 0U)), "a current cell to reset");
+    bool removed = false;
+    SubscriptionToken token =
+        (*grid).current_cell_changed().subscribe(RemoveColumnOnce{grid.get(), "name", &removed});
+    (*grid).remove_column_at(3U);
+    require(removed && (*grid).columns().size() == 2U && (*grid).columns()[0].name == "active" &&
+                (*grid).columns()[1].name == "mode",
+            "the handler's removal and the asked one both happen, the asked one by name");
+    token.disconnect();
+    require((*grid).set_current_cell(cell_at(0U, 0U)), "a current cell to reset again");
+    bool second = false;
+    SubscriptionToken again =
+        (*grid).current_cell_changed().subscribe(RemoveColumnOnce{grid.get(), "active", &second});
+    bool refused = false;
+    try {
+        (*grid).insert_column(2U, DataGridViewColumn{.name = "extra", .header_text = "Extra", .width = 40.0});
+    } catch (const std::logic_error&) {
+        refused = true;
+    }
+    require(second && refused && (*grid).columns().size() == 1U && (*grid).columns()[0].name == "mode",
+            "an insertion past the columns the handler left is refused, and nothing is inserted");
 }
 
 int main() {
     columns_and_rows();
+    column_change_under_reset_handlers();
     layout_and_parts();
     selection_and_navigation();
     text_editing();
