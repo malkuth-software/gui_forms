@@ -26,6 +26,7 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window/window.hpp"
+#include "support/unique_temporary_directory.hpp"
 
 #include <array>
 #include <cmath>
@@ -406,8 +407,8 @@ std::vector<std::byte> ringed_bake() {
 }
 
 std::filesystem::path write_test_bake() {
-    const std::filesystem::path directory = std::filesystem::temp_directory_path() / "gui_forms_indicator_lamp_tests";
-    std::filesystem::create_directories(directory);
+    const std::filesystem::path directory =
+        test_support::make_unique_temporary_directory("gui_forms_indicator_lamp_tests");
     const std::vector<std::byte> bytes = ringed_bake();
     std::ofstream file(directory / "lamp_test_up.f32", std::ios::binary);
     file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
@@ -481,7 +482,10 @@ void test_baked_lens() {
     (*made.lamp).lamp_color = std::optional<Color>{Color::rgba(255, 97, 56)};
     const std::optional<WindowCapture> red = capture_lamp(attached, made);
     require(dark.has_value() && green.has_value() && red.has_value(), "the baked lamp is captured");
-    if (!dark || !green || !red) return;
+    if (!dark || !green || !red) {
+        test_support::remove_temporary_directory(directory);
+        return;
+    }
     write_preview(*dark, "indicator_lamp_baked_off");
     write_preview(*green, "indicator_lamp_baked_green");
     write_preview(*red, "indicator_lamp_baked_red");
@@ -526,6 +530,7 @@ void test_baked_lens() {
     (*made.window).perform_layout();
     require((*made.lamp).light_planes_shown() && (*made.lamp).parts().lens.bounds == Rect{0.0, 0.0, 30.0, 20.0},
             "and setting it again the bake's aspect");
+    test_support::remove_temporary_directory(directory);
 }
 
 } // namespace
