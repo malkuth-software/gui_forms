@@ -20,6 +20,9 @@ constexpr double minimum_minor_spacing = 4.0;
 constexpr double minimum_decade_for_minors = 40.0;
 // Time spans shorter than this tick as linear seconds.
 constexpr double shortest_calendar_span = 2.0;
+// 2^53: below it every integer is exact in a double, so a tick position
+// counted by adding 1 always advances.
+constexpr double exact_integer_limit = 9007199254740992.0;
 
 // The label thinning multipliers' mantissas: 1, 2, 5, 10, 20, 50, ...
 constexpr std::array<std::size_t, 3> thinning_mantissas{1U, 2U, 5U};
@@ -228,6 +231,15 @@ TickOutcome linear_ticks(const ScaleMapping& mapping, double low, double high, d
     out.step = step;
     const double first = std::ceil(low / step);
     const double last = std::floor(high / step);
+    // Tick positions are integers counted in a double. Past 2^53 adding 1
+    // no longer moves a position, so the loops below would repeat one tick
+    // or, for the minors, never end. A domain that narrow for its magnitude
+    // (a constant with rounding noise, which Plot3DScene takes from its
+    // data) has no distinct ticks to show (A-gf-core-09-F2).
+    if (!(std::fabs(first) < exact_integer_limit) || !(std::fabs(last) < exact_integer_limit)) {
+        out.step = 0.0;
+        return TickOutcome::too_small;
+    }
     std::array<std::int64_t, maximum_major_ticks> ordinals{};
     TickOutcome outcome = TickOutcome::generated;
     const bool durations = request.label_unit == TickLabelUnit::duration &&
@@ -261,6 +273,11 @@ TickOutcome linear_ticks(const ScaleMapping& mapping, double low, double high, d
     if (minor_device < minimum_minor_spacing) return outcome;
     const double minor_first = std::ceil(low / minor_step);
     const double minor_last = std::floor(high / minor_step);
+    // As for the majors: the minor positions must stay exact integers for
+    // the loop to advance (A-gf-core-09-F2).
+    if (!(std::fabs(minor_first) < exact_integer_limit) || !(std::fabs(minor_last) < exact_integer_limit)) {
+        return outcome;
+    }
     for (double position = minor_first; position <= minor_last; position = position + 1.0) {
         if (std::fmod(position, divisions) == 0.0) continue;
         const double value = mapping.untransform(position * minor_step);

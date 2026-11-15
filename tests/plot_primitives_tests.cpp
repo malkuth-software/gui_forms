@@ -384,6 +384,26 @@ void test_tick_golden_tables() {
     require(generate_ticks(horizontal(ScaleKind::linear, 0.0, 1.0, 0.5), request, nullptr, empty) ==
                 TickOutcome::too_small && empty.major_count == 0U,
             "a sub-unit extent has no ticks");
+    // A-gf-core-09-F2: a domain too narrow for its magnitude (tick positions
+    // past 2^53, where adding 1 does not move them) returns at once with no
+    // ticks instead of looping for ever or repeating one tick.
+    TickSet noise{};
+    TickRequest plain{};
+    require(generate_ticks(horizontal(ScaleKind::linear, 0.29999999999999993, 0.30000000000000004, 300.0), plain,
+                           nullptr, noise) == TickOutcome::too_small &&
+                noise.major_count == 0U && noise.minor_count == 0U,
+            "a constant with rounding noise has no ticks");
+    // A few ulp of a large magnitude: whatever ticks remain are distinct.
+    TickSet far{};
+    static_cast<void>(generate_ticks(horizontal(ScaleKind::linear, 1e17, 1e17 + 64.0, 300.0), plain, nullptr, far));
+    bool distinct = far.minor_count < maximum_minor_ticks;
+    for (std::size_t index = 1U; index < far.major_count; ++index) {
+        if (!(far.major[index - 1U].value < far.major[index].value)) distinct = false;
+    }
+    for (std::size_t index = 1U; index < far.minor_count; ++index) {
+        if (far.minor[index - 1U] == far.minor[index]) distinct = false;
+    }
+    require(distinct, "a few ulp of a large magnitude give only distinct ticks");
 }
 
 void test_labels_never_overlap() {
