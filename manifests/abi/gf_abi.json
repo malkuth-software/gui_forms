@@ -2632,6 +2632,16 @@
       "type": "uint32"
     },
     {
+      "name": "GF_APP_FONT_MAXIMUM_FACES",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_APP_FONT_MAXIMUM_BYTES",
+      "value": 67108864,
+      "type": "uint32"
+    },
+    {
       "name": "GF_HELP_NAVIGATOR_CONTENTS",
       "value": 0,
       "type": "uint32"
@@ -13510,9 +13520,47 @@
       ]
     },
     {
+      "name": "gf_app_font_face",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "weight",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "italic",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "bytes",
+          "type": "gf_bytes_view",
+          "offset": 16,
+          "size": 16
+        }
+      ]
+    },
+    {
       "name": "gf_fonts_table",
       "kind": "table",
-      "size": 24,
+      "size": 40,
       "align": 8,
       "fields": [
         {
@@ -13574,6 +13622,54 @@
             ]
           },
           "since": "1.2"
+        },
+        {
+          "name": "load_family",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "faces",
+                "type": "const gf_app_font_face*"
+              },
+              {
+                "name": "face_count",
+                "type": "uint64_t"
+              },
+              {
+                "name": "family",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "unload_family",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "family",
+                "type": "uint32_t"
+              },
+              {
+                "name": "deferred",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.5"
         }
       ]
     },

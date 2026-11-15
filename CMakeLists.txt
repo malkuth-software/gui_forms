@@ -640,6 +640,8 @@ add_library(gui_forms_core STATIC
     src/core/resources/fonts/bundled_font_set.cpp
     src/core/resources/fonts/bundled_font_pack.cpp
     ${GUI_FORMS_FONT_PACK_RECORDS}
+    src/core/resources/fonts/app_font_registry.cpp
+    src/core/resources/fonts/app_font_validation.cpp
     src/core/resources/fonts/font_family_stacks.cpp
     ${GUI_FORMS_BUNDLED_FONT_MANIFEST_RECORDS}
     src/core/live_surface/buffer/live_surface_buffer.cpp
@@ -4583,6 +4585,13 @@ if(GUI_FORMS_BUILD_TESTS)
             gui_forms_text_engine)
         add_test(NAME gui_forms_harfbuzz_font_engine_tests
                  COMMAND gui_forms_harfbuzz_font_engine_tests)
+        # Application font families: validation, loading, composite looks, refusal in stock
+        # controls, quarantine and unload while in use.
+        add_executable(gui_forms_app_font_tests tests/app_font_tests.cpp)
+        target_compile_definitions(gui_forms_app_font_tests PRIVATE
+            GUI_FORMS_TEST_CARLITO_REGULAR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Carlito-Regular.ttf")
+        target_link_libraries(gui_forms_app_font_tests PRIVATE gui_forms_controls gui_forms_text_engine)
+        add_test(NAME gui_forms_app_font_tests COMMAND gui_forms_app_font_tests)
     endif()
 
     add_executable(gui_forms_basic_controls_tests tests/basic_controls_tests.cpp)

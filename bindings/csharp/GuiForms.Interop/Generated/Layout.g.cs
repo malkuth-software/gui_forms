@@ -1296,13 +1296,25 @@ public static unsafe class Layout
             failures += expect(output, "gf_docking_table.set_floating_window_visibility offset", (long)((byte*)&value.set_floating_window_visibility - start), 128);
         }
         {
+            gf_app_font_face value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_app_font_face size", sizeof(gf_app_font_face), 32);
+            failures += expect(output, "gf_app_font_face.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_app_font_face.reserved offset", (long)((byte*)&value.reserved - start), 4);
+            failures += expect(output, "gf_app_font_face.weight offset", (long)((byte*)&value.weight - start), 8);
+            failures += expect(output, "gf_app_font_face.italic offset", (long)((byte*)&value.italic - start), 12);
+            failures += expect(output, "gf_app_font_face.bytes offset", (long)((byte*)&value.bytes - start), 16);
+        }
+        {
             gf_fonts_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_fonts_table size", sizeof(gf_fonts_table), 24);
+            failures += expect(output, "gf_fonts_table size", sizeof(gf_fonts_table), 40);
             failures += expect(output, "gf_fonts_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_fonts_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_fonts_table.family_id offset", (long)((byte*)&value.family_id - start), 8);
             failures += expect(output, "gf_fonts_table.family_name offset", (long)((byte*)&value.family_name - start), 16);
+            failures += expect(output, "gf_fonts_table.load_family offset", (long)((byte*)&value.load_family - start), 24);
+            failures += expect(output, "gf_fonts_table.unload_family offset", (long)((byte*)&value.unload_family - start), 32);
         }
         {
             gf_help_table value = default;

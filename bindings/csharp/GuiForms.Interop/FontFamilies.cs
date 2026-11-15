@@ -27,7 +27,7 @@ public static unsafe class FontFamilies
         }
     }
 
-    private static gf_fonts_table fonts()
+    internal static gf_fonts_table fonts()
     {
         FontsTable? published = negotiated;
         if (published != null)

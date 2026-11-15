@@ -818,7 +818,9 @@ void DefinitionCompiler::compile_look() {
     const PrimitiveRegistry& registry = builtin_primitive_registry();
     const theme_language::ThemeCompileInput input{.source = look_source,
                                                   .registry = registry,
-                                                  .vocabulary = theme_language::SelectorVocabulary{controls}};
+                                                  .vocabulary = theme_language::SelectorVocabulary{controls},
+                                                  // A look may name the application's font families.
+                                                  .admit_app_fonts = true};
     ThemeRuleSheet sheet{};
     theme_language::ThemeCompiler compiler{};
     theme_language::ThemeDiagnosticList found{};

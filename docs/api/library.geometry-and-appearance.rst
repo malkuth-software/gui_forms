@@ -3124,7 +3124,7 @@ Types
 
    ``#include <gui_forms/types/paint_types/paint_types.hpp>``
 
-   A font family in the family registry (gui_forms/typography/font_families/font_families.hpp; owner decisions of 2026-11-13). Zero is none: the role's own faces. Values 1 to 255 are the families bundled with the library, fixed for every release; values from 256 are reserved for verified registered families, which 1.0 does not admit. A host font never has a number, so a family can never reach a font the application did not ship.
+   A font family in the family registry (gui_forms/typography/font_families/font_families.hpp; owner decisions of 2026-11-13). Zero is none: the role's own faces. Values 1 to 255 are the families bundled with the library, fixed for every release; values from 256 are application families, loaded by the program from its own bytes (gui_forms/typography/app_fonts/app_fonts.hpp) and drawn only inside composites and sub-surfaces. A host font never has a number, so a family can never reach a font the application did not ship.
 
    .. cpp:member:: std::uint16_t value
 

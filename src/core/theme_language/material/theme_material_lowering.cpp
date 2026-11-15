@@ -2,6 +2,7 @@
 
 #include "../source_text/theme_source_text.hpp"
 
+#include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 
 #include "gui_forms/engine/authored_gradient/authored_gradient.hpp"
@@ -3108,7 +3109,10 @@ bool MaterialReader::lower_part_shape(RecipeField length_field, RecipeField colo
 // role, a role's family as the first family brings its role (Carlito and
 // sans-serif: content), and any other family the content role. A role's
 // family written alone stands for its role, with no family
-// (`font-family: Cousine` is the monospace role, as before stacks).
+// (`font-family: Cousine` is the monospace role, as before stacks). In a
+// composite's look (admit_app_fonts) a name no bundled family has may name a
+// live application family, which is then a family like any other; such a
+// family has no role, so without a written role it brings the content role.
 bool MaterialReader::lower_font_family() {
     RecipeDeclaration declaration = recipe_declaration(RecipeField::font_family);
     std::vector<ComponentRange> entries{};
@@ -3168,9 +3172,12 @@ bool MaterialReader::lower_font_family() {
         const GenericFontFamily* const generic =
             words == 1U && first.kind == ValueComponentKind::keyword ? generic_font_family(name) : nullptr;
         if (generic != nullptr && (*generic).family.value == 0U) continue;
-        const FontFamilyRecord* const family =
+        const FontFamilyRecord* const record =
             generic != nullptr ? font_family_record((*generic).family) : font_family_named(name);
-        if (family == nullptr) {
+        FontFamilyId family{};
+        if (record != nullptr) family = (*record).id;
+        if (record == nullptr && generic == nullptr && lowering_.admit_app_fonts) family = app_font_family_named(name);
+        if (family.value == 0U) {
             std::string detail = clipped_theme_detail(name);
             if (first_unavailable.empty()) {
                 first_unavailable = detail;
@@ -3182,10 +3189,10 @@ bool MaterialReader::lower_font_family() {
         }
         bool listed = false;
         for (std::size_t index = 0U; index < available_count; ++index) {
-            if (available[index] == (*family).id) listed = true;
+            if (available[index] == family) listed = true;
         }
         if (listed) continue;
-        available[available_count] = (*family).id;
+        available[available_count] = family;
         available_count = available_count + 1U;
     }
     if (available_count == 0U) {
@@ -3198,15 +3205,18 @@ bool MaterialReader::lower_font_family() {
         lowering_.recipe_fields.push_back(declaration);
         return true;
     }
-    const FontFamilyRecord& first_family = *font_family_record(available[0]);
+    // Null for an application family, which has no role.
+    const FontFamilyRecord* const first_family = font_family_record(available[0]);
+    std::optional<FontRole> first_role{};
+    if (first_family != nullptr) first_role = (*first_family).role;
     FontRole role = FontRole::content;
     if (written_role) {
         role = *written_role;
-    } else if (first_family.role) {
-        role = *first_family.role;
+    } else if (first_role) {
+        role = *first_role;
     }
     declaration.font_role = role;
-    const bool role_alone = available_count == 1U && first_family.role && *first_family.role == role;
+    const bool role_alone = available_count == 1U && first_role && *first_role == role;
     if (!role_alone) declaration.font_family = available[0];
     if (available_count > 1U) {
         const std::span<const FontFamilyId> rest(available.data() + 1U, available_count - 1U);

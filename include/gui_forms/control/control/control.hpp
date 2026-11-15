@@ -529,6 +529,11 @@ public:
     // Resolves the authored font against the attached window's presentation
     // text scale. Custom controls should use this for both measurement and
     // painting so text, wrapping, hit geometry, and carets remain coherent.
+    // It also admits the font's families for where the control is
+    // (admit_font, gui_forms/typography/app_fonts/app_fonts.hpp): an
+    // application font family draws in a composite (the control carries a
+    // look: look_rules()) and in a sub-surface (a root that presents no
+    // Window), and is dropped everywhere else.
     [[nodiscard]] double effective_text_scale() const noexcept;
     [[nodiscard]] FontSpec effective_font(FontSpec authored) const noexcept;
     // The control's primary text font (T4 fonts, owner ruling of

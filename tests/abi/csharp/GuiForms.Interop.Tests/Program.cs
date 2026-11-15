@@ -848,6 +848,114 @@ internal static unsafe class Program
                "a font carries its family beside its stack");
     }
 
+    // A minimal TrueType face that passes the library's load checks: one
+    // empty glyph, a format 4 cmap with only the closing segment, and the
+    // required tables in tag order at 4-byte aligned offsets (as the C
+    // conformance kit's minimal_app_font).
+    private static byte[] minimal_app_font()
+    {
+        string[] tags = { "cmap", "glyf", "head", "hhea", "hmtx", "loca", "maxp", "name", "post" };
+        int[] lengths = { 36, 0, 54, 36, 4, 4, 6, 6, 32 };
+        int offset = 12 + 16 * tags.Length;
+        int[] placed = new int[tags.Length];
+        for (int index = 0; index < tags.Length; index++)
+        {
+            placed[index] = offset;
+            offset += (lengths[index] + 3) & ~3;
+        }
+        byte[] font = new byte[offset];
+        void put16(int at, uint value)
+        {
+            font[at] = (byte)(value >> 8);
+            font[at + 1] = (byte)value;
+        }
+        void put32(int at, uint value)
+        {
+            put16(at, value >> 16);
+            put16(at + 2, value & 0xFFFFu);
+        }
+        put32(0, 0x00010000u);
+        put16(4, (uint)tags.Length);
+        for (int index = 0; index < tags.Length; index++)
+        {
+            int record = 12 + 16 * index;
+            for (int character = 0; character < 4; character++)
+            {
+                font[record + character] = (byte)tags[index][character];
+            }
+            put32(record + 8, (uint)placed[index]);
+            put32(record + 12, (uint)lengths[index]);
+        }
+        int cmap = placed[0];
+        put16(cmap + 2, 1u);
+        put16(cmap + 4, 3u);
+        put16(cmap + 6, 1u);
+        put32(cmap + 8, 12u);
+        put16(cmap + 12, 4u);
+        put16(cmap + 14, 24u);
+        put16(cmap + 18, 2u);
+        put16(cmap + 20, 2u);
+        put16(cmap + 26, 0xFFFFu);
+        put16(cmap + 30, 0xFFFFu);
+        put16(cmap + 32, 1u);
+        int head = placed[2];
+        put32(head, 0x00010000u);
+        put32(head + 12, 0x5F0F3CF5u);
+        put16(head + 18, 1000u);
+        int hhea = placed[3];
+        put32(hhea, 0x00010000u);
+        put16(hhea + 4, 800u);
+        put16(hhea + 6, 0xFF38u);
+        put16(hhea + 34, 1u);
+        put16(placed[4], 500u);
+        put32(placed[6], 0x00005000u);
+        put16(placed[6] + 4, 1u);
+        put16(placed[7] + 4, 6u);
+        put32(placed[8], 0x00030000u);
+        return font;
+    }
+
+    // AppFontFamily (C ABI 1.5, provisional): the program's own bytes load as
+    // a family with an id above the bundled ones, a font carries it like a
+    // bundled family, refusals throw with their reason, and disposing the
+    // handle unloads it so the name is free again.
+    private static void app_font_families()
+    {
+        byte[] bytes = minimal_app_font();
+        AppFontFace[] faces = { new AppFontFace(bytes) };
+        uint first;
+        using (AppFontFamily family = AppFontFamily.load("CSharp Application Face", faces))
+        {
+            first = family.id;
+            expect(first >= 256u, "an application family's id is above the bundled ids");
+            gf_font font = FontFamilies.with_family(default, family.id);
+            expect(FontFamilies.family_of(font) == family.id, "a font carries the application family");
+            try
+            {
+                AppFontFamily.load("csharp application face", faces).Dispose();
+                expect(false, "a loaded family's name is taken");
+            }
+            catch (GuiFormsException refused)
+            {
+                expect(refused.status == Constants.GF_STATUS_INVALID_ARGUMENT && refused.Message.Length > 0,
+                       "a taken name is refused with its reason");
+            }
+            try
+            {
+                AppFontFamily.load("CSharp Broken Face", new[] { new AppFontFace(new byte[] { 1, 2, 3, 4 }) }).Dispose();
+                expect(false, "bytes that are not a font are refused");
+            }
+            catch (GuiFormsException refused)
+            {
+                expect(refused.status == Constants.GF_STATUS_INVALID_ARGUMENT, "a face that fails the checks is refused");
+            }
+        }
+        using AppFontFamily again = AppFontFamily.load("CSharp Application Face", faces);
+        expect(again.id != 0u && again.id != first, "a disposed family's name is free and its id is not reused");
+        again.unload();
+        expect(again.id == 0u && !again.unload(), "an unloaded handle holds nothing");
+    }
+
     // The content table (C ABI 1.4): a content surface's channel from the
     // caller's own code, a refusal as a result rather than a failed call,
     // and a content text editor's text.
@@ -1064,6 +1172,7 @@ internal static unsafe class Program
         binding_moves_and_filters();
         help_language_files();
         font_families();
+        app_font_families();
         content();
         list_view_items();
         event_field_arrays();

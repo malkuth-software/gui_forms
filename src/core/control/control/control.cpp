@@ -7,6 +7,7 @@
 #include "gui_forms/binding/property_link/property_link.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/window.hpp"
 #include "../../control_language/composite_definition/composite_look.hpp"
 #include "../../display/chunk/display_chunk.hpp"
@@ -1505,7 +1506,22 @@ double Control::effective_text_scale() const noexcept {
         : 1.0;
 }
 
+namespace {
+
+// Where `control`'s text is drawn, for admit_font: a composite's look and the parts and children
+// carrying it are composite; a sub-surface's controls (a root that presents no Window) are the
+// program's content; everything else, stock controls and GUI.Forms' own interface, is interface.
+FontContext font_context_of(const Control& control) noexcept {
+    if (control.look_rules() != nullptr) return FontContext::composite;
+    const SurfaceRoot* const root = control.attached_surface_root();
+    if (root != nullptr && (*root).presenting_window() == nullptr) return FontContext::content;
+    return FontContext::interface;
+}
+
+} // namespace
+
 FontSpec Control::effective_font(FontSpec authored) const noexcept {
+    authored = admit_font(authored, font_context_of(*this));
     const double scale = effective_text_scale();
     authored.size *= scale;
     authored.letter_spacing *= scale;

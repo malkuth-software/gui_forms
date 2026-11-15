@@ -80,9 +80,10 @@ extern "C" {
  * and the diagnostic overlay (owner decision 4a, 2026-11-15:
  * gf_program_identity, application.set_program_identity,
  * windows.show_business_card, diagnostics.set_diagnostic_overlay and
- * toggle_diagnostic_overlay) and relative pointer mode (the gf_controls_table
+ * toggle_diagnostic_overlay), relative pointer mode (the gf_controls_table
  * slots marked since 1.5 and the host capabilities RELATIVE_POINTER to
- * POINTER_WARP), additions only. */
+ * POINTER_WARP) and application font families (gf_app_font_face and the
+ * fonts table's load_family and unload_family), additions only. */
 #define GF_ABI_MAJOR 1u
 #define GF_ABI_MINOR 5u
 
@@ -4304,7 +4305,8 @@ typedef struct gf_docking_table {
  * GF_TABLE_FONTS (since 1.2): the bundled font families a gf_font names in
  * its reserved word (owner decision D2; the family registry, owner
  * decisions of 2026-11-13). A family is a fixed set of faces the library
- * ships, with a number that never changes; an application cannot add one.
+ * ships, with a number that never changes; an application's own families
+ * are loaded apart from them (load_family, below).
  * family_id gives the id for a name (ASCII case ignored): a family's own
  * name, then a name the library's font substitution table maps to a
  * bundled face (Segoe UI and Tahoma to Selawik). Resolve a name once and
@@ -4316,12 +4318,61 @@ typedef struct gf_docking_table {
  * the name of an id (the name Windows Forms' Font.FontFamily.Name reports).
  * Both read only the library's constant tables and may be called from any
  * thread.
+ *
+ * Application font families (since 1.5, provisional: the integrator
+ * renumbers the minor and the slots at fold time; owner decision of
+ * 2026-11-15, "App-loaded fonts: inside composites and subsurfaces"). An
+ * application loads its own font bytes as a family of its own
+ * (load_family), with an id from 256 up that a gf_font's reserved word
+ * carries like a bundled family's. Such a family draws only inside
+ * composite controls (a composite document's look may name it by its name)
+ * and inside sub-surfaces; stock controls, themes and GUI.Forms' own
+ * interface drop it with a warning line and draw their bundled faces.
+ *
+ * load_family validates every face first (the table checks of
+ * gui_forms::validate_app_font: an sfnt with TrueType or CFF outlines, no
+ * collection, a sound table directory, and head, hhea, hmtx, maxp, cmap,
+ * name, post and the outline tables present and consistent) and copies the
+ * bytes, so the caller may free them on return. 1 to
+ * GF_APP_FONT_MAXIMUM_FACES faces, each a gf_app_font_face whose
+ * struct_size is at least the 1.5 size, reserved zero, weight 1 to 1000 and
+ * italic 0 or 1, of at most GF_APP_FONT_MAXIMUM_BYTES bytes. The name is 1
+ * to 64 bytes of UTF-8 without control characters, quotes, commas or
+ * semicolons, and no bundled family, CSS generic or loaded application
+ * family has it. A refusal gives GF_STATUS_INVALID_ARGUMENT (the reason,
+ * the face and the table as the failure's message), or
+ * GF_STATUS_LIMIT_EXCEEDED once 256 families have been loaded in the
+ * process; nothing is registered. A face that later fails to open, shape
+ * or rasterise quarantines its family for the process: its text draws with
+ * the font's bundled faces.
+ *
+ * unload_family unloads a family load_family gave: new text no longer
+ * resolves it at once, and its bytes are freed when the last text engine
+ * that opened them goes (deferred receives 1 then, 0 when they were freed
+ * at once; it may be null). An id that is not loaded (never given, or
+ * already unloaded) gives GF_STATUS_NOT_FOUND. An id is never reused.
+ * Families still loaded when the library unloads are unloaded then. Both
+ * may be called from any thread.
  */
+#define GF_APP_FONT_MAXIMUM_FACES 4u
+#define GF_APP_FONT_MAXIMUM_BYTES 67108864u
+
+typedef struct gf_app_font_face {
+    uint32_t struct_size;
+    uint32_t reserved;
+    uint32_t weight;
+    uint32_t italic;
+    gf_bytes_view bytes;
+} gf_app_font_face;
+
 typedef struct gf_fonts_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     gf_status (GF_CALL* family_id)(gf_utf8_view name, uint32_t* family);
     gf_status (GF_CALL* family_name)(uint32_t family, char* buffer, uint64_t capacity, uint64_t* required);
+    gf_status (GF_CALL* load_family)(gf_utf8_view name, const gf_app_font_face* faces, uint64_t face_count,
+                                     uint32_t* family);
+    gf_status (GF_CALL* unload_family)(uint32_t family, uint32_t* deferred);
 } gf_fonts_table;
 
 /* gf_help_navigator: what help.show_navigator opens (Windows Forms'

@@ -220,6 +220,9 @@ struct MaterialLowering final {
     // each keeps its lengths.
     double em{};
     bool keep_gradients{};
+    // Whether `font-family` resolves live application font families by name
+    // after the bundled families (ThemeCompileInput::admit_app_fonts).
+    bool admit_app_fonts{};
     // What the lowering reads CSS's currentcolor as (written, or a shadow's
     // or a glow's default): the compiler lowers again at another colour, and
     // the colours that differ are current; `read_current_colour` says the

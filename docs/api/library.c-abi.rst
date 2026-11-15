@@ -80,6 +80,8 @@ Types
      - gf_abi_version_info is the size-prefixed output record of the library and ABI versions.
    * - :cpp:class:`gf_anchored_overlay_options <gf_anchored_overlay_options>`
      -  
+   * - :cpp:class:`gf_app_font_face <gf_app_font_face>`
+     -  
    * - :cpp:class:`gf_application_config <gf_application_config>`
      - gf_application_config (C ABI 1.1) is what application.create makes the library's application with: the theme base, up to 16 packages compiled after it, and the presentation source.
    * - :cpp:class:`gf_application_table <gf_application_table>`
@@ -1109,6 +1111,10 @@ Types
 
    .. cpp:function:: gf_status family_name(uint32_t family, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
 
+   .. cpp:function:: gf_status load_family(gf_utf8_view name, const gf_app_font_face* faces, uint64_t face_count, uint32_t* family) const noexcept
+
+   .. cpp:function:: gf_status unload_family(uint32_t family, uint32_t* deferred) const noexcept
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gd_api_v0
@@ -1724,6 +1730,22 @@ Types
    .. cpp:member:: double gap
 
    .. cpp:member:: const gf_callback* events
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_app_font_face
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: uint32_t weight
+
+   .. cpp:member:: uint32_t italic
+
+   .. cpp:member:: gf_bytes_view bytes
 
 .. cpp:namespace:: 0
 
@@ -3393,6 +3415,10 @@ Types
    .. cpp:member:: gf_status (*family_id)(gf_utf8_view name, uint32_t* family)
 
    .. cpp:member:: gf_status (*family_name)(uint32_t family, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*load_family)(gf_utf8_view name, const gf_app_font_face* faces, uint64_t face_count, uint32_t* family)
+
+   .. cpp:member:: gf_status (*unload_family)(uint32_t family, uint32_t* deferred)
 
    .. cpp:member:: uint32_t struct_size
 

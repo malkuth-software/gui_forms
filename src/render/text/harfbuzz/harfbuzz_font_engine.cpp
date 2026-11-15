@@ -3,6 +3,7 @@
 #include "reusable_shape_workspace.hpp"
 #include "../../../core/text/unicode/unicode_grapheme.hpp"
 #include "../../../core/types/restrict/restrict.hpp"
+#include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 
 #include <ft2build.h>
@@ -493,6 +494,9 @@ public:
     std::vector<Face> faces{};
     std::uint64_t next_face_id{1U};
     std::size_t bounded_face_limit{};
+    // The application families (app_fonts.hpp) open_app_families has met, opened or not: each
+    // is registered once per engine.
+    std::vector<FontFamilyId> app_families{};
     // This engine's GlyphSource::engine.
     std::uint64_t identity{next_engine_identity()};
 
@@ -517,7 +521,37 @@ public:
         return listed;
     }
 
+    // Registers the faces of each live application family in `font`'s family order the first
+    // time this engine meets the family, as family faces holding the registry's owner of the
+    // bytes (which defers an unload until this engine goes). A face FreeType cannot open
+    // quarantines the family, so the next family or the role's faces draw; faces already
+    // registered for it stay out of every order from then on. Bounded engines never register
+    // application families (prepared text draws bundled families only).
+    void open_app_families(const FontSpec& font) {
+        if (bounded_face_limit != 0U) return;
+        const FontFamilyOrder order = font_family_order(font);
+        for (std::size_t position = 0U; position < order.count; ++position) {
+            const FontFamilyId family = order.families[position];
+            if (!app_font_family_number(family)) continue;
+            if (std::find(app_families.begin(), app_families.end(), family) != app_families.end()) continue;
+            app_families.push_back(family);
+            std::array<AppFontFaceSource, maximum_app_font_faces> sources{};
+            const std::size_t count = app_font_family_faces(family, sources);
+            bool opened = count != 0U;
+            for (std::size_t index = 0U; index < count && opened; ++index) {
+                // A full engine is not the font's failure: the family is left unregistered.
+                if (faces.size() >= maximum_faces) return;
+                const AppFontFaceSource& source = sources[index];
+                const std::optional<FontFaceId> id =
+                    register_family_face(family, source.weight, source.italic, source.bytes, source.owner, 0U);
+                opened = id.has_value();
+            }
+            if (count != 0U && !opened) quarantine_app_font_family(family, AppFontQuarantine::open_failed);
+        }
+    }
+
     [[nodiscard]] std::vector<Face*> candidates(FontSpec font) {
+        open_app_families(font);
         std::vector<Face*> result{};
         result.reserve(faces.size());
         const FacePreference preference{font};
@@ -534,6 +568,7 @@ public:
     // family as candidates() does. Returns the count; std::length_error when
     // `output` is too short.
     [[nodiscard]] std::size_t fill_candidates(FontSpec font, std::span<Face*> output) {
+        open_app_families(font);
         std::size_t count = 0U;
         const FacePreference preference{font};
         for (Face& face : faces) {
@@ -665,11 +700,13 @@ public:
         return id;
     }
 
-    // An open face of `family`, admitted by bounded engines too (prepared text's font banks).
+    // An open face of `family`, admitted by bounded engines too (prepared text's font banks),
+    // except for an application family, which only an unbounded engine registers.
     [[nodiscard]] std::optional<FontFaceId> register_family_face(
         FontFamilyId family, std::uint16_t weight, bool italic, std::span<const std::byte> bytes,
         std::shared_ptr<const void> owned, std::uint32_t face_index) {
-        if (family.value == 0U || !valid_font_family(family)) return std::nullopt;
+        if (family.value == 0U || !known_font_family(family)) return std::nullopt;
+        if (app_font_family_number(family) && bounded_face_limit != 0U) return std::nullopt;
         const std::optional<FontFaceId> id =
             register_face(std::nullopt, weight, italic, bytes, std::move(owned), face_index);
         if (!id) return id;
@@ -1277,12 +1314,25 @@ ShapedText HarfBuzzFontEngine::shape(std::string_view utf8, FontSpec font) {
 #endif
     double origin{};
     Impl::ShapeCall call{};
-    for (std::size_t index = 0U; index < visual.size(); ++index) {
-        const VisualSegment& segment = visual[index];
-        const double before = result.width;
-        (*impl_).append_run(call, result, *segment.face, utf8, segment.range, font, origin,
-                          index + 1U != visual.size(), segment.rtl);
-        origin += std::max(0.0, result.width - before);
+    std::size_t index = 0U;
+    try {
+        for (; index < visual.size(); ++index) {
+            const VisualSegment& segment = visual[index];
+            const double before = result.width;
+            (*impl_).append_run(call, result, *segment.face, utf8, segment.range, font, origin,
+                              index + 1U != visual.size(), segment.rtl);
+            origin += std::max(0.0, result.width - before);
+        }
+    } catch (const std::runtime_error&) {
+        // A run an application family's face failed to shape (HarfBuzz or FreeType refused it)
+        // quarantines that family, and the text is shaped again without it. Each retry
+        // quarantines one more family of the font's order, so retries end; a failure in a
+        // bundled face is the engine's and propagates.
+        const FontFamilyId failed = Impl::family_of(*visual[index].face);
+        if (!app_font_family_number(failed)) throw;
+        quarantine_app_font_family(failed, AppFontQuarantine::shaping_failed);
+        ShapedText retried = shape(utf8, font);
+        return retried;
     }
     return result;
 }
@@ -1573,6 +1623,7 @@ std::optional<FontFaceSource> HarfBuzzFontEngine::face_source(const FontFaceId i
                                                   static_cast<std::size_t>((*(*native).stream).size));
         source.owner = face.encoded;
         source.face_index = static_cast<std::uint32_t>((*native).face_index & 0xFFFF);
+        source.family = face.named_family;
         return source;
     }
     return std::nullopt;

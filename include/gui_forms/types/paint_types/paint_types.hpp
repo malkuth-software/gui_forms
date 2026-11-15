@@ -104,9 +104,10 @@ inline constexpr TypeTag<CursorKind> cursor_kind{};
 // (gui_forms/typography/font_families/font_families.hpp; owner decisions of
 // 2026-11-13). Zero is none: the role's own faces. Values 1 to 255 are the
 // families bundled with the library, fixed for every release; values from
-// 256 are reserved for verified registered families, which 1.0 does not
-// admit. A host font never has a number, so a family can never reach a font
-// the application did not ship.
+// 256 are application families, loaded by the program from its own bytes
+// (gui_forms/typography/app_fonts/app_fonts.hpp) and drawn only inside
+// composites and sub-surfaces. A host font never has a number, so a family
+// can never reach a font the application did not ship.
 struct GUI_FORMS_API FontFamilyId {
     std::uint16_t value{};
     friend constexpr bool operator==(const FontFamilyId& left,

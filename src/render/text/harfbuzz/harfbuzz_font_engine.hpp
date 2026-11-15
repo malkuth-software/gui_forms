@@ -48,6 +48,10 @@ struct FontFaceSource final {
     std::span<const std::byte> bytes{};
     std::shared_ptr<const void> owner{};
     std::uint32_t face_index{};
+    // The family the face was registered for (zero for a role or fallback
+    // face): a rasterizer quarantines an application family whose glyphs it
+    // cannot draw.
+    FontFamilyId family{};
 };
 
 // The encoded font a lazily registered face opens from; `owner` keeps `bytes` alive. Empty

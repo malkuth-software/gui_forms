@@ -530,6 +530,8 @@ public static class Constants
     public const uint GF_DOCK_REFUSAL_SITE_REFUSES_KIND = 22u;
     public const uint GF_DOCK_REFUSAL_SITE_REFUSES_GROUP = 23u;
     public const uint GF_DOCK_REFUSAL_USER_DOCKING_LOCKED = 24u;
+    public const uint GF_APP_FONT_MAXIMUM_FACES = 4u;
+    public const uint GF_APP_FONT_MAXIMUM_BYTES = 67108864u;
     public const uint GF_HELP_NAVIGATOR_CONTENTS = 0u;
     public const uint GF_HELP_NAVIGATOR_INDEX = 1u;
     public const uint GF_HELP_NAVIGATOR_SEARCH = 2u;

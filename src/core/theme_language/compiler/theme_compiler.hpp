@@ -111,6 +111,12 @@ struct ThemeCompileInput final {
     // name it does not hold is refused (E417). Null, only the name's form
     // is checked, and the control checks the effect when it attaches it.
     const EffectRegistry* effects{};
+    // A composite's look (`.control` <look>, owner decision 2026-11-15): a
+    // `font-family` entry may name a live application font family
+    // (app_font_family_named), resolved to its number when the look is
+    // compiled. Themes and stock sheets leave it false, so an application
+    // family name there is unavailable (W113).
+    bool admit_app_fonts{};
 };
 
 // One stretch of an inline style's text copied into a sheet by

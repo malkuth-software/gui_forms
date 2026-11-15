@@ -13,8 +13,11 @@
 namespace gui_forms {
 
 // The font family registry (owner decisions of 2026-11-13). Interface text
-// draws only the families bundled with the library: an application cannot
-// register its own, since a foreign font can break the text engine. Every
+// draws only the families bundled with the library, since a foreign font can
+// break the text engine; an application's own families (owner, 2026-11-15)
+// are a separate registry with numbers above maximum_bundled_font_family,
+// admitted only inside composites and sub-surfaces
+// (gui_forms/typography/app_fonts/app_fonts.hpp). Every
 // face a family lists is in assets/fonts/bundled-fonts.sha256 and in the font
 // pack compiled into every program (cmake/FontPack.cmake), so a family always
 // resolves to shipped bytes.
@@ -28,9 +31,8 @@ namespace gui_forms {
 // and any thread may call it. The family stacks below are the one mutable
 // part.
 
-// Where a family's faces come from. Bundled is the only kind 1.0 admits; a
-// verified registered family (one whose assets ship with the application,
-// once a verified FreeType engine exists) would be another.
+// Where a family's faces come from. Bundled is the only kind this table
+// holds; application families have no record here (app_fonts.hpp).
 enum class FontFamilyKind : std::uint8_t {
     bundled,
 };
@@ -68,7 +70,7 @@ inline constexpr FontFamilyId portsmouth_mono_font_family{7U};
 inline constexpr FontFamilyId selawik_semibold_font_family{8U};
 
 // The largest number a bundled family may have; numbers above it are
-// reserved for registered families.
+// application families (app_fonts.hpp).
 inline constexpr std::uint16_t maximum_bundled_font_family = 255U;
 
 namespace detail {
@@ -302,8 +304,9 @@ struct GUI_FORMS_API FontFamilyStack final {
 };
 
 // Registers the stack `families` and returns its number; the same list
-// registered again returns the same number. A list that is empty, longer
-// than maximum_font_stack_families, names zero, an unknown family or one
+// registered again returns the same number. A family may be bundled or a
+// live application family (font_family_drawable). A list that is empty,
+// longer than maximum_font_stack_families, names zero, an unknown family or one
 // family twice, or that arrives once maximum_font_family_stacks are held,
 // is refused with zero: the font then draws its own family and its role.
 // Thread-safe: registrations are serialized, and a stack once numbered
@@ -318,7 +321,9 @@ struct GUI_FORMS_API FontFamilyStack final {
 [[nodiscard]] GUI_FORMS_API bool valid_font_family_stack(FontFamilyStackId stack) noexcept;
 
 // The families a font draws before its role, in order: its family, then
-// its stack's families not already listed. Unknown families are left out.
+// its stack's families not already listed. Families that cannot draw now
+// (unknown, or an application family quarantined or unloaded:
+// font_family_drawable) are left out.
 struct GUI_FORMS_API FontFamilyOrder final {
     std::array<FontFamilyId, 1U + maximum_font_stack_families> families{};
     std::size_t count{};

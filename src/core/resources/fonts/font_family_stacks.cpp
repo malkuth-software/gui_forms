@@ -7,6 +7,7 @@
 // take no lock (the text engine reads a stack for every shaped run).
 
 #include "gui_forms/typography/font_families/font_families.hpp"
+#include "gui_forms/typography/app_fonts/app_fonts.hpp"
 
 #include <atomic>
 #include <cstddef>
@@ -29,13 +30,13 @@ struct FontFamilyStackTable final {
     return table;
 }
 
-// Whether `families` is a list a stack may hold: one to maximum_font_stack_families known
-// families, none zero, none twice.
+// Whether `families` is a list a stack may hold: one to maximum_font_stack_families drawable
+// families (bundled, or live application families), none zero, none twice.
 [[nodiscard]] bool admissible_stack(std::span<const FontFamilyId> families) noexcept {
     if (families.empty() || families.size() > maximum_font_stack_families) return false;
     for (std::size_t index = 0U; index < families.size(); ++index) {
         const FontFamilyId family = families[index];
-        if (family.value == 0U || font_family_record(family) == nullptr) return false;
+        if (family.value == 0U || !font_family_drawable(family)) return false;
         for (std::size_t earlier = 0U; earlier < index; ++earlier) {
             if (families[earlier] == family) return false;
         }
@@ -86,13 +87,14 @@ bool valid_font_family_stack(FontFamilyStackId stack) noexcept {
 
 FontFamilyOrder font_family_order(const FontSpec& font) noexcept {
     FontFamilyOrder order{};
-    if (font.family.value != 0U && font_family_record(font.family) != nullptr) {
+    if (font.family.value != 0U && font_family_drawable(font.family)) {
         order.families[order.count] = font.family;
         order.count = order.count + 1U;
     }
     const FontFamilyStack stack = font_family_stack(font.stack);
     for (std::size_t index = 0U; index < stack.count; ++index) {
         const FontFamilyId family = stack.families[index];
+        if (!font_family_drawable(family)) continue;
         if (font_family_position(order, family)) continue;
         order.families[order.count] = family;
         order.count = order.count + 1U;

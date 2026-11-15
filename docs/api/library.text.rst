@@ -29,6 +29,18 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`AppFontFace <gui_forms::AppFontFace>`
+     - One face of a family to load: its bytes, which the registry shares (the application may drop its reference after the load), its weight (1 to 1000) and slant.
+   * - :cpp:class:`AppFontFaceSource <gui_forms::AppFontFaceSource>`
+     - One face of a live family as a text engine registers it: the bytes and the owner that keeps them (the engine holds the owner for as long as its face lives, which is what defers an unload).
+   * - :cpp:class:`AppFontFamily <gui_forms::AppFontFamily>`
+     - The application's ownership of one loaded family.
+   * - :cpp:class:`AppFontLoad <gui_forms::AppFontLoad>`
+     - A load's answer: the validation (the first face refused, with face_index, or ``loaded``) and, when loaded, the handle.
+   * - :cpp:class:`AppFontStatistics <gui_forms::AppFontStatistics>`
+     - Counters (AGENTS.md: structured instrumentation), for the process.
+   * - :cpp:class:`AppFontValidation <gui_forms::AppFontValidation>`
+     - The checks' answer for one face: the status, and for table_missing or table_invalid the table's tag (big-endian, 'cmap' is 0x636D6170).
    * - :cpp:class:`DisplayByteOffset <gui_forms::DisplayByteOffset>`
      -  
    * - :cpp:class:`DisplayMappingResult <gui_forms::DisplayMappingResult>`
@@ -249,6 +261,117 @@ Related types
      - One scalar decoded strictly (the rules of validate_utf8: no overlong forms, surrogates or values past U+10FFFF).
    * - :cpp:class:`Utf8ValidationResult <gui_forms::Utf8ValidationResult>`
      - Utf8ValidationResult preserves the first closed validation failure and exact byte/scalar/UTF-16 counts.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AppFontFace final
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   One face of a family to load: its bytes, which the registry shares (the application may drop its reference after the load), its weight (1 to 1000) and slant.
+
+   .. cpp:member:: std::shared_ptr<const std::vector<std::byte>> bytes
+
+   .. cpp:member:: std::uint16_t weight
+
+      Default: ``{400}``.
+
+   .. cpp:member:: bool italic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AppFontFaceSource final
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   One face of a live family as a text engine registers it: the bytes and the owner that keeps them (the engine holds the owner for as long as its face lives, which is what defers an unload).
+
+   .. cpp:member:: std::span<const std::byte> bytes
+
+   .. cpp:member:: std::shared_ptr<const void> owner
+
+   .. cpp:member:: std::uint16_t weight
+
+      Default: ``{400}``.
+
+   .. cpp:member:: bool italic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: AppFontFamily final
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   The application's ownership of one loaded family. Move-only; destroying a handle that still holds a family unloads it. Only load_app_font_family makes a handle that holds one.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: AppFontFamily() noexcept = default
+
+   .. cpp:function:: AppFontFamily(AppFontFamily&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: FontFamilyId id() const noexcept
+
+      The family's number, zero for an empty handle. FontSpec::family takes it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: AppFontUnload unload() noexcept
+
+      Unloads the family now and empties the handle.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AppFontLoad final
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   A load's answer: the validation (the first face refused, with face_index, or ``loaded``) and, when loaded, the handle.
+
+   .. cpp:member:: AppFontValidation validation
+
+   .. cpp:member:: std::size_t face_index
+
+   .. cpp:member:: AppFontFamily family
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AppFontStatistics final
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   Counters (AGENTS.md: structured instrumentation), for the process. loads / refused_loads: load_app_font_family's answers; refused_uses: fonts admit_font changed; quarantines: families quarantined; unloads_released / unloads_deferred: unloads by outcome.
+
+   .. cpp:member:: std::uint64_t loads
+
+   .. cpp:member:: std::uint64_t refused_loads
+
+   .. cpp:member:: std::uint64_t refused_uses
+
+   .. cpp:member:: std::uint64_t quarantines
+
+   .. cpp:member:: std::uint64_t unloads_released
+
+   .. cpp:member:: std::uint64_t unloads_deferred
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AppFontValidation final
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   The checks' answer for one face: the status, and for table_missing or table_invalid the table's tag (big-endian, 'cmap' is 0x636D6170).
+
+   .. cpp:member:: AppFontStatus status
+
+      Default: ``{AppFontStatus::loaded}``.
+
+   .. cpp:member:: std::uint32_t table
 
 .. cpp:namespace:: gui_forms
 
@@ -566,7 +689,7 @@ Related types
 
    ``#include <gui_forms/typography/font_families/font_families.hpp>``
 
-   The families a font draws before its role, in order: its family, then its stack's families not already listed. Unknown families are left out.
+   The families a font draws before its role, in order: its family, then its stack's families not already listed. Families that cannot draw now (unknown, or an application family quarantined or unloaded: font_family_drawable) are left out.
 
    .. cpp:member:: std::array<FontFamilyId, 1U + maximum_font_stack_families> families
 
@@ -2905,6 +3028,80 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: AppFontQuarantine
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   .. cpp:enumerator:: open_failed
+
+   .. cpp:enumerator:: shaping_failed
+
+   .. cpp:enumerator:: rasterising_failed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: AppFontState
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   .. cpp:enumerator:: absent
+
+   .. cpp:enumerator:: live
+
+   .. cpp:enumerator:: quarantined
+
+   .. cpp:enumerator:: unloading
+
+   .. cpp:enumerator:: released
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: AppFontStatus
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   .. cpp:enumerator:: loaded
+
+   .. cpp:enumerator:: no_faces
+
+   .. cpp:enumerator:: too_many_faces
+
+   .. cpp:enumerator:: weight_invalid
+
+   .. cpp:enumerator:: name_invalid
+
+   .. cpp:enumerator:: name_taken
+
+   .. cpp:enumerator:: capacity_exhausted
+
+   .. cpp:enumerator:: empty
+
+   .. cpp:enumerator:: too_large
+
+   .. cpp:enumerator:: not_sfnt
+
+   .. cpp:enumerator:: collection_refused
+
+   .. cpp:enumerator:: table_directory_invalid
+
+   .. cpp:enumerator:: table_missing
+
+   .. cpp:enumerator:: table_invalid
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: AppFontUnload
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   .. cpp:enumerator:: released
+
+   .. cpp:enumerator:: deferred
+
+   .. cpp:enumerator:: not_loaded
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: DocumentMapKind
 
    ``#include <gui_forms/document_view/types/document_view_types.hpp>``
@@ -2942,6 +3139,18 @@ Enumerations
    .. cpp:enumerator:: serial_exhausted
 
    .. cpp:enumerator:: invalid_boundary
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: FontContext
+
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+   .. cpp:enumerator:: interface
+
+   .. cpp:enumerator:: composite
+
+   .. cpp:enumerator:: content
 
 .. cpp:namespace:: gui_forms
 
@@ -3784,6 +3993,70 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+
+.. cpp:function:: AppFontValidation validate_app_font(std::span<const std::byte> bytes) noexcept
+
+   Checks ``bytes`` as one font face, reading only the bytes (no engine). The stated set of checks: 1. size: 1 to maximum_app_font_bytes; 2. the sfnt version: 0x00010000 or 'true' (TrueType outlines) or 'OTTO' (CFF outlines); 'ttcf' collections are refused; 3. the table directory: numTables 1 to 64, the directory inside the bytes, each table's offset and length inside the bytes, no tag twice; 4. required tables: head, hhea, hmtx, maxp, cmap, name and post; glyf and loca for TrueType outlines, CFF or CFF2 for 'OTTO'; 5. head: at least 54 bytes, magic number 0x5F0F3CF5, unitsPerEm 16 to 16384, indexToLocFormat 0 or 1; 6. maxp: at least 6 bytes, numGlyphs 1 to 65535; 7. hhea: at least 36 bytes, numberOfHMetrics 1 to numGlyphs; 8. hmtx: at least 4 * numberOfHMetrics + 2 * (numGlyphs - numberOfHMetrics) bytes; 9. loca (TrueType): exactly (numGlyphs + 1) offsets of the head's format; offsets ascending and the last no larger than glyf's length; 10. cmap: version 0, at least one encoding record inside the table, and a Unicode subtable (platform 0, or platform 3 with encoding 1 or 10) whose offset lies inside the table. Passing them does not prove a face draws: what fails later is quarantined.
+
+.. cpp:function:: AppFontLoad load_app_font_family(std::string_view name, std::span<const AppFontFace> faces)
+
+   Loads ``faces`` as one family called ``name``. Validates the name and every face first and registers nothing on a refusal. Thread-safe.
+
+.. cpp:function:: constexpr bool app_font_family_number(FontFamilyId family) noexcept
+
+   Whether ``family`` is in the application families' number range.
+
+.. cpp:function:: AppFontState app_font_family_state(FontFamilyId family) noexcept
+
+.. cpp:function:: bool font_family_drawable(FontFamilyId family) noexcept
+
+   Whether text may resolve ``family`` now: a bundled family, or a live application family. Lock-free.
+
+.. cpp:function:: bool known_font_family(FontFamilyId family) noexcept
+
+   Whether ``family`` is zero, a bundled family or a number a load gave (in any state): the check a stored font's family passes (a C ABI gf_font, a theme declaration).
+
+.. cpp:function:: FontFamilyId app_font_family_named(std::string_view name)
+
+   The live application family called ``name`` (ASCII case ignored), or zero.
+
+.. cpp:function:: void quarantine_app_font_family(FontFamilyId family, AppFontQuarantine reason) noexcept
+
+   Quarantines a live application family: logs one line, counts it, and from then on font_family_drawable is false for it. Anything else is ignored. Thread-safe, never throws.
+
+.. cpp:function:: std::size_t app_font_family_faces(FontFamilyId family, std::span<AppFontFaceSource> output)
+
+   Writes the faces of ``family`` into ``output`` while the family is live and returns their count (zero otherwise, or when ``output`` is shorter than the family's faces). Thread-safe.
+
+.. cpp:function:: FontSpec admit_font(FontSpec font, FontContext context) noexcept
+
+   ``font`` as ``context`` may draw it: unchanged in a composite or content context, and in the interface context with an application family dropped (FontSpec::family set to zero; a stack that lists one is dropped as a whole, so the role draws). Each refused family is counted, and logged once per family per process. Lock-free on the path that changes nothing.
+
+.. cpp:function:: AppFontStatistics app_font_statistics() noexcept
+
+.. cpp:var:: constexpr std::uint16_t minimum_app_font_family
+
+   The numbers application families take: from minimum_app_font_family, one per load, never reused; at most maximum_app_font_families loads per process. Value: ``256U``.
+
+.. cpp:var:: constexpr std::size_t maximum_app_font_families
+
+   Value: ``256U``.
+
+.. cpp:var:: constexpr std::size_t maximum_app_font_faces
+
+   The most faces one family holds, and the largest face accepted. Value: ``4U``.
+
+.. cpp:var:: constexpr std::size_t maximum_app_font_bytes
+
+   Value: ``64U * 1024U * 1024U``.
+
+.. cpp:var:: constexpr std::size_t maximum_app_font_name_bytes
+
+   The longest family name, in bytes of UTF-8. Value: ``64U``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/typography/font_families/font_families.hpp>``
 
 .. cpp:function:: constexpr bool same_font_family_name(std::string_view left, std::string_view right) noexcept
@@ -3824,7 +4097,7 @@ Functions, constants and aliases
 
 .. cpp:function:: FontFamilyStackId register_font_family_stack(std::span<const FontFamilyId> families)
 
-   Registers the stack ``families`` and returns its number; the same list registered again returns the same number. A list that is empty, longer than maximum_font_stack_families, names zero, an unknown family or one family twice, or that arrives once maximum_font_family_stacks are held, is refused with zero: the font then draws its own family and its role. Thread-safe: registrations are serialized, and a stack once numbered never changes or goes away (the registry lives for the process).
+   Registers the stack ``families`` and returns its number; the same list registered again returns the same number. A family may be bundled or a live application family (font_family_drawable). A list that is empty, longer than maximum_font_stack_families, names zero, an unknown family or one family twice, or that arrives once maximum_font_family_stacks are held, is refused with zero: the font then draws its own family and its role. Thread-safe: registrations are serialized, and a stack once numbered never changes or goes away (the registry lives for the process).
 
 .. cpp:function:: FontFamilyStack font_family_stack(FontFamilyStackId stack) noexcept
 
@@ -3874,7 +4147,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::uint16_t maximum_bundled_font_family
 
-   The largest number a bundled family may have; numbers above it are reserved for registered families. Value: ``255U``.
+   The largest number a bundled family may have; numbers above it are application families (app_fonts.hpp). Value: ``255U``.
 
 .. cpp:var:: constexpr std::array<FontFamilyRecord, 8> bundled_font_families
 

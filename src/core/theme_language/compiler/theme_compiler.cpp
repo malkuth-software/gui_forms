@@ -3051,6 +3051,7 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
     const std::optional<std::uint32_t> em_token = first_em_length(value_);
     material_lowering_.em = 0.0;
     material_lowering_.current_colour = Color::rgba(0, 0, 0, 255);
+    material_lowering_.admit_app_fonts = input_.admit_app_fonts;
     material_lowering_.keep_gradients = em_token.has_value() || names_current_colour(value_);
     lower_material_value(property, value_, node.content.first.value, input_.images, material_lowering_);
     if (material_lowering_.outcome != MaterialLoweringOutcome::lowered) return report_material_problem();

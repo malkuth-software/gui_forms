@@ -1384,7 +1384,18 @@ public unsafe struct gf_docking_table
     public delegate* unmanaged[Cdecl]<gf_object, uint, gf_dock_window_visibility, gf_status> set_floating_window_visibility;
 }
 
-/// <summary>gf_fonts_table (table, 24 bytes).</summary>
+/// <summary>gf_app_font_face (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_app_font_face
+{
+    public uint struct_size;
+    public uint reserved;
+    public uint weight;
+    public uint italic;
+    public gf_bytes_view bytes;
+}
+
+/// <summary>gf_fonts_table (table, 40 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_fonts_table
 {
@@ -1392,6 +1403,8 @@ public unsafe struct gf_fonts_table
     public uint abi_minor;
     public delegate* unmanaged[Cdecl]<gf_utf8_view, uint*, gf_status> family_id;
     public delegate* unmanaged[Cdecl]<uint, byte*, ulong, ulong*, gf_status> family_name;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_app_font_face*, ulong, uint*, gf_status> load_family;
+    public delegate* unmanaged[Cdecl]<uint, uint*, gf_status> unload_family;
 }
 
 /// <summary>gf_help_table (table, 128 bytes).</summary>

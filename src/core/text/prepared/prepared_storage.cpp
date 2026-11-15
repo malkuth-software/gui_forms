@@ -1,5 +1,6 @@
 #include "prepared_storage.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 
 #include <cmath>
@@ -237,7 +238,9 @@ PreparedTextStatus validate_prepared_key(const PreparedTextKey& key) noexcept {
         !valid_font_spec(key.font) || !std::isfinite(key.scale) || !std::isfinite(key.wrap_width)) {
         return PreparedTextStatus::invalid_input;
     }
-    if (!valid_font_family(key.font.family) || !valid_font_family_stack(key.font.stack)) {
+    // An application family is a known family here; prepared text's bounded engines never
+    // register its faces (app_fonts.hpp), so its text draws with the bundled faces.
+    if (!known_font_family(key.font.family) || !valid_font_family_stack(key.font.stack)) {
         return PreparedTextStatus::invalid_input;
     }
     if (key.font.size < 4 || key.font.size > 128 || key.scale < 0.5 || key.scale > 4 ||

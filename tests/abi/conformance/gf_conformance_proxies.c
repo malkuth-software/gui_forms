@@ -123,6 +123,141 @@ static void fonts(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(label), GF_STATUS_OK, "release the font label");
 }
 
+/* A minimal TrueType face that passes the load checks (one empty glyph, a
+ * format 4 cmap, the required tables): the bytes, big-endian, into font.
+ * Returns the length written. The tables, in tag order, at 4-byte aligned
+ * offsets after the 12-byte header and 9 records. */
+enum { app_font_tables = 9, app_font_bytes = 12 + 16 * app_font_tables + 36 + 0 + 56 + 36 + 4 + 4 + 8 + 8 + 32 };
+
+static void put16(uint8_t* at, uint32_t value) {
+    at[0] = (uint8_t)((value >> 8) & 0xFFu);
+    at[1] = (uint8_t)(value & 0xFFu);
+}
+
+static void put32(uint8_t* at, uint32_t value) {
+    put16(at, value >> 16);
+    put16(at + 2, value & 0xFFFFu);
+}
+
+static size_t minimal_app_font(uint8_t font[app_font_bytes]) {
+    /* Tag, length (padded to 4 in the layout), in tag order. */
+    static const char tags[app_font_tables][5] = {"cmap", "glyf", "head", "hhea", "hmtx",
+                                                   "loca", "maxp", "name", "post"};
+    static const uint32_t lengths[app_font_tables] = {36u, 0u, 54u, 36u, 4u, 4u, 6u, 6u, 32u};
+    memset(font, 0, app_font_bytes);
+    put32(font, 0x00010000u);
+    put16(font + 4, app_font_tables);
+    size_t offset = 12u + 16u * app_font_tables;
+    uint32_t placed[app_font_tables];
+    for (size_t index = 0u; index < app_font_tables; ++index) {
+        uint8_t* const record = font + 12u + 16u * index;
+        memcpy(record, tags[index], 4u);
+        put32(record + 8, (uint32_t)offset);
+        put32(record + 12, lengths[index]);
+        placed[index] = (uint32_t)offset;
+        offset += (lengths[index] + 3u) & ~3u;
+    }
+    /* cmap: version 0, one record (3, 1) at 12, a format 4 subtable with
+     * the closing 0xFFFF segment only. */
+    uint8_t* const cmap = font + placed[0];
+    put16(cmap + 2, 1u);
+    put16(cmap + 4, 3u);
+    put16(cmap + 6, 1u);
+    put32(cmap + 8, 12u);
+    put16(cmap + 12, 4u);
+    put16(cmap + 14, 24u);
+    put16(cmap + 18, 2u);
+    put16(cmap + 20, 2u);
+    put16(cmap + 26, 0xFFFFu);
+    put16(cmap + 30, 0xFFFFu);
+    put16(cmap + 32, 1u);
+    /* head: version, magic, unitsPerEm 1000, short loca offsets. */
+    uint8_t* const head = font + placed[2];
+    put32(head, 0x00010000u);
+    put32(head + 12, 0x5F0F3CF5u);
+    put16(head + 18, 1000u);
+    /* hhea: version, ascender, descender, one metric. */
+    uint8_t* const hhea = font + placed[3];
+    put32(hhea, 0x00010000u);
+    put16(hhea + 4, 800u);
+    put16(hhea + 6, 0xFF38u);
+    put16(hhea + 34, 1u);
+    /* hmtx: the glyph's advance. */
+    put16(font + placed[4], 500u);
+    /* loca stays two zero offsets: the glyph is empty. maxp 0.5, one glyph. */
+    put32(font + placed[6], 0x00005000u);
+    put16(font + placed[6] + 4, 1u);
+    /* name: format 0, no records, strings at 6. */
+    put16(font + placed[7] + 4, 6u);
+    /* post 3.0. */
+    put32(font + placed[8], 0x00030000u);
+    return offset;
+}
+
+/* Application font families (since 1.5, provisional): load, a gf_font that
+ * carries the family, refusals and unload. */
+static void app_fonts(gf_kit* kit) {
+    uint8_t bytes[app_font_bytes];
+    const size_t size = minimal_app_font(bytes);
+    gf_kit_check(kit, size == app_font_bytes, "the minimal face fills its buffer");
+    gf_app_font_face face;
+    memset(&face, 0, sizeof(face));
+    face.struct_size = (uint32_t)sizeof(face);
+    face.weight = 400u;
+    face.bytes.data = bytes;
+    face.bytes.size = size;
+    uint32_t family = 0u;
+    gf_kit_status(kit, (*kit).fonts.load_family(gf_kit_text("Kit Application Face"), &face, 1u, &family),
+                  GF_STATUS_OK, "load an application family");
+    gf_kit_check(kit, family >= 256u, "an application family's id is above the bundled ids");
+    uint32_t again = 0u;
+    gf_kit_status(kit, (*kit).fonts.load_family(gf_kit_text("kit application face"), &face, 1u, &again),
+                  GF_STATUS_INVALID_ARGUMENT, "a loaded family's name is taken, without case");
+    gf_kit_status(kit, (*kit).fonts.load_family(gf_kit_text("Carlito"), &face, 1u, &again),
+                  GF_STATUS_INVALID_ARGUMENT, "a bundled family's name is taken");
+    gf_kit_status(kit, (*kit).fonts.load_family(gf_kit_text("Kit, Face"), &face, 1u, &again),
+                  GF_STATUS_INVALID_ARGUMENT, "a name with a comma is refused");
+    gf_kit_status(kit, (*kit).fonts.load_family(gf_kit_text("Kit Other"), &face, 0u, &again),
+                  GF_STATUS_INVALID_ARGUMENT, "a family needs a face");
+    gf_app_font_face broken = face;
+    broken.bytes.data = one_pixel_png;
+    broken.bytes.size = sizeof(one_pixel_png);
+    gf_kit_status(kit, (*kit).fonts.load_family(gf_kit_text("Kit Other"), &broken, 1u, &again),
+                  GF_STATUS_INVALID_ARGUMENT, "bytes that are not a font are refused");
+    broken = face;
+    broken.weight = 0u;
+    gf_kit_status(kit, (*kit).fonts.load_family(gf_kit_text("Kit Other"), &broken, 1u, &again),
+                  GF_STATUS_INVALID_ARGUMENT, "a weight of zero is refused");
+    gf_kit_check(kit, again == 0u, "refused loads leave their output");
+
+    /* A gf_font may carry the family: where it draws is decided when the
+     * font is drawn (a stock label draws its bundled faces). */
+    const gf_object label = gf_kit_create(kit, "label", "kit.proxies.app_font");
+    gf_value font = blank_value();
+    font.kind = GF_VALUE_KIND_FONT;
+    font.font.role = GF_FONT_ROLE_CONTENT;
+    font.font.weight = 400u;
+    font.font.size = 12.0;
+    font.font.reserved = family;
+    gf_kit_status(kit, (*kit).properties.set(label, gf_kit_text("font"), &font), GF_STATUS_OK,
+                  "a font may carry an application family");
+
+    uint32_t deferred = 9u;
+    gf_kit_status(kit, (*kit).fonts.unload_family(family, &deferred), GF_STATUS_OK, "unload the family");
+    gf_kit_check(kit, deferred == 0u || deferred == 1u, "an unload says whether it was deferred");
+    gf_kit_status(kit, (*kit).fonts.unload_family(family, NULL), GF_STATUS_NOT_FOUND,
+                  "an unloaded family is not loaded");
+    gf_kit_status(kit, (*kit).fonts.unload_family(3u, NULL), GF_STATUS_NOT_FOUND,
+                  "a bundled family cannot be unloaded");
+    gf_kit_status(kit, (*kit).properties.set(label, gf_kit_text("font"), &font), GF_STATUS_OK,
+                  "a font naming an unloaded family is still a known family");
+    gf_kit_status(kit, (*kit).fonts.load_family(gf_kit_text("Kit Application Face"), &face, 1u, &again),
+                  GF_STATUS_OK, "an unloaded family's name is free again");
+    gf_kit_check(kit, again != family, "an id is never reused");
+    gf_kit_status(kit, (*kit).fonts.unload_family(again, NULL), GF_STATUS_OK, "unload the second family");
+    gf_kit_status(kit, (*kit).objects.release(label), GF_STATUS_OK, "release the application font label");
+}
+
 static void images(gf_kit* kit) {
     uint64_t image = 0u;
     gf_kit_status(kit, (*kit).themes.load_image(one_pixel_png, sizeof(one_pixel_png), &image), GF_STATUS_OK,
@@ -266,6 +401,7 @@ static void collections(gf_kit* kit) {
 
 void gf_kit_proxies(gf_kit* kit) {
     fonts(kit);
+    app_fonts(kit);
     images(kit);
     collections(kit);
 }

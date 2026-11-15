@@ -2688,6 +2688,23 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status load_family(gf_utf8_view name, const gf_app_font_face* faces, uint64_t face_count,
+                                        uint32_t* family) const noexcept {
+        if (table_.struct_size < 32u || table_.load_family == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.load_family(name, faces, face_count, family);
+        return called;
+    }
+
+    [[nodiscard]] gf_status unload_family(uint32_t family, uint32_t* deferred) const noexcept {
+        if (table_.struct_size < 40u || table_.unload_family == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.unload_family(family, deferred);
+        return called;
+    }
+
 private:
     gf_fonts_table table_;
 };

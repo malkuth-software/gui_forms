@@ -1594,7 +1594,10 @@ std::shared_ptr<const CompiledThemeRules> detail::compile_theme_look(
                                                   .resources = names,
                                                   .images = images,
                                                   .requires_engine = record.requires_engine,
-                                                  .form = theme_language::ThemeSheetForm::sheet};
+                                                  .form = theme_language::ThemeSheetForm::sheet,
+                                                  // The look may name the application's font families;
+                                                  // only the theme's definitions the look reads are kept.
+                                                  .admit_app_fonts = true};
     ThemeRuleSheet lowered{};
     theme_language::ThemeCompiler compiler{};
     theme_language::ThemeDiagnosticList found{};
