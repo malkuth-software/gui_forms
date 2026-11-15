@@ -531,7 +531,18 @@ void DefinitionCompiler::copy_child(const XmlElement& element, XmlElement& made)
             CompositeChildBinding binding{};
             binding.child = local_id;
             binding.property = property;
-            binding.source = property_index(source_name.substr(self_prefix.size())).value_or(0U);
+            // The checker admits a base type's property too (any_property);
+            // the composite reads and writes its own by index, so a name it
+            // does not declare is refused, never compiled to index 0
+            // (A-gf-core-03-F1).
+            const std::string_view source_property = source_name.substr(self_prefix.size());
+            const std::optional<std::size_t> source_index = property_index(source_property);
+            if (!source_index) {
+                refuse(model_.source, property,
+                       "a binding to '" + std::string(source_property) + "', not a property the composite declares");
+                continue;
+            }
+            binding.source = *source_index;
             const PropertyDescriptor* descriptor = nullptr;
             if (own_type) {
                 for (const PropertyDescriptor& candidate : definition_.schema.types[*own_type].properties) {
@@ -673,15 +684,26 @@ void DefinitionCompiler::compile_rules() {
             CompositeActionDefinition compiled{};
             compiled.kind = action.kind;
             parse(action.value, compiled.value, action.source, written.trigger);
+            std::optional<std::size_t> found{};
             switch (action.kind) {
             case ControlActionKind::set:
             case ControlActionKind::toggle:
             case ControlActionKind::step:
             case ControlActionKind::invoke:
-                compiled.target = property_index(action.target).value_or(0U);
+                // As for a child binding: a base type's property, or any
+                // name the composite does not declare, is refused rather
+                // than compiled to index 0 (A-gf-core-03-F1).
+                found = property_index(action.target);
+                if (!found) refuse(action.source, written.trigger, "the action's property is not one the composite declares");
                 break;
-            case ControlActionKind::run: compiled.target = command_index(action.target).value_or(0U); break;
-            case ControlActionKind::raise: compiled.target = event_index(action.target).value_or(0U); break;
+            case ControlActionKind::run:
+                found = command_index(action.target);
+                if (!found) refuse(action.source, written.trigger, "the action's command is not one the composite declares");
+                break;
+            case ControlActionKind::raise:
+                found = event_index(action.target);
+                if (!found) refuse(action.source, written.trigger, "the action's event is not one the composite declares");
+                break;
             case ControlActionKind::focus: {
                 std::string_view target = action.target;
                 if (target.starts_with("child(")) target = target.substr(6U, target.size() - 7U);
@@ -694,6 +716,7 @@ void DefinitionCompiler::compile_rules() {
                 refuse(action.source, written.trigger, "open and close wait for overlays in composites");
                 break;
             }
+            if (found) compiled.target = *found;
             definition_.actions.push_back(std::move(compiled));
         }
         made.action_count = definition_.actions.size() - made.first_action;

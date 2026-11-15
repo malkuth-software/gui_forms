@@ -270,6 +270,50 @@ void stepper_field_refused() {
     require(deferred, "the refusal is E999");
 }
 
+// A key action and a child binding that name a property of the base type
+// (A-gf-core-03-F1): the checker admits them, but the composite reads and
+// writes only its own properties by index, so the compiler refuses them
+// (E999) rather than reading property 0, which this document has none of.
+constexpr std::string_view base_toggle = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="base-toggle" version="1.0" base="user-control" family="choice">
+  <part name="face" role="face" box="inset(region, 0)"/>
+  <focus target="self" tab-stop="yes" visible-cue="part(focus)"/>
+  <key gesture="space"><toggle property="enabled"/></key>
+  <semantics role="button" name="property(accessible-name)"/>
+</control>
+)xml";
+
+constexpr std::string_view base_binding = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="base-binding" version="1.0" base="user-control" family="card">
+  <part name="face" role="face" box="inset(region, 0)"/>
+  <children>
+    <label id="@caption" dock="fill" text="bind(self.accessible-name, one_way)"/>
+  </children>
+  <focus target="none"/>
+  <semantics role="group" name="property(accessible-name)" children="exposed"/>
+</control>
+)xml";
+
+bool refused_as_not_built(const std::string_view name, const std::string_view text) {
+    const CompositeLoadResult loaded = load_composite_definition(name, text, example_child_types);
+    bool deferred = false;
+    for (const std::string& line : loaded.diagnostics) {
+        if (line.find("E999") != std::string::npos) deferred = true;
+    }
+    const bool refused = !loaded && deferred;
+    if (!refused) {
+        for (const std::string& line : loaded.diagnostics) std::cerr << "  " << line << '\n';
+    }
+    return refused;
+}
+
+void base_properties_refused() {
+    require(refused_as_not_built("base-toggle.control", base_toggle),
+            "a key action on a base property is refused (E999), not compiled to property 0");
+    require(refused_as_not_built("base-binding.control", base_binding),
+            "a child binding to a base property is refused (E999), not compiled to property 0");
+}
+
 // A live drag: `level` follows every frame; Escape writes back the value
 // the press found.
 constexpr std::string_view live_slider = R"xml(<?xml version="1.0" encoding="UTF-8"?>
@@ -1004,6 +1048,7 @@ int main() {
     toggle_pill();
     card_with_action();
     stepper_field_refused();
+    base_properties_refused();
     live_drag();
     look_shared("toggle-pill.control", {}, Size{160.0, 30.0});
     look_shared("card-with-action.control", "title", Size{240.0, 160.0});
