@@ -76,7 +76,11 @@ extern "C" {
  * failure detail (gf_failure_detail, diagnostics.failure_detail), the
  * gate frame kind, fixed-size array event fields and the composite controls
  * (gf_composite_spec and the custom controls table's load_composite,
- * create_composite, perform_composite and composite_child), additions only. */
+ * create_composite, perform_composite and composite_child), the business card
+ * and the diagnostic overlay (owner decision 4a, 2026-11-15:
+ * gf_program_identity, application.set_program_identity,
+ * windows.show_business_card, diagnostics.set_diagnostic_overlay and
+ * toggle_diagnostic_overlay), additions only. */
 #define GF_ABI_MAJOR 1u
 #define GF_ABI_MINOR 5u
 
@@ -1308,6 +1312,15 @@ typedef struct gf_windows_table {
      * has ended. */
     gf_status (GF_CALL* pointer_location)(gf_object window_or_control, gf_logical_point* location,
                                           gf_logical_point* window_position, uint32_t* inside);
+    /* Since 1.4. Shows the program's business card in the hand over a
+     * window (show_business_card): window_or_root is a window from create,
+     * or a control in a window, as for focused_control. shown receives 1
+     * when the card came out, 0 when the window already showed it; it may
+     * be null. The card is put away by Escape, its close mark or a press
+     * beside it. UI thread. GF_STATUS_INVALID_STATE for a control not in a
+     * window or in a sub-surface; GF_STATUS_DISPOSED for a window that has
+     * been disposed or whose run has ended. */
+    gf_status (GF_CALL* show_business_card)(gf_object window_or_root, uint32_t* shown);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in
@@ -2294,6 +2307,18 @@ typedef struct gf_diagnostics_table {
      * detail or one smaller than its 1.5 size.
      */
     gf_status (GF_CALL* failure_detail)(gf_failure_detail* detail);
+     * Since 1.4. The diagnostic overlay: the invalidation outlines and,
+     * whenever they are on, the counters card at each window's top left
+     * (renderer, controls, layout and paint passes, damage, input and
+     * focus, wakes, presents and the worst present). It is the same
+     * process switch as set_invalidation_overlay (enabled 0 or 1);
+     * toggle_diagnostic_overlay turns it to the other state, the business
+     * card's gesture (D held with a secondary press on the vendor name),
+     * and writes the new state into enabled, which may be null. Any
+     * thread. GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1.
+     */
+    gf_status (GF_CALL* set_diagnostic_overlay)(uint32_t enabled);
+    gf_status (GF_CALL* toggle_diagnostic_overlay)(uint32_t* enabled);
 } gf_diagnostics_table;
 
 /*
@@ -3325,6 +3350,24 @@ typedef uint32_t gf_application_state;
 /* The application is current. */
 #define GF_APPLICATION_STATE_CURRENT 1u
 
+/*
+ * Since 1.4. The program's identity, as the business card shows it: the
+ * product, its version, the vendor (display text, printed large), the
+ * website (empty or an https:// address), the copyright and the credits.
+ * An input record: struct_size at least the 1.4 size, reserved zero; the
+ * text is UTF-8, read during the call only.
+ */
+typedef struct gf_program_identity {
+    uint32_t struct_size;
+    uint32_t reserved;
+    gf_utf8_view product;
+    gf_utf8_view version;
+    gf_utf8_view vendor;
+    gf_utf8_view website;
+    gf_utf8_view copyright;
+    gf_utf8_view credits;
+} gf_program_identity;
+
 typedef struct gf_application_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -3349,6 +3392,12 @@ typedef struct gf_application_table {
     gf_status (GF_CALL* close)(uint64_t* windows_alive);
     /* Whether an application is current. */
     gf_status (GF_CALL* state)(gf_application_state* state);
+    /* Since 1.4. Sets the program's identity (set_program_identity), read by
+     * every business card; validated whole, so a refusal leaves the
+     * previous identity. UI thread. GF_STATUS_INVALID_ARGUMENT for a null
+     * or short record, a non-zero reserved field, text that is not UTF-8 or
+     * a website that is neither empty nor an https:// address. */
+    gf_status (GF_CALL* set_program_identity)(const gf_program_identity* identity);
 } gf_application_table;
 
 /*

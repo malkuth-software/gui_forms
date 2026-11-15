@@ -5,6 +5,8 @@
 
 #include "gf_conformance_internal.h"
 
+#include <stddef.h>
+
 #include <string.h>
 
 static gf_shadow_stack_info stack_info(void) {
@@ -148,6 +150,32 @@ static void invalidation_overlay(gf_kit* kit) {
     gf_kit_status(kit, (*kit).diagnostics.invalidation_overlay(NULL), GF_STATUS_INVALID_ARGUMENT,
                   "reading the overlay needs an output");
     gf_kit_status(kit, (*kit).diagnostics.set_invalidation_overlay(before), GF_STATUS_OK, "restore the overlay");
+}
+
+/* The diagnostic overlay (since 1.4): the invalidation outlines and the
+ * counters card, set and toggled, read back through the invalidation
+ * switch it sets, refused values, then restored. */
+static void diagnostic_overlay(gf_kit* kit) {
+    if ((*kit).diagnostics.struct_size < offsetof(gf_diagnostics_table, toggle_diagnostic_overlay) + sizeof(void*)) {
+        return;
+    }
+    uint32_t before = 7u;
+    gf_kit_status(kit, (*kit).diagnostics.invalidation_overlay(&before), GF_STATUS_OK, "read the switch first");
+    gf_kit_status(kit, (*kit).diagnostics.set_diagnostic_overlay(1u), GF_STATUS_OK, "turn the diagnostic overlay on");
+    uint32_t on = 0u;
+    gf_kit_status(kit, (*kit).diagnostics.invalidation_overlay(&on), GF_STATUS_OK, "read the switch on");
+    gf_kit_check(kit, on == 1u, "the diagnostic overlay is the invalidation switch");
+    gf_kit_status(kit, (*kit).diagnostics.set_diagnostic_overlay(2u), GF_STATUS_INVALID_ARGUMENT,
+                  "a diagnostic overlay switch other than 0 or 1 is refused");
+    uint32_t toggled = 7u;
+    gf_kit_status(kit, (*kit).diagnostics.toggle_diagnostic_overlay(&toggled), GF_STATUS_OK, "toggle it off");
+    gf_kit_check(kit, toggled == 0u, "a toggle from on reports off");
+    gf_kit_status(kit, (*kit).diagnostics.toggle_diagnostic_overlay(NULL), GF_STATUS_OK,
+                  "toggle takes a null output");
+    gf_kit_status(kit, (*kit).diagnostics.invalidation_overlay(&on), GF_STATUS_OK, "read the switch toggled");
+    gf_kit_check(kit, on == 1u, "the second toggle turned it on again");
+    gf_kit_status(kit, (*kit).diagnostics.set_diagnostic_overlay(before), GF_STATUS_OK,
+                  "restore the diagnostic overlay");
 }
 
 /* Failure snapshots (since 1.2): an empty one, the one a refused call
@@ -337,6 +365,7 @@ static void failure_detail(gf_kit* kit) {
 void gf_kit_diagnostics(gf_kit* kit) {
     outside(kit);
     invalidation_overlay(kit);
+    diagnostic_overlay(kit);
     in_event(kit);
     in_posted(kit);
     failure_snapshots(kit);

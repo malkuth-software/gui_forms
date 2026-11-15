@@ -212,6 +212,21 @@ void gf_kit_focus_refusals(gf_kit* kit) {
     gf_kit_check(kit, has_focused_control(kit, window, "focused_control after the field's enable") == 0,
                  "an enabled control does not take focus back by itself");
 
+    /* The business card in the hand (since 1.4): over the window once, over
+     * a control in it not again, and refused for a control in no window.
+     * Releasing the window closes its layer. */
+    if ((*kit).windows.struct_size >= offsetof(gf_windows_table, show_business_card) + sizeof(void*)) {
+        uint32_t shown = 9u;
+        gf_kit_status(kit, (*kit).windows.show_business_card(window, &shown), GF_STATUS_OK,
+                      "show the business card over the window");
+        gf_kit_check(kit, shown == 1u, "the card comes out");
+        gf_kit_status(kit, (*kit).windows.show_business_card(field, &shown), GF_STATUS_OK,
+                      "show the business card over a control's window");
+        gf_kit_check(kit, shown == 0u, "a window shows one card at a time");
+        gf_kit_status(kit, (*kit).windows.show_business_card(loose, &shown), GF_STATUS_INVALID_STATE,
+                      "show_business_card of a control not in a window");
+    }
+
     gf_kit_status(kit, (*kit).objects.release(window), GF_STATUS_OK, "release the focus window");
     gf_kit_status(kit, (*kit).objects.release(field), GF_STATUS_OK, "release the field");
     gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the focus window's root");

@@ -9,6 +9,7 @@
 
 #include "../../../core/failure/failure_snapshot.hpp"
 
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
@@ -32,6 +33,7 @@ constexpr SlotIdentity set_exception_reflection_slot{GF_TABLE_DIAGNOSTICS, 5U};
 constexpr SlotIdentity exception_reflection_slot{GF_TABLE_DIAGNOSTICS, 6U};
 constexpr SlotIdentity raise_native_exception_slot{GF_TABLE_DIAGNOSTICS, 7U};
 constexpr SlotIdentity failure_detail_slot{GF_TABLE_DIAGNOSTICS, 8U};
+constexpr SlotIdentity set_diagnostic_overlay_slot{GF_TABLE_DIAGNOSTICS, 9U};
 
 // The 1.5 failure detail record; its capacities are the core snapshot's.
 constexpr std::uint32_t failure_detail_size_1_5 = 536U;
@@ -131,6 +133,23 @@ gf_status GF_CALL diagnostics_invalidation_overlay(std::uint32_t* enabled) noexc
         return fail(GF_STATUS_INVALID_ARGUMENT, invalidation_overlay_slot, "invalidation_overlay needs an output");
     }
     *enabled = invalidation_overlay_default() ? 1U : 0U;
+    return GF_STATUS_OK;
+}
+
+// The diagnostic overlay (since 1.4): the same process switch, with the
+// counters card whenever it is on (business_card.hpp). Any thread, no
+// frame of its own.
+gf_status GF_CALL diagnostics_set_diagnostic_overlay(std::uint32_t enabled) noexcept {
+    if (enabled > 1U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_diagnostic_overlay_slot, "enabled must be 0 or 1");
+    }
+    gui_forms::set_diagnostic_overlay(enabled == 1U);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL diagnostics_toggle_diagnostic_overlay(std::uint32_t* enabled) noexcept {
+    const bool now = gui_forms::toggle_diagnostic_overlay();
+    if (enabled != nullptr) *enabled = now ? 1U : 0U;
     return GF_STATUS_OK;
 }
 
@@ -258,6 +277,8 @@ constexpr gf_diagnostics_table table{
     .exception_reflection = &diagnostics_exception_reflection,
     .raise_native_exception = &diagnostics_raise_native_exception,
     .failure_detail = &diagnostics_failure_detail,
+    .set_diagnostic_overlay = &diagnostics_set_diagnostic_overlay,
+    .toggle_diagnostic_overlay = &diagnostics_toggle_diagnostic_overlay,
 };
 
 } // namespace

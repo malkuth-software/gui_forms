@@ -13,6 +13,7 @@
 #include "../windows/abi_window_handle.hpp"
 
 #include "gui_forms/application.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/band/window_band.hpp"
 
@@ -51,6 +52,7 @@ constexpr SlotIdentity set_corner_preference_slot{GF_TABLE_WINDOWS, 15U};
 constexpr SlotIdentity content_rect_slot{GF_TABLE_WINDOWS, 16U};
 constexpr SlotIdentity shaping_slot{GF_TABLE_WINDOWS, 17U};
 constexpr SlotIdentity pointer_location_slot{GF_TABLE_WINDOWS, 18U};
+constexpr SlotIdentity show_business_card_slot{GF_TABLE_WINDOWS, 19U};
 
 // The 1.5 sizes of the band and shaping records.
 constexpr std::uint32_t band_options_size_1_5 = 56U;
@@ -1013,6 +1015,55 @@ gf_status GF_CALL windows_pointer_location(gf_object window_or_control, gf_logic
     return call_slot(pointer_location_slot, windows_pointer_location_body, window_or_control, location, window_position, inside);
 }
 
+// The business card in the hand over a window from create, or over the
+// window a control is in (since 1.4).
+gf_status show_card(gf_object window_or_root, std::uint32_t* shown) {
+    const gf_status entered = registry().enter_ui(show_business_card_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(window_or_root, show_business_card_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    Window* window = nullptr;
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle != nullptr) {
+        if (!(*handle).is_alive() || (*handle).window() == nullptr) {
+            return fail(GF_STATUS_DISPOSED, show_business_card_slot, "the window has been disposed or has closed");
+        }
+        window = (*handle).window();
+    } else {
+        const Control::Ptr in_window = std::dynamic_pointer_cast<Control>(object);
+        if (!in_window) {
+            return fail(GF_STATUS_WRONG_HANDLE_KIND, show_business_card_slot,
+                        "show_business_card takes a window or a control in one");
+        }
+        if (!(*in_window).is_alive()) {
+            return fail(GF_STATUS_DISPOSED, show_business_card_slot, "the object has been disposed");
+        }
+        window = (*in_window).attached_window();
+        if (window == nullptr) {
+            return fail(GF_STATUS_INVALID_STATE, show_business_card_slot,
+                        "the control is not in a window (or is in a sub-surface)");
+        }
+    }
+    const bool came_out = show_business_card(*window);
+    if (shown != nullptr) *shown = came_out ? 1U : 0U;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_show_business_card(gf_object window_or_root, std::uint32_t* shown) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(show_business_card_slot.table_id, show_business_card_slot.slot_index);
+        const gf_status reported = show_card(window_or_root, shown);
+        return reported;
+    } catch (...) {
+        return fail_with_current_exception(show_business_card_slot);
+    }
+}
+
 static_assert(static_cast<std::uint32_t>(WindowChromeField::text) == GF_WINDOW_PROPERTY_TEXT &&
                   static_cast<std::uint32_t>(WindowChromeField::show_in_taskbar) ==
                       GF_WINDOW_PROPERTY_SHOW_IN_TASKBAR &&
@@ -1440,6 +1491,7 @@ constexpr gf_windows_table table{
     .content_rect = &windows_content_rect,
     .shaping = &windows_shaping,
     .pointer_location = &windows_pointer_location,
+    .show_business_card = &windows_show_business_card,
 };
 
 } // namespace

@@ -18,14 +18,18 @@
 #include "../registry/abi_registry.hpp"
 
 #include "gui_forms/application/application.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -35,6 +39,11 @@ namespace {
 constexpr SlotIdentity create_slot{GF_TABLE_APPLICATION, 0U};
 constexpr SlotIdentity close_slot{GF_TABLE_APPLICATION, 1U};
 constexpr SlotIdentity state_slot{GF_TABLE_APPLICATION, 2U};
+constexpr SlotIdentity set_program_identity_slot{GF_TABLE_APPLICATION, 3U};
+
+// The 1.4 size of gf_program_identity: a caller passes at least this much.
+constexpr std::uint32_t program_identity_size_1_4 = 104U;
+static_assert(sizeof(gf_program_identity) == program_identity_size_1_4);
 
 // The 1.1 size of gf_application_config: a caller passes at least this much.
 constexpr std::uint32_t application_config_size_1_1 = 32U;
@@ -234,12 +243,63 @@ gf_status GF_CALL application_state(gf_application_state* state) noexcept {
     return call_slot(state_slot, application_state_body, state);
 }
 
+// Reads one identity field into `field` (copied: the record is read during
+// the call only).
+gf_status read_identity_field(gf_utf8_view view, std::string& field) {
+    std::string_view text;
+    const gf_status read = read_text(view, set_program_identity_slot, text);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    field.assign(text);
+    return GF_STATUS_OK;
+}
+
+gf_status apply_program_identity(const gf_program_identity* identity) {
+    if (identity == nullptr || (*identity).struct_size < program_identity_size_1_4 || (*identity).reserved != 0U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_program_identity_slot,
+                    "set_program_identity needs a record of at least its 1.4 size with reserved zero");
+    }
+    const gf_status entered = registry().enter_ui(set_program_identity_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    ProgramIdentity made;
+    const std::array<gf_utf8_view, 6> views{(*identity).product, (*identity).version, (*identity).vendor,
+                                            (*identity).website, (*identity).copyright, (*identity).credits};
+    const std::array<std::string*, 6> fields{&made.product, &made.version, &made.vendor,
+                                             &made.website, &made.copyright, &made.credits};
+    for (std::size_t index = 0U; index < views.size(); ++index) {
+        const gf_status read = read_identity_field(views[index], *fields[index]);
+        if (read != GF_STATUS_OK) {
+            return read;
+        }
+    }
+    try {
+        set_program_identity(made);
+    } catch (const std::invalid_argument& refused) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_program_identity_slot, refused.what());
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL application_set_program_identity(const gf_program_identity* identity) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(set_program_identity_slot.table_id, set_program_identity_slot.slot_index);
+        const gf_status applied = apply_program_identity(identity);
+        return applied;
+    } catch (...) {
+        return fail_with_current_exception(set_program_identity_slot);
+    }
+}
+
 constexpr gf_application_table table{
     .struct_size = sizeof(gf_application_table),
     .abi_minor = GF_ABI_MINOR,
     .create = &application_create,
     .close = &application_close,
     .state = &application_state,
+    .set_program_identity = &application_set_program_identity,
 };
 
 } // namespace
