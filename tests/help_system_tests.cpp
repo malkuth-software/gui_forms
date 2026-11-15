@@ -114,6 +114,17 @@ struct RecordLink final {
     }
 };
 
+// A-gf-abi-02-F7: records whether a bookmarks event's argument is the
+// sender's own list, which a handler that changes the bookmarks would then
+// change under the C ABI's borrowed field.
+struct RecordBookmarkStorage final {
+    const std::vector<std::string>* sender_list{};
+    bool* aliased{};
+    void operator()(const std::vector<std::string>& bookmarks) const {
+        if (&bookmarks == sender_list) *aliased = true;
+    }
+};
+
 struct RecordPrint final {
     std::vector<std::string>* seen{};
     void operator()(HelpPrintRequest& request) const { (*seen).push_back(request.page); }
@@ -202,9 +213,16 @@ void viewer() {
     viewer.set_titles_only(true);
     require(viewer.search_results().empty(), "titles only: the word is in no title");
     viewer.set_titles_only(false);
-    // Bookmarks.
+    // Bookmarks. Each event carries a copy, not the sender's own list.
+    bool viewer_aliased = false;
+    bool system_aliased = false;
+    SubscriptionToken viewer_bookmarks_token =
+        viewer.bookmarks_changed().subscribe(RecordBookmarkStorage{&viewer.bookmarks(), &viewer_aliased});
+    SubscriptionToken system_bookmarks_token =
+        help.bookmarks_changed().subscribe(RecordBookmarkStorage{&help.bookmarks(), &system_aliased});
     require(viewer.add_bookmark() && viewer.bookmarks().size() == 1U && help.bookmarks().size() == 1U,
             "a bookmark is added and reaches the system");
+    require(!viewer_aliased && !system_aliased, "the bookmarks events carry copies");
     require(!viewer.add_bookmark(), "the same page is not bookmarked twice");
     // Keys: Alt+N selects Index, Alt+Left goes back, F6 moves to the book.
     // The search tab is showing: the contents tree is focusable once its tab is.

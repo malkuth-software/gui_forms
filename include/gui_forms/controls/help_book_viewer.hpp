@@ -210,6 +210,7 @@ private:
     void on_locate_clicked(ButtonBase& button);
     void on_language_clicked(ButtonBase& button);
     void on_add_bookmark_clicked(ButtonBase& button);
+    void publish_bookmarks();
     void on_remove_bookmark_clicked(ButtonBase& button);
     void on_contents_activated(const std::string& stable_id);
     void on_contents_selected(const TreeSelectionChange& change);

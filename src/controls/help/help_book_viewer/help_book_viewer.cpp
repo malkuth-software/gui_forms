@@ -667,7 +667,7 @@ bool HelpBookViewer::add_bookmark() {
     bookmarks_.push_back(page);
     refresh_bookmark_list();
     refresh_buttons();
-    bookmarks_changed_.emit(bookmarks_);
+    publish_bookmarks();
     return true;
 }
 
@@ -678,8 +678,15 @@ bool HelpBookViewer::remove_selected_bookmark() {
     bookmarks_.erase(bookmarks_.begin() + static_cast<std::ptrdiff_t>(*selected));
     refresh_bookmark_list();
     refresh_buttons();
-    bookmarks_changed_.emit(bookmarks_);
+    publish_bookmarks();
     return true;
+}
+
+void HelpBookViewer::publish_bookmarks() {
+    // A copy (A-gf-abi-02-F7): the C ABI's collection field borrows the
+    // argument for the whole callback, and a handler may change bookmarks_.
+    const std::vector<std::string> published = bookmarks_;
+    bookmarks_changed_.emit(published);
 }
 
 void HelpBookViewer::on_bookmark_activated(std::size_t entry) {

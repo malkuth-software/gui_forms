@@ -695,7 +695,10 @@ void HelpBookSystem::on_viewer_print(HelpPrintRequest& request) { print_requeste
 
 void HelpBookSystem::on_viewer_bookmarks(const std::vector<std::string>& bookmarks) {
     bookmarks_ = bookmarks;
-    bookmarks_changed_.emit(bookmarks_);
+    // A copy (A-gf-abi-02-F7): the C ABI's collection field borrows the
+    // argument for the whole callback, and a handler may change bookmarks_.
+    const std::vector<std::string> published = bookmarks_;
+    bookmarks_changed_.emit(published);
 }
 
 void HelpBookSystem::on_viewer_built_in_language() { use_built_in_language(true); }
