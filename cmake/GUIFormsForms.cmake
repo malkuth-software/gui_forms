@@ -39,7 +39,9 @@
 #                gui_forms_form_compiler_lab for the Gallery's pages, which
 #                name the lab and demonstration controls (audit F9).
 # The header is regenerated when the document, a composite's document or the
-# compiler changes; the compiler writes it only when its bytes change.
+# compiler changes; the compiler writes it only when its bytes change, and
+# then every compiled source of <target> is rebuilt (OBJECT_DEPENDS; likewise
+# for gui_forms_add_control).
 
 if(COMMAND gui_forms_add_form)
     return()
@@ -65,6 +67,44 @@ function(gui_forms_composite_arguments composites_variable arguments_variable do
     endforeach()
     set(${arguments_variable} ${appended} PARENT_SCOPE)
     set(${documents_variable} ${read} PARENT_SCOPE)
+endfunction()
+
+# Makes every compiled source of `target` depend on the generated `header`
+# (cp33). The compiler's dependency scan finds an included header only once
+# an object has been built against it, and a header generated into another
+# target's directory, or included only through another generated header, can
+# be missed: such objects were not rebuilt when the header changed. The
+# explicit OBJECT_DEPENDS rebuilds them whenever the header's bytes change
+# (the compiler rewrites it only then, so an unchanged document costs no
+# rebuild). It runs deferred, at the end of the calling directory, so it
+# sees sources added to the target after gui_forms_add_form or
+# gui_forms_add_control; sources named by a generator expression and
+# non-compiled sources are left alone.
+function(gui_forms_generated_header_dependents target header)
+    get_target_property(sources ${target} SOURCES)
+    get_target_property(source_directory ${target} SOURCE_DIR)
+    if(NOT sources)
+        return()
+    endif()
+    foreach(source IN LISTS sources)
+        if(source MATCHES "\\$<")
+            continue()
+        endif()
+        if(NOT source MATCHES "\\.(c|cc|cpp|cxx|m|mm)$")
+            continue()
+        endif()
+        get_filename_component(path "${source}" ABSOLUTE BASE_DIR "${source_directory}")
+        set_property(SOURCE "${path}" TARGET_DIRECTORY ${target} APPEND PROPERTY OBJECT_DEPENDS "${header}")
+    endforeach()
+endfunction()
+
+# Defers gui_forms_generated_header_dependents to the end of the current
+# directory. The deferred call's arguments would be read at the end of the
+# directory, where this function's variables no longer exist, so they are
+# written into the call as bracket arguments now.
+function(gui_forms_defer_generated_header_dependents target header)
+    cmake_language(EVAL CODE
+        "cmake_language(DEFER CALL gui_forms_generated_header_dependents [==[${target}]==] [==[${header}]==])")
 endfunction()
 
 function(gui_forms_add_form target document)
@@ -120,6 +160,7 @@ function(gui_forms_add_form target document)
         VERBATIM)
     target_sources(${target} PRIVATE "${output}")
     target_include_directories(${target} PRIVATE "${output_directory}")
+    gui_forms_defer_generated_header_dependents(${target} "${output}")
 endfunction()
 
 # Composite controls (cp34): the form compiler's control mode generates a
@@ -184,6 +225,7 @@ function(gui_forms_add_control target document)
         VERBATIM)
     target_sources(${target} PRIVATE "${output}")
     target_include_directories(${target} PRIVATE "${output_directory}")
+    gui_forms_defer_generated_header_dependents(${target} "${output}")
 endfunction()
 
 # The form schema as a designer reads it (cp34): the form compiler's
