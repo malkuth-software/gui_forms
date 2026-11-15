@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <string>
@@ -18,6 +19,12 @@
 #endif
 
 namespace gui_forms::host::web_detail {
+
+// The browser target is wasm32 (STXlib's web profile; no MEMORY64): the
+// present record hands the page the surface's address as a 32-bit word
+// (web_present.hpp), and the page reads it from HEAPU32.
+static_assert(sizeof(void*) == 4U && sizeof(std::uintptr_t) == 4U, "the web host is built for wasm32");
+
 namespace {
 
 // The present record shared with the page: static storage, so it outlives
@@ -73,7 +80,10 @@ surface_detail::SurfaceView WebSurfaceHost::acquire_surface(std::uint32_t width,
     // The page reads the old buffer until it has presented; the manager
     // acquires only after that.
     if (present_record.pending.load(std::memory_order_acquire) != 0U) return view;
-    const std::size_t bytes = static_cast<std::size_t>(width) * height * 4U;
+    // Counted in 64 bits: 32768 x 32768 x 4 is 4 GiB, past a 32-bit size_t.
+    const std::uint64_t wanted = static_cast<std::uint64_t>(width) * height * 4U;
+    if (wanted > static_cast<std::uint64_t>(SIZE_MAX)) return view;
+    const std::size_t bytes = static_cast<std::size_t>(wanted);
     surface_.assign(bytes, 0U);
     width_ = width;
     height_ = height;
@@ -120,6 +130,9 @@ void WebSurfaceHost::place_text_input(Rect caret, bool editing) {
 void WebSurfaceHost::toggle_full_screen() { gf_web_js_full_screen(); }
 
 HostServiceStatus WebSurfaceHost::start_dialog(const HostDialogRequest& request, std::uint64_t ticket) {
+    // The page carries the ticket as a JavaScript number, exact below 2^53.
+    constexpr std::uint64_t largest_exact_ticket = std::uint64_t{1} << 53U;
+    if (ticket > largest_exact_ticket) return {HostServiceError::backend_failure};
     const double number = static_cast<double>(ticket);
     if (const HostOpenFileDialogRequest* open = std::get_if<HostOpenFileDialogRequest>(&request.payload)) {
         const std::string accept = web_accept_list((*open).filters);

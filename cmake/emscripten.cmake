@@ -4,7 +4,9 @@
 #   cmake -S . -B .build/web -G Ninja -DCMAKE_TOOLCHAIN_FILE=cmake/emscripten.cmake
 #
 # The emsdk is found through GUI_FORMS_EMSDK (a cache entry or the environment)
-# or EMSDK (set by emsdk_env.sh); it must be the pinned release, with its
+# or EMSDK (set by emsdk_env.sh); no path is written here (on the M4, STXlib's
+# integrator installs the release once and supplies its root). It must be the
+# pinned release, with its
 # upstream/emscripten tree. Emscripten's clang is its own snapshot, so the
 # emsdk release, not LLVM 22.1, is the compiler contract on this target
 # (CMakeLists.txt skips the LLVM 22.1 check only under this file).
@@ -18,6 +20,11 @@
 #   -fwasm-exceptions    native WebAssembly exceptions (no JavaScript
 #                        exception emulation, no Asyncify)
 #   -sSUPPORT_LONGJMP=wasm  setjmp and longjmp through the same mechanism
+#
+# The target is wasm32 (no -m64, no MEMORY64). The pthread pool's link flags
+# (PTHREAD_POOL_SIZE, PTHREAD_POOL_SIZE_STRICT) are STXlib's web profile's,
+# not set here or by the host; the host keeps PROXY_TO_PTHREAD
+# (CMakeLists.txt). The allocator is Emscripten's own (no mimalloc).
 set(GUI_FORMS_EMSDK_VERSION "6.0.13" CACHE INTERNAL "The emsdk release GUI.Forms' web host is built with")
 
 set(_gf_emsdk "")

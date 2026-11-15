@@ -83,8 +83,20 @@ cmake --build .build/web --target gui_forms_application
 
 ```text
 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=512MB -sMAXIMUM_MEMORY=4GB
--sSTACK_SIZE=8MB -sDEFAULT_PTHREAD_STACK_SIZE=4MB -sPTHREAD_POOL_SIZE=8
+-sSTACK_SIZE=8MB -sDEFAULT_PTHREAD_STACK_SIZE=4MB
 ```
+
+- The target is wasm32: no `-sMEMORY64` and no `-m64`. The host's
+  present record and dialog tickets assume 32-bit addresses
+  (`web_host.cpp` asserts it). The C ABI is not built for the browser
+  (`cmake/CAbi.cmake`: `gf_abi.h` is a 64-bit contract).
+- The pthread pool's link flags (`PTHREAD_POOL_SIZE=8`,
+  `PTHREAD_POOL_SIZE_STRICT=2`) belong to STXlib's web profile; GUI.Forms
+  and its programs set none of them. GUI.Forms keeps `PROXY_TO_PTHREAD`.
+- The allocator is Emscripten's own (no mimalloc on the web).
+- The emsdk root comes from `GUI_FORMS_EMSDK` (a cache entry or the
+  environment) or `EMSDK`; nothing names a path. On the M4, STXlib's
+  integrator installs emsdk 6.0.13 once and supplies its root.
 
 ## The page
 
