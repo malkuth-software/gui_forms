@@ -125,6 +125,18 @@ bool table_read(BitReader& reader, std::uint32_t alphabet, DecodeTable& table) {
     return slot == kProbScale;
 }
 
+// True when no symbol at or above limit has a frequency, so every code a
+// decode over the table yields is below limit. Applied to tables read with a
+// wider alphabet than their decoder can index.
+bool table_codes_below(const DecodeTable& table, std::uint32_t limit) {
+    for (std::uint32_t symbol = limit; symbol < 256; symbol += 1) {
+        if ((table.symbol_info[symbol] & 0xFFFFu) != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
 // rANS reader over 16-bit little-endian units. Units are read without a
 // bounds test (see kStreamPadding); callers compare cursor with end at least
 // every eight units and stop a damaged stream there.
@@ -713,9 +725,19 @@ bool number_open(NumberDecoder& decoder, const Allocator& allocator, const std::
         return false;
     }
     BitReader bits = bit_reader_make(table_data, static_cast<std::size_t>(table_bytes));
+    // Correction tables are written with a 256-symbol alphabet, but a
+    // correction code indexes kResidualAlphabet-entry tables (ValueTables::bucket)
+    // and sets a shift of slot_extra_bits(code), so a table that can yield a
+    // code at or above kResidualAlphabet is refused here (A-gf-typography-01-F1).
+    const std::uint32_t residual_first = table_count + kLowTables;
+    const std::uint32_t sequence_first = residual_first + residual_table_count;
     for (std::uint32_t t = 0; t < all_tables; t += 1) {
-        const std::uint32_t alphabet = t >= table_count + kLowTables + residual_table_count ? kSeqAlphabet : 256;
+        const std::uint32_t alphabet = t >= sequence_first ? kSeqAlphabet : 256;
         if (!table_read(bits, alphabet, decoder.tables[t])) {
+            number_close(decoder);
+            return false;
+        }
+        if (t >= residual_first && t < sequence_first && !table_codes_below(decoder.tables[t], kResidualAlphabet)) {
             number_close(decoder);
             return false;
         }

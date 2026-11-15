@@ -12,6 +12,7 @@
 // prove that a load (loaded or refused) gives back everything it took.
 #include "stx_fontpack/loader.hpp"
 #include "stx_fontpack/packer.hpp"
+#include "detail/codec.hpp"
 #include "detail/crc_combine.hpp"
 #include "detail/format.hpp"
 #include "thread_executor.hpp"
@@ -637,11 +638,180 @@ void test_damage(const Bytes& pack, int rounds) {
     check(refused > 0, "damage is noticed");
 }
 
+// ---- crafted stream headers ---------------------------------------------------
+//
+// Headers the encoder never writes, stated field by field, so each decoder
+// refusal can be shown on its own. Every shape has a control: the same header
+// with the field the encoder would write, which must open, so a builder error
+// shows as a failed control rather than as a refusal for the wrong reason.
+
+// The LSB-first bit form of codec_encode.cpp's BitWriter, gamma code and table.
+struct TestBits {
+    Bytes bytes;
+    std::uint64_t bits;
+    std::uint32_t count;
+};
+
+void test_bits_reset(TestBits& writer) {
+    writer.bytes.clear();
+    writer.bits = 0;
+    writer.count = 0;
+}
+
+// width is at most 32.
+void test_bits_put(TestBits& writer, std::uint32_t value, std::uint32_t width) {
+    if (width == 0) {
+        return;
+    }
+    writer.bits |= static_cast<std::uint64_t>(value) << writer.count;
+    writer.count += width;
+    while (writer.count >= 8) {
+        writer.bytes.push_back(static_cast<std::uint8_t>(writer.bits & 0xFFu));
+        writer.bits >>= 8;
+        writer.count -= 8;
+    }
+}
+
+void test_bits_flush(TestBits& writer) {
+    if (writer.count != 0) {
+        writer.bytes.push_back(static_cast<std::uint8_t>(writer.bits & 0xFFu));
+        writer.bits = 0;
+        writer.count = 0;
+    }
+}
+
+// value is at least 1.
+void test_gamma_put(TestBits& writer, std::uint32_t value) {
+    std::uint32_t top = 0;
+    while ((value >> (top + 1)) != 0) {
+        top += 1;
+    }
+    test_bits_put(writer, 0, top);
+    test_bits_put(writer, 1, 1);
+    test_bits_put(writer, value - (1u << top), top);
+}
+
+// A frequency table of alphabet symbols in which only symbols 0 and second
+// (0 < second < alphabet) are used, each with half of kProbScale; or, with
+// second 0, a table with no symbol used.
+void test_table_put(TestBits& writer, std::uint32_t alphabet, std::uint32_t second) {
+    if (second == 0) {
+        test_bits_put(writer, 0, 1);
+        test_gamma_put(writer, alphabet);
+        return;
+    }
+    const std::uint32_t half = stx_fontpack::kProbScale / 2;
+    test_bits_put(writer, 1, 1);
+    test_gamma_put(writer, half);
+    if (second > 1) {
+        test_bits_put(writer, 0, 1);
+        test_gamma_put(writer, second - 1);
+    }
+    test_bits_put(writer, 1, 1);
+    test_gamma_put(writer, half);
+    if (second + 1 < alphabet) {
+        test_bits_put(writer, 0, 1);
+        test_gamma_put(writer, alphabet - second - 1);
+    }
+}
+
+// What a crafted number stream header says. The defaults (number_shape_default)
+// are a header the encoder could write: one class, one literal table, one
+// correction table, one chunk of four numbers in one sequence.
+struct NumberShape {
+    std::uint32_t class_count;
+    std::uint32_t table_count;        // literal tables; the context map maps every class to table 0
+    std::uint32_t residual_second;    // the correction table's second used code
+    std::uint32_t offset_second;      // the offset table's second used code
+};
+
+NumberShape number_shape_default() {
+    NumberShape shape;
+    shape.class_count = 1;
+    shape.table_count = 1;
+    shape.residual_second = 1;
+    shape.offset_second = 3;
+    return shape;
+}
+
+// Appends the header and kStreamPadding zero bytes; size receives the header's length.
+void number_stream_put(const NumberShape& shape, Bytes& out, std::size_t& size) {
+    const std::uint32_t count = 4;
+    out.clear();
+    stx_fontpack::put_varint(out, count);
+    out.push_back(static_cast<std::uint8_t>(shape.class_count));
+    out.push_back(static_cast<std::uint8_t>(shape.table_count));
+    if (shape.table_count != 1) {
+        out.push_back(0);
+        stx_fontpack::put_varint(out, shape.class_count);
+    }
+    out.push_back(1);   // one correction table: its map is implied
+    TestBits bits;
+    test_bits_reset(bits);
+    for (std::uint32_t t = 0; t < shape.table_count; t += 1) {
+        test_table_put(bits, 256, 1);
+    }
+    for (std::uint32_t t = 0; t < stx_fontpack::kLowTables; t += 1) {
+        test_table_put(bits, 256, 0);
+    }
+    test_table_put(bits, 256, shape.residual_second);
+    // Literal length, kind, the two match lengths, offset.
+    for (std::uint32_t t = 0; t < 4; t += 1) {
+        test_table_put(bits, stx_fontpack::kSeqAlphabet, 1);
+    }
+    test_table_put(bits, stx_fontpack::kSeqAlphabet, shape.offset_second);
+    test_bits_flush(bits);
+    stx_fontpack::put_varint(out, bits.bytes.size());
+    out.insert(out.end(), bits.bytes.begin(), bits.bytes.end());
+    stx_fontpack::put_varint(out, 1);       // chunks
+    stx_fontpack::put_varint(out, count);   // the chunk's numbers
+    stx_fontpack::put_varint(out, 1);       // its sequences
+    for (std::uint32_t k = 0; k < stx_fontpack::kNumberPayloads; k += 1) {
+        stx_fontpack::put_varint(out, 0);
+    }
+    size = out.size();
+    out.insert(out.end(), static_cast<std::size_t>(stx_fontpack::kStreamPadding), static_cast<std::uint8_t>(0));
+}
+
+// Whether number_open accepts the shape; everything it took is given back either way.
+bool number_shape_opens(const NumberShape& shape) {
+    Bytes blob;
+    std::size_t size = 0;
+    number_stream_put(shape, blob, size);
+    CheckingAllocator state;
+    checking_reset(state, static_cast<std::size_t>(-1));
+    const stx_fontpack::Allocator allocator = checking_interface(state);
+    stx_fontpack::NumberDecoder decoder;
+    std::size_t consumed = 0;
+    const bool opened = stx_fontpack::number_open(decoder, allocator, blob.data(), size, consumed);
+    if (opened) {
+        check(consumed == size, "a crafted number header is consumed whole");
+        stx_fontpack::number_close(decoder);
+    }
+    check(state.outstanding_blocks.load() == 0 && state.wrong_sizes.load() == 0, "a crafted number header gives everything back");
+    return opened;
+}
+
+// A-gf-typography-01-F1: a correction code indexes 64-entry tables, so a
+// correction table that gives a code of 64 or more a frequency is refused
+// when the stream opens, before any chunk decodes with it.
+void test_number_correction_codes() {
+    NumberShape shape = number_shape_default();
+    check(number_shape_opens(shape), "control: a correction table with codes below 64 opens");
+    shape.residual_second = stx_fontpack::kResidualAlphabet - 1;
+    check(number_shape_opens(shape), "a correction table whose largest code is 63 opens");
+    shape.residual_second = stx_fontpack::kResidualAlphabet;
+    check(!number_shape_opens(shape), "a correction table with code 64 is refused");
+    shape.residual_second = 255;
+    check(!number_shape_opens(shape), "a correction table with code 255 is refused");
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
     test_crc_combine();
     test_manifest();
+    test_number_correction_codes();
 
     std::vector<stx_fontpack::PackInput> fonts;
     fonts.push_back(blob_input("noise-a.bin", 70000, 1, false));
