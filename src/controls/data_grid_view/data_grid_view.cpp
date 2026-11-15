@@ -5024,6 +5024,12 @@ SemanticDescriptor DataGridView::semantic_descriptor() const {
 
 std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
+    // cell_text (cell_formatting), the error texts and the tool tip raise
+    // program events inside the loops below. Their handlers may not change
+    // the grid; one that does moves structure_revision_, and the walk then
+    // returns the nodes gathered so far, as paint stops, rather than read
+    // through stale indices and the column reference (A-gf-controls-02-F10).
+    const std::uint64_t revision = structure_revision_;
     const Rect absolute = absolute_bounds();
     const GridLayout layout = grid_layout();
     const bool focus_within = focused_ || editing_;
@@ -5062,6 +5068,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
         row_node.name = labelled ? rows.read()[position].header_text : "Row " + std::to_string(position + 1U);
         if (is_new_row(row)) row_node.name = "New row";
         row_node.description = row_error_text(row);
+        if (structure_revision_ != revision) return nodes;
         if (!row_node.description.empty()) row_node.states |= SemanticState::invalid;
         const Rect row_bounds{layout.client.x, layout.data.y + row_offset(position, layout), layout.client.width,
                               row_heights().height(position) * layout.scale};
@@ -5113,6 +5120,9 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             if (cell_is_read_only) cell.states |= SemanticState::read_only;
             cell.description = cell_error_text(row, column);
             cell.tool_tip = cell_tool_tip_text(row, column);
+            // cell_text and these two ran handlers: nothing of the grid is
+            // read again (the column definition included) once it changed.
+            if (structure_revision_ != revision) return nodes;
             if ((current && edit_invalid_) || !cell.description.empty()) cell.states |= SemanticState::invalid;
             cell.actions = {SemanticAction::focus, SemanticAction::select};
             // Every cell is a cell, placed by its row and column; its kind's

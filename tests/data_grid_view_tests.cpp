@@ -4374,9 +4374,40 @@ void column_change_under_reset_handlers() {
             "an insertion past the columns the handler left is refused, and nothing is inserted");
 }
 
+// Removes one named column the first time a cell is formatted, breaking
+// the rule that formatting handlers leave the grid alone.
+struct RemoveColumnWhileFormatting final {
+    DataGridView* grid{};
+    std::string name;
+    bool* done{};
+    void operator()(DataGridViewCellFormattingEvent&) const {
+        if (*done) return;
+        *done = true;
+        const std::optional<std::size_t> column = (*grid).column_index(name);
+        if (column) (*grid).remove_column_at(*column);
+    }
+};
+
+// A cell_formatting handler that changes the grid while its semantic tree
+// is built (A-gf-controls-02-F10): the walk stops at the change, as paint
+// does, and the next pass publishes the changed grid.
+void semantics_stop_when_a_handler_changes_the_grid() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.semantic.change");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    bool removed = false;
+    const SubscriptionToken token =
+        (*grid).cell_formatting().subscribe(RemoveColumnWhileFormatting{grid.get(), "mode", &removed});
+    const SemanticSnapshot snapshot = window.semantic_snapshot();
+    require(removed && (*grid).columns().size() == 3U && !(*grid).column_index("mode"),
+            "the handler removed a column during the walk");
+    require(!snapshot.roots.empty(), "the snapshot is published");
+}
+
 int main() {
     columns_and_rows();
     column_change_under_reset_handlers();
+    semantics_stop_when_a_handler_changes_the_grid();
     layout_and_parts();
     selection_and_navigation();
     text_editing();
