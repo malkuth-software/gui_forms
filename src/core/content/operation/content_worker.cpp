@@ -10,8 +10,13 @@
 #include <stdexcept>
 #include <system_error>
 #include <thread>
+#include <type_traits>
 #include <utility>
 #include <vector>
+
+#if !defined(_WIN32)
+#include <pthread.h>
+#endif
 
 namespace gui_forms {
 
@@ -30,39 +35,66 @@ struct ContentWorkerShared final {
     std::condition_variable finished{};
     bool done{};
     bool abandoned{};
+    // abandon() moved the thread's start block under abandoned_worker_root
+    // (the thread then frees it through the root).
+    bool start_in_root{};
     ContentWorkerState state{ContentWorkerState::running};
     std::string failure{};
-    // The standard library's own record of the worker's thread, which only
-    // that thread's thread-local storage refers to (libc++ allocates it in
-    // std::thread's constructor and frees it when the thread ends); null
-    // with a library that keeps none. Opaque: never dereferenced, only kept
-    // reachable while the thread is abandoned (abandoned_worker_root).
-    // Written once by the worker's thread, under `mutex`.
-    const void* thread_record{};
+};
+
+// What a worker's thread starts from and owns: the worker's shared state.
+// Made by ContentWorker's constructor and handed to the thread when it
+// starts (a refused start frees it at once). From then on it belongs to the
+// thread, which frees it when it returns, except while the worker is
+// abandoned: abandon() moves it under abandoned_worker_root, and the
+// returning thread takes it out of the root and frees it there.
+struct ContentWorkerStart final {
+    std::shared_ptr<detail::ContentWorkerShared> shared{};
+};
+
+// The thread a worker runs on. POSIX: a pthread GUI.Forms starts itself
+// (content_worker_thread_main), so the only state the thread holds is ours
+// (its start block; std::thread's runtime would add a per-thread record
+// that only the thread's own storage refers to, which a leak checker
+// reports for a thread abandoned until exit). Windows: std::thread (the
+// MinGW runtime has no leak checker). `joinable` is true from a successful
+// start until the thread is joined or detached. `start` observes the
+// thread's start block, which the thread owns (or the root, once
+// abandoned); read by the owner only under the shared state's mutex while
+// the thread has not set done.
+struct ContentWorkerThread final {
+#if defined(_WIN32)
+    std::thread thread{};
+#else
+    pthread_t handle{};
+#endif
+    ContentWorkerStart* start{};
+    bool joinable{};
 };
 
 } // namespace detail
 
 namespace {
 
+using detail::ContentWorkerStart;
+
 // Threads abandoned and still running, process-wide. A constant-initialized
 // atomic of a trivial type: no destructor runs at exit, so an abandoned
 // thread that ends during static destruction may still decrement it.
 std::atomic<std::uint64_t> abandoned_worker_count{0U};
 
-// The abandoned workers, still running: a process-lifetime root, created on
-// first use and deliberately never destroyed or freed. An abandoned thread
-// is left to the operating system, which reclaims it, its program and its
-// thread's library record at process exit (the answer STXlib gives for a
-// record never released). Holding each worker's shared state here keeps
-// all of it reachable, through thread_record also the library's per-thread
-// record, so a leak checker sees the abandonment as the deliberate, named
-// ownership it is rather than lost memory. A worker leaves the root when its
-// thread finally returns. The vector and its mutex live in the leaked
+// The abandoned workers' start blocks, their threads still running: a
+// process-lifetime root, created on first use and deliberately never
+// destroyed or freed. An abandoned thread is left to the operating system,
+// which reclaims it, its start block and its program at process exit (the
+// answer STXlib gives for a record never released). Holding each start
+// block here keeps all the thread owns reachable from a named root, so a
+// leak checker sees the abandonment as the deliberate ownership it is
+// rather than lost memory. The vector and its mutex live in the leaked
 // object, so threads that end during static destruction still find them.
 struct AbandonedWorkerRoot final {
     std::mutex mutex{};
-    std::vector<std::shared_ptr<detail::ContentWorkerShared>> workers{};
+    std::vector<std::unique_ptr<ContentWorkerStart>> starts{};
 };
 
 AbandonedWorkerRoot& abandoned_worker_root() {
@@ -70,103 +102,172 @@ AbandonedWorkerRoot& abandoned_worker_root() {
     return *root;
 }
 
-// Puts an abandoned worker under the root. A refused allocation leaves it
-// out (only a leak checker's report differs).
-void keep_abandoned_worker(const std::shared_ptr<detail::ContentWorkerShared>& shared) noexcept {
+// Moves an abandoned worker's start block under the root. Returns false,
+// leaving it with its thread, when the root cannot grow; the block is never
+// freed here.
+bool keep_abandoned_start(ContentWorkerStart* start) noexcept {
     AbandonedWorkerRoot& root = abandoned_worker_root();
+    const std::scoped_lock lock(root.mutex);
     try {
-        const std::scoped_lock lock(root.mutex);
-        root.workers.push_back(shared);
+        root.starts.reserve(root.starts.size() + 1U);
     } catch (...) {
-        static_cast<void>(0);
+        return false;
     }
+    // Within the reserved capacity: no reallocation, nothing throws.
+    root.starts.emplace_back(start);
+    return true;
 }
 
-struct SameWorker final {
-    const detail::ContentWorkerShared* shared{};
-    bool operator()(const std::shared_ptr<detail::ContentWorkerShared>& held) const noexcept {
-        return held.get() == shared;
+struct SameStart final {
+    const ContentWorkerStart* start{};
+    bool operator()(const std::unique_ptr<ContentWorkerStart>& held) const noexcept {
+        return held.get() == start;
     }
 };
 
-// Takes a finished abandoned worker out of the root.
-void release_abandoned_worker(const detail::ContentWorkerShared& shared) noexcept {
-    AbandonedWorkerRoot& root = abandoned_worker_root();
-    const std::scoped_lock lock(root.mutex);
-    const std::vector<std::shared_ptr<detail::ContentWorkerShared>>::iterator found =
-        std::find_if(root.workers.begin(), root.workers.end(), SameWorker{&shared});
-    if (found != root.workers.end()) root.workers.erase(found);
-}
-
-// The library's record of the calling thread (see thread_record), or null.
-// libc++ keeps it in the thread's storage, out of a leak checker's reach.
-const void* current_thread_record() noexcept {
-#if defined(_LIBCPP_VERSION)
-    const void* const record = std::__thread_local_data().get();
-    return record;
-#else
-    return nullptr;
-#endif
+// Takes a returning abandoned thread's start block out of the root and
+// frees it.
+void release_abandoned_start(const ContentWorkerStart* start) noexcept {
+    std::unique_ptr<ContentWorkerStart> released{};
+    {
+        AbandonedWorkerRoot& root = abandoned_worker_root();
+        const std::scoped_lock lock(root.mutex);
+        const std::vector<std::unique_ptr<ContentWorkerStart>>::iterator found =
+            std::find_if(root.starts.begin(), root.starts.end(), SameStart{start});
+        if (found != root.starts.end()) {
+            released = std::move(*found);
+            root.starts.erase(found);
+        }
+    }
+    // Freed outside the root's lock.
+    released.reset();
 }
 
 // The worker thread's body: runs the program, destroys it on this thread,
 // then records the outcome and signals. An abandoned worker's outcome is not
 // recorded (its owner already reported abandoned); it only leaves the count.
-class ContentWorkerEntry final {
-public:
-    explicit ContentWorkerEntry(std::shared_ptr<detail::ContentWorkerShared> shared) noexcept
-        : shared_(std::move(shared)) {}
-
-    void operator()() const noexcept {
-        detail::ContentWorkerShared& shared = *shared_;
-        {
-            const std::scoped_lock lock(shared.mutex);
-            shared.thread_record = current_thread_record();
-        }
-        ContentWorkerState outcome = ContentWorkerState::finished;
-        std::string failure{};
-        // Exceptions end at this boundary: they never cross into the owner's
-        // thread, and std::thread would terminate the process on one.
-        try {
-            ContentContext context(shared.sink);
-            (*shared.program).run(context);
-        } catch (const std::exception& error) {
-            outcome = ContentWorkerState::failed;
-            failure = error.what();
-        } catch (...) {
-            outcome = ContentWorkerState::failed;
-            failure = "the content program threw a value that is not a std::exception";
-        }
-        // The program's destructor runs here, inside the bounded wait.
-        shared.program.reset();
-        bool abandoned = false;
-        {
-            const std::scoped_lock lock(shared.mutex);
-            shared.done = true;
-            abandoned = shared.abandoned;
-            if (!abandoned) {
-                shared.state = outcome;
-                shared.failure = std::move(failure);
-            }
-        }
-        shared.finished.notify_all();
-        if (abandoned) {
-            release_abandoned_worker(shared);
-            abandoned_worker_count.fetch_sub(1U, std::memory_order_acq_rel);
-            return;
-        }
-        // Tells the surface without waiting for its next check. A notice
-        // that cannot be posted is not an error: the check finds the state.
-        try {
-            detail::notify_content_listener(*shared.channel);
-        } catch (...) {
-            static_cast<void>(0);
+// Frees `start` last, through the root when the worker was abandoned and its
+// block is there.
+void run_content_worker(ContentWorkerStart* start) noexcept {
+    // Kept by this frame: the start block may be freed before the end.
+    const std::shared_ptr<detail::ContentWorkerShared> held = (*start).shared;
+    detail::ContentWorkerShared& shared = *held;
+    ContentWorkerState outcome = ContentWorkerState::finished;
+    std::string failure{};
+    // Exceptions end at this boundary: they never cross into the owner's
+    // thread, and a thread's entry would terminate the process on one.
+    try {
+        ContentContext context(shared.sink);
+        (*shared.program).run(context);
+    } catch (const std::exception& error) {
+        outcome = ContentWorkerState::failed;
+        failure = error.what();
+    } catch (...) {
+        outcome = ContentWorkerState::failed;
+        failure = "the content program threw a value that is not a std::exception";
+    }
+    // The program's destructor runs here, inside the bounded wait.
+    shared.program.reset();
+    bool abandoned = false;
+    bool start_in_root = false;
+    {
+        const std::scoped_lock lock(shared.mutex);
+        shared.done = true;
+        abandoned = shared.abandoned;
+        start_in_root = shared.start_in_root;
+        if (!abandoned) {
+            shared.state = outcome;
+            shared.failure = std::move(failure);
         }
     }
+    shared.finished.notify_all();
+    if (start_in_root) {
+        release_abandoned_start(start);
+    } else {
+        std::unique_ptr<ContentWorkerStart> owned(start);
+        owned.reset();
+    }
+    if (abandoned) {
+        abandoned_worker_count.fetch_sub(1U, std::memory_order_acq_rel);
+        return;
+    }
+    // Tells the surface without waiting for its next check. A notice that
+    // cannot be posted is not an error: the check finds the state.
+    try {
+        detail::notify_content_listener(*shared.channel);
+    } catch (...) {
+        static_cast<void>(0);
+    }
+}
 
-private:
-    std::shared_ptr<detail::ContentWorkerShared> shared_;
+#if defined(_WIN32)
+// std::thread's entry on Windows.
+struct ContentWorkerThreadEntry final {
+    ContentWorkerStart* start{};
+    void operator()() const noexcept { run_content_worker(start); }
 };
+#else
+// pthread_create's start routine type, taken from its declaration.
+template <typename Signature>
+struct StartRoutineOf;
+template <typename Result, typename Thread, typename Attributes, typename Routine, typename Argument>
+struct StartRoutineOf<Result(Thread, Attributes, Routine, Argument)> final {
+    using type = Routine;
+};
+// glibc declares it noexcept in C++.
+template <typename Result, typename Thread, typename Attributes, typename Routine, typename Argument>
+struct StartRoutineOf<Result(Thread, Attributes, Routine, Argument) noexcept> final {
+    using type = Routine;
+};
+using PthreadStartRoutine = StartRoutineOf<decltype(pthread_create)>::type;
+
+// The POSIX thread's body: runs the worker on its start block (which it
+// owns from here). Returns null, unread.
+void* content_worker_thread_main(void* argument) {
+    run_content_worker(static_cast<ContentWorkerStart*>(argument));
+    return nullptr;
+}
+static_assert(std::is_same_v<decltype(&content_worker_thread_main), PthreadStartRoutine>,
+              "content_worker_thread_main has pthread_create's start routine type");
+#endif
+
+// Joins a started thread. A join the system refuses detaches it instead.
+void join_thread(detail::ContentWorkerThread& thread) noexcept {
+    if (!thread.joinable) return;
+    thread.joinable = false;
+#if defined(_WIN32)
+    try {
+        thread.thread.join();
+    } catch (const std::system_error&) {
+        thread.thread.detach();
+    }
+#else
+    const int joined = pthread_join(thread.handle, nullptr);
+    if (joined != 0) {
+        // Nothing else to do: a detach that fails too leaves the thread to
+        // the process's exit, as abandonment does.
+        static_cast<void>(pthread_detach(thread.handle));
+    }
+#endif
+}
+
+// Detaches a started thread, which then runs until its code returns or the
+// process exits.
+void detach_thread(detail::ContentWorkerThread& thread) noexcept {
+    if (!thread.joinable) return;
+    thread.joinable = false;
+#if defined(_WIN32)
+    try {
+        thread.thread.detach();
+    } catch (const std::system_error&) {
+        static_cast<void>(0);
+    }
+#else
+    // A refused detach (only for a handle that is not joinable, which this
+    // one is) leaves the thread as it is; the process's exit ends it.
+    static_cast<void>(pthread_detach(thread.handle));
+#endif
+}
 
 } // namespace
 
@@ -210,10 +311,26 @@ ContentWorker::ContentWorker(std::unique_ptr<ContentProgram> program, ContentFra
     (*shared_).program = std::move(program);
     (*shared_).sink = std::move(sink);
     (*shared_).channel = std::move(channel);
-    const ContentWorkerEntry entry(shared_);
+    thread_ = std::make_unique<detail::ContentWorkerThread>();
     // std::system_error escapes when the system refuses the thread; the
     // program is released with shared_ then.
-    thread_ = std::thread(entry);
+    std::unique_ptr<ContentWorkerStart> start = std::make_unique<ContentWorkerStart>();
+    (*start).shared = shared_;
+#if defined(_WIN32)
+    const ContentWorkerThreadEntry entry{start.get()};
+    (*thread_).thread = std::thread(entry);
+#else
+    pthread_t handle{};
+    const int started = pthread_create(&handle, nullptr, &content_worker_thread_main, start.get());
+    if (started != 0) {
+        // The thread never ran: the start block is still ours, freed here.
+        throw std::system_error(started, std::generic_category(), "ContentWorker could not start its thread");
+    }
+    (*thread_).handle = handle;
+#endif
+    // The thread owns the start block from here (run_content_worker).
+    (*thread_).start = start.release();
+    (*thread_).joinable = true;
 }
 
 ContentWorker::~ContentWorker() {
@@ -233,44 +350,43 @@ bool ContentWorker::done() const noexcept {
 }
 
 bool ContentWorker::join_if_done() noexcept {
-    if (!thread_.joinable()) return true;
+    if (!thread_ || !(*thread_).joinable) return true;
     if (!done()) return false;
-    // The thread has set done and returns without taking another lock, so
-    // the join waits only for its return.
-    try {
-        thread_.join();
-    } catch (const std::system_error&) {
-        thread_.detach();
-    }
+    // The thread has set done and returns without taking another lock (a
+    // worker abandoned meanwhile takes the root's, briefly), so the join
+    // waits only for its return.
+    join_thread(*thread_);
     return true;
 }
 
 void ContentWorker::abandon() noexcept {
-    if (!shared_ || !thread_.joinable()) return;
+    if (!shared_ || !thread_ || !(*thread_).joinable) return;
     {
         const std::scoped_lock lock((*shared_).mutex);
         if (!(*shared_).done) {
             (*shared_).abandoned = true;
             (*shared_).state = ContentWorkerState::abandoned;
             abandoned_worker_count.fetch_add(1U, std::memory_order_acq_rel);
-            // Left to the operating system under a named root
-            // (abandoned_worker_root). Kept under the worker's mutex, so the
-            // thread, which reads `abandoned` under it after setting done,
-            // takes itself out only after it was put in. Lock order: the
+            // Left to the operating system under a named root: the thread's
+            // start block moves under abandoned_worker_root. Done under the
+            // worker's mutex, so the thread, which reads start_in_root under
+            // it after setting done, frees the block through the root only
+            // after it was put there, and itself otherwise. Lock order: the
             // worker's mutex, then the root's; the thread never holds both.
-            keep_abandoned_worker(shared_);
+            ContentWorkerStart* const start = (*thread_).start;
+            (*shared_).start_in_root = keep_abandoned_start(start);
         }
     }
     if (join_if_done()) return;
     // Nothing the thread does from now on reaches what the interface reads.
     detail::revoke_content_channel(*(*shared_).channel);
-    thread_.detach();
+    detach_thread(*thread_);
 }
 
 ContentWorkerState ContentWorker::stop(std::chrono::milliseconds grace) noexcept {
     if (!shared_) return ContentWorkerState::finished;
     request_stop();
-    if (thread_.joinable()) {
+    if (thread_ && (*thread_).joinable) {
         const std::chrono::milliseconds bounded =
             std::clamp(grace, std::chrono::milliseconds(0), maximum_content_termination_grace);
         const std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::now() + bounded;

@@ -31,6 +31,7 @@ namespace gui_forms {
 
 namespace detail {
 struct ContentWorkerShared;
+struct ContentWorkerThread;
 }
 
 // The default bounded wait of a termination: 250 milliseconds.
@@ -133,7 +134,9 @@ public:
 
 private:
     std::shared_ptr<detail::ContentWorkerShared> shared_;
-    std::thread thread_;
+    // The worker's thread (a pthread on POSIX, std::thread on Windows);
+    // null only when the constructor threw.
+    std::unique_ptr<detail::ContentWorkerThread> thread_;
 };
 
 } // namespace gui_forms
