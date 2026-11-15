@@ -36,7 +36,9 @@
 #include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/value_bar.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
@@ -229,8 +231,10 @@ struct ClickCounter final {
 // subclasses (ButtonBase, RangeControl, ScrollBar), one of each, as the
 // anatomy coverage test adds them; and the visual registry controls no
 // Gallery page attaches (the instruments and the plot, and the wizard page,
-// callout, modal layer, help viewer and business card), each placed bare,
-// as the Windows accessibility tests' off-tree fixture places them. The
+// callout, modal layer, help viewer, business card, 3D plot and window
+// capsule), each placed bare, as the headless semantic test's off-tree
+// fixture places them (the capsule not interactive, as the surface window
+// manager shows it). The
 // business card's press asks to open the card in the hand; the supplement
 // answers it, so no modal layer covers the window for later targets.
 inline constexpr Size supplement_size{800.0, 600.0};
@@ -276,6 +280,13 @@ inline std::unique_ptr<Window> make_supplement() {
     (*business_card).set_requested_bounds({520, 340, 272, 164});
     (*root).own_subscription((*business_card).open_requested().subscribe(AnswerCardOpening{}));
     (*root).add_child(business_card);
+    std::shared_ptr<Plot3DView> plot3d_view = make_control<Plot3DView>(StableId("supplement.plot3d-view"));
+    std::shared_ptr<WindowCapsule> window_capsule = make_control<WindowCapsule>(StableId("supplement.window-capsule"));
+    (*window_capsule).set_interactive(false);
+    (*plot3d_view).set_requested_bounds({520, 40, 260, 100});
+    (*window_capsule).set_requested_bounds({520, 10, 80, 20});
+    (*root).add_child(plot3d_view);
+    (*root).add_child(window_capsule);
     std::unique_ptr<Window> window = std::make_unique<Window>(root, supplement_size);
     (*window).perform_layout();
     return window;

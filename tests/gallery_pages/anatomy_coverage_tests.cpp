@@ -6,7 +6,9 @@
 #include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/value_bar.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
 #include "gui_forms/controls/wizard_page.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/anchored_overlay_placement.hpp"
@@ -364,6 +366,15 @@ void test_anatomy_coverage() {
         make_control<BusinessCard>(StableId("anatomy.coverage.business-card"));
     inspect_control(*business_card, seen_ids);
     inspected += 1U;
+    // The 3D plot and the window capsule, which no Gallery page places yet
+    // (the capsule is the surface window manager's and a program's title
+    // control).
+    const std::shared_ptr<Plot3DView> plot3d_view = make_control<Plot3DView>(StableId("anatomy.coverage.plot3d-view"));
+    const std::shared_ptr<WindowCapsule> window_capsule =
+        make_control<WindowCapsule>(StableId("anatomy.coverage.window-capsule"));
+    inspect_control(*plot3d_view, seen_ids);
+    inspect_control(*window_capsule, seen_ids);
+    inspected += 2U;
 
     std::string unexpected_gaps;
     std::string stale_pending;
