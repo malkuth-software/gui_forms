@@ -1014,7 +1014,19 @@ std::shared_ptr<NativeWindow> Runtime::add(LinuxApplicationWindow entry,
   windows.push_back(window);
   if (owner != 0)
     XSetTransientForHint(display, (*window).xid, owner);
-  (*window).attach();
+  // A refused attach takes the window out of the run's table again before
+  // the exception leaves (A-gf-host-01-F4): a window the program is told
+  // never opened is not serviced by step(), and a dialog's closed callback,
+  // which points at its caller's frame, is never called after that frame.
+  try {
+    (*window).attach();
+  } catch (...) {
+    const std::vector<std::shared_ptr<NativeWindow>>::iterator listed =
+        std::find(windows.begin(), windows.end(), window);
+    if (listed != windows.end())
+      windows.erase(listed);
+    throw;
+  }
   return window;
 }
 void Runtime::report_activation() {
