@@ -543,15 +543,23 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_abi_audit_fixtures
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/abi_audit_tests.py
             --clang ${CMAKE_C_COMPILER})
-    # The built library exports exactly the allowlist.
-    set(_gf_abi_export_arguments --library $<TARGET_FILE:gui_forms_abi> --allowlist ${_gf_abi_allowlist}
-        --tool-dir ${_gf_abi_tool_dir})
+    # The built library exports exactly the allowlist it was linked with: the
+    # generated list, which adds GUI.Drawing's gd_get_api_v0 to the gf_ entry
+    # points (one module), and on Windows the Win32 shim's names.
+    set(_gf_abi_export_arguments --library $<TARGET_FILE:gui_forms_abi>
+        --allowlist ${_gf_abi_generated}/gf_abi_exports.txt --tool-dir ${_gf_abi_tool_dir})
+    if(WIN32)
+        list(APPEND _gf_abi_export_arguments --extra-def ${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows/win32_compat_shim.def)
+    endif()
     if(_gf_abi_msvc_import)
         list(APPEND _gf_abi_export_arguments --import-library ${_gf_abi_msvc_import})
     endif()
     add_test(NAME gui_forms_abi_exports
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_audit.py exports
             ${_gf_abi_export_arguments})
+    add_test(NAME gui_forms_abi_audit_exports_tests
+        COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
+            -p test_abi_audit_exports.py)
     set_tests_properties(gui_forms_abi_audit gui_forms_abi_audit_fixtures PROPERTIES TIMEOUT 300)
 
     # A Visual Studio consumer: MSVC compiles the layout probe and the
@@ -630,7 +638,7 @@ if(GUI_FORMS_BUILD_TESTS)
         gui_forms_abi_schema_catalog_current gui_forms_abi_event_fields gui_forms_abi_custom_paint
         gui_forms_abi_event_catalog_current gui_forms_abi_layout_probe_c11
         gui_forms_abi_layout_probe_cpp gui_forms_abi_audit gui_forms_abi_layout_probe_current
-        gui_forms_abi_audit_fixtures gui_forms_abi_exports gui_forms_abi_msvc_consumer
+        gui_forms_abi_audit_fixtures gui_forms_abi_exports gui_forms_abi_audit_exports_tests gui_forms_abi_msvc_consumer
         gui_forms_abi_bindings_current gui_forms_abi_csharp
         gui_forms_abi_cpp_wrappers_current gui_forms_abi_cpp_wrappers)
     get_property(_gf_abi_directory_tests DIRECTORY PROPERTY TESTS)

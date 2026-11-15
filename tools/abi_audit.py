@@ -1156,12 +1156,36 @@ def command_probe(args: argparse.Namespace) -> int:
     return 0
 
 
+def read_definition_exports(path: Path) -> list[str]:
+    """The exported names of a module definition (.def): the part before any '='."""
+    names: list[str] = []
+    line: str = ""
+    in_exports: bool = False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped: str = line.split(";", 1)[0].strip()
+        if not stripped:
+            continue
+        if stripped.upper() == "EXPORTS":
+            in_exports = True
+            continue
+        if in_exports:
+            names.append(stripped.split("=", 1)[0].split()[0])
+    return sorted(names)
+
+
 def command_exports(args: argparse.Namespace) -> int:
+    # The allowlist the library was linked with: the generated list (the gf_
+    # entry points and GUI.Drawing's gd_get_api_v0) when the build passes it.
     allowed: list[str] = read_allowlist(args.allowlist)
+    # On Windows the library also exports the Win32 compatibility shim's
+    # names (--extra-def); its import library leaves them out.
+    library_allowed: list[str] = allowed
+    if args.extra_def is not None:
+        library_allowed = sorted(allowed + read_definition_exports(args.extra_def))
     exported: list[str] = library_exports(args.library, args.tool_dir)
     findings: list[Finding] = []
-    if exported != allowed:
-        findings.append(Finding("exports", f"{args.library.name} exports {exported}; the allowlist is {allowed}"))
+    if exported != library_allowed:
+        findings.append(Finding("exports", f"{args.library.name} exports {exported}; the allowlist is {library_allowed}"))
     if args.import_library is not None:
         declared: list[str] = import_library_symbols(args.import_library, args.tool_dir)
         if declared != allowed:
@@ -1245,6 +1269,8 @@ def build_parser() -> argparse.ArgumentParser:
     exports.add_argument("--allowlist", type=Path, default=ALLOWLIST)
     exports.add_argument("--import-library", type=Path)
     exports.add_argument("--tool-dir", type=Path)
+    exports.add_argument("--extra-def", type=Path,
+                         help="a module definition whose exported names the library (not its import library) may add")
     exports.set_defaults(run=command_exports)
     coverage: argparse.ArgumentParser = subparsers.add_parser("coverage", help="require every slot to be called")
     coverage.add_argument("--manifest", type=Path, default=MANIFEST)
