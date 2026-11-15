@@ -143,6 +143,8 @@ __ZGVZN9gui_forms10WorldPoint*
 __ZGVZN9gui_forms10XmlElement*
 __ZGVZN9gui_forms11AboutDialog*
 __ZGVZN9gui_forms11AccentIndex*
+__ZGVZN9gui_forms11AppFontFace*
+__ZGVZN9gui_forms11AppFontLoad*
 __ZGVZN9gui_forms11Application*
 __ZGVZN9gui_forms11ChoiceGroup*
 __ZGVZN9gui_forms11ColorDialog*
@@ -314,6 +316,7 @@ __ZGVZN9gui_forms13AmbientEffect*
 __ZGVZN9gui_forms13AncestorBloom*
 __ZGVZN9gui_forms13AncestorFacts*
 __ZGVZN9gui_forms13AnimationSpec*
+__ZGVZN9gui_forms13AppFontFamily*
 __ZGVZN9gui_forms13BackdropChain*
 __ZGVZN9gui_forms13BackstageView*
 __ZGVZN9gui_forms13BindingColumn*
@@ -754,6 +757,9 @@ __ZGVZN9gui_forms16WrongThreadError*
 __ZGVZN9gui_forms17AbsoluteAxisInput*
 __ZGVZN9gui_forms17AnatomyValidation*
 __ZGVZN9gui_forms17AnimationTimeline*
+__ZGVZN9gui_forms17AppFontFaceSource*
+__ZGVZN9gui_forms17AppFontStatistics*
+__ZGVZN9gui_forms17AppFontValidation*
 __ZGVZN9gui_forms17ApplicationConfig*
 __ZGVZN9gui_forms17ApplicationResult*
 __ZGVZN9gui_forms17ApplicationWindow*
@@ -1793,6 +1799,8 @@ __ZGVZNK9gui_forms10WorldPoint*
 __ZGVZNK9gui_forms10XmlElement*
 __ZGVZNK9gui_forms11AboutDialog*
 __ZGVZNK9gui_forms11AccentIndex*
+__ZGVZNK9gui_forms11AppFontFace*
+__ZGVZNK9gui_forms11AppFontLoad*
 __ZGVZNK9gui_forms11Application*
 __ZGVZNK9gui_forms11ChoiceGroup*
 __ZGVZNK9gui_forms11ColorDialog*
@@ -1964,6 +1972,7 @@ __ZGVZNK9gui_forms13AmbientEffect*
 __ZGVZNK9gui_forms13AncestorBloom*
 __ZGVZNK9gui_forms13AncestorFacts*
 __ZGVZNK9gui_forms13AnimationSpec*
+__ZGVZNK9gui_forms13AppFontFamily*
 __ZGVZNK9gui_forms13BackdropChain*
 __ZGVZNK9gui_forms13BackstageView*
 __ZGVZNK9gui_forms13BindingColumn*
@@ -2404,6 +2413,9 @@ __ZGVZNK9gui_forms16WrongThreadError*
 __ZGVZNK9gui_forms17AbsoluteAxisInput*
 __ZGVZNK9gui_forms17AnatomyValidation*
 __ZGVZNK9gui_forms17AnimationTimeline*
+__ZGVZNK9gui_forms17AppFontFaceSource*
+__ZGVZNK9gui_forms17AppFontStatistics*
+__ZGVZNK9gui_forms17AppFontValidation*
 __ZGVZNK9gui_forms17ApplicationConfig*
 __ZGVZNK9gui_forms17ApplicationResult*
 __ZGVZNK9gui_forms17ApplicationWindow*
@@ -3495,6 +3507,8 @@ __ZN9gui_forms10VScrollBar*
 __ZN9gui_forms10WizardPage*
 __ZN9gui_forms10WorldPoint*
 __ZN9gui_forms10XmlElement*
+__ZN9gui_forms10admit_fontB*
+__ZN9gui_forms10admit_fontE*
 __ZN9gui_forms10export_rtfB*
 __ZN9gui_forms10export_rtfE*
 __ZN9gui_forms10import_rtfB*
@@ -3507,6 +3521,8 @@ __ZN9gui_forms10sha256_hexB*
 __ZN9gui_forms10sha256_hexE*
 __ZN9gui_forms11AboutDialog*
 __ZN9gui_forms11AccentIndex*
+__ZN9gui_forms11AppFontFace*
+__ZN9gui_forms11AppFontLoad*
 __ZN9gui_forms11Application*
 __ZN9gui_forms11ChoiceGroup*
 __ZN9gui_forms11ColorDialog*
@@ -3740,6 +3756,7 @@ __ZN9gui_forms13AmbientEffect*
 __ZN9gui_forms13AncestorBloom*
 __ZN9gui_forms13AncestorFacts*
 __ZN9gui_forms13AnimationSpec*
+__ZN9gui_forms13AppFontFamily*
 __ZN9gui_forms13BackdropChain*
 __ZN9gui_forms13BackstageView*
 __ZN9gui_forms13BindingColumn*
@@ -4368,6 +4385,9 @@ __ZN9gui_forms16valid_scene_viewE*
 __ZN9gui_forms17AbsoluteAxisInput*
 __ZN9gui_forms17AnatomyValidation*
 __ZN9gui_forms17AnimationTimeline*
+__ZN9gui_forms17AppFontFaceSource*
+__ZN9gui_forms17AppFontStatistics*
+__ZN9gui_forms17AppFontValidation*
 __ZN9gui_forms17ApplicationConfig*
 __ZN9gui_forms17ApplicationResult*
 __ZN9gui_forms17ApplicationWindow*
@@ -4503,6 +4523,8 @@ __ZN9gui_forms17help_callout_nameB*
 __ZN9gui_forms17help_callout_nameE*
 __ZN9gui_forms17item_content_textB*
 __ZN9gui_forms17item_content_textE*
+__ZN9gui_forms17known_font_familyB*
+__ZN9gui_forms17known_font_familyE*
 __ZN9gui_forms17lay_out_paragraphB*
 __ZN9gui_forms17lay_out_paragraphE*
 __ZN9gui_forms17locale_field_nameB*
@@ -4545,6 +4567,8 @@ __ZN9gui_forms17select_user_themeB*
 __ZN9gui_forms17select_user_themeE*
 __ZN9gui_forms17valid_host_localeB*
 __ZN9gui_forms17valid_host_localeE*
+__ZN9gui_forms17validate_app_fontB*
+__ZN9gui_forms17validate_app_fontE*
 __ZN9gui_forms17view_hosted_frameB*
 __ZN9gui_forms17view_hosted_frameE*
 __ZN9gui_forms17write_help_localeB*
@@ -4880,6 +4904,8 @@ __ZN9gui_forms19active_border_validB*
 __ZN9gui_forms19active_border_validE*
 __ZN9gui_forms19anatomy_defect_nameB*
 __ZN9gui_forms19anatomy_defect_nameE*
+__ZN9gui_forms19app_font_statisticsB*
+__ZN9gui_forms19app_font_statisticsE*
 __ZN9gui_forms19apply_theme_requestB*
 __ZN9gui_forms19apply_theme_requestE*
 __ZN9gui_forms19backdrop_chain_blurB*
@@ -5102,10 +5128,14 @@ __ZN9gui_forms20familiar_theme_buildB*
 __ZN9gui_forms20familiar_theme_buildE*
 __ZN9gui_forms20familiar_theme_namedB*
 __ZN9gui_forms20familiar_theme_namedE*
+__ZN9gui_forms20font_family_drawableB*
+__ZN9gui_forms20font_family_drawableE*
 __ZN9gui_forms20high_contrast_colourB*
 __ZN9gui_forms20high_contrast_colourE*
 __ZN9gui_forms20joined_segment_radiiB*
 __ZN9gui_forms20joined_segment_radiiE*
+__ZN9gui_forms20load_app_font_familyB*
+__ZN9gui_forms20load_app_font_familyE*
 __ZN9gui_forms20localizable_literalsB*
 __ZN9gui_forms20localizable_literalsE*
 __ZN9gui_forms20make_logical_monitorB*
@@ -5235,6 +5265,12 @@ __ZN9gui_forms21WindowBackdropRequest*
 __ZN9gui_forms21WindowCapsuleMeasures*
 __ZN9gui_forms21allocation_statisticsB*
 __ZN9gui_forms21allocation_statisticsE*
+__ZN9gui_forms21app_font_family_facesB*
+__ZN9gui_forms21app_font_family_facesE*
+__ZN9gui_forms21app_font_family_namedB*
+__ZN9gui_forms21app_font_family_namedE*
+__ZN9gui_forms21app_font_family_stateB*
+__ZN9gui_forms21app_font_family_stateE*
 __ZN9gui_forms21append_hosted_messageB*
 __ZN9gui_forms21append_hosted_messageE*
 __ZN9gui_forms21binding_value_to_boolB*
@@ -5828,6 +5864,8 @@ __ZN9gui_forms26normalize_locale_help_bodyB*
 __ZN9gui_forms26normalize_locale_help_bodyE*
 __ZN9gui_forms26property_value_origin_nameB*
 __ZN9gui_forms26property_value_origin_nameE*
+__ZN9gui_forms26quarantine_app_font_familyB*
+__ZN9gui_forms26quarantine_app_font_familyE*
 __ZN9gui_forms26recipe_declaration_lengthsB*
 __ZN9gui_forms26recipe_declaration_lengthsE*
 __ZN9gui_forms26register_dock_site_effectsB*
@@ -6689,6 +6727,8 @@ __ZNK[RO]9gui_forms10WorldPoint*
 __ZNK[RO]9gui_forms10XmlElement*
 __ZNK[RO]9gui_forms11AboutDialog*
 __ZNK[RO]9gui_forms11AccentIndex*
+__ZNK[RO]9gui_forms11AppFontFace*
+__ZNK[RO]9gui_forms11AppFontLoad*
 __ZNK[RO]9gui_forms11Application*
 __ZNK[RO]9gui_forms11ChoiceGroup*
 __ZNK[RO]9gui_forms11ColorDialog*
@@ -6860,6 +6900,7 @@ __ZNK[RO]9gui_forms13AmbientEffect*
 __ZNK[RO]9gui_forms13AncestorBloom*
 __ZNK[RO]9gui_forms13AncestorFacts*
 __ZNK[RO]9gui_forms13AnimationSpec*
+__ZNK[RO]9gui_forms13AppFontFamily*
 __ZNK[RO]9gui_forms13BackdropChain*
 __ZNK[RO]9gui_forms13BackstageView*
 __ZNK[RO]9gui_forms13BindingColumn*
@@ -7300,6 +7341,9 @@ __ZNK[RO]9gui_forms16WrongThreadError*
 __ZNK[RO]9gui_forms17AbsoluteAxisInput*
 __ZNK[RO]9gui_forms17AnatomyValidation*
 __ZNK[RO]9gui_forms17AnimationTimeline*
+__ZNK[RO]9gui_forms17AppFontFaceSource*
+__ZNK[RO]9gui_forms17AppFontStatistics*
+__ZNK[RO]9gui_forms17AppFontValidation*
 __ZNK[RO]9gui_forms17ApplicationConfig*
 __ZNK[RO]9gui_forms17ApplicationResult*
 __ZNK[RO]9gui_forms17ApplicationWindow*
@@ -8339,6 +8383,8 @@ __ZN[KRO]9gui_forms10WorldPoint*
 __ZN[KRO]9gui_forms10XmlElement*
 __ZN[KRO]9gui_forms11AboutDialog*
 __ZN[KRO]9gui_forms11AccentIndex*
+__ZN[KRO]9gui_forms11AppFontFace*
+__ZN[KRO]9gui_forms11AppFontLoad*
 __ZN[KRO]9gui_forms11Application*
 __ZN[KRO]9gui_forms11ChoiceGroup*
 __ZN[KRO]9gui_forms11ColorDialog*
@@ -8510,6 +8556,7 @@ __ZN[KRO]9gui_forms13AmbientEffect*
 __ZN[KRO]9gui_forms13AncestorBloom*
 __ZN[KRO]9gui_forms13AncestorFacts*
 __ZN[KRO]9gui_forms13AnimationSpec*
+__ZN[KRO]9gui_forms13AppFontFamily*
 __ZN[KRO]9gui_forms13BackdropChain*
 __ZN[KRO]9gui_forms13BackstageView*
 __ZN[KRO]9gui_forms13BindingColumn*
@@ -8950,6 +8997,9 @@ __ZN[KRO]9gui_forms16WrongThreadError*
 __ZN[KRO]9gui_forms17AbsoluteAxisInput*
 __ZN[KRO]9gui_forms17AnatomyValidation*
 __ZN[KRO]9gui_forms17AnimationTimeline*
+__ZN[KRO]9gui_forms17AppFontFaceSource*
+__ZN[KRO]9gui_forms17AppFontStatistics*
+__ZN[KRO]9gui_forms17AppFontValidation*
 __ZN[KRO]9gui_forms17ApplicationConfig*
 __ZN[KRO]9gui_forms17ApplicationResult*
 __ZN[KRO]9gui_forms17ApplicationWindow*
@@ -9989,6 +10039,8 @@ __ZT[VIST]N9gui_forms10WorldPoint*E
 __ZT[VIST]N9gui_forms10XmlElement*E
 __ZT[VIST]N9gui_forms11AboutDialog*E
 __ZT[VIST]N9gui_forms11AccentIndex*E
+__ZT[VIST]N9gui_forms11AppFontFace*E
+__ZT[VIST]N9gui_forms11AppFontLoad*E
 __ZT[VIST]N9gui_forms11Application*E
 __ZT[VIST]N9gui_forms11ChoiceGroup*E
 __ZT[VIST]N9gui_forms11ColorDialog*E
@@ -10160,6 +10212,7 @@ __ZT[VIST]N9gui_forms13AmbientEffect*E
 __ZT[VIST]N9gui_forms13AncestorBloom*E
 __ZT[VIST]N9gui_forms13AncestorFacts*E
 __ZT[VIST]N9gui_forms13AnimationSpec*E
+__ZT[VIST]N9gui_forms13AppFontFamily*E
 __ZT[VIST]N9gui_forms13BackdropChain*E
 __ZT[VIST]N9gui_forms13BackstageView*E
 __ZT[VIST]N9gui_forms13BindingColumn*E
@@ -10600,6 +10653,9 @@ __ZT[VIST]N9gui_forms16WrongThreadError*E
 __ZT[VIST]N9gui_forms17AbsoluteAxisInput*E
 __ZT[VIST]N9gui_forms17AnatomyValidation*E
 __ZT[VIST]N9gui_forms17AnimationTimeline*E
+__ZT[VIST]N9gui_forms17AppFontFaceSource*E
+__ZT[VIST]N9gui_forms17AppFontStatistics*E
+__ZT[VIST]N9gui_forms17AppFontValidation*E
 __ZT[VIST]N9gui_forms17ApplicationConfig*E
 __ZT[VIST]N9gui_forms17ApplicationResult*E
 __ZT[VIST]N9gui_forms17ApplicationWindow*E
@@ -11639,6 +11695,8 @@ __ZT[hvc]*9gui_forms10WorldPoint*
 __ZT[hvc]*9gui_forms10XmlElement*
 __ZT[hvc]*9gui_forms11AboutDialog*
 __ZT[hvc]*9gui_forms11AccentIndex*
+__ZT[hvc]*9gui_forms11AppFontFace*
+__ZT[hvc]*9gui_forms11AppFontLoad*
 __ZT[hvc]*9gui_forms11Application*
 __ZT[hvc]*9gui_forms11ChoiceGroup*
 __ZT[hvc]*9gui_forms11ColorDialog*
@@ -11810,6 +11868,7 @@ __ZT[hvc]*9gui_forms13AmbientEffect*
 __ZT[hvc]*9gui_forms13AncestorBloom*
 __ZT[hvc]*9gui_forms13AncestorFacts*
 __ZT[hvc]*9gui_forms13AnimationSpec*
+__ZT[hvc]*9gui_forms13AppFontFamily*
 __ZT[hvc]*9gui_forms13BackdropChain*
 __ZT[hvc]*9gui_forms13BackstageView*
 __ZT[hvc]*9gui_forms13BindingColumn*
@@ -12250,6 +12309,9 @@ __ZT[hvc]*9gui_forms16WrongThreadError*
 __ZT[hvc]*9gui_forms17AbsoluteAxisInput*
 __ZT[hvc]*9gui_forms17AnatomyValidation*
 __ZT[hvc]*9gui_forms17AnimationTimeline*
+__ZT[hvc]*9gui_forms17AppFontFaceSource*
+__ZT[hvc]*9gui_forms17AppFontStatistics*
+__ZT[hvc]*9gui_forms17AppFontValidation*
 __ZT[hvc]*9gui_forms17ApplicationConfig*
 __ZT[hvc]*9gui_forms17ApplicationResult*
 __ZT[hvc]*9gui_forms17ApplicationWindow*
@@ -13289,6 +13351,8 @@ __ZZN9gui_forms10WorldPoint*
 __ZZN9gui_forms10XmlElement*
 __ZZN9gui_forms11AboutDialog*
 __ZZN9gui_forms11AccentIndex*
+__ZZN9gui_forms11AppFontFace*
+__ZZN9gui_forms11AppFontLoad*
 __ZZN9gui_forms11Application*
 __ZZN9gui_forms11ChoiceGroup*
 __ZZN9gui_forms11ColorDialog*
@@ -13460,6 +13524,7 @@ __ZZN9gui_forms13AmbientEffect*
 __ZZN9gui_forms13AncestorBloom*
 __ZZN9gui_forms13AncestorFacts*
 __ZZN9gui_forms13AnimationSpec*
+__ZZN9gui_forms13AppFontFamily*
 __ZZN9gui_forms13BackdropChain*
 __ZZN9gui_forms13BackstageView*
 __ZZN9gui_forms13BindingColumn*
@@ -13900,6 +13965,9 @@ __ZZN9gui_forms16WrongThreadError*
 __ZZN9gui_forms17AbsoluteAxisInput*
 __ZZN9gui_forms17AnatomyValidation*
 __ZZN9gui_forms17AnimationTimeline*
+__ZZN9gui_forms17AppFontFaceSource*
+__ZZN9gui_forms17AppFontStatistics*
+__ZZN9gui_forms17AppFontValidation*
 __ZZN9gui_forms17ApplicationConfig*
 __ZZN9gui_forms17ApplicationResult*
 __ZZN9gui_forms17ApplicationWindow*
@@ -14939,6 +15007,8 @@ __ZZNK9gui_forms10WorldPoint*
 __ZZNK9gui_forms10XmlElement*
 __ZZNK9gui_forms11AboutDialog*
 __ZZNK9gui_forms11AccentIndex*
+__ZZNK9gui_forms11AppFontFace*
+__ZZNK9gui_forms11AppFontLoad*
 __ZZNK9gui_forms11Application*
 __ZZNK9gui_forms11ChoiceGroup*
 __ZZNK9gui_forms11ColorDialog*
@@ -15110,6 +15180,7 @@ __ZZNK9gui_forms13AmbientEffect*
 __ZZNK9gui_forms13AncestorBloom*
 __ZZNK9gui_forms13AncestorFacts*
 __ZZNK9gui_forms13AnimationSpec*
+__ZZNK9gui_forms13AppFontFamily*
 __ZZNK9gui_forms13BackdropChain*
 __ZZNK9gui_forms13BackstageView*
 __ZZNK9gui_forms13BindingColumn*
@@ -15550,6 +15621,9 @@ __ZZNK9gui_forms16WrongThreadError*
 __ZZNK9gui_forms17AbsoluteAxisInput*
 __ZZNK9gui_forms17AnatomyValidation*
 __ZZNK9gui_forms17AnimationTimeline*
+__ZZNK9gui_forms17AppFontFaceSource*
+__ZZNK9gui_forms17AppFontStatistics*
+__ZZNK9gui_forms17AppFontValidation*
 __ZZNK9gui_forms17ApplicationConfig*
 __ZZNK9gui_forms17ApplicationResult*
 __ZZNK9gui_forms17ApplicationWindow*

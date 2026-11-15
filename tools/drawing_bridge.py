@@ -3,7 +3,8 @@
 
 ``generated/facade-v1/System.Drawing.Common/DrawingBridge.g.cs`` is the
 facade's one binding of the drawing ABI: it negotiates the gd_* table through
-``gd_get_api_v0``, installs the raster service through ``gdr_initialize``, and
+``gd_get_api_v0``, installs the raster service through the table's
+``raster_initialize`` (gd 1.1; there is no ``gdr_initialize`` export), and
 wraps the table's entries for the facade's Bitmap, Graphics, Pen, Brush, Font
 and Region types.
 
@@ -36,8 +37,9 @@ TEMPLATE: Path = ROOT / "tools" / "drawing_bridge" / "DrawingBridge.cs.in"
 HEADER: Path = ROOT / "include" / "gui_forms" / "c" / "gf_abi.h"
 OUTPUT: Path = ROOT / "generated" / "facade-v1" / "System.Drawing.Common" / "DrawingBridge.g.cs"
 PLACEHOLDER: str = "@NATIVE_LIBRARY@"
-# The imports that name the library: gd_get_api_v0 and gdr_initialize.
-PLACEHOLDER_COUNT: int = 2
+# The import that names the library: gd_get_api_v0 (the raster is installed
+# through the table's raster_initialize slot).
+PLACEHOLDER_COUNT: int = 1
 MAJOR_DEFINITION: re.Pattern[str] = re.compile(r"^#define GF_ABI_MAJOR (\d+)u?\s*$", re.MULTILINE)
 
 

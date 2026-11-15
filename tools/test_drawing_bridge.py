@@ -10,10 +10,10 @@ class DrawingBridgeTests(unittest.TestCase):
     def test_checked_in_bridge_is_current(self) -> None:
         self.assertEqual(db.main(["--check"]), 0)
 
-    def test_both_imports_load_the_c_abi_library(self) -> None:
+    def test_the_import_loads_the_c_abi_library(self) -> None:
         text = db.expected_bridge()
         self.assertIn('[DllImport("gui_forms_abi1", EntryPoint = "gd_get_api_v0"', text)
-        self.assertIn('[DllImport("gui_forms_abi1", EntryPoint = "gdr_initialize"', text)
+        self.assertNotIn('EntryPoint = "gdr_initialize"', text)
         self.assertNotIn("gui_drawing_abi0", text)
         self.assertNotIn("gui_drawing_raster0", text)
 
@@ -27,10 +27,10 @@ class DrawingBridgeTests(unittest.TestCase):
 
     def test_template_defects_are_refused(self) -> None:
         with self.assertRaises(db.BridgeError):
-            db.render("only @NATIVE_LIBRARY@ once", "gui_forms_abi1")
+            db.render("@NATIVE_LIBRARY@ twice @NATIVE_LIBRARY@", "gui_forms_abi1")
         with self.assertRaises(db.BridgeError):
-            db.render("@NATIVE_LIBRARY@ @NATIVE_LIBRARY@ @OTHER@", "gui_forms_abi1")
-        self.assertEqual(db.render("a @NATIVE_LIBRARY@ b @NATIVE_LIBRARY@", "x"), "a x b x")
+            db.render("@NATIVE_LIBRARY@ @OTHER@", "gui_forms_abi1")
+        self.assertEqual(db.render("a @NATIVE_LIBRARY@ b", "x"), "a x b")
 
 
 if __name__ == "__main__":

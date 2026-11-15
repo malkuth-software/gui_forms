@@ -2986,7 +2986,7 @@ Types
 
    .. cpp:member:: gf_status (*failure_detail)(gf_failure_detail* detail)
 
-   .. cpp:member:: * toggle_diagnostic_overlay turns it to the other state, the business * card's gesture (D held with a secondary press on the vendor name), * and writes the new state into enabled, which may be null. Any * thread. GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1. */ gf_status (*set_diagnostic_overlay)(uint32_t enabled)
+   .. cpp:member:: gf_status (*set_diagnostic_overlay)(uint32_t enabled)
 
    .. cpp:member:: gf_status (*toggle_diagnostic_overlay)(uint32_t* enabled)
 

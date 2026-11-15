@@ -173,7 +173,7 @@ public:
     AppFontUnload unload() noexcept;
 
 private:
-    friend AppFontLoad load_app_font_family(std::string_view name, std::span<const AppFontFace> faces);
+    friend GUI_FORMS_API AppFontLoad load_app_font_family(std::string_view name, std::span<const AppFontFace> faces);
     explicit AppFontFamily(FontFamilyId id) noexcept : id_(id) {}
     FontFamilyId id_{};
 };
