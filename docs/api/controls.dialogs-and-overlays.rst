@@ -2058,7 +2058,7 @@ Functions, constants and aliases
 
 .. cpp:function:: ThreadExceptionReport describe_exception(const std::exception_ptr& error)
 
-   The report for a caught exception: the message of a std::exception, or "An exception of unknown type was thrown." for anything else, with no details. A null ``error`` gives an empty message.
+   The report for a caught exception: the message of a std::exception, or "An exception of unknown type was thrown." for anything else, with no details. A null ``error`` gives an empty message. A message that is not valid UTF-8 has each malformed byte replaced by U+FFFD; the dialog repairs a caller-filled caption, message and details the same way, so reporting never throws for its text.
 
 .. cpp:namespace:: gui_forms
 

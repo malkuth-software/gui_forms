@@ -129,9 +129,22 @@ void report_pages() {
                 !warning_page.expander.has_value(),
             "a warning offers Continue only, with the default caption and no expander");
 
+    // A-gf-controls-14-F1: text that is not UTF-8 is shown with U+FFFD in
+    // place of each malformed byte; the reporter never throws for it.
     ThreadExceptionReport invalid;
+    invalid.caption = std::string("cap\xFF", 4U);
     invalid.message = std::string("bad \xC3", 5U);
-    require(throws_invalid(MakeDialog{invalid}), "a report that is not UTF-8 is refused");
+    invalid.details = std::string("\x80tail", 5U);
+    require(!throws_invalid(MakeDialog{invalid}), "a report that is not UTF-8 does not throw");
+    const ThreadExceptionDialog repaired(StableId("error.repaired"), invalid);
+    const TaskDialogPage& repaired_page = (*repaired.task_dialog()).page();
+    require(repaired_page.caption == "cap\xEF\xBF\xBD" && repaired_page.text == "bad \xEF\xBF\xBD" &&
+                repaired_page.expander.has_value() && (*repaired_page.expander).text == "\xEF\xBF\xBDtail",
+            "each malformed byte of the report is shown as U+FFFD");
+    const ThreadExceptionReport described =
+        describe_exception(std::make_exception_ptr(std::runtime_error(std::string("file \xE9t\xE9", 8U))));
+    require(described.message == "file \xEF\xBF\xBDt\xEF\xBF\xBD",
+            "an exception message in another encoding is described with U+FFFD");
 
     const std::vector<InteractionDeclaration> interactions = error.interactions();
     require(!interactions.empty() && interactions.back().name == "closed" &&
