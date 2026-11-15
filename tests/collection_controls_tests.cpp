@@ -1001,6 +1001,61 @@ void test_correspondence_virtualization_and_anchor_stability() {
             "pointer leave must collapse only transient inspection");
 }
 
+// Replaces a CorrespondenceView's items with three, so every later item
+// goes, when it raises its selection or expansion change.
+struct ShrinkCorrespondenceOnSelection final {
+    CorrespondenceView* view{};
+    void operator()(const CorrespondenceSelectionChange&) const {
+        (*view).set_items(correspondence_fixture(3U));
+    }
+};
+struct ShrinkCorrespondenceOnExpansion final {
+    CorrespondenceView* view{};
+    void operator()(const CorrespondenceExpansionChange&) const {
+        if ((*view).focused_id() == "correspondence.11") (*view).set_items(correspondence_fixture(3U));
+    }
+};
+
+// B-gf-tests-misc-02-F2: a press selects, then focuses, its item; Down
+// focuses, then selects. A handler of the first may replace the items, and
+// the second step finds the item again by identity instead of reading the
+// index (or the cleared pressed index) taken before.
+void test_correspondence_handlers_replace_the_items() {
+    std::shared_ptr<gui_forms::CorrespondenceView> pressed = make_control<CorrespondenceView>(
+        StableId("correspondence.pressed"));
+    (*pressed).set_requested_bounds({0.0, 0.0, 820.0, 360.0});
+    (*pressed).set_items(correspondence_fixture(20U));
+    Window press_window(pressed, {820.0, 360.0});
+    press_window.perform_layout();
+    const std::optional<Rect> row = (*pressed).item_bounds("correspondence.5");
+    require(row.has_value(), "the pressed row is laid out");
+    const Rect absolute = (*pressed).absolute_bounds();
+    const Point on_row{absolute.x + (*row).x + (*row).width * .5, absolute.y + (*row).y + (*row).height * .5};
+    SubscriptionToken shrink_on_selection =
+        (*pressed).selection_changed().subscribe(ShrinkCorrespondenceOnSelection{pressed.get()});
+    require(press_window.dispatch_pointer({PointerAction::down, PointerButton::primary, on_row}),
+            "the press is handled");
+    shrink_on_selection.disconnect();
+    static_cast<void>(press_window.dispatch_pointer({PointerAction::up, PointerButton::primary, on_row}));
+    require((*pressed).focused_id() != "correspondence.5" && (*pressed).selected_id.read() != "correspondence.5",
+            "a pressed item a selection handler removed is neither focused nor selected");
+
+    std::shared_ptr<gui_forms::CorrespondenceView> keyed = make_control<CorrespondenceView>(
+        StableId("correspondence.keyed"));
+    (*keyed).set_requested_bounds({0.0, 0.0, 820.0, 360.0});
+    (*keyed).set_items(correspondence_fixture(20U));
+    (*keyed).selected_id = "correspondence.10";
+    Window key_window(keyed, {820.0, 360.0});
+    require(key_window.request_focus(keyed) && (*keyed).focused_id() == "correspondence.10",
+            "the keyed view takes the focus on its selection");
+    SubscriptionToken shrink_on_expansion =
+        (*keyed).expansion_changed().subscribe(ShrinkCorrespondenceOnExpansion{keyed.get()});
+    require(key_window.dispatch_key({KeyAction::down, PhysicalKey::down}), "Down is handled");
+    shrink_on_expansion.disconnect();
+    require((*keyed).selected_id.read() != "correspondence.11" && (*keyed).items().size() == 3U,
+            "Down selects nothing when an expansion handler removed its item");
+}
+
 void test_correspondence_keyboard_pin_semantics_and_activation() {
     std::shared_ptr<gui_forms::CorrespondenceView> records = make_control<CorrespondenceView>(
         StableId("correspondence.keyboard"));
@@ -1973,6 +2028,7 @@ int main() {
         test_shared_command_binding();
         test_correspondence_virtualization_and_anchor_stability();
         test_correspondence_keyboard_pin_semantics_and_activation();
+        test_correspondence_handlers_replace_the_items();
         test_correspondence_narrow_card_layout();
         test_correspondence_background_pointer_contract();
         std::cout << "gui_forms_collection_controls_tests: all tests passed\n";

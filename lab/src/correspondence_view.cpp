@@ -902,15 +902,24 @@ void CorrespondenceView::handle_pointer(PointerEvent& event) {
         pressed_index_ = index_at(event.position);
         pressed_button_ = event.button;
         pressed_click_count_ = event.click_count;
-        if (window()) {
-            static_cast<void>((*window()).request_focus(shared_from_this()));
-        }
-        if (pressed_index_) {
-            selected_id = items_[*pressed_index_].stable_id;
-            focus_index(*pressed_index_,
-                        CorrespondenceExpansionReason::keyboard_focus);
-        }
+        // The focus move and the selection raise handlers that may replace
+        // the items (set_items recomputes pressed_index_, clearing it when
+        // the pressed item goes) or drop the view. The view is held and the
+        // pressed item is named by its identity and found again after each
+        // (B-gf-tests-misc-02-F2).
+        const Control::Ptr retained = shared_from_this();
         event.handled = true;
+        if (window()) {
+            static_cast<void>((*window()).request_focus(retained));
+        }
+        if (!is_alive() || !pressed_index_) return;
+        const std::string pressed_id = items_[*pressed_index_].stable_id;
+        selected_id = pressed_id;
+        if (!is_alive()) return;
+        const std::optional<std::size_t> pressed_now = item_index(pressed_id);
+        if (pressed_now) {
+            focus_index(*pressed_now, CorrespondenceExpansionReason::keyboard_focus);
+        }
         return;
     }
     if (event.action == PointerAction::up &&
@@ -1047,9 +1056,15 @@ void CorrespondenceView::handle_key(KeyEvent& event) {
     } else {
         return;
     }
-    focus_index(index, CorrespondenceExpansionReason::keyboard_focus);
-    selected_id = items_[index].stable_id;
+    // focus_index raises expansion changes whose handlers may replace the
+    // items or drop the view: the target is named by its identity first and
+    // selected only while it is still there (B-gf-tests-misc-02-F2).
+    const std::string target_id = items_[index].stable_id;
+    const Control::Ptr retained = shared_from_this();
     event.handled = true;
+    focus_index(index, CorrespondenceExpansionReason::keyboard_focus);
+    if (!is_alive() || !item_index(target_id)) return;
+    selected_id = target_id;
 }
 
 void CorrespondenceView::on_focus_changed(bool focused) {
