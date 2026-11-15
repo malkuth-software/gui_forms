@@ -739,7 +739,16 @@ gd_result release_hdc(Bitmap& bitmap, std::uint64_t lease_token) {
             return GD_ERROR_WRONG_THREAD;
         }
         lease = (*found).second;
-        leases().erase(found);
+    }
+    // The bitmap is locked before the lease is given up: a bitmap under a
+    // pixel lock or an edit refuses (std::logic_error), and the lease, its DC
+    // and its drawing then stay as they were, so the caller can release
+    // again once it has unlocked (A-gf-abi-01-F8). Only the owner thread
+    // releases a lease, so it cannot change meanwhile.
+    BitmapLockView lock = bitmap.lock(BitmapLockMode::write);
+    {
+        std::scoped_lock leases_lock(lease_mutex());
+        leases().erase(lease_token);
     }
     struct LeaseCleanup final {
         HdcLease& lease;
@@ -751,7 +760,6 @@ gd_result release_hdc(Bitmap& bitmap, std::uint64_t lease_token) {
     } cleanup{lease};
     resolve_written_alpha(static_cast<std::uint8_t*>(lease.pixels), lease.byte_count);
     // The DIB and the bitmap are both BGRA8.
-    BitmapLockView lock = bitmap.lock(BitmapLockMode::write);
     std::memcpy(lock.writable_data, lease.pixels, lease.byte_count);
     bitmap.unlock(lock.token);
     return GD_OK;
