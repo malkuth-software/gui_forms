@@ -1253,6 +1253,17 @@ double pixel_scale(const NodeData& node) {
 // layout boxes, at pixel_scale) put their origin in `coordinates`, in X
 // pixels: the window's place on the screen, the client origin itself, or
 // minus the place of `node`'s parent.
+// A screen coordinate or extent for ATK: device clamped to the X
+// protocol's 16-bit range, NaN as 0. Semantic bounds are not bounded, and
+// converting a double outside int's range is undefined (A-gf-host-01-F9).
+int atk_coordinate(double device) noexcept {
+    if (std::isnan(device)) return 0;
+    if (device < -32768.0) return -32768;
+    if (device > 32767.0) return 32767;
+    const int coordinate = static_cast<int>(device);
+    return coordinate;
+}
+
 void coordinate_origin(const NodeData& node, AtkCoordType coordinates, int& left, int& top) {
     left = 0;
     top = 0;
@@ -1264,8 +1275,8 @@ void coordinate_origin(const NodeData& node, AtkCoordType coordinates, int& left
     } else if (node.parent && coordinates == ATK_XY_PARENT) {
         const double scale = pixel_scale(node);
         const Rect parent = data(node.parent).node.bounds;
-        left = -static_cast<int>(parent.x * scale);
-        top = -static_cast<int>(parent.y * scale);
+        left = -atk_coordinate(parent.x * scale);
+        top = -atk_coordinate(parent.y * scale);
     }
 }
 void answer_extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
@@ -1275,10 +1286,10 @@ void answer_extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* h
     coordinate_origin(node, coordinates, left, top);
     const double scale = pixel_scale(node);
     const Rect bounds = node.node.bounds;
-    if (x) *x = left + static_cast<int>(bounds.x * scale);
-    if (y) *y = top + static_cast<int>(bounds.y * scale);
-    if (width) *width = node.live ? static_cast<int>(bounds.width * scale) : 0;
-    if (height) *height = node.live ? static_cast<int>(bounds.height * scale) : 0;
+    if (x) *x = left + atk_coordinate(bounds.x * scale);
+    if (y) *y = top + atk_coordinate(bounds.y * scale);
+    if (width) *width = node.live ? atk_coordinate(bounds.width * scale) : 0;
+    if (height) *height = node.live ? atk_coordinate(bounds.height * scale) : 0;
 }
 void extents(AtkComponent* object, gint* x, gint* y, gint* width, gint* height, AtkCoordType coordinates) {
     gui_forms::detail::call_failing_fast("linux.atk.extents", &answer_extents, object, x, y, width, height,
@@ -1497,10 +1508,10 @@ void answer_character_extents(AtkText* object, gint offset, gint* x, gint* y, gi
                 coordinate_origin(node, coordinates, left, top);
                 const double scale = pixel_scale(node);
                 const Rect box = grapheme.bounds;
-                if (x) *x = left + static_cast<int>(std::lround(box.x * scale));
-                if (y) *y = top + static_cast<int>(std::lround(box.y * scale));
-                if (width) *width = static_cast<int>(std::lround(box.width * scale));
-                if (height) *height = static_cast<int>(std::lround(box.height * scale));
+                if (x) *x = left + atk_coordinate(std::round(box.x * scale));
+                if (y) *y = top + atk_coordinate(std::round(box.y * scale));
+                if (width) *width = atk_coordinate(std::round(box.width * scale));
+                if (height) *height = atk_coordinate(std::round(box.height * scale));
                 break;
             }
         }

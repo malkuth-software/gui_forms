@@ -40,6 +40,21 @@ class NativeWindow;
   const unsigned pixels = static_cast<unsigned>(device);
   return pixels;
 }
+// A device coordinate for the X protocol, whose coordinates are 16-bit
+// signed: device (already floored or rounded) clamped to that range, NaN
+// as 0. Converting a double outside int's range is undefined, so every
+// logical position a program or a control gives goes through here
+// (A-gf-host-01-F9).
+[[nodiscard]] inline int device_coordinate(double device) noexcept {
+  if (std::isnan(device))
+    return 0;
+  if (device < -32768.0)
+    return -32768;
+  if (device > 32767.0)
+    return 32767;
+  const int coordinate = static_cast<int>(device);
+  return coordinate;
+}
 // Application-scope windowing on X11 (stage DK phase W0, decisions 6 and 7;
 // x11_windowing.cpp). The X server's desktop is in device pixels; desktop
 // logical units map through each monitor's scale (desktop_coordinates.hpp),

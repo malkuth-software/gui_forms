@@ -527,8 +527,8 @@ HostServiceStatus Services::set_relative_pointer_impl(const HostRelativePointerR
   const double scale = window_.scale;
   ::Window confine_to = window_.xid;
   if (request.mode == RelativePointerMode::confined) {
-    const int x = static_cast<int>(std::floor(request.confine.x * scale));
-    const int y = static_cast<int>(std::floor(request.confine.y * scale));
+    const int x = device_coordinate(std::floor(request.confine.x * scale));
+    const int y = device_coordinate(std::floor(request.confine.y * scale));
     const unsigned width = device_extent(request.confine.width, scale);
     const unsigned height = device_extent(request.confine.height, scale);
     confine_window_ = XCreateWindow(display, window_.xid, x, y, width, height, 0, CopyFromParent, InputOnly,
@@ -586,8 +586,8 @@ void Services::release_relative_pointer() noexcept {
 HostServiceStatus Services::warp_pointer_impl(Point position) {
   Display *const display = window_.runtime.display;
   const double scale = window_.scale;
-  const int x = static_cast<int>(std::lround(position.x * scale));
-  const int y = static_cast<int>(std::lround(position.y * scale));
+  const int x = device_coordinate(std::round(position.x * scale));
+  const int y = device_coordinate(std::round(position.y * scale));
   XWarpPointer(display, None, window_.xid, 0, 0, 0, 0, x, y);
   if (relative_.active && relative_.mode == RelativePointerMode::locked) {
     lock_x_ = x;
