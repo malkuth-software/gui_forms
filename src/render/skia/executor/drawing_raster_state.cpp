@@ -36,10 +36,6 @@
 namespace gui_drawing::render {
 namespace {
 
-
-    bool face_loaded{};
-};
-
 // The raster module's per-thread state, one STXlib thread record
 // (stxlib/thread_records.hpp; the core and the drawing library keep their
 // own, as each library loads separately): the thread's executor and the
