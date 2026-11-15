@@ -4,6 +4,7 @@
 #include "sub_surface_alerts.hpp"
 #include "sub_surface_channel.hpp"
 #include "sub_surface_tool_tips.hpp"
+#include "../../thread_records/core_thread_record.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -305,6 +306,8 @@ private:
 };
 
 void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
+    // Closes last: the thread's records are released here, on the thread.
+    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     SubSurfaceState end = SubSurfaceState::stopped;
     std::string failure;
     // This thread's synchronous invokes can be revoked by the parent's stop

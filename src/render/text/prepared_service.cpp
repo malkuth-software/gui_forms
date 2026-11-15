@@ -1,5 +1,6 @@
 #include "../../core/text/prepared/prepared_storage.hpp"
 #include "harfbuzz/harfbuzz_font_engine.hpp"
+#include "../../core/thread_records/core_thread_record.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -347,6 +348,8 @@ void PreparedSessionState::join() {
 }
 
 void PreparedSessionState::run() noexcept {
+    // Closes last: the thread's records are released here, on the thread.
+    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     std::unique_ptr<render::text::HarfBuzzFontEngine> engine{};
     PreparedTextStatus initialization = PreparedTextStatus::success;
     std::size_t engine_bytes = 0;

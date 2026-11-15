@@ -47,6 +47,12 @@ int gui_forms_atomic_pool_is_worker(const gui_forms_atomic_pool_t *pool);
 /* Safe lifetime still requires no new API call to begin during destruction. */
 void gui_forms_atomic_pool_destroy(gui_forms_atomic_pool_t *pool);
 
+/* Called by each pool thread as its last act, on the thread, before it
+   returns: GUI.Forms' worker.cpp defines it to end the thread's STXlib
+   thread records there, outside the loader lock a Windows thread's exit
+   runs under. */
+void gui_forms_atomic_pool_thread_ending(void);
+
 /* Source-compatible conveniences retained from the supplied control. */
 gui_forms_atomic_pool_t *gui_forms_atomic_pool_create(uint32_t thread_count);
 void gui_forms_atomic_pool_run(gui_forms_atomic_pool_t *pool, gui_forms_atomic_pool_task_t *tasks, uint32_t count);

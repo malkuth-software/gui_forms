@@ -81,7 +81,26 @@ CompatibilityUser32& compatibility_user32() {
     return api;
 }
 
-struct CaptureStaging final {
+
+BITMAPINFO bitmap_info(std::uint32_t width, std::uint32_t height) {
+    BITMAPINFO info{};
+    info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    info.bmiHeader.biWidth = static_cast<LONG>(width);
+    info.bmiHeader.biHeight = -static_cast<LONG>(height);
+    info.bmiHeader.biPlanes = 1;
+    info.bmiHeader.biBitCount = 32;
+    info.bmiHeader.biCompression = BI_RGB;
+    return info;
+}
+
+} // namespace
+
+// One bitmap's refresh staging (drawing_platform.hpp): a memory DC holding
+// a top-down 32-bit DIB section of the bitmap's size, whose pixels refresh
+// copies the surface into before the bitmap. Owned by the bitmap's handle
+// record; its destructor (the one release, with the record) restores the
+// DC's first bitmap and deletes both objects.
+struct SurfaceStaging final {
     HDC device{};
     HBITMAP dib{};
     HGDIOBJ previous{};
@@ -89,7 +108,7 @@ struct CaptureStaging final {
     std::uint32_t width{};
     std::uint32_t height{};
 
-    ~CaptureStaging() {
+    ~SurfaceStaging() {
         if (device != nullptr && previous != nullptr && previous != HGDI_ERROR) {
             SelectObject(device, previous);
         }
@@ -132,20 +151,9 @@ struct CaptureStaging final {
     }
 };
 
-thread_local CaptureStaging capture_staging;
-
-BITMAPINFO bitmap_info(std::uint32_t width, std::uint32_t height) {
-    BITMAPINFO info{};
-    info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    info.bmiHeader.biWidth = static_cast<LONG>(width);
-    info.bmiHeader.biHeight = -static_cast<LONG>(height);
-    info.bmiHeader.biPlanes = 1;
-    info.bmiHeader.biBitCount = 32;
-    info.bmiHeader.biCompression = BI_RGB;
-    return info;
+void SurfaceStagingRelease::operator()(SurfaceStaging* staging) const noexcept {
+    delete staging;
 }
-
-} // namespace
 
 gd_result export_hbitmap(Bitmap& bitmap, Color background, std::uintptr_t& output) {
     const ImageSnapshot snapshot = bitmap.snapshot();
@@ -438,7 +446,7 @@ gd_result capture_surface(std::uintptr_t source, std::uint32_t kind,
 }
 
 gd_result refresh_surface(std::uintptr_t source, std::uint32_t kind,
-                          Bitmap& bitmap, RectF& output_bounds) {
+                          Bitmap& bitmap, SurfaceStagingOwner& staging, RectF& output_bounds) {
     if (bitmap.borrows_memory()) {
         // The bitmap already is the surface: only GDI's batch and its
         // cleared alpha need settling. A section replaced or resized since
@@ -481,8 +489,9 @@ gd_result refresh_surface(std::uintptr_t source, std::uint32_t kind,
     }
 
     try {
-        capture_staging.ensure(width, height);
-        if (BitBlt(capture_staging.device, 0, 0,
+        if (!staging) staging = SurfaceStagingOwner(new SurfaceStaging());
+        (*staging).ensure(width, height);
+        if (BitBlt((*staging).device, 0, 0,
                    static_cast<int>(width), static_cast<int>(height),
                    source_device, bounds.left, bounds.top,
                    SRCCOPY | CAPTUREBLT) == 0) {
@@ -497,7 +506,7 @@ gd_result refresh_surface(std::uintptr_t source, std::uint32_t kind,
         BitmapLockView lock = bitmap.lock(BitmapLockMode::write);
         try {
             const std::size_t packed_row_bytes = static_cast<std::size_t>(width) * 4U;
-            const std::byte* source_bytes = static_cast<const std::byte*>(capture_staging.pixels);
+            const std::byte* source_bytes = static_cast<const std::byte*>((*staging).pixels);
             for (std::uint32_t y = 0; y < height; ++y) {
                 std::byte* destination = lock.writable_data +
                     static_cast<std::size_t>(y) * lock.row_bytes;

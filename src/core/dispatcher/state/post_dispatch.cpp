@@ -1,4 +1,5 @@
 #include "dispatcher_state.hpp"
+#include "../../thread_records/core_thread_record.hpp"
 
 #include "gui_forms/window.hpp"
 
@@ -11,10 +12,6 @@ namespace gui_forms {
 namespace detail {
 
 namespace {
-
-// The calling thread's revocable invokes, if it has any (a sub-surface's
-// thread). Each thread reads and writes only its own.
-thread_local std::shared_ptr<RevocableInvokes> thread_revocable_invokes{};
 
 // An operation that is already cancelled and holds no callback: what a
 // refused post returns.
@@ -48,7 +45,13 @@ void revoke_invokes(RevocableInvokes& invokes) noexcept {
 }
 
 void set_thread_revocable_invokes(std::shared_ptr<RevocableInvokes> invokes) noexcept {
-    thread_revocable_invokes = std::move(invokes);
+    // Kept in the thread's core record (core_thread_record.hpp): setting
+    // creates it, clearing never does. A thread whose record cannot be made
+    // (its records ending, or out of memory) keeps none: its synchronous
+    // invokes then wait as any worker's do, unrevocable by a stop.
+    CoreThreadRecord* const record = invokes ? core_thread_record() : existing_core_thread_record();
+    if (record == nullptr) return;
+    (*record).revocable_invokes = std::move(invokes);
 }
 
 void wake_host_locked(DispatcherState& state) {
@@ -107,16 +110,21 @@ PostOutcome post_dispatch_outcome(const std::shared_ptr<DispatcherState>& state,
             return PostOutcome::queue_full;
         }
         work = std::make_shared<DispatchWork>();
-        if (synchronous && thread_revocable_invokes) {
+        // The calling thread's revocable invokes, if it has any; read
+        // without creating its record.
+        CoreThreadRecord* const thread_record = synchronous ? existing_core_thread_record() : nullptr;
+        RevocableInvokes* const revocable =
+            thread_record == nullptr ? nullptr : (*thread_record).revocable_invokes.get();
+        if (revocable != nullptr) {
             // Under the leaf lock, so a revocation either sees this work as
             // waiting or this post sees the revocation.
-            std::scoped_lock revocable_lock((*thread_revocable_invokes).mutex);
-            if ((*thread_revocable_invokes).revoked) {
+            std::scoped_lock revocable_lock((*revocable).mutex);
+            if ((*revocable).revoked) {
                 ++(*state).cancelled;
                 operation = refused_operation(state);
                 return PostOutcome::refused;
             }
-            (*thread_revocable_invokes).waiting = work;
+            (*revocable).waiting = work;
         }
         (*work).sequence = (*state).next_sequence++;
         if ((*state).next_sequence == 0U) (*state).next_sequence = 1U;

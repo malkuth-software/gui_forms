@@ -4,6 +4,7 @@
 #include "abi_event_fields.hpp"
 
 #include "../tables/abi_records.hpp"
+#include "../../../core/thread_records/core_thread_record.hpp"
 
 #include "gui_forms/detail/storage_growth.hpp"
 
@@ -39,10 +40,14 @@ constexpr std::string_view single_name = "value";
 // The frames whose callback is running on this thread, innermost last. One
 // stack per thread (N9): since 1.1 a sub-surface's thread raises its own
 // controls' events and calls the events slots for them, beside the UI
-// thread.
-std::vector<EventFields*>& active_frames() {
-    thread_local std::vector<EventFields*> frames;
-    return frames;
+// thread. Kept in the thread's core record (core_thread_record.hpp):
+// pushing creates it; finding and removing never do, and see no frames
+// where there is no record. Null when the thread has none.
+std::vector<EventFields*>* active_frames(bool create) noexcept {
+    detail::CoreThreadRecord* const record =
+        create ? detail::core_thread_record() : detail::existing_core_thread_record();
+    std::vector<EventFields*>* const result = record == nullptr ? nullptr : &(*record).event_frames;
+    return result;
 }
 
 std::string_view view_of(gf_utf8_view text) noexcept {
@@ -328,8 +333,11 @@ void EventFields::publish(gf_event& event, bool single_argument) {
         name_blocks_.emplace_back();
     }
 #endif
-    std::vector<EventFields*>& frames = active_frames();
-    detail::reserve_one_more(frames);
+    // A thread whose record cannot be made (its records ending, or out of
+    // memory) publishes the event without a frame: the events slots then
+    // find no fields for it (frame_of), and the callback still runs.
+    std::vector<EventFields*>* const frames = active_frames(true);
+    if (frames != nullptr) detail::reserve_one_more(*frames);
     std::size_t index = 0U;
     for (index = 0U; index < fields_.size(); ++index) {
         gf_event_field record{};
@@ -351,19 +359,19 @@ void EventFields::publish(gf_event& event, bool single_argument) {
     const bool one_value = single_argument && fields_.size() == 1U && names_[0] == single_name;
     event.payload = one_value ? &values_[0] : nullptr;
     event_ = &event;
-    frames.push_back(this);
+    if (frames != nullptr) (*frames).push_back(this);
 }
 
 void EventFields::end_publication() noexcept {
     if (event_ == nullptr) {
         return;
     }
-    std::vector<EventFields*>& frames = active_frames();
-    std::size_t index = frames.size();
+    std::vector<EventFields*>* const frames = active_frames(false);
+    std::size_t index = frames == nullptr ? 0U : (*frames).size();
     while (index > 0U) {
         --index;
-        if (frames[index] == this) {
-            frames.erase(frames.begin() + static_cast<std::ptrdiff_t>(index));
+        if ((*frames)[index] == this) {
+            (*frames).erase((*frames).begin() + static_cast<std::ptrdiff_t>(index));
             break;
         }
     }
@@ -463,12 +471,12 @@ EventFields* EventFields::frame_of(const gf_event* event) noexcept {
     if (event == nullptr) {
         return nullptr;
     }
-    std::vector<EventFields*>& frames = active_frames();
-    std::size_t index = frames.size();
+    std::vector<EventFields*>* const frames = active_frames(false);
+    std::size_t index = frames == nullptr ? 0U : (*frames).size();
     while (index > 0U) {
         --index;
-        if ((*frames[index]).event_ == event) {
-            return frames[index];
+        if ((*(*frames)[index]).event_ == event) {
+            return (*frames)[index];
         }
     }
     return nullptr;

@@ -3,6 +3,7 @@
 #include "gui_forms/live_surface.hpp"
 
 #include "windows_compatibility_paint_endpoint_metrics.hpp"
+#include "../../../core/thread_records/core_thread_record.hpp"
 
 #include <windows.h>
 
@@ -169,6 +170,10 @@ private:
     };
 
     void loop() noexcept {
+        // Closes last, after the lock: the thread's records (the drawing
+        // libraries' among them, as publishing draws) are released here, on
+        // the thread, outside the loader lock its exit would run them under.
+        const gui_forms::detail::ThreadRecordsEnd thread_records_end;
         std::unique_lock lock(mutex_);
         for (;;) {
             while (!stop_ && queue_.empty()) wake_.wait(lock);

@@ -18,6 +18,7 @@
 #endif
 
 #include "gui_forms/content/hosted/hosted_content.hpp"
+#include "../../../core/thread_records/core_thread_record.hpp"
 
 #include <fcntl.h>
 #include <poll.h>
@@ -280,6 +281,8 @@ class LateReaper final {
 public:
     explicit LateReaper(pid_t process) noexcept : process_(process) {}
     void operator()() const noexcept {
+        // Closes last: the thread's records are released here, on the thread.
+        const gui_forms::detail::ThreadRecordsEnd thread_records_end;
         int status = 0;
         while (waitpid(process_, &status, 0) < 0 && errno == EINTR) {
         }

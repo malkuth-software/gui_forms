@@ -47,6 +47,7 @@ static void *gui_forms_atomic_pool_worker(void *argument)
         }
         if (pool->terminate) {
             (void)pthread_mutex_unlock(&pool->sleep_lock);
+            gui_forms_atomic_pool_thread_ending();
             return NULL;
         }
         (void)pthread_mutex_unlock(&pool->sleep_lock);

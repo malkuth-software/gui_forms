@@ -1,11 +1,20 @@
 #include "gui_forms/threading.hpp"
 #include "atomic_pool/atomic_pool.h"
 
+#include <stxlib/thread_records.hpp>
+
 #include <exception>
 #include <limits>
 #include <stdexcept>
 #include <utility>
 #include <vector>
+
+// Each pool thread's last act (atomic_pool.h): its STXlib thread records
+// (every library's) are released here, on the thread, rather than by the
+// exit hook, which on Windows runs under the loader lock.
+extern "C" void gui_forms_atomic_pool_thread_ending() {
+    stxlib::end_thread_records();
+}
 
 namespace gui_forms {
 

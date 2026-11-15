@@ -7,6 +7,9 @@
 #include "drawing_raster_service.h"
 #include "font_resolution_record.hpp"
 
+#include <stxlib/result.hpp>
+#include <stxlib/thread_records.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -24,15 +27,64 @@
 
 namespace {
 
-thread_local gd_result last_error_code = GD_OK;
-thread_local std::string last_error_message;
+// The drawing library's per-thread state, one STXlib thread record
+// (stxlib/thread_records.hpp; the core and the raster module keep their
+// own, as each library loads separately): the calling thread's last error,
+// which gd_last_error reports. Created on the thread's first failure and
+// released on that thread by STXlib's exit hook or its end_thread_records.
+struct DrawingThreadRecord final {
+    gd_result last_error_code{GD_OK};
+    std::string last_error_message{};
+};
 
+// The record type's callbacks, run by STXlib on the record's thread:
+// construction in zero-filled memory neither allocates nor throws; release
+// frees the message's memory only, so it is safe under the Windows loader
+// lock.
+void initialize_drawing_thread_record(DrawingThreadRecord* record) noexcept {
+    ::new (static_cast<void*>(record)) DrawingThreadRecord();
+}
+
+void release_drawing_thread_record(DrawingThreadRecord* record) noexcept {
+    (*record).~DrawingThreadRecord();
+}
+
+using DrawingThreadRecordType = stxlib::ThreadRecord<DrawingThreadRecord>;
+using DrawingThreadRecordRegistration = stxlib::Result<DrawingThreadRecordType>;
+
+// Registered once per process, by the first thread that fails; permanent,
+// as the library stays loaded for the process's life once registered.
+const DrawingThreadRecordRegistration& drawing_thread_record_registration() noexcept {
+    static const DrawingThreadRecordRegistration registration =
+        DrawingThreadRecordType::register_type<&initialize_drawing_thread_record,
+                                               &release_drawing_thread_record>();
+    return registration;
+}
+
+// The calling thread's record, created when `create`. Null when there is
+// none: never created, the thread's records ending or ended (STXlib's
+// disposed), allocation failed, or the type unregistered.
+DrawingThreadRecord* drawing_thread_record(bool create) noexcept {
+    const DrawingThreadRecordType* const type = drawing_thread_record_registration().value();
+    if (type == nullptr) return nullptr;
+    if (!create) return (*type).existing();
+    stxlib::Result<DrawingThreadRecord*> found = (*type).get();
+    if (found.failed()) return nullptr;
+    DrawingThreadRecord* const result = std::move(found).take_value();
+    return result;
+}
+
+// Records the failure as the thread's last error and returns it. A thread
+// without a record (see drawing_thread_record) still gets the result; only
+// gd_last_error's text is lost, quietly.
 gd_result fail(gd_result result, std::string message) noexcept {
-    last_error_code = result;
+    DrawingThreadRecord* const record = drawing_thread_record(true);
+    if (record == nullptr) return result;
+    (*record).last_error_code = result;
     try {
-        last_error_message = std::move(message);
+        (*record).last_error_message = std::move(message);
     } catch (...) {
-        last_error_message.clear();
+        (*record).last_error_message.clear();
     }
     return result;
 }
@@ -136,6 +188,10 @@ struct ObjectRecord final {
     // lock makes the selected operation order the order in which ABI calls
     // acquire each object. Concurrent access is deliberately serialized.
     std::recursive_mutex operation_mutex;
+    // A bitmap's native surface refresh staging (drawing_platform.hpp):
+    // empty until its first copying refresh, then kept at its size; used
+    // under operation_mutex and destroyed once, with this record.
+    gui_drawing::abi::platform::SurfaceStagingOwner surface_staging{};
 };
 
 struct Slot final {
@@ -265,6 +321,30 @@ public:
                          std::static_pointer_cast<Object>((*record).object);
         if (!object) return fail(GD_ERROR_WRONG_HANDLE_KIND, "drawing handle type mismatch");
         return translate(operation, *object,
+                         std::forward<Arguments>(arguments)...);
+    }
+
+    // with<Bitmap> for a native surface refresh: the operation also gets
+    // the handle record's surface staging, under the same operation lock.
+    template <typename Operation, typename... Arguments>
+    gd_result with_surface_staging(gd_handle handle, Operation operation, Arguments&&... arguments) {
+        std::shared_ptr<ObjectRecord> record;
+        constexpr bool serialized_handoff = true;
+        if (const gd_result result = get(handle, GD_OBJECT_BITMAP, record, false,
+                                         serialized_handoff); result != GD_OK) {
+            return result;
+        }
+        std::scoped_lock operation_lock((*record).operation_mutex);
+        if ((*record).owner_thread != std::this_thread::get_id()) {
+            (*(*record).object).handoff_to_current_thread();
+            (*record).owner_thread = std::this_thread::get_id();
+        }
+        if ((*(*record).object).is_disposed()) {
+            return fail(GD_ERROR_DISPOSED, "drawing object is disposed");
+        }
+        std::shared_ptr<gui_drawing::Bitmap> bitmap =
+            std::static_pointer_cast<gui_drawing::Bitmap>((*record).object);
+        return translate(operation, *bitmap, (*record).surface_staging,
                          std::forward<Arguments>(arguments)...);
     }
 
@@ -1355,11 +1435,12 @@ gd_result present_native_surface(gui_drawing::Bitmap& bitmap,
 }
 
 gd_result refresh_native_surface(gui_drawing::Bitmap& bitmap,
+                                 gui_drawing::abi::platform::SurfaceStagingOwner& staging,
                                  std::uintptr_t source, std::uint32_t kind,
                                  gd_rect* refreshed_bounds) {
     gui_drawing::RectF bounds;
     const gd_result result = gui_drawing::abi::platform::refresh_surface(
-        source, kind, bitmap, bounds);
+        source, kind, bitmap, staging, bounds);
     if (result != GD_OK) {
         return fail(result, "native surface refresh is unavailable");
     }
@@ -1397,8 +1478,15 @@ gd_result release_bitmap_hdc(gui_drawing::Bitmap& bitmap,
 
 gd_result api_last_error(gd_error_view* error) {
     if (error == nullptr) return fail(GD_ERROR_INVALID_ARGUMENT, "last_error requires output");
-    (*error).code = static_cast<std::uint32_t>(last_error_code);
-    (*error).message = {last_error_message.data(), last_error_message.size()};
+    // A thread that never failed (or whose record is gone) reports no error.
+    const DrawingThreadRecord* const record = drawing_thread_record(false);
+    if (record == nullptr) {
+        (*error).code = static_cast<std::uint32_t>(GD_OK);
+        (*error).message = {"", 0U};
+        return GD_OK;
+    }
+    (*error).code = static_cast<std::uint32_t>((*record).last_error_code);
+    (*error).message = {(*record).last_error_message.data(), (*record).last_error_message.size()};
     return GD_OK;
 }
 
@@ -2311,9 +2399,8 @@ gd_result api_native_surface_refresh(std::uintptr_t source, std::uint32_t kind,
                     "native surface refresh requires a handle, kind, and bounds output");
     }
     *refreshed_bounds = {};
-    return registry().with<gui_drawing::Bitmap>(
-        handle, GD_OBJECT_BITMAP, &refresh_native_surface, source, kind,
-        refreshed_bounds);
+    return registry().with_surface_staging(
+        handle, &refresh_native_surface, source, kind, refreshed_bounds);
 }
 
 gd_result api_native_surface_publish_retained(std::uintptr_t destination,

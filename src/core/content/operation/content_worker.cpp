@@ -1,6 +1,7 @@
 #include "gui_forms/content/operation/content_operation.hpp"
 
 #include "../channel/content_channel.hpp"
+#include "../../thread_records/core_thread_record.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -204,7 +205,11 @@ void run_content_worker(ContentWorkerStart* start) noexcept {
 // std::thread's entry on Windows.
 struct ContentWorkerThreadEntry final {
     ContentWorkerStart* start{};
-    void operator()() const noexcept { run_content_worker(start); }
+    void operator()() const noexcept {
+        // Closes last: the thread's records are released here, on the thread.
+        const gui_forms::detail::ThreadRecordsEnd thread_records_end;
+        run_content_worker(start);
+    }
 };
 #else
 // pthread_create's start routine type, taken from its declaration.
@@ -224,6 +229,8 @@ using PthreadStartRoutine = StartRoutineOf<decltype(pthread_create)>::type;
 // The POSIX thread's body: runs the worker on its start block (which it
 // owns from here). Returns null, unread.
 void* content_worker_thread_main(void* argument) {
+    // Closes last: the thread's records are released here, on the thread.
+    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     run_content_worker(static_cast<ContentWorkerStart*>(argument));
     return nullptr;
 }

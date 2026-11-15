@@ -1,4 +1,5 @@
 #include "splash_baker.hpp"
+#include "../../thread_records/core_thread_record.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -32,6 +33,8 @@ SplashBaker::~SplashBaker() {
 }
 
 void SplashBaker::WorkerEntry::operator()() const {
+    // Closes last: the thread's records are released here, on the thread.
+    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     (*baker).run();
 }
 

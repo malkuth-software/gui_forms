@@ -1,4 +1,5 @@
 #include "text_mask_state.hpp"
+#include "../../thread_records/core_thread_record.hpp"
 #include <cstring>
 
 namespace gui_forms::detail {
@@ -98,6 +99,8 @@ void TextMaskSessionState::join() {
 TextMaskSessionState::~TextMaskSessionState() { join(); }
 
 void TextMaskSessionState::run() noexcept {
+    // Closes last: the thread's records are released here, on the thread.
+    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     for (;;) {
         std::size_t selected = slots.size();
         std::shared_ptr<const MaskKey> key{};

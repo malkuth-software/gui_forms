@@ -9,12 +9,16 @@
 #include "core_text_font_bytes.hpp"
 #endif
 
+#include <stxlib/result.hpp>
+#include <stxlib/thread_records.hpp>
+
 #include <algorithm>
 #include <climits>
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <limits>
@@ -43,9 +47,81 @@ using gui_drawing::render::RasterError;
 using gui_drawing::render::RasterResult;
 using gui_drawing::render::SkiaExecutor;
 
+// Stage F: one family request's answer on this thread, registered for
+// drawing. The request's own name is not kept; the table's views are static.
+struct FontRequest final {
+    FontFamilyResolution resolution{};
+    bool face_loaded{};
+};
+
+// The raster module's per-thread state, one STXlib thread record
+// (stxlib/thread_records.hpp; the core and the drawing library keep their
+// own, as each library loads separately): the thread's executor and the
+// font registrations made on it. The executor is thread-affine and its
+// typefaces are its own, so the registrations live and die with it.
+struct RasterThreadRecord final {
+    // Made on the thread's first raster call: its construction allocates,
+    // which a record's initialization may not.
+    std::optional<SkiaExecutor> executor{};
+    // Bundled faces loaded into the executor, by folded family and slot
+    // (load_bundled_face).
+    std::unordered_map<std::string, bool> loaded_faces{};
+    // Family requests answered and registered, by folded family and slot
+    // (ensure_font).
+    std::unordered_map<std::string, FontRequest> font_requests{};
+    // Whether the packaged faces are registered (register_packaged_fonts).
+    bool packaged_fonts_registered{};
+};
+
+// The record type's callbacks, run by STXlib on the record's thread:
+// construction in zero-filled memory neither allocates nor throws (the
+// executor waits for first use); release destroys the executor and the
+// maps, which frees memory only.
+void initialize_raster_thread_record(RasterThreadRecord* record) noexcept {
+    ::new (static_cast<void*>(record)) RasterThreadRecord();
+}
+
+void release_raster_thread_record(RasterThreadRecord* record) noexcept {
+    (*record).~RasterThreadRecord();
+}
+
+using RasterThreadRecordType = stxlib::ThreadRecord<RasterThreadRecord>;
+using RasterThreadRecordRegistration = stxlib::Result<RasterThreadRecordType>;
+
+// Registered once per process, by the first thread that rasterizes;
+// permanent, as the module stays loaded once its service is installed.
+const RasterThreadRecordRegistration& raster_thread_record_registration() noexcept {
+    static const RasterThreadRecordRegistration registration =
+        RasterThreadRecordType::register_type<&initialize_raster_thread_record,
+                                              &release_raster_thread_record>();
+    return registration;
+}
+
+// Thrown where a raster entry needs the thread's record and cannot have it:
+// the thread's records are ending or have ended (STXlib's disposed), the
+// allocation failed, or the type is unregistered. Each entry answers it
+// with GD_ERROR_NOT_AVAILABLE and nothing more: a quiet refusal.
+class RasterRecordUnavailable final : public std::exception {
+public:
+    const char* what() const noexcept override {
+        return "the raster module has no record on this thread";
+    }
+};
+
+// The calling thread's record, created on first use.
+RasterThreadRecord& raster_thread_record() {
+    const RasterThreadRecordType* const type = raster_thread_record_registration().value();
+    if (type == nullptr) throw RasterRecordUnavailable();
+    stxlib::Result<RasterThreadRecord*> found = (*type).get();
+    if (found.failed()) throw RasterRecordUnavailable();
+    RasterThreadRecord* const record = std::move(found).take_value();
+    return *record;
+}
+
 SkiaExecutor& executor() {
-    thread_local SkiaExecutor value;
-    return value;
+    RasterThreadRecord& record = raster_thread_record();
+    if (!record.executor) record.executor.emplace();
+    return *record.executor;
 }
 
 // The largest font file read or accepted from a host.
@@ -86,11 +162,11 @@ std::vector<std::byte> read_file(const std::filesystem::path& path) {
 }
 
 // Loads one bundled face into a family's slot, once per thread: the
-// executor is thread-local, so its registrations are too. The face comes
+// executor is the thread's, so its registrations are too. The face comes
 // from the library's embedded font pack. False when the pack does not hold
 // it or its bytes are not a font.
 bool load_bundled_face(std::string_view family, std::string_view file, FontFaceStyle slot) {
-    thread_local std::unordered_map<std::string, bool> loaded;
+    std::unordered_map<std::string, bool>& loaded = raster_thread_record().loaded_faces;
     std::string key = ascii_folded(family);
     key += '\x1f';
     key += static_cast<char>('0' + static_cast<int>(slot));
@@ -294,13 +370,6 @@ HostFace host_face(std::string_view, std::uint32_t) {
 }
 #endif
 
-// Stage F: one family request's answer on this thread, registered for
-// drawing. The request's own name is not kept; the table's views are static.
-struct FontRequest final {
-    FontFamilyResolution resolution{};
-    bool face_loaded{};
-};
-
 void trace_font_request(std::string_view family, const FontRequest& request,
                         std::string_view selected) {
     const FontFamilyResolution& resolution = request.resolution;
@@ -325,7 +394,7 @@ void trace_font_request(std::string_view family, const FontRequest& request,
 // A bundled face fills the requested slot even when it is the family's
 // nearest style, so nothing is synthesized for it (decision 7).
 const FontRequest& ensure_font(std::string_view family, std::uint32_t style) {
-    thread_local std::unordered_map<std::string, FontRequest> requests;
+    std::unordered_map<std::string, FontRequest>& requests = raster_thread_record().font_requests;
     const FontFaceStyle face_style = gui_drawing::font_face_style(style);
     std::string key = ascii_folded(family);
     key += '\x1f';
@@ -358,15 +427,16 @@ const FontRequest& ensure_font(std::string_view family, std::uint32_t style) {
 }
 
 void register_packaged_fonts() {
-    // The raster executor is thread-local. Native initialization can happen while
+    // The raster executor is the thread's. Native initialization can happen while
     // a resource is decoded on a loader thread, before the UI thread performs its
-    // first paint, so font registration must have the same thread-local lifetime.
+    // first paint, so font registration must have the same per-thread lifetime.
     // Portsmouth Rapids is the executor's last resort when a face cannot load.
-    thread_local bool attempted = false;
-    if (attempted) return;
-    attempted = true;
+    // Marked only once both are in, so a registration that throws is tried again.
+    RasterThreadRecord& record = raster_thread_record();
+    if (record.packaged_fonts_registered) return;
     static_cast<void>(ensure_font("Portsmouth Rapids", 0U));
     static_cast<void>(ensure_font("Portsmouth Rapids", 1U));
+    record.packaged_fonts_registered = true;
 }
 
 void ensure_recorder_fonts(const GraphicsRecorder& recorder,
@@ -416,6 +486,8 @@ gd_result execute(const void* recorder, void* bitmap,
             *static_cast<Bitmap*>(bitmap), static_cast<std::size_t>(first_command));
         *commands_executed = result.commands_executed;
         return translate_error(result.error);
+    } catch (const RasterRecordUnavailable&) {
+        return GD_ERROR_NOT_AVAILABLE;
     } catch (...) {
         return GD_ERROR_INTERNAL;
     }
@@ -437,6 +509,8 @@ gd_result encode_png(const void* bitmap, void* buffer, std::uint64_t capacity,
         }
         if (!png.empty()) std::memcpy(buffer, png.data(), png.size());
         return GD_OK;
+    } catch (const RasterRecordUnavailable&) {
+        return GD_ERROR_NOT_AVAILABLE;
     } catch (...) {
         return GD_ERROR_INTERNAL;
     }
@@ -454,6 +528,8 @@ gd_result decode_png(const void* data, std::uint64_t size, void** bitmap) {
         if (!result) return translate_error(result.error);
         *bitmap = result.bitmap.release();
         return GD_OK;
+    } catch (const RasterRecordUnavailable&) {
+        return GD_ERROR_NOT_AVAILABLE;
     } catch (...) {
         return GD_ERROR_INTERNAL;
     }
@@ -483,6 +559,8 @@ gd_result measure_string(const void* font, const void* format,
         (*measured).width = size.width;
         (*measured).height = size.height;
         return GD_OK;
+    } catch (const RasterRecordUnavailable&) {
+        return GD_ERROR_NOT_AVAILABLE;
     } catch (...) {
         return GD_ERROR_INTERNAL;
     }
@@ -497,6 +575,8 @@ gd_result resolve_font(const void* font, gd_font_resolution* resolution) {
         const FontRequest& request = ensure_font(snapshot.family, snapshot.style);
         gui_drawing::abi::fill_font_resolution(request.resolution, request.face_loaded, *resolution);
         return GD_OK;
+    } catch (const RasterRecordUnavailable&) {
+        return GD_ERROR_NOT_AVAILABLE;
     } catch (...) {
         return GD_ERROR_INTERNAL;
     }
@@ -515,6 +595,14 @@ extern "C" gd_result gdr_initialize(void) {
         &execute, &encode_png, &decode_png, &measure_string, &resolve_font,
     };
     const gd_result installed = api.raster_service_install(&service);
-    if (installed == GD_OK) register_packaged_fonts();
+    if (installed != GD_OK) return installed;
+    // The packaged faces on the installing thread. A failure (no record on
+    // this thread, or no memory) leaves them to the thread's first raster
+    // call, which registers them or refuses itself.
+    try {
+        register_packaged_fonts();
+    } catch (...) {
+        static_cast<void>(0);
+    }
     return installed;
 }
