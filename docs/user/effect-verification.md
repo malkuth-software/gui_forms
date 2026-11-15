@@ -42,10 +42,16 @@ Every rejection is a compiler error at the construct, followed by a note
 naming the effect.
 
 On CI, the Linux native and sanitizer jobs install Clang 22's development
-headers (`llvm-22-dev` and `libclang-22-dev`), build the plugin and verify
-every effect; `tools/ci_build.py` configures them with
+headers (`llvm-22-dev` and `libclang-22-dev`), and the Windows job's pinned
+MSYS2 CLANG64 toolchain carries LLVM's headers
+(`mingw-w64-clang-x86_64-llvm`) beside Clang's headers and the import
+libraries of `libclang-cpp.dll` and `libLLVM-22.dll`, which the compiler's
+own packages bring. Both build the plugin and verify every effect;
+`tools/ci_build.py` configures them with
 `GUI_FORMS_EFFECT_VERIFY_REQUIRED=ON`, so a plugin that cannot be built or
-loaded fails the configure instead of leaving the effects unverified. The
+loaded fails the configure instead of leaving the effects unverified. In a
+local MSYS2 CLANG64 tree, `pacman -S mingw-w64-clang-x86_64-llvm` at the
+compiler's version adds the headers. The
 `effect-pass` job (`.github/workflows/effect-pass.yml`) also runs the pass's
 own cases on its own, for pull requests that touch the effect engine, the
 plugin, the effect tests or a file that registers effects.
