@@ -186,7 +186,7 @@ void capabilities_json_names_the_locale() {
     const std::string json = capabilities.to_json();
     require(json.find("\"locale\":{\"name\":\"de-DE\"") != std::string::npos,
             "the capabilities JSON carries the locale record");
-    require(HostCapabilities::current_protocol_version == 14U, "the locale is protocol revision 14");
+    require(host_protocol_revisions[6].version == 14U, "the locale is protocol revision 14");
     const std::size_t listed = json.find("\"locale\"");
     require(listed != std::string::npos && json.find("\"locale\"", listed + 1U) != std::string::npos,
             "the capability is listed by name as well as carrying the record");
