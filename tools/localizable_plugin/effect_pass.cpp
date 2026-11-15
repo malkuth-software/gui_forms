@@ -800,7 +800,11 @@ private:
                 llvm::APInt end = last;
                 if (kind == clang::BO_LE) end = last + 1;
                 if (end.sle(first)) {
-                    bounded = true;
+                    // '<' and '<=' are false at once. '!=' is false at once
+                    // only when the loop starts on its limit; started past
+                    // it, the variable counts away until it wraps
+                    // (B-gf-tests-misc-02-F1).
+                    bounded = kind != clang::BO_NE || end == first;
                 } else {
                     const llvm::APInt span = end - first;
                     if (kind == clang::BO_NE && !span.srem(stride).isZero()) {
@@ -823,7 +827,8 @@ private:
                 llvm::APInt end = last;
                 if (kind == clang::BO_GE) end = last - 1;
                 if (first.sle(end)) {
-                    bounded = true;
+                    // As counting up: '!=' is false at once only on its limit.
+                    bounded = kind != clang::BO_NE || first == end;
                 } else {
                     const llvm::APInt span = first - end;
                     if (kind == clang::BO_NE && !span.srem(stride).isZero()) {

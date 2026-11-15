@@ -3885,7 +3885,8 @@ if(GUI_FORMS_BUILD_TESTS)
     # in this tree, so they take the tree's lock one at a time.
     if(GUI_FORMS_EFFECTS_VERIFIED)
         set(_gf_effect_cases
-            passes while_loop unbounded_for loop_variable_written recursion virtual_call function_pointer
+            passes while_loop unbounded_for loop_variable_written not_equal_past_limit not_equal_below_limit
+            recursion virtual_call function_pointer
             allocation global_write cmath_call opaque_call pointer_state oversized_state over_budget unverified
             signal_passes signal_over_budget signal_cmath_call)
         foreach(_gf_case IN LISTS _gf_effect_cases)
