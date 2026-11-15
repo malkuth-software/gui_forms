@@ -461,7 +461,7 @@ bool stream_decode_chunk(StreamDecoder& decoder, std::uint32_t chunk_index, std:
             // literal's table into scratch, decode over it in place, scatter to the output.
             std::uint32_t literal_total = 0;
             if (decoder.table_count != 1) {
-                const std::uint8_t* class_cursor = classes + chunk.out_start;
+                const std::uint8_t* class_cursor = classes;
                 for (std::uint32_t s = 0; s < chunk.sequence_count; s += 1) {
                     const std::uint32_t literal_length = sequences[s].literal_length;
                     for (std::uint32_t k = 0; k < literal_length; k += 1) {
@@ -543,7 +543,8 @@ bool stream_decode_chunk(StreamDecoder& decoder, std::uint32_t chunk_index, std:
                     }
                     std::uint32_t fine = previous;
                     if (classes != nullptr) {
-                        fine += static_cast<std::uint32_t>(classes[(cursor - out) + k]) * stride;
+                        const std::size_t at = static_cast<std::size_t>(cursor - out) - chunk.out_start + k;
+                        fine += static_cast<std::uint32_t>(classes[at]) * stride;
                     }
                     const std::uint32_t symbol = rans_step(states[phase], tables[map[fine]], rans);
                     phase = (phase + 1) & (kLiteralStates - 1);
@@ -619,7 +620,9 @@ bool stream_decode_all(const Allocator& allocator, const std::uint8_t* blob, std
         std::uint8_t* scratch = static_cast<std::uint8_t*>(block_take(allocator, scratch_bytes));
         ok = scratch != nullptr;
         for (std::uint32_t c = 0; c < decoder.chunk_count && ok; c += 1) {
-            ok = stream_decode_chunk(decoder, c, out, classes, scratch);
+            // classes covers the whole stream; the chunk decoder reads from the chunk's start.
+            const std::uint8_t* chunk_classes = classes != nullptr ? classes + decoder.chunks[c].out_start : nullptr;
+            ok = stream_decode_chunk(decoder, c, out, chunk_classes, scratch);
         }
         block_give(&allocator, scratch, scratch_bytes);
         if (ok) {
@@ -970,7 +973,7 @@ bool number_decode_chunk(NumberDecoder& decoder, std::uint32_t chunk_index, std:
     {
         const std::uint8_t* map = decoder.context_map;
         if (decoder.table_count != 1) {
-            const std::uint8_t* class_cursor = classes + chunk.out_start;
+            const std::uint8_t* class_cursor = classes;
             std::uint32_t filled = 0;
             for (std::uint32_t s = 0; s < chunk.sequence_count; s += 1) {
                 const std::uint32_t literal_length = sequences[s].literal_length;
@@ -1121,7 +1124,7 @@ bool number_decode_chunk(NumberDecoder& decoder, std::uint32_t chunk_index, std:
                         }
                         lane.wanted = kResidualLanes - 1;
                         lane.cursor = out + match_start;
-                        lane.class_cursor = classes != nullptr ? classes + match_start : nullptr;
+                        lane.class_cursor = classes != nullptr ? classes + (match_start - chunk.out_start) : nullptr;
                         lane.remaining = sequence.match_length;
                         lane.context = 0;
                         lane.before_nonzero = 0;

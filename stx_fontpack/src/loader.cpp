@@ -659,8 +659,8 @@ void job_decode_chunk(Loader& loader, const Job& job, Worker& worker) {
             loader.failed.store(true);
             return;
         }
-        // The codec indexes classes by stream position.
-        classes = worker.class_buffer - chunk.out_start;
+        // The codec indexes classes from the chunk's first position.
+        classes = worker.class_buffer;
     }
     if (!decoder.stored && worker.literal_capacity < static_cast<std::size_t>(decoder.chunks[job.b].out_length) + 8) {
         scratch_give(loader, worker.literal_buffer, worker.literal_capacity);
@@ -726,7 +726,7 @@ void job_number_chunk(Loader& loader, const Job& job, Worker& worker) {
             loader.failed.store(true);
             return;
         }
-        classes = worker.class_buffer - chunk.out_start;
+        classes = worker.class_buffer;
     }
     {
         if (!number_decode_chunk(decoder, job.a, loader.numbers, classes, worker.literal_buffer)) {
@@ -1162,15 +1162,20 @@ bool rebuild_glyf(Loader& loader, Worker& worker, const FontEntry& font, const T
                 put_be16(out + 6, static_cast<std::uint32_t>(x_max) & 0xFFFFu);
                 put_be16(out + 8, static_cast<std::uint32_t>(y_max) & 0xFFFFu);
             }
-            tt_flags_fill(worker.point_flags, point_flags, worker.point_dx, worker.point_dy, points,
-                          (kind & kGlyphOverlapBit) != 0);
-            const std::size_t point_bytes =
-                tt_points_write(worker.point_bytes, worker.point_flags, worker.point_dx, worker.point_dy, points, table.repeat);
-            if (point_bytes > room - length) {
-                return false;
+            // A glyph with no points writes no point bytes; the point buffers
+            // may not exist yet then (worker_points allocates nothing for 0),
+            // so nothing reaches them (A-gf-typography-01-F9).
+            if (points != 0) {
+                tt_flags_fill(worker.point_flags, point_flags, worker.point_dx, worker.point_dy, points,
+                              (kind & kGlyphOverlapBit) != 0);
+                const std::size_t point_bytes = tt_points_write(worker.point_bytes, worker.point_flags, worker.point_dx,
+                                                                worker.point_dy, points, table.repeat);
+                if (point_bytes > room - length) {
+                    return false;
+                }
+                std::memcpy(out + length, worker.point_bytes, point_bytes);
+                length += static_cast<std::uint32_t>(point_bytes);
             }
-            std::memcpy(out + length, worker.point_bytes, point_bytes);
-            length += static_cast<std::uint32_t>(point_bytes);
         }
         const std::uint32_t padded = (length + table.pad - 1) & ~(table.pad - 1);
         if (padded > room) {

@@ -105,8 +105,9 @@ bool stream_open(StreamDecoder& decoder, const Allocator& allocator, const std::
                  std::size_t& consumed);
 
 // Decodes one chunk's sequences and writes its literals into out (the whole
-// stream's output array). classes is indexed by stream position and must be
-// valid for the chunk's range; it may be null only if class_count is 1.
+// stream's output array). classes holds the chunk's classes, classes[0]
+// being the class of the chunk's first position, out_length of them; it may
+// be null only if class_count is 1.
 // scratch is caller storage of at least the chunk's out_length + 8 bytes.
 // Safe to call for different chunks from different threads (with different scratch).
 bool stream_decode_chunk(StreamDecoder& decoder, std::uint32_t chunk_index, std::uint8_t* out,
@@ -188,8 +189,9 @@ bool number_open(NumberDecoder& decoder, const Allocator& allocator, const std::
 // reject such values.
 //
 // Decodes one chunk: literal values to their places in out, each fuzzy
-// match's corrections to the places they will correct. classes is indexed by
-// number; scratch holds at least the chunk's out_length + 8 bytes.
+// match's corrections to the places they will correct. classes holds the
+// chunk's classes from its first number (as for stream_decode_chunk); scratch
+// holds at least the chunk's out_length + 8 bytes.
 bool number_decode_chunk(NumberDecoder& decoder, std::uint32_t chunk_index, std::int16_t* out,
                          const std::uint8_t* classes, std::uint8_t* scratch);
 
