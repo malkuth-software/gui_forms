@@ -158,12 +158,15 @@ SurfaceApplicationWindow window_entry(TestWindow& state, std::string stable_id, 
 }
 
 // One run on the test host: the primary window and the windowing, as
-// run_surface_application sets them up.
+// run_surface_application sets them up. primary is declared before runtime,
+// which borrows it through the closed callback: when the constructor throws,
+// the destructor body does not run and the members go in reverse order, so
+// runtime must go before primary.
 struct Harness final {
+    TestWindow primary;
     TestHost host;
     std::shared_ptr<gui_forms::detail::BundledFontSet> fonts;
     std::unique_ptr<Runtime> runtime;
-    TestWindow primary;
 
     Harness() {
         fonts = gui_forms::detail::shared_bundled_font_set(host.fonts_directory(), host.sealed_pages());
