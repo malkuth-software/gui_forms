@@ -2607,7 +2607,9 @@ typedef struct gf_controls_table {
     gf_status (GF_CALL* set_pointer_capture)(gf_object object, uint32_t captured);
     gf_status (GF_CALL* pointer_capture)(gf_object object, uint32_t* captured);
     gf_status (GF_CALL* scroll_state)(gf_object object, gf_scroll_snapshot* state);
-    /* Sets one axis whole; an invalid axis gives INVALID_ARGUMENT. */
+    /* Sets one axis whole; an invalid axis gives INVALID_ARGUMENT and changes
+     * nothing. An auto-scrolling control keeps its own range (the axis's
+     * minimum and maximum are ignored), so its value must lie in that range. */
     gf_status (GF_CALL* set_scroll_axis)(gf_object object, gf_scroll_orientation orientation,
                                          const gf_scroll_axis* axis);
     /* Scrolls object, after layout, so that child, its descendant, shows. */

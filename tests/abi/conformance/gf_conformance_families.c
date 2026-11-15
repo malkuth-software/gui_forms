@@ -89,6 +89,28 @@ static void scrolling(gf_kit* kit) {
                   GF_STATUS_INVALID_ARGUMENT, "a value past the range is refused");
     gf_kit_status(kit, (*kit).controls.set_scroll_axis(panel, 2u, &axis), GF_STATUS_INVALID_ARGUMENT,
                   "an unknown orientation is refused");
+    /* A-gf-abi-03-F4: an auto-scrolling panel keeps its range, so a value
+     * outside it is refused before anything is written. */
+    gf_value automatic;
+    memset(&automatic, 0, sizeof(automatic));
+    automatic.struct_size = (uint32_t)sizeof(automatic);
+    automatic.kind = GF_VALUE_KIND_BOOLEAN;
+    automatic.boolean = 1u;
+    gf_kit_status(kit, (*kit).properties.set(panel, gf_kit_text("auto_scroll"), &automatic), GF_STATUS_OK,
+                  "turn auto scroll on");
+    gf_kit_status(kit, (*kit).controls.scroll_state(panel, &state), GF_STATUS_OK, "read the kept range");
+    gf_scroll_axis outside = state.vertical;
+    outside.large_change = state.vertical.large_change + 7.0;
+    outside.maximum = state.vertical.maximum + 1000.0;
+    outside.value = state.vertical.maximum + 500.0;
+    gf_kit_status(kit, (*kit).controls.set_scroll_axis(panel, GF_SCROLL_ORIENTATION_VERTICAL, &outside),
+                  GF_STATUS_INVALID_ARGUMENT, "a value outside an auto-scrolling panel's range is refused");
+    gf_scroll_snapshot after;
+    memset(&after, 0, sizeof(after));
+    after.struct_size = (uint32_t)sizeof(after);
+    gf_kit_status(kit, (*kit).controls.scroll_state(panel, &after), GF_STATUS_OK, "read the state after");
+    gf_kit_check(kit, after.vertical.large_change == state.vertical.large_change,
+                 "the refused axis changed nothing");
     gf_kit_status(kit, (*kit).controls.scroll_into_view(panel, child), GF_STATUS_OK, "scroll the child into view");
     gf_kit_status(kit, (*kit).controls.scroll_state(child, &state), GF_STATUS_WRONG_HANDLE_KIND,
                   "a button does not scroll");

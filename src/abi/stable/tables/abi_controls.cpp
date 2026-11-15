@@ -278,6 +278,17 @@ gf_status controls_set_scroll_axis_body(gf_object object, gf_scroll_orientation 
     ScrollProperties& properties = orientation == GF_SCROLL_ORIENTATION_HORIZONTAL
                                        ? (*scrollable).horizontal_scroll()
                                        : (*scrollable).vertical_scroll();
+    // An auto-scrolling control keeps its own range: set_minimum and
+    // set_maximum leave it, and set_value checks against it. So the value is
+    // checked against the range the setters will leave before the first
+    // one runs, and a refusal changes nothing (A-gf-abi-03-F4).
+    if ((*scrollable).auto_scroll.read()) {
+        const bool in_kept_range = (*axis).value >= properties.minimum() && (*axis).value <= properties.maximum();
+        if (!in_kept_range) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, set_scroll_axis_slot,
+                        "an auto-scrolling control keeps its range; the value must lie in it");
+        }
+    }
     properties.set_minimum((*axis).minimum);
     properties.set_maximum((*axis).maximum);
     properties.set_large_change((*axis).large_change);
