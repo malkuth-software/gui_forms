@@ -62,6 +62,8 @@ class Theme;
 struct ThemeRoleColours;
 class InlineStyleResult;
 struct ThemeCompileDiagnostic;
+class ThemeCompileResult;
+class ThemeOverrides;
 class CompiledThemeRules;
 class ContainerControl;
 class CommandTarget;
@@ -83,6 +85,7 @@ class KeptResolutions;
 GUI_FORMS_API void set_layout_keeping(bool keeping) noexcept;
 struct DispatcherState;
 struct ControlInlineStyle;
+struct ControlThemeSheet;
 struct InlineRestyle;
 // A control's help fields (Control::help_line, help and keywords), made on
 // the first non-empty write and released when all three are empty again,
@@ -512,7 +515,8 @@ public:
     // otherwise. A detach (or this control's death) ends the copies lent.
     [[nodiscard]] BorrowedPointer<Window> attached_window() const noexcept { return detail::lend_pointer(window_); }
     // The surface root whose table holds this control (null while detached).
-    // Inside a sub-surface attached_window() is null and this is not.
+    // Inside a sub-surface attached_window() is null and this is not. Its
+    // scale() is the device scale the control paints at (1 while detached).
     [[nodiscard]] BorrowedPointer<SurfaceRoot> attached_surface_root() const noexcept {
         return detail::lend_pointer(surface_root_);
     }
@@ -744,6 +748,35 @@ public:
     // theme compiles it again (ApplicationResources::set_theme,
     // set_theme_override, attachment).
     [[nodiscard]] InlineStyleResult set_inline_style(std::string_view text);
+    // The control's theme sheet (the ImGui-class demonstrator's I7): a whole
+    // program theme's text, as theme_sheet_package(text, name) holds it,
+    // compiled with the stock control anatomies into the window's
+    // ApplicationResources and set as this control's theme override for
+    // its subtree. Set while the control is attached to a window with
+    // resources, it compiles at once; set while it is not, it compiles when
+    // it is next attached, after the attachment is committed. It compiles
+    // again on an attachment to another window's resources (the theme's
+    // images belong to the resources it was compiled into). Every
+    // compilation raises theme_sheet_compiled with its result, the
+    // diagnostics included, whether it applied or was refused; a refused
+    // sheet leaves the theme override as it was, and so does a sheet an
+    // inline style of the subtree cannot compile against (reported as a
+    // refusal with the code E000 `inline_style_refused`). Empty text
+    // removes the sheet and the override it set. Returns true when the
+    // sheet compiled and applied now; false when it was refused now or
+    // waits for an attachment (theme_sheet_pending).
+    bool set_theme_sheet(std::string_view text, std::string_view name = "sheet");
+    // The sheet's text; empty without one. Valid until the sheet is set.
+    [[nodiscard]] std::string_view theme_sheet() const noexcept;
+    // Whether the sheet waits for an attachment to compile.
+    [[nodiscard]] bool theme_sheet_pending() const noexcept;
+    // Raised after each compilation of the sheet, on the control's thread.
+    [[nodiscard]] Event<const ThemeCompileResult&>& theme_sheet_compiled();
+    // Typed run-time styling (the ImGui-class demonstrator's I6): the
+    // overrides' sheet (ThemeOverrides::sheet_text) set as the theme sheet,
+    // named `overrides`, with set_theme_sheet's timing, reports and result.
+    // Empty overrides remove the sheet.
+    bool set_theme_overrides(const ThemeOverrides& overrides);
     // The inline style's text in force; empty without one. Valid until the
     // style is set, cleared or recompiled for a theme change (checked
     // builds fail fast on a later read).
@@ -793,10 +826,21 @@ public:
     void set_command_target(std::shared_ptr<CommandTarget> target) noexcept {
         command_target_ = std::move(target);
     }
+    // The cursor shown over the control: its `cursor`, else its nearest
+    // ancestor's. A control whose regions want different cursors (a
+    // resize edge, an axis, a handle) writes `cursor` as the pointer moves
+    // between them, from on_mouse_move, and puts it back on leave, as
+    // DataGridView does at its column edges.
     [[nodiscard]] CursorKind effective_cursor() const noexcept;
     [[nodiscard]] bool effectively_visible() const noexcept;
     [[nodiscard]] bool effectively_enabled() const noexcept;
     [[nodiscard]] bool eligible_for_input() const noexcept;
+    // Pointer capture. A primary press captures the pointer to the control
+    // it lands on, unless that control is focusable and refuses focus; the
+    // primary release ends the capture. Other buttons do not capture. A
+    // control calls set_pointer_capture(true) only to capture outside a
+    // primary press (a secondary-button drag), and false to end a capture
+    // early.
     void set_pointer_capture(bool captured);
     [[nodiscard]] bool has_pointer_capture() const noexcept;
 
@@ -1622,6 +1666,12 @@ private:
     // error: the theme's rules reading its names then keep the theme's
     // definitions (CompiledThemeRules::theme_serial differs).
     void refresh_inline_style();
+    // Whether the theme sheet must compile now that the control is attached:
+    // it waits, or was compiled into other resources.
+    [[nodiscard]] bool theme_sheet_due() const noexcept;
+    // Compiles the sheet into the attached window's resources, applies it
+    // and raises theme_sheet_compiled; marks it pending without resources.
+    bool compile_theme_sheet();
     friend detail::KeptResolutions& detail::kept_resolutions_of(const Control& control);
     friend class Window;
     friend class SurfaceRoot;
@@ -2019,6 +2069,9 @@ private:
     [[no_unique_address]] detail::BorrowLender inline_style_lender_{};
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
+    // The theme sheet, its compiled theme and its event; null until a sheet
+    // or a subscription needs them (one pointer on every control).
+    std::unique_ptr<detail::ControlThemeSheet> theme_sheet_;
     std::optional<SurfaceMaterial> authored_surface_material_;
     bool back_color_warned_{};
     bool fore_color_warned_{};

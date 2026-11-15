@@ -1,5 +1,8 @@
 #include "plot_engine.hpp"
 
+#include "gui_forms/controls/plot_view_palette.hpp"
+#include "gui_forms/plots/colormap/colormap.hpp"
+
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 
@@ -410,6 +413,7 @@ void PlotEngine::prepare(std::span<const PlotEngineSeries> series, double device
     std::size_t points = 4096U;
     for (std::size_t index = 0U; index < series.size(); ++index) {
         points = std::max(points, series_size(series[index]));
+        if (series[index].custom != nullptr) points = std::max(points, (*series[index].custom).mark_capacity());
     }
     if (columns > prepared_columns_ || points > prepared_points_) {
         prepared_columns_ = std::max(columns, prepared_columns_);
@@ -435,9 +439,16 @@ plots::PlotDataBounds PlotEngine::data_bounds(std::span<const PlotEngineSeries> 
         const PlotEngineSeries& one = series[index];
         if (one.hidden) continue;
         ExtentOperation extent{};
-        with_samples(one, extent);
+        if (one.custom != nullptr) {
+            const PlotCustomExtent covered = (*one.custom).extent();
+            if (!covered.x.valid() || !covered.y.valid()) continue;
+            extent.x = covered.x;
+            extent.y = covered.y;
+        } else {
+            with_samples(one, extent);
+        }
         if (!(extent.x.minimum <= extent.x.maximum)) continue;
-        if (drawn_from_zero(one.kind)) {
+        if (one.custom == nullptr && drawn_from_zero(one.kind)) {
             extent.y.minimum = std::min(extent.y.minimum, 0.0);
             extent.y.maximum = std::max(extent.y.maximum, 0.0);
         }
@@ -489,11 +500,52 @@ plots::PlotTransformResult PlotEngine::transform_for(const PlotEngineSeries& ser
     return result;
 }
 
+void PlotEngine::paint_handles(Painter& painter, const Control& owner, std::span<const PlotHandle> handles,
+                               std::optional<std::uint32_t> dragged, double device_scale) const {
+    if (handles.empty()) return;
+    const plots::PlotTransformResult made = first_axes_transform(device_scale);
+    if (made.check != plots::PlotTransformCheck::valid) return;
+    const Rect plot = made.transform.plot();
+    const PlotPalette palette = resolve_plot_palette(owner);
+    painter.save();
+    painter.clip_rect(plot);
+    for (std::size_t index = 0U; index < handles.size(); ++index) {
+        const PlotHandle& handle = handles[index];
+        const Point at = made.transform.to_device(handle.x, handle.y);
+        const bool heavy = dragged.has_value() && *dragged == handle.id;
+        const double width = heavy ? 2.0 : 1.0;
+        if (handle.kind == PlotHandleKind::vertical_line) {
+            painter.draw_line(Point{at.x, plot.y}, Point{at.x, plot.y + plot.height}, palette.selection_edge, width);
+        } else if (handle.kind == PlotHandleKind::horizontal_line) {
+            painter.draw_line(Point{plot.x, at.y}, Point{plot.x + plot.width, at.y}, palette.selection_edge, width);
+        } else {
+            MarkerStyle marker{};
+            marker.shape = MarkerShape::circle;
+            marker.size = heavy ? 10.0 : 8.0;
+            marker.fill = palette.selection_fill;
+            marker.edge = palette.selection_edge;
+            marker.edge_width = width;
+            const std::array<Point, 1> centre{at};
+            painter.draw_markers(centre, marker);
+        }
+    }
+    painter.restore();
+}
+
+plots::PlotTransformResult PlotEngine::first_axes_transform(double device_scale) const noexcept {
+    const std::span<const plots::Axis> xs = model_.x_axes();
+    const std::span<const plots::Axis> ys = model_.y_axes();
+    plots::PlotTransformResult result{};
+    if (xs.empty() || ys.empty()) {
+        result.check = plots::PlotTransformCheck::plot_invalid;
+        return result;
+    }
+    result = plots::PlotTransform::make(xs[0], ys[0], layout_.plot, device_scale);
+    return result;
+}
+
 Color PlotEngine::series_color(const Control& owner, std::size_t position) noexcept {
-    const std::size_t step = (position * series_accent_stride + series_accent_first) % 256U;
-    const AccentIndex accent{static_cast<std::uint8_t>(step)};
-    Color color = owner.effective_theme().accent(accent);
-    color.alpha = 255U;
+    const Color color = plot_series_color(owner, position);
     return color;
 }
 
@@ -671,6 +723,10 @@ void PlotEngine::paint_series(Painter& painter, const Control& owner, std::size_
     operation.order = series.order;
     operation.pyramid = series.borrowed ? nullptr : series.pyramid;
     operation.color = series_color(owner, position);
+    if (series.custom != nullptr) {
+        static_cast<void>((*series.custom).paint(painter, made.transform, marks_, operation.color));
+        return;
+    }
     with_samples(series, operation);
 }
 
@@ -814,6 +870,14 @@ plots::PickResult PlotEngine::pick(std::span<const PlotEngineSeries> series, Poi
         if (series[index].hidden) continue;
         const plots::PlotTransformResult made = transform_for(series[index], device_scale);
         if (made.check != plots::PlotTransformCheck::valid) continue;
+        if (series[index].custom != nullptr) {
+            plots::PickResult own = (*series[index].custom).pick(local, made.transform);
+            if (own.found && own.distance <= pick_radius && own.distance < result.distance) {
+                own.series = plots::SeriesIdentity{static_cast<std::uint32_t>(index), 0U};
+                result = own;
+            }
+            continue;
+        }
         PickOperation operation{};
         operation.picker = &picker_;
         operation.transform = &made.transform;
@@ -1096,3 +1160,35 @@ std::size_t PlotEngine::table_row_count(std::span<const PlotEngineSeries> series
 }
 
 } // namespace gui_forms::detail
+
+namespace gui_forms {
+
+PlotPalette resolve_plot_palette(const Control& owner) {
+    const ControlVisualContext context = part_visual_context(owner, owner.anatomy_states());
+    const ControlVisualRecipe& recipe = owner.effective_theme().resolve(ControlVisualRole::editor, context);
+    const Color rule = detail::rule_colour(recipe);
+    PlotPalette palette{};
+    palette.grid_major = detail::with_alpha(rule, detail::grid_major_alpha);
+    palette.grid_minor = detail::with_alpha(rule, detail::grid_minor_alpha);
+    palette.axis = rule;
+    palette.text = recipe.text;
+    palette.selection_fill = detail::with_alpha(recipe.focus_ring, detail::box_fill_alpha);
+    palette.selection_edge = recipe.focus_ring;
+    return palette;
+}
+
+Color plot_series_color(const Control& owner, std::size_t position) noexcept {
+    const std::size_t step = (position * detail::series_accent_stride + detail::series_accent_first) % 256U;
+    const AccentIndex accent{static_cast<std::uint8_t>(step)};
+    Color color = owner.effective_theme().accent(accent);
+    color.alpha = 255U;
+    return color;
+}
+
+Color plot_category_color(const Control& owner, std::uint64_t key) noexcept {
+    const std::size_t position = plots::category_position(key, 256U);
+    const Color result = plot_series_color(owner, position);
+    return result;
+}
+
+} // namespace gui_forms

@@ -39,6 +39,8 @@ gui_forms::PlotSeriesItem
       **y_axis** : ``std::uint32_t``
          The vertical axis the series is drawn against, by position among the plot's vertical axes (past the last: the first).
 
+      **custom** : ``std::shared_ptr<PlotCustomSeries>``
+
       **data_source** : ``DataSource``, read-only
 
       **column_samples** : ``plots::ColumnSamples<double, double>``, read-only
@@ -85,6 +87,8 @@ gui_forms::PlotSeriesItem
         - The channel a producer thread writes (x, y) samples into (two streams), made with ``capacity`` samples on the first call and kept; the series becomes a ring of the channel's capacity, fed each frame.
       * - :cpp:func:`clear_points <gui_forms::PlotSeriesItem::clear_points>`
         - Empties the series (copied-in columns stay reserved).
+      * - :cpp:func:`custom_changed <gui_forms::PlotSeriesItem::custom_changed>`
+        -  
       * - :cpp:func:`run_signal_frame <gui_forms::PlotSeriesItem::run_signal_frame>`
         - Runs the signal program for ``frame`` into the ring (the plot's ambient frame; ``sink`` is the plot's reused scratch).
       * - :cpp:func:`consume_channel <gui_forms::PlotSeriesItem::consume_channel>`
@@ -127,6 +131,12 @@ gui_forms::PlotSeriesItem
    .. cpp:member:: std::uint32_t y_axis
 
       The vertical axis the series is drawn against, by position among the plot's vertical axes (past the last: the first).
+
+   .. cpp:function:: const std::shared_ptr<PlotCustomSeries>& custom() const noexcept
+
+   .. cpp:function:: void set_custom(std::shared_ptr<PlotCustomSeries> custom)
+
+      A custom kind (PlotCustomSeries): while one is installed the plot draws, fits and picks through it instead of the item's points and :cpp:member:`kind <gui_forms::PlotSeriesItem::kind>`; null removes it. The item shares ownership. custom_changed tells the plot that the installed series' content changed (it fits and repaints as for new points).
 
    .. cpp:function:: DataSource data_source() const noexcept
 
@@ -183,6 +193,8 @@ gui_forms::PlotSeriesItem
 
       Empties the series (copied-in columns stay reserved).
 
+   .. cpp:function:: void custom_changed()
+
    .. cpp:function:: bool run_signal_frame(const plots::SignalFrame& frame, plots::SignalSink& sink)
 
       Runs the signal program for ``frame`` into the ring (the plot's ambient frame; ``sink`` is the plot's reused scratch). False when the item has no signal.
@@ -226,7 +238,7 @@ gui_forms::PlotSeriesItem
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 19 unclassified; 27 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 20 unclassified; 29 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -252,6 +264,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 8 su
    * - property
      - GUI.Forms-only
      - ``column_samples``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``custom``
      - supported
    * - property
      - GUI.Forms-only
@@ -316,6 +332,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 8 su
    * - method
      - GUI.Forms-only
      - ``consume_channel``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``custom_changed``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

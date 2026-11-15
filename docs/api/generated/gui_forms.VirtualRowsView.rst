@@ -100,6 +100,15 @@ gui_forms::VirtualRowsView
          rows, the rows the budget forgot, and the partial repaints of
          invalidate_rows.
 
+      **columns** : ``std::span<const VirtualRowsColumn>``
+
+      **sort_column** : ``std::optional<std::size_t>``, read-only
+
+      **sort_direction** : ``VirtualRowsSort``, read-only
+
+      **column_header_bounds** : ``Rect``, read-only
+         The header strip in local coordinates; empty without columns or before the first layout.
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -119,6 +128,14 @@ gui_forms::VirtualRowsView
          Raised once the view is settled after a scroll, a change of the rows or
          a layout moved the offset or the first visible row. It carries the
          first visible row, the offset and whether the view follows the tail.
+
+      **header_clicked** : ``Event<const VirtualRowsHeaderClick&>``
+
+      **column_resized** : ``Event<std::size_t>``
+
+      **column_moved** : ``Event<const VirtualRowsColumnMove&>``
+
+      **cell_content_paint** : ``Event<ItemContentPaint&>``
 
    :Inherited:
 
@@ -160,6 +177,16 @@ gui_forms::VirtualRowsView
         - Selects the rows between an anchor and a current row (extended mode).
       * - :cpp:func:`clear_selection <gui_forms::VirtualRowsView::clear_selection>`
         - Unselects every row.
+      * - :cpp:func:`move_column <gui_forms::VirtualRowsView::move_column>`
+        - Moves the column at ``from`` to position ``to`` (the others keep their order) and raises column_moved when it moved; the sort column follows its column.
+      * - :cpp:func:`column_cell <gui_forms::VirtualRowsView::column_cell>`
+        - The column's cell in ``row`` (a row rectangle, row_bounds): the column's horizontal extent over the row's vertical one, mirrored right to left; it may reach past the viewport.
+      * - :cpp:func:`column_at <gui_forms::VirtualRowsView::column_at>`
+        - The column whose extent holds the local x of ``local_point``, or none.
+      * - :cpp:func:`set_column_width <gui_forms::VirtualRowsView::set_column_width>`
+        - Sets a column's width and raises column_resized when it changed.
+      * - :cpp:func:`set_sort <gui_forms::VirtualRowsView::set_sort>`
+        - The sort indicator: ``column`` sorted in ``direction`` (none, or column none, clears it).
 
    .. rubric:: Notes
 
@@ -293,6 +320,20 @@ gui_forms::VirtualRowsView
       rows, the rows the budget forgot, and the partial repaints of
       invalidate_rows.
 
+   .. cpp:function:: std::span<const VirtualRowsColumn> columns() const& noexcept
+
+   .. cpp:function:: void set_columns(std::span<const VirtualRowsColumn> columns)
+
+      Replaces the columns (none: no header) and clears the sort. Throws std::invalid_argument, changing nothing, for more than maximum_columns, an empty or repeated id, header text that is not valid UTF-8, or a width or minimum that is not finite, negative, or a width below its minimum; std::logic_error while a target runs.
+
+   .. cpp:function:: std::optional<std::size_t> sort_column() const noexcept
+
+   .. cpp:function:: VirtualRowsSort sort_direction() const noexcept
+
+   .. cpp:function:: Rect column_header_bounds() const noexcept
+
+      The header strip in local coordinates; empty without columns or before the first layout.
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -316,6 +357,14 @@ gui_forms::VirtualRowsView
       Raised once the view is settled after a scroll, a change of the rows or
       a layout moved the offset or the first visible row. It carries the
       first visible row, the offset and whether the view follows the tail.
+
+   .. cpp:function:: Event<const VirtualRowsHeaderClick&>& header_clicked() noexcept
+
+   .. cpp:function:: Event<std::size_t>& column_resized() noexcept
+
+   .. cpp:function:: Event<const VirtualRowsColumnMove&>& column_moved() noexcept
+
+   .. cpp:function:: Event<ItemContentPaint&>& cell_content_paint() noexcept
 
 
    .. rubric:: Methods
@@ -380,6 +429,26 @@ gui_forms::VirtualRowsView
 
       Unselects every row.
 
+   .. cpp:function:: void move_column(std::size_t from, std::size_t to)
+
+      Moves the column at ``from`` to position ``to`` (the others keep their order) and raises column_moved when it moved; the sort column follows its column. Throws std::out_of_range for either past the end.
+
+   .. cpp:function:: Rect column_cell(std::size_t column, Rect row) const
+
+      The column's cell in ``row`` (a row rectangle, row_bounds): the column's horizontal extent over the row's vertical one, mirrored right to left; it may reach past the viewport. Throws std::out_of_range for a column past the end.
+
+   .. cpp:function:: std::optional<std::size_t> column_at(Point local_point) const noexcept
+
+      The column whose extent holds the local x of ``local_point``, or none.
+
+   .. cpp:function:: void set_column_width(std::size_t column, double width)
+
+      Sets a column's width and raises column_resized when it changed. Throws std::out_of_range for a column past the end and std::invalid_argument for a width that is not finite or below the column's minimum, changing nothing.
+
+   .. cpp:function:: void set_sort(std::optional<std::size_t> column, VirtualRowsSort direction)
+
+      The sort indicator: ``column`` sorted in ``direction`` (none, or column none, clears it). Throws std::out_of_range for a column past the end.
+
 
    .. rubric:: Extension points
 
@@ -414,6 +483,10 @@ gui_forms::VirtualRowsView
       *Protected.*
 
    .. cpp:function:: void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override
+
+      *Protected.*
+
+   .. cpp:function:: ItemSystemIndex publish_realized_item_system(std::size_t item) const override
 
       *Protected.*
 
@@ -475,9 +548,25 @@ gui_forms::VirtualRowsView
 
       Default: ``8U``.
 
+   .. cpp:member:: constexpr std::size_t maximum_columns
+
+      -- columns (see the class comment) ------------------------------------- Default: ``256U``.
+
+   .. cpp:member:: constexpr double column_header_height
+
+      Default: ``24.0``.
+
+   .. cpp:member:: constexpr double column_grip_half_width
+
+      Default: ``3.0``.
+
+   .. cpp:member:: constexpr double column_drag_threshold
+
+      Default: ``4.0``.
+
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 33 supported, 0 deferred, 0 excluded, 2 unclassified; 35 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 46 supported, 0 deferred, 0 excluded, 2 unclassified; 48 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -495,6 +584,14 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 33 s
    * - property
      - GUI.Forms-only
      - ``announces_appends``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``column_header_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``columns``
      - supported
    * - property
      - GUI.Forms-only
@@ -550,11 +647,35 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 33 s
      - supported
    * - property
      - GUI.Forms-only
+     - ``sort_column``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``sort_direction``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``statistics``
      - supported
    * - property
      - GUI.Forms-only
      - ``viewport_bounds``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``cell_content_paint``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``column_moved``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``column_resized``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``header_clicked``
      - supported
    * - event
      - GUI.Forms-only
@@ -571,6 +692,14 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 33 s
    * - method
      - GUI.Forms-only
      - ``clear_selection``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``column_at``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``column_cell``
      - supported
    * - method
      - GUI.Forms-only
@@ -591,6 +720,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 33 s
    * - method
      - GUI.Forms-only
      - ``invalidate_rows``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``move_column``
      - supported
    * - method
      - GUI.Forms-only
@@ -627,4 +760,12 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 33 s
    * - method
      - GUI.Forms-only
      - ``select_range``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_column_width``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_sort``
      - supported

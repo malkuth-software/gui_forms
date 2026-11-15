@@ -16,6 +16,7 @@
 #include "gui_forms/controls/data_grid_view_row_order.hpp"
 #include "gui_forms/controls/data_grid_view_rows.hpp"
 #include "gui_forms/controls/data_grid_view_types.hpp"
+#include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
@@ -91,6 +92,13 @@ struct GUI_FORMS_API DataGridViewColumn final {
     // painting, hit testing, keyboard movement, selection ranges and the
     // semantic tree pass over it.
     bool visible{true};
+    // Whether the column's cells are owner drawn while the grid's draw_mode
+    // is normal: each raises draw_item_content as every cell does under
+    // owner_draw, and the other columns draw as usual (the ImGui-class
+    // demonstrator's gap I4). Under owner_draw every column is raised
+    // whatever this says. A grid with an owner-drawn column paints its cells
+    // on the UI thread, as under owner_draw.
+    bool owner_draw{};
 };
 
 // A column's place in the order the grid shows its columns (Windows Forms'
@@ -1213,6 +1221,12 @@ private:
     // The text a cell shows for its formatted text: a button or link
     // column's text when it is empty, an image column's description.
     [[nodiscard]] std::string shown_text(DataGridViewRowPosition row, std::size_t column, std::string formatted) const;
+    // A sparkline cell's numbers into sparkline_values_ (non-numeric items
+    // as NaN); empty for a value that is not a collection.
+    void gather_sparkline_values(DataGridViewRowPosition row, std::size_t column);
+    // Draws the sparkline cell's values in `content`.
+    void paint_sparkline_cell(Painter& painter, DataGridViewRowPosition row, std::size_t column, Rect content,
+                              const GridLayout& layout);
     // The height of one line of text in `font` (already effective), as the
     // content role sets it.
     [[nodiscard]] double text_line_height(FontSpec face) const;
@@ -1476,6 +1490,11 @@ private:
     // One resolved cell's text and lines while the grid paints its cells
     // itself, kept so that its buffers are reused from cell to cell.
     DataGridViewCellsSnapshot paint_scratch_{};
+    // Sparkline cells: one workspace per column index (grown to the column
+    // count when a sparkline cell is painted, reused across rows) and the
+    // painted cell's values, reused from cell to cell.
+    std::vector<SparklineWorkspace> sparkline_workspaces_{};
+    std::vector<double> sparkline_values_{};
     SubscriptionToken editor_focus_{};
     // The window whose focus changes the grid follows, and the subscription.
     Window* followed_window_{};

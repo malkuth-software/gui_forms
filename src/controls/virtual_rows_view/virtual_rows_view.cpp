@@ -6,6 +6,7 @@
 #include "gui_forms/controls/v_scroll_bar.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text/types/text_types.hpp"
+#include "gui_forms/theme/owner_draw/owner_draw.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
@@ -68,7 +69,7 @@ using input_control_detail::includes;
     return index;
 }
 
-constexpr std::array<PartField<VirtualRowsView::Parts>, 4> virtual_rows_view_part_fields{{
+constexpr std::array<PartField<VirtualRowsView::Parts>, 5> virtual_rows_view_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &VirtualRowsView::Parts::region},
     {.declaration = {.name = "well", .role = PartRole::well, .composed_from = {}, .states = {}},
@@ -79,6 +80,9 @@ constexpr std::array<PartField<VirtualRowsView::Parts>, 4> virtual_rows_view_par
      .member = &VirtualRowsView::Parts::vertical_scroll_bar},
     {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}, .states = {}},
      .member = &VirtualRowsView::Parts::focus},
+    // The header strip over the columns (empty without columns).
+    {.declaration = {.name = "column_headers", .role = PartRole::region, .composed_from = {}, .states = {}},
+     .member = &VirtualRowsView::Parts::column_headers},
 }};
 
 constexpr std::array<StateField<VirtualRowsView::States>, 5> virtual_rows_view_state_fields{{
@@ -106,17 +110,42 @@ constexpr std::array<StateField<VirtualRowsView::RowStates>, 5> virtual_rows_vie
     {.state = AnatomyState::focus_visible, .member = &VirtualRowsView::RowStates::focus_visible},
 }};
 
-constexpr std::array<PartDeclaration, 4> virtual_rows_view_parts = part_declarations(virtual_rows_view_part_fields);
+constexpr std::array<PartField<VirtualRowsView::ColumnHeaderParts>, 4> virtual_rows_view_column_part_fields{{
+    {.declaration = {.name = "column_header", .role = PartRole::face, .composed_from = {}, .states = {}},
+     .member = &VirtualRowsView::ColumnHeaderParts::column_header},
+    {.declaration = {.name = "column_label", .role = PartRole::label, .composed_from = {}, .states = {}},
+     .member = &VirtualRowsView::ColumnHeaderParts::column_label},
+    {.declaration = {.name = "sort_glyph", .role = PartRole::glyph, .composed_from = {}, .states = {}},
+     .member = &VirtualRowsView::ColumnHeaderParts::sort_glyph},
+    {.declaration = {.name = "column_divider", .role = PartRole::divider, .composed_from = {}, .states = {}},
+     .member = &VirtualRowsView::ColumnHeaderParts::column_divider},
+}};
+
+constexpr std::array<StateField<VirtualRowsView::ColumnHeaderStates>, 3> virtual_rows_view_column_state_fields{{
+    {.state = AnatomyState::hot, .member = &VirtualRowsView::ColumnHeaderStates::hot},
+    {.state = AnatomyState::pressed, .member = &VirtualRowsView::ColumnHeaderStates::pressed},
+    {.state = AnatomyState::selected, .member = &VirtualRowsView::ColumnHeaderStates::selected},
+}};
+
+constexpr std::array<PartDeclaration, 5> virtual_rows_view_parts = part_declarations(virtual_rows_view_part_fields);
 constexpr std::array<AnatomyState, 5> virtual_rows_view_states = state_declarations(virtual_rows_view_state_fields);
 constexpr std::array<PartDeclaration, 3> virtual_rows_view_row_parts =
     part_declarations(virtual_rows_view_row_part_fields);
 constexpr std::array<AnatomyState, 5> virtual_rows_view_row_states =
     state_declarations(virtual_rows_view_row_state_fields);
 
-constexpr ItemSystemIndex row_system{0U};
+constexpr std::array<PartDeclaration, 4> virtual_rows_view_column_parts =
+    part_declarations(virtual_rows_view_column_part_fields);
+constexpr std::array<AnatomyState, 3> virtual_rows_view_column_states =
+    state_declarations(virtual_rows_view_column_state_fields);
 
-constexpr std::array<ItemSystemDeclaration, 1> virtual_rows_view_item_systems{{
+constexpr ItemSystemIndex row_system{0U};
+constexpr ItemSystemIndex column_header_system{1U};
+
+constexpr std::array<ItemSystemDeclaration, 2> virtual_rows_view_item_systems{{
     {.name = "row", .parts = virtual_rows_view_row_parts, .states = virtual_rows_view_row_states,
+     .custom_states = {}},
+    {.name = "column_header", .parts = virtual_rows_view_column_parts, .states = virtual_rows_view_column_states,
      .custom_states = {}},
 }};
 
@@ -129,10 +158,14 @@ constexpr ControlAnatomy virtual_rows_view_anatomy{
 };
 
 // The events VirtualRowsView adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 3> virtual_rows_view_interactions{{
+constexpr std::array<InteractionDeclaration, 7> virtual_rows_view_interactions{{
     {.name = "selection_changed", .payload = "VirtualRowSelection", .mutable_payload = false},
     {.name = "row_activated", .payload = "VirtualRowIndex", .mutable_payload = false},
     {.name = "scrolled", .payload = "VirtualRowScroll", .mutable_payload = false},
+    {.name = "header_clicked", .payload = "VirtualRowsHeaderClick", .mutable_payload = false},
+    {.name = "column_resized", .payload = "std::size_t", .mutable_payload = false},
+    {.name = "column_moved", .payload = "VirtualRowsColumnMove", .mutable_payload = false},
+    {.name = "cell_content_paint", .payload = "ItemContentPaint", .mutable_payload = true},
 }};
 
 } // namespace
@@ -1035,6 +1068,14 @@ void VirtualRowsView::place_parts(Rect client) {
         bar_ = {client.x + content_width, client.y, bar_width, client.height};
         viewport_ = {client.x, client.y, content_width, client.height};
     }
+    // The header strip over the columns takes the viewport's top.
+    header_ = Rect{};
+    if (!columns_.empty()) {
+        const double height = std::min(column_header_height, viewport_.height);
+        header_ = {viewport_.x, viewport_.y, viewport_.width, height};
+        viewport_.y = viewport_.y + height;
+        viewport_.height = viewport_.height - height;
+    }
 }
 
 void VirtualRowsView::arrange(Rect final_bounds) {
@@ -1107,6 +1148,7 @@ void VirtualRowsView::on_paint(Painter& painter, Rect) {
             request.row = VirtualRowIndex{row};
             request.bounds = bounds;
             request.states = states;
+            request.foreground = item_content_text(*this, ControlVisualRole::selection, states);
             request.selected = states.contains(AnatomyState::selected);
             request.hot = states.contains(AnatomyState::hot);
             request.focused = states.contains(AnatomyState::current);
@@ -1119,6 +1161,7 @@ void VirtualRowsView::on_paint(Painter& painter, Rect) {
                 }
                 painter.restore();
             }
+            paint_owner_cells(painter, row, bounds, states, request.foreground);
             if (states.contains(AnatomyState::focus_visible)) {
                 plate.role = PartRole::focus;
                 paint_part(painter, *this, plate);
@@ -1128,6 +1171,7 @@ void VirtualRowsView::on_paint(Painter& painter, Rect) {
         }
         painter.restore();
     }
+    if (!columns_.empty()) paint_column_headers(painter);
     statistics_.rows_painted = statistics_.rows_painted + painted;
     statistics_.last_paint_rows = painted;
     // With no row to carry the focus cue, the view itself shows it.
@@ -1139,6 +1183,31 @@ void VirtualRowsView::on_paint(Painter& painter, Rect) {
         focus.bounds = client_;
         focus.states.insert(AnatomyState::focus_visible);
         paint_part(painter, *this, focus);
+    }
+}
+
+// Each owner-drawn column's cell of `row`, after the row's paint target and
+// before its focus cue. The view draws no default cell content (the paint
+// target draws the row), so draw_default is not read. The stable id is the
+// row's, built once for the row and only when a column is owner drawn.
+void VirtualRowsView::paint_owner_cells(Painter& painter, std::size_t row, Rect bounds, AnatomyStateSet states,
+                                        Color foreground) {
+    if (columns_.empty()) return;
+    std::string identity{};
+    const FontSpec face = text_font(font.read());
+    for (std::size_t column = 0U; column < columns_.size(); ++column) {
+        if (columns_[column].draw_mode != ItemDrawMode::owner_draw) continue;
+        if (identity.empty()) row_identity(row, identity);
+        ItemContentPaint item{.painter = painter};
+        item.index = row;
+        item.column = column;
+        item.stable_id = identity;
+        item.content = Rect::intersection(column_cell(column, bounds), viewport_);
+        item.states = states;
+        item.font = face;
+        item.text = foreground;
+        const CallbackScope scope(*this);
+        static_cast<void>(raise_item_content_paint(cell_content_paint_, item));
     }
 }
 
@@ -1160,6 +1229,10 @@ void VirtualRowsView::handle_pointer(PointerEvent& event) {
         event.handled = true;
         return;
     }
+    if (event.action == PointerAction::move && header_move(local)) {
+        event.handled = true;
+        return;
+    }
     if (event.action == PointerAction::move || event.action == PointerAction::leave) {
         std::optional<std::size_t> hot{};
         if (event.action == PointerAction::move) {
@@ -1174,6 +1247,10 @@ void VirtualRowsView::handle_pointer(PointerEvent& event) {
         return;
     }
     if (event.action != PointerAction::down || event.button != PointerButton::primary) return;
+    if (header_press(local, event.modifiers)) {
+        event.handled = true;
+        return;
+    }
     if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
     if (!is_alive()) return;
     event.handled = true;
@@ -1275,12 +1352,23 @@ void VirtualRowsView::on_mouse_move(MouseEventArgs& arguments) {
 }
 
 void VirtualRowsView::on_mouse_up(MouseEventArgs& arguments) {
-    if (arguments.button == PointerButton::primary) dragging_ = false;
+    if (arguments.button == PointerButton::primary) {
+        dragging_ = false;
+        const PointerEvent event = pointer_event_of(arguments);
+        const Rect absolute = absolute_bounds();
+        const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+        if (header_release(local)) arguments.handled = true;
+        if (!is_alive()) return;
+    }
     Control::on_mouse_up(arguments);
 }
 
 void VirtualRowsView::on_mouse_capture_changed() {
     dragging_ = false;
+    // A lost capture abandons a header gesture: a resize keeps the width
+    // it reached, unannounced until the next change; a reorder moves
+    // nothing.
+    header_gesture_ = HeaderGesture::none;
     Control::on_mouse_capture_changed();
 }
 
@@ -1407,6 +1495,7 @@ std::vector<SemanticNode> VirtualRowsView::semantic_virtual_children() const {
         node.actions = {SemanticAction::focus, SemanticAction::select, SemanticAction::press};
         children.push_back(std::move(node));
     }
+    append_column_semantics(children);
     // Always present, so a host sees the name change rather than a new
     // node (semantic_announcement_due).
     SemanticNode announcements{};
@@ -1425,6 +1514,15 @@ std::vector<SemanticNode> VirtualRowsView::semantic_virtual_children() const {
 bool VirtualRowsView::on_semantic_child_action(std::string_view stable_id_text, SemanticAction action,
                                                std::string_view) {
     if (!effectively_enabled() || in_callback_) return false;
+    // A column header's press is a click on it (a sortable column only).
+    const std::optional<std::size_t> column = column_of_child_id(stable_id_text);
+    if (column.has_value()) {
+        if (action != SemanticAction::press || !columns_[*column].sortable) return false;
+        VirtualRowsHeaderClick click{};
+        click.column = *column;
+        header_clicked_.emit(click);
+        return true;
+    }
     const std::optional<std::size_t> row = row_of_child_id(stable_id_text);
     if (!row.has_value()) return false;
     if (action != SemanticAction::focus && action != SemanticAction::select && action != SemanticAction::press) {
@@ -1457,6 +1555,7 @@ void VirtualRowsView::publish_part_geometry(std::span<PartGeometry> geometry) co
     record.well.authored_background = back_color.read();
     if (bar_shown_) record.vertical_scroll_bar = PartGeometry::from_bounds(bar_);
     record.focus = PartGeometry::from_bounds(client_);
+    if (!header_.empty()) record.column_headers = PartGeometry::from_bounds(header_);
     write_parts(anatomy(), virtual_rows_view_part_fields, record, geometry);
 }
 
@@ -1473,19 +1572,40 @@ VirtualRowsView::States VirtualRowsView::states() const {
     return record;
 }
 
+// The realized rows, then the column headers (a header strip is laid out
+// whenever there are columns).
 std::size_t VirtualRowsView::realized_item_count() const {
-    const std::size_t count = end_realized_ - first_realized_;
+    const std::size_t headers = header_.empty() ? 0U : columns_.size();
+    const std::size_t count = end_realized_ - first_realized_ + headers;
     return count;
 }
 
 std::string VirtualRowsView::realized_item_stable_id(std::size_t item) const {
     if (item >= realized_item_count()) throw std::out_of_range("VirtualRowsView realized item past the end");
+    const std::size_t rows = end_realized_ - first_realized_;
     std::string identity;
+    if (item >= rows) {
+        column_identity(item - rows, identity);
+        return identity;
+    }
     row_identity(first_realized_ + item, identity);
     return identity;
 }
 
+ItemSystemIndex VirtualRowsView::publish_realized_item_system(std::size_t item) const {
+    const std::size_t rows = end_realized_ - first_realized_;
+    const ItemSystemIndex system = item >= rows ? column_header_system : row_system;
+    return system;
+}
+
 void VirtualRowsView::publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const {
+    const std::size_t rows = end_realized_ - first_realized_;
+    if (item >= rows) {
+        const ColumnHeaderParts header = column_header_parts(item - rows);
+        const ItemSystemDeclaration& headers = anatomy().item_systems[column_header_system.value];
+        write_item_parts(headers, virtual_rows_view_column_part_fields, header, geometry);
+        return;
+    }
     const std::size_t row = first_realized_ + item;
     const Rect bounds = Rect::intersection(row_rectangle(row), viewport_);
     RowParts record;
@@ -1498,6 +1618,8 @@ void VirtualRowsView::publish_realized_item_geometry(std::size_t item, std::span
 
 AnatomyStateSet VirtualRowsView::realized_item_anatomy_states(std::size_t item) const {
     if (item >= realized_item_count()) throw std::out_of_range("VirtualRowsView realized item past the end");
+    const std::size_t rows = end_realized_ - first_realized_;
+    if (item >= rows) return column_states(item - rows);
     const AnatomyStateSet states = row_states(first_realized_ + item);
     return states;
 }

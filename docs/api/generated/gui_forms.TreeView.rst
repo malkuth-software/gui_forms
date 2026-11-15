@@ -129,6 +129,12 @@ gui_forms::TreeView
 
       * - :cpp:func:`expanded <gui_forms::TreeView::expanded>`
         - Whether the item with the given ID is expanded.
+      * - :cpp:func:`expand_all <gui_forms::TreeView::expand_all>`
+        - Bulk expansion (the D3 demonstrator's I8).
+      * - :cpp:func:`collapse_all <gui_forms::TreeView::collapse_all>`
+        - Collapses every expanded item.
+      * - :cpp:func:`expand_to <gui_forms::TreeView::expand_to>`
+        - Expands each ancestor of ``stable_id`` and scrolls its row into view.
       * - :cpp:func:`set_expanded <gui_forms::TreeView::set_expanded>`
         - Expands or collapses the item with the given ID and raises :cpp:func:`expansion_changed <gui_forms::TreeView::expansion_changed>`.
 
@@ -341,6 +347,18 @@ gui_forms::TreeView
       Whether the item with the given ID is expanded. An unknown ID throws
       ``std::out_of_range``.
 
+   .. cpp:function:: void expand_all()
+
+      Bulk expansion (the D3 demonstrator's I8). Each changes every item it names, rebuilds the visible rows once, then raises expansion_changed once per changed item in model order; a handler that disposes the view stops the rest. Nothing changed raises nothing. Expands every expandable item.
+
+   .. cpp:function:: void collapse_all()
+
+      Collapses every expanded item. A selection hidden by the collapse moves to its nearest visible ancestor after the events, as with set_expanded.
+
+   .. cpp:function:: void expand_to(std::string_view stable_id)
+
+      Expands each ancestor of ``stable_id`` and scrolls its row into view. Throws std::out_of_range, changing nothing, when the ID is not in the model.
+
    .. cpp:function:: void set_expanded(std::string_view stable_id, bool expanded)
 
       Expands or collapses the item with the given ID and raises
@@ -444,7 +462,7 @@ gui_forms::TreeView
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TreeView``. Members declared here and by the counterpart: 10 supported, 0 deferred, 2 excluded, 75 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TreeView``. Members declared here and by the counterpart: 13 supported, 0 deferred, 2 excluded, 73 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -669,16 +687,16 @@ Counterpart: ``TreeView``. Members declared here and by the counterpart: 10 supp
      - unclassified (unmatched)
    * - method
      - ``CollapseAll``
-     - none
-     - unclassified (unmatched)
+     - ``collapse_all``
+     - supported
    * - method
      - ``EndUpdate``
      - none
      - unclassified (unmatched)
    * - method
      - ``ExpandAll``
-     - none
-     - unclassified (unmatched)
+     - ``expand_all``
+     - supported
    * - method
      - ``GetItemRenderStyles``
      - none
@@ -790,6 +808,10 @@ Counterpart: ``TreeView``. Members declared here and by the counterpart: 10 supp
    * - event
      - GUI.Forms-only
      - ``selection_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``expand_to``
      - supported
    * - method
      - GUI.Forms-only

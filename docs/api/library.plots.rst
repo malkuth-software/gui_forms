@@ -950,6 +950,12 @@ Types
 
    .. rubric:: Properties
 
+   .. cpp:function:: PlotGestureAxes gesture_axes() const noexcept
+
+   .. cpp:function:: void set_gesture_axes(PlotGestureAxes axes) noexcept
+
+      An unknown value is taken as both.
+
    .. cpp:function:: std::span<const Axis> x_axes() const noexcept
 
    .. cpp:function:: std::span<const Axis> y_axes() const noexcept
@@ -1768,6 +1774,14 @@ Types
 
       The category names of a category scale, by position; borrowed for the call.
 
+   .. cpp:member:: TickLabelUnit label_unit
+
+      A linear scale's label form, and the seconds one axis unit stands for with ``duration`` (1e-3 for an axis in milliseconds). A unit that is not finite and positive labels plain numbers. Default: ``{TickLabelUnit::number}``.
+
+   .. cpp:member:: double unit_seconds
+
+      Default: ``{1.0}``.
+
 .. cpp:namespace:: gui_forms::plots
 
 .. cpp:struct:: TickSet final
@@ -1988,6 +2002,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms::plots
 
+.. cpp:enum-class:: PlotGestureAxes
+
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+
+   .. cpp:enumerator:: both
+
+   .. cpp:enumerator:: x_only
+
+   .. cpp:enumerator:: y_only
+
+.. cpp:namespace:: gui_forms::plots
+
 .. cpp:enum-class:: PlotKey
 
    ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
@@ -2184,6 +2210,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms::plots
 
+.. cpp:enum-class:: TickLabelUnit
+
+   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>``
+
+   .. cpp:enumerator:: number
+
+   .. cpp:enumerator:: duration
+
+.. cpp:namespace:: gui_forms::plots
+
 .. cpp:enum-class:: TickOutcome
 
    ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>``
@@ -2257,6 +2293,14 @@ Functions, constants and aliases
 
    The built-in named ``name`` ("viridis", "magma", "inferno", "plasma", "default"), or null.
 
+.. cpp:function:: std::uint64_t category_key(std::string_view name) noexcept
+
+   Categorical colours (the flame graph demonstrator's F7): one identity, such as a function's name, takes the same colour wherever it appears and on every host. category_key is FNV-1a (64-bit) over ``name``'s bytes, so equal names give equal keys; an application with its own identities passes those instead. category_position mixes ``key`` (SplitMix64's finaliser, so neighbouring keys spread) and returns a slot in [0, count); 0 when count is 0. categorical_color gives a qualitative map's stop at category_position(key, stop_count), or samples a continuous map at the mixed key's top 53 bits over 2^53, in [0, 1). An invalid map gives its gap colour. For the theme's accents, plot_category_color in controls/plot_view_palette.hpp takes the same positions.
+
+.. cpp:function:: std::size_t category_position(std::uint64_t key, std::size_t count) noexcept
+
+.. cpp:function:: Color categorical_color(std::uint64_t key, const Colormap& map) noexcept
+
 .. cpp:function:: double srgb_to_linear(std::uint8_t encoded) noexcept
 
    sRGB transfer: an encoded byte's linear value in [0, 1], and the nearest encoded byte of a linear value (clamped).
@@ -2290,6 +2334,10 @@ Functions, constants and aliases
 .. cpp:function:: template <SeriesElement Element> BinTally bin_values(SeriesSpans<Element> values, const BinSpec& spec, std::span<std::uint64_t> counts) noexcept
 
    Adds each value of ``values`` to ``counts`` (spec.count entries, not cleared first, so blocks accumulate).
+
+.. cpp:function:: template <SeriesElement Element> BinTally bin_values_into(SeriesSpans<Element> values, const BinSpec& spec, std::span<std::uint64_t> counts) noexcept
+
+   Counts ``values`` into ``counts`` afresh: its first spec.count entries are zeroed, then filled as bin_values fills them (the plot demonstrator's gap P10). A refused spec leaves ``counts`` untouched.
 
 .. cpp:function:: template <typename Source> BinTally bin_points(const Source& source, const BinSpec& x_spec, const BinSpec& y_spec, std::span<std::uint64_t> counts) noexcept
 

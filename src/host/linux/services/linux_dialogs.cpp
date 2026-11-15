@@ -1,6 +1,7 @@
 #include "../application/linux_host_internal.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
+#include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/text_box.hpp"
@@ -22,6 +23,11 @@ struct ButtonAction final {
 struct ActivateFile final {
   DialogState *state;
   void operator()(std::size_t index) const;
+};
+// The colour dialog's picker moved: the hexadecimal field follows.
+struct PickColor final {
+  DialogState *state;
+  void operator()(Color colour) const;
 };
 struct SelectFile final {
   DialogState *state;
@@ -67,6 +73,7 @@ struct DialogState final {
   std::shared_ptr<TextBox> name;
   std::shared_ptr<ListBox> list;
   std::shared_ptr<ComboBox> filter;
+  std::shared_ptr<ColorPicker> picker;
   std::shared_ptr<Label> status;
   std::shared_ptr<NativeWindow> native;
   std::shared_ptr<Button> accept_button;
@@ -284,6 +291,21 @@ void ButtonAction::operator()(ButtonBase &) const {
 void ActivateFile::operator()(std::size_t index) const {
   (*state).activate(index);
 }
+void PickColor::operator()(Color colour) const {
+  const std::uint32_t packed = (static_cast<std::uint32_t>(colour.red) << 24U) |
+                               (static_cast<std::uint32_t>(colour.green) << 16U) |
+                               (static_cast<std::uint32_t>(colour.blue) << 8U) |
+                               static_cast<std::uint32_t>(colour.alpha);
+  std::ostringstream value;
+  value << std::hex;
+  value.width((*state).allow_alpha ? 8 : 6);
+  value.fill('0');
+  value << ((*state).allow_alpha ? packed : packed >> 8U);
+  if ((*state).name)
+    (*(*state).name).text = value.str();
+  if ((*state).status)
+    (*(*state).status).text = "";
+}
 void SelectFile::operator()(const ListSelectionChange &change) const {
   if (change.active_index && *change.active_index < (*state).entries.size())
     (*(*state).name).text =
@@ -408,14 +430,28 @@ HostDialogResult retained_dialog(NativeWindow &owner,
   } else if (const HostColorDialogRequest *color =
                  std::get_if<HostColorDialogRequest>(&request.payload)) {
     entry.options.title = (*color).title;
-    entry.options.initial_size = {560, 230};
+    entry.options.initial_size = {560, 300};
     entry.options.minimum_size = entry.options.initial_size;
     state.color = (*color).initial_rgba;
     state.allow_alpha = (*color).allow_alpha;
+    // The stock picker beside the hexadecimal field; a pick writes the
+    // field, which accept() reads.
+    state.picker = make_control<ColorPicker>(
+        StableId("host.dialog.color.picker"),
+        Color::rgba(static_cast<std::uint8_t>(state.color >> 24U),
+                    static_cast<std::uint8_t>(state.color >> 16U),
+                    static_cast<std::uint8_t>(state.color >> 8U),
+                    static_cast<std::uint8_t>(state.color)));
+    (*state.picker).alpha_enabled = state.allow_alpha;
+    (*state.picker).accessible_name = "Color";
+    (*state.picker).set_bounds({20, 20, 260, 210});
+    (*state.root).add_child(state.picker);
+    state.tokens.push_back(
+        (*state.picker).value_changed().subscribe(PickColor{&state}));
     static_cast<void>(
         label(state, "host.dialog.color.label",
               state.allow_alpha ? "Color (RRGGBBAA)" : "Color (RRGGBB)",
-              {20, 20, 520, 28}));
+              {300, 20, 240, 28}));
     std::ostringstream value;
     value << std::hex;
     value.width(state.allow_alpha ? 8 : 6);
@@ -423,15 +459,15 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     value << (state.allow_alpha ? state.color : state.color >> 8U);
     state.name =
         make_control<TextBox>(StableId("host.dialog.color"), value.str());
-    (*state.name).set_bounds({20, 58, 520, 34});
+    (*state.name).set_bounds({300, 58, 240, 34});
     // Enter in the field accepts through EnterName.
     (*state.name).accepts_enter = true;
     (*state.root).add_child(state.name);
-    state.status = label(state, "host.dialog.status", "", {20, 102, 520, 58});
+    state.status = label(state, "host.dialog.status", "", {300, 102, 240, 100});
     state.accept_button =
-        state.button("host.dialog.accept", "OK", {320, 178, 100, 32}, 1);
+        state.button("host.dialog.accept", "OK", {320, 248, 100, 32}, 1);
     state.cancel_button =
-        state.button("host.dialog.cancel", "Cancel", {430, 178, 110, 32}, 0);
+        state.button("host.dialog.cancel", "Cancel", {430, 248, 110, 32}, 0);
     state.result.payload = HostColorDialogResult{};
   } else {
     std::string initial, suggested;

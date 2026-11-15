@@ -8,6 +8,7 @@
 // sub-surface's thread. One thread per engine.
 
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/plot_series_item_custom.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/plots/axis/axis.hpp"
 #include "gui_forms/plots/decimation/decimation.hpp"
@@ -48,6 +49,10 @@ struct PlotEngineSeries final {
     const plots::EnvelopePyramid* pyramid{};
     // Changes whenever the data does (the unordered picker's grid).
     std::uint64_t revision{};
+    // A custom kind drawing, fitting and picking in place of the columns
+    // (PlotSeriesItem::custom), borrowed for the call; never set on a live
+    // frame's series.
+    PlotCustomSeries* custom{};
 };
 
 // One axis: the primitives' description and its title (borrowed).
@@ -154,6 +159,12 @@ public:
     // Places the cursor (false when `cursor` names no element).
     bool set_cursor(PlotCursor cursor, std::span<const PlotEngineSeries> series);
     [[nodiscard]] PlotViewRanges ranges() const;
+    // Draws `handles` (PlotView::set_handles) over the plot on its first
+    // axes, `dragged` heavier, in the palette's selection colours.
+    void paint_handles(Painter& painter, const Control& owner, std::span<const PlotHandle> handles,
+                       std::optional<std::uint32_t> dragged, double device_scale) const;
+    // The transform of the first x and y axes over the plot.
+    [[nodiscard]] plots::PlotTransformResult first_axes_transform(double device_scale) const noexcept;
     [[nodiscard]] PlotQuery query() const;
     // The figure's summary for assistive technology: its kind of content,
     // series and visible ranges, and the cursor's point.

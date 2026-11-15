@@ -92,6 +92,23 @@ enum class BuiltInColormap : std::uint8_t { viridis, magma, inferno, plasma, gui
 // "default"), or null.
 [[nodiscard]] GUI_FORMS_API const Colormap* find_built_in_colormap(std::string_view name) noexcept;
 
+// Categorical colours (the flame graph demonstrator's F7): one identity,
+// such as a function's name, takes the same colour wherever it appears and
+// on every host.
+//
+// category_key is FNV-1a (64-bit) over `name`'s bytes, so equal names give
+// equal keys; an application with its own identities passes those instead.
+// category_position mixes `key` (SplitMix64's finaliser, so neighbouring
+// keys spread) and returns a slot in [0, count); 0 when count is 0.
+// categorical_color gives a qualitative map's stop at
+// category_position(key, stop_count), or samples a continuous map at the
+// mixed key's top 53 bits over 2^53, in [0, 1). An invalid map gives its gap
+// colour. For the theme's accents, plot_category_color in
+// controls/plot_view_palette.hpp takes the same positions.
+[[nodiscard]] GUI_FORMS_API std::uint64_t category_key(std::string_view name) noexcept;
+[[nodiscard]] GUI_FORMS_API std::size_t category_position(std::uint64_t key, std::size_t count) noexcept;
+[[nodiscard]] GUI_FORMS_API Color categorical_color(std::uint64_t key, const Colormap& map) noexcept;
+
 // sRGB transfer: an encoded byte's linear value in [0, 1], and the nearest
 // encoded byte of a linear value (clamped).
 [[nodiscard]] GUI_FORMS_API double srgb_to_linear(std::uint8_t encoded) noexcept;

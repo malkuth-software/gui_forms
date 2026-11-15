@@ -4,6 +4,7 @@
     "clip_rounded_rect_corners",
     "draw_baked_surface_material",
     "draw_box_shadow",
+    "draw_glyph_runs",
     "draw_image",
     "draw_image_region",
     "draw_image_region_sampled",
@@ -17,6 +18,7 @@
     "draw_retained_box_shadow",
     "draw_retained_text_utf8",
     "draw_surface_material",
+    "draw_text_runs",
     "draw_text_utf8",
     "draw_turned_text_utf8",
     "fill_band",
@@ -57,15 +59,15 @@
   "totals": {
     "exempt": {
       "files": 12,
-      "calls": 38
+      "calls": 41
     },
     "demo": {
       "files": 2,
       "calls": 12
     },
     "effect": {
-      "files": 2,
-      "calls": 21
+      "files": 3,
+      "calls": 23
     }
   },
   "files": {
@@ -102,6 +104,11 @@
       "calls": 0,
       "effect_calls": 3
     },
+    "link_flow/link_flow_effects.cpp": {
+      "category": "stock",
+      "calls": 0,
+      "effect_calls": 1
+    },
     "metrics_view/metrics_view.cpp": {
       "category": "exempt",
       "calls": 5
@@ -120,12 +127,12 @@
     },
     "plots/plot_view/plot_engine.cpp": {
       "category": "exempt",
-      "calls": 6
+      "calls": 9
     },
     "range_control/progress_bar/progress_bar_effects.cpp": {
       "category": "stock",
       "calls": 0,
-      "effect_calls": 18
+      "effect_calls": 19
     },
     "raster_canvas/raster_canvas.cpp": {
       "category": "exempt",

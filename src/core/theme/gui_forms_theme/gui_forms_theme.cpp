@@ -3,11 +3,13 @@
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
 #include "../theme_compiler/built_in_theme.hpp"
+#include "../theme_compiler/content_parts_sheet.hpp"
 
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -892,8 +894,11 @@ GuiFormsThemeBuild build_gui_forms_theme() {
     const FloorEvaluation& floor = floor_evaluation();
     result.diagnostics = floor.diagnostics;
     result.floor_compile_operations = floor.operations;
+    // The light sheet, then the content parts' rules (W-7), as one sheet.
+    std::string sheet(light_sheet);
+    sheet.append(detail::content_parts_sheet);
     detail::BuiltInThemeCompilation compiled =
-        detail::compile_built_in_theme(*floor.definition, light_sheet_file, light_sheet, stock_control_anatomies());
+        detail::compile_built_in_theme(*floor.definition, light_sheet_file, sheet, stock_control_anatomies());
     result.diagnostics.insert(result.diagnostics.end(), compiled.diagnostics.begin(), compiled.diagnostics.end());
     result.compile_operations = compiled.operations;
     result.theme = compiled.theme != nullptr ? std::move(compiled.theme) : Theme::create(*floor.definition);

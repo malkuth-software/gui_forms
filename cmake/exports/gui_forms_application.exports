@@ -86,6 +86,7 @@ __ZGVZN9gui_forms10FlexMargin*
 __ZGVZN9gui_forms10FontChoice*
 __ZGVZN9gui_forms10FontDialog*
 __ZGVZN9gui_forms10FontFaceId*
+__ZGVZN9gui_forms10FormLayout*
 __ZGVZN9gui_forms10GridMargin*
 __ZGVZN9gui_forms10HScrollBar*
 __ZGVZN9gui_forms10HelpTarget*
@@ -109,6 +110,7 @@ __ZGVZN9gui_forms10PaintGroup*
 __ZGVZN9gui_forms10PartMotion*
 __ZGVZN9gui_forms10PartRaster*
 __ZGVZN9gui_forms10PictureBox*
+__ZGVZN9gui_forms10PlotHandle*
 __ZGVZN9gui_forms10PortRecord*
 __ZGVZN9gui_forms10RadialPick*
 __ZGVZN9gui_forms10RadialSlot*
@@ -140,6 +142,7 @@ __ZGVZN9gui_forms11AccentIndex*
 __ZGVZN9gui_forms11Application*
 __ZGVZN9gui_forms11ChoiceGroup*
 __ZGVZN9gui_forms11ColorDialog*
+__ZGVZN9gui_forms11ColorPicker*
 __ZGVZN9gui_forms11CommandItem*
 __ZGVZN9gui_forms11ContextMenu*
 __ZGVZN9gui_forms11CursorImage*
@@ -183,6 +186,7 @@ __ZGVZN9gui_forms11OpenTypeTag*
 __ZGVZN9gui_forms11PageContent*
 __ZGVZN9gui_forms11PartProfile*
 __ZGVZN9gui_forms11PhysicalKey*
+__ZGVZN9gui_forms11PlotPalette*
 __ZGVZN9gui_forms11PngMetadata*
 __ZGVZN9gui_forms11ProgressBar*
 __ZGVZN9gui_forms11RadialGauge*
@@ -372,6 +376,7 @@ __ZGVZN9gui_forms13PageSetLimits*
 __ZGVZN9gui_forms13PaintPathView*
 __ZGVZN9gui_forms13ParagraphLine*
 __ZGVZN9gui_forms13PartHitRegion*
+__ZGVZN9gui_forms13PlotLinkGroup*
 __ZGVZN9gui_forms13PlotPointPick*
 __ZGVZN9gui_forms13PresentedArea*
 __ZGVZN9gui_forms13PrimitiveCost*
@@ -406,6 +411,7 @@ __ZGVZN9gui_forms14BindingSortKey*
 __ZGVZN9gui_forms14CheckedListBox*
 __ZGVZN9gui_forms14CheckerPattern*
 __ZGVZN9gui_forms14CollectionEdit*
+__ZGVZN9gui_forms14ColorPickerHsv*
 __ZGVZN9gui_forms14CommandBinding*
 __ZGVZN9gui_forms14ContentContext*
 __ZGVZN9gui_forms14ContentItemKey*
@@ -474,6 +480,7 @@ __ZGVZN9gui_forms14PaintEventArgs*
 __ZGVZN9gui_forms14ParagraphPaint*
 __ZGVZN9gui_forms14ParagraphStyle*
 __ZGVZN9gui_forms14PartRasterView*
+__ZGVZN9gui_forms14PlotHandleMove*
 __ZGVZN9gui_forms14PlotSeriesItem*
 __ZGVZN9gui_forms14PlotViewRanges*
 __ZGVZN9gui_forms14PointerOverlay*
@@ -487,6 +494,7 @@ __ZGVZN9gui_forms14SceneZoomRange*
 __ZGVZN9gui_forms14ScrollSnapshot*
 __ZGVZN9gui_forms14ShapingFeature*
 __ZGVZN9gui_forms14ShapingRequest*
+__ZGVZN9gui_forms14SparklineStyle*
 __ZGVZN9gui_forms14SplitContainer*
 __ZGVZN9gui_forms14StockIconImage*
 __ZGVZN9gui_forms14StockIconLayer*
@@ -497,6 +505,7 @@ __ZGVZN9gui_forms14TextEditResult*
 __ZGVZN9gui_forms14TextInputEvent*
 __ZGVZN9gui_forms14TextMaskResult*
 __ZGVZN9gui_forms14TextMatchRange*
+__ZGVZN9gui_forms14ThemeOverrides*
 __ZGVZN9gui_forms14ThemeRuleSheet*
 __ZGVZN9gui_forms14ToastDismissal*
 __ZGVZN9gui_forms14ToolStripPanel*
@@ -530,6 +539,7 @@ __ZGVZN9gui_forms15DockDropMetrics*
 __ZGVZN9gui_forms15DockLayoutState*
 __ZGVZN9gui_forms15DockNamedLayout*
 __ZGVZN9gui_forms15DockPanelRecord*
+__ZGVZN9gui_forms15DockPanelsAdded*
 __ZGVZN9gui_forms15DockTransaction*
 __ZGVZN9gui_forms15DockWindowFrame*
 __ZGVZN9gui_forms15DocumentMapSpan*
@@ -691,6 +701,8 @@ __ZGVZN9gui_forms16ParagraphMetrics*
 __ZGVZN9gui_forms16ParagraphStorage*
 __ZGVZN9gui_forms16PartRasterResult*
 __ZGVZN9gui_forms16PartRecordHandle*
+__ZGVZN9gui_forms16PlotCustomExtent*
+__ZGVZN9gui_forms16PlotCustomSeries*
 __ZGVZN9gui_forms16RangeScrollEvent*
 __ZGVZN9gui_forms16RetainedDrawMemo*
 __ZGVZN9gui_forms16RibbonRecentItem*
@@ -788,6 +800,7 @@ __ZGVZN9gui_forms17NodeLinkConnected*
 __ZGVZN9gui_forms17ObjectDetailsCell*
 __ZGVZN9gui_forms17ObjectDetailsSort*
 __ZGVZN9gui_forms17PartRasterRequest*
+__ZGVZN9gui_forms17PlotHeatmapSeries*
 __ZGVZN9gui_forms17PresentationState*
 __ZGVZN9gui_forms17PrimitiveRegistry*
 __ZGVZN9gui_forms17PropertyEnumValue*
@@ -821,6 +834,7 @@ __ZGVZN9gui_forms17ToolStripItemSpec*
 __ZGVZN9gui_forms17TreeListRowSource*
 __ZGVZN9gui_forms17TreeListRowSplice*
 __ZGVZN9gui_forms17VirtualRowMeasure*
+__ZGVZN9gui_forms17VirtualRowsColumn*
 __ZGVZN9gui_forms17VisualInteraction*
 __ZGVZN9gui_forms17WindowBandOptions*
 __ZGVZN9gui_forms17XmlSourcePosition*
@@ -911,6 +925,7 @@ __ZGVZN9gui_forms18SceneViewTransform*
 __ZGVZN9gui_forms18ScrollAxisSnapshot*
 __ZGVZN9gui_forms18SemanticDescriptor*
 __ZGVZN9gui_forms18SemanticTextLayout*
+__ZGVZN9gui_forms18SparklineWorkspace*
 __ZGVZN9gui_forms18SpatialQueryResult*
 __ZGVZN9gui_forms18SplashscreenResult*
 __ZGVZN9gui_forms18TabSelectionChange*
@@ -950,6 +965,7 @@ __ZGVZN9gui_forms19DockInvariantResult*
 __ZGVZN9gui_forms19DockNavigatorChoice*
 __ZGVZN9gui_forms19DockPanelDescriptor*
 __ZGVZN9gui_forms19DocumentPageRequest*
+__ZGVZN9gui_forms19DrawingReplayReport*
 __ZGVZN9gui_forms19ErrorProviderChange*
 __ZGVZN9gui_forms19FlexAvailableExtent*
 __ZGVZN9gui_forms19FlexLayoutWorkspace*
@@ -995,6 +1011,7 @@ __ZGVZN9gui_forms19ObjectDetailsColumn*
 __ZGVZN9gui_forms19OffscreenAttachment*
 __ZGVZN9gui_forms19PageSelectionChange*
 __ZGVZN9gui_forms19ParameterValidation*
+__ZGVZN9gui_forms19PlotHistogramSeries*
 __ZGVZN9gui_forms19PngValidationResult*
 __ZGVZN9gui_forms19PreparedTextMetrics*
 __ZGVZN9gui_forms19PreparedTextService*
@@ -1018,6 +1035,7 @@ __ZGVZN9gui_forms19TextDecorationStyle*
 __ZGVZN9gui_forms19TextMetricsProvider*
 __ZGVZN9gui_forms19ThemeCompileOptions*
 __ZGVZN9gui_forms19ThemeGeometryTokens*
+__ZGVZN9gui_forms19ThemeOverrideTarget*
 __ZGVZN9gui_forms19ThemeRequestContext*
 __ZGVZN9gui_forms19ThemeWindowBackdrop*
 __ZGVZN9gui_forms19ToolStripDropTarget*
@@ -1163,6 +1181,7 @@ __ZGVZN9gui_forms21ThemeTypographyTokens*
 __ZGVZN9gui_forms21ThreadExceptionDialog*
 __ZGVZN9gui_forms21ThreadExceptionReport*
 __ZGVZN9gui_forms21VirtualRowDescription*
+__ZGVZN9gui_forms21VirtualRowsColumnMove*
 __ZGVZN9gui_forms21VirtualRowsStatistics*
 __ZGVZN9gui_forms21WindowBackdropRequest*
 __ZGVZN9gui_forms22ApplicationModalResult*
@@ -1210,6 +1229,7 @@ __ZGVZN9gui_forms22SpatialIndexStatistics*
 __ZGVZN9gui_forms22TableLayoutPanelCompat*
 __ZGVZN9gui_forms22TextMaskBudgetSnapshot*
 __ZGVZN9gui_forms22ThemeCompileDiagnostic*
+__ZGVZN9gui_forms22VirtualRowsHeaderClick*
 __ZGVZN9gui_forms23ApplicationCreateResult*
 __ZGVZN9gui_forms23ApplicationWindowHandle*
 __ZGVZN9gui_forms23BackdropChainResolution*
@@ -1482,6 +1502,7 @@ __ZGVZN9gui_forms7RuleSet*
 __ZGVZN9gui_forms7Spinner*
 __ZGVZN9gui_forms7TabPage*
 __ZGVZN9gui_forms7TextBox*
+__ZGVZN9gui_forms7TextRun*
 __ZGVZN9gui_forms7TokenId*
 __ZGVZN9gui_forms7ToolTip*
 __ZGVZN9gui_forms8CheckBox*
@@ -1644,6 +1665,7 @@ __ZGVZNK9gui_forms10FlexMargin*
 __ZGVZNK9gui_forms10FontChoice*
 __ZGVZNK9gui_forms10FontDialog*
 __ZGVZNK9gui_forms10FontFaceId*
+__ZGVZNK9gui_forms10FormLayout*
 __ZGVZNK9gui_forms10GridMargin*
 __ZGVZNK9gui_forms10HScrollBar*
 __ZGVZNK9gui_forms10HelpTarget*
@@ -1667,6 +1689,7 @@ __ZGVZNK9gui_forms10PaintGroup*
 __ZGVZNK9gui_forms10PartMotion*
 __ZGVZNK9gui_forms10PartRaster*
 __ZGVZNK9gui_forms10PictureBox*
+__ZGVZNK9gui_forms10PlotHandle*
 __ZGVZNK9gui_forms10PortRecord*
 __ZGVZNK9gui_forms10RadialPick*
 __ZGVZNK9gui_forms10RadialSlot*
@@ -1698,6 +1721,7 @@ __ZGVZNK9gui_forms11AccentIndex*
 __ZGVZNK9gui_forms11Application*
 __ZGVZNK9gui_forms11ChoiceGroup*
 __ZGVZNK9gui_forms11ColorDialog*
+__ZGVZNK9gui_forms11ColorPicker*
 __ZGVZNK9gui_forms11CommandItem*
 __ZGVZNK9gui_forms11ContextMenu*
 __ZGVZNK9gui_forms11CursorImage*
@@ -1741,6 +1765,7 @@ __ZGVZNK9gui_forms11OpenTypeTag*
 __ZGVZNK9gui_forms11PageContent*
 __ZGVZNK9gui_forms11PartProfile*
 __ZGVZNK9gui_forms11PhysicalKey*
+__ZGVZNK9gui_forms11PlotPalette*
 __ZGVZNK9gui_forms11PngMetadata*
 __ZGVZNK9gui_forms11ProgressBar*
 __ZGVZNK9gui_forms11RadialGauge*
@@ -1930,6 +1955,7 @@ __ZGVZNK9gui_forms13PageSetLimits*
 __ZGVZNK9gui_forms13PaintPathView*
 __ZGVZNK9gui_forms13ParagraphLine*
 __ZGVZNK9gui_forms13PartHitRegion*
+__ZGVZNK9gui_forms13PlotLinkGroup*
 __ZGVZNK9gui_forms13PlotPointPick*
 __ZGVZNK9gui_forms13PresentedArea*
 __ZGVZNK9gui_forms13PrimitiveCost*
@@ -1964,6 +1990,7 @@ __ZGVZNK9gui_forms14BindingSortKey*
 __ZGVZNK9gui_forms14CheckedListBox*
 __ZGVZNK9gui_forms14CheckerPattern*
 __ZGVZNK9gui_forms14CollectionEdit*
+__ZGVZNK9gui_forms14ColorPickerHsv*
 __ZGVZNK9gui_forms14CommandBinding*
 __ZGVZNK9gui_forms14ContentContext*
 __ZGVZNK9gui_forms14ContentItemKey*
@@ -2032,6 +2059,7 @@ __ZGVZNK9gui_forms14PaintEventArgs*
 __ZGVZNK9gui_forms14ParagraphPaint*
 __ZGVZNK9gui_forms14ParagraphStyle*
 __ZGVZNK9gui_forms14PartRasterView*
+__ZGVZNK9gui_forms14PlotHandleMove*
 __ZGVZNK9gui_forms14PlotSeriesItem*
 __ZGVZNK9gui_forms14PlotViewRanges*
 __ZGVZNK9gui_forms14PointerOverlay*
@@ -2045,6 +2073,7 @@ __ZGVZNK9gui_forms14SceneZoomRange*
 __ZGVZNK9gui_forms14ScrollSnapshot*
 __ZGVZNK9gui_forms14ShapingFeature*
 __ZGVZNK9gui_forms14ShapingRequest*
+__ZGVZNK9gui_forms14SparklineStyle*
 __ZGVZNK9gui_forms14SplitContainer*
 __ZGVZNK9gui_forms14StockIconImage*
 __ZGVZNK9gui_forms14StockIconLayer*
@@ -2055,6 +2084,7 @@ __ZGVZNK9gui_forms14TextEditResult*
 __ZGVZNK9gui_forms14TextInputEvent*
 __ZGVZNK9gui_forms14TextMaskResult*
 __ZGVZNK9gui_forms14TextMatchRange*
+__ZGVZNK9gui_forms14ThemeOverrides*
 __ZGVZNK9gui_forms14ThemeRuleSheet*
 __ZGVZNK9gui_forms14ToastDismissal*
 __ZGVZNK9gui_forms14ToolStripPanel*
@@ -2088,6 +2118,7 @@ __ZGVZNK9gui_forms15DockDropMetrics*
 __ZGVZNK9gui_forms15DockLayoutState*
 __ZGVZNK9gui_forms15DockNamedLayout*
 __ZGVZNK9gui_forms15DockPanelRecord*
+__ZGVZNK9gui_forms15DockPanelsAdded*
 __ZGVZNK9gui_forms15DockTransaction*
 __ZGVZNK9gui_forms15DockWindowFrame*
 __ZGVZNK9gui_forms15DocumentMapSpan*
@@ -2249,6 +2280,8 @@ __ZGVZNK9gui_forms16ParagraphMetrics*
 __ZGVZNK9gui_forms16ParagraphStorage*
 __ZGVZNK9gui_forms16PartRasterResult*
 __ZGVZNK9gui_forms16PartRecordHandle*
+__ZGVZNK9gui_forms16PlotCustomExtent*
+__ZGVZNK9gui_forms16PlotCustomSeries*
 __ZGVZNK9gui_forms16RangeScrollEvent*
 __ZGVZNK9gui_forms16RetainedDrawMemo*
 __ZGVZNK9gui_forms16RibbonRecentItem*
@@ -2346,6 +2379,7 @@ __ZGVZNK9gui_forms17NodeLinkConnected*
 __ZGVZNK9gui_forms17ObjectDetailsCell*
 __ZGVZNK9gui_forms17ObjectDetailsSort*
 __ZGVZNK9gui_forms17PartRasterRequest*
+__ZGVZNK9gui_forms17PlotHeatmapSeries*
 __ZGVZNK9gui_forms17PresentationState*
 __ZGVZNK9gui_forms17PrimitiveRegistry*
 __ZGVZNK9gui_forms17PropertyEnumValue*
@@ -2379,6 +2413,7 @@ __ZGVZNK9gui_forms17ToolStripItemSpec*
 __ZGVZNK9gui_forms17TreeListRowSource*
 __ZGVZNK9gui_forms17TreeListRowSplice*
 __ZGVZNK9gui_forms17VirtualRowMeasure*
+__ZGVZNK9gui_forms17VirtualRowsColumn*
 __ZGVZNK9gui_forms17VisualInteraction*
 __ZGVZNK9gui_forms17WindowBandOptions*
 __ZGVZNK9gui_forms17XmlSourcePosition*
@@ -2469,6 +2504,7 @@ __ZGVZNK9gui_forms18SceneViewTransform*
 __ZGVZNK9gui_forms18ScrollAxisSnapshot*
 __ZGVZNK9gui_forms18SemanticDescriptor*
 __ZGVZNK9gui_forms18SemanticTextLayout*
+__ZGVZNK9gui_forms18SparklineWorkspace*
 __ZGVZNK9gui_forms18SpatialQueryResult*
 __ZGVZNK9gui_forms18SplashscreenResult*
 __ZGVZNK9gui_forms18TabSelectionChange*
@@ -2508,6 +2544,7 @@ __ZGVZNK9gui_forms19DockInvariantResult*
 __ZGVZNK9gui_forms19DockNavigatorChoice*
 __ZGVZNK9gui_forms19DockPanelDescriptor*
 __ZGVZNK9gui_forms19DocumentPageRequest*
+__ZGVZNK9gui_forms19DrawingReplayReport*
 __ZGVZNK9gui_forms19ErrorProviderChange*
 __ZGVZNK9gui_forms19FlexAvailableExtent*
 __ZGVZNK9gui_forms19FlexLayoutWorkspace*
@@ -2553,6 +2590,7 @@ __ZGVZNK9gui_forms19ObjectDetailsColumn*
 __ZGVZNK9gui_forms19OffscreenAttachment*
 __ZGVZNK9gui_forms19PageSelectionChange*
 __ZGVZNK9gui_forms19ParameterValidation*
+__ZGVZNK9gui_forms19PlotHistogramSeries*
 __ZGVZNK9gui_forms19PngValidationResult*
 __ZGVZNK9gui_forms19PreparedTextMetrics*
 __ZGVZNK9gui_forms19PreparedTextService*
@@ -2576,6 +2614,7 @@ __ZGVZNK9gui_forms19TextDecorationStyle*
 __ZGVZNK9gui_forms19TextMetricsProvider*
 __ZGVZNK9gui_forms19ThemeCompileOptions*
 __ZGVZNK9gui_forms19ThemeGeometryTokens*
+__ZGVZNK9gui_forms19ThemeOverrideTarget*
 __ZGVZNK9gui_forms19ThemeRequestContext*
 __ZGVZNK9gui_forms19ThemeWindowBackdrop*
 __ZGVZNK9gui_forms19ToolStripDropTarget*
@@ -2721,6 +2760,7 @@ __ZGVZNK9gui_forms21ThemeTypographyTokens*
 __ZGVZNK9gui_forms21ThreadExceptionDialog*
 __ZGVZNK9gui_forms21ThreadExceptionReport*
 __ZGVZNK9gui_forms21VirtualRowDescription*
+__ZGVZNK9gui_forms21VirtualRowsColumnMove*
 __ZGVZNK9gui_forms21VirtualRowsStatistics*
 __ZGVZNK9gui_forms21WindowBackdropRequest*
 __ZGVZNK9gui_forms22ApplicationModalResult*
@@ -2768,6 +2808,7 @@ __ZGVZNK9gui_forms22SpatialIndexStatistics*
 __ZGVZNK9gui_forms22TableLayoutPanelCompat*
 __ZGVZNK9gui_forms22TextMaskBudgetSnapshot*
 __ZGVZNK9gui_forms22ThemeCompileDiagnostic*
+__ZGVZNK9gui_forms22VirtualRowsHeaderClick*
 __ZGVZNK9gui_forms23ApplicationCreateResult*
 __ZGVZNK9gui_forms23ApplicationWindowHandle*
 __ZGVZNK9gui_forms23BackdropChainResolution*
@@ -3040,6 +3081,7 @@ __ZGVZNK9gui_forms7RuleSet*
 __ZGVZNK9gui_forms7Spinner*
 __ZGVZNK9gui_forms7TabPage*
 __ZGVZNK9gui_forms7TextBox*
+__ZGVZNK9gui_forms7TextRun*
 __ZGVZNK9gui_forms7TokenId*
 __ZGVZNK9gui_forms7ToolTip*
 __ZGVZNK9gui_forms8CheckBox*
@@ -3254,6 +3296,7 @@ __ZN9gui_forms10FlexMargin*
 __ZN9gui_forms10FontChoice*
 __ZN9gui_forms10FontDialog*
 __ZN9gui_forms10FontFaceId*
+__ZN9gui_forms10FormLayout*
 __ZN9gui_forms10GridMargin*
 __ZN9gui_forms10HScrollBar*
 __ZN9gui_forms10HelpTarget*
@@ -3277,6 +3320,7 @@ __ZN9gui_forms10PaintGroup*
 __ZN9gui_forms10PartMotion*
 __ZN9gui_forms10PartRaster*
 __ZN9gui_forms10PictureBox*
+__ZN9gui_forms10PlotHandle*
 __ZN9gui_forms10PortRecord*
 __ZN9gui_forms10RadialPick*
 __ZN9gui_forms10RadialSlot*
@@ -3318,6 +3362,7 @@ __ZN9gui_forms11AccentIndex*
 __ZN9gui_forms11Application*
 __ZN9gui_forms11ChoiceGroup*
 __ZN9gui_forms11ColorDialog*
+__ZN9gui_forms11ColorPicker*
 __ZN9gui_forms11CommandItem*
 __ZN9gui_forms11ContextMenu*
 __ZN9gui_forms11CursorImage*
@@ -3361,6 +3406,7 @@ __ZN9gui_forms11OpenTypeTag*
 __ZN9gui_forms11PageContent*
 __ZN9gui_forms11PartProfile*
 __ZN9gui_forms11PhysicalKey*
+__ZN9gui_forms11PlotPalette*
 __ZN9gui_forms11PngMetadata*
 __ZN9gui_forms11ProgressBar*
 __ZN9gui_forms11RadialGauge*
@@ -3612,6 +3658,7 @@ __ZN9gui_forms13PageSetLimits*
 __ZN9gui_forms13PaintPathView*
 __ZN9gui_forms13ParagraphLine*
 __ZN9gui_forms13PartHitRegion*
+__ZN9gui_forms13PlotLinkGroup*
 __ZN9gui_forms13PlotPointPick*
 __ZN9gui_forms13PresentedArea*
 __ZN9gui_forms13PrimitiveCost*
@@ -3662,6 +3709,7 @@ __ZN9gui_forms14BindingSortKey*
 __ZN9gui_forms14CheckedListBox*
 __ZN9gui_forms14CheckerPattern*
 __ZN9gui_forms14CollectionEdit*
+__ZN9gui_forms14ColorPickerHsv*
 __ZN9gui_forms14CommandBinding*
 __ZN9gui_forms14ContentContext*
 __ZN9gui_forms14ContentItemKey*
@@ -3730,6 +3778,7 @@ __ZN9gui_forms14PaintEventArgs*
 __ZN9gui_forms14ParagraphPaint*
 __ZN9gui_forms14ParagraphStyle*
 __ZN9gui_forms14PartRasterView*
+__ZN9gui_forms14PlotHandleMove*
 __ZN9gui_forms14PlotSeriesItem*
 __ZN9gui_forms14PlotViewRanges*
 __ZN9gui_forms14PointerOverlay*
@@ -3743,6 +3792,7 @@ __ZN9gui_forms14SceneZoomRange*
 __ZN9gui_forms14ScrollSnapshot*
 __ZN9gui_forms14ShapingFeature*
 __ZN9gui_forms14ShapingRequest*
+__ZN9gui_forms14SparklineStyle*
 __ZN9gui_forms14SplitContainer*
 __ZN9gui_forms14StockIconImage*
 __ZN9gui_forms14StockIconLayer*
@@ -3753,6 +3803,7 @@ __ZN9gui_forms14TextEditResult*
 __ZN9gui_forms14TextInputEvent*
 __ZN9gui_forms14TextMaskResult*
 __ZN9gui_forms14TextMatchRange*
+__ZN9gui_forms14ThemeOverrides*
 __ZN9gui_forms14ThemeRuleSheet*
 __ZN9gui_forms14ToastDismissal*
 __ZN9gui_forms14ToolStripPanel*
@@ -3834,6 +3885,7 @@ __ZN9gui_forms15DockDropMetrics*
 __ZN9gui_forms15DockLayoutState*
 __ZN9gui_forms15DockNamedLayout*
 __ZN9gui_forms15DockPanelRecord*
+__ZN9gui_forms15DockPanelsAdded*
 __ZN9gui_forms15DockTransaction*
 __ZN9gui_forms15DockWindowFrame*
 __ZN9gui_forms15DocumentMapSpan*
@@ -3944,6 +3996,8 @@ __ZN9gui_forms15logical_monitorB*
 __ZN9gui_forms15logical_monitorE*
 __ZN9gui_forms15paint_paragraphB*
 __ZN9gui_forms15paint_paragraphE*
+__ZN9gui_forms15paint_sparklineB*
+__ZN9gui_forms15paint_sparklineE*
 __ZN9gui_forms15plan_help_printB*
 __ZN9gui_forms15plan_help_printE*
 __ZN9gui_forms15proportion_rectB*
@@ -4037,6 +4091,8 @@ __ZN9gui_forms16ParagraphMetrics*
 __ZN9gui_forms16ParagraphStorage*
 __ZN9gui_forms16PartRasterResult*
 __ZN9gui_forms16PartRecordHandle*
+__ZN9gui_forms16PlotCustomExtent*
+__ZN9gui_forms16PlotCustomSeries*
 __ZN9gui_forms16RangeScrollEvent*
 __ZN9gui_forms16RetainedDrawMemo*
 __ZN9gui_forms16RibbonRecentItem*
@@ -4208,6 +4264,7 @@ __ZN9gui_forms17NodeLinkConnected*
 __ZN9gui_forms17ObjectDetailsCell*
 __ZN9gui_forms17ObjectDetailsSort*
 __ZN9gui_forms17PartRasterRequest*
+__ZN9gui_forms17PlotHeatmapSeries*
 __ZN9gui_forms17PresentationState*
 __ZN9gui_forms17PrimitiveRegistry*
 __ZN9gui_forms17PropertyEnumValue*
@@ -4241,6 +4298,7 @@ __ZN9gui_forms17ToolStripItemSpec*
 __ZN9gui_forms17TreeListRowSource*
 __ZN9gui_forms17TreeListRowSplice*
 __ZN9gui_forms17VirtualRowMeasure*
+__ZN9gui_forms17VirtualRowsColumn*
 __ZN9gui_forms17VisualInteraction*
 __ZN9gui_forms17WindowBandOptions*
 __ZN9gui_forms17XmlSourcePosition*
@@ -4298,6 +4356,8 @@ __ZN9gui_forms17part_corner_radiiB*
 __ZN9gui_forms17part_corner_radiiE*
 __ZN9gui_forms17plain_number_textB*
 __ZN9gui_forms17plain_number_textE*
+__ZN9gui_forms17plot_series_colorB*
+__ZN9gui_forms17plot_series_colorE*
 __ZN9gui_forms17process_argumentsB*
 __ZN9gui_forms17process_argumentsE*
 __ZN9gui_forms17program_argumentsB*
@@ -4405,6 +4465,7 @@ __ZN9gui_forms18SceneViewTransform*
 __ZN9gui_forms18ScrollAxisSnapshot*
 __ZN9gui_forms18SemanticDescriptor*
 __ZN9gui_forms18SemanticTextLayout*
+__ZN9gui_forms18SparklineWorkspace*
 __ZN9gui_forms18SpatialQueryResult*
 __ZN9gui_forms18SplashscreenResult*
 __ZN9gui_forms18TabSelectionChange*
@@ -4548,6 +4609,7 @@ __ZN9gui_forms19DockInvariantResult*
 __ZN9gui_forms19DockNavigatorChoice*
 __ZN9gui_forms19DockPanelDescriptor*
 __ZN9gui_forms19DocumentPageRequest*
+__ZN9gui_forms19DrawingReplayReport*
 __ZN9gui_forms19ErrorProviderChange*
 __ZN9gui_forms19FlexAvailableExtent*
 __ZN9gui_forms19FlexLayoutWorkspace*
@@ -4593,6 +4655,7 @@ __ZN9gui_forms19ObjectDetailsColumn*
 __ZN9gui_forms19OffscreenAttachment*
 __ZN9gui_forms19PageSelectionChange*
 __ZN9gui_forms19ParameterValidation*
+__ZN9gui_forms19PlotHistogramSeries*
 __ZN9gui_forms19PngValidationResult*
 __ZN9gui_forms19PreparedTextMetrics*
 __ZN9gui_forms19PreparedTextService*
@@ -4616,6 +4679,7 @@ __ZN9gui_forms19TextDecorationStyle*
 __ZN9gui_forms19TextMetricsProvider*
 __ZN9gui_forms19ThemeCompileOptions*
 __ZN9gui_forms19ThemeGeometryTokens*
+__ZN9gui_forms19ThemeOverrideTarget*
 __ZN9gui_forms19ThemeRequestContext*
 __ZN9gui_forms19ThemeWindowBackdrop*
 __ZN9gui_forms19ToolStripDropTarget*
@@ -4705,6 +4769,8 @@ __ZN9gui_forms19part_role_from_nameB*
 __ZN9gui_forms19part_role_from_nameE*
 __ZN9gui_forms19part_visual_contextB*
 __ZN9gui_forms19part_visual_contextE*
+__ZN9gui_forms19plot_category_colorB*
+__ZN9gui_forms19plot_category_colorE*
 __ZN9gui_forms19project_help_fieldsB*
 __ZN9gui_forms19project_help_fieldsE*
 __ZN9gui_forms19put_declared_topicsB*
@@ -4850,6 +4916,8 @@ __ZN9gui_forms20rasterize_stock_iconB*
 __ZN9gui_forms20rasterize_stock_iconE*
 __ZN9gui_forms20reset_property_entryB*
 __ZN9gui_forms20reset_property_entryE*
+__ZN9gui_forms20resolve_plot_paletteB*
+__ZN9gui_forms20resolve_plot_paletteE*
 __ZN9gui_forms20rule_diagnostic_nameB*
 __ZN9gui_forms20rule_diagnostic_nameE*
 __ZN9gui_forms20scene_segments_crossB*
@@ -4951,6 +5019,7 @@ __ZN9gui_forms21ThemeTypographyTokens*
 __ZN9gui_forms21ThreadExceptionDialog*
 __ZN9gui_forms21ThreadExceptionReport*
 __ZN9gui_forms21VirtualRowDescription*
+__ZN9gui_forms21VirtualRowsColumnMove*
 __ZN9gui_forms21VirtualRowsStatistics*
 __ZN9gui_forms21WindowBackdropRequest*
 __ZN9gui_forms21allocation_statisticsB*
@@ -5080,6 +5149,7 @@ __ZN9gui_forms22SpatialIndexStatistics*
 __ZN9gui_forms22TableLayoutPanelCompat*
 __ZN9gui_forms22TextMaskBudgetSnapshot*
 __ZN9gui_forms22ThemeCompileDiagnostic*
+__ZN9gui_forms22VirtualRowsHeaderClick*
 __ZN9gui_forms22band_declaration_validB*
 __ZN9gui_forms22band_declaration_validE*
 __ZN9gui_forms22canonical_binding_nameB*
@@ -5284,6 +5354,8 @@ __ZN9gui_forms23rasterize_prepared_textB*
 __ZN9gui_forms23rasterize_prepared_textE*
 __ZN9gui_forms23read_theme_command_lineB*
 __ZN9gui_forms23read_theme_command_lineE*
+__ZN9gui_forms23replay_drawing_commandsB*
+__ZN9gui_forms23replay_drawing_commandsE*
 __ZN9gui_forms23resolve_flex_main_sizesB*
 __ZN9gui_forms23resolve_flex_main_sizesE*
 __ZN9gui_forms23resolve_window_backdropB*
@@ -5798,6 +5870,8 @@ __ZN9gui_forms5plots12LegendLayout*
 __ZN9gui_forms5plots12ScaleMapping*
 __ZN9gui_forms5plots12SeriesPicker*
 __ZN9gui_forms5plots12SquareSignal*
+__ZN9gui_forms5plots12category_keyB*
+__ZN9gui_forms5plots12category_keyE*
 __ZN9gui_forms5plots12engine_exp10B*
 __ZN9gui_forms5plots12engine_exp10E*
 __ZN9gui_forms5plots12engine_log10B*
@@ -5842,6 +5916,10 @@ __ZN9gui_forms5plots17SeriesRingChannel*
 __ZN9gui_forms5plots17SignalDeclaration*
 __ZN9gui_forms5plots17built_in_colormapB*
 __ZN9gui_forms5plots17built_in_colormapE*
+__ZN9gui_forms5plots17categorical_colorB*
+__ZN9gui_forms5plots17categorical_colorE*
+__ZN9gui_forms5plots17category_positionB*
+__ZN9gui_forms5plots17category_positionE*
 __ZN9gui_forms5plots18ScaleMappingResult*
 __ZN9gui_forms5plots18civil_from_secondsB*
 __ZN9gui_forms5plots18civil_from_secondsE*
@@ -5982,6 +6060,7 @@ __ZN9gui_forms7RuleSet*
 __ZN9gui_forms7Spinner*
 __ZN9gui_forms7TabPage*
 __ZN9gui_forms7TextBox*
+__ZN9gui_forms7TextRun*
 __ZN9gui_forms7TokenId*
 __ZN9gui_forms7ToolTip*
 __ZN9gui_forms7builtin19begin_keyboard_dragB*
@@ -6250,6 +6329,7 @@ __ZNK[RO]9gui_forms10FlexMargin*
 __ZNK[RO]9gui_forms10FontChoice*
 __ZNK[RO]9gui_forms10FontDialog*
 __ZNK[RO]9gui_forms10FontFaceId*
+__ZNK[RO]9gui_forms10FormLayout*
 __ZNK[RO]9gui_forms10GridMargin*
 __ZNK[RO]9gui_forms10HScrollBar*
 __ZNK[RO]9gui_forms10HelpTarget*
@@ -6273,6 +6353,7 @@ __ZNK[RO]9gui_forms10PaintGroup*
 __ZNK[RO]9gui_forms10PartMotion*
 __ZNK[RO]9gui_forms10PartRaster*
 __ZNK[RO]9gui_forms10PictureBox*
+__ZNK[RO]9gui_forms10PlotHandle*
 __ZNK[RO]9gui_forms10PortRecord*
 __ZNK[RO]9gui_forms10RadialPick*
 __ZNK[RO]9gui_forms10RadialSlot*
@@ -6304,6 +6385,7 @@ __ZNK[RO]9gui_forms11AccentIndex*
 __ZNK[RO]9gui_forms11Application*
 __ZNK[RO]9gui_forms11ChoiceGroup*
 __ZNK[RO]9gui_forms11ColorDialog*
+__ZNK[RO]9gui_forms11ColorPicker*
 __ZNK[RO]9gui_forms11CommandItem*
 __ZNK[RO]9gui_forms11ContextMenu*
 __ZNK[RO]9gui_forms11CursorImage*
@@ -6347,6 +6429,7 @@ __ZNK[RO]9gui_forms11OpenTypeTag*
 __ZNK[RO]9gui_forms11PageContent*
 __ZNK[RO]9gui_forms11PartProfile*
 __ZNK[RO]9gui_forms11PhysicalKey*
+__ZNK[RO]9gui_forms11PlotPalette*
 __ZNK[RO]9gui_forms11PngMetadata*
 __ZNK[RO]9gui_forms11ProgressBar*
 __ZNK[RO]9gui_forms11RadialGauge*
@@ -6536,6 +6619,7 @@ __ZNK[RO]9gui_forms13PageSetLimits*
 __ZNK[RO]9gui_forms13PaintPathView*
 __ZNK[RO]9gui_forms13ParagraphLine*
 __ZNK[RO]9gui_forms13PartHitRegion*
+__ZNK[RO]9gui_forms13PlotLinkGroup*
 __ZNK[RO]9gui_forms13PlotPointPick*
 __ZNK[RO]9gui_forms13PresentedArea*
 __ZNK[RO]9gui_forms13PrimitiveCost*
@@ -6570,6 +6654,7 @@ __ZNK[RO]9gui_forms14BindingSortKey*
 __ZNK[RO]9gui_forms14CheckedListBox*
 __ZNK[RO]9gui_forms14CheckerPattern*
 __ZNK[RO]9gui_forms14CollectionEdit*
+__ZNK[RO]9gui_forms14ColorPickerHsv*
 __ZNK[RO]9gui_forms14CommandBinding*
 __ZNK[RO]9gui_forms14ContentContext*
 __ZNK[RO]9gui_forms14ContentItemKey*
@@ -6638,6 +6723,7 @@ __ZNK[RO]9gui_forms14PaintEventArgs*
 __ZNK[RO]9gui_forms14ParagraphPaint*
 __ZNK[RO]9gui_forms14ParagraphStyle*
 __ZNK[RO]9gui_forms14PartRasterView*
+__ZNK[RO]9gui_forms14PlotHandleMove*
 __ZNK[RO]9gui_forms14PlotSeriesItem*
 __ZNK[RO]9gui_forms14PlotViewRanges*
 __ZNK[RO]9gui_forms14PointerOverlay*
@@ -6651,6 +6737,7 @@ __ZNK[RO]9gui_forms14SceneZoomRange*
 __ZNK[RO]9gui_forms14ScrollSnapshot*
 __ZNK[RO]9gui_forms14ShapingFeature*
 __ZNK[RO]9gui_forms14ShapingRequest*
+__ZNK[RO]9gui_forms14SparklineStyle*
 __ZNK[RO]9gui_forms14SplitContainer*
 __ZNK[RO]9gui_forms14StockIconImage*
 __ZNK[RO]9gui_forms14StockIconLayer*
@@ -6661,6 +6748,7 @@ __ZNK[RO]9gui_forms14TextEditResult*
 __ZNK[RO]9gui_forms14TextInputEvent*
 __ZNK[RO]9gui_forms14TextMaskResult*
 __ZNK[RO]9gui_forms14TextMatchRange*
+__ZNK[RO]9gui_forms14ThemeOverrides*
 __ZNK[RO]9gui_forms14ThemeRuleSheet*
 __ZNK[RO]9gui_forms14ToastDismissal*
 __ZNK[RO]9gui_forms14ToolStripPanel*
@@ -6694,6 +6782,7 @@ __ZNK[RO]9gui_forms15DockDropMetrics*
 __ZNK[RO]9gui_forms15DockLayoutState*
 __ZNK[RO]9gui_forms15DockNamedLayout*
 __ZNK[RO]9gui_forms15DockPanelRecord*
+__ZNK[RO]9gui_forms15DockPanelsAdded*
 __ZNK[RO]9gui_forms15DockTransaction*
 __ZNK[RO]9gui_forms15DockWindowFrame*
 __ZNK[RO]9gui_forms15DocumentMapSpan*
@@ -6855,6 +6944,8 @@ __ZNK[RO]9gui_forms16ParagraphMetrics*
 __ZNK[RO]9gui_forms16ParagraphStorage*
 __ZNK[RO]9gui_forms16PartRasterResult*
 __ZNK[RO]9gui_forms16PartRecordHandle*
+__ZNK[RO]9gui_forms16PlotCustomExtent*
+__ZNK[RO]9gui_forms16PlotCustomSeries*
 __ZNK[RO]9gui_forms16RangeScrollEvent*
 __ZNK[RO]9gui_forms16RetainedDrawMemo*
 __ZNK[RO]9gui_forms16RibbonRecentItem*
@@ -6952,6 +7043,7 @@ __ZNK[RO]9gui_forms17NodeLinkConnected*
 __ZNK[RO]9gui_forms17ObjectDetailsCell*
 __ZNK[RO]9gui_forms17ObjectDetailsSort*
 __ZNK[RO]9gui_forms17PartRasterRequest*
+__ZNK[RO]9gui_forms17PlotHeatmapSeries*
 __ZNK[RO]9gui_forms17PresentationState*
 __ZNK[RO]9gui_forms17PrimitiveRegistry*
 __ZNK[RO]9gui_forms17PropertyEnumValue*
@@ -6985,6 +7077,7 @@ __ZNK[RO]9gui_forms17ToolStripItemSpec*
 __ZNK[RO]9gui_forms17TreeListRowSource*
 __ZNK[RO]9gui_forms17TreeListRowSplice*
 __ZNK[RO]9gui_forms17VirtualRowMeasure*
+__ZNK[RO]9gui_forms17VirtualRowsColumn*
 __ZNK[RO]9gui_forms17VisualInteraction*
 __ZNK[RO]9gui_forms17WindowBandOptions*
 __ZNK[RO]9gui_forms17XmlSourcePosition*
@@ -7075,6 +7168,7 @@ __ZNK[RO]9gui_forms18SceneViewTransform*
 __ZNK[RO]9gui_forms18ScrollAxisSnapshot*
 __ZNK[RO]9gui_forms18SemanticDescriptor*
 __ZNK[RO]9gui_forms18SemanticTextLayout*
+__ZNK[RO]9gui_forms18SparklineWorkspace*
 __ZNK[RO]9gui_forms18SpatialQueryResult*
 __ZNK[RO]9gui_forms18SplashscreenResult*
 __ZNK[RO]9gui_forms18TabSelectionChange*
@@ -7114,6 +7208,7 @@ __ZNK[RO]9gui_forms19DockInvariantResult*
 __ZNK[RO]9gui_forms19DockNavigatorChoice*
 __ZNK[RO]9gui_forms19DockPanelDescriptor*
 __ZNK[RO]9gui_forms19DocumentPageRequest*
+__ZNK[RO]9gui_forms19DrawingReplayReport*
 __ZNK[RO]9gui_forms19ErrorProviderChange*
 __ZNK[RO]9gui_forms19FlexAvailableExtent*
 __ZNK[RO]9gui_forms19FlexLayoutWorkspace*
@@ -7159,6 +7254,7 @@ __ZNK[RO]9gui_forms19ObjectDetailsColumn*
 __ZNK[RO]9gui_forms19OffscreenAttachment*
 __ZNK[RO]9gui_forms19PageSelectionChange*
 __ZNK[RO]9gui_forms19ParameterValidation*
+__ZNK[RO]9gui_forms19PlotHistogramSeries*
 __ZNK[RO]9gui_forms19PngValidationResult*
 __ZNK[RO]9gui_forms19PreparedTextMetrics*
 __ZNK[RO]9gui_forms19PreparedTextService*
@@ -7182,6 +7278,7 @@ __ZNK[RO]9gui_forms19TextDecorationStyle*
 __ZNK[RO]9gui_forms19TextMetricsProvider*
 __ZNK[RO]9gui_forms19ThemeCompileOptions*
 __ZNK[RO]9gui_forms19ThemeGeometryTokens*
+__ZNK[RO]9gui_forms19ThemeOverrideTarget*
 __ZNK[RO]9gui_forms19ThemeRequestContext*
 __ZNK[RO]9gui_forms19ThemeWindowBackdrop*
 __ZNK[RO]9gui_forms19ToolStripDropTarget*
@@ -7327,6 +7424,7 @@ __ZNK[RO]9gui_forms21ThemeTypographyTokens*
 __ZNK[RO]9gui_forms21ThreadExceptionDialog*
 __ZNK[RO]9gui_forms21ThreadExceptionReport*
 __ZNK[RO]9gui_forms21VirtualRowDescription*
+__ZNK[RO]9gui_forms21VirtualRowsColumnMove*
 __ZNK[RO]9gui_forms21VirtualRowsStatistics*
 __ZNK[RO]9gui_forms21WindowBackdropRequest*
 __ZNK[RO]9gui_forms22ApplicationModalResult*
@@ -7374,6 +7472,7 @@ __ZNK[RO]9gui_forms22SpatialIndexStatistics*
 __ZNK[RO]9gui_forms22TableLayoutPanelCompat*
 __ZNK[RO]9gui_forms22TextMaskBudgetSnapshot*
 __ZNK[RO]9gui_forms22ThemeCompileDiagnostic*
+__ZNK[RO]9gui_forms22VirtualRowsHeaderClick*
 __ZNK[RO]9gui_forms23ApplicationCreateResult*
 __ZNK[RO]9gui_forms23ApplicationWindowHandle*
 __ZNK[RO]9gui_forms23BackdropChainResolution*
@@ -7646,6 +7745,7 @@ __ZNK[RO]9gui_forms7RuleSet*
 __ZNK[RO]9gui_forms7Spinner*
 __ZNK[RO]9gui_forms7TabPage*
 __ZNK[RO]9gui_forms7TextBox*
+__ZNK[RO]9gui_forms7TextRun*
 __ZNK[RO]9gui_forms7TokenId*
 __ZNK[RO]9gui_forms7ToolTip*
 __ZNK[RO]9gui_forms8CheckBox*
@@ -7808,6 +7908,7 @@ __ZN[KRO]9gui_forms10FlexMargin*
 __ZN[KRO]9gui_forms10FontChoice*
 __ZN[KRO]9gui_forms10FontDialog*
 __ZN[KRO]9gui_forms10FontFaceId*
+__ZN[KRO]9gui_forms10FormLayout*
 __ZN[KRO]9gui_forms10GridMargin*
 __ZN[KRO]9gui_forms10HScrollBar*
 __ZN[KRO]9gui_forms10HelpTarget*
@@ -7831,6 +7932,7 @@ __ZN[KRO]9gui_forms10PaintGroup*
 __ZN[KRO]9gui_forms10PartMotion*
 __ZN[KRO]9gui_forms10PartRaster*
 __ZN[KRO]9gui_forms10PictureBox*
+__ZN[KRO]9gui_forms10PlotHandle*
 __ZN[KRO]9gui_forms10PortRecord*
 __ZN[KRO]9gui_forms10RadialPick*
 __ZN[KRO]9gui_forms10RadialSlot*
@@ -7862,6 +7964,7 @@ __ZN[KRO]9gui_forms11AccentIndex*
 __ZN[KRO]9gui_forms11Application*
 __ZN[KRO]9gui_forms11ChoiceGroup*
 __ZN[KRO]9gui_forms11ColorDialog*
+__ZN[KRO]9gui_forms11ColorPicker*
 __ZN[KRO]9gui_forms11CommandItem*
 __ZN[KRO]9gui_forms11ContextMenu*
 __ZN[KRO]9gui_forms11CursorImage*
@@ -7905,6 +8008,7 @@ __ZN[KRO]9gui_forms11OpenTypeTag*
 __ZN[KRO]9gui_forms11PageContent*
 __ZN[KRO]9gui_forms11PartProfile*
 __ZN[KRO]9gui_forms11PhysicalKey*
+__ZN[KRO]9gui_forms11PlotPalette*
 __ZN[KRO]9gui_forms11PngMetadata*
 __ZN[KRO]9gui_forms11ProgressBar*
 __ZN[KRO]9gui_forms11RadialGauge*
@@ -8094,6 +8198,7 @@ __ZN[KRO]9gui_forms13PageSetLimits*
 __ZN[KRO]9gui_forms13PaintPathView*
 __ZN[KRO]9gui_forms13ParagraphLine*
 __ZN[KRO]9gui_forms13PartHitRegion*
+__ZN[KRO]9gui_forms13PlotLinkGroup*
 __ZN[KRO]9gui_forms13PlotPointPick*
 __ZN[KRO]9gui_forms13PresentedArea*
 __ZN[KRO]9gui_forms13PrimitiveCost*
@@ -8128,6 +8233,7 @@ __ZN[KRO]9gui_forms14BindingSortKey*
 __ZN[KRO]9gui_forms14CheckedListBox*
 __ZN[KRO]9gui_forms14CheckerPattern*
 __ZN[KRO]9gui_forms14CollectionEdit*
+__ZN[KRO]9gui_forms14ColorPickerHsv*
 __ZN[KRO]9gui_forms14CommandBinding*
 __ZN[KRO]9gui_forms14ContentContext*
 __ZN[KRO]9gui_forms14ContentItemKey*
@@ -8196,6 +8302,7 @@ __ZN[KRO]9gui_forms14PaintEventArgs*
 __ZN[KRO]9gui_forms14ParagraphPaint*
 __ZN[KRO]9gui_forms14ParagraphStyle*
 __ZN[KRO]9gui_forms14PartRasterView*
+__ZN[KRO]9gui_forms14PlotHandleMove*
 __ZN[KRO]9gui_forms14PlotSeriesItem*
 __ZN[KRO]9gui_forms14PlotViewRanges*
 __ZN[KRO]9gui_forms14PointerOverlay*
@@ -8209,6 +8316,7 @@ __ZN[KRO]9gui_forms14SceneZoomRange*
 __ZN[KRO]9gui_forms14ScrollSnapshot*
 __ZN[KRO]9gui_forms14ShapingFeature*
 __ZN[KRO]9gui_forms14ShapingRequest*
+__ZN[KRO]9gui_forms14SparklineStyle*
 __ZN[KRO]9gui_forms14SplitContainer*
 __ZN[KRO]9gui_forms14StockIconImage*
 __ZN[KRO]9gui_forms14StockIconLayer*
@@ -8219,6 +8327,7 @@ __ZN[KRO]9gui_forms14TextEditResult*
 __ZN[KRO]9gui_forms14TextInputEvent*
 __ZN[KRO]9gui_forms14TextMaskResult*
 __ZN[KRO]9gui_forms14TextMatchRange*
+__ZN[KRO]9gui_forms14ThemeOverrides*
 __ZN[KRO]9gui_forms14ThemeRuleSheet*
 __ZN[KRO]9gui_forms14ToastDismissal*
 __ZN[KRO]9gui_forms14ToolStripPanel*
@@ -8252,6 +8361,7 @@ __ZN[KRO]9gui_forms15DockDropMetrics*
 __ZN[KRO]9gui_forms15DockLayoutState*
 __ZN[KRO]9gui_forms15DockNamedLayout*
 __ZN[KRO]9gui_forms15DockPanelRecord*
+__ZN[KRO]9gui_forms15DockPanelsAdded*
 __ZN[KRO]9gui_forms15DockTransaction*
 __ZN[KRO]9gui_forms15DockWindowFrame*
 __ZN[KRO]9gui_forms15DocumentMapSpan*
@@ -8413,6 +8523,8 @@ __ZN[KRO]9gui_forms16ParagraphMetrics*
 __ZN[KRO]9gui_forms16ParagraphStorage*
 __ZN[KRO]9gui_forms16PartRasterResult*
 __ZN[KRO]9gui_forms16PartRecordHandle*
+__ZN[KRO]9gui_forms16PlotCustomExtent*
+__ZN[KRO]9gui_forms16PlotCustomSeries*
 __ZN[KRO]9gui_forms16RangeScrollEvent*
 __ZN[KRO]9gui_forms16RetainedDrawMemo*
 __ZN[KRO]9gui_forms16RibbonRecentItem*
@@ -8510,6 +8622,7 @@ __ZN[KRO]9gui_forms17NodeLinkConnected*
 __ZN[KRO]9gui_forms17ObjectDetailsCell*
 __ZN[KRO]9gui_forms17ObjectDetailsSort*
 __ZN[KRO]9gui_forms17PartRasterRequest*
+__ZN[KRO]9gui_forms17PlotHeatmapSeries*
 __ZN[KRO]9gui_forms17PresentationState*
 __ZN[KRO]9gui_forms17PrimitiveRegistry*
 __ZN[KRO]9gui_forms17PropertyEnumValue*
@@ -8543,6 +8656,7 @@ __ZN[KRO]9gui_forms17ToolStripItemSpec*
 __ZN[KRO]9gui_forms17TreeListRowSource*
 __ZN[KRO]9gui_forms17TreeListRowSplice*
 __ZN[KRO]9gui_forms17VirtualRowMeasure*
+__ZN[KRO]9gui_forms17VirtualRowsColumn*
 __ZN[KRO]9gui_forms17VisualInteraction*
 __ZN[KRO]9gui_forms17WindowBandOptions*
 __ZN[KRO]9gui_forms17XmlSourcePosition*
@@ -8633,6 +8747,7 @@ __ZN[KRO]9gui_forms18SceneViewTransform*
 __ZN[KRO]9gui_forms18ScrollAxisSnapshot*
 __ZN[KRO]9gui_forms18SemanticDescriptor*
 __ZN[KRO]9gui_forms18SemanticTextLayout*
+__ZN[KRO]9gui_forms18SparklineWorkspace*
 __ZN[KRO]9gui_forms18SpatialQueryResult*
 __ZN[KRO]9gui_forms18SplashscreenResult*
 __ZN[KRO]9gui_forms18TabSelectionChange*
@@ -8672,6 +8787,7 @@ __ZN[KRO]9gui_forms19DockInvariantResult*
 __ZN[KRO]9gui_forms19DockNavigatorChoice*
 __ZN[KRO]9gui_forms19DockPanelDescriptor*
 __ZN[KRO]9gui_forms19DocumentPageRequest*
+__ZN[KRO]9gui_forms19DrawingReplayReport*
 __ZN[KRO]9gui_forms19ErrorProviderChange*
 __ZN[KRO]9gui_forms19FlexAvailableExtent*
 __ZN[KRO]9gui_forms19FlexLayoutWorkspace*
@@ -8717,6 +8833,7 @@ __ZN[KRO]9gui_forms19ObjectDetailsColumn*
 __ZN[KRO]9gui_forms19OffscreenAttachment*
 __ZN[KRO]9gui_forms19PageSelectionChange*
 __ZN[KRO]9gui_forms19ParameterValidation*
+__ZN[KRO]9gui_forms19PlotHistogramSeries*
 __ZN[KRO]9gui_forms19PngValidationResult*
 __ZN[KRO]9gui_forms19PreparedTextMetrics*
 __ZN[KRO]9gui_forms19PreparedTextService*
@@ -8740,6 +8857,7 @@ __ZN[KRO]9gui_forms19TextDecorationStyle*
 __ZN[KRO]9gui_forms19TextMetricsProvider*
 __ZN[KRO]9gui_forms19ThemeCompileOptions*
 __ZN[KRO]9gui_forms19ThemeGeometryTokens*
+__ZN[KRO]9gui_forms19ThemeOverrideTarget*
 __ZN[KRO]9gui_forms19ThemeRequestContext*
 __ZN[KRO]9gui_forms19ThemeWindowBackdrop*
 __ZN[KRO]9gui_forms19ToolStripDropTarget*
@@ -8885,6 +9003,7 @@ __ZN[KRO]9gui_forms21ThemeTypographyTokens*
 __ZN[KRO]9gui_forms21ThreadExceptionDialog*
 __ZN[KRO]9gui_forms21ThreadExceptionReport*
 __ZN[KRO]9gui_forms21VirtualRowDescription*
+__ZN[KRO]9gui_forms21VirtualRowsColumnMove*
 __ZN[KRO]9gui_forms21VirtualRowsStatistics*
 __ZN[KRO]9gui_forms21WindowBackdropRequest*
 __ZN[KRO]9gui_forms22ApplicationModalResult*
@@ -8932,6 +9051,7 @@ __ZN[KRO]9gui_forms22SpatialIndexStatistics*
 __ZN[KRO]9gui_forms22TableLayoutPanelCompat*
 __ZN[KRO]9gui_forms22TextMaskBudgetSnapshot*
 __ZN[KRO]9gui_forms22ThemeCompileDiagnostic*
+__ZN[KRO]9gui_forms22VirtualRowsHeaderClick*
 __ZN[KRO]9gui_forms23ApplicationCreateResult*
 __ZN[KRO]9gui_forms23ApplicationWindowHandle*
 __ZN[KRO]9gui_forms23BackdropChainResolution*
@@ -9204,6 +9324,7 @@ __ZN[KRO]9gui_forms7RuleSet*
 __ZN[KRO]9gui_forms7Spinner*
 __ZN[KRO]9gui_forms7TabPage*
 __ZN[KRO]9gui_forms7TextBox*
+__ZN[KRO]9gui_forms7TextRun*
 __ZN[KRO]9gui_forms7TokenId*
 __ZN[KRO]9gui_forms7ToolTip*
 __ZN[KRO]9gui_forms8CheckBox*
@@ -9366,6 +9487,7 @@ __ZT[VIST]N9gui_forms10FlexMargin*E
 __ZT[VIST]N9gui_forms10FontChoice*E
 __ZT[VIST]N9gui_forms10FontDialog*E
 __ZT[VIST]N9gui_forms10FontFaceId*E
+__ZT[VIST]N9gui_forms10FormLayout*E
 __ZT[VIST]N9gui_forms10GridMargin*E
 __ZT[VIST]N9gui_forms10HScrollBar*E
 __ZT[VIST]N9gui_forms10HelpTarget*E
@@ -9389,6 +9511,7 @@ __ZT[VIST]N9gui_forms10PaintGroup*E
 __ZT[VIST]N9gui_forms10PartMotion*E
 __ZT[VIST]N9gui_forms10PartRaster*E
 __ZT[VIST]N9gui_forms10PictureBox*E
+__ZT[VIST]N9gui_forms10PlotHandle*E
 __ZT[VIST]N9gui_forms10PortRecord*E
 __ZT[VIST]N9gui_forms10RadialPick*E
 __ZT[VIST]N9gui_forms10RadialSlot*E
@@ -9420,6 +9543,7 @@ __ZT[VIST]N9gui_forms11AccentIndex*E
 __ZT[VIST]N9gui_forms11Application*E
 __ZT[VIST]N9gui_forms11ChoiceGroup*E
 __ZT[VIST]N9gui_forms11ColorDialog*E
+__ZT[VIST]N9gui_forms11ColorPicker*E
 __ZT[VIST]N9gui_forms11CommandItem*E
 __ZT[VIST]N9gui_forms11ContextMenu*E
 __ZT[VIST]N9gui_forms11CursorImage*E
@@ -9463,6 +9587,7 @@ __ZT[VIST]N9gui_forms11OpenTypeTag*E
 __ZT[VIST]N9gui_forms11PageContent*E
 __ZT[VIST]N9gui_forms11PartProfile*E
 __ZT[VIST]N9gui_forms11PhysicalKey*E
+__ZT[VIST]N9gui_forms11PlotPalette*E
 __ZT[VIST]N9gui_forms11PngMetadata*E
 __ZT[VIST]N9gui_forms11ProgressBar*E
 __ZT[VIST]N9gui_forms11RadialGauge*E
@@ -9652,6 +9777,7 @@ __ZT[VIST]N9gui_forms13PageSetLimits*E
 __ZT[VIST]N9gui_forms13PaintPathView*E
 __ZT[VIST]N9gui_forms13ParagraphLine*E
 __ZT[VIST]N9gui_forms13PartHitRegion*E
+__ZT[VIST]N9gui_forms13PlotLinkGroup*E
 __ZT[VIST]N9gui_forms13PlotPointPick*E
 __ZT[VIST]N9gui_forms13PresentedArea*E
 __ZT[VIST]N9gui_forms13PrimitiveCost*E
@@ -9686,6 +9812,7 @@ __ZT[VIST]N9gui_forms14BindingSortKey*E
 __ZT[VIST]N9gui_forms14CheckedListBox*E
 __ZT[VIST]N9gui_forms14CheckerPattern*E
 __ZT[VIST]N9gui_forms14CollectionEdit*E
+__ZT[VIST]N9gui_forms14ColorPickerHsv*E
 __ZT[VIST]N9gui_forms14CommandBinding*E
 __ZT[VIST]N9gui_forms14ContentContext*E
 __ZT[VIST]N9gui_forms14ContentItemKey*E
@@ -9754,6 +9881,7 @@ __ZT[VIST]N9gui_forms14PaintEventArgs*E
 __ZT[VIST]N9gui_forms14ParagraphPaint*E
 __ZT[VIST]N9gui_forms14ParagraphStyle*E
 __ZT[VIST]N9gui_forms14PartRasterView*E
+__ZT[VIST]N9gui_forms14PlotHandleMove*E
 __ZT[VIST]N9gui_forms14PlotSeriesItem*E
 __ZT[VIST]N9gui_forms14PlotViewRanges*E
 __ZT[VIST]N9gui_forms14PointerOverlay*E
@@ -9767,6 +9895,7 @@ __ZT[VIST]N9gui_forms14SceneZoomRange*E
 __ZT[VIST]N9gui_forms14ScrollSnapshot*E
 __ZT[VIST]N9gui_forms14ShapingFeature*E
 __ZT[VIST]N9gui_forms14ShapingRequest*E
+__ZT[VIST]N9gui_forms14SparklineStyle*E
 __ZT[VIST]N9gui_forms14SplitContainer*E
 __ZT[VIST]N9gui_forms14StockIconImage*E
 __ZT[VIST]N9gui_forms14StockIconLayer*E
@@ -9777,6 +9906,7 @@ __ZT[VIST]N9gui_forms14TextEditResult*E
 __ZT[VIST]N9gui_forms14TextInputEvent*E
 __ZT[VIST]N9gui_forms14TextMaskResult*E
 __ZT[VIST]N9gui_forms14TextMatchRange*E
+__ZT[VIST]N9gui_forms14ThemeOverrides*E
 __ZT[VIST]N9gui_forms14ThemeRuleSheet*E
 __ZT[VIST]N9gui_forms14ToastDismissal*E
 __ZT[VIST]N9gui_forms14ToolStripPanel*E
@@ -9810,6 +9940,7 @@ __ZT[VIST]N9gui_forms15DockDropMetrics*E
 __ZT[VIST]N9gui_forms15DockLayoutState*E
 __ZT[VIST]N9gui_forms15DockNamedLayout*E
 __ZT[VIST]N9gui_forms15DockPanelRecord*E
+__ZT[VIST]N9gui_forms15DockPanelsAdded*E
 __ZT[VIST]N9gui_forms15DockTransaction*E
 __ZT[VIST]N9gui_forms15DockWindowFrame*E
 __ZT[VIST]N9gui_forms15DocumentMapSpan*E
@@ -9971,6 +10102,8 @@ __ZT[VIST]N9gui_forms16ParagraphMetrics*E
 __ZT[VIST]N9gui_forms16ParagraphStorage*E
 __ZT[VIST]N9gui_forms16PartRasterResult*E
 __ZT[VIST]N9gui_forms16PartRecordHandle*E
+__ZT[VIST]N9gui_forms16PlotCustomExtent*E
+__ZT[VIST]N9gui_forms16PlotCustomSeries*E
 __ZT[VIST]N9gui_forms16RangeScrollEvent*E
 __ZT[VIST]N9gui_forms16RetainedDrawMemo*E
 __ZT[VIST]N9gui_forms16RibbonRecentItem*E
@@ -10068,6 +10201,7 @@ __ZT[VIST]N9gui_forms17NodeLinkConnected*E
 __ZT[VIST]N9gui_forms17ObjectDetailsCell*E
 __ZT[VIST]N9gui_forms17ObjectDetailsSort*E
 __ZT[VIST]N9gui_forms17PartRasterRequest*E
+__ZT[VIST]N9gui_forms17PlotHeatmapSeries*E
 __ZT[VIST]N9gui_forms17PresentationState*E
 __ZT[VIST]N9gui_forms17PrimitiveRegistry*E
 __ZT[VIST]N9gui_forms17PropertyEnumValue*E
@@ -10101,6 +10235,7 @@ __ZT[VIST]N9gui_forms17ToolStripItemSpec*E
 __ZT[VIST]N9gui_forms17TreeListRowSource*E
 __ZT[VIST]N9gui_forms17TreeListRowSplice*E
 __ZT[VIST]N9gui_forms17VirtualRowMeasure*E
+__ZT[VIST]N9gui_forms17VirtualRowsColumn*E
 __ZT[VIST]N9gui_forms17VisualInteraction*E
 __ZT[VIST]N9gui_forms17WindowBandOptions*E
 __ZT[VIST]N9gui_forms17XmlSourcePosition*E
@@ -10191,6 +10326,7 @@ __ZT[VIST]N9gui_forms18SceneViewTransform*E
 __ZT[VIST]N9gui_forms18ScrollAxisSnapshot*E
 __ZT[VIST]N9gui_forms18SemanticDescriptor*E
 __ZT[VIST]N9gui_forms18SemanticTextLayout*E
+__ZT[VIST]N9gui_forms18SparklineWorkspace*E
 __ZT[VIST]N9gui_forms18SpatialQueryResult*E
 __ZT[VIST]N9gui_forms18SplashscreenResult*E
 __ZT[VIST]N9gui_forms18TabSelectionChange*E
@@ -10230,6 +10366,7 @@ __ZT[VIST]N9gui_forms19DockInvariantResult*E
 __ZT[VIST]N9gui_forms19DockNavigatorChoice*E
 __ZT[VIST]N9gui_forms19DockPanelDescriptor*E
 __ZT[VIST]N9gui_forms19DocumentPageRequest*E
+__ZT[VIST]N9gui_forms19DrawingReplayReport*E
 __ZT[VIST]N9gui_forms19ErrorProviderChange*E
 __ZT[VIST]N9gui_forms19FlexAvailableExtent*E
 __ZT[VIST]N9gui_forms19FlexLayoutWorkspace*E
@@ -10275,6 +10412,7 @@ __ZT[VIST]N9gui_forms19ObjectDetailsColumn*E
 __ZT[VIST]N9gui_forms19OffscreenAttachment*E
 __ZT[VIST]N9gui_forms19PageSelectionChange*E
 __ZT[VIST]N9gui_forms19ParameterValidation*E
+__ZT[VIST]N9gui_forms19PlotHistogramSeries*E
 __ZT[VIST]N9gui_forms19PngValidationResult*E
 __ZT[VIST]N9gui_forms19PreparedTextMetrics*E
 __ZT[VIST]N9gui_forms19PreparedTextService*E
@@ -10298,6 +10436,7 @@ __ZT[VIST]N9gui_forms19TextDecorationStyle*E
 __ZT[VIST]N9gui_forms19TextMetricsProvider*E
 __ZT[VIST]N9gui_forms19ThemeCompileOptions*E
 __ZT[VIST]N9gui_forms19ThemeGeometryTokens*E
+__ZT[VIST]N9gui_forms19ThemeOverrideTarget*E
 __ZT[VIST]N9gui_forms19ThemeRequestContext*E
 __ZT[VIST]N9gui_forms19ThemeWindowBackdrop*E
 __ZT[VIST]N9gui_forms19ToolStripDropTarget*E
@@ -10443,6 +10582,7 @@ __ZT[VIST]N9gui_forms21ThemeTypographyTokens*E
 __ZT[VIST]N9gui_forms21ThreadExceptionDialog*E
 __ZT[VIST]N9gui_forms21ThreadExceptionReport*E
 __ZT[VIST]N9gui_forms21VirtualRowDescription*E
+__ZT[VIST]N9gui_forms21VirtualRowsColumnMove*E
 __ZT[VIST]N9gui_forms21VirtualRowsStatistics*E
 __ZT[VIST]N9gui_forms21WindowBackdropRequest*E
 __ZT[VIST]N9gui_forms22ApplicationModalResult*E
@@ -10490,6 +10630,7 @@ __ZT[VIST]N9gui_forms22SpatialIndexStatistics*E
 __ZT[VIST]N9gui_forms22TableLayoutPanelCompat*E
 __ZT[VIST]N9gui_forms22TextMaskBudgetSnapshot*E
 __ZT[VIST]N9gui_forms22ThemeCompileDiagnostic*E
+__ZT[VIST]N9gui_forms22VirtualRowsHeaderClick*E
 __ZT[VIST]N9gui_forms23ApplicationCreateResult*E
 __ZT[VIST]N9gui_forms23ApplicationWindowHandle*E
 __ZT[VIST]N9gui_forms23BackdropChainResolution*E
@@ -10762,6 +10903,7 @@ __ZT[VIST]N9gui_forms7RuleSet*E
 __ZT[VIST]N9gui_forms7Spinner*E
 __ZT[VIST]N9gui_forms7TabPage*E
 __ZT[VIST]N9gui_forms7TextBox*E
+__ZT[VIST]N9gui_forms7TextRun*E
 __ZT[VIST]N9gui_forms7TokenId*E
 __ZT[VIST]N9gui_forms7ToolTip*E
 __ZT[VIST]N9gui_forms8CheckBox*E
@@ -10924,6 +11066,7 @@ __ZT[hvc]*9gui_forms10FlexMargin*
 __ZT[hvc]*9gui_forms10FontChoice*
 __ZT[hvc]*9gui_forms10FontDialog*
 __ZT[hvc]*9gui_forms10FontFaceId*
+__ZT[hvc]*9gui_forms10FormLayout*
 __ZT[hvc]*9gui_forms10GridMargin*
 __ZT[hvc]*9gui_forms10HScrollBar*
 __ZT[hvc]*9gui_forms10HelpTarget*
@@ -10947,6 +11090,7 @@ __ZT[hvc]*9gui_forms10PaintGroup*
 __ZT[hvc]*9gui_forms10PartMotion*
 __ZT[hvc]*9gui_forms10PartRaster*
 __ZT[hvc]*9gui_forms10PictureBox*
+__ZT[hvc]*9gui_forms10PlotHandle*
 __ZT[hvc]*9gui_forms10PortRecord*
 __ZT[hvc]*9gui_forms10RadialPick*
 __ZT[hvc]*9gui_forms10RadialSlot*
@@ -10978,6 +11122,7 @@ __ZT[hvc]*9gui_forms11AccentIndex*
 __ZT[hvc]*9gui_forms11Application*
 __ZT[hvc]*9gui_forms11ChoiceGroup*
 __ZT[hvc]*9gui_forms11ColorDialog*
+__ZT[hvc]*9gui_forms11ColorPicker*
 __ZT[hvc]*9gui_forms11CommandItem*
 __ZT[hvc]*9gui_forms11ContextMenu*
 __ZT[hvc]*9gui_forms11CursorImage*
@@ -11021,6 +11166,7 @@ __ZT[hvc]*9gui_forms11OpenTypeTag*
 __ZT[hvc]*9gui_forms11PageContent*
 __ZT[hvc]*9gui_forms11PartProfile*
 __ZT[hvc]*9gui_forms11PhysicalKey*
+__ZT[hvc]*9gui_forms11PlotPalette*
 __ZT[hvc]*9gui_forms11PngMetadata*
 __ZT[hvc]*9gui_forms11ProgressBar*
 __ZT[hvc]*9gui_forms11RadialGauge*
@@ -11210,6 +11356,7 @@ __ZT[hvc]*9gui_forms13PageSetLimits*
 __ZT[hvc]*9gui_forms13PaintPathView*
 __ZT[hvc]*9gui_forms13ParagraphLine*
 __ZT[hvc]*9gui_forms13PartHitRegion*
+__ZT[hvc]*9gui_forms13PlotLinkGroup*
 __ZT[hvc]*9gui_forms13PlotPointPick*
 __ZT[hvc]*9gui_forms13PresentedArea*
 __ZT[hvc]*9gui_forms13PrimitiveCost*
@@ -11244,6 +11391,7 @@ __ZT[hvc]*9gui_forms14BindingSortKey*
 __ZT[hvc]*9gui_forms14CheckedListBox*
 __ZT[hvc]*9gui_forms14CheckerPattern*
 __ZT[hvc]*9gui_forms14CollectionEdit*
+__ZT[hvc]*9gui_forms14ColorPickerHsv*
 __ZT[hvc]*9gui_forms14CommandBinding*
 __ZT[hvc]*9gui_forms14ContentContext*
 __ZT[hvc]*9gui_forms14ContentItemKey*
@@ -11312,6 +11460,7 @@ __ZT[hvc]*9gui_forms14PaintEventArgs*
 __ZT[hvc]*9gui_forms14ParagraphPaint*
 __ZT[hvc]*9gui_forms14ParagraphStyle*
 __ZT[hvc]*9gui_forms14PartRasterView*
+__ZT[hvc]*9gui_forms14PlotHandleMove*
 __ZT[hvc]*9gui_forms14PlotSeriesItem*
 __ZT[hvc]*9gui_forms14PlotViewRanges*
 __ZT[hvc]*9gui_forms14PointerOverlay*
@@ -11325,6 +11474,7 @@ __ZT[hvc]*9gui_forms14SceneZoomRange*
 __ZT[hvc]*9gui_forms14ScrollSnapshot*
 __ZT[hvc]*9gui_forms14ShapingFeature*
 __ZT[hvc]*9gui_forms14ShapingRequest*
+__ZT[hvc]*9gui_forms14SparklineStyle*
 __ZT[hvc]*9gui_forms14SplitContainer*
 __ZT[hvc]*9gui_forms14StockIconImage*
 __ZT[hvc]*9gui_forms14StockIconLayer*
@@ -11335,6 +11485,7 @@ __ZT[hvc]*9gui_forms14TextEditResult*
 __ZT[hvc]*9gui_forms14TextInputEvent*
 __ZT[hvc]*9gui_forms14TextMaskResult*
 __ZT[hvc]*9gui_forms14TextMatchRange*
+__ZT[hvc]*9gui_forms14ThemeOverrides*
 __ZT[hvc]*9gui_forms14ThemeRuleSheet*
 __ZT[hvc]*9gui_forms14ToastDismissal*
 __ZT[hvc]*9gui_forms14ToolStripPanel*
@@ -11368,6 +11519,7 @@ __ZT[hvc]*9gui_forms15DockDropMetrics*
 __ZT[hvc]*9gui_forms15DockLayoutState*
 __ZT[hvc]*9gui_forms15DockNamedLayout*
 __ZT[hvc]*9gui_forms15DockPanelRecord*
+__ZT[hvc]*9gui_forms15DockPanelsAdded*
 __ZT[hvc]*9gui_forms15DockTransaction*
 __ZT[hvc]*9gui_forms15DockWindowFrame*
 __ZT[hvc]*9gui_forms15DocumentMapSpan*
@@ -11529,6 +11681,8 @@ __ZT[hvc]*9gui_forms16ParagraphMetrics*
 __ZT[hvc]*9gui_forms16ParagraphStorage*
 __ZT[hvc]*9gui_forms16PartRasterResult*
 __ZT[hvc]*9gui_forms16PartRecordHandle*
+__ZT[hvc]*9gui_forms16PlotCustomExtent*
+__ZT[hvc]*9gui_forms16PlotCustomSeries*
 __ZT[hvc]*9gui_forms16RangeScrollEvent*
 __ZT[hvc]*9gui_forms16RetainedDrawMemo*
 __ZT[hvc]*9gui_forms16RibbonRecentItem*
@@ -11626,6 +11780,7 @@ __ZT[hvc]*9gui_forms17NodeLinkConnected*
 __ZT[hvc]*9gui_forms17ObjectDetailsCell*
 __ZT[hvc]*9gui_forms17ObjectDetailsSort*
 __ZT[hvc]*9gui_forms17PartRasterRequest*
+__ZT[hvc]*9gui_forms17PlotHeatmapSeries*
 __ZT[hvc]*9gui_forms17PresentationState*
 __ZT[hvc]*9gui_forms17PrimitiveRegistry*
 __ZT[hvc]*9gui_forms17PropertyEnumValue*
@@ -11659,6 +11814,7 @@ __ZT[hvc]*9gui_forms17ToolStripItemSpec*
 __ZT[hvc]*9gui_forms17TreeListRowSource*
 __ZT[hvc]*9gui_forms17TreeListRowSplice*
 __ZT[hvc]*9gui_forms17VirtualRowMeasure*
+__ZT[hvc]*9gui_forms17VirtualRowsColumn*
 __ZT[hvc]*9gui_forms17VisualInteraction*
 __ZT[hvc]*9gui_forms17WindowBandOptions*
 __ZT[hvc]*9gui_forms17XmlSourcePosition*
@@ -11749,6 +11905,7 @@ __ZT[hvc]*9gui_forms18SceneViewTransform*
 __ZT[hvc]*9gui_forms18ScrollAxisSnapshot*
 __ZT[hvc]*9gui_forms18SemanticDescriptor*
 __ZT[hvc]*9gui_forms18SemanticTextLayout*
+__ZT[hvc]*9gui_forms18SparklineWorkspace*
 __ZT[hvc]*9gui_forms18SpatialQueryResult*
 __ZT[hvc]*9gui_forms18SplashscreenResult*
 __ZT[hvc]*9gui_forms18TabSelectionChange*
@@ -11788,6 +11945,7 @@ __ZT[hvc]*9gui_forms19DockInvariantResult*
 __ZT[hvc]*9gui_forms19DockNavigatorChoice*
 __ZT[hvc]*9gui_forms19DockPanelDescriptor*
 __ZT[hvc]*9gui_forms19DocumentPageRequest*
+__ZT[hvc]*9gui_forms19DrawingReplayReport*
 __ZT[hvc]*9gui_forms19ErrorProviderChange*
 __ZT[hvc]*9gui_forms19FlexAvailableExtent*
 __ZT[hvc]*9gui_forms19FlexLayoutWorkspace*
@@ -11833,6 +11991,7 @@ __ZT[hvc]*9gui_forms19ObjectDetailsColumn*
 __ZT[hvc]*9gui_forms19OffscreenAttachment*
 __ZT[hvc]*9gui_forms19PageSelectionChange*
 __ZT[hvc]*9gui_forms19ParameterValidation*
+__ZT[hvc]*9gui_forms19PlotHistogramSeries*
 __ZT[hvc]*9gui_forms19PngValidationResult*
 __ZT[hvc]*9gui_forms19PreparedTextMetrics*
 __ZT[hvc]*9gui_forms19PreparedTextService*
@@ -11856,6 +12015,7 @@ __ZT[hvc]*9gui_forms19TextDecorationStyle*
 __ZT[hvc]*9gui_forms19TextMetricsProvider*
 __ZT[hvc]*9gui_forms19ThemeCompileOptions*
 __ZT[hvc]*9gui_forms19ThemeGeometryTokens*
+__ZT[hvc]*9gui_forms19ThemeOverrideTarget*
 __ZT[hvc]*9gui_forms19ThemeRequestContext*
 __ZT[hvc]*9gui_forms19ThemeWindowBackdrop*
 __ZT[hvc]*9gui_forms19ToolStripDropTarget*
@@ -12001,6 +12161,7 @@ __ZT[hvc]*9gui_forms21ThemeTypographyTokens*
 __ZT[hvc]*9gui_forms21ThreadExceptionDialog*
 __ZT[hvc]*9gui_forms21ThreadExceptionReport*
 __ZT[hvc]*9gui_forms21VirtualRowDescription*
+__ZT[hvc]*9gui_forms21VirtualRowsColumnMove*
 __ZT[hvc]*9gui_forms21VirtualRowsStatistics*
 __ZT[hvc]*9gui_forms21WindowBackdropRequest*
 __ZT[hvc]*9gui_forms22ApplicationModalResult*
@@ -12048,6 +12209,7 @@ __ZT[hvc]*9gui_forms22SpatialIndexStatistics*
 __ZT[hvc]*9gui_forms22TableLayoutPanelCompat*
 __ZT[hvc]*9gui_forms22TextMaskBudgetSnapshot*
 __ZT[hvc]*9gui_forms22ThemeCompileDiagnostic*
+__ZT[hvc]*9gui_forms22VirtualRowsHeaderClick*
 __ZT[hvc]*9gui_forms23ApplicationCreateResult*
 __ZT[hvc]*9gui_forms23ApplicationWindowHandle*
 __ZT[hvc]*9gui_forms23BackdropChainResolution*
@@ -12320,6 +12482,7 @@ __ZT[hvc]*9gui_forms7RuleSet*
 __ZT[hvc]*9gui_forms7Spinner*
 __ZT[hvc]*9gui_forms7TabPage*
 __ZT[hvc]*9gui_forms7TextBox*
+__ZT[hvc]*9gui_forms7TextRun*
 __ZT[hvc]*9gui_forms7TokenId*
 __ZT[hvc]*9gui_forms7ToolTip*
 __ZT[hvc]*9gui_forms8CheckBox*
@@ -12482,6 +12645,7 @@ __ZZN9gui_forms10FlexMargin*
 __ZZN9gui_forms10FontChoice*
 __ZZN9gui_forms10FontDialog*
 __ZZN9gui_forms10FontFaceId*
+__ZZN9gui_forms10FormLayout*
 __ZZN9gui_forms10GridMargin*
 __ZZN9gui_forms10HScrollBar*
 __ZZN9gui_forms10HelpTarget*
@@ -12505,6 +12669,7 @@ __ZZN9gui_forms10PaintGroup*
 __ZZN9gui_forms10PartMotion*
 __ZZN9gui_forms10PartRaster*
 __ZZN9gui_forms10PictureBox*
+__ZZN9gui_forms10PlotHandle*
 __ZZN9gui_forms10PortRecord*
 __ZZN9gui_forms10RadialPick*
 __ZZN9gui_forms10RadialSlot*
@@ -12536,6 +12701,7 @@ __ZZN9gui_forms11AccentIndex*
 __ZZN9gui_forms11Application*
 __ZZN9gui_forms11ChoiceGroup*
 __ZZN9gui_forms11ColorDialog*
+__ZZN9gui_forms11ColorPicker*
 __ZZN9gui_forms11CommandItem*
 __ZZN9gui_forms11ContextMenu*
 __ZZN9gui_forms11CursorImage*
@@ -12579,6 +12745,7 @@ __ZZN9gui_forms11OpenTypeTag*
 __ZZN9gui_forms11PageContent*
 __ZZN9gui_forms11PartProfile*
 __ZZN9gui_forms11PhysicalKey*
+__ZZN9gui_forms11PlotPalette*
 __ZZN9gui_forms11PngMetadata*
 __ZZN9gui_forms11ProgressBar*
 __ZZN9gui_forms11RadialGauge*
@@ -12768,6 +12935,7 @@ __ZZN9gui_forms13PageSetLimits*
 __ZZN9gui_forms13PaintPathView*
 __ZZN9gui_forms13ParagraphLine*
 __ZZN9gui_forms13PartHitRegion*
+__ZZN9gui_forms13PlotLinkGroup*
 __ZZN9gui_forms13PlotPointPick*
 __ZZN9gui_forms13PresentedArea*
 __ZZN9gui_forms13PrimitiveCost*
@@ -12802,6 +12970,7 @@ __ZZN9gui_forms14BindingSortKey*
 __ZZN9gui_forms14CheckedListBox*
 __ZZN9gui_forms14CheckerPattern*
 __ZZN9gui_forms14CollectionEdit*
+__ZZN9gui_forms14ColorPickerHsv*
 __ZZN9gui_forms14CommandBinding*
 __ZZN9gui_forms14ContentContext*
 __ZZN9gui_forms14ContentItemKey*
@@ -12870,6 +13039,7 @@ __ZZN9gui_forms14PaintEventArgs*
 __ZZN9gui_forms14ParagraphPaint*
 __ZZN9gui_forms14ParagraphStyle*
 __ZZN9gui_forms14PartRasterView*
+__ZZN9gui_forms14PlotHandleMove*
 __ZZN9gui_forms14PlotSeriesItem*
 __ZZN9gui_forms14PlotViewRanges*
 __ZZN9gui_forms14PointerOverlay*
@@ -12883,6 +13053,7 @@ __ZZN9gui_forms14SceneZoomRange*
 __ZZN9gui_forms14ScrollSnapshot*
 __ZZN9gui_forms14ShapingFeature*
 __ZZN9gui_forms14ShapingRequest*
+__ZZN9gui_forms14SparklineStyle*
 __ZZN9gui_forms14SplitContainer*
 __ZZN9gui_forms14StockIconImage*
 __ZZN9gui_forms14StockIconLayer*
@@ -12893,6 +13064,7 @@ __ZZN9gui_forms14TextEditResult*
 __ZZN9gui_forms14TextInputEvent*
 __ZZN9gui_forms14TextMaskResult*
 __ZZN9gui_forms14TextMatchRange*
+__ZZN9gui_forms14ThemeOverrides*
 __ZZN9gui_forms14ThemeRuleSheet*
 __ZZN9gui_forms14ToastDismissal*
 __ZZN9gui_forms14ToolStripPanel*
@@ -12926,6 +13098,7 @@ __ZZN9gui_forms15DockDropMetrics*
 __ZZN9gui_forms15DockLayoutState*
 __ZZN9gui_forms15DockNamedLayout*
 __ZZN9gui_forms15DockPanelRecord*
+__ZZN9gui_forms15DockPanelsAdded*
 __ZZN9gui_forms15DockTransaction*
 __ZZN9gui_forms15DockWindowFrame*
 __ZZN9gui_forms15DocumentMapSpan*
@@ -13087,6 +13260,8 @@ __ZZN9gui_forms16ParagraphMetrics*
 __ZZN9gui_forms16ParagraphStorage*
 __ZZN9gui_forms16PartRasterResult*
 __ZZN9gui_forms16PartRecordHandle*
+__ZZN9gui_forms16PlotCustomExtent*
+__ZZN9gui_forms16PlotCustomSeries*
 __ZZN9gui_forms16RangeScrollEvent*
 __ZZN9gui_forms16RetainedDrawMemo*
 __ZZN9gui_forms16RibbonRecentItem*
@@ -13184,6 +13359,7 @@ __ZZN9gui_forms17NodeLinkConnected*
 __ZZN9gui_forms17ObjectDetailsCell*
 __ZZN9gui_forms17ObjectDetailsSort*
 __ZZN9gui_forms17PartRasterRequest*
+__ZZN9gui_forms17PlotHeatmapSeries*
 __ZZN9gui_forms17PresentationState*
 __ZZN9gui_forms17PrimitiveRegistry*
 __ZZN9gui_forms17PropertyEnumValue*
@@ -13217,6 +13393,7 @@ __ZZN9gui_forms17ToolStripItemSpec*
 __ZZN9gui_forms17TreeListRowSource*
 __ZZN9gui_forms17TreeListRowSplice*
 __ZZN9gui_forms17VirtualRowMeasure*
+__ZZN9gui_forms17VirtualRowsColumn*
 __ZZN9gui_forms17VisualInteraction*
 __ZZN9gui_forms17WindowBandOptions*
 __ZZN9gui_forms17XmlSourcePosition*
@@ -13307,6 +13484,7 @@ __ZZN9gui_forms18SceneViewTransform*
 __ZZN9gui_forms18ScrollAxisSnapshot*
 __ZZN9gui_forms18SemanticDescriptor*
 __ZZN9gui_forms18SemanticTextLayout*
+__ZZN9gui_forms18SparklineWorkspace*
 __ZZN9gui_forms18SpatialQueryResult*
 __ZZN9gui_forms18SplashscreenResult*
 __ZZN9gui_forms18TabSelectionChange*
@@ -13346,6 +13524,7 @@ __ZZN9gui_forms19DockInvariantResult*
 __ZZN9gui_forms19DockNavigatorChoice*
 __ZZN9gui_forms19DockPanelDescriptor*
 __ZZN9gui_forms19DocumentPageRequest*
+__ZZN9gui_forms19DrawingReplayReport*
 __ZZN9gui_forms19ErrorProviderChange*
 __ZZN9gui_forms19FlexAvailableExtent*
 __ZZN9gui_forms19FlexLayoutWorkspace*
@@ -13391,6 +13570,7 @@ __ZZN9gui_forms19ObjectDetailsColumn*
 __ZZN9gui_forms19OffscreenAttachment*
 __ZZN9gui_forms19PageSelectionChange*
 __ZZN9gui_forms19ParameterValidation*
+__ZZN9gui_forms19PlotHistogramSeries*
 __ZZN9gui_forms19PngValidationResult*
 __ZZN9gui_forms19PreparedTextMetrics*
 __ZZN9gui_forms19PreparedTextService*
@@ -13414,6 +13594,7 @@ __ZZN9gui_forms19TextDecorationStyle*
 __ZZN9gui_forms19TextMetricsProvider*
 __ZZN9gui_forms19ThemeCompileOptions*
 __ZZN9gui_forms19ThemeGeometryTokens*
+__ZZN9gui_forms19ThemeOverrideTarget*
 __ZZN9gui_forms19ThemeRequestContext*
 __ZZN9gui_forms19ThemeWindowBackdrop*
 __ZZN9gui_forms19ToolStripDropTarget*
@@ -13559,6 +13740,7 @@ __ZZN9gui_forms21ThemeTypographyTokens*
 __ZZN9gui_forms21ThreadExceptionDialog*
 __ZZN9gui_forms21ThreadExceptionReport*
 __ZZN9gui_forms21VirtualRowDescription*
+__ZZN9gui_forms21VirtualRowsColumnMove*
 __ZZN9gui_forms21VirtualRowsStatistics*
 __ZZN9gui_forms21WindowBackdropRequest*
 __ZZN9gui_forms22ApplicationModalResult*
@@ -13606,6 +13788,7 @@ __ZZN9gui_forms22SpatialIndexStatistics*
 __ZZN9gui_forms22TableLayoutPanelCompat*
 __ZZN9gui_forms22TextMaskBudgetSnapshot*
 __ZZN9gui_forms22ThemeCompileDiagnostic*
+__ZZN9gui_forms22VirtualRowsHeaderClick*
 __ZZN9gui_forms23ApplicationCreateResult*
 __ZZN9gui_forms23ApplicationWindowHandle*
 __ZZN9gui_forms23BackdropChainResolution*
@@ -13878,6 +14061,7 @@ __ZZN9gui_forms7RuleSet*
 __ZZN9gui_forms7Spinner*
 __ZZN9gui_forms7TabPage*
 __ZZN9gui_forms7TextBox*
+__ZZN9gui_forms7TextRun*
 __ZZN9gui_forms7TokenId*
 __ZZN9gui_forms7ToolTip*
 __ZZN9gui_forms8CheckBox*
@@ -14040,6 +14224,7 @@ __ZZNK9gui_forms10FlexMargin*
 __ZZNK9gui_forms10FontChoice*
 __ZZNK9gui_forms10FontDialog*
 __ZZNK9gui_forms10FontFaceId*
+__ZZNK9gui_forms10FormLayout*
 __ZZNK9gui_forms10GridMargin*
 __ZZNK9gui_forms10HScrollBar*
 __ZZNK9gui_forms10HelpTarget*
@@ -14063,6 +14248,7 @@ __ZZNK9gui_forms10PaintGroup*
 __ZZNK9gui_forms10PartMotion*
 __ZZNK9gui_forms10PartRaster*
 __ZZNK9gui_forms10PictureBox*
+__ZZNK9gui_forms10PlotHandle*
 __ZZNK9gui_forms10PortRecord*
 __ZZNK9gui_forms10RadialPick*
 __ZZNK9gui_forms10RadialSlot*
@@ -14094,6 +14280,7 @@ __ZZNK9gui_forms11AccentIndex*
 __ZZNK9gui_forms11Application*
 __ZZNK9gui_forms11ChoiceGroup*
 __ZZNK9gui_forms11ColorDialog*
+__ZZNK9gui_forms11ColorPicker*
 __ZZNK9gui_forms11CommandItem*
 __ZZNK9gui_forms11ContextMenu*
 __ZZNK9gui_forms11CursorImage*
@@ -14137,6 +14324,7 @@ __ZZNK9gui_forms11OpenTypeTag*
 __ZZNK9gui_forms11PageContent*
 __ZZNK9gui_forms11PartProfile*
 __ZZNK9gui_forms11PhysicalKey*
+__ZZNK9gui_forms11PlotPalette*
 __ZZNK9gui_forms11PngMetadata*
 __ZZNK9gui_forms11ProgressBar*
 __ZZNK9gui_forms11RadialGauge*
@@ -14326,6 +14514,7 @@ __ZZNK9gui_forms13PageSetLimits*
 __ZZNK9gui_forms13PaintPathView*
 __ZZNK9gui_forms13ParagraphLine*
 __ZZNK9gui_forms13PartHitRegion*
+__ZZNK9gui_forms13PlotLinkGroup*
 __ZZNK9gui_forms13PlotPointPick*
 __ZZNK9gui_forms13PresentedArea*
 __ZZNK9gui_forms13PrimitiveCost*
@@ -14360,6 +14549,7 @@ __ZZNK9gui_forms14BindingSortKey*
 __ZZNK9gui_forms14CheckedListBox*
 __ZZNK9gui_forms14CheckerPattern*
 __ZZNK9gui_forms14CollectionEdit*
+__ZZNK9gui_forms14ColorPickerHsv*
 __ZZNK9gui_forms14CommandBinding*
 __ZZNK9gui_forms14ContentContext*
 __ZZNK9gui_forms14ContentItemKey*
@@ -14428,6 +14618,7 @@ __ZZNK9gui_forms14PaintEventArgs*
 __ZZNK9gui_forms14ParagraphPaint*
 __ZZNK9gui_forms14ParagraphStyle*
 __ZZNK9gui_forms14PartRasterView*
+__ZZNK9gui_forms14PlotHandleMove*
 __ZZNK9gui_forms14PlotSeriesItem*
 __ZZNK9gui_forms14PlotViewRanges*
 __ZZNK9gui_forms14PointerOverlay*
@@ -14441,6 +14632,7 @@ __ZZNK9gui_forms14SceneZoomRange*
 __ZZNK9gui_forms14ScrollSnapshot*
 __ZZNK9gui_forms14ShapingFeature*
 __ZZNK9gui_forms14ShapingRequest*
+__ZZNK9gui_forms14SparklineStyle*
 __ZZNK9gui_forms14SplitContainer*
 __ZZNK9gui_forms14StockIconImage*
 __ZZNK9gui_forms14StockIconLayer*
@@ -14451,6 +14643,7 @@ __ZZNK9gui_forms14TextEditResult*
 __ZZNK9gui_forms14TextInputEvent*
 __ZZNK9gui_forms14TextMaskResult*
 __ZZNK9gui_forms14TextMatchRange*
+__ZZNK9gui_forms14ThemeOverrides*
 __ZZNK9gui_forms14ThemeRuleSheet*
 __ZZNK9gui_forms14ToastDismissal*
 __ZZNK9gui_forms14ToolStripPanel*
@@ -14484,6 +14677,7 @@ __ZZNK9gui_forms15DockDropMetrics*
 __ZZNK9gui_forms15DockLayoutState*
 __ZZNK9gui_forms15DockNamedLayout*
 __ZZNK9gui_forms15DockPanelRecord*
+__ZZNK9gui_forms15DockPanelsAdded*
 __ZZNK9gui_forms15DockTransaction*
 __ZZNK9gui_forms15DockWindowFrame*
 __ZZNK9gui_forms15DocumentMapSpan*
@@ -14645,6 +14839,8 @@ __ZZNK9gui_forms16ParagraphMetrics*
 __ZZNK9gui_forms16ParagraphStorage*
 __ZZNK9gui_forms16PartRasterResult*
 __ZZNK9gui_forms16PartRecordHandle*
+__ZZNK9gui_forms16PlotCustomExtent*
+__ZZNK9gui_forms16PlotCustomSeries*
 __ZZNK9gui_forms16RangeScrollEvent*
 __ZZNK9gui_forms16RetainedDrawMemo*
 __ZZNK9gui_forms16RibbonRecentItem*
@@ -14742,6 +14938,7 @@ __ZZNK9gui_forms17NodeLinkConnected*
 __ZZNK9gui_forms17ObjectDetailsCell*
 __ZZNK9gui_forms17ObjectDetailsSort*
 __ZZNK9gui_forms17PartRasterRequest*
+__ZZNK9gui_forms17PlotHeatmapSeries*
 __ZZNK9gui_forms17PresentationState*
 __ZZNK9gui_forms17PrimitiveRegistry*
 __ZZNK9gui_forms17PropertyEnumValue*
@@ -14775,6 +14972,7 @@ __ZZNK9gui_forms17ToolStripItemSpec*
 __ZZNK9gui_forms17TreeListRowSource*
 __ZZNK9gui_forms17TreeListRowSplice*
 __ZZNK9gui_forms17VirtualRowMeasure*
+__ZZNK9gui_forms17VirtualRowsColumn*
 __ZZNK9gui_forms17VisualInteraction*
 __ZZNK9gui_forms17WindowBandOptions*
 __ZZNK9gui_forms17XmlSourcePosition*
@@ -14865,6 +15063,7 @@ __ZZNK9gui_forms18SceneViewTransform*
 __ZZNK9gui_forms18ScrollAxisSnapshot*
 __ZZNK9gui_forms18SemanticDescriptor*
 __ZZNK9gui_forms18SemanticTextLayout*
+__ZZNK9gui_forms18SparklineWorkspace*
 __ZZNK9gui_forms18SpatialQueryResult*
 __ZZNK9gui_forms18SplashscreenResult*
 __ZZNK9gui_forms18TabSelectionChange*
@@ -14904,6 +15103,7 @@ __ZZNK9gui_forms19DockInvariantResult*
 __ZZNK9gui_forms19DockNavigatorChoice*
 __ZZNK9gui_forms19DockPanelDescriptor*
 __ZZNK9gui_forms19DocumentPageRequest*
+__ZZNK9gui_forms19DrawingReplayReport*
 __ZZNK9gui_forms19ErrorProviderChange*
 __ZZNK9gui_forms19FlexAvailableExtent*
 __ZZNK9gui_forms19FlexLayoutWorkspace*
@@ -14949,6 +15149,7 @@ __ZZNK9gui_forms19ObjectDetailsColumn*
 __ZZNK9gui_forms19OffscreenAttachment*
 __ZZNK9gui_forms19PageSelectionChange*
 __ZZNK9gui_forms19ParameterValidation*
+__ZZNK9gui_forms19PlotHistogramSeries*
 __ZZNK9gui_forms19PngValidationResult*
 __ZZNK9gui_forms19PreparedTextMetrics*
 __ZZNK9gui_forms19PreparedTextService*
@@ -14972,6 +15173,7 @@ __ZZNK9gui_forms19TextDecorationStyle*
 __ZZNK9gui_forms19TextMetricsProvider*
 __ZZNK9gui_forms19ThemeCompileOptions*
 __ZZNK9gui_forms19ThemeGeometryTokens*
+__ZZNK9gui_forms19ThemeOverrideTarget*
 __ZZNK9gui_forms19ThemeRequestContext*
 __ZZNK9gui_forms19ThemeWindowBackdrop*
 __ZZNK9gui_forms19ToolStripDropTarget*
@@ -15117,6 +15319,7 @@ __ZZNK9gui_forms21ThemeTypographyTokens*
 __ZZNK9gui_forms21ThreadExceptionDialog*
 __ZZNK9gui_forms21ThreadExceptionReport*
 __ZZNK9gui_forms21VirtualRowDescription*
+__ZZNK9gui_forms21VirtualRowsColumnMove*
 __ZZNK9gui_forms21VirtualRowsStatistics*
 __ZZNK9gui_forms21WindowBackdropRequest*
 __ZZNK9gui_forms22ApplicationModalResult*
@@ -15164,6 +15367,7 @@ __ZZNK9gui_forms22SpatialIndexStatistics*
 __ZZNK9gui_forms22TableLayoutPanelCompat*
 __ZZNK9gui_forms22TextMaskBudgetSnapshot*
 __ZZNK9gui_forms22ThemeCompileDiagnostic*
+__ZZNK9gui_forms22VirtualRowsHeaderClick*
 __ZZNK9gui_forms23ApplicationCreateResult*
 __ZZNK9gui_forms23ApplicationWindowHandle*
 __ZZNK9gui_forms23BackdropChainResolution*
@@ -15436,6 +15640,7 @@ __ZZNK9gui_forms7RuleSet*
 __ZZNK9gui_forms7Spinner*
 __ZZNK9gui_forms7TabPage*
 __ZZNK9gui_forms7TextBox*
+__ZZNK9gui_forms7TextRun*
 __ZZNK9gui_forms7TokenId*
 __ZZNK9gui_forms7ToolTip*
 __ZZNK9gui_forms8CheckBox*

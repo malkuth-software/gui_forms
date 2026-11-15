@@ -219,6 +219,74 @@ void Painter::draw_turned_text_utf8(const Point origin, const std::string_view t
     draw_text_utf8(origin, text, font, color);
 }
 
+void Painter::draw_text_runs(const FontSpec font, const std::span<const TextRun> runs) {
+    for (const TextRun& run : runs) draw_text_utf8(run.origin, run.text, font, run.color);
+}
+
+namespace {
+
+// Whether byte `index` of `text` starts a code point (or is its end).
+bool code_point_boundary(const std::string_view text, const std::size_t index) noexcept {
+    if (index >= text.size()) return true;
+    const unsigned char byte = static_cast<unsigned char>(text[index]);
+    const bool result = (byte & 0xC0U) != 0x80U;
+    return result;
+}
+
+constexpr std::string_view horizontal_ellipsis{"\xE2\x80\xA6"};
+
+} // namespace
+
+std::size_t Painter::fit_text_utf8(const std::string_view text, const FontSpec font, const double max_width) {
+    if (!std::isfinite(max_width) || max_width < 0.0 || text.empty()) return 0U;
+    std::size_t low = 0U;
+    std::size_t high = text.size();
+    while (low < high) {
+        std::size_t middle = low + (high - low + 1U) / 2U;
+        while (middle > low && !code_point_boundary(text, middle)) --middle;
+        if (middle == low) break;
+        const Size measured = measure_text_utf8(text.substr(0U, middle), font);
+        if (measured.width <= max_width) {
+            low = middle;
+        } else {
+            high = middle - 1U;
+            while (high > low && !code_point_boundary(text, high)) --high;
+        }
+    }
+    return low;
+}
+
+double Painter::draw_text_utf8_fitted(const Point origin, const std::string_view text, const FontSpec font,
+                                      const Color color, const double max_width, const TextTrim trim) {
+    if (text.empty() || !std::isfinite(max_width) || max_width <= 0.0) return 0.0;
+    const Size whole = measure_text_utf8(text, font);
+    if (whole.width <= max_width) {
+        draw_text_utf8(origin, text, font, color);
+        return whole.width;
+    }
+    if (trim == TextTrim::cut) {
+        const std::size_t kept = fit_text_utf8(text, font, max_width);
+        if (kept == 0U) return 0.0;
+        const std::string_view prefix = text.substr(0U, kept);
+        draw_text_utf8(origin, prefix, font, color);
+        const double width = measure_text_utf8(prefix, font).width;
+        return width;
+    }
+    const double ellipsis_width = measure_text_utf8(horizontal_ellipsis, font).width;
+    if (ellipsis_width > max_width) return 0.0;
+    std::size_t kept = fit_text_utf8(text, font, max_width - ellipsis_width);
+    while (kept > 0U && (text[kept - 1U] == ' ' || text[kept - 1U] == '\t')) --kept;
+    double prefix_width = 0.0;
+    if (kept > 0U) {
+        const std::string_view prefix = text.substr(0U, kept);
+        draw_text_utf8(origin, prefix, font, color);
+        prefix_width = measure_text_utf8(prefix, font).width;
+    }
+    draw_text_utf8(Point{origin.x + prefix_width, origin.y}, horizontal_ellipsis, font, color);
+    const double drawn = prefix_width + ellipsis_width;
+    return drawn;
+}
+
 void Painter::draw_live_surface(std::shared_ptr<LiveSurface>, Rect, double) {
     // Platform-neutral and deliberately inert. Terminal CPU renderers consume
     // the retained surface resource directly.

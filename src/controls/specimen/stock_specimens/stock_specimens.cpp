@@ -906,6 +906,12 @@ StockSpecimenInstance make_domain_up_down(const StockSpecimen&, StableId id) {
     return instance;
 }
 
+StockSpecimenInstance make_color_picker(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<ColorPicker> control = make_control<ColorPicker>(id, Color::rgba(46, 125, 196, 220));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
 StockSpecimenInstance make_color_value_editor(const StockSpecimen&, StableId id) {
     const std::shared_ptr<ColorValueEditor> control =
         make_control<ColorValueEditor>(std::move(id), Color::rgba(38, 110, 196));
@@ -1021,6 +1027,20 @@ StockSpecimenInstance make_scaled_panel(const StockSpecimen& specimen, StableId 
     (*control).add_at(field, Rect{12.0, 38.0, 180.0, 26.0});
     const std::shared_ptr<Button> apply = make_control<Button>(child_id(id, ".apply"), "Apply");
     (*control).add_at(apply, Rect{12.0, 76.0, 88.0, 28.0});
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
+StockSpecimenInstance make_form_layout(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<FormLayout> control = make_control<FormLayout>(id);
+    const std::shared_ptr<TextBox> name = make_control<TextBox>(child_id(id, ".name"));
+    set_sample_text(*name, "Harbour Quay");
+    static_cast<void>((*control).add_row("Display name", name, 26.0));
+    const std::shared_ptr<TextBox> town = make_control<TextBox>(child_id(id, ".town"));
+    set_sample_text(*town, "Portsmouth");
+    static_cast<void>((*control).add_row("Town", town, 26.0));
+    const std::shared_ptr<CheckBox> listed = make_control<CheckBox>(child_id(id, ".listed"), "Listed");
+    static_cast<void>((*control).add_row("Visibility", listed, 24.0));
     StockSpecimenInstance instance = alone(control);
     return instance;
 }

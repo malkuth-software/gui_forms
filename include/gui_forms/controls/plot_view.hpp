@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/plot_values.hpp"
+#include "gui_forms/drag/drag_tracker/drag_tracker.hpp"
 #include "gui_forms/plots/plot_view_model/plot_view_model.hpp"
 #include "gui_forms/plots/signal_program/signal_program.hpp"
 #include "gui_forms/controls/plot_view_capabilities.hpp"
@@ -63,6 +64,19 @@ struct PlotLiveColumns;
 // point_picked when a click or the cursor reaches a point; legend_toggled
 // (the series' position) after a legend click changed its `hidden`.
 //
+// Handles (the ImPlot-class demonstrator's P3; coordinator ruling 3): points
+// and lines the user drags across the plot, run by the window's drag engine
+// through a DragTracker the plot owns, with the engine's rules: a primary
+// press on an enabled handle (within handle_pick_radius of it) starts a
+// drag past the drag threshold, ahead of panning; the handle follows the
+// pointer, kept inside the plot rectangle, a point on both axes and a line
+// across itself only; each move raises handle_moved; the release raises
+// handle_committed; Escape, a lost capture or the window's deactivation
+// put the handle back and raise handle_moved with that end. Positions are
+// in the first axes' data coordinates, so a log or time axis moves as it
+// reads. A live plot draws and drags no handles. Handles have no keyboard
+// drag yet.
+//
 // Accessibility: one figure node (SemanticRole::figure), named by the
 // accessible name or the title, whose description is the summary (series,
 // kinds, point counts, visible ranges) and whose value is the cursor's
@@ -79,6 +93,16 @@ struct PlotLiveColumns;
 // signal programs and channels are run and consumed on the window's
 // motion clock, 60 times a second while the plot has either.
 //
+// A plot that is not painted between two of its frames (a hidden tab, a
+// collapsed panel, a plot scrolled out) leaves the motion clock at the
+// second: it runs no signal ticks and consumes no channel until it is
+// painted again, which enlists it once more. Its series keep their
+// samples; its signals continue from the resume without catching up, and
+// a channel's producer keeps writing its ring meanwhile (what the ring
+// overwrote is lost). A headless run drives the clock with
+// Window::poll_frame_schedule at the times it chooses (with
+// MotionClock::set_time_source for the clock's own now).
+//
 // One UI thread; the live frame's state belongs to its sub-surface thread.
 class GUI_FORMS_API PlotView final : public Control, public PlotViewCapabilities<PlotView> {
 public:
@@ -91,6 +115,28 @@ public:
     [[nodiscard]] Event<const PlotQuery&>& selection_changed() noexcept { return selection_changed_; }
     [[nodiscard]] Event<const PlotPointPick&>& point_picked() noexcept { return point_picked_; }
     [[nodiscard]] Event<std::size_t>& legend_toggled() noexcept { return legend_toggled_; }
+    [[nodiscard]] Event<const PlotHandleMove&>& handle_moved() noexcept { return handle_moved_; }
+    [[nodiscard]] Event<const PlotHandleMove&>& handle_committed() noexcept { return handle_committed_; }
+
+    // The distance, in logical units, a press finds a handle within.
+    static constexpr double handle_pick_radius = 6.0;
+    // Replaces the handles. Throws std::invalid_argument, changing nothing,
+    // for a non-finite position, a repeated id or more than
+    // maximum_plot_handles; a running handle drag is cancelled first
+    // (model_changed).
+    void set_handles(std::vector<PlotHandle> handles);
+    [[nodiscard]] std::span<const PlotHandle> handles() const& noexcept {
+        return std::span<const PlotHandle>(handles_.data(), handles_.size());
+    }
+    std::span<const PlotHandle> handles() const&& = delete;
+    // Moves a handle (false for an unknown id or a non-finite position);
+    // raises nothing.
+    bool set_handle_position(std::uint32_t id, double x, double y);
+    // The handle being dragged, if any.
+    [[nodiscard]] std::optional<std::uint32_t> dragged_handle() const noexcept;
+    // The handle's centre in local coordinates on the first axes, if the
+    // plot is laid out (tests and owner-drawn labels).
+    [[nodiscard]] std::optional<Point> handle_point(std::uint32_t id) const;
 
     // The item children, in child order, as the plot read them last.
     [[nodiscard]] std::vector<PlotSeriesItem*> series_items() const;
@@ -179,6 +225,7 @@ public:
 protected:
     void on_attached_to_window() override;
     void on_detached_from_window() noexcept override;
+    void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void on_mouse_down(MouseEventArgs& arguments) override;
     void on_mouse_up(MouseEventArgs& arguments) override;
@@ -218,6 +265,16 @@ private:
     // unchanged, else a new copy (live_columns_).
     std::shared_ptr<const detail::PlotLiveColumns> live_columns(std::size_t position, const PlotSeriesItem& item);
     [[nodiscard]] double device_scale() const noexcept;
+    // Handles: the enabled handle under a local point, the drag's callbacks
+    // and the handles' paint.
+    [[nodiscard]] std::optional<std::size_t> handle_at(Point local) const;
+    [[nodiscard]] std::optional<std::size_t> handle_index(std::uint32_t id) const noexcept;
+    // The data position a placement frame's top-left gives the dragged handle.
+    [[nodiscard]] std::optional<Point> handle_data_at(Point window_top_left) const;
+    void plan_handle_drag(DragPlan& plan);
+    void preview_handle_drag(const DragTrackerFrame& frame);
+    void finish_handle_drag(const DragTrackerFrame& frame);
+    void paint_handles(Painter& painter);
 
     std::unique_ptr<detail::PlotEngine> engine_;
     // The items and what the engine reads of them, gathered for each call
@@ -264,6 +321,19 @@ private:
     Event<const PlotQuery&> selection_changed_{};
     Event<const PlotPointPick&> point_picked_{};
     Event<std::size_t> legend_toggled_{};
+    Event<const PlotHandleMove&> handle_moved_{};
+    Event<const PlotHandleMove&> handle_committed_{};
+    std::vector<PlotHandle> handles_{};
+    // The dragged handle and where it was when the drag began.
+    struct HandleDrag final {
+        std::uint32_t id{};
+        double start_x{};
+        double start_y{};
+    };
+    std::optional<HandleDrag> handle_drag_state_{};
+    // Declared last of the handle state: it borrows this plot and ends a
+    // running session without calling back when destroyed.
+    DragTracker handle_drag_;
     // property_codemod begin PlotView (tools/property_families/plot_view.json; generated, do not edit)
 public:
     // PlotView's property table: Control's entries, then its own.

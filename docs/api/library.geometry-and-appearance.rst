@@ -418,6 +418,8 @@ Types
      - A stroke's colour, width, joins, caps and dashes, in the painter's current coordinates.
    * - :cpp:class:`SurfaceMaterial <gui_forms::SurfaceMaterial>`
      - SurfaceMaterial is a bounded ordered fill stack plus optional border, bounded shadow stack, and shared corner radius.
+   * - :cpp:class:`TextRun <gui_forms::TextRun>`
+     - One run of Painter::draw_text_runs: its baseline origin, its UTF-8 text (lent for the call) and its colour.
    * - :cpp:class:`Theme <gui_forms::Theme>`
      - Theme is an immutable validated role/state recipe table plus structural spacing, geometry, typography, and motion tokens; it resolves logical visual context without exposing renderer or platform objects.
    * - :cpp:class:`ThemeBackdropBase <gui_forms::ThemeBackdropBase>`
@@ -442,6 +444,10 @@ Types
      - The installed theme packages an ``@import`` may name (D2): each verified whole when installed (its manifest, every file's hash, and every ``@import`` of its sheet listed in its manifest), and found by its name.
    * - :cpp:class:`ThemeMotionTokens <gui_forms::ThemeMotionTokens>`
      - ThemeMotionTokens defines quick, standard, emphasized, and busy-cycle durations without prescribing an animation engine.
+   * - :cpp:class:`ThemeOverrides <gui_forms::ThemeOverrides>`
+     -  
+   * - :cpp:class:`ThemeOverrideTarget <gui_forms::ThemeOverrideTarget>`
+     - Where an entry applies: a stock control type by its id (``button``, ``track_bar``), optionally one of its parts by name (``face``, empty for the control as a whole) and one of its states (none for every state).
    * - :cpp:class:`ThemePackage <gui_forms::ThemePackage>`
      - A theme package: its manifest's bytes and its files.
    * - :cpp:class:`ThemePackageExport <gui_forms::ThemePackageExport>`
@@ -4437,6 +4443,17 @@ Types
    Painter is the renderer-neutral command vocabulary for transforms, clips, solids, rounded geometry, gradients, shadows, text, registered images, live surfaces, sampled regions, and bounded patterns; rich operations provide coherent minimal-host fallbacks.
 
 
+   .. rubric:: Methods
+
+   .. cpp:function:: std::size_t fit_text_utf8(std::string_view text, FontSpec font, double max_width)
+
+      The longest prefix of ``text``, in whole code points, whose measure_text_utf8 width is at most ``max_width`` (the flame graph demonstrator's F2): its byte count. A binary search over byte lengths, so about log2(bytes) measures; 0 when nothing fits or ``max_width`` is not a finite non-negative number.
+
+   .. cpp:function:: double draw_text_utf8_fitted(Point origin, std::string_view text, FontSpec font, Color color, double max_width, TextTrim trim)
+
+      ``text`` at ``origin``, shortened to ``max_width`` when it does not fit: ``trim`` cut draws the fitted prefix, ellipsis the prefix that leaves room for U+2026 and then U+2026. Returns the width drawn (0 when nothing was). Trailing spaces before the ellipsis are dropped. Two draw_text_utf8 calls at most, no allocation.
+
+
    .. rubric:: Extension points
 
    .. cpp:function:: virtual void begin_group(const PaintGroup& group)
@@ -4564,6 +4581,10 @@ Types
    .. cpp:function:: virtual void draw_glyph_runs(Point origin, const GlyphRunsView& view, FontSpec font, Color color)
 
       One line of glyph runs a provider shaped earlier (GlyphRunsView, as a paragraph layout fills them), drawn at ``origin`` (the start of the baseline, as for draw_text_utf8) in ``font``'s size and colour without shaping again. A painter whose own engine shaped them, in its current face table (view.source), draws exactly the pixels draw_text_utf8 draws for view.text; for any other source, or runs whose glyph indices fall outside view.glyphs, it draws view.text with draw_text_utf8. That fallback is the base implementation, which the recording painter keeps (a recorded line is shaped again on replay); the Skia painter draws the runs.
+
+   .. cpp:function:: virtual void draw_text_runs(FontSpec font, std::span<const TextRun> runs)
+
+      Many runs in one font (the flame graph demonstrator's F3), each at its origin in its colour, in order. The base implementation draws each with draw_text_utf8; a renderer may share the font's setup across them. Each run is as draw_text_utf8 would draw it.
 
    .. cpp:function:: virtual Size measure_text_utf8(std::string_view text, FontSpec font)
 
@@ -4883,7 +4904,7 @@ Types
 
    .. cpp:member:: std::optional<Color> content_color
 
-      The colour the part shows as its content (design language 8.5; owner decision W-7), such as a colour picker's sample, or none. Only the fill role honours it: a fill with a content colour is painted that colour, flat, in the part's shape (corner_radius, else square), in place of the recipe's material; every other role ignores it. A swatch is therefore a fill inside a well part that frames it. The colour is data, as an image is: it is drawn as given in ordinary and high-contrast presentation alike (the framing well follows the high-contrast recipe, so the sample stays outlined), and when the part is disabled (T2 GIVEN E2-1: a theme styles only what surrounds it, so a disabled swatch shows through its well, edge and label).
+      The colour the part shows as its content (design language 8.5; owner decision W-7), such as a colour picker's sample, or none. Only the fill role honours it: a fill with a content colour is painted that colour, flat, in the part's shape (corner_radius, else square), in place of the recipe's material; every other role ignores it. A swatch is therefore a fill inside a well part that frames it. The colour is data, as an image is: it is drawn as given in ordinary and high-contrast presentation alike (the framing well follows the high-contrast recipe, so the sample stays outlined), and when the part is disabled (T2 GIVEN E2-1: a theme styles only what surrounds it, so a disabled swatch shows through its well, edge and label). A surface part (face or well) with a content colour draws its material, and the colours its theme rules write as CSS's currentcolor take the content colour instead of the text colour: a colour picker's field, spectrum and alpha ramp are gradient rules over the colour they show (the ColorPicker parts in the default and familiar themes' content rules). The dark variant's rule does not darken such a part's material. In forced high contrast (owner ruling, W-7: content is data, not chrome) the part keeps those fills inside high contrast's material: its border (or, without one, a 1-unit border in high contrast's text colour) frames them, and its shadows and glows are dropped. Without the theme engine (no window, or a theme whose rules write no fills for the part), the part draws its recipe and the colour is not shown.
 
    .. cpp:member:: std::optional<Color> authored_background
 
@@ -6075,6 +6096,20 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: TextRun final
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   One run of Painter::draw_text_runs: its baseline origin, its UTF-8 text (lent for the call) and its colour.
+
+   .. cpp:member:: Point origin
+
+   .. cpp:member:: std::string_view text
+
+   .. cpp:member:: Color color
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: Theme final
 
    ``#include <gui_forms/theme/theme/theme.hpp>``
@@ -6550,6 +6585,62 @@ Types
    .. cpp:member:: std::chrono::milliseconds busy_cycle
 
       Default: ``{1400}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ThemeOverrides final
+
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool empty() const noexcept
+
+   .. cpp:function:: std::size_t size() const noexcept
+
+      The number of entries, roles included.
+
+   .. cpp:function:: std::string sheet_text() const
+
+      The program theme sheet the entries write: the roles in one ``:root`` block, then one rule per target in the order targets were first set, its properties in the order they were first set. Deterministic: the same entries write the same text. Empty overrides write an empty sheet.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void clear() noexcept
+
+      Removes every entry.
+
+   .. cpp:function:: ThemeOverrideCheck set_role_colour(ColourRole role, Color foreground, std::optional<Color> background = {})
+
+      Redefines a colour role: ``foreground`` alone for a single role, ``foreground`` on ``background`` for a paired one (colour_role_paired). Setting a role again replaces its colours in place.
+
+   .. cpp:function:: ThemeOverrideCheck set_colour(const ThemeOverrideTarget& target, ThemeOverrideProperty property, Color colour)
+
+      Sets a colour property (background_colour, border_colour or text_colour) for ``target``. Setting the same target and property again replaces the value in place.
+
+   .. cpp:function:: ThemeOverrideCheck set_length(const ThemeOverrideTarget& target, ThemeOverrideProperty property, double value)
+
+      Sets a length or fraction property (corner_radius, border_width or opacity) for ``target``, within the property's range.
+
+   .. cpp:member:: constexpr std::size_t maximum_entries
+
+      The most entries, roles and properties together, a set holds. Default: ``4096U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ThemeOverrideTarget final
+
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+
+   Where an entry applies: a stock control type by its id (``button``, ``track_bar``), optionally one of its parts by name (``face``, empty for the control as a whole) and one of its states (none for every state).
+
+   .. cpp:member:: std::string control
+
+   .. cpp:member:: std::string part
+
+   .. cpp:member:: std::optional<AnatomyState> state
 
 .. cpp:namespace:: gui_forms
 
@@ -8779,6 +8870,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: TextTrim
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   .. cpp:enumerator:: cut
+
+   .. cpp:enumerator:: ellipsis
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ThemeBase
 
    ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
@@ -8848,6 +8949,44 @@ Enumerations
    .. cpp:enumerator:: fallback_theme
 
    .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeOverrideCheck
+
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+
+   .. cpp:enumerator:: accepted
+
+   .. cpp:enumerator:: unknown_control
+
+   .. cpp:enumerator:: unknown_part
+
+   .. cpp:enumerator:: unknown_state
+
+   .. cpp:enumerator:: wrong_value_kind
+
+   .. cpp:enumerator:: value_out_of_range
+
+   .. cpp:enumerator:: too_many
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeOverrideProperty
+
+   ``#include <gui_forms/theme/theme_overrides/theme_overrides.hpp>``
+
+   .. cpp:enumerator:: background_colour
+
+   .. cpp:enumerator:: border_colour
+
+   .. cpp:enumerator:: text_colour
+
+   .. cpp:enumerator:: corner_radius
+
+   .. cpp:enumerator:: border_width
+
+   .. cpp:enumerator:: opacity
 
 .. cpp:namespace:: gui_forms
 

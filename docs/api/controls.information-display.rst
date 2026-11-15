@@ -311,6 +311,20 @@ Related types
      - The smallest value shown until a gesture or a fit moves the view; finite (std::invalid_argument otherwise).
    * - :cpp:class:`PlotAxisItemScaleCapability <gui_forms::PlotAxisItemScaleCapability>`
      - How the axis maps values: linear, log10, symlog, time (UTC seconds) or category.
+   * - :cpp:class:`PlotCustomExtent <gui_forms::PlotCustomExtent>`
+     - The data rectangle a custom series covers, in its axes' units; either range invalid (PlotRange::valid) when it covers nothing.
+   * - :cpp:class:`PlotCustomSeries <gui_forms::PlotCustomSeries>`
+     - A plot kind PlotView does not have, drawn inside PlotView's frame (the plot demonstrator's gap P1): installed on a PlotSeriesItem with set_custom, it gets the plot's margins, axes, ticks, grid, view model (pan, zoom, fit), legend entry, hiding and theme colour, and draws only its marks.
+   * - :cpp:class:`PlotHandle <gui_forms::PlotHandle>`
+     - One handle, in the data coordinates of the plot's first axes: ``x`` and ``y`` for a point, ``x`` for a vertical line and ``y`` for a horizontal one (the other is kept and ignored).
+   * - :cpp:class:`PlotHandleMove <gui_forms::PlotHandleMove>`
+     - A handle's position during or after a drag (PlotView::handle_moved and handle_committed): ``end`` is DragEnd::none while dragging, the commit's end (dropped or free) in handle_committed, and the end that restored the handle (escaped, capture_lost and the rest) in the last handle_moved, whose position is then the position before the drag.
+   * - :cpp:class:`PlotHeatmapSeries <gui_forms::PlotHeatmapSeries>`
+     - A heatmap (P2): ``values`` row-major, rows × columns, row 0 at the top of the data rectangle [area_x] × [area_y], coloured through a built-in colormap over ``domain`` (the finite values' extent unless set).
+   * - :cpp:class:`PlotHistogramSeries <gui_forms::PlotHistogramSeries>`
+     - A histogram (P2): ``samples`` counted into ``bins`` fixed bins over their finite extent (or a set range), drawn as bars in the series colour.
+   * - :cpp:class:`PlotPalette <gui_forms::PlotPalette>`
+     - The colours PlotView draws with, resolved from a control's effective theme as PlotView resolves its own (the plot demonstrator's gap P5), so a custom plot kind follows set_theme_override like the stock plots.
    * - :cpp:class:`PlotPointPick <gui_forms::PlotPointPick>`
      - A point the pointer or the keyboard cursor picked (PlotView::point_picked).
    * - :cpp:class:`PlotQuery <gui_forms::PlotQuery>`
@@ -425,6 +439,10 @@ Related types
      - How many of the newest values the line keeps, 2 to 100000 (std::invalid_argument outside them); a smaller capacity drops the oldest.
    * - :cpp:class:`SparklineFillCapability <gui_forms::SparklineFillCapability>`
      - Whether the band under the line is shaded.
+   * - :cpp:class:`SparklineStyle <gui_forms::SparklineStyle>`
+     - The look of one sparkline drawn by paint_sparkline.
+   * - :cpp:class:`SparklineWorkspace <gui_forms::SparklineWorkspace>`
+     - The storage paint_sparkline reuses from paint to paint: one per drawn sparkline (a grid cell keeps one per column, reused across rows).
    * - :cpp:class:`Spinner::Parts <gui_forms::Spinner::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`SpinnerActiveCapability <gui_forms::SpinnerActiveCapability>`
@@ -2643,6 +2661,203 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PlotCustomExtent final
+
+   ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
+
+   The data rectangle a custom series covers, in its axes' units; either range invalid (PlotRange::valid) when it covers nothing.
+
+   .. cpp:member:: plots::PlotRange x
+
+      Default: ``{1.0, 0.0}``.
+
+   .. cpp:member:: plots::PlotRange y
+
+      Default: ``{1.0, 0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PlotCustomSeries
+
+   ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
+
+   A plot kind PlotView does not have, drawn inside PlotView's frame (the plot demonstrator's gap P1): installed on a PlotSeriesItem with set_custom, it gets the plot's margins, axes, ticks, grid, view model (pan, zoom, fit), legend entry, hiding and theme colour, and draws only its marks. While installed, the item's points and ``kind`` are not drawn. The plot calls it on its UI thread, during its layout, paint and input: extent when it fits, mark_capacity before it paints, paint when the series is visible, pick on a click or crosshair move. A live plot (``live``) draws no custom series: its frame runs on another thread. After its content changes, the owner calls PlotSeriesItem::custom_changed so that the plot fits and repaints.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual PlotCustomExtent extent() const = 0
+
+      The data it covers, for fitting the axes.
+
+   .. cpp:function:: virtual std::size_t mark_capacity() const noexcept
+
+      The most points, rectangles or colours one paint writes through ``marks`` (the plot reserves them before painting, so the paint does not allocate). The default is none beyond the plot's own.
+
+   .. cpp:function:: virtual plots::MarkStatistics paint(Painter& painter, const plots::PlotTransform& transform, plots::SeriesMarkPainter& marks, Color color) = 0
+
+      Draws the marks through ``painter`` under the plot's clip, mapping data through ``transform``. ``color`` is the series' theme colour (plot_series_color); ``marks`` is the plot's reused mark painter.
+
+   .. cpp:function:: virtual plots::PickResult pick(Point device, const plots::PlotTransform& transform) const
+
+      The nearest element to ``device`` (the plot's local coordinates), or found false. The plot keeps a result only within its pick radius and sets its series identity itself. The default finds nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotHandle final
+
+   ``#include <gui_forms/controls/plot_values.hpp>``
+
+   One handle, in the data coordinates of the plot's first axes: ``x`` and ``y`` for a point, ``x`` for a vertical line and ``y`` for a horizontal one (the other is kept and ignored). ``id`` is the program's name for it, unique in the plot. A disabled handle is drawn but not dragged.
+
+   .. cpp:member:: std::uint32_t id
+
+   .. cpp:member:: PlotHandleKind kind
+
+      Default: ``{PlotHandleKind::point}``.
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+   .. cpp:member:: bool enabled
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotHandleMove final
+
+   ``#include <gui_forms/controls/plot_values.hpp>``
+
+   A handle's position during or after a drag (PlotView::handle_moved and handle_committed): ``end`` is DragEnd::none while dragging, the commit's end (dropped or free) in handle_committed, and the end that restored the handle (escaped, capture_lost and the rest) in the last handle_moved, whose position is then the position before the drag.
+
+   .. cpp:member:: std::uint32_t id
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+   .. cpp:member:: DragEnd end
+
+      Default: ``{DragEnd::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PlotHeatmapSeries final : public PlotCustomSeries
+
+   ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
+
+   A heatmap (P2): ``values`` row-major, rows × columns, row 0 at the top of the data rectangle [area_x] × [area_y], coloured through a built-in colormap over :cpp:func:`domain <gui_forms::PlotHeatmapSeries::domain>` (the finite values' extent unless set). Its extent is the area; a pick names the cell under the pointer (element row * columns + column, y its value).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: plots::BuiltInColormap colormap() const noexcept
+
+   .. cpp:function:: void set_colormap(plots::BuiltInColormap colormap) noexcept
+
+   .. cpp:function:: plots::PlotRange domain() const noexcept
+
+   .. cpp:function:: void set_domain(std::optional<plots::PlotRange> domain)
+
+      A fixed colour domain (valid), or none to follow the values.
+
+   .. cpp:function:: std::size_t rows() const noexcept
+
+   .. cpp:function:: std::size_t columns() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void set_grid(std::span<const double> values, std::size_t rows, std::size_t columns, plots::PlotRange area_x, plots::PlotRange area_y)
+
+      Copies ``values``. Throws std::invalid_argument, changing nothing, unless rows × columns equals values.size() (without overflow) and both ranges are valid. An empty grid draws nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: PlotCustomExtent extent() const override
+
+   .. cpp:function:: std::size_t mark_capacity() const noexcept override
+
+   .. cpp:function:: plots::MarkStatistics paint(Painter& painter, const plots::PlotTransform& transform, plots::SeriesMarkPainter& marks, Color color) override
+
+   .. cpp:function:: plots::PickResult pick(Point device, const plots::PlotTransform& transform) const override
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: PlotHistogramSeries final : public PlotCustomSeries
+
+   ``#include <gui_forms/controls/plot_series_item_custom.hpp>``
+
+   A histogram (P2): ``samples`` counted into :cpp:func:`bins <gui_forms::PlotHistogramSeries::bins>` fixed bins over their finite extent (or a set range), drawn as bars in the series colour. Its extent is the bins' range by [0, the largest count]; a pick names the bin under the pointer (element its index, y its count).
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::span<const std::uint64_t> counts() const& noexcept
+
+   .. cpp:function:: const plots::BinSpec& bins() const noexcept
+
+   .. cpp:function:: const plots::BinTally& tally() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void set_samples(std::span<const double> samples, std::size_t bins)
+
+      Copies ``samples`` and counts them. Throws std::invalid_argument, changing nothing, for bins of 0 or above maximum_bins.
+
+   .. cpp:function:: void set_range(std::optional<plots::PlotRange> range)
+
+      A fixed bin range (valid), or none for the samples' finite extent; the samples are counted again.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: PlotCustomExtent extent() const override
+
+   .. cpp:function:: std::size_t mark_capacity() const noexcept override
+
+   .. cpp:function:: plots::MarkStatistics paint(Painter& painter, const plots::PlotTransform& transform, plots::SeriesMarkPainter& marks, Color color) override
+
+   .. cpp:function:: plots::PickResult pick(Point device, const plots::PlotTransform& transform) const override
+
+   .. cpp:member:: constexpr std::size_t maximum_bins
+
+      Default: ``65536U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PlotPalette final
+
+   ``#include <gui_forms/controls/plot_view_palette.hpp>``
+
+   The colours PlotView draws with, resolved from a control's effective theme as PlotView resolves its own (the plot demonstrator's gap P5), so a custom plot kind follows set_theme_override like the stock plots. The rules come from the editor recipe's border (its top edge, else its text), the selection from its focus ring.
+
+   .. cpp:member:: Color grid_major
+
+      The grid's major and minor lines (the rule colour at reduced alpha).
+
+   .. cpp:member:: Color grid_minor
+
+   .. cpp:member:: Color axis
+
+      The axis lines and ticks.
+
+   .. cpp:member:: Color text
+
+      Tick labels, readouts and other plot text (the recipe's text).
+
+   .. cpp:member:: Color selection_fill
+
+      A zoom box or kept selection: its fill and its edge.
+
+   .. cpp:member:: Color selection_edge
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PlotPointPick final
 
    ``#include <gui_forms/controls/plot_values.hpp>``
@@ -3770,6 +3985,46 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: SparklineStyle final
+
+   ``#include <gui_forms/controls/sparkline.hpp>``
+
+   The look of one sparkline drawn by paint_sparkline.
+
+   .. cpp:member:: Color line
+
+      The line's colour; the band and the newest dot take it too.
+
+   .. cpp:member:: double line_width
+
+      The line's width in local units (finite and positive). Default: ``{1.0}``.
+
+   .. cpp:member:: bool fill
+
+      Whether the band under the line is shaded, and its alpha.
+
+   .. cpp:member:: std::uint8_t band_alpha
+
+      Default: ``{72U}``.
+
+   .. cpp:member:: double newest_marker_size
+
+      The dot on the newest finite value; 0 draws none. Default: ``{4.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SparklineWorkspace final
+
+   ``#include <gui_forms/controls/sparkline.hpp>``
+
+   The storage paint_sparkline reuses from paint to paint: one per drawn sparkline (a grid cell keeps one per column, reused across rows). It grows when a wider plot is drawn and never shrinks.
+
+   .. cpp:member:: plots::SeriesMarkPainter marks
+
+   .. cpp:member:: std::size_t reserved_columns
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: Spinner::Parts final
 
    ``#include <gui_forms/controls/spinner.hpp>``
@@ -4372,6 +4627,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: PlotHandleKind
+
+   ``#include <gui_forms/controls/plot_values.hpp>``
+
+   .. cpp:enumerator:: point
+
+   .. cpp:enumerator:: vertical_line
+
+   .. cpp:enumerator:: horizontal_line
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PlotSeriesItem::DataSource
 
    ``#include <gui_forms/controls/plot_series_item.hpp>``
@@ -4529,6 +4796,30 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/controls/plot_values.hpp>``
+
+.. cpp:var:: constexpr std::size_t maximum_plot_handles
+
+   The most handles a PlotView holds. Value: ``256U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/plot_view_palette.hpp>``
+
+.. cpp:function:: PlotPalette resolve_plot_palette(const Control& owner)
+
+   The palette for ``owner`` in its current anatomy states. Reads only.
+
+.. cpp:function:: Color plot_series_color(const Control& owner, std::size_t position) noexcept
+
+   The opaque colour PlotView gives the series at ``position`` among its series items (the series cycle through the theme's accents). Reads only.
+
+.. cpp:function:: Color plot_category_color(const Control& owner, std::uint64_t key) noexcept
+
+   The theme accent for the category ``key`` (plots::category_key of a name, or the application's own identity; the flame graph demonstrator's F7): plot_series_color at plots::category_position(key, 256), so a key keeps its colour in a theme and follows a theme change. Reads only.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/controls/progress_bar_effects.hpp>``
 
 .. cpp:function:: void register_progress_bar_effects(EffectRegistry& registry)
@@ -4542,6 +4833,14 @@ Functions, constants and aliases
 .. cpp:function:: std::uint8_t seven_segment_pattern(char32_t character) noexcept
 
    The segments ``character`` lights (a Unicode scalar value): the digits, the hexadecimal letters and the other letters a seven-segment cell can form (in whichever case it can), '-', '_', '=', the degree sign (U+00B0) and space; zero for anything else.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/sparkline.hpp>``
+
+.. cpp:function:: void paint_sparkline(Painter& painter, Rect plot, plots::SeriesSpans<double> values, std::size_t slots, double scale, const SparklineStyle& style, SparklineWorkspace& workspace)
+
+   Draws ``values`` (oldest first; NaN is a gap) the way Sparkline draws its ring, inside ``plot`` (local units, clipped to it), so that a grid cell, a list item or an owner-drawn control can draw a word-sized trend without a Sparkline control (the D3 demonstrator's I5). The x axis spans ``slots`` positions with the newest value at the right; ``slots`` is at least 2 and at least values.size(), otherwise nothing is drawn. The y axis is the values' finite extent (a flat run sits in the middle). ``scale`` is the paint scale (device pixels per local unit, finite and positive). Draws nothing when no value is finite or the plot is empty. Allocates only when the workspace grows; the painter is saved and restored around it.
 
 .. cpp:namespace:: gui_forms
 

@@ -489,6 +489,19 @@ BinTally bin_values(SeriesSpans<Element> values, const BinSpec& spec, std::span<
     return result;
 }
 
+template <SeriesElement Element>
+BinTally bin_values_into(SeriesSpans<Element> values, const BinSpec& spec, std::span<std::uint64_t> counts) noexcept {
+    if (!detail::valid_bins(spec, counts.size())) {
+        BinTally refused{};
+        refused.refused = true;
+        return refused;
+    }
+    const std::span<std::uint64_t> bins = counts.first(spec.count);
+    std::fill(bins.begin(), bins.end(), std::uint64_t{0});
+    const BinTally result = bin_values(values, spec, counts);
+    return result;
+}
+
 template <typename Source>
 BinTally bin_points(const Source& source, const BinSpec& x_spec, const BinSpec& y_spec,
                     std::span<std::uint64_t> counts) noexcept {

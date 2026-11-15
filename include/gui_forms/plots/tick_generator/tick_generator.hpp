@@ -104,6 +104,15 @@ private:
     double fixed_{};
 };
 
+// How a linear scale's labels are written (the flame graph demonstrator's
+// F8). `number`: plain numbers. `duration`: the axis value times
+// TickRequest::unit_seconds is a duration in seconds, labelled with one SI
+// unit for the whole set, chosen by the major step in seconds: s for a step
+// of 0.1 s or more, ms from 0.1 ms, µs from 0.1 µs, ns below; the number
+// has the step's decimals in that unit and is followed by a space and the
+// unit ("0.5 ms", "250 µs"). Log, symlog, time and category scales ignore it.
+enum class TickLabelUnit : std::uint8_t { number, duration };
+
 struct GUI_FORMS_API TickRequest final {
     // The fewest device units between two major ticks.
     double minimum_spacing{64.0};
@@ -112,6 +121,11 @@ struct GUI_FORMS_API TickRequest final {
     // The category names of a category scale, by position; borrowed for
     // the call.
     std::span<const std::string_view> categories{};
+    // A linear scale's label form, and the seconds one axis unit stands for
+    // with `duration` (1e-3 for an axis in milliseconds). A unit that is not
+    // finite and positive labels plain numbers.
+    TickLabelUnit label_unit{TickLabelUnit::number};
+    double unit_seconds{1.0};
 };
 
 enum class TickOutcome : std::uint8_t {

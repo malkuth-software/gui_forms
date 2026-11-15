@@ -259,7 +259,7 @@ gui_forms::Control
          The window whose tree contains this control, or null.
 
       **attached_surface_root** : ``BorrowedPointer<SurfaceRoot>``, read-only
-         The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
+         The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not. Its scale() is the device scale the control paints at (1 while detached).
 
       **effective_text_scale** : ``double``, read-only
          The attached window's presentation text scale, or 1 when detached.
@@ -332,6 +332,12 @@ gui_forms::Control
       **styles** : ``ControlStyles``, read-only
          The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
          :cpp:func:`set_style <gui_forms::Control::set_style>` changes them.
+
+      **theme_sheet** : ``std::string_view``
+         The sheet's text; empty without one. Valid until the sheet is set.
+
+      **theme_sheet_pending** : ``bool``, read-only
+         Whether the sheet waits for an attachment to compile.
 
       **inline_style** : ``BorrowedText``
          The inline style's text in force; empty without one. Valid until the style is set, cleared or recompiled for a theme change (checked builds fail fast on a later read).
@@ -441,6 +447,9 @@ gui_forms::Control
 
       **validated** : ``Event<>``
          Raised after :cpp:func:`validating <gui_forms::Control::validating>` when no handler cancelled.
+
+      **theme_sheet_compiled** : ``Event<const ThemeCompileResult&>``
+         Raised after each compilation of the sheet, on the control's thread.
 
       **tool_tip_text_changed** : ``Event<const std::string&>``
          Raised after :cpp:member:`tool_tip_text <gui_forms::Control::tool_tip_text>` changes, with the new text.
@@ -648,6 +657,8 @@ gui_forms::Control
         - Changes the fields of :cpp:func:`requested_bounds <gui_forms::Control::requested_bounds>` selected by :cpp:enum:`BoundsSpecified <gui_forms::BoundsSpecified>`, all of them by default.
       * - :cpp:func:`set_style <gui_forms::Control::set_style>`
         - Sets or clears :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags, retained for Windows Forms compatibility.
+      * - :cpp:func:`set_theme_overrides <gui_forms::Control::set_theme_overrides>`
+        - Typed run-time styling (the ImGui-class demonstrator's I6): the overrides' sheet (ThemeOverrides::sheet_text) set as the theme sheet, named ``overrides``, with set_theme_sheet's timing, reports and result.
       * - :cpp:func:`set_custom_cursor <gui_forms::Control::set_custom_cursor>`
         - A stock assignment clears the image override.
       * - :cpp:func:`set_pointer_capture <gui_forms::Control::set_pointer_capture>`
@@ -1053,7 +1064,7 @@ gui_forms::Control
 
    .. cpp:function:: BorrowedPointer<SurfaceRoot> attached_surface_root() const noexcept
 
-      The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
+      The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not. Its scale() is the device scale the control paints at (1 while detached).
 
    .. cpp:function:: double effective_text_scale() const noexcept
 
@@ -1161,6 +1172,18 @@ gui_forms::Control
 
       The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
       :cpp:func:`set_style <gui_forms::Control::set_style>` changes them.
+
+   .. cpp:function:: std::string_view theme_sheet() const noexcept
+
+      The sheet's text; empty without one. Valid until the sheet is set.
+
+   .. cpp:function:: bool set_theme_sheet(std::string_view text, std::string_view name = "sheet")
+
+      The control's theme sheet (the ImGui-class demonstrator's I7): a whole program theme's text, as theme_sheet_package(text, name) holds it, compiled with the stock control anatomies into the window's ApplicationResources and set as this control's theme override for its subtree. Set while the control is attached to a window with resources, it compiles at once; set while it is not, it compiles when it is next attached, after the attachment is committed. It compiles again on an attachment to another window's resources (the theme's images belong to the resources it was compiled into). Every compilation raises theme_sheet_compiled with its result, the diagnostics included, whether it applied or was refused; a refused sheet leaves the theme override as it was, and so does a sheet an inline style of the subtree cannot compile against (reported as a refusal with the code E000 ``inline_style_refused``). Empty text removes the sheet and the override it set. Returns true when the sheet compiled and applied now; false when it was refused now or waits for an attachment (theme_sheet_pending).
+
+   .. cpp:function:: bool theme_sheet_pending() const noexcept
+
+      Whether the sheet waits for an attachment to compile.
 
    .. cpp:function:: BorrowedText inline_style() const noexcept
 
@@ -1310,6 +1333,10 @@ gui_forms::Control
    .. cpp:function:: Event<>& validated() noexcept
 
       Raised after :cpp:func:`validating <gui_forms::Control::validating>` when no handler cancelled.
+
+   .. cpp:function:: Event<const ThemeCompileResult&>& theme_sheet_compiled()
+
+      Raised after each compilation of the sheet, on the control's thread.
 
    .. cpp:function:: Event<const std::string&>& tool_tip_text_changed() noexcept
 
@@ -1670,6 +1697,10 @@ gui_forms::Control
 
       Sets or clears :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags, retained for Windows Forms
       compatibility. Buffering flags never enable partial painting.
+
+   .. cpp:function:: bool set_theme_overrides(const ThemeOverrides& overrides)
+
+      Typed run-time styling (the ImGui-class demonstrator's I6): the overrides' sheet (ThemeOverrides::sheet_text) set as the theme sheet, named ``overrides``, with set_theme_sheet's timing, reports and result. Empty overrides remove the sheet.
 
    .. cpp:function:: void set_custom_cursor(CursorImagesPtr images, CursorKind fallback = CursorKind::arrow)
 
@@ -2364,7 +2395,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 232 supported, 0 deferred, 12 excluded, 314 unclassified; 201 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 236 supported, 0 deferred, 12 excluded, 314 unclassified; 205 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -4069,6 +4100,14 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 232 supp
      - supported
    * - property
      - GUI.Forms-only
+     - ``theme_sheet``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``theme_sheet_pending``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``tool_tip_presentation``
      - unclassified (untested)
    * - property
@@ -4107,6 +4146,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 232 supp
      - GUI.Forms-only
      - ``pointer_preview_observed``
      - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``theme_sheet_compiled``
+     - supported
    * - event
      - GUI.Forms-only
      - ``tool_tip_text_changed``
@@ -4550,6 +4593,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 232 supp
    * - method
      - GUI.Forms-only
      - ``set_property_value``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_theme_overrides``
      - supported
    * - method
      - GUI.Forms-only

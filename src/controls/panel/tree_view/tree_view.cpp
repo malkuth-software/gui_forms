@@ -131,6 +131,91 @@ void TreeView::set_expanded(std::string_view id, bool value) {
     if (selected_descendant && is_alive() && item_index(item_id)) selected_id = item_id;
 }
 
+void TreeView::expand_all() {
+    require_mutable();
+    std::vector<std::size_t> changed;
+    for (std::size_t index = 0U; index < items_.size(); ++index) {
+        const TreeViewItem& item = items_[index];
+        if (item.expandable && !item.expanded) changed.push_back(index);
+    }
+    apply_expansion(changed, true);
+}
+
+void TreeView::collapse_all() {
+    require_mutable();
+    std::vector<std::size_t> changed;
+    for (std::size_t index = 0U; index < items_.size(); ++index) {
+        const TreeViewItem& item = items_[index];
+        if (item.expandable && item.expanded) changed.push_back(index);
+    }
+    apply_expansion(changed, false);
+}
+
+void TreeView::expand_to(std::string_view id) {
+    require_mutable();
+    const std::optional<std::size_t> index = item_index(id);
+    if (!index) throw std::out_of_range("TreeView expansion ID is not in the model");
+    // A copy: `id` may view an item's ID, which an expansion handler can end.
+    const std::string target(id);
+    // The ancestors are the nearest earlier items of each smaller depth,
+    // found walking back; they are collected nearest first.
+    std::vector<std::size_t> changed;
+    std::size_t depth = items_[*index].depth;
+    for (std::size_t after = *index; after > 0U && depth > 0U; --after) {
+        const TreeViewItem& candidate = items_[after - 1U];
+        if (candidate.depth >= depth) continue;
+        depth = candidate.depth;
+        if (candidate.expandable && !candidate.expanded) changed.push_back(after - 1U);
+    }
+    std::reverse(changed.begin(), changed.end());
+    apply_expansion(changed, true);
+    if (!is_alive()) return;
+    const std::optional<std::size_t> revealed = item_index(target);
+    if (!revealed) return;
+    const std::vector<std::size_t>::const_iterator row =
+        std::lower_bound(visible_.cbegin(), visible_.cend(), *revealed);
+    if (row == visible_.cend() || *row != *revealed) return;
+    const std::size_t previous_top = top_row_;
+    ensure_visible(static_cast<std::size_t>(row - visible_.cbegin()));
+    if (top_row_ == previous_top) return;
+    conceal_cut_off_text();
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void TreeView::apply_expansion(std::span<const std::size_t> indices, bool value) {
+    if (indices.empty()) return;
+    // Copies: a handler may replace the items.
+    std::vector<std::string> changed_ids;
+    changed_ids.reserve(indices.size());
+    for (std::size_t position = 0U; position < indices.size(); ++position) {
+        TreeViewItem& item = items_[indices[position]];
+        item.expanded = value;
+        changed_ids.push_back(item.stable_id);
+    }
+    rebuild_visible();
+    // A selection the collapse hid moves to its nearest visible ancestor.
+    std::string reselect;
+    const std::optional<std::size_t> selected = item_index(selected_id_);
+    if (!value && selected && !std::binary_search(visible_.cbegin(), visible_.cend(), *selected)) {
+        std::size_t depth = items_[*selected].depth;
+        for (std::size_t after = *selected; after > 0U && depth > 0U; --after) {
+            const TreeViewItem& candidate = items_[after - 1U];
+            if (candidate.depth >= depth) continue;
+            depth = candidate.depth;
+            if (std::binary_search(visible_.cbegin(), visible_.cend(), after - 1U)) {
+                reselect = candidate.stable_id;
+                break;
+            }
+        }
+    }
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    for (std::size_t position = 0U; position < changed_ids.size(); ++position) {
+        publish_change(expansion_changed_, TreeExpansionChange{changed_ids[position], value});
+        if (!is_alive()) return;
+    }
+    if (!reselect.empty() && item_index(reselect)) selected_id = reselect;
+}
+
 void TreeView::set_top_row(std::size_t row) {
     require_mutable();
     if (visible_.empty()) {

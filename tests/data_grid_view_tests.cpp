@@ -2113,6 +2113,100 @@ void borders_and_owner_drawing() {
     require(replaced == 1 && (*grid).columns().size() == 1U, "a handler that changes the grid stops the paint");
 }
 
+// A column marked owner_draw raises draw_item_content for its own cells
+// while the grid draws the others (gap I4).
+void per_column_owner_drawing() {
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.column-draw"));
+    std::vector<DataGridViewColumn> columns = sample_columns();
+    require(columns.size() >= 2U, "the fixture has two columns or more");
+    columns[1].owner_draw = true;
+    const std::string drawn_name = columns[1].name;
+    (*grid).set_columns(columns);
+    (*grid).rows.append({.stable_id = {"alpha"}, .cells = {BindingValue{std::string("Alpha")}, BindingValue{true},
+                                                           BindingValue{std::string("FM")}}});
+    (*grid).rows.append({.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}, BindingValue{false},
+                                                           BindingValue{std::string("AM")}}});
+    (*grid).allow_user_to_add_rows = false;
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).draw_mode.read() == ItemDrawMode::normal, "the grid itself draws normally");
+    std::vector<std::string> drawn_ids;
+    SubscriptionToken draw_token = (*grid).draw_item_content().subscribe(DrawCells{&drawn_ids, false});
+    CountingPainter painter;
+    (*grid).on_paint(painter, (*grid).client_rectangle());
+    require(drawn_ids.size() == 2U, "only the owner-drawn column's cells are raised");
+    const std::string suffix = "." + drawn_name;
+    for (const std::string& id : drawn_ids) {
+        require(id.size() > suffix.size() && id.compare(id.size() - suffix.size(), suffix.size(), suffix) == 0,
+                "each raised cell is in the owner-drawn column");
+    }
+    bool painted_alpha = false;
+    for (const std::string& text : painter.texts) {
+        if (text == "Alpha") painted_alpha = true;
+    }
+    require(painted_alpha, "the other columns keep their default content");
+    draw_token.disconnect();
+}
+
+// Counts the sparkline marks and the text a grid draws.
+class SparklinePainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view text, FontSpec, Color) override { texts.emplace_back(text); }
+    void draw_image(ImageId, Rect, double) override {}
+    void stroke_polyline(std::span<const Point>, const StrokeStyle&) override { polylines = polylines + 1; }
+    void draw_markers(std::span<const Point> centers, const MarkerStyle&) override {
+        markers = markers + centers.size();
+    }
+
+    std::vector<std::string> texts;
+    int polylines{};
+    std::size_t markers{};
+};
+
+void sparkline_column() {
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.sparkline"));
+    DataGridViewColumn name{};
+    name.name = "name";
+    name.header_text = "Name";
+    DataGridViewColumn trend{};
+    trend.name = "trend";
+    trend.header_text = "Trend";
+    trend.kind = DataGridViewColumnKind::sparkline;
+    (*grid).set_columns({name, trend});
+    const std::vector<BindingValue> samples{BindingValue{1.0}, BindingValue{std::int64_t{3}}, BindingValue{std::string("x")},
+                                            BindingValue{2.5}};
+    const PropertyCollectionValue series = make_property_collection("number", BindingValueKind::number, samples);
+    (*grid).rows.append({.stable_id = {"alpha"}, .cells = {BindingValue{std::string("Alpha")}, BindingValue{series}}});
+    (*grid).rows.append({.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}, BindingValue{}}});
+    (*grid).allow_user_to_add_rows = false;
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).cell_text(DataGridViewRowPosition{0U}, 1U) == "2.5",
+            "a sparkline cell's text is its newest finite value");
+    require((*grid).cell_text(DataGridViewRowPosition{1U}, 1U).empty(), "a cell without a series has no text");
+    SparklinePainter painter;
+    (*grid).on_paint(painter, (*grid).client_rectangle());
+    require(painter.polylines >= 1 && painter.markers == 1U,
+            "the series cell draws its line and newest dot; the empty one draws nothing");
+    bool painted_value = false;
+    bool painted_alpha = false;
+    for (const std::string& text : painter.texts) {
+        if (text == "2.5") painted_value = true;
+        if (text == "Alpha") painted_alpha = true;
+    }
+    require(!painted_value && painted_alpha, "the sparkline replaces the cell's text; other columns keep theirs");
+    require((*grid).set_current_cell(DataGridViewCellAddress{DataGridViewRowPosition{0U}, 1U}),
+            "a sparkline cell can be current");
+    require(!(*grid).begin_edit(), "a sparkline cell is not edited");
+}
+
 // -- authored colours (owner decision T4-1) ------------------------------------
 
 // Records the colours fills, text and lines are drawn in.
@@ -3456,6 +3550,8 @@ int main() {
     cell_styles();
     formatting_and_parsing();
     borders_and_owner_drawing();
+    per_column_owner_drawing();
+    sparkline_column();
     sort_modes();
     clipboard();
     authored_colours();

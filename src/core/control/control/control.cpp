@@ -16,6 +16,10 @@
 #include "../../theme/theme/kept_resolutions.hpp"
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/theme/theme_overrides/theme_overrides.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -1532,6 +1536,114 @@ void Control::refresh_inline_style() {
     inline_style_ = std::move(compiled);
     inline_style_lender_.invalidate();
     invalidate(Dirty::paint | refresh_text_font());
+}
+
+namespace detail {
+
+struct ControlThemeSheet final {
+    std::string text{};
+    std::string name{};
+    // Whether the sheet waits for an attachment to compile.
+    bool pending{};
+    // The override the sheet set (compared with theme_override_ before the
+    // sheet removes it), and the resources it was compiled into.
+    std::shared_ptr<const Theme> theme{};
+    std::weak_ptr<ApplicationResources> compiled_for{};
+    Event<const ThemeCompileResult&> compiled{};
+};
+
+} // namespace detail
+
+bool Control::set_theme_sheet(std::string_view text, std::string_view name) {
+    require_mutable();
+    if (text.empty()) {
+        if (theme_sheet_ == nullptr) return false;
+        const bool sheet_override = (*theme_sheet_).theme != nullptr && theme_override_ == (*theme_sheet_).theme;
+        (*theme_sheet_).text.clear();
+        (*theme_sheet_).pending = false;
+        (*theme_sheet_).theme.reset();
+        (*theme_sheet_).compiled_for.reset();
+        if (sheet_override) clear_theme_override();
+        return false;
+    }
+    if (theme_sheet_ == nullptr) theme_sheet_ = std::make_unique<detail::ControlThemeSheet>();
+    (*theme_sheet_).text.assign(text);
+    (*theme_sheet_).name.assign(name);
+    const bool applied = compile_theme_sheet();
+    return applied;
+}
+
+bool Control::set_theme_overrides(const ThemeOverrides& overrides) {
+    const std::string sheet = overrides.sheet_text();
+    const bool applied = set_theme_sheet(sheet, "overrides");
+    return applied;
+}
+
+std::string_view Control::theme_sheet() const noexcept {
+    if (theme_sheet_ == nullptr) return {};
+    const std::string_view text((*theme_sheet_).text);
+    return text;
+}
+
+bool Control::theme_sheet_pending() const noexcept {
+    const bool pending = theme_sheet_ != nullptr && (*theme_sheet_).pending;
+    return pending;
+}
+
+Event<const ThemeCompileResult&>& Control::theme_sheet_compiled() {
+    if (theme_sheet_ == nullptr) theme_sheet_ = std::make_unique<detail::ControlThemeSheet>();
+    return (*theme_sheet_).compiled;
+}
+
+bool Control::theme_sheet_due() const noexcept {
+    if (theme_sheet_ == nullptr || (*theme_sheet_).text.empty()) return false;
+    if ((*theme_sheet_).pending) return true;
+    const SurfaceRoot* const root = attached_surface_root();
+    if (root == nullptr) return false;
+    const std::shared_ptr<ApplicationResources> current = (*root).resources();
+    const std::shared_ptr<ApplicationResources> compiled = (*theme_sheet_).compiled_for.lock();
+    const bool other_resources = current != nullptr && current != compiled;
+    return other_resources;
+}
+
+bool Control::compile_theme_sheet() {
+    detail::ControlThemeSheet& sheet = *theme_sheet_;
+    const SurfaceRoot* const root = attached_surface_root();
+    const std::shared_ptr<ApplicationResources> resources = root != nullptr ? (*root).resources() : nullptr;
+    if (resources == nullptr) {
+        sheet.pending = true;
+        return false;
+    }
+    sheet.pending = false;
+    const ThemePackage package = theme_sheet_package(sheet.text, sheet.name);
+    ThemeCompileOptions options{};
+    options.controls = stock_control_anatomies();
+    // A sheet names no installed package: an empty library.
+    const ThemeLibrary library{};
+    ThemeCompileResult result = (*resources).compile_theme_package(package, library, options);
+    bool applied = false;
+    if (result.succeeded()) {
+        const std::shared_ptr<const Theme> theme = result.theme();
+        try {
+            set_theme_override(theme);
+            sheet.theme = theme;
+            sheet.compiled_for = resources;
+            applied = true;
+        } catch (const std::invalid_argument& refusal) {
+            // An inline style of the subtree does not compile against it.
+            ThemeCompileDiagnostic diagnostic{};
+            diagnostic.code = "E000";
+            diagnostic.name = "inline_style_refused";
+            diagnostic.severity = ThemeDiagnosticSeverity::error;
+            diagnostic.file = sheet.name;
+            diagnostic.detail = refusal.what();
+            std::vector<ThemeCompileDiagnostic> diagnostics{};
+            diagnostics.push_back(std::move(diagnostic));
+            result = ThemeCompileResult::refused(std::move(diagnostics));
+        }
+    }
+    sheet.compiled.emit(result);
+    return applied;
 }
 
 void Control::set_authored_surface_material(SurfaceMaterial material) {

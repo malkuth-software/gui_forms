@@ -443,6 +443,7 @@ add_library(gui_forms_core STATIC
     src/core/theme/familiar_themes/familiar_themes.cpp
     src/core/theme/gui_forms_theme/gui_forms_theme.cpp
     src/core/theme/stock_anatomies/stock_anatomies.cpp
+    src/core/theme/theme_overrides/theme_overrides.cpp
     src/core/theme/canvas_look/canvas_look.cpp
     src/core/theme/theme_compiler/theme_compiler.cpp
     src/core/theme/part_painting/part_painting.cpp
@@ -945,7 +946,8 @@ else()
 endif()
 target_link_libraries(gui_drawing_c_api PRIVATE gui_drawing_core)
 target_include_directories(gui_drawing_c_api PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_compile_definitions(gui_drawing_c_api PRIVATE GD_C_API_BUILD)
 set_target_properties(gui_drawing_c_api PROPERTIES
@@ -971,6 +973,22 @@ elseif(UNIX)
     set_property(TARGET gui_drawing_c_api APPEND PROPERTY LINK_DEPENDS
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/drawing_c_api_exports_linux.map)
 endif()
+# The drawing ABI installs with the SDK as GUIForms::DrawingCApi (a shared
+# library with the C header gui_forms/drawing_c_api.h), and the raster
+# module beside it as GUIForms::DrawingRaster where the renderer is built
+# (below). Both are in GUIFormsDrawingCApiTargets, which GUIFormsConfig
+# includes when it was installed.
+add_library(GUIForms::DrawingCApi ALIAS gui_drawing_c_api)
+set_target_properties(gui_drawing_c_api PROPERTIES EXPORT_NAME DrawingCApi)
+install(TARGETS gui_drawing_c_api
+        EXPORT GUIFormsDrawingCApiTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(EXPORT GUIFormsDrawingCApiTargets
+        FILE GUIFormsDrawingCApiTargets.cmake
+        NAMESPACE GUIForms::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 
 add_library(gui_forms_host_headless STATIC
     src/host/headless/capabilities/headless_capabilities.cpp
@@ -1013,6 +1031,10 @@ gui_forms_verify_effects(gui_forms_plot_primitives
     SOURCES src/plots/signal_program/signal_program.cpp)
 
 add_library(gui_forms_controls STATIC
+    # The Painter's bridge for recorded GUI.Drawing (gd_*) commands: core
+    # drawing infrastructure, built here because only this target links both
+    # gui_forms_core (the Painter) and gui_drawing_core (the recorder).
+    src/core/drawing/drawing_replay/drawing_replay.cpp
     src/controls/basic/basic_control_rendering.cpp
     src/controls/connected_controls/connected_controls.cpp
     src/controls/panel/panel.cpp
@@ -1049,6 +1071,7 @@ add_library(gui_forms_controls STATIC
     src/controls/collections/expandable_sections.cpp
     src/controls/collections/row_height_index.cpp
     src/controls/virtual_rows_view/virtual_rows_view.cpp
+    src/controls/virtual_rows_view/virtual_rows_columns.cpp
     src/controls/collections/choice_group.cpp
     src/controls/collections/command_bar.cpp
     src/controls/commands/command/command.cpp
@@ -1124,6 +1147,7 @@ add_library(gui_forms_controls STATIC
     src/controls/scrollable_control/container_control/container_control.cpp
     src/controls/scrollable_control/container_control/user_control/user_control.cpp
     src/controls/panel/scaled_panel/scaled_panel.cpp
+    src/controls/panel/form_layout/form_layout.cpp
     src/controls/panel/group_box/scaled_group_box/scaled_group_box.cpp
     src/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.cpp
     src/controls/scrollable_control/container_control/flex_panel/flex_panel.cpp
@@ -1186,6 +1210,7 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/flags_value_editor/flags_value_editor.cpp
     src/controls/panel/font_dialog/font_dialog.cpp
     src/controls/panel/color_value_editor/color_value_editor.cpp
+    src/controls/color_picker/color_picker.cpp
     src/controls/inspection/property_row_spec/property_row_spec.cpp
     src/controls/inspection/property_value_converter_registry/property_value_converter_registry.cpp
     src/controls/inspection/property_editor_registry/property_editor_registry.cpp
@@ -1214,10 +1239,12 @@ add_library(gui_forms_controls STATIC
     src/controls/instruments/sparkline/sparkline.cpp
     src/controls/plots/plot_axis_item/plot_axis_item.cpp
     src/controls/plots/plot_series_item/plot_series_item.cpp
+    src/controls/plots/plot_series_item/plot_series_item_custom.cpp
     src/controls/plots/plot_annotation_item/plot_annotation_item.cpp
     src/controls/plots/plot_view/plot_engine.cpp
     src/controls/plots/plot_view/plot_view.cpp
     src/controls/plots/plot_view/plot_view_live.cpp
+    src/controls/plots/plot_view/plot_view_links.cpp
     src/controls/built_in_effect_registry/built_in_effect_registry.cpp
     src/controls/range_control/scroll_bar/scroll_bar.cpp
     src/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.cpp
@@ -1627,11 +1654,18 @@ if(GUI_FORMS_ENABLE_SKIA)
             gui_drawing_c_api
         )
     endif()
+    target_compile_definitions(gui_drawing_raster_c_api PRIVATE GDR_C_API_BUILD)
+    target_include_directories(gui_drawing_raster_c_api INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
     set_target_properties(gui_drawing_raster_c_api PROPERTIES
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN YES
         OUTPUT_NAME gui_drawing_raster0
+        EXPORT_NAME DrawingRaster
     )
+    add_library(GUIForms::DrawingRaster ALIAS gui_drawing_raster_c_api)
     if(WIN32)
         set_target_properties(gui_drawing_raster_c_api PROPERTIES PREFIX "")
         target_link_libraries(gui_drawing_raster_c_api PRIVATE advapi32)
@@ -1652,6 +1686,18 @@ if(GUI_FORMS_ENABLE_SKIA)
             "$<TARGET_FILE_DIR:gui_drawing_raster_c_api>/fonts"
         VERBATIM
     )
+    # Installed beside the drawing ABI, its faces in the fonts directory
+    # beside the module, where gdr_initialize registers them.
+    install(TARGETS gui_drawing_raster_c_api
+            EXPORT GUIFormsDrawingCApiTargets
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    if(WIN32)
+        install(FILES ${gui_drawing_raster_fonts} DESTINATION ${CMAKE_INSTALL_BINDIR}/fonts)
+    else()
+        install(FILES ${gui_drawing_raster_fonts} DESTINATION ${CMAKE_INSTALL_LIBDIR}/fonts)
+    endif()
 endif()
 
 if(GUI_FORMS_ENABLE_MACOS_HOST)
@@ -3344,6 +3390,12 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_canvas_tests tests/canvas_tests.cpp)
     target_link_libraries(gui_forms_canvas_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_canvas_tests COMMAND gui_forms_canvas_tests)
+    add_executable(gui_forms_painter_text_fitting_tests tests/painter_text_fitting_tests.cpp)
+    target_link_libraries(gui_forms_painter_text_fitting_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_painter_text_fitting_tests COMMAND gui_forms_painter_text_fitting_tests)
+    add_executable(gui_forms_drawing_replay_tests tests/drawing_replay_tests.cpp)
+    target_link_libraries(gui_forms_drawing_replay_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_drawing_replay_tests COMMAND gui_forms_drawing_replay_tests)
     if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         add_executable(gui_forms_windows_control_snapshot_tests tests/windows_control_snapshot_tests.cpp)
         target_compile_definitions(gui_forms_windows_control_snapshot_tests PRIVATE
@@ -4795,6 +4847,23 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_block_panel_tests
              COMMAND gui_forms_block_panel_tests)
 
+    # The ImGui-class demonstrator's I2: ColorPicker and ColorValueEditor's
+    # drop-down picker.
+    add_executable(gui_forms_color_picker_tests
+        tests/color_picker_tests.cpp
+    )
+    target_link_libraries(gui_forms_color_picker_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_color_picker_tests
+             COMMAND gui_forms_color_picker_tests)
+
+    # The ImGui-class demonstrator's I9: FormLayout's labelled rows.
+    add_executable(gui_forms_form_layout_tests
+        tests/form_layout_tests.cpp
+    )
+    target_link_libraries(gui_forms_form_layout_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_form_layout_tests
+             COMMAND gui_forms_form_layout_tests)
+
     # Stage L, phase L8a: TextBlock, the CSS text leaf, and the baselines
     # the containers align it by.
     add_executable(gui_forms_text_block_tests
@@ -5948,6 +6017,15 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
         target_link_libraries(gui_forms_content_surface_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_content_surface_raster_tests COMMAND gui_forms_content_surface_raster_tests)
+        # ColorPicker's colour areas as content parts drawn by the themes'
+        # content rules (W-7), in pixels.
+        add_executable(gui_forms_color_picker_raster_tests tests/color_picker_raster_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_color_picker_raster_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_color_picker_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_color_picker_raster_tests COMMAND gui_forms_color_picker_raster_tests)
         add_executable(gui_forms_danger_key_tests tests/danger_key_tests.cpp
             src/runtime/offscreen/offscreen_raster_create.cpp
             $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)

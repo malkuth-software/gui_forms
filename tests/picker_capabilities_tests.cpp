@@ -21,6 +21,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -130,6 +131,16 @@ void test_color_value_editor() {
         refused = true;
     }
     require(refused && (*editor).swatch_width.read() == 30.0, "a swatch wider than 96 is refused");
+
+    // Alpha survives the value and the text form (the D3 demonstrator's I11).
+    const Color translucent = Color::rgba(17, 34, 51, 128);
+    (*editor).value = translucent;
+    require((*editor).value.read().alpha == 128U, "the value keeps its alpha");
+    require((*(*editor).editor()).text.read() == "#11223380", "the text shows the alpha as a fourth pair");
+    const std::optional<Color> parsed = ColorValueEditor::parse_value("#11223380");
+    require(parsed.has_value() && *parsed == translucent, "eight digits parse with their alpha");
+    const std::optional<Color> opaque = ColorValueEditor::parse_value("#112233");
+    require(opaque.has_value() && (*opaque).alpha == 255U, "six digits parse as opaque");
 }
 
 PropertyEnumDescriptor edges_descriptor() {

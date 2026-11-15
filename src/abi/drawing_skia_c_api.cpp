@@ -1,4 +1,5 @@
 #include "gui_forms/drawing_c_api.h"
+#include "gui_forms/drawing_raster_c_api.h"
 
 #include "gui_forms/drawing/font_substitution/font_substitution.hpp"
 #include "drawing_skia.hpp"
@@ -29,14 +30,6 @@
 #include <windows.h>
 #else
 #include <dlfcn.h>
-#endif
-
-#if defined(_WIN32)
-#define GDR_EXPORT __declspec(dllexport)
-#elif defined(__GNUC__) || defined(__clang__)
-#define GDR_EXPORT __attribute__((visibility("default")))
-#else
-#define GDR_EXPORT
 #endif
 
 namespace {
@@ -536,7 +529,7 @@ gd_result resolve_font(const void* font, gd_font_resolution* resolution) {
 
 } // namespace
 
-extern "C" GDR_EXPORT gd_result gdr_initialize(void) {
+extern "C" gd_result gdr_initialize(void) {
     gd_api_v0 api{};
     api.struct_size = sizeof(api);
     const gd_result loaded = gd_get_api_v0(GD_ABI_VERSION_0_1, &api);

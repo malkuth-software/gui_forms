@@ -40,6 +40,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/command_bar.hpp"
@@ -62,6 +63,7 @@
 #include "gui_forms/controls/flex_panel.hpp"
 #include "gui_forms/controls/flow_layout_panel_compat.hpp"
 #include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/form_layout.hpp"
 #include "gui_forms/controls/gauge_base.hpp"
 #include "gui_forms/controls/grid_panel.hpp"
 #include "gui_forms/controls/group_box.hpp"
@@ -97,6 +99,7 @@
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/plot_view_links.hpp"
 #include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/controls/progress_ring.hpp"
 #include "gui_forms/controls/property_grid.hpp"
@@ -159,7 +162,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 147> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 150> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -206,6 +209,7 @@ inline constexpr std::array<SchemaCatalogEntry, 147> schema_catalog{{
     {"value_bar", "ValueBar", &describe_type<ValueBar>, &create_type<ValueBar>, &is_exact_type<ValueBar>},
     {"numeric_up_down", "NumericUpDown", &describe_type<NumericUpDown>, &create_type<NumericUpDown>, &is_exact_type<NumericUpDown>},
     {"domain_up_down", "DomainUpDown", &describe_type<DomainUpDown>, &create_type<DomainUpDown>, &is_exact_type<DomainUpDown>},
+    {"color_picker", "ColorPicker", &describe_type<ColorPicker>, &create_type<ColorPicker>, &is_exact_type<ColorPicker>},
     {"color_value_editor", "ColorValueEditor", &describe_type<ColorValueEditor>, &create_type<ColorValueEditor>, &is_exact_type<ColorValueEditor>},
     {"flags_value_editor", "FlagsValueEditor", &describe_type<FlagsValueEditor>, &create_type<FlagsValueEditor>, &is_exact_type<FlagsValueEditor>},
     {"property_grid", "PropertyGrid", &describe_type<PropertyGrid>, &create_type<PropertyGrid>, &is_exact_type<PropertyGrid>},
@@ -233,6 +237,7 @@ inline constexpr std::array<SchemaCatalogEntry, 147> schema_catalog{{
     {"flow_layout_panel_compat", "FlowLayoutPanelCompat", &describe_type<FlowLayoutPanelCompat>, &create_type<FlowLayoutPanelCompat>, &is_exact_type<FlowLayoutPanelCompat>},
     {"table_layout_panel_compat", "TableLayoutPanelCompat", &describe_type<TableLayoutPanelCompat>, &create_type<TableLayoutPanelCompat>, &is_exact_type<TableLayoutPanelCompat>},
     {"responsive_track_panel", "ResponsiveTrackPanel", &describe_type<ResponsiveTrackPanel>, &create_type<ResponsiveTrackPanel>, &is_exact_type<ResponsiveTrackPanel>},
+    {"form_layout", "FormLayout", &describe_type<FormLayout>, &create_type<FormLayout>, &is_exact_type<FormLayout>},
     {"scaled_panel", "ScaledPanel", &describe_type<ScaledPanel>, &create_type<ScaledPanel>, &is_exact_type<ScaledPanel>},
     {"split_container", "SplitContainer", &describe_type<SplitContainer>, &create_type<SplitContainer>, &is_exact_type<SplitContainer>},
     {"splitter_panel", "SplitterPanel", &describe_type<SplitterPanel>, &create_type<SplitterPanel>, &is_exact_type<SplitterPanel>},
@@ -289,6 +294,7 @@ inline constexpr std::array<SchemaCatalogEntry, 147> schema_catalog{{
     {"content_surface", "ContentSurface", &describe_type<ContentSurface>, &create_type<ContentSurface>, &is_exact_type<ContentSurface>},
     {"content_text_editor", "ContentTextEditor", &describe_type<ContentTextEditor>, &create_type<ContentTextEditor>, &is_exact_type<ContentTextEditor>},
     {"metrics_view", "MetricsView", &describe_type<MetricsView>, &create_type<MetricsView>, &is_exact_type<MetricsView>},
+    {"plot_link_group", "PlotLinkGroup", &describe_type<PlotLinkGroup>, &create_type<PlotLinkGroup>, &is_exact_type<PlotLinkGroup>},
     {"timer", "Timer", &describe_type<Timer>, &create_type<Timer>, &is_exact_type<Timer>},
     {"background_worker", "BackgroundWorker", &describe_type<BackgroundWorker>, &create_type<BackgroundWorker>, &is_exact_type<BackgroundWorker>},
     {"notify_icon", "NotifyIcon", &describe_type<NotifyIcon>, &create_type<NotifyIcon>, &is_exact_type<NotifyIcon>},

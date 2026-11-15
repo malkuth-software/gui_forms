@@ -556,12 +556,22 @@ Related types
      - A run of rows [first, first + count), count at least 1: one piece of an extended selection (VirtualRowsView::selected_ranges).
    * - :cpp:class:`VirtualRowsCallbacks <gui_forms::VirtualRowsCallbacks>`
      - The application's row targets.
+   * - :cpp:class:`VirtualRowsColumn <gui_forms::VirtualRowsColumn>`
+     - One column.
+   * - :cpp:class:`VirtualRowsColumnMove <gui_forms::VirtualRowsColumnMove>`
+     - A column moved (column_moved), after it moved: its position before and after.
    * - :cpp:class:`VirtualRowScroll <gui_forms::VirtualRowScroll>`
      - A scroll, after it settled (VirtualRowsView::scrolled): the first row meeting the viewport, the scroll offset (logical units) and whether the view now follows the tail.
    * - :cpp:class:`VirtualRowSelection <gui_forms::VirtualRowSelection>`
      - A change of the selection, after it happened: the current row before and after (the row the keyboard and the last press are at; in the single mode the selected row) and how many rows are selected now.
+   * - :cpp:class:`VirtualRowsHeaderClick <gui_forms::VirtualRowsHeaderClick>`
+     - A click on a sortable column's header (header_clicked): the column's position and the modifiers held.
    * - :cpp:class:`VirtualRowsStatistics <gui_forms::VirtualRowsStatistics>`
      - Work counters, for bounded-work checks and workload records.
+   * - :cpp:class:`VirtualRowsView::ColumnHeaderParts <gui_forms::VirtualRowsView::ColumnHeaderParts>`
+     - One column header's parts and states (the "column_header" item system); selected is the sort column.
+   * - :cpp:class:`VirtualRowsView::ColumnHeaderStates <gui_forms::VirtualRowsView::ColumnHeaderStates>`
+     -  
    * - :cpp:class:`VirtualRowsView::Parts <gui_forms::VirtualRowsView::Parts>`
      - The anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`VirtualRowsView::RowParts <gui_forms::VirtualRowsView::RowParts>`
@@ -2351,6 +2361,10 @@ Related types
    .. cpp:member:: bool visible
 
       Whether the grid shows the column (Windows Forms' Visible). A hidden column keeps its index, display index, width and values; layout, painting, hit testing, keyboard movement, selection ranges and the semantic tree pass over it. Default: ``{true}``.
+
+   .. cpp:member:: bool owner_draw
+
+      Whether the column's cells are owner drawn while the grid's draw_mode is normal: each raises draw_item_content as every cell does under owner_draw, and the other columns draw as usual (the ImGui-class demonstrator's gap I4). Under owner_draw every column is raised whatever this says. A grid with an owner-drawn column paints its cells on the UI thread, as under owner_draw.
 
 .. cpp:namespace:: gui_forms
 
@@ -5329,7 +5343,7 @@ Related types
 
    ``#include <gui_forms/controls/virtual_rows_view.hpp>``
 
-   One row to draw (VirtualRowsCallbacks::paint). ``painter`` is borrowed for the call only and is never null in a call; ``bounds`` is the row's rectangle in the view's local coordinates, logical units, and may reach past the viewport (the painter is clipped to it). The view has already painted the row's plate by role (transparent, hot or selected) and paints the focus cue over the handler's drawing. Right to left, ``mirrored`` is set and the row's reading start is bounds' right edge. ``view`` (never null in a call) and ``states`` (the row item's anatomy states: selected, hot, current, disabled) let the handler draw its content as theme parts with ``paint_part(*painter, *view, part)``, so the row follows the theme.
+   One row to draw (VirtualRowsCallbacks::paint). ``painter`` is borrowed for the call only and is never null in a call; ``bounds`` is the row's rectangle in the view's local coordinates, logical units, and may reach past the viewport (the painter is clipped to it). The view has already painted the row's plate by role (transparent, hot or selected) and paints the focus cue over the handler's drawing. Right to left, ``mirrored`` is set and the row's reading start is bounds' right edge. ``view`` (never null in a call) and ``states`` (the row item's anatomy states: selected, hot, current, disabled) let the handler draw its content as theme parts with ``paint_part(*painter, *view, part)``, so the row follows the theme. ``foreground`` is the text colour the theme gives the row in its states (item_content_text for the selection family: a selected row's text over the selection plate), so drawn text follows the theme and high contrast (the flame graph demonstrator's F5, node graph N14).
 
    .. cpp:member:: Painter* painter
 
@@ -5340,6 +5354,8 @@ Related types
    .. cpp:member:: Rect bounds
 
    .. cpp:member:: AnatomyStateSet states
+
+   .. cpp:member:: Color foreground
 
    .. cpp:member:: bool selected
 
@@ -5379,6 +5395,58 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: VirtualRowsColumn final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   One column. ``id`` names it in events and semantics (non-empty, unique in the view); ``header`` is its header's text (valid UTF-8). ``width`` is in logical units, at least ``minimum_width`` (finite, non-negative). ``alignment`` places the header text (and is the application's for its cells). A sortable column raises header_clicked when its header is clicked; a resizable one's divider drags its width; a reorderable one's header drags to another place. ``draw_mode`` owner_draw raises cell_content_paint for each of the column's painted cells (the content- only owner drawing of owner decision W-Q6, as DataGridView's columns); normal leaves the cells to the row paint target.
+
+   .. cpp:member:: std::string id
+
+   .. cpp:member:: std::string header
+
+   .. cpp:member:: double width
+
+      Default: ``{100.0}``.
+
+   .. cpp:member:: double minimum_width
+
+      Default: ``{16.0}``.
+
+   .. cpp:member:: PartTextAlignment alignment
+
+      Default: ``{PartTextAlignment::start}``.
+
+   .. cpp:member:: bool sortable
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool resizable
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool reorderable
+
+      Default: ``{true}``.
+
+   .. cpp:member:: ItemDrawMode draw_mode
+
+      Default: ``{ItemDrawMode::normal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowsColumnMove final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   A column moved (column_moved), after it moved: its position before and after.
+
+   .. cpp:member:: std::size_t from
+
+   .. cpp:member:: std::size_t to
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: VirtualRowScroll final
 
    ``#include <gui_forms/controls/virtual_rows_view.hpp>``
@@ -5404,6 +5472,20 @@ Related types
    .. cpp:member:: std::optional<VirtualRowIndex> current
 
    .. cpp:member:: std::size_t selected_count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowsHeaderClick final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   A click on a sortable column's header (header_clicked): the column's position and the modifiers held.
+
+   .. cpp:member:: std::size_t column
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -5449,6 +5531,34 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: VirtualRowsView::ColumnHeaderParts final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   One column header's parts and states (the "column_header" item system); selected is the sort column.
+
+   .. cpp:member:: PartGeometry column_header
+
+   .. cpp:member:: PartGeometry column_label
+
+   .. cpp:member:: PartGeometry sort_glyph
+
+   .. cpp:member:: PartGeometry column_divider
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: VirtualRowsView::ColumnHeaderStates final
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   .. cpp:member:: bool hot
+
+   .. cpp:member:: bool pressed
+
+   .. cpp:member:: bool selected
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: VirtualRowsView::Parts final
 
    ``#include <gui_forms/controls/virtual_rows_view.hpp>``
@@ -5462,6 +5572,8 @@ Related types
    .. cpp:member:: PartGeometry vertical_scroll_bar
 
    .. cpp:member:: PartGeometry focus
+
+   .. cpp:member:: PartGeometry column_headers
 
 .. cpp:namespace:: gui_forms
 
@@ -5685,6 +5797,8 @@ Enumerations
    .. cpp:enumerator:: image
 
    .. cpp:enumerator:: link
+
+   .. cpp:enumerator:: sparkline
 
 .. cpp:namespace:: gui_forms
 
@@ -6025,6 +6139,18 @@ Enumerations
    .. cpp:enumerator:: end
 
    .. cpp:enumerator:: nearest
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: VirtualRowsSort
+
+   ``#include <gui_forms/controls/virtual_rows_view.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: ascending
+
+   .. cpp:enumerator:: descending
 
 Functions, constants and aliases
 --------------------------------

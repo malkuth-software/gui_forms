@@ -2986,6 +2986,18 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
     }
     update_display_cache_metrics();
     mark_subtree_dirty(*control, invalidation::visual_tree);
+    // Theme sheets set while detached, or compiled into other resources,
+    // compile once the attachment is committed. A handler of their event
+    // may change the tree, so each is checked again before it compiles.
+    ControlList sheets;
+    for (const Control::Ptr& current : controls) {
+        if ((*current).theme_sheet_due()) sheets.push_back(current);
+    }
+    for (const Control::Ptr& current : sheets) {
+        if ((*current).surface_root_ == this && (*current).theme_sheet_due()) {
+            static_cast<void>((*current).compile_theme_sheet());
+        }
+    }
 }
 
 void SurfaceRoot::detach_subtree(const Control::Ptr& control) {

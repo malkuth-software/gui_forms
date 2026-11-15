@@ -514,6 +514,17 @@
       "doc": "api/generated/gui_forms.DomainUpDown.rst"
     },
     {
+      "id": "color_picker",
+      "type": "ColorPicker",
+      "header": "gui_forms/controls/color_picker.hpp",
+      "category": "Value setting",
+      "purpose": "Colour picker with a saturation-brightness field, a hue track, an optional alpha track and a swatch, picked by pointer drags or the keyboard.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.ColorPicker.rst"
+    },
+    {
       "id": "color_value_editor",
       "type": "ColorValueEditor",
       "header": "gui_forms/controls/color_value_editor.hpp",
@@ -811,6 +822,17 @@
       "status": "provisional",
       "gallery_page": "responsive-layouts",
       "doc": "api/generated/gui_forms.ResponsiveTrackPanel.rst"
+    },
+    {
+      "id": "form_layout",
+      "type": "FormLayout",
+      "header": "gui_forms/controls/form_layout.hpp",
+      "category": "Layout",
+      "purpose": "Panel of labelled rows: a caption column sized to the widest caption (or a fixed width) beside a column of controls, with captions naming their controls.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.FormLayout.rst"
     },
     {
       "id": "scaled_panel",
@@ -1427,6 +1449,17 @@
       "status": "lab",
       "gallery_page": "states-and-diagnostics",
       "doc": "api/generated/gui_forms.MetricsView.rst"
+    },
+    {
+      "id": "plot_link_group",
+      "type": "PlotLinkGroup",
+      "header": "gui_forms/controls/plot_view_links.hpp",
+      "category": "Components",
+      "purpose": "Component that keeps the x, y or both axes of its member PlotViews on one range, following each member's pan and zoom.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": null,
+      "doc": "api/generated/gui_forms.PlotLinkGroup.rst"
     },
     {
       "id": "timer",

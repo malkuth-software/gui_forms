@@ -60,6 +60,20 @@ public:
     std::string_view active_id() const&& = delete;
     [[nodiscard]] bool expanded(std::string_view stable_id) const;
     void set_expanded(std::string_view stable_id, bool expanded);
+    // Bulk expansion (the D3 demonstrator's I8). Each changes every item it
+    // names, rebuilds the visible rows once, then raises expansion_changed
+    // once per changed item in model order; a handler that disposes the
+    // view stops the rest. Nothing changed raises nothing.
+    // Expands every expandable item.
+    void expand_all();
+    // Collapses every expanded item. A selection hidden by the collapse
+    // moves to its nearest visible ancestor after the events, as with
+    // set_expanded.
+    void collapse_all();
+    // Expands each ancestor of `stable_id` and scrolls its row into view.
+    // Throws std::out_of_range, changing nothing, when the ID is not in
+    // the model.
+    void expand_to(std::string_view stable_id);
     [[nodiscard]] std::size_t top_row() const noexcept { return top_row_; }
     void set_top_row(std::size_t row);
 
@@ -136,6 +150,10 @@ protected:
 private:
     void on_image_list_changed(const ImageListChange& change);
     void rebuild_visible();
+    // Sets `expanded` on the items at `indices` (ascending, each expandable
+    // and currently the other way), then rebuilds, invalidates and raises
+    // the events as the bulk calls describe.
+    void apply_expansion(std::span<const std::size_t> indices, bool expanded);
     [[nodiscard]] std::optional<std::size_t> item_index(
         std::string_view stable_id) const noexcept;
     [[nodiscard]] std::optional<std::size_t> visible_row_at(

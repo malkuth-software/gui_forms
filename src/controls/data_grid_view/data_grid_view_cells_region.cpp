@@ -82,7 +82,13 @@ void DataGridView::set_cells_text_provider(std::unique_ptr<DataGridViewCellsText
 }
 
 bool DataGridView::cells_on_region() const noexcept {
-    const bool on_region = cells_host_ && draw_mode.read() != ItemDrawMode::owner_draw;
+    // Owner-drawn cells raise their event on the UI thread, and sparkline
+    // cells are drawn there too (the region draws text, checks and images).
+    bool owner_drawn_column = false;
+    for (const DataGridViewColumn& column : columns_) {
+        if (column.owner_draw || column.kind == DataGridViewColumnKind::sparkline) owner_drawn_column = true;
+    }
+    const bool on_region = cells_host_ && draw_mode.read() != ItemDrawMode::owner_draw && !owner_drawn_column;
     return on_region;
 }
 

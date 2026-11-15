@@ -185,6 +185,59 @@ void GraphicsRecorder::draw_string(std::string_view utf8, const Font& font,
     append(std::move(command));
 }
 
+void GraphicsRecorder::draw_string_in_rect(std::string_view utf8, const Font& font, const SolidBrush& brush,
+                                           RectF layout, const StringFormat& format) {
+    require_recordable();
+    require_finite(layout, "text layout");
+    if (layout.width < 0.0 || layout.height < 0.0) {
+        throw std::invalid_argument("text layout must have a non-negative size");
+    }
+    if (utf8.size() > maximum_text_bytes || !valid_utf8(utf8)) {
+        throw std::invalid_argument("drawn text must be bounded valid UTF-8");
+    }
+    DrawingCommand command;
+    command.kind = CommandKind::draw_string;
+    command.state = state_;
+    command.first = PointF{layout.x, layout.y};
+    command.rect = layout;
+    command.laid_out = true;
+    command.color = brush.color();
+    command.font = font.snapshot();
+    command.format = format.snapshot();
+    command.text.assign(utf8);
+    append(std::move(command));
+}
+
+void GraphicsRecorder::draw_strings(const Font& font, const StringFormat& format, std::span<const TextItem> items) {
+    require_recordable();
+    if (items.empty() || items.size() > maximum_text_items) {
+        throw std::invalid_argument("draw_strings requires 1 through 65536 items");
+    }
+    if (items.size() > maximum_commands - commands_.size()) {
+        throw std::length_error("GUI.Drawing command limit exceeded");
+    }
+    for (const TextItem& item : items) {
+        require_finite(item.origin, "text origin");
+        if (item.text.size() > maximum_text_bytes || !valid_utf8(item.text)) {
+            throw std::invalid_argument("drawn text must be bounded valid UTF-8");
+        }
+    }
+    const FontSnapshot font_snapshot = font.snapshot();
+    const StringFormatSnapshot format_snapshot = format.snapshot();
+    commands_.reserve(commands_.size() + items.size());
+    for (const TextItem& item : items) {
+        DrawingCommand command;
+        command.kind = CommandKind::draw_string;
+        command.state = state_;
+        command.first = item.origin;
+        command.color = item.color;
+        command.font = font_snapshot;
+        command.format = format_snapshot;
+        command.text.assign(item.text);
+        commands_.push_back(std::move(command));
+    }
+}
+
 void GraphicsRecorder::draw_ellipse(const Pen& pen, RectF bounds) {
     require_recordable();
     require_finite(bounds, "stroke ellipse");
@@ -451,10 +504,153 @@ void GraphicsRecorder::draw_string_over_fill(std::string_view utf8, const Font& 
     }
 }
 
+namespace {
+
+// A point with a NaN coordinate: a break in a gapped mark.
+[[nodiscard]] bool is_break(PointF point) noexcept {
+    return std::isnan(point.x) || std::isnan(point.y);
+}
+
+// A gapped mark's point: a break, or finite (an infinity is refused).
+void require_finite_or_break(PointF point, std::string_view field) {
+    if (is_break(point)) return;
+    require_finite(point, field);
+}
+
+// One run of unbroken indices, [first, first + count).
+struct SampleRun final {
+    std::size_t first{};
+    std::size_t count{};
+};
+
+// Fills `runs` with the runs of 2 or more indices at which neither span
+// breaks. `second` is empty or as long as `first`.
+void collect_runs(std::span<const PointF> first, std::span<const PointF> second, std::vector<SampleRun>& runs) {
+    runs.clear();
+    std::size_t start = 0U;
+    const std::size_t count = first.size();
+    for (std::size_t index = 0U; index <= count; ++index) {
+        bool broken = index == count || is_break(first[index]);
+        if (!broken && !second.empty()) broken = is_break(second[index]);
+        if (!broken) continue;
+        const std::size_t length = index - start;
+        if (length >= 2U) runs.push_back({start, length});
+        start = index + 1U;
+    }
+}
+
+void require_command_room(std::size_t recorded, std::size_t adding) {
+    if (adding > GraphicsRecorder::maximum_commands - recorded) {
+        throw std::length_error("GUI.Drawing command limit exceeded");
+    }
+}
+
+} // namespace
+
+void GraphicsRecorder::fill_band(const Brush& brush, std::span<const PointF> upper, std::span<const PointF> lower) {
+    require_recordable();
+    if (upper.size() != lower.size() || upper.size() < 2U || upper.size() > maximum_band_samples) {
+        throw std::invalid_argument("a band takes 2 or more bounded samples, as many lower as upper");
+    }
+    for (const PointF point : upper) require_finite_or_break(point, "band upper point");
+    for (const PointF point : lower) require_finite_or_break(point, "band lower point");
+    std::vector<SampleRun> runs;
+    collect_runs(upper, lower, runs);
+    require_command_room(commands_.size(), runs.size());
+    // Every command is built before any is recorded, so that a failed
+    // allocation records nothing.
+    const BrushSnapshot fill = brush.snapshot();
+    std::vector<DrawingCommand> pending;
+    pending.reserve(runs.size());
+    for (const SampleRun run : runs) {
+        DrawingCommand command;
+        command.kind = CommandKind::fill_polygon;
+        command.state = state_;
+        command.brush = fill;
+        command.color = fill.primary;
+        command.path.fill_mode = FillMode::winding;
+        command.points.reserve(run.count * 2U);
+        for (std::size_t index = 0U; index < run.count; ++index) {
+            command.points.push_back(upper[run.first + index]);
+        }
+        for (std::size_t index = run.count; index > 0U; --index) {
+            command.points.push_back(lower[run.first + index - 1U]);
+        }
+        pending.push_back(std::move(command));
+    }
+    commands_.reserve(commands_.size() + pending.size());
+    for (DrawingCommand& command : pending) commands_.push_back(std::move(command));
+}
+
+void GraphicsRecorder::draw_polyline_runs(const Pen& pen, std::span<const PointF> points) {
+    require_recordable();
+    require_batch_count(points.size(), 2U, "polyline run point");
+    for (const PointF point : points) require_finite_or_break(point, "polyline run point");
+    std::vector<SampleRun> runs;
+    collect_runs(points, std::span<const PointF>{}, runs);
+    require_command_room(commands_.size(), runs.size());
+    const PenSnapshot stroke = pen.snapshot();
+    std::vector<DrawingCommand> pending;
+    pending.reserve(runs.size());
+    for (const SampleRun run : runs) {
+        DrawingCommand command;
+        command.kind = CommandKind::draw_lines;
+        command.state = state_;
+        command.pen = stroke;
+        const std::span<const PointF> run_points = points.subspan(run.first, run.count);
+        command.points.assign(run_points.begin(), run_points.end());
+        pending.push_back(std::move(command));
+    }
+    commands_.reserve(commands_.size() + pending.size());
+    for (DrawingCommand& command : pending) commands_.push_back(std::move(command));
+}
+
+void GraphicsRecorder::fill_rectangles_each(std::span<const RectF> rects, std::span<const Color> colors) {
+    require_recordable();
+    require_batch_count(rects.size(), 1U, "fill rectangles each");
+    if (colors.size() != rects.size()) {
+        throw std::invalid_argument("fill rectangles each takes one colour per rectangle");
+    }
+    for (const RectF rect : rects) require_finite(rect, "fill rectangles each entry");
+    // One command per run of equal colours.
+    std::size_t run_count = 1U;
+    for (std::size_t index = 1U; index < colors.size(); ++index) {
+        if (!(colors[index] == colors[index - 1U])) ++run_count;
+    }
+    require_command_room(commands_.size(), run_count);
+    std::vector<DrawingCommand> pending;
+    pending.reserve(run_count);
+    std::size_t start = 0U;
+    for (std::size_t index = 1U; index <= colors.size(); ++index) {
+        if (index < colors.size() && colors[index] == colors[start]) continue;
+        DrawingCommand command;
+        command.kind = CommandKind::fill_rectangles;
+        command.state = state_;
+        command.brush.kind = BrushKind::solid;
+        command.brush.primary = colors[start];
+        command.color = colors[start];
+        const std::span<const RectF> run_rects = rects.subspan(start, index - start);
+        command.rects.assign(run_rects.begin(), run_rects.end());
+        pending.push_back(std::move(command));
+        start = index;
+    }
+    commands_.reserve(commands_.size() + pending.size());
+    for (DrawingCommand& command : pending) commands_.push_back(std::move(command));
+}
+
 void GraphicsRecorder::close() {
     require_alive();
     closed_ = true;
     saved_.clear();
+}
+
+void GraphicsRecorder::reset() {
+    require_alive();
+    // clear keeps the vector's storage: the next frame reuses it.
+    commands_.clear();
+    saved_.clear();
+    state_ = GraphicsState{};
+    closed_ = false;
 }
 
 bool GraphicsRecorder::closed() const {
@@ -533,6 +729,7 @@ void append_command_fields(const DrawingCommand& command, std::string& trace) {
                  "," + std::to_string(static_cast<unsigned>(command.format.trimming)) +
                  "," + std::to_string(command.format.flags) +
                  "|text=" + escaped(command.text);
+        if (command.laid_out) trace += "|layout=" + rect_text(command.rect);
         return;
     case CommandKind::draw_ellipse:
         trace += "|bounds=" + rect_text(command.rect) +

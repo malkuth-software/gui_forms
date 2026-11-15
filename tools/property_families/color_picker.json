@@ -1,0 +1,84 @@
+{
+  "family": "ColorPicker",
+  "step": "cp32",
+  "declaring": "ColorPicker",
+  "header": "include/gui_forms/controls/color_picker.hpp",
+  "source": "src/controls/color_picker/color_picker.cpp",
+  "capabilities_header": "include/gui_forms/controls/color_picker_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "value",
+      "capability": "ColorPickerValue",
+      "value": "Color",
+      "initial": "Color::rgba(255, 255, 255)",
+      "comment": "The picked colour; a change raises value_changed. Picking writes it; a program's write moves the thumbs (the hue is kept when the colour is grey).",
+      "getter": "value",
+      "setter": "set_value",
+      "clear": null,
+      "field": "value_",
+      "event": "value_changed_",
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "color",
+        "category": "Data",
+        "description": "The picked colour.",
+        "default": "BindingValue{Color::rgba(255, 255, 255)}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false,
+        "binding_direction": "two_way"
+      },
+      "hooks": "hand",
+      "hand": [
+        "written moves the HSV thumbs from the colour (keeping the hue for a grey) unless the picker wrote it, then raises value_changed"
+      ],
+      "sample": "Color::rgba(10, 20, 30, 40)"
+    },
+    {
+      "name": "alpha_enabled",
+      "capability": "ColorPickerAlphaEnabled",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the alpha track is shown and the alpha can be picked; hiding it leaves the value's alpha as it is.",
+      "getter": "alpha_enabled",
+      "setter": "set_alpha_enabled",
+      "clear": null,
+      "field": "alpha_enabled_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether the alpha track is shown and the alpha can be picked.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "hand": [],
+      "sample": "false"
+    }
+  ],
+  "test": {
+    "type": "ColorPicker",
+    "include": "gui_forms/controls/color_picker.hpp"
+  }
+}

@@ -13,6 +13,8 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
 
    * - :cpp:class:`DockWorkspace <gui_forms::DockWorkspace>`
      - A docking workspace: the layout, the panels and their factories, and which panel and document are active.
+   * - :cpp:class:`PlotLinkGroup <gui_forms::PlotLinkGroup>`
+     - Component that keeps the x, y or both axes of its member PlotViews on one range, following each member's pan and zoom.
    * - :cpp:class:`Timer <gui_forms::Timer>`
      - A component that raises ``tick`` at a fixed interval on a window's UI thread.
    * - :cpp:class:`BackgroundWorker <gui_forms::BackgroundWorker>`
@@ -42,6 +44,7 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
    :hidden:
 
    generated/gui_forms.DockWorkspace
+   generated/gui_forms.PlotLinkGroup
    generated/gui_forms.Timer
    generated/gui_forms.BackgroundWorker
    generated/gui_forms.NotifyIcon
@@ -78,6 +81,8 @@ Related types
      - A factory's request: build the content of ``panel`` and store it in ``content``.
    * - :cpp:class:`DockPanelRegistration <gui_forms::DockPanelRegistration>`
      -  
+   * - :cpp:class:`DockPanelsAdded <gui_forms::DockPanelsAdded>`
+     - What DockWorkspace::add_panels did: how many panels it registered and how many of those the layout then placed.
    * - :cpp:class:`DockWorkspaceCapabilities <gui_forms::DockWorkspaceCapabilities>`
      - Every DockWorkspace capability, in the order the declaring class takes them.
    * - :cpp:class:`DockWorkspaceClosePromptCapability <gui_forms::DockWorkspaceClosePromptCapability>`
@@ -288,6 +293,18 @@ Related types
    .. cpp:member:: std::string title
 
    .. cpp:member:: Delegate<DockPanelCreation&> factory
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DockPanelsAdded final
+
+   ``#include <gui_forms/controls/dock_workspace.hpp>``
+
+   What DockWorkspace::add_panels did: how many panels it registered and how many of those the layout then placed.
+
+   .. cpp:member:: std::size_t registered
+
+   .. cpp:member:: std::size_t shown
 
 .. cpp:namespace:: gui_forms
 
@@ -1217,6 +1234,18 @@ Enumerations
    .. cpp:enumerator:: selected
 
    .. cpp:enumerator:: disabled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PlotLinkAxes
+
+   ``#include <gui_forms/controls/plot_view_links.hpp>``
+
+   .. cpp:enumerator:: x
+
+   .. cpp:enumerator:: y
+
+   .. cpp:enumerator:: both
 
 Functions, constants and aliases
 --------------------------------

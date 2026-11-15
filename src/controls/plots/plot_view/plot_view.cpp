@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <stdexcept>
 #include <utility>
 
 namespace gui_forms {
@@ -93,8 +94,13 @@ const ControlAnatomy& detail::plot_view_anatomy_reference() noexcept {
 
 PlotView::PlotView(StableId stable_id)
     : Control(std::move(stable_id)), engine_(std::make_unique<detail::PlotEngine>()),
-      signal_sink_(std::make_unique<plots::SignalSink>()) {
+      signal_sink_(std::make_unique<plots::SignalSink>()), handle_drag_(*this) {
     focusable = true;
+    handle_drag_.callbacks.plan = Delegate<DragPlan&>::bind<PlotView, &PlotView::plan_handle_drag>(*this);
+    handle_drag_.callbacks.preview =
+        Delegate<const DragTrackerFrame&>::bind<PlotView, &PlotView::preview_handle_drag>(*this);
+    handle_drag_.callbacks.finished =
+        Delegate<const DragTrackerFrame&>::bind<PlotView, &PlotView::finish_handle_drag>(*this);
     (*engine_).set_axes(std::span<const detail::PlotEngineAxis>{}, std::span<const detail::PlotEngineAxis>{});
 }
 
@@ -139,6 +145,14 @@ void PlotView::collect_series(std::vector<detail::PlotEngineSeries>& series,
             one.order = (*item).x_order();
             one.pyramid = (*item).pyramid();
             one.revision = (*item).revision();
+            // A custom kind draws instead of the points: the engine reads
+            // no columns for it.
+            one.custom = (*item).custom().get();
+            if (one.custom != nullptr) {
+                one.borrowed = false;
+                one.columns = plots::ColumnSamples<double, double>{};
+                one.pyramid = nullptr;
+            }
             series.push_back(one);
             if (items != nullptr) (*items).push_back(item);
             continue;
@@ -398,6 +412,7 @@ void PlotView::on_paint(Painter& painter, Rect) {
     options.show_grid = show_grid.read();
     options.crosshair = crosshair.read();
     (*engine_).paint(painter, *this, anatomy_states(), options, gathered_, annotations_, device_scale());
+    paint_handles(painter);
     paints_ = paints_ + 1U;
     update_ambient();
 }
@@ -458,6 +473,14 @@ void PlotView::on_attached_to_window() {
     update_live_host();
 }
 
+void PlotView::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
+    // A pointer drag has ended capture_lost already; a session left here
+    // ends without calling back, and the handle keeps its last preview.
+    handle_drag_.owner_detaching(former_window);
+    handle_drag_state_.reset();
+    Control::on_detaching_from_window(former_window);
+}
+
 void PlotView::on_detached_from_window() noexcept {
     SurfaceRoot* const root = surface_root();
     if (root != nullptr) (*root).motion_clock().withdraw_control_ambient(*this);
@@ -468,9 +491,37 @@ void PlotView::on_detached_from_window() noexcept {
 
 void PlotView::handle_pointer(PointerEvent& event) {
     if (live_host_ || !eligible_for_input()) return;
+    // A running handle drag takes the moves and the release.
+    if (handle_drag_.running() && handle_drag_.pointer(event)) {
+        event.handled = true;
+        return;
+    }
     gather_series();
     const Rect absolute = absolute_bounds();
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    // A primary press on a handle arms its drag, ahead of panning.
+    if (event.action == PointerAction::down && event.button == PointerButton::primary) {
+        const std::optional<std::size_t> hit = handle_at(local);
+        if (hit.has_value()) {
+            const PlotHandle& handle = handles_[*hit];
+            const std::optional<Point> centre = handle_point(handle.id);
+            if (centre.has_value()) {
+                DragStart start{};
+                start.key = handle.id;
+                start.source = Rect{absolute.x + (*centre).x - handle_pick_radius,
+                                    absolute.y + (*centre).y - handle_pick_radius, handle_pick_radius * 2.0,
+                                    handle_pick_radius * 2.0};
+                handle_drag_state_ = HandleDrag{handle.id, handle.x, handle.y};
+                const DragStartResult result = handle_drag_.press(event, start);
+                if (result == DragStartResult::armed || result == DragStartResult::started) {
+                    if (surface_root() != nullptr) static_cast<void>((*surface_root()).request_focus(shared_from_this()));
+                    event.handled = true;
+                    return;
+                }
+                handle_drag_state_.reset();
+            }
+        }
+    }
     if (event.action == PointerAction::down && surface_root() != nullptr) {
         static_cast<void>((*surface_root()).request_focus(shared_from_this()));
     }
@@ -484,6 +535,168 @@ void PlotView::handle_pointer(PointerEvent& event) {
     if (outcome.view) view_moved_ = true;
     if (outcome.repaint) invalidate(Dirty::paint | Dirty::semantics);
     raise_outcome(outcome.view, outcome.selection, outcome.pick, outcome.legend_toggle);
+}
+
+// -- handles -------------------------------------------------------------------------
+
+void PlotView::set_handles(std::vector<PlotHandle> handles) {
+    require_mutable();
+    if (handles.size() > maximum_plot_handles) throw std::invalid_argument("PlotView holds at most 256 handles");
+    for (std::size_t index = 0U; index < handles.size(); ++index) {
+        const PlotHandle& handle = handles[index];
+        if (!std::isfinite(handle.x) || !std::isfinite(handle.y)) {
+            throw std::invalid_argument("PlotView handle positions must be finite");
+        }
+        for (std::size_t earlier = 0U; earlier < index; ++earlier) {
+            if (handles[earlier].id == handle.id) throw std::invalid_argument("PlotView handle ids must be unique");
+        }
+    }
+    if (handle_drag_.running()) handle_drag_.cancel(DragEnd::model_changed);
+    handles_ = std::move(handles);
+    invalidate(Dirty::paint);
+}
+
+bool PlotView::set_handle_position(std::uint32_t id, double x, double y) {
+    require_mutable();
+    const std::optional<std::size_t> index = handle_index(id);
+    if (!index.has_value() || !std::isfinite(x) || !std::isfinite(y)) return false;
+    handles_[*index].x = x;
+    handles_[*index].y = y;
+    invalidate(Dirty::paint);
+    return true;
+}
+
+std::optional<std::uint32_t> PlotView::dragged_handle() const noexcept {
+    if (!handle_drag_state_.has_value()) return std::nullopt;
+    const std::optional<std::uint32_t> id = (*handle_drag_state_).id;
+    return id;
+}
+
+std::optional<std::size_t> PlotView::handle_index(std::uint32_t id) const noexcept {
+    for (std::size_t index = 0U; index < handles_.size(); ++index) {
+        if (handles_[index].id == id) return index;
+    }
+    return std::nullopt;
+}
+
+std::optional<Point> PlotView::handle_point(std::uint32_t id) const {
+    const std::optional<std::size_t> index = handle_index(id);
+    if (!index.has_value()) return std::nullopt;
+    const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
+    if (made.check != plots::PlotTransformCheck::valid) return std::nullopt;
+    const PlotHandle& handle = handles_[*index];
+    const Rect plot = made.transform.plot();
+    Point centre = made.transform.to_device(handle.x, handle.y);
+    // A line's grab point is its middle across the plot.
+    if (handle.kind == PlotHandleKind::vertical_line) centre.y = plot.y + plot.height * 0.5;
+    if (handle.kind == PlotHandleKind::horizontal_line) centre.x = plot.x + plot.width * 0.5;
+    return centre;
+}
+
+std::optional<std::size_t> PlotView::handle_at(Point local) const {
+    const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
+    if (made.check != plots::PlotTransformCheck::valid) return std::nullopt;
+    const Rect plot = made.transform.plot();
+    if (!plot.contains(local)) return std::nullopt;
+    // The last handle drawn is on top, so it is found first.
+    for (std::size_t remaining = handles_.size(); remaining > 0U; --remaining) {
+        const PlotHandle& handle = handles_[remaining - 1U];
+        if (!handle.enabled) continue;
+        const Point at = made.transform.to_device(handle.x, handle.y);
+        double distance = 0.0;
+        if (handle.kind == PlotHandleKind::vertical_line) {
+            distance = std::abs(local.x - at.x);
+        } else if (handle.kind == PlotHandleKind::horizontal_line) {
+            distance = std::abs(local.y - at.y);
+        } else {
+            distance = std::hypot(local.x - at.x, local.y - at.y);
+        }
+        if (distance <= handle_pick_radius) return remaining - 1U;
+    }
+    return std::nullopt;
+}
+
+std::optional<Point> PlotView::handle_data_at(Point window_top_left) const {
+    const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
+    if (made.check != plots::PlotTransformCheck::valid) return std::nullopt;
+    const Rect absolute = absolute_bounds();
+    const double local_x = window_top_left.x + handle_pick_radius - absolute.x;
+    const double local_y = window_top_left.y + handle_pick_radius - absolute.y;
+    const Point data{made.transform.x_from_device(local_x), made.transform.y_from_device(local_y)};
+    if (!std::isfinite(data.x) || !std::isfinite(data.y)) return std::nullopt;
+    return data;
+}
+
+void PlotView::plan_handle_drag(DragPlan& plan) {
+    const std::optional<std::size_t> index =
+        handle_drag_state_.has_value() ? handle_index((*handle_drag_state_).id) : std::nullopt;
+    const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
+    if (!index.has_value() || made.check != plots::PlotTransformCheck::valid) {
+        plan.refused = true;
+        return;
+    }
+    // The subject is a square of twice the pick radius centred on the grab
+    // point; its top-left stays where its centre stays inside the plot.
+    const Rect absolute = absolute_bounds();
+    const Rect plot = made.transform.plot();
+    plan.kind = DragKind::placement;
+    plan.placement.bounds = Rect{absolute.x + plot.x - handle_pick_radius, absolute.y + plot.y - handle_pick_radius,
+                                 plot.width + handle_pick_radius * 2.0, plot.height + handle_pick_radius * 2.0};
+    plan.placement.grid = Size{};
+    plan.placement.free_drop = true;
+    const PlotHandleKind kind = handles_[*index].kind;
+    plan.placement.axis_lock = DragAxisLock::none;
+    if (kind == PlotHandleKind::vertical_line) plan.placement.axis_lock = DragAxisLock::horizontal;
+    if (kind == PlotHandleKind::horizontal_line) plan.placement.axis_lock = DragAxisLock::vertical;
+    plan.container = this;
+}
+
+void PlotView::preview_handle_drag(const DragTrackerFrame& frame) {
+    if (frame.hit != DragHit::point || !handle_drag_state_.has_value()) return;
+    const std::optional<std::size_t> index = handle_index((*handle_drag_state_).id);
+    const std::optional<Point> data = handle_data_at(frame.point);
+    if (!index.has_value()) {
+        // The handle went away under the drag.
+        handle_drag_.cancel(DragEnd::model_changed);
+        return;
+    }
+    if (!data.has_value()) return;
+    PlotHandle& handle = handles_[*index];
+    if (handle.kind != PlotHandleKind::horizontal_line) handle.x = (*data).x;
+    if (handle.kind != PlotHandleKind::vertical_line) handle.y = (*data).y;
+    invalidate(Dirty::paint);
+    const PlotHandleMove move{handle.id, handle.x, handle.y, DragEnd::none};
+    handle_moved_.emit(move);
+}
+
+void PlotView::finish_handle_drag(const DragTrackerFrame& frame) {
+    if (!handle_drag_state_.has_value()) return;
+    const HandleDrag drag = *handle_drag_state_;
+    handle_drag_state_.reset();
+    invalidate(Dirty::paint);
+    const std::optional<std::size_t> index = handle_index(drag.id);
+    if (!index.has_value()) return;
+    PlotHandle& handle = handles_[*index];
+    if (drag_end_commits(frame.end)) {
+        const std::optional<Point> data = frame.hit == DragHit::point ? handle_data_at(frame.point) : std::nullopt;
+        if (data.has_value()) {
+            if (handle.kind != PlotHandleKind::horizontal_line) handle.x = (*data).x;
+            if (handle.kind != PlotHandleKind::vertical_line) handle.y = (*data).y;
+        }
+        const PlotHandleMove committed{handle.id, handle.x, handle.y, frame.end};
+        handle_committed_.emit(committed);
+        return;
+    }
+    handle.x = drag.start_x;
+    handle.y = drag.start_y;
+    const PlotHandleMove restored{handle.id, handle.x, handle.y, frame.end};
+    handle_moved_.emit(restored);
+}
+
+void PlotView::paint_handles(Painter& painter) {
+    const std::optional<std::uint32_t> dragged = dragged_handle();
+    (*engine_).paint_handles(painter, *this, std::span<const PlotHandle>(handles_.data(), handles_.size()), dragged,
+                             device_scale());
 }
 
 // The mouse raisers hand the target phase to handle_pointer, whose

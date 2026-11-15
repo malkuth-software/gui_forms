@@ -397,6 +397,12 @@ typedef struct gd_api_v0 {
     gd_result (*recorder_restore)(gd_handle recorder, uint64_t token);
     gd_result (*recorder_translate)(gd_handle recorder, double x, double y);
     gd_result (*recorder_set_transform)(gd_handle recorder, gd_matrix transform);
+    /* set_clip replaces the clip in force; it does not intersect with it.
+       The clip is the axis-aligned bounds of the rectangle under the
+       transform in force when it is set, in target coordinates, so a later
+       transform does not move it. reset_clip removes it; recorder_save
+       records it and recorder_restore brings back the one saved. Every
+       command is drawn within the clip in force when it was recorded. */
     gd_result (*recorder_set_clip)(gd_handle recorder, gd_rect clip);
     gd_result (*recorder_reset_clip)(gd_handle recorder);
     gd_result (*recorder_set_quality)(gd_handle recorder,
@@ -417,6 +423,9 @@ typedef struct gd_api_v0 {
     gd_result (*recorder_draw_string)(gd_handle recorder, gd_string_view text,
                                       gd_handle font, gd_handle brush,
                                       gd_point origin, gd_handle format);
+    /* After close every recording call fails (GD_ERROR_INVALID_ARGUMENT) and
+       records nothing, until recorder_reset (ABI 0.5). recorder_clear
+       records a clear of the target; it does not empty the recording. */
     gd_result (*recorder_close)(gd_handle recorder);
     gd_result (*recorder_command_count)(gd_handle recorder, uint64_t* count);
     gd_result (*recorder_trace)(gd_handle recorder,

@@ -40,6 +40,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/command_bar.hpp"
@@ -62,6 +63,7 @@
 #include "gui_forms/controls/flex_panel.hpp"
 #include "gui_forms/controls/flow_layout_panel_compat.hpp"
 #include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/form_layout.hpp"
 #include "gui_forms/controls/gauge_base.hpp"
 #include "gui_forms/controls/grid_panel.hpp"
 #include "gui_forms/controls/group_box.hpp"
@@ -97,6 +99,7 @@
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/plot_view_links.hpp"
 #include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/controls/progress_ring.hpp"
 #include "gui_forms/controls/property_grid.hpp"
@@ -159,7 +162,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 147> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 150> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -206,6 +209,7 @@ inline constexpr std::array<FormCatalogEntry, 147> form_catalog{{
     {"value_bar", "ValueBar", "gui_forms/controls/value_bar.hpp", &add_catalog_type<ValueBar>},
     {"numeric_up_down", "NumericUpDown", "gui_forms/controls/numeric_up_down.hpp", &add_catalog_type<NumericUpDown>},
     {"domain_up_down", "DomainUpDown", "gui_forms/controls/domain_up_down.hpp", &add_catalog_type<DomainUpDown>},
+    {"color_picker", "ColorPicker", "gui_forms/controls/color_picker.hpp", &add_catalog_type<ColorPicker>},
     {"color_value_editor", "ColorValueEditor", "gui_forms/controls/color_value_editor.hpp", &add_catalog_type<ColorValueEditor>},
     {"flags_value_editor", "FlagsValueEditor", "gui_forms/controls/flags_value_editor.hpp", &add_catalog_type<FlagsValueEditor>},
     {"property_grid", "PropertyGrid", "gui_forms/controls/property_grid.hpp", &add_catalog_type<PropertyGrid>},
@@ -233,6 +237,7 @@ inline constexpr std::array<FormCatalogEntry, 147> form_catalog{{
     {"flow_layout_panel_compat", "FlowLayoutPanelCompat", "gui_forms/controls/flow_layout_panel_compat.hpp", &add_catalog_type<FlowLayoutPanelCompat>},
     {"table_layout_panel_compat", "TableLayoutPanelCompat", "gui_forms/controls/table_layout_panel_compat.hpp", &add_catalog_type<TableLayoutPanelCompat>},
     {"responsive_track_panel", "ResponsiveTrackPanel", "gui_forms/controls/responsive_track_panel.hpp", &add_catalog_type<ResponsiveTrackPanel>},
+    {"form_layout", "FormLayout", "gui_forms/controls/form_layout.hpp", &add_catalog_type<FormLayout>},
     {"scaled_panel", "ScaledPanel", "gui_forms/controls/scaled_panel.hpp", &add_catalog_type<ScaledPanel>},
     {"split_container", "SplitContainer", "gui_forms/controls/split_container.hpp", &add_catalog_type<SplitContainer>},
     {"splitter_panel", "SplitterPanel", "gui_forms/controls/splitter_panel.hpp", &add_catalog_type<SplitterPanel>},
@@ -289,6 +294,7 @@ inline constexpr std::array<FormCatalogEntry, 147> form_catalog{{
     {"content_surface", "ContentSurface", "gui_forms/controls/content_surface.hpp", &add_catalog_type<ContentSurface>},
     {"content_text_editor", "ContentTextEditor", "gui_forms/controls/content_text_editor.hpp", &add_catalog_type<ContentTextEditor>},
     {"metrics_view", "MetricsView", "gui_forms/controls/metrics_view.hpp", &add_catalog_type<MetricsView>},
+    {"plot_link_group", "PlotLinkGroup", "gui_forms/controls/plot_view_links.hpp", &add_catalog_type<PlotLinkGroup>},
     {"timer", "Timer", "gui_forms/timer/timer/timer.hpp", &add_catalog_type<Timer>},
     {"background_worker", "BackgroundWorker", "gui_forms/background_worker/background_worker.hpp", &add_catalog_type<BackgroundWorker>},
     {"notify_icon", "NotifyIcon", "gui_forms/components/notify_icon/notify_icon.hpp", &add_catalog_type<NotifyIcon>},

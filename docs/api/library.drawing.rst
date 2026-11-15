@@ -72,6 +72,8 @@ Types
      - DrawingCommand owns one complete command kind, sampled GraphicsState, geometry, resource snapshots, points, and text.
    * - :cpp:class:`DrawingObject <gui_drawing::DrawingObject>`
      - DrawingObject is the thread-affine disposable base for mutable drawing resources, with explicit alive/disposing/disposed transitions and controlled serialized handoff.
+   * - :cpp:class:`DrawingReplayReport <gui_forms::DrawingReplayReport>`
+     - What replay_drawing_commands drew and what it left out (the plot demonstrator's gap G6).
    * - :cpp:class:`Font <gui_drawing::Font>`
      - Font retains validated UTF-8 family, bounded size, style bits, unit, and charset without exposing a platform font object.
    * - :cpp:class:`FontFamilyResolution <gui_drawing::FontFamilyResolution>`
@@ -86,6 +88,8 @@ Types
      - GraphicsPath is a bounded retained vector-geometry state machine with explicit figure boundaries, line/quadratic/cubic/polygon/rectangle/ellipse/arc/pie vocabulary, affine transformation, hit testing, cloning, bounds, and immutable snapshots.
    * - :cpp:class:`GraphicsRecorder <gui_drawing::GraphicsRecorder>`
      - GraphicsRecorder is a bounded thread-affine command transaction with explicit save-token stack discipline, retained transform/clip/quality state, validated resource snapshots, deterministic trace output, and a terminal close phase.
+   * - :cpp:class:`GraphicsRecorder::TextItem <gui_drawing::GraphicsRecorder::TextItem>`
+     - One string of draw_strings: its text (lent for the call), its origin, and its colour.
    * - :cpp:class:`GraphicsState <gui_drawing::GraphicsState>`
      - GraphicsState is the complete transform, optional clip, smoothing, interpolation, pixel-offset, compositing, and compositing-quality state.
    * - :cpp:class:`GraphicsStateToken <gui_drawing::GraphicsStateToken>`
@@ -1078,6 +1082,10 @@ Types
 
       Default: ``{FillDirection::left_to_right}``.
 
+   .. cpp:member:: bool laid_out
+
+      draw_string: true when the text is laid out in ``rect`` (draw_string_in_rect) rather than placed at ``first``.
+
 .. cpp:namespace:: gui_drawing
 
 .. cpp:class:: DrawingObject
@@ -1137,6 +1145,30 @@ Types
       *Protected.*
 
       Provides the no-throw subtype cleanup hook.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DrawingReplayReport final
+
+   ``#include <gui_forms/drawing/drawing_replay/drawing_replay.hpp>``
+
+   What replay_drawing_commands drew and what it left out (the plot demonstrator's gap G6). Every command is counted once.
+
+   .. cpp:member:: std::size_t drawn
+
+      Commands drawn through the painter.
+
+   .. cpp:member:: std::size_t state
+
+      State commands (save, restore, translate, set_transform, set_clip, reset_clip, set_quality): they draw nothing, and every drawing command carries the state they made.
+
+   .. cpp:member:: std::size_t transformed
+
+      Commands left out because their transform is not a translation: the Painter vocabulary has no scale, rotation or shear.
+
+   .. cpp:member:: std::size_t unsupported
+
+      Commands left out because the Painter has no equivalent for their kind, brush or pen (see replay_drawing_commands).
 
 .. cpp:namespace:: gui_drawing
 
@@ -1472,6 +1504,14 @@ Types
 
       Validates bounded UTF-8 and origin, then owns text plus font/brush/format snapshots.
 
+   .. cpp:function:: void draw_string_in_rect(std::string_view utf8, const Font& font, const SolidBrush& brush, RectF layout, const StringFormat& format)
+
+      The string laid out in ``layout`` (gd_* ABI 0.5, the flame graph demonstrator's D2). Lines break at newlines only. Each line is placed across the box by the format's alignment (near, center, far) and the block of lines down it by its line alignment, with the same side bearing an origin-placed string has. A line wider than the box is trimmed by the format's trimming: character and word cut it at the last code point or word that fits, the ellipsis forms add U+2026 after the cut, and ellipsis_path is taken as ellipsis_character; with none it runs on. The text is clipped to the box (within the clip in force) unless the format has the no-clip flag (0x4000). ``layout`` is finite with a non-negative width and height. Records one draw_string.
+
+   .. cpp:function:: void draw_strings(const Font& font, const StringFormat& format, std::span<const TextItem> items)
+
+      Strings in one font and format, each in its own colour at its own origin (gd_* ABI 0.5, the flame graph demonstrator's D3): one draw_string per item, in order. 1 through maximum_text_items items, each bounded valid UTF-8 at a finite origin; the whole list is validated, and that its commands fit maximum_commands, before anything is recorded.
+
    .. cpp:function:: void draw_ellipse(const Pen& pen, RectF bounds)
 
       Validates bounds and records a pen snapshot.
@@ -1528,9 +1568,25 @@ Types
 
       Piece C4: the string drawn twice under complementary clips, with ``on_fill_brush`` where it lies over ``fill`` and ``brush`` elsewhere. It records up to five draw_string commands, each with its own clip within the current one: the fill's part, and the bands above, below, left and right of it, which share its edges exactly. The transform must be a scale and translation (the clips are rectangles).
 
+   .. cpp:function:: void fill_band(const Brush& brush, std::span<const PointF> upper, std::span<const PointF> lower)
+
+      The area between two polylines sampled at the same positions (the Painter's fill_band): ``upper`` and ``lower`` hold the same count, 2 through maximum_band_samples. A break at index i in either span breaks the band there. Each run of 2 or more unbroken indices records one fill_polygon (winding, along ``upper`` and back along ``lower``); a run of one index records nothing.
+
+   .. cpp:function:: void draw_polyline_runs(const Pen& pen, std::span<const PointF> points)
+
+      An open polyline through ``points`` (2 or more) that breaks at each break point (the Painter's stroke_polyline): each run of 2 or more unbroken points records one draw_lines, and a run of one records nothing.
+
+   .. cpp:function:: void fill_rectangles_each(std::span<const RectF> rects, std::span<const Color> colors)
+
+      Each of 1 or more finite rectangles filled in its own colour (the Painter's fill_rects_each): ``colors`` holds one per rectangle. Each run of consecutive equal colours records one fill_rectangles with a solid brush of that colour.
+
    .. cpp:function:: void close()
 
       Requires balanced saved state and enters terminal closed state.
+
+   .. cpp:function:: void reset()
+
+      Empties the recording for reuse (gd_* ABI 0.5, the flame graph demonstrator's D4): the commands, the saved states (their tokens are no longer valid) and the state in force (no transform, no clip, default quality) are cleared and the recorder reopens. The command storage is kept for the next frame. Throws on a disposed recorder.
 
    .. cpp:function:: void set_transform(Matrix transform)
 
@@ -1565,9 +1621,31 @@ Types
 
       Default: ``1U << 20U``.
 
+   .. cpp:member:: constexpr std::size_t maximum_text_items
+
+      Default: ``65536``.
+
    .. cpp:member:: constexpr std::size_t maximum_batch_elements
 
       Batched commands (the GUI.Forms Painter's batch calls; one command per call, the span copied once). Every point and rectangle must be finite, and each span holds at most maximum_batch_elements. Default: ``1'000'000``.
+
+   .. cpp:member:: constexpr std::size_t maximum_band_samples
+
+      Gapped and per-element marks (gd_* ABI 0.4, the plot demonstrator's gaps G2 to G4). Each records commands of the kinds above, so replay and the trace need no new command kind. Each validates its whole input, and that the commands it records fit maximum_commands, before it records anything; a refusal records nothing. A break is a point with a NaN coordinate. An infinite coordinate is refused, as for the batched commands. The most samples fill_band takes: its polygon holds two points per sample, within GraphicsPath::maximum_elements. Default: ``maximum_batch_elements / 2U``.
+
+.. cpp:namespace:: gui_drawing
+
+.. cpp:struct:: GraphicsRecorder::TextItem final
+
+   ``#include <gui_forms/drawing/graphics_recorder/graphics_recorder.hpp>``
+
+   One string of draw_strings: its text (lent for the call), its origin, and its colour.
+
+   .. cpp:member:: std::string_view text
+
+   .. cpp:member:: PointF origin
+
+   .. cpp:member:: Color color
 
 .. cpp:namespace:: gui_drawing
 
@@ -4245,6 +4323,14 @@ Functions, constants and aliases
    Reduces OKLCH chroma only, preserving lightness, hue, and alpha. The mapped value is deterministic to 24 binary-search iterations and reports both the requested and committed colors so a dialog can disclose gamut mapping.
 
 .. cpp:function:: const SystemPalette& default_system_palette() noexcept
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/drawing/drawing_replay/drawing_replay.hpp>``
+
+.. cpp:function:: DrawingReplayReport replay_drawing_commands(std::span<const gui_drawing::DrawingCommand> commands, Painter& painter)
+
+   Replays a GUI.Drawing recording (GraphicsRecorder::commands()) onto a Painter, in order, in the painter's current coordinates: the recording's origin is the painter's. Each drawing command is drawn inside a save and restore of its own, under its state's clip (already in recording coordinates) and its transform's translation, so the painter's state is as it was when the call returns. Drawn, with solid brushes only: - fill_rectangle, fill_rectangles: fill_rect, fill_rects; - fill_polygon: fill_polygon (alternate is even-odd, winding nonzero); - fill_proportion: the covered part under clip_rounded_rect_corners; - draw_rectangle: stroke_rect for a solid pen, stroke_polyline round the rectangle for a dashed one; - draw_line, draw_lines: stroke_polyline; - draw_line_segments: stroke_segments; - draw_markers, fill_grid_pattern: draw_markers, fill_grid_pattern. A pen maps to a StrokeStyle as the raster executor draws it: preset dashes in multiples of the width, a custom pattern as given (at most maximum_dash_intervals entries, an even count of 2 or more). Left out (counted unsupported): clear (the control paints its own background), draw_string (FontSnapshot to FontSpec waits for the font identity work), ellipses, paths, images, and any command whose brush is not solid or whose custom dash pattern does not fit a StrokeStyle. Reads ``commands`` during the call only; allocates scratch storage once per call, reused across commands.
 
 .. cpp:namespace:: gui_drawing
 

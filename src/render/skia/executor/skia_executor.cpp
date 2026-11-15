@@ -1002,6 +1002,21 @@ private:
     return result;
 }
 
+// GDI+'s StringFormatFlags.NoClip: a laid-out string is not clipped to its box.
+constexpr std::uint32_t no_clip_flag = UINT32_C(0x4000);
+
+// `clip` narrowed to the box's bounds under `matrix`, snapped to whole
+// pixels as text_clip_rect snaps the command clip.
+[[nodiscard]] gui_forms::Rect layout_clip_rect(gui_forms::Rect clip, const Matrix& matrix, RectF box) {
+    const RectF device = matrix.transform_bounds(box);
+    const double left = std::max(clip.x, std::floor(device.x + 0.5));
+    const double top = std::max(clip.y, std::floor(device.y + 0.5));
+    const double right = std::min(clip.x + clip.width, std::floor(device.x + device.width + 0.5));
+    const double bottom = std::min(clip.y + clip.height, std::floor(device.y + device.height + 0.5));
+    const gui_forms::Rect result{left, top, std::max(0.0, right - left), std::max(0.0, bottom - top)};
+    return result;
+}
+
 } // namespace
 
 class SkiaExecutor::Impl final {
@@ -1162,10 +1177,19 @@ public:
     }
 
     void draw_text(const DrawingCommand& command, const gui_forms::detail::TextCompositeTarget& target);
+    // A laid-out line trimmed to `width` by `trimming`: a view of `line`, or
+    // of trimmed_text when an ellipsis is added (valid until the next call).
+    [[nodiscard]] std::string_view trimmed_line(std::string_view line, const ResolvedFont& font,
+                                                StringTrimming trimming, double width);
+    [[nodiscard]] std::size_t fitted_prefix(std::string_view line, const ResolvedFont& font, double width);
+
+    // trimmed_line's storage for a cut line and its ellipsis, reused.
+    std::string trimmed_text;
 };
 
 // Shapes and draws one draw_string command through the shared text engine
-// and compositor (ADR-004).
+// and compositor (ADR-004). A laid-out command (draw_string_in_rect) places
+// its lines in the box, trims those wider than it, and is clipped to it.
 void SkiaExecutor::Impl::draw_text(const DrawingCommand& command,
                                    const gui_forms::detail::TextCompositeTarget& target) {
     const bool source = command.state.compositing == CompositingMode::source_copy;
@@ -1178,13 +1202,25 @@ void SkiaExecutor::Impl::draw_text(const DrawingCommand& command,
     TextFamily& family = *font.family;
     const double size = font.spec.size;
     const double overhang = (command.format.flags & UINT32_C(0x0004)) == 0U ? size / 6.0 : 0.0;
-    const double first_baseline = command.first.y + font.metrics.ascent * size + overhang;
     const double line_height = std::max(0.0, (font.metrics.ascent + font.metrics.descent + font.metrics.line_gap) * size +
                                                  overhang);
     const Matrix& matrix = command.state.transform;
     const bool uniform = matrix.m12() == 0.0 && matrix.m21() == 0.0 && matrix.m11() == matrix.m22() &&
         std::isfinite(matrix.m11()) && matrix.m11() > 0.0;
-    const gui_forms::detail::TextCompositeClip clip{text_clip_rect(command.state, target.width, target.height)};
+    gui_forms::Rect clip_rect = text_clip_rect(command.state, target.width, target.height);
+    const bool laid_out = command.laid_out;
+    const RectF box = command.rect;
+    double top = command.first.y;
+    if (laid_out) {
+        if ((command.format.flags & no_clip_flag) == 0U) clip_rect = layout_clip_rect(clip_rect, matrix, box);
+        const std::size_t lines = static_cast<std::size_t>(std::count(command.text.begin(), command.text.end(), '\n')) + 1U;
+        const double block = line_height * static_cast<double>(lines);
+        top = box.y;
+        if (command.format.line_alignment == StringAlignment::center) top = box.y + (box.height - block) / 2.0;
+        if (command.format.line_alignment == StringAlignment::far) top = box.y + box.height - block;
+    }
+    const double first_baseline = top + font.metrics.ascent * size + overhang;
+    const gui_forms::detail::TextCompositeClip clip{clip_rect};
     gui_forms::Color text_colour = gui_forms::Color::rgba(0, 0, 0, 0);
     if (!colour.is_empty()) text_colour = gui_forms::Color::rgba(colour.red(), colour.green(), colour.blue(), alpha);
     const gui_forms::detail::TextCompositeMode mode =
@@ -1195,11 +1231,17 @@ void SkiaExecutor::Impl::draw_text(const DrawingCommand& command,
         const std::size_t newline = remaining.find('\n');
         std::string_view line = remaining.substr(0U, newline);
         if (!line.empty() && line.back() == '\r') line.remove_suffix(1U);
+        if (laid_out && !line.empty()) line = trimmed_line(line, font, command.format.trimming, box.width - overhang * 2.0);
         if (!line.empty()) {
             const text::ShapedText shaped = (*family.engine).shape(line, font.spec);
             double x = command.first.x + overhang;
-            if (command.format.alignment == StringAlignment::center) x -= shaped.width / 2.0;
-            if (command.format.alignment == StringAlignment::far) x -= shaped.width;
+            if (laid_out) {
+                if (command.format.alignment == StringAlignment::center) x = box.x + (box.width - shaped.width) / 2.0;
+                if (command.format.alignment == StringAlignment::far) x = box.x + box.width - overhang - shaped.width;
+            } else {
+                if (command.format.alignment == StringAlignment::center) x -= shaped.width / 2.0;
+                if (command.format.alignment == StringAlignment::far) x -= shaped.width;
+            }
             const double y = first_baseline + line_height * static_cast<double>(line_index);
             const double device_x = matrix.m11() * x + matrix.m21() * y + matrix.dx();
             const double device_y = matrix.m12() * x + matrix.m22() * y + matrix.dy();
@@ -1226,6 +1268,55 @@ void SkiaExecutor::Impl::draw_text(const DrawingCommand& command,
     }
 }
 
+// The longest prefix of `line` ending on a code point boundary whose shaped
+// width is at most `width`: a binary search over byte lengths, each probe
+// moved back to a boundary, so at most about log2(bytes) shapes.
+std::size_t SkiaExecutor::Impl::fitted_prefix(std::string_view line, const ResolvedFont& font, double width) {
+    std::size_t low = 0U;
+    std::size_t high = line.size();
+    while (low < high) {
+        std::size_t middle = low + (high - low + 1U) / 2U;
+        while (middle > low && middle < line.size() &&
+               (static_cast<unsigned char>(line[middle]) & 0xC0U) == 0x80U) {
+            --middle;
+        }
+        if (middle == low) break;
+        const double measured = (*(*font.family).engine).shape(line.substr(0U, middle), font.spec).width;
+        if (measured <= width) {
+            low = middle;
+        } else {
+            high = middle - 1U;
+            while (high > low && high < line.size() &&
+                   (static_cast<unsigned char>(line[high]) & 0xC0U) == 0x80U) {
+                --high;
+            }
+        }
+    }
+    return low;
+}
+
+std::string_view SkiaExecutor::Impl::trimmed_line(std::string_view line, const ResolvedFont& font,
+                                                  StringTrimming trimming, double width) {
+    if (trimming == StringTrimming::none) return line;
+    const double available = std::max(0.0, width);
+    const double whole = (*(*font.family).engine).shape(line, font.spec).width;
+    if (whole <= available) return line;
+    const bool ellipsis = trimming == StringTrimming::ellipsis_character || trimming == StringTrimming::ellipsis_word ||
+                          trimming == StringTrimming::ellipsis_path;
+    const bool by_word = trimming == StringTrimming::word || trimming == StringTrimming::ellipsis_word;
+    constexpr std::string_view ellipsis_text{"\xE2\x80\xA6"};
+    const double ellipsis_width = ellipsis ? (*(*font.family).engine).shape(ellipsis_text, font.spec).width : 0.0;
+    std::size_t kept = fitted_prefix(line, font, std::max(0.0, available - ellipsis_width));
+    if (by_word) {
+        const std::size_t space = line.substr(0U, kept).find_last_of(" \t");
+        if (space != std::string_view::npos && space > 0U) kept = space;
+    }
+    while (kept > 0U && (line[kept - 1U] == ' ' || line[kept - 1U] == '\t')) --kept;
+    if (!ellipsis) return line.substr(0U, kept);
+    trimmed_text.assign(line.substr(0U, kept));
+    trimmed_text.append(ellipsis_text);
+    return trimmed_text;
+}
 
 SkiaExecutor::SkiaExecutor()
     : impl_(std::make_unique<Impl>()), owner_thread_(std::this_thread::get_id()) {}

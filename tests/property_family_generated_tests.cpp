@@ -14,6 +14,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/controls/color_picker.hpp"
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/command_overflow_panel.hpp"
@@ -32,6 +33,7 @@
 #include "gui_forms/controls/flex_panel.hpp"
 #include "gui_forms/controls/flow_layout_panel_compat.hpp"
 #include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/form_layout.hpp"
 #include "gui_forms/controls/grid_panel.hpp"
 #include "gui_forms/controls/group_box.hpp"
 #include "gui_forms/controls/indicator_lamp.hpp"
@@ -496,6 +498,32 @@ void test_choice_group_properties() {
                "ChoiceGroup.presentation: the table reads the cell");
     }
     // selected_index: no sample for int; give the property a "sample".
+}
+
+void test_color_picker_properties() {
+    std::shared_ptr<ColorPicker> control = make_control<ColorPicker>(StableId("generated.colorpicker"));
+    {
+        const Color sample = Color::rgba(10, 20, 30, 40);
+        int raises = 0;
+        const SubscriptionToken token = (*control).value_changed().subscribe(RaiseCounter{&raises});
+        (*control).value = sample;
+        expect((*control).value.read() == sample, "ColorPicker.value: a write stores");
+        expect(raises == 1, "ColorPicker.value: a changed write raises once");
+        (*control).value = sample;
+        expect(raises == 1, "ColorPicker.value: an equal write raises nothing");
+        static_cast<void>(token);
+        const std::optional<BindingValue> by_name = (*control).property_value("value");
+        expect(by_name && *by_name == PropertyValueTraits<Color>::to_binding(sample),
+               "ColorPicker.value: the table reads the cell");
+    }
+    {
+        const bool sample = false;
+        (*control).alpha_enabled = sample;
+        expect((*control).alpha_enabled.read() == sample, "ColorPicker.alpha_enabled: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("alpha_enabled");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ColorPicker.alpha_enabled: the table reads the cell");
+    }
 }
 
 void test_color_value_editor_properties() {
@@ -1128,6 +1156,42 @@ void test_font_dialog_properties() {
         const std::string sample = std::string{"Sample"};
         (*control).preview_text = sample;
         expect((*control).preview_text.read() == sample, "FontDialog.preview_text: a write stores");
+    }
+}
+
+void test_form_layout_properties() {
+    std::shared_ptr<FormLayout> control = make_control<FormLayout>(StableId("generated.formlayout"));
+    {
+        const double sample = 120.0;
+        (*control).caption_width = sample;
+        expect((*control).caption_width.read() == sample, "FormLayout.caption_width: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("caption_width");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "FormLayout.caption_width: the table reads the cell");
+    }
+    {
+        const HorizontalAlignment sample = HorizontalAlignment::far;
+        (*control).caption_alignment = sample;
+        expect((*control).caption_alignment.read() == sample, "FormLayout.caption_alignment: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("caption_alignment");
+        expect(by_name && *by_name == PropertyValueTraits<HorizontalAlignment>::to_binding(sample),
+               "FormLayout.caption_alignment: the table reads the cell");
+    }
+    {
+        const double sample = 10.0;
+        (*control).row_spacing = sample;
+        expect((*control).row_spacing.read() == sample, "FormLayout.row_spacing: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("row_spacing");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "FormLayout.row_spacing: the table reads the cell");
+    }
+    {
+        const double sample = 12.0;
+        (*control).column_spacing = sample;
+        expect((*control).column_spacing.read() == sample, "FormLayout.column_spacing: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("column_spacing");
+        expect(by_name && *by_name == PropertyValueTraits<double>::to_binding(sample),
+               "FormLayout.column_spacing: the table reads the cell");
     }
 }
 
@@ -3275,6 +3339,7 @@ int main() {
     test_check_box_properties();
     test_checked_list_box_properties();
     test_choice_group_properties();
+    test_color_picker_properties();
     test_color_value_editor_properties();
     test_combo_box_properties();
     test_command_overflow_panel_properties();
@@ -3295,6 +3360,7 @@ int main() {
     test_flex_panel_properties();
     test_flow_layout_panel_compat_properties();
     test_font_dialog_properties();
+    test_form_layout_properties();
     test_grid_panel_properties();
     test_group_box_properties();
     test_indicator_lamp_properties();

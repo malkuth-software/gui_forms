@@ -1,4 +1,5 @@
 #include "gui_forms/drawing_c_api.h"
+#include "gui_forms/drawing_raster_c_api.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -6,8 +7,6 @@
 #include <iostream>
 #include <string_view>
 #include <vector>
-
-extern "C" gd_result gdr_initialize(void);
 
 namespace {
 

@@ -446,6 +446,74 @@ void batched_marks_record_one_command_each() {
     CHECK(refusing.commands().empty());
 }
 
+// The gapped and per-element marks (gd_* ABI 0.4): runs between NaN breaks
+// become the batched commands, runs of one draw nothing, refusals record
+// nothing.
+void gapped_marks_record_runs() {
+    const double gap = std::numeric_limits<double>::quiet_NaN();
+    const double infinity = std::numeric_limits<double>::infinity();
+    Pen pen(Color::from_name("red"), 1.0);
+    SolidBrush brush(Color::from_name("blue"));
+    GraphicsRecorder recorder;
+    const PointF upper[] = {{0, 2}, {1, 3}, {2, gap}, {3, 3}, {4, 2}, {5, 2}};
+    const PointF lower[] = {{0, 0}, {1, 0}, {2, 0}, {3, 0}, {4, 0}, {5, gap}};
+    recorder.fill_band(brush, upper, lower);
+    // Indices 0..1 and 3..4; index 5 breaks in `lower`.
+    CHECK(recorder.commands().size() == 2U);
+    CHECK(recorder.commands()[0].kind == CommandKind::fill_polygon);
+    CHECK(recorder.commands()[0].path.fill_mode == FillMode::winding);
+    CHECK(recorder.commands()[0].points.size() == 4U);
+    CHECK(recorder.commands()[0].points[1] == (PointF{1, 3}));
+    CHECK(recorder.commands()[0].points[2] == (PointF{1, 0}));
+    CHECK(recorder.commands()[1].points[0] == (PointF{3, 3}));
+    CHECK(recorder.commands()[1].points[3] == (PointF{3, 0}));
+
+    const PointF runs[] = {{0, 0}, {1, 1}, {2, 0}, {gap, 0}, {4, 4}, {0, gap}, {6, 6}, {7, 7}};
+    recorder.draw_polyline_runs(pen, runs);
+    CHECK(recorder.commands().size() == 4U);
+    CHECK(recorder.commands()[2].kind == CommandKind::draw_lines);
+    CHECK(recorder.commands()[2].points.size() == 3U);
+    CHECK(recorder.commands()[3].points[0] == (PointF{6, 6}));
+
+    const RectF cells[] = {{0, 0, 1, 1}, {1, 0, 1, 1}, {2, 0, 1, 1}};
+    const Color colours[] = {Color::from_name("red"), Color::from_name("blue"), Color::from_name("blue")};
+    recorder.fill_rectangles_each(cells, colours);
+    CHECK(recorder.commands().size() == 6U);
+    CHECK(recorder.commands()[4].rects.size() == 1U);
+    CHECK(recorder.commands()[4].brush.kind == BrushKind::solid);
+    CHECK(recorder.commands()[4].color == Color::from_name("red"));
+    CHECK(recorder.commands()[5].rects.size() == 2U);
+    CHECK(recorder.commands()[5].brush.primary == Color::from_name("blue"));
+    recorder.close();
+    const std::string trace = recorder.deterministic_trace();
+    CHECK(trace_has(trace, "0|fill_polygon|"));
+    CHECK(trace_has(trace, "|fill=1|points=0,2;1,3;1,0;0,0|brush=ff0000ff"));
+    CHECK(trace_has(trace, "2|draw_lines|points=0,0;1,1;2,0|"));
+    CHECK(trace_has(trace, "5|fill_rectangles|rects=1,0,1,1;2,0,1,1|brush=ff0000ff|"));
+
+    // A band or polyline made only of breaks and lone points records nothing.
+    GraphicsRecorder sparse;
+    const PointF lonely[] = {{0, 0}, {gap, gap}, {2, 2}};
+    sparse.draw_polyline_runs(pen, lonely);
+    sparse.fill_band(brush, lonely, lonely);
+    CHECK(sparse.commands().empty());
+
+    // Refusals leave the recorder unchanged.
+    GraphicsRecorder refusing;
+    const PointF short_lower[] = {{0, 0}, {1, 0}};
+    CHECK_THROWS(std::invalid_argument, refusing.fill_band(brush, upper, short_lower));
+    const PointF infinite[] = {{0, 0}, {infinity, 0}, {2, 0}};
+    CHECK_THROWS(std::invalid_argument, refusing.fill_band(brush, infinite, lonely));
+    CHECK_THROWS(std::invalid_argument, refusing.draw_polyline_runs(pen, infinite));
+    CHECK_THROWS(std::invalid_argument, refusing.draw_polyline_runs(pen, std::span<const PointF>(runs, 1U)));
+    CHECK_THROWS(std::invalid_argument,
+                 refusing.fill_rectangles_each(cells, std::span<const Color>(colours, 2U)));
+    const RectF not_finite[] = {{0, 0, gap, 1}};
+    CHECK_THROWS(std::invalid_argument,
+                 refusing.fill_rectangles_each(not_finite, std::span<const Color>(colours, 1U)));
+    CHECK(refusing.commands().empty());
+}
+
 // The conic and checker brushes, the contrast rule, rounded path
 // rectangles and text over a fill.
 void primitive_brushes_contrast_and_text_over_fill() {
@@ -727,6 +795,7 @@ int main() {
     extended_vocabulary_snapshots_resources();
     curve_polygon_and_pie_paths_are_retained_and_bounded();
     batched_marks_record_one_command_each();
+    gapped_marks_record_runs();
     primitive_brushes_contrast_and_text_over_fill();
     bitmap_storage_and_leases_are_generation_safe();
     bounded_bitmap_edits_publish_local_damage_and_cancel_atomically();
