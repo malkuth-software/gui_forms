@@ -69,6 +69,11 @@ protected:
     void on_dispose() noexcept override;
 
 private:
+    // Observed across the host's modal tray menu, the click handlers and a
+    // chosen command, any of which may destroy the icon: an expired
+    // observer means `this` is gone (A-gf-controls-07-F2).
+    struct Presence final {};
+
     [[nodiscard]] Window* bound_window() const noexcept;
     [[nodiscard]] HostServices* current_services() const noexcept;
     void require_ui(std::string_view operation) const;
@@ -96,6 +101,7 @@ private:
     Event<> balloon_tip_clicked_{};
     Event<> balloon_tip_closed_{};
     Event<const MenuItemInvocation&> menu_item_invoked_{};
+    std::shared_ptr<Presence> presence_{std::make_shared<Presence>()};
     // property_codemod begin NotifyIcon (tools/property_families/notify_icon.json; generated, do not edit)
 private:
     friend struct NotifyIconIconCapability<NotifyIcon>;
