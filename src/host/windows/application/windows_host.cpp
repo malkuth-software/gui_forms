@@ -743,7 +743,7 @@ bool apply_system_cursor(CursorKind kind) noexcept {
 using GetDpiForMonitorFunction = decltype(&::GetDpiForMonitor);
 
 GetDpiForMonitorFunction load_get_dpi_for_monitor() noexcept {
-    HMODULE library = LoadLibraryW(L"Shcore.dll");
+    HMODULE library = LoadLibraryExW(L"Shcore.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (library == nullptr) return nullptr;
     const FARPROC symbol = GetProcAddress(library, "GetDpiForMonitor");
     GetDpiForMonitorFunction function{};
@@ -1453,7 +1453,7 @@ public:
         LARGE_INTEGER frequency{};
         QueryPerformanceFrequency(&frequency);
         qpc_frequency_ = frequency.QuadPart;
-        const HMODULE dwm = LoadLibraryW(L"dwmapi.dll");
+        const HMODULE dwm = LoadLibraryExW(L"dwmapi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
         if (dwm != nullptr) {
             dwm_composition_timing_ = reinterpret_cast<DwmCompositionTimingFunction>(
                 reinterpret_cast<void*>(GetProcAddress(dwm, "DwmGetCompositionTimingInfo")));

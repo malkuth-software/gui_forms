@@ -121,7 +121,7 @@ static_assert(std::is_trivially_destructible_v<DwmGetWindowAttributeFunction>);
 // and later add around a sizable window (DWMWA_EXTENDED_FRAME_BOUNDS), read
 // through dwmapi.dll when it is present; else GetWindowRect.
 DwmGetWindowAttributeFunction load_dwm_get_window_attribute() noexcept {
-    HMODULE library = LoadLibraryW(L"dwmapi.dll");
+    HMODULE library = LoadLibraryExW(L"dwmapi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (library == nullptr) return nullptr;
     const DwmGetWindowAttributeFunction function =
         load_function<DwmGetWindowAttributeFunction>(library, "DwmGetWindowAttribute");
@@ -132,7 +132,7 @@ using DwmSetWindowAttributeFunction = decltype(&::DwmSetWindowAttribute);
 static_assert(std::is_trivially_destructible_v<DwmSetWindowAttributeFunction>);
 
 DwmSetWindowAttributeFunction load_dwm_set_window_attribute() noexcept {
-    HMODULE library = LoadLibraryW(L"dwmapi.dll");
+    HMODULE library = LoadLibraryExW(L"dwmapi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (library == nullptr) return nullptr;
     const DwmSetWindowAttributeFunction function =
         load_function<DwmSetWindowAttributeFunction>(library, "DwmSetWindowAttribute");

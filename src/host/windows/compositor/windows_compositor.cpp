@@ -41,7 +41,7 @@ Function dwm_function(HMODULE library, const char* name) noexcept {
 
 DwmFunctions load_dwm_functions() noexcept {
     DwmFunctions functions{};
-    const HMODULE library = LoadLibraryW(L"dwmapi.dll");
+    const HMODULE library = LoadLibraryExW(L"dwmapi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (library == nullptr) return functions;
     functions.composition_enabled = dwm_function<DwmIsCompositionEnabledFunction>(library, "DwmIsCompositionEnabled");
     functions.enable_blur_behind =
