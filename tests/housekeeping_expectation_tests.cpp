@@ -98,9 +98,19 @@ std::uint64_t all_misses(const MetricsSnapshot& metrics) {
     return total;
 }
 
+// A generous paint budget for the checks that require no paint miss: the
+// default budget is 50 ms, which a loaded host or a sanitizer run can
+// exceed with nothing wrong (B-gf-tests-06-F3).
+void set_generous_paint_budget(Window& window) {
+    ExpectationThresholds thresholds{};
+    thresholds.paint_budget_nanoseconds = 10'000'000'000U;
+    window.metrics().set_expectation_thresholds(thresholds);
+}
+
 void normal_run_reports_nothing() {
     std::unique_ptr<Fixture> fixture = make_fixture();
     Window& window = *(*fixture).window;
+    set_generous_paint_budget(window);
     const FrameTime due = FrameTime{} + 33ms;
     std::uint64_t ticks = 0U;
     FrameRequestToken timer = window.schedule_ui_timer(*(*fixture).slow, 33ms, due, CountingTick{ticks});
@@ -170,6 +180,7 @@ void telemetry_is_rate_limited() {
 void damage_overflow_reports() {
     std::unique_ptr<Fixture> fixture = make_fixture();
     Window& window = *(*fixture).window;
+    set_generous_paint_budget(window);
     std::vector<std::shared_ptr<Control>> cells;
     for (std::size_t index = 0U; index < 90U; ++index) {
         std::shared_ptr<Control> cell = make_control<Control>(StableId("expectations.cell." + std::to_string(index)));

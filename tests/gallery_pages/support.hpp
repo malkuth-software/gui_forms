@@ -40,10 +40,12 @@ inline void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
 }
 
+// The bound guards against "never", not a duration: it is far past any
+// scheduling delay of a loaded host or a sanitizer run (B-gf-tests-06-F3).
 template <typename Predicate>
 void require_eventually(Predicate predicate, const char* message) {
     const std::chrono::steady_clock::time_point deadline =
-        std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        std::chrono::steady_clock::now() + std::chrono::seconds(30);
     while (!predicate()) {
         if (std::chrono::steady_clock::now() >= deadline) {
             throw std::runtime_error(message);

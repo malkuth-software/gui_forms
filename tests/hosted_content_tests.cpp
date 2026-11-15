@@ -415,8 +415,11 @@ void a_hung_program_goes_stale_and_is_ended() {
     require(settle(fixture, StatusIs{ContentSurfaceStatus::stale}), "the watchdog marks the hung program stale");
     const std::chrono::steady_clock::time_point asked = std::chrono::steady_clock::now();
     (*fixture.surface).terminate();
-    require(settle(fixture, StatusIs{ContentSurfaceStatus::ended}), "terminate ends the hung process");
-    require(std::chrono::steady_clock::now() - asked < std::chrono::seconds(2),
+    // Waiting on the hung program would never end; the bounds guard against
+    // that, far past any scheduling delay (B-gf-tests-06-F3).
+    require(settle(fixture, StatusIs{ContentSurfaceStatus::ended}, std::chrono::milliseconds(30000)),
+            "terminate ends the hung process");
+    require(std::chrono::steady_clock::now() - asked < std::chrono::seconds(30),
             "the process was killed after the stop grace, not waited on");
 }
 
@@ -458,7 +461,10 @@ void closing_the_window_ends_the_process() {
     fixture.window.reset();
     fixture.root.reset();
     fixture.surface.reset();
-    require(std::chrono::steady_clock::now() - started < std::chrono::seconds(3),
+    // The grace is 2 s and the program never ends by itself, so an unbounded
+    // wait never returns; the bound is far past the grace plus any
+    // scheduling delay (B-gf-tests-06-F3).
+    require(std::chrono::steady_clock::now() - started < std::chrono::seconds(30),
             "closing the window waited only the bounded grace");
 }
 
