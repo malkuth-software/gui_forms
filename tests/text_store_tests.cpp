@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace {
@@ -175,6 +176,21 @@ void test_atomic_mutation_and_limits() {
       store.replace({Utf8Offset(0), Utf8Offset(0)}, std::string_view{});
   require(!no_op.changed && no_op.revision == store.revision(),
           "empty insertion must remain an observable no-op");
+
+  // A replacement viewing the store's own text: the edit grows the text past
+  // its capacity, so the bytes move while they are copied in.
+  const std::string doubled_from(200, 'q');
+  TextStore aliased(doubled_from);
+  const std::string_view own = aliased.utf8();
+  const TextEditResult appended =
+      aliased.replace({aliased.utf8_size(), aliased.utf8_size()}, own);
+  require(appended.changed && aliased.utf8() == doubled_from + doubled_from,
+          "a replacement viewing the store's own text is copied before the edit");
+  const std::string_view slice = std::string_view(aliased.utf8()).substr(10U, 5U);
+  const TextEditResult prefixed =
+      aliased.replace({Utf8Offset(0), Utf8Offset(0)}, slice);
+  require(prefixed.changed && aliased.utf8_size().value() == 405U,
+          "a slice of the store's own text is copied before the edit");
 }
 
 void test_unicode_line_index() {

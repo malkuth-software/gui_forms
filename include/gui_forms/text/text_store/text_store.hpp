@@ -47,6 +47,8 @@ public:
     }
     BorrowedSpan<TextStyleSpan> style_spans() const&& = delete;
 
+    // The text or replacement may view this store's own text (utf8() or a
+    // slice of it); it is copied before the edit.
     void set_text(std::string_view text);
     [[nodiscard]] TextEditResult replace(
         Utf8Range range, std::string_view replacement,

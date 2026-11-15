@@ -5,6 +5,7 @@
 #include "../unicode/unicode_grapheme_data.hpp"
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <span>
 #include <stdexcept>
@@ -342,6 +343,20 @@ TextEditResult TextStore::replace(Utf8Range range, std::string_view replacement,
     const bool region_reaches_end = region_old_end == old_size;
     const std::size_t region_new_end =
         region_old_end - removed_bytes + replacement.size();
+
+    // A replacement that views this store's own text (a caller passing
+    // utf8() or a slice of it) is copied first: the reserve below may move
+    // the bytes it views before replace reads them.
+    std::string own_text_copy{};
+    const char* const text_first = text_.data();
+    const char* const text_last = text_first + text_.size();
+    const std::less<const char*> before{};
+    const bool views_own_text = !replacement.empty() && !before(replacement.data(), text_first) &&
+                                before(replacement.data(), text_last);
+    if (views_own_text) {
+      own_text_copy.assign(replacement);
+      replacement = own_text_copy;
+    }
 
     // The edit is made in place within capacity reserved first, so that
     // undoing it on a failure below allocates nothing.
