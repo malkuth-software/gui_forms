@@ -794,7 +794,7 @@ private:
     void realize();
     void remove_slot(StackSlot& slot) noexcept;
     void sync_pages(StackSlot& slot, const DockNode& node);
-    void supply_content(StackSlot& slot);
+    void supply_content(DockNodeId stack);
     void update_focus_regions();
     void on_layout_changed(const DockLayoutChange& change);
     // The views' events, bound to the stack's node identity.

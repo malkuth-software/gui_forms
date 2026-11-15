@@ -448,16 +448,27 @@ void DockSite::sync_pages(StackSlot& slot, const DockNode& node) {
 }
 
 // The selected panel of a stack being shown gets its content, created by
-// its factory the first time (lazy creation).
-void DockSite::supply_content(StackSlot& slot) {
-    if (workspace_ == nullptr || !slot.view || (slot.collapsed && !slot.in_flyout)) return;
-    const std::optional<DockPanelId> panel = selected_panel(slot);
+// its factory the first time (lazy creation). The stack is named by its
+// node, not a slot: the factory is application code, and a layout edit it
+// makes (show_panel, activate_panel, hide_panel, add_panels) realizes the
+// site again, which replaces stacks_. The view is held across the
+// factory, and the content is given only if the stack's slot still holds
+// that view (A-gf-controls-03-F2).
+void DockSite::supply_content(DockNodeId stack) {
+    const StackSlot* const slot = slot_for(stack);
+    if (workspace_ == nullptr || slot == nullptr || !(*slot).view || ((*slot).collapsed && !(*slot).in_flyout)) {
+        return;
+    }
+    const std::optional<DockPanelId> panel = selected_panel(*slot);
     if (!panel) return;
+    const std::shared_ptr<StackView> view = (*slot).view;
     const PageId page{(*panel).value};
-    if ((*slot.view).page_content(page)) return;
+    if ((*view).page_content(page)) return;
     const Control::Ptr content = (*workspace_).create_panel_content(*panel);
     if (!content) return;
-    static_cast<void>((*slot.view).set_page_content(page, content));
+    const StackSlot* const after = slot_for(stack);
+    if (after == nullptr || (*after).view != view) return;
+    static_cast<void>((*view).set_page_content(page, content));
 }
 
 // The stacks are the window's F6 regions in tree order, where the site's
@@ -546,7 +557,7 @@ void DockSite::on_layout_changed(const DockLayoutChange&) {
             static_cast<void>((*(*slot).view).pages().select(PageId{(*flyout_panel_).value}, PageSelectionCause::programmatic));
             syncing_ = false;
             (*slot).title = (*workspace_).panel_title(*flyout_panel_);
-            supply_content(*slot);
+            supply_content(flyout_stack_);
             place_flyout();
         }
     }
@@ -606,8 +617,7 @@ void DockSite::on_view_selection(DockNodeId stack, const PageSelectionChange& ch
 
 void DockSite::on_view_content(DockNodeId stack, const PageContentRequest&) {
     if (syncing_) return;
-    StackSlot* const slot = slot_for(stack);
-    if (slot != nullptr) supply_content(*slot);
+    supply_content(stack);
 }
 
 // A document tab's close (the accessibility action until the document
@@ -684,7 +694,7 @@ void DockSite::focus_panel(const DockPanelId& panel) {
     Window* const host = attached_window();
     if (host == nullptr || workspace_ == nullptr) return;
     const DockPanelLocation location = (*workspace_).layout().locate(panel);
-    StackSlot* const slot = slot_for(location.stack);
+    const StackSlot* slot = slot_for(location.stack);
     if (slot == nullptr) return;
     // A panel behind a side tab opens in its flyout, which takes focus.
     if (!(*slot).in_flyout && ((*slot).auto_hidden || (*slot).side_tabbed)) {
@@ -692,23 +702,31 @@ void DockSite::focus_panel(const DockPanelId& panel) {
         return;
     }
     if ((*slot).collapsed && !(*slot).in_flyout) return;
-    supply_content(*slot);
+    supply_content(location.stack);
+    // The factory may have edited the layout: the slot is found again.
+    slot = slot_for(location.stack);
+    if (slot == nullptr || !(*slot).view) return;
+    // Held, with the remembered controls copied, before any focus request:
+    // a focus handler may edit the layout (replacing stacks_) or the
+    // remembered list.
+    const std::shared_ptr<StackView> view = (*slot).view;
     const PageId page{panel.value};
+    std::vector<Control::Ptr> remembered;
     for (const RememberedFocus& entry : remembered_focus_) {
         if (!(entry.panel == panel)) continue;
-        const Control::Ptr control = entry.control.lock();
-        if (control && focus_candidate(*control) && (*(*slot).view).contains(*control) &&
-            (*host).request_focus(control)) {
-            return;
-        }
+        Control::Ptr control = entry.control.lock();
+        if (control) remembered.push_back(std::move(control));
     }
-    const Control::Ptr content = (*(*slot).view).page_content(page);
+    for (const Control::Ptr& control : remembered) {
+        if (focus_candidate(*control) && (*view).contains(*control) && (*host).request_focus(control)) return;
+    }
+    const Control::Ptr content = (*view).page_content(page);
     if (content) {
         if (focus_candidate(*content) && (*host).request_focus(content)) return;
         const Control::Ptr inner = first_focusable(content);
         if (inner && (*host).request_focus(inner)) return;
     }
-    const std::shared_ptr<PageStrip>& strip = (*(*slot).view).strip();
+    const std::shared_ptr<PageStrip> strip = (*view).strip();
     if (strip && focus_candidate(*strip)) static_cast<void>((*host).request_focus(strip));
 }
 
@@ -833,7 +851,7 @@ void DockSite::move_view_to_flyout(StackSlot& slot) {
     static_cast<void>((*slot.view).pages().select(PageId{(*flyout_panel_).value}, PageSelectionCause::programmatic));
     syncing_ = false;
     slot.title = (*workspace_).panel_title(*flyout_panel_);
-    supply_content(slot);
+    supply_content(slot.stack);
 }
 
 void DockSite::move_view_to_site(StackSlot& slot) {
@@ -1204,7 +1222,12 @@ void DockSite::finish_layout_pass(const PreviousPass& previous, Size surface, bo
     // The site takes focus (for its seams) only while it has some, and while
     // a drag runs (for its keys).
     focusable = !seams_.empty() || drag_.phase != DockDragPhase::idle;
-    for (StackSlot& slot : stacks_) supply_content(slot);
+    // Over the stacks' node IDs, copied first: a factory's layout edit
+    // replaces stacks_ (A-gf-controls-03-F2).
+    std::vector<DockNodeId> shown_stacks;
+    shown_stacks.reserve(stacks_.size());
+    for (const StackSlot& slot : stacks_) shown_stacks.push_back(slot.stack);
+    for (const DockNodeId stack : shown_stacks) supply_content(stack);
     if (drag_layer_) set_child_layout(drag_layer_, Rect{0.0, 0.0, surface.width, surface.height});
     if (drag_.phase == DockDragPhase::dragging) plan_drag_targets();
     if (drag_.phase == DockDragPhase::settling) place_settle_target();

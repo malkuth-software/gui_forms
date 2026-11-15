@@ -141,6 +141,11 @@ public:
 
     void create(DockPanelCreation& creation) {
         made.push_back(creation.panel.value);
+        // A factory that edits the layout while it builds (a document that
+        // opens or closes a companion panel).
+        if (edits != nullptr && creation.panel.value == trigger) {
+            static_cast<void>((*edits).hide_panel(DockPanelId(hides)));
+        }
         const std::string id = "content." + creation.panel.value;
         std::shared_ptr<Panel> panel = make_control<Panel>(StableId(id));
         std::shared_ptr<TextBox> edit = make_control<TextBox>(StableId(id + ".edit"));
@@ -161,6 +166,10 @@ public:
     }
 
     std::vector<std::string> made;
+    // When set, creating `trigger`'s content hides `hides` through `edits`.
+    DockWorkspace* edits{};
+    std::string trigger;
+    std::string hides;
 
 private:
     SaveJournal* journal_{};
@@ -224,7 +233,7 @@ void register_panels(DockWorkspace& workspace, PanelFactory& factory) {
     require(!workspace.register_panel(document(factory, "doc.first", "Again")), "a repeated identity is refused");
 }
 
-std::unique_ptr<Fixture> make_fixture(Size client = {800.0, 500.0}) {
+std::unique_ptr<Fixture> make_fixture(Size client = {800.0, 500.0}, std::string_view hides_when_classes_made = {}) {
     std::unique_ptr<Fixture> fixture = std::make_unique<Fixture>();
     (*fixture).workspace = std::make_unique<DockWorkspace>("workspace");
     DockWorkspace& workspace = *(*fixture).workspace;
@@ -238,6 +247,11 @@ std::unique_ptr<Fixture> make_fixture(Size client = {800.0, 500.0}) {
     apply(workspace, DockEdit::show(DockPanelId("properties")));
     apply(workspace, DockEdit::show(DockPanelId("output")));
     require(factory.made.empty(), "registering and placing panels creates nothing");
+    if (!hides_when_classes_made.empty()) {
+        factory.edits = &workspace;
+        factory.trigger = "classes";
+        factory.hides = std::string(hides_when_classes_made);
+    }
     (*fixture).site = make_control<DockSite>(StableId("site"), workspace);
     (*fixture).window = std::make_unique<Window>((*fixture).site, client);
     (*(*fixture).window).perform_layout();
@@ -396,6 +410,23 @@ void lazy_creation() {
     const std::vector<std::string> shown{"solution", "doc.second", "properties", "output"};
     require(restored_factory.made == shown && (*site).realized_stacks().size() == 4U,
             "after a restore the factories run only for the selected panel of each shown stack");
+}
+
+// A factory that edits the layout during the layout pass that creates its
+// content (A-gf-controls-03-F2): hiding Output removes a stack, so the
+// site realizes again and replaces its stacks. The pass walks the stacks'
+// node IDs and finds each slot again after the factory, so nothing reads
+// the replaced slots; Classes still gets its content and Output is gone.
+void factory_edits_the_layout() {
+    std::unique_ptr<Fixture> fixture = make_fixture({800.0, 500.0}, "output");
+    DockWorkspace& workspace = *(*fixture).workspace;
+    (*(*fixture).window).perform_layout();
+    const std::vector<std::string>& made = (*fixture).factory.made;
+    require(!made.empty() && made.front() == "classes", "the classes factory ran first");
+    require(workspace.panel_content(DockPanelId("classes")) != nullptr, "Classes has its content");
+    require(workspace.layout().locate(DockPanelId("output")).placement == DockPlacementKind::hidden,
+            "the factory's edit hid Output");
+    require((*(*fixture).site).realized_stacks().size() == 3U, "the site shows the three stacks left");
 }
 
 // -- seams --------------------------------------------------------------------
@@ -1381,6 +1412,7 @@ int main() {
     anatomy_and_parts();
     add_panels_docked_only();
     lazy_creation();
+    factory_edits_the_layout();
     seam_keyboard_and_pointer();
     collapse_by_priority();
     activation_and_commands();
