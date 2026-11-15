@@ -26,6 +26,7 @@
 #include "gui_forms/window/window.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -1463,6 +1464,48 @@ void single_column_semantics() {
             "several columns keep the table without a header");
 }
 
+// Shrinks the list when the view takes focus, as a handler that reloads
+// its list on focus (or on another field's validation) does.
+struct ShrinkOnFocus final {
+    ListView* view{};
+    bool* shrunk{};
+    void operator()(bool focused) const {
+        if (!focused || *shrunk) return;
+        *shrunk = true;
+        (*view).set_items(sample_items(3U));
+    }
+};
+
+// A-gf-controls-08-F1: a press on row 10 whose focus request shrinks the
+// list to three items acts on the view as the handler left it (the press
+// lands in the empty viewport), never on row 10 of the old list: for a
+// plain, Shift and Control primary press and a secondary press.
+void focus_handler_shrinks_the_list() {
+    const std::array<Modifier, 3> modifiers{Modifier::none, Modifier::shift, Modifier::control};
+    for (std::size_t round = 0U; round < 4U; ++round) {
+        std::shared_ptr<ListView> view = details_view(20U);
+        Window window(view, {400.0, 400.0});
+        window.perform_layout();
+        const std::vector<ListView::Item> items = (*view).realized_items();
+        require(items.size() > 10U, "row 10 is shown");
+        const Point target = to_window(*view, centre(items[10].parts.text.bounds));
+        bool shrunk = false;
+        SubscriptionToken token = (*view).focus_observed().subscribe(ShrinkOnFocus{view.get(), &shrunk});
+        if (round < 3U) {
+            click(window, target, modifiers[round]);
+        } else {
+            PointerEvent down{PointerAction::down, PointerButton::secondary, target};
+            static_cast<void>(window.dispatch_pointer(down));
+            PointerEvent up{PointerAction::up, PointerButton::secondary, target};
+            static_cast<void>(window.dispatch_pointer(up));
+        }
+        const std::optional<std::size_t> focused = (*view).focused_index();
+        require(shrunk && (*view).item_count() == 3U, "the focus handler shrank the list during the press");
+        require((*view).selected_count() == 0U && (!focused || *focused < 3U),
+                "the press acts on the shrunken list, not on the row it was over before");
+    }
+}
+
 int main() {
     details_parts_and_paint();
     selection_by_pointer_and_keyboard();
@@ -1485,6 +1528,7 @@ int main() {
     activation_modes();
     header_styles();
     single_column_semantics();
+    focus_handler_shrinks_the_list();
     capabilities();
     refusals();
     std::cout << "ListView: parts, views, selection, keys, checks, columns, sorting, resizing, owner drawing, "

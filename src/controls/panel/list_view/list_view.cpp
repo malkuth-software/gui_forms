@@ -708,6 +708,8 @@ void ListView::move_focus(std::size_t index) {
 }
 
 void ListView::choose(std::size_t index, Modifier modifiers, bool move_only) {
+    // An index a handler's change outdated selects nothing.
+    if (index >= item_count()) return;
     const bool control = has_modifier(modifiers, Modifier::control) || has_modifier(modifiers, Modifier::meta);
     const bool shift = has_modifier(modifiers, Modifier::shift);
     if (move_only && multi_select.read()) {
@@ -2392,48 +2394,57 @@ void ListView::handle_pointer(PointerEvent& event) {
         if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
         if (!is_alive()) return;
         event.handled = true;
+        // The focus request runs handlers (validation, lost and got focus)
+        // that may replace the items or columns: the press is hit again
+        // against the view as they left it, and a slow click needs the same
+        // target (A-gf-controls-08-F1).
+        const Layout settled = layout();
+        const Hit target = hit_test(settled, local);
+        const bool slow_target = slow_click && target.zone == hit.zone && target.index == hit.index;
         if (event.button == PointerButton::secondary) {
             // A secondary press selects the item under it unless it is
             // already selected (context menus are the application's).
-            if (hit.zone == HitZone::item && selected_[hit.index] == 0U) choose(hit.index, Modifier::none, false);
+            const bool unselected =
+                target.zone == HitZone::item && target.index < selected_.size() && selected_[target.index] == 0U;
+            if (unselected) choose(target.index, Modifier::none, false);
             return;
         }
         primary_press_taken_ = true;
-        if (hit.zone == HitZone::divider) {
-            resizing_column_ = hit.index;
+        if (target.zone == HitZone::divider) {
+            resizing_column_ = target.index;
             resize_start_x_ = local.x;
-            resize_start_width_ = columns_[hit.index].width;
+            resize_start_width_ = columns_[target.index].width;
             if (window() != nullptr) (*window()).capture_pointer(lifetime, event.pointer_id);
             invalidate(Dirty::paint | Dirty::semantics);
-        } else if (hit.zone == HitZone::header && header_style.read() == ListViewHeaderStyle::clickable) {
-            pressed_column_ = hit.index;
+        } else if (target.zone == HitZone::header && header_style.read() == ListViewHeaderStyle::clickable) {
+            pressed_column_ = target.index;
             if (window() != nullptr) (*window()).capture_pointer(lifetime, event.pointer_id);
             invalidate(Dirty::paint | Dirty::semantics);
-        } else if (hit.zone == HitZone::check) {
-            move_focus(hit.index);
-            toggle_check(hit.index);
-        } else if (hit.zone == HitZone::item) {
+        } else if (target.zone == HitZone::check) {
+            move_focus(target.index);
+            toggle_check(target.index);
+        } else if (target.zone == HitZone::item) {
             const ListViewActivation mode = activation.read();
             // two_click: a click on the item that was already selected and
             // focused, read before this press changes them.
-            const bool already_chosen = focused_index_ == hit.index && hit.index < selected_.size() &&
-                                        selected_[hit.index] != 0U;
+            const bool already_chosen = focused_index_ == target.index && target.index < selected_.size() &&
+                                        selected_[target.index] != 0U;
             if (event.click_count >= 2U) {
                 // one_click activated on the first press of the pair.
-                if (mode != ListViewActivation::one_click) activate(hit.index);
+                if (mode != ListViewActivation::one_click) activate(target.index);
             } else {
-                choose(hit.index, event.modifiers, false);
+                choose(target.index, event.modifiers, false);
                 if (!is_alive()) return;
                 const bool plain = event.modifiers == Modifier::none;
                 if (plain && mode == ListViewActivation::one_click) {
-                    activate(hit.index);
+                    activate(target.index);
                 } else if (plain && mode == ListViewActivation::two_click && already_chosen) {
-                    activate(hit.index);
-                } else if (slow_click) {
-                    schedule_label_click(hit.index);
+                    activate(target.index);
+                } else if (slow_target) {
+                    schedule_label_click(target.index);
                 }
             }
-        } else if (!placed.viewport.empty() && placed.viewport.contains(local) &&
+        } else if (!settled.viewport.empty() && settled.viewport.contains(local) &&
                    event.modifiers == Modifier::none) {
             if (select_none()) publish_selection();
         }
@@ -3101,16 +3112,20 @@ bool ListView::on_semantic_child_action(std::string_view id, SemanticAction acti
     const Control::Ptr lifetime = shared_from_this();
     if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
     if (!is_alive()) return true;
+    // The focus handlers may have replaced the items: the item is looked up
+    // again by its identity (A-gf-controls-08-F1).
+    const std::optional<std::size_t> current = realized_index_of(id);
+    if (!current || *current >= item_count()) return true;
     if (action == SemanticAction::focus) {
-        move_focus(*index);
+        move_focus(*current);
     } else if (action == SemanticAction::select) {
-        choose(*index, Modifier::none, false);
+        choose(*current, Modifier::none, false);
     } else if (check_boxes.read()) {
         // Press toggles a check-list item, as CheckedListBox's do.
-        move_focus(*index);
-        toggle_check(*index);
+        move_focus(*current);
+        toggle_check(*current);
     } else {
-        activate(*index);
+        activate(*current);
     }
     return true;
 }
