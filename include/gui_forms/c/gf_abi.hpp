@@ -3837,13 +3837,20 @@ public:
         other.objects_ = nullptr;
         other.object_ = 0u;
     }
+    // Takes other's reference before it lets go of its own, so a
+    // release that ends this owner (a callback's release deleting it)
+    // finds nothing left to write.
     ObjectReference& operator=(ObjectReference&& other) noexcept {
         if (this != &other) {
-            (void)(*this).reset();
+            const ObjectsTable* const previous_table = objects_;
+            const gf_object previous = object_;
             objects_ = other.objects_;
             object_ = other.object_;
             other.objects_ = nullptr;
             other.object_ = 0u;
+            if (previous_table != nullptr && previous != 0u) {
+                (void)(*previous_table).release(previous);
+            }
         }
         return *this;
     }
@@ -3861,15 +3868,17 @@ public:
 
     // Releases the reference now; GF_STATUS_OK when there was none. The owner
     // is empty afterwards whatever release answered.
+    // The owner is emptied before the call (A-gf-abi-01-F4): the release
+    // may end subscriptions whose callbacks' release destroys this owner.
     gf_status reset() noexcept {
-        if (objects_ == nullptr || object_ == 0u) {
-            objects_ = nullptr;
-            object_ = 0u;
-            return GF_STATUS_OK;
-        }
-        const gf_status released = (*objects_).release(object_);
+        const ObjectsTable* const objects = objects_;
+        const gf_object object = object_;
         objects_ = nullptr;
         object_ = 0u;
+        if (objects == nullptr || object == 0u) {
+            return GF_STATUS_OK;
+        }
+        const gf_status released = (*objects).release(object);
         return released;
     }
 
@@ -3892,13 +3901,20 @@ public:
         other.events_ = nullptr;
         other.subscription_ = 0u;
     }
+    // Takes other's subscription before it lets go of its own, so a
+    // disconnect that ends this owner (a callback's release deleting it)
+    // finds nothing left to write.
     SubscriptionReference& operator=(SubscriptionReference&& other) noexcept {
         if (this != &other) {
-            (void)(*this).reset();
+            const EventsTable* const previous_table = events_;
+            const gf_subscription previous = subscription_;
             events_ = other.events_;
             subscription_ = other.subscription_;
             other.events_ = nullptr;
             other.subscription_ = 0u;
+            if (previous_table != nullptr && previous != 0u) {
+                (void)(*previous_table).disconnect(previous);
+            }
         }
         return *this;
     }
@@ -3908,15 +3924,17 @@ public:
 
     // Disconnects now; GF_STATUS_OK when there was nothing to disconnect. The
     // owner is empty afterwards whatever disconnect answered.
+    // The owner is emptied before the call (A-gf-abi-01-F4): disconnect
+    // runs the callback's release, which may destroy this owner.
     gf_status reset() noexcept {
-        if (events_ == nullptr || subscription_ == 0u) {
-            events_ = nullptr;
-            subscription_ = 0u;
-            return GF_STATUS_OK;
-        }
-        const gf_status disconnected = (*events_).disconnect(subscription_);
+        const EventsTable* const events = events_;
+        const gf_subscription subscription = subscription_;
         events_ = nullptr;
         subscription_ = 0u;
+        if (events == nullptr || subscription == 0u) {
+            return GF_STATUS_OK;
+        }
+        const gf_status disconnected = (*events).disconnect(subscription);
         return disconnected;
     }
 

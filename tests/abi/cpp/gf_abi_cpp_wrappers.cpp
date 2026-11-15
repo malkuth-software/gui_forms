@@ -129,6 +129,49 @@ void subscription_reference(const ObjectsTable& objects, const EventsTable& even
     require(counts.invocations == 1u, "a disconnected callback does not run");
 }
 
+// A-gf-abi-01-F4: a handler that owns its SubscriptionReference and is the
+// callback's context, deleted by the callback's release. reset() runs
+// disconnect, which runs the release, which destroys the owner: the owner
+// must already be empty, so nothing is written into the freed handler and
+// its destructor disconnects nothing more. Under AddressSanitizer the old
+// order was a write after free.
+struct SelfOwnedHandler final {
+    SubscriptionReference subscription;
+    std::uint32_t* deletions = nullptr;
+};
+
+void self_owned_release(void* context) {
+    SelfOwnedHandler* handler = static_cast<SelfOwnedHandler*>(context);
+    std::uint32_t* const deletions = (*handler).deletions;
+    delete handler;
+    *deletions = *deletions + 1u;
+}
+
+void self_owned_subscription(const ObjectsTable& objects, const EventsTable& events) {
+    gf_object created = 0u;
+    require(objects.create(text_view("check_box"), text_view("cpp.self_owned"), &created) == GF_STATUS_OK,
+            "create a check box for a self-owned handler");
+    const ObjectReference check_box(objects, created);
+    std::uint32_t deletions = 0u;
+    SelfOwnedHandler* handler = new SelfOwnedHandler();
+    (*handler).deletions = &deletions;
+    gf_callback callback{};
+    callback.struct_size = static_cast<std::uint32_t>(sizeof(callback));
+    callback.invoke = &count_invoke;
+    callback.release = &self_owned_release;
+    // count_invoke is never reached (nothing is raised); the context is the
+    // handler, for the release.
+    callback.context = handler;
+    gf_subscription subscribed = 0u;
+    require(events.subscribe(check_box.get(), text_view("check_state_changed"), &callback, &subscribed) ==
+                GF_STATUS_OK,
+            "subscribe a self-owned handler");
+    (*handler).subscription = SubscriptionReference(events, subscribed);
+    const gf_status reset = (*handler).subscription.reset();
+    require(reset == GF_STATUS_OK, "reset disconnects the handler's own subscription");
+    require(deletions == 1u, "the release deleted the handler once, and its destructor disconnected nothing more");
+}
+
 // The window slots added in 1.1: served by this library, and answering
 // GF_STATUS_UNSUPPORTED_VERSION from a table a 1.0 library served.
 void window_slots(const ObjectsTable& objects, const WindowsTable& windows) {
@@ -257,6 +300,7 @@ int main() {
     negotiation(runtime);
     object_reference(objects);
     subscription_reference(objects, events, properties);
+    self_owned_subscription(objects, events);
     window_slots(objects, windows);
     focus_slots(objects, controls, windows);
     if (failures != 0) {
