@@ -12,11 +12,14 @@
 //   garbage   writes bytes that are no message, then waits forever
 //   oversize  publishes a frame larger than any frame may be, then frames
 //   exit3     connects, then exits with status 3
+//   standard3 connects, then exits with status 3 when standard input,
+//             output and error are all open, 4 when any is closed
 //   silent    never connects (the parent's start timeout ends it)
 
 #include "gui_forms/content/hosted/hosted_client.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 
+#include <fcntl.h>
 #include <unistd.h>
 
 #include <chrono>
@@ -138,6 +141,14 @@ int main(int argc, char** argv) {
     std::unique_ptr<HostedClient> client = HostedClient::connect();
     if (!client) return 2;
     if (mode == "exit3") return 3;
+    if (mode == "standard3") {
+        bool all_open = true;
+        for (int standard = 0; standard <= 2; ++standard) {
+            if (fcntl(standard, F_GETFD) == -1) all_open = false;
+        }
+        const int status = all_open ? 3 : 4;
+        return status;
+    }
     if (mode == "crash") {
         static_cast<void>(publish_one(*client));
         std::abort();

@@ -426,6 +426,13 @@ void exit_status_and_start_timeout() {
     require(settle(exited, StatusIs{ContentSurfaceStatus::failed}), "a nonzero exit fails the surface");
     require((*exited.surface).failure().find("status 3") != std::string::npos, "the failure carries the status");
 
+    // A-gf-host-02-F4: the program starts with standard input, output and
+    // error open (macOS once closed them all).
+    Fixture standard = start_child("hosted.standard", "standard3");
+    require(settle(standard, StatusIs{ContentSurfaceStatus::failed}), "the standard descriptor probe exits");
+    require((*standard.surface).failure().find("status 3") != std::string::npos,
+            "the hosted program has standard input, output and error");
+
     Fixture silent = start_child("hosted.silent", "silent", std::chrono::milliseconds(300));
     require(settle(silent, StatusIs{ContentSurfaceStatus::failed}), "a program that never connects is ended");
     require((*silent.surface).failure().find("hello") != std::string::npos, "the failure names the missing hello");

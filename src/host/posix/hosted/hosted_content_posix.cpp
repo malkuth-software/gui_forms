@@ -461,8 +461,19 @@ pid_t spawn_child(const HostedContentOptions& options, int channel, int frames) 
     sigaddset(&defaults, SIGPIPE);
     int flags = POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSIGDEF;
 #if defined(POSIX_SPAWN_CLOEXEC_DEFAULT)
-    // macOS: only the dup2 targets are inherited.
+    // macOS: only the file actions' targets are inherited, so standard
+    // input, output and error are named too: inherited where this process
+    // has them, /dev/null where it does not. Without them the child started
+    // with 0, 1 and 2 closed, lost its diagnostics, and its first files
+    // took those numbers (A-gf-host-02-F4).
     flags |= POSIX_SPAWN_CLOEXEC_DEFAULT;
+    for (int standard = 0; standard <= 2; ++standard) {
+        const bool open_here = fcntl(standard, F_GETFD) != -1;
+        const int added = open_here
+            ? posix_spawn_file_actions_addinherit_np(&setup.actions_, standard)
+            : posix_spawn_file_actions_addopen(&setup.actions_, standard, "/dev/null", O_RDWR, 0);
+        if (added != 0) throw std::runtime_error("hosted content: spawn file actions failed");
+    }
 #endif
     posix_spawnattr_setsigmask(&setup.attributes_, &empty_mask);
     posix_spawnattr_setsigdefault(&setup.attributes_, &defaults);
