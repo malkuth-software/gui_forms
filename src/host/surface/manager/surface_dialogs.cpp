@@ -223,7 +223,18 @@ HostDialogResult message_dialog(NativeWindow& owner, const HostDialogRequest& re
     }
     runtime.begin_modal_scope(id);
     runtime.activate(id, true);
-    while (!state.done && !owner.closed && !runtime.quitting) runtime.step();
+    // A turn that throws (an allocation in compose or the raster) closes
+    // the dialog's window before this frame unwinds: its closed callback
+    // points at state, and Runtime's destructor would otherwise call it on
+    // the unwound stack (A-gf-host-02-F9).
+    try {
+        while (!state.done && !owner.closed && !runtime.quitting) runtime.step();
+    } catch (...) {
+        help_key.disconnect();
+        runtime.desk.end_modal(id);
+        (*native).close(HostCloseReason::application, true);
+        throw;
+    }
     help_key.disconnect();
     runtime.desk.end_modal(id);
     // Closed here; Runtime::reclaim releases it.
