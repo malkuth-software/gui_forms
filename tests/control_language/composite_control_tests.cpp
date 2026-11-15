@@ -273,7 +273,10 @@ constexpr std::string_view live_slider = R"xml(<?xml version="1.0" encoding="UTF
     <drag kind="value" mode="live" axis="inline" range="start-of(rail) end-of(rail)" maps-to="level"
           keyboard="none"/>
   </part>
-  <focus target="self" tab-stop="yes"/>
+  <focus target="self" tab-stop="yes" visible-cue="part(focus)"/>
+  <!-- The keyboard reaches level (E913), as the drag does not. -->
+  <key gesture="arrow-right"><step property="level" by="1"/></key>
+  <key gesture="arrow-left"><step property="level" by="calc(0 - 1)"/></key>
   <semantics role="slider" name="property(accessible-name)" value="level" range="0 100"/>
 </control>
 )xml";
@@ -362,7 +365,7 @@ constexpr std::string_view looked_pair = R"xml(<?xml version="1.0" encoding="UTF
   <focus target="none"/>
   <look>
     looked-pair::part(face) { color: #102030; }
-    button { color: #405060; }
+    looked-pair > button { color: #405060; }
   </look>
 </control>
 )xml";
@@ -533,7 +536,7 @@ constexpr std::string_view branded_pair = R"xml(<?xml version="1.0" encoding="UT
   <focus target="none"/>
   <look>
     branded-pair::part(face) { color: var(--brand, #000000); }
-    button { color: var(--brand, #000000); }
+    branded-pair > button { color: var(--brand, #000000); }
   </look>
 </control>
 )xml";
