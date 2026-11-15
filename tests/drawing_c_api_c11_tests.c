@@ -614,7 +614,8 @@ static int check_text_and_reuse(const gd_api_v0* api) {
     /* D4: reset empties the recording, reopens it and drops saved tokens. */
     CHECK((*api).recorder_save(recorder, &token) == GD_OK);
     CHECK((*api).recorder_close(recorder) == GD_OK);
-    CHECK((*api).recorder_fill_rectangle(recorder, brush, (gd_rect){0, 0, 1, 1}) == GD_ERROR_INVALID_ARGUMENT);
+    /* A closed recorder refuses drawing as a state (seal decision 4). */
+    CHECK((*api).recorder_fill_rectangle(recorder, brush, (gd_rect){0, 0, 1, 1}) == GD_ERROR_INVALID_STATE);
     CHECK((*api).recorder_reset(recorder) == GD_OK);
     CHECK((*api).recorder_command_count(recorder, &count) == GD_OK && count == 0U);
     CHECK((*api).recorder_restore(recorder, token) == GD_ERROR_INVALID_ARGUMENT);

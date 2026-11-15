@@ -487,12 +487,13 @@ int main() {
     CHECK(api.measure_string != nullptr);
     CHECK(api.recorder_execute_from != nullptr);
     // The raster is installed through the table (1.1, provisional): its
-    // 0.1 prefix has no raster_initialize, and the 1.0 one stops before it.
+    // 0.1 prefix has no raster_initialize, and the 1.0 one stops before the
+    // first 1.1 slot (graphics_path_flatten, then raster_initialize).
     CHECK(api.struct_size == offsetof(gd_api_v0, bitmap_edit_begin));
     gd_api_v0 raster{};
     raster.struct_size = sizeof(raster);
     CHECK(gd_get_api_v0(GD_ABI_VERSION_1_0, &raster) == GD_OK);
-    CHECK(raster.struct_size == offsetof(gd_api_v0, raster_initialize));
+    CHECK(raster.struct_size == offsetof(gd_api_v0, graphics_path_flatten));
     CHECK(raster.raster_initialize == nullptr);
     raster = gd_api_v0{};
     raster.struct_size = sizeof(raster);
