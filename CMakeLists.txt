@@ -3820,6 +3820,14 @@ if(GUI_FORMS_BUILD_TESTS)
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_live_idle_tests
                  COMMAND gui_forms_windows_live_idle_tests)
+        add_executable(gui_forms_windows_schedule_wake_tests tests/windows_schedule_wake_tests.cpp)
+        target_compile_definitions(gui_forms_windows_schedule_wake_tests PRIVATE
+            ${GUI_FORMS_WINDOWS_DEFINITIONS}
+            GUI_FORMS_WINDOWS_SCHEDULE_WAKE_TEST=1)
+        target_link_libraries(gui_forms_windows_schedule_wake_tests PRIVATE
+            gui_forms_controls gui_forms_host_windows)
+        add_test(NAME gui_forms_windows_schedule_wake_tests
+                 COMMAND gui_forms_windows_schedule_wake_tests)
         add_executable(gui_forms_windows_text_tests tests/windows_text_tests.cpp)
         target_compile_definitions(gui_forms_windows_text_tests PRIVATE
             ${GUI_FORMS_WINDOWS_DEFINITIONS})
@@ -7194,7 +7202,7 @@ endif()
 # The targets that compile the red/blue swap loops' replacements link stx_skia::swizzle: the
 # core (material images), the controls (the raster canvas), the Windows drawing C API (its
 # objects, which the C ABI library holds, and the static test archive made of them), and
-# the Windows host with the tests that compile windows_host.cpp, the last seven by including it textually.
+# the Windows host with the tests that compile windows_host.cpp, the ones after it by including it textually.
 foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
         gui_drawing_c_api_objects gui_drawing_c_api gui_forms_host_windows
         gui_forms_windows_dib_lifecycle_tests
@@ -7202,7 +7210,7 @@ foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
         gui_forms_windows_canvas_raster_tests gui_forms_windows_content_pixels_tests
         gui_forms_windows_control_snapshot_tests gui_forms_windows_damage_rectangles_tests
         gui_forms_windows_scroll_copy_tests gui_forms_windows_live_idle_tests
-        gui_forms_windows_text_tests)
+        gui_forms_windows_schedule_wake_tests gui_forms_windows_text_tests)
     if(TARGET ${gui_forms_swizzle_target})
         target_link_libraries(${gui_forms_swizzle_target} PRIVATE stx_skia::swizzle)
     endif()

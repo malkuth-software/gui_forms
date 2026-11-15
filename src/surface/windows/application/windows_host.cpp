@@ -172,6 +172,10 @@ constexpr UINT modal_live_clock_message = WM_APP + 0x43U;
 // Posted from a producer thread when a live surface publishes while the
 // window's live clock rests (the idle handshake, audit E4).
 constexpr UINT live_surface_wake_message = WM_APP + 0x44U;
+// Posted by the schedule wake seam (post_schedule_wake): a frame request
+// was made or moved outside the model's frame poll, so the window polls,
+// collects damage and arms its wake for the new deadline.
+constexpr UINT schedule_wake_message = WM_APP + 0x45U;
 // A scheduled wake nearer than this rides the high-resolution scheduler
 // clock instead of WM_TIMER, whose floor is about 10 ms, whose granularity
 // is the system timer's (15.6 ms by default) and whose message has the
@@ -1440,6 +1444,9 @@ class WindowsHostState final {
 #if defined(GUI_FORMS_WINDOWS_LIVE_IDLE_TEST)
     friend struct LiveIdleHostFixture;
 #endif
+#if defined(GUI_FORMS_WINDOWS_SCHEDULE_WAKE_TEST)
+    friend struct ScheduleWakeHostFixture;
+#endif
 public:
     WindowsHostState(std::unique_ptr<Window> model, WindowsHostOptions options)
         : model_(std::move(model)), options_(std::move(options)),
@@ -1508,6 +1515,7 @@ public:
         if (model_) {
             (*model_).set_live_surface_idle_wake_handler({});
             (*model_).set_paint_wake_handler({});
+            (*model_).set_schedule_wake_handler({});
             (*model_).set_text_metrics_provider(nullptr);
             (*model_).set_framebuffer_painter(nullptr);
         }
@@ -1562,6 +1570,15 @@ public:
             gui_forms::detail::BoundMemberFunction<
                 void (WindowsHostState::*)() noexcept>(
                     *this, &WindowsHostState::request_render_wake));
+        // A frame request made outside the frame poll (a Timer restarted
+        // from another window's callback, the idle frames a paint arms)
+        // posts schedule_wake_message, whose handler polls and re-arms. The
+        // model calls this at once if it already has a wake; the message
+        // waits in the queue until the window is ready.
+        (*model_).set_schedule_wake_handler(
+            gui_forms::detail::BoundMemberFunction<
+                void (WindowsHostState::*)() noexcept>(
+                    *this, &WindowsHostState::post_schedule_wake));
         (*model_).set_live_surface_idle_wake_handler(PostLiveSurfaceWake{hwnd_});
 #if !defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
         // The painter keeps its pixels between frames, so a scroll's pixels
@@ -2007,6 +2024,15 @@ public:
             presentation_pending_ =
                 GetUpdateRect(hwnd_, nullptr, FALSE) != FALSE;
             return 0;
+        case schedule_wake_message:
+            // The schedule wake seam's post: the poll inside collect_damage
+            // answers the model's owed wake and arm_scheduled_wake arms the
+            // clock for the new deadline. Posted messages are pumped by the
+            // native size/move loop and by modal loops, so this also runs
+            // inside them.
+            ++schedule_wakes_handled_;
+            collect_damage();
+            return 0;
         case WM_TIMER:
             if (wparam == invalidation_overlay_timer) {
                 present_invalidation_overlay();
@@ -2126,6 +2152,7 @@ public:
             }
             (*model_).set_live_surface_idle_wake_handler({});
             (*model_).set_paint_wake_handler({});
+            (*model_).set_schedule_wake_handler({});
             // The scheduler clock would run one more collect_damage on the
             // closed window's model (A-gf-host-03-F8).
             if (scheduler_clock_armed_) {
@@ -2842,6 +2869,16 @@ private:
         if (modal_live_clock_ == nullptr) return;
         SetThreadpoolWait(modal_live_clock_, nullptr, nullptr);
         WaitForThreadpoolWaitCallbacks(modal_live_clock_, TRUE);
+    }
+
+    // The schedule wake seam's target (SurfaceRoot::set_schedule_wake_handler).
+    // It runs inside model calls, painting included, so it only posts; the
+    // model coalesces its calls until the next frame poll. A refused post
+    // (a full queue, a destroyed window) leaves the model's wake owed until
+    // the next poll, which any later message that collects damage makes.
+    void post_schedule_wake() noexcept {
+        if (hwnd_ == nullptr) return;
+        if (PostMessageW(hwnd_, schedule_wake_message, 0, 0) != FALSE) ++schedule_wakes_posted_;
     }
 
     void request_render_wake() noexcept {
@@ -4086,6 +4123,10 @@ private:
     HANDLE scheduler_clock_{};
     bool scheduler_clock_armed_{};
     std::uint64_t scheduler_clock_signals_{};
+    // Schedule wake seam posts accepted by the queue, and their messages
+    // handled; counted for the schedule wake proof.
+    std::uint64_t schedule_wakes_posted_{};
+    std::uint64_t schedule_wakes_handled_{};
     std::uint64_t live_clock_signals_{};
     std::uint64_t live_presentation_drains_{};
     std::uint64_t live_updates_sampled_{};
