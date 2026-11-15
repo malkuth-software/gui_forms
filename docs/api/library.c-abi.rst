@@ -290,6 +290,8 @@ Types
      -  
    * - :cpp:class:`gf_picture_box_hooks <gf_picture_box_hooks>`
      -  
+   * - :cpp:class:`gf_program_identity <gf_program_identity>`
+     -  
    * - :cpp:class:`gf_progress_bar_class <gf_progress_bar_class>`
      -  
    * - :cpp:class:`gf_properties_table <gf_properties_table>`
@@ -1736,6 +1738,8 @@ Types
 
    .. cpp:member:: gf_status (*state)(gf_application_state* state)
 
+   .. cpp:member:: gf_status (*set_program_identity)(const gf_program_identity* identity)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -2886,6 +2890,10 @@ Types
 
    .. cpp:member:: gf_status (*failure_detail)(gf_failure_detail* detail)
 
+   .. cpp:member:: * toggle_diagnostic_overlay turns it to the other state, the business * card's gesture (D held with a secondary press on the vendor name), * and writes the new state into enabled, which may be null. Any * thread. GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1. */ gf_status (*set_diagnostic_overlay)(uint32_t enabled)
+
+   .. cpp:member:: gf_status (*toggle_diagnostic_overlay)(uint32_t* enabled)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3924,6 +3932,28 @@ Types
    .. cpp:member:: gf_class_id class_id
 
    .. cpp:member:: gf_hook_entry on_size_mode_changed
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_program_identity
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view product
+
+   .. cpp:member:: gf_utf8_view version
+
+   .. cpp:member:: gf_utf8_view vendor
+
+   .. cpp:member:: gf_utf8_view website
+
+   .. cpp:member:: gf_utf8_view copyright
+
+   .. cpp:member:: gf_utf8_view credits
 
 .. cpp:namespace:: 0
 
@@ -5201,6 +5231,10 @@ Types
 
    .. cpp:member:: gf_status (*shaping)(gf_object window, gf_window_shaping* report)
 
+   .. cpp:member:: gf_status (*pointer_location)(gf_object window_or_control, gf_logical_point* location, gf_logical_point* window_position, uint32_t* inside)
+
+   .. cpp:member:: gf_status (*show_business_card)(gf_object window_or_root, uint32_t* shown)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -6047,6 +6081,8 @@ Types
    .. cpp:function:: gf_status content_rect(gf_object window, gf_logical_rect* rect) const noexcept
 
    .. cpp:function:: gf_status shaping(gf_object window, gf_window_shaping* report) const noexcept
+
+   .. cpp:function:: gf_status pointer_location(gf_object window_or_control, gf_logical_point* location, gf_logical_point* window_position, uint32_t* inside) const noexcept
 
    .. cpp:function:: gf_status set_band_appearance(gf_object window, const gf_window_band_appearance* appearance) const noexcept
 

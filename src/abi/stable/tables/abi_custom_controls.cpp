@@ -397,24 +397,26 @@ gf_status load_definition(const gf_composite_spec& spec, gf_object& definition) 
     return GF_STATUS_OK;
 }
 
+gf_status custom_controls_load_composite_body(const gf_composite_spec* spec, gf_object* definition) {
+    if (spec == nullptr || definition == nullptr || (*spec).struct_size < composite_spec_size_1_5) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, load_composite_slot,
+                    "load_composite needs a gf_composite_spec of at least the 1.5 size and a definition output");
+    }
+    const gf_status loaded = load_definition(*spec, *definition);
+    return loaded;
+}
+
 gf_status GF_CALL custom_controls_load_composite(const gf_composite_spec* spec, gf_object* definition) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(load_composite_slot.table_id, load_composite_slot.slot_index);
-        if (spec == nullptr || definition == nullptr || (*spec).struct_size < composite_spec_size_1_5) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, load_composite_slot,
-                        "load_composite needs a gf_composite_spec of at least the 1.5 size and a definition output");
-        }
-        const gf_status loaded = load_definition(*spec, *definition);
-        return loaded;
-    } catch (...) {
-        const gf_status failed = fail_with_current_exception(load_composite_slot);
-        // As create: a throw after enter_ui leaves no binding.
+    const gf_status status = call_slot(load_composite_slot, custom_controls_load_composite_body, spec, definition);
+    if (status != GF_STATUS_OK) {
+        // As create: a failure after enter_ui leaves no binding (N10);
+        // unbind_if_idle does nothing while anything else holds the thread.
         try {
             registry().unbind_if_idle();
         } catch (...) {
         }
-        return failed;
     }
+    return status;
 }
 
 gf_status make_composite(gf_object definition, gf_utf8_view stable_id, gf_object& object) {
@@ -448,18 +450,18 @@ gf_status make_composite(gf_object definition, gf_utf8_view stable_id, gf_object
     return GF_STATUS_OK;
 }
 
+gf_status custom_controls_create_composite_body(gf_object definition, gf_utf8_view stable_id,
+                                                gf_object* object) {
+    if (object == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, create_composite_slot, "create_composite needs an object output");
+    }
+    const gf_status made = make_composite(definition, stable_id, *object);
+    return made;
+}
+
 gf_status GF_CALL custom_controls_create_composite(gf_object definition, gf_utf8_view stable_id,
                                                    gf_object* object) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(create_composite_slot.table_id, create_composite_slot.slot_index);
-        if (object == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, create_composite_slot, "create_composite needs an object output");
-        }
-        const gf_status made = make_composite(definition, stable_id, *object);
-        return made;
-    } catch (...) {
-        return fail_with_current_exception(create_composite_slot);
-    }
+    return call_slot(create_composite_slot, custom_controls_create_composite_body, definition, stable_id, object);
 }
 
 // The composite `object` names, entered on the UI thread.
@@ -492,15 +494,15 @@ gf_status perform_command(gf_object control, gf_utf8_view command, std::uint32_t
     return GF_STATUS_OK;
 }
 
+gf_status custom_controls_perform_composite_body(gf_object control, gf_utf8_view command,
+                                                 std::uint32_t* performed) {
+    const gf_status reported = perform_command(control, command, performed);
+    return reported;
+}
+
 gf_status GF_CALL custom_controls_perform_composite(gf_object control, gf_utf8_view command,
                                                     std::uint32_t* performed) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(perform_composite_slot.table_id, perform_composite_slot.slot_index);
-        const gf_status reported = perform_command(control, command, performed);
-        return reported;
-    } catch (...) {
-        return fail_with_current_exception(perform_composite_slot);
-    }
+    return call_slot(perform_composite_slot, custom_controls_perform_composite_body, control, command, performed);
 }
 
 gf_status find_child(gf_object control, gf_utf8_view local_id, gf_object& child) {
@@ -522,18 +524,18 @@ gf_status find_child(gf_object control, gf_utf8_view local_id, gf_object& child)
     return GF_STATUS_OK;
 }
 
+gf_status custom_controls_composite_child_body(gf_object control, gf_utf8_view local_id,
+                                               gf_object* child) {
+    if (child == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, composite_child_slot, "composite_child needs a child output");
+    }
+    const gf_status found = find_child(control, local_id, *child);
+    return found;
+}
+
 gf_status GF_CALL custom_controls_composite_child(gf_object control, gf_utf8_view local_id,
                                                   gf_object* child) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(composite_child_slot.table_id, composite_child_slot.slot_index);
-        if (child == nullptr) {
-            return fail(GF_STATUS_INVALID_ARGUMENT, composite_child_slot, "composite_child needs a child output");
-        }
-        const gf_status found = find_child(control, local_id, *child);
-        return found;
-    } catch (...) {
-        return fail_with_current_exception(composite_child_slot);
-    }
+    return call_slot(composite_child_slot, custom_controls_composite_child_body, control, local_id, child);
 }
 
 constexpr gf_custom_controls_table table{

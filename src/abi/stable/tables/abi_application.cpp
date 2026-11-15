@@ -283,14 +283,13 @@ gf_status apply_program_identity(const gf_program_identity* identity) {
     return GF_STATUS_OK;
 }
 
+gf_status application_set_program_identity_body(const gf_program_identity* identity) {
+    const gf_status applied = apply_program_identity(identity);
+    return applied;
+}
+
 gf_status GF_CALL application_set_program_identity(const gf_program_identity* identity) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(set_program_identity_slot.table_id, set_program_identity_slot.slot_index);
-        const gf_status applied = apply_program_identity(identity);
-        return applied;
-    } catch (...) {
-        return fail_with_current_exception(set_program_identity_slot);
-    }
+    return call_slot(set_program_identity_slot, application_set_program_identity_body, identity);
 }
 
 constexpr gf_application_table table{

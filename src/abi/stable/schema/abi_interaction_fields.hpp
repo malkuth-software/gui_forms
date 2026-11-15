@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 189> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 193> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -26,6 +26,7 @@ inline constexpr std::array<InteractionFieldsEntry, 189> interaction_fields{{
     {"BindingConvertEvent", "value: any, desired_kind: enumeration, handled: boolean"},
     {"BindingListChange", "kind: enumeration, index: signed_integer, stable_id: text, field: text, metadata_changed: boolean, to_index: signed_integer"},
     {"BindingNavigatorAddNew", "navigator_id: text, row.stable_id: text optional, row.values: collection optional, row.editable: boolean optional"},
+    {"BusinessCardRequest", "handled: boolean"},
     {"ButtonBase", ""},
     {"CalendarDateRange", "start.year: signed_integer, start.month: unsigned_integer, start.day: unsigned_integer, start.hour: unsigned_integer, start.minute: unsigned_integer, start.second: unsigned_integer, start.millisecond: unsigned_integer, end.year: signed_integer, end.month: unsigned_integer, end.day: unsigned_integer, end.hour: unsigned_integer, end.minute: unsigned_integer, end.second: unsigned_integer, end.millisecond: unsigned_integer"},
     {"CalloutCloseReason", "value: enumeration"},
@@ -102,7 +103,7 @@ inline constexpr std::array<InteractionFieldsEntry, 189> interaction_fields{{
     {"MenuItemInvocation", "menu_id: text, item_id: text, command_id: text, source_id: text"},
     {"MenuStripInvocation", "menu_strip_id: text, top_level_id: text, item.menu_id: text, item.item_id: text, item.command_id: text, item.source_id: text"},
     {"ModalLayerClosingEvent", "result: enumeration, cancel: boolean"},
-    {"MouseEventArgs", "button: enumeration, clicks: unsigned_integer, location: point, window_position: point, wheel_delta: point, modifiers: enumeration, action: enumeration, wheel_unit: enumeration, pointer_id: unsigned_integer, phase: enumeration, handled: boolean, suppress_click: boolean, wheel_phase: enumeration"},
+    {"MouseEventArgs", "button: enumeration, clicks: unsigned_integer, location: point, window_position: point, wheel_delta: point, modifiers: enumeration, action: enumeration, wheel_unit: enumeration, pointer_id: unsigned_integer, phase: enumeration, handled: boolean, suppress_click: boolean, wheel_phase: enumeration, timestamp_nanoseconds: unsigned_integer"},
     {"NavigationPaneOptionsRequest", "pane_id: text"},
     {"NavigationPaneState", "collapsed: boolean, button_count: unsigned_integer, hidden_pages: collection, page_order: collection"},
     {"NodeCanvasSelection", "nodes: unsigned_integer, link.index: unsigned_integer optional, link.generation: unsigned_integer optional"},
@@ -126,7 +127,7 @@ inline constexpr std::array<InteractionFieldsEntry, 189> interaction_fields{{
     {"PlotPointPick", "series: unsigned_integer, element: unsigned_integer, x: number, y: number"},
     {"PlotQuery", "present: boolean, x_minimum: number, x_maximum: number, y_minimum: number, y_maximum: number"},
     {"PlotViewRanges", "x_minimum: number, x_maximum: number, y_minimum: number, y_maximum: number"},
-    {"PointerEvent", "action: enumeration, button: enumeration, position: point, wheel_delta: point, modifiers: enumeration, pointer_id: unsigned_integer, phase: enumeration, handled: boolean, click_count: unsigned_integer, wheel_unit: enumeration, wheel_phase: enumeration"},
+    {"PointerEvent", "action: enumeration, button: enumeration, position: point, wheel_delta: point, modifiers: enumeration, pointer_id: unsigned_integer, phase: enumeration, handled: boolean, click_count: unsigned_integer, wheel_unit: enumeration, wheel_phase: enumeration, timestamp_nanoseconds: unsigned_integer"},
     {"PresentationSettings", "text_scale: number, high_contrast: boolean, reduced_motion: boolean, sound_enabled: boolean, ambient_motion: boolean, reduced_transparency: boolean, double_click_milliseconds: unsigned_integer, double_click_origin: enumeration, pointer.drag_width: number, pointer.drag_height: number, pointer.drag_origin: enumeration, pointer.hover_milliseconds: unsigned_integer, pointer.hover_width: number, pointer.hover_height: number, pointer.hover_origin: enumeration, pointer.native_hover: boolean, caret.blink_milliseconds: unsigned_integer, caret.origin: enumeration, colour_scheme: enumeration"},
     {"PreviewKeyDownEventArgs", "key_code: unsigned_integer, physical_key: unsigned_integer, modifiers: enumeration, repeat: boolean, is_input_key: boolean"},
     {"PropertyEditorInputError", "attempted_value: text, message: text"},
@@ -141,6 +142,8 @@ inline constexpr std::array<InteractionFieldsEntry, 189> interaction_fields{{
     {"QuickAccessToolbarPlacementChange", "toolbar_id: text, placement: enumeration"},
     {"RangeScrollEvent", "old_value: number, new_value: number, action: enumeration"},
     {"Rect", "value: rectangle"},
+    {"RelativePointerEnded", "reason: enumeration"},
+    {"RelativePointerEventArgs", "kind: enumeration, delta: point, position: point, button: enumeration, wheel_delta: point, wheel_unit: enumeration, modifiers: enumeration, mode: enumeration, timestamp_nanoseconds: unsigned_integer, unaccelerated: boolean, handled: boolean"},
     {"RibbonCommandClick", "ribbon_id: text, command_id: text"},
     {"RibbonDialogLaunch", "ribbon_id: text, group_id: text"},
     {"RibbonDropDownInvocation", "ribbon_id: text, command_id: text, choice.menu_id: text, choice.item_id: text, choice.command_id: text, choice.source_id: text"},
@@ -184,6 +187,7 @@ inline constexpr std::array<InteractionFieldsEntry, 189> interaction_fields{{
     {"VirtualRowsColumnMove", "from: unsigned_integer, to: unsigned_integer"},
     {"VirtualRowsHeaderClick", "column: unsigned_integer, modifiers: enumeration"},
     {"WindowBackdropGrant", "requested: enumeration, granted: enumeration, reason: enumeration, generation: unsigned_integer"},
+    {"WindowCapsuleRequest", "command: enumeration, origin: point, point: point, offset: point, snap: enumeration"},
     {"WizardPageChangingEvent", "from: unsigned_integer, to: unsigned_integer, cancel: boolean"},
     {"bool", "value: boolean"},
     {"double", "value: number"},

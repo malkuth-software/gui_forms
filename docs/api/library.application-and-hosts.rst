@@ -113,6 +113,8 @@ Related types
      - HostDisplayEvent carries a complete validated unique-primary monitor set after display topology change.
    * - :cpp:class:`HostEvent <gui_forms::HostEvent>`
      - HostEvent binds nonzero monotonic sequence and caller-supplied monotonic timestamp to one portable lifecycle/input payload.
+   * - :cpp:class:`HostEventClock <gui_forms::HostEventClock>`
+     - Maps a host's own event clock into FrameClock nanoseconds (PointerEvent::timestamp_nanoseconds) for a host whose events carry a time on another clock: X11's server milliseconds, Windows' GetMessageTime.
    * - :cpp:class:`HostFileDialogFilter <gui_forms::HostFileDialogFilter>`
      - HostFileDialogFilter carries a user-facing label and bounded extension vocabulary without native filter syntax.
    * - :cpp:class:`HostFolderDialogRequest <gui_forms::HostFolderDialogRequest>`
@@ -147,6 +149,10 @@ Related types
      - Where a native popup window opens and how it takes focus (owner, 2026-11-04): carried by its window entry (ApplicationWindow::popup and each adapter's native entry).
    * - :cpp:class:`HostProtocolRevision <gui_forms::HostProtocolRevision>`
      - One host protocol version and the feature it added.
+   * - :cpp:class:`HostRelativeMotionEvent <gui_forms::HostRelativeMotionEvent>`
+     - One motion sample in relative pointer mode (capability relative_pointer; host protocol version 14).
+   * - :cpp:class:`HostRelativePointerRequest <gui_forms::HostRelativePointerRequest>`
+     - What the window asks of the host for relative pointer mode (HostServices::set_relative_pointer).
    * - :cpp:class:`HostResizeEvent <gui_forms::HostResizeEvent>`
      - HostResizeEvent carries a validated logical client extent for an attached session.
    * - :cpp:class:`HostSaveFileDialogRequest <gui_forms::HostSaveFileDialogRequest>`
@@ -982,6 +988,19 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: HostEventClock final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   Maps a host's own event clock into FrameClock nanoseconds (PointerEvent::timestamp_nanoseconds) for a host whose events carry a time on another clock: X11's server milliseconds, Windows' GetMessageTime. The offset is the smallest (receipt - event time) seen, the estimate of least delay, so a mapped time never lies after its receipt and differences between events keep the host's own spacing. ``host_nanoseconds`` must not go backwards except by a wrap the caller has already unwrapped. One per host connection, on its thread.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: std::uint64_t map(std::uint64_t host_nanoseconds, std::uint64_t receipt_nanoseconds) noexcept
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostFileDialogFilter final
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -1333,6 +1352,46 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostRelativeMotionEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   One motion sample in relative pointer mode (capability relative_pointer; host protocol version 14). A host sends one per native sample, never merged: macOS each mouse moved or dragged event's deltaX and deltaY, X11 each XI2 raw motion. delta: logical units, sub-unit precision kept; unaccelerated: delta is the device's raw counts scaled to logical units (raw_pointer_motion), not the accelerated motion. position: the pointer in window logical units where it moves (free and confined modes); empty while locked. timestamp_nanoseconds: the sample's time (PointerEvent's clock; zero: the HostEvent's). The window refuses a delta or position that is not finite as invalid_payload. In confined and locked modes the host sends no absolute pointer moves (buttons and the wheel still come as PointerEvents); in free mode it sends both.
+
+   .. cpp:member:: Point delta
+
+   .. cpp:member:: bool unaccelerated
+
+   .. cpp:member:: std::optional<Point> position
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+   .. cpp:member:: std::uint64_t timestamp_nanoseconds
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostRelativePointerRequest final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   What the window asks of the host for relative pointer mode (HostServices::set_relative_pointer). active false returns the pointer to normal (shown, free, absolute moves). confine: the rectangle (window logical units) a confined pointer stays in. A host that cannot do the mode reports the error, and the window falls back (RelativePointerGrant).
+
+   .. cpp:member:: bool active
+
+   .. cpp:member:: RelativePointerMode mode
+
+      Default: ``{RelativePointerMode::free}``.
+
+   .. cpp:member:: bool hide_cursor
+
+   .. cpp:member:: bool raw_motion
+
+   .. cpp:member:: Rect confine
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostResizeEvent final
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -1465,6 +1524,10 @@ Related types
 
       Host lifecycle hooks: revoke before focus/capture loss, detach or close. Cleanup failures remain visible on outstanding leases and this snapshot.
 
+   .. cpp:function:: HostServiceStatus warp_pointer(Point position)
+
+      Moves the pointer to ``position``, window logical units (capability pointer_warp). invalid_argument for a position that is not finite.
+
    .. cpp:function:: HostClipboardTextResult read_clipboard_text()
 
       Validates service policy, delegates native read, enforces UTF-8/size/generation rules, and accounts failures.
@@ -1547,6 +1610,10 @@ Related types
 
       Validates pointer identity and capability, delegates native capture, and commits exact captured state only on success.
 
+   .. cpp:function:: HostServiceStatus set_relative_pointer(const HostRelativePointerRequest& request)
+
+      Relative pointer mode (capability relative_pointer; the window calls it from SurfaceRoot::begin_relative_pointer and its ends). An active request puts the native pointer in ``request.mode``; an inactive one gives the ordinary pointer back (shown, free, absolute moves) and is accepted whenever the pointer is in the mode. Refused, changing nothing: unsupported without relative_pointer, or for a confined or locked mode without pointer_confinement; invalid_argument for a mode outside the enumeration or a confine rectangle that is not finite and positive in a confined mode. Shutdown gives the pointer back.
+
 
    .. rubric:: Extension points
 
@@ -1595,6 +1662,16 @@ Related types
       *Protected.*
 
       Requires a concrete adapter to synchronize retained and native capture.
+
+   .. cpp:function:: virtual HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest& request)
+
+      *Protected.*
+
+      Called with a validated request whose capabilities the host advertises. An inactive request must give the pointer back even when it reports a failure. The defaults refuse as unsupported.
+
+   .. cpp:function:: virtual HostServiceStatus warp_pointer_impl(Point position)
+
+      *Protected.*
 
    .. cpp:function:: virtual HostClipboardTextResult read_clipboard_text_impl() = 0
 
@@ -1773,6 +1850,14 @@ Related types
 
    .. cpp:member:: std::uint64_t pointer_capture_updates
 
+   .. cpp:member:: bool relative_pointer_active
+
+      Relative pointer mode (set_relative_pointer): whether the native pointer is in it now, the accepted requests, and the pointer warps.
+
+   .. cpp:member:: std::uint64_t relative_pointer_updates
+
+   .. cpp:member:: std::uint64_t pointer_warps
+
    .. cpp:member:: std::uint64_t clipboard_reads
 
    .. cpp:member:: std::uint64_t clipboard_writes
@@ -1916,6 +2001,10 @@ Related types
    .. cpp:member:: std::uint64_t modal_transitions
 
    .. cpp:member:: std::uint64_t modal_input_suppressions
+
+   .. cpp:member:: std::uint64_t relative_motion_events
+
+      HostRelativeMotionEvent samples delivered to the window.
 
    .. cpp:member:: std::uint64_t drag_events
 
@@ -3727,6 +3816,14 @@ Enumerations
 
    .. cpp:enumerator:: hosted_content
 
+   .. cpp:enumerator:: relative_pointer
+
+   .. cpp:enumerator:: raw_pointer_motion
+
+   .. cpp:enumerator:: pointer_confinement
+
+   .. cpp:enumerator:: pointer_warp
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostCloseReason
@@ -4334,9 +4431,9 @@ Functions, constants and aliases
 
    Whether the rows run consecutively from 8, each with a feature.
 
-.. cpp:var:: constexpr std::array<HostProtocolRevision, 7> host_protocol_revisions
+.. cpp:var:: constexpr std::array<HostProtocolRevision, 8> host_protocol_revisions
 
-   The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version. Value: ``{{{8U, "the host's keyboard-command defaults (HostCapabilities::key_map)"}, {9U, "the compositor state report (HostCompositorEvent, stage T5)"}, {10U, "the platform's input settings (HostInputSettingsEvent: the double-click interval)"}, {11U, "the platform's mouse conventions: context requests (HostContextRequestEvent), native hover " "(HostHoverEvent) and the drag and hover settings (HostInputSettingsEvent::pointer)"}, {12U, "the native window's state (HostWindowStateEvent: full screen and corner-reshaping changes)"}, {13U, "the caret's blink phase (HostInputSettingsEvent::caret)"}, {14U, "the platform's locale (HostCapabilities::locale, HostCapability::locale)"}}}``.
+   The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version. Value: ``{{{8U, "the host's keyboard-command defaults (HostCapabilities::key_map)"}, {9U, "the compositor state report (HostCompositorEvent, stage T5)"}, {10U, "the platform's input settings (HostInputSettingsEvent: the double-click interval)"}, {11U, "the platform's mouse conventions: context requests (HostContextRequestEvent), native hover " "(HostHoverEvent) and the drag and hover settings (HostInputSettingsEvent::pointer)"}, {12U, "the native window's state (HostWindowStateEvent: full screen and corner-reshaping changes)"}, {13U, "the caret's blink phase (HostInputSettingsEvent::caret)"}, {14U, "the platform's locale (HostCapabilities::locale, HostCapability::locale)"}, {15U, "relative pointer mode (HostRelativeMotionEvent, HostServices::set_relative_pointer and " "warp_pointer) and pointer event timestamps and scroll phases"}}}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4398,7 +4495,7 @@ Functions, constants and aliases
 
 .. cpp:type:: HostDialogResultPayload = std::variant< HostMessageDialogResult, HostPathDialogResult, HostColorDialogResult>
 
-.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent, HostWindowStateEvent>
+.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent, HostWindowStateEvent, HostRelativeMotionEvent>
 
 .. cpp:namespace:: gui_forms
 

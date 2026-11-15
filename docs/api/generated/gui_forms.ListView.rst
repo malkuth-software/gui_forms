@@ -272,6 +272,8 @@ gui_forms::ListView
         - Commits the edit in progress, if any.
       * - :cpp:func:`cancel_label_edit <gui_forms::ListView::cancel_label_edit>`
         - Cancels the edit in progress, if any.
+      * - :cpp:func:`list_view_property_entries <gui_forms::ListView::list_view_property_entries>`
+        -  
       * - :cpp:func:`set_column_width <gui_forms::ListView::set_column_width>`
         - Sets one column's width in logical units.
       * - :cpp:func:`set_item_checked <gui_forms::ListView::set_item_checked>`
@@ -758,6 +760,8 @@ gui_forms::ListView
 
       Cancels the edit in progress, if any.
 
+   .. cpp:function:: static const std::array<PropertyEntry, list_view_property_count>& list_view_property_entries() noexcept
+
    .. cpp:function:: void set_column_width(std::size_t column, double width)
 
       Sets one column's width in logical units. Throws ``std::out_of_range`` for
@@ -847,6 +851,8 @@ gui_forms::ListView
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:function:: void on_font_changed()
 
       *Protected.*
@@ -885,9 +891,13 @@ gui_forms::ListView
 
       Default: ``2048.0``.
 
+   .. cpp:member:: constexpr std::size_t list_view_property_count
+
+      ListView's property table: Control's entries, then its own. Default: ``Control::control_property_count + 11U``.
+
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supported, 0 deferred, 2 excluded, 98 unclassified; 38 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supported, 0 deferred, 2 excluded, 106 unclassified; 46 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1340,6 +1350,34 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - unclassified (unmatched)
    * - property
      - GUI.Forms-only
+     - ``active_border_alternate_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_corner_radius``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_frequency``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_motion``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_offset``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_width``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``focused_index``
      - supported
    * - property
@@ -1454,6 +1492,10 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 49 supp
      - GUI.Forms-only
      - ``item_index_at``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``list_view_property_entries``
+     - unclassified (untested)
    * - method
      - ``Control.OnFontChanged``
      - ``on_font_changed``

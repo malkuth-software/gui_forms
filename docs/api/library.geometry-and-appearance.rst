@@ -392,6 +392,8 @@ Types
      -  
    * - :cpp:class:`RetainedDrawMemo <gui_forms::RetainedDrawMemo>`
      - Renderer-derived data for one retained draw command, such as shaped text.
+   * - :cpp:class:`RotatedTextBox <gui_forms::RotatedTextBox>`
+     - Where a line of text turned about its baseline start lies (Painter::draw_rotated_text_utf8).
    * - :cpp:class:`RuleAncestor <gui_forms::RuleAncestor>`
      - One ancestor compound of a selector (selector step 4): a control type, a stable ID and classes, each optional, matched against an ancestor control.
    * - :cpp:class:`RuleDeclaration <gui_forms::RuleDeclaration>`
@@ -4612,6 +4614,14 @@ Types
 
       Many runs in one font (the flame graph demonstrator's F3), each at its origin in its colour, in order. The base implementation draws each with draw_text_utf8; a renderer may share the font's setup across them. Each run is as draw_text_utf8 would draw it.
 
+   .. cpp:function:: virtual void draw_rotated_text_utf8(Point anchor, std::string_view text, FontSpec font, Color color, double degrees)
+
+      One line of text turned ``degrees`` about ``anchor`` (D5 ruling of 2026-11-13: text at any angle). ``anchor`` is the start of the baseline, as for draw_text_utf8, and stays where it is; the run turns about it, positive degrees anticlockwise as seen on the surface (90 reads up it as TextOrientation::bottom_to_top does, -90 down it). The run is shaped as draw_text_utf8 shapes it, in the same face, and its glyph runs are rasterized under the turn (no picture of the horizontal run is turned). Its ink lies inside rotated_text_bounds of its measured extent, which is what a control keeps inside the area it damages. 0 draws as draw_text_utf8, the same pixels; a non-finite angle draws nothing. The base implementation, a minimal painter's fallback, draws the run horizontally from ``anchor``, unturned; the recording and Skia painters turn it.
+
+   .. cpp:function:: virtual void draw_rotated_glyph_runs(Point anchor, const GlyphRunsView& view, FontSpec font, Color color, double degrees)
+
+      draw_glyph_runs turned as draw_rotated_text_utf8 turns text: runs this painter's engine shaped in its current face table (view.source) are rasterized under the turn without shaping again, the pixels draw_rotated_text_utf8 draws for view.text; any other runs are drawn as view.text with draw_rotated_text_utf8. That fallback is the base implementation and the recording painter's (a recorded line is shaped again on replay); the Skia painter draws the runs.
+
    .. cpp:function:: virtual Size measure_text_utf8(std::string_view text, FontSpec font)
 
       Text controls need the same metrics used by the painter for caret hit testing, selection geometry, and horizontal viewport maintenance. The renderer owns those metrics; controls must not guess a fixed glyph width.
@@ -4965,6 +4975,14 @@ Types
    .. cpp:member:: std::shared_ptr<LiveSurface> live_surface
 
       A content surface's newest frame (the consumer's picture of a ContentSurface or ContentTextEditor), or none. Only the image role reads it: the frame is composed into ``bounds`` exactly as given (Painter::draw_live_surface), in ordinary and high-contrast presentation alike and disabled or not, as a content colour is (GIVEN E2-1); no rule or primitive restyles it. Shared for the call.
+
+   .. cpp:member:: double text_angle
+
+      A text part's turn (D5 ruling of 2026-11-13: text at any angle), in degrees anticlockwise as seen, or 0. The text is laid out in ``bounds`` as an unturned horizontal line is, then the line turns this far about the bounds' centre (Painter::draw_rotated_text_utf8), clipped to the rectangle bounding the turned bounds; ``orientation`` is not read. The caller keeps that rectangle inside the control's paint area, so its damage covers the text. Only text roles read it; a non-finite angle draws no text.
+
+   .. cpp:member:: std::shared_ptr<const PartRaster> raster
+
+      A picture the control rendered itself (a PartRaster, such as a 3D plot's frame), or null. The image role draws it as given, never tinted, dimmed or resampled, its top left at the top left of ``bounds`` (Painter::draw_part_raster); a raster of another display scale than the painter's is not drawn. It stands in place of ``image``. Shared read-only for the call; a recording keeps it for as long as the recording lives, so its maker writes a raster again only while it holds the last reference. Every other role ignores it.
 
 .. cpp:namespace:: gui_forms
 
@@ -5753,6 +5771,22 @@ Types
    ``#include <gui_forms/types/painter/painter.hpp>``
 
    Renderer-derived data for one retained draw command, such as shaped text. The command's recording owns it: a Window creates it when a control records the command and releases it when that control's display chunk is rebuilt or retired. A renderer fills, validates and replaces the memo.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: RotatedTextBox final
+
+   ``#include <gui_forms/types/painter/painter.hpp>``
+
+   Where a line of text turned about its baseline start lies (Painter::draw_rotated_text_utf8). The run's box is its advance ``width`` along the baseline and its line box ``ascent`` above and ``descent`` below it; turned ``degrees`` anticlockwise as seen about ``anchor``, the box's corners are anchor + s * (cos, -sin) + t * (sin, cos) for s in [0, width] and t in [-ascent, descent].
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double ascent
+
+   .. cpp:member:: double descent
+
+   .. cpp:member:: double degrees
 
 .. cpp:namespace:: gui_forms
 
@@ -10421,9 +10455,9 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(PartMark::count)``.
 
-.. cpp:var:: constexpr std::array<std::string_view, 9> part_value_names
+.. cpp:var:: constexpr std::array<std::string_view, 10> part_value_names
 
-   The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in. Value: ``{{"accent_index", "text_orientation", "dock_region", "content_color", "authored_color", "text_tone", "pointed_face", "part_profile", "arc_angles"}}``.
+   The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in. Value: ``{{"accent_index", "text_orientation", "dock_region", "content_color", "authored_color", "text_tone", "pointed_face", "part_profile", "arc_angles", "text_angle"}}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -10712,6 +10746,14 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/types/painter/painter.hpp>``
+
+.. cpp:function:: Rect rotated_text_bounds(Point anchor, const RotatedTextBox& box) noexcept
+
+   The rectangle bounding the turned box placed at ``anchor``: the area a control keeps inside its bounds (or its visual outsets) for the run, so its damage covers every pixel the run inks. Negative or non-finite extents, or a non-finite angle or anchor, give an empty rectangle at the anchor.
+
+.. cpp:function:: Point rotated_text_anchor(Point centre, const RotatedTextBox& box) noexcept
+
+   The anchor that centres the turned box on ``centre`` (a label placed by its middle, such as an axis title along its edge). Non-finite input gives ``centre``.
 
 .. cpp:var:: constexpr std::size_t maximum_paint_group_depth
 

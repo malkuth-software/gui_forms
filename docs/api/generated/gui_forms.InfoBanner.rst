@@ -214,7 +214,7 @@ gui_forms::InfoBanner
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 5 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 12 unclassified; 15 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -229,6 +229,34 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 3 su
      - GUI.Forms-only
      - ``action``
      - supported
+   * - property
+     - GUI.Forms-only
+     - ``active_border_alternate_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_corner_radius``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_frequency``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_motion``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_offset``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_width``
+     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``closable``

@@ -218,6 +218,7 @@ __ZGVZN9gui_forms12BackdropStep*
 __ZGVZN9gui_forms12BindingTable*
 __ZGVZN9gui_forms12BorrowedText*
 __ZGVZN9gui_forms12BoxAlignment*
+__ZGVZN9gui_forms12BusinessCard*
 __ZGVZN9gui_forms12ColorCommand*
 __ZGVZN9gui_forms12ColourOrigin*
 __ZGVZN9gui_forms12CommandState*
@@ -403,6 +404,7 @@ __ZGVZN9gui_forms13TextStyleSpan*
 __ZGVZN9gui_forms13ThemeFallback*
 __ZGVZN9gui_forms13ToolStripMove*
 __ZGVZN9gui_forms13UserThemeScan*
+__ZGVZN9gui_forms13WindowCapsule*
 __ZGVZN9gui_forms13WindowCapture*
 __ZGVZN9gui_forms13XmlReadResult*
 __ZGVZN9gui_forms13effect_detail14StorageRelease*
@@ -452,6 +454,7 @@ __ZGVZN9gui_forms14HelpBookWindow*
 __ZGVZN9gui_forms14HelpLinkTarget*
 __ZGVZN9gui_forms14HelpPrintSheet*
 __ZGVZN9gui_forms14HelpSearchTerm*
+__ZGVZN9gui_forms14HostEventClock*
 __ZGVZN9gui_forms14HostHoverEvent*
 __ZGVZN9gui_forms14HostScaleEvent*
 __ZGVZN9gui_forms14HostTrayIconId*
@@ -595,6 +598,7 @@ __ZGVZN9gui_forms15PointerSettings*
 __ZGVZN9gui_forms15PositionedGlyph*
 __ZGVZN9gui_forms15PreparedTextKey*
 __ZGVZN9gui_forms15PrimitiveTarget*
+__ZGVZN9gui_forms15ProgramIdentity*
 __ZGVZN9gui_forms15ProgressBubbles*
 __ZGVZN9gui_forms15ProgressStripes*
 __ZGVZN9gui_forms15PropertyRowSpec*
@@ -849,6 +853,7 @@ __ZGVZN9gui_forms17VirtualRowsColumn*
 __ZGVZN9gui_forms17VisualInteraction*
 __ZGVZN9gui_forms17WindowBandOptions*
 __ZGVZN9gui_forms17WindowBandTexture*
+__ZGVZN9gui_forms17WindowCapsuleLook*
 __ZGVZN9gui_forms17XmlSourcePosition*
 __ZGVZN9gui_forms18AbsoluteAxisResult*
 __ZGVZN9gui_forms18AcceleratorOptions*
@@ -967,6 +972,7 @@ __ZGVZN9gui_forms19BindingNotification*
 __ZGVZN9gui_forms19BindingProviderLink*
 __ZGVZN9gui_forms19BlockFlowItemLayout*
 __ZGVZN9gui_forms19BlockFlowItemResult*
+__ZGVZN9gui_forms19BusinessCardRequest*
 __ZGVZN9gui_forms19CanvasTextureLayers*
 __ZGVZN9gui_forms19CompositeLoadResult*
 __ZGVZN9gui_forms19CompositeStatistics*
@@ -1059,6 +1065,7 @@ __ZGVZN9gui_forms19TreeExpansionChange*
 __ZGVZN9gui_forms19TreeSelectionChange*
 __ZGVZN9gui_forms19VirtualRowSelection*
 __ZGVZN9gui_forms19WindowBackdropGrant*
+__ZGVZN9gui_forms19WindowCapsuleColors*
 __ZGVZN9gui_forms19WindowShapingReport*
 __ZGVZN9gui_forms20AllocationStatistics*
 __ZGVZN9gui_forms20AnchoredOverlayLayer*
@@ -1111,6 +1118,8 @@ __ZGVZN9gui_forms20ProgressWovenStripes*
 __ZGVZN9gui_forms20PropertyObjectMember*
 __ZGVZN9gui_forms20PropertyRegistration*
 __ZGVZN9gui_forms20PropertyResetRequest*
+__ZGVZN9gui_forms20RelativePointerEnded*
+__ZGVZN9gui_forms20RelativePointerGrant*
 __ZGVZN9gui_forms20ResponsiveTrackPanel*
 __ZGVZN9gui_forms20RibbonToolTipContent*
 __ZGVZN9gui_forms20SemanticTextGrapheme*
@@ -1123,6 +1132,9 @@ __ZGVZN9gui_forms20ThemeStructureTokens*
 __ZGVZN9gui_forms20Utf8ValidationResult*
 __ZGVZN9gui_forms20VirtualRowsCallbacks*
 __ZGVZN9gui_forms20WindowBandAppearance*
+__ZGVZN9gui_forms20WindowCapsuleGesture*
+__ZGVZN9gui_forms20WindowCapsuleOutcome*
+__ZGVZN9gui_forms20WindowCapsuleRequest*
 __ZGVZN9gui_forms20WindowCaptureOptions*
 __ZGVZN9gui_forms20WorkspaceTransaction*
 __ZGVZN9gui_forms21ApplicationColourRole*
@@ -1201,6 +1213,7 @@ __ZGVZN9gui_forms21VirtualRowDescription*
 __ZGVZN9gui_forms21VirtualRowsColumnMove*
 __ZGVZN9gui_forms21VirtualRowsStatistics*
 __ZGVZN9gui_forms21WindowBackdropRequest*
+__ZGVZN9gui_forms21WindowCapsuleMeasures*
 __ZGVZN9gui_forms22ActiveBorderConditions*
 __ZGVZN9gui_forms22ApplicationModalResult*
 __ZGVZN9gui_forms22ApplicationThemeConfig*
@@ -1240,6 +1253,8 @@ __ZGVZN9gui_forms22PropertyCollectionData*
 __ZGVZN9gui_forms22PropertyEditorRegistry*
 __ZGVZN9gui_forms22PropertyEnumDescriptor*
 __ZGVZN9gui_forms22PropertyValueConverter*
+__ZGVZN9gui_forms22RelativePointerRequest*
+__ZGVZN9gui_forms22RelativePointerSupport*
 __ZGVZN9gui_forms22RibbonLadderGroupState*
 __ZGVZN9gui_forms22RibbonStateParseResult*
 __ZGVZN9gui_forms22SemanticFeedbackRecord*
@@ -1265,6 +1280,7 @@ __ZGVZN9gui_forms23HostClipboardTextResult*
 __ZGVZN9gui_forms23HostContextRequestEvent*
 __ZGVZN9gui_forms23HostFolderDialogRequest*
 __ZGVZN9gui_forms23HostMessageDialogResult*
+__ZGVZN9gui_forms23HostRelativeMotionEvent*
 __ZGVZN9gui_forms23HostWindowCornersResult*
 __ZGVZN9gui_forms23InstrumentModuleRequest*
 __ZGVZN9gui_forms23ListViewSelectionChange*
@@ -1278,6 +1294,7 @@ __ZGVZN9gui_forms23PrimitiveParameterBlock*
 __ZGVZN9gui_forms23PrimitiveParameterValue*
 __ZGVZN9gui_forms23PropertyCollectionValue*
 __ZGVZN9gui_forms23PropertyGridValueChange*
+__ZGVZN9gui_forms23RelativePointerSnapshot*
 __ZGVZN9gui_forms23SubSurfaceConfiguration*
 __ZGVZN9gui_forms23SubSurfaceContentUpdate*
 __ZGVZN9gui_forms23SubSurfaceRequestTarget*
@@ -1293,6 +1310,7 @@ __ZGVZN9gui_forms24AnchoredOverlayPlacement*
 __ZGVZN9gui_forms24ApplicationWindowOptions*
 __ZGVZN9gui_forms24BackgroundWorkerProgress*
 __ZGVZN9gui_forms24BlockFlowLayoutWorkspace*
+__ZGVZN9gui_forms24BusinessCardRemarkSource*
 __ZGVZN9gui_forms24CommandOverflowGroupSpec*
 __ZGVZN9gui_forms24ConnectedControlTopology*
 __ZGVZN9gui_forms24ContentSurfaceStatistics*
@@ -1305,6 +1323,7 @@ __ZGVZN9gui_forms24HostMessageDialogRequest*
 __ZGVZN9gui_forms24InvalidationOutlineStyle*
 __ZGVZN9gui_forms24PresentationAvailability*
 __ZGVZN9gui_forms24PropertyEditorInputError*
+__ZGVZN9gui_forms24RelativePointerEventArgs*
 __ZGVZN9gui_forms24ResponsiveLayoutSnapshot*
 __ZGVZN9gui_forms24RibbonDropDownInvocation*
 __ZGVZN9gui_forms24RibbonToolTipHelpRequest*
@@ -1336,6 +1355,7 @@ __ZGVZN9gui_forms26DataGridViewDataErrorEvent*
 __ZGVZN9gui_forms26DataGridViewRowCancelEvent*
 __ZGVZN9gui_forms26DataGridViewRowOverlayPart*
 __ZGVZN9gui_forms26DataGridViewRowValuesEvent*
+__ZGVZN9gui_forms26HostRelativePointerRequest*
 __ZGVZN9gui_forms26LiveSurfacePairingListener*
 __ZGVZN9gui_forms26PreparedTextBudgetSnapshot*
 __ZGVZN9gui_forms26PropertyRowExpansionChange*
@@ -1842,6 +1862,7 @@ __ZGVZNK9gui_forms12BackdropStep*
 __ZGVZNK9gui_forms12BindingTable*
 __ZGVZNK9gui_forms12BorrowedText*
 __ZGVZNK9gui_forms12BoxAlignment*
+__ZGVZNK9gui_forms12BusinessCard*
 __ZGVZNK9gui_forms12ColorCommand*
 __ZGVZNK9gui_forms12ColourOrigin*
 __ZGVZNK9gui_forms12CommandState*
@@ -2027,6 +2048,7 @@ __ZGVZNK9gui_forms13TextStyleSpan*
 __ZGVZNK9gui_forms13ThemeFallback*
 __ZGVZNK9gui_forms13ToolStripMove*
 __ZGVZNK9gui_forms13UserThemeScan*
+__ZGVZNK9gui_forms13WindowCapsule*
 __ZGVZNK9gui_forms13WindowCapture*
 __ZGVZNK9gui_forms13XmlReadResult*
 __ZGVZNK9gui_forms13effect_detail14StorageRelease*
@@ -2076,6 +2098,7 @@ __ZGVZNK9gui_forms14HelpBookWindow*
 __ZGVZNK9gui_forms14HelpLinkTarget*
 __ZGVZNK9gui_forms14HelpPrintSheet*
 __ZGVZNK9gui_forms14HelpSearchTerm*
+__ZGVZNK9gui_forms14HostEventClock*
 __ZGVZNK9gui_forms14HostHoverEvent*
 __ZGVZNK9gui_forms14HostScaleEvent*
 __ZGVZNK9gui_forms14HostTrayIconId*
@@ -2219,6 +2242,7 @@ __ZGVZNK9gui_forms15PointerSettings*
 __ZGVZNK9gui_forms15PositionedGlyph*
 __ZGVZNK9gui_forms15PreparedTextKey*
 __ZGVZNK9gui_forms15PrimitiveTarget*
+__ZGVZNK9gui_forms15ProgramIdentity*
 __ZGVZNK9gui_forms15ProgressBubbles*
 __ZGVZNK9gui_forms15ProgressStripes*
 __ZGVZNK9gui_forms15PropertyRowSpec*
@@ -2473,6 +2497,7 @@ __ZGVZNK9gui_forms17VirtualRowsColumn*
 __ZGVZNK9gui_forms17VisualInteraction*
 __ZGVZNK9gui_forms17WindowBandOptions*
 __ZGVZNK9gui_forms17WindowBandTexture*
+__ZGVZNK9gui_forms17WindowCapsuleLook*
 __ZGVZNK9gui_forms17XmlSourcePosition*
 __ZGVZNK9gui_forms18AbsoluteAxisResult*
 __ZGVZNK9gui_forms18AcceleratorOptions*
@@ -2591,6 +2616,7 @@ __ZGVZNK9gui_forms19BindingNotification*
 __ZGVZNK9gui_forms19BindingProviderLink*
 __ZGVZNK9gui_forms19BlockFlowItemLayout*
 __ZGVZNK9gui_forms19BlockFlowItemResult*
+__ZGVZNK9gui_forms19BusinessCardRequest*
 __ZGVZNK9gui_forms19CanvasTextureLayers*
 __ZGVZNK9gui_forms19CompositeLoadResult*
 __ZGVZNK9gui_forms19CompositeStatistics*
@@ -2683,6 +2709,7 @@ __ZGVZNK9gui_forms19TreeExpansionChange*
 __ZGVZNK9gui_forms19TreeSelectionChange*
 __ZGVZNK9gui_forms19VirtualRowSelection*
 __ZGVZNK9gui_forms19WindowBackdropGrant*
+__ZGVZNK9gui_forms19WindowCapsuleColors*
 __ZGVZNK9gui_forms19WindowShapingReport*
 __ZGVZNK9gui_forms20AllocationStatistics*
 __ZGVZNK9gui_forms20AnchoredOverlayLayer*
@@ -2735,6 +2762,8 @@ __ZGVZNK9gui_forms20ProgressWovenStripes*
 __ZGVZNK9gui_forms20PropertyObjectMember*
 __ZGVZNK9gui_forms20PropertyRegistration*
 __ZGVZNK9gui_forms20PropertyResetRequest*
+__ZGVZNK9gui_forms20RelativePointerEnded*
+__ZGVZNK9gui_forms20RelativePointerGrant*
 __ZGVZNK9gui_forms20ResponsiveTrackPanel*
 __ZGVZNK9gui_forms20RibbonToolTipContent*
 __ZGVZNK9gui_forms20SemanticTextGrapheme*
@@ -2747,6 +2776,9 @@ __ZGVZNK9gui_forms20ThemeStructureTokens*
 __ZGVZNK9gui_forms20Utf8ValidationResult*
 __ZGVZNK9gui_forms20VirtualRowsCallbacks*
 __ZGVZNK9gui_forms20WindowBandAppearance*
+__ZGVZNK9gui_forms20WindowCapsuleGesture*
+__ZGVZNK9gui_forms20WindowCapsuleOutcome*
+__ZGVZNK9gui_forms20WindowCapsuleRequest*
 __ZGVZNK9gui_forms20WindowCaptureOptions*
 __ZGVZNK9gui_forms20WorkspaceTransaction*
 __ZGVZNK9gui_forms21ApplicationColourRole*
@@ -2825,6 +2857,7 @@ __ZGVZNK9gui_forms21VirtualRowDescription*
 __ZGVZNK9gui_forms21VirtualRowsColumnMove*
 __ZGVZNK9gui_forms21VirtualRowsStatistics*
 __ZGVZNK9gui_forms21WindowBackdropRequest*
+__ZGVZNK9gui_forms21WindowCapsuleMeasures*
 __ZGVZNK9gui_forms22ActiveBorderConditions*
 __ZGVZNK9gui_forms22ApplicationModalResult*
 __ZGVZNK9gui_forms22ApplicationThemeConfig*
@@ -2864,6 +2897,8 @@ __ZGVZNK9gui_forms22PropertyCollectionData*
 __ZGVZNK9gui_forms22PropertyEditorRegistry*
 __ZGVZNK9gui_forms22PropertyEnumDescriptor*
 __ZGVZNK9gui_forms22PropertyValueConverter*
+__ZGVZNK9gui_forms22RelativePointerRequest*
+__ZGVZNK9gui_forms22RelativePointerSupport*
 __ZGVZNK9gui_forms22RibbonLadderGroupState*
 __ZGVZNK9gui_forms22RibbonStateParseResult*
 __ZGVZNK9gui_forms22SemanticFeedbackRecord*
@@ -2889,6 +2924,7 @@ __ZGVZNK9gui_forms23HostClipboardTextResult*
 __ZGVZNK9gui_forms23HostContextRequestEvent*
 __ZGVZNK9gui_forms23HostFolderDialogRequest*
 __ZGVZNK9gui_forms23HostMessageDialogResult*
+__ZGVZNK9gui_forms23HostRelativeMotionEvent*
 __ZGVZNK9gui_forms23HostWindowCornersResult*
 __ZGVZNK9gui_forms23InstrumentModuleRequest*
 __ZGVZNK9gui_forms23ListViewSelectionChange*
@@ -2902,6 +2938,7 @@ __ZGVZNK9gui_forms23PrimitiveParameterBlock*
 __ZGVZNK9gui_forms23PrimitiveParameterValue*
 __ZGVZNK9gui_forms23PropertyCollectionValue*
 __ZGVZNK9gui_forms23PropertyGridValueChange*
+__ZGVZNK9gui_forms23RelativePointerSnapshot*
 __ZGVZNK9gui_forms23SubSurfaceConfiguration*
 __ZGVZNK9gui_forms23SubSurfaceContentUpdate*
 __ZGVZNK9gui_forms23SubSurfaceRequestTarget*
@@ -2917,6 +2954,7 @@ __ZGVZNK9gui_forms24AnchoredOverlayPlacement*
 __ZGVZNK9gui_forms24ApplicationWindowOptions*
 __ZGVZNK9gui_forms24BackgroundWorkerProgress*
 __ZGVZNK9gui_forms24BlockFlowLayoutWorkspace*
+__ZGVZNK9gui_forms24BusinessCardRemarkSource*
 __ZGVZNK9gui_forms24CommandOverflowGroupSpec*
 __ZGVZNK9gui_forms24ConnectedControlTopology*
 __ZGVZNK9gui_forms24ContentSurfaceStatistics*
@@ -2929,6 +2967,7 @@ __ZGVZNK9gui_forms24HostMessageDialogRequest*
 __ZGVZNK9gui_forms24InvalidationOutlineStyle*
 __ZGVZNK9gui_forms24PresentationAvailability*
 __ZGVZNK9gui_forms24PropertyEditorInputError*
+__ZGVZNK9gui_forms24RelativePointerEventArgs*
 __ZGVZNK9gui_forms24ResponsiveLayoutSnapshot*
 __ZGVZNK9gui_forms24RibbonDropDownInvocation*
 __ZGVZNK9gui_forms24RibbonToolTipHelpRequest*
@@ -2960,6 +2999,7 @@ __ZGVZNK9gui_forms26DataGridViewDataErrorEvent*
 __ZGVZNK9gui_forms26DataGridViewRowCancelEvent*
 __ZGVZNK9gui_forms26DataGridViewRowOverlayPart*
 __ZGVZNK9gui_forms26DataGridViewRowValuesEvent*
+__ZGVZNK9gui_forms26HostRelativePointerRequest*
 __ZGVZNK9gui_forms26LiveSurfacePairingListener*
 __ZGVZNK9gui_forms26PreparedTextBudgetSnapshot*
 __ZGVZNK9gui_forms26PropertyRowExpansionChange*
@@ -3542,6 +3582,7 @@ __ZN9gui_forms12BackdropStep*
 __ZN9gui_forms12BindingTable*
 __ZN9gui_forms12BorrowedText*
 __ZN9gui_forms12BoxAlignment*
+__ZN9gui_forms12BusinessCard*
 __ZN9gui_forms12ColorCommand*
 __ZN9gui_forms12ColourOrigin*
 __ZN9gui_forms12CommandState*
@@ -3775,6 +3816,7 @@ __ZN9gui_forms13TextStyleSpan*
 __ZN9gui_forms13ThemeFallback*
 __ZN9gui_forms13ToolStripMove*
 __ZN9gui_forms13UserThemeScan*
+__ZN9gui_forms13WindowCapsule*
 __ZN9gui_forms13WindowCapture*
 __ZN9gui_forms13XmlReadResult*
 __ZN9gui_forms13add_recipe_emB*
@@ -3840,6 +3882,7 @@ __ZN9gui_forms14HelpBookWindow*
 __ZN9gui_forms14HelpLinkTarget*
 __ZN9gui_forms14HelpPrintSheet*
 __ZN9gui_forms14HelpSearchTerm*
+__ZN9gui_forms14HostEventClock*
 __ZN9gui_forms14HostHoverEvent*
 __ZN9gui_forms14HostScaleEvent*
 __ZN9gui_forms14HostTrayIconId*
@@ -4031,6 +4074,7 @@ __ZN9gui_forms15PointerSettings*
 __ZN9gui_forms15PositionedGlyph*
 __ZN9gui_forms15PreparedTextKey*
 __ZN9gui_forms15PrimitiveTarget*
+__ZN9gui_forms15ProgramIdentity*
 __ZN9gui_forms15ProgressBubbles*
 __ZN9gui_forms15ProgressStripes*
 __ZN9gui_forms15PropertyRowSpec*
@@ -4273,6 +4317,8 @@ __ZN9gui_forms16place_grid_itemsB*
 __ZN9gui_forms16place_grid_itemsE*
 __ZN9gui_forms16place_on_monitorB*
 __ZN9gui_forms16place_on_monitorE*
+__ZN9gui_forms16program_identityB*
+__ZN9gui_forms16program_identityE*
 __ZN9gui_forms16read_help_localeB*
 __ZN9gui_forms16read_help_localeE*
 __ZN9gui_forms16rule_specificityB*
@@ -4405,6 +4451,7 @@ __ZN9gui_forms17VirtualRowsColumn*
 __ZN9gui_forms17VisualInteraction*
 __ZN9gui_forms17WindowBandOptions*
 __ZN9gui_forms17WindowBandTexture*
+__ZN9gui_forms17WindowCapsuleLook*
 __ZN9gui_forms17XmlSourcePosition*
 __ZN9gui_forms17assemble_materialB*
 __ZN9gui_forms17assemble_materialE*
@@ -4629,6 +4676,8 @@ __ZN9gui_forms18default_parametersB*
 __ZN9gui_forms18default_parametersE*
 __ZN9gui_forms18describe_exceptionB*
 __ZN9gui_forms18describe_exceptionE*
+__ZN9gui_forms18diagnostic_overlayB*
+__ZN9gui_forms18diagnostic_overlayE*
 __ZN9gui_forms18encode_hosted_slotB*
 __ZN9gui_forms18encode_hosted_slotE*
 __ZN9gui_forms18encode_hosted_textB*
@@ -4653,6 +4702,8 @@ __ZN9gui_forms18grid_span_interiorB*
 __ZN9gui_forms18grid_span_interiorE*
 __ZN9gui_forms18grid_spans_overlapB*
 __ZN9gui_forms18grid_spans_overlapE*
+__ZN9gui_forms18hide_business_cardB*
+__ZN9gui_forms18hide_business_cardE*
 __ZN9gui_forms18is_registered_nameB*
 __ZN9gui_forms18is_registered_nameE*
 __ZN9gui_forms18nearest_stock_iconB*
@@ -4679,6 +4730,8 @@ __ZN9gui_forms18scene_zoomed_aboutB*
 __ZN9gui_forms18scene_zoomed_aboutE*
 __ZN9gui_forms18semantic_role_nameB*
 __ZN9gui_forms18semantic_role_nameE*
+__ZN9gui_forms18show_business_cardB*
+__ZN9gui_forms18show_business_cardE*
 __ZN9gui_forms18snap_text_baselineB*
 __ZN9gui_forms18snap_text_baselineE*
 __ZN9gui_forms18snapped_band_widthB*
@@ -4705,6 +4758,7 @@ __ZN9gui_forms19BindingNotification*
 __ZN9gui_forms19BindingProviderLink*
 __ZN9gui_forms19BlockFlowItemLayout*
 __ZN9gui_forms19BlockFlowItemResult*
+__ZN9gui_forms19BusinessCardRequest*
 __ZN9gui_forms19CanvasTextureLayers*
 __ZN9gui_forms19CompositeLoadResult*
 __ZN9gui_forms19CompositeStatistics*
@@ -4797,6 +4851,7 @@ __ZN9gui_forms19TreeExpansionChange*
 __ZN9gui_forms19TreeSelectionChange*
 __ZN9gui_forms19VirtualRowSelection*
 __ZN9gui_forms19WindowBackdropGrant*
+__ZN9gui_forms19WindowCapsuleColors*
 __ZN9gui_forms19WindowShapingReport*
 __ZN9gui_forms19active_border_reachB*
 __ZN9gui_forms19active_border_reachE*
@@ -4812,6 +4867,8 @@ __ZN9gui_forms19build_help_contentsB*
 __ZN9gui_forms19build_help_contentsE*
 __ZN9gui_forms19bundled_font_noticeB*
 __ZN9gui_forms19bundled_font_noticeE*
+__ZN9gui_forms19business_card_shownB*
+__ZN9gui_forms19business_card_shownE*
 __ZN9gui_forms19canvas_texture_fillB*
 __ZN9gui_forms19canvas_texture_fillE*
 __ZN9gui_forms19composite_type_nameB*
@@ -4904,6 +4961,8 @@ __ZN9gui_forms19semantic_state_nameB*
 __ZN9gui_forms19semantic_state_nameE*
 __ZN9gui_forms19show_specimen_stateB*
 __ZN9gui_forms19show_specimen_stateE*
+__ZN9gui_forms19shown_business_cardB*
+__ZN9gui_forms19shown_business_cardE*
 __ZN9gui_forms19text_change_betweenB*
 __ZN9gui_forms19text_change_betweenE*
 __ZN9gui_forms19text_role_from_nameB*
@@ -4922,6 +4981,8 @@ __ZN9gui_forms19validate_parametersB*
 __ZN9gui_forms19validate_parametersE*
 __ZN9gui_forms19wcag_contrast_ratioB*
 __ZN9gui_forms19wcag_contrast_ratioE*
+__ZN9gui_forms19window_capsule_lookB*
+__ZN9gui_forms19window_capsule_lookE*
 __ZN9gui_forms20AllocationStatistics*
 __ZN9gui_forms20AnchoredOverlayLayer*
 __ZN9gui_forms20ApplicationResources*
@@ -4973,6 +5034,8 @@ __ZN9gui_forms20ProgressWovenStripes*
 __ZN9gui_forms20PropertyObjectMember*
 __ZN9gui_forms20PropertyRegistration*
 __ZN9gui_forms20PropertyResetRequest*
+__ZN9gui_forms20RelativePointerEnded*
+__ZN9gui_forms20RelativePointerGrant*
 __ZN9gui_forms20ResponsiveTrackPanel*
 __ZN9gui_forms20RibbonToolTipContent*
 __ZN9gui_forms20SemanticTextGrapheme*
@@ -4985,6 +5048,9 @@ __ZN9gui_forms20ThemeStructureTokens*
 __ZN9gui_forms20Utf8ValidationResult*
 __ZN9gui_forms20VirtualRowsCallbacks*
 __ZN9gui_forms20WindowBandAppearance*
+__ZN9gui_forms20WindowCapsuleGesture*
+__ZN9gui_forms20WindowCapsuleOutcome*
+__ZN9gui_forms20WindowCapsuleRequest*
 __ZN9gui_forms20WindowCaptureOptions*
 __ZN9gui_forms20WorkspaceTransaction*
 __ZN9gui_forms20append_help_skeletonB*
@@ -5053,6 +5119,8 @@ __ZN9gui_forms20set_colour_parameterB*
 __ZN9gui_forms20set_colour_parameterE*
 __ZN9gui_forms20set_number_parameterB*
 __ZN9gui_forms20set_number_parameterE*
+__ZN9gui_forms20set_program_identityB*
+__ZN9gui_forms20set_program_identityE*
 __ZN9gui_forms20stock_icon_for_imageB*
 __ZN9gui_forms20stock_icon_for_imageE*
 __ZN9gui_forms20stroke_bounds_outsetB*
@@ -5143,6 +5211,7 @@ __ZN9gui_forms21VirtualRowDescription*
 __ZN9gui_forms21VirtualRowsColumnMove*
 __ZN9gui_forms21VirtualRowsStatistics*
 __ZN9gui_forms21WindowBackdropRequest*
+__ZN9gui_forms21WindowCapsuleMeasures*
 __ZN9gui_forms21allocation_statisticsB*
 __ZN9gui_forms21allocation_statisticsE*
 __ZN9gui_forms21append_hosted_messageB*
@@ -5266,6 +5335,8 @@ __ZN9gui_forms22PropertyCollectionData*
 __ZN9gui_forms22PropertyEditorRegistry*
 __ZN9gui_forms22PropertyEnumDescriptor*
 __ZN9gui_forms22PropertyValueConverter*
+__ZN9gui_forms22RelativePointerRequest*
+__ZN9gui_forms22RelativePointerSupport*
 __ZN9gui_forms22RibbonLadderGroupState*
 __ZN9gui_forms22RibbonStateParseResult*
 __ZN9gui_forms22SemanticFeedbackRecord*
@@ -5342,6 +5413,8 @@ __ZN9gui_forms22select_tray_icon_imageB*
 __ZN9gui_forms22select_tray_icon_imageE*
 __ZN9gui_forms22serialize_ribbon_stateB*
 __ZN9gui_forms22serialize_ribbon_stateE*
+__ZN9gui_forms22set_diagnostic_overlayB*
+__ZN9gui_forms22set_diagnostic_overlayE*
 __ZN9gui_forms22stock_alert_icon_imageB*
 __ZN9gui_forms22stock_alert_icon_imageE*
 __ZN9gui_forms22stock_icon_bake_countsB*
@@ -5377,6 +5450,7 @@ __ZN9gui_forms23HostClipboardTextResult*
 __ZN9gui_forms23HostContextRequestEvent*
 __ZN9gui_forms23HostFolderDialogRequest*
 __ZN9gui_forms23HostMessageDialogResult*
+__ZN9gui_forms23HostRelativeMotionEvent*
 __ZN9gui_forms23HostWindowCornersResult*
 __ZN9gui_forms23InstrumentModuleRequest*
 __ZN9gui_forms23ListViewSelectionChange*
@@ -5390,6 +5464,7 @@ __ZN9gui_forms23PrimitiveParameterBlock*
 __ZN9gui_forms23PrimitiveParameterValue*
 __ZN9gui_forms23PropertyCollectionValue*
 __ZN9gui_forms23PropertyGridValueChange*
+__ZN9gui_forms23RelativePointerSnapshot*
 __ZN9gui_forms23SubSurfaceConfiguration*
 __ZN9gui_forms23SubSurfaceContentUpdate*
 __ZN9gui_forms23SubSurfaceRequestTarget*
@@ -5511,6 +5586,7 @@ __ZN9gui_forms24AnchoredOverlayPlacement*
 __ZN9gui_forms24ApplicationWindowOptions*
 __ZN9gui_forms24BackgroundWorkerProgress*
 __ZN9gui_forms24BlockFlowLayoutWorkspace*
+__ZN9gui_forms24BusinessCardRemarkSource*
 __ZN9gui_forms24CommandOverflowGroupSpec*
 __ZN9gui_forms24ConnectedControlTopology*
 __ZN9gui_forms24ContentSurfaceStatistics*
@@ -5523,6 +5599,7 @@ __ZN9gui_forms24HostMessageDialogRequest*
 __ZN9gui_forms24InvalidationOutlineStyle*
 __ZN9gui_forms24PresentationAvailability*
 __ZN9gui_forms24PropertyEditorInputError*
+__ZN9gui_forms24RelativePointerEventArgs*
 __ZN9gui_forms24ResponsiveLayoutSnapshot*
 __ZN9gui_forms24RibbonDropDownInvocation*
 __ZN9gui_forms24RibbonToolTipHelpRequest*
@@ -5583,6 +5660,8 @@ __ZN9gui_forms24validate_control_anatomyB*
 __ZN9gui_forms24validate_control_anatomyE*
 __ZN9gui_forms24validate_shaping_requestB*
 __ZN9gui_forms24validate_shaping_requestE*
+__ZN9gui_forms24window_capsule_help_textB*
+__ZN9gui_forms24window_capsule_help_textE*
 __ZN9gui_forms24window_corner_shape_nameB*
 __ZN9gui_forms24window_corner_shape_nameE*
 __ZN9gui_forms25ApplicationWindowAtResult*
@@ -5670,6 +5749,8 @@ __ZN9gui_forms25semantic_text_result_nameB*
 __ZN9gui_forms25semantic_text_result_nameE*
 __ZN9gui_forms25specimen_state_route_nameB*
 __ZN9gui_forms25specimen_state_route_nameE*
+__ZN9gui_forms25toggle_diagnostic_overlayB*
+__ZN9gui_forms25toggle_diagnostic_overlayE*
 __ZN9gui_forms25valid_property_value_treeB*
 __ZN9gui_forms25valid_property_value_treeE*
 __ZN9gui_forms25window_band_options_validB*
@@ -5684,6 +5765,7 @@ __ZN9gui_forms26DataGridViewDataErrorEvent*
 __ZN9gui_forms26DataGridViewRowCancelEvent*
 __ZN9gui_forms26DataGridViewRowOverlayPart*
 __ZN9gui_forms26DataGridViewRowValuesEvent*
+__ZN9gui_forms26HostRelativePointerRequest*
 __ZN9gui_forms26LiveSurfacePairingListener*
 __ZN9gui_forms26PreparedTextBudgetSnapshot*
 __ZN9gui_forms26PropertyRowExpansionChange*
@@ -5759,6 +5841,8 @@ __ZN9gui_forms27absolute_axis_reads_contentB*
 __ZN9gui_forms27absolute_axis_reads_contentE*
 __ZN9gui_forms27active_border_saturated_redB*
 __ZN9gui_forms27active_border_saturated_redE*
+__ZN9gui_forms27business_card_remark_sourceB*
+__ZN9gui_forms27business_card_remark_sourceE*
 __ZN9gui_forms27content_publish_result_nameB*
 __ZN9gui_forms27content_publish_result_nameE*
 __ZN9gui_forms27content_surface_status_nameB*
@@ -5892,6 +5976,8 @@ __ZN9gui_forms31paint_part_with_built_in_recipeB*
 __ZN9gui_forms31paint_part_with_built_in_recipeE*
 __ZN9gui_forms31property_entry_should_serializeB*
 __ZN9gui_forms31property_entry_should_serializeE*
+__ZN9gui_forms31set_business_card_remark_sourceB*
+__ZN9gui_forms31set_business_card_remark_sourceE*
 __ZN9gui_forms31surface_material_size_invariantB*
 __ZN9gui_forms31surface_material_size_invariantE*
 __ZN9gui_forms31surface_material_visual_outsetsB*
@@ -6656,6 +6742,7 @@ __ZNK[RO]9gui_forms12BackdropStep*
 __ZNK[RO]9gui_forms12BindingTable*
 __ZNK[RO]9gui_forms12BorrowedText*
 __ZNK[RO]9gui_forms12BoxAlignment*
+__ZNK[RO]9gui_forms12BusinessCard*
 __ZNK[RO]9gui_forms12ColorCommand*
 __ZNK[RO]9gui_forms12ColourOrigin*
 __ZNK[RO]9gui_forms12CommandState*
@@ -6841,6 +6928,7 @@ __ZNK[RO]9gui_forms13TextStyleSpan*
 __ZNK[RO]9gui_forms13ThemeFallback*
 __ZNK[RO]9gui_forms13ToolStripMove*
 __ZNK[RO]9gui_forms13UserThemeScan*
+__ZNK[RO]9gui_forms13WindowCapsule*
 __ZNK[RO]9gui_forms13WindowCapture*
 __ZNK[RO]9gui_forms13XmlReadResult*
 __ZNK[RO]9gui_forms13effect_detail14StorageRelease*
@@ -6890,6 +6978,7 @@ __ZNK[RO]9gui_forms14HelpBookWindow*
 __ZNK[RO]9gui_forms14HelpLinkTarget*
 __ZNK[RO]9gui_forms14HelpPrintSheet*
 __ZNK[RO]9gui_forms14HelpSearchTerm*
+__ZNK[RO]9gui_forms14HostEventClock*
 __ZNK[RO]9gui_forms14HostHoverEvent*
 __ZNK[RO]9gui_forms14HostScaleEvent*
 __ZNK[RO]9gui_forms14HostTrayIconId*
@@ -7033,6 +7122,7 @@ __ZNK[RO]9gui_forms15PointerSettings*
 __ZNK[RO]9gui_forms15PositionedGlyph*
 __ZNK[RO]9gui_forms15PreparedTextKey*
 __ZNK[RO]9gui_forms15PrimitiveTarget*
+__ZNK[RO]9gui_forms15ProgramIdentity*
 __ZNK[RO]9gui_forms15ProgressBubbles*
 __ZNK[RO]9gui_forms15ProgressStripes*
 __ZNK[RO]9gui_forms15PropertyRowSpec*
@@ -7287,6 +7377,7 @@ __ZNK[RO]9gui_forms17VirtualRowsColumn*
 __ZNK[RO]9gui_forms17VisualInteraction*
 __ZNK[RO]9gui_forms17WindowBandOptions*
 __ZNK[RO]9gui_forms17WindowBandTexture*
+__ZNK[RO]9gui_forms17WindowCapsuleLook*
 __ZNK[RO]9gui_forms17XmlSourcePosition*
 __ZNK[RO]9gui_forms18AbsoluteAxisResult*
 __ZNK[RO]9gui_forms18AcceleratorOptions*
@@ -7405,6 +7496,7 @@ __ZNK[RO]9gui_forms19BindingNotification*
 __ZNK[RO]9gui_forms19BindingProviderLink*
 __ZNK[RO]9gui_forms19BlockFlowItemLayout*
 __ZNK[RO]9gui_forms19BlockFlowItemResult*
+__ZNK[RO]9gui_forms19BusinessCardRequest*
 __ZNK[RO]9gui_forms19CanvasTextureLayers*
 __ZNK[RO]9gui_forms19CompositeLoadResult*
 __ZNK[RO]9gui_forms19CompositeStatistics*
@@ -7497,6 +7589,7 @@ __ZNK[RO]9gui_forms19TreeExpansionChange*
 __ZNK[RO]9gui_forms19TreeSelectionChange*
 __ZNK[RO]9gui_forms19VirtualRowSelection*
 __ZNK[RO]9gui_forms19WindowBackdropGrant*
+__ZNK[RO]9gui_forms19WindowCapsuleColors*
 __ZNK[RO]9gui_forms19WindowShapingReport*
 __ZNK[RO]9gui_forms20AllocationStatistics*
 __ZNK[RO]9gui_forms20AnchoredOverlayLayer*
@@ -7549,6 +7642,8 @@ __ZNK[RO]9gui_forms20ProgressWovenStripes*
 __ZNK[RO]9gui_forms20PropertyObjectMember*
 __ZNK[RO]9gui_forms20PropertyRegistration*
 __ZNK[RO]9gui_forms20PropertyResetRequest*
+__ZNK[RO]9gui_forms20RelativePointerEnded*
+__ZNK[RO]9gui_forms20RelativePointerGrant*
 __ZNK[RO]9gui_forms20ResponsiveTrackPanel*
 __ZNK[RO]9gui_forms20RibbonToolTipContent*
 __ZNK[RO]9gui_forms20SemanticTextGrapheme*
@@ -7561,6 +7656,9 @@ __ZNK[RO]9gui_forms20ThemeStructureTokens*
 __ZNK[RO]9gui_forms20Utf8ValidationResult*
 __ZNK[RO]9gui_forms20VirtualRowsCallbacks*
 __ZNK[RO]9gui_forms20WindowBandAppearance*
+__ZNK[RO]9gui_forms20WindowCapsuleGesture*
+__ZNK[RO]9gui_forms20WindowCapsuleOutcome*
+__ZNK[RO]9gui_forms20WindowCapsuleRequest*
 __ZNK[RO]9gui_forms20WindowCaptureOptions*
 __ZNK[RO]9gui_forms20WorkspaceTransaction*
 __ZNK[RO]9gui_forms21ApplicationColourRole*
@@ -7639,6 +7737,7 @@ __ZNK[RO]9gui_forms21VirtualRowDescription*
 __ZNK[RO]9gui_forms21VirtualRowsColumnMove*
 __ZNK[RO]9gui_forms21VirtualRowsStatistics*
 __ZNK[RO]9gui_forms21WindowBackdropRequest*
+__ZNK[RO]9gui_forms21WindowCapsuleMeasures*
 __ZNK[RO]9gui_forms22ActiveBorderConditions*
 __ZNK[RO]9gui_forms22ApplicationModalResult*
 __ZNK[RO]9gui_forms22ApplicationThemeConfig*
@@ -7678,6 +7777,8 @@ __ZNK[RO]9gui_forms22PropertyCollectionData*
 __ZNK[RO]9gui_forms22PropertyEditorRegistry*
 __ZNK[RO]9gui_forms22PropertyEnumDescriptor*
 __ZNK[RO]9gui_forms22PropertyValueConverter*
+__ZNK[RO]9gui_forms22RelativePointerRequest*
+__ZNK[RO]9gui_forms22RelativePointerSupport*
 __ZNK[RO]9gui_forms22RibbonLadderGroupState*
 __ZNK[RO]9gui_forms22RibbonStateParseResult*
 __ZNK[RO]9gui_forms22SemanticFeedbackRecord*
@@ -7703,6 +7804,7 @@ __ZNK[RO]9gui_forms23HostClipboardTextResult*
 __ZNK[RO]9gui_forms23HostContextRequestEvent*
 __ZNK[RO]9gui_forms23HostFolderDialogRequest*
 __ZNK[RO]9gui_forms23HostMessageDialogResult*
+__ZNK[RO]9gui_forms23HostRelativeMotionEvent*
 __ZNK[RO]9gui_forms23HostWindowCornersResult*
 __ZNK[RO]9gui_forms23InstrumentModuleRequest*
 __ZNK[RO]9gui_forms23ListViewSelectionChange*
@@ -7716,6 +7818,7 @@ __ZNK[RO]9gui_forms23PrimitiveParameterBlock*
 __ZNK[RO]9gui_forms23PrimitiveParameterValue*
 __ZNK[RO]9gui_forms23PropertyCollectionValue*
 __ZNK[RO]9gui_forms23PropertyGridValueChange*
+__ZNK[RO]9gui_forms23RelativePointerSnapshot*
 __ZNK[RO]9gui_forms23SubSurfaceConfiguration*
 __ZNK[RO]9gui_forms23SubSurfaceContentUpdate*
 __ZNK[RO]9gui_forms23SubSurfaceRequestTarget*
@@ -7731,6 +7834,7 @@ __ZNK[RO]9gui_forms24AnchoredOverlayPlacement*
 __ZNK[RO]9gui_forms24ApplicationWindowOptions*
 __ZNK[RO]9gui_forms24BackgroundWorkerProgress*
 __ZNK[RO]9gui_forms24BlockFlowLayoutWorkspace*
+__ZNK[RO]9gui_forms24BusinessCardRemarkSource*
 __ZNK[RO]9gui_forms24CommandOverflowGroupSpec*
 __ZNK[RO]9gui_forms24ConnectedControlTopology*
 __ZNK[RO]9gui_forms24ContentSurfaceStatistics*
@@ -7743,6 +7847,7 @@ __ZNK[RO]9gui_forms24HostMessageDialogRequest*
 __ZNK[RO]9gui_forms24InvalidationOutlineStyle*
 __ZNK[RO]9gui_forms24PresentationAvailability*
 __ZNK[RO]9gui_forms24PropertyEditorInputError*
+__ZNK[RO]9gui_forms24RelativePointerEventArgs*
 __ZNK[RO]9gui_forms24ResponsiveLayoutSnapshot*
 __ZNK[RO]9gui_forms24RibbonDropDownInvocation*
 __ZNK[RO]9gui_forms24RibbonToolTipHelpRequest*
@@ -7774,6 +7879,7 @@ __ZNK[RO]9gui_forms26DataGridViewDataErrorEvent*
 __ZNK[RO]9gui_forms26DataGridViewRowCancelEvent*
 __ZNK[RO]9gui_forms26DataGridViewRowOverlayPart*
 __ZNK[RO]9gui_forms26DataGridViewRowValuesEvent*
+__ZNK[RO]9gui_forms26HostRelativePointerRequest*
 __ZNK[RO]9gui_forms26LiveSurfacePairingListener*
 __ZNK[RO]9gui_forms26PreparedTextBudgetSnapshot*
 __ZNK[RO]9gui_forms26PropertyRowExpansionChange*
@@ -8280,6 +8386,7 @@ __ZN[KRO]9gui_forms12BackdropStep*
 __ZN[KRO]9gui_forms12BindingTable*
 __ZN[KRO]9gui_forms12BorrowedText*
 __ZN[KRO]9gui_forms12BoxAlignment*
+__ZN[KRO]9gui_forms12BusinessCard*
 __ZN[KRO]9gui_forms12ColorCommand*
 __ZN[KRO]9gui_forms12ColourOrigin*
 __ZN[KRO]9gui_forms12CommandState*
@@ -8465,6 +8572,7 @@ __ZN[KRO]9gui_forms13TextStyleSpan*
 __ZN[KRO]9gui_forms13ThemeFallback*
 __ZN[KRO]9gui_forms13ToolStripMove*
 __ZN[KRO]9gui_forms13UserThemeScan*
+__ZN[KRO]9gui_forms13WindowCapsule*
 __ZN[KRO]9gui_forms13WindowCapture*
 __ZN[KRO]9gui_forms13XmlReadResult*
 __ZN[KRO]9gui_forms13effect_detail14StorageRelease*
@@ -8514,6 +8622,7 @@ __ZN[KRO]9gui_forms14HelpBookWindow*
 __ZN[KRO]9gui_forms14HelpLinkTarget*
 __ZN[KRO]9gui_forms14HelpPrintSheet*
 __ZN[KRO]9gui_forms14HelpSearchTerm*
+__ZN[KRO]9gui_forms14HostEventClock*
 __ZN[KRO]9gui_forms14HostHoverEvent*
 __ZN[KRO]9gui_forms14HostScaleEvent*
 __ZN[KRO]9gui_forms14HostTrayIconId*
@@ -8657,6 +8766,7 @@ __ZN[KRO]9gui_forms15PointerSettings*
 __ZN[KRO]9gui_forms15PositionedGlyph*
 __ZN[KRO]9gui_forms15PreparedTextKey*
 __ZN[KRO]9gui_forms15PrimitiveTarget*
+__ZN[KRO]9gui_forms15ProgramIdentity*
 __ZN[KRO]9gui_forms15ProgressBubbles*
 __ZN[KRO]9gui_forms15ProgressStripes*
 __ZN[KRO]9gui_forms15PropertyRowSpec*
@@ -8911,6 +9021,7 @@ __ZN[KRO]9gui_forms17VirtualRowsColumn*
 __ZN[KRO]9gui_forms17VisualInteraction*
 __ZN[KRO]9gui_forms17WindowBandOptions*
 __ZN[KRO]9gui_forms17WindowBandTexture*
+__ZN[KRO]9gui_forms17WindowCapsuleLook*
 __ZN[KRO]9gui_forms17XmlSourcePosition*
 __ZN[KRO]9gui_forms18AbsoluteAxisResult*
 __ZN[KRO]9gui_forms18AcceleratorOptions*
@@ -9029,6 +9140,7 @@ __ZN[KRO]9gui_forms19BindingNotification*
 __ZN[KRO]9gui_forms19BindingProviderLink*
 __ZN[KRO]9gui_forms19BlockFlowItemLayout*
 __ZN[KRO]9gui_forms19BlockFlowItemResult*
+__ZN[KRO]9gui_forms19BusinessCardRequest*
 __ZN[KRO]9gui_forms19CanvasTextureLayers*
 __ZN[KRO]9gui_forms19CompositeLoadResult*
 __ZN[KRO]9gui_forms19CompositeStatistics*
@@ -9121,6 +9233,7 @@ __ZN[KRO]9gui_forms19TreeExpansionChange*
 __ZN[KRO]9gui_forms19TreeSelectionChange*
 __ZN[KRO]9gui_forms19VirtualRowSelection*
 __ZN[KRO]9gui_forms19WindowBackdropGrant*
+__ZN[KRO]9gui_forms19WindowCapsuleColors*
 __ZN[KRO]9gui_forms19WindowShapingReport*
 __ZN[KRO]9gui_forms20AllocationStatistics*
 __ZN[KRO]9gui_forms20AnchoredOverlayLayer*
@@ -9173,6 +9286,8 @@ __ZN[KRO]9gui_forms20ProgressWovenStripes*
 __ZN[KRO]9gui_forms20PropertyObjectMember*
 __ZN[KRO]9gui_forms20PropertyRegistration*
 __ZN[KRO]9gui_forms20PropertyResetRequest*
+__ZN[KRO]9gui_forms20RelativePointerEnded*
+__ZN[KRO]9gui_forms20RelativePointerGrant*
 __ZN[KRO]9gui_forms20ResponsiveTrackPanel*
 __ZN[KRO]9gui_forms20RibbonToolTipContent*
 __ZN[KRO]9gui_forms20SemanticTextGrapheme*
@@ -9185,6 +9300,9 @@ __ZN[KRO]9gui_forms20ThemeStructureTokens*
 __ZN[KRO]9gui_forms20Utf8ValidationResult*
 __ZN[KRO]9gui_forms20VirtualRowsCallbacks*
 __ZN[KRO]9gui_forms20WindowBandAppearance*
+__ZN[KRO]9gui_forms20WindowCapsuleGesture*
+__ZN[KRO]9gui_forms20WindowCapsuleOutcome*
+__ZN[KRO]9gui_forms20WindowCapsuleRequest*
 __ZN[KRO]9gui_forms20WindowCaptureOptions*
 __ZN[KRO]9gui_forms20WorkspaceTransaction*
 __ZN[KRO]9gui_forms21ApplicationColourRole*
@@ -9263,6 +9381,7 @@ __ZN[KRO]9gui_forms21VirtualRowDescription*
 __ZN[KRO]9gui_forms21VirtualRowsColumnMove*
 __ZN[KRO]9gui_forms21VirtualRowsStatistics*
 __ZN[KRO]9gui_forms21WindowBackdropRequest*
+__ZN[KRO]9gui_forms21WindowCapsuleMeasures*
 __ZN[KRO]9gui_forms22ActiveBorderConditions*
 __ZN[KRO]9gui_forms22ApplicationModalResult*
 __ZN[KRO]9gui_forms22ApplicationThemeConfig*
@@ -9302,6 +9421,8 @@ __ZN[KRO]9gui_forms22PropertyCollectionData*
 __ZN[KRO]9gui_forms22PropertyEditorRegistry*
 __ZN[KRO]9gui_forms22PropertyEnumDescriptor*
 __ZN[KRO]9gui_forms22PropertyValueConverter*
+__ZN[KRO]9gui_forms22RelativePointerRequest*
+__ZN[KRO]9gui_forms22RelativePointerSupport*
 __ZN[KRO]9gui_forms22RibbonLadderGroupState*
 __ZN[KRO]9gui_forms22RibbonStateParseResult*
 __ZN[KRO]9gui_forms22SemanticFeedbackRecord*
@@ -9327,6 +9448,7 @@ __ZN[KRO]9gui_forms23HostClipboardTextResult*
 __ZN[KRO]9gui_forms23HostContextRequestEvent*
 __ZN[KRO]9gui_forms23HostFolderDialogRequest*
 __ZN[KRO]9gui_forms23HostMessageDialogResult*
+__ZN[KRO]9gui_forms23HostRelativeMotionEvent*
 __ZN[KRO]9gui_forms23HostWindowCornersResult*
 __ZN[KRO]9gui_forms23InstrumentModuleRequest*
 __ZN[KRO]9gui_forms23ListViewSelectionChange*
@@ -9340,6 +9462,7 @@ __ZN[KRO]9gui_forms23PrimitiveParameterBlock*
 __ZN[KRO]9gui_forms23PrimitiveParameterValue*
 __ZN[KRO]9gui_forms23PropertyCollectionValue*
 __ZN[KRO]9gui_forms23PropertyGridValueChange*
+__ZN[KRO]9gui_forms23RelativePointerSnapshot*
 __ZN[KRO]9gui_forms23SubSurfaceConfiguration*
 __ZN[KRO]9gui_forms23SubSurfaceContentUpdate*
 __ZN[KRO]9gui_forms23SubSurfaceRequestTarget*
@@ -9355,6 +9478,7 @@ __ZN[KRO]9gui_forms24AnchoredOverlayPlacement*
 __ZN[KRO]9gui_forms24ApplicationWindowOptions*
 __ZN[KRO]9gui_forms24BackgroundWorkerProgress*
 __ZN[KRO]9gui_forms24BlockFlowLayoutWorkspace*
+__ZN[KRO]9gui_forms24BusinessCardRemarkSource*
 __ZN[KRO]9gui_forms24CommandOverflowGroupSpec*
 __ZN[KRO]9gui_forms24ConnectedControlTopology*
 __ZN[KRO]9gui_forms24ContentSurfaceStatistics*
@@ -9367,6 +9491,7 @@ __ZN[KRO]9gui_forms24HostMessageDialogRequest*
 __ZN[KRO]9gui_forms24InvalidationOutlineStyle*
 __ZN[KRO]9gui_forms24PresentationAvailability*
 __ZN[KRO]9gui_forms24PropertyEditorInputError*
+__ZN[KRO]9gui_forms24RelativePointerEventArgs*
 __ZN[KRO]9gui_forms24ResponsiveLayoutSnapshot*
 __ZN[KRO]9gui_forms24RibbonDropDownInvocation*
 __ZN[KRO]9gui_forms24RibbonToolTipHelpRequest*
@@ -9398,6 +9523,7 @@ __ZN[KRO]9gui_forms26DataGridViewDataErrorEvent*
 __ZN[KRO]9gui_forms26DataGridViewRowCancelEvent*
 __ZN[KRO]9gui_forms26DataGridViewRowOverlayPart*
 __ZN[KRO]9gui_forms26DataGridViewRowValuesEvent*
+__ZN[KRO]9gui_forms26HostRelativePointerRequest*
 __ZN[KRO]9gui_forms26LiveSurfacePairingListener*
 __ZN[KRO]9gui_forms26PreparedTextBudgetSnapshot*
 __ZN[KRO]9gui_forms26PropertyRowExpansionChange*
@@ -9904,6 +10030,7 @@ __ZT[VIST]N9gui_forms12BackdropStep*E
 __ZT[VIST]N9gui_forms12BindingTable*E
 __ZT[VIST]N9gui_forms12BorrowedText*E
 __ZT[VIST]N9gui_forms12BoxAlignment*E
+__ZT[VIST]N9gui_forms12BusinessCard*E
 __ZT[VIST]N9gui_forms12ColorCommand*E
 __ZT[VIST]N9gui_forms12ColourOrigin*E
 __ZT[VIST]N9gui_forms12CommandState*E
@@ -10089,6 +10216,7 @@ __ZT[VIST]N9gui_forms13TextStyleSpan*E
 __ZT[VIST]N9gui_forms13ThemeFallback*E
 __ZT[VIST]N9gui_forms13ToolStripMove*E
 __ZT[VIST]N9gui_forms13UserThemeScan*E
+__ZT[VIST]N9gui_forms13WindowCapsule*E
 __ZT[VIST]N9gui_forms13WindowCapture*E
 __ZT[VIST]N9gui_forms13XmlReadResult*E
 __ZT[VIST]N9gui_forms13effect_detail14StorageRelease*E
@@ -10138,6 +10266,7 @@ __ZT[VIST]N9gui_forms14HelpBookWindow*E
 __ZT[VIST]N9gui_forms14HelpLinkTarget*E
 __ZT[VIST]N9gui_forms14HelpPrintSheet*E
 __ZT[VIST]N9gui_forms14HelpSearchTerm*E
+__ZT[VIST]N9gui_forms14HostEventClock*E
 __ZT[VIST]N9gui_forms14HostHoverEvent*E
 __ZT[VIST]N9gui_forms14HostScaleEvent*E
 __ZT[VIST]N9gui_forms14HostTrayIconId*E
@@ -10281,6 +10410,7 @@ __ZT[VIST]N9gui_forms15PointerSettings*E
 __ZT[VIST]N9gui_forms15PositionedGlyph*E
 __ZT[VIST]N9gui_forms15PreparedTextKey*E
 __ZT[VIST]N9gui_forms15PrimitiveTarget*E
+__ZT[VIST]N9gui_forms15ProgramIdentity*E
 __ZT[VIST]N9gui_forms15ProgressBubbles*E
 __ZT[VIST]N9gui_forms15ProgressStripes*E
 __ZT[VIST]N9gui_forms15PropertyRowSpec*E
@@ -10535,6 +10665,7 @@ __ZT[VIST]N9gui_forms17VirtualRowsColumn*E
 __ZT[VIST]N9gui_forms17VisualInteraction*E
 __ZT[VIST]N9gui_forms17WindowBandOptions*E
 __ZT[VIST]N9gui_forms17WindowBandTexture*E
+__ZT[VIST]N9gui_forms17WindowCapsuleLook*E
 __ZT[VIST]N9gui_forms17XmlSourcePosition*E
 __ZT[VIST]N9gui_forms18AbsoluteAxisResult*E
 __ZT[VIST]N9gui_forms18AcceleratorOptions*E
@@ -10653,6 +10784,7 @@ __ZT[VIST]N9gui_forms19BindingNotification*E
 __ZT[VIST]N9gui_forms19BindingProviderLink*E
 __ZT[VIST]N9gui_forms19BlockFlowItemLayout*E
 __ZT[VIST]N9gui_forms19BlockFlowItemResult*E
+__ZT[VIST]N9gui_forms19BusinessCardRequest*E
 __ZT[VIST]N9gui_forms19CanvasTextureLayers*E
 __ZT[VIST]N9gui_forms19CompositeLoadResult*E
 __ZT[VIST]N9gui_forms19CompositeStatistics*E
@@ -10745,6 +10877,7 @@ __ZT[VIST]N9gui_forms19TreeExpansionChange*E
 __ZT[VIST]N9gui_forms19TreeSelectionChange*E
 __ZT[VIST]N9gui_forms19VirtualRowSelection*E
 __ZT[VIST]N9gui_forms19WindowBackdropGrant*E
+__ZT[VIST]N9gui_forms19WindowCapsuleColors*E
 __ZT[VIST]N9gui_forms19WindowShapingReport*E
 __ZT[VIST]N9gui_forms20AllocationStatistics*E
 __ZT[VIST]N9gui_forms20AnchoredOverlayLayer*E
@@ -10797,6 +10930,8 @@ __ZT[VIST]N9gui_forms20ProgressWovenStripes*E
 __ZT[VIST]N9gui_forms20PropertyObjectMember*E
 __ZT[VIST]N9gui_forms20PropertyRegistration*E
 __ZT[VIST]N9gui_forms20PropertyResetRequest*E
+__ZT[VIST]N9gui_forms20RelativePointerEnded*E
+__ZT[VIST]N9gui_forms20RelativePointerGrant*E
 __ZT[VIST]N9gui_forms20ResponsiveTrackPanel*E
 __ZT[VIST]N9gui_forms20RibbonToolTipContent*E
 __ZT[VIST]N9gui_forms20SemanticTextGrapheme*E
@@ -10809,6 +10944,9 @@ __ZT[VIST]N9gui_forms20ThemeStructureTokens*E
 __ZT[VIST]N9gui_forms20Utf8ValidationResult*E
 __ZT[VIST]N9gui_forms20VirtualRowsCallbacks*E
 __ZT[VIST]N9gui_forms20WindowBandAppearance*E
+__ZT[VIST]N9gui_forms20WindowCapsuleGesture*E
+__ZT[VIST]N9gui_forms20WindowCapsuleOutcome*E
+__ZT[VIST]N9gui_forms20WindowCapsuleRequest*E
 __ZT[VIST]N9gui_forms20WindowCaptureOptions*E
 __ZT[VIST]N9gui_forms20WorkspaceTransaction*E
 __ZT[VIST]N9gui_forms21ApplicationColourRole*E
@@ -10887,6 +11025,7 @@ __ZT[VIST]N9gui_forms21VirtualRowDescription*E
 __ZT[VIST]N9gui_forms21VirtualRowsColumnMove*E
 __ZT[VIST]N9gui_forms21VirtualRowsStatistics*E
 __ZT[VIST]N9gui_forms21WindowBackdropRequest*E
+__ZT[VIST]N9gui_forms21WindowCapsuleMeasures*E
 __ZT[VIST]N9gui_forms22ActiveBorderConditions*E
 __ZT[VIST]N9gui_forms22ApplicationModalResult*E
 __ZT[VIST]N9gui_forms22ApplicationThemeConfig*E
@@ -10926,6 +11065,8 @@ __ZT[VIST]N9gui_forms22PropertyCollectionData*E
 __ZT[VIST]N9gui_forms22PropertyEditorRegistry*E
 __ZT[VIST]N9gui_forms22PropertyEnumDescriptor*E
 __ZT[VIST]N9gui_forms22PropertyValueConverter*E
+__ZT[VIST]N9gui_forms22RelativePointerRequest*E
+__ZT[VIST]N9gui_forms22RelativePointerSupport*E
 __ZT[VIST]N9gui_forms22RibbonLadderGroupState*E
 __ZT[VIST]N9gui_forms22RibbonStateParseResult*E
 __ZT[VIST]N9gui_forms22SemanticFeedbackRecord*E
@@ -10951,6 +11092,7 @@ __ZT[VIST]N9gui_forms23HostClipboardTextResult*E
 __ZT[VIST]N9gui_forms23HostContextRequestEvent*E
 __ZT[VIST]N9gui_forms23HostFolderDialogRequest*E
 __ZT[VIST]N9gui_forms23HostMessageDialogResult*E
+__ZT[VIST]N9gui_forms23HostRelativeMotionEvent*E
 __ZT[VIST]N9gui_forms23HostWindowCornersResult*E
 __ZT[VIST]N9gui_forms23InstrumentModuleRequest*E
 __ZT[VIST]N9gui_forms23ListViewSelectionChange*E
@@ -10964,6 +11106,7 @@ __ZT[VIST]N9gui_forms23PrimitiveParameterBlock*E
 __ZT[VIST]N9gui_forms23PrimitiveParameterValue*E
 __ZT[VIST]N9gui_forms23PropertyCollectionValue*E
 __ZT[VIST]N9gui_forms23PropertyGridValueChange*E
+__ZT[VIST]N9gui_forms23RelativePointerSnapshot*E
 __ZT[VIST]N9gui_forms23SubSurfaceConfiguration*E
 __ZT[VIST]N9gui_forms23SubSurfaceContentUpdate*E
 __ZT[VIST]N9gui_forms23SubSurfaceRequestTarget*E
@@ -10979,6 +11122,7 @@ __ZT[VIST]N9gui_forms24AnchoredOverlayPlacement*E
 __ZT[VIST]N9gui_forms24ApplicationWindowOptions*E
 __ZT[VIST]N9gui_forms24BackgroundWorkerProgress*E
 __ZT[VIST]N9gui_forms24BlockFlowLayoutWorkspace*E
+__ZT[VIST]N9gui_forms24BusinessCardRemarkSource*E
 __ZT[VIST]N9gui_forms24CommandOverflowGroupSpec*E
 __ZT[VIST]N9gui_forms24ConnectedControlTopology*E
 __ZT[VIST]N9gui_forms24ContentSurfaceStatistics*E
@@ -10991,6 +11135,7 @@ __ZT[VIST]N9gui_forms24HostMessageDialogRequest*E
 __ZT[VIST]N9gui_forms24InvalidationOutlineStyle*E
 __ZT[VIST]N9gui_forms24PresentationAvailability*E
 __ZT[VIST]N9gui_forms24PropertyEditorInputError*E
+__ZT[VIST]N9gui_forms24RelativePointerEventArgs*E
 __ZT[VIST]N9gui_forms24ResponsiveLayoutSnapshot*E
 __ZT[VIST]N9gui_forms24RibbonDropDownInvocation*E
 __ZT[VIST]N9gui_forms24RibbonToolTipHelpRequest*E
@@ -11022,6 +11167,7 @@ __ZT[VIST]N9gui_forms26DataGridViewDataErrorEvent*E
 __ZT[VIST]N9gui_forms26DataGridViewRowCancelEvent*E
 __ZT[VIST]N9gui_forms26DataGridViewRowOverlayPart*E
 __ZT[VIST]N9gui_forms26DataGridViewRowValuesEvent*E
+__ZT[VIST]N9gui_forms26HostRelativePointerRequest*E
 __ZT[VIST]N9gui_forms26LiveSurfacePairingListener*E
 __ZT[VIST]N9gui_forms26PreparedTextBudgetSnapshot*E
 __ZT[VIST]N9gui_forms26PropertyRowExpansionChange*E
@@ -11528,6 +11674,7 @@ __ZT[hvc]*9gui_forms12BackdropStep*
 __ZT[hvc]*9gui_forms12BindingTable*
 __ZT[hvc]*9gui_forms12BorrowedText*
 __ZT[hvc]*9gui_forms12BoxAlignment*
+__ZT[hvc]*9gui_forms12BusinessCard*
 __ZT[hvc]*9gui_forms12ColorCommand*
 __ZT[hvc]*9gui_forms12ColourOrigin*
 __ZT[hvc]*9gui_forms12CommandState*
@@ -11713,6 +11860,7 @@ __ZT[hvc]*9gui_forms13TextStyleSpan*
 __ZT[hvc]*9gui_forms13ThemeFallback*
 __ZT[hvc]*9gui_forms13ToolStripMove*
 __ZT[hvc]*9gui_forms13UserThemeScan*
+__ZT[hvc]*9gui_forms13WindowCapsule*
 __ZT[hvc]*9gui_forms13WindowCapture*
 __ZT[hvc]*9gui_forms13XmlReadResult*
 __ZT[hvc]*9gui_forms13effect_detail14StorageRelease*
@@ -11762,6 +11910,7 @@ __ZT[hvc]*9gui_forms14HelpBookWindow*
 __ZT[hvc]*9gui_forms14HelpLinkTarget*
 __ZT[hvc]*9gui_forms14HelpPrintSheet*
 __ZT[hvc]*9gui_forms14HelpSearchTerm*
+__ZT[hvc]*9gui_forms14HostEventClock*
 __ZT[hvc]*9gui_forms14HostHoverEvent*
 __ZT[hvc]*9gui_forms14HostScaleEvent*
 __ZT[hvc]*9gui_forms14HostTrayIconId*
@@ -11905,6 +12054,7 @@ __ZT[hvc]*9gui_forms15PointerSettings*
 __ZT[hvc]*9gui_forms15PositionedGlyph*
 __ZT[hvc]*9gui_forms15PreparedTextKey*
 __ZT[hvc]*9gui_forms15PrimitiveTarget*
+__ZT[hvc]*9gui_forms15ProgramIdentity*
 __ZT[hvc]*9gui_forms15ProgressBubbles*
 __ZT[hvc]*9gui_forms15ProgressStripes*
 __ZT[hvc]*9gui_forms15PropertyRowSpec*
@@ -12159,6 +12309,7 @@ __ZT[hvc]*9gui_forms17VirtualRowsColumn*
 __ZT[hvc]*9gui_forms17VisualInteraction*
 __ZT[hvc]*9gui_forms17WindowBandOptions*
 __ZT[hvc]*9gui_forms17WindowBandTexture*
+__ZT[hvc]*9gui_forms17WindowCapsuleLook*
 __ZT[hvc]*9gui_forms17XmlSourcePosition*
 __ZT[hvc]*9gui_forms18AbsoluteAxisResult*
 __ZT[hvc]*9gui_forms18AcceleratorOptions*
@@ -12277,6 +12428,7 @@ __ZT[hvc]*9gui_forms19BindingNotification*
 __ZT[hvc]*9gui_forms19BindingProviderLink*
 __ZT[hvc]*9gui_forms19BlockFlowItemLayout*
 __ZT[hvc]*9gui_forms19BlockFlowItemResult*
+__ZT[hvc]*9gui_forms19BusinessCardRequest*
 __ZT[hvc]*9gui_forms19CanvasTextureLayers*
 __ZT[hvc]*9gui_forms19CompositeLoadResult*
 __ZT[hvc]*9gui_forms19CompositeStatistics*
@@ -12369,6 +12521,7 @@ __ZT[hvc]*9gui_forms19TreeExpansionChange*
 __ZT[hvc]*9gui_forms19TreeSelectionChange*
 __ZT[hvc]*9gui_forms19VirtualRowSelection*
 __ZT[hvc]*9gui_forms19WindowBackdropGrant*
+__ZT[hvc]*9gui_forms19WindowCapsuleColors*
 __ZT[hvc]*9gui_forms19WindowShapingReport*
 __ZT[hvc]*9gui_forms20AllocationStatistics*
 __ZT[hvc]*9gui_forms20AnchoredOverlayLayer*
@@ -12421,6 +12574,8 @@ __ZT[hvc]*9gui_forms20ProgressWovenStripes*
 __ZT[hvc]*9gui_forms20PropertyObjectMember*
 __ZT[hvc]*9gui_forms20PropertyRegistration*
 __ZT[hvc]*9gui_forms20PropertyResetRequest*
+__ZT[hvc]*9gui_forms20RelativePointerEnded*
+__ZT[hvc]*9gui_forms20RelativePointerGrant*
 __ZT[hvc]*9gui_forms20ResponsiveTrackPanel*
 __ZT[hvc]*9gui_forms20RibbonToolTipContent*
 __ZT[hvc]*9gui_forms20SemanticTextGrapheme*
@@ -12433,6 +12588,9 @@ __ZT[hvc]*9gui_forms20ThemeStructureTokens*
 __ZT[hvc]*9gui_forms20Utf8ValidationResult*
 __ZT[hvc]*9gui_forms20VirtualRowsCallbacks*
 __ZT[hvc]*9gui_forms20WindowBandAppearance*
+__ZT[hvc]*9gui_forms20WindowCapsuleGesture*
+__ZT[hvc]*9gui_forms20WindowCapsuleOutcome*
+__ZT[hvc]*9gui_forms20WindowCapsuleRequest*
 __ZT[hvc]*9gui_forms20WindowCaptureOptions*
 __ZT[hvc]*9gui_forms20WorkspaceTransaction*
 __ZT[hvc]*9gui_forms21ApplicationColourRole*
@@ -12511,6 +12669,7 @@ __ZT[hvc]*9gui_forms21VirtualRowDescription*
 __ZT[hvc]*9gui_forms21VirtualRowsColumnMove*
 __ZT[hvc]*9gui_forms21VirtualRowsStatistics*
 __ZT[hvc]*9gui_forms21WindowBackdropRequest*
+__ZT[hvc]*9gui_forms21WindowCapsuleMeasures*
 __ZT[hvc]*9gui_forms22ActiveBorderConditions*
 __ZT[hvc]*9gui_forms22ApplicationModalResult*
 __ZT[hvc]*9gui_forms22ApplicationThemeConfig*
@@ -12550,6 +12709,8 @@ __ZT[hvc]*9gui_forms22PropertyCollectionData*
 __ZT[hvc]*9gui_forms22PropertyEditorRegistry*
 __ZT[hvc]*9gui_forms22PropertyEnumDescriptor*
 __ZT[hvc]*9gui_forms22PropertyValueConverter*
+__ZT[hvc]*9gui_forms22RelativePointerRequest*
+__ZT[hvc]*9gui_forms22RelativePointerSupport*
 __ZT[hvc]*9gui_forms22RibbonLadderGroupState*
 __ZT[hvc]*9gui_forms22RibbonStateParseResult*
 __ZT[hvc]*9gui_forms22SemanticFeedbackRecord*
@@ -12575,6 +12736,7 @@ __ZT[hvc]*9gui_forms23HostClipboardTextResult*
 __ZT[hvc]*9gui_forms23HostContextRequestEvent*
 __ZT[hvc]*9gui_forms23HostFolderDialogRequest*
 __ZT[hvc]*9gui_forms23HostMessageDialogResult*
+__ZT[hvc]*9gui_forms23HostRelativeMotionEvent*
 __ZT[hvc]*9gui_forms23HostWindowCornersResult*
 __ZT[hvc]*9gui_forms23InstrumentModuleRequest*
 __ZT[hvc]*9gui_forms23ListViewSelectionChange*
@@ -12588,6 +12750,7 @@ __ZT[hvc]*9gui_forms23PrimitiveParameterBlock*
 __ZT[hvc]*9gui_forms23PrimitiveParameterValue*
 __ZT[hvc]*9gui_forms23PropertyCollectionValue*
 __ZT[hvc]*9gui_forms23PropertyGridValueChange*
+__ZT[hvc]*9gui_forms23RelativePointerSnapshot*
 __ZT[hvc]*9gui_forms23SubSurfaceConfiguration*
 __ZT[hvc]*9gui_forms23SubSurfaceContentUpdate*
 __ZT[hvc]*9gui_forms23SubSurfaceRequestTarget*
@@ -12603,6 +12766,7 @@ __ZT[hvc]*9gui_forms24AnchoredOverlayPlacement*
 __ZT[hvc]*9gui_forms24ApplicationWindowOptions*
 __ZT[hvc]*9gui_forms24BackgroundWorkerProgress*
 __ZT[hvc]*9gui_forms24BlockFlowLayoutWorkspace*
+__ZT[hvc]*9gui_forms24BusinessCardRemarkSource*
 __ZT[hvc]*9gui_forms24CommandOverflowGroupSpec*
 __ZT[hvc]*9gui_forms24ConnectedControlTopology*
 __ZT[hvc]*9gui_forms24ContentSurfaceStatistics*
@@ -12615,6 +12779,7 @@ __ZT[hvc]*9gui_forms24HostMessageDialogRequest*
 __ZT[hvc]*9gui_forms24InvalidationOutlineStyle*
 __ZT[hvc]*9gui_forms24PresentationAvailability*
 __ZT[hvc]*9gui_forms24PropertyEditorInputError*
+__ZT[hvc]*9gui_forms24RelativePointerEventArgs*
 __ZT[hvc]*9gui_forms24ResponsiveLayoutSnapshot*
 __ZT[hvc]*9gui_forms24RibbonDropDownInvocation*
 __ZT[hvc]*9gui_forms24RibbonToolTipHelpRequest*
@@ -12646,6 +12811,7 @@ __ZT[hvc]*9gui_forms26DataGridViewDataErrorEvent*
 __ZT[hvc]*9gui_forms26DataGridViewRowCancelEvent*
 __ZT[hvc]*9gui_forms26DataGridViewRowOverlayPart*
 __ZT[hvc]*9gui_forms26DataGridViewRowValuesEvent*
+__ZT[hvc]*9gui_forms26HostRelativePointerRequest*
 __ZT[hvc]*9gui_forms26LiveSurfacePairingListener*
 __ZT[hvc]*9gui_forms26PreparedTextBudgetSnapshot*
 __ZT[hvc]*9gui_forms26PropertyRowExpansionChange*
@@ -13152,6 +13318,7 @@ __ZZN9gui_forms12BackdropStep*
 __ZZN9gui_forms12BindingTable*
 __ZZN9gui_forms12BorrowedText*
 __ZZN9gui_forms12BoxAlignment*
+__ZZN9gui_forms12BusinessCard*
 __ZZN9gui_forms12ColorCommand*
 __ZZN9gui_forms12ColourOrigin*
 __ZZN9gui_forms12CommandState*
@@ -13337,6 +13504,7 @@ __ZZN9gui_forms13TextStyleSpan*
 __ZZN9gui_forms13ThemeFallback*
 __ZZN9gui_forms13ToolStripMove*
 __ZZN9gui_forms13UserThemeScan*
+__ZZN9gui_forms13WindowCapsule*
 __ZZN9gui_forms13WindowCapture*
 __ZZN9gui_forms13XmlReadResult*
 __ZZN9gui_forms13effect_detail14StorageRelease*
@@ -13386,6 +13554,7 @@ __ZZN9gui_forms14HelpBookWindow*
 __ZZN9gui_forms14HelpLinkTarget*
 __ZZN9gui_forms14HelpPrintSheet*
 __ZZN9gui_forms14HelpSearchTerm*
+__ZZN9gui_forms14HostEventClock*
 __ZZN9gui_forms14HostHoverEvent*
 __ZZN9gui_forms14HostScaleEvent*
 __ZZN9gui_forms14HostTrayIconId*
@@ -13529,6 +13698,7 @@ __ZZN9gui_forms15PointerSettings*
 __ZZN9gui_forms15PositionedGlyph*
 __ZZN9gui_forms15PreparedTextKey*
 __ZZN9gui_forms15PrimitiveTarget*
+__ZZN9gui_forms15ProgramIdentity*
 __ZZN9gui_forms15ProgressBubbles*
 __ZZN9gui_forms15ProgressStripes*
 __ZZN9gui_forms15PropertyRowSpec*
@@ -13783,6 +13953,7 @@ __ZZN9gui_forms17VirtualRowsColumn*
 __ZZN9gui_forms17VisualInteraction*
 __ZZN9gui_forms17WindowBandOptions*
 __ZZN9gui_forms17WindowBandTexture*
+__ZZN9gui_forms17WindowCapsuleLook*
 __ZZN9gui_forms17XmlSourcePosition*
 __ZZN9gui_forms18AbsoluteAxisResult*
 __ZZN9gui_forms18AcceleratorOptions*
@@ -13901,6 +14072,7 @@ __ZZN9gui_forms19BindingNotification*
 __ZZN9gui_forms19BindingProviderLink*
 __ZZN9gui_forms19BlockFlowItemLayout*
 __ZZN9gui_forms19BlockFlowItemResult*
+__ZZN9gui_forms19BusinessCardRequest*
 __ZZN9gui_forms19CanvasTextureLayers*
 __ZZN9gui_forms19CompositeLoadResult*
 __ZZN9gui_forms19CompositeStatistics*
@@ -13993,6 +14165,7 @@ __ZZN9gui_forms19TreeExpansionChange*
 __ZZN9gui_forms19TreeSelectionChange*
 __ZZN9gui_forms19VirtualRowSelection*
 __ZZN9gui_forms19WindowBackdropGrant*
+__ZZN9gui_forms19WindowCapsuleColors*
 __ZZN9gui_forms19WindowShapingReport*
 __ZZN9gui_forms20AllocationStatistics*
 __ZZN9gui_forms20AnchoredOverlayLayer*
@@ -14045,6 +14218,8 @@ __ZZN9gui_forms20ProgressWovenStripes*
 __ZZN9gui_forms20PropertyObjectMember*
 __ZZN9gui_forms20PropertyRegistration*
 __ZZN9gui_forms20PropertyResetRequest*
+__ZZN9gui_forms20RelativePointerEnded*
+__ZZN9gui_forms20RelativePointerGrant*
 __ZZN9gui_forms20ResponsiveTrackPanel*
 __ZZN9gui_forms20RibbonToolTipContent*
 __ZZN9gui_forms20SemanticTextGrapheme*
@@ -14057,6 +14232,9 @@ __ZZN9gui_forms20ThemeStructureTokens*
 __ZZN9gui_forms20Utf8ValidationResult*
 __ZZN9gui_forms20VirtualRowsCallbacks*
 __ZZN9gui_forms20WindowBandAppearance*
+__ZZN9gui_forms20WindowCapsuleGesture*
+__ZZN9gui_forms20WindowCapsuleOutcome*
+__ZZN9gui_forms20WindowCapsuleRequest*
 __ZZN9gui_forms20WindowCaptureOptions*
 __ZZN9gui_forms20WorkspaceTransaction*
 __ZZN9gui_forms21ApplicationColourRole*
@@ -14135,6 +14313,7 @@ __ZZN9gui_forms21VirtualRowDescription*
 __ZZN9gui_forms21VirtualRowsColumnMove*
 __ZZN9gui_forms21VirtualRowsStatistics*
 __ZZN9gui_forms21WindowBackdropRequest*
+__ZZN9gui_forms21WindowCapsuleMeasures*
 __ZZN9gui_forms22ActiveBorderConditions*
 __ZZN9gui_forms22ApplicationModalResult*
 __ZZN9gui_forms22ApplicationThemeConfig*
@@ -14174,6 +14353,8 @@ __ZZN9gui_forms22PropertyCollectionData*
 __ZZN9gui_forms22PropertyEditorRegistry*
 __ZZN9gui_forms22PropertyEnumDescriptor*
 __ZZN9gui_forms22PropertyValueConverter*
+__ZZN9gui_forms22RelativePointerRequest*
+__ZZN9gui_forms22RelativePointerSupport*
 __ZZN9gui_forms22RibbonLadderGroupState*
 __ZZN9gui_forms22RibbonStateParseResult*
 __ZZN9gui_forms22SemanticFeedbackRecord*
@@ -14199,6 +14380,7 @@ __ZZN9gui_forms23HostClipboardTextResult*
 __ZZN9gui_forms23HostContextRequestEvent*
 __ZZN9gui_forms23HostFolderDialogRequest*
 __ZZN9gui_forms23HostMessageDialogResult*
+__ZZN9gui_forms23HostRelativeMotionEvent*
 __ZZN9gui_forms23HostWindowCornersResult*
 __ZZN9gui_forms23InstrumentModuleRequest*
 __ZZN9gui_forms23ListViewSelectionChange*
@@ -14212,6 +14394,7 @@ __ZZN9gui_forms23PrimitiveParameterBlock*
 __ZZN9gui_forms23PrimitiveParameterValue*
 __ZZN9gui_forms23PropertyCollectionValue*
 __ZZN9gui_forms23PropertyGridValueChange*
+__ZZN9gui_forms23RelativePointerSnapshot*
 __ZZN9gui_forms23SubSurfaceConfiguration*
 __ZZN9gui_forms23SubSurfaceContentUpdate*
 __ZZN9gui_forms23SubSurfaceRequestTarget*
@@ -14227,6 +14410,7 @@ __ZZN9gui_forms24AnchoredOverlayPlacement*
 __ZZN9gui_forms24ApplicationWindowOptions*
 __ZZN9gui_forms24BackgroundWorkerProgress*
 __ZZN9gui_forms24BlockFlowLayoutWorkspace*
+__ZZN9gui_forms24BusinessCardRemarkSource*
 __ZZN9gui_forms24CommandOverflowGroupSpec*
 __ZZN9gui_forms24ConnectedControlTopology*
 __ZZN9gui_forms24ContentSurfaceStatistics*
@@ -14239,6 +14423,7 @@ __ZZN9gui_forms24HostMessageDialogRequest*
 __ZZN9gui_forms24InvalidationOutlineStyle*
 __ZZN9gui_forms24PresentationAvailability*
 __ZZN9gui_forms24PropertyEditorInputError*
+__ZZN9gui_forms24RelativePointerEventArgs*
 __ZZN9gui_forms24ResponsiveLayoutSnapshot*
 __ZZN9gui_forms24RibbonDropDownInvocation*
 __ZZN9gui_forms24RibbonToolTipHelpRequest*
@@ -14270,6 +14455,7 @@ __ZZN9gui_forms26DataGridViewDataErrorEvent*
 __ZZN9gui_forms26DataGridViewRowCancelEvent*
 __ZZN9gui_forms26DataGridViewRowOverlayPart*
 __ZZN9gui_forms26DataGridViewRowValuesEvent*
+__ZZN9gui_forms26HostRelativePointerRequest*
 __ZZN9gui_forms26LiveSurfacePairingListener*
 __ZZN9gui_forms26PreparedTextBudgetSnapshot*
 __ZZN9gui_forms26PropertyRowExpansionChange*
@@ -14776,6 +14962,7 @@ __ZZNK9gui_forms12BackdropStep*
 __ZZNK9gui_forms12BindingTable*
 __ZZNK9gui_forms12BorrowedText*
 __ZZNK9gui_forms12BoxAlignment*
+__ZZNK9gui_forms12BusinessCard*
 __ZZNK9gui_forms12ColorCommand*
 __ZZNK9gui_forms12ColourOrigin*
 __ZZNK9gui_forms12CommandState*
@@ -14961,6 +15148,7 @@ __ZZNK9gui_forms13TextStyleSpan*
 __ZZNK9gui_forms13ThemeFallback*
 __ZZNK9gui_forms13ToolStripMove*
 __ZZNK9gui_forms13UserThemeScan*
+__ZZNK9gui_forms13WindowCapsule*
 __ZZNK9gui_forms13WindowCapture*
 __ZZNK9gui_forms13XmlReadResult*
 __ZZNK9gui_forms13effect_detail14StorageRelease*
@@ -15010,6 +15198,7 @@ __ZZNK9gui_forms14HelpBookWindow*
 __ZZNK9gui_forms14HelpLinkTarget*
 __ZZNK9gui_forms14HelpPrintSheet*
 __ZZNK9gui_forms14HelpSearchTerm*
+__ZZNK9gui_forms14HostEventClock*
 __ZZNK9gui_forms14HostHoverEvent*
 __ZZNK9gui_forms14HostScaleEvent*
 __ZZNK9gui_forms14HostTrayIconId*
@@ -15153,6 +15342,7 @@ __ZZNK9gui_forms15PointerSettings*
 __ZZNK9gui_forms15PositionedGlyph*
 __ZZNK9gui_forms15PreparedTextKey*
 __ZZNK9gui_forms15PrimitiveTarget*
+__ZZNK9gui_forms15ProgramIdentity*
 __ZZNK9gui_forms15ProgressBubbles*
 __ZZNK9gui_forms15ProgressStripes*
 __ZZNK9gui_forms15PropertyRowSpec*
@@ -15407,6 +15597,7 @@ __ZZNK9gui_forms17VirtualRowsColumn*
 __ZZNK9gui_forms17VisualInteraction*
 __ZZNK9gui_forms17WindowBandOptions*
 __ZZNK9gui_forms17WindowBandTexture*
+__ZZNK9gui_forms17WindowCapsuleLook*
 __ZZNK9gui_forms17XmlSourcePosition*
 __ZZNK9gui_forms18AbsoluteAxisResult*
 __ZZNK9gui_forms18AcceleratorOptions*
@@ -15525,6 +15716,7 @@ __ZZNK9gui_forms19BindingNotification*
 __ZZNK9gui_forms19BindingProviderLink*
 __ZZNK9gui_forms19BlockFlowItemLayout*
 __ZZNK9gui_forms19BlockFlowItemResult*
+__ZZNK9gui_forms19BusinessCardRequest*
 __ZZNK9gui_forms19CanvasTextureLayers*
 __ZZNK9gui_forms19CompositeLoadResult*
 __ZZNK9gui_forms19CompositeStatistics*
@@ -15617,6 +15809,7 @@ __ZZNK9gui_forms19TreeExpansionChange*
 __ZZNK9gui_forms19TreeSelectionChange*
 __ZZNK9gui_forms19VirtualRowSelection*
 __ZZNK9gui_forms19WindowBackdropGrant*
+__ZZNK9gui_forms19WindowCapsuleColors*
 __ZZNK9gui_forms19WindowShapingReport*
 __ZZNK9gui_forms20AllocationStatistics*
 __ZZNK9gui_forms20AnchoredOverlayLayer*
@@ -15669,6 +15862,8 @@ __ZZNK9gui_forms20ProgressWovenStripes*
 __ZZNK9gui_forms20PropertyObjectMember*
 __ZZNK9gui_forms20PropertyRegistration*
 __ZZNK9gui_forms20PropertyResetRequest*
+__ZZNK9gui_forms20RelativePointerEnded*
+__ZZNK9gui_forms20RelativePointerGrant*
 __ZZNK9gui_forms20ResponsiveTrackPanel*
 __ZZNK9gui_forms20RibbonToolTipContent*
 __ZZNK9gui_forms20SemanticTextGrapheme*
@@ -15681,6 +15876,9 @@ __ZZNK9gui_forms20ThemeStructureTokens*
 __ZZNK9gui_forms20Utf8ValidationResult*
 __ZZNK9gui_forms20VirtualRowsCallbacks*
 __ZZNK9gui_forms20WindowBandAppearance*
+__ZZNK9gui_forms20WindowCapsuleGesture*
+__ZZNK9gui_forms20WindowCapsuleOutcome*
+__ZZNK9gui_forms20WindowCapsuleRequest*
 __ZZNK9gui_forms20WindowCaptureOptions*
 __ZZNK9gui_forms20WorkspaceTransaction*
 __ZZNK9gui_forms21ApplicationColourRole*
@@ -15759,6 +15957,7 @@ __ZZNK9gui_forms21VirtualRowDescription*
 __ZZNK9gui_forms21VirtualRowsColumnMove*
 __ZZNK9gui_forms21VirtualRowsStatistics*
 __ZZNK9gui_forms21WindowBackdropRequest*
+__ZZNK9gui_forms21WindowCapsuleMeasures*
 __ZZNK9gui_forms22ActiveBorderConditions*
 __ZZNK9gui_forms22ApplicationModalResult*
 __ZZNK9gui_forms22ApplicationThemeConfig*
@@ -15798,6 +15997,8 @@ __ZZNK9gui_forms22PropertyCollectionData*
 __ZZNK9gui_forms22PropertyEditorRegistry*
 __ZZNK9gui_forms22PropertyEnumDescriptor*
 __ZZNK9gui_forms22PropertyValueConverter*
+__ZZNK9gui_forms22RelativePointerRequest*
+__ZZNK9gui_forms22RelativePointerSupport*
 __ZZNK9gui_forms22RibbonLadderGroupState*
 __ZZNK9gui_forms22RibbonStateParseResult*
 __ZZNK9gui_forms22SemanticFeedbackRecord*
@@ -15823,6 +16024,7 @@ __ZZNK9gui_forms23HostClipboardTextResult*
 __ZZNK9gui_forms23HostContextRequestEvent*
 __ZZNK9gui_forms23HostFolderDialogRequest*
 __ZZNK9gui_forms23HostMessageDialogResult*
+__ZZNK9gui_forms23HostRelativeMotionEvent*
 __ZZNK9gui_forms23HostWindowCornersResult*
 __ZZNK9gui_forms23InstrumentModuleRequest*
 __ZZNK9gui_forms23ListViewSelectionChange*
@@ -15836,6 +16038,7 @@ __ZZNK9gui_forms23PrimitiveParameterBlock*
 __ZZNK9gui_forms23PrimitiveParameterValue*
 __ZZNK9gui_forms23PropertyCollectionValue*
 __ZZNK9gui_forms23PropertyGridValueChange*
+__ZZNK9gui_forms23RelativePointerSnapshot*
 __ZZNK9gui_forms23SubSurfaceConfiguration*
 __ZZNK9gui_forms23SubSurfaceContentUpdate*
 __ZZNK9gui_forms23SubSurfaceRequestTarget*
@@ -15851,6 +16054,7 @@ __ZZNK9gui_forms24AnchoredOverlayPlacement*
 __ZZNK9gui_forms24ApplicationWindowOptions*
 __ZZNK9gui_forms24BackgroundWorkerProgress*
 __ZZNK9gui_forms24BlockFlowLayoutWorkspace*
+__ZZNK9gui_forms24BusinessCardRemarkSource*
 __ZZNK9gui_forms24CommandOverflowGroupSpec*
 __ZZNK9gui_forms24ConnectedControlTopology*
 __ZZNK9gui_forms24ContentSurfaceStatistics*
@@ -15863,6 +16067,7 @@ __ZZNK9gui_forms24HostMessageDialogRequest*
 __ZZNK9gui_forms24InvalidationOutlineStyle*
 __ZZNK9gui_forms24PresentationAvailability*
 __ZZNK9gui_forms24PropertyEditorInputError*
+__ZZNK9gui_forms24RelativePointerEventArgs*
 __ZZNK9gui_forms24ResponsiveLayoutSnapshot*
 __ZZNK9gui_forms24RibbonDropDownInvocation*
 __ZZNK9gui_forms24RibbonToolTipHelpRequest*
@@ -15894,6 +16099,7 @@ __ZZNK9gui_forms26DataGridViewDataErrorEvent*
 __ZZNK9gui_forms26DataGridViewRowCancelEvent*
 __ZZNK9gui_forms26DataGridViewRowOverlayPart*
 __ZZNK9gui_forms26DataGridViewRowValuesEvent*
+__ZZNK9gui_forms26HostRelativePointerRequest*
 __ZZNK9gui_forms26LiveSurfacePairingListener*
 __ZZNK9gui_forms26PreparedTextBudgetSnapshot*
 __ZZNK9gui_forms26PropertyRowExpansionChange*

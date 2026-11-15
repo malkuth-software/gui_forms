@@ -324,6 +324,9 @@ gui_forms::DataGridView
       **drop_down_open** : ``bool``, read-only
          Whether a combo box cell's choices are open.
 
+      **scroll_statistics** : ``DataGridViewScrollStatistics``, read-only
+         See DataGridViewScrollStatistics.
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -522,6 +525,8 @@ gui_forms::DataGridView
         - Removes every row of any source and returns to unbound rows.
       * - :cpp:func:`row_id <gui_forms::DataGridView::row_id>`
         - The stable ID of the row at a position: an unbound row's own, the application's for a virtual row, the record's for a bound row.
+      * - :cpp:func:`shared_row <gui_forms::DataGridView::shared_row>`
+        - The row at a position as a value made on demand, for any row source (Windows Forms' Rows.SharedRow): its ID and one value per column, read as cell_value reads them (a virtual row asks its provider).
       * - :cpp:func:`row_position <gui_forms::DataGridView::row_position>`
         - The present position of the row with a stable ID, or none.
       * - :cpp:func:`cell_value <gui_forms::DataGridView::cell_value>`
@@ -1350,6 +1355,10 @@ gui_forms::DataGridView
 
       Whether a combo box cell's choices are open.
 
+   .. cpp:function:: DataGridViewScrollStatistics scroll_statistics() const noexcept
+
+      See DataGridViewScrollStatistics.
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -1600,6 +1609,10 @@ gui_forms::DataGridView
       The stable ID of the row at a position: an unbound row's own, the
       application's for a virtual row, the record's for a bound row. A position
       past the end throws ``std::out_of_range``.
+
+   .. cpp:function:: DataGridViewRow shared_row(DataGridViewRowPosition position) const
+
+      The row at a position as a value made on demand, for any row source (Windows Forms' Rows.SharedRow): its ID and one value per column, read as cell_value reads them (a virtual row asks its provider). The grid keeps no row object for virtual or bound rows, so a million rows cost no million rows; the copy is the caller's, and editing it changes nothing (unbound rows are edited through :cpp:member:`rows <gui_forms::DataGridView::rows>`, the others through their source). Row-wide defaults, Windows Forms' RowTemplate, are the grid's row_height, minimum_row_height and rows_default_cell_style. Throws std::out_of_range past the end.
 
    .. cpp:function:: std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const
 
@@ -2007,97 +2020,97 @@ gui_forms::DataGridView
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
-   .. cpp:function:: virtual void on_auto_size_columns_mode_changed()
+   .. cpp:function:: void on_auto_size_columns_mode_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
-   .. cpp:function:: virtual void on_auto_size_rows_mode_changed()
-
-      *Protected.*
-
-   .. cpp:function:: virtual void on_allow_user_to_delete_rows_changed()
+   .. cpp:function:: void on_auto_size_rows_mode_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_default_cell_style_changed()
+   .. cpp:function:: void on_allow_user_to_delete_rows_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_rows_default_cell_style_changed()
+   .. cpp:function:: void on_default_cell_style_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_alternating_rows_default_cell_style_changed()
+   .. cpp:function:: void on_rows_default_cell_style_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_column_headers_default_cell_style_changed()
+   .. cpp:function:: void on_alternating_rows_default_cell_style_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_row_headers_default_cell_style_changed()
+   .. cpp:function:: void on_column_headers_default_cell_style_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_grid_color_changed()
+   .. cpp:function:: void on_row_headers_default_cell_style_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_background_color_changed()
+   .. cpp:function:: void on_grid_color_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_border_style_changed()
+   .. cpp:function:: void on_background_color_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_cell_border_style_changed()
+   .. cpp:function:: void on_border_style_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_column_headers_border_style_changed()
+   .. cpp:function:: void on_cell_border_style_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_row_headers_border_style_changed()
+   .. cpp:function:: void on_column_headers_border_style_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_column_headers_height_changed()
+   .. cpp:function:: void on_row_headers_border_style_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_row_headers_width_changed()
+   .. cpp:function:: void on_column_headers_height_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_row_headers_width_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_read_only_changed()
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_allow_user_to_resize_columns_changed()
+   .. cpp:function:: void on_read_only_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_allow_user_to_resize_rows_changed()
+   .. cpp:function:: void on_allow_user_to_resize_columns_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_allow_user_to_order_columns_changed()
+   .. cpp:function:: void on_allow_user_to_resize_rows_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_multi_select_changed()
+   .. cpp:function:: void on_allow_user_to_order_columns_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_edit_mode_changed()
+   .. cpp:function:: void on_multi_select_changed()
+
+      *Protected.*
+
+   .. cpp:function:: void on_edit_mode_changed()
 
       *Protected.*
 
@@ -2111,7 +2124,7 @@ gui_forms::DataGridView
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``DataGridView``. Members declared here and by the counterpart: 157 supported, 0 deferred, 0 excluded, 310 unclassified; 86 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``DataGridView``. Members declared here and by the counterpart: 162 supported, 0 deferred, 0 excluded, 314 unclassified; 95 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -3644,6 +3657,34 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 157
      - unclassified (unmatched)
    * - property
      - GUI.Forms-only
+     - ``active_border_alternate_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_corner_radius``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_frequency``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_motion``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_offset``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_width``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``cells_text_provided``
      - supported
    * - property
@@ -3705,6 +3746,10 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 157
    * - property
      - GUI.Forms-only
      - ``row_source``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``scroll_statistics``
      - supported
    * - property
      - GUI.Forms-only
@@ -3985,6 +4030,10 @@ Counterpart: ``DataGridView``. Members declared here and by the counterpart: 157
    * - method
      - GUI.Forms-only
      - ``set_virtual_rows``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``shared_row``
      - supported
    * - method
      - GUI.Forms-only

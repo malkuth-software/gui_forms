@@ -1512,6 +1512,10 @@ Types
 
       Strings in one font and format, each in its own colour at its own origin (gd_* ABI 0.5, the flame graph demonstrator's D3): one draw_string per item, in order. 1 through maximum_text_items items, each bounded valid UTF-8 at a finite origin; the whole list is validated, and that its commands fit maximum_commands, before anything is recorded.
 
+   .. cpp:function:: void draw_string_rotated(std::string_view utf8, const Font& font, const SolidBrush& brush, PointF origin, double degrees, const StringFormat& format)
+
+      The string as draw_string draws it at ``origin``, turned about ``origin`` by ``degrees`` (finite; positive turns anticlockwise as seen). One draw_string command whose recorded transform is the turn followed by the transform in force, which stays in force; 0 degrees records what draw_string records. Throws, recording nothing, as draw_string does or for a non-finite angle.
+
    .. cpp:function:: void draw_ellipse(const Pen& pen, RectF bounds)
 
       Validates bounds and records a pen snapshot.
@@ -1587,6 +1591,10 @@ Types
    .. cpp:function:: void reset()
 
       Empties the recording for reuse (gd_* ABI 0.5, the flame graph demonstrator's D4): the commands, the saved states (their tokens are no longer valid) and the state in force (no transform, no clip, default quality) are cleared and the recorder reopens. The command storage is kept for the next frame. Throws on a disposed recorder.
+
+   .. cpp:function:: void frame_into(GraphicsRecorder& target, double scale, RectF device_clip) const
+
+      Fills ``target`` with this recording as drawn on a surface of ``scale`` device pixels per unit, inside ``device_clip`` (device pixels): each command's transform is followed by the scale, and its clip (device pixels already) is scaled and intersected with device_clip, or is device_clip where it had none. target's commands are replaced, their storage reused, and target is left open with no saved states and the default state in force; this recording is unchanged. For drawing a recording in logical units into a scaled, damage-limited target (the gd_* bridge, recorder_paint_target). Throws std::invalid_argument for target being this recording, a scale that is not finite and positive, or a clip that is not finite with a non-negative size, leaving target unchanged. A throw while copying (out of memory, or a scaled clip that is no longer finite) leaves target's commands unspecified but its state reset only on success.
 
    .. cpp:function:: void set_transform(Matrix transform)
 

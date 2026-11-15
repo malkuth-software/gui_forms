@@ -865,7 +865,9 @@ Types
 
       Default: ``{64, 64, 64, 255}``.
 
-   .. cpp:member:: std::array<Color, series_count> series{Color{31, 119, 180, 255}, Color{255, 127, 14, 255},
+   .. cpp:member:: std::array<Color, series_count> series
+
+      Default: ``{Color{31, 119, 180, 255}, Color{255, 127, 14, 255}, Color{44, 160, 44, 255}, Color{214, 39, 40, 255}, Color{148, 103, 189, 255}, Color{140, 86, 75, 255}, Color{227, 119, 194, 255}, Color{127, 127, 127, 255}}``.
 
 .. cpp:namespace:: gui_forms::plots
 

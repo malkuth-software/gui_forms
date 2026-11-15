@@ -954,7 +954,7 @@ Related types
 
    .. cpp:member:: std::array<std::size_t, locale_field_count> maximum_field_bytes
 
-      Indexed by LocaleField, in its order.
+      Indexed by LocaleField, in its order. Default: ``{4096U, 4096U, 32U, 1024U, 4096U, 4096U, 1024U, 4096U, 2048U, 64U * 1024U, 4096U}``.
 
    .. cpp:member:: std::size_t maximum_records
 
@@ -3876,11 +3876,13 @@ Functions, constants and aliases
 
    The largest number a bundled family may have; numbers above it are reserved for registered families. Value: ``255U``.
 
-.. cpp:var:: constexpr std::array<FontFamilyRecord, 8> bundled_font_families{
+.. cpp:var:: constexpr std::array<FontFamilyRecord, 8> bundled_font_families
 
-   The bundled families, in the order of their numbers.
+   The bundled families, in the order of their numbers. Value: ``{{{selawik_font_family, "Selawik", FontFamilyKind::bundled, std::nullopt, detail::selawik_faces}, {portsmouth_rapids_font_family, "Portsmouth Rapids", FontFamilyKind::bundled, FontRole::control, detail::portsmouth_rapids_faces}, {carlito_font_family, "Carlito", FontFamilyKind::bundled, FontRole::content, detail::carlito_faces}, {cousine_font_family, "Cousine", FontFamilyKind::bundled, FontRole::monospace, detail::cousine_faces}, {arimo_font_family, "Arimo", FontFamilyKind::bundled, std::nullopt, detail::arimo_faces}, {tinos_font_family, "Tinos", FontFamilyKind::bundled, std::nullopt, detail::tinos_faces}, {portsmouth_mono_font_family, "Portsmouth Mono", FontFamilyKind::bundled, std::nullopt, detail::portsmouth_mono_faces}, {selawik_semibold_font_family, "Selawik Semibold", FontFamilyKind::bundled, std::nullopt, detail::selawik_semibold_faces}}}``.
 
-.. cpp:var:: constexpr std::array<GenericFontFamily, 13> generic_font_families{
+.. cpp:var:: constexpr std::array<GenericFontFamily, 13> generic_font_families
+
+   Value: ``{{{"sans-serif", carlito_font_family}, {"serif", tinos_font_family}, {"monospace", cousine_font_family}, {"cursive", carlito_font_family}, {"fantasy", carlito_font_family}, {"system-ui", carlito_font_family}, {"ui-sans-serif", carlito_font_family}, {"ui-serif", tinos_font_family}, {"ui-monospace", cousine_font_family}, {"ui-rounded", carlito_font_family}, {"math", carlito_font_family}, {"fangsong", carlito_font_family}, {"emoji", FontFamilyId{}}}}``.
 
 .. cpp:var:: constexpr std::size_t maximum_font_stack_families
 

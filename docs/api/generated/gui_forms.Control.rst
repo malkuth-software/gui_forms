@@ -428,6 +428,9 @@ gui_forms::Control
       **effective_layout_direction** : ``LayoutDirection``, read-only
          layout_direction stores the authored inline direction, ``inherit`` by default (stage L, PLAN section 4): Windows Forms' RightToLeft. The registry, the property grid and forms spell it ``right_to_left`` (No, Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of 2026-11-11); the :cpp:member:`layout_direction <gui_forms::Control::layout_direction>` name is hidden there and refused in forms. Writing it re-arranges and repaints every control whose resolved direction changes. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root (the top-level window's default, No). Kept resolved: a read walks nothing; a write or a reparenting refreshes the affected subtree once. Directional controls (progress and scroll bars, track bars, up-downs, combo boxes, check boxes) mirror when it is right_to_left.
 
+      **pointer_location** : ``PointerLocation``, read-only
+         Where the pointer is, as this control's window last saw it, in this control's coordinates and the window's (PointerLocation): the position on_mouse_enter and on_mouse_leave, which carry no arguments, read for the crossing. All zero while detached.
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -668,6 +671,8 @@ gui_forms::Control
         -  
       * - :cpp:func:`measure_for_layout <gui_forms::Control::measure_for_layout>`
         - The measure entry layout solvers call (stage L).
+      * - :cpp:func:`mouse_event_arguments <gui_forms::Control::mouse_event_arguments>`
+        - The MouseEventArgs a routed pointer event carries on this control, as the window builds its mouse raisers' (SurfaceRoot:: mouse_event_arguments), for a handler of the routed form that reads the raisers' fields; key_event_arguments is the keys' counterpart.
       * - :cpp:func:`apply_provider_semantics <gui_forms::Control::apply_provider_semantics>`
         - Extender providers enrich the final semantic projection after a stock or custom control has authored its own descriptor.
       * - :cpp:func:`fill_part_geometry <gui_forms::Control::fill_part_geometry>`
@@ -1338,6 +1343,10 @@ gui_forms::Control
 
       layout_direction stores the authored inline direction, ``inherit`` by default (stage L, PLAN section 4): Windows Forms' RightToLeft. The registry, the property grid and forms spell it ``right_to_left`` (No, Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of 2026-11-11); the :cpp:member:`layout_direction <gui_forms::Control::layout_direction>` name is hidden there and refused in forms. Writing it re-arranges and repaints every control whose resolved direction changes. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root (the top-level window's default, No). Kept resolved: a read walks nothing; a write or a reparenting refreshes the affected subtree once. Directional controls (progress and scroll bars, track bars, up-downs, combo boxes, check boxes) mirror when it is right_to_left.
 
+   .. cpp:function:: PointerLocation pointer_location() const
+
+      Where the pointer is, as this control's window last saw it, in this control's coordinates and the window's (PointerLocation): the position on_mouse_enter and on_mouse_leave, which carry no arguments, read for the crossing. All zero while detached.
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -1725,6 +1734,10 @@ gui_forms::Control
    .. cpp:function:: Size measure_for_layout(const LayoutConstraint& constraint)
 
       The measure entry layout solvers call (stage L). It answers from this control's measure cache when an entry was stored under exactly this constraint since the control last became measure-dirty, and otherwise calls measure_intrinsic once and stores the answer. The cache holds four entries: one min-content width, one max-content width, and the two most recent other queries. A result with a negative or non-finite dimension is clamped to zero and counted. Throws std::invalid_argument, with the cache unchanged, when valid_layout_constraint rejects the constraint. An attached control is measured on its window's UI thread only. The window's own measure pass calls this too, so a container's later query under the same constraint is a hit.
+
+   .. cpp:function:: MouseEventArgs mouse_event_arguments(const PointerEvent& event) const
+
+      The MouseEventArgs a routed pointer event carries on this control, as the window builds its mouse raisers' (SurfaceRoot:: mouse_event_arguments), for a handler of the routed form that reads the raisers' fields; key_event_arguments is the keys' counterpart. A detached control takes the event's own click count.
 
    .. cpp:function:: void apply_provider_semantics(SemanticDescriptor& descriptor) const
 
@@ -2460,7 +2473,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 240 supported, 0 deferred, 12 excluded, 316 unclassified; 211 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 248 supported, 0 deferred, 12 excluded, 316 unclassified; 219 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -2677,7 +2690,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 240 supp
      - unclassified (unmatched)
    * - property
      - ``Font``
-     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``Label``, ``ListView``, ``CheckBox``, ``RadioButton``, ``GroupBox``
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``Label``, ``CheckBox``, ``RadioButton``, ``GroupBox``
      - unclassified (carried)
    * - property
      - ``FontHeight``
@@ -3530,7 +3543,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 240 supp
    * - method
      - ``OnMouseLeave``
      - ``on_mouse_leave``
-     - unclassified (untested)
+     - supported
    * - method
      - ``OnMouseMove``
      - ``on_mouse_move``
@@ -4065,6 +4078,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 240 supp
      - supported
    * - property
      - GUI.Forms-only
+     - ``has_relative_pointer``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``help``
      - unclassified (untested)
    * - property
@@ -4138,6 +4155,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 240 supp
    * - property
      - GUI.Forms-only
      - ``pending_layout_bounds``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``pointer_location``
      - supported
    * - property
      - GUI.Forms-only
@@ -4231,6 +4252,14 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 240 supp
      - GUI.Forms-only
      - ``pointer_preview_observed``
      - unclassified (untested)
+   * - event
+     - GUI.Forms-only
+     - ``relative_pointer``
+     - supported
+   * - event
+     - GUI.Forms-only
+     - ``relative_pointer_ended``
+     - supported
    * - event
      - GUI.Forms-only
      - ``theme_sheet_compiled``
@@ -4441,6 +4470,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 240 supp
      - unclassified (untested)
    * - method
      - GUI.Forms-only
+     - ``mouse_event_arguments``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``notify_default``
      - unclassified (untested)
    * - method
@@ -4621,11 +4654,19 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 240 supp
      - unclassified (untested)
    * - method
      - GUI.Forms-only
+     - ``release_relative_pointer``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``remove_child``
      - supported
    * - method
      - GUI.Forms-only
      - ``remove_class``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``request_relative_pointer``
      - supported
    * - method
      - GUI.Forms-only
@@ -4743,3 +4784,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 240 supp
      - GUI.Forms-only
      - ``visual_outsets``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``warp_pointer``
+     - unclassified (untested)

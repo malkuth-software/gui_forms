@@ -2557,14 +2557,6 @@ Related types
 
       Whether the grid shows the column (Windows Forms' Visible). A hidden column keeps its index, display index, width and values; layout, painting, hit testing, keyboard movement, selection ranges and the semantic tree pass over it. Default: ``{true}``.
 
-   .. cpp:member:: bool frozen
-
-      Whether the column stays at the data area's reading start while the other columns scroll (Windows Forms' Frozen). As there, a frozen column freezes every column shown before it in display order.
-
-   .. cpp:member:: std::string tool_tip_text
-
-      The column header's tooltip (Windows Forms' ToolTipText), published on the header's semantic node while show_cell_tool_tips holds; valid UTF-8, and empty for none.
-
    .. cpp:member:: bool owner_draw
 
       Whether the column's cells are owner drawn while the grid's draw_mode is normal: each raises draw_item_content as every cell does under owner_draw, and the other columns draw as usual (the ImGui-class demonstrator's gap I4). Under owner_draw every column is raised whatever this says. A grid with an owner-drawn column paints its cells on the UI thread, as under owner_draw.
@@ -2576,18 +2568,6 @@ Related types
    .. cpp:member:: std::string tool_tip_text
 
       The column header's tooltip (Windows Forms' ToolTipText), published on the header's semantic node while show_cell_tool_tips holds; valid UTF-8, and empty for none.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: DataGridViewColumnChangedEvent final
-
-   ``#include <gui_forms/controls/data_grid_view.hpp>``
-
-   A column added or removed (Windows Forms' ColumnAdded and ColumnRemoved): its index, after the addition or before the removal, and its name. set_columns raises column_removed for each former column, last first, then column_added for each new one in order.
-
-   .. cpp:member:: std::size_t column
-
-   .. cpp:member:: std::string name
 
 .. cpp:namespace:: gui_forms
 

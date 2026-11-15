@@ -21,6 +21,7 @@
 #include "gui_forms/commands/gallery_command/gallery_command.hpp"
 #include "gui_forms/commands/types/command_types.hpp"
 #include "gui_forms/components/about_dialog/about_dialog.hpp"
+#include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/components/error_provider/error_provider.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
@@ -133,6 +134,7 @@
 #include "gui_forms/controls/user_control.hpp"
 #include "gui_forms/controls/value_bar.hpp"
 #include "gui_forms/controls/virtual_rows_view.hpp"
+#include "gui_forms/controls/window_capsule.hpp"
 #include "gui_forms/controls/wizard.hpp"
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
@@ -140,6 +142,7 @@
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/key_events/key_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
+#include "gui_forms/events/relative_pointer/relative_pointer.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/feedback/types/feedback_types.hpp"
 #include "gui_forms/help/helpbook_section/helpbook_section.hpp"
@@ -1002,6 +1005,42 @@ struct EnumerationChoices<RangeAction> {
 };
 
 template <>
+struct EnumerationChoices<RelativePointerEnd> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 8> choices{{
+        {"released", static_cast<std::int64_t>(RelativePointerEnd::released)},
+        {"escape", static_cast<std::int64_t>(RelativePointerEnd::escape)},
+        {"focus_lost", static_cast<std::int64_t>(RelativePointerEnd::focus_lost)},
+        {"deactivated", static_cast<std::int64_t>(RelativePointerEnd::deactivated)},
+        {"modal", static_cast<std::int64_t>(RelativePointerEnd::modal)},
+        {"detached", static_cast<std::int64_t>(RelativePointerEnd::detached)},
+        {"press_released", static_cast<std::int64_t>(RelativePointerEnd::press_released)},
+        {"superseded", static_cast<std::int64_t>(RelativePointerEnd::superseded)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<RelativePointerMode> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 3> choices{{
+        {"free", static_cast<std::int64_t>(RelativePointerMode::free)},
+        {"confined", static_cast<std::int64_t>(RelativePointerMode::confined)},
+        {"locked", static_cast<std::int64_t>(RelativePointerMode::locked)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<RelativePointerSampleKind> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 4> choices{{
+        {"motion", static_cast<std::int64_t>(RelativePointerSampleKind::motion)},
+        {"button_down", static_cast<std::int64_t>(RelativePointerSampleKind::button_down)},
+        {"button_up", static_cast<std::int64_t>(RelativePointerSampleKind::button_up)},
+        {"wheel", static_cast<std::int64_t>(RelativePointerSampleKind::wheel)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<ScrollEventType> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 9> choices{{
@@ -1179,6 +1218,34 @@ struct EnumerationChoices<WindowBackdropReason> {
 };
 
 template <>
+struct EnumerationChoices<WindowCapsuleCommand> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 11> choices{{
+        {"none", static_cast<std::int64_t>(WindowCapsuleCommand::none)},
+        {"toggle_maximize", static_cast<std::int64_t>(WindowCapsuleCommand::toggle_maximize)},
+        {"minimize", static_cast<std::int64_t>(WindowCapsuleCommand::minimize)},
+        {"begin_move", static_cast<std::int64_t>(WindowCapsuleCommand::begin_move)},
+        {"move", static_cast<std::int64_t>(WindowCapsuleCommand::move)},
+        {"finish_move", static_cast<std::int64_t>(WindowCapsuleCommand::finish_move)},
+        {"cancel_move", static_cast<std::int64_t>(WindowCapsuleCommand::cancel_move)},
+        {"tile", static_cast<std::int64_t>(WindowCapsuleCommand::tile)},
+        {"nudge", static_cast<std::int64_t>(WindowCapsuleCommand::nudge)},
+        {"open_help", static_cast<std::int64_t>(WindowCapsuleCommand::open_help)},
+        {"close", static_cast<std::int64_t>(WindowCapsuleCommand::close)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<WindowCapsuleSnap> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 3> choices{{
+        {"none", static_cast<std::int64_t>(WindowCapsuleSnap::none)},
+        {"left_half", static_cast<std::int64_t>(WindowCapsuleSnap::left_half)},
+        {"right_half", static_cast<std::int64_t>(WindowCapsuleSnap::right_half)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<plots::Plot3DHitKind> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 5> choices{{
@@ -1213,6 +1280,8 @@ void append_field(EventFields& fields, std::string_view name, const BindingNavig
 void read_field(EventFields& fields, std::string_view name, BindingNavigatorAddNew& value);
 void append_field(EventFields& fields, std::string_view name, const BindingRow& value);
 void read_field(EventFields& fields, std::string_view name, BindingRow& value);
+void append_field(EventFields& fields, std::string_view name, const BusinessCardRequest& value);
+void read_field(EventFields& fields, std::string_view name, BusinessCardRequest& value);
 void append_field(EventFields& fields, std::string_view name, const CalendarDateRange& value);
 void append_field(EventFields& fields, std::string_view name, const CaretSettings& value);
 void append_field(EventFields& fields, std::string_view name, const CommandInvocation& value);
@@ -1387,6 +1456,9 @@ void append_field(EventFields& fields, std::string_view name, const PropertyValu
 void append_field(EventFields& fields, std::string_view name, const QuickAccessToolbarCustomization& value);
 void append_field(EventFields& fields, std::string_view name, const QuickAccessToolbarPlacementChange& value);
 void append_field(EventFields& fields, std::string_view name, const RangeScrollEvent& value);
+void append_field(EventFields& fields, std::string_view name, const RelativePointerEnded& value);
+void append_field(EventFields& fields, std::string_view name, const RelativePointerEventArgs& value);
+void read_field(EventFields& fields, std::string_view name, RelativePointerEventArgs& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonCommandClick& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonDialogLaunch& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonDropDownInvocation& value);
@@ -1435,6 +1507,7 @@ void append_field(EventFields& fields, std::string_view name, const VirtualRowSe
 void append_field(EventFields& fields, std::string_view name, const VirtualRowsColumnMove& value);
 void append_field(EventFields& fields, std::string_view name, const VirtualRowsHeaderClick& value);
 void append_field(EventFields& fields, std::string_view name, const WindowBackdropGrant& value);
+void append_field(EventFields& fields, std::string_view name, const WindowCapsuleRequest& value);
 void append_field(EventFields& fields, std::string_view name, const WizardPageChangingEvent& value);
 void read_field(EventFields& fields, std::string_view name, WizardPageChangingEvent& value);
 void append_field(EventFields& fields, std::string_view name, const WorldPoint& value);
@@ -1546,6 +1619,18 @@ inline void read_field(EventFields& fields, std::string_view name, BindingRow& v
     read_field(fields, "stable_id", value.stable_id);
     read_field(fields, "values", value.values);
     read_field(fields, "editable", value.editable);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const BusinessCardRequest& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "handled", value.handled);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, BusinessCardRequest& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "handled", value.handled);
     fields.leave(prefix);
 }
 
@@ -2704,6 +2789,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Mouse
     append_field(fields, "handled", value.handled);
     append_field(fields, "suppress_click", value.suppress_click);
     append_field(fields, "wheel_phase", value.wheel_phase);
+    append_field(fields, "timestamp_nanoseconds", value.timestamp_nanoseconds);
     fields.leave(prefix);
 }
 
@@ -2722,6 +2808,7 @@ inline void read_field(EventFields& fields, std::string_view name, MouseEventArg
     read_field(fields, "handled", value.handled);
     read_field(fields, "suppress_click", value.suppress_click);
     read_field(fields, "wheel_phase", value.wheel_phase);
+    read_field(fields, "timestamp_nanoseconds", value.timestamp_nanoseconds);
     fields.leave(prefix);
 }
 
@@ -2965,6 +3052,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Point
     append_field(fields, "click_count", value.click_count);
     append_field(fields, "wheel_unit", value.wheel_unit);
     append_field(fields, "wheel_phase", value.wheel_phase);
+    append_field(fields, "timestamp_nanoseconds", value.timestamp_nanoseconds);
     fields.leave(prefix);
 }
 
@@ -3124,6 +3212,44 @@ inline void append_field(EventFields& fields, std::string_view name, const Range
     append_field(fields, "old_value", value.old_value);
     append_field(fields, "new_value", value.new_value);
     append_field(fields, "action", value.action);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const RelativePointerEnded& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "reason", value.reason);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const RelativePointerEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "kind", value.kind);
+    append_field(fields, "delta", value.delta);
+    append_field(fields, "position", value.position);
+    append_field(fields, "button", value.button);
+    append_field(fields, "wheel_delta", value.wheel_delta);
+    append_field(fields, "wheel_unit", value.wheel_unit);
+    append_field(fields, "modifiers", value.modifiers);
+    append_field(fields, "mode", value.mode);
+    append_field(fields, "timestamp_nanoseconds", value.timestamp_nanoseconds);
+    append_field(fields, "unaccelerated", value.unaccelerated);
+    append_field(fields, "handled", value.handled);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, RelativePointerEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "kind", value.kind);
+    read_field(fields, "delta", value.delta);
+    read_field(fields, "position", value.position);
+    read_field(fields, "button", value.button);
+    read_field(fields, "wheel_delta", value.wheel_delta);
+    read_field(fields, "wheel_unit", value.wheel_unit);
+    read_field(fields, "modifiers", value.modifiers);
+    read_field(fields, "mode", value.mode);
+    read_field(fields, "timestamp_nanoseconds", value.timestamp_nanoseconds);
+    read_field(fields, "unaccelerated", value.unaccelerated);
+    read_field(fields, "handled", value.handled);
     fields.leave(prefix);
 }
 
@@ -3503,6 +3629,16 @@ inline void append_field(EventFields& fields, std::string_view name, const Windo
     append_field(fields, "granted", value.granted);
     append_field(fields, "reason", value.reason);
     append_field(fields, "generation", value.generation);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const WindowCapsuleRequest& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "command", value.command);
+    append_field(fields, "origin", value.origin);
+    append_field(fields, "point", value.point);
+    append_field(fields, "offset", value.offset);
+    append_field(fields, "snap", value.snap);
     fields.leave(prefix);
 }
 
@@ -5646,12 +5782,30 @@ inline SubscriptionToken connect_context_menu_open_changed(Component& source, co
     return token;
 }
 
+inline SubscriptionToken connect_business_card_open_requested(Component& source, const EventSink& sink) {
+    BusinessCard* typed = dynamic_cast<BusinessCard*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).open_requested(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_navigation_pane_options_requested(Component& source, const EventSink& sink) {
     NavigationPane* typed = dynamic_cast<NavigationPane*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).options_requested(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_modal_layer_outside_pressed(Component& source, const EventSink& sink) {
+    ModalLayer* typed = dynamic_cast<ModalLayer*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).outside_pressed(), sink);
     return token;
 }
 
@@ -5947,6 +6101,15 @@ inline SubscriptionToken connect_property_grid_property_value_changed(Component&
     return token;
 }
 
+inline SubscriptionToken connect_business_card_put_away(Component& source, const EventSink& sink) {
+    BusinessCard* typed = dynamic_cast<BusinessCard*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).put_away(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_task_dialog_radio_button_changed(Component& source, const EventSink& sink) {
     TaskDialog* typed = dynamic_cast<TaskDialog*>(&source);
     if (typed == nullptr) {
@@ -5971,6 +6134,33 @@ inline SubscriptionToken connect_ribbon_recent_item_invoked(Component& source, c
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).recent_item_invoked(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_relative_pointer(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).relative_pointer(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_relative_pointer_ended(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).relative_pointer_ended(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_window_capsule_requested(Component& source, const EventSink& sink) {
+    WindowCapsule* typed = dynamic_cast<WindowCapsule*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).requested(), sink);
     return token;
 }
 
@@ -6968,8 +7158,17 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
     return token;
 }
 
+inline SubscriptionToken connect_business_card_website_requested(Component& source, const EventSink& sink) {
+    BusinessCard* typed = dynamic_cast<BusinessCard*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).website_requested(), sink);
+    return token;
+}
+
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 374> event_connectors{{
+inline constexpr std::array<EventConnector, 381> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -7198,7 +7397,9 @@ inline constexpr std::array<EventConnector, 374> event_connectors{{
     {"navigated", "TaskDialog", &connect_task_dialog_navigated},
     {"open_changed", "MenuStrip", &connect_menu_strip_open_changed},
     {"open_changed", "ContextMenu", &connect_context_menu_open_changed},
+    {"open_requested", "BusinessCard", &connect_business_card_open_requested},
     {"options_requested", "NavigationPane", &connect_navigation_pane_options_requested},
+    {"outside_pressed", "ModalLayer", &connect_modal_layer_outside_pressed},
     {"overflow_activated", "BreadcrumbTrail", &connect_breadcrumb_trail_overflow_activated},
     {"overlay_open_changed", "NavigationPane", &connect_navigation_pane_overlay_open_changed},
     {"overlay_open_changed", "RibbonGallery", &connect_ribbon_gallery_overlay_open_changed},
@@ -7231,9 +7432,13 @@ inline constexpr std::array<EventConnector, 374> event_connectors{{
     {"print_requested", "HelpBookSystem", &connect_help_book_system_print_requested},
     {"progress_changed", "BackgroundWorker", &connect_background_worker_progress_changed},
     {"property_value_changed", "PropertyGrid", &connect_property_grid_property_value_changed},
+    {"put_away", "BusinessCard", &connect_business_card_put_away},
     {"radio_button_changed", "TaskDialog", &connect_task_dialog_radio_button_changed},
     {"range_changed", "RangeControl", &connect_range_control_range_changed},
     {"recent_item_invoked", "Ribbon", &connect_ribbon_recent_item_invoked},
+    {"relative_pointer", "Control", &connect_control_relative_pointer},
+    {"relative_pointer_ended", "Control", &connect_control_relative_pointer_ended},
+    {"requested", "WindowCapsule", &connect_window_capsule_requested},
     {"reset_requested", "PropertyList", &connect_property_list_reset_requested},
     {"right_to_left_changed", "Control", &connect_control_right_to_left_changed},
     {"right_to_left_changed", "ErrorProvider", &connect_error_provider_right_to_left_changed},
@@ -7344,6 +7549,7 @@ inline constexpr std::array<EventConnector, 374> event_connectors{{
     {"visibility_changed", "RibbonToolTip", &connect_ribbon_tool_tip_visibility_changed},
     {"visibility_changed", "ToolTip", &connect_tool_tip_visibility_changed},
     {"visible_changed", "Control", &connect_control_visible_changed},
+    {"website_requested", "BusinessCard", &connect_business_card_website_requested},
 }};
 
 // Payload members no field carries yet, with the family that takes them.

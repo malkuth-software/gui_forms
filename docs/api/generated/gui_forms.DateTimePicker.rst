@@ -422,17 +422,17 @@ gui_forms::DateTimePicker
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_value_changed()
+   .. cpp:function:: void on_value_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
-   .. cpp:function:: virtual void on_format_changed()
+   .. cpp:function:: void on_format_changed()
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 

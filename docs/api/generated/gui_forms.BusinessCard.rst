@@ -151,7 +151,7 @@ gui_forms::BusinessCard
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 2 supported, 0 deferred, 0 excluded, 8 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 1 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -165,11 +165,11 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 2 su
    * - property
      - GUI.Forms-only
      - ``card_bounds``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``close_mark_bounds``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``presentation``
@@ -177,7 +177,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 2 su
    * - property
      - GUI.Forms-only
      - ``remark``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``tilt``
@@ -185,11 +185,11 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 2 su
    * - property
      - GUI.Forms-only
      - ``vendor_name_band``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``website_band``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``open_requested``
@@ -197,8 +197,8 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 2 su
    * - event
      - GUI.Forms-only
      - ``put_away``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``website_requested``
-     - unclassified (untested)
+     - supported

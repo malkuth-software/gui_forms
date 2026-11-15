@@ -1054,14 +1054,13 @@ gf_status show_card(gf_object window_or_root, std::uint32_t* shown) {
     return GF_STATUS_OK;
 }
 
+gf_status windows_show_business_card_body(gf_object window_or_root, std::uint32_t* shown) {
+    const gf_status reported = show_card(window_or_root, shown);
+    return reported;
+}
+
 gf_status GF_CALL windows_show_business_card(gf_object window_or_root, std::uint32_t* shown) noexcept {
-    try {
-        const ShadowFrameScope shadow_frame(show_business_card_slot.table_id, show_business_card_slot.slot_index);
-        const gf_status reported = show_card(window_or_root, shown);
-        return reported;
-    } catch (...) {
-        return fail_with_current_exception(show_business_card_slot);
-    }
+    return call_slot(show_business_card_slot, windows_show_business_card_body, window_or_root, shown);
 }
 
 static_assert(static_cast<std::uint32_t>(WindowChromeField::text) == GF_WINDOW_PROPERTY_TEXT &&

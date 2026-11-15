@@ -461,15 +461,15 @@ gui_forms::MonthCalendar
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_font_changed()
+   .. cpp:function:: void on_font_changed()
 
       *Protected.*
 
-      on_<property>_changed runs after a changed write's store and touch and raises the change event; an override calls the base. Only the properties with a Windows Forms On<Property>Changed have one.
+      on_<property>_changed runs after a changed write's store and touch and raises the change event (the class is final: nothing overrides it in C++). Only the properties with a Windows Forms On<Property>Changed have one.
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``MonthCalendar``. Members declared here and by the counterpart: 21 supported, 0 deferred, 1 excluded, 45 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``MonthCalendar``. Members declared here and by the counterpart: 21 supported, 0 deferred, 1 excluded, 52 unclassified; 16 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -708,6 +708,34 @@ Counterpart: ``MonthCalendar``. Members declared here and by the counterpart: 21
      - ``UpdateBoldedDates``
      - none
      - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_alternate_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_corner_radius``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_frequency``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_motion``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_offset``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_width``
+     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``effective_first_day_of_week``

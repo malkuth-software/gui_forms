@@ -173,7 +173,7 @@ gui_forms::ToolStripPanel
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ToolStripPanel``. Members declared here and by the counterpart: 8 supported, 0 deferred, 1 excluded, 17 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ToolStripPanel``. Members declared here and by the counterpart: 8 supported, 0 deferred, 1 excluded, 24 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -268,6 +268,34 @@ Counterpart: ``ToolStripPanel``. Members declared here and by the counterpart: 8
      - ``PointToRow``
      - none
      - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_alternate_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_corner_radius``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_frequency``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_motion``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_offset``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``active_border_width``
+     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``row_count``

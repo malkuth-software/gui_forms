@@ -683,8 +683,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - supported
    * - property
      - ``Activation``
-     - on ``ListView``
-     - unclassified (carried)
+     - none
+     - unclassified (unmatched)
    * - property
      - ``Alignment``
      - none
@@ -707,8 +707,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (untested)
    * - property
      - ``CheckBoxes``
-     - on ``ListView``
-     - unclassified (carried)
+     - none
+     - unclassified (unmatched)
    * - property
      - ``CheckedIndices``
      - none
@@ -727,8 +727,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (unmatched)
    * - property
      - ``FullRowSelect``
-     - on ``ListView``
-     - unclassified (carried)
+     - none
+     - unclassified (unmatched)
    * - property
      - ``GridLines``
      - none
@@ -743,8 +743,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (carried)
    * - property
      - ``HeaderStyle``
-     - on ``ListView``
-     - unclassified (carried)
+     - none
+     - unclassified (unmatched)
    * - property
      - ``HideSelection``
      - none
@@ -767,8 +767,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - supported
    * - property
      - ``LabelEdit``
-     - on ``ListView``
-     - unclassified (carried)
+     - none
+     - unclassified (unmatched)
    * - property
      - ``LabelWrap``
      - none
@@ -783,8 +783,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (unmatched)
    * - property
      - ``MultiSelect``
-     - on ``ListView``
-     - unclassified (carried)
+     - none
+     - unclassified (unmatched)
    * - property
      - ``OwnerDraw``
      - none
@@ -811,8 +811,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (unmatched)
    * - property
      - ``ShowGroups``
-     - on ``ListView``
-     - unclassified (carried)
+     - none
+     - unclassified (unmatched)
    * - property
      - ``ShowItemToolTips``
      - none
@@ -831,8 +831,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (unmatched)
    * - property
      - ``TileSize``
-     - on ``ListView``
-     - unclassified (carried)
+     - none
+     - unclassified (unmatched)
    * - property
      - ``TopItem``
      - none
@@ -843,8 +843,8 @@ Counterpart: ``ListView``. Members declared here and by the counterpart: 20 supp
      - unclassified (unmatched)
    * - property
      - ``View``
-     - on ``ListView``
-     - unclassified (carried)
+     - none
+     - unclassified (unmatched)
    * - property
      - ``VirtualListSize``
      - none
