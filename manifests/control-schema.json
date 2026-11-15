@@ -7297,6 +7297,12 @@
       ]
     },
     {
+      "id": "composite_control",
+      "type": "CompositeControl",
+      "kind": "defined_control",
+      "interactions": []
+    },
+    {
       "id": "tab_control",
       "type": "TabControl",
       "kind": "control",

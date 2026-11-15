@@ -71,6 +71,31 @@ public:
         self.assertEqual(len(findings), 1)
         self.assertIn(types[0]["id"], findings[0])
 
+    def test_a_defined_control_is_the_type_made_from_a_definition(self) -> None:
+        schema = cs.load_schema()
+        registry = cr.load_registry()
+        classes = cs.scan_classes()
+
+        def composite_findings_for(types: list[dict]) -> list[str]:
+            findings = cs.validate({"types": types, "vocabulary": schema["vocabulary"], "engine": schema["engine"]},
+                                   registry, classes)
+            return [finding for finding in findings if finding.startswith("composite_control:")]
+
+        types = [dict(record) for record in schema["types"]]
+        self.assertEqual(composite_findings_for(types), [])
+        position = next(index for index, record in enumerate(types) if record["id"] == "composite_control")
+        self.assertEqual(types[position]["kind"], cs.DEFINED_CONTROL_KIND)
+        types[position] = dict(types[position], kind="service")
+        self.assertTrue(any("construction" in finding for finding in composite_findings_for(types)))
+        types[position] = dict(types[position], kind=cs.DEFINED_CONTROL_KIND, properties=[])
+        self.assertTrue(any("lists nothing" in finding for finding in composite_findings_for(types)))
+        panel = next(index for index, record in enumerate(types) if record["id"] == "panel")
+        types[position] = dict(schema["types"][position])
+        types[panel] = dict(types[panel], kind=cs.DEFINED_CONTROL_KIND)
+        findings = cs.validate({"types": types, "vocabulary": schema["vocabulary"], "engine": schema["engine"]},
+                               registry, classes)
+        self.assertTrue(any(finding.startswith("panel:") and "construction" in finding for finding in findings))
+
     def test_the_vocabulary_is_required_and_lists_the_ribbon_atoms(self) -> None:
         schema = cs.load_schema()
         vocabulary = schema["vocabulary"]

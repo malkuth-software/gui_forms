@@ -92,6 +92,10 @@ struct Schema final {
 // std::out_of_range past the types.
 using CatalogCreator = Component::Ptr (*)(StableId stable_id);
 [[nodiscard]] CatalogCreator catalog_type_creator(std::size_t index);
+// Whether the registry type at index (below catalog_type_count()) is made
+// only from a definition (CompositeControl): never by objects.create or
+// create_with, only by the custom controls table.
+[[nodiscard]] bool catalog_type_made_from_definition(std::size_t index);
 // The window type (windows.create's object, since 1.1): listed after the
 // registry's types, with Window's chrome properties and its interactions.
 // objects.create does not make it.

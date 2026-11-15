@@ -9,7 +9,10 @@
 // A type joins the schema when the loader and the generated code can make
 // it alone: a control from its stable ID, or a component from nothing.
 // Types that need another object (a dock site's workspace, a command's
-// owner) are left out until a document can name that object.
+// owner) are left out until a document can name that object. A type made
+// only from a definition (CompositeControl) stays in the catalog but never
+// joins the schema by its id: each composite joins as its own type, from
+// its .control definition (add_composite_type).
 
 #include "../../src/core/form_language/form_model/form_model.hpp"
 #include "../../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
@@ -17,6 +20,7 @@
 #include "gui_forms/component.hpp"
 #include "gui_forms/control.hpp"
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -29,6 +33,14 @@ struct FormCatalogEntry;
 // cannot be made alone.
 using FormCatalogAdd = void (*)(const FormCatalogEntry& entry, form_language::FormSchema& schema);
 
+// How a registry type is made (manifests/controls.json, `construction`):
+// from a stable id alone (a component: from nothing), or only from a
+// definition.
+enum class CatalogConstruction : std::uint8_t {
+    stable_id,
+    definition,
+};
+
 struct FormCatalogEntry final {
     // The registered name, the C++ class in namespace gui_forms and its
     // public header: static storage, the generated catalog's literals.
@@ -36,6 +48,7 @@ struct FormCatalogEntry final {
     std::string_view cpp_type{};
     std::string_view header{};
     FormCatalogAdd add{};
+    CatalogConstruction construction{CatalogConstruction::stable_id};
 };
 
 template <typename Type>

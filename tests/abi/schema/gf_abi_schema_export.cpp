@@ -539,6 +539,7 @@ std::string_view kind_name(gf_schema_kind kind) {
     case GF_SCHEMA_KIND_CONTROL: return "control";
     case GF_SCHEMA_KIND_COMPONENT: return "component";
     case GF_SCHEMA_KIND_SERVICE: return "service";
+    case GF_SCHEMA_KIND_DEFINED_CONTROL: return "defined_control";
     default: return "unknown";
     }
 }

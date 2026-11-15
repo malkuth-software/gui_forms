@@ -88,7 +88,18 @@ REQUIRED_FIELDS: tuple[str, ...] = (
 # control when it differs from `type` (owner decision, 2026-10-26: an
 # imported FlowLayoutPanel becomes FlowLayoutPanelCompat). Every importer
 # reads this one table; a record without it is imported by its own name.
-OPTIONAL_FIELDS: tuple[str, ...] = ("windows_forms_name",)
+# `construction`: how an instance is made. Omitted, the type is made from a
+# stable id alone (or, for a component, from nothing), and the Gallery,
+# the C ABI's objects.create and the form compiler offer it by id.
+# "definition": the type is made only from a definition (a .control
+# document's CompositeDefinition, CompositeControl): every catalog still
+# lists it, so the schema and a designer know such controls exist, but none
+# offers it as creatable by id; each routes it through its definitions
+# (the C ABI's custom controls table, load_composite).
+OPTIONAL_FIELDS: tuple[str, ...] = ("windows_forms_name", "construction")
+CONSTRUCTION_STABLE_ID: str = "stable_id"
+CONSTRUCTION_DEFINITION: str = "definition"
+CONSTRUCTIONS: tuple[str, ...] = (CONSTRUCTION_STABLE_ID, CONSTRUCTION_DEFINITION)
 
 # Coverage rule roots: a header class counts as a public control/component type
 # when its base-class chain reaches one of these (the roots themselves are not
@@ -158,6 +169,7 @@ class ControlRecord:
     gallery_page: str | None
     doc: str
     windows_forms_name: str | None = None
+    construction: str = CONSTRUCTION_STABLE_ID
 
     @staticmethod
     def from_mapping(raw: Mapping[str, object], index: int) -> ControlRecord:
@@ -178,6 +190,9 @@ class ControlRecord:
         alias: object = values.get("windows_forms_name")
         if alias is not None and not isinstance(alias, str):
             raise RegistryError(f"record {index}: windows_forms_name must be a string")
+        construction: object = values.get("construction", CONSTRUCTION_STABLE_ID)
+        if not isinstance(construction, str):
+            raise RegistryError(f"record {index}: construction must be a string")
         return ControlRecord(
             id=str(values["id"]),
             type=str(values["type"]),
@@ -189,6 +204,7 @@ class ControlRecord:
             gallery_page=values["gallery_page"] if values["gallery_page"] is None else str(values["gallery_page"]),
             doc=str(values["doc"]),
             windows_forms_name=None if alias is None else str(alias),
+            construction=construction,
         )
 
 
@@ -400,6 +416,8 @@ def validate(registry: Registry, include_root: Path = INCLUDE_ROOT) -> list[str]
             if alias in seen_aliases:
                 problems.append(f"{label}: duplicate windows_forms_name '{alias}' (also record {seen_aliases[alias]})")
             seen_aliases.setdefault(alias, index)
+        if record.construction not in CONSTRUCTIONS:
+            problems.append(f"{label}: construction '{record.construction}' is not one of {', '.join(CONSTRUCTIONS)}")
         expected_doc = f"api/generated/gui_forms.{record.type}.rst"
         if record.doc != expected_doc:
             problems.append(f"{label}: doc must be '{expected_doc}', got '{record.doc}'")
@@ -514,7 +532,7 @@ def render_gallery_catalog(registry: Registry) -> str:
         "// Do not edit; `python3 tools/control_registry.py emit-cpp --check` fails when stale.",
         "// Included by demo/gallery_catalog.hpp inside namespace gui_forms::gallery after",
         "// CatalogEntry is declared. An empty gallery_page means no Gallery page demonstrates",
-        "// the type yet.",
+        "// the type yet; construction is \"stable_id\" or \"definition\" (made only from one).",
         "",
         f"inline constexpr std::array<std::string_view, {len(CATEGORIES)}> catalog_categories {{{{",
     ]
@@ -533,11 +551,18 @@ def render_gallery_catalog(registry: Registry) -> str:
             record.winforms,
             record.status,
             record.gallery_page or "",
+            record.construction,
         )
         lines.append("    {" + ", ".join(_cpp_string(field) for field in fields) + "},")
     lines.append("}};")
     lines.append("")
     return "\n".join(lines)
+
+
+def _construction_enumerator(record: ControlRecord) -> str:
+    """The C++ enumerator of a record's construction (CatalogConstruction,
+    declared beside both catalogs' entry types)."""
+    return f"CatalogConstruction::{record.construction}"
 
 
 def render_abi_catalog(registry: Registry) -> str:
@@ -570,7 +595,8 @@ def render_abi_catalog(registry: Registry) -> str:
     for record in registry.records:
         lines.append(
             f"    {{{_cpp_string(record.id)}, {_cpp_string(record.type)}, "
-            f"&describe_type<{record.type}>, &create_type<{record.type}>, &is_exact_type<{record.type}>}},"
+            f"&describe_type<{record.type}>, &create_type<{record.type}>, &is_exact_type<{record.type}>, "
+            f"{_construction_enumerator(record)}}},"
         )
     lines.append("}};")
     lines.append("")
@@ -609,7 +635,7 @@ def render_forms_catalog(registry: Registry) -> str:
     for record in registry.records:
         lines.append(
             f"    {{{_cpp_string(record.id)}, {_cpp_string(record.type)}, {_cpp_string(record.header)}, "
-            f"&add_catalog_type<{record.type}>}},"
+            f"&add_catalog_type<{record.type}>, {_construction_enumerator(record)}}},"
         )
     lines.append("}};")
     lines.append("")

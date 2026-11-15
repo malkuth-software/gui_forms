@@ -226,6 +226,23 @@ class ValidatorTests(unittest.TestCase):
         self.assertIn("not a C++ identifier", joined)
         self.assertIn("must be the record's winforms counterpart ('Box')", joined)
 
+    def test_construction_is_loaded_checked_and_emitted(self) -> None:
+        self.assertEqual(cr.ControlRecord.from_mapping(_record(), 0).construction, cr.CONSTRUCTION_STABLE_ID)
+        defined: cr.ControlRecord = cr.ControlRecord.from_mapping(_record(construction="definition"), 0)
+        self.assertEqual(defined.construction, cr.CONSTRUCTION_DEFINITION)
+        with self.assertRaises(cr.RegistryError):
+            cr.ControlRecord.from_mapping(_record(construction=1), 0)
+        with tempfile.TemporaryDirectory() as temporary:
+            include: Path = self._include(temporary)
+            self.assertEqual(cr.validate(self._registry(_record(construction="definition")), include), [])
+            problems: list[str] = cr.validate(self._registry(_record(construction="factory")), include)
+        self.assertIn("construction 'factory' is not one of stable_id, definition", "\n".join(problems))
+        registry: cr.Registry = self._registry(_record(construction="definition"))
+        self.assertIn('"definition"}', cr.render_gallery_catalog(registry))
+        self.assertIn("CatalogConstruction::definition}", cr.render_abi_catalog(registry))
+        self.assertIn("CatalogConstruction::definition}", cr.render_forms_catalog(registry))
+        self.assertIn("CatalogConstruction::stable_id}", cr.render_abi_catalog(self._registry(_record())))
+
     def test_header_must_exist_and_declare_type(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             include: Path = self._include(temporary)
@@ -314,8 +331,8 @@ class RenderTests(unittest.TestCase):
         self.assertIn(f"std::array<std::string_view, {len(cr.CATEGORIES)}> catalog_categories", text)
         self.assertIn("std::array<CatalogEntry, 2> control_catalog", text)
         self.assertIn('"Says \\"hi\\"."', text)
-        self.assertIn('"stable", "basics"},', text)
-        self.assertIn('"stable", ""},', text)
+        self.assertIn('"stable", "basics", "stable_id"},', text)
+        self.assertIn('"stable", "", "stable_id"},', text)
         self.assertLess(text.index('"quote"'), text.index('"alpha"'), "registry order is preserved")
         self.assertTrue(text.endswith("}};\n"))
 

@@ -25,6 +25,8 @@ form_language::FormSchema registry_form_schema() {
     form_language::FormSchema schema{};
     schema.types.reserve(form_catalog.size() + 1U);
     for (const FormCatalogEntry& entry : form_catalog) {
+        // Made only from a definition: never by its id (form_catalog.hpp).
+        if (entry.construction == CatalogConstruction::definition) continue;
         (*entry.add)(entry, schema);
     }
     add_extension_types(schema);

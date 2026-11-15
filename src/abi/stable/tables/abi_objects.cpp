@@ -136,6 +136,12 @@ gf_status objects_create_body(gf_utf8_view type_name, gf_utf8_view stable_id, gf
     }
     *entered_ui = true;
     const Component::Ptr made = create_catalog_type(type, StableId(std::string(id_text)));
+    if (made == nullptr && catalog_type_made_from_definition(type)) {
+        registry().unbind_if_idle();
+        return fail(GF_STATUS_UNSUPPORTED_CAPABILITY, create_slot,
+                    "this type is made only from a definition (custom controls: load_composite, "
+                    "create_composite)");
+    }
     if (made == nullptr) {
         // Bound for this call alone when nothing else holds the thread.
         registry().unbind_if_idle();

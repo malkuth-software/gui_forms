@@ -160,6 +160,7 @@ public static class Constants
     public const uint GF_SCHEMA_KIND_CONTROL = 0u;
     public const uint GF_SCHEMA_KIND_COMPONENT = 1u;
     public const uint GF_SCHEMA_KIND_SERVICE = 2u;
+    public const uint GF_SCHEMA_KIND_DEFINED_CONTROL = 3u;
     public const uint GF_SCHEMA_VOCABULARY_PART_ROLES = 0u;
     public const uint GF_SCHEMA_VOCABULARY_STATES = 1u;
     public const uint GF_SCHEMA_VOCABULARY_CUSTOM_STATES = 2u;

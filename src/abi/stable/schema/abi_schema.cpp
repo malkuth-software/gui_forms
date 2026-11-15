@@ -142,7 +142,11 @@ SchemaType type_of(const SchemaCatalogEntry& entry) {
     type.id = entry.id;
     type.type_name = entry.type_name;
     type.anatomy = sample.anatomy;
-    if (sample.anatomy != nullptr) {
+    if (entry.construction == CatalogConstruction::definition) {
+        // Listed, never created by id: a designer makes one through a
+        // definition (the custom controls table).
+        type.kind = GF_SCHEMA_KIND_DEFINED_CONTROL;
+    } else if (sample.anatomy != nullptr) {
         type.kind = GF_SCHEMA_KIND_CONTROL;
     } else if (sample.recorded) {
         type.kind = GF_SCHEMA_KIND_COMPONENT;
@@ -288,6 +292,11 @@ Component::Ptr create_catalog_type(std::size_t index, StableId stable_id) {
 CatalogCreator catalog_type_creator(std::size_t index) {
     const CatalogCreator create = schema_catalog.at(index).create;
     return create;
+}
+
+bool catalog_type_made_from_definition(std::size_t index) {
+    const bool definition = schema_catalog.at(index).construction == CatalogConstruction::definition;
+    return definition;
 }
 
 std::string_view catalog_type_id_of(const Component& object) {

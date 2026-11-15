@@ -21,6 +21,10 @@ struct CatalogEntry final {
     std::string_view winforms;      // WinForms counterpart or "GUI.Forms-only"
     std::string_view status;        // stable | provisional | lab
     std::string_view gallery_page;  // Gallery page id, or empty when none demonstrates it
+    // "stable_id", or "definition" for a type made only from a definition
+    // (CompositeControl): listed, never made by its id; its page shows
+    // composites loaded from their .control documents.
+    std::string_view construction;
 };
 
 #include "gallery_catalog.inc"
@@ -65,7 +69,19 @@ struct CatalogEntry final {
     return true;
 }
 
+// Every entry is made from its stable id or only from a definition.
+[[nodiscard]] consteval bool catalog_constructions_are_known()
+{
+    for (const CatalogEntry& entry : control_catalog) {
+        if (entry.construction != "stable_id" && entry.construction != "definition") {
+            return false;
+        }
+    }
+    return true;
+}
+
 static_assert(catalog_ids_are_unique());
 static_assert(catalog_categories_resolve());
+static_assert(catalog_constructions_are_known());
 
 }  // namespace gui_forms::gallery

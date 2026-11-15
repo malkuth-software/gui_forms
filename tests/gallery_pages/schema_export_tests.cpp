@@ -914,14 +914,19 @@ std::string render_schema(std::span<const TypeRecord> records,
         append_json_string(out, entry.type);
         out += ",\n";
         append_key(out, "      ", "kind");
-        if (record.anatomy != nullptr) {
+        // Made only from a definition (CompositeControl): listed, with
+        // nothing of its own, as the C ABI lists it.
+        const bool defined = entry.construction == "definition";
+        if (defined) {
+            append_json_string(out, "defined_control");
+        } else if (record.anatomy != nullptr) {
             append_json_string(out, "control");
         } else if (record.seen) {
             append_json_string(out, "component");
         } else {
             append_json_string(out, "service");
         }
-        if (record.anatomy != nullptr) {
+        if (!defined && record.anatomy != nullptr) {
             const ControlAnatomy& anatomy = *record.anatomy;
             out += ",\n";
             append_key(out, "      ", "parts");
@@ -946,7 +951,11 @@ std::string render_schema(std::span<const TypeRecord> records,
         }
         out += ",\n";
         append_key(out, "      ", "interactions");
-        append_interactions(out, record.interactions);
+        if (defined) {
+            out += "[]";
+        } else {
+            append_interactions(out, record.interactions);
+        }
         out += "\n    }";
     }
     // The window (windows.create's object), after the registry's types as
@@ -1151,10 +1160,16 @@ void test_schema_export() {
     record_component("help_book_system", *help_system, records);
 
     std::size_t services = 0;
+    std::size_t defined = 0;
     for (std::size_t index = 0; index < records.size(); ++index) {
-        if (!records[index].seen) ++services;
+        if (gallery::control_catalog[index].construction == "definition") {
+            ++defined;
+        } else if (!records[index].seen) {
+            ++services;
+        }
     }
     require(services == 1U, "every registry type but the LiveSurface service is exported");
+    require(defined == 1U, "CompositeControl alone is made only from a definition");
     require(composites.size() == 2U, "the Gallery shows the two worked composite examples");
     const std::string schema = render_schema(records, composites);
 

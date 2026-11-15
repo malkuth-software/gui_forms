@@ -3231,7 +3231,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "request_active_control", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"}
     ]},
     {"type": "UserControl", "winforms": "UserControl", "gui_forms_base": "ContainerControl", "winforms_base": "ContainerControl", "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_form_tests.cpp", "members": [
-      {"kind": "constructor", "winforms": "UserControl", "scope": "admitted", "gui_forms": "UserControl", "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_form_tests.cpp"},
+      {"kind": "constructor", "winforms": "UserControl", "scope": "admitted", "gui_forms": "UserControl", "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_control_tests.cpp"},
       {"kind": "property", "winforms": "AutoSizeMode", "scope": "admitted", "gui_forms": "auto_size_mode", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": "BorderStyle", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "event", "winforms": "AutoSizeChanged", "scope": "admitted", "gui_forms": "auto_size_changed", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
@@ -3243,6 +3243,20 @@
       {"kind": "property", "winforms": null, "gui_forms": "is_attached", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/containers-and-focus_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "is_loaded", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_interaction_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "loaded", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"}
+    ]},
+    {"type": "CompositeControl", "winforms": null, "gui_forms_base": "UserControl", "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_control_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "definition", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_generated_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "slot", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_control_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "statistics", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_control_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "type_name", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_generated_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "raised", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_control_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "bind_command", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "child", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_control_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "command_enabled", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "initialize_control_tree", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "part_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_control_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "perform", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_control_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "presentational_value", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_control_tests.cpp"}
     ]},
     {"type": "TabControl", "winforms": "TabControl", "gui_forms_base": "ContainerControl", "winforms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/abi/events/gf_abi_event_fields.cpp", "members": [
       {"kind": "constructor", "winforms": "TabControl", "scope": "admitted", "gui_forms": "TabControl", "status": "supported", "basis": "test", "evidence": "tests/abi/events/gf_abi_event_fields.cpp"},

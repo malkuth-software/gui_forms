@@ -19,6 +19,7 @@
 
 #include "gui_forms/background_worker/background_worker.hpp"
 #include "gui_forms/components/about_dialog/about_dialog.hpp"
+#include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/controls/gauge_base.hpp"
 #include "gui_forms/controls/list_control.hpp"
 #include "gui_forms/controls/text_box_base.hpp"
@@ -53,6 +54,7 @@
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -146,6 +148,10 @@ template <> void describe_type<AnchoredOverlayLayer>(SchemaSample& sample);
 template <> void describe_type<DockSite>(SchemaSample& sample);
 template <> void describe_type<PageStrip>(SchemaSample& sample);
 template <> void describe_type<Toast>(SchemaSample& sample);
+// Made only from a definition: records nothing of its own, as each
+// definition is its own anatomy, properties and events. The schema lists
+// it as GF_SCHEMA_KIND_DEFINED_CONTROL; create_type makes none.
+template <> void describe_type<CompositeControl>(SchemaSample& sample);
 
 // Components.
 template <> void describe_type<AboutDialog>(SchemaSample& sample);
@@ -181,12 +187,22 @@ template <> void describe_type<LiveSurface>(SchemaSample& sample);
 
 // One registry type: its id and C++ type name (static storage) and its
 // recipes.
+// How a registry type is made (manifests/controls.json, `construction`):
+// from a stable id alone (a component: from nothing or its id), or only
+// from a definition (CompositeControl: the custom controls table's
+// load_composite and create_composite).
+enum class CatalogConstruction : std::uint8_t {
+    stable_id,
+    definition,
+};
+
 struct SchemaCatalogEntry final {
     std::string_view id;
     std::string_view type_name;
     void (*describe)(SchemaSample& sample) = nullptr;
     Component::Ptr (*create)(StableId stable_id) = nullptr;
     bool (*is_exact)(const Component& object) = nullptr;
+    CatalogConstruction construction = CatalogConstruction::stable_id;
 };
 
 } // namespace gui_forms::abi1

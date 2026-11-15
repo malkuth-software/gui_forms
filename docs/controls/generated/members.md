@@ -8,13 +8,13 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2275 | 13 | 367 | 4499 | 2763 |
+| 2299 | 13 | 367 | 4501 | 2789 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
-| `Control` | `Control` | 243 | 0 | 12 | 315 | 213 |
+| `Control` | `Control` | 248 | 0 | 12 | 316 | 219 |
 | `Component` | `Component` | 10 | 0 | 0 | 10 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 44 | 29 |
 | `Button` | `Button` | 8 | 0 | 0 | 8 | 9 |
@@ -79,6 +79,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ExpandableSections` | GUI.Forms-only | 7 | 0 | 0 | 0 | 7 |
 | `ContainerControl` | `ContainerControl` | 9 | 0 | 0 | 11 | 4 |
 | `UserControl` | `UserControl` | 5 | 0 | 0 | 7 | 4 |
+| `CompositeControl` | GUI.Forms-only | 9 | 0 | 0 | 3 | 12 |
 | `TabControl` | `TabControl` | 16 | 1 | 2 | 38 | 12 |
 | `PageStrip` | GUI.Forms-only | 30 | 0 | 0 | 14 | 44 |
 | `PageView` | GUI.Forms-only | 8 | 0 | 0 | 8 | 16 |
@@ -168,8 +169,8 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TextBoxBase` | `TextBoxBase` | 11 | 0 | 0 | 40 | 4 |
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
-| `BusinessCard` | GUI.Forms-only | 2 | 0 | 0 | 8 | 10 |
-| `Window` | `Form` | 226 | 10 | 10 | 132 | 238 |
+| `BusinessCard` | GUI.Forms-only | 9 | 0 | 0 | 1 | 10 |
+| `Window` | `Form` | 229 | 10 | 10 | 137 | 246 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -312,5 +313,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1608 |
-| `untested` | 1315 |
+| `untested` | 1317 |
 | `w-open` | 5 |

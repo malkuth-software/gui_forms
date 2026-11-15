@@ -191,6 +191,12 @@ void describe_type<Toast>(SchemaSample& sample) {
     record_control(*toast, sample);
 }
 
+// Made only from a definition (abi_schema_recipes.hpp): nothing to record.
+template <>
+void describe_type<CompositeControl>(SchemaSample& sample) {
+    static_cast<void>(sample);
+}
+
 template <>
 void describe_type<BackgroundWorker>(SchemaSample& sample) {
     describe_window_component<BackgroundWorker>(sample);

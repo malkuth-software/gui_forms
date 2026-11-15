@@ -787,6 +787,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_SCHEMA_KIND_DEFINED_CONTROL",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
       "name": "GF_SCHEMA_VOCABULARY_PART_ROLES",
       "value": 0,
       "type": "uint32"

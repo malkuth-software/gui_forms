@@ -1327,11 +1327,16 @@ typedef struct gf_windows_table {
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in
  * a tree; a component is owned by a control or a window; a service is
- * reached through another object and lists nothing. */
+ * reached through another object and lists nothing. A defined control
+ * (since 1.5) is a control made only from a definition, never by its id:
+ * objects.create refuses it, and the custom controls table makes one
+ * (load_composite, create_composite). It lists nothing itself, as each
+ * definition declares its own parts, properties and events. */
 typedef uint32_t gf_schema_kind;
 #define GF_SCHEMA_KIND_CONTROL 0u
 #define GF_SCHEMA_KIND_COMPONENT 1u
 #define GF_SCHEMA_KIND_SERVICE 2u
+#define GF_SCHEMA_KIND_DEFINED_CONTROL 3u
 
 /* gf_schema_vocabulary: the schema's lists of names (design language 8.5
  * and 12.7), each in the library's order. MARKS leaves out the absence of a

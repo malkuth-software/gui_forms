@@ -4,7 +4,8 @@
     "One record per public GUI.Forms control or component type. Validate with `python3 tools/control_registry.py check`; render the docs indexes with `python3 tools/control_registry.py render`.",
     "Coverage rule: every non-template class declared at namespace level in a header under include/gui_forms/ whose base-class chain reaches gui_forms::Control or gui_forms::Component, excluding Control and Component themselves, plus the admitted service type LiveSurface.",
     "Status rule: `stable` when docs/library/manual.json records the type as OBSERVED and it is not a review instrument; `provisional` when the type is newer than the atlas; `lab` for diagnostics review instruments.",
-    "gallery_page names the GUI.Forms Gallery page (demo/gallery_pages.hpp) that instantiates the type; null means no Gallery page demonstrates it yet. `python3 tools/control_registry.py emit-cpp` writes demo/gallery_catalog.inc from these records."
+    "gallery_page names the GUI.Forms Gallery page (demo/gallery_pages.hpp) that instantiates the type; null means no Gallery page demonstrates it yet. `python3 tools/control_registry.py emit-cpp` writes demo/gallery_catalog.inc from these records.",
+    "Construction rule: a record without `construction` is made from a stable id alone (a component: from nothing); `\"construction\": \"definition\"` marks a type made only from a definition (CompositeControl). Every catalog lists it, and none offers it as creatable by id: the C ABI schema reports GF_SCHEMA_KIND_DEFINED_CONTROL and objects.create refuses it, the form compiler adds composites from their .control definitions, and the Gallery shows them on their page."
   ],
   "controls": [
     {
@@ -699,6 +700,18 @@
       "status": "stable",
       "gallery_page": "containers-and-focus",
       "doc": "api/generated/gui_forms.UserControl.rst"
+    },
+    {
+      "id": "composite_control",
+      "type": "CompositeControl",
+      "header": "gui_forms/composites/composite_control/composite_control.hpp",
+      "category": "Grouping",
+      "purpose": "A control described by a .control document, made only from its compiled definition, whose parts, properties, rules, children and events the definition declares.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "composite-controls",
+      "doc": "api/generated/gui_forms.CompositeControl.rst",
+      "construction": "definition"
     },
     {
       "id": "tab_control",

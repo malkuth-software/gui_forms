@@ -377,6 +377,11 @@ def _expression_findings(expressions: object) -> list[str]:
 WINDOW_TYPE_ID: str = "window"
 
 
+# The kind of a registry type made only from a definition (CompositeControl;
+# GF_SCHEMA_KIND_DEFINED_CONTROL in the C ABI).
+DEFINED_CONTROL_KIND: str = "defined_control"
+
+
 def validate(schema: Mapping[str, object], registry: control_registry.Registry,
              classes: Mapping[str, ScannedClass]) -> list[str]:
     """Every finding; an empty list means the manifest is consistent."""
@@ -428,6 +433,19 @@ def validate(schema: Mapping[str, object], registry: control_registry.Registry,
         kind: object = record.get("kind")
         if kind == "control" and not record.get("parts"):
             findings.append(f"{identity}: a control declares no parts")
+        # A type made only from a definition (controls.json `construction`)
+        # is a defined control and lists nothing: each definition is its own.
+        made_from_definition: bool = (registered is not None and
+                                      registered.construction == control_registry.CONSTRUCTION_DEFINITION)
+        if made_from_definition != (kind == DEFINED_CONTROL_KIND):
+            findings.append(f"{identity}: kind {kind!r} but construction "
+                            f"{registered.construction if registered is not None else 'none'!r}; a type made only "
+                            f"from a definition is, and only it is, a {DEFINED_CONTROL_KIND!r}")
+        if kind == DEFINED_CONTROL_KIND:
+            listed: list[str] = [key for key in ("parts", "properties", "child_properties") if key in record]
+            if listed or record.get("interactions"):
+                findings.append(f"{identity}: a defined control lists nothing of its own")
+            continue
         for item in record.get("properties", []):  # type: ignore[union-attr]
             if not _SNAKE.fullmatch(str(item.get("name"))):
                 findings.append(f"{identity}: property {item.get('name')!r} is not snake_case")

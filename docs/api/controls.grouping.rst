@@ -27,6 +27,8 @@ Panels, group boxes, cards, tabs and expandable sections.
      - The base class for containers that manage focus and validation for their descendants.
    * - :cpp:class:`UserControl <gui_forms::UserControl>`
      - A container for building your own reusable composite control.
+   * - :cpp:class:`CompositeControl <gui_forms::CompositeControl>`
+     - A control described by a .control document, made only from its compiled definition, whose parts, properties, rules, children and events the definition declares.
    * - :cpp:class:`TabControl <gui_forms::TabControl>`
      - A set of pages shown one at a time, chosen from a row of tabs.
    * - :cpp:class:`PageStrip <gui_forms::PageStrip>`
@@ -53,6 +55,7 @@ Panels, group boxes, cards, tabs and expandable sections.
    generated/gui_forms.ExpandableSections
    generated/gui_forms.ContainerControl
    generated/gui_forms.UserControl
+   generated/gui_forms.CompositeControl
    generated/gui_forms.TabControl
    generated/gui_forms.PageStrip
    generated/gui_forms.PageView
@@ -84,6 +87,14 @@ Related types
      - Whether the card is selected; a change raises selected_changed.
    * - :cpp:class:`CardSelectionBehaviorPropertyCapability <gui_forms::CardSelectionBehaviorPropertyCapability>`
      - Whether activation only notifies (manual, the default) or also selects or toggles the card before activated is raised.
+   * - :cpp:class:`CompositeChildType <gui_forms::CompositeChildType>`
+     -  
+   * - :cpp:class:`CompositeEvent <gui_forms::CompositeEvent>`
+     - An event a composite raised (a declared <event>): its name as written, borrowed from the definition, and its payload (null for none).
+   * - :cpp:class:`CompositeLoadResult <gui_forms::CompositeLoadResult>`
+     - What load_composite_definition made: the definition, or null with every refusal in ``diagnostics``, one line each in the compilers' form (``file:line:column: error: E918 control_reference_unknown: rule property: detail``).
+   * - :cpp:class:`CompositeStatistics <gui_forms::CompositeStatistics>`
+     - Counters (AGENTS.md: structured instrumentation).
    * - :cpp:class:`ContainerControlAutoValidateCapability <gui_forms::ContainerControlAutoValidateCapability>`
      - How focus changes validate the controls they leave (Windows Forms' AutoValidate); inherit takes the nearest container's policy (effective_auto_validate resolves it).
    * - :cpp:class:`ContainerControlCapabilities <gui_forms::ContainerControlCapabilities>`
@@ -426,6 +437,76 @@ Related types
    .. cpp:member:: PropertyCell<CardSelectionBehavior, CardSelectionBehaviorPropertyCapability<Declaring>> selection_behavior
 
       Default: ``{CardSelectionBehavior::manual}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CompositeChildType final
+
+   ``#include <gui_forms/composites/composite_control/composite_control.hpp>``
+
+   .. cpp:member:: std::string_view name
+
+   .. cpp:member:: CompositeChildCreator create
+
+   .. cpp:member:: CompositeChildCommandBinder bind_command
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CompositeEvent final
+
+   ``#include <gui_forms/composites/composite_control/composite_control.hpp>``
+
+   An event a composite raised (a declared <event>): its name as written, borrowed from the definition, and its payload (null for none).
+
+   .. cpp:member:: std::string_view name
+
+   .. cpp:member:: BindingValue payload
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CompositeLoadResult final
+
+   ``#include <gui_forms/composites/composite_control/composite_control.hpp>``
+
+   What load_composite_definition made: the definition, or null with every refusal in ``diagnostics``, one line each in the compilers' form (``file:line:column: error: E918 control_reference_unknown: rule property: detail``). Warnings (W950) are listed with a definition too.
+
+   .. cpp:member:: std::shared_ptr<const CompositeDefinition> definition
+
+   .. cpp:member:: std::vector<std::string> diagnostics
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CompositeStatistics final
+
+   ``#include <gui_forms/composites/composite_control/composite_control.hpp>``
+
+   Counters (AGENTS.md: structured instrumentation). rule_firings: rules whose condition held and whose actions ran; refused_firings: firings past maximum_composite_rule_depth; commands_run / commands_refused: perform and activations, refused when the command is not enabled; refused_writes: property writes refused before any change; geometry_passes: part geometry evaluations; drags_committed / drags_restored: drag ends; look_compiles: compilations of the definition's <look> alone, with the definition: 1 with a look, 0 without, the same in every instance however many there are and whatever themes they see; a look reading only the engine inputs and built-in roles compiles nothing more; look_theme_compiles / look_theme_refusals: compilations of a look that reads a theme's roles or custom properties with the text of a theme (once per definition per theme serial, at the first fixed point under it: attachment or a theme applied, never the style pass), and those refused; the definition's counts, read when asked, so the same in every instance; look_theme_reuses: preparations that reused a kept compilation after another theme's. A theme some instance shows (its window's, or an override) holds its compilation, never evicted; one no instance shows any more stays kept, evictable, among the last maximum_composite_look_entries such themes, so switching back to it reuses its compilation; look_missing: resolutions that found no prepared compilation, a defect (the look draws nothing there; nothing compiles).
+
+   .. cpp:member:: std::uint64_t rule_firings
+
+   .. cpp:member:: std::uint64_t refused_firings
+
+   .. cpp:member:: std::uint64_t commands_run
+
+   .. cpp:member:: std::uint64_t commands_refused
+
+   .. cpp:member:: std::uint64_t refused_writes
+
+   .. cpp:member:: std::uint64_t geometry_passes
+
+   .. cpp:member:: std::uint64_t drags_committed
+
+   .. cpp:member:: std::uint64_t drags_restored
+
+   .. cpp:member:: std::uint64_t look_compiles
+
+   .. cpp:member:: std::uint64_t look_theme_compiles
+
+   .. cpp:member:: std::uint64_t look_theme_refusals
+
+   .. cpp:member:: std::uint64_t look_theme_reuses
+
+   .. cpp:member:: std::uint64_t look_missing
 
 .. cpp:namespace:: gui_forms
 
@@ -2364,6 +2445,40 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/composites/composite_control/composite_control.hpp>``
+
+.. cpp:function:: template <typename ControlType> Component::Ptr create_composite_child(StableId stable_id)
+
+   The creator of a control type, for CompositeChildType::create.
+
+.. cpp:function:: template <typename ControlType> void bind_composite_child_command(Component& owner, Command& command)
+
+   The Command binder of a control type with bind(Command&).
+
+.. cpp:function:: template <typename ControlType> constexpr CompositeChildType composite_child_type(std::string_view name) noexcept
+
+   The entry of a control type: its creator, and its binder when it takes a Command.
+
+.. cpp:function:: CompositeLoadResult load_composite_definition(std::string_view file, std::string_view document, std::span<const CompositeChildType> child_types)
+
+   Reads, checks and compiles ``document`` (named ``file`` in the diagnostics) against the base types and ``child_types``. Everything is borrowed for the call. UI thread: each child type is described from a prototype it makes and releases.
+
+.. cpp:function:: std::string_view composite_type_name(const CompositeDefinition& definition) noexcept
+
+   The type's registered (snake case) name.
+
+.. cpp:type:: CompositeChildCreator = Component::Ptr (*)(StableId stable_id)
+
+   One control type a composite's children may name, besides the base (user_control): its registered name and how to make one. A definition loaded at run time names the types its document uses; the generated header names them for the build. A type whose objects take a Command (a button's bind(Command&)) also names how to bind one, for a child bound to a command property.
+
+.. cpp:type:: CompositeChildCommandBinder = void (*)(Component& owner, Command& command)
+
+.. cpp:var:: constexpr std::size_t maximum_composite_rule_depth
+
+   The deepest nesting of rule firings (Q12). Value: ``8U``.
 
 .. cpp:namespace:: gui_forms
 
