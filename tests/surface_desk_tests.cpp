@@ -281,13 +281,26 @@ void test_input_queue_order_and_waits() {
     require(taken.size() == 1U && taken[0].kind == SurfaceInputKind::presented, "with its record");
 }
 
+// Motion (pointer moves and wheel turns) is bounded at maximum_records; every
+// other record, such as the default frame record, at maximum_control_records,
+// so a flood of motion cannot push out a close or a release (A-gf-host-02-F14).
 void test_input_queue_bound() {
     SurfaceInputQueue queue;
+    SurfaceInputRecord move{};
+    move.kind = SurfaceInputKind::pointer;
+    move.action = SurfacePointerAction::move;
     for (std::size_t index = 0U; index < SurfaceInputQueue::maximum_records; ++index) {
-        require(queue.post(SurfaceInputRecord{}), "records up to the bound are kept");
+        require(queue.post(move), "records up to the bound are kept");
     }
-    require(!queue.post(SurfaceInputRecord{}), "a record beyond the bound is dropped");
+    require(!queue.post(move), "a record beyond the bound is dropped");
     require(queue.dropped() == 1U, "and counted");
+    const SurfaceInputRecord frame{};
+    for (std::size_t index = SurfaceInputQueue::maximum_records; index < SurfaceInputQueue::maximum_control_records;
+         ++index) {
+        require(queue.post(frame), "control records are kept up to their own bound");
+    }
+    require(!queue.post(frame), "a control record beyond its bound is dropped");
+    require(queue.dropped() == 2U, "and counted too");
 }
 
 void test_device_rects() {
