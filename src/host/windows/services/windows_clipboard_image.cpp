@@ -93,7 +93,13 @@ HostServiceStatus write_windows_clipboard_image(HWND owner, HostImageView image)
     if (!exact_storage.valid() || !dib_storage.valid()) return {HostServiceError::backend_failure};
     const ClipboardLease lease(owner);
     if (!lease.opened() || !EmptyClipboard()) return {HostServiceError::backend_failure};
-    if (!exact_storage.publish(exact) || !dib_storage.publish(CF_DIBV5)) return {HostServiceError::backend_failure};
+    if (!exact_storage.publish(exact)) return {HostServiceError::backend_failure};
+    if (!dib_storage.publish(CF_DIBV5)) {
+        // Not left half written: a failure leaves the clipboard empty
+        // (A-gf-host-03-F14).
+        static_cast<void>(EmptyClipboard());
+        return {HostServiceError::backend_failure};
+    }
     return {};
 }
 } // namespace gui_forms::host::detail

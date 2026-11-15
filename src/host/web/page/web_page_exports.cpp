@@ -9,6 +9,7 @@
 #include "../application/web_surface_host.hpp"
 #include "../input/web_input_rules.hpp"
 
+#include <cmath>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -159,7 +160,10 @@ GF_WEB_EXPORT void gf_web_post_frame(double time) {
 GF_WEB_EXPORT void gf_web_post_dialog(double request, int outcome, const char* paths, const char* text) {
     SurfaceInputRecord record;
     record.kind = SurfaceInputKind::dialog;
-    record.request = static_cast<std::uint64_t>(request);
+    // The page's number: converted only when it is a whole id a double
+    // holds exactly; anything else names no request (A-gf-host-03-F14).
+    const bool whole = request >= 0.0 && request < 9007199254740992.0 && request == std::floor(request);
+    record.request = whole ? static_cast<std::uint64_t>(request) : 0U;
     record.outcome = gui_forms::host::web_detail::web_dialog_outcome(outcome);
     record.text = text_of(text);
     split_lines(paths, record.paths);

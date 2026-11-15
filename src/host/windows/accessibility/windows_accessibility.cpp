@@ -767,8 +767,10 @@ HRESULT MsaaElement::answer_accHitTest(LONG x, LONG y, VARIANT* out) {
     POINT origin{};
     ClientToScreen((*source_).hwnd, &origin);
     const double scale = (*source_).scale;
-    const double logical_x = (x - origin.x) / scale;
-    const double logical_y = (y - origin.y) / scale;
+    // In double: x and y are the client's, and LONG subtraction could
+    // overflow (A-gf-host-03-F14).
+    const double logical_x = (static_cast<double>(x) - static_cast<double>(origin.x)) / scale;
+    const double logical_y = (static_cast<double>(y) - static_cast<double>(origin.y)) / scale;
     SemanticLocation hit;
     if (!hit_semantic_location(self, logical_x, logical_y, hit)) return S_FALSE;
     return variant_for(hit, out);

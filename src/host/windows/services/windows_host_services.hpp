@@ -307,6 +307,12 @@ protected:
         const std::size_t capacity = static_cast<std::size_t>(block_bytes) / sizeof(wchar_t);
         const std::size_t length = wcsnlen(locked, capacity);
         result.text_utf8 = utf8_from_wide(std::wstring_view(locked, length));
+        // Text with an unpaired surrogate converts to nothing: a failure,
+        // not an empty text (A-gf-host-03-F14).
+        if (result.text_utf8.empty() && length != 0U) {
+            result.status.error = HostServiceError::backend_failure;
+            return result;
+        }
         result.has_text = true;
         return result;
     }
@@ -370,7 +376,14 @@ protected:
                     result.status.error = HostServiceError::backend_failure;
                     break;
                 }
-                result.paths_utf8.push_back(utf8_from_wide(path.data()));
+                std::string converted = utf8_from_wide(path.data());
+                // A name that does not convert is a failure, as the
+                // dialogs report it, not an empty path (A-gf-host-03-F14).
+                if (converted.empty()) {
+                    result.status.error = HostServiceError::backend_failure;
+                    break;
+                }
+                result.paths_utf8.push_back(std::move(converted));
             }
         }
         return result;
