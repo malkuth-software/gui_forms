@@ -12,14 +12,17 @@
 #include <array>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <iterator>
 #include <limits>
 #include <map>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 namespace gui_forms {
 
@@ -736,27 +739,50 @@ struct PropertyGrid::Impl final {
         }
     }
 
+    // An editor that could not be installed, reported after the loop.
+    struct EditorFailure final {
+        std::string property_path;
+        std::string message;
+    };
+
+    // The factory, the binding's connections and edit_failed's handlers are
+    // the program's code, and any of them may rebuild the grid, which clears
+    // edit_targets and the row maps (A-gf-controls-09-F1). The loop walks a
+    // copy of the target names, finds each again, stops as soon as the
+    // projection revision moves, and raises the failures only after it, in
+    // order, stopping when a handler rebuilt the grid (that rebuild installed
+    // its own editors).
     void install_custom_editors() {
         if (!list || !editors) return;
-        for (const std::pair<const std::string, EditTarget>& target_entry :
-             edit_targets) {
-            const std::string& canonical = target_entry.first;
-            const EditTarget& target_spec = target_entry.second;
+        const std::uint64_t expected_projection = projection_revision;
+        std::vector<std::string> canonicals;
+        canonicals.reserve(edit_targets.size());
+        for (const std::pair<const std::string, EditTarget>& target_entry : edit_targets) {
+            canonicals.push_back(target_entry.first);
+        }
+        std::vector<EditorFailure> failures;
+        for (const std::string& canonical : canonicals) {
+            if (!owner.is_alive() || projection_revision != expected_projection) return;
+            const EditTargetMap::iterator target_entry = edit_targets.find(canonical);
+            if (target_entry == edit_targets.end()) continue;
+            const EditTarget& target_spec = (*target_entry).second;
             if (!target_spec.writable) continue;
             const ValueMap::iterator value = values.find(canonical);
             const StringMap::iterator row = property_to_row.find(canonical);
             if (value == values.end() || row == property_to_row.end()) {
                 continue;
             }
+            const std::string row_id = (*row).second;
             PropertyEditorRequest request;
-            request.stable_id = (*row).second + ".custom-editor";
-            request.property_path = row_to_property.at((*row).second);
+            request.stable_id = row_id + ".custom-editor";
+            request.property_path = row_to_property.at(row_id);
             request.descriptor = target_spec.descriptor;
             request.value = (*value).second;
             request.writable = target_spec.writable;
             request.top_level = target_spec.path.empty();
             try {
                 std::optional<PropertyEditorBinding> binding = (*editors).create(request);
+                if (!owner.is_alive() || projection_revision != expected_projection) return;
                 if (!binding) continue;
                 const Control::WeakPtr owner_lifetime = owner.weak_from_this();
                 SubscriptionToken committed = (*binding).connect_committed(
@@ -776,7 +802,8 @@ struct PropertyGrid::Impl final {
                             "Property editor factory returned no failure subscription");
                     }
                 }
-                if (!(*list).replace_editor((*row).second, (*binding).control)) {
+                if (!owner.is_alive() || projection_revision != expected_projection) return;
+                if (!(*list).replace_editor(row_id, (*binding).control)) {
                     throw std::logic_error(
                         "Property editor row disappeared during installation");
                 }
@@ -785,8 +812,12 @@ struct PropertyGrid::Impl final {
                     InstalledEditor{std::move(*binding), std::move(committed),
                                     std::move(failure)});
             } catch (const std::exception& error) {
-                report_error(request.property_path, "<editor>", error.what());
+                failures.push_back(EditorFailure{request.property_path, std::string(error.what())});
             }
+        }
+        for (EditorFailure& failure : failures) {
+            if (!owner.is_alive() || projection_revision != expected_projection) return;
+            report_error(std::move(failure.property_path), "<editor>", std::move(failure.message));
         }
     }
 
@@ -1172,10 +1203,17 @@ struct PropertyGrid::Impl final {
             : convert_property_value(BindingValue{change.current_value},
                                      effective);
         if (!converted) {
-            report_error((*property).second, change.current_value,
+            // edit_failed's handlers may rebuild the grid, which clears the
+            // maps these iterators point into (A-gf-controls-09-F1): the
+            // names are copied first, and a rebuild already shows the
+            // present values.
+            const std::string property_name = (*property).second;
+            const std::string target_name = (*target_spec).second.property_name;
+            const std::uint64_t expected_projection = projection_revision;
+            report_error(property_name, change.current_value,
                          "Property text cannot convert through its declared converter");
-            refresh_one(registered_name(
-                (*target_spec).second.property_name), false);
+            if (!owner.is_alive() || projection_revision != expected_projection) return;
+            refresh_one(registered_name(target_name), false);
             return;
         }
         static_cast<void>(set_value((*property).second, *converted, false));
