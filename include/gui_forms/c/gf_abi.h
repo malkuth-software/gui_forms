@@ -4430,7 +4430,9 @@ typedef struct gf_docking_table {
  * bytes, so the caller may free them on return. 1 to
  * GF_APP_FONT_MAXIMUM_FACES faces, each a gf_app_font_face whose
  * struct_size is at least the 1.5 size, reserved zero, weight 1 to 1000 and
- * italic 0 or 1, of at most GF_APP_FONT_MAXIMUM_BYTES bytes. The name is 1
+ * italic 0 or 1, of at most GF_APP_FONT_MAXIMUM_BYTES bytes. The array is
+ * stepped by the first face's struct_size, a multiple of 8 that every face
+ * repeats, like every array of size-prefixed records. The name is 1
  * to 64 bytes of UTF-8 without control characters, quotes, commas or
  * semicolons, and no bundled family, CSS generic or loaded application
  * family has it. A refusal gives GF_STATUS_INVALID_ARGUMENT (the reason,

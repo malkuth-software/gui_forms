@@ -194,6 +194,12 @@ static size_t minimal_app_font(uint8_t font[app_font_bytes]) {
     return offset;
 }
 
+/* A face record as a caller built for a later minor might lay it out. */
+typedef struct grown_app_font_face {
+    gf_app_font_face face;
+    uint64_t later;
+} grown_app_font_face;
+
 /* Application font families (since 1.5, provisional): load, a gf_font that
  * carries the family, refusals and unload. */
 static void app_fonts(gf_kit* kit) {
@@ -229,6 +235,24 @@ static void app_fonts(gf_kit* kit) {
     gf_kit_status(kit, (*kit).fonts.load_family(gf_kit_text("Kit Other"), &broken, 1u, &again),
                   GF_STATUS_INVALID_ARGUMENT, "a weight of zero is refused");
     gf_kit_check(kit, again == 0u, "refused loads leave their output");
+
+    /* A-gf-abi-03-F10: faces are stepped by the first face's struct_size, so
+     * a caller built for a grown record is read at its own offsets. */
+    grown_app_font_face grown[2];
+    memset(grown, 0, sizeof(grown));
+    for (size_t index = 0u; index < 2u; ++index) {
+        grown[index].face = face;
+        grown[index].face.struct_size = (uint32_t)sizeof(grown_app_font_face);
+        grown[index].later = UINT64_C(0xFFFFFFFFFFFFFFFF);
+    }
+    grown[1].face.weight = 700u;
+    uint32_t grown_family = 0u;
+    gf_kit_status(kit, (*kit).fonts.load_family(gf_kit_text("Kit Grown Faces"), &grown[0].face, 2u, &grown_family),
+                  GF_STATUS_OK, "faces in grown records load, stepped by their struct_size");
+    gf_kit_status(kit, (*kit).fonts.unload_family(grown_family, NULL), GF_STATUS_OK, "unload the grown family");
+    grown[1].face.struct_size = (uint32_t)sizeof(gf_app_font_face);
+    gf_kit_status(kit, (*kit).fonts.load_family(gf_kit_text("Kit Uneven Faces"), &grown[0].face, 2u, &again),
+                  GF_STATUS_INVALID_ARGUMENT, "every face repeats the first face's struct_size");
 
     /* A gf_font may carry the family: where it draws is decided when the
      * font is drawn (a stock label draws its bundled faces). */

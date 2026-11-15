@@ -14,6 +14,7 @@
 // guarded by its own lock, until unload_family or the library's unload; the
 // registry is constant-initialized, so it outlives this table at exit.
 
+#include "abi_records.hpp"
 #include "abi_tables.hpp"
 
 #include "../failure/abi_failure.hpp"
@@ -173,11 +174,18 @@ gf_status fonts_load_family_body(gf_utf8_view name, const gf_app_font_face* face
     if (face_count > GF_APP_FONT_MAXIMUM_FACES) {
         return fail(GF_STATUS_INVALID_ARGUMENT, load_family_slot, "load_family takes 1 to GF_APP_FONT_MAXIMUM_FACES faces");
     }
-    // Every record is checked before any byte is copied.
+    // Every record is checked before any byte is copied. The array is
+    // stepped by the caller's struct_size (A-gf-abi-03-F10), so a record
+    // grown in a later minor is still read at its own offsets.
+    std::uint32_t stride = 0U;
+    const gf_status arrayed = check_array(faces, face_count, app_font_face_size_1_5, load_family_slot, stride);
+    if (arrayed != GF_STATUS_OK) {
+        return arrayed;
+    }
     const std::size_t count = static_cast<std::size_t>(face_count);
     for (std::size_t index = 0U; index < count; ++index) {
-        const gf_app_font_face& face = faces[index];
-        const bool sized = face.struct_size >= app_font_face_size_1_5 && face.reserved == 0U;
+        const gf_app_font_face& face = element_at(faces, stride, index);
+        const bool sized = face.reserved == 0U;
         const bool styled = face.weight >= 1U && face.weight <= 1000U && face.italic <= 1U;
         const bool viewed = face.bytes.data != nullptr || face.bytes.size == 0U;
         const bool bounded = face.bytes.size <= GF_APP_FONT_MAXIMUM_BYTES;
@@ -190,7 +198,7 @@ gf_status fonts_load_family_body(gf_utf8_view name, const gf_app_font_face* face
     // The registry shares the copies; the caller's bytes are read during the call only.
     std::array<AppFontFace, maximum_app_font_faces> copied{};
     for (std::size_t index = 0U; index < count; ++index) {
-        const gf_app_font_face& face = faces[index];
+        const gf_app_font_face& face = element_at(faces, stride, index);
         const std::byte* const first = reinterpret_cast<const std::byte*>(face.bytes.data);
         const std::size_t size = static_cast<std::size_t>(face.bytes.size);
         AppFontFace& target = copied[index];
