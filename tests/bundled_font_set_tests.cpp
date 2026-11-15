@@ -12,6 +12,7 @@
 #include "gui_forms/metrics/metrics/metrics.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 #include "stx_fontpack/loader.hpp"
+#include "support/unique_temporary_directory.hpp"
 #if defined(_WIN32)
 #include "../src/host/windows/fonts/sealed_pages_windows.hpp"
 #else
@@ -183,9 +184,8 @@ bool bundled_faces_load_once() {
 // kept, and every reserved page is released.
 bool refusals_name_their_cause() {
     const std::filesystem::path directory =
-        std::filesystem::temp_directory_path() / "gui_forms_bundled_font_set_tests";
+        gui_forms::test_support::make_unique_temporary_directory("gui_forms_bundled_font_set_tests");
     std::error_code status;
-    std::filesystem::remove_all(directory, status);
     std::filesystem::create_directories(directory / "a-directory.ttf");
     write_file(directory / "good.ttf", "abc");
     write_file(directory / "altered.ttf", "abd");
@@ -682,9 +682,8 @@ bool refused_pack_is_reported() {
 // success clears the refusal.
 bool font_directory_lookup() {
     const std::filesystem::path root =
-        std::filesystem::temp_directory_path() / "gui_forms_bundled_font_lookup_tests";
+        gui_forms::test_support::make_unique_temporary_directory("gui_forms_bundled_font_lookup_tests");
     std::error_code status;
-    std::filesystem::remove_all(root, status);
     const std::filesystem::path partial = root / "partial";
     const std::filesystem::path complete = root / "complete";
     std::filesystem::create_directories(partial);
