@@ -289,7 +289,17 @@ void test_baker_stops_with_work_waiting() {
         static_cast<void>(baker.submit(small_snapshot()));
         release_hold(control);
     }
-    require(control.baked.load() <= 2, "waiting bakes are dropped or finished before the join");
+    // What the destructor's join leaves: every bake the worker entered has
+    // finished (none is left inside its paint), and none runs afterwards;
+    // the counts are read again after a pause (B-gf-tests-10-F4). baked can
+    // never exceed the two submitted, so a bound on it alone tests nothing.
+    const int entered_at_join = control.entered.load();
+    const int baked_at_join = control.baked.load();
+    require(entered_at_join <= 2 && baked_at_join == entered_at_join,
+            "waiting bakes are dropped or finished before the join, none is left mid-paint");
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    require(control.entered.load() == entered_at_join && control.baked.load() == baked_at_join,
+            "no bake runs after the baker is destroyed");
     require(control.destroyed.load() == control.made.load(), "the worker's raster is destroyed on stop");
 }
 
