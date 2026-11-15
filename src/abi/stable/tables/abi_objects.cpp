@@ -9,6 +9,7 @@
 #include "../windows/abi_window_handle.hpp"
 
 #include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/controls/dock_workspace.hpp"
 
 
@@ -264,9 +265,19 @@ gf_status objects_type_id_body(gf_object object, char* buffer, std::uint64_t cap
     if (entered != GF_STATUS_OK) {
         return entered;
     }
-    // A window is not a schema type; its id is the windows table's.
+    // A window is not a schema type; its id is the windows table's. A
+    // composite control's is its definition's type: the document's name,
+    // its '-' written '_' (CompositeControl::type_name: "kit_card" for
+    // kit-card), not the shared schema entry composite_control, whose
+    // properties property_name_at still lists for it.
     const bool window = dynamic_cast<const WindowHandle*>(component.get()) != nullptr;
-    const std::string_view id = window ? std::string_view("window") : catalog_type_id_of(*component);
+    const CompositeControl* const composite = dynamic_cast<const CompositeControl*>(component.get());
+    std::string_view id = catalog_type_id_of(*component);
+    if (window) {
+        id = std::string_view("window");
+    } else if (composite != nullptr) {
+        id = (*composite).type_name();
+    }
     const gf_status written = write_text(id, buffer, capacity, required, type_id_slot);
     return written;
 }

@@ -672,7 +672,9 @@ typedef struct gf_objects_table {
     gf_status (GF_CALL* dispose)(gf_object object);
     gf_status (GF_CALL* state)(gf_object object, gf_object_state* state);
     /* Copy the schema type id ("check_box"; for an application's own
-     * subclass, its nearest schema type's) or the stable id into buffer
+     * subclass, its nearest schema type's; for a composite control, its
+     * definition's type, the document's name with '-' written '_':
+     * "kit_card" for kit-card) or the stable id into buffer
      * (not terminated); required receives its size, also with
      * GF_STATUS_BUFFER_TOO_SMALL. */
     gf_status (GF_CALL* type_id)(gf_object object, char* buffer, uint64_t capacity,
