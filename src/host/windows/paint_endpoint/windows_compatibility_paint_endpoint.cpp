@@ -135,18 +135,20 @@ public:
     }
 
     // `endpoint` asks to be published once; `publish` runs on the thread.
-    void enqueue(void* endpoint, Publish publish) noexcept {
+    // False when the entry could not be queued (out of memory); the caller
+    // then clears its request, so the next request queues again
+    // (A-gf-host-03-F11).
+    [[nodiscard]] bool enqueue(void* endpoint, Publish publish) noexcept {
         {
             const std::scoped_lock lock(mutex_);
             try {
                 queue_.push_back(QueuedEndpoint{endpoint, publish});
             } catch (...) {
-                // Out of memory: the request stays set and the next one, or
-                // the owner's drain, publishes it.
-                return;
+                return false;
             }
         }
         wake_.notify_one();
+        return true;
     }
 
     // `endpoint` leaves: its queued entries are removed, and the call waits
@@ -362,7 +364,8 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         // pending is coalesced into it.
         if (!publish_requested) {
             publish_requested = true;
-            CompatibilityPublisher::instance().enqueue(this, &Implementation::publish_queued);
+            const bool queued = CompatibilityPublisher::instance().enqueue(this, &Implementation::publish_queued);
+            if (!queued) publish_requested = false;
         }
         return true;
     }
