@@ -4,7 +4,7 @@
 # Inputs: OUTPUT, the archive written (replaced whole); INPUTS, the archives
 # whose members it holds, in order (a member name repeated across inputs is
 # kept twice: the linker reads both); TOOL, Apple's libtool (KIND libtool) or
-# llvm-ar (KIND mri, reading an MRI script). Failure: the configure-time
+# llvm-ar or GNU ar (KIND mri, reading an MRI script). Failure: the configure-time
 # FATAL_ERROR names the tool's output, and OUTPUT is left absent, never half
 # written (the tool writes a temporary name, renamed when it succeeds).
 foreach(_gf_variable IN ITEMS OUTPUT INPUTS TOOL KIND)

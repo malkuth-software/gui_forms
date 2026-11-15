@@ -50,7 +50,15 @@ if(APPLE)
     set(_gf_package_merge_kind libtool)
 else()
     get_filename_component(_gf_package_compiler_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
-    find_program(GUI_FORMS_ARCHIVE_MERGER NAMES llvm-ar llvm-ar-22 HINTS "${_gf_package_compiler_dir}" REQUIRED)
+    find_program(GUI_FORMS_ARCHIVE_MERGER NAMES llvm-ar llvm-ar-22 HINTS "${_gf_package_compiler_dir}")
+    # Without llvm-ar (Alpine's clang package carries none), the toolchain's
+    # own archiver: GNU ar reads the same MRI script (-M).
+    if(NOT GUI_FORMS_ARCHIVE_MERGER AND CMAKE_AR)
+        set(GUI_FORMS_ARCHIVE_MERGER "${CMAKE_AR}" CACHE FILEPATH "Archive merger (llvm-ar or ar, MRI scripts)" FORCE)
+    endif()
+    if(NOT GUI_FORMS_ARCHIVE_MERGER)
+        message(FATAL_ERROR "the application package needs llvm-ar or an ar that reads MRI scripts (CMAKE_AR)")
+    endif()
     set(_gf_package_merge_kind mri)
 endif()
 
