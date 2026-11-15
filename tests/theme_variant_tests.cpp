@@ -322,6 +322,18 @@ ThemePackage package(std::string_view name, std::string_view sheet) {
     return made;
 }
 
+// A package named `name` importing `imported` (pinned by its manifest's
+// SHA-256), its sheet `sheet`.
+ThemePackage importer(std::string_view name, const ThemePackage& imported, std::string_view sheet) {
+    ThemePackage made{};
+    made.manifest = "{\"format\": \"gui-forms-theme/1\", \"name\": \"" + std::string(name) +
+                    "\", \"version\": \"1.0.0\", \"engine\": \">=0.3\", \"sheet\": {\"path\": "
+                    "\"theme.theme.css\", \"sha256\": \"" + hex_of(sheet) + "\"}, \"imports\": {\"dark-library\": \"" +
+                    hex_of(imported.manifest) + "\"}}";
+    made.files.push_back(ThemePackageFile{"theme.theme.css", std::string(sheet)});
+    return made;
+}
+
 bool warns(const ThemeCompileResult& result, std::string_view code) {
     for (const ThemeCompileDiagnostic& diagnostic : result.diagnostics()) {
         if (diagnostic.code == code) return true;
@@ -348,6 +360,40 @@ void test_dark_rules_without_variant() {
         package("light-only", ":root { color-scheme: light } #pad { opacity: 0.5 }"), library, images, professional);
     require(light_only.succeeded() && !warns(light_only, "W402"),
             "a light-only package over a base with dark rules does not warn");
+    // PlaySuite's shape (its themes/playsuite package): light only, its own
+    // custom properties at :root, part rules reading them, compiled the way
+    // Application::create compiles a configured theme (compile_theme_packages)
+    // over windows-professional, whose parts sheet has dark rules.
+    const std::vector<ThemePackage> configured{package(
+        "light-parts", ":root {\n  color-scheme: light;\n  --gloss-edge: #64728b;\n  --gloss-ink: #172b53;\n}\n"
+                       "button::part(face) {\n  background: linear-gradient(to bottom, var(--gloss-edge), "
+                       "var(--gloss-ink));\n  border-color: var(--gloss-edge);\n}\n"
+                       "#pad { opacity: 0.5 }\n")};
+    const ThemeCompileResult light_parts = compile_theme_packages(configured, library, images, professional);
+    require(light_parts.succeeded() && !warns(light_parts, "W402"),
+            "a light-only package of part rules, configured over a base with dark rules, does not warn");
+    // An imported library pack's dark rules are the library's, not the
+    // importing package's: a light-only importer does not warn, and an
+    // importer that writes its own dark rules still does.
+    ThemeLibrary imports{};
+    const std::string_view dark_library_sheet =
+        ":root { color-scheme: light dark } @media (prefers-color-scheme: dark) { #pad { opacity: 0.25 } }";
+    const ThemePackage dark_library = package("dark-library", dark_library_sheet);
+    require(imports.install(dark_library).empty() && imports.contains("dark-library"),
+            "the library pack with dark rules installs");
+    const ThemeCompileResult light_importer = compile_theme_package(
+        importer("light-importer", dark_library,
+                 "@import \"dark-library\";\n:root { color-scheme: light }\n#pad { opacity: 0.5 }\n"),
+        imports, images, professional);
+    require(light_importer.succeeded() && !warns(light_importer, "W402"),
+            "a light-only package importing a library pack with dark rules does not warn");
+    const ThemeCompileResult dark_importer = compile_theme_package(
+        importer("dark-importer", dark_library,
+                 "@import \"dark-library\";\n:root { color-scheme: light }\n"
+                 "@media (prefers-color-scheme: dark) { #pad { opacity: 0.75 } }\n"),
+        imports, images, professional);
+    require(dark_importer.succeeded() && warns(dark_importer, "W402"),
+            "an importer that writes its own dark rules without a dark variant still warns");
     const ThemeCompileResult varied = compile_theme_package(
         package("varied", ":root { color-scheme: light dark } @media (prefers-color-scheme: dark) { #pad { opacity: 0.5 } }"),
         library, images, professional);

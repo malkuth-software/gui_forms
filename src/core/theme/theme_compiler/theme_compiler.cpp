@@ -102,19 +102,6 @@ bool sheet_has_dark_rules(const ThemeRuleSheet& sheet) noexcept {
     return false;
 }
 
-// Whether a rule the packages of a closure wrote holds only under
-// `prefers-color-scheme: dark`: a rule of the combined text (provenance
-// file closure_file, offsets not yet placed) at or after `package_start`,
-// where the base sheet ends. The base's own rules, the sheet's and those
-// its definition already holds, are not the packages' to answer for.
-bool packages_have_dark_rules(const ThemeRuleSheet& sheet, std::size_t package_start) noexcept {
-    for (const ThemeRule& rule : sheet.rules) {
-        const bool written = rule.provenance.file == closure_file && rule.provenance.offset >= package_start;
-        if (written && rule.media.dark_scheme == true) return true;
-    }
-    return false;
-}
-
 ThemeDiagnostic problem_of(DiagnosticCode code, std::string file, std::string detail) {
     ThemeDiagnostic problem{};
     problem.code = code;
@@ -143,6 +130,29 @@ struct ClosureSegment final {
     const VerifiedThemePack* pack{};
     std::size_t start{};
 };
+
+// Whether a rule the closure's root packages wrote themselves holds only
+// under `prefers-color-scheme: dark` (W402): a rule of the combined text
+// (provenance file closure_file, offsets not yet placed) whose sheet, the
+// last segment starting at or before it, is a root's. The base's own rules
+// (its sheet's, and those its definition already holds) and those of the
+// library packs the roots import are not the packages' to answer for: a
+// light-only package over a base or an import with dark rules writes none.
+// `segments` are in increasing order of start.
+bool roots_have_dark_rules(const ThemeRuleSheet& sheet, std::span<const ClosureSegment> segments,
+                           std::span<const VerifiedThemePack* const> roots) noexcept {
+    for (const ThemeRule& rule : sheet.rules) {
+        if (rule.provenance.file != closure_file || rule.media.dark_scheme != true) continue;
+        std::size_t found = 0U;
+        for (std::size_t index = 0U; index < segments.size(); ++index) {
+            if (segments[index].start <= rule.provenance.offset) found = index;
+        }
+        const VerifiedThemePack* const pack = segments[found].pack;
+        const bool written_by_root = std::find(roots.begin(), roots.end(), pack) != roots.end();
+        if (written_by_root) return true;
+    }
+    return false;
+}
 
 // The closure's sheets in cascade order as one text, each `@import` rule
 // (and a leading byte order mark) replaced by as many spaces, so that every
@@ -548,11 +558,12 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
     }
     if (outcome != theme_language::CompileOutcome::compiled) return ThemeCompileResult::refused(std::move(found));
     // The dark rules W402 answers for, read before placing moves the
-    // offsets into each sheet: with packages, theirs alone (the base's
-    // dark rules are not the package's); the base compiled alone is the
-    // program's own sheet, and every rule counts.
-    const bool dark_rules = segments.size() > 1U ? packages_have_dark_rules((*definition).rules, segments[1].start)
-                                                 : sheet_has_dark_rules((*definition).rules);
+    // offsets into each sheet: with packages, the roots' own alone (neither
+    // the base's dark rules nor an imported library pack's are the
+    // package's); the base compiled alone is the program's own sheet, and
+    // every rule counts.
+    const bool dark_rules = roots.empty() ? sheet_has_dark_rules((*definition).rules)
+                                          : roots_have_dark_rules((*definition).rules, segments, roots);
     place_rules((*definition).rules, segments, roots, &base_pack, set);
     // A program theme with rules for the dark scheme but no dark variant
     // (T4 theme variants): a dark window shows GUI.Forms' own dark theme,
