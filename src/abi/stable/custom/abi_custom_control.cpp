@@ -512,6 +512,10 @@ CustomControl<Base>::CustomControl(StableId stable_id, const gf_custom_control_c
     if (focusable) {
         (*this).focusable = true;
     }
+}
+
+template <typename Base>
+void CustomControl<Base>::arm_release() noexcept {
     state_.arm();
 }
 

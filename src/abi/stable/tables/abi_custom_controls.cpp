@@ -265,15 +265,24 @@ gf_status custom_controls_create_body(const gf_custom_control_spec* spec, gf_utf
         layout.struct_size = layout_size_1_2;
     }
     const bool focusable = ((*spec).flags & GF_CUSTOM_CONTROL_FOCUSABLE) != 0U;
-    Component::Ptr made;
+    // Release is armed only once the registry holds the control: a throw
+    // before then (construction, add_reference's storage) destroys it
+    // without calling release, and the caller still owns its context
+    // (A-gf-abi-03-F6).
     if ((*spec).base == GF_CUSTOM_BASE_USER_CONTROL) {
-        made = std::make_shared<CustomControl<UserControl>>(StableId(std::string(id_text)), callbacks,
-                                                            layout, definitions, focusable);
+        const std::shared_ptr<CustomControl<UserControl>> made = std::make_shared<CustomControl<UserControl>>(
+            StableId(std::string(id_text)), callbacks, layout, definitions, focusable);
+        const gf_object identity = registry().add_reference(made);
+        (*made).arm_release();
+        *object = identity;
     } else {
-        made = std::make_shared<CustomControl<ScrollableControl>>(StableId(std::string(id_text)), callbacks,
-                                                                  layout, definitions, focusable);
+        const std::shared_ptr<CustomControl<ScrollableControl>> made =
+            std::make_shared<CustomControl<ScrollableControl>>(StableId(std::string(id_text)), callbacks, layout,
+                                                               definitions, focusable);
+        const gf_object identity = registry().add_reference(made);
+        (*made).arm_release();
+        *object = identity;
     }
-    *object = registry().add_reference(made);
     return GF_STATUS_OK;
 }
 

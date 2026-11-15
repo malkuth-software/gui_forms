@@ -102,6 +102,16 @@ TokenSlot* find_token(gf_rule_token token) noexcept {
 }
 
 // Stores token in a free slot (the table has room: add checked).
+// Makes sure a free token slot exists, so the issue_token that follows a
+// successful add allocates nothing (A-gf-abi-03-F6). An unused free slot is
+// left for a later add.
+void reserve_token_slot() {
+    TokenTable& table = tokens();
+    if (table.occupied == table.slots.size()) {
+        table.slots.emplace_back();
+    }
+}
+
 gf_rule_token issue_token(RuleToken token) {
     TokenTable& table = tokens();
     std::size_t index = 0U;
@@ -623,6 +633,9 @@ gf_status add_rule(gf_object window, const gf_rule* record, gf_rule_token* token
             return built;
         }
     }
+    // The token's slot first: once the rule set holds the rule, nothing may
+    // fail before the caller has its token (A-gf-abi-03-F6).
+    reserve_token_slot();
     const RuleAddResult added = (*held).rules().add(rule);
     if (added.refusal != RuleRefusal::none) {
         return refusal_status(added.refusal);

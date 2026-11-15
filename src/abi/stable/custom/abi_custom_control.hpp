@@ -95,8 +95,8 @@ public:
     void connect_wake(Control& control);
     void disconnect_wake() noexcept;
     // Arms release: from here a revoke, or the state's destruction, calls
-    // it. A control whose construction fails never arms it, so a refused
-    // create calls no callback.
+    // it. Armed by the create slot after the registry holds the control, so
+    // a refused create calls no callback.
     void arm() noexcept { armed_ = true; }
     // Calls release once when armed; no callback runs afterwards.
     void revoke() noexcept;
@@ -147,6 +147,12 @@ public:
     // initialization scope defers it). False when the property does not
     // notify or index is past the properties.
     [[nodiscard]] bool notify_changed(std::size_t index);
+
+    // Arms the caller's release (CustomControlState::arm). The create slot
+    // calls it once the registry holds the control, so a create that fails
+    // at any step, add_reference's storage included, calls no release and
+    // leaves the caller its context (A-gf-abi-03-F6).
+    void arm_release() noexcept;
 
     // See CustomControlState::bind_surface and unbind_surface.
     void bind_surface(std::shared_ptr<LiveSurface> surface);

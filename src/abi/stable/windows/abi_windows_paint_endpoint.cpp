@@ -171,25 +171,52 @@ gf_status endpoint_acquire_body(gf_object control, std::uint32_t width, std::uin
         return fail(GF_STATUS_INTERNAL, acquire_slot, "the paint endpoint could not be made");
     }
     const std::shared_ptr<LiveSurface> surface = (*made).live_surface();
+    const std::uint64_t handle = static_cast<std::uint64_t>((*made).compatibility_handle());
+    const std::uint64_t device_context = static_cast<std::uint64_t>((*made).device_context());
+    // Every allocation before the surface is bound (A-gf-abi-03-F6): the
+    // three map nodes are made in scratch maps, keyed once the token is
+    // known, and each map's buckets are reserved, so nothing after the bind
+    // can fail. reserve() alone makes buckets, not nodes.
+    std::unordered_map<std::uint64_t, EndpointBinding> endpoint_scratch;
+    std::unordered_map<std::uint64_t, std::uint64_t> handle_scratch;
+    std::unordered_map<std::uint64_t, std::uint64_t> device_context_scratch;
+    endpoint_scratch.emplace(0U, EndpointBinding{made, std::weak_ptr<Control>(target), surface});
+    handle_scratch.emplace(handle, 0U);
+    device_context_scratch.emplace(device_context, 0U);
+    using EndpointNode = std::unordered_map<std::uint64_t, EndpointBinding>::node_type;
+    using TokenNode = std::unordered_map<std::uint64_t, std::uint64_t>::node_type;
+    EndpointNode endpoint_node = endpoint_scratch.extract(endpoint_scratch.begin());
+    TokenNode handle_node = handle_scratch.extract(handle_scratch.begin());
+    TokenNode device_context_node = device_context_scratch.extract(device_context_scratch.begin());
+    EndpointRegistry& endpoints = endpoint_registry();
+    {
+        const std::scoped_lock lock(endpoints.mutex);
+        endpoints.endpoints.reserve(endpoints.endpoints.size() + 1U);
+        endpoints.tokens_by_handle.reserve(endpoints.tokens_by_handle.size() + 1U);
+        endpoints.tokens_by_device_context.reserve(endpoints.tokens_by_device_context.size() + 1U);
+    }
     if (!bind_custom_surface(*target, surface)) {
         (*made).release();
         return fail(GF_STATUS_WRONG_HANDLE_KIND, acquire_slot, "the control is not a custom control");
     }
-    const std::uint64_t handle = static_cast<std::uint64_t>((*made).compatibility_handle());
-    const std::uint64_t device_context = static_cast<std::uint64_t>((*made).device_context());
-    EndpointRegistry& endpoints = endpoint_registry();
     const std::scoped_lock lock(endpoints.mutex);
     const std::uint64_t token = endpoints.next_endpoint;
-    // Room for every node first, so a failed allocation leaves the maps
-    // as they were.
-    endpoints.endpoints.reserve(endpoints.endpoints.size() + 1U);
-    endpoints.tokens_by_handle.reserve(endpoints.tokens_by_handle.size() + 1U);
-    endpoints.tokens_by_device_context.reserve(endpoints.tokens_by_device_context.size() + 1U);
     endpoints.next_endpoint = token + 1U;
-    endpoints.endpoints.emplace(token, EndpointBinding{made, std::weak_ptr<Control>(target), surface});
-    endpoints.tokens_by_handle.insert_or_assign(handle, token);
+    endpoint_node.key() = token;
+    static_cast<void>(endpoints.endpoints.insert(std::move(endpoint_node)));
+    handle_node.mapped() = token;
+    const std::unordered_map<std::uint64_t, std::uint64_t>::insert_return_type by_handle =
+        endpoints.tokens_by_handle.insert(std::move(handle_node));
+    if (!by_handle.inserted) {
+        (*by_handle.position).second = token;
+    }
     if (device_context != 0U) {
-        endpoints.tokens_by_device_context.insert_or_assign(device_context, token);
+        device_context_node.mapped() = token;
+        const std::unordered_map<std::uint64_t, std::uint64_t>::insert_return_type by_device_context =
+            endpoints.tokens_by_device_context.insert(std::move(device_context_node));
+        if (!by_device_context.inserted) {
+            (*by_device_context.position).second = token;
+        }
     }
     *endpoint = token;
     *compatibility_handle = handle;
