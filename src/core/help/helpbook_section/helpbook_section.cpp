@@ -750,6 +750,16 @@ HelpBookReadResult read_helpbook_section(std::span<const std::byte> bytes, const
     bool has_header = false;
     bool has_records = false;
     bool has_contents = false;
+    // Each known sub-section may appear once: the keyword, term and link
+    // indices are checked against the records as read so far, and a second
+    // records (or contents) sub-section would replace what they were
+    // checked against (A-gf-core-07-F1).
+    bool seen_header = false;
+    bool seen_records = false;
+    bool seen_contents = false;
+    bool seen_keywords = false;
+    bool seen_terms = false;
+    bool seen_links = false;
     bool malformed = false;
     while (!reader.done() && !malformed) {
         std::uint32_t tag = 0U;
@@ -765,6 +775,20 @@ HelpBookReadResult read_helpbook_section(std::span<const std::byte> bytes, const
         // A later version of a known sub-section is skipped like an unknown
         // one; the required ones are then missing and the section is refused.
         if (version != sub_section_version) continue;
+        bool* seen = nullptr;
+        if (tag == tag_header) seen = &seen_header;
+        else if (tag == tag_records) seen = &seen_records;
+        else if (tag == tag_contents) seen = &seen_contents;
+        else if (tag == tag_keywords) seen = &seen_keywords;
+        else if (tag == tag_terms) seen = &seen_terms;
+        else if (tag == tag_links) seen = &seen_links;
+        if (seen != nullptr) {
+            if (*seen) {
+                malformed = true;
+                break;
+            }
+            *seen = true;
+        }
         bool read = true;
         if (tag == tag_header) {
             read = read_header(part, section);

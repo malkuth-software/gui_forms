@@ -20,6 +20,8 @@
 #include "gui_forms/xml/types/xml_types.hpp"
 
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -140,6 +142,36 @@ HelpCatalog make_catalog() {
     return catalog;
 }
 
+// A little-endian unsigned field of a section's bytes.
+std::uint64_t read_field(const std::vector<std::byte>& bytes, std::size_t offset, std::size_t width) {
+    std::uint64_t value = 0U;
+    for (std::size_t index = 0U; index < width; ++index) {
+        value |= static_cast<std::uint64_t>(std::to_integer<std::uint8_t>(bytes[offset + index])) << (8U * index);
+    }
+    return value;
+}
+
+// The section's bytes with its sub-section `tag` (header, then tag, version
+// and 64-bit length before each payload) appended again at the end; the
+// bytes unchanged when there is none.
+std::vector<std::byte> with_sub_section_repeated(const std::vector<std::byte>& bytes, std::uint32_t tag) {
+    std::size_t offset = 8U;
+    while (offset + 16U <= bytes.size()) {
+        const std::uint64_t found = read_field(bytes, offset, 4U);
+        const std::uint64_t length = read_field(bytes, offset + 8U, 8U);
+        const std::size_t end = offset + 16U + static_cast<std::size_t>(length);
+        if (end > bytes.size()) break;
+        if (found == tag) {
+            std::vector<std::byte> repeated = bytes;
+            repeated.insert(repeated.end(), bytes.begin() + static_cast<std::ptrdiff_t>(offset),
+                            bytes.begin() + static_cast<std::ptrdiff_t>(end));
+            return repeated;
+        }
+        offset = end;
+    }
+    return bytes;
+}
+
 void contents_and_compile() {
     Program program = make_program();
     std::vector<HelpSkeletonNode> skeleton;
@@ -200,6 +232,16 @@ void contents_and_compile() {
     require(!read_helpbook_section(cut), "a truncated section is refused");
     require(read_helpbook_section(std::span<const std::byte>{}).error == HelpBookReadError::not_a_section,
             "empty bytes are not a section");
+    // A-gf-core-07-F1: a known sub-section given twice is refused (a second
+    // records sub-section would replace the records the keyword, term and
+    // link indices were checked against).
+    for (std::uint32_t tag = 1U; tag <= 6U; ++tag) {
+        const std::vector<std::byte> repeated = with_sub_section_repeated(bytes, tag);
+        if (repeated.size() == bytes.size()) continue;
+        require(read_helpbook_section(repeated).error == HelpBookReadError::malformed,
+                "a repeated sub-section is refused");
+    }
+    require(with_sub_section_repeated(bytes, 2U).size() > bytes.size(), "the records sub-section is found");
 }
 
 void broken_links() {
