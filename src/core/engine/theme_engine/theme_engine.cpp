@@ -881,13 +881,21 @@ namespace {
 // colour, so the colours stay apart from what surrounds them. False,
 // leaving `framed` unchanged, for a part without a content colour or
 // whose rules author no fills (then there is no content to show).
+// The fields are the plan's content materials, resolved without the
+// pass (PartPlan::content_materials): the pass admits only an important
+// inline style, so the plan's own resolution holds no theme's fills.
 bool show_content_in_high_contrast(const Control& control, const PartPaint& part,
-                                   const CompiledThemeRules::Resolution& resolution, std::uint64_t rules_serial,
+                                   const ThemeEngine::PartPlan& plan, std::uint64_t rules_serial,
                                    UnkeptAssemblies& unkept, SurfaceMaterial& framed) {
-    if (!part.content_color || !resolution.materials_authored) return false;
-    const bool fills = resolution.materials[static_cast<std::size_t>(MaterialField::fills)] != nullptr ||
-                       resolution.materials[static_cast<std::size_t>(MaterialField::background_colour)] != nullptr;
+    if (!part.content_color || !plan.content_materials_authored) return false;
+    const bool fills = plan.content_materials[static_cast<std::size_t>(MaterialField::fills)] != nullptr ||
+                       plan.content_materials[static_cast<std::size_t>(MaterialField::background_colour)] != nullptr;
     if (!fills) return false;
+    // The plan's resolution with the content fields standing in its own,
+    // as the assembly's identity reads them (same_assembly).
+    CompiledThemeRules::Resolution resolution = plan.resolution;
+    resolution.materials = plan.content_materials;
+    resolution.materials_authored = true;
     const ControlVisualContext context = part_visual_context(control, part.states);
     ControlVisualContext ordinary = context;
     ordinary.high_contrast = false;
@@ -1014,6 +1022,15 @@ ThemeEngine::PartPlan ThemeEngine::plan_from_rules(const Control& control, const
     const ControlVisualContext context = part_visual_context(control, part.states);
     facts.forced_high_contrast = context.high_contrast;
     result.resolution = rules_.resolve(facts);
+    if (context.high_contrast) {
+        // The pass leaves out every theme rule, so the fields a content
+        // part shows (show_content_in_high_contrast) are resolved again
+        // without it.
+        facts.forced_high_contrast = false;
+        const CompiledThemeRules::Resolution unforced = rules_.resolve(facts);
+        result.content_materials = unforced.materials;
+        result.content_materials_authored = unforced.materials_authored;
+    }
     if (result.resolution.outcome == CompiledThemeRules::Outcome::role_mismatch) {
         result.drawing = PartDrawing::role_mismatch;
         return result;
@@ -1450,8 +1467,11 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
                                                            PartPaintRun& run) const {
     const CompiledThemeRules::Resolution& resolution = run.decided.resolution;
     SurfaceRoot* const window = run.window;
-    if (!resolution.materials_authored || window == nullptr) return nullptr;
+    if (window == nullptr) return nullptr;
     const ControlVisualContext context = part_visual_context(control, part.states);
+    // Under forced high contrast the pass leaves the plan's own fields
+    // empty unless an important inline style sets them; a content part's
+    // come from its content materials.
     if (context.high_contrast) {
         // High contrast keeps the built-in recipe's own records, except
         // that a content part shows its colours (W-7, ruling 9).
@@ -1464,11 +1484,12 @@ const SurfaceMaterial* ThemeEngine::built_in_part_material(const Control& contro
         framed = contrast.recipe().material;
         UnkeptAssemblies contrast_unkept{detail::SurfaceEngineAccess::unkept_assemblies(*window),
                                          detail::SurfaceEngineAccess::unkept_next(*window), (*window).metrics()};
-        if (!show_content_in_high_contrast(control, part, resolution, rules_.serial(), contrast_unkept, framed)) {
+        if (!show_content_in_high_contrast(control, part, run.decided, rules_.serial(), contrast_unkept, framed)) {
             return nullptr;
         }
         return &framed;
     }
+    if (!resolution.materials_authored) return nullptr;
     const Theme& theme = control.effective_theme();
     // A part showing a content colour (W-7) draws its gradients as written:
     // the dark variant's rule does not darken data.
@@ -1622,7 +1643,8 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
         const ControlVisualContext context = part_visual_context(control, part.states);
         const ControlVisualRecipe& recipe = control.effective_theme().resolve(*material_role, context);
         request.target.material = &recipe.material;
-        if (resolution.materials_authored && context.high_contrast) {
+        bool content_shown = false;
+        if ((resolution.materials_authored || part.content_color) && context.high_contrast) {
             // Forced high contrast's material fields, for this paint only.
             detail::ForcedMaterialFields forced{};
             detail::forced_material_fields(resolution.materials, context.surface, context.selected, forced);
@@ -1638,8 +1660,8 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
             // (W-7, ruling 9).
             UnkeptAssemblies contrast_unkept{detail::SurfaceEngineAccess::unkept_assemblies(*window),
                                              detail::SurfaceEngineAccess::unkept_next(*window), (*window).metrics()};
-            static_cast<void>(show_content_in_high_contrast(control, part, resolution, rules_.serial(),
-                                                            contrast_unkept, *run.unkept_material));
+            content_shown = show_content_in_high_contrast(control, part, run.decided, rules_.serial(),
+                                                          contrast_unkept, *run.unkept_material);
             request.target.material = run.unkept_material;
         } else if (resolution.materials_authored && context.dark && derives_dark(control.effective_theme()) &&
                    !part.content_color) {
@@ -1728,7 +1750,7 @@ bool ThemeEngine::lend_part_material(const Control& control, const PartPaint& pa
                 (*window).metrics().record_engine_dither_degradations(steps);
             }
         }
-        if (resolution.materials_authored) run.resolved_material = request.target.material;
+        if (resolution.materials_authored || content_shown) run.resolved_material = request.target.material;
     }
     // The overlay shadow (E9, GIVEN E1-1) borrows the theme's layers for the
     // part's presentation, as a material of one transparent fill and those

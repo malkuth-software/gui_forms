@@ -6471,6 +6471,12 @@ Types
 
    .. cpp:member:: DeviceScale scale
 
+   .. cpp:member:: std::array<const MaterialDeclaration*, material_field_count> content_materials
+
+      Under forced high contrast only: the material fields the rules author for the part without the pass, which a content part (W-7, ruling 9) shows inside high contrast's frame; the pass itself admits no rule below an important inline style, so ``resolution`` never holds a theme's content fills there. They belong to the compiled rules; ``content_materials_authored`` is whether any is set.
+
+   .. cpp:member:: bool content_materials_authored
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ThemeGeometryTokens final
