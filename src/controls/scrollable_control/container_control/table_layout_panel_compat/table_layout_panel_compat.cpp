@@ -223,20 +223,26 @@ void occupy(std::span<std::uint8_t> occupied, std::size_t column, std::size_t ro
 }
 
 // Grows the live grid to hold a positioned item, as grow_style allows. The
-// bitmap's cells outside the live grid are free, so growing is a count.
+// bitmap's cells outside the live grid are free, so growing is a count. On
+// false the counts are unchanged: a refused item adds no tracks
+// (A-gf-controls-13-F8).
 bool grow_to_fit(std::size_t& columns, std::size_t& rows, TableLayoutCellPosition position,
                  std::size_t column_span, std::size_t row_span, TableLayoutGrowStyle grow_style) noexcept {
     const std::size_t required_columns = position.column + column_span;
     const std::size_t required_rows = position.row + row_span;
     if (required_columns > maximum_layout_tracks || required_rows > maximum_layout_tracks) return false;
-    if (required_columns > columns) {
+    std::size_t grown_columns = columns;
+    std::size_t grown_rows = rows;
+    if (required_columns > grown_columns) {
         if (grow_style != TableLayoutGrowStyle::add_columns) return false;
-        columns = required_columns;
+        grown_columns = required_columns;
     }
-    if (required_rows > rows) {
+    if (required_rows > grown_rows) {
         if (grow_style != TableLayoutGrowStyle::add_rows) return false;
-        rows = required_rows;
+        grown_rows = required_rows;
     }
+    columns = grown_columns;
+    rows = grown_rows;
     return true;
 }
 
@@ -676,11 +682,16 @@ void TableLayoutPanelCompat::place_items(Workspace& workspace) {
         const GridSpan* span = anchored_span((*found).second);
         const std::size_t column_span = span == nullptr ? 1U : (*span).columns;
         const std::size_t row_span = span == nullptr ? 1U : (*span).rows;
-        if (!grow_to_fit(columns, rows, position, column_span, row_span, grow_style.read()) ||
-            !region_free(occupied, columns, rows, position.column, position.row, column_span, row_span)) {
+        // The growth is kept only when the item is placed.
+        std::size_t grown_columns = columns;
+        std::size_t grown_rows = rows;
+        if (!grow_to_fit(grown_columns, grown_rows, position, column_span, row_span, grow_style.read()) ||
+            !region_free(occupied, grown_columns, grown_rows, position.column, position.row, column_span, row_span)) {
             workspace.overflow.push_back(child);
             continue;
         }
+        columns = grown_columns;
+        rows = grown_rows;
         occupy(occupied, position.column, position.row, column_span, row_span);
         workspace.items.push_back(TableItem{child, position, column_span, row_span, Size{}, (*child).margin.read()});
     }

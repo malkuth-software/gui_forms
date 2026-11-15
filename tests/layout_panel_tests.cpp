@@ -554,6 +554,28 @@ void test_table_growth_hidden_children_and_fixed_overflow() {
             "table styles and spans must reject degenerate configuration before mutation");
 }
 
+// A-gf-controls-13-F8: a child the table refuses adds no tracks. With add_columns, a cell
+// past both the last column and the last row needed a column it got and a row it could not
+// get; the grid kept the column.
+void test_table_refused_child_adds_no_tracks() {
+    std::shared_ptr<gui_forms::TableLayoutPanelCompat> table =
+        make_control<TableLayoutPanelCompat>(StableId("layout.table.refused"));
+    (*table).column_count = 2U;
+    (*table).row_count = 1U;
+    (*table).grow_style = TableLayoutGrowStyle::add_columns;
+    std::shared_ptr<Button> placed = sized_button("layout.table.refused.placed", 30.0, 20.0);
+    std::shared_ptr<Button> beyond = sized_button("layout.table.refused.beyond", 30.0, 20.0);
+    (*table).add_child(placed);
+    (*table).add_child(beyond);
+    (*table).cell[*beyond] = GridCell{.row = 3U, .column = 4U};
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(table, Size{200.0, 80.0});
+    Window& window = *held_window;
+    window.perform_layout();
+    require((*table).layout_overflowed() && (*table).column_widths().size() == 2U &&
+                (*table).row_heights().size() == 1U,
+            "a child the table cannot place leaves the grid's tracks as they were");
+}
+
 void test_table_cell_dock_fill_consumes_growth() {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> table = make_control<TableLayoutPanelCompat>(StableId("layout.table.fill"));
     (*table).column_count = 1U;
@@ -1152,6 +1174,7 @@ int main() {
         test_layout_panels_revalidate_snapshot_after_measure_callback();
         test_table_mixed_tracks_spans_and_lookup();
         test_table_growth_hidden_children_and_fixed_overflow();
+        test_table_refused_child_adds_no_tracks();
         test_table_cell_dock_fill_consumes_growth();
         test_table_track_spacing_is_relational_and_bounded();
         test_table_border_paint_is_public_geometry();
