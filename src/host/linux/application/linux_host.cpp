@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cerrno>
 #include <chrono>
 #include <cmath>
 #include <csignal>
@@ -807,11 +808,15 @@ struct WriteText final {
 volatile std::sig_atomic_t session_end_signalled = 0;
 volatile int session_end_wake = -1;
 void session_end_signal(int) {
+  // The write may set errno (EAGAIN on a full pipe) in the code the signal
+  // interrupted; it is restored before returning (A-gf-host-01-F7).
+  const int saved_errno = errno;
   session_end_signalled = 1;
   const int descriptor = session_end_wake;
   const char byte = 1;
   if (descriptor >= 0)
     static_cast<void>(::write(descriptor, &byte, 1));
+  errno = saved_errno;
 }
 // Installs session_end_signal for signal_number when its disposition is the
 // default; previous receives the action to restore. Returns whether it
