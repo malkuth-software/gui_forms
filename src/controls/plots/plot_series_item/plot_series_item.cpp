@@ -136,10 +136,11 @@ void PlotSeriesItem::push_points(std::span<const double> xs, std::span<const dou
     if (data_source_ != DataSource::columns || xs_.mode() != plots::SeriesMode::ring) {
         throw std::logic_error("PlotSeriesItem push_points needs a ring (use_ring)");
     }
-    const plots::SeriesEditOutcome outcome = xs_.push_overwrite(xs);
+    const plots::SeriesEditOutcome outcome = xs_.check_push_overwrite(xs);
     if (outcome == plots::SeriesEditOutcome::refused_order) {
         throw std::invalid_argument("PlotSeriesItem push_points would go back in x");
     }
+    static_cast<void>(xs_.push_overwrite(xs));
     static_cast<void>(ys_.push_overwrite(ys));
     notify_data_changed();
 }
@@ -227,6 +228,12 @@ bool PlotSeriesItem::run_signal_frame(const plots::SignalFrame& frame, plots::Si
     if (sink.count == 0U) return false;
     const std::span<const double> times(sink.times.data(), sink.count);
     const std::span<const double> values(sink.values.data(), sink.count);
+    // Both columns take the block or neither does (A-gf-controls-10-F3): a
+    // channel feeding the same item can leave x ahead of the signal's times.
+    if (xs_.check_push_overwrite(times) != plots::SeriesEditOutcome::applied ||
+        ys_.check_push_overwrite(values) != plots::SeriesEditOutcome::applied) {
+        return false;
+    }
     static_cast<void>(xs_.push_overwrite(times));
     static_cast<void>(ys_.push_overwrite(values));
     revision_ = revision_ + 1U;

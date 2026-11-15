@@ -1122,7 +1122,7 @@ Types
 
    .. cpp:function:: Plot3DHit hit(Point point) const
 
-      What lies under ``point`` (logical, from the picture's top left) in the last picture; none before the first render.
+      What lies under ``point`` (logical, from the picture's top left) in the last picture; none before the first render, and none after an add, remove or clear until the next render (the picture's items are gone).
 
    .. cpp:function:: std::string readout(const Plot3DHit& hit) const
 
@@ -1641,6 +1641,10 @@ Types
 
       Ring only: adds ``elements``, dropping the oldest as needed; a block larger than the ring keeps its newest :cpp:func:`capacity <gui_forms::plots::SeriesColumn::capacity>` elements.
 
+   .. cpp:function:: SeriesEditOutcome check_push_overwrite(std::span<const Element> elements) const noexcept
+
+      What push_overwrite(elements) would return, changing nothing: lets a caller that feeds several columns from one block (x and y) check every column before it changes any, so a refused block enters none of them.
+
    .. cpp:function:: void clear() noexcept
 
       Removes every element (a ring forgets its dropped count too).
@@ -1880,7 +1884,7 @@ Types
 
    .. cpp:function:: std::size_t consume(std::span<SeriesColumn<double>* const> columns, std::span<double> scratch)
 
-      Consumer side, once per frame: copies the samples published since the last call into ``columns`` (one ring column per stream, in stream order; push_overwrite), through ``scratch``, reserved by the caller at capacity() * stream_count() doubles. Returns the samples taken. A block a column refuses (a monotone column going back) is counted as overrun. Never allocates.
+      Consumer side, once per frame: copies the samples published since the last call into ``columns`` (one ring column per stream, in stream order; push_overwrite), through ``scratch``, reserved by the caller at capacity() * stream_count() doubles. Returns the samples taken. Every column is checked before any changes: a block one column refuses (a monotone column going back) enters none of them and is counted as overrun, so the columns stay paired. Never allocates.
 
 .. cpp:namespace:: gui_forms::plots
 

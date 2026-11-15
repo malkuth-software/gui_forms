@@ -164,6 +164,14 @@ void test_ring_column() {
                 ring.written() == 12U,
             "a push larger than the ring keeps its newest");
     const std::array<float, 1> back{1.0F};
+    const std::uint64_t written_before = ring.written();
+    require(ring.check_push_overwrite(back) == SeriesEditOutcome::refused_order &&
+                ring.check_push_overwrite(huge) == SeriesEditOutcome::refused_order &&
+                ring.written() == written_before,
+            "check_push_overwrite reports a refusal and changes nothing");
+    const std::array<float, 1> onward{13.0F};
+    require(ring.check_push_overwrite(onward) == SeriesEditOutcome::applied && ring.written() == written_before,
+            "check_push_overwrite reports an accepted push and changes nothing");
     require(ring.push_overwrite(back) == SeriesEditOutcome::refused_order, "a monotone ring never goes back");
     require(ring.append(back) == SeriesEditOutcome::refused_mode, "a full ring refuses append");
 }
@@ -234,6 +242,16 @@ void test_ring_channel() {
     const std::size_t taken = channel.consume(columns, scratch);
     require(taken == 8U && channel.statistics().overrun == 4U, "samples the producer lapped are counted as overrun");
     require(xs.read().at(ElementIndex{7U}) == 14.0, "the newest samples arrive");
+    // A-gf-controls-10-F3: a block whose x goes back (an acquisition
+    // restarted at zero) enters neither column, so x and y stay paired.
+    const std::size_t x_length = xs.length();
+    const std::size_t y_length = ys.length();
+    const double newest_y = ys.read().at(ElementIndex{y_length - 1U});
+    const std::array<double, 4> restarted{0.0, 50.0, 1.0, 51.0};
+    (*lease).write(restarted);
+    require(channel.consume(columns, scratch) == 0U && xs.length() == x_length && ys.length() == y_length &&
+                ys.read().at(ElementIndex{y_length - 1U}) == newest_y,
+            "a block the x column refuses does not enter the y column either");
     lease.reset();
     require(channel.acquire_write_lease() != nullptr, "an ended lease frees the channel");
 }

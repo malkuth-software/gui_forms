@@ -178,6 +178,11 @@ bool PlotLiveFrame::on_ambient_frame(FrameTime now) {
         if ((*signal_sink_).count == 0U) continue;
         const std::span<const double> times((*signal_sink_).times.data(), (*signal_sink_).count);
         const std::span<const double> values((*signal_sink_).values.data(), (*signal_sink_).count);
+        // Both columns take the block or neither does (A-gf-controls-10-F3).
+        if (data.xs.check_push_overwrite(times) != plots::SeriesEditOutcome::applied ||
+            data.ys.check_push_overwrite(values) != plots::SeriesEditOutcome::applied) {
+            continue;
+        }
         static_cast<void>(data.xs.push_overwrite(times));
         static_cast<void>(data.ys.push_overwrite(values));
         changed = true;

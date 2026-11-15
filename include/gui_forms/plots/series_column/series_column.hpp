@@ -157,6 +157,10 @@ public:
     // Ring only: adds `elements`, dropping the oldest as needed; a block
     // larger than the ring keeps its newest `capacity` elements.
     SeriesEditOutcome push_overwrite(std::span<const Element> elements);
+    // What push_overwrite(elements) would return, changing nothing: lets a
+    // caller that feeds several columns from one block (x and y) check every
+    // column before it changes any, so a refused block enters none of them.
+    [[nodiscard]] SeriesEditOutcome check_push_overwrite(std::span<const Element> elements) const noexcept;
     // Removes every element (a ring forgets its dropped count too).
     void clear() noexcept;
 
@@ -358,7 +362,7 @@ SeriesEditOutcome SeriesColumn<Element>::write_range(ElementIndex first, std::sp
 }
 
 template <SeriesElement Element>
-SeriesEditOutcome SeriesColumn<Element>::push_overwrite(std::span<const Element> elements) {
+SeriesEditOutcome SeriesColumn<Element>::check_push_overwrite(std::span<const Element> elements) const noexcept {
     if (mode_ != SeriesMode::ring) return SeriesEditOutcome::refused_mode;
     const std::size_t capacity = storage_.size();
     if (capacity == 0U) return SeriesEditOutcome::refused_capacity;
@@ -367,6 +371,16 @@ SeriesEditOutcome SeriesColumn<Element>::push_overwrite(std::span<const Element>
     // Order is checked against the newest live element, even one this push
     // drops: a monotone ring's values never go back (a time axis).
     if (!keeps_order(newest_finite(), kept)) return SeriesEditOutcome::refused_order;
+    return SeriesEditOutcome::applied;
+}
+
+template <SeriesElement Element>
+SeriesEditOutcome SeriesColumn<Element>::push_overwrite(std::span<const Element> elements) {
+    const SeriesEditOutcome checked = check_push_overwrite(elements);
+    if (checked != SeriesEditOutcome::applied) return checked;
+    const std::size_t capacity = storage_.size();
+    std::span<const Element> kept = elements;
+    if (kept.size() > capacity) kept = kept.subspan(kept.size() - capacity);
     const std::uint64_t first = written() + (elements.size() - kept.size());
     const std::size_t overflow = length_ + kept.size() > capacity ? length_ + kept.size() - capacity : 0U;
     // Drop the oldest `overflow` elements, counting the gaps they held.
