@@ -2109,6 +2109,12 @@ public:
             }
             (*model_).set_live_surface_idle_wake_handler({});
             (*model_).set_paint_wake_handler({});
+            // The scheduler clock would run one more collect_damage on the
+            // closed window's model (A-gf-host-03-F8).
+            if (scheduler_clock_armed_) {
+                CancelWaitableTimer(scheduler_clock_);
+                scheduler_clock_armed_ = false;
+            }
             session_.shutdown();
             native_phase_ = NativePhase::shutdown;
             services_.shutdown();
@@ -2388,6 +2394,10 @@ private:
 #endif
         raster_.resize(logical, scale_);
         dispatch(HostResizeEvent{logical});
+        // A resize handler may have closed this window through the
+        // windowing, which destroys it before dispatch returns; a null
+        // window would invalidate the whole desktop (A-gf-host-03-F8).
+        if (hwnd_ == nullptr) return;
         collect_damage();
 #if !defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
         // The raster now holds the whole client: the pixels it carried and the
@@ -2581,6 +2591,8 @@ private:
 #endif
 
     void collect_damage() {
+        // Nothing to collect for a destroyed window (A-gf-host-03-F8).
+        if (hwnd_ == nullptr) return;
         static_cast<void>((*model_).poll_frame_schedule(FrameClock::now()));
         accessibility_.notify(scale_);
         DamageRegion damage = (*model_).take_damage();
@@ -2618,6 +2630,9 @@ private:
     // (or any while the native size/move loop runs, which waits on messages
     // only) on WM_TIMER. Either way the other is cancelled first.
     void arm_scheduled_wake() {
+        // SetTimer with a null window makes a thread timer nobody kills
+        // (A-gf-host-03-F8).
+        if (hwnd_ == nullptr) return;
         KillTimer(hwnd_, scheduler_timer);
         if (scheduler_clock_armed_) {
             CancelWaitableTimer(scheduler_clock_);
@@ -3154,8 +3169,11 @@ private:
             // application/native request instead of continuously retrying OOM.
             std::fprintf(stderr, "gui-forms-host=transaction-frame-not-presented\n");
             recovery_expose_pending_ = true;
-            InvalidateRect(hwnd_, nullptr, FALSE);
+            if (hwnd_ != nullptr) InvalidateRect(hwnd_, nullptr, FALSE);
         }
+        // A paint that closed the window leaves nothing to present or
+        // collect (A-gf-host-03-F8).
+        if (hwnd_ == nullptr) return;
         present_invalidation_overlay();
         collect_damage();
 #else
