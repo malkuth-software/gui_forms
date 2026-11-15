@@ -498,6 +498,36 @@ void test_callout() {
     require(!(*callout).close(), "closing a closed callout does nothing");
 }
 
+// A one-shot callout whose program let it go (A-gf-controls-01-F7): while
+// shown, its layer holds the only reference, so a press outside that
+// dismisses it would destroy it inside finish. The callout holds itself
+// to the end of finish: closed is raised, then it goes.
+void test_released_callout_closes_whole() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("final.oneshot.root"));
+    std::shared_ptr<Button> target = make_control<Button>(StableId("final.oneshot.target"), "New");
+    (*target).set_requested_bounds(Rect{20.0, 20.0, 80.0, 28.0});
+    (*root).add_child(target);
+    Window window(root, Size{500.0, 400.0});
+    window.perform_layout();
+    Recorder recorder;
+    std::weak_ptr<Callout> observed;
+    {
+        std::shared_ptr<Callout> callout = make_control<Callout>(StableId("final.oneshot"));
+        (*callout).title = std::string{"Once"};
+        (*callout).light_dismiss = true;
+        recorder.tokens.push_back(
+            (*callout).closed().subscribe(Delegate<CalloutCloseReason>::bind<Recorder, &Recorder::callout_closed>(recorder)));
+        require((*callout).show(target), "the one-shot callout opens");
+        observed = callout;
+    }
+    window.perform_layout();
+    require(!observed.expired(), "while shown, the layer keeps the released callout");
+    require(window.dispatch_pointer(press(Point{450.0, 380.0})), "the press outside is handled");
+    static_cast<void>(window.dispatch_pointer(release(Point{450.0, 380.0})));
+    require(!recorder.seen.empty() && recorder.seen.back() == "callout:2", "the released callout reports click-away");
+    require(observed.expired(), "closed, the released callout is gone");
+}
+
 void test_modal_layer() {
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("final.modal.root"));
     std::shared_ptr<Button> behind = make_control<Button>(StableId("final.modal.behind"), "Behind");
@@ -803,6 +833,7 @@ int main() {
     test_step_indicator();
     test_wizard();
     test_callout();
+    test_released_callout_closes_whole();
     test_modal_layer();
     test_lookup_combo_box();
     test_about_dialog();

@@ -466,6 +466,8 @@ void Callout::on_press_outside() {
 
 void Callout::on_action(ButtonBase&) {
     if (!shown_) return;
+    // Held across the handler and finish: see finish.
+    const Control::Ptr retained = weak_from_this().lock();
     action_clicked_.emit();
     // The handler may have closed the callout already.
     if (shown_) finish(CalloutCloseReason::action);
@@ -473,6 +475,12 @@ void Callout::on_action(ButtonBase&) {
 
 void Callout::finish(CalloutCloseReason reason) {
     if (!shown_) return;
+    // While shown, the layer may hold the only reference to the callout (a
+    // one-shot tip whose program let it go): removing it from the layer
+    // would then destroy it mid-function. Held to the end, so the members
+    // after the removal and closed's handlers see a live callout
+    // (A-gf-controls-01-F7).
+    const Control::Ptr retained = weak_from_this().lock();
     shown_ = false;
     hot_close_ = false;
     pressed_close_ = false;
