@@ -2432,9 +2432,14 @@ bool Ribbon::show_application_menu(MenuOpenMode mode) {
     (*overlay_).set_items(application_menu_);
     const Rect absolute = absolute_bounds();
     // Over the ribbon, below the File tab (owner decision 23).
-    (*overlay_).show(shared_from_this(), {absolute.x + placed.application.x, absolute.y + placed.application.y +
-                                                                               placed.application.height},
+    // show opens a focus scope whose handlers run before it returns; one
+    // may close the menu (A-gf-controls-11-F2): the File tab is marked open
+    // only for a menu still open.
+    const Control::Ptr self = shared_from_this();
+    (*overlay_).show(self, {absolute.x + placed.application.x, absolute.y + placed.application.y +
+                                                                  placed.application.height},
                    mode);
+    if (!is_alive() || !(*overlay_).is_open()) return false;
     application_open_ = true;
     invalidate(Dirty::semantics);
     repaint_part(Hit::Kind::application, 0U, {});
@@ -2464,7 +2469,10 @@ std::optional<Rect> Ribbon::command_window_bounds(CommandAddress address) const 
 
 bool Ribbon::show_drop_down(std::string_view command_id, MenuOpenMode mode) {
     require_mutable();
-    const std::optional<CommandAddress> address = find_command(command_id);
+    // A copy: the ID may name a command's own text, and showing the menu
+    // runs handlers that may replace the tabs.
+    const std::string opened_id(command_id);
+    const std::optional<CommandAddress> address = find_command(opened_id);
     if (!address || minimized.read() || plane_hidden_ || attached_window() == nullptr) return false;
     const RibbonCommandSpec& spec = *selected_command(*address);
     if (!has_menu(spec.kind) || !command_enabled(spec)) return false;
@@ -2473,10 +2481,19 @@ bool Ribbon::show_drop_down(std::string_view command_id, MenuOpenMode mode) {
     if (open_command_ == address && (*overlay_).is_open()) return true;
     close_menus();
     (*overlay_).set_items(spec.drop_down);
-    (*overlay_).show(shared_from_this(), {(*bounds).x, (*bounds).y + (*bounds).height}, mode);
-    open_command_ = address;
+    // As in show_application_menu: the command is marked open only for a
+    // menu still open, at the address its ID has now (A-gf-controls-11-F2).
+    const Control::Ptr self = shared_from_this();
+    (*overlay_).show(self, {(*bounds).x, (*bounds).y + (*bounds).height}, mode);
+    if (!is_alive() || !(*overlay_).is_open()) return false;
+    const std::optional<CommandAddress> shown = find_command(opened_id);
+    if (!shown) {
+        close_menus();
+        return false;
+    }
+    open_command_ = shown;
     invalidate_views(Dirty::semantics);
-    repaint_part(Hit::Kind::command, 0U, *address);
+    repaint_part(Hit::Kind::command, 0U, *shown);
     return true;
 }
 
@@ -2575,9 +2592,29 @@ bool Ribbon::show_group_overlay(std::string_view group_id, MenuOpenMode mode) {
         const std::vector<Stop> all = overlay_stops();
         if (!all.empty()) overlay_stop_ = all[0];
     }
-    group_scope_ = (*window).begin_focus_scope(group_layer_, group_overlay_);
+    const FocusScopeId scope = (*window).begin_focus_scope(group_layer_, group_overlay_);
+    // The focus move ran the previous control's handlers; one may have
+    // closed this overlay, or closed it and opened another (which began
+    // its own scope). The scope is kept only for this overlay still open
+    // (A-gf-controls-11-F2).
+    if (!is_alive()) return false;
+    if (overlay_group_ != group || group_scope_) {
+        end_abandoned_scope(scope);
+        const bool still_open = overlay_group_ == group;
+        return still_open;
+    }
+    group_scope_ = scope;
     invalidate_views(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     return true;
+}
+
+void Ribbon::end_abandoned_scope(FocusScopeId scope) noexcept {
+    Window* const window = attached_window();
+    if (window == nullptr || !scope) return;
+    try {
+        static_cast<void>((*window).end_focus_scope(scope));
+    } catch (...) {
+    }
 }
 
 void Ribbon::close_group_overlay() noexcept {
@@ -2781,7 +2818,15 @@ bool Ribbon::show_plane_popup() {
         plane_popup_revoked_ =
             (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_plane_popup_revoked>(*this));
     }
-    plane_scope_ = (*window).begin_focus_scope(plane_layer_, plane_popup_);
+    const FocusScopeId scope = (*window).begin_focus_scope(plane_layer_, plane_popup_);
+    // As in show_group_overlay: kept only for this popup still open
+    // (A-gf-controls-11-F2).
+    if (!is_alive()) return false;
+    if (!plane_popup_open_ || plane_scope_) {
+        end_abandoned_scope(scope);
+        return plane_popup_open_;
+    }
+    plane_scope_ = scope;
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     return true;
 }

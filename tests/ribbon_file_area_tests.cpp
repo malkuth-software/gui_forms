@@ -630,6 +630,50 @@ void font_field_widths() {
 
 } // namespace
 
+// Closes Backstage when the ribbon loses focus, once, as a handler that
+// leaves Backstage when the document is touched does.
+struct CloseBackstageOnBlur final {
+    Ribbon* ribbon{};
+    bool* closed{};
+    void operator()(bool focused) const {
+        if (focused || *closed) return;
+        *closed = true;
+        (*ribbon).close_backstage();
+    }
+};
+
+struct RecordOpen final {
+    std::vector<bool>* seen{};
+    void operator()(bool open) const { (*seen).push_back(open); }
+};
+
+// A-gf-controls-11-F2: opening Backstage moves focus into it; a blur
+// handler that closes it leaves Backstage closed, its focus scope ended
+// (focus may leave it), and no backstage_open_changed(true) after the false.
+void backstage_closed_while_opening() {
+    std::shared_ptr<Ribbon> ribbon = make_ribbon(make_control<RibbonFontControl>(StableId("ribbon.font")),
+                                                 make_control<RibbonColorPicker>(StableId("ribbon.colour")));
+    std::shared_ptr<BackstageView> view = make_control<BackstageView>(StableId("backstage"));
+    std::shared_ptr<Label> info = make_control<Label>(StableId("backstage.info"), "Information");
+    (*view).set_items({{.stable_id = "info", .kind = BackstageItemKind::topic, .text = "&Info", .page = info}});
+    (*ribbon).backstage = view;
+    Window window(ribbon, {900.0, 500.0});
+    window.perform_layout();
+    require(window.request_focus(ribbon), "the ribbon takes focus");
+    bool closed = false;
+    std::vector<bool> changes;
+    SubscriptionToken blurred = (*ribbon).focus_observed().subscribe(CloseBackstageOnBlur{ribbon.get(), &closed});
+    SubscriptionToken recorded = (*ribbon).backstage_open_changed().subscribe(RecordOpen{&changes});
+    const bool opened = (*ribbon).show_backstage();
+    require(closed, "opening Backstage moved focus off the ribbon");
+    require(!(*ribbon).backstage_open() && !opened && changes == std::vector<bool>{false},
+            "Backstage closed by a focus handler while it opened stays closed, with no later open report");
+    require(window.request_focus(ribbon) && window.focused_control() == ribbon,
+            "no focus scope of the closed Backstage holds focus");
+    static_cast<void>(blurred);
+    static_cast<void>(recorded);
+}
+
 int main() {
     value_commands();
     font_control();
@@ -640,6 +684,7 @@ int main() {
     arranged_within_maximum_size();
     font_field_widths();
     color_palette_shrinks_while_open();
+    backstage_closed_while_opening();
     std::cout << "Ribbon file area: value commands, font control, colour picker, hosting, recent pane and Backstage "
                  "passed\n";
     return 0;

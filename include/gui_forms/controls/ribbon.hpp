@@ -1067,6 +1067,11 @@ private:
     // ribbon, in record order.
     void move_hosted_to_ribbon(const Control::Ptr& source) noexcept;
     void finish_group_overlay() noexcept;
+    // Ends `scope`, begun for an overlay that a focus handler closed (or
+    // closed and opened again) while the scope began: beginning a scope
+    // moves focus and runs the previous control's handlers before it
+    // returns (A-gf-controls-11-F2). Nothing when the ribbon has no window.
+    void end_abandoned_scope(FocusScopeId scope) noexcept;
     void on_group_layer_dismissed(OverlayDismissReason reason);
     void on_group_overlay_revoked();
 
