@@ -6614,9 +6614,12 @@ if(TARGET gui_forms_application)
     # own STXlib code both reach.
     target_link_libraries(gui_forms_application PUBLIC stxlib::boundary stxlib::state)
 endif()
+# The text masks join the Application library's archives
+# (GUI_FORMS_APPLICATION_ARCHIVES) before the package reads them, so the
+# installed libgui_forms_application.a holds them.
+include(cmake/ApplicationText.cmake)
 include(cmake/ApplicationPackage.cmake)
 
-include(cmake/ApplicationText.cmake)
 include(cmake/TextStackExport.cmake)
 include(cmake/CAbi.cmake)
 
