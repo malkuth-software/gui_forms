@@ -4,6 +4,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/range_controls.hpp"
 #include "gui_forms/timer.hpp"
+#include "../src/core/thread_records/core_thread_record.hpp"
 
 #include <algorithm>
 #include <array>
@@ -522,6 +523,8 @@ private:
     // one frame per display frame, no sleep loop; a stalled presenter wakes
     // it at the deadline instead of stopping it.
     void producer_loop() noexcept {
+        // Closes last: the thread's records are released here, on the thread.
+        const gui_forms::detail::ThreadRecordsEnd thread_records_end;
         const std::stop_token stop = stop_.get_token();
         SurfaceSize size;
         size.width = surface_width;

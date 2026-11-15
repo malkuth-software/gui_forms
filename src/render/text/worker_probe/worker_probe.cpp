@@ -1,4 +1,5 @@
 #include "worker_probe.hpp"
+#include "../../../core/thread_records/core_thread_record.hpp"
 
 #include <cmath>
 #include <limits>
@@ -133,6 +134,8 @@ void Worker::close() {
 }
 
 void Worker::run() {
+    // Closes last: the thread's records are released here, on the thread.
+    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     // This unique engine and every mutable native font live/die on this thread.
     std::unique_ptr<text::HarfBuzzFontEngine> engine{};
     std::array<FontFaceId, 4> face_ids{};
