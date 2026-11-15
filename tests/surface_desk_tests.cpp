@@ -218,7 +218,8 @@ void test_scene() {
 
 void test_click_counts() {
     SurfaceClickHistory history{};
-    const double interval = default_double_click_milliseconds;
+    // The surface manager's own default (gui_forms has one of the same name).
+    const double interval = host::surface_detail::default_double_click_milliseconds;
     const double distance = default_double_click_distance;
     const PointerButton primary = PointerButton::primary;
     require(next_surface_click_count(history, primary, 1000.0, {10.0, 10.0}, interval, distance) == 1U, "a first press");
