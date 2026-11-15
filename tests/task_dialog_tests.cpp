@@ -183,6 +183,29 @@ void validation() {
     require((*dialog).page().buttons.size() == 1U && (*dialog).page().buttons[0].stable_id == "ok" &&
                 (*dialog).page().buttons[0].text == "OK",
             "a page without buttons gets an OK button");
+    // A-gf-controls-13-F1: the standard Try Again button builds (its result
+    // name stays "try_again"; its control segment is "try-again"), and an ID
+    // that is not a stable-ID segment is refused before the page changes.
+    TaskDialogPage retry;
+    retry.buttons = {{.standard = TaskDialogStandardButton::try_again}, {.standard = TaskDialogStandardButton::cancel}};
+    (*dialog).set_page(retry);
+    require((*dialog).page().buttons.size() == 2U && (*dialog).page().buttons[0].stable_id == "try_again" &&
+                (*dialog).button("try_again") != nullptr && (*dialog).button("cancel") != nullptr &&
+                (*(*dialog).button("try_again")).stable_id().value() == "dialog.check.button.try-again",
+            "the standard Try Again button is built with a stable-ID segment");
+    TaskDialogPage spaced;
+    spaced.buttons = {{.stable_id = "Save", .text = "Save"}, {.stable_id = "dont save", .text = "Don't Save"}};
+    require(throws_invalid(SetPage{dialog.get(), spaced}), "a button ID that is not a stable-ID segment is refused");
+    TaskDialogPage clashing;
+    clashing.buttons = {{.standard = TaskDialogStandardButton::try_again}, {.stable_id = "try-again", .text = "Again"}};
+    require(throws_invalid(SetPage{dialog.get(), clashing}), "two buttons that would share a control segment are refused");
+    TaskDialogPage bad_radio;
+    bad_radio.radio_buttons = {{.stable_id = "FM only", .checked = true}};
+    require(throws_invalid(SetPage{dialog.get(), bad_radio}), "a radio ID that is not a stable-ID segment is refused");
+    require((*dialog).page().buttons.size() == 2U && (*dialog).button("try_again") != nullptr &&
+                (*dialog).button("cancel") != nullptr,
+            "a refused page leaves the previous page and its buttons in place");
+    (*dialog).set_page(done);
     (*dialog).expanded = true;
     require(!(*dialog).expanded.read(), "a page without an expander ignores an expanded write and reads false");
     (*dialog).verification_checked = true;

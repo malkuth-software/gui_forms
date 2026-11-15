@@ -13,6 +13,8 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 
@@ -44,25 +46,39 @@ constexpr double footnote_padding = 10.0;
 constexpr double heading_size = 14.0;
 constexpr double footnote_size = 10.0;
 
+// `stable_id` is the name results and events report (it matches
+// DialogResult's names); `segment` is the button control's stable-ID segment.
+// They differ only for Try Again, whose name has an underscore, which a
+// stable ID does not admit (A-gf-controls-13-F1).
 struct StandardButtonName final {
     TaskDialogStandardButton standard{TaskDialogStandardButton::ok};
     std::string_view stable_id{};
     std::string_view text{};
+    std::string_view segment{};
 };
 
 constexpr std::array<StandardButtonName, 11> standard_buttons{{
-    {TaskDialogStandardButton::ok, "ok", "OK"},
-    {TaskDialogStandardButton::cancel, "cancel", "Cancel"},
-    {TaskDialogStandardButton::yes, "yes", "Yes"},
-    {TaskDialogStandardButton::no, "no", "No"},
-    {TaskDialogStandardButton::retry, "retry", "Retry"},
-    {TaskDialogStandardButton::abort, "abort", "Abort"},
-    {TaskDialogStandardButton::ignore, "ignore", "Ignore"},
-    {TaskDialogStandardButton::try_again, "try_again", "Try Again"},
-    {TaskDialogStandardButton::continue_, "continue", "Continue"},
-    {TaskDialogStandardButton::close, "close", "Close"},
-    {TaskDialogStandardButton::help, "help", "Help"},
+    {TaskDialogStandardButton::ok, "ok", "OK", "ok"},
+    {TaskDialogStandardButton::cancel, "cancel", "Cancel", "cancel"},
+    {TaskDialogStandardButton::yes, "yes", "Yes", "yes"},
+    {TaskDialogStandardButton::no, "no", "No", "no"},
+    {TaskDialogStandardButton::retry, "retry", "Retry", "retry"},
+    {TaskDialogStandardButton::abort, "abort", "Abort", "abort"},
+    {TaskDialogStandardButton::ignore, "ignore", "Ignore", "ignore"},
+    {TaskDialogStandardButton::try_again, "try_again", "Try Again", "try-again"},
+    {TaskDialogStandardButton::continue_, "continue", "Continue", "continue"},
+    {TaskDialogStandardButton::close, "close", "Close", "close"},
+    {TaskDialogStandardButton::help, "help", "Help", "help"},
 }};
+
+// The stable-ID segment of the control for a button named `button_id`: a
+// standard name's segment, otherwise the name itself.
+std::string_view button_segment(std::string_view button_id) noexcept {
+    for (const StandardButtonName& name : standard_buttons) {
+        if (name.stable_id == button_id) return name.segment;
+    }
+    return button_id;
+}
 
 const StandardButtonName* standard_name(TaskDialogStandardButton standard) noexcept {
     for (const StandardButtonName& name : standard_buttons) {
@@ -194,12 +210,25 @@ void TaskDialog::set_page(TaskDialogPage page) {
             throw std::invalid_argument("TaskDialog buttons require unique, non-empty IDs and valid UTF-8");
         }
     }
+    // Each button becomes a control named prefix.button.<segment>: the
+    // segment must be a stable ID and unique, checked here before page_ or
+    // the children change (A-gf-controls-13-F1).
+    identities.clear();
+    for (const TaskDialogButton& button : page.buttons) {
+        const std::string_view segment = button_segment(button.stable_id);
+        if (!valid_stable_id(segment) || !identities.insert(std::string(segment)).second) {
+            throw std::invalid_argument("TaskDialog button IDs must be stable-ID segments ([a-z0-9] runs joined by '-' or '.')");
+        }
+    }
     identities.clear();
     std::size_t checked = 0U;
     for (const TaskDialogRadioButton& radio : page.radio_buttons) {
         if (radio.stable_id.empty() || !valid_text(radio.stable_id) || !valid_text(radio.text) ||
             !identities.insert(radio.stable_id).second) {
             throw std::invalid_argument("TaskDialog radio buttons require unique, non-empty IDs and valid UTF-8");
+        }
+        if (!valid_stable_id(radio.stable_id)) {
+            throw std::invalid_argument("TaskDialog radio button IDs must be stable-ID segments ([a-z0-9] runs joined by '-' or '.')");
         }
         if (radio.checked) ++checked;
     }
@@ -315,7 +344,8 @@ void TaskDialog::rebuild_children() {
     const std::string preferred = default_button_id();
     for (const TaskDialogButton& definition : page_.buttons) {
         std::shared_ptr<Button> control =
-            make_control<Button>(StableId(prefix + ".button." + definition.stable_id), definition.text);
+            make_control<Button>(StableId(prefix + ".button." + std::string(button_segment(definition.stable_id))),
+                                 definition.text);
         (*control).enabled = definition.enabled;
         if (definition.stable_id == preferred) (*control).visual_style = ButtonVisualStyle::accent;
         add_child(control);

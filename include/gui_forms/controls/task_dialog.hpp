@@ -50,8 +50,11 @@ enum class TaskDialogStandardButton : std::uint8_t {
 // One command button. `stable_id` names the button in results and events
 // and is unique within the page; a standard button with an empty ID takes
 // its standard name ("ok", "cancel", "try_again", ...), and a standard button
-// with empty text shows its standard text. A button whose `allow_close` is
-// false raises button_clicked and leaves the dialog open.
+// with empty text shows its standard text. Any other ID is a stable-ID
+// segment ([a-z0-9] runs joined by '-' or '.'), since it names the button's
+// control; the standard "try_again" names a control segment "try-again".
+// A button whose `allow_close` is false raises button_clicked and leaves the
+// dialog open.
 struct GUI_FORMS_API TaskDialogButton final {
     std::string stable_id{};
     std::string text{};
@@ -60,7 +63,8 @@ struct GUI_FORMS_API TaskDialogButton final {
     bool allow_close{true};
 };
 
-// One radio button; at most one of a page's radio buttons is checked.
+// One radio button; at most one of a page's radio buttons is checked. Its
+// `stable_id` is a stable-ID segment, as a custom button's is.
 struct GUI_FORMS_API TaskDialogRadioButton final {
     std::string stable_id{};
     std::string text{};
