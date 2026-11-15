@@ -172,6 +172,8 @@ gui_forms::Window
         - Called by a host when it attaches this window (stage DP).
       * - :cpp:func:`queue_live_surface_presentation <gui_forms::Window::queue_live_surface_presentation>`
         -  
+      * - :cpp:func:`withdraw_live_surface_presentation <gui_forms::Window::withdraw_live_surface_presentation>`
+        - Withdraws the registration queue_live_surface_presentation made for ``control``, while it still holds ``surface``: the window stops placing that surface over the control and lets it go.
       * - :cpp:func:`note_live_surface_presented <gui_forms::Window::note_live_surface_presented>`
         - A host presented ``presented`` (window logical units) of ``presentation``'s frame: recorded for the invalidation overlay while it is on, as a live surface's presentation, or external content's for a compatibility paint endpoint's surface, named for the surface's control.
       * - :cpp:func:`require_live_surface_content <gui_forms::Window::require_live_surface_content>`
@@ -521,6 +523,10 @@ gui_forms::Window
       Called by a host when it attaches this window (stage DP). Throws std::invalid_argument when the declared contract version is older than paint_contract_version, or claims version 2 or later without partial present: such a host fails attachment rather than presenting in a degraded mode.
 
    .. cpp:function:: bool queue_live_surface_presentation(const Control::Ptr& control, std::shared_ptr<LiveSurface> surface)
+
+   .. cpp:function:: bool withdraw_live_surface_presentation(const Control::Ptr& control, const std::shared_ptr<LiveSurface>& surface) noexcept
+
+      Withdraws the registration queue_live_surface_presentation made for ``control``, while it still holds ``surface``: the window stops placing that surface over the control and lets it go. False when there is no such registration. Never throws; does nothing off the root's thread.
 
    .. cpp:function:: void note_live_surface_presented(const LiveSurfacePresentation& presentation, Rect presented)
 

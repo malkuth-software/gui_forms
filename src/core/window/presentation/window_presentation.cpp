@@ -1151,6 +1151,17 @@ bool Window::queue_live_surface_presentation(
     return true;
 }
 
+bool Window::withdraw_live_surface_presentation(const Control::Ptr& control,
+                                                const std::shared_ptr<LiveSurface>& surface) noexcept {
+    if (!check_access() || !control || !surface) return false;
+    const LiveSurfaceRegistrationMap::iterator entry =
+        live_surface_registrations_.find((*control).runtime_id().value);
+    if (entry == live_surface_registrations_.end() || (*entry).second.surface != surface) return false;
+    // Erasing disconnects the registration's idle wake with it.
+    live_surface_registrations_.erase(entry);
+    return true;
+}
+
 bool Window::require_live_surface_content(const Control::Ptr& control,
                                           const std::uint64_t content_tag) {
     require_root_thread("live-surface content pairing");

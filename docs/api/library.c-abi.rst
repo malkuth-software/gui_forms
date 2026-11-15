@@ -5617,7 +5617,7 @@ Types
 
    .. cpp:function:: gf_status reset() noexcept
 
-      Releases the reference now; GF_STATUS_OK when there was none. The owner is empty afterwards whatever release answered.
+      Releases the reference now; GF_STATUS_OK when there was none. The owner is empty afterwards whatever release answered. The owner is emptied before the call (A-gf-abi-01-F4): the release may end subscriptions whose callbacks' release destroys this owner.
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -5999,7 +5999,7 @@ Types
 
    .. cpp:function:: gf_status reset() noexcept
 
-      Disconnects now; GF_STATUS_OK when there was nothing to disconnect. The owner is empty afterwards whatever disconnect answered.
+      Disconnects now; GF_STATUS_OK when there was nothing to disconnect. The owner is empty afterwards whatever disconnect answered. The owner is emptied before the call (A-gf-abi-01-F4): disconnect runs the callback's release, which may destroy this owner.
 
 .. cpp:namespace:: gui_forms::abi
 

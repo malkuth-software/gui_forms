@@ -14,6 +14,7 @@
 #include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 #include "gui_forms/live_surface/wake_connection/live_surface_wake_connection.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 
 #include <atomic>
 #include <cstddef>
@@ -121,6 +122,11 @@ private:
     LiveSurfaceWakeConnection wake_;
     std::shared_ptr<BoundSurfaceWake> wake_state_;
     bool direct_presentation_{};
+    // While direct_presentation_: the window holding the registration and
+    // the control it is registered for, both observed, so disconnect_wake
+    // can withdraw it (A-gf-abi-02-F3).
+    WindowRef presented_in_;
+    std::weak_ptr<Control> presented_control_;
     bool armed_{};
     bool revoked_{};
     // The text set_property lends the callback (abi_lent_scratch.hpp): set

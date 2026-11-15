@@ -375,6 +375,8 @@ void CustomControlState::connect_wake(Control& control) {
         // The window's host samples the newest frames itself; a publication
         // posts nothing.
         direct_presentation_ = true;
+        presented_in_ = (*window).window_ref();
+        presented_control_ = self;
         return;
     }
     wake_state_ = std::make_shared<BoundSurfaceWake>();
@@ -384,6 +386,20 @@ void CustomControlState::connect_wake(Control& control) {
 }
 
 void CustomControlState::disconnect_wake() noexcept {
+    if (direct_presentation_) {
+        // The window would otherwise keep presenting the surface's last
+        // frame over the control, and keep the surface alive, until the
+        // control left it (A-gf-abi-02-F3). A window or control already
+        // gone holds nothing; off the window's thread nothing is touched
+        // (the registration then lapses when the control leaves).
+        Window* const window = presented_in_.get();
+        const std::shared_ptr<Control> control = presented_control_.lock();
+        if (window != nullptr && control && (*window).check_access()) {
+            static_cast<void>((*window).withdraw_live_surface_presentation(control, bound_surface_));
+        }
+    }
+    presented_in_.reset();
+    presented_control_.reset();
     direct_presentation_ = false;
     if (wake_state_) {
         (*wake_state_).connected.store(false, std::memory_order_release);

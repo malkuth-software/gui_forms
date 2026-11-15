@@ -126,6 +126,12 @@ public:
 
     [[nodiscard]] bool queue_live_surface_presentation(
         const Control::Ptr& control, std::shared_ptr<LiveSurface> surface);
+    // Withdraws the registration queue_live_surface_presentation made for
+    // `control`, while it still holds `surface`: the window stops placing
+    // that surface over the control and lets it go. False when there is no
+    // such registration. Never throws; does nothing off the root's thread.
+    bool withdraw_live_surface_presentation(const Control::Ptr& control,
+                                            const std::shared_ptr<LiveSurface>& surface) noexcept;
     // A host presented `presented` (window logical units) of `presentation`'s
     // frame: recorded for the invalidation overlay while it is on, as a live
     // surface's presentation, or external content's for a compatibility
