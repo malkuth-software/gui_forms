@@ -833,6 +833,10 @@ Related types
 
       Adapter policy: an accepted request hides a reusable window while its session remains attached. Observers can cancel; changing this policy during notification does not change the adapter's action.
 
+   .. cpp:member:: bool query_only
+
+      A question, not a request: observers hear it and may cancel, and the result reports close_allowed, but an allowed query authorizes nothing and the session stays in its phase. A host asks this way before a quit closes anything, so a quit another window then refuses leaves every window that agreed live and closable (A-gf-host-02-F1).
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: HostColorDialogRequest final

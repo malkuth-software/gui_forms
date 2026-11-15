@@ -577,6 +577,12 @@ struct GUI_FORMS_API HostCloseRequest final {
     // session remains attached. Observers can cancel; changing this policy
     // during notification does not change the adapter's action.
     bool hide_on_accept{};
+    // A question, not a request: observers hear it and may cancel, and the
+    // result reports close_allowed, but an allowed query authorizes nothing
+    // and the session stays in its phase. A host asks this way before a
+    // quit closes anything, so a quit another window then refuses leaves
+    // every window that agreed live and closable (A-gf-host-02-F1).
+    bool query_only{};
 };
 
 struct GUI_FORMS_API HostClosedEvent final {

@@ -3530,6 +3530,8 @@ private:
         HostCloseRequest request{HostCloseReason::user, false, options_.hide_on_close};
         if (options_.close_request) options_.close_request(request);
         request.hide_on_accept = options_.hide_on_close;
+        // WM_CLOSE closes the window when allowed: a request, never a query.
+        request.query_only = false;
         const HostDispatchResult result = dispatch(request);
         if (result.accepted() && result.close_allowed) {
             if (options_.hide_on_close) {

@@ -342,6 +342,7 @@ void HostSession::DispatchVisitor::operator()(
     } else if constexpr (std::is_same_v<Payload, HostCloseRequest>) {
         ++(*session).snapshot_.close_requests;
         const bool hide_on_accept = payload.hide_on_accept;
+        const bool asked_only = payload.query_only;
         (*session).closing_.emit(payload);
         (*result).close_allowed = !payload.cancel;
         (*session).snapshot_.close_cancellations += payload.cancel ? 1U : 0U;
@@ -349,7 +350,10 @@ void HostSession::DispatchVisitor::operator()(
         // still call the session's end off, and the host reports the close
         // itself when it happens (HostCloseReason::session_end).
         const bool session_end = payload.reason == HostCloseReason::session_end;
-        if (!payload.cancel && !hide_on_accept && !session_end) {
+        // A query (a quit asking every window before it closes any) never
+        // authorizes the close, whatever the observers answered or changed
+        // in the payload during notification.
+        if (!payload.cancel && !hide_on_accept && !session_end && !asked_only) {
             (*session).snapshot_.phase = HostLifecyclePhase::close_authorized;
         }
     } else if constexpr (std::is_same_v<Payload, HostClosedEvent>) {

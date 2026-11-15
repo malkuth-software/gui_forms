@@ -1345,6 +1345,38 @@ void test_close_cancellation_and_closed_cleanup() {
             "closed lifecycle must account cancellation and revoke scheduled work");
 }
 
+// A-gf-host-02-F1: a quit asks every window before it closes any, with
+// query_only. The observers hear the query and may refuse; an allowed query
+// leaves the session attached, so when another window refuses the quit the
+// windows that agreed still take input and can still be closed.
+void test_close_query_authorizes_nothing() {
+    const std::unique_ptr<Fixture> held_fixture = std::make_unique<Fixture>();
+    Fixture& fixture = *held_fixture;
+    static_cast<void>(fixture.host.dispatch(HostAttachEvent{{320.0, 180.0}, 1.0}, 1));
+    require(fixture.host.dispatch(
+                HostCloseRequest{HostCloseReason::quit, false, false, true}, 2).close_allowed &&
+                fixture.host.session().snapshot().phase == HostLifecyclePhase::attached,
+            "an allowed close query must leave the session attached");
+    PointerEvent input;
+    input.action = PointerAction::move;
+    input.position = {10.0, 10.0};
+    require(fixture.host.dispatch(input, 3).accepted(),
+            "input must still reach a window that agreed to a quit another window refused");
+    SubscriptionToken cancellation =
+        fixture.host.session().closing().subscribe(cancel_close);
+    require(!fixture.host.dispatch(
+                 HostCloseRequest{HostCloseReason::quit, false, false, true}, 4).close_allowed &&
+                fixture.host.session().snapshot().phase == HostLifecyclePhase::attached,
+            "a close query reaches the closing observers, who may refuse it");
+    cancellation.disconnect();
+    require(fixture.host.dispatch(
+                HostCloseRequest{HostCloseReason::user, false}, 5).close_allowed &&
+                fixture.host.session().snapshot().phase == HostLifecyclePhase::close_authorized,
+            "a window that agreed to a query can still be closed by a real request");
+    require(fixture.host.session().snapshot().close_requests == 3U,
+            "queries are counted as close requests");
+}
+
 // A session end (HostCloseReason::session_end) asks the closing handler
 // with its reason; an allowed request leaves the window attached, since the
 // platform may still call the session's end off, and live input still
@@ -1498,6 +1530,7 @@ int main() {
         test_lifecycle_transition_guards();
         test_close_cancellation_and_closed_cleanup();
         test_session_end_close_stays_attached_until_closed();
+        test_close_query_authorizes_nothing();
         test_headless_trace_is_byte_deterministic();
         test_headless_host_observes_model_originated_paint_wakes();
         test_normalized_host_input_reports_paint_lease_deferral();

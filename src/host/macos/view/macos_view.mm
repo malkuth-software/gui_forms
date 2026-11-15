@@ -501,7 +501,9 @@ void link_view_categories() noexcept {
 
 - (BOOL)closeRefusedForReason:(HostCloseReason)reason {
     if (_hostAttached == NO) return NO;
-    const HostDispatchResult result = [self dispatchHostPayload:HostCloseRequest{reason, false, false}
+    // Asked as a query: an agreeing window stays attached and closable if
+    // another window then refuses the quit (A-gf-host-02-F1).
+    const HostDispatchResult result = [self dispatchHostPayload:HostCloseRequest{reason, false, false, true}
                                            timestampNanoseconds:host_now_nanoseconds()];
     const BOOL refused = result.accepted() && !result.close_allowed ? YES : NO;
     return refused;
