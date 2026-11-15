@@ -69,9 +69,10 @@ future callbacks synchronously. A `Timer` is not a background worker.
 ## Workers
 
 `gui_forms/threading.hpp` provides the cooperative worker utilities. They
-live in the small shared library `GUIForms::Threading`, which `Core`,
-`Application` and `Audio` all link, so there is exactly one implementation in
-a process.
+live in the small static library `GUIForms::Threading`, which `Core`,
+`Application` and `Audio` all link. It is linked once into your program (or
+into the C ABI library), so there is exactly one implementation in a
+process.
 
 `CancellationFlag`
 : `request()` sets a release/acquire atomic once and for all; `requested()` is

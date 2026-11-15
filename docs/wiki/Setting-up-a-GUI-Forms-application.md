@@ -57,13 +57,6 @@ gui_forms_add_form(notes forms/notes.form CLASS NotesWindow NAMESPACE notes
 gui_forms_add_theme(notes themes/notes FUNCTION notes_theme NAMESPACE notes
                     FORMS forms/notes.form)
 
-# Windows: the GUI.Forms DLLs beside the executable.
-if(WIN32)
-    add_custom_command(TARGET notes POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_RUNTIME_DLLS:notes> $<TARGET_FILE_DIR:notes>
-        COMMAND_EXPAND_LISTS)
-endif()
 # The bundled fonts' licences, which the program ships (the faces are compiled in).
 add_custom_command(TARGET notes POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -71,7 +64,9 @@ add_custom_command(TARGET notes POST_BUILD
 ```
 
 - `GUIForms::Application` is the native host for your platform, and it
-  already contains the core, the controls and the drawing library. Link
+  already contains the core, the controls and the drawing library. It is a
+  static archive: the program is one executable, with no GUI.Forms DLL or
+  shared library to copy beside it. Link
   nothing else from GUI.Forms beside it: CMake stops with an error if you
   add `GUIForms::Core` too.
 - `gui_forms_add_form` runs the form compiler at build time and generates

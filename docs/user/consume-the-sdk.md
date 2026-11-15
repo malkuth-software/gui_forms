@@ -63,13 +63,13 @@ gui_forms_add_form(my_forms forms/settings.form CLASS SettingsForm NAMESPACE gre
 
 | Component | Target | Kind | Use it for |
 |---|---|---|---|
-| `Threading` | `GUIForms::Threading` | shared | `Worker`, `CancellationFlag`, the atomic thread pool. Linked by `Core`, `Application` and `Audio`. |
+| `Threading` | `GUIForms::Threading` | static | `Worker`, `CancellationFlag`, the atomic thread pool. Linked by `Core`, `Application` and `Audio`. |
 | `Core` | `GUIForms::Core` | static | The retained tree, events, invalidation, scheduling, resources and the portable host protocol, with no renderer and no native window. |
 | `Controls` | `GUIForms::Controls` | static | Stock controls over `Core`. Exports `Drawing`. |
 | `Drawing` | `GUIForms::Drawing` | static | Renderer-free geometry, colour, paths, raster storage and command recording. |
-| `Application` | `GUIForms::Application` | shared | The native host for your platform. Already contains `Core`, `Controls` and `Drawing`. |
+| `Application` | `GUIForms::Application` | static | The native host for your platform, linked into your executable. Already contains `Core`, `Controls` and `Drawing`. |
 | `Audio` | `GUIForms::Audio` | static | PCM clips, Ogg decoding and a device backend. Links `Threading` only. |
-| `CAbi` | `GUIForms::CAbi` | shared | The C ABI (`gui_forms/c/gf_abi.h`), for C, C# and other languages. Links `Application`, so a process has one engine whether it uses C++, the C ABI or both. |
+| `CAbi` | `GUIForms::CAbi` | shared | The C ABI (`gui_forms/c/gf_abi.h`), for C, C# and other languages: one self-contained library holding its own engine, the drawing ABI and, on Windows, the Win32 compatibility shim. A process uses it or a statically linked C++ engine, never both. |
 | `CAbiConformance` | `GUIForms::CAbiConformance` | static | The C ABI conformance kit ([Running the C ABI conformance kit](c-abi-conformance-kit)). |
 
 Two consumer shapes follow from the table:
@@ -77,9 +77,10 @@ Two consumer shapes follow from the table:
 - **Renderer-free consumers** (tests, model code, headless automation) link
   `GUIForms::Controls` or `GUIForms::Core`. They construct and mutate a
   `Window` model but never open a native window.
-- **Applications** link `GUIForms::Application` and nothing else from the
-  retained set. A program that also calls the C ABI links `GUIForms::CAbi`
-  beside it.
+- **C++ applications** link `GUIForms::Application` and nothing else from
+  the retained set; GUI.Forms is linked statically into the one executable.
+- **C and C# programs** link (or load) `GUIForms::CAbi` alone, the one
+  self-contained `gui_forms_abi` library, and not `Application`.
 
 [Install](install.md#package-components) lists the optional components
 (`TextMasks`, `AudioLoopTransport`, `FreeType`, `HarfBuzz`, `GalleryModel`)
@@ -168,7 +169,7 @@ copy of any routine and ships no GUI.Forms library beside it.
 | Consumer | Links | Ships |
 |---|---|---|
 | C++ | `GUIForms::Application` (or `Core` and `Controls` for a headless program): static archives. The installed `Application` is `lib/libgui_forms_application.a` (the engine, renderer and host, linked whole because its controls and themes register themselves at static initialization) and `lib/libgui_forms_application_deps.a` (Skia and the text stack), with `Threading`, STXlib (its state included) and the stx archives beside them | the executable alone. On macOS add `libc++.1.dylib`, `libc++abi.1.dylib` and `libunwind.1.dylib` from the runtime prefix to `Contents/Frameworks` only while the pinned runtime has no static archives |
-| C or C# | `GUIForms::CAbi`: the C ABI library, self-contained, with the drawing ABI (`gui_forms/drawing_c_api.h`) and its raster (installed by the drawing table's `raster_initialize`) in it | `gui_forms_abi1.dll`, `libgui_forms_abi.so.1` or `libgui_forms_abi.1.dylib`, beside the executable (in `Contents/Frameworks` on macOS), and its `fonts/` licences |
+| C or C# | `GUIForms::CAbi`: the C ABI library, self-contained, with the drawing ABI (`gui_forms/drawing_c_api.h`) and its raster (installed by the drawing table's `raster_initialize`) in it | `gui_forms_abi1.dll` (which on Windows also exports the Win32 compatibility shim's user32 and gdi32 names), `libgui_forms_abi.so.1` or `libgui_forms_abi.1.dylib`, beside the executable (in `Contents/Frameworks` on macOS), and its `fonts/` licences |
 
 A process uses either the C ABI library or a statically linked C++ engine,
 never both: each holds its own STXlib state (allocator, thread identities and

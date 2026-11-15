@@ -127,9 +127,9 @@ consumer built with different settings is not binary compatible.
 | Path under the prefix | Content |
 |---|---|
 | `include/gui_forms/` | Public portable headers |
-| `${CMAKE_INSTALL_LIBDIR}/` (usually `lib/`) | `GUIForms::Core`, `Controls`, `Drawing` (static), `GUIForms::Threading` (shared), `GUIForms::Application` (shared, when a native host is enabled), `GUIForms::Audio` (static, when enabled); Windows runtime DLLs go in `bin/` |
+| `${CMAKE_INSTALL_LIBDIR}/` (usually `lib/`) | `GUIForms::Core`, `Controls`, `Drawing`, `Threading`, `GUIForms::Application` (when a native host is enabled) and `GUIForms::Audio` (when enabled), all static archives linked into the program |
 | `${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms/` | `GUIFormsConfig.cmake` and exported target files |
-| C ABI files, when a native host is enabled | `include/gui_forms/c/gf_abi.h` (with the other headers), the shared library (`libgui_forms_abi.1.dylib`, `libgui_forms_abi.so.1`, or `gui_forms_abi1.dll` with its import libraries), `lib/pkgconfig/gui_forms_abi.pc`, and `share/GUIForms/abi/` (the audited manifest `gf_abi.json` and the export allowlist) |
+| C ABI files, when a native host is enabled | `include/gui_forms/c/gf_abi.h` (with the other headers), the one shared library, self-contained (`libgui_forms_abi.1.dylib`, `libgui_forms_abi.so.1`, or `gui_forms_abi1.dll` in `bin/` with its import libraries; on Windows it also carries the Win32 compatibility shim), `lib/pkgconfig/gui_forms_abi.pc`, and `share/GUIForms/abi/` (the audited manifest `gf_abi.json` and the export allowlist) |
 | `share/GUIForms/fonts/` | The bundled faces' licences and attribution (the faces themselves are compiled into the library), installed with a native host; exported as `GUIForms_FONT_DIR`. The Noto fallback faces' OFL texts are the separate `fallback_fonts` component, present when `GUI_FORMS_INSTALL_FALLBACK_FONTS` was ON (the default; `GUIForms_FALLBACK_FONTS` says which) |
 | `share/licenses/` | Third-party notices |
 

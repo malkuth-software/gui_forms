@@ -20,10 +20,10 @@ native host, and optional components that a build must enable (`TextMasks`,
 [Consume the SDK](../user/consume-the-sdk); this is how the main ones stack:
 
 ```text
-your application
-  └─ GUIForms::Application   shared; one native host per build
+your C++ application         one executable: everything below is linked into it
+  └─ GUIForms::Application   static; one native host per build
        contains the public layers
-         Controls ─┬─ Core ── Threading (shared, shipped beside it)
+         Controls ─┬─ Core ── Threading (static)
                    └─ Drawing
        and, privately,
          host adapter       src/host/macos | windows | linux
@@ -36,7 +36,17 @@ renderer-free code (tests, models, automation)
 
 audio adapters
   └─ GUIForms::Audio ── Threading
+
+your C or C# program
+  └─ GUIForms::CAbi          the one shared library: gui_forms_abi, self-contained
+       its own copy of Application's engine, the drawing ABI and raster,
+       and on Windows the Win32 compatibility shim's exports
 ```
+
+A program is one module (owner decision, 2026-11-15): it holds one copy of
+any routine. A C++ program links GUI.Forms statically and ships no GUI.Forms
+library; a C or C# program loads the C ABI library and nothing else from
+GUI.Forms, and never also links the C++ engine.
 
 `Drawing` depends on nothing else in the toolkit, `Core` depends only on
 `Threading`, and `Controls` adds the stock controls over `Core` and
@@ -159,8 +169,9 @@ subclassing. Text uses only the bundled faces; see
 ## Compatibility and versioning
 
 The package is version 0.6.0. `find_package(GUIForms 0.6)` accepts any 0.6.x
-installation and rejects other minor versions, and the shared libraries carry
-`SOVERSION 0`. Within that range there is still no binary promise: object
+installation and rejects other minor versions. The C++ libraries are static
+archives; the one shared library, the C ABI library, carries the ABI's major
+version as its `SOVERSION` (`libgui_forms_abi.so.1`). Within that range there is still no binary promise: object
 layouts change between releases, so rebuild your application against each
 new SDK ([Consume the SDK](../user/consume-the-sdk)).
 
