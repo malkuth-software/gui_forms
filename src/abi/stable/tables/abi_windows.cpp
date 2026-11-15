@@ -1349,7 +1349,8 @@ gf_status report_window_band(gf_object window, gf_window_band_report* report) {
     complete.frequency = snapshot.frequency;
     complete.flash_changes = snapshot.flash_changes;
     complete.cycle_frames = snapshot.cycle_frames;
-    *report = complete;
+    // Leaves the caller's struct_size and any later bytes (A-gf-abi-03-F9).
+    write_record(complete, report);
     return GF_STATUS_OK;
 }
 
@@ -1458,7 +1459,8 @@ gf_status report_window_shaping(gf_object window, gf_window_shaping* report) {
     complete.corner_shapes = shapes;
     complete.corner_shape = abi_corner_shape(shaping.corners.shape);
     complete.corner_radius = shaping.corners.shape == WindowCornerShape::rounded ? shaping.corners.radius : 0.0;
-    *report = complete;
+    // Leaves the caller's struct_size and any later bytes (A-gf-abi-03-F9).
+    write_record(complete, report);
     return GF_STATUS_OK;
 }
 

@@ -42,6 +42,12 @@ static gf_window_band_appearance band_appearance(gf_window_band_state state) {
     return appearance;
 }
 
+/* A band report as a caller built for a later minor might lay it out. */
+typedef struct grown_band_report {
+    gf_window_band_report report;
+    uint64_t later;
+} grown_band_report;
+
 static gf_window_band_report band_report(gf_kit* kit, gf_object window, const char* name) {
     gf_window_band_report report;
     memset(&report, 0, sizeof(report));
@@ -91,6 +97,16 @@ static void band_refusals(gf_kit* kit, gf_object window) {
                   "declare_band refuses a negative edge");
     const gf_window_band_report report = band_report(kit, window, "band_report after the refusals");
     gf_kit_check(kit, (report.status & GF_WINDOW_BAND_DECLARED) == 0u, "the refusals declared nothing");
+    /* A-gf-abi-03-F9: a caller's larger record keeps its struct_size and the
+     * bytes this library does not know. */
+    grown_band_report grown;
+    memset(&grown, 0, sizeof(grown));
+    grown.report.struct_size = (uint32_t)sizeof(grown);
+    grown.later = UINT64_C(0xA5A5A5A5A5A5A5A5);
+    gf_kit_status(kit, (*kit).windows.band_report(window, &grown.report), GF_STATUS_OK, "band_report, grown record");
+    gf_kit_check(kit, grown.report.struct_size == (uint32_t)sizeof(grown) &&
+                      grown.later == UINT64_C(0xA5A5A5A5A5A5A5A5),
+                 "band_report leaves struct_size and later bytes as they were");
 }
 
 /* The appearance: paint only, the content rectangle unchanged. */
