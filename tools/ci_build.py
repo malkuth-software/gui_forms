@@ -347,10 +347,13 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         options.append(f'-DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_MINIAUDIO={miniaudio}')
     prepare_host(ROOT / 'gui_forms', True)
     options.extend(host_options(host))
-    if host == 'linux' and os.environ.get('GITHUB_ACTIONS') == 'true':
+    if host in ('linux', 'windows') and os.environ.get('GITHUB_ACTIONS') == 'true':
         # C-10: the Linux CI image has LLVM's and Clang's development headers
-        # (template_harness projects/gui_forms.toml), so effects are verified
-        # there; a skipped plugin fails the configure.
+        # (template_harness projects/gui_forms.toml), and the pinned Windows
+        # toolchain carries mingw-w64-clang-x86_64-llvm's headers beside the
+        # compiler's Clang headers and import libraries (template_harness
+        # harness/windows_toolchain.json), so effects are verified on both; a
+        # skipped plugin fails the configure.
         options.append('-DGUI_FORMS_EFFECT_VERIFY_REQUIRED=ON')
     # The stx package (cmake/Stx.cmake): GUI_FORMS_STX_PREFIX links one built
     # elsewhere; GUI_FORMS_STX_PACKAGE_DIR (CI: restored from a cache) is where
