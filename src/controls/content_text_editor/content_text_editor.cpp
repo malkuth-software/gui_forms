@@ -91,15 +91,13 @@ constexpr std::array<InteractionDeclaration, 4> content_text_editor_interactions
     {.name = "user_edit", .payload = "ContentUserEdit", .mutable_payload = false},
 }};
 
-constexpr std::array<PartField<ContentTextEditor::Parts>, 4> content_text_editor_extra_part_fields{{
+constexpr std::array<PartField<ContentTextEditor::Parts>, 3> content_text_editor_extra_part_fields{{
     {.declaration = {.name = "content", .role = PartRole::image, .composed_from = {}},
      .member = &ContentTextEditor::Parts::content},
     {.declaration = {.name = "caret", .role = PartRole::caret, .composed_from = {}},
      .member = &ContentTextEditor::Parts::caret},
     {.declaration = {.name = "selection", .role = PartRole::selection, .composed_from = {}},
      .member = &ContentTextEditor::Parts::selection},
-    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
-     .member = &ContentTextEditor::Parts::focus},
 }};
 
 constexpr std::array<StateField<ContentTextEditor::States>, 6> content_text_editor_state_fields{{
@@ -111,7 +109,7 @@ constexpr std::array<StateField<ContentTextEditor::States>, 6> content_text_edit
     {.state = AnatomyState::read_only, .member = &ContentTextEditor::States::read_only},
 }};
 
-constexpr std::array<PartDeclaration, scrollable_detail::part_count + 4> content_text_editor_parts =
+constexpr std::array<PartDeclaration, scrollable_detail::part_count + 3> content_text_editor_parts =
     joined_declarations(scrollable_detail::parts, part_declarations(content_text_editor_extra_part_fields));
 constexpr std::array<AnatomyState, 6> content_text_editor_states =
     state_declarations(content_text_editor_state_fields);
@@ -813,7 +811,9 @@ void ContentTextEditor::publish_part_geometry(std::span<PartGeometry> geometry) 
         for (const Rect& box : highlight) united = Rect::united(united, box);
         record.selection = PartGeometry::from_bounds(united);
     }
-    record.focus = PartGeometry::from_bounds(bounds);
+    // The focus rectangle is the scrollable base's focus part (the anatomy
+    // names it once).
+    record.scrollable.focus = PartGeometry::from_bounds(bounds);
     write_parts(anatomy(), scrollable_detail::part_fields, record.scrollable, geometry);
     write_parts(anatomy(), content_text_editor_extra_part_fields, record, geometry);
 }

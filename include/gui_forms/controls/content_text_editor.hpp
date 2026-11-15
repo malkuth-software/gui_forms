@@ -157,14 +157,14 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
 
     // Stage T1 anatomy, as dot members: the panel's scrollable parts, then
-    // `content` (the consumer's frame), `caret` (the bar while it shows),
-    // `selection` (the union of the highlight's boxes) and `focus`.
+    // `content` (the consumer's frame), `caret` (the bar while it shows) and
+    // `selection` (the union of the highlight's boxes); the focus rectangle is
+    // the scrollable base's `focus` part.
     struct GUI_FORMS_API Parts final {
         ScrollableControl::Parts scrollable;
         PartGeometry content;
         PartGeometry caret;
         PartGeometry selection;
-        PartGeometry focus;
     };
     struct GUI_FORMS_API States final {
         bool normal{};

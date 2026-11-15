@@ -49,7 +49,7 @@ Related types
    * - :cpp:class:`ContentSurface::States <gui_forms::ContentSurface::States>`
      -  
    * - :cpp:class:`ContentTextEditor::Parts <gui_forms::ContentTextEditor::Parts>`
-     - Stage T1 anatomy, as dot members: the panel's scrollable parts, then ``content`` (the consumer's frame), ``caret`` (the bar while it shows), ``selection`` (the union of the highlight's boxes) and ``focus``.
+     - Stage T1 anatomy, as dot members: the panel's scrollable parts, then ``content`` (the consumer's frame), ``caret`` (the bar while it shows) and ``selection`` (the union of the highlight's boxes); the focus rectangle is the scrollable base's ``focus`` part.
    * - :cpp:class:`ContentTextEditor::States <gui_forms::ContentTextEditor::States>`
      -  
    * - :cpp:class:`ContentUserEdit <gui_forms::ContentUserEdit>`
@@ -247,7 +247,7 @@ Related types
 
    ``#include <gui_forms/controls/content_text_editor.hpp>``
 
-   Stage T1 anatomy, as dot members: the panel's scrollable parts, then ``content`` (the consumer's frame), ``caret`` (the bar while it shows), ``selection`` (the union of the highlight's boxes) and ``focus``.
+   Stage T1 anatomy, as dot members: the panel's scrollable parts, then ``content`` (the consumer's frame), ``caret`` (the bar while it shows) and ``selection`` (the union of the highlight's boxes); the focus rectangle is the scrollable base's ``focus`` part.
 
    .. cpp:member:: ScrollableControl::Parts scrollable
 
@@ -256,8 +256,6 @@ Related types
    .. cpp:member:: PartGeometry caret
 
    .. cpp:member:: PartGeometry selection
-
-   .. cpp:member:: PartGeometry focus
 
 .. cpp:namespace:: gui_forms
 
