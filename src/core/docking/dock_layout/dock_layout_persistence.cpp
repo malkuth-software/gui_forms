@@ -13,6 +13,7 @@
 #include <ios>
 #include <locale>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -524,7 +525,7 @@ private:
             if (id != nullptr && !(*id).value.empty()) {
                 const DockPanelId panel((*id).value);
                 if (!seen(panel)) {
-                    seen_panels_.push_back(panel);
+                    seen_panels_.insert(panel);
                     orphans_.push_back(panel);
                     report(DockRestoreDiagnosticKind::panel_moved_to_placeholder, panel.value);
                 }
@@ -534,7 +535,7 @@ private:
     }
 
     [[nodiscard]] bool seen(const DockPanelId& panel) const {
-        const bool found = std::find(seen_panels_.begin(), seen_panels_.end(), panel) != seen_panels_.end();
+        const bool found = seen_panels_.contains(panel);
         return found;
     }
 
@@ -545,9 +546,9 @@ private:
         if (!value.has_value() || *value == 0U || *value >= dock_identity_limit) {
             return invalid(element.name, "id", (*attribute).value);
         }
-        const bool repeated = std::find(used_ids_.begin(), used_ids_.end(), *value) != used_ids_.end();
+        const bool repeated = used_ids_.contains(*value);
         if (repeated) return invalid(element.name, "id (repeated)", (*attribute).value);
-        used_ids_.push_back(*value);
+        used_ids_.insert(*value);
         largest_id_ = std::max(largest_id_, *value);
         id = *value;
         return true;
@@ -721,7 +722,7 @@ private:
             check_attributes(child, {"id"}, panel_owner);
             // A <panel> has no known children: any it has are kept whole.
             for (const XmlElement& nested : child.children) unknown_element("panel", nested, panel_owner, 0U);
-            seen_panels_.push_back(panel);
+            seen_panels_.insert(panel);
             stack.panels.push_back(panel);
         }
         if (stack.panels.empty()) return true;
@@ -954,9 +955,12 @@ private:
     const XmlElement& root_;
     std::vector<DockRestoreDiagnostic>& diagnostics_;
     DockLayoutState state_{};
-    std::vector<std::uint32_t> used_ids_{};
+    // The IDs and panels read so far, as ordered sets: a layout of tens of
+    // thousands of panels searched lists once per element, quadratic
+    // (A-gf-core-04-F1). Only membership is asked.
+    std::set<std::uint32_t> used_ids_{};
     std::uint32_t largest_id_{0};
-    std::vector<DockPanelId> seen_panels_{};
+    std::set<DockPanelId> seen_panels_{};
     std::vector<DockPanelId> orphans_{};
     std::vector<DockPanelRecord> pending_records_{};
 };

@@ -283,6 +283,38 @@ void test_round_trip() {
     require(second.text == first.text, "save and restore round trip is byte-stable");
 }
 
+// A-gf-core-04-F1: the restore's membership checks (seen panels, used IDs)
+// keep their results: a panel placed twice is reported and dropped, a
+// repeated node ID refuses the layout.
+void test_restore_duplicates() {
+    std::string twice = standard_xml;
+    const std::string output_panel = "        <panel id=\"tools.output\"/>\n";
+    const std::size_t at = twice.find(output_panel);
+    require(at != std::string::npos, "the fixture places tools.output");
+    twice.insert(at + output_panel.size(), output_panel);
+    DockLayout duplicated{};
+    register_standard(duplicated);
+    const DockRestoreResult placed = duplicated.restore_xml(twice, DockRestoreOptions{});
+    bool reported = false;
+    for (const DockRestoreDiagnostic& diagnostic : placed.diagnostics) {
+        if (diagnostic.kind == DockRestoreDiagnosticKind::duplicate_panel) reported = true;
+    }
+    require(placed.status == DockRestoreStatus::restored && reported,
+            "a panel placed twice restores once, with a duplicate_panel diagnostic");
+    const DockNode& output_stack = *duplicated.find_node(stack_of(duplicated, "tools.output"));
+    require(output_stack.panels.size() == 1U, "the duplicate placement is dropped");
+
+    std::string repeated = standard_xml;
+    const std::string stack_four = "<tool_stack id=\"4\"";
+    const std::size_t four = repeated.find(stack_four);
+    require(four != std::string::npos, "the fixture has stack 4");
+    repeated.replace(four, stack_four.size(), "<tool_stack id=\"2\"");
+    DockLayout refused{};
+    register_standard(refused);
+    const DockRestoreResult result = refused.restore_xml(repeated, DockRestoreOptions{});
+    require(result.status == DockRestoreStatus::kept_current, "a repeated node ID refuses the layout");
+}
+
 void test_hide_and_show_memory() {
     DockLayout layout{};
     register_standard(layout);
@@ -1680,6 +1712,7 @@ int main() {
     test_default_layout();
     test_standard_layout_and_format();
     test_round_trip();
+    test_restore_duplicates();
     test_hide_and_show_memory();
     test_primitive_edits();
     test_restrictions();
