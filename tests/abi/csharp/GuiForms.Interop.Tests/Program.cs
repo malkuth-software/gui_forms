@@ -898,6 +898,68 @@ internal static unsafe class Program
         expect(count == 1u && selected[0] == 0u, "the first item is selected from C#");
     }
 
+    // A fixed-size array field (gf_abi.h, "Event fields", since 1.5) as the
+    // library lends one, a plot's camera target: COLLECTION, three NUMBER
+    // records in place. EventFields reads it by name; a wrong count, a wrong
+    // element kind and an ordinary collection (no elements in place) are
+    // refused with the output untouched.
+    private static void event_field_arrays()
+    {
+        gf_value* elements = stackalloc gf_value[3];
+        for (int index = 0; index < 3; ++index)
+        {
+            elements[index] = default;
+            elements[index].struct_size = (uint)sizeof(gf_value);
+            elements[index].kind = Constants.GF_VALUE_KIND_NUMBER;
+            elements[index].number = 0.25 * (index + 1);
+        }
+        gf_value target = default;
+        target.struct_size = (uint)sizeof(gf_value);
+        target.kind = Constants.GF_VALUE_KIND_COLLECTION;
+        target.unsigned_integer = 3u;
+        target.elements = elements;
+        target.element_count = 3u;
+        gf_value ordinary = default;
+        ordinary.struct_size = (uint)sizeof(gf_value);
+        ordinary.kind = Constants.GF_VALUE_KIND_COLLECTION;
+        ordinary.unsigned_integer = 2u;
+        gf_event_field* fields = stackalloc gf_event_field[2];
+        fixed (byte* target_name = "target"u8)
+        fixed (byte* previous_name = "previous"u8)
+        {
+            fields[0] = default;
+            fields[0].name = Utf8.view(target_name, 6);
+            fields[0].kind = Constants.GF_VALUE_KIND_COLLECTION;
+            fields[0].value = &target;
+            fields[1] = default;
+            fields[1].name = Utf8.view(previous_name, 8);
+            fields[1].kind = Constants.GF_VALUE_KIND_COLLECTION;
+            fields[1].value = &ordinary;
+            gf_event native = default;
+            native.struct_size = (uint)sizeof(gf_event);
+            native.field_count = 2u;
+            native.fields = fields;
+
+            gf_event_field* found = EventFields.named(&native, "target"u8);
+            expect(found == &fields[0], "a field is found by its name");
+            expect(EventFields.named(&native, "targe"u8) == null, "a prefix of a name is not the field");
+            expect(EventFields.fixed_count(found) == 3, "a fixed-size array field lends its count in place");
+            Span<double> read = stackalloc double[3];
+            expect(EventFields.read_numbers(found, read) && read[0] == 0.25 && read[1] == 0.5 && read[2] == 0.75,
+                   "a fixed-size array's numbers are read in order");
+            Span<double> short_read = stackalloc double[2] { -1.0, -1.0 };
+            expect(!EventFields.read_numbers(found, short_read) && short_read[0] == -1.0,
+                   "a fixed-size array is read only with its own count");
+            gf_event_field* previous = EventFields.named(&native, "previous"u8);
+            expect(EventFields.fixed_count(previous) == -1,
+                   "an ordinary collection lends no elements in place (events.field_element reads them)");
+            elements[1].kind = Constants.GF_VALUE_KIND_SIGNED;
+            Span<double> untouched = stackalloc double[3] { -1.0, -1.0, -1.0 };
+            expect(!EventFields.read_numbers(found, untouched) && untouched[0] == -1.0,
+                   "an element of another kind refuses the read and leaves the output untouched");
+        }
+    }
+
     private static int Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
@@ -919,6 +981,7 @@ internal static unsafe class Program
         font_families();
         content();
         list_view_items();
+        event_field_arrays();
         expect(unhandled_raised == 0, "no failure in these checks ran under an event loop");
         Console.WriteLine(failures == 0 ? "gui_forms_abi_csharp: all checks passed" :
                                           $"gui_forms_abi_csharp: {failures} checks failed");

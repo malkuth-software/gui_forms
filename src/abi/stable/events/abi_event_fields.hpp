@@ -6,8 +6,10 @@
 // A forwarder builds an EventFields from the C++ event's arguments with the
 // append_field overloads: a scalar becomes one field, a struct its members
 // (nested members dotted, generated in abi_event_catalog.hpp), a collection
-// one COLLECTION field whose elements are read on demand, an object one
-// OBJECT field holding an identity lent for the callback. One argument is
+// one COLLECTION field whose elements are read on demand, a fixed-size
+// array (std::array) one COLLECTION field whose elements are also lent in
+// place (lend_elements), an object one OBJECT field holding an identity lent
+// for the callback. One argument is
 // named "value" when it is a scalar and adds no prefix when it is a struct;
 // several are "value_1", "value_2", ... A reference to a component (the
 // sender, which the event names already) adds nothing.
@@ -67,11 +69,6 @@ class Theme;
 class ThemeCompileResult;
 } // namespace gui_forms
 
-namespace gui_forms::plots {
-struct Plot3DCamera;
-struct Plot3DHit;
-} // namespace gui_forms::plots
-
 namespace gui_forms::abi1 {
 
 // One choice of an enumeration a payload reaches, and the generated table
@@ -128,6 +125,13 @@ public:
     [[nodiscard]] std::string_view lend_text(std::string_view text);
     // Records a collection's elements for the field just appended.
     void set_collection(const void* items, std::size_t count, EventElementReader reader) noexcept;
+    // Makes the field just appended (a COLLECTION) a fixed-size array of
+    // count elements of kind, each admitted by accepts when written, and
+    // returns its count element records to fill: contiguous, zeroed with
+    // struct_size and kind set, in place until release(). The field's
+    // value lists them in elements and element_count (and its count in
+    // unsigned_integer); events.field_element reads the same records.
+    [[nodiscard]] gf_value* lend_elements(std::size_t count, gf_value_kind kind, EventFieldAccepts accepts);
     // Lends object an identity for the frame: a control owned by a shared
     // pointer, or a component the registry already knows. Zero otherwise.
     [[nodiscard]] gf_object lend(const Component* object);
@@ -174,7 +178,21 @@ private:
         std::size_t count = 0U;
         EventElementReader reader = nullptr;
         bool written = false;
+        // A fixed-size array (lend_elements): its element records are
+        // element_runs_[run], count of element_kind.
+        bool fixed_count = false;
+        std::size_t run = 0U;
+        gf_value_kind element_kind = GF_VALUE_KIND_NULL;
+        EventFieldAccepts element_accepts = nullptr;
     };
+
+    // A write of a fixed-size array: value lists exactly target.count
+    // elements of target's element kind, each admitted. Reads only.
+    [[nodiscard]] gf_status check_written_elements(const Field& target, const gf_value& value,
+                                                   SlotIdentity slot) const;
+    // Copies the checked elements of value into target's records and points
+    // value at them.
+    void take_written_elements(const Field& target, gf_value& value) noexcept;
 
     // Writes the full name of name below the current prefix into out (an
     // empty name in no struct is "value", in a struct the struct's name).
@@ -195,6 +213,12 @@ private:
     std::deque<gf_value> values_;
     std::deque<LentTextBlock> texts_;
     std::size_t texts_used_ = 0U;
+    // The element records of this emission's fixed-size arrays, one
+    // contiguous run per array field: element_runs_[0, element_runs_used_)
+    // are in use, the rest spare. A run keeps its capacity, so an array of
+    // the same count builds without allocating.
+    std::deque<std::vector<gf_value>> element_runs_;
+    std::size_t element_runs_used_ = 0U;
     std::vector<Field> fields_;
     std::vector<gf_event_field> records_;
     std::vector<gf_object> lent_;
@@ -289,11 +313,6 @@ void append_field(EventFields& fields, std::string_view name, const Theme& value
 // theme_sheet_compiled is a notification; the catalog lists it as deferred):
 // nothing.
 void append_field(EventFields& fields, std::string_view name, const ThemeCompileResult& value);
-// A 3D plot's camera and hit (no field form yet: their std::array members;
-// camera_changed, hovered and picked are notifications; the catalog lists
-// them as deferred): nothing.
-void append_field(EventFields& fields, std::string_view name, const plots::Plot3DCamera& value);
-void append_field(EventFields& fields, std::string_view name, const plots::Plot3DHit& value);
 
 template <typename Number>
     requires(std::is_arithmetic_v<Number> && !std::is_same_v<Number, bool>)
@@ -359,6 +378,122 @@ void append_field(EventFields& fields, std::string_view name, const Object& valu
 
 template <typename Element>
 bool read_element(EventFields& fields, const void* items, std::size_t index, gf_value& out);
+
+// -- fixed-size arrays (gf_abi.h, "Event fields") ----------------------------
+// A std::array<Element, Count> is one COLLECTION field of Count elements
+// lent in place. Element is a single value with no text to keep: bool, an
+// integer, a floating-point number, an enumeration, Point, Size, Rect,
+// Insets or Color (the catalog defers an array of anything else).
+
+void fill_value(gf_value& record, Point value) noexcept;
+void fill_value(gf_value& record, Size value) noexcept;
+void fill_value(gf_value& record, const Rect& value) noexcept;
+void fill_value(gf_value& record, const Insets& value) noexcept;
+void fill_value(gf_value& record, Color value) noexcept;
+void take_value(const gf_value& record, Point& value) noexcept;
+void take_value(const gf_value& record, Size& value) noexcept;
+void take_value(const gf_value& record, Rect& value) noexcept;
+void take_value(const gf_value& record, Insets& value) noexcept;
+void take_value(const gf_value& record, Color& value) noexcept;
+
+// The kind of a fixed-size array's element.
+template <typename Element>
+constexpr gf_value_kind fixed_element_kind() noexcept {
+    if constexpr (std::is_same_v<Element, bool>) {
+        return GF_VALUE_KIND_BOOLEAN;
+    } else if constexpr (std::is_enum_v<Element>) {
+        return GF_VALUE_KIND_ENUMERATION;
+    } else if constexpr (std::is_floating_point_v<Element>) {
+        return GF_VALUE_KIND_NUMBER;
+    } else if constexpr (std::is_integral_v<Element> && std::is_signed_v<Element>) {
+        return GF_VALUE_KIND_SIGNED;
+    } else if constexpr (std::is_integral_v<Element>) {
+        return GF_VALUE_KIND_UNSIGNED;
+    } else if constexpr (std::is_same_v<Element, Point>) {
+        return GF_VALUE_KIND_POINT;
+    } else if constexpr (std::is_same_v<Element, Size>) {
+        return GF_VALUE_KIND_SIZE;
+    } else if constexpr (std::is_same_v<Element, Rect>) {
+        return GF_VALUE_KIND_RECTANGLE;
+    } else if constexpr (std::is_same_v<Element, Insets>) {
+        return GF_VALUE_KIND_INSETS;
+    } else {
+        static_assert(std::is_same_v<Element, Color>, "a fixed-size array's element is a single value");
+        return GF_VALUE_KIND_COLOR;
+    }
+}
+
+// Whether a written element is admitted (range of an integer, a known
+// choice of an enumeration).
+template <typename Element>
+constexpr EventFieldAccepts fixed_element_accepts() noexcept {
+    if constexpr (std::is_enum_v<Element>) {
+        return &accepts_enumeration<Element>;
+    } else if constexpr (std::is_integral_v<Element> && !std::is_same_v<Element, bool>) {
+        return &accepts_integer<Element>;
+    } else {
+        return &accepts_any;
+    }
+}
+
+// Fills one element record (its kind already set) from value; an
+// enumeration's choice name is lent for the callback.
+template <typename Element>
+void fill_element(EventFields& fields, gf_value& record, const Element& value) {
+    if constexpr (std::is_same_v<Element, bool>) {
+        record.boolean = value ? 1U : 0U;
+    } else if constexpr (std::is_enum_v<Element>) {
+        const std::int64_t number = static_cast<std::int64_t>(value);
+        record.signed_integer = number;
+        const std::string_view name_text = enumeration_name(fields, EnumerationChoices<Element>::choices,
+                                                            EnumerationChoices<Element>::flags, number);
+        const std::string_view text = fields.lend_text(name_text);
+        record.text.data = text.data();
+        record.text.size = text.size();
+    } else if constexpr (std::is_floating_point_v<Element>) {
+        record.number = static_cast<double>(value);
+    } else if constexpr (std::is_integral_v<Element> && std::is_signed_v<Element>) {
+        record.signed_integer = static_cast<std::int64_t>(value);
+    } else if constexpr (std::is_integral_v<Element>) {
+        record.unsigned_integer = static_cast<std::uint64_t>(value);
+    } else {
+        fill_value(record, value);
+    }
+}
+
+// Reads one written element record (of the element's kind, admitted) into
+// value.
+template <typename Element>
+void take_element(const gf_value& record, Element& value) noexcept {
+    if constexpr (std::is_same_v<Element, bool>) {
+        value = record.boolean == 1U;
+    } else if constexpr (std::is_enum_v<Element>) {
+        value = static_cast<Element>(record.signed_integer);
+    } else if constexpr (std::is_floating_point_v<Element>) {
+        value = static_cast<Element>(record.number);
+    } else if constexpr (std::is_integral_v<Element> && std::is_signed_v<Element>) {
+        value = static_cast<Element>(record.signed_integer);
+    } else if constexpr (std::is_integral_v<Element>) {
+        value = static_cast<Element>(record.unsigned_integer);
+    } else {
+        take_value(record, value);
+    }
+}
+
+// The field: COLLECTION, count Count in unsigned_integer and element_count,
+// the Count element records in elements. Writable when the argument is.
+template <typename Element, std::size_t Count>
+void append_field(EventFields& fields, std::string_view name, const std::array<Element, Count>& value) {
+    constexpr gf_value_kind element_kind = fixed_element_kind<Element>();
+    constexpr EventFieldAccepts element_accepts = fixed_element_accepts<Element>();
+    // The field's value is filled by lend_elements.
+    fields.append(name, GF_VALUE_KIND_COLLECTION, GF_EVENT_FIELD_WRITABLE, nullptr);
+    gf_value* elements = fields.lend_elements(Count, element_kind, element_accepts);
+    std::size_t index = 0U;
+    for (index = 0U; index < Count; ++index) {
+        fill_element(fields, elements[index], value[index]);
+    }
+}
 
 template <typename Element>
 void append_collection(EventFields& fields, std::string_view name, std::span<const Element> value) {
@@ -485,6 +620,23 @@ void read_field(EventFields& fields, std::string_view name, std::span<const Elem
     static_cast<void>(value);
 }
 
+// A written fixed-size array: every element, as the write left them (a
+// write replaces the whole array; see EventFields::write).
+template <typename Element, std::size_t Count>
+void read_field(EventFields& fields, std::string_view name, std::array<Element, Count>& value) {
+    gf_value written{};
+    if (!fields.written(name, written)) {
+        return;
+    }
+    if (written.kind != GF_VALUE_KIND_COLLECTION || written.element_count != Count) {
+        return;
+    }
+    std::size_t index = 0U;
+    for (index = 0U; index < Count; ++index) {
+        take_element(written.elements[index], value[index]);
+    }
+}
+
 #if GUI_FORMS_CHECKED_BORROWS
 template <typename Element>
 void read_field(EventFields& fields, std::string_view name, BasicBorrowedSpan<const Element>& value) {
@@ -524,6 +676,9 @@ bool read_element(EventFields& fields, const void* items, std::size_t index, gf_
         return false;
     }
     out = single;
+    // A nested collection's lent elements end with scratch: not lent here.
+    out.elements = nullptr;
+    out.element_count = 0U;
     if (!text.empty()) {
         const std::string_view kept = fields.keep_text(text);
         out.text.data = kept.data();

@@ -148,6 +148,7 @@
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 #include "gui_forms/pages/types/page_set_types.hpp"
+#include "gui_forms/plots/plot3d_scene/plot3d_scene.hpp"
 #include "gui_forms/scene/scene_view/scene_view.hpp"
 #include "gui_forms/scene/world_geometry/world_geometry.hpp"
 #include "gui_forms/surface_material/finish_fill/finish_fill.hpp"
@@ -1177,6 +1178,27 @@ struct EnumerationChoices<WindowBackdropReason> {
     }};
 };
 
+template <>
+struct EnumerationChoices<plots::Plot3DHitKind> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 5> choices{{
+        {"none", static_cast<std::int64_t>(plots::Plot3DHitKind::none)},
+        {"surface", static_cast<std::int64_t>(plots::Plot3DHitKind::surface)},
+        {"line", static_cast<std::int64_t>(plots::Plot3DHitKind::line)},
+        {"scatter", static_cast<std::int64_t>(plots::Plot3DHitKind::scatter)},
+        {"pane", static_cast<std::int64_t>(plots::Plot3DHitKind::pane)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<plots::Plot3DProjection> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"perspective", static_cast<std::int64_t>(plots::Plot3DProjection::perspective)},
+        {"orthographic", static_cast<std::int64_t>(plots::Plot3DProjection::orthographic)},
+    }};
+};
+
 // Field writers and readers, declared first so they may call each other.
 void append_field(EventFields& fields, std::string_view name, const BackgroundWorkerCompleted& value);
 void append_field(EventFields& fields, std::string_view name, const BackgroundWorkerProgress& value);
@@ -1416,6 +1438,9 @@ void append_field(EventFields& fields, std::string_view name, const WindowBackdr
 void append_field(EventFields& fields, std::string_view name, const WizardPageChangingEvent& value);
 void read_field(EventFields& fields, std::string_view name, WizardPageChangingEvent& value);
 void append_field(EventFields& fields, std::string_view name, const WorldPoint& value);
+void append_field(EventFields& fields, std::string_view name, const plots::Plot3DCamera& value);
+void append_field(EventFields& fields, std::string_view name, const plots::Plot3DHit& value);
+void append_field(EventFields& fields, std::string_view name, const plots::Plot3DItemId& value);
 
 inline void append_field(EventFields& fields, std::string_view name, const BackgroundWorkerCompleted& value) {
     const EventFieldPrefix prefix = fields.enter(name);
@@ -3502,6 +3527,34 @@ inline void append_field(EventFields& fields, std::string_view name, const World
     append_field(fields, "x", value.x);
     append_field(fields, "y", value.y);
     fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const plots::Plot3DCamera& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "elevation", value.elevation);
+    append_field(fields, "azimuth", value.azimuth);
+    append_field(fields, "roll", value.roll);
+    append_field(fields, "zoom", value.zoom);
+    append_field(fields, "target", value.target);
+    append_field(fields, "projection", value.projection);
+    append_field(fields, "focal_length", value.focal_length);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const plots::Plot3DHit& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "kind", value.kind);
+    append_field(fields, "item", value.item);
+    append_field(fields, "index", value.index);
+    append_field(fields, "data_point", value.data_point);
+    append_field(fields, "surface_parameter", value.surface_parameter);
+    append_field(fields, "depth", value.depth);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const plots::Plot3DItemId& value) {
+    // An identity: the field is its one value.
+    append_field(fields, name, value.value);
 }
 
 // One connector per (declaring type, interaction).
@@ -7294,15 +7347,12 @@ inline constexpr std::array<EventConnector, 374> event_connectors{{
 }};
 
 // Payload members no field carries yet, with the family that takes them.
-inline constexpr std::array<std::string_view, 10> deferred_event_members{{
+inline constexpr std::array<std::string_view, 7> deferred_event_members{{
     "BackgroundWorkerCompleted.error (std::exception_ptr): no portable form; the error message is a field",
     "Control.theme_sheet_compiled (ThemeCompileResult): no field form yet; theme_sheet_compiled is a notification (fold D, I7)",
     "DockSite.drag_ended (DockDragOutcome): docking family (C5d)",
     "ItemContentPaint.painter (Painter&): owner-draw surfaces (C5d)",
     "ItemContentPaint.states (AnatomyStateSet): owner-draw surfaces (C5d)",
-    "Plot3DView.camera_changed (plots::Plot3DCamera): no field form yet (std::array members); camera_changed is a notification (cp33)",
-    "Plot3DView.hovered (plots::Plot3DHit): no field form yet (std::array members); hovered and picked are notifications (cp33)",
-    "Plot3DView.picked (plots::Plot3DHit): no field form yet (std::array members); hovered and picked are notifications (cp33)",
     "SurfaceMaterial.colour_filter (MaterialColourFilter): surface material values (C5c)",
     "Window.theme_changed (Theme): no field form; theme_changed is a notification",
 }};

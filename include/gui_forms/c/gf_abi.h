@@ -73,8 +73,8 @@ extern "C" {
  * content boundary (GF_TABLE_CONTENT, GF_HOST_CAPABILITY_HOSTED_CONTENT),
  * additions only; 1.5 adds the window outer band and shaping, the
  * window's pointer location, the list view table (GF_TABLE_LIST_VIEW), the
- * failure detail (gf_failure_detail, diagnostics.failure_detail) and the
- * gate frame kind, additions only. */
+ * failure detail (gf_failure_detail, diagnostics.failure_detail), the
+ * gate frame kind and fixed-size array event fields, additions only. */
 #define GF_ABI_MAJOR 1u
 #define GF_ABI_MINOR 5u
 
@@ -439,7 +439,9 @@ typedef struct gf_font {
  * IMAGE is the image's id in unsigned_integer (themes.load_image; zero is
  * no image). A COLLECTION the library reports holds its element count in
  * unsigned_integer, and each element is read on its own
- * (properties.element_at, events.field_element); a COLLECTION the caller
+ * (properties.element_at, events.field_element); an event field of a
+ * fixed-size array also lends its elements in place (Event fields below);
+ * a COLLECTION the caller
  * passes lists its elements in elements and element_count, each a gf_value
  * of the collection's item kind (not itself a COLLECTION), read during the
  * call only, stepped by the first element's struct_size (the array rule
@@ -496,6 +498,18 @@ typedef uint32_t gf_event_field_flags;
  *   keeps the object retains it;
  * - a collection is COLLECTION, its element count in unsigned_integer; its
  *   elements are read with events.field_element;
+ * - a fixed-size array (since 1.5; a C++ std::array<T, N>, which the schema
+ *   spells as its element kind and count, "target: number[3]") is
+ *   COLLECTION with N in unsigned_integer and in element_count, and
+ *   elements pointing at N contiguous gf_value records (stride
+ *   sizeof(gf_value); null when N is zero), each of the element kind:
+ *   BOOLEAN, SIGNED, UNSIGNED, NUMBER, ENUMERATION (its choice's name in
+ *   text), POINT, SIZE, RECTANGLE, INSETS or COLOR. The records are lent
+ *   for the invoke like the field's value, and events.field_element reads
+ *   the same ones. A writable one takes a COLLECTION of exactly N elements
+ *   of the element kind, each admitted as a field of that kind would be,
+ *   stepped by the first element's struct_size and read during the call
+ *   only; the array is replaced whole;
  * - a reference to the sender adds no field; a member no field carries yet
  *   is left out (the C ABI track lists them).
  * kind is the field's declared kind; the value's own kind is NULL when an
@@ -808,7 +822,8 @@ typedef uint32_t gf_run_flags;
  * (Event fields above), each as "name: kind" with the schema's kind words,
  * separated by ", " ("value: boolean"; "value_1: unsigned_integer, value_2:
  * enumeration"; "cancel: boolean, row_id: text"), " optional" after an
- * OPTIONAL field's kind; empty for none (a notification, or a reference to
+ * OPTIONAL field's kind, and a fixed-size array's kind as its element kind
+ * and count ("target: number[3]", since 1.5); empty for none (a notification, or a reference to
  * the sender). Since 1.2 it is in this vocabulary; 1.1 spelled the C++
  * argument types. manifests/abi/interaction_fields.json maps the C++
  * spellings to it. mutable_payload is 1 when a handler may change an

@@ -172,7 +172,53 @@ static void enumeration_field(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(check), GF_STATUS_OK, "release the fields check box");
 }
 
+static int view_equals(gf_utf8_view view, const char* text) {
+    const size_t length = strlen(text);
+    return view.size == length && (length == 0u || memcmp(view.data, text, length) == 0);
+}
+
+/* The fixed-size array fields (since 1.5): a plot's camera_changed, hovered
+ * and picked publish their std::array members in the schema as the element
+ * kind and count, "target: number[3]", with the other members around them. */
+static void fixed_array_payloads(gf_kit* kit) {
+    static const char* const camera =
+        "elevation: number, azimuth: number, roll: number, zoom: number, target: number[3], "
+        "projection: enumeration, focal_length: number";
+    static const char* const hit = "kind: enumeration, item.value: unsigned_integer, index: unsigned_integer, "
+                                   "data_point: number[3], surface_parameter: number[2], depth: number";
+    uint64_t count = 0u;
+    gf_kit_status(kit, (*kit).schema.type_count(&count), GF_STATUS_OK, "type_count for array payloads");
+    uint64_t matched = 0u;
+    uint64_t type = 0u;
+    for (type = 0u; type < count; ++type) {
+        gf_schema_type record = type_record();
+        if ((*kit).schema.type_at(type, &record) != GF_STATUS_OK || !view_equals(record.id, "plot3d_view")) {
+            continue;
+        }
+        uint64_t index = 0u;
+        for (index = 0u; index < record.interaction_count; ++index) {
+            gf_schema_interaction interaction;
+            memset(&interaction, 0, sizeof(interaction));
+            interaction.struct_size = (uint32_t)sizeof(interaction);
+            if ((*kit).schema.interaction_at(type, index, &interaction) != GF_STATUS_OK) {
+                continue;
+            }
+            if (view_equals(interaction.name, "camera_changed")) {
+                gf_kit_check(kit, view_equals(interaction.payload, camera),
+                             "camera_changed publishes the camera's fields, its target a number[3]");
+                ++matched;
+            } else if (view_equals(interaction.name, "hovered") || view_equals(interaction.name, "picked")) {
+                gf_kit_check(kit, view_equals(interaction.payload, hit),
+                             "a plot's hit publishes its fields, its arrays number[3] and number[2]");
+                ++matched;
+            }
+        }
+    }
+    gf_kit_check(kit, matched == 3u, "the plot's three array payloads are in the schema");
+}
+
 void gf_kit_events(gf_kit* kit) {
     every_interaction(kit);
     enumeration_field(kit);
+    fixed_array_payloads(kit);
 }
