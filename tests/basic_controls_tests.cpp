@@ -925,6 +925,47 @@ void test_radio_group_scope_and_order() {
             "RadioButton must uncheck its group peer before checking/clicking itself");
 }
 
+// Adds controls to a parent when the button it watches loses the check, as
+// a handler that swaps a detail panel with the selection might.
+struct AddPanesWhenCleared final {
+    std::shared_ptr<GroupBox> parent;
+    std::size_t panes{};
+    void operator()(bool checked) const {
+        if (checked) return;
+        for (std::size_t index = 0; index < panes; ++index) {
+            Control::Ptr pane = make_control<Control>(StableId("radio.pane." + std::to_string(index)));
+            (*parent).add_child(std::move(pane));
+        }
+    }
+};
+
+// A checked_changed handler on the button losing the check that adds
+// controls to the same parent (A-gf-controls-01-F1): the group is cleared
+// over a copy of the children, so the walk never reads the list's moved
+// storage, and the clicked button is still checked.
+void test_radio_clear_survives_a_handler_editing_the_parent() {
+    std::shared_ptr<gui_forms::GroupBox> group = make_control<GroupBox>(StableId("radio.edit.group"), "Mode");
+    (*group).set_requested_bounds({0.0, 0.0, 360.0, 70.0});
+    std::shared_ptr<gui_forms::RadioButton> first = make_control<RadioButton>(StableId("radio.edit.first"), "First");
+    std::shared_ptr<gui_forms::RadioButton> second = make_control<RadioButton>(StableId("radio.edit.second"), "Second");
+    std::shared_ptr<gui_forms::RadioButton> third = make_control<RadioButton>(StableId("radio.edit.third"), "Third");
+    (*first).set_requested_bounds({10.0, 24.0, 100.0, 24.0});
+    (*second).set_requested_bounds({120.0, 24.0, 100.0, 24.0});
+    (*third).set_requested_bounds({230.0, 24.0, 100.0, 24.0});
+    (*group).add_child(first);
+    (*group).add_child(second);
+    (*group).add_child(third);
+    (*first).checked = true;
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(group, Size{360.0, 70.0});
+    Window& window = *held_window;
+    const SubscriptionToken first_changed = (*first).checked_changed().subscribe(AddPanesWhenCleared{group, 64U});
+    const std::size_t children_before = (*group).child_count();
+    click(window, second);
+    require(!(*first).checked.read() && (*second).checked.read() && !(*third).checked.read(),
+            "the clicked radio button is checked and its peer cleared");
+    require((*group).child_count() == children_before + 64U, "the handler's controls are in the parent");
+}
+
 // The colour LinkLabel's text takes when it paints.
 Color painted_link_color(LinkLabel& link) {
     RecordingPainter painter;
@@ -2171,6 +2212,7 @@ int main() {
         test_mnemonics_and_dialog_buttons_are_retained_commands();
         test_checkbox_state_and_click_order();
         test_radio_group_scope_and_order();
+        test_radio_clear_survives_a_handler_editing_the_parent();
         test_link_and_callback_disposal();
         test_link_families();
         test_wrong_thread_property_mutation_is_rejected();

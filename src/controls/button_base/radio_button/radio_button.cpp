@@ -33,14 +33,23 @@ void RadioButton::set_checked_without_exclusion(bool checked_value) {
 }
 
 void RadioButton::clear_checked_peer() {
+    // Held, and the siblings copied, before any peer's checked_changed
+    // runs: a handler may add or remove controls in the same parent (the
+    // child list's storage moves) or drop this button (A-gf-controls-01-F1).
+    const Control::Ptr retained = weak_from_this().lock();
     const Control::Ptr owner = parent();
     if (!owner) return;
-    for (const Control::Ptr& sibling : (*owner).children()) {
+    const std::size_t count = (*owner).child_count();
+    std::vector<Control::Ptr> siblings;
+    siblings.reserve(count);
+    for (std::size_t index = 0; index < count; ++index) siblings.push_back((*owner).child_at(index));
+    for (const Control::Ptr& sibling : siblings) {
         std::shared_ptr<gui_forms::RadioButton> peer = std::dynamic_pointer_cast<RadioButton>(sibling);
         if (peer && peer.get() != this && (*peer).group_name.read() == group_name.read() &&
             (*peer).checked_) {
             (*peer).set_checked_without_exclusion(false);
-            if (!is_alive()) {
+            // Stop when this button died or left the parent it cleared for.
+            if (!is_alive() || parent() != owner) {
                 return;
             }
         }
@@ -54,6 +63,9 @@ void RadioButton::write_view(const decltype(checked)&, bool incoming) {
     if (checked_ == incoming) {
         return;
     }
+    // Held across the peers' handlers, so is_alive() below reads a live
+    // object (A-gf-controls-01-F1).
+    const Control::Ptr retained = weak_from_this().lock();
     if (incoming) {
         clear_checked_peer();
         if (!is_alive()) {
