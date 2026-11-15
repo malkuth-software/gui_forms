@@ -1429,6 +1429,8 @@ private:
     [[nodiscard]] DataGridViewCellEvent cell_event(const CellKey& cell) const;
     // The cell or header at a local point, and the cell_mouse_* payload for
     // one at the pointer event's point.
+    // Where a pointer event lands (defined with the private records below).
+    struct MouseTarget;
     [[nodiscard]] MouseTarget mouse_target_at(Point local) const;
     [[nodiscard]] DataGridViewCellMouseEvent cell_mouse_event(const MouseTarget& target, const PointerEvent& event,
                                                               Point local) const;

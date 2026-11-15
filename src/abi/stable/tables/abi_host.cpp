@@ -237,7 +237,7 @@ gf_status GF_CALL host_platform_name(char* buffer, std::uint64_t capacity, std::
     }
 }
 
-constexpr std::array<CursorKind, 10> cursor_kinds{
+constexpr std::array<CursorKind, 11> cursor_kinds{
     CursorKind::arrow,
     CursorKind::text,
     CursorKind::hand,

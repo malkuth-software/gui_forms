@@ -168,7 +168,7 @@ Rect ColorValueEditor::swatch_bounds() const noexcept {
 bool ColorValueEditor::open_picker() {
     require_mutable();
     Window* const window = attached_window();
-    if (picker_open_ || window == nullptr || !enabled_to_use()) return false;
+    if (picker_open_ || window == nullptr || !effectively_enabled()) return false;
     const Control::Ptr self = shared_from_this();
     AnchoredOverlayPlacement placement;
     placement.horizontal_alignment = OverlayHorizontalAlignment::near;

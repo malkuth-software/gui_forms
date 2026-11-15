@@ -15,6 +15,14 @@ namespace gui_forms {
 
 namespace {
 
+// The picker in its own coordinates: its committed arranged size at the
+// origin (as Panel::local_bounds and ButtonBase::local_bounds give it).
+Rect picker_local_bounds(const Control& control) noexcept {
+    const Rect arranged = control.committed_arranged_bounds();
+    const Rect local{0.0, 0.0, arranged.width, arranged.height};
+    return local;
+}
+
 // The field thumb's side, and the track thumbs' height beyond the track.
 constexpr double field_thumb_extent = 10.0;
 constexpr double track_thumb_height = 6.0;
@@ -201,7 +209,7 @@ Size ColorPicker::measure(Size available) {
 }
 
 ColorPicker::Layout ColorPicker::layout_parts() const noexcept {
-    const Rect bounds = local_bounds();
+    const Rect bounds = picker_local_bounds(*this);
     const double tracks = alpha_enabled.read() ? 2.0 : 1.0;
     const double inner_width = std::max(0.0, bounds.width - inset * 2.0);
     const double inner_height = std::max(0.0, bounds.height - inset * 2.0);
@@ -280,7 +288,7 @@ void ColorPicker::pick(ColorPickerPart part, Point local) {
 }
 
 void ColorPicker::on_mouse_down(MouseEventArgs& arguments) {
-    if (arguments.button == PointerButton::primary && enabled_to_use()) {
+    if (arguments.button == PointerButton::primary && effectively_enabled()) {
         const ColorPickerPart part = part_at(layout_parts(), arguments.location);
         if (part != ColorPickerPart::none) {
             dragged_ = part;
@@ -314,7 +322,7 @@ void ColorPicker::on_mouse_up(MouseEventArgs& arguments) {
 
 void ColorPicker::on_key_down(KeyEventArgs& arguments) {
     Control::on_key_down(arguments);
-    if (arguments.handled || !enabled_to_use()) return;
+    if (arguments.handled || !effectively_enabled()) return;
     const bool shift = has_modifier(arguments.modifiers, Modifier::shift);
     const double step = shift ? coarse_step : fine_step;
     ColorPickerHsv next = hsv_;
@@ -458,7 +466,7 @@ AnatomyStateSet ColorPicker::anatomy_states() const {
 void ColorPicker::publish_part_geometry(std::span<PartGeometry> geometry) const {
     const Layout layout = layout_parts();
     Parts record;
-    record.region = PartGeometry::from_bounds(local_bounds());
+    record.region = PartGeometry::from_bounds(picker_local_bounds(*this));
     record.field = PartGeometry::from_bounds(layout.field);
     record.field_thumb = PartGeometry::from_bounds(field_thumb_bounds(layout));
     record.hue_track = PartGeometry::from_bounds(layout.hue_track);
