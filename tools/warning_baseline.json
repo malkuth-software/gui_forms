@@ -30,6 +30,7 @@
    "src/controls/instruments/seven_segment_display": 12,
    "src/controls/instruments/sparkline": 5,
    "src/controls/instruments/sweep_scope": 7,
+   "src/controls/interaction_cues": 1,
    "src/controls/label": 3,
    "src/controls/link_flow": 1,
    "src/controls/lookup_combo_box": 7,
@@ -125,5 +126,8 @@
    "tests": 105,
    "tools": 1
   }
+ },
+ "notes": {
+  "windows: effect #warning sites": "src/controls/interaction_cues, src/controls/link_flow, src/controls/instruments/sweep_scope, src/controls/range_control/progress_bar and src/plots/signal_program each count the #warning an effect source raises when it builds unverified: effect verification needs the LLVM headers (llvm/Config/llvm-config.h) that the Windows CI toolchain lacks. Each comes down once that toolchain ships them."
  }
 }
