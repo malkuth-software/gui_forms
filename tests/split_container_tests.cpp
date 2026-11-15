@@ -732,7 +732,15 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
     hover.position = {hit.x + hit.width * 0.5,
                       hit.y + hit.height * 0.5};
     hover.pointer_id = 41U;
+    // The grip starts its 90 ms transition at FrameClock::now() inside the
+    // dispatch. The clock is read on both sides, and the half-duration poll
+    // below is taken from their midpoint, so it lands inside the transition
+    // while the dispatch takes under 90 ms (a single read after the hover
+    // allowed under 45 ms; B-gf-tests-10-F3).
+    const FrameTime before_hover = FrameClock::now();
     static_cast<void>(window.dispatch_pointer(hover));
+    const FrameTime after_hover = FrameClock::now();
+    const FrameTime hover_started = before_hover + (after_hover - before_hover) / 2;
 
     const SplitSeamSnapshot started = (*split).splitter_seam_snapshot();
     require(started.state == SplitSeamState::hot &&
@@ -744,7 +752,7 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
 
     // The grip's paint-gated transition timer advances it: one tick, then a
     // paint before the next.
-    static_cast<void>(window.poll_frame_schedule(FrameClock::now() + 45ms));
+    static_cast<void>(window.poll_frame_schedule(hover_started + 45ms));
     const SplitSeamSnapshot middle = (*split).splitter_seam_snapshot();
     require(middle.transition_active &&
                 middle.transition_progress > 0.0 &&
