@@ -432,7 +432,7 @@ gf_status GF_CALL objects_parent(gf_object object, gf_object* parent) noexcept {
 }
 
 gf_status objects_create_with_body(gf_utf8_view type_name, gf_utf8_view stable_id,
-                                   const gf_create_arguments* arguments, gf_object* object) {
+                                   const gf_create_arguments* arguments, gf_object* object, bool* entered_ui) {
     if (object == nullptr) {
         return fail(GF_STATUS_INVALID_ARGUMENT, create_with_slot, "create_with needs an object output");
     }
@@ -460,6 +460,7 @@ gf_status objects_create_with_body(gf_utf8_view type_name, gf_utf8_view stable_i
     if (entered != GF_STATUS_OK) {
         return entered;
     }
+    *entered_ui = true;
     if ((*arguments).owner != 0U) {
         const gf_status found = registry().find_component((*arguments).owner, create_with_slot, request.owner);
         if (found != GF_STATUS_OK) {
@@ -480,7 +481,20 @@ gf_status objects_create_with_body(gf_utf8_view type_name, gf_utf8_view stable_i
 
 gf_status GF_CALL objects_create_with(gf_utf8_view type_name, gf_utf8_view stable_id,
                                       const gf_create_arguments* arguments, gf_object* object) noexcept {
-    return call_slot(create_with_slot, objects_create_with_body, type_name, stable_id, arguments, object);
+    bool entered_ui = false;
+    bool* const entered_flag = &entered_ui;
+    const gf_status status = call_slot(create_with_slot, objects_create_with_body, type_name, stable_id,
+                                       arguments, object, entered_flag);
+    if (status != GF_STATUS_OK && entered_ui) {
+        // As create (N10, A-gf-abi-03-F5): an exception after enter_ui bound
+        // the thread must not leave the library bound to it. The status
+        // paths have unbound already; a second call finds nothing to undo.
+        try {
+            registry().unbind_if_idle();
+        } catch (...) {
+        }
+    }
+    return status;
 }
 
 constexpr gf_objects_table table{
