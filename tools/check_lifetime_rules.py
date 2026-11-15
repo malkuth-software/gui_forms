@@ -9,8 +9,9 @@ fails clearly when the harness is not beside this checkout
 
 Run, it then applies GUI.Forms' own member-accessor rule
 (tools/check_member_views.py) and the C ABI's termination rule
-(tools/check_exit_statics.py, src/abi/ only) to the same paths, and fails
-when the harness's rules or either of those report a finding. Imported, the name resolves
+(tools/check_exit_statics.py) and the tests' stable-ID literal rule
+(tools/check_stable_id_literals.py, tests/ only) to the same paths, and fails
+when the harness's rules or any of those report a finding. Imported, the name resolves
 to the harness's module (forward_import), which is how the run below reads
 the harness's file selection and masking.
 """
@@ -20,6 +21,7 @@ if __name__ == '__main__':
     import sys
     from pathlib import Path
     import check_exit_statics
+    import check_stable_id_literals
     import check_member_views
     harness_status: int = 0
     try:
@@ -55,8 +57,15 @@ if __name__ == '__main__':
     exit_finding: check_exit_statics.Finding
     for exit_finding in exit_findings:
         print(f'{exit_finding.path}:{exit_finding.line}: {exit_finding.rule}: {exit_finding.detail}')
-    print(f'{len(selected)} files; {len(findings)} member-view findings; {len(exit_findings)} exit-static findings.')
-    if harness_status != 0 or findings or exit_findings:
+    id_findings: list[check_stable_id_literals.Finding] = []
+    for path in selected:
+        id_findings.extend(check_stable_id_literals.check_stable_id_literals(path, path.read_text(encoding='utf-8', errors='replace')))
+    id_finding: check_stable_id_literals.Finding
+    for id_finding in id_findings:
+        print(f'{id_finding.path}:{id_finding.line}: {id_finding.rule}: {id_finding.detail}')
+    print(f'{len(selected)} files; {len(findings)} member-view findings; {len(exit_findings)} exit-static findings; '
+          f'{len(id_findings)} stable-id findings.')
+    if harness_status != 0 or findings or exit_findings or id_findings:
         raise SystemExit(1)
     raise SystemExit(0)
 else:

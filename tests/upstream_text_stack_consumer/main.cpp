@@ -122,9 +122,9 @@ int render_through_gui_forms(const std::filesystem::path& font_directory) {
         return 1;
     }
     const std::shared_ptr<gui_forms::Panel> root =
-        gui_forms::make_control<gui_forms::Panel>(gui_forms::StableId("upstream_consumer"));
+        gui_forms::make_control<gui_forms::Panel>(gui_forms::StableId("upstream-consumer"));
     const std::shared_ptr<gui_forms::Label> label =
-        gui_forms::make_control<gui_forms::Label>(gui_forms::StableId("upstream_consumer.label"), sample_text);
+        gui_forms::make_control<gui_forms::Label>(gui_forms::StableId("upstream-consumer.label"), sample_text);
     (*label).set_requested_bounds({8.0, 8.0, 160.0, 32.0});
     (*root).add_child(label);
     int status = 0;

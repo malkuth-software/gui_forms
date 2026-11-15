@@ -3614,6 +3614,11 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_exit_statics_check_unit
             COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
                 -p test_check_exit_statics.py)
+        # Stable IDs written in tests use no '_' (tools/check_stable_id_literals.py):
+        # the C ABI's tests pass them as run-time strings the ABI refuses.
+        add_test(NAME gui_forms_stable_id_literals_check_unit
+            COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
+                -p test_check_stable_id_literals.py)
         # Every native entry (window procedure, COM method, ATK callback,
         # AppKit selector) runs through the fail-fast boundary, or is listed
         # in tools/native_boundary_baseline.txt, which may only shrink.
