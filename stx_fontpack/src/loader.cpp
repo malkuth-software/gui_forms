@@ -372,6 +372,11 @@ bool coords_classes(const Loader& loader, std::uint32_t start, std::uint32_t len
     const std::uint32_t flag_count = loader.decoders[kStreamGlyphFlags].size;
     std::uint32_t flag_at = loader.fonts[low].starts[kStreamGlyphFlags];
     std::uint32_t position = loader.fonts[low].starts[kStreamGlyphCoords];
+    if (position > start) {
+        // Every class of the range must be written; pack_load_group already
+        // refuses a first font that does not start at 0, which is the only way here.
+        return false;
+    }
     const std::uint32_t end = start + length;
     while (position < end) {
         if (flag_at >= flag_count) {
@@ -1688,7 +1693,12 @@ bool pack_load_group(const PackIndex& index, std::uint32_t group_index, const Al
         font.out = nullptr;
         for (std::uint32_t s = 0; s < kStreamCount; s += 1) {
             const std::uint64_t start = get_varint(reader);
-            if (reader.failed || start > 0x7FFFFFFFu || (f != 0 && start < loader.fonts[f - 1].starts[s])) {
+            // Font 0 starts every stream at 0 (the packer writes 0): class
+            // derivation walks from the nearest font start at or before a
+            // chunk, so a first font starting later would leave the classes
+            // before it unwritten (A-gf-typography-01-F2).
+            const bool misplaced = f == 0 ? start != 0 : start < loader.fonts[f - 1].starts[s];
+            if (reader.failed || start > 0x7FFFFFFFu || misplaced) {
                 ok = false;
             }
             font.starts[s] = static_cast<std::uint32_t>(start);

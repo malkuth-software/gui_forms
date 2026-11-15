@@ -472,6 +472,61 @@ void claims_case(const ClaimsCase& claim, const Bytes& damaged, std::size_t genu
     check(pass, "a wrong claim is refused before it allocates");
 }
 
+// A-gf-typography-01-F2: the first font of a group starts every stream at 0.
+// Each start of font 0 that can be raised to 1 without breaking the order of
+// starts (font 1 starts that stream at 1 or later, or font 0 is alone and the
+// stream is not empty) is raised in place, one stream at a time; the load is
+// refused as a bad claim before anything decodes.
+void test_first_font_starts(const Bytes& pack, const stx_fontpack::PackIndex& index) {
+    std::uint32_t cases = 0;
+    for (std::uint32_t g = 0; g < index.group_count; g += 1) {
+        const stx_fontpack::PackGroup& group = index.groups[g];
+        stx_fontpack::Reader body = stx_fontpack::reader_make(group.body, group.body_size);
+        std::size_t start_at[stx_fontpack::kStreamCount];
+        std::uint64_t first_starts[stx_fontpack::kStreamCount];
+        std::uint64_t second_starts[stx_fontpack::kStreamCount];
+        for (std::uint32_t s = 0; s < stx_fontpack::kStreamCount; s += 1) {
+            start_at[s] = static_cast<std::size_t>(body.cursor - pack.data());
+            first_starts[s] = stx_fontpack::get_varint(body);
+        }
+        for (std::uint32_t s = 0; s < stx_fontpack::kStreamCount; s += 1) {
+            second_starts[s] = group.font_count > 1 ? stx_fontpack::get_varint(body) : 0;
+        }
+        for (std::uint32_t f = 2; f < group.font_count; f += 1) {
+            for (std::uint32_t s = 0; s < stx_fontpack::kStreamCount; s += 1) {
+                static_cast<void>(stx_fontpack::get_varint(body));
+            }
+        }
+        std::size_t blob_sizes[stx_fontpack::kStreamCount];
+        for (std::uint32_t s = 0; s < stx_fontpack::kStreamCount; s += 1) {
+            blob_sizes[s] = static_cast<std::size_t>(stx_fontpack::get_varint(body));
+        }
+        std::uint64_t declared[stx_fontpack::kStreamCount];
+        for (std::uint32_t s = 0; s < stx_fontpack::kStreamCount; s += 1) {
+            stx_fontpack::Reader peek = stx_fontpack::reader_make(body.cursor, blob_sizes[s]);
+            declared[s] = blob_sizes[s] != 0 ? stx_fontpack::get_varint(peek) : 0;
+            body.cursor += blob_sizes[s];
+        }
+        check(!body.failed, "the genuine body parses");
+        for (std::uint32_t s = 0; s < stx_fontpack::kStreamCount && !body.failed; s += 1) {
+            const bool room = group.font_count > 1 ? second_starts[s] >= 1 : declared[s] >= 1;
+            if (first_starts[s] != 0 || !room) {
+                continue;
+            }
+            Bytes damaged = pack;
+            damaged[start_at[s]] = 1;
+            ClaimsCase claim;
+            claim.what = "the first font starts a stream at 1";
+            claim.group = g;
+            claim.expect_open = true;
+            claim.expected = stx_fontpack::kGroupBadClaims;
+            claims_case(claim, damaged, static_cast<std::size_t>(-1));
+            cases += 1;
+        }
+    }
+    check(cases > 0, "some first-font start can be raised");
+}
+
 void test_claims(const Bytes& pack) {
     std::unique_ptr<stx_fontpack::PackIndex> index(new stx_fontpack::PackIndex);
     check(stx_fontpack::pack_open(as_bytes(pack), *index), "the genuine pack opens");
@@ -578,6 +633,7 @@ void test_claims(const Bytes& pack) {
             at += blob_sizes[s];
         }
     }
+    test_first_font_starts(pack, *index);
     Bytes damaged = pack;
     damaged[4] = 0x7F;
     ClaimsCase count;
