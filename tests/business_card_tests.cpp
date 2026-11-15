@@ -351,7 +351,7 @@ void turn_kernel() {
     expect(detail::card_front_faces_eye(0.0, 0.0) && !detail::card_front_faces_eye(pi, 0.0),
            "a half turn shows the back");
 
-    // A whole half turn: the back, mirrored (its own side), lit as at rest.
+    // A whole half turn: the back, as painted (its own side), lit as at rest.
     pose.yaw = pi;
     expect(detail::draw_turned_card(front, back, pose, light, 1.0, view), "the back draws");
     expect(out[inside_left + 1U] > 150U && out[inside_left + 2U] == 0U, "a half turn shows the back's colour");
@@ -363,11 +363,15 @@ void turn_kernel() {
     expect(middle.hit && middle.front && std::abs(middle.u - 0.5) < 0.05 && std::abs(middle.v - 0.5) < 0.05,
            "the centre stays the centre");
     expect(!detail::turned_card_hit(pose, Point{12.0, 20.0}).hit, "beside the sliver there is no card");
-    // The back seen from its own side is mirrored: a point left of centre
-    // meets the back's right half.
+    // The back seen from its own side reads as painted: a point left of
+    // centre meets the back's own left half, in the hit and in the drawing.
     pose.yaw = pi;
-    const detail::CardTurnHit mirrored = detail::turned_card_hit(pose, Point{15.0, 20.0});
-    expect(mirrored.hit && !mirrored.front && mirrored.u > 0.5, "the back is mirrored left to right");
+    const detail::CardTurnHit turned_over = detail::turned_card_hit(pose, Point{15.0, 20.0});
+    expect(turned_over.hit && !turned_over.front && turned_over.u < 0.5,
+           "the back reads left to right, as painted");
+    const detail::CardTurnHit turned_over_right = detail::turned_card_hit(pose, Point{45.0, 20.0});
+    expect(turned_over_right.hit && !turned_over_right.front && turned_over_right.u > 0.5,
+           "and its right half lies on the right");
     // Refusals leave the destination transparent.
     pose.pitch = pi;
     expect(!detail::draw_turned_card(front, back, pose, light, 1.0, view), "a pitch past a quarter turn is refused");

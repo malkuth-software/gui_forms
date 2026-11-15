@@ -7,9 +7,11 @@
 // centre from `eye` logical units away; space is the screen's, x across,
 // y down and z toward the eye. The card turns by `yaw` about its vertical
 // axis and then by `pitch` about the screen's horizontal one, so that a
-// yaw of pi shows the back, mirrored left to right as a card turned over
-// side to side is. The pitch stays inside (-pi/2, pi/2): only the yaw
-// turns the card over.
+// yaw of pi shows the back as it was painted, reading left to right, as a
+// card turned over side to side does: the card's own across axis then runs
+// right to left on the screen, and the back's own left lies at the front's
+// right edge, so the two flips cancel. The pitch stays inside (-pi/2, pi/2):
+// only the yaw turns the card over.
 //
 // Each destination pixel spends four rays (a 2 by 2 grid) to find how much
 // of it the card covers, and samples the face it meets once, bilinearly, at

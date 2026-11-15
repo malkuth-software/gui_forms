@@ -72,7 +72,11 @@ CardTurnHit meet(const CardAxes& axes, const CardTurnPose& pose, double x, doubl
     if (!(u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0)) return hit;
     hit.hit = true;
     hit.front = axes.normal.z > 0.0;
-    // The back, seen from its own side, is mirrored left to right.
+    // `u` runs along the card's across axis, from the front's left edge.
+    // The back, seen from its own side, starts at the front's right edge,
+    // so its own u is 1 - u. At a yaw of pi the across axis already runs
+    // right to left on the screen, and the two flips together show the
+    // back as painted (card_turn.hpp).
     hit.u = hit.front ? u : 1.0 - u;
     hit.v = v;
     return hit;
