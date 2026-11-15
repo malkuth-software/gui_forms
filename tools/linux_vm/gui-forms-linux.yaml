@@ -35,9 +35,9 @@ provision:
     apk add --no-cache build-base linux-headers git bash python3 pkgconf \
       cmake samurai ccache gn clang22 lld22
     # The C++ library: libc++ 22 with LLVM's unwinder and compiler-rt, as
-    # every Linux build links them (cmake/llvm22.cmake), the packages
-    # STXlib's musl CI uses (all 22.1.3-r0 in Alpine 3.24 main).
-    apk add --no-cache libc++-dev libc++-static llvm-libunwind-dev compiler-rt
+    # every Linux build links them, the C++ runtime statically
+    # (cmake/llvm22.cmake; all 22.1.3-r0 in Alpine 3.24 main).
+    apk add --no-cache libc++-dev libc++-static llvm-libunwind-dev llvm-libunwind-static compiler-rt
     # X11/accessibility development headers used by the Linux host.
     apk add --no-cache libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
       libxfixes-dev at-spi2-core-dev

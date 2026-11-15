@@ -33,11 +33,13 @@ export PATH=/usr/lib/llvm22/bin:$PATH CC=clang CXX=clang++
 ```
 
 The guest builds against libc++ 22 (Alpine's `libc++-dev`, `libc++-static`,
-`llvm-libunwind-dev` and `compiler-rt`), as every Linux build does since
-2026-11-15: `cmake/llvm22.cmake` adds `-stdlib=libc++` and, on musl,
-`-rtlib=compiler-rt -unwindlib=libunwind`. A guest created from an older
-definition needs those four packages
-(as root: `apk add libc++-dev libc++-static llvm-libunwind-dev compiler-rt`).
+`llvm-libunwind-dev`, `llvm-libunwind-static` and `compiler-rt`), as every
+Linux build does since 2026-11-15, and links libc++, libc++abi and libunwind
+statically: `cmake/llvm22.cmake` adds `-stdlib=libc++ -nostdlib++`, the three
+archives at the end of each C++ link and, on musl,
+`-rtlib=compiler-rt -unwindlib=none`. A guest created from an older
+definition needs those five packages (as root:
+`apk add libc++-dev libc++-static llvm-libunwind-dev llvm-libunwind-static compiler-rt`).
 A build tree configured against libstdc++ keeps working: the toolchain file
 adds the flags at its next configure, and everything recompiles.
 

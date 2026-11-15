@@ -6,8 +6,9 @@
 # (docs/building/template-harness.md). Every GUI.Forms Linux job calls this
 # script, as do the commands that name this path (File Manager's among them).
 #
-# Then LLVM's libc++ 22 and libc++abi, which every Linux build compiles
-# against (cmake/llvm22.cmake; owner decision, 2026-11-15), from the
+# Then LLVM's libc++ 22, libc++abi and libunwind, which every Linux build
+# compiles against and links statically (cmake/llvm22.cmake: their .a
+# archives; owner decisions, 2026-11-15), from the
 # apt.llvm.org repository the harness script has just added. They are here
 # rather than in the harness's package tables until the next harness.lock
 # bump moves them there. Like the harness's other apt.llvm.org packages
@@ -28,4 +29,4 @@ HARNESS_PROJECT=${HARNESS_PROJECT:-$harness/projects/gui_forms.toml}
 HARNESS_WORKSPACE=${HARNESS_WORKSPACE:-$workspace}
 export HARNESS_PROJECT HARNESS_WORKSPACE
 sh "$harness/harness/install_linux_ci_packages.sh" "$@"
-sudo apt-get install -y --no-install-recommends libc++-22-dev libc++abi-22-dev
+sudo apt-get install -y --no-install-recommends libc++-22-dev libc++abi-22-dev libunwind-22-dev

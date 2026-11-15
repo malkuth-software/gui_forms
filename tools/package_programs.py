@@ -70,30 +70,34 @@ NOTICES_NAME: str = "THIRD_PARTY_NOTICES.md"
 # The title every GNU GPL, LGPL and AGPL text begins with; a package carries
 # none of them.
 GPL_TITLE: re.Pattern[str] = re.compile(r"GNU (LESSER |LIBRARY |AFFERO )?GENERAL PUBLIC LICENSE")
-# The LLVM runtime shared libraries a Linux program links (cmake/llvm22.cmake
-# builds against libc++ 22 and libc++abi; on musl also LLVM's libunwind).
-# Ubuntu's own archive has no libc++ 22, so a package bundles them beside the
-# program, as macOS bundles its runtime dylibs, instead of depending on
-# apt.llvm.org.
+# The LLVM runtime shared libraries a Linux program must not need. Linux links
+# libc++ 22, libc++abi and LLVM's libunwind statically (cmake/llvm22.cmake),
+# as Windows links its runtimes: a shipped program depends on no C++ runtime
+# library (owner, 2026-11-15), so a package whose binaries name one of these
+# is refused rather than bundling it.
 LINUX_LLVM_RUNTIME: re.Pattern[str] = re.compile(r"(libc\+\+|libc\+\+abi|libunwind)\.so\.\d+")
-# One resolved line of ldd's output: "\tlibc++.so.1 => /usr/lib/llvm-22/lib/libc++.so.1 (0x...)".
-LDD_RESOLVED: re.Pattern[str] = re.compile(r"^\s*(\S+)\s+=>\s+(/\S+)\s+\(0x[0-9a-fA-F]+\)\s*$")
+# A runtime library's name where ldd or readelf -d prints one:
+# "\tlibc++.so.1 => /usr/lib/llvm-22/lib/libc++.so.1 (0x...)",
+# "\tlibunwind.so.1 => not found" or
+# " 0x0000000000000001 (NEEDED)  Shared library: [libc++abi.so.1]".
+LINUX_LLVM_RUNTIME_MENTION: re.Pattern[str] = re.compile(
+    r"(?<![\w+.-])(lib(?:c\+\+abi|c\+\+|unwind)\.so\.\d+)(?![\w+.-])")
 
 
-def linux_runtime_sources(ldd_output: str) -> dict[str, Path]:
-    """The LLVM runtime libraries ldd resolved for a binary, by soname.
+def linux_runtime_dependencies(listing: str) -> list[str]:
+    """The LLVM runtime libraries named in ldd or readelf -d output, in order.
 
-    Only names LINUX_LLVM_RUNTIME matches are returned; unresolved lines
-    ("not found") and every other library are left out.
+    Each name is listed once, whether ldd resolved it or not; every other
+    library is left out. An empty list means the binary carries its C++
+    runtime statically.
     """
-    sources: dict[str, Path] = {}
-    line: str
-    for line in ldd_output.splitlines():
-        match = LDD_RESOLVED.match(line)
-        if match is None or LINUX_LLVM_RUNTIME.fullmatch(match.group(1)) is None:
-            continue
-        sources[match.group(1)] = Path(match.group(2))
-    return sources
+    names: list[str] = []
+    match: re.Match[str]
+    for match in LINUX_LLVM_RUNTIME_MENTION.finditer(listing):
+        name: str = match.group(1)
+        if LINUX_LLVM_RUNTIME.fullmatch(name) is not None and name not in names:
+            names.append(name)
+    return names
 
 
 LINUX_FALLBACK_DEPENDS: str = "libc6, libx11-6, libxcursor1, libxfixes3, libxrender1, libatk1.0-0t64 | libatk1.0-0, libatk-bridge2.0-0t64 | libatk-bridge2.0-0"
@@ -1010,9 +1014,10 @@ class Packager:
 
         First-party: libgui_forms_* from the build directory and
         libstxlib_state (STXLIB_STATE_LIBRARY_STEM) from the stx package the
-        build linked. The LLVM runtime (LINUX_LLVM_RUNTIME: libc++ 22 and
-        libc++abi) is copied too, from where ldd resolves it for the binary
-        that needs it. The rest are the system's.
+        build linked. The rest are the system's, except the LLVM runtime
+        (LINUX_LLVM_RUNTIME: libc++, libc++abi, libunwind), which every binary
+        carries statically: a binary that needs one as a shared library, by
+        patchelf's, readelf's or ldd's account, fails the package.
         """
         patchelf = self.tool("patchelf")
         binaries = [executable]
@@ -1030,13 +1035,8 @@ class Packager:
                     if source is None:
                         raise RuntimeError(f"{binary.name} needs {name}, which the build directory lacks")
                 elif LINUX_LLVM_RUNTIME.fullmatch(name) is not None:
-                    ldd = self.tool("ldd")
-                    if ldd is None:
-                        raise RuntimeError(f"{binary.name} needs {name}, and ldd is not on PATH to find it")
-                    resolved = linux_runtime_sources(self.run([ldd, str(binary)])).get(name)
-                    if resolved is None or not resolved.is_file():
-                        raise RuntimeError(f"{binary.name} needs {name}, which ldd does not resolve")
-                    source = resolved
+                    raise RuntimeError(f"{binary.name} needs {name} as a shared library; Linux programs link "
+                                       "the LLVM runtime statically (cmake/llvm22.cmake)")
                 elif name.startswith("lib" + STXLIB_STATE_LIBRARY_STEM + ".so"):
                     found = [directory / name for directory in stx_runtime_directories(self.build_dir)
                              if (directory / name).is_file()]
@@ -1054,8 +1054,20 @@ class Packager:
         for binary in binaries:
             if strip:
                 self.run([strip, "--strip-unneeded", str(binary)])
-            if self.tool("ldd") and "not found" in self.run(["ldd", str(binary)]):
-                raise RuntimeError(f"{binary.name} has unresolved shared libraries")
+            readelf = self.tool("readelf")
+            if readelf:
+                needed = linux_runtime_dependencies(self.run([readelf, "-d", str(binary)]))
+                if needed:
+                    raise RuntimeError(f"{binary.name} needs {', '.join(needed)} (readelf -d); Linux programs "
+                                       "link the LLVM runtime statically (cmake/llvm22.cmake)")
+            if self.tool("ldd"):
+                resolved = self.run(["ldd", str(binary)])
+                needed = linux_runtime_dependencies(resolved)
+                if needed:
+                    raise RuntimeError(f"{binary.name} loads {', '.join(needed)} (ldd); Linux programs "
+                                       "link the LLVM runtime statically (cmake/llvm22.cmake)")
+                if "not found" in resolved:
+                    raise RuntimeError(f"{binary.name} has unresolved shared libraries")
         return binaries
 
     def package_linux(self, plan: Plan) -> dict[str, str]:
@@ -1069,7 +1081,7 @@ class Packager:
         bundle = stage / program.display_name
         self.log(f"  stage {plan.built} -> {bundle}")
         if self.dry_run:
-            for step in ("copy executable; follow libgui_forms_*.so, libstxlib_state.so and LLVM runtime (libc++, libc++abi) imports (patchelf), rpath $ORIGIN, strip, ldd check",
+            for step in ("copy executable; follow libgui_forms_*.so and libstxlib_state.so imports (patchelf), rpath $ORIGIN, strip, ldd check; refuse a shared LLVM runtime (readelf -d, ldd)",
                          "font licences in fonts/ from assets/fonts (no face files); licenses/, README.txt, package-manifest.json",
                          f"tar.gz with top-level folder {program.display_name!r} -> {names['archive']}",
                          f"deb {deb_name} ({arch}) installing to {install_dir}, launcher /usr/bin/{deb_name}, .desktop entry, icon placeholder -> {names['installer']}"):

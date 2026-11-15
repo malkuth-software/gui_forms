@@ -33,9 +33,10 @@ int main() { return 0; }
     if(NOT GUI_FORMS_LINUX_LIBCXX_22)
         # Not cached as a failure: the next configure checks again.
         unset(GUI_FORMS_LINUX_LIBCXX_22 CACHE)
-        message(FATAL_ERROR "GUI.Forms on Linux builds against libc++ 22 and libc++abi: use "
-                            "cmake/llvm22.cmake and install libc++-22-dev and libc++abi-22-dev "
-                            "(Alpine: libc++-dev, libc++-static, llvm-libunwind-dev, compiler-rt)")
+        message(FATAL_ERROR "GUI.Forms on Linux builds against libc++ 22 and libc++abi, linked "
+                            "statically: use cmake/llvm22.cmake and install libc++-22-dev, "
+                            "libc++abi-22-dev and libunwind-22-dev (Alpine: libc++-dev, "
+                            "libc++-static, llvm-libunwind-static, compiler-rt)")
     endif()
 endif()
 # The browser target builds the library and its web host. The gallery, the
@@ -6755,6 +6756,14 @@ if(WIN32 AND NOT MSVC)
             message(WARNING "Runtime licence ${_gf_licence} not found; the installed SDK will lack ${_gf_name}")
         endif()
     endforeach()
+endif()
+# Linux: the installed shared libraries embed libc++, libc++abi and LLVM's
+# libunwind (cmake/llvm22.cmake links their archives), so the SDK carries
+# their notices, the checked-in LLVM 22.1.8 files (packaging/licenses/llvm).
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    install(FILES packaging/licenses/llvm/libcxx-LICENSE.TXT DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME libcxx-LICENSE.txt)
+    install(FILES packaging/licenses/llvm/libcxxabi-LICENSE.TXT DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME libcxxabi-LICENSE.txt)
+    install(FILES packaging/licenses/llvm/libunwind-LICENSE.TXT DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME libunwind-LICENSE.txt)
 endif()
 
 # The accessibility service adapter is independently testable without a renderer.
