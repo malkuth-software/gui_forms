@@ -4,6 +4,7 @@
 #include "failure_snapshot.hpp"
 
 #include "../diagnostics/shadow_frames/shadow_frame_records.hpp"
+#include "../../platform/stxlib_bridge.hpp"
 
 #include <stxlib/console.hpp>
 #include <stxlib/fail_fast.hpp>
@@ -92,8 +93,7 @@ std::string_view take_fail_fast_message(const stxlib::ErrorRecord& record) noexc
         const std::string_view kept(message.text.data(), message.size);
         return kept;
     }
-    const stxlib::TextView recorded = record.message();
-    const std::string_view view(recorded.data(), recorded.count());
+    const std::string_view view = platform::standard_text(record.message());
     return view;
 }
 
@@ -263,8 +263,7 @@ void write_shadow_frames(const FailureSnapshot& snapshot) noexcept {
 void write_record_facts(const stxlib::ErrorRecord& record) noexcept {
     ReportLine facts;
     facts.append("GUI.Forms: record: ");
-    const stxlib::TextView kind = stxlib::error_kind_name(record.kind());
-    facts.append(std::string_view(kind.data(), kind.count()));
+    facts.append(platform::standard_text(stxlib::error_kind_name(record.kind())));
     if (record.code() != 0U) {
         facts.append(" code ");
         facts.append_number(record.code());
@@ -281,12 +280,12 @@ void write_record_facts(const stxlib::ErrorRecord& record) noexcept {
     facts.write();
 
     std::array<char, stxlib::exception_type_display_capacity> type_storage{};
-    const stxlib::MutableView<char> type_output(type_storage.data(), type_storage.size());
+    const stxlib::MutableView<char> type_output = platform::stxlib_mutable_view(type_storage);
     const stxlib::TextView type = stxlib::exception_type_for_display(record, type_output);
     if (!type.empty()) {
         ReportLine line;
         line.append("GUI.Forms: exception type: ");
-        line.append(std::string_view(type.data(), type.count()));
+        line.append(platform::standard_text(type));
         line.write();
     }
 }
@@ -298,7 +297,7 @@ void write_throw_trace(const stxlib::ErrorRecord& record) noexcept {
     }
     std::array<stxlib::uptr, stxlib::shadow_trace_capacity> trace{};
     const stxlib::MutableView<stxlib::ShadowFrameRecord> no_frames{};
-    const stxlib::MutableView<stxlib::uptr> trace_view(trace.data(), trace.size());
+    const stxlib::MutableView<stxlib::uptr> trace_view = platform::stxlib_mutable_view(trace);
     const stxlib::Result<stxlib::ShadowSummary> read = stxlib::read_shadow(record.shadow(), no_frames, trace_view);
     if (!read.succeeded()) {
         return;
@@ -324,8 +323,7 @@ void write_throw_trace(const stxlib::ErrorRecord& record) noexcept {
 // the snapshot first, so a dump holds it, then the whole record.
 void report_fail_fast(void* const context, const stxlib::ErrorRecord& record) noexcept {
     static_cast<void>(context);
-    const stxlib::TextView operation = record.operation().name();
-    const std::string_view site(operation.data(), operation.count());
+    const std::string_view site = platform::standard_text(record.operation().name());
     const std::string_view message = take_fail_fast_message(record);
     const FailureBoundary boundary{site, failure_native_exception_status, 0U, 0U};
     if (record.shadow().present()) {

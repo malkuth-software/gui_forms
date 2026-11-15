@@ -1,5 +1,7 @@
 #include "row_height_index.hpp"
 
+#include "../../platform/stxlib_bridge.hpp"
+
 #include <stxlib/error.hpp>
 #include <stxlib/result.hpp>
 #include <stxlib/text_view.hpp>
@@ -8,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <new>
+#include <span>
 #include <stdexcept>
 #include <utility>
 
@@ -242,7 +245,8 @@ bool RowHeightIndex::store_staged(std::size_t row, std::size_t length) {
     if (length == 0U) {
         stored = true;
     } else if (length <= batch_.size() && row < rows && length <= rows - row) {
-        const stxlib::View<stxlib::i64> staged(batch_.data(), length);
+        const std::span<const stxlib::i64> stage(batch_.data(), length);
+        const stxlib::View<stxlib::i64> staged = platform::stxlib_view(stage);
         const stxlib::Status written = index_.set_heights(row_index(row), staged);
         if (written.failed()) {
             // The stage is cleared whether it stored or not, even when the

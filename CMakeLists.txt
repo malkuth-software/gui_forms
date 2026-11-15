@@ -5520,6 +5520,13 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_shadow_frames_tests PRIVATE gui_forms_core stxlib::boundary)
     add_test(NAME gui_forms_shadow_frames_tests COMMAND gui_forms_shadow_frames_tests)
 
+    # The private STXlib bridge (A2 T0): round trips, invalid UTF-8 refused.
+    # gui_forms_core brings STXlib's shared state, which an error record
+    # (a refused validation) numbers itself from.
+    add_executable(gui_forms_stxlib_bridge_tests tests/stxlib_bridge_tests.cpp)
+    target_link_libraries(gui_forms_stxlib_bridge_tests PRIVATE gui_forms_core stxlib::boundary)
+    add_test(NAME gui_forms_stxlib_bridge_tests COMMAND gui_forms_stxlib_bridge_tests)
+
     add_executable(gui_forms_timer_tests tests/timer_tests.cpp)
     target_link_libraries(gui_forms_timer_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_timer_tests COMMAND gui_forms_timer_tests)

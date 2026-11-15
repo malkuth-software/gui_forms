@@ -4,6 +4,8 @@
 
 #include "shadow_frame_records.hpp"
 
+#include "../../../platform/stxlib_bridge.hpp"
+
 #include <stxlib/result.hpp>
 #include <stxlib/text.hpp>
 #include <stxlib/view.hpp>
@@ -24,7 +26,7 @@ stxlib::TextView well_formed_text(const std::string_view text) noexcept {
         const stxlib::TextView none{};
         return none;
     }
-    const stxlib::Result<stxlib::TextView> whole = stxlib::validate_utf8(text.data(), text.size());
+    const stxlib::Result<stxlib::TextView> whole = platform::validated_text(text);
     if (whole.succeeded()) {
         const stxlib::TextView valid = *whole.value();
         return valid;
@@ -37,7 +39,7 @@ stxlib::TextView well_formed_text(const std::string_view text) noexcept {
         const stxlib::TextView none{};
         return none;
     }
-    const stxlib::Result<stxlib::TextView> prefix = stxlib::validate_utf8(text.data(), offset);
+    const stxlib::Result<stxlib::TextView> prefix = platform::validated_text(text.substr(0U, offset));
     if (!prefix.succeeded()) {
         const stxlib::TextView none{};
         return none;
@@ -88,8 +90,8 @@ RecordFrames copy_record_frames(const stxlib::ShadowReference reference, const s
     // About 7.8 KiB of stack, on a failure path only.
     std::array<stxlib::ShadowFrameRecord, shadow_stack_capacity> records{};
     std::array<stxlib::uptr, stxlib::shadow_trace_capacity> addresses{};
-    const stxlib::MutableView<stxlib::ShadowFrameRecord> record_view(records.data(), records.size());
-    const stxlib::MutableView<stxlib::uptr> address_view(addresses.data(), addresses.size());
+    const stxlib::MutableView<stxlib::ShadowFrameRecord> record_view = platform::stxlib_mutable_view(records);
+    const stxlib::MutableView<stxlib::uptr> address_view = platform::stxlib_mutable_view(addresses);
     const stxlib::Result<stxlib::ShadowSummary> read = stxlib::read_shadow(reference, record_view, address_view);
     if (!read.succeeded()) {
         return result;
@@ -144,7 +146,7 @@ void leave_frame(const std::uint32_t depth, const bool closed) noexcept {
 // Copies the open frames' records into frames and fills state.
 std::size_t copy_open_frames(const std::span<ShadowFrame> frames, ShadowStackState& state) noexcept {
     std::array<stxlib::ShadowFrameRecord, shadow_stack_capacity> records{};
-    const stxlib::MutableView<stxlib::ShadowFrameRecord> record_view(records.data(), records.size());
+    const stxlib::MutableView<stxlib::ShadowFrameRecord> record_view = platform::stxlib_mutable_view(records);
     const stxlib::ShadowStackState stack = stxlib::read_shadow_stack(record_view);
     const std::size_t recorded = std::min<std::size_t>(stack.recorded, records.size());
     const std::size_t copied = std::min(recorded, frames.size());

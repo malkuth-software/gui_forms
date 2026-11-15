@@ -3,6 +3,7 @@
 #include "failure_snapshot.hpp"
 
 #include "../diagnostics/shadow_frames/shadow_frame_records.hpp"
+#include "../../platform/stxlib_bridge.hpp"
 
 #include <stxlib/shadow.hpp>
 #include <stxlib/text_view.hpp>
@@ -117,9 +118,9 @@ void record_failure_snapshot(const FailureBoundary& boundary, const std::string_
     // (exception_type_for_display: one __cxa_demangle call, which allocates
     // and frees its result). The view borrows type_storage or record.
     std::array<char, stxlib::exception_type_display_capacity> type_storage{};
-    const stxlib::MutableView<char> type_output(type_storage.data(), type_storage.size());
+    const stxlib::MutableView<char> type_output = platform::stxlib_mutable_view(type_storage);
     const stxlib::TextView type = stxlib::exception_type_for_display(record, type_output);
-    const std::string_view type_text(type.data(), type.count());
+    const std::string_view type_text = platform::standard_text(type);
     fill_snapshot(snapshot, boundary, message, read.recorded, read.depth, read.trace_count, type_text);
 }
 

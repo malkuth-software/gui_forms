@@ -3,6 +3,7 @@
 #include "abi_registry.hpp"
 
 #include "../../../core/failure/failure_snapshot.hpp"
+#include "../../../platform/stxlib_bridge.hpp"
 
 #include "gui_forms/component/failures/component_failures.hpp"
 #include "gui_forms/control.hpp"
@@ -1144,8 +1145,7 @@ const stxlib::ExceptionClassifier slot_classifier{&classify_slot_exception, null
 gf_status fail_with_record(const SlotIdentity slot, const stxlib::ErrorRecord& record) noexcept {
     const stxlib::u32 code = record.code();
     const gf_status status = filed_status(code != 0U ? static_cast<gf_status>(code) : GF_STATUS_INTERNAL);
-    const stxlib::TextView recorded = record.message();
-    const std::string_view message = take_slot_message(std::string_view(recorded.data(), recorded.count()));
+    const std::string_view message = take_slot_message(platform::standard_text(record.message()));
     const detail::FailureBoundary boundary{detail::c_abi_failure_site, status, slot.table_id, slot.slot_index};
     detail::record_failure_snapshot(boundary, message, record);
     const gf_status failed = fail(status, slot, message);
