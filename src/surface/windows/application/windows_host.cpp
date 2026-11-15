@@ -679,10 +679,133 @@ UINT native_message_style(const HostMessageDialogRequest& request) noexcept {
     return style;
 }
 
+// GUI.Forms' picture for a message box's icon (HostMessageDialogRequest::
+// icon_image, the stock icon set) shown in place of the system icon.
+// MessageBoxW takes no icon handle, so for the length of the call a CBT hook
+// on this thread meets the box when it is about to be activated
+// (HCBT_ACTIVATE, after WM_INITDIALOG created its controls) and gives its
+// icon control, the static child with SS_ICON that an MB_ICON* style
+// creates, the picture (STM_SETICON). Presentation only: without a
+// picture, without an icon style, or when any step fails, the box keeps
+// its system icon and the result is unchanged.
+struct MessageIconReplacement final {
+    // The request's image as an icon, and a copy fitted to the icon
+    // control when their sizes differ; both owned by MessageIconScope.
+    HICON picture{};
+    HICON fitted{};
+    int picture_width{};
+    int picture_height{};
+    // The first dialog activated on the thread after the hook is installed
+    // is the box; later activations (the box reactivated, a nested box
+    // with its own scope) are left alone.
+    bool attempted{};
+};
+
+// The innermost open box's replacement on this thread; a nested box's
+// scope saves the outer one and restores it.
+thread_local MessageIconReplacement* active_message_icon = nullptr;
+
+// The dialog box class, MessageBoxW's box ("#32770", About Window Classes,
+// system classes); window class names are at most 256 characters.
+constexpr std::wstring_view dialog_class_name{L"#32770"};
+constexpr int maximum_class_name = 257;
+
+bool window_class_is(HWND window, std::wstring_view expected) noexcept {
+    std::array<wchar_t, maximum_class_name> name{};
+    const int length = GetClassNameW(window, name.data(), static_cast<int>(name.size()));
+    if (length <= 0) return false;
+    const std::wstring_view actual(name.data(), static_cast<std::size_t>(length));
+    return CompareStringOrdinal(actual.data(), static_cast<int>(actual.size()), expected.data(),
+                                static_cast<int>(expected.size()), TRUE) == CSTR_EQUAL;
+}
+
+// EnumChildWindows target: stops at the box's icon control and stores it
+// in the HWND that `found` points to.
+BOOL CALLBACK find_message_icon_control(HWND child, LPARAM found) {
+    const LONG_PTR style = GetWindowLongPtrW(child, GWL_STYLE);
+    const bool icon_static = window_class_is(child, std::wstring_view(L"Static")) &&
+                             (style & SS_TYPEMASK) == SS_ICON;
+    if (!icon_static) return TRUE;
+    *reinterpret_cast<HWND*>(found) = child;
+    return FALSE;
+}
+
+// Gives the box's icon control the picture, fitted to the control's size.
+void apply_message_icon(HWND box, MessageIconReplacement& replacement) noexcept {
+    HWND control = nullptr;
+    EnumChildWindows(box, find_message_icon_control, reinterpret_cast<LPARAM>(&control));
+    if (control == nullptr) return;
+    RECT area{};
+    if (GetClientRect(control, &area) == FALSE) return;
+    const int width = area.right - area.left;
+    const int height = area.bottom - area.top;
+    HICON shown = replacement.picture;
+    const bool sized = width > 0 && height > 0;
+    if (sized && (width != replacement.picture_width || height != replacement.picture_height)) {
+        replacement.fitted = static_cast<HICON>(CopyImage(replacement.picture, IMAGE_ICON, width, height, 0U));
+        if (replacement.fitted != nullptr) shown = replacement.fitted;
+    }
+    // The previous icon is the system's shared one; it is not destroyed.
+    SendMessageW(control, STM_SETICON, reinterpret_cast<WPARAM>(shown), 0);
+}
+
+// The CBT hook: runs on this thread inside MessageBoxW.
+LRESULT CALLBACK message_icon_hook(int code, WPARAM wparam, LPARAM lparam) {
+    MessageIconReplacement* const replacement = active_message_icon;
+    if (code == HCBT_ACTIVATE && replacement != nullptr && !(*replacement).attempted) {
+        HWND activated = reinterpret_cast<HWND>(wparam);
+        if (window_class_is(activated, dialog_class_name)) {
+            (*replacement).attempted = true;
+            apply_message_icon(activated, *replacement);
+        }
+    }
+    return CallNextHookEx(nullptr, code, wparam, lparam);
+}
+
+// Holds the picture and the hook for one MessageBoxW call; releases both
+// and restores the outer box's replacement on every exit.
+class MessageIconScope final {
+public:
+    explicit MessageIconScope(const HostMessageDialogRequest& request) noexcept : outer_(active_message_icon) {
+        if (!request.icon_image.has_value() || message_icon_style(request.icon) == 0U) return;
+        const HostImage& image = *request.icon_image;
+        if (image.width == 0U || image.height == 0U) return;
+        if (validate_host_image(image.view()) != HostImageError::none) return;
+        // A message icon is small; a larger image is not an icon.
+        if (image.width > maximum_message_icon_side || image.height > maximum_message_icon_side) return;
+        const std::span<const HostImage> images(&image, 1U);
+        replacement_.picture =
+            gui_forms::host::detail::create_notify_icon_handle(images, static_cast<int>(image.width));
+        if (replacement_.picture == nullptr) return;
+        replacement_.picture_width = static_cast<int>(image.width);
+        replacement_.picture_height = static_cast<int>(image.height);
+        hook_ = SetWindowsHookExW(WH_CBT, message_icon_hook, nullptr, GetCurrentThreadId());
+        if (hook_ == nullptr) return;
+        active_message_icon = &replacement_;
+    }
+    MessageIconScope(const MessageIconScope&) = delete;
+    MessageIconScope& operator=(const MessageIconScope&) = delete;
+    ~MessageIconScope() {
+        if (hook_ != nullptr) UnhookWindowsHookEx(hook_);
+        active_message_icon = outer_;
+        if (replacement_.fitted != nullptr) DestroyIcon(replacement_.fitted);
+        if (replacement_.picture != nullptr) DestroyIcon(replacement_.picture);
+    }
+
+    // The largest side accepted, in pixels: a 32-unit icon at 800 % scale.
+    static constexpr std::uint32_t maximum_message_icon_side = 256U;
+
+private:
+    MessageIconReplacement* outer_{};
+    MessageIconReplacement replacement_{};
+    HHOOK hook_{};
+};
+
 HostDialogResult native_message_dialog(HWND owner, std::uint64_t request_id,
                                        const HostMessageDialogRequest& request) {
     const std::wstring title = wide_from_utf8(request.title);
     const std::wstring message = wide_from_utf8(request.message);
+    const MessageIconScope icon(request);
     const int native_result = MessageBoxW(owner, message.c_str(), title.c_str(),
                                           native_message_style(request));
     HostMessageDialogResult value;
@@ -4315,10 +4438,9 @@ HostCapabilities windows_capabilities() {
     // square before build 22000, and for a maximized, snapped or
     // full-screen window).
     capabilities.window_corner_shapes = WindowCornerShapes{true, true};
-    // locale: not yet reported (read_windows_locale is the hand-back's
-    // interface and gives nothing until GetLocaleInfoEx is read).
-    // A high-integrity build reads none of the user's settings
-    // (cmake/HighIntegrity.cmake): no locale is reported.
+    // The user's locale (GetLocaleInfoEx); not reported when it cannot be
+    // read whole and valid. A high-integrity build reads none of the
+    // user's settings (cmake/HighIntegrity.cmake): no locale is reported.
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
     const std::optional<HostLocale> locale = read_windows_locale();
     if (locale.has_value()) {
