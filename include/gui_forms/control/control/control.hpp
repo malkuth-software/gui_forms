@@ -785,6 +785,13 @@ public:
     // sheet compiled and applied now; false when it was refused now or
     // waits for an attachment (theme_sheet_pending).
     bool set_theme_sheet(std::string_view text, std::string_view name = "sheet");
+    // The same, compiled against `controls` instead of the stock control
+    // anatomies alone, so that its selectors may name the types they hold
+    // (a composite control's <look> names its own type and parts, cp34).
+    // `controls` is borrowed: it stays valid until the sheet is set again or
+    // removed, or the control is destroyed (a composite's definition, which
+    // the composite holds, owns it). Empty, the stock anatomies.
+    bool set_theme_sheet(std::string_view text, std::string_view name, std::span<const ControlAnatomy> controls);
     // The sheet's text; empty without one. Valid until the sheet is set.
     [[nodiscard]] std::string_view theme_sheet() const noexcept;
     // Whether the sheet waits for an attachment to compile.

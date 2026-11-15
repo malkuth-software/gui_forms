@@ -12,10 +12,12 @@
 #include "gui_forms/engine/part_shape/part_shape.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <variant>
 
@@ -166,6 +168,22 @@ CompositeControl::~CompositeControl() = default;
 void CompositeControl::initialize_control_tree() {
     make_children();
     write_bound_children(std::nullopt);
+    apply_look();
+}
+
+// The <look> as the instance's theme sheet: pending until the instance is
+// attached to a window with resources (Control::set_theme_sheet).
+void CompositeControl::apply_look() {
+    const CompositeDefinition& definition = *definition_;
+    if (definition.look.empty()) return;
+    on(theme_sheet_compiled(), *this, &CompositeControl::look_compiled);
+    const std::string name = definition.name + ".control <look>";
+    static_cast<void>(set_theme_sheet(definition.look, name, definition.look_controls));
+}
+
+void CompositeControl::look_compiled(const ThemeCompileResult& result) {
+    ++statistics_.look_compiles;
+    if (!result.succeeded()) ++statistics_.look_refusals;
 }
 
 std::string_view CompositeControl::type_name() const noexcept {

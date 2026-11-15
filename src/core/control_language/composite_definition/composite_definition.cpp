@@ -8,11 +8,13 @@
 
 #include "../../form_language/form_xml/form_xml.hpp"
 
+#include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/xml/xml_writer/xml_writer.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#include <span>
 #include <string>
 #include <utility>
 
@@ -738,6 +740,14 @@ void DefinitionCompiler::build_anatomy() {
     definition_.anatomy.parts = definition_.part_declarations;
     definition_.anatomy.states = definition_.anatomy_states;
     definition_.anatomy.custom_states = definition_.custom_states;
+    // The look's anatomies: a copy of `anatomy`, viewing the same storage,
+    // which the definition keeps and never moves.
+    if (!definition_.look.empty()) {
+        const std::span<const ControlAnatomy> stock = stock_control_anatomies();
+        definition_.look_controls.reserve(stock.size() + 1U);
+        definition_.look_controls.insert(definition_.look_controls.end(), stock.begin(), stock.end());
+        definition_.look_controls.push_back(definition_.anatomy);
+    }
 }
 
 void DefinitionCompiler::parse(const std::string& text, CompositeExpression& expression, const ControlSource& where,

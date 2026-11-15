@@ -1200,6 +1200,10 @@ gui_forms::Control
 
       The control's theme sheet (the ImGui-class demonstrator's I7): a whole program theme's text, as theme_sheet_package(text, name) holds it, compiled with the stock control anatomies into the window's ApplicationResources and set as this control's theme override for its subtree. Set while the control is attached to a window with resources, it compiles at once; set while it is not, it compiles when it is next attached, after the attachment is committed. It compiles again on an attachment to another window's resources (the theme's images belong to the resources it was compiled into). Every compilation raises theme_sheet_compiled with its result, the diagnostics included, whether it applied or was refused; a refused sheet leaves the theme override as it was, and so does a sheet an inline style of the subtree cannot compile against (reported as a refusal with the code E000 ``inline_style_refused``). Empty text removes the sheet and the override it set. Returns true when the sheet compiled and applied now; false when it was refused now or waits for an attachment (theme_sheet_pending).
 
+   .. cpp:function:: bool set_theme_sheet(std::string_view text, std::string_view name, std::span<const ControlAnatomy> controls)
+
+      The same, compiled against ``controls`` instead of the stock control anatomies alone, so that its selectors may name the types they hold (a composite control's <look> names its own type and parts, cp34). ``controls`` is borrowed: it stays valid until the sheet is set again or removed, or the control is destroyed (a composite's definition, which the composite holds, owns it). Empty, the stock anatomies.
+
    .. cpp:function:: bool theme_sheet_pending() const noexcept
 
       Whether the sheet waits for an attachment to compile.

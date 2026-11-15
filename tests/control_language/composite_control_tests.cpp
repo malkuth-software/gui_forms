@@ -11,7 +11,11 @@
 //   is the content child;
 // - stepper-field: refused until converters are built (E999);
 // - an inline document: a live drag writes its property on every frame and
-//   Escape writes the pressed value back.
+//   Escape writes the pressed value back;
+// - the look (phase 3): the examples' <look> is the instance's theme sheet,
+//   pending until the instance is attached, then compiled once against the
+//   composite's own anatomy and applied as the subtree's theme override; a
+//   document without a look sets no sheet.
 
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 
@@ -21,6 +25,7 @@
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/window/window.hpp"
 
 #include <array>
@@ -29,6 +34,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -275,6 +281,54 @@ void live_drag() {
     static_cast<void>(dispatch_press(window, Point{start.x + 40.0, start.y}, PointerAction::up));
 }
 
+// Prints a refused look's diagnostics, so a failure says why.
+class LookReporter final : public Component {
+public:
+    void on_compiled(const ThemeCompileResult& result) {
+        if (result.succeeded()) return;
+        for (const ThemeCompileDiagnostic& diagnostic : result.diagnostics()) {
+            std::cerr << "  look: " << diagnostic.code << ' ' << diagnostic.name << ' ' << diagnostic.file << ':'
+                      << diagnostic.line << ':' << diagnostic.column << ' ' << diagnostic.rule << ' '
+                      << diagnostic.detail << '\n';
+        }
+    }
+};
+
+void look_applies(const std::string_view example, const Size size) {
+    const CompositeLoadResult loaded = load_example(example);
+    require(static_cast<bool>(loaded), "the example loads for its look");
+    if (!loaded) return;
+    require(!(*loaded.definition).look.empty(), "the example declares a look");
+    const std::shared_ptr<CompositeControl> composite =
+        make_control<CompositeControl>(StableId(std::string("looked")), loaded.definition);
+    LookReporter reporter{};
+    on((*composite).theme_sheet_compiled(), reporter, &LookReporter::on_compiled);
+    require((*composite).theme_sheet() == (*loaded.definition).look, "the look is the instance's theme sheet");
+    require((*composite).theme_sheet_pending() && (*composite).statistics().look_compiles == 0U,
+            "the look waits for an attachment");
+    (*composite).set_requested_bounds({0.0, 0.0, size.width, size.height});
+    Window window(composite, size);
+    window.perform_layout();
+    require(!(*composite).theme_sheet_pending(), "the look compiles on attachment");
+    require((*composite).statistics().look_compiles == 1U, "the look compiles once");
+    require((*composite).statistics().look_refusals == 0U, "the look compiles against the composite's anatomy");
+    require((*composite).theme_override() != nullptr, "the look is the subtree's theme override");
+}
+
+void no_look() {
+    const std::span<const CompositeChildType> none{};
+    const CompositeLoadResult loaded = load_composite_definition("live-slider.control", live_slider, none);
+    require(static_cast<bool>(loaded), "the live slider loads");
+    if (!loaded) return;
+    const std::shared_ptr<CompositeControl> slider =
+        make_control<CompositeControl>(StableId(std::string("plain")), loaded.definition);
+    Window window(slider, {120.0, 20.0});
+    window.perform_layout();
+    require((*slider).theme_sheet().empty() && (*slider).theme_override() == nullptr,
+            "a document without a look sets no sheet");
+    require((*slider).statistics().look_compiles == 0U, "nothing compiles without a look");
+}
+
 } // namespace
 
 int main() {
@@ -282,6 +336,9 @@ int main() {
     card_with_action();
     stepper_field_refused();
     live_drag();
+    look_applies("toggle-pill.control", Size{160.0, 30.0});
+    look_applies("card-with-action.control", Size{240.0, 160.0});
+    no_look();
     if (failures != 0) {
         std::cerr << failures << " composite control check(s) failed\n";
         return 1;

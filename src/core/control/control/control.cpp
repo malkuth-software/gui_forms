@@ -31,6 +31,7 @@
 #include <limits>
 #include <new>
 #include <numbers>
+#include <span>
 #include <stdexcept>
 
 namespace gui_forms {
@@ -1791,11 +1792,21 @@ struct ControlThemeSheet final {
     std::shared_ptr<const Theme> theme{};
     std::weak_ptr<ApplicationResources> compiled_for{};
     Event<const ThemeCompileResult&> compiled{};
+    // The anatomies the sheet compiles against, borrowed from the caller
+    // (set_theme_sheet); empty for the stock ones.
+    std::span<const ControlAnatomy> controls{};
 };
 
 } // namespace detail
 
 bool Control::set_theme_sheet(std::string_view text, std::string_view name) {
+    const std::span<const ControlAnatomy> stock{};
+    const bool applied = set_theme_sheet(text, name, stock);
+    return applied;
+}
+
+bool Control::set_theme_sheet(std::string_view text, std::string_view name,
+                              std::span<const ControlAnatomy> controls) {
     require_mutable();
     if (text.empty()) {
         if (theme_sheet_ == nullptr) return false;
@@ -1804,12 +1815,14 @@ bool Control::set_theme_sheet(std::string_view text, std::string_view name) {
         (*theme_sheet_).pending = false;
         (*theme_sheet_).theme.reset();
         (*theme_sheet_).compiled_for.reset();
+        (*theme_sheet_).controls = {};
         if (sheet_override) clear_theme_override();
         return false;
     }
     if (theme_sheet_ == nullptr) theme_sheet_ = std::make_unique<detail::ControlThemeSheet>();
     (*theme_sheet_).text.assign(text);
     (*theme_sheet_).name.assign(name);
+    (*theme_sheet_).controls = controls;
     const bool applied = compile_theme_sheet();
     return applied;
 }
@@ -1858,7 +1871,7 @@ bool Control::compile_theme_sheet() {
     sheet.pending = false;
     const ThemePackage package = theme_sheet_package(sheet.text, sheet.name);
     ThemeCompileOptions options{};
-    options.controls = stock_control_anatomies();
+    options.controls = sheet.controls.empty() ? stock_control_anatomies() : sheet.controls;
     // A sheet names no installed package: an empty library.
     const ThemeLibrary library{};
     ThemeCompileResult result = (*resources).compile_theme_package(package, library, options);

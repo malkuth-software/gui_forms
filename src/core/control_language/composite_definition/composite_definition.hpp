@@ -313,6 +313,11 @@ public:
     ControlAnatomy anatomy{};
     // The schema's interactions: the declared events, by name.
     std::vector<std::string> interaction_names{};
+    // What the <look> compiles against as the instance's theme sheet
+    // (Control::set_theme_sheet): the stock anatomies, then this
+    // definition's own (`anatomy`, whose views are into this definition).
+    // Empty without a look.
+    std::vector<ControlAnatomy> look_controls{};
 };
 
 namespace control_language {
