@@ -182,6 +182,12 @@ struct SemanticSource final {
     // The client tree last announced to UI Automation, which the next
     // change is compared against; null until one is announced.
     SemanticTreeRef published{};
+    // While publish_automation_tree raises events: a nested publication (a
+    // UiaRaise call that dispatched messages which collected damage) only
+    // asks for another pass, which the outer one makes when it ends
+    // (A-gf-host-03-F1).
+    bool publishing{};
+    bool publish_again{};
     // The tree the last build made and the key it was built under; null
     // until a snapshot succeeds, and released when the window goes.
     SemanticTreeRef current{};

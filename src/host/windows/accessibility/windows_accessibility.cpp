@@ -232,15 +232,53 @@ const wchar_t* default_action_verb(const SemanticNode& node) noexcept {
 // a UI Automation client listens, raises the events for the change from it;
 // then keeps the new tree as the one announced. A failed snapshot keeps the
 // old one, and a reused tree is the one announced, with nothing to raise.
-void publish_automation_tree(const std::shared_ptr<SemanticSource>& source) {
-    SemanticSource& state = *source;
-    SemanticTreeRef current;
-    if (!state.snapshot(current)) return;
-    if (current == state.published) return;
-    if (state.published && UiaClientsAreListening()) {
-        raise_automation_events(source, *state.published, *current);
+//
+// A UiaRaise call may wait on COM and dispatch this thread's messages,
+// which can collect damage and publish again, or destroy the window
+// (A-gf-host-03-F1). So the pass holds the tree it diffs against by its own
+// reference, a nested publication only marks that another pass is wanted,
+// and the outer pass then publishes the newest snapshot, at most
+// maximum_publication_passes times. A window gone meanwhile announces
+// nothing more.
+constexpr int maximum_publication_passes = 4;
+
+// Ends a publication however it leaves (a snapshot that throws included).
+class PublicationPass final {
+public:
+    explicit PublicationPass(SemanticSource& state) noexcept : state_(state) { state_.publishing = true; }
+    PublicationPass(const PublicationPass&) = delete;
+    PublicationPass& operator=(const PublicationPass&) = delete;
+    ~PublicationPass() {
+        state_.publishing = false;
+        state_.publish_again = false;
     }
-    state.published = std::move(current);
+
+private:
+    SemanticSource& state_;
+};
+
+void publish_automation_tree(const std::shared_ptr<SemanticSource>& source) {
+    const std::shared_ptr<SemanticSource> held = source;
+    SemanticSource& state = *held;
+    if (state.publishing) {
+        state.publish_again = true;
+        return;
+    }
+    const PublicationPass publication(state);
+    for (int pass = 0; pass < maximum_publication_passes; ++pass) {
+        state.publish_again = false;
+        SemanticTreeRef current;
+        if (!state.snapshot(current)) break;
+        if (current != state.published) {
+            const SemanticTreeRef previous = state.published;
+            if (previous && UiaClientsAreListening()) {
+                raise_automation_events(held, *previous, *current);
+            }
+            if (state.model.get() == nullptr) break;
+            state.published = std::move(current);
+        }
+        if (!state.publish_again) break;
+    }
 }
 
 // Which text property a text getter reads.
