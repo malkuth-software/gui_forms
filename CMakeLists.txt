@@ -1694,13 +1694,6 @@ if(GUI_FORMS_ENABLE_SKIA)
         src/render/skia/executor/drawing_raster_state.cpp
         src/render/skia/executor/recorder_raster.cpp
     )
-    # The executor maps bundled faces into sealed pages (skia_executor.cpp).
-    # Their objects are an archive of their own after it on every link line,
-    # so GNU ld resolves them whatever the order, and a link that already
-    # holds them (a host archive taken whole, as the C ABI library does)
-    # draws nothing from it.
-    add_library(gui_forms_sealed_pages STATIC $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
-    target_link_libraries(gui_drawing_skia PUBLIC gui_forms_sealed_pages)
     if(APPLE)
         # Finds installed families nobody registered (ADR-004 phase 7).
         target_sources(gui_drawing_skia PRIVATE
@@ -1769,7 +1762,8 @@ if(GUI_FORMS_ENABLE_SKIA)
         POSITION_INDEPENDENT_CODE ON
     )
     add_library(gui_drawing_raster_c_api STATIC
-        $<TARGET_OBJECTS:gui_drawing_raster_c_api_objects>)
+        $<TARGET_OBJECTS:gui_drawing_raster_c_api_objects>
+        $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
     target_link_libraries(gui_drawing_raster_c_api PUBLIC gui_drawing_skia gui_drawing_c_api)
     if(WIN32)
         target_link_libraries(gui_drawing_raster_c_api PUBLIC advapi32)
@@ -6463,8 +6457,12 @@ if(GUI_FORMS_BUILD_TESTS)
         target_include_directories(gui_drawing_skia_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
         add_test(NAME gui_drawing_skia_tests COMMAND gui_drawing_skia_tests)
 
+        # The sealed pages as the program's own objects: GNU ld reads the
+        # raster archive (which holds them too) before gui_drawing_skia's
+        # executor asks for them, and this program links no host archive.
         add_executable(gui_drawing_raster_c_api_tests
             tests/drawing_raster_c_api_tests.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
         )
         target_link_libraries(gui_drawing_raster_c_api_tests PRIVATE
             gui_drawing_c_api
