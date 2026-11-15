@@ -1460,12 +1460,21 @@ void NativeWindow::event(XEvent &event) {
   if (event.type == ConfigureNotify) {
     device_width = event.xconfigure.width;
     device_height = event.xconfigure.height;
-    const Size resized{static_cast<double>(device_width) / scale,
-                       static_cast<double>(device_height) / scale};
+    // The model's size covers at most what can be presented (16384 device
+    // pixels a side, present_raster_rectangles), so a window resized to the
+    // X maximum, or a synthetic event, does not make a raster that is never
+    // shown; a resize the session refuses leaves the size as it was
+    // (A-gf-host-01-F11).
+    const int presented_width = std::clamp(device_width, 1, 16384);
+    const int presented_height = std::clamp(device_height, 1, 16384);
+    const Size resized{static_cast<double>(presented_width) / scale,
+                       static_cast<double>(presented_height) / scale};
     if (resized != size) {
-      size = resized;
-      static_cast<void>(dispatch(HostResizeEvent{size}));
-      damage.add({0, 0, size.width, size.height});
+      const HostDispatchResult resize_result = dispatch(HostResizeEvent{resized});
+      if (resize_result.accepted()) {
+        size = resized;
+        damage.add({0, 0, size.width, size.height});
+      }
     }
     // A move onto a monitor of another scale re-rasters there.
     apply_scale(scale_here());
