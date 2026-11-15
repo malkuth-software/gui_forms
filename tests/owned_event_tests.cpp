@@ -745,6 +745,13 @@ void test_shared_scalar_state() {
     try { first.value = 75.0; } catch (const std::out_of_range&) { rejected = true; }
     require(rejected && first.value.read() == prior && volume.get() == prior,
             "another control constraint must reject before the originating control changes");
+    // A-gf-controls-11-F8: from input the same refusal means "no change",
+    // never an exception out of key handling.
+    gf::KeyEvent end{.action = gf::KeyAction::down, .physical_key = gf::PhysicalKey::end};
+    bool key_threw = false;
+    try { gui_forms::detail::ControlInputAccess::on_key(first, end); } catch (const std::exception&) { key_threw = true; }
+    require(!key_threw && first.value.read() == prior && volume.get() == prior && second.value.read() == prior,
+            "a refused End key must leave every bound control and the model unchanged");
     volume.dispose();
     first.value = 30.0;
     require(second.value.read() != 30.0, "disposed model must detach its bindings");
@@ -925,6 +932,19 @@ void test_choice_group_state_and_rebuild() {
     gui_forms::detail::ControlInputAccess::on_key(*group, right);
     require(right.handled && model.get() == 0 && observer.choices == before + 1,
             "arrow keys select choices through the shared model");
+    // A-gf-controls-11-F8: a second group bound to the same model refuses
+    // a selection outside its one item; a click on the wider group's second
+    // item is then no change rather than an exception out of activation.
+    (*group).set_items({{.id = 10, .label = "First"}, {.id = 20, .label = "Second"}});
+    const std::shared_ptr<gf::ChoiceGroup> narrow =
+        gf::make_control<gf::ChoiceGroup>(gf::StableId("narrow_choices"));
+    (*narrow).set_items({{.id = 10, .label = "Only"}});
+    (*narrow).bind(model);
+    const int selected_before = model.get();
+    bool click_threw = false;
+    try { (*group).item(1).perform_click(); } catch (const std::exception&) { click_threw = true; }
+    require(!click_threw && model.get() == selected_before && (*group).selected_index.read() == selected_before,
+            "a refused choice activation must leave the shared selection unchanged");
 }
 
 void test_expandable_sections_state() {

@@ -59,6 +59,21 @@ bool CheckBox::bound_checked() const noexcept {
     return check_state_ == CheckState::checked;
 }
 
+namespace {
+
+// Whether the bound value accepts `candidate`; a refusal is the binding's
+// exception, and nothing has changed when it refuses.
+bool bound_value_accepts(const detail::ScalarBinding<CheckBox, bool>& binding, bool candidate) {
+    try {
+        binding.validate_update(candidate);
+    } catch (const std::exception&) {
+        return false;
+    }
+    return true;
+}
+
+} // namespace
+
 void CheckBox::write_bound_checked(bool value) {
     checked = value;
 }
@@ -365,6 +380,14 @@ void CheckBox::on_activate() {
             next = CheckState::checked;
         } else if (check_state_ == CheckState::checked && three_state.read()) {
             next = CheckState::indeterminate;
+        }
+        // A bound Value may refuse the new state (another bound control, an
+        // application's validating handler). Activation comes from a click,
+        // a key or the access key, so the refusal means "no change" here
+        // rather than an exception out of input handling (A-gf-controls-11-F8).
+        // The check runs before the write, which validates again.
+        if (value_binding_ && next != check_state_ && !bound_value_accepts(*value_binding_, next == CheckState::checked)) {
+            return;
         }
         check_state = next;
         if (!is_alive()) {

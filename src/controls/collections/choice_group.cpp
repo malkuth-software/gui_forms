@@ -174,6 +174,14 @@ void ChoiceGroup::validate_local_selection(const int index) const {
     validate_selection(index);
     if (binding_) (*binding_).validate_update(index);
 }
+bool ChoiceGroup::local_selection_accepted(const int index) const {
+    try {
+        validate_local_selection(index);
+    } catch (const std::exception&) {
+        return false;
+    }
+    return true;
+}
 void ChoiceGroup::bind(Value<int>& selection) {
     require_mutable();
     const Control::Ptr retained = shared_from_this();
@@ -300,6 +308,10 @@ void ChoiceGroup::activate_item(const int id) {
     for (std::size_t index = 0U; index < (*revision).items.size(); ++index) {
         if ((*revision).items[index].id != id) continue;
         const int selected = static_cast<int>(index);
+        // Activation comes from a click or an arrow key: a bound Value's
+        // refusal means "no change" here rather than an exception out of
+        // input handling (A-gf-controls-11-F8). The write validates again.
+        if (selected != selected_index.read() && !local_selection_accepted(selected)) return;
         selected_index = selected;
         if (is_alive() && revision_ == revision) activated_.emit(selected);
         return;

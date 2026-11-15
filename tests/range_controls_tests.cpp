@@ -214,6 +214,60 @@ void test_pointer_capture_keyboard_and_disabled_state() {
             "disabled range controls must reject keyboard mutation");
 }
 
+// A-gf-controls-11-F8: a bound value that refuses a candidate (here the
+// narrower range of a second bound control) means "no change" during pointer
+// and key handling; nothing may leave the handler, where the host's fail-fast
+// boundary would end the process.
+void test_refused_bound_value_leaves_input_unchanged() {
+    Value<double> shared(25.0);
+    std::shared_ptr<gui_forms::TrackBar> wide = make_control<TrackBar>(StableId("refuse.wide"));
+    std::shared_ptr<gui_forms::TrackBar> narrow = make_control<TrackBar>(StableId("refuse.narrow"));
+    (*narrow).set_range(0.0, 50.0);
+    (*wide).bind(shared);
+    (*narrow).bind(shared);
+    (*wide).set_requested_bounds({10.0, 10.0, 200.0, 28.0});
+    Window window(wide, {240.0, 60.0});
+
+    PointerEvent down;
+    down.action = PointerAction::down;
+    down.button = PointerButton::primary;
+    down.position = {110.0, 24.0};
+    down.pointer_id = 3;
+    bool threw = false;
+    try {
+        window.dispatch_pointer(down);
+        PointerEvent move;
+        move.action = PointerAction::move;
+        move.position = {500.0, 24.0};
+        move.pointer_id = 3;
+        window.dispatch_pointer(move);
+        PointerEvent up = move;
+        up.action = PointerAction::up;
+        up.button = PointerButton::primary;
+        window.dispatch_pointer(up);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    require(!threw, "a refused drag must not throw out of pointer handling");
+    require(shared.get() <= 50.0 && (*narrow).value.read() == shared.get() &&
+                (*wide).value.read() == shared.get(),
+            "a refused drag must leave the shared value and both controls in agreement");
+
+    KeyEvent end;
+    end.action = KeyAction::down;
+    end.physical_key = PhysicalKey::end;
+    const double before = shared.get();
+    threw = false;
+    try {
+        window.dispatch_key(end);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    require(!threw, "a refused End key must not throw out of key handling");
+    require(shared.get() == before && (*wide).value.read() == before,
+            "a refused End key must leave the value unchanged");
+}
+
 void test_progress_rendering_and_vertical_geometry() {
     std::shared_ptr<gui_forms::Panel> panel = make_control<Panel>(StableId("range.panel"));
     (*panel).set_requested_bounds({0.0, 0.0, 240.0, 180.0});
@@ -398,6 +452,7 @@ int main() {
         test_container_focus_identity();
         test_range_validation_and_event_order();
         test_pointer_capture_keyboard_and_disabled_state();
+        test_refused_bound_value_leaves_input_unchanged();
         test_progress_rendering_and_vertical_geometry();
         test_scrollbar_geometry_capture_repeat_and_orientation();
         test_scrollbar_without_arrows();

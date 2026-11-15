@@ -12,6 +12,25 @@
 namespace gui_forms {
 using namespace range_control_detail;
 
+namespace {
+
+// Whether the bound value accepts `candidate` from user input. A refusal
+// (this control's or another bound control's range, or an application's
+// validating handler) is an exception from the binding; during pointer, key,
+// wheel or timer handling it must mean "no change", not leave the handler,
+// where the fail-fast boundary would end the process (A-gf-controls-11-F8).
+// Nothing has changed when the binding refuses.
+bool bound_value_accepts(const detail::ScalarBinding<RangeControl, double>& binding, double candidate) {
+    try {
+        binding.validate_update(candidate);
+    } catch (const std::exception&) {
+        return false;
+    }
+    return true;
+}
+
+} // namespace
+
 void RangeControl::bind(Value<double>& model) {
     require_mutable();
     const Control::Ptr retained = weak_from_this().lock();
@@ -141,7 +160,7 @@ bool RangeControl::set_value_from_input(double requested, RangeAction action) {
     if (next == value_) {
         return false;
     }
-    if (value_binding_) (*value_binding_).validate_update(next);
+    if (value_binding_ && !bound_value_accepts(*value_binding_, next)) return false;
     if (!is_alive()) return false;
     const RangeScrollEvent event{value_, next, action};
     value_ = next;
