@@ -1,11 +1,15 @@
 #include "abi_failure.hpp"
 
+#include "../../../platform/stxlib_bridge.hpp"
+
+#include <stxlib/result.hpp>
 #include <stxlib/shadow.hpp>
 
 #include <cstring>
 #include <exception>
 #include <memory>
 #include <new>
+#include <span>
 #include <utility>
 
 namespace gui_forms::abi1 {
@@ -60,18 +64,29 @@ void clear_failure() noexcept {
 }
 
 stxlib::ShadowReference ParkedFailure::park() noexcept {
-    const stxlib::ShadowReference parked = stxlib::park_shadow();
-    if (!exception) {
-        exception = std::current_exception();
-        shadow = parked;
-        // Copied now, before any other capture on the thread can overwrite
-        // the record. A refused allocation keeps the reference alone.
-        frames.reset(new (std::nothrow) detail::ParkedShadowCopy());
-        if (frames) {
-            detail::copy_parked_shadow(parked, *frames);
-        }
+    if (exception) {
+        const stxlib::ShadowReference later = stxlib::park_shadow();
+        return later;
     }
-    return parked;
+    exception = std::current_exception();
+    // Copied now, before any other capture on the thread can overwrite the
+    // record. The rooms are the stated sizes, so park_shadow_into fails only
+    // for an exhausted sequence; then, or when the allocation is refused,
+    // the reference alone is kept.
+    std::unique_ptr<ParkedShadowFrames> copy(new (std::nothrow) ParkedShadowFrames());
+    if (copy) {
+        const stxlib::Result<stxlib::ParkedShadow> parked = stxlib::park_shadow_into(
+            platform::stxlib_mutable_view((*copy).records), platform::stxlib_mutable_view((*copy).trace));
+        if (parked.succeeded()) {
+            (*copy).parked = *parked.value();
+            shadow = (*copy).parked.reference;
+            frames = std::move(copy);
+            return shadow;
+        }
+        copy.reset();
+    }
+    shadow = stxlib::park_shadow();
+    return shadow;
 }
 
 void ParkedFailure::rethrow() {
@@ -80,14 +95,21 @@ void ParkedFailure::rethrow() {
     }
     const std::exception_ptr carried = exception;
     const stxlib::ShadowReference carried_shadow = shadow;
-    std::unique_ptr<detail::ParkedShadowCopy> carried_frames = std::move(frames);
+    std::unique_ptr<ParkedShadowFrames> carried_frames = std::move(frames);
     exception = nullptr;
     shadow = stxlib::ShadowReference{};
     if (carried_frames) {
-        detail::carry_parked_shadow(*carried_frames);
+        const ParkedShadowFrames& copy = *carried_frames;
+        const std::span<const stxlib::ShadowFrameRecord> records(copy.records.data(), copy.parked.frame_count);
+        const std::span<const stxlib::uptr> trace(copy.trace.data(), copy.parked.trace_count);
+        // The new record's reference is not needed: it is pending, and the
+        // outer gate's record names it.
+        static_cast<void>(stxlib::restore_shadow_from(copy.parked, platform::stxlib_view(records),
+                                                      platform::stxlib_view(trace)));
+    } else {
+        stxlib::restore_shadow(carried_shadow);
     }
     carried_frames.reset();
-    stxlib::restore_shadow(carried_shadow);
     std::rethrow_exception(carried);
 }
 

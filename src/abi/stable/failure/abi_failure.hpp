@@ -2,9 +2,8 @@
 
 #include "gui_forms/c/gf_abi.h"
 
-#include "../../../core/failure/failure_snapshot.hpp"
-
 #include <stxlib/error.hpp>
+#include <stxlib/shadow.hpp>
 
 #include <array>
 #include <cstdint>
@@ -61,35 +60,46 @@ void clear_failure() noexcept;
 // catches it files the frames of the original throw, not of the rethrow.
 // One per carrying frame, on its thread.
 //
-// The failure owns its frames (the owner's decision for S3): the park
-// copies the record's frames and trace into frames, so they survive any
-// capture between the park and the rethrow (a thread keeps the last 4
-// records in a development build, the last 1 in a release build), and a
-// nested park keeps its own. The rethrow hands the copy to the outer gate's
-// filing (detail::carry_parked_shadow). When the copy's allocation is
-// refused the reference alone is kept, as before: the frames then survive
-// only while the thread still holds the record, and the outer gate files
-// none otherwise (detected, never another failure's frames). STXlib's own
-// gate record of the rethrow reads its frames from the restored record and
-// can lack them; only GUI.Forms' snapshot carries the copy.
+// The failure owns its frames (the owner's decision for S3, the A2 list's
+// G3): the park copies the record's frames and trace into frames
+// (stxlib::park_shadow_into), so they survive any capture between the park
+// and the rethrow (a thread keeps the last 4 records in a development build,
+// the last 1 in a release build), and a nested park keeps its own. The
+// rethrow files the copy as a new record and makes it pending
+// (stxlib::restore_shadow_from), so the outer gate, STXlib's record and
+// GUI.Forms' snapshot alike, attaches the original throw's frames.
+//
+// The copy (about 7.9 KiB) is allocated on the failure path, not kept in
+// every HookFrame on a class entry's stack. When the allocation is refused,
+// or STXlib cannot park into it (an exhausted shadow sequence), the
+// reference alone is kept (stxlib::park_shadow and restore_shadow): its
+// frames then survive only while the thread still holds the record, and the
+// outer gate files none otherwise (detected, never another failure's).
+struct ParkedShadowFrames final {
+    stxlib::ParkedShadow parked{};
+    std::array<stxlib::ShadowFrameRecord, stxlib::parked_shadow_frame_room> records{};
+    std::array<stxlib::uptr, stxlib::parked_shadow_trace_room> trace{};
+};
+
 struct ParkedFailure final {
     std::exception_ptr exception;
+    // The parked record (frames' parked.reference when the copy is held).
     stxlib::ShadowReference shadow{};
     // The copy of shadow's frames and trace; null when nothing is kept or
-    // the copy was refused.
-    std::unique_ptr<detail::ParkedShadowCopy> frames;
+    // only the reference is.
+    std::unique_ptr<ParkedShadowFrames> frames;
 
     // Inside a catch block: parks the current exception's shadow record
-    // (stxlib::park_shadow, which clears the thread's pending capture) and
-    // returns it, for the failure's snapshot. The first failure parked is
-    // the one kept, with its copy of the record; a later one is only parked
-    // and returned.
+    // (which clears the thread's pending capture) and returns it, for the
+    // failure's snapshot, which reads it at once. The first failure parked
+    // is the one kept, with its copy of the record; a later one is only
+    // parked (stxlib::park_shadow) and returned.
     stxlib::ShadowReference park() noexcept;
 
-    // Rethrows the kept exception after handing over its copy of the frames
-    // and making its shadow record the thread's pending capture again
-    // (stxlib::restore_shadow), and holds nothing afterwards. Returns
-    // without throwing when nothing is kept.
+    // Rethrows the kept exception after filing its copy of the frames as
+    // the thread's pending capture (stxlib::restore_shadow_from; with only
+    // the reference, stxlib::restore_shadow), and holds nothing afterwards.
+    // Returns without throwing when nothing is kept.
     void rethrow();
 };
 

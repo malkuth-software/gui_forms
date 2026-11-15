@@ -229,8 +229,8 @@ gf_status intervening_body() {
 void test_parked_failure_outlives_captures() {
     abi1::ParkedFailure parked;
     require(abi1::call_slot(parking_slot, parking_body, parked) == GF_STATUS_INTERNAL, "the failure is parked");
-    require(parked.frames != nullptr && (*parked.frames).frame_count == 2U &&
-                (*parked.frames).reference.sequence == parked.shadow.sequence,
+    require(parked.frames != nullptr && (*parked.frames).parked.frame_count == 2U &&
+                (*parked.frames).parked.reference.sequence == parked.shadow.sequence,
             "the park copies its record's frames into the failure");
     const std::size_t intervening = stxlib::shadow_record_capacity + 1U;
     for (std::size_t index = 0U; index < intervening; ++index) {
@@ -249,9 +249,10 @@ void test_parked_failure_outlives_captures() {
             "the outer gate files the original throw's frames after the record was overwritten");
     require(parked.frames == nullptr, "the rethrow holds no copy afterwards");
 
-    // The hand-over is spent: the next failure files its own frames.
+    // The copy was filed as a new record for the rethrow only: the next
+    // failure files its own frames.
     require(abi1::call_slot(intervening_slot, intervening_body) == GF_STATUS_INTERNAL, "a later failure is filed");
-    require(!holds_original_throw(detail::thread_failure_snapshot()), "a spent copy is attached to no other failure");
+    require(!holds_original_throw(detail::thread_failure_snapshot()), "a filed copy is attached to no other failure");
 }
 
 // A nested park: an inner frame parks and rethrows its own failure while an

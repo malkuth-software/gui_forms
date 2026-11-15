@@ -76,40 +76,6 @@ struct GUI_FORMS_API FailureSnapshot final {
     std::array<std::uint64_t, failure_trace_capacity> trace{};
 };
 
-// A parked failure's own copy of its shadow record (survey B8; the owner's
-// decision for S3: a ParkedFailure owns its frames, copied when it parks).
-// A release build keeps one shadow record per thread and a development
-// build four, so any capture between the park and the rethrow can overwrite
-// the record itself; the copy does not depend on it. reference names the
-// record copied (zero for none); frame_count and trace_count are the leading
-// elements written, recorded the frames the record held (which may exceed
-// frame_count) and depth the stack's depth at the capture. Trivially
-// destructible, as a thread_local must be (owner rule 2).
-struct GUI_FORMS_API ParkedShadowCopy final {
-    stxlib::ShadowReference reference{};
-    std::size_t recorded = 0U;
-    std::uint32_t depth = 0U;
-    std::uint32_t frame_count = 0U;
-    std::uint32_t trace_count = 0U;
-    std::array<ShadowFrame, shadow_stack_capacity> frames{};
-    std::array<std::uint64_t, failure_trace_capacity> trace{};
-};
-
-// Copies the frames and trace of parked, the calling thread's record that
-// stxlib::park_shadow just returned, into copy (every field replaced; an
-// overwritten or absent record copies as no frames). Called at the park,
-// before another capture on the thread can overwrite the record.
-GUI_FORMS_API void copy_parked_shadow(stxlib::ShadowReference parked, ParkedShadowCopy& copy) noexcept;
-
-// Hands copy to the calling thread for the rethrow about to restore
-// copy.reference (stxlib::restore_shadow). The next gate record filed with
-// that reference on this thread (record_failure_snapshot below) takes the
-// copy's frames and trace instead of reading STXlib's record, which may have
-// been overwritten since the park; the hand-over is then spent. A later
-// hand-over replaces an unspent one. Sequences are never reused on a
-// thread, so a copy is never attached to another failure.
-GUI_FORMS_API void carry_parked_shadow(const ParkedShadowCopy& copy) noexcept;
-
 // Where a snapshot is taken: the boundary's site and status, and the C ABI
 // function when there is one (else zero).
 struct GUI_FORMS_API FailureBoundary final {
@@ -124,9 +90,10 @@ struct GUI_FORMS_API FailureBoundary final {
 // exception's type of its shadow record (no frames when it has none). Any
 // time after the gate returned, on the gate's thread, while the record's
 // shadow record is among the thread's last records (4 in a development
-// build, 1 in a release build), or when a parked failure's rethrow handed
-// over its own copy of that record (carry_parked_shadow). status must not
-// be zero.
+// build, 1 in a release build). A parked failure's rethrow files its own
+// copy of the frames as a new record (stxlib::restore_shadow_from), so the
+// outer gate's record qualifies whatever was captured since the park.
+// status must not be zero.
 GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std::string_view message,
                                            const stxlib::ErrorRecord& record) noexcept;
 
