@@ -2,6 +2,7 @@
 // The X desktop is in device pixels; desktop logical units map through each
 // monitor's scale (desktop_coordinates.hpp, Runtime::device_monitors).
 #include "linux_host_internal.hpp"
+#include "../services/x11_foreign_window.hpp"
 
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
@@ -242,6 +243,12 @@ HostWindowAtResult X11Windowing::window_at_impl(DesktopLogicalPoint point) {
   ::Window parent{};
   ::Window *children = nullptr;
   unsigned count{};
+  // Every child is another client's window, any of which may be destroyed
+  // between the tree read and its attribute read: BadWindow for any of them
+  // is absorbed, and XGetWindowAttributes then reports failure
+  // (A-gf-host-01-F2).
+  const linux_detail::ForeignWindowScope foreign_children(display, root,
+                                                          linux_detail::ForeignWindowErrors::any_bad_window);
   if (!XQueryTree(display, root, &root_return, &parent, &children, &count)) {
     result.status.error = HostServiceError::backend_failure;
     return result;
@@ -383,8 +390,12 @@ HostServiceStatus X11Windowing::run_modal_impl(HostWindowId window) {
   // (SurfaceRoot::restore_focus).
   NativeWindow *const owner_native = owner_id.has_value() ? native(*owner_id) : nullptr;
   if (owner_native != nullptr && !(*owner_native).closed && (*owner_native).visible) {
+    // visible follows MapNotify and UnmapNotify, so it can be one round trip
+    // stale: a BadMatch is absorbed rather than ending the process
+    // (A-gf-host-01-F1). The scope synchronizes on leaving.
+    const linux_detail::ForeignWindowScope focus_errors(runtime_.display, (*owner_native).xid,
+                                                        linux_detail::ForeignWindowErrors::input_focus);
     XSetInputFocus(runtime_.display, (*owner_native).xid, RevertToParent, CurrentTime);
-    XFlush(runtime_.display);
   }
   return {};
 }

@@ -2,6 +2,7 @@
 // stxlib::Status (through fail_fast.hpp) cannot follow.
 #include "../../../core/failure/fail_fast.hpp"
 #include "linux_accessibility.hpp"
+#include "../services/x11_foreign_window.hpp"
 
 #include <atk/atk.h>
 #include <atk-bridge.h>
@@ -1216,6 +1217,11 @@ gboolean perform(gpointer object, SemanticAction action, const std::string& valu
     Window* const window = owner.model.get();
     if (node.live && node.owner != nullptr && window != nullptr) {
         if (action == SemanticAction::focus) {
+            // A hidden or iconified window refuses the focus with BadMatch,
+            // which Xlib's default handler turns into exit(1): absorbed
+            // here, and the focus is then simply not given (A-gf-host-01-F1).
+            const linux_detail::ForeignWindowScope focus_errors(owner.display, owner.native,
+                                                                linux_detail::ForeignWindowErrors::input_focus);
             XSetInputFocus(owner.display, owner.native, RevertToParent, CurrentTime);
         }
         // Copied: the action may run a nested main loop whose update
