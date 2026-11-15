@@ -283,6 +283,19 @@ void frames_and_input_cross_the_process_boundary() {
     require(!fixture.input.connected() && !fixture.input.send_key(key), "input to an ended program is dropped");
 }
 
+// A-gf-host-02-F17: text over the payload limit is dropped and counted,
+// never thrown, as every other send that cannot go.
+void oversized_text_is_dropped_and_counted() {
+    Fixture fixture = start_child("hosted.text_limit", "frames");
+    require(settle(fixture, StatusIs{ContentSurfaceStatus::live}), "the program is live");
+    const std::uint64_t before = fixture.input.dropped();
+    const std::string oversized(hosted_maximum_payload_bytes, 'x');
+    require(!fixture.input.send_text(oversized, false), "text over the payload limit is not sent");
+    require(fixture.input.dropped() == before + 1U, "the dropped text is counted");
+    (*fixture.surface).terminate();
+    require(settle(fixture, StatusIs{ContentSurfaceStatus::ended}), "the program ends on request");
+}
+
 // Keeps every key_down for `withheld` from the program, as any subscriber
 // may.
 struct WithholdKey final {
@@ -461,6 +474,7 @@ int main() {
         options_are_checked();
 #if !defined(_WIN32)
         frames_and_input_cross_the_process_boundary();
+        oversized_text_is_dropped_and_counted();
         the_surface_forwards_its_input_in_order();
         a_crash_ends_only_the_program();
         a_crashed_surface_takes_a_new_program();
