@@ -259,6 +259,7 @@ public static class Constants
     public const ulong GF_HOST_CAPABILITY_WINDOW_CORNERS = 17179869184ul;
     public const ulong GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS = 34359738368ul;
     public const ulong GF_HOST_CAPABILITY_HOSTED_CONTENT = 68719476736ul;
+    public const ulong GF_HOST_CAPABILITY_OPEN_URL = 2199023255552ul;
     public const uint GF_WINDOW_CORNER_SHAPE_SQUARE = 1u;
     public const uint GF_WINDOW_CORNER_SHAPE_ROUNDED = 2u;
     public const uint GF_TRANSIENT_SURFACE_TOOLTIP = 1u;
