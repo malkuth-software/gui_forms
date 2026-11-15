@@ -543,6 +543,22 @@ int main() {
     CHECK(api.font_create({family, sizeof(family) - 1U}, 12.0, 0U,
                           3U, 1U, &font) == GD_OK);
     CHECK(api.string_format_create(0U, &format) == GD_OK);
+    // A-gf-abi-01-F3: text that fits whole is reported whole, including a
+    // final multi-byte character (the search once stopped short of it).
+    const char accented[] = "a\xC3\xA9";
+    const char kanji[] = "\xE6\x97\xA5\xE6\x9C\xAC\xE8\xAA\x9E";
+    const char lone[] = "\xC3\xA9";
+    const std::array<std::string_view, 3> whole_texts{std::string_view{accented, sizeof(accented) - 1U},
+                                                      std::string_view{kanji, sizeof(kanji) - 1U},
+                                                      std::string_view{lone, sizeof(lone) - 1U}};
+    for (const std::string_view whole : whole_texts) {
+        std::uint64_t fitted_bytes = 0U;
+        double fitted_width = 0.0;
+        CHECK(raster.measure_string_fitted({whole.data(), whole.size()}, font, format, 1.0e6, &fitted_bytes,
+                                           &fitted_width) == GD_OK);
+        CHECK(fitted_bytes == whole.size());
+        CHECK(fitted_width > 0.0);
+    }
     const char narrow[] = "iiii";
     const char wide[] = "WWWW";
     gd_size narrow_size{};

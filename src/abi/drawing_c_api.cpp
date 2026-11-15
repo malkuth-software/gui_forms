@@ -2931,10 +2931,23 @@ gd_result measure_fitted_prefix(gui_drawing::Font& font, gui_drawing::StringForm
     std::size_t low = 0U;
     std::size_t high = text.size();
     double low_width = 0.0;
+    // low and high are code-point boundaries (high starts at the end and is
+    // only ever moved back to one), and the answer lies in [low, high].
     while (low < high) {
-        std::size_t middle = low + (high - low + 1U) / 2U;
+        const std::size_t first = low + (high - low + 1U) / 2U;
+        std::size_t middle = first;
         while (middle > low && middle < text.size() && (static_cast<unsigned char>(text[middle]) & 0xC0U) == 0x80U) {
             --middle;
+        }
+        // The midpoint fell inside the character that starts at low: measure
+        // at the next boundary after it instead (at most high, itself a
+        // boundary), so a final multi-byte character is measured too
+        // (A-gf-abi-01-F3).
+        if (middle == low) {
+            middle = first;
+            while (middle < high && (static_cast<unsigned char>(text[middle]) & 0xC0U) == 0x80U) {
+                ++middle;
+            }
         }
         if (middle == low) break;
         gd_size measured{};
