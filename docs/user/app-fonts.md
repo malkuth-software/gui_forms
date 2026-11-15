@@ -65,6 +65,12 @@ family keep its bytes, so text they shaped stays drawable; the bytes are
 freed when the last such engine goes (`AppFontUnload::deferred`, state
 `unloading`, then `released`). A family number is never reused.
 
+The name is free to load again as soon as `unload` returns, even while the
+release is deferred: the new load is a new family with a new number, and
+text already shaped with the old one keeps its bytes until its engines go.
+A program can load a family once per session and unload it in its own
+teardown, and a later session loads the same name again.
+
 ## C ABI and C#
 
 The fonts table's `load_family` and `unload_family` (C ABI 1.5,

@@ -39,6 +39,15 @@
 // the family stays drawable (AppFontUnload::deferred). A family number is
 // never reused within a process.
 //
+// Names: a family's name is free to load again as soon as unload returns,
+// whether the release was immediate or deferred; nothing waits for the
+// deferred release. The new load is a separate family with a new number:
+// text already shaped with the old family keeps drawing with the old bytes
+// until its engines go, and new text names the new family. A program that
+// loads a family under one name per session and unloads it in its own
+// teardown can therefore load the name again in a later session. A
+// quarantined family keeps its name until it is unloaded.
+//
 // Threads: every function here may be called from any thread. Loading and
 // unloading are serialized by the registry's lock; the queries text engines
 // make per shaped run read atomics and take the lock only to copy a family's
@@ -74,7 +83,8 @@ enum class AppFontStatus : std::uint8_t {
     // outside 1 to 1000, an empty or over-long name or one holding a control
     // character, a quote, a comma or a semicolon (it could not be named in a
     // look's `font-family` list), a name a bundled family, a CSS generic or a
-    // loaded application family already has, or no number left.
+    // loaded application family already has (live or quarantined; an
+    // unloaded family's name is free, see Names above), or no number left.
     no_faces,
     too_many_faces,
     weight_invalid,

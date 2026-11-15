@@ -522,9 +522,33 @@ void unload_while_in_use_is_deferred() {
         const ShapedText reshaped = (*engine).shape("In use", font);
         require(!reshaped.runs.empty() && !drawn_with(*engine, reshaped, family),
                 "new text draws with the role's faces");
+
+        // The name is free as soon as unload returns, before the deferred release completes.
+        AppFontLoad during = load_app_font_family("Unload Face", faces);
+        const FontFamilyId second = during.family.id();
+        require(during.validation.status == AppFontStatus::loaded && second.value != 0U && !(second == family),
+                "the name loads again while the old family's release is deferred, as a new family");
+        require(app_font_family_named("Unload Face") == second, "the name finds the new family");
+        require(app_font_family_state(family) == AppFontState::unloading,
+                "the old family stays unloading beside the new one");
+        FontSpec renamed = font;
+        renamed.family = second;
+        const ShapedText fresh = (*engine).shape("In use", renamed);
+        require(drawn_with(*engine, fresh, second), "the same engine draws with the reloaded family");
+        require(during.family.unload() == AppFontUnload::deferred, "the reloaded family defers in turn");
         engine.reset();
-        require(app_font_family_state(family) == AppFontState::released,
+        require(app_font_family_state(family) == AppFontState::released &&
+                    app_font_family_state(second) == AppFontState::released,
                 "the bytes are released when the last engine that opened them goes");
+    }
+    // A later session: load, unload and load the same name again once every release completed.
+    for (std::size_t session = 0U; session < 3U; ++session) {
+        AppFontLoad shell = load_app_font_family("Unload Face", faces);
+        const FontFamilyId shell_family = shell.family.id();
+        require(shell.validation.status == AppFontStatus::loaded && shell_family.value != 0U &&
+                    !(shell_family == family),
+                "a later session loads the name again");
+        require(shell.family.unload() == AppFontUnload::released, "a session's unused family is released");
     }
     require(loaded.family.unload() == AppFontUnload::not_loaded, "an emptied handle unloads nothing");
 }
