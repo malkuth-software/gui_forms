@@ -6,7 +6,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/window.hpp"
-#include "../number_text/number_text.hpp"
+#include "../basic/number_text.hpp"
 
 #include <algorithm>
 #include <array>
@@ -179,7 +179,7 @@ SemanticDescriptor ProgressRing::semantic_descriptor() const {
         // locale; this is the same text in the C locale
         // (A-gf-controls-10-F10).
         std::string text;
-        detail::append_number_text(text, shown, std::chars_format::general, 6);
+        number_text::append_number_text(text, shown, std::chars_format::general, 6);
         descriptor.value = text;
         descriptor.numeric_value = shown;
         descriptor.minimum_value = 0.0;

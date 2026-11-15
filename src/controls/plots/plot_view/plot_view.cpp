@@ -9,7 +9,7 @@
 #include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
-#include "../../number_text/number_text.hpp"
+#include "../../basic/number_text.hpp"
 
 #include <algorithm>
 #include <array>
@@ -993,9 +993,9 @@ SemanticDescriptor PlotView::semantic_descriptor() const {
     const std::optional<PlotPointPick> at = cursor();
     if (at.has_value()) {
         std::string text;
-        detail::append_number_text(text, (*at).x, std::chars_format::general, 6);
+        number_text::append_number_text(text, (*at).x, std::chars_format::general, 6);
         text += ", ";
-        detail::append_number_text(text, (*at).y, std::chars_format::general, 6);
+        number_text::append_number_text(text, (*at).y, std::chars_format::general, 6);
         descriptor.value = text;
     }
     descriptor.include_descendants = false;

@@ -4,11 +4,18 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <array>
+#include <string>
 #include <string_view>
 #include <system_error>
 
-// Locale-independent parsing of numbers typed by the user or written by an
-// assistive client (audit F4). std::stod and std::stoll follow LC_NUMERIC,
+// Locale-independent numbers: parsing what the user types or an assistive
+// client writes (audit F4), and writing what the controls publish
+// (A-gf-controls-05-F5, 10-F10 and the locale findings after them). This is
+// the one place that owns number text; std::to_string, printf and default
+// streams follow a locale the program may set.
+//
+// Parsing: std::stod and std::stoll follow LC_NUMERIC, std::stod and std::stoll follow LC_NUMERIC,
 // which an embedding application may change, and throw on ordinary bad input;
 // these read the C-locale form with std::from_chars and report failure with a
 // result instead.
@@ -62,6 +69,21 @@ namespace gui_forms::number_text {
     if (result.ec != std::errc{} || result.ptr != last) return false;
     value = negative ? -magnitude : magnitude;
     return true;
+}
+
+// Writing: std::to_chars with a format and precision is specified to write
+// what printf's matching conversion writes in the C locale, so "%.6g" is
+// append_number_text(out, value, std::chars_format::general, 6) and "%.0f" is
+// (..., std::chars_format::fixed, 0). Appends nothing when the text would not
+// fit 64 bytes, which no general form and no fixed form of a value below 1e40
+// reaches.
+inline void append_number_text(std::string& out, double value, std::chars_format format, int precision) {
+    std::array<char, 64> text{};
+    char* const first = text.data();
+    char* const last = first + text.size();
+    const std::to_chars_result written = std::to_chars(first, last, value, format, precision);
+    if (written.ec != std::errc{}) return;
+    out.append(first, written.ptr);
 }
 
 } // namespace gui_forms::number_text

@@ -5,7 +5,7 @@
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
-#include "../../number_text/number_text.hpp"
+#include "../../basic/number_text.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -53,7 +53,7 @@ constexpr std::size_t legend_capacity = 32U;
 // (A-gf-controls-10-F10).
 [[nodiscard]] std::string format_value(double value) {
     std::string result;
-    append_number_text(result, value, std::chars_format::general, 6);
+    number_text::append_number_text(result, value, std::chars_format::general, 6);
     return result;
 }
 

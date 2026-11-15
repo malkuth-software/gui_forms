@@ -5,7 +5,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
-#include "../../number_text/number_text.hpp"
+#include "../../basic/number_text.hpp"
 
 #include <algorithm>
 #include <array>
@@ -296,11 +296,11 @@ void Plot3DView::clear_hover() {
 std::string Plot3DView::angle_readout() const {
     const plots::Plot3DCamera& camera = scene_.camera();
     std::string result = "azimuth=";
-    detail::append_number_text(result, camera.azimuth, std::chars_format::fixed, 0);
+    number_text::append_number_text(result, camera.azimuth, std::chars_format::fixed, 0);
     result += "\xc2\xb0, elevation=";
-    detail::append_number_text(result, camera.elevation, std::chars_format::fixed, 0);
+    number_text::append_number_text(result, camera.elevation, std::chars_format::fixed, 0);
     result += "\xc2\xb0, roll=";
-    detail::append_number_text(result, camera.roll, std::chars_format::fixed, 0);
+    number_text::append_number_text(result, camera.roll, std::chars_format::fixed, 0);
     result += "\xc2\xb0";
     return result;
 }
@@ -727,11 +727,11 @@ SemanticDescriptor Plot3DView::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     const plots::Plot3DCamera& camera = scene_.camera();
     std::string text = "3D plot of " + std::to_string(scene_.item_count()) + " items, azimuth ";
-    detail::append_number_text(text, camera.azimuth, std::chars_format::fixed, 0);
+    number_text::append_number_text(text, camera.azimuth, std::chars_format::fixed, 0);
     text += " degrees, elevation ";
-    detail::append_number_text(text, camera.elevation, std::chars_format::fixed, 0);
+    number_text::append_number_text(text, camera.elevation, std::chars_format::fixed, 0);
     text += " degrees, zoom ";
-    detail::append_number_text(text, camera.zoom, std::chars_format::general, 2);
+    number_text::append_number_text(text, camera.zoom, std::chars_format::general, 2);
     descriptor.description = text;
     if (!accessible_description.read().empty()) descriptor.description = accessible_description.read();
     descriptor.value = readout_;

@@ -6,7 +6,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
-#include "../../number_text/number_text.hpp"
+#include "../../basic/number_text.hpp"
 
 #include <algorithm>
 #include <array>
@@ -258,12 +258,12 @@ SemanticDescriptor Sparkline::semantic_descriptor() const {
     // (A-gf-controls-05-F5).
     if (newest.has_value()) {
         std::string value_text;
-        detail::append_number_text(value_text, *newest, std::chars_format::general, 6);
+        number_text::append_number_text(value_text, *newest, std::chars_format::general, 6);
         descriptor.value = value_text;
         std::string described = "Trend of " + std::to_string(values_.length()) + " values from ";
-        detail::append_number_text(described, range.minimum, std::chars_format::general, 6);
+        number_text::append_number_text(described, range.minimum, std::chars_format::general, 6);
         described += " to ";
-        detail::append_number_text(described, range.maximum, std::chars_format::general, 6);
+        number_text::append_number_text(described, range.maximum, std::chars_format::general, 6);
         descriptor.description = described;
     }
     if (!accessible_description.read().empty()) descriptor.description = accessible_description.read();
