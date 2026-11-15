@@ -331,7 +331,7 @@ public static unsafe class Layout
         {
             gf_windows_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 152);
+            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 160);
             failures += expect(output, "gf_windows_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_windows_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_windows_table.run offset", (long)((byte*)&value.run - start), 8);
@@ -352,6 +352,7 @@ public static unsafe class Layout
             failures += expect(output, "gf_windows_table.set_corner_preference offset", (long)((byte*)&value.set_corner_preference - start), 128);
             failures += expect(output, "gf_windows_table.content_rect offset", (long)((byte*)&value.content_rect - start), 136);
             failures += expect(output, "gf_windows_table.shaping offset", (long)((byte*)&value.shaping - start), 144);
+            failures += expect(output, "gf_windows_table.pointer_location offset", (long)((byte*)&value.pointer_location - start), 152);
         }
         {
             gf_schema_type value = default;
@@ -1482,6 +1483,67 @@ public static unsafe class Layout
             failures += expect(output, "gf_content_table.editor_set_draws_selection offset", (long)((byte*)&value.editor_set_draws_selection - start), 288);
             failures += expect(output, "gf_content_table.editor_set_multiline offset", (long)((byte*)&value.editor_set_multiline - start), 296);
             failures += expect(output, "gf_content_table.editor_set_read_only offset", (long)((byte*)&value.editor_set_read_only - start), 304);
+        }
+        {
+            gf_list_view_column value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_list_view_column size", sizeof(gf_list_view_column), 48);
+            failures += expect(output, "gf_list_view_column.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_list_view_column.alignment offset", (long)((byte*)&value.alignment - start), 4);
+            failures += expect(output, "gf_list_view_column.width offset", (long)((byte*)&value.width - start), 8);
+            failures += expect(output, "gf_list_view_column.stable_id offset", (long)((byte*)&value.stable_id - start), 16);
+            failures += expect(output, "gf_list_view_column.text offset", (long)((byte*)&value.text - start), 32);
+        }
+        {
+            gf_list_view_item value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_list_view_item size", sizeof(gf_list_view_item), 88);
+            failures += expect(output, "gf_list_view_item.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_list_view_item.checked offset", (long)((byte*)&value.@checked - start), 4);
+            failures += expect(output, "gf_list_view_item.stable_id offset", (long)((byte*)&value.stable_id - start), 8);
+            failures += expect(output, "gf_list_view_item.text offset", (long)((byte*)&value.text - start), 24);
+            failures += expect(output, "gf_list_view_item.image_key offset", (long)((byte*)&value.image_key - start), 40);
+            failures += expect(output, "gf_list_view_item.group offset", (long)((byte*)&value.group - start), 56);
+            failures += expect(output, "gf_list_view_item.sub_items offset", (long)((byte*)&value.sub_items - start), 72);
+            failures += expect(output, "gf_list_view_item.sub_item_count offset", (long)((byte*)&value.sub_item_count - start), 80);
+        }
+        {
+            gf_list_view_group value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_list_view_group size", sizeof(gf_list_view_group), 40);
+            failures += expect(output, "gf_list_view_group.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_list_view_group.header_alignment offset", (long)((byte*)&value.header_alignment - start), 4);
+            failures += expect(output, "gf_list_view_group.stable_id offset", (long)((byte*)&value.stable_id - start), 8);
+            failures += expect(output, "gf_list_view_group.header offset", (long)((byte*)&value.header - start), 24);
+        }
+        {
+            gf_list_view_table value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_list_view_table size", sizeof(gf_list_view_table), 184);
+            failures += expect(output, "gf_list_view_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_list_view_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
+            failures += expect(output, "gf_list_view_table.column_count offset", (long)((byte*)&value.column_count - start), 8);
+            failures += expect(output, "gf_list_view_table.column_at offset", (long)((byte*)&value.column_at - start), 16);
+            failures += expect(output, "gf_list_view_table.set_columns offset", (long)((byte*)&value.set_columns - start), 24);
+            failures += expect(output, "gf_list_view_table.set_column_width offset", (long)((byte*)&value.set_column_width - start), 32);
+            failures += expect(output, "gf_list_view_table.item_count offset", (long)((byte*)&value.item_count - start), 40);
+            failures += expect(output, "gf_list_view_table.item_at offset", (long)((byte*)&value.item_at - start), 48);
+            failures += expect(output, "gf_list_view_table.item_sub_item offset", (long)((byte*)&value.item_sub_item - start), 56);
+            failures += expect(output, "gf_list_view_table.set_items offset", (long)((byte*)&value.set_items - start), 64);
+            failures += expect(output, "gf_list_view_table.index_of offset", (long)((byte*)&value.index_of - start), 72);
+            failures += expect(output, "gf_list_view_table.set_item_checked offset", (long)((byte*)&value.set_item_checked - start), 80);
+            failures += expect(output, "gf_list_view_table.group_count offset", (long)((byte*)&value.group_count - start), 88);
+            failures += expect(output, "gf_list_view_table.group_at offset", (long)((byte*)&value.group_at - start), 96);
+            failures += expect(output, "gf_list_view_table.set_groups offset", (long)((byte*)&value.set_groups - start), 104);
+            failures += expect(output, "gf_list_view_table.selected_items offset", (long)((byte*)&value.selected_items - start), 112);
+            failures += expect(output, "gf_list_view_table.set_selected offset", (long)((byte*)&value.set_selected - start), 120);
+            failures += expect(output, "gf_list_view_table.select_all offset", (long)((byte*)&value.select_all - start), 128);
+            failures += expect(output, "gf_list_view_table.clear_selection offset", (long)((byte*)&value.clear_selection - start), 136);
+            failures += expect(output, "gf_list_view_table.focused_item offset", (long)((byte*)&value.focused_item - start), 144);
+            failures += expect(output, "gf_list_view_table.set_focused_item offset", (long)((byte*)&value.set_focused_item - start), 152);
+            failures += expect(output, "gf_list_view_table.ensure_visible offset", (long)((byte*)&value.ensure_visible - start), 160);
+            failures += expect(output, "gf_list_view_table.set_sort_indicator offset", (long)((byte*)&value.set_sort_indicator - start), 168);
+            failures += expect(output, "gf_list_view_table.sort_items offset", (long)((byte*)&value.sort_items - start), 176);
         }
         {
             gf_windows_paint_endpoint_table value = default;

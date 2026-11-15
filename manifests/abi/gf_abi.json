@@ -7,7 +7,7 @@
   ],
   "abi": {
     "major": 1,
-    "minor": 4
+    "minor": 5
   },
   "targets": [
     "x86_64-w64-windows-gnu",
@@ -23,7 +23,7 @@
     },
     {
       "name": "GF_ABI_MINOR",
-      "value": 4,
+      "value": 5,
       "type": "uint32"
     },
     {
@@ -234,6 +234,11 @@
     {
       "name": "GF_TABLE_CONTENT",
       "value": 25,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TABLE_LIST_VIEW",
+      "value": 26,
       "type": "uint32"
     },
     {
@@ -2917,6 +2922,56 @@
       "type": "uint32"
     },
     {
+      "name": "GF_LIST_VIEW_ALIGNMENT_LEFT",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LIST_VIEW_ALIGNMENT_CENTER",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LIST_VIEW_ALIGNMENT_RIGHT",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LIST_VIEW_SORT_ORDER_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LIST_VIEW_SORT_ORDER_ASCENDING",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LIST_VIEW_SORT_ORDER_DESCENDING",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LIST_VIEW_MAXIMUM_COLUMNS",
+      "value": 64,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LIST_VIEW_MAXIMUM_ITEMS",
+      "value": 10000000,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LIST_VIEW_MAXIMUM_GROUPS",
+      "value": 4096,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_LIST_VIEW_MAXIMUM_SUB_ITEMS",
+      "value": 64,
+      "type": "uint32"
+    },
+    {
       "name": "GF_PAINT_ENDPOINT_MAXIMUM_SIDE",
       "value": 32768,
       "type": "uint32"
@@ -3502,6 +3557,14 @@
     },
     {
       "name": "gf_hosted_support",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_list_view_alignment",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_list_view_sort_order",
       "type": "uint32_t"
     },
     {
@@ -5482,7 +5545,7 @@
     {
       "name": "gf_windows_table",
       "kind": "table",
-      "size": 152,
+      "size": 160,
       "align": 8,
       "fields": [
         {
@@ -5856,6 +5919,34 @@
             ]
           },
           "since": "1.3"
+        },
+        {
+          "name": "pointer_location",
+          "type": "function",
+          "offset": 152,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_control",
+                "type": "gf_object"
+              },
+              {
+                "name": "location",
+                "type": "gf_logical_point*"
+              },
+              {
+                "name": "window_position",
+                "type": "gf_logical_point*"
+              },
+              {
+                "name": "inside",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.5"
         }
       ]
     },
@@ -15045,6 +15136,692 @@
             ]
           },
           "since": "1.4"
+        }
+      ]
+    },
+    {
+      "name": "gf_list_view_column",
+      "kind": "extensible",
+      "size": 48,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "alignment",
+          "type": "gf_list_view_alignment",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "width",
+          "type": "double",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "stable_id",
+          "type": "gf_utf8_view",
+          "offset": 16,
+          "size": 16
+        },
+        {
+          "name": "text",
+          "type": "gf_utf8_view",
+          "offset": 32,
+          "size": 16
+        }
+      ]
+    },
+    {
+      "name": "gf_list_view_item",
+      "kind": "extensible",
+      "size": 88,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "checked",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "stable_id",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "text",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "image_key",
+          "type": "gf_utf8_view",
+          "offset": 40,
+          "size": 16
+        },
+        {
+          "name": "group",
+          "type": "gf_utf8_view",
+          "offset": 56,
+          "size": 16
+        },
+        {
+          "name": "sub_items",
+          "type": "const gf_utf8_view*",
+          "offset": 72,
+          "size": 8
+        },
+        {
+          "name": "sub_item_count",
+          "type": "uint64_t",
+          "offset": 80,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_list_view_group",
+      "kind": "extensible",
+      "size": 40,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "header_alignment",
+          "type": "gf_list_view_alignment",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "stable_id",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "header",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        }
+      ]
+    },
+    {
+      "name": "gf_list_view_table",
+      "kind": "table",
+      "size": 184,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "column_count",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "column_at",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "column",
+                "type": "gf_list_view_column*"
+              },
+              {
+                "name": "text_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "text_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text_required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "set_columns",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "columns",
+                "type": "const gf_list_view_column*"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "set_column_width",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "width",
+                "type": "double"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "item_count",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "item_at",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "item",
+                "type": "gf_list_view_item*"
+              },
+              {
+                "name": "text_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "text_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text_required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "item_sub_item",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "sub_item",
+                "type": "uint64_t"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "set_items",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "items",
+                "type": "const gf_list_view_item*"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "index_of",
+          "type": "function",
+          "offset": 72,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "item_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "set_item_checked",
+          "type": "function",
+          "offset": 80,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "checked",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "group_count",
+          "type": "function",
+          "offset": 88,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "group_at",
+          "type": "function",
+          "offset": 96,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "group",
+                "type": "gf_list_view_group*"
+              },
+              {
+                "name": "text_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "text_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text_required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "set_groups",
+          "type": "function",
+          "offset": 104,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "groups",
+                "type": "const gf_list_view_group*"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "selected_items",
+          "type": "function",
+          "offset": 112,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "indices",
+                "type": "uint64_t*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "set_selected",
+          "type": "function",
+          "offset": 120,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "selected",
+                "type": "uint32_t"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "select_all",
+          "type": "function",
+          "offset": 128,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "clear_selection",
+          "type": "function",
+          "offset": 136,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "focused_item",
+          "type": "function",
+          "offset": 144,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "int64_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "set_focused_item",
+          "type": "function",
+          "offset": 152,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "int64_t"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "ensure_visible",
+          "type": "function",
+          "offset": 160,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "set_sort_indicator",
+          "type": "function",
+          "offset": 168,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "column",
+                "type": "int64_t"
+              },
+              {
+                "name": "order",
+                "type": "gf_list_view_sort_order"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "sort_items",
+          "type": "function",
+          "offset": 176,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "view",
+                "type": "gf_object"
+              },
+              {
+                "name": "column",
+                "type": "uint64_t"
+              },
+              {
+                "name": "order",
+                "type": "gf_list_view_sort_order"
+              }
+            ]
+          },
+          "since": "1.5"
         }
       ]
     },

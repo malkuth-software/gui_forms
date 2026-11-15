@@ -348,7 +348,7 @@ public unsafe struct gf_window_shaping
     public double corner_radius;
 }
 
-/// <summary>gf_windows_table (table, 152 bytes).</summary>
+/// <summary>gf_windows_table (table, 160 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_table
 {
@@ -372,6 +372,7 @@ public unsafe struct gf_windows_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_window_corner_preference, gf_status> set_corner_preference;
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, gf_status> content_rect;
     public delegate* unmanaged[Cdecl]<gf_object, gf_window_shaping*, gf_status> shaping;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_logical_point*, gf_logical_point*, uint*, gf_status> pointer_location;
 }
 
 /// <summary>gf_schema_type (extensible, 88 bytes).</summary>
@@ -1584,6 +1585,71 @@ public unsafe struct gf_content_table
     public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> editor_set_draws_selection;
     public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> editor_set_multiline;
     public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> editor_set_read_only;
+}
+
+/// <summary>gf_list_view_column (extensible, 48 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_list_view_column
+{
+    public uint struct_size;
+    public gf_list_view_alignment alignment;
+    public double width;
+    public gf_utf8_view stable_id;
+    public gf_utf8_view text;
+}
+
+/// <summary>gf_list_view_item (extensible, 88 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_list_view_item
+{
+    public uint struct_size;
+    public uint @checked;
+    public gf_utf8_view stable_id;
+    public gf_utf8_view text;
+    public gf_utf8_view image_key;
+    public gf_utf8_view group;
+    public gf_utf8_view* sub_items;
+    public ulong sub_item_count;
+}
+
+/// <summary>gf_list_view_group (extensible, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_list_view_group
+{
+    public uint struct_size;
+    public gf_list_view_alignment header_alignment;
+    public gf_utf8_view stable_id;
+    public gf_utf8_view header;
+}
+
+/// <summary>gf_list_view_table (table, 184 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_list_view_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> column_count;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_list_view_column*, byte*, ulong, ulong*, gf_status> column_at;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_list_view_column*, ulong, gf_status> set_columns;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, double, gf_status> set_column_width;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> item_count;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_list_view_item*, byte*, ulong, ulong*, gf_status> item_at;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, ulong, byte*, ulong, ulong*, gf_status> item_sub_item;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_list_view_item*, ulong, gf_status> set_items;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, ulong*, gf_status> index_of;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, uint, gf_status> set_item_checked;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> group_count;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_list_view_group*, byte*, ulong, ulong*, gf_status> group_at;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_list_view_group*, ulong, gf_status> set_groups;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, ulong, ulong*, gf_status> selected_items;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, uint, gf_status> set_selected;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> select_all;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> clear_selection;
+    public delegate* unmanaged[Cdecl]<gf_object, long*, gf_status> focused_item;
+    public delegate* unmanaged[Cdecl]<gf_object, long, gf_status> set_focused_item;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_status> ensure_visible;
+    public delegate* unmanaged[Cdecl]<gf_object, long, gf_list_view_sort_order, gf_status> set_sort_indicator;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_list_view_sort_order, gf_status> sort_items;
 }
 
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>

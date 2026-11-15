@@ -7,7 +7,7 @@ namespace GuiForms.Interop;
 public static class Constants
 {
     public const uint GF_ABI_MAJOR = 1u;
-    public const uint GF_ABI_MINOR = 4u;
+    public const uint GF_ABI_MINOR = 5u;
     public const int GF_STATUS_OK = 0;
     public const int GF_STATUS_INVALID_ARGUMENT = 1;
     public const int GF_STATUS_STALE_HANDLE = 2;
@@ -50,6 +50,7 @@ public static class Constants
     public const uint GF_TABLE_HELP = 23u;
     public const uint GF_TABLE_CLASSES = 24u;
     public const uint GF_TABLE_CONTENT = 25u;
+    public const uint GF_TABLE_LIST_VIEW = 26u;
     public const uint GF_TABLE_WINDOWS_PAINT_ENDPOINT = 256u;
     public const uint GF_ABI_ENTRY_SLOT = 4294967295u;
     public const uint GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES = 512u;
@@ -586,6 +587,16 @@ public static class Constants
     public const uint GF_CONTENT_MAXIMUM_WAIT_MS = 3600000u;
     public const uint GF_CONTENT_MAXIMUM_SINKS = 65536u;
     public const uint GF_HOSTED_MAXIMUM_ARGUMENTS = 4096u;
+    public const uint GF_LIST_VIEW_ALIGNMENT_LEFT = 0u;
+    public const uint GF_LIST_VIEW_ALIGNMENT_CENTER = 1u;
+    public const uint GF_LIST_VIEW_ALIGNMENT_RIGHT = 2u;
+    public const uint GF_LIST_VIEW_SORT_ORDER_NONE = 0u;
+    public const uint GF_LIST_VIEW_SORT_ORDER_ASCENDING = 1u;
+    public const uint GF_LIST_VIEW_SORT_ORDER_DESCENDING = 2u;
+    public const uint GF_LIST_VIEW_MAXIMUM_COLUMNS = 64u;
+    public const uint GF_LIST_VIEW_MAXIMUM_ITEMS = 10000000u;
+    public const uint GF_LIST_VIEW_MAXIMUM_GROUPS = 4096u;
+    public const uint GF_LIST_VIEW_MAXIMUM_SUB_ITEMS = 64u;
     public const uint GF_PAINT_ENDPOINT_MAXIMUM_SIDE = 32768u;
     public const uint GF_CLASS_COMPONENT = 1u;
     public const uint GF_CLASS_CONTROL = 2u;
