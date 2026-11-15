@@ -25,7 +25,7 @@
     {"name": "STXlib.txt", "source": "$STXLIB/LICENSE", "component": "STXlib (the boundary library: the row height index, the SIMD level; its state is a static archive in each program)"},
     {"name": "stx_btree.txt", "source": "$STXLIB/stx_btree-LICENSE", "component": "stx_btree (the row height index's sequence tree, in STXlib)"},
     {"name": "stx_btree-NOTICE.txt", "source": "$STXLIB/stx_btree-NOTICE", "component": "stx_btree (the row height index's sequence tree, in STXlib)"},
-    {"name": "mimalloc.txt", "source": "$STXLIB/mimalloc-LICENSE", "component": "mimalloc (STXlib's allocator, in its state library)"},
+    {"name": "stx_minmallocpp-NOTICE.txt", "source": "$STXLIB/stx_minmallocpp-NOTICE", "component": "stx_minmallocpp (STXlib's allocator, in its state archive)"},
     {"name": "tzdata.txt", "source": "$STXLIB/tzdata-LICENSE", "component": "tz database (STXlib's zone data)"},
     {"name": "HarfBuzz.txt", "source": "$STX/third_party/harfbuzz/COPYING", "component": "HarfBuzz"},
     {"name": "FreeType-FTL.txt", "source": "$STX/third_party/freetype/docs/FTL.TXT", "component": "FreeType"},

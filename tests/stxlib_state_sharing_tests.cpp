@@ -5,7 +5,7 @@
 // and through this program's own stxlib::boundary link. Blocks of STXlib's
 // allocator cross between the two paths both ways, and both read the same
 // thread identities. A second stxlib_state in the program (two allocators,
-// two mimallocs, two identity issuers, two SIMD selections) fails here: a
+// two stx_minmallocpp heaps, two identity issuers, two SIMD selections) fails here: a
 // release of a foreign block ends the process in tag-checking builds (Debug
 // and sanitizer builds, stxlib/memory.hpp), and the identity checks fail in
 // every build. Tested, not proved: a build that shared the allocator but not
@@ -40,7 +40,7 @@ bool filled(const void* const block, const std::size_t size, const unsigned char
     return result;
 }
 
-// Sizes across mimalloc's small, medium and large classes, and zero (a unique
+// Sizes across stx_minmallocpp's small, medium and large pages, and zero (a unique
 // non-null block).
 constexpr std::size_t block_sizes[] = {0, 1, 64, 1000, 70000, 3000000};
 

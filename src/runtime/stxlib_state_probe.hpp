@@ -1,8 +1,8 @@
 #pragma once
 
 // STXlib's process state as the Application archive's code sees it, for
-// tests/stxlib_state_sharing_tests.cpp. stxlib_state (the allocator with
-// mimalloc, the thread identity issuer, the SIMD level) is a static archive
+// tests/stxlib_state_sharing_tests.cpp. stxlib_state (the allocator,
+// stx_minmallocpp, the thread identity issuer, the SIMD level) is a static archive
 // linked once into each module (one module, owner decision 2026-11-15), as
 // are STXlib's other archives (stxlib::boundary, stxlib::algorithms). The test
 // compares what the Application's path and the program's own path reach: a

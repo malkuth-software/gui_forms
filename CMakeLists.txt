@@ -6627,12 +6627,13 @@ install(FILES ${gui_forms_stx_licenses}/stx_conv/PROVENANCE.md DESTINATION ${CMA
 install(FILES ${gui_forms_stx_licenses}/stx_raster3d/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_raster3d-LICENSE.txt)
 install(FILES ${gui_forms_stx_licenses}/stx_raster3d/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_raster3d-PROVENANCE.md)
 # STXlib's licences, as stx installs them beside its packages (cmake/Stxlib.cmake
-# there): STXlib, stx_btree (the row height index's sequence tree), mimalloc
-# (STXlib's allocator) and tzdata (its zone data).
+# there): STXlib, stx_btree (the row height index's sequence tree),
+# stx_minmallocpp (STXlib's allocator, STXlib's own code; its NOTICE carries
+# mimalloc's MIT notice, which it derives from) and tzdata (its zone data).
 install(FILES ${gui_forms_stx_licenses}/stxlib/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stxlib-LICENSE.txt)
 install(FILES ${gui_forms_stx_licenses}/stxlib/stx_btree-LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-LICENSE.txt)
 install(FILES ${gui_forms_stx_licenses}/stxlib/stx_btree-NOTICE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_btree-NOTICE.txt)
-install(FILES ${gui_forms_stx_licenses}/stxlib/mimalloc-LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME mimalloc-LICENSE.txt)
+install(FILES ${gui_forms_stx_licenses}/stxlib/stx_minmallocpp-NOTICE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_minmallocpp-NOTICE.txt)
 install(FILES ${gui_forms_stx_licenses}/stxlib/tzdata-LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME tzdata-LICENSE.txt)
 # The stock icons are Heroicons vectors converted into the library at build
 # time (assets/icons/heroicons/PROVENANCE.md); their MIT licence ships with it.

@@ -472,7 +472,7 @@ STX_LOCK_PATH: Path = ROOT / "stx.lock"
 STX_OVERRIDE_VARIABLE: str = "FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX"
 
 
-# STXlib's notices ($STXLIB/...: STXlib, stx_btree, mimalloc, tzdata) come from the
+# STXlib's notices ($STXLIB/...: STXlib, stx_btree, stx_minmallocpp, tzdata) come from the
 # licence directory the stx package installed beside its packages
 # (<package>/stx/share/licenses/stxlib; stx's cmake/Stxlib.cmake), since STXlib is
 # fetched inside the package build and no stx checkout holds it.
