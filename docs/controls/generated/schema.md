@@ -12,6 +12,13 @@ typed records (`(*bar).parts().thumb`) and registers handlers through each type'
 (`(*button).clicked()`). An interaction's payload is the handler's argument types; *by
 reference* marks a payload the handler receives by mutable reference.
 
+This schema is the run-time surface, shared with the C ABI, so it spells every payload
+in C++'s words: a composite control's event too (`bool`, `double`, `std::int64_t`,
+`Point`), as the C ABI maps it through `manifests/abi/interaction_fields.json`. The
+authoring files keep the words authors write: a `.control` document declares
+`payload="boolean"`, and the form schema (`gui_forms_add_form_schema`) and the
+control lock file list it that way.
+
 Every control also has these properties: `accessible_description`, `accessible_name`, `active_border`, `active_border_alternate_color`, `active_border_color`, `active_border_corner_radius`, `active_border_frequency`, `active_border_motion`, `active_border_offset`, `active_border_width`, `align_self`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `classes`, `cursor`, `dock`, `enabled`, `focusable`, `fore_color`, `help`, `help_line`, `hit_test_transparent`, `justify_self`, `keywords`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `right_to_left`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
 
 Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `right_to_left_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `theme_sheet_compiled`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `mouse_down`, `mouse_up`, `mouse_move`, `mouse_wheel`, `mouse_enter`, `mouse_hover`, `mouse_leave`, `mouse_capture_changed`, `click`, `mouse_click`, `double_click`, `mouse_double_click`, `context_menu_requested`, `focus_observed`, `arranged_bounds_changed`, `help_requested`, `preview_key_down`, `key_down`, `key_press`, `key_up`, `relative_pointer`, `relative_pointer_ended`.

@@ -589,6 +589,13 @@ def render_page(schema: Mapping[str, object]) -> str:
         "(`(*button).clicked()`). An interaction's payload is the handler's argument types; *by",
         "reference* marks a payload the handler receives by mutable reference.",
         "",
+        "This schema is the run-time surface, shared with the C ABI, so it spells every payload",
+        "in C++'s words: a composite control's event too (`bool`, `double`, `std::int64_t`,",
+        "`Point`), as the C ABI maps it through `manifests/abi/interaction_fields.json`. The",
+        "authoring files keep the words authors write: a `.control` document declares",
+        "`payload=\"boolean\"`, and the form schema (`gui_forms_add_form_schema`) and the",
+        "control lock file list it that way.",
+        "",
         "Every control also has these properties: "
         + ", ".join(_code(name) for name in common_properties) + ".",
         "",

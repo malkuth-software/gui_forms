@@ -188,6 +188,13 @@ interactions, and whether its children go into it, into a slot or nowhere. For a
 composite, it also lists the slot, the events and the commands. A designer lists and
 places exactly what the build compiles.
 
+The form schema and the control lock file describe what authors write, so they keep
+the document's kind words: an event declared `payload="boolean"` is listed as
+`boolean`. The control schema (`manifests/control-schema.json`) and the C ABI are the
+run-time surface and use C++'s words for the same payload (`bool`; `double`,
+`std::int64_t`, `Point` and so on for the other kinds), the words every C++ event's
+payload is written in.
+
 Without `MODEL` or `DERIVED`, `gui_forms_add_form` generates the earlier
 document class template over an owner, with `initialize_component(owner)`.
 
