@@ -1854,7 +1854,11 @@ int run_surface_application(SurfaceHost& host, std::vector<SurfaceApplicationWin
         }
         if (remaining > 0U) return 2;
         (*runtime.windowing).mark_started();
-        for (std::size_t index = 0U; index < runtime.windows.size(); ++index) (*runtime.windows[index]).ready();
+        // The initial windows only: a ready callback may open a runtime
+        // window, which open made ready itself and appended; reaching it
+        // here would make it ready twice (A-gf-host-02-F11).
+        const std::size_t initial_windows = runtime.windows.size();
+        for (std::size_t index = 0U; index < initial_windows; ++index) (*runtime.windows[index]).ready();
         while (runtime.primary_open() && !runtime.quitting) {
             runtime.step();
             runtime.reclaim();
