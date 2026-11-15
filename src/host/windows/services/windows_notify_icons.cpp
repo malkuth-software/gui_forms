@@ -324,12 +324,18 @@ HostTrayMenuResult WindowsNotifyIcons::show_menu(HostTrayIconId icon_id, const H
     }
     POINT position{};
     GetCursorPos(&position);
+    // TrackPopupMenuEx is a modal loop dispatching this thread's messages:
+    // the owner window may be destroyed inside it, and its shutdown destroys
+    // this object. So the window is copied to a local first, and no member
+    // is touched once the loop returns (A-gf-host-03-F3); request and menu
+    // are the caller's and this frame's.
+    const HWND owner = window_;
     // The menu closes on a click elsewhere only while its window is in the
     // foreground (Shell_NotifyIcon documentation).
-    SetForegroundWindow(window_);
+    SetForegroundWindow(owner);
     const BOOL command = TrackPopupMenuEx(menu, TPM_RETURNCMD | TPM_NONOTIFY | TPM_RIGHTBUTTON, position.x,
-                                          position.y, window_, nullptr);
-    PostMessageW(window_, WM_NULL, 0, 0);
+                                          position.y, owner, nullptr);
+    if (IsWindow(owner)) PostMessageW(owner, WM_NULL, 0, 0);
     DestroyMenu(menu);
     if (command > 0 && static_cast<std::size_t>(command) <= request.items.size()) {
         result.chosen_id = request.items[static_cast<std::size_t>(command) - 1U].id;
