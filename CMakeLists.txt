@@ -618,6 +618,7 @@ add_library(gui_forms_core STATIC
     src/core/form_language/form_loader/form_window_loader.cpp
     src/core/form_language/form_editor/form_editor.cpp
     src/core/form_language/form_generator/form_generator.cpp
+    src/core/form_language/form_schema_export/form_schema_export.cpp
     src/core/theme_language/selector/theme_selector.cpp
     src/core/theme_language/custom_properties/theme_custom_properties.cpp
     src/core/theme_language/value/theme_value.cpp
@@ -4204,6 +4205,13 @@ if(GUI_FORMS_BUILD_TESTS)
                 --control --class StepperField --check --output stepper_field_control.hpp)
         set_tests_properties(gui_forms_control_compiler_refusal_tests PROPERTIES
             PASS_REGULAR_EXPRESSION "E999")
+        # The schema mode (cp34): the registry and two composites, written
+        # for a designer; the content is checked by gui_forms_composite_form_tests.
+        add_test(NAME gui_forms_form_compiler_schema_tests
+            COMMAND gui_forms_form_compiler --schema
+                --output ${CMAKE_CURRENT_BINARY_DIR}/form_compiler_schema_test.json
+                --composite "${CMAKE_CURRENT_SOURCE_DIR}/demo/composites/toggle-pill.control,app::TogglePill,toggle_pill_control.hpp"
+                --composite "${CMAKE_CURRENT_SOURCE_DIR}/demo/composites/card-with-action.control,app::CardWithAction,card_with_action_control.hpp")
         if(GUI_FORMS_BUILD_GENERATED_FORM_TESTS)
             # gui_forms_add_control end to end (cp34): composite controls
             # generated at build time from the worked examples.

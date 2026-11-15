@@ -140,8 +140,8 @@ bool add_composite_type(form_language::FormSchema& schema, std::string_view desc
     type.cpp_type = std::string(cpp_type);
     type.header = std::string(header);
     // The generated code makes it by its class, which embeds the document;
-    // nothing here loads it.
-    type.composite = nullptr;
+    // nothing here loads it. The definition stays for --schema, which
+    // lists its slot, events and commands.
     type.create_composite = nullptr;
     schema.types.push_back(std::move(type));
     return true;

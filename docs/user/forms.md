@@ -181,6 +181,13 @@ runs it.
   children (E809). The composite's own children stay private: a form
   cannot name or reach them.
 
+A designer reads the same types from the form schema. `gui_forms_add_form_schema(my_app
+OUTPUT form_schema.json COMPOSITES ...)` runs the form compiler's `--schema` mode at build
+time. It writes every type a document may name, as JSON: the type's properties and
+interactions, and whether its children go into it, into a slot or nowhere. For a
+composite, it also lists the slot, the events and the commands. A designer lists and
+places exactly what the build compiles.
+
 Without `MODEL` or `DERIVED`, `gui_forms_add_form` generates the earlier
 document class template over an owner, with `initialize_component(owner)`.
 

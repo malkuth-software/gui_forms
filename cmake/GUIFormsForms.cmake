@@ -182,3 +182,58 @@ function(gui_forms_add_control target document)
     target_sources(${target} PRIVATE "${output}")
     target_include_directories(${target} PRIVATE "${output_directory}")
 endfunction()
+
+# The form schema as a designer reads it (cp34): the form compiler's
+# --schema mode writes, at build time, every type a document compiled with
+# the same TYPES and COMPOSITES may name, with each type's properties,
+# interactions and where its children go, and each composite's slot, events
+# and commands (form_schema_export.hpp in the GUI.Forms sources). A
+# consumer writes:
+#
+#   gui_forms_add_form_schema(my_app OUTPUT my_app_form_schema.json
+#       COMPOSITES "controls/toggle-pill.control,my_app::TogglePill,toggle_pill_control.hpp")
+#
+# OUTPUT is relative to the current binary directory (default
+# gui_forms_forms/form_schema.json); the target gains the file as a source,
+# so it is written before the target builds. TYPES, COMPOSITES and COMPILER
+# are gui_forms_add_form's.
+
+if(COMMAND gui_forms_add_form_schema)
+    return()
+endif()
+
+function(gui_forms_add_form_schema target)
+    cmake_parse_arguments(PARSE_ARGV 1 SCHEMA "" "OUTPUT;COMPILER" "TYPES;COMPOSITES")
+    if(SCHEMA_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "gui_forms_add_form_schema: unknown arguments ${SCHEMA_UNPARSED_ARGUMENTS}")
+    endif()
+    if(SCHEMA_COMPILER)
+        set(compiler "${SCHEMA_COMPILER}")
+    else()
+        set(compiler GUIForms::form_compiler)
+    endif()
+    if(NOT TARGET ${compiler})
+        message(FATAL_ERROR "gui_forms_add_form_schema: ${compiler} is not available "
+                            "(build or install GUI.Forms with GUI_FORMS_BUILD_FORM_COMPILER)")
+    endif()
+    if(SCHEMA_OUTPUT)
+        get_filename_component(output "${SCHEMA_OUTPUT}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+    else()
+        set(output "${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms/form_schema.json")
+    endif()
+    get_filename_component(output_directory "${output}" DIRECTORY)
+    set(arguments --schema --output "${output}")
+    foreach(type IN LISTS SCHEMA_TYPES)
+        list(APPEND arguments --type "${type}")
+    endforeach()
+    set(documents "")
+    gui_forms_composite_arguments(SCHEMA_COMPOSITES arguments documents)
+    add_custom_command(
+        OUTPUT "${output}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${output_directory}"
+        COMMAND ${compiler} ${arguments}
+        DEPENDS ${documents} "$<TARGET_FILE:${compiler}>"
+        COMMENT "Generating the form schema ${output}"
+        VERBATIM)
+    target_sources(${target} PRIVATE "${output}")
+endfunction()

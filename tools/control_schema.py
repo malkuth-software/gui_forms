@@ -414,6 +414,7 @@ def validate(schema: Mapping[str, object], registry: control_registry.Registry,
                 if not _SNAKE.fullmatch(str(name)):
                     findings.append(f"vocabulary: {key} name {name!r} is not snake_case")
     findings.extend(_engine_findings(schema.get("engine"), vocabulary))
+    findings.extend(composite_findings(schema.get("composites")))
     engine: object = schema.get("engine")
     findings.extend(_effect_findings(engine.get("effects") if isinstance(engine, dict) else None, schema_ids))
     by_id: dict[str, control_registry.ControlRecord] = {record.id: record for record in registry.records}
@@ -449,6 +450,71 @@ def validate(schema: Mapping[str, object], registry: control_registry.Registry,
                             f"(not exported: {missing_names or 'none'}; not in headers: "
                             f"{extra_names or 'none'}; or the order or a payload differs)")
     return findings
+
+
+_KEBAB = re.compile(r"[a-z][a-z0-9]*(-[a-z0-9]+)*")
+
+
+def composite_findings(composites: object) -> list[str]:
+    """The composites section (cp34): the composite controls the Gallery shows, each
+    with a snake_case id, a kebab-case name and events, a major.minor version, a slot
+    (a local ID or null), parts and declared properties. Absent before cp34."""
+    if composites is None:
+        return []
+    if not isinstance(composites, list):
+        return ["composites: not a list"]
+    findings: list[str] = []
+    seen: set[str] = set()
+    for record in composites:
+        if not isinstance(record, dict):
+            findings.append("composites: an entry is not an object")
+            continue
+        identity: str = str(record.get("id"))
+        if not _SNAKE.fullmatch(identity) or identity in seen:
+            findings.append(f"composites: id {identity!r} is not snake_case or repeats")
+        seen.add(identity)
+        if record.get("kind") != "composite":
+            findings.append(f"composites: {identity}: kind is not composite")
+        if not _KEBAB.fullmatch(str(record.get("name"))):
+            findings.append(f"composites: {identity}: name {record.get('name')!r} is not kebab-case")
+        if not _VERSION.fullmatch(str(record.get("version"))):
+            findings.append(f"composites: {identity}: version {record.get('version')!r} is not major.minor")
+        slot: object = record.get("slot")
+        if slot is not None and not isinstance(slot, str):
+            findings.append(f"composites: {identity}: slot is neither a local ID nor null")
+        if not record.get("parts"):
+            findings.append(f"composites: {identity}: declares no parts")
+        for item in record.get("properties", []):
+            if not _SNAKE.fullmatch(str(item.get("name"))):
+                findings.append(f"composites: {identity}: property {item.get('name')!r} is not snake_case")
+        for event in record.get("events", []):
+            if not _KEBAB.fullmatch(str(event.get("name"))):
+                findings.append(f"composites: {identity}: event {event.get('name')!r} is not kebab-case")
+    return findings
+
+
+def _composite_lines(composites: Sequence[Mapping[str, object]]) -> list[str]:
+    lines: list[str] = ["## Composite controls", "",
+                        "Controls written as `.control` documents that the Gallery shows (cp34). A form names",
+                        "each by its document name; its children go into the slot, or are refused without one.",
+                        ""]
+    for record in composites:
+        lines.append(f"### {_code(str(record['id']))} ({_code(str(record['name']))} {record['version']})")
+        lines.append("")
+        lines.extend(_parts_table(record.get("parts", [])))  # type: ignore[arg-type]
+        lines.append("")
+        slot: object = record.get("slot")
+        lines.append("Slot: " + (_code(str(slot)) if slot else "none, children are refused") + ".")
+        declared: list[str] = [f"{_code(str(item['name']))} ({item['kind']})"
+                               for item in record.get("properties", [])]  # type: ignore[union-attr]
+        lines.append("Declared properties: " + (", ".join(declared) if declared else "none") + ".")
+        events: list[str] = [_code(str(item["name"])) + (f" ({item['payload']})" if item.get("payload") else "")
+                             for item in record.get("events", [])]  # type: ignore[union-attr]
+        lines.append("Events: " + (", ".join(events) if events else "none") + ".")
+        commands: list[str] = [_code(str(name)) for name in record.get("commands", [])]  # type: ignore[union-attr]
+        lines.append("Commands: " + (", ".join(commands) if commands else "none") + ".")
+        lines.append("")
+    return lines
 
 
 # ------------------------------------------------------------------------- render
@@ -616,6 +682,9 @@ def render_page(schema: Mapping[str, object]) -> str:
             lines.append("Interactions beyond every control's: none." if record.get("kind") == "control"
                          else "Interactions: none.")
         lines.append("")
+    composites: object = schema.get("composites")
+    if isinstance(composites, list) and composites:
+        lines.extend(_composite_lines(composites))
     return "\n".join(lines)
 
 

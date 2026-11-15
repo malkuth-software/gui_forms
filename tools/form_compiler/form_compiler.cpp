@@ -7,6 +7,12 @@
 //                           [--composite <description>]... [--check]
 //   gui_forms_form_compiler <document.control> --control --class <Name> --output <header>
 //                           [--namespace <a::b>] [--type <description>]... [--check]
+//   gui_forms_form_compiler --schema --output <schema.json>
+//                           [--type <description>]... [--composite <description>]... [--check]
+//
+// With --schema there is no document: the output is the form schema as a
+// designer reads it (form_schema_export.hpp), every type a document
+// compiled with the same --type and --composite options may name.
 //
 // With --control the document is a composite control (cp34): it is read,
 // checked and compiled as load_composite_definition does, and the header
@@ -36,6 +42,7 @@
 #include "../../src/core/control_language/control_model/control_model.hpp"
 #include "../../src/core/form_language/form_generator/form_generator.hpp"
 #include "../../src/core/form_language/form_model/form_model.hpp"
+#include "../../src/core/form_language/form_schema_export/form_schema_export.hpp"
 #include "../../src/core/form_language/form_xml/form_xml.hpp"
 #include "../../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../src/core/theme_language/source_text/theme_source_text.hpp"
@@ -83,6 +90,8 @@ struct Arguments final {
     bool check{};
     // A composite control document instead of a form.
     bool control{};
+    // The form schema as JSON instead of a document's header.
+    bool schema{};
 };
 
 void print_usage() {
@@ -93,6 +102,9 @@ void print_usage() {
                  "                               [--check]\n"
                  "       gui_forms_form_compiler <document.control> --control --class <Name> --output <header>\n"
                  "                               [--namespace <a::b>] [--type <name>,<class>,<base>,<header>]...\n"
+                 "                               [--composite <document>,<class>,<header>]... [--check]\n"
+                 "       gui_forms_form_compiler --schema --output <schema.json>\n"
+                 "                               [--type <name>,<class>,<base>,<header>]...\n"
                  "                               [--composite <document>,<class>,<header>]... [--check]\n";
 }
 
@@ -106,6 +118,8 @@ std::optional<Arguments> read_arguments(std::span<char* const> words) {
             arguments.check = true;
         } else if (word == "--control") {
             arguments.control = true;
+        } else if (word == "--schema") {
+            arguments.schema = true;
         } else if (word == "--class" && has_value) {
             ++index;
             arguments.options.class_name = words[index];
@@ -135,6 +149,14 @@ std::optional<Arguments> read_arguments(std::span<char* const> words) {
         } else {
             return std::nullopt;
         }
+    }
+    // The schema mode reads no document and generates no class.
+    if (arguments.schema) {
+        const bool alone = arguments.input.empty() && arguments.options.class_name.empty() && !arguments.control &&
+                           !arguments.options.derived && arguments.options.namespace_name.empty() &&
+                           arguments.options.model_header.empty();
+        if (!alone || arguments.output.empty()) return std::nullopt;
+        return arguments;
     }
     if (arguments.input.empty() || arguments.output.empty() || arguments.options.class_name.empty()) {
         return std::nullopt;
@@ -237,14 +259,6 @@ bool generate_control(const Arguments& arguments, const ThemeSource& source, For
 
 // Reads, checks and generates; returns the exit status.
 int compile(const Arguments& arguments) {
-    const std::optional<std::string> text = read_file(arguments.input);
-    if (!text) {
-        std::cerr << arguments.input << ": cannot be read\n";
-        return exit_usage;
-    }
-    ThemeSource source{};
-    source.file = arguments.input;
-    source.text = *text;
     FormSchema schema = gui_forms::form_compiler::registry_form_schema();
     for (const std::string& type : arguments.types) gui_forms::form_compiler::add_application_type(schema, type);
     for (const std::string& composite : arguments.composites) {
@@ -255,16 +269,35 @@ int compile(const Arguments& arguments) {
             return exit_refused;
         }
     }
+    std::optional<std::string> text{};
+    ThemeSource source{};
+    if (!arguments.schema) {
+        text = read_file(arguments.input);
+        if (!text) {
+            std::cerr << arguments.input << ": cannot be read\n";
+            return exit_usage;
+        }
+        source.file = arguments.input;
+        source.text = *text;
+    }
     std::string generated{};
-    const bool made = arguments.control ? generate_control(arguments, source, std::move(schema), generated)
-                                        : generate_form(arguments, source, schema, generated);
+    bool made = false;
+    if (arguments.schema) {
+        generated = gui_forms::form_language::form_schema_json(schema);
+        made = true;
+    } else if (arguments.control) {
+        made = generate_control(arguments, source, std::move(schema), generated);
+    } else {
+        made = generate_form(arguments, source, schema, generated);
+    }
     if (!made) return exit_refused;
 
     const std::optional<std::string> existing = read_file(arguments.output);
     const bool current = existing && *existing == generated;
     if (arguments.check) {
         if (current) return exit_done;
-        std::cerr << arguments.output << ": stale; generate it again from " << arguments.input << '\n';
+        std::cerr << arguments.output << ": stale; generate it again"
+                  << (arguments.schema ? std::string() : " from " + arguments.input) << '\n';
         return exit_refused;
     }
     if (current) return exit_done;

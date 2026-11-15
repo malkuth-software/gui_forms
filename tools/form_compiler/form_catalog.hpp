@@ -95,7 +95,8 @@ void add_application_type(form_language::FormSchema& schema, std::string_view de
 // generated code makes it as the qualified <C++ class> that
 // gui_forms_add_control generated into <header>. Its properties and
 // interactions are the definition's; its children go into its slot, or
-// are refused without one (E809). The document path may hold commas; the
+// are refused without one (E809). The type keeps the definition (for
+// --schema) but no creator. The document path may hold commas; the
 // last two separate the class and the header. Throws
 // std::invalid_argument for a malformed description, an unreadable
 // document or a name the schema already has, `schema` then unchanged;

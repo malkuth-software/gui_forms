@@ -226,3 +226,31 @@ public:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CompositeTests(unittest.TestCase):
+    _CARD = {"id": "card_with_action", "name": "card-with-action", "version": "1.0", "kind": "composite",
+             "slot": "content", "parts": [{"name": "face", "role": "face", "composed_from": None, "states": []}],
+             "states": [], "custom_states": [],
+             "properties": [{"name": "title", "kind": "text"}],
+             "events": [{"name": "action-invoked", "payload": None}], "commands": []}
+
+    def test_a_valid_composite_has_no_findings(self) -> None:
+        self.assertEqual(cs.composite_findings([self._CARD]), [])
+        self.assertEqual(cs.composite_findings(None), [])
+
+    def test_composite_spelling_is_checked(self) -> None:
+        bad = dict(self._CARD)
+        bad["name"] = "CardWithAction"
+        bad["events"] = [{"name": "action_invoked", "payload": None}]
+        findings = cs.composite_findings([bad, self._CARD])
+        self.assertTrue(any("not kebab-case" in finding and "name" in finding for finding in findings))
+        self.assertTrue(any("event 'action_invoked'" in finding for finding in findings))
+        self.assertTrue(any("repeats" in finding for finding in findings))
+
+    def test_composites_render_with_their_slot_and_events(self) -> None:
+        schema = {"types": [], "composites": [self._CARD]}
+        page = cs.render_page(schema)
+        self.assertIn("## Composite controls", page)
+        self.assertIn("Slot: `content`.", page)
+        self.assertIn("Events: `action-invoked`.", page)

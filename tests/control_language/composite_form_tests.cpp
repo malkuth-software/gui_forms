@@ -6,14 +6,20 @@
 //   toggle-pill);
 // - the generated code writes a slotted parent's children through slot();
 // - form_control_type describes a composite class (as generated) with its
-//   slot placement, and a slotless one as refusing children.
+//   slot placement, and a slotless one as refusing children;
+// - the designer's data: the form schema's JSON lists a composite with its
+//   kind, properties, interactions, children and its definition's slot,
+//   events and commands; the form editor places an object into a slotted
+//   composite and refuses one in a slotless composite.
 
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 
 #include "../../src/controls/composite_control/composite_forms.hpp"
+#include "../../src/core/form_language/form_editor/form_editor.hpp"
 #include "../../src/core/form_language/form_generator/form_generator.hpp"
 #include "../../src/core/form_language/form_loader/form_loader.hpp"
 #include "../../src/core/form_language/form_model/form_model.hpp"
+#include "../../src/core/form_language/form_schema_export/form_schema_export.hpp"
 #include "../../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../src/core/theme_language/source_text/theme_source_text.hpp"
 
@@ -256,6 +262,68 @@ void described_classes() {
             "a run-time composite type is made from its definition");
 }
 
+bool holds(const std::string& text, const std::string_view part) {
+    const bool found = text.find(part) != std::string::npos;
+    return found;
+}
+
+void designer_schema() {
+    const FormSchema schema = run_time_schema();
+    const std::string json = form_language::form_schema_json(schema);
+    const std::size_t card = json.find("\"name\": \"card_with_action\"");
+    const std::size_t pill = json.find("\"name\": \"toggle_pill\"");
+    require(card != std::string::npos && pill != std::string::npos, "the schema lists both composites");
+    if (card == std::string::npos || pill == std::string::npos) return;
+    const std::string card_entry = json.substr(card, pill - card);
+    const std::string pill_entry = json.substr(pill);
+    require(holds(card_entry, "\"element\": \"card-with-action\"") && holds(card_entry, "\"kind\": \"composite\""),
+            "a composite is listed by its element and kind");
+    require(holds(card_entry, "\"children\": \"slot\"") && holds(card_entry, "\"slot\": \"content\""),
+            "the card takes children into its content slot");
+    require(holds(card_entry, "{\"name\": \"title\", \"kind\": \"text\""), "the card's title is listed");
+    require(holds(card_entry, "{\"name\": \"action-invoked\", \"payload\": null}"),
+            "the card's event is listed");
+    require(holds(pill_entry, "\"children\": \"refused\"") && holds(pill_entry, "\"slot\": null"),
+            "the pill refuses children and has no slot");
+    require(holds(pill_entry, "{\"name\": \"checked-changed\", \"payload\": \"boolean\"}") &&
+                holds(pill_entry, "\"commands\": [\"toggle\"]"),
+            "the pill's event payload and command are listed");
+    require(holds(json, "\"name\": \"label\"") && holds(json, "\"kind\": \"control\""),
+            "stock controls are listed as controls");
+}
+
+constexpr std::string_view editable_form = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<user-control xmlns="urn:gui-forms:form:1" id="app.root">
+  <card-with-action id="app.card" title="Storage"/>
+  <toggle-pill id="app.pill"/>
+</user-control>
+)xml";
+
+void designer_edits() {
+    const FormSchema schema = run_time_schema();
+    form_language::FormDocument document{};
+    ThemeDiagnosticList diagnostics{};
+    const form_language::FormEditOutcome opened = form_language::open_form_document(
+        document, "edited.form", std::string(editable_form), schema, diagnostics);
+    require(opened == form_language::FormEditOutcome::edited, "the editable form opens");
+    if (opened != form_language::FormEditOutcome::edited) return;
+    const form_language::FormEditOutcome placed =
+        form_language::add_form_object(document, "app.card", 0U, "label", "app.note", schema, diagnostics);
+    require(placed == form_language::FormEditOutcome::edited && holds(document.text, "id=\"app.note\""),
+            "a designer places a label into the card");
+    ThemeDiagnosticList refusals{};
+    const form_language::FormEditOutcome refused =
+        form_language::add_form_object(document, "app.pill", 0U, "label", "app.inside", schema, refusals);
+    require(refused == form_language::FormEditOutcome::refused &&
+                reported(refusals, DiagnosticCode::form_children_not_admitted),
+            "a designer cannot place a child in the pill (E809)");
+    require(!holds(document.text, "app.inside"), "the refused edit leaves the document as it was");
+    const form_language::FormEditOutcome titled =
+        form_language::set_form_property(document, "app.card", "action-text", "Manage", schema, diagnostics);
+    require(titled == form_language::FormEditOutcome::edited && holds(document.text, "action-text=\"Manage\""),
+            "a designer sets a composite's declared property");
+}
+
 } // namespace
 
 int main() {
@@ -264,6 +332,8 @@ int main() {
         slotless_refused();
         generated_slot();
         described_classes();
+        designer_schema();
+        designer_edits();
     } catch (const std::exception& failure) {
         std::cerr << "FAIL: " << failure.what() << '\n';
         ++failures;
