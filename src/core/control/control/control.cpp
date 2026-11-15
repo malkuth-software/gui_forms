@@ -5267,7 +5267,7 @@ void Control::disconnect_control_events() noexcept {
 namespace {
 
 // The events Control adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 32> control_interactions{{
+constexpr std::array<InteractionDeclaration, 33> control_interactions{{
     {.name = "name_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "visible_changed", .payload = "bool", .mutable_payload = false},
     {.name = "enabled_changed", .payload = "bool", .mutable_payload = false},
@@ -5276,6 +5276,7 @@ constexpr std::array<InteractionDeclaration, 32> control_interactions{{
     {.name = "causes_validation_changed", .payload = "bool", .mutable_payload = false},
     {.name = "validating", .payload = "ControlValidationEvent", .mutable_payload = true},
     {.name = "validated", .payload = "", .mutable_payload = false},
+    {.name = "theme_sheet_compiled", .payload = "ThemeCompileResult", .mutable_payload = false},
     {.name = "tool_tip_text_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "initialization_completed", .payload = "Dirty, bool", .mutable_payload = false},
     {.name = "pointer_observed", .payload = "PointerEvent", .mutable_payload = false},

@@ -14,7 +14,7 @@ reference* marks a payload the handler receives by mutable reference.
 
 Every control also has these properties: `accessible_description`, `accessible_name`, `align_self`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `classes`, `cursor`, `dock`, `enabled`, `focusable`, `fore_color`, `help`, `help_line`, `hit_test_transparent`, `justify_self`, `keywords`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `right_to_left`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
 
-Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `right_to_left_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `mouse_down`, `mouse_up`, `mouse_move`, `mouse_wheel`, `mouse_enter`, `mouse_hover`, `mouse_leave`, `mouse_capture_changed`, `click`, `mouse_click`, `double_click`, `mouse_double_click`, `context_menu_requested`, `focus_observed`, `arranged_bounds_changed`, `help_requested`, `preview_key_down`, `key_down`, `key_press`, `key_up`.
+Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `right_to_left_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `theme_sheet_compiled`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `mouse_down`, `mouse_up`, `mouse_move`, `mouse_wheel`, `mouse_enter`, `mouse_hover`, `mouse_leave`, `mouse_capture_changed`, `click`, `mouse_click`, `double_click`, `mouse_double_click`, `context_menu_requested`, `focus_observed`, `arranged_bounds_changed`, `help_requested`, `preview_key_down`, `key_down`, `key_press`, `key_up`.
 
 ## Vocabulary
 
@@ -600,6 +600,8 @@ Properties beyond every control's: `crosshair` (boolean), `live` (boolean), `sho
 | `selection_changed` | `PlotQuery` |
 | `point_picked` | `PlotPointPick` |
 | `legend_toggled` | `std::size_t` |
+| `handle_moved` | `PlotHandleMove` |
+| `handle_committed` | `PlotHandleMove` |
 
 ## `plot_axis_item` (PlotAxisItem, control)
 
@@ -1125,13 +1127,13 @@ Properties beyond every control's: `allow_user_to_add_rows` (boolean), `multi_se
 | `cell_click` | `DataGridViewCellEvent` |
 | `cell_double_click` | `DataGridViewCellEvent` |
 | `row_header_click` | `DataGridViewRowEvent` |
-| `editing_control_showing` | `DataGridViewEditingControlShowingEvent` |
 | `row_pre_paint` | `DataGridViewRowPrePaintEvent`, by reference |
 | `row_post_paint` | `DataGridViewRowPostPaintEvent`, by reference |
 | `rows_added` | `DataGridViewRowsChangedEvent` |
 | `rows_removed` | `DataGridViewRowsChangedEvent` |
 | `column_added` | `DataGridViewColumnChangedEvent` |
 | `column_removed` | `DataGridViewColumnChangedEvent` |
+| `editing_control_showing` | `DataGridViewEditingControlShowingEvent` |
 | `cell_mouse_enter` | `DataGridViewCellMouseEvent` |
 | `cell_mouse_leave` | `DataGridViewCellMouseEvent` |
 | `cell_mouse_move` | `DataGridViewCellMouseEvent` |

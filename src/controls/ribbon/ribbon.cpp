@@ -3499,11 +3499,11 @@ constexpr std::array<InteractionDeclaration, 9> ribbon_interactions{{
     {.name = "drop_down_item_invoked", .payload = "RibbonDropDownInvocation", .mutable_payload = false},
     {.name = "dialog_launcher_clicked", .payload = "RibbonDialogLaunch", .mutable_payload = false},
     {.name = "selected_tab_changed", .payload = "RibbonTabChange", .mutable_payload = false},
+    {.name = "help_requested", .payload = "RibbonHelpRequest", .mutable_payload = false},
     {.name = "minimized_changed", .payload = "bool", .mutable_payload = false},
     {.name = "application_menu_item_invoked", .payload = "MenuItemInvocation", .mutable_payload = false},
     {.name = "recent_item_invoked", .payload = "RibbonRecentItemInvocation", .mutable_payload = false},
     {.name = "backstage_open_changed", .payload = "bool", .mutable_payload = false},
-    {.name = "help_requested", .payload = "RibbonHelpRequest", .mutable_payload = false},
 }};
 
 } // namespace

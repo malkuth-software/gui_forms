@@ -74,11 +74,13 @@ constexpr ControlAnatomy plot_view_anatomy{
 };
 
 // The events PlotView adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 4> plot_view_interactions{{
+constexpr std::array<InteractionDeclaration, 6> plot_view_interactions{{
     {.name = "view_changed", .payload = "PlotViewRanges", .mutable_payload = false},
     {.name = "selection_changed", .payload = "PlotQuery", .mutable_payload = false},
     {.name = "point_picked", .payload = "PlotPointPick", .mutable_payload = false},
     {.name = "legend_toggled", .payload = "std::size_t", .mutable_payload = false},
+    {.name = "handle_moved", .payload = "PlotHandleMove", .mutable_payload = false},
+    {.name = "handle_committed", .payload = "PlotHandleMove", .mutable_payload = false},
 }};
 
 [[nodiscard]] plots::AxisSide axis_side(bool horizontal, std::size_t position) noexcept {

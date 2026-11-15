@@ -1327,6 +1327,7 @@ void read_field(EventFields& fields, std::string_view name, PageId& value);
 void append_field(EventFields& fields, std::string_view name, const PageInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const PagePinRequest& value);
 void read_field(EventFields& fields, std::string_view name, PagePinRequest& value);
+void append_field(EventFields& fields, std::string_view name, const PlotHandleMove& value);
 void append_field(EventFields& fields, std::string_view name, const PlotPointPick& value);
 void append_field(EventFields& fields, std::string_view name, const PlotQuery& value);
 void append_field(EventFields& fields, std::string_view name, const PlotViewRanges& value);
@@ -2869,6 +2870,15 @@ inline void read_field(EventFields& fields, std::string_view name, PagePinReques
     read_field(fields, "page", value.page);
     read_field(fields, "pinned", value.pinned);
     read_field(fields, "handled", value.handled);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PlotHandleMove& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "id", value.id);
+    append_field(fields, "x", value.x);
+    append_field(fields, "y", value.y);
+    append_field(fields, "end", value.end);
     fields.leave(prefix);
 }
 
@@ -4978,6 +4988,24 @@ inline SubscriptionToken connect_property_list_group_changed(Component& source, 
     return token;
 }
 
+inline SubscriptionToken connect_plot_view_handle_committed(Component& source, const EventSink& sink) {
+    PlotView* typed = dynamic_cast<PlotView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).handle_committed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_plot_view_handle_moved(Component& source, const EventSink& sink) {
+    PlotView* typed = dynamic_cast<PlotView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).handle_moved(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_virtual_rows_view_header_clicked(Component& source, const EventSink& sink) {
     VirtualRowsView* typed = dynamic_cast<VirtualRowsView*>(&source);
     if (typed == nullptr) {
@@ -6527,6 +6555,15 @@ inline SubscriptionToken connect_window_theme_changed(Component& source, const E
     return token;
 }
 
+inline SubscriptionToken connect_control_theme_sheet_compiled(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).theme_sheet_compiled(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_timer_tick(Component& source, const EventSink& sink) {
     Timer* typed = dynamic_cast<Timer*>(&source);
     if (typed == nullptr) {
@@ -6834,7 +6871,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 368> event_connectors{{
+inline constexpr std::array<EventConnector, 371> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -7000,6 +7037,8 @@ inline constexpr std::array<EventConnector, 368> event_connectors{{
     {"format", "Binding", &connect_binding_format},
     {"graph_edited", "NodeCanvas", &connect_node_canvas_graph_edited},
     {"group_changed", "PropertyList", &connect_property_list_group_changed},
+    {"handle_committed", "PlotView", &connect_plot_view_handle_committed},
+    {"handle_moved", "PlotView", &connect_plot_view_handle_moved},
     {"header_clicked", "VirtualRowsView", &connect_virtual_rows_view_header_clicked},
     {"help_requested", "Ribbon", &connect_ribbon_help_requested},
     {"help_requested", "Control", &connect_control_help_requested},
@@ -7169,6 +7208,7 @@ inline constexpr std::array<EventConnector, 368> event_connectors{{
     {"text_changed", "SevenSegmentDisplay", &connect_seven_segment_display_text_changed},
     {"text_changed", "TextBlock", &connect_text_block_text_changed},
     {"theme_changed", "Window", &connect_window_theme_changed},
+    {"theme_sheet_compiled", "Control", &connect_control_theme_sheet_compiled},
     {"tick", "Timer", &connect_timer_tick},
     {"toggled", "ExpandableSections", &connect_expandable_sections_toggled},
     {"token_added", "TokenBox", &connect_token_box_token_added},

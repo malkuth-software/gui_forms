@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 185> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 187> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -122,6 +122,7 @@ inline constexpr std::array<InteractionFieldsEntry, 185> interaction_fields{{
     {"PageDragStart", "page.value: text, press_point: point, pointer: point, claimed: boolean"},
     {"PageInvocation", "page.value: text, cause: enumeration"},
     {"PagePinRequest", "page.value: text, pinned: boolean, handled: boolean"},
+    {"PlotHandleMove", "id: unsigned_integer, x: number, y: number, end: enumeration"},
     {"PlotPointPick", "series: unsigned_integer, element: unsigned_integer, x: number, y: number"},
     {"PlotQuery", "present: boolean, x_minimum: number, x_maximum: number, y_minimum: number, y_maximum: number"},
     {"PlotViewRanges", "x_minimum: number, x_maximum: number, y_minimum: number, y_maximum: number"},
@@ -162,6 +163,7 @@ inline constexpr std::array<InteractionFieldsEntry, 185> interaction_fields{{
     {"TaskDialogResult", "button_id: text, verification_checked: boolean, radio_button_id: text"},
     {"TextSelection", "anchor: unsigned_integer, caret: unsigned_integer"},
     {"Theme", ""},
+    {"ThemeCompileResult", ""},
     {"Token", "id.value: unsigned_integer, text: text"},
     {"ToolStripDropDownInvocation", "strip_id: text, item_id: text, choice.menu_id: text, choice.item_id: text, choice.command_id: text, choice.source_id: text"},
     {"ToolStripItemClick", "strip_id: text, item_id: text"},
