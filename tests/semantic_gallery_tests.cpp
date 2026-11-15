@@ -67,6 +67,7 @@
 #include "gui_forms/rules/rule/rule.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
+#include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/window/window.hpp"
 
 #include <array>
@@ -350,6 +351,9 @@ std::string node_control_type(const PageWalk& walk, const SemanticNode& node, st
     if (control_backed(node)) {
         const Control::Ptr control = walk.window.find(node.stable_id);
         if (!control) return std::string("(control not found)");
+        // A composite's anatomy is named for its composite type; it is the
+        // registry's composite_control, made only from a definition.
+        if (dynamic_cast<const CompositeControl*>(control.get()) != nullptr) return std::string("composite_control");
         const std::string type((*control).anatomy().control_id);
         return type;
     }
@@ -521,6 +525,17 @@ void place(Panel& root, const Control::Ptr& control, Rect bounds) {
 // The off-tree fixture, as both Windows clients build it: each registry
 // control the Gallery does not attach to its root tree, in a cell of its
 // own.
+// A composite type for CompositeControl's registry entry, which is made
+// only from a definition.
+constexpr std::string_view coverage_chip_document = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="coverage-chip" version="1.0" base="user-control" family="card">
+  <property name="text" kind="text" default="Coverage chip" category="Appearance"/>
+  <part name="face" role="face" box="inset(region, 0)"/>
+  <focus target="none"/>
+  <semantics role="group" name="property(text)" children="hidden"/>
+</control>
+)xml";
+
 std::unique_ptr<Window> make_off_tree_fixture() {
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("off-tree"));
     const std::shared_ptr<ButtonBase> button_base =
@@ -562,6 +577,14 @@ std::unique_ptr<Window> make_off_tree_fixture() {
     const std::shared_ptr<WindowCapsule> capsule = make_control<WindowCapsule>(StableId("off-tree.window-capsule"));
     (*capsule).set_interactive(false);
     place(*root, capsule, Rect{1060.0, 10.0, 80.0, 20.0});
+    // CompositeControl, made only from a definition: a composite made from
+    // one publishes the registry entry's node.
+    const std::span<const CompositeChildType> no_child_types{};
+    const CompositeLoadResult chip =
+        load_composite_definition("coverage-chip.control", coverage_chip_document, no_child_types);
+    if (!chip) throw std::runtime_error("the coverage composite is refused");
+    place(*root, make_control<CompositeControl>(StableId("off-tree.composite"), chip.definition),
+          Rect{1060.0, 545.0, 160.0, 40.0});
     const Size size{1280.0, 820.0};
     std::unique_ptr<Window> window = std::make_unique<Window>(root, size);
     return window;

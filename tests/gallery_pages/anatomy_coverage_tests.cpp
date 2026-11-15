@@ -1,5 +1,6 @@
 #include "support.hpp"
 
+#include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/controls/help_book_viewer.hpp"
@@ -36,6 +37,18 @@ constexpr std::array<std::string_view, 2> anatomy_pending{
     "wizard_page",
     "help_book_viewer",
 };
+
+// A composite type for CompositeControl's registry entry, which is made
+// only from a definition (construction "definition"): its anatomy is the
+// definition's, named for the composite type (coverage_chip).
+constexpr std::string_view coverage_chip_document = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="coverage-chip" version="1.0" base="user-control" family="card">
+  <property name="text" kind="text" default="Coverage chip" category="Appearance"/>
+  <part name="face" role="face" box="inset(region, 0)"/>
+  <focus target="none"/>
+  <semantics role="group" name="property(text)" children="hidden"/>
+</control>
+)xml";
 
 // Registry entries that are not controls: nonvisual components and the
 // LiveSurface service type. They have no parts; a component that shows
@@ -375,6 +388,19 @@ void test_anatomy_coverage() {
     inspect_control(*plot3d_view, seen_ids);
     inspect_control(*window_capsule, seen_ids);
     inspected += 2U;
+    // CompositeControl, made only from a definition: a composite made from
+    // one stands for the registry entry, its own anatomy checked.
+    const std::span<const CompositeChildType> no_child_types{};
+    const CompositeLoadResult chip_definition =
+        load_composite_definition("coverage-chip.control", coverage_chip_document, no_child_types);
+    require(static_cast<bool>(chip_definition), "the coverage composite loads");
+    if (chip_definition) {
+        const std::shared_ptr<CompositeControl> chip =
+            make_control<CompositeControl>(StableId("anatomy.coverage.composite"), chip_definition.definition);
+        inspect_control(*chip, seen_ids);
+        seen_ids.push_back(std::string("composite_control"));
+        inspected += 1U;
+    }
 
     std::string unexpected_gaps;
     std::string stale_pending;
