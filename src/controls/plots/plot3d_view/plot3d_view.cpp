@@ -222,13 +222,20 @@ void Plot3DView::apply_options(const std::array<std::string, 3>& titles, const s
 
 void Plot3DView::set_axis_title(plots::Plot3DAxis axis, std::string_view title) {
     require_mutable();
+    // The axis indexes a three-title array; a value cast from an integer may
+    // be outside the enumeration (A-gf-controls-10-F9).
+    const std::size_t index = static_cast<std::size_t>(axis);
     std::array<std::string, 3> titles = scene_.options().axis_titles;
-    titles[static_cast<std::size_t>(axis)] = std::string(title);
+    if (index >= titles.size()) throw std::invalid_argument("Plot3DView axis is outside Plot3DAxis");
+    titles[index] = std::string(title);
     apply_options(titles, scene_.options().box_aspect);
 }
 
 std::string_view Plot3DView::axis_title(plots::Plot3DAxis axis) const noexcept {
-    const std::string_view title = scene_.options().axis_titles[static_cast<std::size_t>(axis)];
+    const std::size_t index = static_cast<std::size_t>(axis);
+    const std::array<std::string, 3>& titles = scene_.options().axis_titles;
+    if (index >= titles.size()) return std::string_view{};
+    const std::string_view title = titles[index];
     return title;
 }
 

@@ -613,6 +613,16 @@ void test_view_semantics_and_interactions() {
     require(hovered && picked && camera, "the three events are declared");
     require((*plot).anatomy().control_id == "plot3d_view", "the anatomy carries the registry id");
     require((*plot).axis_title(plots::Plot3DAxis::z) == "z", "an axis keeps its title");
+    // A-gf-controls-10-F9: an axis outside the enumeration neither writes nor reads past the
+    // three titles.
+    bool axis_refused = false;
+    try {
+        (*plot).set_axis_title(static_cast<plots::Plot3DAxis>(3), "w");
+    } catch (const std::invalid_argument&) {
+        axis_refused = true;
+    }
+    require(axis_refused && (*plot).axis_title(plots::Plot3DAxis::z) == "z", "an unknown axis is refused");
+    require((*plot).axis_title(static_cast<plots::Plot3DAxis>(200)).empty(), "an unknown axis reads as empty");
     bool refused = false;
     try {
         (*plot).set_box_aspect(std::array<double, 3>{1.0, -1.0, 1.0});

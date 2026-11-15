@@ -85,7 +85,8 @@ public:
     bool set_camera(const plots::Plot3DCamera& camera);
     // Back to the default angles, zoom and target (the projection stays).
     bool reset_view();
-    // An axis's title, drawn beside its ticks; empty draws none.
+    // An axis's title, drawn beside its ticks; empty draws none. An axis
+    // outside Plot3DAxis is refused with invalid_argument, and reads as empty.
     void set_axis_title(plots::Plot3DAxis axis, std::string_view title);
     [[nodiscard]] std::string_view axis_title(plots::Plot3DAxis axis) const noexcept;
     // The box's side ratios (positive and finite; std::invalid_argument

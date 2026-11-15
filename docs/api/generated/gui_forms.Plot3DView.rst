@@ -194,7 +194,7 @@ gui_forms::Plot3DView
 
    .. cpp:function:: void set_axis_title(plots::Plot3DAxis axis, std::string_view title)
 
-      An axis's title, drawn beside its ticks; empty draws none.
+      An axis's title, drawn beside its ticks; empty draws none. An axis outside Plot3DAxis is refused with invalid_argument, and reads as empty.
 
    .. cpp:function:: void set_box_aspect(const std::array<double, 3>& aspect)
 
