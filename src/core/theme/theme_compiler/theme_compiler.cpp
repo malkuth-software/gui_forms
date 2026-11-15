@@ -16,6 +16,7 @@
 #include "../familiar_themes/windows_professional_sheets.hpp"
 #include "../theme/theme_access.hpp"
 #include "built_in_theme.hpp"
+#include "composite_look_compile.hpp"
 #include "control_inline_style.hpp"
 #include "theme_image_lease.hpp"
 #include "theme_source_record.hpp"
@@ -1519,6 +1520,112 @@ std::shared_ptr<const detail::ControlInlineStyle> detail::compile_inline_style(
     (*style).rules = CompiledThemeRules::compile_inline(sheet, registry, against);
     std::shared_ptr<const ControlInlineStyle> result(std::move(style));
     return result;
+}
+
+namespace {
+
+// Whether `rule` of a look lowered with a theme's text (compile_theme_look)
+// is one of the theme's definitions of a name in `read` (sorted), the
+// names the look's own rules read: the look holds a copy of it, so that
+// its rules find the theme's definition where the look defines none.
+bool theme_look_definition(const ThemeRule& rule, std::size_t from, std::span<const std::string> read) noexcept {
+    if (rule.provenance.offset >= from) return false;
+    for (const ScopedDefinition& definition : rule.scoped_definitions) {
+        if (std::binary_search(read.begin(), read.end(), definition.name)) return true;
+    }
+    return false;
+}
+
+} // namespace
+
+std::shared_ptr<const CompiledThemeRules> detail::compile_theme_look(
+    std::string_view text, std::string_view file, std::span<const ControlAnatomy> controls, const Theme& theme,
+    std::vector<ThemeCompileDiagnostic>& diagnostics) {
+    const detail::ThemeSourceRecord& record = ThemeAccess::source(theme);
+    std::string combined = record.text;
+    combined += "\n";
+    const std::size_t from = combined.size();
+    combined += text;
+    if (combined.size() > theme_language::maximum_sheet_bytes) {
+        diagnostics.push_back(public_diagnostic(problem_of(DiagnosticCode::sheet_too_large, std::string(file),
+                                                           std::to_string(theme_language::maximum_sheet_bytes))));
+        return nullptr;
+    }
+    // The theme's control types, then the look's that the theme lacks.
+    std::vector<ControlAnatomy> vocabulary = record.controls;
+    vocabulary.reserve(vocabulary.size() + controls.size());
+    for (const ControlAnatomy& own : controls) {
+        bool listed = false;
+        for (const ControlAnatomy& control : record.controls) {
+            if (control.control_id == own.control_id) listed = true;
+        }
+        if (!listed) vocabulary.push_back(own);
+    }
+    // Borrows of the record's strings, which outlive the compilation.
+    std::vector<std::string_view> names{};
+    std::vector<theme_language::ThemeImageResource> images{};
+    names.reserve(record.images.size());
+    images.reserve(record.images.size());
+    for (const detail::ThemeSourceImage& image : record.images) {
+        names.push_back(image.resource);
+        theme_language::ThemeImageResource resource{};
+        resource.resource = image.resource;
+        resource.image = image.image;
+        resource.pixel_size = image.pixel_size;
+        images.push_back(resource);
+    }
+    const PrimitiveRegistry& registry = builtin_primitive_registry();
+    const theme_language::ThemeSource source{.file = record.file, .text = combined};
+    const theme_language::ThemeCompileInput input{.source = source,
+                                                  .registry = registry,
+                                                  .vocabulary = theme_language::SelectorVocabulary{vocabulary},
+                                                  .published_values = record.published_values,
+                                                  .resources = names,
+                                                  .images = images,
+                                                  .requires_engine = record.requires_engine,
+                                                  .form = theme_language::ThemeSheetForm::sheet};
+    ThemeRuleSheet lowered{};
+    theme_language::ThemeCompiler compiler{};
+    theme_language::ThemeDiagnosticList found{};
+    const theme_language::CompileOutcome outcome = compiler.compile(input, lowered, found);
+    // The look's findings, placed in its own text; the theme's errors
+    // as they are (its warnings were reported when it compiled).
+    theme_language::LineStartTable lines{};
+    lines.reset(text);
+    for (const ThemeDiagnostic& diagnostic : found.records()) {
+        const std::size_t offset = diagnostic.position.offset.value;
+        const bool in_look = offset >= from;
+        const bool error = theme_language::diagnostic_severity(diagnostic.code) == theme_language::DiagnosticSeverity::error;
+        if (!in_look && !error) continue;
+        ThemeDiagnostic placed = diagnostic;
+        if (in_look) {
+            const std::size_t within = std::min(offset - from, text.size());
+            placed.file = std::string(file);
+            placed.position = lines.position(text, theme_language::ByteOffset{static_cast<std::uint32_t>(within)});
+        }
+        diagnostics.push_back(public_diagnostic(placed));
+    }
+    if (outcome != theme_language::CompileOutcome::compiled) return nullptr;
+    // The names the look's rules read, then the theme's definitions of
+    // them and the look's rules, in that order.
+    std::vector<std::string> read{};
+    for (const ThemeRule& rule : lowered.rules) {
+        if (rule.provenance.offset < from) continue;
+        for (const ScopedCondition& condition : rule.scoped_conditions) read.push_back(condition.name);
+    }
+    std::sort(read.begin(), read.end());
+    ThemeRuleSheet sheet{};
+    sheet.requires_engine = lowered.requires_engine;
+    sheet.published_values = lowered.published_values;
+    for (ThemeRule& rule : lowered.rules) {
+        if (theme_look_definition(rule, from, read)) sheet.rules.push_back(rule);
+    }
+    for (ThemeRule& rule : lowered.rules) {
+        if (rule.provenance.offset >= from) sheet.rules.push_back(std::move(rule));
+    }
+    std::shared_ptr<const CompiledThemeRules> compiled = std::make_shared<const CompiledThemeRules>(
+        CompiledThemeRules::compile_look(sheet, registry, &theme.engine().rules()));
+    return compiled;
 }
 
 detail::BuiltInThemeCompilation detail::compile_built_in_theme(const ThemeDefinition& floor, std::string_view file,

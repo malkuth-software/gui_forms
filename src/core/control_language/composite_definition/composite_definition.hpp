@@ -40,6 +40,7 @@
 #include "../../form_language/form_model/form_model.hpp"
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../theme_language/source_text/theme_source_text.hpp"
+#include "composite_look.hpp"
 
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/binding/value/binding_value.hpp"
@@ -58,8 +59,6 @@
 #include <vector>
 
 namespace gui_forms {
-
-class CompiledThemeRules;
 
 namespace control_language {
 
@@ -316,17 +315,15 @@ public:
     ControlAnatomy anatomy{};
     // The schema's interactions: the declared events, by name.
     std::vector<std::string> interaction_names{};
-    // The <look>, compiled once for the definition (compile_look in
-    // composite_definition.cpp, CompiledThemeRules::compile_look); null
-    // without a look. Every instance shares it: the composite and the
+    // The <look>, compiled (detail::CompositeLook: once for every theme
+    // where it reads nothing of one, else once per theme on first use);
+    // null without a look. Every instance shares it: the composite and the
     // controls its definition made consult it beside the theme in effect
-    // (Control::set_look_rules), so it reads nothing of one theme and is
-    // not compiled again for another. `look_compiles` counts its
-    // compilations (one with a look, none without); `look_rule_diagnostics`
-    // the rules the compiled set dropped (CompiledThemeRules::diagnostics).
-    std::shared_ptr<const CompiledThemeRules> look_rules{};
+    // (Control::set_composite_look). `look_compiles` counts the look's
+    // compilation alone, with the definition (one with a look, none
+    // without); the look counts its compilations under themes.
+    std::shared_ptr<detail::CompositeLook> compiled_look{};
     std::uint32_t look_compiles{};
-    std::size_t look_rule_diagnostics{};
 };
 
 namespace control_language {

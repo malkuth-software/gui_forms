@@ -87,6 +87,7 @@ GUI_FORMS_API void set_layout_keeping(bool keeping) noexcept;
 struct DispatcherState;
 struct ControlInlineStyle;
 struct ControlThemeSheet;
+class CompositeLook;
 struct InlineRestyle;
 // A control's help fields (Control::help_line, help and keywords), made on
 // the first non-empty write and released when all three are empty again,
@@ -803,19 +804,25 @@ public:
     // Its compiled rules (CompiledThemeRules::compile_inline), or null
     // without one; the cascade reads them for this control alone.
     [[nodiscard]] const CompiledThemeRules* inline_style_rules() const noexcept;
-    // The composite look this control is styled by (CompiledThemeRules::
-    // compile_look), or null: a composite control sets its definition's
-    // compiled look on itself and on each control its definition made
-    // (CompositeControl), not on slot content or controls added later. The
-    // cascade consults it beside the theme in effect, so the theme, a
-    // theme switch, a user theme and forced high contrast reach the
-    // control as they reach any other, and the look's rules stand over
-    // the theme's sheet rules only where they say something.
-    [[nodiscard]] const CompiledThemeRules* look_rules() const noexcept { return look_rules_.get(); }
-    // Sets or (null) clears that look and invalidates the control's paint
-    // and text font. The rules are shared: a control taken out of its
-    // composite keeps them valid and keeps its look.
-    void set_look_rules(std::shared_ptr<const CompiledThemeRules> rules);
+    // The rules of the composite look this control is styled by, for the
+    // theme in effect (CompiledThemeRules::compile_look), or null: a
+    // composite control sets its definition's look on itself and on each
+    // control its definition made (CompositeControl), not on slot content
+    // or controls added later. The cascade consults it beside the theme in
+    // effect, so the theme, a theme switch, a user theme and forced high
+    // contrast reach the control as they reach any other, and the look's
+    // rules stand over the theme's sheet rules only where they say
+    // something. A look reading the theme's roles or custom properties is
+    // compiled for the theme in effect on its first use under it, once
+    // for all the controls it styles (detail::CompositeLook); the rules
+    // are borrowed until the next call under another theme.
+    [[nodiscard]] const CompiledThemeRules* look_rules() const noexcept;
+    // Sets or (null) clears that look (CompositeControl) and invalidates
+    // the control's paint and text font. Shared: a control taken out of
+    // its composite keeps the look, and the definition it belongs to,
+    // alive.
+    void set_composite_look(std::shared_ptr<detail::CompositeLook> look);
+    [[nodiscard]] bool has_composite_look() const noexcept { return composite_look_ != nullptr; }
     // Whether this control or one of its ancestors is marked ceremonial
     // (the ceremonial capability: T2 GIVEN B3-1; design language §10, an
     // installer's or a first run's world).
@@ -2127,7 +2134,7 @@ private:
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
     // The composite look (look_rules); null for most controls.
-    std::shared_ptr<const CompiledThemeRules> look_rules_;
+    std::shared_ptr<detail::CompositeLook> composite_look_;
     // The theme sheet, its compiled theme and its event; null until a sheet
     // or a subscription needs them (one pointer on every control).
     std::unique_ptr<detail::ControlThemeSheet> theme_sheet_;

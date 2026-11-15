@@ -14,7 +14,11 @@
 //   Escape writes the pressed value back;
 // - the look (phase 3): the examples' <look> compiles once with the
 //   definition and every instance and its made children share it (slot
-//   content takes none); a hundred instances compile nothing more; the look
+//   content takes none); a hundred instances compile nothing more; a look
+//   reading a theme's custom property compiles once per theme on first
+//   use, follows a theme switch, reuses a kept theme's compilation on
+//   switching back, and a hundred instances under one theme compile it
+//   once; the look
 //   layers over the window's theme: its rules stand over the theme's where
 //   they say something, a theme switch reaches the composite's part and
 //   child elsewhere, forced high contrast draws both, and the look reaches
@@ -48,6 +52,7 @@
 #include <string>
 #include <string_view>
 #include <variant>
+#include <vector>
 
 #ifndef GUI_FORMS_COMPOSITES_DIR
 #error "GUI_FORMS_COMPOSITES_DIR names demo/composites"
@@ -290,25 +295,23 @@ void live_drag() {
     static_cast<void>(dispatch_press(window, Point{start.x + 40.0, start.y}, PointerAction::up));
 }
 
-// The look of an example: compiled once with the definition, shared by the
+// The look of an example: compiled with the definition, shared by the
 // instance and the children its definition made, not by slot content.
 void look_shared(const std::string_view example, const std::string_view child, const Size size) {
     const CompositeLoadResult loaded = load_example(example);
     require(static_cast<bool>(loaded), "the example loads for its look");
     if (!loaded) return;
     const CompositeDefinition& definition = *loaded.definition;
-    require(!definition.look.empty() && definition.look_rules != nullptr, "the example's look compiles");
-    if (definition.look_rules == nullptr) return;
-    require((*definition.look_rules).look() && !(*definition.look_rules).empty(), "the look is a look's rule set");
-    require(definition.look_compiles == 1U && definition.look_rule_diagnostics == 0U,
-            "the look compiles once, every rule kept");
+    require(!definition.look.empty() && definition.compiled_look != nullptr, "the example's look compiles");
+    if (definition.compiled_look == nullptr) return;
+    require(definition.look_compiles == 1U, "the look compiles alone once");
     const std::shared_ptr<CompositeControl> composite =
         make_control<CompositeControl>(StableId(std::string("looked")), loaded.definition);
     (*composite).set_requested_bounds({0.0, 0.0, size.width, size.height});
     Window window(composite, size);
     window.perform_layout();
-    const CompiledThemeRules* const look = definition.look_rules.get();
-    require((*composite).look_rules() == look, "the instance takes the definition's look");
+    const CompiledThemeRules* const look = (*composite).look_rules();
+    require(look != nullptr && (*look).look() && !(*look).empty(), "the instance takes the definition's look");
     require((*composite).statistics().look_compiles == 1U, "the instance reports the definition's one compile");
     require((*composite).theme_override() == nullptr && (*composite).theme_sheet().empty(),
             "the look is no theme sheet and no override");
@@ -497,14 +500,122 @@ void hundred_instances_one_compile() {
             make_control<CompositeControl>(StableId("pair" + std::to_string(index)), loaded.definition);
         (*host).add_child(instance);
         const Control::Ptr action = (*instance).child("action");
-        const bool takes = (*instance).look_rules() == definition.look_rules.get() && action != nullptr &&
-                           (*action).look_rules() == definition.look_rules.get();
+        const bool takes = (*instance).look_rules() != nullptr && action != nullptr &&
+                           (*action).look_rules() == (*instance).look_rules();
         if (takes && (*instance).statistics().look_compiles == 1U) shared = shared + 1U;
     }
     Window window(host, {400.0, 400.0});
     window.perform_layout();
+    require(definition.compiled_look != nullptr && !(*definition.compiled_look).theme_bound(),
+            "a look of literal colours is theme-independent");
     require(shared == 100U, "every instance and its child share the definition's look");
-    require(definition.look_compiles == 1U, "a hundred instances cause one compile");
+    require(definition.look_compiles == 1U && (*definition.compiled_look).theme_compiles() == 0U,
+            "a hundred instances cause one compile");
+}
+
+// A composite whose look reads the theme's custom property --brand.
+constexpr std::string_view branded_pair = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="branded-pair" version="1.0" base="user-control" family="panel">
+  <part name="face" role="face" box="inset(region, 0)"/>
+  <children>
+    <button id="@action" text="Go"/>
+  </children>
+  <focus target="none"/>
+  <look>
+    branded-pair::part(face) { color: var(--brand, #000000); }
+    button { color: var(--brand, #000000); }
+  </look>
+</control>
+)xml";
+
+constexpr Color first_brand = Color::rgba(0xaa, 0x00, 0x00);
+constexpr Color second_brand = Color::rgba(0x00, 0xaa, 0x00);
+
+// A look reading a theme's custom property follows a theme switch: it is
+// compiled once per theme on first use, shared by the instance and its
+// child, and switching back to the first theme reuses that theme's kept
+// compilation.
+void theme_bound_look_follows_switch() {
+    const CompositeLoadResult loaded =
+        load_composite_definition("branded-pair.control", branded_pair, example_child_types);
+    for (const std::string& line : loaded.diagnostics) std::cerr << "  " << line << '\n';
+    require(static_cast<bool>(loaded), "the branded pair loads");
+    if (!loaded) return;
+    const CompositeDefinition& definition = *loaded.definition;
+    require(definition.compiled_look != nullptr && (*definition.compiled_look).theme_bound(),
+            "a look reading a theme's custom property is theme-bound");
+    if (definition.compiled_look == nullptr) return;
+    const detail::CompositeLook& look = *definition.compiled_look;
+    const std::shared_ptr<const Theme> first = app_theme(":root { --brand: #aa0000; }\n");
+    const std::shared_ptr<const Theme> second = app_theme(":root { --brand: #00aa00; }\n");
+    if (first == nullptr || second == nullptr) return;
+    const std::shared_ptr<CompositeControl> pair =
+        make_control<CompositeControl>(StableId(std::string("branded")), loaded.definition);
+    (*pair).set_requested_bounds({0.0, 0.0, 200.0, 80.0});
+    Window window(pair, {200.0, 80.0});
+    const Control::Ptr action = (*pair).child("action");
+    require(action != nullptr, "the branded pair makes its button");
+    if (action == nullptr) return;
+    const ControlVisualContext rest{};
+
+    window.set_theme(first);
+    window.perform_layout();
+    require(recipe_of(*pair, "face", rest).text == first_brand, "the face follows the first theme's --brand");
+    require(recipe_of(*action, {}, rest).text == first_brand, "the child follows the first theme's --brand");
+    require((*action).look_rules() == (*pair).look_rules(), "the child shares the instance's compilation");
+    const std::uint64_t first_done = look.theme_compiles();
+
+    window.set_theme(second);
+    window.perform_layout();
+    require(recipe_of(*pair, "face", rest).text == second_brand, "a theme switch changes the face's --brand");
+    require(recipe_of(*action, {}, rest).text == second_brand, "a theme switch changes the child's --brand");
+    const std::uint64_t after_second = look.theme_compiles();
+    require(after_second == first_done + 1U, "the second theme compiles the look once");
+
+    // Back to the first theme: its compilation is still kept (within
+    // maximum_composite_look_entries), so it is reused, not compiled again.
+    const std::uint64_t reuses = look.theme_reuses();
+    window.set_theme(first);
+    window.perform_layout();
+    require(recipe_of(*pair, "face", rest).text == first_brand, "switching back restores the first --brand");
+    require(look.theme_compiles() == after_second, "switching back reuses the first theme's compilation");
+    require(look.theme_reuses() > reuses && (*pair).statistics().look_theme_reuses == look.theme_reuses(),
+            "the reuse is counted");
+    require(look.theme_refusals() == 0U && (*pair).statistics().look_theme_refusals == 0U, "no theme refuses it");
+}
+
+// A hundred instances of a theme-bound look under one theme cause one
+// compilation for that theme.
+void theme_bound_hundred_one_compile() {
+    const CompositeLoadResult loaded =
+        load_composite_definition("branded-pair.control", branded_pair, example_child_types);
+    require(static_cast<bool>(loaded), "the branded pair loads for a hundred instances");
+    if (!loaded || (*loaded.definition).compiled_look == nullptr) return;
+    const detail::CompositeLook& look = *(*loaded.definition).compiled_look;
+    const std::shared_ptr<const Theme> theme = app_theme(":root { --brand: #aa0000; }\n");
+    if (theme == nullptr) return;
+    const std::shared_ptr<FlexPanel> host = make_control<FlexPanel>(StableId(std::string("host")));
+    std::vector<std::shared_ptr<CompositeControl>> instances{};
+    instances.reserve(100U);
+    for (std::size_t index = 0U; index < 100U; ++index) {
+        std::shared_ptr<CompositeControl> instance =
+            make_control<CompositeControl>(StableId("branded" + std::to_string(index)), loaded.definition);
+        (*host).add_child(instance);
+        instances.push_back(std::move(instance));
+    }
+    Window window(host, {400.0, 400.0});
+    const std::uint64_t before = look.theme_compiles();
+    window.set_theme(theme);
+    window.perform_layout();
+    std::size_t following = 0U;
+    for (const std::shared_ptr<CompositeControl>& instance : instances) {
+        if (recipe_of(*instance, "face", ControlVisualContext{}).text == first_brand) following = following + 1U;
+    }
+    require(following == 100U, "every instance follows the theme");
+    require(look.theme_compiles() == before + 1U, "a hundred instances under one theme cause one compile");
+    require(instances[0] != nullptr && (*instances[0]).statistics().look_theme_compiles == look.theme_compiles() &&
+                (*instances[0]).statistics().look_compiles == 1U,
+            "the statistics report both counts");
 }
 
 } // namespace
@@ -520,6 +631,8 @@ int main() {
     look_layers_over_theme_switch();
     look_under_forced_high_contrast();
     hundred_instances_one_compile();
+    theme_bound_look_follows_switch();
+    theme_bound_hundred_one_compile();
     if (failures != 0) {
         std::cerr << failures << " composite control check(s) failed\n";
         return 1;

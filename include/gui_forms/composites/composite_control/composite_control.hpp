@@ -20,20 +20,24 @@
 // definition declares a drag), its children (made from the document with
 // stable IDs under the instance's own), its semantics and its look.
 //
-// The look (cp34, phase 3): the document's <look> is compiled once, with
-// the definition, against the stock anatomies and the composite's own, so
-// its rules name the composite's type, parts and states and its children's
-// stock types (CompiledThemeRules::compile_look); an error in it refuses
-// the definition. Every instance shares that one rule set and sets it on
-// itself and on the controls its definition made (Control::set_look_rules)
-// when its tree is made. The look layers over the theme in effect: the
+// The look (cp34, phase 3): the document's <look> is compiled against the
+// stock anatomies and the composite's own, so its rules name the
+// composite's type, parts and states and its children's stock types
+// (CompiledThemeRules::compile_look). A look reading only the engine
+// inputs and the built-in colour roles compiles once, with the definition;
+// one reading a theme's application roles or custom properties compiles
+// with the text of each theme in effect on its first use under it, once
+// per definition per theme. An error that no theme could resolve refuses
+// the definition; a look refused under one theme logs one line and draws
+// nothing there. Every instance shares the definition's look and sets it
+// on itself and on the controls its definition made
+// (Control::set_composite_look) when its tree is made. The look layers over the theme in effect: the
 // cascade consults it beside the theme's rules, after them at each sheet
 // level, so the look stands over the theme only where it says something.
 // The window's theme, a theme switch, a theme override, a user theme and
 // forced high contrast reach the composite's parts and children as they
-// reach any control; the look reads nothing of one theme, so a theme
-// switch compiles nothing. Slot content, added later, takes no look; a
-// nested composite keeps its own.
+// reach any control. Slot content, added later, takes no look; a nested
+// composite keeps its own.
 //
 // Event order:
 // - A property write (set_property_value, a binding, a rule, a drag)
@@ -167,9 +171,18 @@ inline constexpr std::size_t maximum_composite_rule_depth = 8U;
 //   refused_writes: property writes refused before any change;
 //   geometry_passes: part geometry evaluations;
 //   drags_committed / drags_restored: drag ends;
-//   look_compiles: compilations of the definition's <look>, which the
-//     definition counts: 1 with a look, 0 without, the same in every
-//     instance however many there are and whatever themes they see.
+//   look_compiles: compilations of the definition's <look> alone, with
+//     the definition: 1 with a look, 0 without, the same in every instance
+//     however many there are and whatever themes they see; a look reading
+//     only the engine inputs and built-in roles compiles nothing more;
+//   look_theme_compiles / look_theme_refusals: compilations of a look
+//     that reads a theme's roles or custom properties with the text of a
+//     theme in effect (once per definition per theme serial, on first use
+//     under it), and those refused; the definition's counts, read when
+//     asked, so the same in every instance;
+//   look_theme_reuses: uses of a kept compilation after another theme's
+//     (switching back to a theme reuses its compilation while it is among
+//     the last maximum_composite_look_entries themes used).
 struct GUI_FORMS_API CompositeStatistics final {
     std::uint64_t rule_firings{};
     std::uint64_t refused_firings{};
@@ -180,6 +193,9 @@ struct GUI_FORMS_API CompositeStatistics final {
     std::uint64_t drags_committed{};
     std::uint64_t drags_restored{};
     std::uint64_t look_compiles{};
+    std::uint64_t look_theme_compiles{};
+    std::uint64_t look_theme_refusals{};
+    std::uint64_t look_theme_reuses{};
 };
 
 class CompositeEvaluator;
@@ -228,7 +244,7 @@ public:
     // A presentational property's value (null when unset).
     [[nodiscard]] BindingValue presentational_value(std::string_view name) const;
 
-    [[nodiscard]] const CompositeStatistics& statistics() const noexcept { return statistics_; }
+    [[nodiscard]] const CompositeStatistics& statistics() const noexcept;
 
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;

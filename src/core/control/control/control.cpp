@@ -8,6 +8,7 @@
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "../../control_language/composite_definition/composite_look.hpp"
 #include "../../display/chunk/display_chunk.hpp"
 #include "control_tree_walk.hpp"
 #include "../active_border/control_active_border.hpp"
@@ -3917,7 +3918,8 @@ void Control::written(const decltype(classes)&) {
 
 bool Control::reads_ancestors() const noexcept {
     if (effective_theme().engine().rules().uses_ancestors()) return true;
-    if (look_rules_ != nullptr && (*look_rules_).uses_ancestors()) return true;
+    const CompiledThemeRules* const look = look_rules();
+    if (look != nullptr && (*look).uses_ancestors()) return true;
     const CompiledThemeRules* const user = surface_root_ == nullptr ? nullptr : (*surface_root_).user_theme_rules();
     return user != nullptr && (*user).uses_ancestors();
 }
@@ -4014,10 +4016,16 @@ const CompiledThemeRules* Control::inline_style_rules() const noexcept {
     return &(*inline_style_).rules;
 }
 
-void Control::set_look_rules(std::shared_ptr<const CompiledThemeRules> rules) {
+const CompiledThemeRules* Control::look_rules() const noexcept {
+    if (composite_look_ == nullptr) return nullptr;
+    const CompiledThemeRules* const rules = (*composite_look_).rules_for(effective_theme());
+    return rules;
+}
+
+void Control::set_composite_look(std::shared_ptr<detail::CompositeLook> look) {
     require_mutable();
-    if (look_rules_ == rules) return;
-    look_rules_ = std::move(rules);
+    if (composite_look_ == look) return;
+    composite_look_ = std::move(look);
     invalidate(Dirty::paint | refresh_text_font());
 }
 

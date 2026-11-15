@@ -352,8 +352,10 @@ gui_forms::Control
       **inline_style_rules** : ``CompiledThemeRules*``, read-only
          Its compiled rules (CompiledThemeRules::compile_inline), or null without one; the cascade reads them for this control alone.
 
-      **look_rules** : ``CompiledThemeRules*``
-         The composite look this control is styled by (CompiledThemeRules:: compile_look), or null: a composite control sets its definition's compiled look on itself and on each control its definition made (CompositeControl), not on slot content or controls added later. The cascade consults it beside the theme in effect, so the theme, a theme switch, a user theme and forced high contrast reach the control as they reach any other, and the look's rules stand over the theme's sheet rules only where they say something.
+      **look_rules** : ``CompiledThemeRules*``, read-only
+         The rules of the composite look this control is styled by, for the theme in effect (CompiledThemeRules::compile_look), or null: a composite control sets its definition's look on itself and on each control its definition made (CompositeControl), not on slot content or controls added later. The cascade consults it beside the theme in effect, so the theme, a theme switch, a user theme and forced high contrast reach the control as they reach any other, and the look's rules stand over the theme's sheet rules only where they say something. A look reading the theme's roles or custom properties is compiled for the theme in effect on its first use under it, once for all the controls it styles (detail::CompositeLook); the rules are borrowed until the next call under another theme.
+
+      **has_composite_look** : ``bool``, read-only
 
       **on_ceremonial_surface** : ``bool``, read-only
          Whether this control or one of its ancestors is marked :cpp:member:`ceremonial <gui_forms::Control::ceremonial>`.
@@ -669,6 +671,8 @@ gui_forms::Control
         - Sets or clears :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags, retained for Windows Forms compatibility.
       * - :cpp:func:`set_theme_overrides <gui_forms::Control::set_theme_overrides>`
         - Typed run-time styling (the ImGui-class demonstrator's I6): the overrides' sheet (ThemeOverrides::sheet_text) set as the theme sheet, named ``overrides``, with set_theme_sheet's timing, reports and result.
+      * - :cpp:func:`set_composite_look <gui_forms::Control::set_composite_look>`
+        - Sets or (null) clears that look (CompositeControl) and invalidates the control's paint and text font.
       * - :cpp:func:`set_custom_cursor <gui_forms::Control::set_custom_cursor>`
         - A stock assignment clears the image override.
       * - :cpp:func:`set_pointer_capture <gui_forms::Control::set_pointer_capture>`
@@ -1221,11 +1225,9 @@ gui_forms::Control
 
    .. cpp:function:: const CompiledThemeRules* look_rules() const noexcept
 
-      The composite look this control is styled by (CompiledThemeRules:: compile_look), or null: a composite control sets its definition's compiled look on itself and on each control its definition made (CompositeControl), not on slot content or controls added later. The cascade consults it beside the theme in effect, so the theme, a theme switch, a user theme and forced high contrast reach the control as they reach any other, and the look's rules stand over the theme's sheet rules only where they say something.
+      The rules of the composite look this control is styled by, for the theme in effect (CompiledThemeRules::compile_look), or null: a composite control sets its definition's look on itself and on each control its definition made (CompositeControl), not on slot content or controls added later. The cascade consults it beside the theme in effect, so the theme, a theme switch, a user theme and forced high contrast reach the control as they reach any other, and the look's rules stand over the theme's sheet rules only where they say something. A look reading the theme's roles or custom properties is compiled for the theme in effect on its first use under it, once for all the controls it styles (detail::CompositeLook); the rules are borrowed until the next call under another theme.
 
-   .. cpp:function:: void set_look_rules(std::shared_ptr<const CompiledThemeRules> rules)
-
-      Sets or (null) clears that look and invalidates the control's paint and text font. The rules are shared: a control taken out of its composite keeps them valid and keeps its look.
+   .. cpp:function:: bool has_composite_look() const noexcept
 
    .. cpp:function:: bool on_ceremonial_surface() const noexcept
 
@@ -1731,6 +1733,10 @@ gui_forms::Control
    .. cpp:function:: bool set_theme_overrides(const ThemeOverrides& overrides)
 
       Typed run-time styling (the ImGui-class demonstrator's I6): the overrides' sheet (ThemeOverrides::sheet_text) set as the theme sheet, named ``overrides``, with set_theme_sheet's timing, reports and result. Empty overrides remove the sheet.
+
+   .. cpp:function:: void set_composite_look(std::shared_ptr<detail::CompositeLook> look)
+
+      Sets or (null) clears that look (CompositeControl) and invalidates the control's paint and text font. Shared: a control taken out of its composite keeps the look, and the definition it belongs to, alive.
 
    .. cpp:function:: void set_custom_cursor(CursorImagesPtr images, CursorKind fallback = CursorKind::arrow)
 
@@ -2425,7 +2431,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 240 supported, 0 deferred, 12 excluded, 314 unclassified; 209 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 240 supported, 0 deferred, 12 excluded, 316 unclassified; 211 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -4022,6 +4028,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 240 supp
      - supported
    * - property
      - GUI.Forms-only
+     - ``has_composite_look``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``has_pointer_capture``
      - supported
    * - property
@@ -4628,6 +4638,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 240 supp
      - GUI.Forms-only
      - ``set_child_property_value``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_composite_look``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``set_custom_cursor``

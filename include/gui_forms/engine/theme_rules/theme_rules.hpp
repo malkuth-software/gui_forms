@@ -1778,13 +1778,21 @@ public:
     // the controls its definition made consult beside their theme's
     // (PartFacts::look_rules), so the look layers over whatever theme is
     // in effect and stands over the theme's rules only where it says
-    // something. It publishes no values, so its expressions read the
-    // engine inputs alone, and its custom properties are its own: it reads
-    // nothing of one theme, and one compilation serves every theme.
+    // something. Without `theme` it publishes no values, so its
+    // expressions read the engine inputs alone, and its custom properties
+    // are its own: one compilation serves every theme. With `theme` (the
+    // theme in effect's rules), the sheet is a look lowered with that
+    // theme's text (detail::compile_theme_look: it reads the theme's
+    // application roles or custom properties) and holds copies of the
+    // theme's definitions of the names it reads; its expressions read the
+    // theme's published values at the theme's positions, and it is used
+    // with that theme alone (theme_serial). `theme` is read during the call
+    // only.
     [[nodiscard]] static CompiledThemeRules compile_look(const ThemeRuleSheet& sheet,
-                                                         const PrimitiveRegistry& registry);
-    // The serial of the theme an inline style was compiled against, 0 for
-    // none (P12b).
+                                                         const PrimitiveRegistry& registry,
+                                                         const CompiledThemeRules* theme = nullptr);
+    // The serial of the theme an inline style or a look was compiled
+    // against, 0 for none (P12b).
     [[nodiscard]] std::uint64_t theme_serial() const noexcept { return theme_serial_; }
     // How many custom property names the rules read (P12b).
     [[nodiscard]] std::size_t read_name_count() const noexcept { return read_names_.size(); }

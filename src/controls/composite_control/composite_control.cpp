@@ -172,23 +172,36 @@ void CompositeControl::initialize_control_tree() {
     apply_look();
 }
 
-// The definition's compiled look on the composite and on the controls its
-// definition made, walked over an explicit stack (the depth rule). A
-// nested composite that set its own look keeps it, with its subtree; slot
-// content is added later and takes none.
+// The definition's look on the composite and on the controls its
+// definition made, walked over an explicit stack (the depth rule). Each
+// holds it through an alias of the definition, which the look's anatomies
+// borrow. A nested composite that set its own look keeps it, with its
+// subtree; slot content is added later and takes none.
 void CompositeControl::apply_look() {
-    const std::shared_ptr<const CompiledThemeRules>& look = (*definition_).look_rules;
-    if (look == nullptr) return;
-    set_look_rules(look);
+    detail::CompositeLook* const compiled = (*definition_).compiled_look.get();
+    if (compiled == nullptr) return;
+    const std::shared_ptr<detail::CompositeLook> look(definition_, compiled);
+    set_composite_look(look);
     std::vector<Control*> pending{};
     for (const Control::Ptr& child : children()) pending.push_back(child.get());
     while (!pending.empty()) {
         Control* const current = pending.back();
         pending.pop_back();
-        if (current == nullptr || (*current).look_rules() != nullptr) continue;
-        (*current).set_look_rules(look);
+        if (current == nullptr || (*current).has_composite_look()) continue;
+        (*current).set_composite_look(look);
         for (const Control::Ptr& child : (*current).children()) pending.push_back(child.get());
     }
+}
+
+const CompositeStatistics& CompositeControl::statistics() const noexcept {
+    // The look's counts are its definition's, read when asked.
+    const detail::CompositeLook* const look = (*definition_).compiled_look.get();
+    if (look != nullptr) {
+        statistics_.look_theme_compiles = (*look).theme_compiles();
+        statistics_.look_theme_refusals = (*look).theme_refusals();
+        statistics_.look_theme_reuses = (*look).theme_reuses();
+    }
+    return statistics_;
 }
 
 std::string_view CompositeControl::type_name() const noexcept {

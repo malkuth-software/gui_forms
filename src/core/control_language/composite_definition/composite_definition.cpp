@@ -7,15 +7,20 @@
 #include "composite_definition.hpp"
 
 #include "../../form_language/form_xml/form_xml.hpp"
+#include "../../theme/theme_compiler/composite_look_compile.hpp"
 #include "../../theme_language/compiler/theme_compiler.hpp"
 
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/xml/xml_writer/xml_writer.hpp"
 
 #include <algorithm>
 #include <array>
+#include <cstdio>
 #include <cstdlib>
 #include <span>
 #include <string>
@@ -24,6 +29,45 @@
 namespace gui_forms::control_language {
 
 namespace {
+
+// Whether `look` reads, through var(), a custom property name outside
+// `defined` (sorted), the names it defines itself: a name a theme may
+// define. Read from the text: a var() inside a comment counts too, which
+// at worst compiles a theme-independent look once per theme.
+bool reads_undefined_name(std::string_view look, std::span<const std::string> defined) {
+    std::size_t at = look.find("var(");
+    while (at != std::string_view::npos) {
+        std::size_t first = at + 4U;
+        while (first < look.size() && (look[first] == ' ' || look[first] == '\t' || look[first] == '\n')) ++first;
+        std::size_t last = first;
+        while (last < look.size()) {
+            const char character = look[last];
+            const bool letter = (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z');
+            const bool digit = character >= '0' && character <= '9';
+            if (!letter && !digit && character != '-' && character != '_') break;
+            ++last;
+        }
+        const std::string name(look.substr(first, last - first));
+        if (!name.empty() && !std::binary_search(defined.begin(), defined.end(), name)) return true;
+        at = look.find("var(", last);
+    }
+    return false;
+}
+
+// Whether every error of a look compiled alone names something a theme may
+// supply: an unknown keyword (an application colour role) or an undefined
+// custom property.
+bool deferrable_to_theme(const theme_language::ThemeDiagnosticList& found) noexcept {
+    for (const theme_language::ThemeDiagnostic& diagnostic : found.records()) {
+        const bool error = theme_language::diagnostic_severity(diagnostic.code) ==
+                           theme_language::DiagnosticSeverity::error;
+        if (!error) continue;
+        const bool deferrable = diagnostic.code == theme_language::DiagnosticCode::keyword_unknown ||
+                                diagnostic.code == theme_language::DiagnosticCode::variable_undefined;
+        if (!deferrable) return false;
+    }
+    return true;
+}
 
 using theme_language::DiagnosticCode;
 using theme_language::ThemeDiagnostic;
@@ -747,11 +791,17 @@ void DefinitionCompiler::build_anatomy() {
     definition_.anatomy.custom_states = definition_.custom_states;
 }
 
-// The <look>, compiled once for the definition (CompiledThemeRules::
-// compile_look) against the stock anatomies and the composite's own, so
-// its rules name the composite's type, parts and states and the stock
-// types of its children. Its findings name `<file> <look>`, at positions
-// in the look's text; an error refuses the definition.
+// The <look>, compiled alone once for the definition against the stock
+// anatomies and the composite's own, so its rules name the composite's
+// type, parts and states and the stock types of its children. Its findings
+// name `<file> <look>`, at positions in the look's text.
+// - It compiles and reads no custom property it does not define: it is
+//   theme-independent, and those rules serve every theme.
+// - It reads a custom property it does not define, or is refused only for
+//   names a theme may supply (an unknown keyword, such as an application
+//   colour role, or an undefined custom property): it is theme-bound,
+//   compiled with each theme's text on first use (detail::CompositeLook).
+// - Any other error refuses the definition.
 void DefinitionCompiler::compile_look() {
     if (definition_.look.empty()) return;
     std::vector<ControlAnatomy> controls{};
@@ -759,7 +809,7 @@ void DefinitionCompiler::compile_look() {
     controls.reserve(stock.size() + 1U);
     controls.insert(controls.end(), stock.begin(), stock.end());
     controls.push_back(definition_.anatomy);
-    const std::string file = std::string(source_.file) + " <look>";
+    std::string file = std::string(source_.file) + " <look>";
     const theme_language::ThemeSource look_source{.file = file, .text = definition_.look};
     const PrimitiveRegistry& registry = builtin_primitive_registry();
     const theme_language::ThemeCompileInput input{.source = look_source,
@@ -767,16 +817,29 @@ void DefinitionCompiler::compile_look() {
                                                   .vocabulary = theme_language::SelectorVocabulary{controls}};
     ThemeRuleSheet sheet{};
     theme_language::ThemeCompiler compiler{};
-    const theme_language::CompileOutcome outcome = compiler.compile(input, sheet, diagnostics_);
-    if (outcome != theme_language::CompileOutcome::compiled) {
+    theme_language::ThemeDiagnosticList found{};
+    const theme_language::CompileOutcome outcome = compiler.compile(input, sheet, found);
+    definition_.look_compiles = definition_.look_compiles + 1U;
+    std::vector<std::string> defined{};
+    compiler.append_defined_names(defined);
+    std::sort(defined.begin(), defined.end());
+    const bool compiled = outcome == theme_language::CompileOutcome::compiled;
+    if (compiled && !reads_undefined_name(definition_.look, defined)) {
+        for (const theme_language::ThemeDiagnostic& diagnostic : found.records()) diagnostics_.add(diagnostic);
+        std::shared_ptr<const CompiledThemeRules> rules =
+            std::make_shared<const CompiledThemeRules>(CompiledThemeRules::compile_look(sheet, registry));
+        definition_.compiled_look =
+            std::make_shared<detail::CompositeLook>(definition_.look, std::move(file), std::move(rules));
+        return;
+    }
+    if (!compiled && !deferrable_to_theme(found)) {
+        for (const theme_language::ThemeDiagnostic& diagnostic : found.records()) diagnostics_.add(diagnostic);
         refused_ = true;
         return;
     }
-    std::shared_ptr<CompiledThemeRules> rules =
-        std::make_shared<CompiledThemeRules>(CompiledThemeRules::compile_look(sheet, registry));
-    definition_.look_rule_diagnostics = (*rules).diagnostics().size();
-    definition_.look_rules = std::move(rules);
-    definition_.look_compiles = definition_.look_compiles + 1U;
+    // Its findings come again from each theme's compilation, placed alike.
+    definition_.compiled_look =
+        std::make_shared<detail::CompositeLook>(definition_.look, std::move(file), std::move(controls));
 }
 
 void DefinitionCompiler::parse(const std::string& text, CompositeExpression& expression, const ControlSource& where,
@@ -916,3 +979,62 @@ std::shared_ptr<const CompositeDefinition> compile_composite_definition(
 }
 
 } // namespace gui_forms::control_language
+
+namespace gui_forms::detail {
+
+CompositeLook::CompositeLook(std::string text, std::string file, std::shared_ptr<const CompiledThemeRules> rules)
+    : text_(std::move(text)), file_(std::move(file)), independent_(std::move(rules)) {}
+
+CompositeLook::CompositeLook(std::string text, std::string file, std::vector<ControlAnatomy> controls)
+    : text_(std::move(text)), file_(std::move(file)), controls_(std::move(controls)), theme_bound_(true) {
+    entries_.reserve(maximum_composite_look_entries);
+}
+
+CompositeLook::~CompositeLook() = default;
+
+const CompiledThemeRules* CompositeLook::rules_for(const Theme& theme) noexcept {
+    if (!theme_bound_) return independent_.get();
+    const std::uint64_t serial = theme.engine().rules().serial();
+    use_clock_ = use_clock_ + 1U;
+    for (ThemeEntry& entry : entries_) {
+        if (entry.theme_serial != serial) continue;
+        entry.used = use_clock_;
+        if (last_serial_ != 0U && last_serial_ != serial) theme_reuses_ = theme_reuses_ + 1U;
+        last_serial_ = serial;
+        return entry.rules.get();
+    }
+    // First use under this theme: compiled with its text, in place of the
+    // least recently used entry when all are taken.
+    std::vector<ThemeCompileDiagnostic> diagnostics{};
+    std::shared_ptr<const CompiledThemeRules> compiled = compile_theme_look(text_, file_, controls_, theme, diagnostics);
+    theme_compiles_ = theme_compiles_ + 1U;
+    if (compiled == nullptr) {
+        theme_refusals_ = theme_refusals_ + 1U;
+        // Kept as refused, with one log line naming the first error.
+        for (const ThemeCompileDiagnostic& diagnostic : diagnostics) {
+            if (diagnostic.severity != ThemeDiagnosticSeverity::error) continue;
+            const std::string line = format_theme_diagnostic(diagnostic);
+            std::fprintf(stderr, "%s: look refused under theme %.*s: %s\n", file_.c_str(),
+                         static_cast<int>(theme.id().size()), theme.id().data(), line.c_str());
+            break;
+        }
+    }
+    ThemeEntry made{};
+    made.theme_serial = serial;
+    made.rules = std::move(compiled);
+    made.used = use_clock_;
+    if (entries_.size() < maximum_composite_look_entries) {
+        entries_.push_back(std::move(made));
+        last_serial_ = serial;
+        return entries_.back().rules.get();
+    }
+    std::size_t oldest = 0U;
+    for (std::size_t index = 1U; index < entries_.size(); ++index) {
+        if (entries_[index].used < entries_[oldest].used) oldest = index;
+    }
+    entries_[oldest] = std::move(made);
+    last_serial_ = serial;
+    return entries_[oldest].rules.get();
+}
+
+} // namespace gui_forms::detail

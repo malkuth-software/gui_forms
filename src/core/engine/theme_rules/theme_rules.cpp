@@ -2530,10 +2530,18 @@ CompiledThemeRules CompiledThemeRules::compile_user(const ThemeRuleSheet& sheet,
     return result;
 }
 
-CompiledThemeRules CompiledThemeRules::compile_look(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry) {
+CompiledThemeRules CompiledThemeRules::compile_look(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry,
+                                                    const CompiledThemeRules* theme) {
     CompiledThemeRules result{};
     result.look_ = true;
+    // A look lowered with a theme's text reads that theme's published
+    // values at its positions, as an inline style compiled against it does.
+    if (theme != nullptr) {
+        result.published_values_ = (*theme).published_values_;
+        result.theme_serial_ = (*theme).serial_;
+    }
     for (const std::string& name : sheet.published_values) {
+        if (theme != nullptr) break;
         RuleDiagnostic invalid{};
         invalid.kind = RuleDiagnosticKind::published_value_invalid;
         invalid.rule = sheet_diagnostic;
