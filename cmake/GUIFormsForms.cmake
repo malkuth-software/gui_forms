@@ -39,7 +39,10 @@
 #                gui_forms_form_compiler_lab for the Gallery's pages, which
 #                name the lab and demonstration controls (audit F9).
 # The header is regenerated when the document, a composite's document or the
-# compiler changes; the compiler writes it only when its bytes change.
+# compiler changes; the compiler writes it only when its bytes change. The
+# target builds after the header's generation (a per-target dependency; no
+# source-file property, so a source the target shares with another target is
+# left alone); likewise for gui_forms_add_control.
 
 if(COMMAND gui_forms_add_form)
     return()
@@ -65,6 +68,26 @@ function(gui_forms_composite_arguments composites_variable arguments_variable do
     endforeach()
     set(${arguments_variable} ${appended} PARENT_SCOPE)
     set(${documents_variable} ${read} PARENT_SCOPE)
+endfunction()
+
+# Orders `target` after the generation of its `header` (cp33). The header
+# is a source of the target, so the compiler's dependency file tracks every
+# object that includes it, and a per-target generation target, added as a
+# dependency, has it generated before any of the target's objects compile:
+# an object that includes it only through another generated header, or
+# whose dependency file predates it, still builds against the current
+# bytes. Nothing here sets a source-file property: such a property belongs
+# to the directory's source file and reaches every target compiling it (a
+# source shared with the form compiler itself made a dependency cycle).
+# The generation target's name joins the target to a digest of the header's
+# path, so two headers with one stem stay apart.
+function(gui_forms_order_generated_header target header)
+    string(MD5 digest "${header}")
+    string(SUBSTRING "${digest}" 0 12 digest)
+    string(MAKE_C_IDENTIFIER "gui_forms_generate_${target}_${digest}" generation)
+    add_custom_target(${generation} DEPENDS "${header}")
+    add_dependencies(${target} ${generation})
+    target_sources(${target} PRIVATE "${header}")
 endfunction()
 
 function(gui_forms_add_form target document)
@@ -118,7 +141,7 @@ function(gui_forms_add_form target document)
         DEPENDS ${documents} "$<TARGET_FILE:${compiler}>"
         COMMENT "Generating ${stem}_form.hpp from ${document}"
         VERBATIM)
-    target_sources(${target} PRIVATE "${output}")
+    gui_forms_order_generated_header(${target} "${output}")
     target_include_directories(${target} PRIVATE "${output_directory}")
 endfunction()
 
@@ -182,7 +205,7 @@ function(gui_forms_add_control target document)
         DEPENDS ${documents} "$<TARGET_FILE:${compiler}>"
         COMMENT "Generating ${stem}_control.hpp from ${document}"
         VERBATIM)
-    target_sources(${target} PRIVATE "${output}")
+    gui_forms_order_generated_header(${target} "${output}")
     target_include_directories(${target} PRIVATE "${output_directory}")
 endfunction()
 

@@ -4287,6 +4287,23 @@ if(GUI_FORMS_BUILD_TESTS)
                 CLASS NoteDialogForm NAMESPACE form_generated
                 TYPES "note_card,form_generated::NoteCard,user_control,generated/note_card.hpp")
             add_test(NAME gui_forms_form_application_type_tests COMMAND gui_forms_form_application_type_tests)
+            # gui_forms_add_form on a target sharing a source with the form
+            # compiler and another target configures and builds without a
+            # dependency cycle, and a changed document rebuilds it (cp33;
+            # tests/cmake/form_shared_source_test.cmake).
+            add_test(NAME gui_forms_form_shared_source
+                     COMMAND ${CMAKE_COMMAND}
+                             -DWORK_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/form_shared_source_test
+                             -DSOURCE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}
+                             -DGENERATOR=${CMAKE_GENERATOR}
+                             -DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
+                             -DCXX_COMPILER=${CMAKE_CXX_COMPILER}
+                             "-DCXX_FLAGS=${CMAKE_CXX_FLAGS}"
+                             "-DLINKER_FLAGS=${CMAKE_EXE_LINKER_FLAGS}"
+                             -DOSX_SYSROOT=${CMAKE_OSX_SYSROOT}
+                             "-DOSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}"
+                             -DEXECUTABLE_SUFFIX=${CMAKE_EXECUTABLE_SUFFIX}
+                             -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/form_shared_source_test.cmake)
             # Stage B: the classes deriving from the root's type.
             add_executable(gui_forms_form_derived_class_tests tests/form_language/form_derived_class_tests.cpp)
             target_link_libraries(gui_forms_form_derived_class_tests PRIVATE gui_forms_controls)
