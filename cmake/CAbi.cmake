@@ -499,8 +499,9 @@ if(GUI_FORMS_BUILD_TESTS)
     target_compile_features(gui_forms_abi_custom_paint PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_custom_paint COMMAND gui_forms_abi_custom_paint)
     # A C++ client's class entry that throws is recorded and ends the process
-    # through the fail-fast report at abi.class_entry; `plain` checks the
-    # program itself runs an entry and survives.
+    # through the fail-fast report of STXlib's callback gate, whose site is
+    # gui_forms.client_callback (src/abi/stable/registry/abi_registry.hpp);
+    # `plain` checks the program itself runs an entry and survives.
     add_executable(gui_forms_abi_class_entry_fail_fast tests/abi/classes/gf_abi_class_entry_fail_fast.cpp)
     target_link_libraries(gui_forms_abi_class_entry_fail_fast PRIVATE gui_forms_abi_objects gui_forms_application)
     target_compile_features(gui_forms_abi_class_entry_fail_fast PRIVATE cxx_std_20)
@@ -508,7 +509,7 @@ if(GUI_FORMS_BUILD_TESTS)
     set_tests_properties(gui_forms_abi_class_entry_plain PROPERTIES PASS_REGULAR_EXPRESSION "class entry: ok")
     add_test(NAME gui_forms_abi_class_entry_fail_fast
              COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:gui_forms_abi_class_entry_fail_fast> -DMODE=throwing_entry
-                     "-DEXPECTED=GUI.Forms: fatal exception at abi.class_entry: injected class entry failure"
+                     "-DEXPECTED=GUI.Forms: fatal exception at gui_forms.client_callback: injected class entry failure"
                      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_fail_fast.cmake)
     # A set_property callback's kept value text, likewise poisoned in the
     # checked sanitizer tree when the callback returns.

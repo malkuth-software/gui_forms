@@ -1,15 +1,17 @@
 // A class table's entry is foreign code. A C entry cannot throw and the C#
 // entries catch everything, but a C++ client's entry can: an exception
 // leaving it is recorded and ends the process through the fail-fast report
-// (owner's S2 ruling), naming the site "abi.class_entry", and never unwinds
-// into the raiser (src/abi/stable/classes/abi_class_bridge.cpp).
+// (owner's S2 ruling). The entry runs behind STXlib's callback gate, so the
+// report names the gate's site, "gui_forms.client_callback", and the entry's
+// event frame (kind 3), and the exception never unwinds into the raiser
+// (src/abi/stable/classes/abi_class_bridge.cpp, abi_registry.hpp).
 //
 // Modes:
 //   plain           an entry that calls base and returns; prints
 //                   "class entry: ok" and "survived".
 //   throwing_entry  an entry that throws; must end the process with
-//                   "GUI.Forms: fatal exception at abi.class_entry: injected
-//                   class entry failure" and never print "survived"
+//                   "GUI.Forms: fatal exception at gui_forms.client_callback:
+//                   injected class entry failure" and never print "survived"
 //                   (cmake/expect_fail_fast.cmake).
 
 #include "gui_forms/c/gf_abi.h"
