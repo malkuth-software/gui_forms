@@ -126,17 +126,25 @@ void test_content_parts() {
     const Rect swatch = parts.swatch.bounds;
     require(field.width > 20.0 && hue.height > 20.0 && swatch.width > 12.0, "the parts are laid out");
 
+    // The thumbs are drawn over the colour areas where the value puts
+    // them: the field's thumb (10 units square) centred on the field's top
+    // right corner for a pure hue at full brightness, the hue thumb (6
+    // units tall, across the track) centred on the spectrum's top for hue
+    // 0. The samples near those ends sit clear of them.
+    const double field_right_sample = field.x + field.width - 8.0;
+    const double hue_top_sample = hue.y + 4.0;
+
     std::optional<WindowCapture> red = capture(attached);
     require(red.has_value(), "the picker is captured");
     if (!red) return;
-    const Pixel field_corner = pixel_at(*red, field.x + field.width - 3.0, field.y + 2.0);
+    const Pixel field_corner = pixel_at(*red, field_right_sample, field.y + 2.0);
     require(high(field_corner.red) && low(field_corner.green) && low(field_corner.blue),
             "the field's top right is the hue's pure colour");
     const Pixel field_white = pixel_at(*red, field.x + 3.0, field.y + 2.0);
     require(high(field_white.red) && high(field_white.green) && high(field_white.blue), "the field's top left is white");
     const Pixel field_foot = pixel_at(*red, field.x + field.width * 0.5, field.y + field.height - 2.0);
     require(low(field_foot.red) && low(field_foot.green) && low(field_foot.blue), "the field's foot is black");
-    const Pixel hue_top = pixel_at(*red, hue.x + hue.width * 0.5, hue.y + 2.0);
+    const Pixel hue_top = pixel_at(*red, hue.x + hue.width * 0.5, hue_top_sample);
     require(high(hue_top.red) && low(hue_top.green) && low(hue_top.blue), "the spectrum starts red");
     const Pixel hue_middle = pixel_at(*red, hue.x + hue.width * 0.5, hue.y + hue.height * 0.5);
     require(low(hue_middle.red) && high(hue_middle.green) && high(hue_middle.blue), "the spectrum's middle is cyan");
@@ -148,7 +156,7 @@ void test_content_parts() {
     std::optional<WindowCapture> blue = capture(attached);
     require(blue.has_value(), "the picker is captured again");
     if (!blue) return;
-    const Pixel field_blue = pixel_at(*blue, field.x + field.width - 3.0, field.y + 2.0);
+    const Pixel field_blue = pixel_at(*blue, field_right_sample, field.y + 2.0);
     require(low(field_blue.red) && low(field_blue.green) && high(field_blue.blue), "the field follows the hue");
 
     // A transparent value shows the checkerboard's two squares. The
@@ -176,7 +184,7 @@ void test_content_parts() {
     std::optional<WindowCapture> contrast = capture(attached, true);
     require(contrast.has_value(), "the high-contrast picker is captured");
     if (!contrast) return;
-    const Pixel contrast_corner = pixel_at(*contrast, field.x + field.width - 3.0, field.y + 2.0);
+    const Pixel contrast_corner = pixel_at(*contrast, field_right_sample, field.y + 2.0);
     require(high(contrast_corner.red) && low(contrast_corner.green) && low(contrast_corner.blue),
             "in high contrast the field keeps the hue's pure colour");
     const Pixel contrast_middle = pixel_at(*contrast, hue.x + hue.width * 0.5, hue.y + hue.height * 0.5);
@@ -185,7 +193,7 @@ void test_content_parts() {
     const Pixel contrast_swatch = pixel_at(*contrast, swatch.x + swatch.width * 0.5, swatch.y + swatch.height * 0.5);
     require(high(contrast_swatch.red) && low(contrast_swatch.green) && low(contrast_swatch.blue),
             "in high contrast the swatch shows the value");
-    const Pixel frame = pixel_at(*contrast, field.x + field.width - 3.0, field.y);
+    const Pixel frame = pixel_at(*contrast, field_right_sample, field.y);
     require(!(high(frame.red) && low(frame.green) && low(frame.blue)),
             "in high contrast the field is framed by high contrast's edge, not its content");
 
