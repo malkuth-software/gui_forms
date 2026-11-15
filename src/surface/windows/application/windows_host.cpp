@@ -440,6 +440,46 @@ stxlib::Optional<std::size_t> dialog_chosen_filter(IFileDialog& dialog,
     return chosen;
 }
 
+// `options` with `flag` set when `set` holds and cleared otherwise.
+FILEOPENDIALOGOPTIONS with_dialog_option(const FILEOPENDIALOGOPTIONS options, const FILEOPENDIALOGOPTIONS flag,
+                                         const bool set) noexcept {
+    const FILEOPENDIALOGOPTIONS cleared = options & ~flag;
+    const FILEOPENDIALOGOPTIONS result = set ? (cleared | flag) : cleared;
+    return result;
+}
+
+// The common item dialog's options for an open request, from the shell's
+// own defaults (GetOptions on a new dialog). The check flags follow the
+// request exactly (docs/user/hosts-and-capabilities.md, "File dialog
+// settings"): each is set when its setting holds and cleared otherwise,
+// because the shell's defaults already set some of them (FILEOPENDIALOGOPTIONS,
+// shobjidl_core.h: FOS_PATHMUSTEXIST is a default of both dialogs and
+// FOS_FILEMUSTEXIST of the open dialog). With FOS_FILEMUSTEXIST clear a
+// typed name of a missing file is returned as chosen; a name a set flag
+// refuses never reaches the result, since the shell keeps its dialog open.
+FILEOPENDIALOGOPTIONS open_dialog_options(const FILEOPENDIALOGOPTIONS shell_defaults,
+                                          const HostOpenFileDialogRequest& request) noexcept {
+    FILEOPENDIALOGOPTIONS options = shell_defaults | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR;
+    options = with_dialog_option(options, FOS_FILEMUSTEXIST, request.check_file_exists);
+    options = with_dialog_option(options, FOS_PATHMUSTEXIST, request.check_path_exists);
+    options = with_dialog_option(options, FOS_ALLOWMULTISELECT, request.allow_multiple);
+    return options;
+}
+
+// The common item dialog's options for a save request, as for an open
+// request; FOS_CREATEPROMPT asks before accepting a name that does not
+// exist yet, and FOS_OVERWRITEPROMPT (a default of the save dialog) before
+// accepting one that does.
+FILEOPENDIALOGOPTIONS save_dialog_options(const FILEOPENDIALOGOPTIONS shell_defaults,
+                                          const HostSaveFileDialogRequest& request) noexcept {
+    FILEOPENDIALOGOPTIONS options = shell_defaults | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR;
+    options = with_dialog_option(options, FOS_FILEMUSTEXIST, request.check_file_exists);
+    options = with_dialog_option(options, FOS_PATHMUSTEXIST, request.check_path_exists);
+    options = with_dialog_option(options, FOS_CREATEPROMPT, request.create_prompt);
+    options = with_dialog_option(options, FOS_OVERWRITEPROMPT, request.confirm_overwrite);
+    return options;
+}
+
 // The open, save and folder dialogs use the shell's common item dialog
 // (IFileOpenDialog, IFileSaveDialog; audit N65): no fixed path buffer, no
 // MAX_PATH limit on folders, and a path that cannot be converted to UTF-8
@@ -454,11 +494,11 @@ HostDialogResult native_open_dialog(HWND owner, std::uint64_t request_id,
         return path_dialog_failure(request_id, HostServiceError::backend_failure);
     }
     IFileOpenDialog& open = *dialog.pointer;
-    FILEOPENDIALOGOPTIONS options = 0;
-    static_cast<void>(open.GetOptions(&options));
-    options |= FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_NOCHANGEDIR;
-    if (request.allow_multiple) options |= FOS_ALLOWMULTISELECT;
-    static_cast<void>(open.SetOptions(options));
+    FILEOPENDIALOGOPTIONS shell_defaults = 0;
+    static_cast<void>(open.GetOptions(&shell_defaults));
+    const FILEOPENDIALOGOPTIONS options = open_dialog_options(shell_defaults, request);
+    // Refused options would leave the shell's checks, not the request's.
+    if (FAILED(open.SetOptions(options))) return path_dialog_failure(request_id, HostServiceError::backend_failure);
     DialogFileTypes types;
     fill_dialog_file_types(request.filters, types);
     configure_path_dialog(open, request.title, request.initial_directory, request.suggested_name, types,
@@ -500,15 +540,10 @@ HostDialogResult native_save_dialog(HWND owner, std::uint64_t request_id,
         return path_dialog_failure(request_id, HostServiceError::backend_failure);
     }
     IFileSaveDialog& save = *dialog.pointer;
-    FILEOPENDIALOGOPTIONS options = 0;
-    static_cast<void>(save.GetOptions(&options));
-    options |= FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST | FOS_NOCHANGEDIR;
-    if (request.confirm_overwrite) {
-        options |= FOS_OVERWRITEPROMPT;
-    } else {
-        options &= ~static_cast<FILEOPENDIALOGOPTIONS>(FOS_OVERWRITEPROMPT);
-    }
-    static_cast<void>(save.SetOptions(options));
+    FILEOPENDIALOGOPTIONS shell_defaults = 0;
+    static_cast<void>(save.GetOptions(&shell_defaults));
+    const FILEOPENDIALOGOPTIONS options = save_dialog_options(shell_defaults, request);
+    if (FAILED(save.SetOptions(options))) return path_dialog_failure(request_id, HostServiceError::backend_failure);
     DialogFileTypes types;
     fill_dialog_file_types(request.filters, types);
     configure_path_dialog(save, request.title, request.initial_directory, request.suggested_name, types,
