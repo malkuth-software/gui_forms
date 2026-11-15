@@ -1121,6 +1121,35 @@ void test_choice_numeric_defaults_manager_transfer_and_completion_order() {
 
 } // namespace
 
+// A format handler that disposes its binding, as one that unbinds a field
+// when its record goes away does.
+struct DisposeOnFormat final {
+    Binding* binding{};
+    void operator()(BindingConvertEvent&) const { (*binding).dispose(); }
+};
+
+// A-gf-core-01-F1: a format handler that disposes the binding (clearing its
+// target) ends the control update without writing the control.
+void test_format_handler_disposes_the_binding() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("dispose.root"));
+    std::shared_ptr<gui_forms::TextBox> editor = make_control<TextBox>(StableId("dispose.editor"));
+    (*root).add_child(editor);
+    Window window(root, {320.0, 120.0});
+    std::shared_ptr<gui_forms::BindingSource> source = std::make_shared<BindingSource>(window);
+    gui_forms::test_rows::fill_source(*source, {{"dispose.record", {{"amount", 12.5}}}});
+    BindingOptions options;
+    options.formatting_enabled = true;
+    options.format_string = "F2";
+    const std::shared_ptr<Binding> binding = (*editor).data_bindings().add("Text", source, "Amount", options);
+    require((*editor).text.read() == "12.50", "the binding projects the field");
+    (*editor).text = "unchanged";
+    SubscriptionToken formatter = (*binding).format().subscribe(DisposeOnFormat{binding.get()});
+    require(!(*binding).read_value() && !(*binding).active() && (*binding).target() == nullptr &&
+                (*editor).text.read() == "unchanged",
+            "a binding disposed by its format handler does not write the control");
+    static_cast<void>(formatter);
+}
+
 int main() {
     try {
         test_value_conversion_is_strict_and_invariant();
@@ -1137,6 +1166,7 @@ int main() {
         test_edit_transactions_list_mutation_and_context();
         test_collection_uniqueness_base_properties_and_cleanup();
         test_choice_numeric_defaults_manager_transfer_and_completion_order();
+        test_format_handler_disposes_the_binding();
         std::cout << "gui_forms_binding_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
