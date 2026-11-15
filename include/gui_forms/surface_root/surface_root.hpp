@@ -362,6 +362,40 @@ struct GUI_FORMS_API WindowOverrides final {
     }
 };
 
+// What became of a primary press in the window's route (diagnostics, the
+// press trace: SurfaceRoot::last_press_trace).
+enum class PressOutcome : std::uint8_t {
+    // No primary press has been routed yet.
+    none,
+    // The point hit no control.
+    no_target,
+    // A control on the route took the press in its preview phase
+    // (on_pointer_preview set handled); `handled_by` names it.
+    preview_handled,
+    // The target is focusable and refused focus (validation or the active
+    // focus scope): the press stops there, and the target sees nothing.
+    focus_refused,
+    // The target's mouse down was raised.
+    delivered,
+};
+
+// The last primary press: where it landed and how the route treated it.
+// Strings are copied, so the record outlives the controls it names. A
+// control without a stable ID is named by its anatomy's control ID alone.
+struct GUI_FORMS_API PressTrace final {
+    // Primary presses routed by this window so far.
+    std::uint64_t presses{};
+    // The hit (or captured) control the press was routed to; empty for
+    // no_target.
+    std::string target_stable_id{};
+    std::string target_control_id{};
+    // The control whose preview handler took the press (preview_handled).
+    std::string handled_by{};
+    // The press's window position.
+    Point position{};
+    PressOutcome outcome{PressOutcome::none};
+};
+
 // What SurfaceRoot::control found: the one control with the ID, or why
 // there is none (then `control` is null).
 struct GUI_FORMS_API ControlLookup final {
@@ -1032,6 +1066,10 @@ public:
 
     [[nodiscard]] Control::Ptr find(std::string_view stable_id) const;
     [[nodiscard]] Control::Ptr hit_test(Point position);
+    // The last primary press's trace (PressTrace): the control it landed on
+    // and what the route did with it. Written by every primary press, read
+    // by tests and diagnostics; GUI_FORMS_TRACE_PRESS also logs each.
+    [[nodiscard]] const PressTrace& last_press_trace() const noexcept { return press_trace_; }
     bool request_focus(const Control::Ptr& control);
     [[nodiscard]] Control::Ptr focused_control() const noexcept { return focused_.lock(); }
     // Gives the window's last focused control its focus back: keeps the
@@ -1721,6 +1759,11 @@ private:
     // the event's hit test so far (the hover's, for a move).
     bool route_pointer(PointerEvent& event, Control::Ptr& pressed_for_release, Control::Ptr& target_out,
                        PointerHit& hit, bool& click_suppressed);
+    // Records a primary press in press_trace_ (and on stderr under
+    // GUI_FORMS_TRACE_PRESS): `target` null for no_target, `handled_by`
+    // the preview handler for preview_handled, else null.
+    void trace_press(const PointerEvent& event, const Control* target, const Control* handled_by,
+                     PressOutcome outcome);
     // The latched control for a wheel event of an ongoing scroll gesture,
     // releasing the latch at the gesture's end (wheel_latch_); null to route
     // by hit test.
@@ -2477,6 +2520,8 @@ private:
     PresentationSettings presentation_base_{};
     // What the window overrides (K.1): null until the first override.
     std::unique_ptr<WindowOverrides> overrides_{};
+    // The last primary press (last_press_trace).
+    PressTrace press_trace_{};
     // The record, made on the first override.
     WindowOverrides& edit_overrides();
     // Releases the record once nothing is overridden.

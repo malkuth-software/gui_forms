@@ -48,6 +48,25 @@ bool layout_invalidation_traced() noexcept {
     return traced;
 }
 
+// Whether GUI_FORMS_TRACE_PRESS was set when the first press was traced:
+// then every primary press's trace (SurfaceRoot::last_press_trace) is also
+// written to stderr, one line. Read once, as above.
+bool press_traced() noexcept {
+    static const bool traced = std::getenv("GUI_FORMS_TRACE_PRESS") != nullptr;
+    return traced;
+}
+
+const char* press_outcome_name(PressOutcome outcome) noexcept {
+    switch (outcome) {
+    case PressOutcome::no_target: return "no_target";
+    case PressOutcome::preview_handled: return "preview_handled";
+    case PressOutcome::focus_refused: return "focus_refused";
+    case PressOutcome::delivered: return "delivered";
+    case PressOutcome::none:
+    default: return "none";
+    }
+}
+
 constexpr std::uint32_t maximum_layout_passes = 4;
 constexpr std::uint32_t maximum_semantic_snapshot_passes = 4;
 // A hit test repeats while a hit-test callback changes the tree under it
@@ -1948,7 +1967,9 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
         target = reuse_pointer_hit(hit, event.position);
     }
     if (event.action == PointerAction::wheel && event.wheel_phase == WheelPhase::began) wheel_latch_ = target;
+    const bool primary_press = event.action == PointerAction::down && event.button == PointerButton::primary;
     if (!target) {
+        if (primary_press) trace_press(event, nullptr, nullptr, PressOutcome::no_target);
         return false;
     }
 
@@ -1987,6 +2008,7 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
             (*control).publish_change((*control).pointer_preview_observed_, event);
         }
         if (event.handled) {
+            if (primary_press) trace_press(event, target.get(), control.get(), PressOutcome::preview_handled);
             return true;
         }
     }
@@ -2003,6 +2025,7 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
             // attempted to enter this focusable target. In particular, a
             // Button must not publish Click after focus validation failed.
             event.handled = true;
+            trace_press(event, target.get(), nullptr, PressOutcome::focus_refused);
             return true;
         }
         if (eligible(target)) {
@@ -2015,6 +2038,7 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
     }
 
     if (eligible(target)) {
+        if (primary_press) trace_press(event, target.get(), nullptr, PressOutcome::delivered);
         target_out = target;
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
@@ -2042,6 +2066,26 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
         }
     }
     return event.handled;
+}
+
+void SurfaceRoot::trace_press(const PointerEvent& event, const Control* target, const Control* handled_by,
+                              PressOutcome outcome) {
+    press_trace_.presses = press_trace_.presses + 1U;
+    press_trace_.position = event.position;
+    press_trace_.outcome = outcome;
+    press_trace_.target_stable_id.clear();
+    press_trace_.target_control_id.clear();
+    press_trace_.handled_by.clear();
+    if (target != nullptr) {
+        press_trace_.target_stable_id = std::string((*target).stable_id().value());
+        press_trace_.target_control_id = std::string((*target).anatomy().control_id);
+    }
+    if (handled_by != nullptr) press_trace_.handled_by = std::string((*handled_by).stable_id().value());
+    if (!press_traced()) return;
+    std::fprintf(stderr, "gui-forms-press: %s target=%s (%s) handled-by=%s at %.1f,%.1f\n",
+                 press_outcome_name(outcome), press_trace_.target_stable_id.c_str(),
+                 press_trace_.target_control_id.c_str(), press_trace_.handled_by.c_str(), event.position.x,
+                 event.position.y);
 }
 
 // Scroll latching (WheelPhase): the control a gesture's later events go to.

@@ -29,7 +29,14 @@
 //   the content editor's multiline and draws-selection; its `paint="hook"`
 //   part is drawn by a typed class, with the part's bounds and text, and
 //   draws nothing without one; a composite with its own semantics publishes
-//   its own node.
+//   its own node;
+// - real pointer input on a capsule (PlaySuite's command capsule, reduced):
+//   a pill part covering the client area, a document button and one the
+//   class adds, both placed in arrange and painted in the overlay plane,
+//   and a hit test of the pill alone: a press and release on either button
+//   clicks it, also with a layout pass between them, a press on the bare
+//   pill lands on the composite and one beside it on nothing, as the press
+//   trace (SurfaceRoot::last_press_trace) records.
 
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 
@@ -41,6 +48,7 @@
 #include "gui_forms/controls/flex_panel.hpp"
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/display/types/display_types.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
@@ -61,6 +69,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -879,6 +888,118 @@ void own_semantics_exposed() {
     require(nodes_with_id(snapshot.roots, (*pill).runtime_id().value) == 1U, "the composite's node is in the snapshot");
 }
 
+// A capsule like PlaySuite's CommandCapsule, reduced: the document makes
+// the pill part (covering the client area less a 14 margin) and one button;
+// the class adds a second, places both with set_child_layout in arrange,
+// paints its children in the overlay plane, and hit-tests its pill alone.
+constexpr std::string_view capsule_probe = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="capsule-probe" version="1.0" base="user-control" family="panel">
+  <part name="pill" role="face" shape="pill" box="inset(region, 14)"/>
+  <children>
+    <button id="@go" text="Go"/>
+  </children>
+  <focus target="none"/>
+  <semantics role="toolbar" name="property(accessible-name)" children="exposed"/>
+</control>
+)xml";
+
+constexpr double capsule_margin = 14.0;
+constexpr Rect capsule_go_slot{20.0, 20.0, 40.0, 24.0};
+constexpr Rect capsule_added_slot{70.0, 20.0, 40.0, 24.0};
+
+// Counts a button's clicked().
+class ClickCounter final : public Component {
+public:
+    void on_clicked() { count = count + 1U; }
+    std::size_t count{};
+};
+
+class CapsuleProbe final : public CompositeControl {
+public:
+    CapsuleProbe(StableId stable_id, std::shared_ptr<const CompositeDefinition> definition)
+        : CompositeControl(std::move(stable_id), std::move(definition)) {}
+
+    // The document's children first, then the class's own button.
+    void initialize_control_tree() {
+        CompositeControl::initialize_control_tree();
+        added = make_control<Button>(StableId(std::string("capsule.added")));
+        add_child(added);
+    }
+
+    void arrange(const Rect final_bounds) override {
+        for (const Control::Ptr& held : children()) (*held).set_paint_plane(PaintPlane::overlay);
+        CompositeControl::arrange(final_bounds);
+        const Control::Ptr go = child("go");
+        if (go != nullptr) set_child_layout(go, capsule_go_slot);
+        if (added != nullptr) set_child_layout(added, capsule_added_slot);
+        arranged = arranged + 1U;
+    }
+
+    // The pill alone: the margin is the shadow's.
+    [[nodiscard]] bool hit_test_local(const Point local) const override {
+        const Rect own = client_rectangle();
+        const bool inside = local.x >= capsule_margin && local.y >= capsule_margin &&
+                            local.x < own.width - capsule_margin && local.y < own.height - capsule_margin;
+        return inside;
+    }
+
+    std::shared_ptr<Button> added{};
+    std::size_t arranged{};
+};
+
+void press_and_release(Window& window, const Point position) {
+    static_cast<void>(dispatch_press(window, position, PointerAction::down));
+    static_cast<void>(dispatch_press(window, position, PointerAction::up));
+}
+
+void capsule_pointer_reaches_buttons() {
+    const CompositeLoadResult loaded =
+        load_composite_definition("capsule-probe.control", capsule_probe, example_child_types);
+    for (const std::string& line : loaded.diagnostics) std::cerr << "  " << line << '\n';
+    require(static_cast<bool>(loaded), "the capsule probe loads");
+    if (!loaded) return;
+    const std::shared_ptr<CapsuleProbe> capsule =
+        make_control<CapsuleProbe>(StableId(std::string("capsule")), loaded.definition);
+    (*capsule).set_requested_bounds({0.0, 0.0, 200.0, 64.0});
+    Window window(capsule, {200.0, 64.0});
+    window.perform_layout();
+    const Control::Ptr go = (*capsule).child("go");
+    require(go != nullptr && (*capsule).added != nullptr, "the capsule has both buttons");
+    if (go == nullptr || (*capsule).added == nullptr) return;
+    ClickCounter go_clicks{};
+    ClickCounter added_clicks{};
+    on(static_cast<Button&>(*go).clicked(), go_clicks, &ClickCounter::on_clicked);
+    on((*(*capsule).added).clicked(), added_clicks, &ClickCounter::on_clicked);
+
+    // The document's button: the press lands on it and the release clicks.
+    press_and_release(window, centre_of(capsule_go_slot));
+    const PressTrace& trace = window.last_press_trace();
+    require(trace.outcome == PressOutcome::delivered && trace.target_stable_id == "capsule.go",
+            "a press on the document's button lands on it (trace: " + trace.target_stable_id + ")");
+    require(go_clicks.count == 1U, "a real press and release click the document's button");
+
+    // The class's button, with a layout pass between press and release (the
+    // capsule re-lays out on every frame of its opening).
+    const std::size_t arranged_before = (*capsule).arranged;
+    static_cast<void>(dispatch_press(window, centre_of(capsule_added_slot), PointerAction::down));
+    require(window.last_press_trace().target_stable_id == "capsule.added", "a press lands on the class's button");
+    (*capsule).invalidate(Dirty::layout);
+    window.perform_layout();
+    require((*capsule).arranged > arranged_before, "the capsule was arranged during the press");
+    static_cast<void>(dispatch_press(window, centre_of(capsule_added_slot), PointerAction::up));
+    require(added_clicks.count == 1U, "a layout pass between press and release keeps the click");
+
+    // The bare pill is the composite's; the shadow margin is nothing's.
+    press_and_release(window, Point{150.0, 32.0});
+    require(window.last_press_trace().outcome == PressOutcome::delivered &&
+                window.last_press_trace().target_stable_id == "capsule",
+            "a press on the bare pill lands on the capsule");
+    press_and_release(window, Point{4.0, 4.0});
+    require(window.last_press_trace().outcome == PressOutcome::no_target, "a press beside the pill lands on nothing");
+    require(go_clicks.count == 1U && added_clicks.count == 1U, "neither button clicked again");
+    require(window.last_press_trace().presses == 5U, "every primary press is traced");
+}
+
 int main() {
     toggle_pill();
     card_with_action();
@@ -897,6 +1018,7 @@ int main() {
     query_field_takes_editor_node();
     hook_without_class_draws_nothing();
     own_semantics_exposed();
+    capsule_pointer_reaches_buttons();
     if (failures != 0) {
         std::cerr << failures << " composite control check(s) failed\n";
         return 1;
