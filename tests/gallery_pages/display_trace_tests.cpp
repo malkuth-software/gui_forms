@@ -656,10 +656,16 @@ struct PageDigest final {
 // again by the integrator on the cp32 head, both tables, after the plain and
 // sanitizer trees were checked to record the same traces.
 //
+// cp34 (composite controls on the Gallery): the composite-controls page
+// lengthens the navigation list once more, so every page moves. TO BE
+// RECORDED by the integrator on the fold's head (GUI_FORMS_GALLERY_TRACE_PRINT=1):
+// every page, in both tables; composite-controls for the first time (its
+// entries are zero until then).
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
-constexpr std::array<PageDigest, 41> expected_digests{{
+constexpr std::array<PageDigest, 42> expected_digests{{
     {"basics", 0xd07f90c935800313ULL},
     {"values", 0xe1aea0135dd26fcdULL},
     {"retained-rows", 0x0e0218f854b00520ULL},
@@ -700,6 +706,7 @@ constexpr std::array<PageDigest, 41> expected_digests{{
     {"help-book", 0xc49e5f86f5827c2fULL},
     {"industrial-surfaces", 0x77526ce34bb61802ULL},
     {"node-graphs", 0xcef6d540e151eb21ULL},
+    {"composite-controls", 0x0000000000000000ULL},
     {"controls-inspection", 0x8342d6611b5740c7ULL},
 }};
 
@@ -716,7 +723,7 @@ constexpr std::array<PageDigest, 41> expected_digests{{
 // dock site parts carry their names. typography-and-inspection is
 // left out (zero): it shows a RuntimeId, which counts every control made
 // before it in the process, and this pass runs after the one above.
-constexpr std::array<PageDigest, 41> professional_digests{{
+constexpr std::array<PageDigest, 42> professional_digests{{
     {"basics", 0x3efb54f438ef5b61ULL},
     {"values", 0xaff0d832fbec1918ULL},
     {"retained-rows", 0x6326b1288881e665ULL},
@@ -757,6 +764,7 @@ constexpr std::array<PageDigest, 41> professional_digests{{
     {"help-book", 0x9d7190c62b60d60cULL},
     {"industrial-surfaces", 0x51be38ea89f7f331ULL},
     {"node-graphs", 0x9a75f9e4103c2b3eULL},
+    {"composite-controls", 0x0000000000000000ULL},
     {"controls-inspection", 0xa4c4ffcbc3042cf2ULL},
 }};
 

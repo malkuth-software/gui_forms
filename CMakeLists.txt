@@ -2159,6 +2159,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/help-book.cpp
         src/controls/gallery/pages/industrial-surfaces.cpp
         src/controls/gallery/pages/node-graphs.cpp
+        src/controls/gallery/pages/composite-controls.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -2280,6 +2281,17 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS CommandsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/live-surfaces.form
         CLASS LiveSurfacesDocument NAMESPACE gui_forms::gallery::pages)
+    # The composite-controls page (cp34): the worked examples generated as
+    # classes, and a form naming them whose children fill the card's slot.
+    gui_forms_add_control(gui_forms_gallery_model demo/composites/toggle-pill.control
+        CLASS TogglePill NAMESPACE gui_forms::gallery::composites)
+    gui_forms_add_control(gui_forms_gallery_model demo/composites/card-with-action.control
+        CLASS CardWithAction NAMESPACE gui_forms::gallery::composites)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/composite-controls.form
+        CLASS CompositeControlsDocument NAMESPACE gui_forms::gallery::pages
+        COMPOSITES
+            "demo/composites/toggle-pill.control,gui_forms::gallery::composites::TogglePill,toggle_pill_control.hpp"
+            "demo/composites/card-with-action.control,gui_forms::gallery::composites::CardWithAction,card_with_action_control.hpp")
     # The Gallery's project theme (owner rulings of 2026-11-04): the forms
     # name roles by class; the theme gives the roles their look.
     gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery CHECK
@@ -5641,6 +5653,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/help-book_tests.cpp
             tests/gallery_pages/industrial-surfaces_tests.cpp
             tests/gallery_pages/node-graphs_tests.cpp
+            tests/gallery_pages/composite-controls_tests.cpp
             tests/gallery_pages/anatomy_coverage_tests.cpp
             tests/gallery_pages/schema_export_tests.cpp
         )

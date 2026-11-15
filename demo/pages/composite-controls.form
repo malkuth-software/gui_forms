@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Gallery's composite-controls page (cp34): the design note's worked
+   examples, toggle-pill and card-with-action (demo/composites/), as
+   controls generated at build time by gui_forms_add_control and named here
+   like any control. gui_forms_add_form() compiles this document into
+   composite-controls_form.hpp, with the two composites listed in
+   COMPOSITES.
+
+   The card's children below are the form's: they go into the card's slot
+   (its content child), in document order, placed by their bounds. The
+   card's own header, title and action button are its definition's and are
+   not named here. A toggle pill has no slot and would refuse children.
+
+   gallery.composite-controls.document is a declared boundary only: the
+   page moves its children into the shell's page body (a 1000 x 660 design
+   surface). Behaviour stays in the page (src/controls/gallery/pages/
+   composite-controls.cpp): it shows the pills' checked-changed events and
+   counts the card's action-invoked. -->
+<scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.composite-controls.document"
+    design-size="1000 660">
+
+  <label id="gallery.composite-controls.heading"
+      text="COMPOSITE CONTROLS"
+      classes="heading page-title"
+      bounds="24 18 620 34"/>
+  <label id="gallery.composite-controls.lead"
+      text="Controls written as .control documents: properties, parts, rules and semantics declared, generated at build time and placed by a form like any control."
+      classes="muted body"
+      bounds="26 52 920 24"/>
+
+  <scaled-group-box id="gallery.composites.pills"
+      text="TogglePill · a switch from toggle-pill.control"
+      classes="paper group-caption"
+      design-size="450 260"
+      bounds="24 92 450 260">
+    <toggle-pill id="gallery.composites.wifi"
+        text="Wi-Fi"
+        checked="true"
+        bounds="22 44 300 26"/>
+    <toggle-pill id="gallery.composites.bluetooth"
+        text="Bluetooth"
+        bounds="22 84 300 26"/>
+    <toggle-pill id="gallery.composites.airplane"
+        text="Airplane mode"
+        bounds="22 124 300 26"/>
+    <label id="gallery.composites.pills.status"
+        text="Wi-Fi on · Bluetooth off · Airplane mode off"
+        classes="muted body"
+        bounds="22 176 406 22"/>
+    <label id="gallery.composites.pills.last"
+        text="No change yet."
+        classes="muted body"
+        bounds="22 206 406 22"/>
+  </scaled-group-box>
+
+  <scaled-group-box id="gallery.composites.cards"
+      text="CardWithAction · a card whose slot this form fills"
+      classes="paper group-caption"
+      design-size="460 260"
+      bounds="494 92 460 260">
+    <card-with-action id="gallery.composites.storage"
+        title="Storage"
+        action-text="Manage"
+        bounds="16 36 428 160">
+      <label id="gallery.composites.storage.used"
+          text="38.2 GB of 64 GB used"
+          bounds="0 0 380 22"/>
+      <toggle-pill id="gallery.composites.storage.offload"
+          text="Offload unused programs"
+          bounds="0 32 380 26"/>
+    </card-with-action>
+    <label id="gallery.composites.cards.invoked"
+        text="Manage was not invoked yet."
+        classes="muted body"
+        bounds="16 210 428 22"/>
+  </scaled-group-box>
+
+  <label id="gallery.composite-controls.note"
+      text="Each composite is one shared definition; its declared events reach the page as raised() and the C ABI as interactions. Its own children stay private to it."
+      classes="muted body"
+      bounds="26 372 920 44"/>
+</scaled-panel>

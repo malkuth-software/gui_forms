@@ -94,6 +94,7 @@ void test_registry_pages_gallery() {
     test_help_book(window);
     test_industrial_surfaces(window);
     test_node_graphs(window);
+    test_composite_controls(window);
     test_retained_layout_panels(window);
     test_css_layout_panels(window);
     test_control_spectrum(window);
