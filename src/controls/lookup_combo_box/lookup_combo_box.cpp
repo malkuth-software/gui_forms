@@ -451,8 +451,11 @@ void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
         }
         return;
     }
+    // A page is one row fewer than the list shows, and at least one row: no
+    // row fits before the list's first layout or in a very short window, and
+    // 0 - 1 would wrap to a page of -1 (A-gf-controls-06-F6).
     const std::ptrdiff_t page =
-        list_ ? static_cast<std::ptrdiff_t>(std::max<std::size_t>(1U, (*list_).visible_rows() - 1U)) : 1;
+        list_ ? static_cast<std::ptrdiff_t>(std::max<std::size_t>((*list_).visible_rows(), 2U) - 1U) : 1;
     bool recognized = true;
     switch (key) {
     case PhysicalKey::up: move_highlight(-1, false); break;

@@ -616,6 +616,12 @@ void test_lookup_combo_box() {
                 (*lookup).selected_key.read() == "de" && recorder.seen.back() == "closed",
             "Enter chooses the highlighted row and closes");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::f4}) && (*lookup).is_dropped_down(), "F4 opens the list");
+    // A-gf-controls-06-F6: whether or not a row fits the open list yet, Page Down moves the
+    // highlight down, never up (a page of 0 - 1 rows wrapped to -1).
+    const std::optional<std::size_t> before_page = (*lookup).highlighted();
+    require(before_page.has_value() && window.dispatch_key({KeyAction::down, PhysicalKey::page_down}) &&
+                (*lookup).highlighted().has_value() && *(*lookup).highlighted() > *before_page,
+            "Page Down moves the highlight down");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) && !(*lookup).is_dropped_down() &&
                 (*lookup).selected_key.read() == "de",
             "Escape closes without choosing");
