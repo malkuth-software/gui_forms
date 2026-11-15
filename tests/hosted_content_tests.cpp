@@ -372,6 +372,29 @@ void a_crash_ends_only_the_program() {
     require(settle(fixture, StatusIs{ContentSurfaceStatus::failed}), "the failed status stays");
 }
 
+// The example's Restart (cp32 fold C return): a crashed program's surface
+// takes a new program on the same surface, with a new channel, region and
+// process; the failure is cleared and the new frames show. The watchdog is
+// on, as in an application.
+void a_crashed_surface_takes_a_new_program() {
+    Fixture fixture = start_child("hosted.restart", "crash");
+    require(settle(fixture, StatusIs{ContentSurfaceStatus::failed}), "the first program crashes");
+    (*fixture.surface).set_stale_interval(std::chrono::milliseconds(2000));
+    HostedContentOptions options{};
+    options.executable = GUI_FORMS_HOSTED_CHILD;
+    options.arguments = {"frames"};
+    options.slot_bytes = 1024U * 1024U;
+    options.stop_grace = std::chrono::milliseconds(200);
+    fixture.input = (*fixture.surface).start_hosted_content(options, true);
+    require((*fixture.surface).status() == ContentSurfaceStatus::waiting && (*fixture.surface).failure().empty(),
+            "a new program clears the failure and waits");
+    require((*fixture.surface).statistics().frames_published == 0U, "the new channel starts with no frames");
+    require(settle(fixture, HasFrames{}), "the new program's frames arrive on the same surface");
+    require(settle(fixture, StatusIs{ContentSurfaceStatus::live}), "the surface is live again");
+    (*fixture.surface).terminate();
+    require(settle(fixture, StatusIs{ContentSurfaceStatus::ended}), "the new program ends on request");
+}
+
 void a_hung_program_goes_stale_and_is_ended() {
     Fixture fixture = start_child("hosted.hang", "hang");
     require(settle(fixture, StatusIs{ContentSurfaceStatus::live}), "the program publishes before it hangs");
@@ -433,6 +456,7 @@ int main() {
         frames_and_input_cross_the_process_boundary();
         the_surface_forwards_its_input_in_order();
         a_crash_ends_only_the_program();
+        a_crashed_surface_takes_a_new_program();
         a_hung_program_goes_stale_and_is_ended();
         garbage_breaks_the_protocol();
         an_oversized_frame_is_refused_and_counted();

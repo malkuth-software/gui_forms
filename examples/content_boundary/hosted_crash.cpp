@@ -73,10 +73,17 @@ public:
 
     std::uint32_t counted{};
     std::uint32_t starts{};
+    // Every transition the surface reported, counted as it arrives, so a
+    // program that goes live and fails between two turns of the loop is
+    // still seen to have gone live.
+    std::uint32_t went_live{};
+    std::uint32_t went_failed{};
 
 private:
     void status_changed(gf::ContentSurfaceStatus status) {
         std::string line = std::string("Program: ") + std::string(gf::content_surface_status_name(status));
+        if (status == gf::ContentSurfaceStatus::live) ++went_live;
+        if (status == gf::ContentSurfaceStatus::failed) ++went_failed;
         if (status == gf::ContentSurfaceStatus::failed) line += " (" + surface_.failure() + ")";
         status_.text = line;
         restart_.enabled = status == gf::ContentSurfaceStatus::failed;
@@ -90,23 +97,38 @@ private:
     std::filesystem::path executable_;
 };
 
-struct StatusIs final {
-    gf::ContentSurfaceStatus wanted{};
-    bool operator()(const gf::ContentSurface& surface) const { return surface.status() == wanted; }
+// Whether the surface has gone live, and failed, at least the given numbers
+// of times since the program first started.
+struct TransitionsReach final {
+    std::uint32_t live{};
+    std::uint32_t failed{};
+    bool operator()(const Shell& shell) const { return shell.went_live >= live && shell.went_failed >= failed; }
 };
+
+// What the surface holds when a wait gives up, for the failure message.
+void report_surface(const gf::ContentSurface& surface, const Shell& shell) {
+    const gf::ContentSurfaceStatistics statistics = surface.statistics();
+    std::cerr << "surface: " << gf::content_surface_status_name(surface.status()) << " (" << surface.failure()
+              << "); starts " << shell.starts << ", live " << shell.went_live << ", failed " << shell.went_failed
+              << "; frames published " << statistics.frames_published << ", refused " << statistics.frames_refused
+              << ", dropped " << statistics.frames_dropped << ", after revocation " << statistics.after_revocation
+              << '\n';
+}
 
 // The host's loop, run by hand: deliver posted work, run the surface's
 // timer check, and press the counter, until `done` holds or ten seconds
 // pass.
-bool run_until(gf::Window& window, gf::ContentSurface& surface, gf::Button& count, StatusIs done) {
+bool run_until(gf::Window& window, gf::ContentSurface& surface, gf::Button& count, const Shell& shell,
+               TransitionsReach done) {
     const std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
     while (std::chrono::steady_clock::now() < deadline) {
         static_cast<void>(window.drain_posted_work());
         surface.check_watchdog(gf::FrameClock::now());
         static_cast<void>(count.perform_click());
-        if (done(surface)) return true;
+        if (done(shell)) return true;
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
+    report_surface(surface, shell);
     return false;
 }
 
@@ -147,9 +169,8 @@ int main(int argument_count, char** arguments) {
     window.perform_layout();
 
     shell.start();
-    require(run_until(window, *surface, *count, StatusIs{gf::ContentSurfaceStatus::live}),
-            "the hosted program's frames arrive");
-    require(run_until(window, *surface, *count, StatusIs{gf::ContentSurfaceStatus::failed}),
+    require(run_until(window, *surface, *count, shell, TransitionsReach{1U, 0U}), "the hosted program's frames arrive");
+    require(run_until(window, *surface, *count, shell, TransitionsReach{1U, 1U}),
             "the program's crash fails the surface");
     require((*surface).failure().find("crashed") != std::string::npos, "the failure names the crash");
     require((*surface).live_surface() != nullptr, "the last good frame stays, veiled");
@@ -159,10 +180,11 @@ int main(int argument_count, char** arguments) {
     // program again on the same surface.
     window.perform_layout();
     require((*restart).perform_click(), "Restart is pressed");
-    require(run_until(window, *surface, *count, StatusIs{gf::ContentSurfaceStatus::live}),
+    require((*surface).status() == gf::ContentSurfaceStatus::waiting && (*surface).failure().empty(),
+            "Restart clears the failure and waits for the new program");
+    require(run_until(window, *surface, *count, shell, TransitionsReach{2U, 1U}),
             "the restarted program shows frames");
-    require(run_until(window, *surface, *count, StatusIs{gf::ContentSurfaceStatus::failed}),
-            "and crashes again, alone");
+    require(run_until(window, *surface, *count, shell, TransitionsReach{2U, 2U}), "and crashes again, alone");
     require(shell.counted > counted_at_crash && shell.starts == 2U, "the application answered throughout");
 
     std::cout << "Hosted program crashed twice (" << (*surface).failure() << "); the application counted "

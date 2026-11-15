@@ -36,6 +36,15 @@
 // Then the same for an ordinary owned window: a click whose handler posts
 // its close must close it within the bound.
 //
+// Activation is not under test. An owned window opens ordered front but
+// not key, and AppKit spends the first click on a window that is not key
+// (or on an application that is not active, as on a desktop covered by
+// other programs' dialogs) on making it key: the view does not accept the
+// first mouse. So the plain window is made key, and the application
+// active, before its click; and a round whose close never comes still
+// ends the run with the failure reported (finish_if_stuck), rather than
+// leaving it to the watchdog.
+//
 // The helper thread only waits and posts events (postEvent: is admitted
 // from any thread). If a bound passes it records the failure and posts one
 // application-defined event, so the run ends and the failure is reported
@@ -143,6 +152,9 @@ struct WakeProbe final {
     SubscriptionToken plain_click{};
     DialogResult dialog_result{DialogResult::none};
     bool modal_status_accepted{};
+    // Set by finish_run, which runs once (after the plain window closed, or
+    // from finish_if_stuck).
+    bool finished{};
 };
 
 // The helper thread's body for one round: waits for the round to be armed,
@@ -153,7 +165,9 @@ public:
 
     void operator()() const {
         ClickRound& round = *round_;
-        for (int wait = 0; wait < 200 && !round.armed.load(); ++wait) {
+        // The plain round arms only after the whole modal round: wait up
+        // to 40 seconds, within the watchdog's 60.
+        for (int wait = 0; wait < 800 && !round.armed.load(); ++wait) {
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
         if (!round.armed.load()) return;
@@ -328,11 +342,28 @@ struct PlainReady final {
         (*probe).ticked = false;
         (*(*probe).timer).stop();
         (*(*probe).timer).start();
+        make_key(plain_title);
+        (*probe).report.check("the plain window is found for its click",
+                              handoff_probe::find_window(plain_title) != nil, "");
         arm_round((*probe).plain_round, plain_title);
+        // After the helper's settling wait, the close bound and a margin.
+        const double stuck_after = 0.8 + static_cast<double>(close_bound.count()) / 1000.0 + 1.5;
+        handoff_probe::after(stuck_after, probe, &finish_if_stuck);
     }
 };
 
 void finish_run(void* context);
+void finish_if_stuck(void* context);
+
+// Activation is not under test: the plain window is made key and the
+// application active, so the posted click reaches the OK button instead of
+// being spent on making the window key.
+void make_key(const char* title) {
+    NSWindow* const native = handoff_probe::find_window(title);
+    if (native == nil) return;
+    [NSApp activateIgnoringOtherApps:YES];
+    [native makeKeyAndOrderFront:nil];
+}
 
 struct PlainClosed final {
     WakeProbe* probe{};
@@ -378,8 +409,20 @@ void check_plain(void* const context) {
     report.check("the plain window opened", opened.status.accepted(), "");
 }
 
+// The plain round's close never came: the run still ends, with the round's
+// failure reported by finish_run. Does nothing once the window closed.
+void finish_if_stuck(void* const context) {
+    WakeProbe& probe = *static_cast<WakeProbe*>(context);
+    if (probe.plain_round.closed.load() || probe.finished) return;
+    probe.plain_round.timed_out.store(true);
+    if (probe.plain != nullptr) static_cast<void>(probe.plain_handle.request_close());
+    finish_run(context);
+}
+
 void finish_run(void* const context) {
     WakeProbe& probe = *static_cast<WakeProbe*>(context);
+    if (probe.finished) return;
+    probe.finished = true;
     handoff_probe::Report& report = probe.report;
     (*probe.watchdog).reached(5);
     report.check("the posted close closed the plain window within the bound", !probe.plain_round.timed_out.load(),
