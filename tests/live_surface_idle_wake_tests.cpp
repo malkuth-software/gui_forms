@@ -39,14 +39,18 @@ struct RacingProducer final {
 };
 
 // Waits until `value` reaches `wanted` or `stop` is set; false when stopped.
+// A side that sets `stop` also changes `value` before notifying (after the
+// stop, with release order), so a stop set between this thread's check and
+// its wait still wakes it (B-gf-tests-07-F1). The stop is checked first, so
+// that changed value is never taken as reaching `wanted`.
 bool wait_for(const std::atomic<unsigned int>& value, const unsigned int wanted, const std::atomic<bool>& stop) {
     unsigned int seen = value.load(std::memory_order_acquire);
-    while (seen < wanted) {
+    while (true) {
         if (stop.load(std::memory_order_acquire)) return false;
+        if (seen >= wanted) return true;
         value.wait(seen, std::memory_order_acquire);
         seen = value.load(std::memory_order_acquire);
     }
-    return true;
 }
 
 void racing_producer(const gui_forms::CancellationFlag& cancellation, void* const address) {
@@ -56,8 +60,11 @@ void racing_producer(const gui_forms::CancellationFlag& cancellation, void* cons
         try {
             publish(producer.surface);
         } catch (...) {
-            // The main thread stops waiting; join rethrows the failure.
+            // The main thread stops waiting; join rethrows the failure. done
+            // moves to a value no round has (it held round - 1), so a wait
+            // that began after the main thread's stop check wakes.
             producer.stop.store(true, std::memory_order_release);
+            producer.done.store(producer.rounds + 1U, std::memory_order_release);
             producer.done.notify_one();
             throw;
         }
