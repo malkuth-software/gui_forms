@@ -146,6 +146,7 @@ __ZGVZN9gui_forms11ColorDialog*
 __ZGVZN9gui_forms11ColorPicker*
 __ZGVZN9gui_forms11ColumnStrip*
 __ZGVZN9gui_forms11CommandItem*
+__ZGVZN9gui_forms11ContentQuad*
 __ZGVZN9gui_forms11ContextMenu*
 __ZGVZN9gui_forms11CursorImage*
 __ZGVZN9gui_forms11DeviceScale*
@@ -1220,6 +1221,7 @@ __ZGVZN9gui_forms22ApplicationThemeConfig*
 __ZGVZN9gui_forms22BindingNavigatorAddNew*
 __ZGVZN9gui_forms22BlockFlowSharedMargins*
 __ZGVZN9gui_forms22BundledFontDiagnostics*
+__ZGVZN9gui_forms22ContentLayoutTransform*
 __ZGVZN9gui_forms22ControlValidationEvent*
 __ZGVZN9gui_forms22CustomStateDeclaration*
 __ZGVZN9gui_forms22DataGridViewCellsParts*
@@ -1790,6 +1792,7 @@ __ZGVZNK9gui_forms11ColorDialog*
 __ZGVZNK9gui_forms11ColorPicker*
 __ZGVZNK9gui_forms11ColumnStrip*
 __ZGVZNK9gui_forms11CommandItem*
+__ZGVZNK9gui_forms11ContentQuad*
 __ZGVZNK9gui_forms11ContextMenu*
 __ZGVZNK9gui_forms11CursorImage*
 __ZGVZNK9gui_forms11DeviceScale*
@@ -2864,6 +2867,7 @@ __ZGVZNK9gui_forms22ApplicationThemeConfig*
 __ZGVZNK9gui_forms22BindingNavigatorAddNew*
 __ZGVZNK9gui_forms22BlockFlowSharedMargins*
 __ZGVZNK9gui_forms22BundledFontDiagnostics*
+__ZGVZNK9gui_forms22ContentLayoutTransform*
 __ZGVZNK9gui_forms22ControlValidationEvent*
 __ZGVZNK9gui_forms22CustomStateDeclaration*
 __ZGVZNK9gui_forms22DataGridViewCellsParts*
@@ -3496,6 +3500,7 @@ __ZN9gui_forms11ColorDialog*
 __ZN9gui_forms11ColorPicker*
 __ZN9gui_forms11ColumnStrip*
 __ZN9gui_forms11CommandItem*
+__ZN9gui_forms11ContentQuad*
 __ZN9gui_forms11ContextMenu*
 __ZN9gui_forms11CursorImage*
 __ZN9gui_forms11DeviceScale*
@@ -4137,6 +4142,8 @@ __ZN9gui_forms15lend_paint_textB*
 __ZN9gui_forms15lend_paint_textE*
 __ZN9gui_forms15logical_monitorB*
 __ZN9gui_forms15logical_monitorE*
+__ZN9gui_forms15map_content_boxB*
+__ZN9gui_forms15map_content_boxE*
 __ZN9gui_forms15paint_paragraphB*
 __ZN9gui_forms15paint_paragraphE*
 __ZN9gui_forms15paint_sparklineB*
@@ -5302,6 +5309,7 @@ __ZN9gui_forms22ApplicationThemeConfig*
 __ZN9gui_forms22BindingNavigatorAddNew*
 __ZN9gui_forms22BlockFlowSharedMargins*
 __ZN9gui_forms22BundledFontDiagnostics*
+__ZN9gui_forms22ContentLayoutTransform*
 __ZN9gui_forms22ControlValidationEvent*
 __ZN9gui_forms22CustomStateDeclaration*
 __ZN9gui_forms22DataGridViewCellsParts*
@@ -6670,6 +6678,7 @@ __ZNK[RO]9gui_forms11ColorDialog*
 __ZNK[RO]9gui_forms11ColorPicker*
 __ZNK[RO]9gui_forms11ColumnStrip*
 __ZNK[RO]9gui_forms11CommandItem*
+__ZNK[RO]9gui_forms11ContentQuad*
 __ZNK[RO]9gui_forms11ContextMenu*
 __ZNK[RO]9gui_forms11CursorImage*
 __ZNK[RO]9gui_forms11DeviceScale*
@@ -7744,6 +7753,7 @@ __ZNK[RO]9gui_forms22ApplicationThemeConfig*
 __ZNK[RO]9gui_forms22BindingNavigatorAddNew*
 __ZNK[RO]9gui_forms22BlockFlowSharedMargins*
 __ZNK[RO]9gui_forms22BundledFontDiagnostics*
+__ZNK[RO]9gui_forms22ContentLayoutTransform*
 __ZNK[RO]9gui_forms22ControlValidationEvent*
 __ZNK[RO]9gui_forms22CustomStateDeclaration*
 __ZNK[RO]9gui_forms22DataGridViewCellsParts*
@@ -8314,6 +8324,7 @@ __ZN[KRO]9gui_forms11ColorDialog*
 __ZN[KRO]9gui_forms11ColorPicker*
 __ZN[KRO]9gui_forms11ColumnStrip*
 __ZN[KRO]9gui_forms11CommandItem*
+__ZN[KRO]9gui_forms11ContentQuad*
 __ZN[KRO]9gui_forms11ContextMenu*
 __ZN[KRO]9gui_forms11CursorImage*
 __ZN[KRO]9gui_forms11DeviceScale*
@@ -9388,6 +9399,7 @@ __ZN[KRO]9gui_forms22ApplicationThemeConfig*
 __ZN[KRO]9gui_forms22BindingNavigatorAddNew*
 __ZN[KRO]9gui_forms22BlockFlowSharedMargins*
 __ZN[KRO]9gui_forms22BundledFontDiagnostics*
+__ZN[KRO]9gui_forms22ContentLayoutTransform*
 __ZN[KRO]9gui_forms22ControlValidationEvent*
 __ZN[KRO]9gui_forms22CustomStateDeclaration*
 __ZN[KRO]9gui_forms22DataGridViewCellsParts*
@@ -9958,6 +9970,7 @@ __ZT[VIST]N9gui_forms11ColorDialog*E
 __ZT[VIST]N9gui_forms11ColorPicker*E
 __ZT[VIST]N9gui_forms11ColumnStrip*E
 __ZT[VIST]N9gui_forms11CommandItem*E
+__ZT[VIST]N9gui_forms11ContentQuad*E
 __ZT[VIST]N9gui_forms11ContextMenu*E
 __ZT[VIST]N9gui_forms11CursorImage*E
 __ZT[VIST]N9gui_forms11DeviceScale*E
@@ -11032,6 +11045,7 @@ __ZT[VIST]N9gui_forms22ApplicationThemeConfig*E
 __ZT[VIST]N9gui_forms22BindingNavigatorAddNew*E
 __ZT[VIST]N9gui_forms22BlockFlowSharedMargins*E
 __ZT[VIST]N9gui_forms22BundledFontDiagnostics*E
+__ZT[VIST]N9gui_forms22ContentLayoutTransform*E
 __ZT[VIST]N9gui_forms22ControlValidationEvent*E
 __ZT[VIST]N9gui_forms22CustomStateDeclaration*E
 __ZT[VIST]N9gui_forms22DataGridViewCellsParts*E
@@ -11602,6 +11616,7 @@ __ZT[hvc]*9gui_forms11ColorDialog*
 __ZT[hvc]*9gui_forms11ColorPicker*
 __ZT[hvc]*9gui_forms11ColumnStrip*
 __ZT[hvc]*9gui_forms11CommandItem*
+__ZT[hvc]*9gui_forms11ContentQuad*
 __ZT[hvc]*9gui_forms11ContextMenu*
 __ZT[hvc]*9gui_forms11CursorImage*
 __ZT[hvc]*9gui_forms11DeviceScale*
@@ -12676,6 +12691,7 @@ __ZT[hvc]*9gui_forms22ApplicationThemeConfig*
 __ZT[hvc]*9gui_forms22BindingNavigatorAddNew*
 __ZT[hvc]*9gui_forms22BlockFlowSharedMargins*
 __ZT[hvc]*9gui_forms22BundledFontDiagnostics*
+__ZT[hvc]*9gui_forms22ContentLayoutTransform*
 __ZT[hvc]*9gui_forms22ControlValidationEvent*
 __ZT[hvc]*9gui_forms22CustomStateDeclaration*
 __ZT[hvc]*9gui_forms22DataGridViewCellsParts*
@@ -13246,6 +13262,7 @@ __ZZN9gui_forms11ColorDialog*
 __ZZN9gui_forms11ColorPicker*
 __ZZN9gui_forms11ColumnStrip*
 __ZZN9gui_forms11CommandItem*
+__ZZN9gui_forms11ContentQuad*
 __ZZN9gui_forms11ContextMenu*
 __ZZN9gui_forms11CursorImage*
 __ZZN9gui_forms11DeviceScale*
@@ -14320,6 +14337,7 @@ __ZZN9gui_forms22ApplicationThemeConfig*
 __ZZN9gui_forms22BindingNavigatorAddNew*
 __ZZN9gui_forms22BlockFlowSharedMargins*
 __ZZN9gui_forms22BundledFontDiagnostics*
+__ZZN9gui_forms22ContentLayoutTransform*
 __ZZN9gui_forms22ControlValidationEvent*
 __ZZN9gui_forms22CustomStateDeclaration*
 __ZZN9gui_forms22DataGridViewCellsParts*
@@ -14890,6 +14908,7 @@ __ZZNK9gui_forms11ColorDialog*
 __ZZNK9gui_forms11ColorPicker*
 __ZZNK9gui_forms11ColumnStrip*
 __ZZNK9gui_forms11CommandItem*
+__ZZNK9gui_forms11ContentQuad*
 __ZZNK9gui_forms11ContextMenu*
 __ZZNK9gui_forms11CursorImage*
 __ZZNK9gui_forms11DeviceScale*
@@ -15964,6 +15983,7 @@ __ZZNK9gui_forms22ApplicationThemeConfig*
 __ZZNK9gui_forms22BindingNavigatorAddNew*
 __ZZNK9gui_forms22BlockFlowSharedMargins*
 __ZZNK9gui_forms22BundledFontDiagnostics*
+__ZZNK9gui_forms22ContentLayoutTransform*
 __ZZNK9gui_forms22ControlValidationEvent*
 __ZZNK9gui_forms22CustomStateDeclaration*
 __ZZNK9gui_forms22DataGridViewCellsParts*

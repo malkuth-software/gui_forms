@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2299 | 13 | 367 | 4501 | 2789 |
+| 2309 | 13 | 367 | 4499 | 2797 |
 
 ## GUI.Forms types
 
@@ -22,7 +22,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `LinkLabel` | `LinkLabel` | 1 | 0 | 0 | 17 | 0 |
 | `CommandBar` | `ToolStrip` | 5 | 0 | 2 | 71 | 3 |
 | `WindowCapsule` | GUI.Forms-only | 7 | 0 | 0 | 1 | 8 |
-| `TextBox` | `TextBox` | 23 | 0 | 0 | 28 | 31 |
+| `TextBox` | `TextBox` | 25 | 0 | 0 | 26 | 31 |
 | `TokenBox` | GUI.Forms-only | 12 | 0 | 0 | 9 | 21 |
 | `SearchField` | GUI.Forms-only | 6 | 0 | 0 | 13 | 19 |
 | `MaskedTextBox` | `MaskedTextBox` | 16 | 0 | 0 | 38 | 7 |
@@ -148,7 +148,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `LiveSurface` | GUI.Forms-only | 10 | 0 | 0 | 0 | 10 |
 | `SubSurfaceHost` | GUI.Forms-only | 14 | 0 | 0 | 8 | 22 |
 | `ContentSurface` | GUI.Forms-only | 18 | 0 | 0 | 2 | 20 |
-| `ContentTextEditor` | GUI.Forms-only | 18 | 0 | 0 | 1 | 19 |
+| `ContentTextEditor` | GUI.Forms-only | 26 | 0 | 0 | 1 | 27 |
 | `MetricsView` | GUI.Forms-only | 1 | 0 | 0 | 7 | 8 |
 | `PlotLinkGroup` | GUI.Forms-only | 6 | 0 | 0 | 1 | 7 |
 | `Timer` | `Timer` | 6 | 0 | 0 | 3 | 1 |
@@ -313,5 +313,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1608 |
-| `untested` | 1317 |
+| `untested` | 1315 |
 | `w-open` | 5 |

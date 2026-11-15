@@ -412,7 +412,7 @@ gui_forms::ContentTextEditor
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 1 unclassified; 19 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 26 supported, 0 deferred, 0 excluded, 1 unclassified; 27 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -425,11 +425,31 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 18 s
      - Status
    * - property
      - GUI.Forms-only
+     - ``accepts_tab``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``can_redo``
      - unclassified (untested)
    * - property
      - GUI.Forms-only
+     - ``caret_quad``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``caret_rectangle``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``composition_quads``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``composition_range``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``composition_rectangles``
      - supported
    * - property
      - GUI.Forms-only
@@ -450,6 +470,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 18 s
    * - property
      - GUI.Forms-only
      - ``read_only``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``selection_quads``
      - supported
    * - property
      - GUI.Forms-only
@@ -481,6 +505,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 18 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``delete_selection``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``open_frames``
      - supported
    * - method
@@ -490,6 +518,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 18 s
    * - method
      - GUI.Forms-only
      - ``redo``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``replace_selection``
      - supported
    * - method
      - GUI.Forms-only

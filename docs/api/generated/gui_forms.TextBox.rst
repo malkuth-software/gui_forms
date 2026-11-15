@@ -807,7 +807,7 @@ gui_forms::TextBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TextBox``. Members declared here and by the counterpart: 23 supported, 0 deferred, 0 excluded, 28 unclassified; 31 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TextBox``. Members declared here and by the counterpart: 25 supported, 0 deferred, 0 excluded, 26 unclassified; 31 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -897,7 +897,7 @@ Counterpart: ``TextBox``. Members declared here and by the counterpart: 23 suppo
    * - property
      - ``TextBoxBase.Multiline``
      - ``multiline``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``password_protected``
@@ -905,7 +905,7 @@ Counterpart: ``TextBox``. Members declared here and by the counterpart: 23 suppo
    * - property
      - ``TextBoxBase.ReadOnly``
      - ``read_only``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``scroll_offset``
