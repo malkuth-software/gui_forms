@@ -357,7 +357,7 @@ void test_bindings() {
                          records[1].code == DiagnosticCode::form_binding_source_refused &&
                          records[1].position.line.value == 3U && records[1].property == "checked" &&
                          records[2].code == DiagnosticCode::form_binding_source_refused &&
-                         records[2].position.line.value == 4U && records[2].position.column.value == 23U &&
+                         records[2].position.line.value == 4U && records[2].position.column.value == 22U &&
                          records[3].code == DiagnosticCode::form_binding_source_refused &&
                          records[3].position.line.value == 5U;
     if (!located) print_diagnostics(workspace);
