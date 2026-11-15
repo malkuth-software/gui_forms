@@ -6,6 +6,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
+#include "../../number_text/number_text.hpp"
 
 #include <algorithm>
 #include <array>
@@ -13,6 +14,7 @@
 #include <cstdio>
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -252,13 +254,17 @@ SemanticDescriptor Sparkline::semantic_descriptor() const {
     descriptor.name = accessible_name.read();
     const std::optional<double> newest = latest();
     const plots::PlotRange range = extent();
-    std::array<char, 96> text{};
+    // Written in the C locale's form, as the gauges and Dial publish theirs
+    // (A-gf-controls-05-F5).
     if (newest.has_value()) {
-        const int written = std::snprintf(text.data(), text.size(), "%.6g", *newest);
-        if (written > 0) descriptor.value = std::string(text.data());
-        const int described = std::snprintf(text.data(), text.size(), "Trend of %zu values from %.6g to %.6g",
-                                            values_.length(), range.minimum, range.maximum);
-        if (described > 0) descriptor.description = std::string(text.data());
+        std::string value_text;
+        detail::append_number_text(value_text, *newest, std::chars_format::general, 6);
+        descriptor.value = value_text;
+        std::string described = "Trend of " + std::to_string(values_.length()) + " values from ";
+        detail::append_number_text(described, range.minimum, std::chars_format::general, 6);
+        described += " to ";
+        detail::append_number_text(described, range.maximum, std::chars_format::general, 6);
+        descriptor.description = described;
     }
     if (!accessible_description.read().empty()) descriptor.description = accessible_description.read();
     descriptor.exposed = true;

@@ -915,6 +915,8 @@ void test_sparkline() {
             "the sparkline draws its band, its line and the newest dot");
     const SemanticDescriptor descriptor = (*line).semantic_descriptor();
     require(descriptor.role == SemanticRole::figure && descriptor.value == "2", "the value is the newest one");
+    // A-gf-controls-05-F5: the description is written in the C locale's "%.6g" form.
+    require(descriptor.description == "Trend of 2 values from 2 to 4", "the description names the count and range");
     require(!(*line).hit_test_local(Point{1.0, 1.0}), "a sparkline takes no input");
 }
 
