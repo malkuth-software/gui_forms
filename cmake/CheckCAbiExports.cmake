@@ -18,6 +18,7 @@
 # each expected one missing, or when the library exports nothing.
 
 cmake_minimum_required(VERSION 3.25)
+include("${CMAKE_CURRENT_LIST_DIR}/PeTables.cmake")
 
 if(NOT DEFINED LIBRARY OR NOT EXISTS "${LIBRARY}")
     message(FATAL_ERROR "CheckCAbiExports: LIBRARY (${LIBRARY}) does not exist")
@@ -33,13 +34,8 @@ if(LIBRARY MATCHES "\\.[dD][lL][lL]$")
     if(NOT listed EQUAL 0)
         message(FATAL_ERROR "CheckCAbiExports: objdump failed on ${LIBRARY}: ${listing_error}")
     endif()
-    string(REPLACE "\n" ";" lines "${listing}")
-    foreach(line IN LISTS lines)
-        # "[   0] gf_get_api" in the Ordinal/Name Pointer table.
-        if(line MATCHES "^[ \t]*\\[ *[0-9]+\\] +([^ \t]+)")
-            list(APPEND exported "${CMAKE_MATCH_1}")
-        endif()
-    endforeach()
+    # GNU objdump's and llvm-objdump's export tables (cmake/PeTables.cmake).
+    gui_forms_pe_exports("${listing}" exported)
 else()
     if(NOT TOOL_NM)
         message(FATAL_ERROR "CheckCAbiExports: set TOOL_NM")
