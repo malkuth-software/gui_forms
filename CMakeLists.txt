@@ -6035,6 +6035,14 @@ if(GUI_FORMS_BUILD_TESTS)
             GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
         target_link_libraries(gui_forms_color_picker_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_color_picker_raster_tests COMMAND gui_forms_color_picker_raster_tests)
+        # DataGridView's row_pre_paint and row_post_paint answers, in pixels.
+        add_executable(gui_forms_data_grid_view_row_paint_raster_tests tests/data_grid_view_row_paint_raster_tests.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
+        target_compile_definitions(gui_forms_data_grid_view_row_paint_raster_tests PRIVATE
+            GUI_FORMS_TEST_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+        target_link_libraries(gui_forms_data_grid_view_row_paint_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_data_grid_view_row_paint_raster_tests COMMAND gui_forms_data_grid_view_row_paint_raster_tests)
         add_executable(gui_forms_danger_key_tests tests/danger_key_tests.cpp
             src/runtime/offscreen/offscreen_raster_create.cpp
             $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
