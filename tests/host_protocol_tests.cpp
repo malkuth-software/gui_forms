@@ -778,6 +778,12 @@ void test_typed_drag_destination_routing_and_bounds() {
     require(fixture.host.dispatch(std::move(invalid), 6).error ==
                 HostDispatchError::invalid_payload,
             "aggregate drag payloads beyond 16 MiB must fail before callbacks");
+    // A-gf-host-01-F5: typed text is checked as UTF-8 at the boundary too.
+    TextInputEvent latin_one{};
+    latin_one.text_utf8 = std::string{"\xE9", 1};
+    require(fixture.host.dispatch(std::move(latin_one), 7).error ==
+                HostDispatchError::invalid_payload,
+            "text input that is not UTF-8 must fail at the host boundary");
 
     std::shared_ptr<gui_forms::Control> root = make_control<Control>(StableId("drag.root"));
     (*root).set_requested_bounds({0.0, 0.0, 100.0, 40.0});

@@ -1634,10 +1634,33 @@ void NativeWindow::event(XEvent &event) {
                                    static_cast<int>(bytes.size()), &translated,
                                    &status);
       }
-      if (length > 0 && length <= static_cast<int>(bytes.size()) &&
-          static_cast<unsigned char>(bytes[0]) >= 32) {
+      // A control character (below 32, or DEL, which XLookupString gives
+      // for the Delete key) is not typed text (A-gf-host-01-F5).
+      const bool printable = length > 0 &&
+                             length <= static_cast<int>(bytes.size()) &&
+                             static_cast<unsigned char>(bytes[0]) >= 32 &&
+                             static_cast<unsigned char>(bytes[0]) != 0x7F;
+      if (printable) {
         TextInputEvent text;
-        text.text_utf8.assign(bytes.data(), static_cast<std::size_t>(length));
+        if (input != nullptr) {
+          text.text_utf8.assign(bytes.data(),
+                                static_cast<std::size_t>(length));
+        } else {
+          // XLookupString gives ISO Latin-1: each byte is the code point
+          // of the same value, so one at 0x80 or above becomes two UTF-8
+          // bytes.
+          text.text_utf8.reserve(static_cast<std::size_t>(length) * 2U);
+          for (int index = 0; index < length; ++index) {
+            const unsigned char code =
+                static_cast<unsigned char>(bytes[static_cast<std::size_t>(index)]);
+            if (code < 0x80U) {
+              text.text_utf8.push_back(static_cast<char>(code));
+            } else {
+              text.text_utf8.push_back(static_cast<char>(0xC0U | (code >> 6U)));
+              text.text_utf8.push_back(static_cast<char>(0x80U | (code & 0x3FU)));
+            }
+          }
+        }
         static_cast<void>(dispatch(std::move(text)));
       }
     }

@@ -477,6 +477,16 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
         observed_.emit(event, result);
         return result;
     }
+    // Typed text enters the text pipeline as UTF-8; a host that passes
+    // anything else (Latin-1 from XLookupString, say) is refused here
+    // (A-gf-host-01-F5), as drag text already is.
+    if (const TextInputEvent* typed = std::get_if<TextInputEvent>(&event.payload);
+        typed != nullptr && !valid_utf8((*typed).text_utf8)) {
+        result.error = HostDispatchError::invalid_payload;
+        ++snapshot_.events_rejected;
+        observed_.emit(event, result);
+        return result;
+    }
     if (!valid_pointer_report(event.payload)) {
         result.error = HostDispatchError::invalid_payload;
         ++snapshot_.events_rejected;
