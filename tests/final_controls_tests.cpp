@@ -664,6 +664,43 @@ void test_lookup_combo_box() {
     require((*lookup).selected_key.read().empty() && recorder.seen.back() == "key:", "a vanished key is cleared");
 }
 
+// Removes the lookup from its parent and drops the test's pointer when a
+// key is chosen, as a picker that closes its panel on choice might.
+struct ReleaseLookupOnChoice final {
+    std::shared_ptr<Panel> parent;
+    std::shared_ptr<LookupComboBox>* held{};
+    void operator()(const std::string& key) const {
+        if (key.empty() || !*held) return;
+        static_cast<void>((*parent).remove_child((*(*held)).runtime_id()));
+        (*held).reset();
+    }
+};
+
+// A selected_key_changed handler that removes and drops the lookup while
+// its open list chooses (A-gf-controls-06-F5): the lookup holds itself
+// across the choice, closes its list and goes once the key is handled.
+// Enter is used here; the row press runs the same on_row_activated path
+// with only the list held by the dispatch.
+void test_lookup_released_by_its_choice() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("final.lookup.release.root"));
+    std::shared_ptr<LookupComboBox> lookup = make_control<LookupComboBox>(StableId("final.lookup.release"));
+    (*lookup).set_requested_bounds(Rect{20.0, 20.0, 220.0, 24.0});
+    (*root).add_child(lookup);
+    Window window(root, Size{500.0, 400.0});
+    window.perform_layout();
+    (*lookup).set_columns({{"Code", 60.0}, {"Country", 140.0}});
+    (*lookup).set_rows({{"de", {"DE", "Germany"}}, {"fr", {"FR", "France"}}});
+    const std::weak_ptr<LookupComboBox> observed = lookup;
+    require(window.request_focus(lookup), "the lookup takes focus");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::f4}) && (*lookup).is_dropped_down(), "F4 opens the list");
+    require(window.dispatch_key({KeyAction::down, PhysicalKey::home}), "Home highlights the first row");
+    const SubscriptionToken token = (*lookup).selected_key_changed().subscribe(ReleaseLookupOnChoice{root, &lookup});
+    static_cast<void>(window.dispatch_key({KeyAction::down, PhysicalKey::enter}));
+    require(!lookup, "the handler released the lookup");
+    window.perform_layout();
+    require(observed.expired(), "the released lookup is gone after its key");
+}
+
 void test_about_dialog() {
     const std::shared_ptr<Panel> root = make_control<Panel>(StableId("final.about.root"));
     Window window(root, Size{600.0, 400.0});
@@ -892,6 +929,7 @@ int main() {
     test_released_callout_closes_whole();
     test_modal_layer();
     test_lookup_combo_box();
+    test_lookup_released_by_its_choice();
     test_about_dialog();
     test_dial_parts_in_the_stock_themes();
     test_high_contrast_gauge_arcs();

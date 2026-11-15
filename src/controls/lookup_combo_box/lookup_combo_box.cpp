@@ -423,6 +423,9 @@ void LookupComboBox::choose_row(std::size_t row) {
 void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
     Control::on_key_down(arguments);
     if (arguments.handled) return;
+    // Held across choose_row, whose selected_key_changed handlers may
+    // remove the box and drop it (A-gf-controls-06-F5).
+    const Control::Ptr retained = weak_from_this().lock();
     const bool alt = has_modifier(arguments.modifiers, Modifier::alt);
     const std::uint32_t key = arguments.physical_key;
     if (key == PhysicalKey::f4 || (alt && (key == PhysicalKey::down || key == PhysicalKey::up))) {
@@ -432,6 +435,7 @@ void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
             return;
         }
         if (key == PhysicalKey::up && highlighted_) choose_row(filtered_[*highlighted_]);
+        if (!is_alive()) return;
         close_drop_down();
         return;
     }
@@ -466,6 +470,10 @@ void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
     case PhysicalKey::end: move_highlight(1, true); break;
     case PhysicalKey::enter:
         if (highlighted_) choose_row(filtered_[*highlighted_]);
+        if (!is_alive()) {
+            arguments.handled = true;
+            return;
+        }
         close_drop_down();
         break;
     case PhysicalKey::escape: close_drop_down(); break;
@@ -558,7 +566,13 @@ void LookupComboBox::close_drop_down() {
 
 void LookupComboBox::on_row_activated(std::size_t position) {
     if (position >= filtered_.size()) return;
+    // The pointer dispatch holds the list, not the box: the box holds
+    // itself across choose_row's selected_key_changed handlers, which may
+    // remove and drop it, and stops if one disposed it
+    // (A-gf-controls-06-F5).
+    const Control::Ptr retained = weak_from_this().lock();
     choose_row(filtered_[position]);
+    if (!is_alive()) return;
     close_drop_down();
 }
 
