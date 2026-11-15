@@ -1889,6 +1889,40 @@ void test_details_cold_long_text_measurement_bound() {
     }
 }
 
+// Replaces an ObjectView's items when the control it watches loses the
+// focus, putting a new row first so every later index moves.
+struct ShiftObjectsOnFocusLoss final {
+    ObjectView* view{};
+    void operator()(bool focused) const {
+        if (focused) return;
+        (*view).set_items({{"shift.objects.new", "New"},
+                           {"shift.objects.a", "Alpha"},
+                           {"shift.objects.b", "Beta"}});
+    }
+};
+// A-gf-controls-09-F8: a semantic select moves the focus before it acts,
+// and the control losing the focus may replace the items in its handler.
+// The select finds its row again by identity.
+void test_semantic_select_after_focus_handlers() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("shift.root"));
+    std::shared_ptr<gui_forms::ObjectView> objects = make_control<ObjectView>(StableId("shift.objects"));
+    std::shared_ptr<gui_forms::Button> other = make_control<Button>(StableId("shift.other"), "Other");
+    (*objects).set_requested_bounds({0.0, 0.0, 300.0, 120.0});
+    (*other).set_requested_bounds({0.0, 260.0, 100.0, 28.0});
+    (*objects).set_items({{"shift.objects.a", "Alpha"}, {"shift.objects.b", "Beta"}});
+    (*root).add_child(objects);
+    (*root).add_child(other);
+    Window window(root, {320.0, 300.0});
+    window.perform_layout();
+
+    require(window.request_focus(other), "the other control takes the focus");
+    SubscriptionToken shift_objects = (*other).focus_observed().subscribe(ShiftObjectsOnFocusLoss{objects.get()});
+    require((*objects).on_semantic_child_action("shift.objects.b", SemanticAction::select, {}) &&
+                (*objects).selected_id.read() == "shift.objects.b" && window.focused_control() == objects,
+            "ObjectView selects the named item after a focus handler moved it");
+    shift_objects.disconnect();
+}
+
 } // namespace
 
 int main() {
@@ -1901,6 +1935,7 @@ int main() {
         test_tree_and_object_view_consume_keyed_image_list();
         test_object_label_wrapping_focus_and_full_name_inspection();
         test_object_virtualization_view_preservation_and_input();
+        test_semantic_select_after_focus_handlers();
         test_object_multiselection_pointer_keyboard_and_semantics();
         test_details_transaction_and_identity();
         test_details_model_with_accepted_sort();

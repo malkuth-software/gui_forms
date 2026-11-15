@@ -1540,19 +1540,31 @@ bool ObjectView::on_semantic_child_action(std::string_view id,
         header_focused_ = false;
         invalidate(Dirty::paint | Dirty::semantics);
     }
-    if (window()) static_cast<void>((*window()).request_focus(shared_from_this()));
+    // The focus moves first: the losing control's focus handlers run inside
+    // request_focus and may replace the items, so the view is held, the
+    // identity is copied (id may view storage those handlers release) and
+    // looked up again afterwards (A-gf-controls-09-F8).
+    const std::string identity(id);
+    const Control::Ptr retained = shared_from_this();
+    if (window()) static_cast<void>((*window()).request_focus(retained));
+    if (!is_alive()) return false;
+    const std::optional<std::size_t> current = item_index(identity);
+    if (!current) return false;
     if (action == SemanticAction::show_menu) {
-        if (!is_selected(id)) select_index(*index, false);
-        else focus_index(*index);
-        const Rect local = shown(item_bounds(*index));
+        if (!is_selected(identity)) select_index(*current, false);
+        else focus_index(*current);
+        if (!is_alive()) return true;
+        const std::optional<std::size_t> shown_index = item_index(identity);
+        if (!shown_index) return true;
+        const Rect local = shown(item_bounds(*shown_index));
         const Rect absolute = absolute_bounds();
-        context_requested_.emit({std::string(id),
+        context_requested_.emit({identity,
             {absolute.x + local.x + local.width * .5,
              absolute.y + local.y + local.height * .5}});
     } else if (action == SemanticAction::focus) {
-        focus_index(*index);
+        focus_index(*current);
     } else {
-        select_index(*index, action == SemanticAction::press);
+        select_index(*current, action == SemanticAction::press);
     }
     return true;
 }

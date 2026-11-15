@@ -438,15 +438,25 @@ void TokenBox::handle_pointer(PointerEvent& event) {
     }
     if (event.button != PointerButton::primary) return;
     if (event.action == PointerAction::down) {
+        // The focus moves first: the losing control's focus handlers run
+        // inside request_focus and may edit the tokens or drop the box, so
+        // the box is held and the press is hit-tested again afterwards
+        // against the tokens that remain (A-gf-controls-09-F8).
+        const Control::Ptr retained = weak_from_this().lock();
         Window* const host = window();
         if (host != nullptr) static_cast<void>((*host).request_focus(editor_));
-        if (hit.index && hit.close) {
+        if (!is_alive() || !eligible_for_input()) {
+            event.handled = true;
+            return;
+        }
+        const TokenHit pressed = hit_token(event.position);
+        if (pressed.index && pressed.close) {
             // The close glyph acts on release over it, as a button does.
-            pressed_close_ = tokens_[*hit.index].id;
+            pressed_close_ = tokens_[*pressed.index].id;
             set_pointer_capture(true);
             invalidate(Dirty::paint);
-        } else if (hit.index) {
-            set_selected(tokens_[*hit.index].id);
+        } else if (pressed.index) {
+            set_selected(tokens_[*pressed.index].id);
         } else {
             set_selected(std::nullopt);
         }

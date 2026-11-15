@@ -316,6 +316,37 @@ void pointer_and_parts() {
             "releasing over the close glyph removes its token");
 }
 
+// Removes one token when the control it watches loses the focus.
+struct RemoveOnFocusLoss final {
+    TokenBox* box{};
+    TokenId id{};
+    void operator()(bool focused) const {
+        if (!focused) static_cast<void>((*box).remove_token(id));
+    }
+};
+
+// A-gf-controls-09-F8: a press moves the focus before it acts, and the
+// control losing the focus may edit the tokens in its handler. The press is
+// hit-tested against the tokens that remain, not the ones it found first.
+void press_after_focus_handlers() {
+    Fixture fixture = make_fixture("tokens.focus-edit", 300.0, 60.0);
+    Window& window = *fixture.window;
+    TokenBox& box = *fixture.box;
+    static_cast<void>(box.add_token("alpha"));
+    const TokenId beta = box.add_token("beta");
+    window.perform_layout();
+    const Rect absolute = box.absolute_bounds();
+    const Rect face = box.realized_items()[1].parts.token_face.bounds;
+    const Point on_beta{absolute.x + face.x + 4.0, absolute.y + face.y + face.height * 0.5};
+    require(window.request_focus(fixture.other), "the other field takes the focus");
+    SubscriptionToken watch = (*fixture.other).focus_observed().subscribe(RemoveOnFocusLoss{&box, beta});
+    require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, on_beta}) &&
+                texts_are(box, {"alpha"}) && !box.selected_token() && window.focused_control() == box.editor(),
+            "a press whose token goes in a focus handler selects nothing");
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, on_beta}));
+    watch.disconnect();
+}
+
 void wrapping_layout() {
     Fixture fixture = make_fixture("tokens.wrap", 200.0, 60.0);
     Window& window = *fixture.window;
@@ -392,6 +423,7 @@ int main() {
     empty_entry_passes_enter_on();
     keyboard_over_tokens();
     pointer_and_parts();
+    press_after_focus_handlers();
     wrapping_layout();
     semantics();
     auto_complete_makes_tokens();
