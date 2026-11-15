@@ -3651,7 +3651,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`, `read_only`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `draws_selection` (boolean), `multiline` (boolean), `wheel_scrolls` (boolean).
 
 | Interaction | Payload |
 |---|---|

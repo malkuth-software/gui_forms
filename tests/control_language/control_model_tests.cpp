@@ -15,6 +15,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/flex_panel.hpp"
 #include "gui_forms/controls/label.hpp"
+#include "gui_forms/controls/content_text_editor.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/user_control.hpp"
 #include "gui_forms/dirty.hpp"
@@ -75,6 +76,7 @@ FormSchema composite_schema() {
     schema.types.push_back(form_control_type<gui_forms::Label>("label"));
     schema.types.push_back(form_control_type<gui_forms::Button>("button"));
     schema.types.push_back(form_control_type<gui_forms::CheckBox>("check_box"));
+    schema.types.push_back(form_control_type<gui_forms::ContentTextEditor>("content_text_editor"));
     return schema;
 }
 
@@ -505,6 +507,55 @@ void test_warning_and_all_at_once() {
 
 } // namespace
 
+// SwiftEdit's QueryField gaps: semantics taken from the focus target
+// (`from`), the content editor's multiline and draws-selection as document
+// properties, and a part the typed class paints (`paint="hook"`).
+constexpr std::string_view query_children =
+    "<children><content-text-editor id=\"@editing\" multiline=\"false\" draws-selection=\"false\"/></children>";
+
+void test_query_field_gaps() {
+    const FormSchema schema = composite_schema();
+    {
+        Workspace workspace{};
+        ControlModel model{};
+        const std::string text = document(std::string("<part name=\"query-text\" role=\"label\" paint=\"hook\" "
+                                                      "box=\"inset(region, 2)\"/>") +
+                                          std::string(query_children) +
+                                          "<focus target=\"child(@editing)\"/><semantics from=\"child(@editing)\"/>");
+        const ControlModelOutcome outcome = build(workspace, text, schema, model);
+        print_diagnostics(workspace.diagnostics);
+        require(outcome == ControlModelOutcome::model_built && workspace.diagnostics.records().empty(),
+                "a query field builds: semantics from its focus target, a hook part, the editor's properties");
+        require(model.semantics && (*model.semantics).from_child == "editing", "the semantics come from @editing");
+        require(!model.parts.empty() && model.parts[0].paint_hook, "the query part is a paint hook");
+    }
+    expect_refused(schema,
+                   document(std::string(query_children) +
+                            "<focus target=\"child(@editing)\"/><semantics from=\"child(@editing)\" role=\"group\"/>"),
+                   DiagnosticCode::control_value_invalid, "a node taken from a child with a role of its own");
+    expect_refused(schema,
+                   document(std::string(query_children) +
+                            "<focus target=\"self\" visible-cue=\"part(focus)\"/>"
+                            "<semantics from=\"child(@editing)\"/>"),
+                   DiagnosticCode::control_value_invalid, "semantics from a child that is not the focus target");
+    expect_refused(schema,
+                   document(std::string(query_children) +
+                            "<focus target=\"child(@editing)\"/><semantics from=\"child(@missing)\"/>"),
+                   DiagnosticCode::control_reference_unknown, "semantics from no child");
+    expect_refused(schema,
+                   document(std::string(query_children) +
+                            "<focus target=\"child(@editing)\"/><semantics from=\"parent\"/>"),
+                   DiagnosticCode::control_vocabulary_unknown, "a semantics source that is no child");
+    expect_refused(schema, document("<semantics name=\"property(accessible-name)\"/>"),
+                   DiagnosticCode::control_attribute_missing, "semantics with neither role nor from");
+    expect_refused(schema, document("<part name=\"p\" role=\"face\" paint=\"sprite\" box=\"inset(region, 0)\"/>"),
+                   DiagnosticCode::control_vocabulary_unknown, "an unknown paint source");
+    expect_refused(schema, document("<part name=\"p\" role=\"region\" paint=\"hook\" box=\"inset(region, 0)\"/>"),
+                   DiagnosticCode::control_value_invalid, "a region painted by a hook");
+    expect_refused(schema, document("<children><content-text-editor id=\"@editing\" wraps=\"yes\"/></children>"),
+                   DiagnosticCode::control_child_invalid, "an editor attribute that is no property");
+}
+
 int main() {
     test_toggle_pill();
     test_card_with_action();
@@ -514,6 +565,7 @@ int main() {
     test_declaration_codes();
     test_reference_codes();
     test_warning_and_all_at_once();
+    test_query_field_gaps();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

@@ -156,6 +156,9 @@ struct CompositePartDefinition final {
     std::uint8_t press{};
     std::optional<std::size_t> activates{};
     PartMark mark{PartMark::none};
+    // Drawn by the typed class (CompositeControl::paint_hook), not the
+    // theme (ControlPart::paint_hook).
+    bool paint_hook{};
     std::optional<std::size_t> drag{};
     // The property whose text the part shows: the one its box measures
     // with text-extent(), for a label, caption or content role.
@@ -248,6 +251,9 @@ struct CompositeSemanticsDefinition final {
     std::vector<CompositeSemanticState> states{};
     std::vector<CompositeSemanticAction> actions{};
     bool children_exposed{};
+    // The local ID of the child whose node stands for the composite (the
+    // focus target; ControlSemantics::from_child); empty for its own node.
+    std::string from_child{};
 };
 
 struct CompositeFocusDefinition final {

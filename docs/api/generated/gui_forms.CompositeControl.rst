@@ -145,6 +145,12 @@ gui_forms::CompositeControl
 
    .. cpp:function:: bool begin_keyboard_drag() override
 
+   .. cpp:function:: virtual void paint_hook(Painter& painter, const CompositePaintHook& hook)
+
+      *Protected.*
+
+      Draws a part the definition declares ``paint="hook"``, called from on_paint in the part's place among the parts (the painter is the paint pass's, valid for the call). The default draws nothing. The composite repaints the hook as it repaints itself; a class drawing state of its own invalidates paint when that state changes. UI thread, inside the paint pass: it may not change properties, the tree or the layout.
+
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*

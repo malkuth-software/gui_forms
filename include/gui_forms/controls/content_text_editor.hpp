@@ -9,6 +9,7 @@
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 #include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -221,6 +222,16 @@ public:
     [[nodiscard]] Parts parts() const;
     [[nodiscard]] States states() const;
 
+    // The property table: Panel's entries, then `draws_selection` and
+    // `multiline`, so a form or a composite's `.control` document sets them
+    // (`<content-text-editor multiline="false" draws-selection="false"/>`)
+    // as set_draws_selection and set_multiline do. Neither raises a change
+    // event; neither is bindable.
+    static constexpr std::size_t content_text_editor_property_count = Panel::panel_property_count + 2U;
+    [[nodiscard]] static const std::array<PropertyEntry, content_text_editor_property_count>&
+    content_text_editor_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
 protected:
     [[nodiscard]] detail::TextEditingEngine* editing_engine() const noexcept override;
     void apply_selection(TextSelection selection) override;
@@ -240,6 +251,13 @@ protected:
     [[nodiscard]] std::optional<Rect> text_input_caret() const override;
 
 private:
+    // The table's reads and writes (BindingValue booleans, already
+    // converted to the descriptor's kind by the table).
+    [[nodiscard]] BindingValue multiline_property() const;
+    void write_multiline_property(const BindingValue& value);
+    [[nodiscard]] BindingValue draws_selection_property() const;
+    void write_draws_selection_property(const BindingValue& value);
+
     // The engine's host: forwards each engine reaction to the editor.
     class EditingHost;
     // The caret blink's timer callback; holds the editor weakly.

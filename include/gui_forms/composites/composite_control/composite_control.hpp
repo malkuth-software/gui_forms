@@ -40,6 +40,25 @@
 // reach any control. Slot content, added later, takes no look; a nested
 // composite keeps its own.
 //
+// Semantics: `<semantics role=...>` gives the composite its own node.
+// `<semantics from="child(@id)"/>` (with `<focus target="child(@id)">`, the
+// same child) hands the node to that child instead: the composite
+// publishes no node of its own, so the focus target's node, with its text,
+// selection, text layout and actions, is the composite's one node, and the
+// focused node is that node. The composite's other children publish their
+// own nodes beside it, as children of an unexposed control do.
+//
+// Painting: the theme draws each declared part, in document order, from
+// the definition. A part declared `paint="hook"` is drawn instead by the
+// typed class (paint_hook), in its place in that order and inside the
+// geometry, states and hit region the definition gives it, so a definition
+// is still the only way to make the composite: a class deriving from
+// CompositeControl (or from the class gui_forms_add_control generates)
+// passes its definition to the constructor and overrides paint_hook. With
+// no override (a definition loaded at run time) a hook part draws nothing.
+// Children draw over the composite; an edit part that draws nothing (a
+// ContentTextEditor without frames) leaves the hook's drawing in view.
+//
 // Event order:
 // - A property write (set_property_value, a binding, a rule, a drag)
 //   validates first and changes nothing when refused; then stores, marks
@@ -206,6 +225,20 @@ struct GUI_FORMS_API CompositeStatistics final {
     std::uint64_t look_missing{};
 };
 
+// A part the typed class draws (`paint="hook"`), as paint_hook receives
+// it: the part's name as written (`query-text`), its published bounds in
+// local coordinates, its states (the control's, with its own hot and
+// pressed for a part that lists them, disabled when disabled-when holds)
+// and the text it shows (the value of the property its box measures with
+// text-extent, empty for none). The names and the text are borrowed for
+// the call.
+struct GUI_FORMS_API CompositePaintHook final {
+    std::string_view part{};
+    Rect bounds{};
+    AnatomyStateSet states{};
+    std::string_view text{};
+};
+
 class CompositeEvaluator;
 class CompositeInstanceAccess;
 
@@ -265,6 +298,14 @@ public:
     bool begin_keyboard_drag() override;
 
 protected:
+    // Draws a part the definition declares `paint="hook"`, called from
+    // on_paint in the part's place among the parts (the painter is the
+    // paint pass's, valid for the call). The default draws nothing. The
+    // composite repaints the hook as it repaints itself; a class drawing
+    // state of its own invalidates paint when that state changes. UI
+    // thread, inside the paint pass: it may not change properties, the
+    // tree or the layout.
+    virtual void paint_hook(Painter& painter, const CompositePaintHook& hook);
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void on_mouse_down(MouseEventArgs& arguments) override;

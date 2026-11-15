@@ -22,7 +22,14 @@
 //   layers over the window's theme: its rules stand over the theme's where
 //   they say something, a theme switch reaches the composite's part and
 //   child elsewhere, forced high contrast draws both, and the look reaches
-//   no control outside; a document without a look has none.
+//   no control outside; a document without a look has none;
+// - a query field (SwiftEdit's QueryField as a composite): its semantics
+//   come from its focus target, so the composite publishes no node and the
+//   editor's node, named by the document, stands for it; the document sets
+//   the content editor's multiline and draws-selection; its `paint="hook"`
+//   part is drawn by a typed class, with the part's bounds and text, and
+//   draws nothing without one; a composite with its own semantics publishes
+//   its own node.
 
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 
@@ -30,6 +37,7 @@
 #include "../../src/core/theme_language/package/theme_manifest.hpp"
 #include "../support/clip_tracking_painter.hpp"
 #include "gui_forms/controls/button.hpp"
+#include "gui_forms/controls/content_text_editor.hpp"
 #include "gui_forms/controls/flex_panel.hpp"
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/controls/text_box.hpp"
@@ -44,6 +52,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -725,6 +734,136 @@ void ten_themes_held() {
 
 } // namespace
 
+// A query field: the editor is the focus target and its node is the
+// field's; the field draws its query itself, over the editor's box, through
+// a paint hook.
+constexpr std::string_view query_field = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<control xmlns="urn:gui-forms:control:1" name="query-field" version="1.0" base="user-control" family="card">
+  <property name="query" kind="text" default="find me" category="Appearance"/>
+  <part name="query-text" role="label" paint="hook" box="inset(region, 2) text-extent(query) align-block(center)"/>
+  <children>
+    <content-text-editor id="@editing" dock="fill" multiline="false" draws-selection="false"
+                         accessible-name="Query"/>
+  </children>
+  <focus target="child(@editing)"/>
+  <semantics from="child(@editing)"/>
+</control>
+)xml";
+
+constexpr std::array<CompositeChildType, 1> query_child_types{
+    composite_child_type<ContentTextEditor>("content_text_editor"),
+};
+
+// The class gui_forms_add_control would generate for the query field, with
+// the consumer's paint hook: records each hooked part and draws its text.
+class HookedQueryField final : public CompositeControl {
+public:
+    HookedQueryField(StableId stable_id, std::shared_ptr<const CompositeDefinition> definition)
+        : CompositeControl(std::move(stable_id), std::move(definition)) {}
+
+    std::vector<std::string> hooked_parts{};
+    std::vector<std::string> hooked_texts{};
+    std::vector<Rect> hooked_bounds{};
+
+protected:
+    void paint_hook(Painter& painter, const CompositePaintHook& hook) override {
+        hooked_parts.push_back(std::string(hook.part));
+        hooked_texts.push_back(std::string(hook.text));
+        hooked_bounds.push_back(hook.bounds);
+        const Point origin{hook.bounds.x, hook.bounds.y};
+        painter.draw_text_utf8(origin, hook.text, FontSpec{}, Color{0, 0, 0, 255});
+    }
+};
+
+// The nodes in `nodes` and below with `runtime_id`.
+std::size_t nodes_with_id(const std::vector<SemanticNode>& nodes, const std::uint64_t runtime_id) {
+    std::size_t count = 0U;
+    for (const SemanticNode& node : nodes) {
+        if (node.runtime_id == runtime_id) count = count + 1U;
+        count = count + nodes_with_id(node.children, runtime_id);
+    }
+    return count;
+}
+
+// The first node in `nodes` and below with `runtime_id`; null for none.
+const SemanticNode* node_with_id(const std::vector<SemanticNode>& nodes, const std::uint64_t runtime_id) {
+    for (const SemanticNode& node : nodes) {
+        if (node.runtime_id == runtime_id) return &node;
+        const SemanticNode* const below = node_with_id(node.children, runtime_id);
+        if (below != nullptr) return below;
+    }
+    return nullptr;
+}
+const SemanticNode* node_with_id(std::vector<SemanticNode>&& nodes, std::uint64_t runtime_id) = delete;
+
+std::shared_ptr<const CompositeDefinition> load_query_field() {
+    const CompositeLoadResult loaded = load_composite_definition("query-field.control", query_field, query_child_types);
+    for (const std::string& line : loaded.diagnostics) std::cerr << "  " << line << '\n';
+    require(static_cast<bool>(loaded), "the query field loads");
+    return loaded.definition;
+}
+
+void query_field_takes_editor_node() {
+    const std::shared_ptr<const CompositeDefinition> definition = load_query_field();
+    if (definition == nullptr) return;
+    require(!(*definition).parts.empty() && (*definition).parts.back().paint_hook, "the query part is a paint hook");
+    const std::shared_ptr<HookedQueryField> field =
+        make_control<HookedQueryField>(StableId(std::string("query")), definition);
+    (*field).set_requested_bounds({0.0, 0.0, 200.0, 24.0});
+    Window window(field, {200.0, 24.0});
+    window.perform_layout();
+    const Control::Ptr editing = (*field).child("editing");
+    const ContentTextEditor* const editor = dynamic_cast<const ContentTextEditor*>(editing.get());
+    require(editor != nullptr, "the edit part is a content text editor");
+    if (editor == nullptr) return;
+    require(!(*editor).multiline(), "the document makes the editor single-line");
+    require(!(*editor).draws_selection(), "the document leaves the selection to the field");
+    require(!(*field).semantic_descriptor().exposed, "the field publishes no node of its own");
+    const SemanticSnapshot snapshot = window.semantic_snapshot();
+    require(nodes_with_id(snapshot.roots, (*field).runtime_id().value) == 0U, "no node is the field's own");
+    require(nodes_with_id(snapshot.roots, (*editing).runtime_id().value) == 1U, "the editor's node is published once");
+    const SemanticNode* const node = node_with_id(snapshot.roots, (*editing).runtime_id().value);
+    require(node != nullptr && (*node).role == SemanticRole::text_box && (*node).name == "Query",
+            "the editor's node is a text box named by the document");
+    require((*field).focus_target() == editing, "the editor is the focus target");
+    static_cast<void>(window.request_focus(field));
+    require(window.focused_control() == editing, "focusing the field focuses the editor, whose node is the field's");
+    test_support::ClipTrackingPainter painter{};
+    window.paint(painter);
+    require((*field).hooked_parts.size() == 1U && (*field).hooked_parts[0] == "query-text",
+            "the typed class draws the hooked part");
+    require(!(*field).hooked_texts.empty() && (*field).hooked_texts[0] == "find me", "the hook receives the part's text");
+    require(!(*field).hooked_bounds.empty() && (*field).hooked_bounds[0] == (*field).part_bounds("query-text"),
+            "the hook receives the part's bounds");
+    require(painter.count("find me") == 1U, "the hook's drawing is painted");
+}
+
+void hook_without_class_draws_nothing() {
+    const std::shared_ptr<const CompositeDefinition> definition = load_query_field();
+    if (definition == nullptr) return;
+    const std::shared_ptr<CompositeControl> field =
+        make_control<CompositeControl>(StableId(std::string("plain-query")), definition);
+    (*field).set_requested_bounds({0.0, 0.0, 200.0, 24.0});
+    Window window(field, {200.0, 24.0});
+    window.perform_layout();
+    test_support::ClipTrackingPainter painter{};
+    window.paint(painter);
+    require(painter.count("find me") == 0U, "a hook part draws nothing without a typed class");
+}
+
+void own_semantics_exposed() {
+    const CompositeLoadResult loaded = load_example("toggle-pill.control");
+    if (!loaded) return;
+    const std::shared_ptr<CompositeControl> pill =
+        make_control<CompositeControl>(StableId(std::string("exposed-pill")), loaded.definition);
+    (*pill).set_requested_bounds({0.0, 0.0, 160.0, 24.0});
+    Window window(pill, {160.0, 24.0});
+    window.perform_layout();
+    require((*pill).semantic_descriptor().exposed, "a composite with its own semantics publishes its node");
+    const SemanticSnapshot snapshot = window.semantic_snapshot();
+    require(nodes_with_id(snapshot.roots, (*pill).runtime_id().value) == 1U, "the composite's node is in the snapshot");
+}
+
 int main() {
     toggle_pill();
     card_with_action();
@@ -740,6 +879,9 @@ int main() {
     theme_bound_hundred_one_compile();
     resolution_never_compiles();
     ten_themes_held();
+    query_field_takes_editor_node();
+    hook_without_class_draws_nothing();
+    own_semantics_exposed();
     if (failures != 0) {
         std::cerr << failures << " composite control check(s) failed\n";
         return 1;

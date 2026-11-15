@@ -911,7 +911,7 @@ void ModelBuilder::read_state(const std::uint32_t index, const bool custom, Cont
 void ModelBuilder::read_part(const std::uint32_t index, ControlModel& scratch) {
     const ElementShape shape{"part",
                              {"name", "role", "composed-from", "states", "shape", "corner-radius", "box", "present",
-                              "hit", "press", "activates", "disabled-when", "mark"},
+                              "hit", "press", "activates", "disabled-when", "mark", "paint"},
                              {"name", "role"}};
     const std::string_view name = attribute(index, "name");
     check_attributes(index, shape, name);
@@ -1032,6 +1032,21 @@ void ModelBuilder::read_part(const std::uint32_t index, ControlModel& scratch) {
         } else {
             report(DiagnosticCode::control_vocabulary_unknown, value_offset(index, "mark"), name, "mark",
                    "mark '" + std::string(mark) + "'");
+        }
+    }
+    if (has_attribute(index, "paint")) {
+        const std::string_view paint = attribute(index, "paint");
+        if (paint == "hook") {
+            part.paint_hook = true;
+        } else if (paint != "theme") {
+            report(DiagnosticCode::control_vocabulary_unknown, value_offset(index, "paint"), name, "paint",
+                   "paint '" + std::string(paint) + "' (theme or hook)");
+        }
+        // The region and the focus cue are the composite's whole box and its
+        // focus presentation, never a typed class's drawing.
+        if (part.paint_hook && (part.role == PartRole::region || part.role == PartRole::focus)) {
+            report(DiagnosticCode::control_value_invalid, value_offset(index, "paint"), name, "paint",
+                   "a region or focus part is painted by the theme");
         }
     }
     const std::size_t part_position = scratch.parts.size();
@@ -1428,11 +1443,32 @@ void ModelBuilder::read_rule(const std::uint32_t index, const bool key, ControlM
 }
 
 void ModelBuilder::read_semantics(const std::uint32_t index, ControlModel& scratch) {
-    const ElementShape shape{"semantics", {"role", "name", "value", "range", "states", "actions", "children"},
-                             {"role"}};
+    // `role` is required unless `from` hands the node to a child, checked
+    // below with the other attributes `from` excludes.
+    const ElementShape shape{"semantics",
+                             {"role", "name", "value", "range", "states", "actions", "children", "from"},
+                             {}};
     check_attributes(index, shape, "semantics");
     ControlSemantics semantics{};
     semantics.source = source_of(index);
+    if (has_attribute(index, "from")) {
+        const std::string_view from = attribute(index, "from");
+        if (from.starts_with("child(@") && from.ends_with(")") && from.size() > 8U) {
+            semantics.from_child = std::string(from.substr(7U, from.size() - 8U));
+        } else {
+            report(DiagnosticCode::control_vocabulary_unknown, value_offset(index, "from"), "semantics", "from",
+                   "semantics source '" + std::string(from) + "' (child(@name))");
+        }
+        const std::array<std::string_view, 7> own{"role", "name", "value", "range", "states", "actions", "children"};
+        for (const std::string_view written : own) {
+            if (!has_attribute(index, written)) continue;
+            report(DiagnosticCode::control_value_invalid, attribute_offset(index, written), "semantics",
+                   written, "a node taken from a child declares no " + std::string(written) + " of its own");
+        }
+    } else if (!has_attribute(index, "role")) {
+        report(DiagnosticCode::control_attribute_missing, element_offset(index), "semantics", "role",
+               "<semantics> needs role (or from)");
+    }
     const std::string_view role = attribute(index, "role");
     if (has_attribute(index, "role")) {
         const std::optional<SemanticRole> known = semantic_role_of(role);
@@ -2049,6 +2085,22 @@ void ModelBuilder::check_semantics(const ControlModel& scratch) {
     if (!scratch.semantics) return;
     const ControlSemantics& semantics = *scratch.semantics;
     const std::uint32_t element = semantics.source.element;
+    if (!semantics.from_child.empty()) {
+        // The node handed over is the focus target's: the focused node and
+        // the composite's node are then one node.
+        if (child_named(scratch, semantics.from_child) == nullptr) {
+            report(DiagnosticCode::control_reference_unknown, value_offset(element, "from"), "semantics", "from",
+                   "@" + semantics.from_child + " names no child");
+        }
+        const bool focus_child = scratch.focus && (*scratch.focus).target == ControlFocusTarget::child &&
+                                 (*scratch.focus).child == semantics.from_child;
+        if (!focus_child) {
+            report(DiagnosticCode::control_value_invalid, value_offset(element, "from"), "semantics", "from",
+                   "the semantics come from the focus target: declare <focus target=\"child(@" +
+                       semantics.from_child + ")\">");
+        }
+        return;
+    }
     if (!semantics.name.empty()) {
         check_expression(semantics.name, element, "name", ExpressionPlace::condition, "semantics", scratch);
     }
@@ -2143,7 +2195,10 @@ void ModelBuilder::check_reachability(const ControlModel& scratch) {
     bool active = false;
     for (const ControlPart& part : scratch.parts) active = active || part.press != 0U || part.hit != ControlPartHit::none;
     const bool focusable = scratch.focus && (*scratch.focus).target != ControlFocusTarget::none;
-    if (active || focusable) {
+    // A composite whose node is its focus target's (semantics from=) takes
+    // that child's role, name and focus presentation.
+    const bool delegated = scratch.semantics && !(*scratch.semantics).from_child.empty();
+    if ((active || focusable) && !delegated) {
         const bool role = scratch.semantics && (*scratch.semantics).role != SemanticRole::generic;
         const bool name = scratch.semantics && !(*scratch.semantics).name.empty();
         if (!role || !name) {

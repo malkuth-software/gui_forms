@@ -33,6 +33,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 namespace {
@@ -852,6 +853,37 @@ void transformed_layout_boxes() {
 
 } // namespace
 
+// The editor's property table: multiline and draws_selection are document
+// properties, so a form or a composite's `.control` sets them by name; a
+// write by name goes through set_multiline and set_draws_selection.
+void multiline_and_draws_selection_are_properties() {
+    const std::shared_ptr<ContentTextEditor> editor =
+        make_control<ContentTextEditor>(StableId("content-editor.properties"), std::string("ab"));
+    const std::optional<PropertyDescriptor> multiline = (*editor).property_descriptor("multiline");
+    require(multiline.has_value() && (*multiline).kind == BindingValueKind::boolean,
+            "multiline is a boolean property");
+    const std::optional<PropertyDescriptor> draws = (*editor).property_descriptor("draws_selection");
+    require(draws.has_value() && (*draws).kind == BindingValueKind::boolean, "draws_selection is a boolean property");
+    const std::optional<BindingValue> single = (*editor).property_value("multiline");
+    require(single.has_value() && std::get<bool>(*single) == false, "an editor starts single-line");
+    const std::optional<BindingValue> drawn = (*editor).property_value("draws_selection");
+    require(drawn.has_value() && std::get<bool>(*drawn) == true, "an editor starts drawing the selection");
+    (*editor).set_property_value("multiline", BindingValue{true});
+    require((*editor).multiline(), "writing multiline by name sets it");
+    (*editor).set_property_value("draws_selection", BindingValue{false});
+    require(!(*editor).draws_selection(), "writing draws_selection by name sets it");
+    (*editor).set_multiline(false);
+    const std::optional<BindingValue> read_back = (*editor).property_value("multiline");
+    require(read_back.has_value() && std::get<bool>(*read_back) == false, "the property reads the setter's value");
+    bool refused = false;
+    try {
+        (*editor).set_property_value("multiline", BindingValue{std::string("sideways")});
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && !(*editor).multiline(), "a value that is no boolean is refused and changes nothing");
+}
+
 int main() {
     try {
         layout_validation_refusals();
@@ -870,6 +902,7 @@ int main() {
         programmatic_edits_at_the_selection();
         composition_range_is_public();
         transformed_layout_boxes();
+        multiline_and_draws_selection_are_properties();
     } catch (const std::exception& error) {
         std::cerr << "content text editor tests failed: " << error.what() << '\n';
         return 1;

@@ -5,6 +5,7 @@
 #include "../panel/text_editing/text_editing_engine.hpp"
 #include "../scrollable_control/scrollable_anatomy.hpp"
 #include "../../core/content/channel/content_channel.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
@@ -19,6 +20,7 @@
 #include <stdexcept>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace gui_forms {
@@ -125,6 +127,44 @@ constexpr ControlAnatomy content_text_editor_anatomy{
     .custom_states = {},
     .item_systems = {},
 };
+
+// The editor's own table entries' descriptors (content_text_editor.hpp,
+// the property table): built once, on first use.
+PropertyDescriptor editor_multiline_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "multiline";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether Enter inserts a line break and Up, Down, Home and End move by lines.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::semantics;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_editor_multiline() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        editor_multiline_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor editor_draws_selection_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "draws_selection";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Appearance";
+    descriptor.description = "Whether the editor draws the selection and the caret over the consumer's frames.";
+    descriptor.default_value = BindingValue{true};
+    descriptor.invalidation_effects = Dirty::paint;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_editor_draws_selection() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        editor_draws_selection_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
 
 } // namespace
 
@@ -437,6 +477,54 @@ void ContentTextEditor::set_draws_selection(bool draws) {
     if (draws_selection_ == draws) return;
     draws_selection_ = draws;
     invalidate(Dirty::paint);
+}
+
+BindingValue ContentTextEditor::multiline_property() const {
+    BindingValue current{multiline_};
+    return current;
+}
+
+void ContentTextEditor::write_multiline_property(const BindingValue& value) {
+    const bool multiline = std::get<bool>(value);
+    set_multiline(multiline);
+}
+
+BindingValue ContentTextEditor::draws_selection_property() const {
+    BindingValue current{draws_selection_};
+    return current;
+}
+
+void ContentTextEditor::write_draws_selection_property(const BindingValue& value) {
+    const bool draws = std::get<bool>(value);
+    set_draws_selection(draws);
+}
+
+const std::array<PropertyEntry, ContentTextEditor::content_text_editor_property_count>&
+ContentTextEditor::content_text_editor_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 2U> own{{
+        {"draws_selection", &describe_editor_draws_selection,
+         &read_member_entry<ContentTextEditor, decltype(&ContentTextEditor::draws_selection_property),
+                            &ContentTextEditor::draws_selection_property>,
+         &write_member_entry<ContentTextEditor, decltype(&ContentTextEditor::write_draws_selection_property),
+                             &ContentTextEditor::write_draws_selection_property>,
+         nullptr, nullptr, nullptr, nullptr},
+        {"multiline", &describe_editor_multiline,
+         &read_member_entry<ContentTextEditor, decltype(&ContentTextEditor::multiline_property),
+                            &ContentTextEditor::multiline_property>,
+         &write_member_entry<ContentTextEditor, decltype(&ContentTextEditor::write_multiline_property),
+                             &ContentTextEditor::write_multiline_property>,
+         nullptr, nullptr, nullptr, nullptr},
+    }};
+    static_assert(property_names_distinct(own), "ContentTextEditor's property table names a property twice");
+    static const std::array<PropertyEntry, content_text_editor_property_count> entries =
+        join_property_tables(Panel::panel_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> ContentTextEditor::property_table() const noexcept {
+    const std::array<PropertyEntry, content_text_editor_property_count>& entries =
+        content_text_editor_property_entries();
+    return std::span<const PropertyEntry>(entries);
 }
 
 detail::TextEditingEngine* ContentTextEditor::editing_engine() const noexcept {

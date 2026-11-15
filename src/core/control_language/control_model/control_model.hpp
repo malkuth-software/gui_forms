@@ -262,6 +262,10 @@ struct ControlPart final {
     std::string activates{};
     std::string disabled_when{};
     PartMark mark{PartMark::none};
+    // `paint="hook"`: the composite's typed class draws the part
+    // (CompositeControl::paint_hook) where the theme would; `theme`, the
+    // default, leaves it to the theme engine.
+    bool paint_hook{};
     // Its drag's position in ControlModel::drags, for a part pressing drag.
     std::optional<std::size_t> drag{};
     ControlSource source{};
@@ -353,6 +357,10 @@ struct ControlSemantics final {
     std::string states{};
     std::string actions{};
     bool children_exposed{};
+    // `from="child(@name)"`: the local ID of the child whose own node the
+    // composite publishes as its own (it then declares nothing else, and
+    // publishes no node of its own); empty for a composite's own node.
+    std::string from_child{};
     ControlSource source{};
 };
 

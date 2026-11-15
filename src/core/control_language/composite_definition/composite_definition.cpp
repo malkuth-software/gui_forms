@@ -449,6 +449,7 @@ void DefinitionCompiler::compile_parts() {
         made.hit_expand = written.hit_expand;
         made.press = written.press;
         made.mark = written.mark;
+        made.paint_hook = written.paint_hook;
         parse(written.box, made.box, written.source, written.name);
         parse(written.present, made.present, written.source, written.name);
         parse(written.disabled_when, made.disabled_when, written.source, written.name);
@@ -718,6 +719,7 @@ void DefinitionCompiler::compile_focus_and_semantics() {
     CompositeSemanticsDefinition made{};
     made.role = written.role;
     made.children_exposed = written.children_exposed;
+    made.from_child = written.from_child;
     parse(written.name, made.name, written.source, "semantics");
     parse(written.value, made.value, written.source, "semantics");
     parse(written.range, made.range, written.source, "semantics");

@@ -671,6 +671,21 @@ void CompositeControl::on_paint(Painter& painter, const Rect local_damage) {
             states.erase(AnatomyState::enabled);
             states.insert(AnatomyState::disabled);
         }
+        if (part.paint_hook) {
+            std::string hooked{};
+            if (part.text_property) {
+                const BindingValue value = read_property(*part.text_property);
+                const std::string* text = std::get_if<std::string>(&value);
+                if (text != nullptr) hooked = *text;
+            }
+            CompositePaintHook hook{};
+            hook.part = part.name;
+            hook.bounds = geometry_.published[index];
+            hook.states = states;
+            hook.text = hooked;
+            paint_hook(painter, hook);
+            continue;
+        }
         PartPaint paint{.role = part.role, .bounds = geometry_.published[index], .states = states,
                         .family = (*definition_).family};
         paint.mark = part.mark;
@@ -696,6 +711,8 @@ void CompositeControl::on_paint(Painter& painter, const Rect local_damage) {
         paint_part(painter, *this, focus);
     }
 }
+
+void CompositeControl::paint_hook(Painter&, const CompositePaintHook&) {}
 
 std::optional<std::size_t> CompositeControl::part_at(const Point local_point) const {
     ensure_geometry();
@@ -1091,7 +1108,17 @@ SemanticDescriptor CompositeControl::semantic_descriptor() const {
     SemanticDescriptor descriptor = UserControl::semantic_descriptor();
     if (!(*definition_).semantics) return descriptor;
     const control_language::CompositeSemanticsDefinition& semantics = *(*definition_).semantics;
+    if (!semantics.from_child.empty()) {
+        // The focus target's node stands for the composite: the composite
+        // publishes none, and its children's nodes take its place, the
+        // focus target's (with its text, selection and actions, reached
+        // by its own runtime ID) among them.
+        descriptor.exposed = false;
+        descriptor.include_descendants = true;
+        return descriptor;
+    }
     const CompositeEvaluator evaluator(*this, CompositeFiring{});
+    descriptor.exposed = true;
     descriptor.role = semantics.role;
     if (!semantics.name.empty()) {
         // `a or b` reads the first that is not empty.

@@ -137,6 +137,8 @@ gui_forms::ContentTextEditor
         - ``open_frames(opaque)`` opens the channel the consumer publishes the editor's frames through, revoking any earlier one.
       * - :cpp:func:`position_at <gui_forms::ContentTextEditor::position_at>`
         - ``position_at(point)`` returns the text offset nearest a local point by the current layout (the end of the text without one).
+      * - :cpp:func:`content_text_editor_property_entries <gui_forms::ContentTextEditor::content_text_editor_property_entries>`
+        -  
       * - :cpp:func:`set_edit_filter <gui_forms::ContentTextEditor::set_edit_filter>`
         - The edit filter (TextBox::set_edit_filter, with the same rules): it sees every user edit after the editor's own checks (read-only, UTF-8, grapheme boundaries) and before it is applied, including a replacement by the same bytes, and may refuse or rewrite it.
 
@@ -327,6 +329,8 @@ gui_forms::ContentTextEditor
       ``position_at(point)`` returns the text offset nearest a local point by the
       current layout (the end of the text without one).
 
+   .. cpp:function:: static const std::array<PropertyEntry, content_text_editor_property_count>& content_text_editor_property_entries() noexcept
+
    .. cpp:function:: void set_edit_filter(Delegate<TextEdit&> filter) noexcept
 
       The edit filter (TextBox::set_edit_filter, with the same rules): it sees every user edit after the editor's own checks (read-only, UTF-8, grapheme boundaries) and before it is applied, including a replacement by the same bytes, and may refuse or rewrite it. It does not see set_text, undo or redo. The delegate does not own its target; clear it (an empty Delegate) before the target goes away.
@@ -345,6 +349,8 @@ gui_forms::ContentTextEditor
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
       An editable text box named by the accessible name, with the text as its value and the selection; multiline when multiline() is.
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
    .. cpp:function:: detail::TextEditingEngine* editing_engine() const noexcept override
 
@@ -409,6 +415,10 @@ gui_forms::ContentTextEditor
    .. cpp:function:: std::optional<Rect> text_input_caret() const override
 
       *Protected.*
+
+   .. cpp:member:: constexpr std::size_t content_text_editor_property_count
+
+      The property table: Panel's entries, then :cpp:func:`draws_selection <gui_forms::ContentTextEditor::draws_selection>` and :cpp:func:`multiline <gui_forms::ContentTextEditor::multiline>`, so a form or a composite's ``.control`` document sets them (``<content-text-editor multiline="false" draws-selection="false"/>``) as set_draws_selection and set_multiline do. Neither raises a change event; neither is bindable. Default: ``Panel::panel_property_count + 2U``.
 
 .. rubric:: Windows Forms correspondence
 

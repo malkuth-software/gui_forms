@@ -93,6 +93,8 @@ Related types
      - An event a composite raised (a declared <event>): its name as written, borrowed from the definition, and its payload (null for none).
    * - :cpp:class:`CompositeLoadResult <gui_forms::CompositeLoadResult>`
      - What load_composite_definition made: the definition, or null with every refusal in ``diagnostics``, one line each in the compilers' form (``file:line:column: error: E918 control_reference_unknown: rule property: detail``).
+   * - :cpp:class:`CompositePaintHook <gui_forms::CompositePaintHook>`
+     - A part the typed class draws (``paint="hook"``), as paint_hook receives it: the part's name as written (``query-text``), its published bounds in local coordinates, its states (the control's, with its own hot and pressed for a part that lists them, disabled when disabled-when holds) and the text it shows (the value of the property its box measures with text-extent, empty for none).
    * - :cpp:class:`CompositeStatistics <gui_forms::CompositeStatistics>`
      - Counters (AGENTS.md: structured instrumentation).
    * - :cpp:class:`ContainerControlAutoValidateCapability <gui_forms::ContainerControlAutoValidateCapability>`
@@ -473,6 +475,22 @@ Related types
    .. cpp:member:: std::shared_ptr<const CompositeDefinition> definition
 
    .. cpp:member:: std::vector<std::string> diagnostics
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CompositePaintHook final
+
+   ``#include <gui_forms/composites/composite_control/composite_control.hpp>``
+
+   A part the typed class draws (``paint="hook"``), as paint_hook receives it: the part's name as written (``query-text``), its published bounds in local coordinates, its states (the control's, with its own hot and pressed for a part that lists them, disabled when disabled-when holds) and the text it shows (the value of the property its box measures with text-extent, empty for none). The names and the text are borrowed for the call.
+
+   .. cpp:member:: std::string_view part
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: AnatomyStateSet states
+
+   .. cpp:member:: std::string_view text
 
 .. cpp:namespace:: gui_forms
 
