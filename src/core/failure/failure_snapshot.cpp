@@ -23,6 +23,10 @@ namespace {
 
 thread_local FailureSnapshot thread_snapshot;
 
+// The parked copy a rethrow handed this thread (carry_parked_shadow),
+// unspent while its reference is present.
+thread_local ParkedShadowCopy carried_shadow;
+
 // Relaxed: the switch orders nothing else; a call that starts after the
 // switch changes sees the new value.
 std::atomic<bool> reflection_enabled{false};
@@ -75,11 +79,40 @@ void fill_snapshot(FailureSnapshot& snapshot, const FailureBoundary& boundary, c
 
 } // namespace
 
+void copy_parked_shadow(const stxlib::ShadowReference parked, ParkedShadowCopy& copy) noexcept {
+    const RecordFrames read = copy_record_frames(parked, std::span<ShadowFrame>(copy.frames),
+                                                 std::span<std::uint64_t>(copy.trace));
+    copy.reference = parked;
+    copy.recorded = read.recorded;
+    copy.depth = read.depth;
+    copy.frame_count = static_cast<std::uint32_t>(std::min<std::size_t>(read.recorded, shadow_stack_capacity));
+    copy.trace_count = static_cast<std::uint32_t>(std::min<std::size_t>(read.trace_count, failure_trace_capacity));
+}
+
+void carry_parked_shadow(const ParkedShadowCopy& copy) noexcept {
+    carried_shadow = copy;
+}
+
 void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message,
                              const stxlib::ErrorRecord& record) noexcept {
     FailureSnapshot& snapshot = thread_snapshot;
-    const RecordFrames read = copy_record_frames(record.shadow(), std::span<ShadowFrame>(snapshot.frames),
-                                                 std::span<std::uint64_t>(snapshot.trace));
+    ParkedShadowCopy& carried = carried_shadow;
+    const stxlib::ShadowReference reference = record.shadow();
+    const bool carried_here = reference.present() && carried.reference.sequence == reference.sequence;
+    RecordFrames read{};
+    if (carried_here) {
+        // A parked failure's rethrow: its own copy, whether or not STXlib
+        // still holds the record. Spent once filed.
+        snapshot.frames = carried.frames;
+        snapshot.trace = carried.trace;
+        read.recorded = carried.recorded;
+        read.depth = carried.depth;
+        read.trace_count = carried.trace_count;
+        carried.reference = stxlib::ShadowReference{};
+    } else {
+        read = copy_record_frames(reference, std::span<ShadowFrame>(snapshot.frames),
+                                  std::span<std::uint64_t>(snapshot.trace));
+    }
     // Demangled here, when the failure is filed, never at the capture
     // (exception_type_for_display: one __cxa_demangle call, which allocates
     // and frees its result). The view borrows type_storage or record.

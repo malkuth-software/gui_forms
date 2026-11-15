@@ -4,7 +4,8 @@
 // callback's); a C++ client that lets an exception out of its callback is
 // recorded and fails fast through GUI.Forms' report. A failure the class
 // bridge parks and rethrows later (ParkedFailure) keeps the shadow record of
-// its original throw.
+// its original throw, from its own copy when the thread's record was
+// overwritten in between (S3: one record per thread in a release build).
 //
 // Without an argument the program checks the returning paths and prints
 // "callback gate tests passed". With a mode it lets an exception out of a
@@ -18,6 +19,8 @@
 #include "../../../src/core/failure/failure_snapshot.hpp"
 
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+
+#include <stxlib/shadow.hpp>
 
 #include <array>
 #include <cstdint>
@@ -206,6 +209,89 @@ void test_parked_failure() {
     require(after.depth == 0U, "the park and the rethrow leave no frame open");
 }
 
+// Under S3 (one shadow record per thread in a release build, four in a
+// development build): failures filed on the thread between the park and the
+// rethrow overwrite the parked record, and the outer gate still files the
+// original throw's frames, from the failure's own copy (the owner's
+// decision). More intervening failures than any build keeps records.
+constexpr abi1::SlotIdentity intervening_slot{GF_TABLE_DIAGNOSTICS, 92U};
+
+void throw_under_paint_frame() {
+    const ShadowFrameScope paint(ShadowFrameKind::paint_pass, "intervening.thrower", "paint", 0U);
+    throw std::runtime_error("thrown between the park and the rethrow");
+}
+
+gf_status intervening_body() {
+    throw_under_paint_frame();
+    return GF_STATUS_OK;
+}
+
+void test_parked_failure_outlives_captures() {
+    abi1::ParkedFailure parked;
+    require(abi1::call_slot(parking_slot, parking_body, parked) == GF_STATUS_INTERNAL, "the failure is parked");
+    require(parked.frames != nullptr && (*parked.frames).frame_count == 2U &&
+                (*parked.frames).reference.sequence == parked.shadow.sequence,
+            "the park copies its record's frames into the failure");
+    const std::size_t intervening = stxlib::shadow_record_capacity + 1U;
+    for (std::size_t index = 0U; index < intervening; ++index) {
+        require(abi1::call_slot(intervening_slot, intervening_body) == GF_STATUS_INTERNAL,
+                "a failure between the park and the rethrow is filed");
+    }
+    const detail::FailureSnapshot& between = detail::thread_failure_snapshot();
+    require(between.function_index == intervening_slot.slot_index && !holds_original_throw(between),
+            "the intervening failures file their own frames");
+
+    require(abi1::call_slot(rethrowing_slot, rethrowing_body, parked) == GF_STATUS_INTERNAL,
+            "the rethrown failure fails the outer gate");
+    const detail::FailureSnapshot& rethrown = detail::thread_failure_snapshot();
+    require(rethrown.function_index == rethrowing_slot.slot_index && holds_original_throw(rethrown) &&
+                snapshot_message(rethrown) == "thrown before the park",
+            "the outer gate files the original throw's frames after the record was overwritten");
+    require(parked.frames == nullptr, "the rethrow holds no copy afterwards");
+
+    // The hand-over is spent: the next failure files its own frames.
+    require(abi1::call_slot(intervening_slot, intervening_body) == GF_STATUS_INTERNAL, "a later failure is filed");
+    require(!holds_original_throw(detail::thread_failure_snapshot()), "a spent copy is attached to no other failure");
+}
+
+// A nested park: an inner frame parks and rethrows its own failure while an
+// outer one holds a failure; each rethrow files its own throw's frames.
+constexpr abi1::SlotIdentity inner_parking_slot{GF_TABLE_DIAGNOSTICS, 93U};
+
+gf_status inner_parking_body(abi1::ParkedFailure& parked) {
+    try {
+        throw_under_paint_frame();
+    } catch (...) {
+        const stxlib::ShadowReference reference = parked.park();
+        const gf_status failed = abi1::fail_with_current_exception(inner_parking_slot, reference);
+        return failed;
+    }
+    return GF_STATUS_OK;
+}
+
+bool holds_inner_throw(const detail::FailureSnapshot& snapshot) {
+    const bool frames = snapshot.frame_count == 2U && snapshot.frames[0].kind == ShadowFrameKind::library_call &&
+                        snapshot.frames[0].function_index == inner_parking_slot.slot_index &&
+                        snapshot.frames[1].kind == ShadowFrameKind::paint_pass &&
+                        text_of(snapshot.frames[1].subject, snapshot.frames[1].subject_size) ==
+                            "intervening.thrower";
+    return frames;
+}
+
+void test_nested_parks() {
+    abi1::ParkedFailure outer;
+    abi1::ParkedFailure inner;
+    require(abi1::call_slot(parking_slot, parking_body, outer) == GF_STATUS_INTERNAL, "the outer failure is parked");
+    require(abi1::call_slot(inner_parking_slot, inner_parking_body, inner) == GF_STATUS_INTERNAL,
+            "the inner failure is parked while the outer is held");
+    require(abi1::call_slot(rethrowing_slot, rethrowing_body, inner) == GF_STATUS_INTERNAL &&
+                holds_inner_throw(detail::thread_failure_snapshot()),
+            "the inner rethrow files the inner throw's frames");
+    require(abi1::call_slot(rethrowing_slot, rethrowing_body, outer) == GF_STATUS_INTERNAL &&
+                holds_original_throw(detail::thread_failure_snapshot()),
+            "the outer rethrow still files the outer throw's frames");
+}
+
 void throwing_event_mode() {
     const gf_callback callback{sizeof(gf_callback), 0U, &throwing_invoke, nullptr, nullptr};
     abi1::CallbackBinding binding(callback);
@@ -244,6 +330,8 @@ int main(int argc, char** argv) {
         test_described_frame();
         test_client_result();
         test_parked_failure();
+        test_parked_failure_outlives_captures();
+        test_nested_parks();
     } catch (const std::exception& error) {
         std::cerr << "callback gate test failed: " << error.what() << '\n';
         return 1;

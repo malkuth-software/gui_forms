@@ -2,11 +2,14 @@
 
 #include "gui_forms/c/gf_abi.h"
 
+#include "../../../core/failure/failure_snapshot.hpp"
+
 #include <stxlib/error.hpp>
 
 #include <array>
 #include <cstdint>
 #include <exception>
+#include <memory>
 #include <string_view>
 
 namespace gui_forms::abi1 {
@@ -56,22 +59,37 @@ void clear_failure() noexcept;
 // gate, so the C entry that called base returns normally; once the entry
 // has returned, the raise rethrows the exception, and the outer gate that
 // catches it files the frames of the original throw, not of the rethrow.
-// One per carrying frame, on its thread; the record must still be among the
-// thread's last stxlib::shadow_record_capacity when rethrown (else the outer
-// gate reads no frames for it).
+// One per carrying frame, on its thread.
+//
+// The failure owns its frames (the owner's decision for S3): the park
+// copies the record's frames and trace into frames, so they survive any
+// capture between the park and the rethrow (a thread keeps the last 4
+// records in a development build, the last 1 in a release build), and a
+// nested park keeps its own. The rethrow hands the copy to the outer gate's
+// filing (detail::carry_parked_shadow). When the copy's allocation is
+// refused the reference alone is kept, as before: the frames then survive
+// only while the thread still holds the record, and the outer gate files
+// none otherwise (detected, never another failure's frames). STXlib's own
+// gate record of the rethrow reads its frames from the restored record and
+// can lack them; only GUI.Forms' snapshot carries the copy.
 struct ParkedFailure final {
     std::exception_ptr exception;
     stxlib::ShadowReference shadow{};
+    // The copy of shadow's frames and trace; null when nothing is kept or
+    // the copy was refused.
+    std::unique_ptr<detail::ParkedShadowCopy> frames;
 
     // Inside a catch block: parks the current exception's shadow record
     // (stxlib::park_shadow, which clears the thread's pending capture) and
     // returns it, for the failure's snapshot. The first failure parked is
-    // the one kept; a later one is only parked and returned.
+    // the one kept, with its copy of the record; a later one is only parked
+    // and returned.
     stxlib::ShadowReference park() noexcept;
 
-    // Rethrows the kept exception after making its shadow record the
-    // thread's pending capture again (stxlib::restore_shadow), and holds
-    // nothing afterwards. Returns without throwing when nothing is kept.
+    // Rethrows the kept exception after handing over its copy of the frames
+    // and making its shadow record the thread's pending capture again
+    // (stxlib::restore_shadow), and holds nothing afterwards. Returns
+    // without throwing when nothing is kept.
     void rethrow();
 };
 

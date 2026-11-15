@@ -4,6 +4,9 @@
 
 #include <cstring>
 #include <exception>
+#include <memory>
+#include <new>
+#include <utility>
 
 namespace gui_forms::abi1 {
 
@@ -61,6 +64,12 @@ stxlib::ShadowReference ParkedFailure::park() noexcept {
     if (!exception) {
         exception = std::current_exception();
         shadow = parked;
+        // Copied now, before any other capture on the thread can overwrite
+        // the record. A refused allocation keeps the reference alone.
+        frames.reset(new (std::nothrow) detail::ParkedShadowCopy());
+        if (frames) {
+            detail::copy_parked_shadow(parked, *frames);
+        }
     }
     return parked;
 }
@@ -71,8 +80,13 @@ void ParkedFailure::rethrow() {
     }
     const std::exception_ptr carried = exception;
     const stxlib::ShadowReference carried_shadow = shadow;
+    std::unique_ptr<detail::ParkedShadowCopy> carried_frames = std::move(frames);
     exception = nullptr;
     shadow = stxlib::ShadowReference{};
+    if (carried_frames) {
+        detail::carry_parked_shadow(*carried_frames);
+    }
+    carried_frames.reset();
     stxlib::restore_shadow(carried_shadow);
     std::rethrow_exception(carried);
 }
