@@ -1312,7 +1312,7 @@ typedef struct gf_windows_table {
      * has ended. */
     gf_status (GF_CALL* pointer_location)(gf_object window_or_control, gf_logical_point* location,
                                           gf_logical_point* window_position, uint32_t* inside);
-    /* Since 1.4. Shows the program's business card in the hand over a
+    /* Since 1.5. Shows the program's business card in the hand over a
      * window (show_business_card): window_or_root is a window from create,
      * or a control in a window, as for focused_control. shown receives 1
      * when the card came out, 0 when the window already showed it; it may
@@ -2307,7 +2307,7 @@ typedef struct gf_diagnostics_table {
      * detail or one smaller than its 1.5 size.
      */
     gf_status (GF_CALL* failure_detail)(gf_failure_detail* detail);
-     * Since 1.4. The diagnostic overlay: the invalidation outlines and,
+     * Since 1.5. The diagnostic overlay: the invalidation outlines and,
      * whenever they are on, the counters card at each window's top left
      * (renderer, controls, layout and paint passes, damage, input and
      * focus, wakes, presents and the worst present). It is the same
@@ -3351,10 +3351,10 @@ typedef uint32_t gf_application_state;
 #define GF_APPLICATION_STATE_CURRENT 1u
 
 /*
- * Since 1.4. The program's identity, as the business card shows it: the
+ * Since 1.5. The program's identity, as the business card shows it: the
  * product, its version, the vendor (display text, printed large), the
  * website (empty or an https:// address), the copyright and the credits.
- * An input record: struct_size at least the 1.4 size, reserved zero; the
+ * An input record: struct_size at least the 1.5 size, reserved zero; the
  * text is UTF-8, read during the call only.
  */
 typedef struct gf_program_identity {
@@ -3392,7 +3392,7 @@ typedef struct gf_application_table {
     gf_status (GF_CALL* close)(uint64_t* windows_alive);
     /* Whether an application is current. */
     gf_status (GF_CALL* state)(gf_application_state* state);
-    /* Since 1.4. Sets the program's identity (set_program_identity), read by
+    /* Since 1.5. Sets the program's identity (set_program_identity), read by
      * every business card; validated whole, so a refusal leaves the
      * previous identity. UI thread. GF_STATUS_INVALID_ARGUMENT for a null
      * or short record, a non-zero reserved field, text that is not UTF-8 or

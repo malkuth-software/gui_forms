@@ -136,7 +136,7 @@ gf_status GF_CALL diagnostics_invalidation_overlay(std::uint32_t* enabled) noexc
     return GF_STATUS_OK;
 }
 
-// The diagnostic overlay (since 1.4): the same process switch, with the
+// The diagnostic overlay (since 1.5): the same process switch, with the
 // counters card whenever it is on (business_card.hpp). Any thread, no
 // frame of its own.
 gf_status GF_CALL diagnostics_set_diagnostic_overlay(std::uint32_t enabled) noexcept {

@@ -1016,7 +1016,7 @@ gf_status GF_CALL windows_pointer_location(gf_object window_or_control, gf_logic
 }
 
 // The business card in the hand over a window from create, or over the
-// window a control is in (since 1.4).
+// window a control is in (since 1.5).
 gf_status show_card(gf_object window_or_root, std::uint32_t* shown) {
     const gf_status entered = registry().enter_ui(show_business_card_slot, false);
     if (entered != GF_STATUS_OK) {

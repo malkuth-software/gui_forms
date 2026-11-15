@@ -212,7 +212,7 @@ void gf_kit_focus_refusals(gf_kit* kit) {
     gf_kit_check(kit, has_focused_control(kit, window, "focused_control after the field's enable") == 0,
                  "an enabled control does not take focus back by itself");
 
-    /* The business card in the hand (since 1.4): over the window once, over
+    /* The business card in the hand (since 1.5): over the window once, over
      * a control in it not again, and refused for a control in no window.
      * Releasing the window closes its layer. */
     if ((*kit).windows.struct_size >= offsetof(gf_windows_table, show_business_card) + sizeof(void*)) {

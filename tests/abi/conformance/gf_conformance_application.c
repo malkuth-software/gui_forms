@@ -76,7 +76,7 @@ static void read_theme(gf_kit* kit, char* id, uint64_t capacity) {
     id[read == GF_STATUS_OK ? required : 0u] = '\0';
 }
 
-/* The program identity (since 1.4): a valid record is taken, a refused
+/* The program identity (since 1.5): a valid record is taken, a refused
  * one (a website that is not https, a short record, reserved set, no
  * record) changes nothing and fails with invalid argument. */
 static void program_identity(gf_kit* kit) {
@@ -87,7 +87,7 @@ static void program_identity(gf_kit* kit) {
     memset(&identity, 0, sizeof(identity));
     identity.struct_size = (uint32_t)sizeof(identity);
     identity.product = gf_kit_text("Conformance Kit");
-    identity.version = gf_kit_text("1.4");
+    identity.version = gf_kit_text("1.5");
     identity.vendor = gf_kit_text("Example Vendor");
     identity.website = gf_kit_text("https://example.test/");
     identity.copyright = gf_kit_text("(c) 2026");
@@ -103,7 +103,7 @@ static void program_identity(gf_kit* kit) {
     identity.reserved = 0u;
     identity.struct_size = 8u;
     gf_kit_status(kit, (*kit).application.set_program_identity(&identity), GF_STATUS_INVALID_ARGUMENT,
-                  "an identity shorter than its 1.4 size is refused");
+                  "an identity shorter than its 1.5 size is refused");
     gf_kit_status(kit, (*kit).application.set_program_identity(NULL), GF_STATUS_INVALID_ARGUMENT,
                   "set_program_identity needs a record");
     identity.struct_size = (uint32_t)sizeof(identity);

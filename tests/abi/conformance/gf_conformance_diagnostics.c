@@ -152,7 +152,7 @@ static void invalidation_overlay(gf_kit* kit) {
     gf_kit_status(kit, (*kit).diagnostics.set_invalidation_overlay(before), GF_STATUS_OK, "restore the overlay");
 }
 
-/* The diagnostic overlay (since 1.4): the invalidation outlines and the
+/* The diagnostic overlay (since 1.5): the invalidation outlines and the
  * counters card, set and toggled, read back through the invalidation
  * switch it sets, refused values, then restored. */
 static void diagnostic_overlay(gf_kit* kit) {
