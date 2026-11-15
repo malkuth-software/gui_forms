@@ -848,6 +848,11 @@ bool SurfaceRoot::request_help(bool keyboard_initiated) {
     const std::weak_ptr<detail::WindowLifetime> watched = lifetime_;
     help_requested_.emit(request);
     if (request.handled) return true;
+    // A handler that disposed the window (the C ABI's objects.dispose on a
+    // window that has not run) leaves help_fallbacks_ freed: test before
+    // the copy reads it (A-gf-abi-03-F1).
+    const std::shared_ptr<detail::WindowLifetime> survived = watched.lock();
+    if (!survived || (*survived).window == nullptr) return false;
     // Offered to a copy, skipping a provider a handler disposed meanwhile.
     const std::vector<detail::WindowHelpFallback*> offered = help_fallbacks_;
     for (detail::WindowHelpFallback* const fallback : offered) {

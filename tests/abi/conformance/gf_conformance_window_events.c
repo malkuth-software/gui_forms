@@ -17,6 +17,9 @@ typedef struct help_probe {
     int saw_keyboard;
     gf_status write_status;
     char target[32];
+    /* When set, the callback disposes this window (A-gf-abi-03-F1). */
+    gf_object dispose_window;
+    gf_status dispose_status;
 } help_probe;
 
 /* True when a field's dotted name ends in leaf. */
@@ -36,6 +39,10 @@ static int field_is(const gf_event_field* field, const char* leaf) {
 static void GF_CALL help_invoke(void* context, gf_event* event) {
     help_probe* probe = (help_probe*)context;
     ++(*probe).invoked;
+    if ((*probe).dispose_window != 0u) {
+        (*probe).dispose_status = (*(*probe).kit).objects.dispose((*probe).dispose_window);
+        return;
+    }
     uint64_t index = 0u;
     for (index = 0u; index < (*event).field_count; ++index) {
         const gf_event_field* field = &(*event).fields[index];
@@ -240,7 +247,39 @@ static void window_help(gf_kit* kit) {
     gf_kit_check(kit, probe.released == 1u, "releasing the window releases nothing more");
 }
 
+/* A-gf-abi-03-F1: a help_requested callback that disposes its window (one
+ * that has not run, so the dispose destroys it) and leaves handled unset.
+ * request_help must not read the destroyed window after the callback; it
+ * reports the request unanswered. Under AddressSanitizer the old read of
+ * the window's help fallbacks was a use after free. */
+static void window_help_disposed(gf_kit* kit) {
+    const gf_object root = gf_kit_create(kit, "Panel", "kit.window-help-disposed");
+    gf_object window = 0u;
+    gf_kit_status(kit, (*kit).windows.create(root, &window), GF_STATUS_OK, "create a window to dispose in its help");
+    help_probe probe;
+    memset(&probe, 0, sizeof(probe));
+    probe.kit = kit;
+    probe.dispose_window = window;
+    probe.dispose_status = GF_STATUS_INTERNAL;
+    const gf_callback help = gf_kit_callback(&help_invoke, &help_release, &probe);
+    gf_subscription subscription = 0u;
+    gf_kit_status(kit, (*kit).events.subscribe(window, gf_kit_text("help_requested"), &help, &subscription),
+                  GF_STATUS_OK, "subscribe to the help of a window the callback disposes");
+    uint32_t handled = 7u;
+    gf_kit_status(kit, (*kit).windows.request_help(window, &handled), GF_STATUS_OK,
+                  "request help of a window its callback disposes");
+    gf_kit_check(kit, probe.invoked == 1u && probe.dispose_status == GF_STATUS_OK,
+                 "the callback ran once and disposed the window");
+    gf_kit_check(kit, handled == 0u, "a window disposed in its help callback reports the request unanswered");
+    gf_kit_status(kit, (*kit).windows.request_help(window, &handled), GF_STATUS_DISPOSED,
+                  "the disposed window refuses request_help");
+    gf_kit_status(kit, (*kit).objects.release(window), GF_STATUS_OK, "release the disposed window");
+    gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the disposed window's root");
+    gf_kit_check(kit, probe.released == 1u, "the subscription's callback was released once");
+}
+
 void gf_kit_window_events(gf_kit* kit) {
     window_listing(kit);
     window_help(kit);
+    window_help_disposed(kit);
 }
