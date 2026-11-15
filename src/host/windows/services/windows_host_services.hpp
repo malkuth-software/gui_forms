@@ -286,18 +286,28 @@ protected:
             result.status.error = HostServiceError::backend_failure;
             return result;
         }
+        // Closed however this leaves, a failed conversion included.
+        struct ClipboardScope {
+            ~ClipboardScope() { CloseClipboard(); }
+        } scope;
         HANDLE data = GetClipboardData(CF_UNICODETEXT);
         const wchar_t* locked = data == nullptr
             ? nullptr : static_cast<const wchar_t*>(GlobalLock(data));
         if (locked == nullptr) {
-            CloseClipboard();
             result.status.error = HostServiceError::backend_failure;
             return result;
         }
-        result.text_utf8 = utf8_from_wide(locked);
+        struct UnlockScope {
+            HANDLE data;
+            ~UnlockScope() { GlobalUnlock(data); }
+        } unlock{data};
+        // The block is another program's, and need not end in a NUL: the
+        // text is bounded by the block's size (A-gf-host-03-F2).
+        const SIZE_T block_bytes = GlobalSize(data);
+        const std::size_t capacity = static_cast<std::size_t>(block_bytes) / sizeof(wchar_t);
+        const std::size_t length = wcsnlen(locked, capacity);
+        result.text_utf8 = utf8_from_wide(std::wstring_view(locked, length));
         result.has_text = true;
-        GlobalUnlock(data);
-        CloseClipboard();
         return result;
     }
 
