@@ -7,6 +7,7 @@
 #include "../values/abi_values.hpp"
 
 #include "gui_forms/detail/property_binding_adapters.hpp"
+#include "gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
 
@@ -105,11 +106,16 @@ private:
 };
 
 // A bound surface's wake, called on the producer's thread when it
-// publishes: posts one repaint unless one is pending.
+// publishes: posts one repaint unless one is pending. It posts through the
+// window's dispatcher handle and never takes a strong reference to the
+// control: a producer that held the last reference would otherwise run the
+// control's destructor, and the client's release, on its own thread
+// (A-gf-abi-02-F2). The posted repaint holds only weak references.
 class BoundSurfaceWakeCallback final {
 public:
-    BoundSurfaceWakeCallback(std::weak_ptr<Control> target, std::weak_ptr<BoundSurfaceWake> wake) noexcept
-        : target_(std::move(target)), wake_(std::move(wake)) {}
+    BoundSurfaceWakeCallback(WindowDispatcher dispatcher, std::weak_ptr<Control> target,
+                             std::weak_ptr<BoundSurfaceWake> wake) noexcept
+        : dispatcher_(std::move(dispatcher)), target_(std::move(target)), wake_(std::move(wake)) {}
 
     void operator()() const noexcept {
         const std::shared_ptr<BoundSurfaceWake> wake = wake_.lock();
@@ -117,19 +123,17 @@ public:
             (*wake).queued.exchange(true, std::memory_order_acq_rel)) {
             return;
         }
-        const std::shared_ptr<Control> target = target_.lock();
-        if (!target) {
-            (*wake).queued.store(false, std::memory_order_release);
-            return;
-        }
         try {
-            static_cast<void>((*target).begin_invoke(BoundSurfaceRepaint(target_, wake_)));
+            // A window that is gone answers with a cancelled operation and
+            // releases the repaint; nothing else is touched.
+            static_cast<void>(dispatcher_.begin_invoke(BoundSurfaceRepaint(target_, wake_)));
         } catch (...) {
             (*wake).queued.store(false, std::memory_order_release);
         }
     }
 
 private:
+    WindowDispatcher dispatcher_;
     std::weak_ptr<Control> target_;
     std::weak_ptr<BoundSurfaceWake> wake_;
 };
@@ -375,7 +379,8 @@ void CustomControlState::connect_wake(Control& control) {
     }
     wake_state_ = std::make_shared<BoundSurfaceWake>();
     wake_ = (*bound_surface_).connect_presentation_wake(
-        BoundSurfaceWakeCallback(std::weak_ptr<Control>(self), std::weak_ptr<BoundSurfaceWake>(wake_state_)));
+        BoundSurfaceWakeCallback((*window).dispatcher(), std::weak_ptr<Control>(self),
+                                 std::weak_ptr<BoundSurfaceWake>(wake_state_)));
 }
 
 void CustomControlState::disconnect_wake() noexcept {
