@@ -850,8 +850,11 @@ void test_scroll_gesture_latches_and_does_not_chain() {
             "a new gesture begins over the inner panel and scrolls it");
     static_cast<void>(window.dispatch_pointer(gesture_wheel(pointer, 500.0, WheelPhase::changed)));
     // The end is the axis's own maximum position (the content's extent less
-    // the viewport the panel's bars leave), not a figure worked out here.
-    const double inner_end = (*inner).vertical_scroll().maximum_position();
+    // the viewport the panel's bars leave), read from its public range as
+    // ScrollProperties::maximum_position (private) works it out.
+    const ScrollProperties& inner_axis = (*inner).vertical_scroll();
+    const double inner_end =
+        std::max(inner_axis.minimum(), inner_axis.maximum() - inner_axis.large_change() + 1.0);
     require(inner_end > 30.0 && near((*inner).scroll_position().y, inner_end), "the inner panel scrolls to its end");
     require(window.dispatch_pointer(gesture_wheel(pointer, 30.0, WheelPhase::momentum)) &&
                 near((*outer).scroll_position().y, 140.0),
