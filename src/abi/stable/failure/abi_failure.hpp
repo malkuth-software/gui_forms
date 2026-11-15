@@ -70,11 +70,15 @@ void clear_failure() noexcept;
 // GUI.Forms' snapshot alike, attaches the original throw's frames.
 //
 // The copy (about 7.9 KiB) is allocated on the failure path, not kept in
-// every HookFrame on a class entry's stack. When the allocation is refused,
-// or STXlib cannot park into it (an exhausted shadow sequence), the
-// reference alone is kept (stxlib::park_shadow and restore_shadow): its
-// frames then survive only while the thread still holds the record, and the
-// outer gate files none otherwise (detected, never another failure's).
+// every HookFrame on a class entry's stack (foreign threads can have short
+// stacks). Parking happens on failure paths, out of memory included: when
+// the allocation is refused, or STXlib cannot park into it (an exhausted
+// shadow sequence), the reference alone is kept (stxlib::park_shadow and
+// restore_shadow) and the loss is recorded as data. The park counts it
+// (detail::FailureStatistics::parked_frames_dropped) and sets frames_lost;
+// the rethrow marks the outer gate's filing (frames_lost_at_park on the
+// snapshot, a line in the fail-fast report), whose frames are then what the
+// thread still held of the record, possibly none, never another failure's.
 struct ParkedShadowFrames final {
     stxlib::ParkedShadow parked{};
     std::array<stxlib::ShadowFrameRecord, stxlib::parked_shadow_frame_room> records{};
@@ -88,6 +92,8 @@ struct ParkedFailure final {
     // The copy of shadow's frames and trace; null when nothing is kept or
     // only the reference is.
     std::unique_ptr<ParkedShadowFrames> frames;
+    // The first failure was parked without a copy (see above).
+    bool frames_lost = false;
 
     // Inside a catch block: parks the current exception's shadow record
     // (which clears the thread's pending capture) and returns it, for the
@@ -102,5 +108,10 @@ struct ParkedFailure final {
     // Returns without throwing when nothing is kept.
     void rethrow();
 };
+
+// The allocation fault seam for tests: the next first park on the calling
+// thread (ParkedFailure::park keeping a new failure) behaves as if its
+// copy's allocation were refused. Spent by that park.
+void refuse_next_parked_copy() noexcept;
 
 } // namespace gui_forms::abi1

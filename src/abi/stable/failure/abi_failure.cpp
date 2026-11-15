@@ -1,5 +1,6 @@
 #include "abi_failure.hpp"
 
+#include "../../../core/failure/failure_snapshot.hpp"
 #include "../../../platform/stxlib_bridge.hpp"
 
 #include <stxlib/result.hpp>
@@ -63,6 +64,18 @@ void clear_failure() noexcept {
     record.message_size = 0U;
 }
 
+namespace {
+
+// refuse_next_parked_copy's switch. Trivially destructible, as a
+// thread_local must be (owner rule 2).
+thread_local bool refuse_parked_copy = false;
+
+} // namespace
+
+void refuse_next_parked_copy() noexcept {
+    refuse_parked_copy = true;
+}
+
 stxlib::ShadowReference ParkedFailure::park() noexcept {
     if (exception) {
         const stxlib::ShadowReference later = stxlib::park_shadow();
@@ -73,7 +86,12 @@ stxlib::ShadowReference ParkedFailure::park() noexcept {
     // record. The rooms are the stated sizes, so park_shadow_into fails only
     // for an exhausted sequence; then, or when the allocation is refused,
     // the reference alone is kept.
-    std::unique_ptr<ParkedShadowFrames> copy(new (std::nothrow) ParkedShadowFrames());
+    std::unique_ptr<ParkedShadowFrames> copy;
+    if (refuse_parked_copy) {
+        refuse_parked_copy = false;
+    } else {
+        copy.reset(new (std::nothrow) ParkedShadowFrames());
+    }
     if (copy) {
         const stxlib::Result<stxlib::ParkedShadow> parked = stxlib::park_shadow_into(
             platform::stxlib_mutable_view((*copy).records), platform::stxlib_mutable_view((*copy).trace));
@@ -86,6 +104,8 @@ stxlib::ShadowReference ParkedFailure::park() noexcept {
         copy.reset();
     }
     shadow = stxlib::park_shadow();
+    frames_lost = true;
+    detail::count_parked_frames_dropped();
     return shadow;
 }
 
@@ -96,8 +116,10 @@ void ParkedFailure::rethrow() {
     const std::exception_ptr carried = exception;
     const stxlib::ShadowReference carried_shadow = shadow;
     std::unique_ptr<ParkedShadowFrames> carried_frames = std::move(frames);
+    const bool carried_lost = frames_lost;
     exception = nullptr;
     shadow = stxlib::ShadowReference{};
+    frames_lost = false;
     if (carried_frames) {
         const ParkedShadowFrames& copy = *carried_frames;
         const std::span<const stxlib::ShadowFrameRecord> records(copy.records.data(), copy.parked.frame_count);
@@ -107,6 +129,9 @@ void ParkedFailure::rethrow() {
         static_cast<void>(stxlib::restore_shadow_from(copy.parked, platform::stxlib_view(records),
                                                       platform::stxlib_view(trace)));
     } else {
+        if (carried_lost) {
+            detail::mark_parked_frames_lost(carried_shadow);
+        }
         stxlib::restore_shadow(carried_shadow);
     }
     carried_frames.reset();

@@ -74,6 +74,12 @@ struct GUI_FORMS_API FailureSnapshot final {
     std::uint32_t trace_count = 0U;
     std::array<char, failure_type_capacity> type{};
     std::array<std::uint64_t, failure_trace_capacity> trace{};
+    // A parked failure's rethrow whose park could not keep its own copy of
+    // the frames (the copy's allocation was refused, or STXlib could not park
+    // into it): the frames above are what the thread still held of the
+    // record, possibly none, not necessarily the whole record. False for
+    // every other failure.
+    bool frames_lost_at_park = false;
 };
 
 // Where a snapshot is taken: the boundary's site and status, and the C ABI
@@ -122,6 +128,28 @@ GUI_FORMS_API void record_failure_snapshot(const FailureBoundary& boundary, std:
 // Forgets the calling thread's snapshot (status zero, no frames, no text);
 // sequence keeps counting.
 GUI_FORMS_API void clear_failure_snapshot() noexcept;
+
+// Process-wide failure counters, read with failure_statistics() from any
+// thread (relaxed: each counter is exact, but two are not read together).
+// parked_frames_dropped counts parked failures that kept no copy of their
+// frames (abi1::ParkedFailure::park: allocation refused on the failure
+// path, out of memory included, or STXlib unable to park into the copy).
+struct GUI_FORMS_API FailureStatistics final {
+    std::uint64_t parked_frames_dropped = 0U;
+};
+
+[[nodiscard]] GUI_FORMS_API FailureStatistics failure_statistics() noexcept;
+
+// Called by a park that kept no copy of its frames: counts it in
+// parked_frames_dropped. Never allocates; any thread.
+GUI_FORMS_API void count_parked_frames_dropped() noexcept;
+
+// Called by that failure's rethrow, just before restoring parked as the
+// pending capture: the next gate record filed on this thread whose shadow
+// reference has parked's sequence (record_failure_snapshot with an
+// ErrorRecord) is marked frames_lost_at_park; the mark is then spent. A
+// later call replaces an unspent mark. Never allocates.
+GUI_FORMS_API void mark_parked_frames_lost(stxlib::ShadowReference parked) noexcept;
 
 // Exception reflection's process switch. Any thread.
 GUI_FORMS_API void set_exception_reflection(bool enabled) noexcept;

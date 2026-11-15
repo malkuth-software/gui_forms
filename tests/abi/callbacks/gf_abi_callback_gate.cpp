@@ -229,6 +229,7 @@ gf_status intervening_body() {
 void test_parked_failure_outlives_captures() {
     abi1::ParkedFailure parked;
     require(abi1::call_slot(parking_slot, parking_body, parked) == GF_STATUS_INTERNAL, "the failure is parked");
+    require(!parked.frames_lost, "a park with its copy loses no frames");
     require(parked.frames != nullptr && (*parked.frames).parked.frame_count == 2U &&
                 (*parked.frames).parked.reference.sequence == parked.shadow.sequence,
             "the park copies its record's frames into the failure");
@@ -247,12 +248,60 @@ void test_parked_failure_outlives_captures() {
     require(rethrown.function_index == rethrowing_slot.slot_index && holds_original_throw(rethrown) &&
                 snapshot_message(rethrown) == "thrown before the park",
             "the outer gate files the original throw's frames after the record was overwritten");
+    require(!rethrown.frames_lost_at_park, "a rethrow from its copy is not marked as having lost frames");
     require(parked.frames == nullptr, "the rethrow holds no copy afterwards");
 
     // The copy was filed as a new record for the rethrow only: the next
     // failure files its own frames.
     require(abi1::call_slot(intervening_slot, intervening_body) == GF_STATUS_INTERNAL, "a later failure is filed");
     require(!holds_original_throw(detail::thread_failure_snapshot()), "a filed copy is attached to no other failure");
+}
+
+// Parking happens on failure paths, out of memory included: when the
+// copy's allocation is refused at the park, the failure is parked without
+// it, counted in the failure statistics, and the outer gate's filing of the
+// rethrow says its frames were lost instead of silently filing a thinner
+// record.
+void test_parked_failure_with_copy_refused() {
+    const std::uint64_t dropped_before = detail::failure_statistics().parked_frames_dropped;
+    abi1::refuse_next_parked_copy();
+    abi1::ParkedFailure parked;
+    require(abi1::call_slot(parking_slot, parking_body, parked) == GF_STATUS_INTERNAL,
+            "the failure is parked although its copy was refused");
+    require(parked.exception != nullptr && parked.frames == nullptr && parked.frames_lost,
+            "the parked failure keeps the exception, no copy, and says its frames were lost");
+    require(detail::failure_statistics().parked_frames_dropped == dropped_before + 1U,
+            "the refused copy is counted in the failure statistics");
+    const std::size_t intervening = stxlib::shadow_record_capacity + 1U;
+    for (std::size_t index = 0U; index < intervening; ++index) {
+        require(abi1::call_slot(intervening_slot, intervening_body) == GF_STATUS_INTERNAL,
+                "a failure between the park and the rethrow is filed");
+        require(!detail::thread_failure_snapshot().frames_lost_at_park,
+                "an intervening failure is not marked as having lost frames");
+    }
+
+    require(abi1::call_slot(rethrowing_slot, rethrowing_body, parked) == GF_STATUS_INTERNAL,
+            "the rethrown failure fails the outer gate");
+    const detail::FailureSnapshot& rethrown = detail::thread_failure_snapshot();
+    require(rethrown.function_index == rethrowing_slot.slot_index && snapshot_message(rethrown) == "thrown before the park",
+            "the outer gate files the rethrown failure");
+    require(rethrown.frames_lost_at_park && !holds_original_throw(rethrown),
+            "the outer filing says its frames were lost at the park");
+    require(!parked.frames_lost && parked.exception == nullptr, "the rethrow holds nothing afterwards");
+    require(detail::failure_statistics().parked_frames_dropped == dropped_before + 1U,
+            "only the park counts the loss");
+
+    // The mark is spent, and the seam was spent by the park: the next
+    // failure, and the next park, are whole.
+    require(abi1::call_slot(intervening_slot, intervening_body) == GF_STATUS_INTERNAL, "a later failure is filed");
+    require(!detail::thread_failure_snapshot().frames_lost_at_park, "a spent mark is attached to no other failure");
+    abi1::ParkedFailure whole;
+    require(abi1::call_slot(parking_slot, parking_body, whole) == GF_STATUS_INTERNAL && whole.frames != nullptr &&
+                !whole.frames_lost,
+            "the next park keeps its copy");
+    require(abi1::call_slot(rethrowing_slot, rethrowing_body, whole) == GF_STATUS_INTERNAL &&
+                holds_original_throw(detail::thread_failure_snapshot()),
+            "the next rethrow files its own frames");
 }
 
 // A nested park: an inner frame parks and rethrows its own failure while an
@@ -333,6 +382,7 @@ int main(int argc, char** argv) {
         test_parked_failure();
         test_parked_failure_outlives_captures();
         test_nested_parks();
+        test_parked_failure_with_copy_refused();
     } catch (const std::exception& error) {
         std::cerr << "callback gate test failed: " << error.what() << '\n';
         return 1;

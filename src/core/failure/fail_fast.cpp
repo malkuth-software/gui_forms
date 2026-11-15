@@ -235,6 +235,12 @@ void write_shadow_frames(const FailureSnapshot& snapshot) noexcept {
     heading.append_number(snapshot.frame_count);
     heading.append(" recorded):");
     heading.write();
+    if (snapshot.frames_lost_at_park) {
+        ReportLine lost;
+        lost.append("GUI.Forms: frames lost at park: the parked failure kept no copy; these are what the thread "
+                    "still held");
+        lost.write();
+    }
     for (std::uint32_t index = 0U; index < snapshot.frame_count; ++index) {
         const ShadowFrame& frame = snapshot.frames[index];
         ReportLine line;

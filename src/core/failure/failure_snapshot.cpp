@@ -28,6 +28,20 @@ thread_local FailureSnapshot thread_snapshot;
 // switch changes sees the new value.
 std::atomic<bool> reflection_enabled{false};
 
+// parked_frames_dropped (FailureStatistics). Relaxed: a count orders
+// nothing else.
+std::atomic<std::uint64_t> parked_frames_dropped{0U};
+
+// The rethrow mark of mark_parked_frames_lost: armed until the gate record
+// of that sequence is filed on this thread. Trivially destructible, as a
+// thread_local must be (owner rule 2).
+struct FramesLostMark final {
+    bool armed = false;
+    std::uint64_t sequence = 0U;
+};
+
+thread_local FramesLostMark frames_lost_mark;
+
 // The leading bytes of text that fit in capacity and end on a whole UTF-8
 // sequence.
 std::size_t whole_prefix(std::string_view text, std::size_t capacity) noexcept {
@@ -60,6 +74,8 @@ void fill_snapshot(FailureSnapshot& snapshot, const FailureBoundary& boundary, c
                    const std::size_t recorded, const std::uint32_t depth, const std::size_t trace_count,
                    const std::string_view type) noexcept {
     snapshot.status = boundary.status;
+    // Set by the ErrorRecord filing, after this, for a marked rethrow.
+    snapshot.frames_lost_at_park = false;
     snapshot.interface_id = boundary.interface_id;
     snapshot.function_index = boundary.function_index;
     ++snapshot.sequence;
@@ -89,6 +105,12 @@ void record_failure_snapshot(const FailureBoundary& boundary, const std::string_
     const stxlib::TextView type = stxlib::exception_type_for_display(record, type_output);
     const std::string_view type_text = platform::standard_text(type);
     fill_snapshot(snapshot, boundary, message, read.recorded, read.depth, read.trace_count, type_text);
+    FramesLostMark& mark = frames_lost_mark;
+    const bool lost_at_park = mark.armed && mark.sequence == record.shadow().sequence;
+    if (lost_at_park) {
+        mark.armed = false;
+    }
+    snapshot.frames_lost_at_park = lost_at_park;
 }
 
 void record_failure_snapshot(const FailureBoundary& boundary, const std::string_view message) noexcept {
@@ -151,6 +173,23 @@ void clear_failure_snapshot() noexcept {
     snapshot.trace_count = 0U;
     snapshot.type.fill('\0');
     snapshot.trace.fill(0U);
+    snapshot.frames_lost_at_park = false;
+}
+
+FailureStatistics failure_statistics() noexcept {
+    FailureStatistics statistics{};
+    statistics.parked_frames_dropped = parked_frames_dropped.load(std::memory_order_relaxed);
+    return statistics;
+}
+
+void count_parked_frames_dropped() noexcept {
+    parked_frames_dropped.fetch_add(1U, std::memory_order_relaxed);
+}
+
+void mark_parked_frames_lost(const stxlib::ShadowReference parked) noexcept {
+    FramesLostMark& mark = frames_lost_mark;
+    mark.armed = true;
+    mark.sequence = parked.sequence;
 }
 
 void set_exception_reflection(const bool enabled) noexcept {
