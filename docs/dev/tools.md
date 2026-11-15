@@ -150,6 +150,15 @@ the change that needs it.
 : Generates the C ABI's event catalog from the interaction declarations.
   `python3 -B tools/abi_event_catalog.py --check`
 
+`tools/drawing_bridge.py`
+: Generates the System.Drawing facade's native bridge
+  (`generated/facade-v1/System.Drawing.Common/DrawingBridge.g.cs`) from its
+  template, `tools/drawing_bridge/DrawingBridge.cs.in`, the retired facade
+  generator's bridge template. Both imports load the C ABI library,
+  `gui_forms_abi<GF_ABI_MAJOR>`, which holds the drawing ABI and its raster
+  service. Edit the template, not the generated file.
+  `python3 -B tools/drawing_bridge.py --check`
+
 `tools/export_annotations.py`
 : Checks that every public declaration carries its library's export macro
   (`check`), adds missing ones (`apply`) and writes the export lists under
