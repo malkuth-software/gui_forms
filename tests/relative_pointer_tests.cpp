@@ -159,7 +159,7 @@ struct HostedScene final {
         const HostDispatchResult result = host.dispatch(event, next());
         return result;
     }
-    const HostRelativePointerRequest& native() const { return host.headless_services().relative_pointer_request(); }
+    const HostRelativePointerRequest& native() { return host.headless_services().relative_pointer_request(); }
 
     Scene scene{};
     host::HeadlessHost host;
