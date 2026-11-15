@@ -184,7 +184,7 @@ static void fixed_array_payloads(gf_kit* kit) {
     static const char* const camera =
         "elevation: number, azimuth: number, roll: number, zoom: number, target: number[3], "
         "projection: enumeration, focal_length: number";
-    static const char* const hit = "kind: enumeration, item.value: unsigned_integer, index: unsigned_integer, "
+    static const char* const hit = "kind: enumeration, item: unsigned_integer, index: unsigned_integer, "
                                    "data_point: number[3], surface_parameter: number[2], depth: number";
     uint64_t count = 0u;
     gf_kit_status(kit, (*kit).schema.type_count(&count), GF_STATUS_OK, "type_count for array payloads");

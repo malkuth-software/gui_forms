@@ -566,6 +566,12 @@ def field_entries(catalog: Catalog, spelling: str, name: str, members_unprefixed
     if text in catalog.enums:
         return [name + ': enumeration']
     if text in catalog.structs:
+        members: list[tuple[str, str]] = catalog.structs[text].members
+        if len(members) == 1 and members[0][1] == 'value':
+            # An identity: one field named for the member itself, as the
+            # generated writer appends it (append_field(fields, name,
+            # value.value)), not "name.value".
+            return field_entries(catalog, members[0][0], name, False)
         entries = []
         member_type: str
         member_name: str
