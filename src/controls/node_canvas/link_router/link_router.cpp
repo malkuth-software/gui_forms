@@ -240,7 +240,7 @@ LinkRouteStatistics LinkRouter::route(const NodeGraph& graph, const LinkRouterOp
     }
     nudge(chosen, statistics);
     flatten(chosen);
-    statistics.crossings = count_crossings();
+    statistics.crossings = chosen.count_crossings ? count_crossings() : 0U;
     statistics.grid_columns = columns_.size();
     statistics.grid_rows = rows_.size();
     if (capacity_sum() != capacity_before) statistics.storage_growths = 1U;

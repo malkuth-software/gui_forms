@@ -253,6 +253,11 @@ void around_an_obstacle_with_nudging() {
     const LinkRouteStatistics again = router.route(graph, orthogonal_options());
     require(trace_of(router) == first, "routing the same graph again gives the same routes (determinism)");
     require(again.storage_growths == 0U, "routing the same graph again allocates nothing");
+    // A-gf-controls-06-F8: without the crossing count the routes are the same.
+    LinkRouterOptions uncounted = orthogonal_options();
+    uncounted.count_crossings = false;
+    const LinkRouteStatistics skipped = router.route(graph, uncounted);
+    require(trace_of(router) == first && skipped.crossings == 0U, "skipping the crossing count changes no route");
 }
 
 void crossings_are_avoided() {

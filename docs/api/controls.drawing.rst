@@ -562,6 +562,10 @@ Related types
 
       The soft style's largest distance between a drawn point and its curve. Default: ``{0.25}``.
 
+   .. cpp:member:: bool count_crossings
+
+      Whether route counts the crossings into its statistics, comparing every segment with every segment of every later route (quadratic in the segments). Off, LinkRouteStatistics::crossings is 0 and the routes are the same. Default: ``{true}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: LinkRouteStatistics final
@@ -582,7 +586,7 @@ Related types
 
    .. cpp:member:: std::size_t crossings
 
-      Perpendicular crossings between different links after nudging.
+      Perpendicular crossings between different links after nudging; 0 unless LinkRouterOptions::count_crossings.
 
    .. cpp:member:: std::size_t nudged
 

@@ -369,7 +369,12 @@ void NodeCanvas::ensure_caches() {
     const std::uint64_t revision = (*graph_).revision();
     if (node_cache_revision_ != revision) rebuild_node_cache();
     if (link_style_ == NodeLinkStyle::routed && router_.routed_revision() != revision) {
-        const LinkRouteStatistics routed = router_.route(*graph_, router_options_);
+        // The statistics are discarded here, so the quadratic crossing count
+        // is skipped; it runs on every frame of a node drag
+        // (A-gf-controls-06-F8). The routes do not depend on it.
+        LinkRouterOptions routing = router_options_;
+        routing.count_crossings = false;
+        const LinkRouteStatistics routed = router_.route(*graph_, routing);
         static_cast<void>(routed);
         ++statistics_.router_runs;
         link_cache_revision_ = 0U;
