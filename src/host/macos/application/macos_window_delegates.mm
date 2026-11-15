@@ -2,6 +2,7 @@
 // (macos_window_delegates.hpp).
 
 #include "macos_window_delegates.hpp"
+#include "macos_main_work.hpp"
 #include "../view/macos_view.hpp"
 
 namespace {
@@ -71,6 +72,28 @@ void run_closed_handler(std::function<void()>& callback) {
 void run_open_files(const std::function<void(std::vector<std::string>)>& open_files,
                     std::vector<std::string>& paths) {
     open_files(std::move(paths));
+}
+
+// Stops [NSApp run] and posts the event its loop wakes on.
+void stop_application_now() {
+    [NSApp stop:nil];
+    NSEvent* wake = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
+                                        location:NSZeroPoint
+                                   modifierFlags:0
+                                       timestamp:0
+                                    windowNumber:0
+                                         context:nil
+                                         subtype:0
+                                           data1:0
+                                           data2:0];
+    if (wake != nil) [NSApp postEvent:wake atStart:NO];
+}
+
+// post_default_mode_work's function: the main loop has resumed, so stop:
+// now reaches it. Nothing when no run is going any more.
+void stop_application_in_main_loop(void* context) {
+    static_cast<void>(context);
+    if ([NSApp isRunning]) stop_application_now();
 }
 } // namespace
 
@@ -189,17 +212,15 @@ void run_window_delegate_window_did_exit_full_screen(GUIFormsWindowDelegate* obj
     }
     gui_forms::host::mac_run_close_finished(_run, _windowId);
     if (!_stopsApplicationOnClose) return;
-    [NSApp stop:nil];
-    NSEvent* wake = [NSEvent otherEventWithType:NSEventTypeApplicationDefined
-                                        location:NSZeroPoint
-                                   modifierFlags:0
-                                       timestamp:0
-                                    windowNumber:0
-                                         context:nil
-                                         subtype:0
-                                           data1:0
-                                           data2:0];
-    [NSApp postEvent:wake atStart:NO];
+    // Inside a modal loop (a run_modal session, a native alert or panel)
+    // stop: would end that loop, not [NSApp run], and the run would never
+    // return. The stop then waits for the main loop: default-mode work,
+    // which no modal loop runs (A-gf-host-02-F6).
+    if ([NSApp modalWindow] != nil) {
+        post_default_mode_work(nullptr, &stop_application_in_main_loop);
+        return;
+    }
+    stop_application_now();
 }
 - (void)windowDidBecomeKey:(NSNotification*)notification {
     gui_forms::detail::call_failing_fast(
