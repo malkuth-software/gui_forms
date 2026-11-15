@@ -13,6 +13,7 @@
 #include "gui_forms/controls/month_calendar.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/host/session/host_session.hpp"
 #include "gui_forms/host/types/host_capabilities/host_capabilities.hpp"
@@ -20,11 +21,13 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/window/window.hpp"
 #include "support/locale_fixtures.hpp"
+#include "../src/controls/basic/basic_control_rendering.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <locale>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -61,6 +64,14 @@ struct Fixture final {
     std::shared_ptr<MonthCalendar> calendar = make_control<MonthCalendar>(StableId("locale.calendar"));
     std::shared_ptr<NumericUpDown> numeric = make_control<NumericUpDown>(StableId("locale.numeric"));
     Window window;
+};
+
+// A global C++ locale with a comma decimal mark and grouping by threes, which a
+// default std::ostringstream follows.
+struct CommaNumbers final : std::numpunct<char> {
+    char do_decimal_point() const override { return ','; }
+    char do_thousands_sep() const override { return '.'; }
+    std::string do_grouping() const override { return std::string("\3"); }
 };
 
 std::string editor_text(const NumericUpDown& numeric) {
@@ -194,6 +205,30 @@ void capabilities_json_names_the_locale() {
 
 } // namespace
 
+// A-gf-controls-08-F5, 11-F5, 06-F7: numbers the controls write, and the bytes labels break
+// at, do not follow the program's global locale. std::locale takes ownership of the facet
+// (reference counted); the previous global locale is restored before each check.
+void global_locale_reaches_no_number() {
+    Fixture fixture;
+    const std::locale previous = std::locale::global(std::locale(std::locale::classic(), new CommaNumbers()));
+    (*fixture.numeric).value = 4321.25;
+    const std::string decimal = editor_text(*fixture.numeric);
+    (*fixture.numeric).hexadecimal = true;
+    (*fixture.numeric).value = 65535.0;
+    const std::string hexadecimal = editor_text(*fixture.numeric);
+    const std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId("locale.bar"));
+    (*bar).set_range(0.0, 5000.0);
+    (*bar).value = 1234.5;
+    const std::string bar_value = (*bar).semantic_descriptor().value;
+    static_cast<void>(std::locale::global(previous));
+    require(decimal == "4,321.25", "the numeric field's digits ignore the global C++ locale");
+    require(hexadecimal == "FFFF", "hexadecimal text gains no group separators");
+    require(bar_value == "1234.5", "a range control publishes its value in the C locale's form");
+    require(is_wrap_space(' ') && is_wrap_space('\t') && is_wrap_space('\n') && !is_wrap_space('\xA0') &&
+                !is_wrap_space('a'),
+            "labels break at the ASCII whitespace bytes only");
+}
+
 int main() {
     try {
         portable_default_until_told();
@@ -202,6 +237,7 @@ int main() {
         invalid_locale_is_refused();
         host_session_seeds_the_locale();
         capabilities_json_names_the_locale();
+        global_locale_reaches_no_number();
     } catch (const std::exception& error) {
         std::cerr << "control locale tests failed: " << error.what() << '\n';
         return EXIT_FAILURE;

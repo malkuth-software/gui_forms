@@ -86,4 +86,20 @@ inline void append_number_text(std::string& out, double value, std::chars_format
     out.append(first, written.ptr);
 }
 
+// An integer in uppercase hexadecimal, as a stream with std::uppercase and
+// std::hex writes it in the classic locale: a negative value is written as
+// its two's complement bits (the stream formats it unsigned).
+inline void append_hexadecimal_integer(std::string& out, std::int64_t value) {
+    std::array<char, 32> text{};
+    char* const first = text.data();
+    char* const last = first + text.size();
+    const std::uint64_t bits = static_cast<std::uint64_t>(value);
+    const std::to_chars_result written = std::to_chars(first, last, bits, 16);
+    if (written.ec != std::errc{}) return;
+    for (char* digit = first; digit != written.ptr; ++digit) {
+        if (*digit >= 'a' && *digit <= 'f') *digit = static_cast<char>(*digit - 'a' + 'A');
+    }
+    out.append(first, written.ptr);
+}
+
 } // namespace gui_forms::number_text

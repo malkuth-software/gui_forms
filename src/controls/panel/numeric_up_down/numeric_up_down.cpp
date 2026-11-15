@@ -16,9 +16,7 @@
 #include <algorithm>
 #include <charconv>
 #include <cmath>
-#include <iomanip>
 #include <memory>
-#include <sstream>
 #include <stdexcept>
 #include <utility>
 
@@ -273,16 +271,19 @@ void NumericUpDown::written(const decltype(hexadecimal)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
+// The digits are written in the C locale's form whatever locale the program
+// sets; a default stream followed the global C++ locale, so its grouping and
+// decimal mark reached localized_decimal, which expects C digits
+// (A-gf-controls-08-F5). The host locale's separators are applied after.
 std::string NumericUpDown::formatted_value() const {
-    std::ostringstream stream;
+    std::string digits;
     if (hexadecimal.read()) {
-        stream << std::uppercase << std::hex << static_cast<std::int64_t>(std::llround(value.read()));
-    } else {
-        stream << std::fixed << std::setprecision(decimal_places.read()) << value.read();
-        const std::string written = localized_decimal(stream.str(), effective_locale(), thousands_separator.read());
-        return written;
+        number_text::append_hexadecimal_integer(digits, static_cast<std::int64_t>(std::llround(value.read())));
+        return digits;
     }
-    return stream.str();
+    number_text::append_number_text(digits, value.read(), std::chars_format::fixed, decimal_places.read());
+    const std::string written = localized_decimal(digits, effective_locale(), thousands_separator.read());
+    return written;
 }
 
 void NumericUpDown::synchronize_editor() {
