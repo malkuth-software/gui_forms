@@ -731,9 +731,11 @@ struct ContextMenu::Impl final {
             throw std::logic_error("ContextMenu requires an attached owner control");
         }
         snapshot = snapshot_items(specs);
-        if (snapshot.empty()) {
-            throw std::logic_error("ContextMenu has no visible items to show");
-        }
+        // Every command hidden (or nothing but separators) is a state the
+        // application reaches through command visibility, and show runs
+        // from pointer and key handlers: the menu stays closed rather than
+        // throwing out of input handling (A-gf-controls-06-F3).
+        if (snapshot.empty()) return;
         window = (*invoker).attached_window();
         // Every other menu on the window closes first (one menu chain per
         // window); this one is closed and not yet subscribed, so it is not

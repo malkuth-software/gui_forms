@@ -5,9 +5,11 @@
 #include "support/typography_painter.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <limits>
 #include <stdexcept>
 #include <string>
@@ -436,6 +438,47 @@ void test_context_menu_items_without_commands() {
     }
     require(refused, "an item with neither a Command nor text is refused");
     static_cast<void>(recorded);
+}
+
+// A-gf-controls-06-F3: a menu whose commands are all hidden shows nothing.
+// Opening it from the strip is refused before the strip changes, and a
+// ContextMenu stays closed; neither throws out of input handling.
+void test_menu_with_every_command_hidden_stays_closed() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("hidden.root"));
+    std::shared_ptr<gui_forms::MenuStrip> strip = make_control<MenuStrip>(StableId("hidden.strip"));
+    (*strip).set_requested_bounds({0.0, 0.0, 320.0, 24.0});
+    (*root).add_child(strip);
+    std::shared_ptr<gui_forms::Command> shown = std::make_shared<Command>("file.open", "Open");
+    std::shared_ptr<gui_forms::Command> hidden = std::make_shared<Command>("edit.undo", "Undo");
+    (*hidden).set_visible(false);
+    (*strip).set_items({
+        {"hidden.file", "File", {{"file.open", MenuItemKind::command, shown}}},
+        {"hidden.edit", "Edit", {{"edit.undo", MenuItemKind::command, hidden}}},
+    });
+    Window window(root, {320.0, 190.0});
+    require((*strip).open(0U, MenuOpenMode::pointer) && (*strip).active_index() == std::optional<std::size_t>{0U},
+            "a menu with a visible command opens");
+    bool threw = false;
+    bool opened = true;
+    try {
+        opened = (*strip).open(1U, MenuOpenMode::pointer);
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    require(!threw && !opened, "a menu whose commands are all hidden is refused without throwing");
+    require((*strip).active_index() == std::optional<std::size_t>{0U} && (*strip).is_open(),
+            "the refused switch leaves the open menu as it was");
+    (*strip).close();
+
+    ContextMenu menu("hidden.menu");
+    menu.set_items({{"edit.undo", MenuItemKind::command, hidden}});
+    threw = false;
+    try {
+        menu.show(strip, {20.0, 20.0});
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    require(!threw && !menu.is_open(), "a context menu with nothing visible stays closed without throwing");
 }
 
 // Item IDs that become part of a StableId are checked when they are set,
@@ -1078,6 +1121,7 @@ int main() {
         test_menu_font_controls_geometry_paint_and_hit_testing();
         test_menu_strip_declares_the_drop_down_gutter();
         test_menu_row_insets_follow_the_text_scale();
+        test_menu_with_every_command_hidden_stays_closed();
         std::cout << "gui_forms_menu_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

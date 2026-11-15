@@ -258,6 +258,8 @@ bool QuickAccessToolbar::show_customize_menu(MenuOpenMode mode) {
     const Rect absolute = absolute_bounds();
     const Point anchor{absolute.x + button.x, absolute.y + button.y + button.height};
     (*menu_).show(shared_from_this(), anchor, mode);
+    // A menu with nothing visible stays closed (A-gf-controls-06-F3).
+    if (!(*menu_).is_open()) return false;
     customize_open_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     return true;

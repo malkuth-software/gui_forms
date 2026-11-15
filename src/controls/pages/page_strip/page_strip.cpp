@@ -2154,6 +2154,8 @@ bool PageStrip::show_page_list(MenuOpenMode mode) {
         anchor = {absolute.x + button.x - (*list_).preferred_width.read(), absolute.y + button.y};
     }
     (*list_).show(shared_from_this(), anchor, mode);
+    // A list with nothing visible stays closed (A-gf-controls-06-F3).
+    if (!(*list_).is_open()) return false;
     list_open_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     return true;

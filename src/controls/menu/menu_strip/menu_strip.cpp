@@ -162,6 +162,9 @@ bool MenuStrip::open(const std::size_t index, const MenuOpenMode mode) {
     // A merge may have left the menu empty, or holding only empty submenus.
     std::vector<MenuItemSpec> menu = menu_detail::prune_empty_submenus(items_[index].items);
     if (menu.empty()) return false;
+    // A menu whose commands are all hidden would show nothing: refuse before
+    // the strip changes (A-gf-controls-06-F3).
+    if (menu_detail::snapshot_items(menu).empty()) return false;
     switching_ = (*overlay_).is_open();
     if (switching_) (*overlay_).close();
     active_index_ = index;

@@ -122,6 +122,9 @@ public:
     void set_items(std::vector<MenuItemSpec> items);
 
     // Unknown modes throw invalid_argument without closing an existing overlay.
+    // A menu with no visible items (every command hidden, or only separators)
+    // closes any open overlay and stays closed: is_open() is false afterwards,
+    // which callers that record an open state check.
     void show(const Control::Ptr& owner, const Point window_position,
               const MenuOpenMode mode = MenuOpenMode::keyboard);
     void close() noexcept;
