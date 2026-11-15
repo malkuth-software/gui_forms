@@ -1,4 +1,5 @@
-// Form documents' run-time loader (stage FD, phase FD3): a checked model
+// Form documents' run-time loader (stage FD, phase FD3; XML since cp34): a
+// checked model
 // made into controls and components. Gate: the tree, child order and
 // property values are the document's; bound properties are bound at
 // creation to the caller's sources (FD-6); a refusal by a run-time type or
@@ -8,10 +9,9 @@
 #include "../../src/core/form_language/form_loader/form_loader.hpp"
 #include "../../src/core/form_language/form_loader/form_window_loader.hpp"
 #include "../../src/core/form_language/form_model/form_model.hpp"
+#include "../../src/core/form_language/form_xml/form_xml.hpp"
 #include "../../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../src/core/theme_language/source_text/theme_source_text.hpp"
-#include "../../src/core/theme_language/syntax_tree/theme_syntax_tree.hpp"
-#include "../../src/core/theme_language/tokenizer/theme_tokenizer.hpp"
 
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/binding/binding_schema/binding_schema.hpp"
@@ -61,24 +61,18 @@ using gui_forms::form_language::FormModelOutcome;
 using gui_forms::form_language::FormSchema;
 using gui_forms::form_language::FormSchemaType;
 using gui_forms::form_language::FormSources;
+using gui_forms::form_language::FormSyntax;
 using gui_forms::form_language::LoadedForm;
-using gui_forms::form_language::build_form_model;
 using gui_forms::form_language::describe_form_type;
 using gui_forms::form_language::form_component_type;
 using gui_forms::form_language::form_control_type;
 using gui_forms::form_language::load_form;
+using gui_forms::form_language::read_form_model;
 using gui_forms::theme_language::DiagnosticCode;
-using gui_forms::theme_language::LineStartTable;
-using gui_forms::theme_language::ParseOutcome;
 using gui_forms::theme_language::ThemeDiagnostic;
 using gui_forms::theme_language::ThemeDiagnosticList;
-using gui_forms::theme_language::ThemeSheetForm;
 using gui_forms::theme_language::ThemeSource;
-using gui_forms::theme_language::ThemeSyntaxTree;
-using gui_forms::theme_language::ThemeTokenBuffer;
 using gui_forms::theme_language::diagnostic_code_name;
-using gui_forms::theme_language::parse_theme_sheet;
-using gui_forms::theme_language::tokenize_theme_sheet;
 
 int failures = 0;
 
@@ -121,30 +115,28 @@ FormSchema sample_schema() {
 struct Workspace final {
     std::string text{};
     ThemeSource source{};
-    ThemeTokenBuffer tokens{};
-    LineStartTable lines{};
-    ThemeSyntaxTree tree{};
+    FormSyntax syntax{};
     FormModel model{};
     ThemeDiagnosticList diagnostics{};
 };
 
-FormLoadOutcome load(Workspace& workspace, std::string_view text, const FormSchema& schema,
-                     const FormSources& sources, LoadedForm& loaded) {
+// Reads the document's model into the workspace.
+FormModelOutcome build(Workspace& workspace, std::string_view text, const FormSchema& schema) {
     workspace.text = std::string(text);
     workspace.diagnostics.clear();
     workspace.source.file = "test.form";
     workspace.source.text = workspace.text;
-    static_cast<void>(
-        tokenize_theme_sheet(workspace.source, workspace.tokens, workspace.lines, workspace.diagnostics));
-    const ParseOutcome parsed = parse_theme_sheet(workspace.source, workspace.tokens, workspace.lines,
-                                                  workspace.tree, workspace.diagnostics,
-                                                  ThemeSheetForm::form_document);
-    require(parsed == ParseOutcome::tree_complete, "the document parses");
-    const FormModelOutcome built = build_form_model(workspace.source, workspace.tokens, workspace.lines,
-                                                    workspace.tree, schema, workspace.model, workspace.diagnostics);
+    const FormModelOutcome built =
+        read_form_model(workspace.source, workspace.syntax, schema, workspace.model, workspace.diagnostics);
+    return built;
+}
+
+FormLoadOutcome load(Workspace& workspace, std::string_view text, const FormSchema& schema,
+                     const FormSources& sources, LoadedForm& loaded) {
+    const FormModelOutcome built = build(workspace, text, schema);
     require(built == FormModelOutcome::model_built, "the document's model builds");
-    const FormLoadOutcome outcome = load_form(workspace.source, workspace.tokens, workspace.lines, workspace.tree,
-                                              schema, workspace.model, sources, loaded, workspace.diagnostics);
+    const FormLoadOutcome outcome =
+        load_form(workspace.source, schema, workspace.model, sources, loaded, workspace.diagnostics);
     return outcome;
 }
 
@@ -165,19 +157,18 @@ void print_diagnostics(const Workspace& workspace) {
 
 void test_load() {
     const FormSchema schema = sample_schema();
-    const std::string_view document = "user-control settings.root {\n"
-                                      "  back-color: #336699;\n"
-                                      "  group-box settings.general {\n"
-                                      "    check-box settings.autosave {\n"
-                                      "      text: \"Save automatically\";\n"
-                                      "      checked: true;\n"
-                                      "      tab-index: 2;\n"
-                                      "    }\n"
-                                      "    button settings.apply { text: \"Apply\"; }\n"
-                                      "  }\n"
-                                      "  command settings.save { }\n"
-                                      "  button settings.ok { text: \"OK\"; }\n"
-                                      "}\n";
+    const std::string_view document = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"settings.root\"\n"
+                                      "    back-color=\"#336699\">\n"
+                                      "  <group-box id=\"settings.general\">\n"
+                                      "    <check-box id=\"settings.autosave\"\n"
+                                      "        text=\"Save automatically\"\n"
+                                      "        checked=\"true\"\n"
+                                      "        tab-index=\"2\"/>\n"
+                                      "    <button id=\"settings.apply\" text=\"Apply\"/>\n"
+                                      "  </group-box>\n"
+                                      "  <command id=\"settings.save\"/>\n"
+                                      "  <button id=\"settings.ok\" text=\"OK\"/>\n"
+                                      "</user-control>\n";
     Workspace workspace{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
@@ -210,18 +201,18 @@ void test_load() {
 // names and a nullable soft limit as a number.
 void test_value_bar() {
     const FormSchema schema = sample_schema();
-    const std::string_view document = "user-control render.root {\n"
-                                      "  value-bar render.samples {\n"
-                                      "    minimum: 1;\n"
-                                      "    maximum: 4096;\n"
-                                      "    soft-maximum: 256;\n"
-                                      "    value: 64;\n"
-                                      "    precision: 0;\n"
-                                      "    presentation: field;\n"
-                                      "    label: \"Samples\";\n"
-                                      "  }\n"
-                                      "  value-bar render.opacity { unit: percent; maximum: 1; value: 0.5; }\n"
-                                      "}\n";
+    const std::string_view document = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"render.root\">\n"
+                                      "  <value-bar id=\"render.samples\"\n"
+                                      "      minimum=\"1\"\n"
+                                      "      maximum=\"4096\"\n"
+                                      "      soft-maximum=\"256\"\n"
+                                      "      value=\"64\"\n"
+                                      "      precision=\"0\"\n"
+                                      "      presentation=\"field\"\n"
+                                      "      label=\"Samples\"/>\n"
+                                      "  <value-bar id=\"render.opacity\" unit=\"percent\" maximum=\"1\"\n"
+                                      "      value=\"0.5\"/>\n"
+                                      "</user-control>\n";
     Workspace workspace{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
@@ -303,13 +294,13 @@ void test_bindings() {
     require(refusals == 2 && sources.find("two words") == nullptr && sources.find("level_") != nullptr,
             "bindings: a repeated name and a name that is no identifier, refused");
 
-    const std::string_view document = "user-control app.root {\n"
-                                      "  check-box app.autosave { checked: bind(autosave_); }\n"
-                                      "  check-box app.mirror { checked: bind(autosave_, one_way); }\n"
-                                      "  numeric-up-down app.level { value: bind(level_); }\n"
-                                      "  text-box app.name { text: bind(people_, \"name\", update on-change); }\n"
-                                      "  button app.save { text: \"Save\"; command: bind(save_); }\n"
-                                      "}\n";
+    const std::string_view document = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <check-box id=\"app.autosave\" checked=\"bind(autosave_)\"/>\n"
+                                      "  <check-box id=\"app.mirror\" checked=\"bind(autosave_, one_way)\"/>\n"
+                                      "  <numeric-up-down id=\"app.level\" value=\"bind(level_)\"/>\n"
+                                      "  <text-box id=\"app.name\" text=\"bind(people_, 'name', update on-change)\"/>\n"
+                                      "  <button id=\"app.save\" text=\"Save\" command=\"bind(save_)\"/>\n"
+                                      "</user-control>\n";
     Workspace workspace{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = load(workspace, document, schema, sources, loaded);
@@ -353,20 +344,20 @@ void test_bindings() {
 
     // A missing source, a source of another kind and a disposed one: every
     // refusal located, the earlier load kept.
-    const std::string_view refused = "user-control bad.root {\n"
-                                     "  check-box bad.a { checked: bind(missing_); }\n"
-                                     "  check-box bad.b { checked: bind(level_); }\n"
-                                     "  button bad.c { command: bind(autosave_); }\n"
-                                     "  check-box bad.d { checked: bind(disposed_); }\n"
-                                     "}\n";
+    const std::string_view refused = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"bad.root\">\n"
+                                     "  <check-box id=\"bad.a\" checked=\"bind(missing_)\"/>\n"
+                                     "  <check-box id=\"bad.b\" checked=\"bind(level_)\"/>\n"
+                                     "  <button id=\"bad.c\" command=\"bind(autosave_)\"/>\n"
+                                     "  <check-box id=\"bad.d\" checked=\"bind(disposed_)\"/>\n"
+                                     "</user-control>\n";
     require(load(workspace, refused, schema, sources, loaded) == FormLoadOutcome::refused, "bindings: refused");
     const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
     const bool located = records.size() == 4U && records[0].code == DiagnosticCode::form_binding_source_refused &&
-                         records[0].position.line.value == 2U && records[0].position.column.value == 21U &&
+                         records[0].position.line.value == 2U && records[0].position.column.value == 25U &&
                          records[1].code == DiagnosticCode::form_binding_source_refused &&
                          records[1].position.line.value == 3U && records[1].property == "checked" &&
                          records[2].code == DiagnosticCode::form_binding_source_refused &&
-                         records[2].position.line.value == 4U && records[2].position.column.value == 18U &&
+                         records[2].position.line.value == 4U && records[2].position.column.value == 23U &&
                          records[3].code == DiagnosticCode::form_binding_source_refused &&
                          records[3].position.line.value == 5U;
     if (!located) print_diagnostics(workspace);
@@ -387,16 +378,17 @@ void test_refusals() {
     const FormSchema schema = sample_schema();
     Workspace workspace{};
     LoadedForm loaded{};
-    require(load(workspace, "user-control kept.root { }", schema, loaded) == FormLoadOutcome::loaded,
+    require(load(workspace, "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"kept.root\"/>", schema, loaded) ==
+                FormLoadOutcome::loaded,
             "refusals: the earlier load");
 
     // A value the setter refuses and a type the loader cannot make: nothing
     // is kept.
-    const std::string_view refused = "user-control app.root {\n"
-                                     "  maximum-size: 10 10;\n"
-                                     "  minimum-size: 20 20;\n"
-                                     "  panel app.side { }\n"
-                                     "}\n";
+    const std::string_view refused = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\"\n"
+                                     "    maximum-size=\"10 10\"\n"
+                                     "    minimum-size=\"20 20\">\n"
+                                     "  <panel id=\"app.side\"/>\n"
+                                     "</user-control>\n";
     require(load(workspace, refused, schema, loaded) == FormLoadOutcome::refused, "refusals: refused");
     const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
     // The missing creator is found while objects are made, before any
@@ -411,13 +403,15 @@ void test_refusals() {
 
     // A minimum size over the maximum: each value is of its kind, and the
     // setter refuses the pair.
-    const std::string_view value = "user-control app.root {\n  maximum-size: 10 10;\n  minimum-size: 20 20;\n}\n";
+    const std::string_view value = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\"\n"
+                                   "    maximum-size=\"10 10\"\n"
+                                   "    minimum-size=\"20 20\"/>\n";
     require(load(workspace, value, schema, loaded) == FormLoadOutcome::refused, "refusals: a value refused");
     const std::span<const ThemeDiagnostic> value_records = workspace.diagnostics.records();
     const bool value_located = value_records.size() == 1U &&
                                value_records[0].code == DiagnosticCode::form_load_refused &&
                                value_records[0].position.line.value == 3U &&
-                               value_records[0].position.column.value == 3U &&
+                               value_records[0].position.column.value == 5U &&
                                value_records[0].property == "minimum_size";
     if (!value_located) print_diagnostics(workspace);
     require(value_located, "refusals: the refused value located");
@@ -429,17 +423,17 @@ void test_refusals() {
 // control as the root, its components kept.
 void test_form_root() {
     const FormSchema schema = sample_schema();
-    const std::string_view document = "form settings.dialog {\n"
-                                      "  text: \"Settings\";\n"
-                                      "  client-size: 480 320;\n"
-                                      "  accept-button: \"settings.ok\";\n"
-                                      "  cancel-button: \"settings.cancel\";\n"
-                                      "  command settings.save { }\n"
-                                      "  user-control settings.body {\n"
-                                      "    button settings.ok { text: \"OK\"; }\n"
-                                      "    button settings.cancel { text: \"Cancel\"; }\n"
-                                      "  }\n"
-                                      "}\n";
+    const std::string_view document = "<form xmlns=\"urn:gui-forms:form:1\" id=\"settings.dialog\"\n"
+                                      "    text=\"Settings\"\n"
+                                      "    client-size=\"480 320\"\n"
+                                      "    accept-button=\"settings.ok\"\n"
+                                      "    cancel-button=\"settings.cancel\">\n"
+                                      "  <command id=\"settings.save\"/>\n"
+                                      "  <user-control id=\"settings.body\">\n"
+                                      "    <button id=\"settings.ok\" text=\"OK\"/>\n"
+                                      "    <button id=\"settings.cancel\" text=\"Cancel\"/>\n"
+                                      "  </user-control>\n"
+                                      "</form>\n";
     Workspace workspace{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
@@ -458,19 +452,18 @@ void test_form_root() {
             "form root: no object for the form, the command kept");
 }
 
-// The button properties written bare, as the object writes its stable ID
-// and as the guides write them; a bare name naming no object is still
-// refused, and spaced names are not one identity.
+// The button properties name a stable ID as the object's `id` writes it; a
+// name naming no object is refused, and a spaced name is not one identity.
 void test_form_root_bare_buttons() {
     const FormSchema schema = sample_schema();
-    const std::string_view document = "form settings.dialog {\n"
-                                      "  accept-button: settings.ok;\n"
-                                      "  cancel-button: settings.cancel-2;\n"
-                                      "  user-control settings.body {\n"
-                                      "    button settings.ok { text: \"OK\"; }\n"
-                                      "    button settings.cancel-2 { text: \"Cancel\"; }\n"
-                                      "  }\n"
-                                      "}\n";
+    const std::string_view document = "<form xmlns=\"urn:gui-forms:form:1\" id=\"settings.dialog\"\n"
+                                      "    accept-button=\"settings.ok\"\n"
+                                      "    cancel-button=\"settings.cancel-2\">\n"
+                                      "  <user-control id=\"settings.body\">\n"
+                                      "    <button id=\"settings.ok\" text=\"OK\"/>\n"
+                                      "    <button id=\"settings.cancel-2\" text=\"Cancel\"/>\n"
+                                      "  </user-control>\n"
+                                      "</form>\n";
     Workspace workspace{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
@@ -480,20 +473,13 @@ void test_form_root_bare_buttons() {
                 (*loaded.window).cancel_button == "settings.cancel-2",
             "bare buttons: the window's buttons");
 
-    const std::string_view refused_document = "form app.window {\n"
-                                              "  accept-button: app.missing;\n"
-                                              "  cancel-button: app . b;\n"
-                                              "  user-control app.b { }\n"
-                                              "}\n";
+    const std::string_view refused_document = "<form xmlns=\"urn:gui-forms:form:1\" id=\"app.window\"\n"
+                                              "    accept-button=\"app.missing\"\n"
+                                              "    cancel-button=\"app . b\">\n"
+                                              "  <user-control id=\"app.b\"/>\n"
+                                              "</form>\n";
     Workspace refused{};
-    refused.text = std::string(refused_document);
-    refused.source.file = "test.form";
-    refused.source.text = refused.text;
-    static_cast<void>(tokenize_theme_sheet(refused.source, refused.tokens, refused.lines, refused.diagnostics));
-    static_cast<void>(parse_theme_sheet(refused.source, refused.tokens, refused.lines, refused.tree,
-                                        refused.diagnostics, ThemeSheetForm::form_document));
-    const FormModelOutcome built = build_form_model(refused.source, refused.tokens, refused.lines, refused.tree,
-                                                    schema, refused.model, refused.diagnostics);
+    const FormModelOutcome built = build(refused, refused_document, schema);
     std::size_t invalid = 0U;
     for (const ThemeDiagnostic& record : refused.diagnostics.records()) {
         if (record.code == DiagnosticCode::form_value_invalid) ++invalid;
@@ -507,30 +493,24 @@ void test_form_root_bare_buttons() {
 // the root, and a button property naming no object.
 void test_form_root_defects() {
     const FormSchema schema = sample_schema();
-    const std::string_view document = "form app.window {\n"
-                                      "  accept-button: \"app.missing\";\n"
-                                      "  user-control app.a { form app.inner { } }\n"
-                                      "  user-control app.b { }\n"
-                                      "}\n";
+    const std::string_view document = "<form xmlns=\"urn:gui-forms:form:1\" id=\"app.window\"\n"
+                                      "    accept-button=\"app.missing\">\n"
+                                      "  <user-control id=\"app.a\">\n"
+                                      "    <form id=\"app.inner\"/>\n"
+                                      "  </user-control>\n"
+                                      "  <user-control id=\"app.b\"/>\n"
+                                      "</form>\n";
     Workspace workspace{};
-    workspace.text = std::string(document);
-    workspace.source.file = "test.form";
-    workspace.source.text = workspace.text;
-    static_cast<void>(
-        tokenize_theme_sheet(workspace.source, workspace.tokens, workspace.lines, workspace.diagnostics));
-    static_cast<void>(parse_theme_sheet(workspace.source, workspace.tokens, workspace.lines, workspace.tree,
-                                        workspace.diagnostics, ThemeSheetForm::form_document));
-    const FormModelOutcome built = build_form_model(workspace.source, workspace.tokens, workspace.lines,
-                                                    workspace.tree, schema, workspace.model, workspace.diagnostics);
+    const FormModelOutcome built = build(workspace, document, schema);
     require(built == FormModelOutcome::refused, "form root defects: refused");
     const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
     // The nested form in document order, then the root's own checks.
     const bool reported = records.size() == 3U && records[0].code == DiagnosticCode::form_root_invalid &&
-                          records[0].position.line.value == 3U && records[0].position.column.value == 24U &&
+                          records[0].position.line.value == 4U && records[0].position.column.value == 5U &&
                           records[1].code == DiagnosticCode::form_root_invalid &&
                           records[1].position.line.value == 1U && records[1].position.column.value == 1U &&
                           records[2].code == DiagnosticCode::form_value_invalid &&
-                          records[2].position.line.value == 2U && records[2].position.column.value == 18U;
+                          records[2].position.line.value == 2U && records[2].position.column.value == 5U;
     if (!reported) print_diagnostics(workspace);
     require(reported, "form root defects: each located");
 }
@@ -538,7 +518,7 @@ void test_form_root_defects() {
 // A form loaded as a window (stage B, B.3): the tree and bindings as
 // load_form makes them, the window over the form's control with its client
 // size and buttons, its controls found by stable ID; a refused source, a
-// control root and a parse failure make nothing.
+// control root and a document that is not well-formed make nothing.
 void test_load_window() {
     using gui_forms::ControlLookup;
     using gui_forms::ControlLookupError;
@@ -546,18 +526,18 @@ void test_load_window() {
     using gui_forms::form_language::WindowLoadError;
     using gui_forms::form_language::load_window;
     const FormSchema schema = sample_schema();
-    const std::string_view document = "form settings.dialog {\n"
-                                      "  text: \"Settings\";\n"
-                                      "  client-size: 480 320;\n"
-                                      "  accept-button: \"settings.ok\";\n"
-                                      "  cancel-button: \"settings.cancel\";\n"
-                                      "  command settings.save { }\n"
-                                      "  user-control settings.body {\n"
-                                      "    check-box settings.auto-save { checked: bind(auto_save_); }\n"
-                                      "    button settings.ok { text: \"OK\"; }\n"
-                                      "    button settings.cancel { text: \"Cancel\"; }\n"
-                                      "  }\n"
-                                      "}\n";
+    const std::string_view document = "<form xmlns=\"urn:gui-forms:form:1\" id=\"settings.dialog\"\n"
+                                      "    text=\"Settings\"\n"
+                                      "    client-size=\"480 320\"\n"
+                                      "    accept-button=\"settings.ok\"\n"
+                                      "    cancel-button=\"settings.cancel\">\n"
+                                      "  <command id=\"settings.save\"/>\n"
+                                      "  <user-control id=\"settings.body\">\n"
+                                      "    <check-box id=\"settings.auto-save\" checked=\"bind(auto_save_)\"/>\n"
+                                      "    <button id=\"settings.ok\" text=\"OK\"/>\n"
+                                      "    <button id=\"settings.cancel\" text=\"Cancel\"/>\n"
+                                      "  </user-control>\n"
+                                      "</form>\n";
     // Declared before the window: its check box keeps a binding to it.
     gui_forms::Value<bool> auto_save{true};
     FormSources sources{};
@@ -605,13 +585,17 @@ void test_load_window() {
 
     ThemeDiagnosticList control_root{};
     const LoadedWindowResult panel =
-        load_window("panel.form", "user-control app.root { }\n", schema, sources, control_root);
+        load_window("panel.form", "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\"/>\n", schema, sources,
+                    control_root);
     require(panel.error == WindowLoadError::not_a_window && panel.window == nullptr,
             "load window: a control root describes no window");
     ThemeDiagnosticList broken{};
-    const LoadedWindowResult unparsed = load_window("broken.form", "form app.window {\n", schema, sources, broken);
-    require(unparsed.error == WindowLoadError::refused && unparsed.window == nullptr && !broken.records().empty(),
-            "load window: a document that does not parse");
+    const LoadedWindowResult unparsed =
+        load_window("broken.form", "<form xmlns=\"urn:gui-forms:form:1\" id=\"app.window\">\n", schema, sources,
+                    broken);
+    require(unparsed.error == WindowLoadError::refused && unparsed.window == nullptr && broken.records().size() == 1U &&
+                broken.records()[0].code == DiagnosticCode::form_xml_invalid,
+            "load window: a document that is not well-formed XML");
 }
 
 // The application overload joins the application it names.
@@ -625,8 +609,9 @@ void test_load_window_application() {
         const FormSources sources{};
         ThemeDiagnosticList diagnostics{};
         const gui_forms::form_language::LoadedWindowResult loaded = gui_forms::form_language::load_window(
-            application, "app.form", "form app.window { user-control app.body { } }\n", schema, sources,
-            diagnostics);
+            application, "app.form",
+            "<form xmlns=\"urn:gui-forms:form:1\" id=\"app.window\">\n  <user-control id=\"app.body\"/>\n</form>\n",
+            schema, sources, diagnostics);
         require(loaded.window != nullptr && (*loaded.window).application() == &application,
                 "load window application: the window joins it");
     }
@@ -638,12 +623,12 @@ void test_load_window_application() {
 // `cell` find them (study 10.9).
 void test_spans() {
     const FormSchema schema = sample_schema();
-    const std::string_view document = "grid-panel app.root {\n"
-                                      "  check-box app.ok { area: \"footer\"; }\n"
-                                      "  check-box app.side { cell: 0 2; }\n"
-                                      "  span footer { anchor: 2 0; columns: 3; }\n"
-                                      "  span { anchor: 0 2; rows: 2; }\n"
-                                      "}\n";
+    const std::string_view document = "<grid-panel xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <check-box id=\"app.ok\" area=\"footer\"/>\n"
+                                      "  <check-box id=\"app.side\" cell=\"0 2\"/>\n"
+                                      "  <span name=\"footer\" anchor=\"2 0\" columns=\"3\"/>\n"
+                                      "  <span anchor=\"0 2\" rows=\"2\"/>\n"
+                                      "</grid-panel>\n";
     Workspace workspace{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
@@ -664,14 +649,15 @@ void test_spans() {
 }
 
 // A table child's cell is applied before its spans whatever their order in
-// the block (the table lists the cell first); a span without a cell is
+// the element (the table lists the cell first); a span without a cell is
 // refused at load.
 void test_table_placement() {
     const FormSchema schema = sample_schema();
-    const std::string_view document = "table-layout-panel-compat app.root {\n"
-                                      "  check-box app.header { column-span: 2; cell: 0 0; text: \"Header\"; }\n"
-                                      "  check-box app.other { }\n"
-                                      "}\n";
+    const std::string_view document =
+        "<table-layout-panel-compat xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+        "  <check-box id=\"app.header\" column-span=\"2\" cell=\"0 0\" text=\"Header\"/>\n"
+        "  <check-box id=\"app.other\"/>\n"
+        "</table-layout-panel-compat>\n";
     Workspace workspace{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
@@ -685,9 +671,10 @@ void test_table_placement() {
     require(header != nullptr && (*table).has_cell(*header) && (*table).column_span[*header].read() == 2U,
             "table placement: the cell, then the span");
 
-    const std::string_view unplaced = "table-layout-panel-compat app.root {\n"
-                                      "  check-box app.header { column-span: 2; }\n"
-                                      "}\n";
+    const std::string_view unplaced =
+        "<table-layout-panel-compat xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+        "  <check-box id=\"app.header\" column-span=\"2\"/>\n"
+        "</table-layout-panel-compat>\n";
     require(load(workspace, unplaced, schema, loaded) == FormLoadOutcome::refused,
             "table placement: a span without a cell is refused");
     const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
@@ -731,9 +718,10 @@ void test_property_entries() {
     require(text_entry && checked_entry, "entries: text and checked load through the table");
     // The load itself (test_load) writes through these entries; a second
     // load of the same document gives the same values.
-    const std::string_view document = "user-control entries.root {\n"
-                                      "  check-box entries.box { text: \"Entry\"; checked: true; tab-index: 4; }\n"
-                                      "}\n";
+    const std::string_view document =
+        "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"entries.root\">\n"
+        "  <check-box id=\"entries.box\" text=\"Entry\" checked=\"true\" tab-index=\"4\"/>\n"
+        "</user-control>\n";
     Workspace workspace{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
@@ -751,14 +739,14 @@ void test_empty_model() {
     const FormSchema schema = sample_schema();
     Workspace workspace{};
     LoadedForm loaded{};
-    static_cast<void>(load(workspace, "user-control app.root { }\n", schema, loaded));
+    static_cast<void>(
+        load(workspace, "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\"/>\n", schema, loaded));
     const FormModel empty{};
     const FormSources no_sources{};
     LoadedForm refused{};
     bool thrown = false;
     try {
-        static_cast<void>(load_form(workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, empty,
-                                    no_sources, refused, workspace.diagnostics));
+        static_cast<void>(load_form(workspace.source, schema, empty, no_sources, refused, workspace.diagnostics));
     } catch (const std::invalid_argument&) {
         thrown = true;
     }

@@ -17,8 +17,6 @@
 
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../theme_language/source_text/theme_source_text.hpp"
-#include "../../theme_language/syntax_tree/theme_syntax_tree.hpp"
-#include "../../theme_language/tokenizer/theme_tokenizer.hpp"
 
 #include "gui_forms/component.hpp"
 #include "gui_forms/control.hpp"
@@ -98,16 +96,13 @@ enum class FormLoadOutcome : std::uint8_t {
     refused,
 };
 
-// Loads `model`, which build_form_model built from `tree` against
-// `schema`, binding its bound properties to `sources`; the source, tokens
-// and lines are those of that build and locate the diagnostics.
+// Loads `model`, which build_form_model built from `source` against
+// `schema`, binding its bound properties to `sources`; the model's source
+// positions locate the diagnostics, and the source names the file.
 // Everything is borrowed for the call. UI thread. Throws
 // std::invalid_argument for a model with no objects (one that was never
 // built, or whose build was refused).
-[[nodiscard]] FormLoadOutcome load_form(const theme_language::ThemeSource& source,
-                                        const theme_language::ThemeTokenBuffer& tokens,
-                                        const theme_language::LineStartTable& lines,
-                                        const theme_language::ThemeSyntaxTree& tree, const FormSchema& schema,
+[[nodiscard]] FormLoadOutcome load_form(const theme_language::ThemeSource& source, const FormSchema& schema,
                                         const FormModel& model, const FormSources& sources, LoadedForm& loaded,
                                         theme_language::ThemeDiagnosticList& diagnostics);
 

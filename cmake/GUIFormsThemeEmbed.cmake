@@ -51,7 +51,8 @@ function(raw_literal text name result)
     endif()
     # A carriage return in a raw string literal may become a newline in
     # translation, and the bytes would no longer have the manifest's sha256.
-    string(FIND "${text}" "" carriage_return)
+    string(FIND "${text}" "
+" carriage_return)
     if(NOT carriage_return EQUAL -1)
         message(FATAL_ERROR "gui_forms_add_theme: ${name} must have LF line endings")
     endif()
@@ -104,13 +105,16 @@ string(REPLACE "|" ";" form_files "${FORMS}")
 foreach(form IN LISTS form_files)
     file(READ "${form}" form_text)
     string(REPLACE ";" "${semicolon_stand_in}" form_text "${form_text}")
-    strip_comments("${form_text}" form_text)
-    # An object opens with `<type> <stable-id> {`.
-    string(REGEX MATCHALL "[a-z][a-z0-9-]*[ \t]+[A-Za-z0-9_.-]+[ \t\r\n]*{" openings "${form_text}")
+    # XML comments go first: a commented-out element names no ID.
+    string(REGEX REPLACE "<!--([^-]|-[^-])*-->" " " form_text "${form_text}")
+    # Every object element carries an `id="<stable-id>"` attribute (either
+    # quote); `xml:id` and other prefixed names are not it.
+    string(REGEX MATCHALL "[ \t\r\n]id[ \t\r\n]*=[ \t\r\n]*(\"[^\"]*\"|'[^']*')" openings "${form_text}")
     foreach(opening IN LISTS openings)
-        string(REGEX REPLACE "^[a-z][a-z0-9-]*[ \t]+([A-Za-z0-9_.-]+)[ \t\r\n]*{$" "\\1" id "${opening}")
+        string(REGEX REPLACE "^[ \t\r\n]id[ \t\r\n]*=[ \t\r\n]*[\"']([^\"']*)[\"']$" "\\1" id "${opening}")
         list(APPEND known_ids "${id}")
     endforeach()
+endforeach()
 endforeach()
 
 # -- the sheets' stable-ID selectors ---------------------------------------------

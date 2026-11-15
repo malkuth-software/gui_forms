@@ -607,6 +607,7 @@ add_library(gui_forms_core STATIC
     src/core/theme_language/tokenizer/theme_tokenizer.cpp
     src/core/theme_language/syntax_tree/theme_syntax_tree.cpp
     src/core/theme_language/syntax_tree/theme_sheet_parser.cpp
+    src/core/form_language/form_xml/form_xml.cpp
     src/core/form_language/form_model/form_model.cpp
     src/core/form_language/form_loader/form_loader.cpp
     src/core/form_language/form_loader/form_window_loader.cpp

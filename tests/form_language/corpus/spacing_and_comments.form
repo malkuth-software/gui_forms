@@ -1,9 +1,11 @@
-﻿/*bom, comments and spacing kept*/form   spare.root{;;
-	label spare.a{}   label spare.b { text:"ünïcödé ✓" ;; }
-  /* between */ panel   spare.c /* in prelude */ {
-    tab-index:0;
-    classes : "a  b" ;;
-    panel spare.c.d{panel spare.c.d.e{label spare.c.d.e.f{text:"deep"}}}
-  }
-}
-/* trailing */
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!--bom, comments and spacing kept-->
+<form   xmlns = "urn:gui-forms:form:1"	id='spare.root' >
+	<label id="spare.a"></label>   <label   id = "spare.b"  text="ünïcödé ✓ &amp; &#x2713;" />
+  <!-- between --> <panel id="spare.c"
+      tab-index =  "0"
+      classes="'a  b'"   >
+    <panel id="spare.c.d"><panel id="spare.c.d.e"><label id="spare.c.d.e.f" text='deep'/></panel></panel>
+  </panel>
+</form>
+<!-- trailing -->

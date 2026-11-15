@@ -1,4 +1,5 @@
-/* The Gallery's animation laboratory (stage FD, phase FD6.3): the
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Gallery's animation laboratory (stage FD, phase FD6.3): the
    EasingPreview board and the motion-policy group below it.
    gui_forms_add_form() compiles this document into
    animation-laboratory_form.hpp at build time.
@@ -8,45 +9,39 @@
    where each is placed by its bounds in design coordinates. Behaviour stays
    in the page (src/controls/gallery/pages/animation-laboratory.cpp): the
    board's tracks, the pause Command, the reduced-motion Value and the shell's
-   MotionPolicy. */
-scaled-panel gallery.animation.document {
-  design-size: 1000 660;
+   MotionPolicy. -->
+<scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.animation.document"
+    design-size="1000 660">
 
-  label gallery.animation.heading {
-    text: "ANIMATION LABORATORY";
-    classes: "heading" "page-title";
-    bounds: 24 18 520 34;
-  }
-  label gallery.animation.lead {
-    text: "Eight public easing curves, alternate direction, retained frame scheduling, hidden-page suspension.";
-    classes: "muted" "body";
-    bounds: 26 52 900 24;
-  }
+  <label id="gallery.animation.heading"
+      text="ANIMATION LABORATORY"
+      classes="heading page-title"
+      bounds="24 18 520 34"/>
+  <label id="gallery.animation.lead"
+      text="Eight public easing curves, alternate direction, retained frame scheduling, hidden-page suspension."
+      classes="muted body"
+      bounds="26 52 900 24"/>
 
-  easing-preview gallery.animation.easing {
-    title: "TIMELINE AND EASING LAB";
-    bounds: 24 92 930 340;
-  }
+  <easing-preview id="gallery.animation.easing"
+      title="TIMELINE AND EASING LAB"
+      bounds="24 92 930 340"/>
 
-  scaled-group-box gallery.animation.controls {
-    text: "Animation controls and motion policy";
-    design-size: 930 168;
-    bounds: 24 454 930 168;
-    classes: "paper" "group-caption";
-    button gallery.animation.pause {
-      text: "Pause motion";
-      visual-style: accent;
-      bounds: 24 42 160 36;
-    }
-    label gallery.animation.policy {
-      text: "Animation is deadline-driven and quiescent when hidden or paused. No perpetual redraw loop.";
-      classes: "ink" "body";
-      bounds: 210 46 650 28;
-    }
-    check-box gallery.animation.reduced {
-      text: "Reduced-motion substitution";
-      indicator-style: toggle;
-      bounds: 24 96 310 28;
-    }
-  }
-}
+  <scaled-group-box id="gallery.animation.controls"
+      text="Animation controls and motion policy"
+      design-size="930 168"
+      bounds="24 454 930 168"
+      classes="paper group-caption">
+    <button id="gallery.animation.pause"
+        text="Pause motion"
+        visual-style="accent"
+        bounds="24 42 160 36"/>
+    <label id="gallery.animation.policy"
+        text="Animation is deadline-driven and quiescent when hidden or paused. No perpetual redraw loop."
+        classes="ink body"
+        bounds="210 46 650 28"/>
+    <check-box id="gallery.animation.reduced"
+        text="Reduced-motion substitution"
+        indicator-style="toggle"
+        bounds="24 96 310 28"/>
+  </scaled-group-box>
+</scaled-panel>

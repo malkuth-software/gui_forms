@@ -89,30 +89,31 @@ A form says what exists: controls, their stable IDs, their places, their
 property values and their bindings. It holds no colours, no fonts and no
 program code.
 
-```text
-/* forms/notes.form */
-form notes.window {
-  text: "Notes";
-  client-size: 420 320;
-  accept-button: notes.add;
-
-  panel notes.root {
-    label notes.heading { text: "Notes"; bounds: 16 12 388 28; classes: "heading"; }
-    text-box notes.entry { bounds: 16 48 300 28; placeholder-text: "Type a note"; }
-    button notes.add { text: "Add"; bounds: 324 46 80 32; command: bind(add); }
-    list-box notes.list { bounds: 16 88 388 192; }
-    label notes.status { text: "No notes yet."; bounds: 16 288 388 24; classes: "status"; }
-  }
-}
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- forms/notes.form -->
+<form xmlns="urn:gui-forms:form:1" id="notes.window"
+    text="Notes"
+    client-size="420 320"
+    accept-button="notes.add">
+  <panel id="notes.root">
+    <label id="notes.heading" text="Notes" bounds="16 12 388 28" classes="heading"/>
+    <text-box id="notes.entry" bounds="16 48 300 28" placeholder-text="Type a note"/>
+    <button id="notes.add" text="Add" bounds="324 46 80 32" command="bind(add)"/>
+    <list-box id="notes.list" bounds="16 88 388 192"/>
+    <label id="notes.status" text="No notes yet." bounds="16 288 388 24" classes="status"/>
+  </panel>
+</form>
 ```
 
-- **Objects** are a type, a stable ID and a block. The root `form` is the
+- **Objects** are elements named by their type, with the stable ID in `id`;
+  the root declares `xmlns="urn:gui-forms:form:1"`. The root `form` is the
   window, and its single child is the window's root control.
 - **Stable IDs** are required and unique in the window. They name controls in
   logs, automation and themes, and become the generated members' names:
   `notes.entry` becomes `notes_entry`.
 - **`classes`** names a role; the theme gives it a look.
-- **`command: bind(add)`** binds the button to the model's `add` command
+- **`command="bind(add)"`** binds the button to the model's `add` command
   when the button is created: a click runs the command, and the command's
   enabled state enables the button.
 - **`accept-button`** makes Enter press **Add** when the focused control does

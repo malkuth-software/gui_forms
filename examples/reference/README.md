@@ -7,8 +7,8 @@ targets rather than private source-tree includes or archives.
 Every example with a window is written the way GUI.Forms recommends: a form
 document in `forms/` says what exists and where (`gui_forms_add_form`
 generates a `gui_forms::Window` subclass with the controls as typed
-members), a model header names what the document binds (`value: bind(volume)`,
-`command: bind(run)`), and the program attaches behaviour with owned
+members), a model header names what the document binds (`value="bind(volume)"`,
+`command="bind(run)"`), and the program attaches behaviour with owned
 handlers. This directory is GUI.Forms' reference application. Every windowed program
 makes its `Application` first, with `Application::create`, and its window
 joins it (`Window(application, ...)`, the generated class's `Application&`

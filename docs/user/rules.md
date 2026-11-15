@@ -184,7 +184,7 @@ model's own event, use `gf::on(event, owner, &Owner::member)`
   the token leaves the rule armed. `revoke()` ends the rule early.
 
 Rules are not written in form documents: a form never names program
-code. A document that still writes a handler reference (`on-clicked: …;`)
+code. A document that still writes a handler reference (`on-clicked="…"`)
 is refused with E816 `form_handler_removed`; the program arms a
 rule on the generated member instead, as the Gallery's `GalleryContext::attach`
 and `examples/reference/window_rules.cpp` do. Rules that use only built-in

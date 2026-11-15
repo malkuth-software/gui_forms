@@ -1,31 +1,29 @@
-/* A settings dialog: properties, bindings, tab order and the
-   classes its project theme styles (a form holds no style blocks). */
-form settings.dialog {
-  text: "Settings";
-  size: 480 320;
-  accept-button: settings.ok;
-  cancel-button: settings.cancel;
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A settings dialog: properties, bindings, tab order and the
+   classes its project theme styles (a form holds no style blocks). -->
+<form xmlns="urn:gui-forms:form:1" id="settings.dialog"
+    text="Settings"
+    size="480 320"
+    accept-button="settings.ok"
+    cancel-button="settings.cancel">
 
-  group settings.general {
-    text: "General";
-    tab-index: 0;
-    check-box settings.general.autosave {
-      text: "Save automatically";
-      checked: bind(autosave_);
-      tab-index: 0;
-    }
-    text-box settings.general.name {
-      text: bind(settings_, "name", update on-change);
-      tab-index: 1;
-      classes: "field wide";
-    }
-  }
+  <group id="settings.general"
+      text="General"
+      tab-index="0">
+    <check-box id="settings.general.autosave"
+        text="Save automatically"
+        checked="bind(autosave_)"
+        tab-index="0"/>
+    <text-box id="settings.general.name"
+        text="bind(settings_, 'name', update on-change)"
+        tab-index="1"
+        classes="'field wide'"/>
+  </group>
 
-  button settings.ok {
-    text: "OK";
-    tab-index: 1;
-    command: bind(accept_);
-    classes: "default-action";
-  }
-  button settings.cancel { text: "Cancel"; tab-index: 2; command: bind(dismiss_); }
-}
+  <button id="settings.ok"
+      text="OK"
+      tab-index="1"
+      command="bind(accept_)"
+      classes="default-action"/>
+  <button id="settings.cancel" text="Cancel" tab-index="2" command="bind(dismiss_)"/>
+</form>

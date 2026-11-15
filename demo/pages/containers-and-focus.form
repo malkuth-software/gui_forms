@@ -1,4 +1,5 @@
-/* The Gallery's containers-and-focus page (stage FD, phase FD-4): one
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Gallery's containers-and-focus page (stage FD, phase FD-4): one
    SplitContainer whose seam is dragged, keyed and collapsed, a base
    ContainerControl with descendant focus authority, a UserControl whose
    one-shot Loaded lifecycle is observed, and a small docked workspace with
@@ -11,74 +12,65 @@
    itself, so the page fills them in code; the DockSite needs its workspace
    to be made, so the page makes it and places it first in its group. The
    page also keeps the splitter's distance and minimums, the faces, the
-   navigator's entries and every event handler in code. */
-scaled-panel gallery.containers.document {
-  design-size: 1000 1076;
+   navigator's entries and every event handler in code. -->
+<scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.containers.document"
+    design-size="1000 1076">
 
-  label gallery.containers.heading {
-    text: "CONTAINERS AND FOCUS";
-    classes: "heading" "page-title";
-    bounds: 24 18 500 34;
-  }
-  label gallery.containers.lead {
-    text: "Real retained composition: split allocation, wide hit target, collapse, focus transfer, nested scope.";
-    classes: "muted" "body";
-    bounds: 26 52 900 24;
-  }
+  <label id="gallery.containers.heading"
+      text="CONTAINERS AND FOCUS"
+      classes="heading page-title"
+      bounds="24 18 500 34"/>
+  <label id="gallery.containers.lead"
+      text="Real retained composition: split allocation, wide hit target, collapse, focus transfer, nested scope."
+      classes="muted body"
+      bounds="26 52 900 24"/>
 
-  split-container gallery.containers.split {
-    bounds: 24 100 930 430;
-  }
+  <split-container id="gallery.containers.split"
+      bounds="24 100 930 430"/>
 
-  container-control gallery.containers.base {
-    accessible-name: "Base ContainerControl specimen";
-    bounds: 24 548 450 82;
-    panel gallery.containers.base.face {
-      border-style: line;
-      dock: fill;
-      label gallery.containers.base.copy {
-        text: "ContainerControl · active descendant + retained child composition";
-        classes: "heading" "emphasis";
-        bounds: 14 12 390 24;
-      }
-      button gallery.containers.base.focus {
-        text: "Focus descendant";
-        bounds: 14 42 150 28;
-      }
-    }
-  }
+  <container-control id="gallery.containers.base"
+      accessible-name="Base ContainerControl specimen"
+      bounds="24 548 450 82">
+    <panel id="gallery.containers.base.face"
+        border-style="line"
+        dock="fill">
+      <label id="gallery.containers.base.copy"
+          text="ContainerControl · active descendant + retained child composition"
+          classes="heading emphasis"
+          bounds="14 12 390 24"/>
+      <button id="gallery.containers.base.focus"
+          text="Focus descendant"
+          bounds="14 42 150 28"/>
+    </panel>
+  </container-control>
 
-  user-control gallery.containers.user {
-    accessible-name: "UserControl lifecycle specimen";
-    bounds: 488 548 466 82;
-    panel gallery.containers.user.face {
-      border-style: line;
-      dock: fill;
-      label gallery.containers.user.status {
-        text: "UserControl · awaiting one-shot Loaded lifecycle";
-        classes: "positive" "emphasis";
-        bounds: 14 12 420 24;
-      }
-      button gallery.containers.user.action {
-        text: "Reusable child action";
-        visual-style: command;
-        bounds: 14 42 178 28;
-      }
-    }
-  }
+  <user-control id="gallery.containers.user"
+      accessible-name="UserControl lifecycle specimen"
+      bounds="488 548 466 82">
+    <panel id="gallery.containers.user.face"
+        border-style="line"
+        dock="fill">
+      <label id="gallery.containers.user.status"
+          text="UserControl · awaiting one-shot Loaded lifecycle"
+          classes="positive emphasis"
+          bounds="14 12 420 24"/>
+      <button id="gallery.containers.user.action"
+          text="Reusable child action"
+          visual-style="command"
+          bounds="14 42 178 28"/>
+    </panel>
+  </user-control>
 
-  scaled-group-box gallery.containers.docking.group {
-    text: "DockSite · seams, captions, F6 regions, Ctrl+Tab navigator, auto-hide, collapse by priority";
-    design-size: 930 400;
-    bounds: 24 652 930 400;
-    classes: "paper" "group-caption";
-    label gallery.containers.docking.status {
-      text: "Active: none";
-      classes: "positive" "emphasis";
-      bounds: 640 36 270 44;
-    }
-    dock-navigator gallery.containers.navigator {
-      bounds: 640 96 270 120;
-    }
-  }
-}
+  <scaled-group-box id="gallery.containers.docking.group"
+      text="DockSite · seams, captions, F6 regions, Ctrl+Tab navigator, auto-hide, collapse by priority"
+      design-size="930 400"
+      bounds="24 652 930 400"
+      classes="paper group-caption">
+    <label id="gallery.containers.docking.status"
+        text="Active: none"
+        classes="positive emphasis"
+        bounds="640 36 270 44"/>
+    <dock-navigator id="gallery.containers.navigator"
+        bounds="640 96 270 120"/>
+  </scaled-group-box>
+</scaled-panel>

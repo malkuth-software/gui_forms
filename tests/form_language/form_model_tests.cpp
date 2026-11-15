@@ -1,14 +1,13 @@
-// Form documents' model (stage FD, phase FD2): a parsed document checked
-// against a schema the run-time registry describes. Gate: a valid document
+// Form documents' model (stage FD, phase FD2; XML since cp34): a read
+// document checked against a schema the run-time registry describes. Gate: a valid document
 // becomes objects, properties of their kinds and bindings (FD-6); every
 // defect is reported at its place, all of them in one pass, and a refused
 // document leaves the previous model as it was.
 
 #include "../../src/core/form_language/form_model/form_model.hpp"
+#include "../../src/core/form_language/form_xml/form_xml.hpp"
 #include "../../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../src/core/theme_language/source_text/theme_source_text.hpp"
-#include "../../src/core/theme_language/syntax_tree/theme_syntax_tree.hpp"
-#include "../../src/core/theme_language/tokenizer/theme_tokenizer.hpp"
 
 #include "gui_forms/binding/form_binding/form_binding.hpp"
 #include "gui_forms/binding/property_type/property_type.hpp"
@@ -56,24 +55,18 @@ using gui_forms::form_language::FormProperty;
 using gui_forms::form_language::FormPropertyProvider;
 using gui_forms::form_language::FormSchema;
 using gui_forms::form_language::FormSchemaType;
+using gui_forms::form_language::FormSyntax;
 using gui_forms::form_language::ObjectIndex;
-using gui_forms::form_language::build_form_model;
+using gui_forms::form_language::read_form_model;
 using gui_forms::form_language::FormStringReading;
 using gui_forms::form_language::describe_form_type;
 using gui_forms::form_language::quote_form_string;
 using gui_forms::form_language::read_form_string;
 using gui_forms::theme_language::DiagnosticCode;
-using gui_forms::theme_language::LineStartTable;
-using gui_forms::theme_language::ParseOutcome;
 using gui_forms::theme_language::ThemeDiagnostic;
 using gui_forms::theme_language::ThemeDiagnosticList;
-using gui_forms::theme_language::ThemeSheetForm;
 using gui_forms::theme_language::ThemeSource;
-using gui_forms::theme_language::ThemeSyntaxTree;
-using gui_forms::theme_language::ThemeTokenBuffer;
 using gui_forms::theme_language::diagnostic_code_name;
-using gui_forms::theme_language::parse_theme_sheet;
-using gui_forms::theme_language::tokenize_theme_sheet;
 
 int failures = 0;
 
@@ -130,9 +123,7 @@ FormSchema sample_schema() {
 // The caller-owned storage one document fills.
 struct Workspace final {
     std::string text{};
-    ThemeTokenBuffer tokens{};
-    LineStartTable lines{};
-    ThemeSyntaxTree tree{};
+    FormSyntax syntax{};
     ThemeDiagnosticList diagnostics{};
 };
 
@@ -142,12 +133,7 @@ FormModelOutcome build(Workspace& workspace, std::string_view text, const FormSc
     ThemeSource source{};
     source.file = "test.form";
     source.text = workspace.text;
-    static_cast<void>(tokenize_theme_sheet(source, workspace.tokens, workspace.lines, workspace.diagnostics));
-    const ParseOutcome parsed = parse_theme_sheet(source, workspace.tokens, workspace.lines, workspace.tree,
-                                                  workspace.diagnostics, ThemeSheetForm::form_document);
-    require(parsed == ParseOutcome::tree_complete, "the document parses");
-    const FormModelOutcome outcome =
-        build_form_model(source, workspace.tokens, workspace.lines, workspace.tree, schema, model, workspace.diagnostics);
+    const FormModelOutcome outcome = read_form_model(source, workspace.syntax, schema, model, workspace.diagnostics);
     return outcome;
 }
 
@@ -174,23 +160,23 @@ std::int64_t choice_value(const FormSchema& schema, std::size_t type, std::strin
 
 void test_valid_document() {
     const FormSchema schema = sample_schema();
-    const std::string_view document = "user-control settings.root {\n"
-                                      "  back-color: #336699;\n"
-                                      "  minimum-size: 480 320;\n"
-                                      "  group-box settings.general {\n"
-                                      "    margin: 1 2 3 4;\n"
-                                      "    tab-index: 0;\n"
-                                      "    check-box settings.autosave {\n"
-                                      "      text: \"Save automatically\";\n"
-                                      "      checked: true;\n"
-                                      "      check-state: indeterminate;\n"
-                                      "      anchor: top left;\n"
-                                      "      tab-index: 1;\n"
-                                      "    }\n"
-                                      "  }\n"
-                                      "  button settings.ok { text: \"OK\"; bounds: 10 20 80 24; command: bind(accept_); }\n"
-                                      "  command settings.save { }\n"
-                                      "}\n";
+    const std::string_view document =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<!-- settings.form: a comment before the root -->\n"
+        "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"settings.root\" back-color=\"#336699\"\n"
+        "    minimum-size=\"480 320\">\n"
+        "  <group-box id=\"settings.general\" margin=\"1 2 3 4\" tab-index=\"0\">\n"
+        "    <check-box id=\"settings.autosave\"\n"
+        "        text=\"Save automatically\"\n"
+        "        checked=\"true\"\n"
+        "        check-state=\"indeterminate\"\n"
+        "        anchor=\"top left\"\n"
+        "        tab-index=\"1\"/>\n"
+        "  </group-box>\n"
+        "  <!-- a comment between objects -->\n"
+        "  <button id=\"settings.ok\" text=\"OK\" bounds=\"10 20 80 24\" command=\"bind(accept_)\"/>\n"
+        "  <command id=\"settings.save\"/>\n"
+        "</user-control>\n";
     Workspace workspace{};
     FormModel model{};
     const FormModelOutcome outcome = build(workspace, document, schema, model);
@@ -206,6 +192,11 @@ void test_valid_document() {
     const std::vector<ObjectIndex> expected_children{ObjectIndex{1U}, ObjectIndex{3U}, ObjectIndex{4U}};
     require(model.objects[0].children == expected_children, "valid: the root's children in document order");
     require(model.objects[2].parent && (*model.objects[2].parent).value == 1U, "valid: the check box's parent");
+    require(model.objects[0].element == 0U && model.objects[2].element == 2U && model.objects[4].element == 4U,
+            "valid: each object's element in document order");
+    require(model.objects[0].position.line.value == 3U && model.objects[0].position.column.value == 1U &&
+                model.objects[2].position.line.value == 6U && model.objects[2].position.column.value == 5U,
+            "valid: each object located at its start tag");
 
     const FormProperty* color = find_property(model, schema, 0U, "back_color");
     require(color != nullptr && std::get<gui_forms::Color>((*color).value) == gui_forms::Color{0x33, 0x66, 0x99, 255},
@@ -272,42 +263,47 @@ void test_defects_reported_together() {
     const FormSchema schema = sample_schema();
     Workspace workspace{};
     FormModel model{};
-    require(build(workspace, "user-control kept.root { }", schema, model) == FormModelOutcome::model_built,
+    require(build(workspace, "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"kept.root\"/>", schema, model) ==
+                FormModelOutcome::model_built,
             "defects: the earlier document builds");
-    const std::string_view document = "user-control app.root {\n"                       // 1
-                                      "  frobnicate: 1;\n"                              // 2 E804
-                                      "  slider app.speed { }\n"                        // 3 E802
-                                      "  check-box app.a { checked: maybe; }\n"         // 4 E807
-                                      "  check-box app.a { text: \"x\"; text: \"y\"; }\n" // 5 E803 E806
-                                      "  check-box app.b { on-explode: boom; }\n"       // 6 E816
-                                      "  check-box app.c { checked: bind(two words); }\n" // 7 E817
-                                      "  check-box app.d { checked: bind(on, sometimes); }\n" // 8 E818
-                                      "  command app.e { button app.f { } }\n"          // 9 E809
-                                      "  sealed-box app.g { text: \"no\"; }\n"          // 10 E805
-                                      "  check-box app.h { style { } }\n"               // 11 E810
-                                      "  check-box app.i { image: x; }\n"               // 12 E999
-                                      "  check-box app.j { tab-index: -1; }\n"          // 13 E807
-                                      "  check-box app.k { text: \"x\" !important; }\n" // 14 E807
-                                      "  check-box app.l { tab_index: 1; }\n"           // 15 E804
-                                      "  check-box app.m { fore-color: red; }\n"        // 16 E813
-                                      "}\n";
-    const std::array<ExpectedDiagnostic, 16> expected{{
-        {DiagnosticCode::form_property_unknown, 2U, 3U},
+    const std::string_view document =
+        "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"      // 1
+        "  <check-box id=\"app.z\" frobnicate=\"1\"/>\n"                      // 2 E804
+        "  <slider id=\"app.speed\"/>\n"                                        // 3 E802
+        "  <check-box id=\"app.a\" checked=\"maybe\"/>\n"                     // 4 E807
+        "  <check-box id=\"app.a\" text=\"x\"/>\n"                            // 5 E803
+        "  <check-box id=\"app.b\" on-explode=\"boom\"/>\n"                   // 6 E816
+        "  <check-box id=\"app.c\" checked=\"bind(two words)\"/>\n"           // 7 E817
+        "  <check-box id=\"app.d\" checked=\"bind(on, sometimes)\"/>\n"       // 8 E818
+        "  <command id=\"app.e\"><button id=\"app.f\"/></command>\n"          // 9 E809
+        "  <sealed-box id=\"app.g\" text=\"no\"/>\n"                          // 10 E805
+        "  <check-box id=\"app.h\"><style/></check-box>\n"                     // 11 E810
+        "  <check-box id=\"app.i\" image=\"x\"/>\n"                           // 12 E999
+        "  <check-box id=\"app.j\" tab-index=\"-1\"/>\n"                      // 13 E807
+        "  <check-box id=\"app.k\" tab_index=\"1\"/>\n"                       // 14 E804
+        "  <check-box id=\"app.l\" fore-color=\"red\"/>\n"                    // 15 E813
+        "  <check-box id=\"app.m\" text=\"x\">stray</check-box>\n"            // 16 E821
+        "  <check-box text=\"no id\"/>\n"                                       // 17 E801
+        "  <check-box id=\"app.n\" xmlns=\"urn:gui-forms:form:1\"/>\n"        // 18 E821
+        "</user-control>\n";
+    const std::array<ExpectedDiagnostic, 17> expected{{
+        {DiagnosticCode::form_property_unknown, 2U, 25U},
         {DiagnosticCode::form_type_unknown, 3U, 3U},
-        {DiagnosticCode::form_value_invalid, 4U, 30U},
-        {DiagnosticCode::form_identity_repeated, 5U, 13U},
-        {DiagnosticCode::form_member_repeated, 5U, 32U},
-        {DiagnosticCode::form_handler_removed, 6U, 21U},
-        {DiagnosticCode::form_binding_invalid, 7U, 39U},
-        {DiagnosticCode::form_binding_option_invalid, 8U, 39U},
-        {DiagnosticCode::form_children_not_admitted, 9U, 19U},
-        {DiagnosticCode::form_property_read_only, 10U, 22U},
-        {DiagnosticCode::form_style_block, 11U, 21U},
-        {DiagnosticCode::not_yet_built, 12U, 28U},
-        {DiagnosticCode::form_value_invalid, 13U, 32U},
-        {DiagnosticCode::form_value_invalid, 14U, 21U},
-        {DiagnosticCode::form_property_unknown, 15U, 21U},
-        {DiagnosticCode::form_presentation_property, 16U, 21U},
+        {DiagnosticCode::form_value_invalid, 4U, 34U},
+        {DiagnosticCode::form_identity_repeated, 5U, 3U},
+        {DiagnosticCode::form_handler_removed, 6U, 25U},
+        {DiagnosticCode::form_binding_invalid, 7U, 43U},
+        {DiagnosticCode::form_binding_option_invalid, 8U, 43U},
+        {DiagnosticCode::form_children_not_admitted, 9U, 23U},
+        {DiagnosticCode::form_property_read_only, 10U, 26U},
+        {DiagnosticCode::form_style_block, 11U, 25U},
+        {DiagnosticCode::not_yet_built, 12U, 32U},
+        {DiagnosticCode::form_value_invalid, 13U, 36U},
+        {DiagnosticCode::form_property_unknown, 14U, 25U},
+        {DiagnosticCode::form_presentation_property, 15U, 25U},
+        {DiagnosticCode::form_xml_invalid, 16U, 3U},
+        {DiagnosticCode::form_root_invalid, 17U, 3U},
+        {DiagnosticCode::form_xml_invalid, 18U, 25U},
     }};
     require(build(workspace, document, schema, model) == FormModelOutcome::refused, "defects: refused");
     check_diagnostics(workspace, expected, "defects: every defect at its place, in order");
@@ -320,13 +316,14 @@ void test_defects_reported_together() {
 // to a field takes an update trigger; a Command slot takes its source alone.
 void test_bindings() {
     const FormSchema schema = sample_schema();
-    const std::string_view document = "user-control app.root {\n"
-                                      "  check-box app.a { checked: bind(flag_); }\n"
-                                      "  check-box app.b { checked: bind(flag_, one_way); }\n"
-                                      "  button app.c { command: bind(save_); }\n"
-                                      "  text-box app.d { text: bind(names_, \"name\", update on-change); }\n"
-                                      "  check-box app.e { text: bind(names_, \"title\"); }\n"
-                                      "}\n";
+    const std::string_view document =
+        "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+        "  <check-box id=\"app.a\" checked=\"bind(flag_)\"/>\n"
+        "  <check-box id=\"app.b\" checked=\"bind(flag_, one_way)\"/>\n"
+        "  <button id=\"app.c\" command=\"bind(save_)\"/>\n"
+        "  <text-box id=\"app.d\" text=\"bind(names_, 'name', update on-change)\"/>\n"
+        "  <check-box id=\"app.e\" text='bind(names_, \"title\")'/>\n"
+        "</user-control>\n";
     Workspace workspace{};
     FormModel model{};
     const FormModelOutcome outcome = build(workspace, document, schema, model);
@@ -364,41 +361,75 @@ void test_bindings() {
                 (*(*shown).binding).trigger == FormUpdateTrigger::on_validate,
             "bindings: a field, one way by the check box text's default");
 
-    const std::string_view defects = "user-control app.root {\n"                                      // 1
-                                     "  check-box app.a { on-checked-changed: changed; }\n"           // 2 E816
-                                     "  check-box app.b { text: bind(names_); }\n"                    // 3 E817
-                                     "  check-box app.c { checked: bind(flag_, one_way, one_way); }\n" // 4 E818
-                                     "  check-box app.d { text: bind(names_, \"n\", update on-change); }\n" // 5 E818
-                                     "  button app.e { command: bind(save_, \"field\"); }\n"          // 6 E817
-                                     "  check-box app.f { checked: bind(flag_, convert x); }\n"       // 7 E999
-                                     "  check-box app.g { checked: bind(flag_, update sometimes); }\n" // 8 E818
-                                     "  check-box app.h { tab-index: bind(n_); }\n"                   // 9 E817, not bindable
-                                     "}\n";
-    const std::array<ExpectedDiagnostic, 8> expected{{
-        {DiagnosticCode::form_handler_removed, 2U, 21U},
-        {DiagnosticCode::form_binding_invalid, 3U, 32U},
-        {DiagnosticCode::form_binding_option_invalid, 4U, 51U},
-        {DiagnosticCode::form_binding_option_invalid, 5U, 45U},
-        {DiagnosticCode::form_binding_invalid, 6U, 32U},
-        {DiagnosticCode::not_yet_built, 7U, 42U},
-        {DiagnosticCode::form_binding_option_invalid, 8U, 49U},
-        {DiagnosticCode::form_binding_invalid, 9U, 32U},
+    const std::string_view defects =
+        "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"                  // 1
+        "  <check-box id=\"app.a\" on-checked-changed=\"changed\"/>\n"                     // 2 E816
+        "  <check-box id=\"app.b\" text=\"bind(names_)\"/>\n"                              // 3 E817
+        "  <check-box id=\"app.c\" checked=\"bind(flag_, one_way, one_way)\"/>\n"          // 4 E818
+        "  <check-box id=\"app.d\" text=\"bind(names_, 'n', update on-change)\"/>\n"       // 5 E818
+        "  <button id=\"app.e\" command=\"bind(save_, 'field')\"/>\n"                      // 6 E817
+        "  <check-box id=\"app.f\" checked=\"bind(flag_, convert x)\"/>\n"                 // 7 E999
+        "  <check-box id=\"app.g\" checked=\"bind(flag_, update sometimes)\"/>\n"          // 8 E818
+        "  <check-box id=\"app.h\" tab-index=\"bind(n_)\"/>\n"                             // 9 E817, not bindable
+        "  <check-box id=\"app.i\" checked=\"bind(flag_, 'bad \\q')\"/>\n"               // 10 E815
+        "</user-control>\n";
+    const std::array<ExpectedDiagnostic, 9> expected{{
+        {DiagnosticCode::form_handler_removed, 2U, 25U},
+        {DiagnosticCode::form_binding_invalid, 3U, 36U},
+        {DiagnosticCode::form_binding_option_invalid, 4U, 55U},
+        {DiagnosticCode::form_binding_option_invalid, 5U, 49U},
+        {DiagnosticCode::form_binding_invalid, 6U, 36U},
+        {DiagnosticCode::not_yet_built, 7U, 46U},
+        {DiagnosticCode::form_binding_option_invalid, 8U, 53U},
+        {DiagnosticCode::form_binding_invalid, 9U, 36U},
+        {DiagnosticCode::form_escape_invalid, 10U, 46U},
     }};
     require(build(workspace, defects, schema, model) == FormModelOutcome::refused, "bindings: defects refused");
     check_diagnostics(workspace, expected, "bindings: every defect at its token, in order");
 }
 
+// Whether the diagnostics are one E821 (form_xml_invalid), wherever the
+// reader found the defect.
+bool one_xml_refusal(const Workspace& workspace) {
+    const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
+    const bool one = records.size() == 1U && records[0].code == DiagnosticCode::form_xml_invalid;
+    return one;
+}
+
+// A document is one root element in the bounded XML subset, declaring the
+// form namespace; anything else is E821 and builds nothing.
 void test_roots() {
     const FormSchema schema = sample_schema();
     Workspace workspace{};
     FormModel model{};
-    require(build(workspace, "/* nothing */\n", schema, model) == FormModelOutcome::refused, "roots: none refused");
-    const std::array<ExpectedDiagnostic, 1> none{{{DiagnosticCode::form_root_invalid, 2U, 1U}}};
-    check_diagnostics(workspace, none, "roots: no root reported at the end");
-    require(build(workspace, "button a.b { }\nbutton a.c { }\n", schema, model) == FormModelOutcome::refused,
-            "roots: two refused");
-    const std::array<ExpectedDiagnostic, 1> two{{{DiagnosticCode::form_root_invalid, 2U, 1U}}};
-    check_diagnostics(workspace, two, "roots: the second root reported");
+    require(build(workspace, "<!-- nothing -->\n", schema, model) == FormModelOutcome::refused &&
+                one_xml_refusal(workspace),
+            "roots: none refused by the reader");
+    require(build(workspace, "<button id=\"a.b\"/>\n<button id=\"a.c\"/>\n", schema, model) ==
+                    FormModelOutcome::refused &&
+                one_xml_refusal(workspace),
+            "roots: two refused by the reader");
+    require(build(workspace, "<button xmlns=\"urn:gui-forms:form:1\" id=\"a.b\">\n", schema, model) ==
+                    FormModelOutcome::refused &&
+                one_xml_refusal(workspace),
+            "roots: an unclosed element refused by the reader");
+    require(build(workspace, "<panel xmlns=\"urn:gui-forms:form:1\" id=\"a.b\"><![CDATA[x]]></panel>", schema,
+                  model) == FormModelOutcome::refused &&
+                one_xml_refusal(workspace),
+            "roots: CDATA, outside the subset, refused by the reader");
+    require(build(workspace, "<button id=\"a.b\"/>", schema, model) == FormModelOutcome::refused,
+            "roots: no namespace");
+    const std::array<ExpectedDiagnostic, 1> missing{{{DiagnosticCode::form_xml_invalid, 1U, 1U}}};
+    check_diagnostics(workspace, missing, "roots: a missing namespace reported at the root");
+    require(build(workspace, "<button xmlns=\"urn:gui-forms:form:2\" id=\"a.b\"/>", schema, model) ==
+                FormModelOutcome::refused,
+            "roots: another namespace");
+    check_diagnostics(workspace, missing, "roots: another namespace reported at the root");
+    require(build(workspace, "<button xmlns=\"urn:gui-forms:form:1\" xmlns:x=\"urn:x\" id=\"a.b\"/>", schema,
+                  model) == FormModelOutcome::refused,
+            "roots: a prefix declared");
+    const std::array<ExpectedDiagnostic, 1> prefixed{{{DiagnosticCode::form_xml_invalid, 1U, 38U}}};
+    check_diagnostics(workspace, prefixed, "roots: a prefix declaration reported at it");
 }
 
 // A child writes the properties its parent's type provides in its own
@@ -408,11 +439,11 @@ void test_attached_properties() {
     const FormSchema schema = sample_schema();
     Workspace workspace{};
     FormModel model{};
-    const std::string_view document = "user-control app.root {\n"
-                                      "  group-box app.group {\n"
-                                      "    check-box app.a { column-span: 2; text: \"A\"; }\n"
-                                      "  }\n"
-                                      "}\n";
+    const std::string_view document = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <group-box id=\"app.group\">\n"
+                                      "    <check-box id=\"app.a\" column-span=\"2\" text=\"A\"/>\n"
+                                      "  </group-box>\n"
+                                      "</user-control>\n";
     require(build(workspace, document, schema, model) == FormModelOutcome::model_built, "attached: built");
     // The object's own properties come first, then those its parent
     // provides, in the parent's table order (ProvidedPropertyOrder).
@@ -423,23 +454,23 @@ void test_attached_properties() {
                           std::get<std::uint64_t>(model.properties[1].value) == 2U;
     require(recorded, "attached: recorded as the object's own, then the parent type's");
 
-    const std::string_view defects = "group-box app.root {\n"                                     // 1
-                                     "  column-span: 2;\n"                                         // 2 E804
-                                     "  check-box app.a { column-span: 2; column-span: 3; }\n"    // 3 E806
-                                     "  check-box app.b { column-span: -1; }\n"                   // 4 E807
-                                     "  group-box app.c { check-box app.d { column-span: 1; } }\n" // 5
-                                     "}\n";
-    const std::array<ExpectedDiagnostic, 3> expected{{
-        {DiagnosticCode::form_property_unknown, 2U, 3U},
-        {DiagnosticCode::form_member_repeated, 3U, 37U},
-        {DiagnosticCode::form_value_invalid, 4U, 34U},
+    // A child writing a provided property twice is an XML defect (one
+    // attribute per name), so E806 cannot arise here.
+    const std::string_view defects =
+        "<group-box xmlns=\"urn:gui-forms:form:1\" id=\"app.root\" column-span=\"2\">\n"          // 1 E804
+        "  <check-box id=\"app.b\" column-span=\"-1\"/>\n"                                       // 2 E807
+        "  <group-box id=\"app.c\"><check-box id=\"app.d\" column-span=\"1\"/></group-box>\n"  // 3
+        "</group-box>\n";
+    const std::array<ExpectedDiagnostic, 2> expected{{
+        {DiagnosticCode::form_property_unknown, 1U, 55U},
+        {DiagnosticCode::form_value_invalid, 2U, 38U},
     }};
     require(build(workspace, defects, schema, model) == FormModelOutcome::refused, "attached: defects refused");
-    check_diagnostics(workspace, expected, "attached: a root's, a repeated and a bad value, each located");
+    check_diagnostics(workspace, expected, "attached: a root's and a bad value, each located");
 
-    const std::string_view stranger = "user-control app.root {\n"
-                                      "  check-box app.a { column-span: 2; }\n"
-                                      "}\n";
+    const std::string_view stranger = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <check-box id=\"app.a\" column-span=\"2\"/>\n"
+                                      "</user-control>\n";
     require(build(workspace, stranger, schema, model) == FormModelOutcome::refused, "attached: wrong parent refused");
     const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
     const bool named = !records.empty() && records.back().code == DiagnosticCode::form_property_unknown &&
@@ -447,87 +478,122 @@ void test_attached_properties() {
     require(named, "attached: a parent that does not provide it is named");
 }
 
-// Spans (study 10.9): `span` blocks inside a type that holds them, the
+// Spans (study 10.9): `span` elements inside a type that holds them, the
 // placements checked against them, every conflict located.
 void test_spans() {
     const FormSchema schema = sample_schema();
     Workspace workspace{};
     FormModel model{};
-    const std::string_view document = "grid-panel app.root {\n"
-                                      "  span footer { anchor: 2 0; columns: 3; }\n"
-                                      "  span { anchor: 0 2; rows: 2; }\n"
-                                      "  check-box app.title { cell: 0 0; text: \"T\"; }\n"
-                                      "  check-box app.ok { area: \"footer\"; }\n"
-                                      "}\n";
+    const std::string_view document = "<grid-panel xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <span name=\"footer\" anchor=\"2 0\" columns=\"3\"/>\n"
+                                      "  <span anchor=\"0 2\" rows=\"2\"/>\n"
+                                      "  <check-box id=\"app.title\" cell=\"0 0\" text=\"T\"/>\n"
+                                      "  <check-box id=\"app.ok\" area=\"footer\"/>\n"
+                                      "</grid-panel>\n";
     require(build(workspace, document, schema, model) == FormModelOutcome::model_built, "spans: built");
     const gui_forms::GridSpan footer{"footer", gui_forms::GridCell{2U, 0U}, 1U, 3U};
     const gui_forms::GridSpan region{"", gui_forms::GridCell{0U, 2U}, 2U, 1U};
     const bool recorded = model.spans.size() == 2U && model.spans[0].span == footer &&
                           model.spans[1].span == region && model.spans[0].owner.value == 0U &&
-                          model.objects.size() == 3U && model.properties.size() == 3U;
+                          model.objects.size() == 3U && model.properties.size() == 3U &&
+                          model.spans[0].element == 1U && model.spans[1].position.line.value == 3U;
     require(recorded, "spans: recorded on their container, not as objects");
 
-    const std::string_view defects = "grid-panel app.root {\n"                        // 1
-                                     "  span footer { anchor: 2 0; columns: 3; }\n"    // 2
-                                     "  span footer { anchor: 0 0; }\n"                // 3 E806
-                                     "  span { anchor: 2 1; }\n"                       // 4 E814
-                                     "  span { rows: 2; }\n"                           // 5 E807
-                                     "  span { anchor: 0 2; sides: 1; }\n"             // 6 E804
-                                     "  check-box app.a { area: \"nowhere\"; }\n"     // 7 E814
-                                     "  check-box app.b { cell: 2 1; }\n"              // 8 E814
-                                     "  group-box app.c { span { anchor: 0 0; } }\n"   // 9 E809
-                                     "}\n";
-    const std::array<ExpectedDiagnostic, 7> expected{{
+    const std::string_view defects =
+        "<grid-panel xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"   // 1
+        "  <span name=\"footer\" anchor=\"2 0\" columns=\"3\"/>\n"      // 2
+        "  <span name=\"footer\" anchor=\"0 0\"/>\n"                      // 3 E806
+        "  <span anchor=\"2 1\"/>\n"                                       // 4 E814
+        "  <span rows=\"2\"/>\n"                                           // 5 E807
+        "  <span anchor=\"0 2\" sides=\"1\"/>\n"                          // 6 E804
+        "  <check-box id=\"app.a\" area=\"nowhere\"/>\n"                  // 7 E814
+        "  <check-box id=\"app.b\" cell=\"2 1\"/>\n"                      // 8 E814
+        "  <group-box id=\"app.c\"><span anchor=\"0 0\"/></group-box>\n"  // 9 E809
+        "  <span anchor=\"9 9\" name=\"Bad\"/>\n"                         // 10 E807
+        "</grid-panel>\n";
+    const std::array<ExpectedDiagnostic, 8> expected{{
         {DiagnosticCode::form_value_invalid, 5U, 3U},
-        {DiagnosticCode::form_property_unknown, 6U, 23U},
-        {DiagnosticCode::form_children_not_admitted, 9U, 21U},
+        {DiagnosticCode::form_property_unknown, 6U, 22U},
+        {DiagnosticCode::form_children_not_admitted, 9U, 25U},
+        {DiagnosticCode::form_value_invalid, 10U, 28U},
         {DiagnosticCode::form_member_repeated, 3U, 3U},
         {DiagnosticCode::form_span_conflict, 4U, 3U},
-        {DiagnosticCode::form_span_conflict, 7U, 27U},
-        {DiagnosticCode::form_span_conflict, 8U, 27U},
+        {DiagnosticCode::form_span_conflict, 7U, 25U},
+        {DiagnosticCode::form_span_conflict, 8U, 25U},
     }};
     require(build(workspace, defects, schema, model) == FormModelOutcome::refused, "spans: defects refused");
     check_diagnostics(workspace, expected, "spans: every conflict located");
 }
 
-// String escapes (form_model.hpp, Strings): \n, \r, \t, the quotes, the
-// backslash and \u{H} read as their characters; any other escape refuses
-// the document with E815 at the string, its detail the escape as written;
+// Text (form_model.hpp): an attribute value as XML decodes it, entities
+// and character references included, less one backslash before `bind(`.
+// String escapes (form_model.hpp, Strings) apply to a collection's quoted
+// items and a binding's field: \n, \r, \t, the quotes, the backslash and
+// \u{H} read as their characters; any other escape refuses the document
+// with E815 at the string, its detail the escape as written;
 // quote_form_string writes what read_form_string reads back.
 void test_string_escapes() {
     const FormSchema schema = sample_schema();
     Workspace workspace{};
     FormModel model{};
     const std::string_view document =
-        "user-control app.root {\n"
-        "  button app.ok { text: \"One\\ntwo\\t\\\"q\\\" \\\\ \\u{3A9}\\u{1F680}\"; }\n"
-        "  button app.single { text: 'it\\'s'; }\n"
-        "}\n";
+        "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+        "  <button id=\"app.ok\" text=\"One&#10;two&#9;&quot;q&quot; \\ &#x3A9;&#x1F680;&amp;&lt;\"/>\n"
+        "  <button id=\"app.single\" text='it&apos;s \"fine\"'/>\n"
+        "  <button id=\"app.call\" text=\"\\bind(x) is a call\"/>\n"
+        "  <button id=\"app.calls\" text=\"\\\\bind(y)\"/>\n"
+        "  <button id=\"app.items\" classes=\"plain 'two words' 'it\\'s' '\\u{3A9}' &quot;q&quot;\"/>\n"
+        "</user-control>\n";
     require(build(workspace, document, schema, model) == FormModelOutcome::model_built, "escapes: built");
     const FormProperty* text = find_property(model, schema, 1U, "text");
-    require(text != nullptr && std::get<std::string>((*text).value) == "One\ntwo\t\"q\" \\ \xCE\xA9\xF0\x9F\x9A\x80",
-            "escapes: every admitted escape read");
+    require(text != nullptr &&
+                std::get<std::string>((*text).value) == "One\ntwo\t\"q\" \\ \xCE\xA9\xF0\x9F\x9A\x80&<",
+            "escapes: XML's entities and character references read, a backslash kept");
     const FormProperty* single = find_property(model, schema, 2U, "text");
-    require(single != nullptr && std::get<std::string>((*single).value) == "it's", "escapes: a single-quoted string");
+    require(single != nullptr && std::get<std::string>((*single).value) == "it's \"fine\"",
+            "escapes: a single-quoted attribute");
+    const FormProperty* call = find_property(model, schema, 3U, "text");
+    require(call != nullptr && std::get<std::string>((*call).value) == "bind(x) is a call",
+            "escapes: one backslash before bind( removed");
+    const FormProperty* calls = find_property(model, schema, 4U, "text");
+    require(calls != nullptr && std::get<std::string>((*calls).value) == "\\bind(y)",
+            "escapes: one of two backslashes removed");
+    const FormProperty* items = find_property(model, schema, 5U, "classes");
+    bool listed = items != nullptr;
+    if (listed) {
+        const std::span<const BindingValue> read =
+            gui_forms::property_collection_items(std::get<gui_forms::PropertyCollectionValue>((*items).value));
+        const std::array<std::string_view, 5> expected_items{"plain", "two words", "it's", "\xCE\xA9", "q"};
+        listed = read.size() == expected_items.size();
+        for (std::size_t index = 0U; listed && index < read.size(); ++index) {
+            listed = std::get<std::string>(read[index]) == expected_items[index];
+        }
+    }
+    require(listed, "escapes: a collection's items, quoted where needed");
 
-    const std::string_view defects = "user-control app.root {\n"                        // 1
-                                     "  button app.a { text: \"bad \\q\"; }\n"          // 2 E815
-                                     "  button app.b { text: \"\\u{D800}\"; }\n"        // 3 E815
-                                     "  button app.c { text: \"\\u{110000}\"; }\n"      // 4 E815
-                                     "  button app.d { text: \"\\u{}\"; }\n"            // 5 E815
-                                     "  button app.e { text: \"\\x41\"; }\n"            // 6 E815
-                                     "}\n";
-    const std::array<ExpectedDiagnostic, 5> expected{{
-        {DiagnosticCode::form_escape_invalid, 2U, 24U},
-        {DiagnosticCode::form_escape_invalid, 3U, 24U},
-        {DiagnosticCode::form_escape_invalid, 4U, 24U},
-        {DiagnosticCode::form_escape_invalid, 5U, 24U},
-        {DiagnosticCode::form_escape_invalid, 6U, 24U},
+    const std::string_view defects =
+        "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"   // 1
+        "  <button id=\"app.a\" classes=\"ok 'bad \\q'\"/>\n"            // 2 E815
+        "  <button id=\"app.b\" classes=\"'\\u{D800}'\"/>\n"             // 3 E815
+        "  <button id=\"app.c\" classes=\"'\\u{110000}'\"/>\n"           // 4 E815
+        "  <button id=\"app.d\" classes=\"'\\u{}'\"/>\n"                 // 5 E815
+        "  <button id=\"app.e\" classes=\"'\\x41'\"/>\n"                 // 6 E815
+        "  <button id=\"app.f\" classes=\"'open\"/>\n"                     // 7 E807, not closed
+        "  <button id=\"app.g\" classes=\"'a'b\"/>\n"                      // 8 E807, not separated
+        "</user-control>\n";
+    const std::array<ExpectedDiagnostic, 7> expected{{
+        {DiagnosticCode::form_escape_invalid, 2U, 34U},
+        {DiagnosticCode::form_escape_invalid, 3U, 31U},
+        {DiagnosticCode::form_escape_invalid, 4U, 31U},
+        {DiagnosticCode::form_escape_invalid, 5U, 31U},
+        {DiagnosticCode::form_escape_invalid, 6U, 31U},
+        {DiagnosticCode::form_value_invalid, 7U, 31U},
+        {DiagnosticCode::form_value_invalid, 8U, 31U},
     }};
     require(build(workspace, defects, schema, model) == FormModelOutcome::refused, "escapes: defects refused");
     check_diagnostics(workspace, expected, "escapes: every refused escape located");
     const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
-    require(records.size() == 5U && records[0].detail == "\\q" && records[1].detail == "\\u{D800}" &&
+    require(records.size() == 7U && records[0].detail == "\\q" && records[1].detail == "\\u{D800}" &&
                 records[3].detail == "\\u{}" && records[4].detail == "\\x",
             "escapes: the detail is the escape as written");
 
@@ -553,20 +619,21 @@ void test_right_to_left_spelling() {
     const FormSchema schema = sample_schema();
     Workspace workspace{};
     FormModel model{};
-    const std::string_view accepted = "user-control app.root {\n"
-                                      "  check-box app.a { right-to-left: yes; }\n"
-                                      "}\n";
+    const std::string_view accepted = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <check-box id=\"app.a\" right-to-left=\"yes\"/>\n"
+                                      "</user-control>\n";
     require(build(workspace, accepted, schema, model) == FormModelOutcome::model_built,
             "right-to-left: the RightToLeft spelling builds");
     const FormProperty* spelled = find_property(model, schema, 1U, "right_to_left");
     require(spelled != nullptr && std::get<PropertyEnumValue>((*spelled).value).name == "yes" &&
                 std::get<PropertyEnumValue>((*spelled).value).value == 1,
             "right-to-left: `yes` is RightToLeft.Yes");
-    const std::string_view refused = "user-control app.root {\n"                          // 1
-                                     "  check-box app.b { layout-direction: right-to-left; }\n" // 2 E820
-                                     "}\n";
+    const std::string_view refused =
+        "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"         // 1
+        "  <check-box id=\"app.b\" layout-direction=\"right-to-left\"/>\n"        // 2 E820
+        "</user-control>\n";
     const std::array<ExpectedDiagnostic, 1> expected{{
-        {DiagnosticCode::form_property_renamed, 2U, 21U},
+        {DiagnosticCode::form_property_renamed, 2U, 25U},
     }};
     require(build(workspace, refused, schema, model) == FormModelOutcome::refused,
             "right-to-left: layout-direction is refused");
@@ -591,7 +658,7 @@ int main() {
         std::cerr << failures << " form model checks failed\n";
         return 1;
     }
-    std::cout << "form model: objects, values of every expressible kind, bindings, located defects, refusal, "
-                 "roots, string escapes and the RightToLeft spelling passed\n";
+    std::cout << "form model: XML objects, values of every expressible kind, bindings, located defects, refusal, "
+                 "roots and namespaces, text and string escapes and the RightToLeft spelling passed\n";
     return 0;
 }

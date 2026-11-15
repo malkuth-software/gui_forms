@@ -11,8 +11,8 @@ apply the same change mechanically.
 Rewritten, with the value mapping left_to_right -> no, right_to_left -> yes,
 inherit -> inherit:
 
-- form documents (*.form): `layout-direction: <value>;`, values in kebab case
-  (`left-to-right`) or snake case;
+- form documents (*.form): a `layout-direction="<value>"` attribute (either
+  quote), values in kebab case (`left-to-right`) or snake case;
 - JSON documents (*.json, *.dml): a `"layout_direction": "<value>"` member;
 - C++ registry writes: a `PropertyEnumValue{"layout_direction", "<choice>", N}`
   value becomes RightToLeft's choice and number, and a `"layout_direction"`
@@ -47,7 +47,8 @@ VALUE_MAP = {
 SUFFIXES = {".form", ".json", ".dml", ".cpp", ".hpp", ".h"}
 SKIPPED_DIRECTORIES = {".git", "build", ".build", "node_modules"}
 
-FORM_PATTERN = re.compile(r"(?P<lead>(?<![\w-]))layout-direction(?P<gap>\s*:\s*)(?P<value>[a-z_-]+)")
+FORM_PATTERN = re.compile(
+    r"(?P<lead>(?<![\w-]))layout-direction(?P<gap>\s*=\s*)(?P<quote>[\"'])\s*(?P<value>[a-z_-]+)\s*(?P=quote)")
 JSON_PATTERN = re.compile(r'"layout_direction"(?P<gap>\s*:\s*)"(?P<value>[a-z_-]+)"')
 ENUM_VALUE_PATTERN = re.compile(
     r'PropertyEnumValue\{\s*"layout_direction"\s*,\s*"(?P<value>[a-z_]+)"\s*,\s*-?\d+\s*\}')
@@ -66,7 +67,8 @@ def rewrite_form(line):
         target = mapped(match.group("value"))
         if target is None:
             return match.group(0)
-        return match.group("lead") + "right-to-left" + match.group("gap") + target[0]
+        quote = match.group("quote")
+        return match.group("lead") + "right-to-left" + match.group("gap") + quote + target[0] + quote
     return FORM_PATTERN.sub(replace, line)
 
 

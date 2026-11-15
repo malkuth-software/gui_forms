@@ -20,10 +20,9 @@
 
 #include "../../src/core/form_language/form_generator/form_generator.hpp"
 #include "../../src/core/form_language/form_model/form_model.hpp"
+#include "../../src/core/form_language/form_xml/form_xml.hpp"
 #include "../../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../src/core/theme_language/source_text/theme_source_text.hpp"
-#include "../../src/core/theme_language/syntax_tree/theme_syntax_tree.hpp"
-#include "../../src/core/theme_language/tokenizer/theme_tokenizer.hpp"
 
 #include <cstddef>
 #include <exception>
@@ -44,14 +43,10 @@ using gui_forms::form_language::FormGeneratorOptions;
 using gui_forms::form_language::FormModel;
 using gui_forms::form_language::FormModelOutcome;
 using gui_forms::form_language::FormSchema;
-using gui_forms::theme_language::LineStartTable;
-using gui_forms::theme_language::ParseOutcome;
+using gui_forms::form_language::FormSyntax;
 using gui_forms::theme_language::ThemeDiagnostic;
 using gui_forms::theme_language::ThemeDiagnosticList;
-using gui_forms::theme_language::ThemeSheetForm;
 using gui_forms::theme_language::ThemeSource;
-using gui_forms::theme_language::ThemeSyntaxTree;
-using gui_forms::theme_language::ThemeTokenBuffer;
 
 constexpr int exit_done = 0;
 constexpr int exit_refused = 1;
@@ -148,7 +143,7 @@ void print_diagnostics(const ThemeDiagnosticList& diagnostics) {
     }
 }
 
-// Parses, checks and generates; returns the exit status.
+// Reads, checks and generates; returns the exit status.
 int compile(const Arguments& arguments) {
     const std::optional<std::string> text = read_file(arguments.input);
     if (!text) {
@@ -160,29 +155,20 @@ int compile(const Arguments& arguments) {
     ThemeSource source{};
     source.file = arguments.input;
     source.text = *text;
-    ThemeTokenBuffer tokens{};
-    LineStartTable lines{};
-    ThemeSyntaxTree tree{};
-    ThemeDiagnosticList diagnostics{};
-    static_cast<void>(gui_forms::theme_language::tokenize_theme_sheet(source, tokens, lines, diagnostics));
-    const ParseOutcome parsed = gui_forms::theme_language::parse_theme_sheet(source, tokens, lines, tree, diagnostics,
-                                                                             ThemeSheetForm::form_document);
-    if (parsed != ParseOutcome::tree_complete || diagnostics.error_count() != 0U) {
-        print_diagnostics(diagnostics);
-        return exit_refused;
-    }
     FormSchema schema = gui_forms::form_compiler::registry_form_schema();
     for (const std::string& type : arguments.types) gui_forms::form_compiler::add_application_type(schema, type);
+    FormSyntax syntax{};
+    ThemeDiagnosticList diagnostics{};
     FormModel model{};
     const FormModelOutcome built =
-        gui_forms::form_language::build_form_model(source, tokens, lines, tree, schema, model, diagnostics);
+        gui_forms::form_language::read_form_model(source, syntax, schema, model, diagnostics);
     if (built != FormModelOutcome::model_built) {
         print_diagnostics(diagnostics);
         return exit_refused;
     }
     std::string generated{};
-    const FormGenerateOutcome outcome = gui_forms::form_language::generate_form_cpp(
-        source, tokens, lines, tree, schema, model, options, generated, diagnostics);
+    const FormGenerateOutcome outcome = gui_forms::form_language::generate_form_cpp(source, schema, model, options,
+                                                                                    generated, diagnostics);
     print_diagnostics(diagnostics);
     if (outcome != FormGenerateOutcome::generated) return exit_refused;
 

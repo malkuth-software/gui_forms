@@ -1,6 +1,7 @@
 #include "gui_forms/xml/xml_reader/xml_reader.hpp"
 
 #include "../xml_characters/xml_characters.hpp"
+#include "xml_located_reader.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -89,13 +90,17 @@ constexpr std::size_t maximum_reference_digits = 16;
 // ever retained.
 class XmlDocumentReader final {
 public:
-    XmlDocumentReader(std::string_view input, const XmlLimits& limits)
-        : input_(input), limits_(limits) {}
+    // `locations`, when given, receives where each element and attribute
+    // was written (read_xml_located); it is borrowed for the read.
+    XmlDocumentReader(std::string_view input, const XmlLimits& limits,
+                      detail::XmlLocations* locations)
+        : input_(input), limits_(limits), locations_(locations) {}
 
     XmlReadResult read() {
         const bool completed = read_document();
         XmlReadResult result{};
         if (!completed) {
+            if (locations_ != nullptr) (*locations_).elements.clear();
             result.error = error_;
             result.position = position_of(input_, error_offset_);
             return result;
@@ -488,6 +493,13 @@ private:
         ++element_count_;
         XmlElement element{};
         element.name.assign(name);
+        // The location's index, which stays valid as later elements append.
+        const std::size_t location = locations_ == nullptr ? 0U : (*locations_).elements.size();
+        if (locations_ != nullptr) {
+            detail::XmlElementLocation record{};
+            record.start_offset = start;
+            (*locations_).elements.push_back(std::move(record));
+        }
         while (true) {
             const bool spaced = skip_space();
             if (at_end()) return fail(XmlError::unexpected_end, offset_);
@@ -495,12 +507,21 @@ private:
             if (byte == '/') {
                 ++offset_;
                 if (!expect('>')) return false;
+                if (locations_ != nullptr) {
+                    detail::XmlElementLocation& record = (*locations_).elements[location];
+                    record.start_tag_end = offset_;
+                    record.end_tag_offset = offset_;
+                    record.end_offset = offset_;
+                    record.empty_element_tag = true;
+                }
                 attach(std::move(element));
                 return true;
             }
             if (byte == '>') {
                 ++offset_;
+                if (locations_ != nullptr) (*locations_).elements[location].start_tag_end = offset_;
                 open_.push_back(std::move(element));
+                open_locations_.push_back(location);
                 return true;
             }
             if (!spaced) return fail(XmlError::syntax_error, offset_);
@@ -518,7 +539,15 @@ private:
             skip_space();
             XmlAttribute attribute{};
             attribute.name.assign(attribute_name);
+            const std::size_t value_quote = offset_;
             if (!read_attribute_value(attribute.value)) return false;
+            if (locations_ != nullptr) {
+                detail::XmlAttributeLocation where{};
+                where.name_offset = attribute_start;
+                where.value_offset = value_quote + 1U;
+                where.value_end = offset_ - 1U;
+                (*locations_).elements[location].attributes.push_back(where);
+            }
             element.attributes.push_back(std::move(attribute));
         }
     }
@@ -535,6 +564,12 @@ private:
         if (!current.children.empty()) {
             if (!settle_text_beside_children(current, start)) return false;
         }
+        if (locations_ != nullptr) {
+            detail::XmlElementLocation& record = (*locations_).elements[open_locations_.back()];
+            record.end_tag_offset = start;
+            record.end_offset = offset_;
+        }
+        if (!open_locations_.empty()) open_locations_.pop_back();
         XmlElement element = std::move(current);
         open_.pop_back();
         attach(std::move(element));
@@ -609,15 +644,29 @@ private:
     std::size_t error_offset_{};
     std::uint32_t element_count_{};
     std::vector<XmlElement> open_{};
+    // The location index of each element of open_, in step with it.
+    std::vector<std::size_t> open_locations_{};
     XmlElement root_{};
+    detail::XmlLocations* locations_{};
 };
 
 } // namespace
 
 XmlReadResult read_xml(std::string_view utf8, const XmlLimits& limits) {
-    XmlDocumentReader reader(utf8, limits);
+    XmlDocumentReader reader(utf8, limits, nullptr);
     XmlReadResult result = reader.read();
     return result;
 }
+
+namespace detail {
+
+XmlReadResult read_xml_located(std::string_view utf8, const XmlLimits& limits, XmlLocations& locations) {
+    locations.elements.clear();
+    XmlDocumentReader reader(utf8, limits, &locations);
+    XmlReadResult result = reader.read();
+    return result;
+}
+
+} // namespace detail
 
 } // namespace gui_forms

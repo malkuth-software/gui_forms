@@ -52,19 +52,19 @@ every Forms type to its GUI.Forms counterpart.
 
 ### Example: accept and cancel buttons
 
-```text
-/* forms/confirm.form */
-form confirm.window {
-  text: "Confirm";
-  client-size: 400 140;
-  accept-button: confirm.ok;
-  cancel-button: confirm.cancel;   /* assigns DialogResult::cancel */
-
-  panel confirm.root {
-    button confirm.ok { text: "OK"; bounds: 200 96 88 32; anchor: bottom right; }
-    button confirm.cancel { text: "Cancel"; bounds: 296 96 88 32; anchor: bottom right; }
-  }
-}
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- forms/confirm.form; the cancel button assigns DialogResult::cancel -->
+<form xmlns="urn:gui-forms:form:1" id="confirm.window"
+    text="Confirm"
+    client-size="400 140"
+    accept-button="confirm.ok"
+    cancel-button="confirm.cancel">
+  <panel id="confirm.root">
+    <button id="confirm.ok" text="OK" bounds="200 96 88 32" anchor="bottom right"/>
+    <button id="confirm.cancel" text="Cancel" bounds="296 96 88 32" anchor="bottom right"/>
+  </panel>
+</form>
 ```
 
 ```cpp

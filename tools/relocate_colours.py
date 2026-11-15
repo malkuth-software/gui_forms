@@ -5,7 +5,7 @@ theme variants stage B).
 Colour belongs to the theme (owner ruling, 2026-11-03): a form document holds
 structure and behaviour, and the project theme styles it through classes and
 escaped stable IDs. This instrument relocates what older documents still
-write inline. For each control whose block in a `.form` document sets
+write inline. For each control whose element in a `.form` document sets
 `fore-color` or `back-color` to a literal hexadecimal colour, it
 
 - writes a rule keyed by the control's escaped stable ID into the theme sheet,
@@ -17,7 +17,7 @@ write inline. For each control whose block in a `.form` document sets
   ink, a background as a stock surface), a starting point to edit;
 - declares `:root { color-scheme: light dark }` when the sheet declares no
   colour scheme;
-- and removes the statement from the form document.
+- and removes the attribute from the form document.
 
 By default nothing is written: the changes are printed as a unified diff.
 `--write` applies them. A colour that is not a literal hexadecimal colour (a
@@ -26,10 +26,10 @@ control whose ID the sheet already selects (the sheet's rule is not
 overwritten).
 
 The form documents are read with a small scanner, not the form compiler: it
-knows strings, comments, blocks (`<type> <stable-id> {`) and statements
-(`<property>: <value>;`), which is all the relocation needs. A document the
-scanner cannot follow (an unbalanced brace) is refused, and nothing is
-written.
+knows comments, declarations and start tags with their quoted attributes
+(`<label id="page.heading" fore-color="#182d42"/>`), which is all the
+relocation needs. A document the scanner cannot follow (an unterminated tag
+or value) is refused, and nothing is written.
 
 C++-built control trees (colours set in code) are not read yet: they need
 the control schema's tree dump, which is a later addition.
@@ -58,7 +58,10 @@ COLOUR_PROPERTIES = {
     'back-color': ('background-color', 'stock_surface'),
 }
 HEX_COLOUR = re.compile(r'#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})')
-BLOCK_HEAD = re.compile(r'([a-z][a-z0-9-]*)\s+([A-Za-z_][A-Za-z0-9_.\-]*)\s*$')
+START_TAG_NAME = re.compile(r'[A-Za-z_][A-Za-z0-9_.\-]*')
+# One attribute; `value` is None when its quote is not closed.
+ATTRIBUTE = re.compile(r'\s+(?P<name>[A-Za-z_:][A-Za-z0-9_.:\-]*)\s*=\s*(?P<value>"[^"]*"|\'[^\']*\')?')
+TAG_CLOSE = re.compile(r'\s*/?>')
 COLOR_SCHEME = re.compile(r':root\s*\{[^}]*color-scheme\s*:', re.S)
 MARKER = '/* relocate_colours.py: colours moved from {} (light as written; dark seeded by the dark colour rule, a starting point to edit) */'
 
@@ -69,91 +72,83 @@ class Refusal(Exception):
 
 @dataclasses.dataclass
 class Statement:
-    """One `<property>: <value>;` statement directly inside a control's block."""
+    """One colour attribute, `<property>="<value>"`, of an object element."""
     stable_id: str
     property: str
     value: str
-    # Offsets of the statement in the document: from the first character of
-    # the property to just past the `;`.
+    # Offsets of the attribute in the document: from the first character of
+    # its name to just past its closing quote.
     start: int
     end: int
 
 
 def scan(text, name):
-    """The statements of every control block in `text`, in document order.
+    """The colour attributes of every object element in `text`, in document
+    order.
 
-    A statement belongs to the innermost block around it. Raises Refusal for
-    an unterminated string or comment or an unbalanced brace."""
+    Raises Refusal for an unterminated comment, declaration, start tag or
+    attribute value."""
     statements = []
-    stack = []
     index = 0
-    segment_start = 0
     length = len(text)
     while index < length:
-        character = text[index]
-        if text.startswith('/*', index):
-            close = text.find('*/', index + 2)
+        open_at = text.find('<', index)
+        if open_at < 0:
+            break
+        if text.startswith('<!--', open_at):
+            close = text.find('-->', open_at + 4)
             if close < 0:
                 raise Refusal(f'{name}: unterminated comment')
-            index = close + 2
+            index = close + 3
             continue
-        if character == '"':
-            index = index + 1
-            while index < length and text[index] != '"':
-                index = index + (2 if text[index] == '\\' else 1)
-            if index >= length:
-                raise Refusal(f'{name}: unterminated string')
-            index = index + 1
+        if text.startswith('<?', open_at) or text.startswith('<!', open_at):
+            close = text.find('>', open_at + 2)
+            if close < 0:
+                raise Refusal(f'{name}: unterminated declaration')
+            index = close + 1
             continue
-        if character == '{':
-            head = strip_comments(text[segment_start:index]).strip()
-            match = BLOCK_HEAD.search(head)
-            stack.append(match.group(2) if match else None)
-            index = index + 1
-            segment_start = index
+        if text.startswith('</', open_at):
+            close = text.find('>', open_at + 2)
+            if close < 0:
+                raise Refusal(f'{name}: unterminated end tag')
+            index = close + 1
             continue
-        if character == '}':
-            if not stack:
-                raise Refusal(f'{name}: unbalanced closing brace')
-            stack.pop()
-            index = index + 1
-            segment_start = index
-            continue
-        if character == ';':
-            raw = text[segment_start:index]
-            statement = statement_of(raw, segment_start, index + 1, stack)
-            if statement is not None:
-                statements.append(statement)
-            index = index + 1
-            segment_start = index
-            continue
-        index = index + 1
-    if stack:
-        raise Refusal(f'{name}: unclosed block')
+        index = start_tag_statements(text, open_at, name, statements)
     return statements
 
 
-def strip_comments(text):
-    return re.sub(r'/\*.*?\*/', ' ', text, flags=re.S)
-
-
-def statement_of(raw, raw_start, end, stack):
-    """The colour statement `raw` holds, or None."""
-    if not stack or stack[-1] is None:
-        return None
-    cleaned = strip_comments(raw)
-    colon = cleaned.find(':')
-    if colon < 0:
-        return None
-    prop = cleaned[:colon].strip()
-    if prop not in COLOUR_PROPERTIES:
-        return None
-    # The statement starts at its property's first character, after any
-    # comment before it.
-    match = re.search(r'(?:/\*.*?\*/\s*)*' + re.escape(prop), raw, re.S)
-    offset = match.end() - len(prop) if match else raw.find(prop)
-    return Statement(stable_id=stack[-1], property=prop, value=cleaned[colon + 1:].strip(),
-                     start=raw_start + offset, end=end)
+def start_tag_statements(text, open_at, name, statements):
+    """Adds the colour attributes of the start tag at `open_at` to
+    `statements`; returns the offset past the tag."""
+    tag = START_TAG_NAME.match(text, open_at + 1)
+    if tag is None:
+        raise Refusal(f'{name}: a malformed tag at offset {open_at}')
+    index = tag.end()
+    stable_id = None
+    found = []
+    while True:
+        attribute = ATTRIBUTE.match(text, index)
+        if attribute is None:
+            break
+        if attribute.group('value') is None:
+            raise Refusal(f'{name}: an unterminated attribute value at offset {attribute.start("name")}')
+        prop = attribute.group('name')
+        value = attribute.group('value')[1:-1]
+        if prop == 'id':
+            stable_id = value
+        elif prop in COLOUR_PROPERTIES:
+            found.append(Statement(stable_id='', property=prop, value=value.strip(),
+                                   start=attribute.start('name'), end=attribute.end()))
+        index = attribute.end()
+    close = TAG_CLOSE.match(text, index)
+    if close is None:
+        raise Refusal(f'{name}: an unterminated start tag at offset {open_at}')
+    # The colours of an element without an ID have no selector to move to.
+    if stable_id is not None:
+        for statement in found:
+            statement.stable_id = stable_id
+            statements.append(statement)
+    return close.end()
 
 
 def escaped_id(stable_id):
@@ -169,7 +164,8 @@ def escaped_id(stable_id):
 
 
 def remove_statements(text, statements):
-    """`text` without `statements`; a line left blank by a removal goes too."""
+    """`text` without `statements` (attributes); a line left blank by a
+    removal goes too."""
     pieces = []
     cursor = 0
     for statement in sorted(statements, key=operator.attrgetter('start')):
@@ -181,7 +177,7 @@ def remove_statements(text, statements):
             pieces.append(text[cursor:line_start])
             cursor = min(line_end + 1, len(text))
         else:
-            # The blanks before an inline statement go with it.
+            # The blanks before an inline attribute go with it.
             start = statement.start
             while start > line_start and text[start - 1] in ' 	':
                 start = start - 1

@@ -1,4 +1,5 @@
-/* The Gallery's window (stage B: the window is the form). The build
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Gallery's window (stage B: the window is the form). The build
    generates gui_forms::gallery::GalleryWindow, a gui_forms::Window, from
    this document with gui_forms_add_form MODEL GalleryModel
    (demo/gallery_model.hpp): its objects are the window's members, and its
@@ -19,90 +20,80 @@
    one window rule per interaction the Gallery answers (GalleryContext::
    attach, src/controls/gallery_controls.cpp).
 
-   */
-form gallery.window {
-  text: "GUI.Forms Gallery";
-  client-size: 1280 820;
+   -->
+<form xmlns="urn:gui-forms:form:1" id="gallery.window"
+    text="GUI.Forms Gallery"
+    client-size="1280 820">
 
-  panel gallery.shell {
-    classes: "shell-canvas";
-    bounds: 0 0 1280 820;
+  <panel id="gallery.shell"
+      classes="shell-canvas"
+      bounds="0 0 1280 820">
 
-    panel gallery.command-strip {
-      bounds: 0 0 1280 34;
-      dock: top;
-      button gallery.command.reset {
-        text: "Reset";
-        bounds: 6 5 72 24;
-      }
-      button gallery.command.diagnostics {
-        text: "Diagnostics";
-        bounds: 84 5 96 24;
-      }
-      picture-box gallery.command.status-badge { bounds: 188 9 16 16; }
-      label gallery.command.status {
-        text: "Portable core · Host 0.4 · drop-ready";
-        classes: "control-body";
-        bounds: 210 5 1064 24;
-      }
-    }
+    <panel id="gallery.command-strip"
+        bounds="0 0 1280 34"
+        dock="top">
+      <button id="gallery.command.reset"
+          text="Reset"
+          bounds="6 5 72 24"/>
+      <button id="gallery.command.diagnostics"
+          text="Diagnostics"
+          bounds="84 5 96 24"/>
+      <picture-box id="gallery.command.status-badge" bounds="188 9 16 16"/>
+      <label id="gallery.command.status"
+          text="Portable core · Host 0.4 · drop-ready"
+          classes="control-body"
+          bounds="210 5 1064 24"/>
+    </panel>
+    <!-- The navigation lists every page, more than fit in one column, so it
+       scrolls; the program adds the rows above the paper. -->
+    <scrollable-control id="gallery.sidebar"
+        bounds="0 34 238 786"
+        dock="left"
+        auto-scroll="true">
+      <panel id="gallery.sidebar.paper" classes="navigation-paper" bounds="0 0 206 786"/>
+    </scrollable-control>
+    <!-- Before the page area, so it claims its edge first. -->
+    <panel id="gallery.status"
+        classes="status-strip"
+        bounds="238 776 1042 44"
+        dock="bottom">
+      <panel id="gallery.status.rule" classes="rule-line" bounds="0 0 1042 1" dock="top"/>
+      <label id="gallery.status.text" bounds="18 10 800 24" anchor="top left right"/>
+      <check-box id="gallery.status.live"
+          text="Live animation"
+          checked="bind(live_motion)"
+          indicator-style="toggle"
+          bounds="846 8 180 28"
+          anchor="top right"/>
+    </panel>
 
-    /* The navigation lists every page, more than fit in one column, so it
-       scrolls; the program adds the rows above the paper. */
-    scrollable-control gallery.sidebar {
-      bounds: 0 34 238 786;
-      dock: left;
-      auto-scroll: true;
-      panel gallery.sidebar.paper { classes: "navigation-paper"; bounds: 0 0 206 786; }
-    }
-
-    /* Before the page area, so it claims its edge first. */
-    panel gallery.status {
-      classes: "status-strip";
-      bounds: 238 776 1042 44;
-      dock: bottom;
-      panel gallery.status.rule { classes: "rule-line"; bounds: 0 0 1042 1; dock: top; }
-      label gallery.status.text { bounds: 18 10 800 24; anchor: top left right; }
-      check-box gallery.status.live {
-        text: "Live animation";
-        checked: bind(live_motion);
-        indicator-style: toggle;
-        bounds: 846 8 180 28;
-        anchor: top right;
-      }
-    }
-
-    group-box gallery.diagnostics {
-      text: "Diagnostics";
-      visible: bind(diagnostics_visible, one_way);
-      bounds: 1000 34 280 742;
-      dock: right;
-      label gallery.diagnostics.about { text: "GUI.Forms Gallery"; classes: "note"; bounds: 10 22 260 52; }
-      label gallery.diagnostics.renderer { text: "renderer"; classes: "body"; bounds: 10 80 260 20; }
-      label gallery.diagnostics.controls { text: "controls"; classes: "body"; bounds: 10 106 260 20; }
-      label gallery.diagnostics.layout { text: "measure / arrange"; classes: "body"; bounds: 10 132 260 20; }
-      label gallery.diagnostics.paint { text: "paint / damage"; classes: "body"; bounds: 10 158 260 20; }
-      label gallery.diagnostics.input { text: "input / focus / activation"; classes: "body"; bounds: 10 184 260 20; }
-      label gallery.diagnostics.flush { text: "wake / ticks / active"; classes: "body"; bounds: 10 210 260 20; }
-      label gallery.diagnostics.present { text: "present / worst"; classes: "body"; bounds: 10 236 260 20; }
-      label gallery.diagnostics.font {
-        text: "Controls: Portsmouth Rapids 1.0; Fields: Carlito body specimen.";
-        classes: "note";
-        bounds: 10 262 260 52;
-      }
-      /* The invalidation overlay (docs/user/debugging.md): outlines what
-         the window presents again, for 300 ms, by cause. */
-      check-box gallery.diagnostics.invalidation {
-        text: "Show invalidation";
-        bounds: 10 320 260 28;
-      }
-    }
-
-    /* Each page's viewport goes here, anchored to all four edges. */
-    panel gallery.content {
-      classes: "shell-canvas";
-      bounds: 238 34 1042 742;
-      dock: fill;
-    }
-  }
-}
+    <group-box id="gallery.diagnostics"
+        text="Diagnostics"
+        visible="bind(diagnostics_visible, one_way)"
+        bounds="1000 34 280 742"
+        dock="right">
+      <label id="gallery.diagnostics.about" text="GUI.Forms Gallery" classes="note" bounds="10 22 260 52"/>
+      <label id="gallery.diagnostics.renderer" text="renderer" classes="body" bounds="10 80 260 20"/>
+      <label id="gallery.diagnostics.controls" text="controls" classes="body" bounds="10 106 260 20"/>
+      <label id="gallery.diagnostics.layout" text="measure / arrange" classes="body" bounds="10 132 260 20"/>
+      <label id="gallery.diagnostics.paint" text="paint / damage" classes="body" bounds="10 158 260 20"/>
+      <label id="gallery.diagnostics.input" text="input / focus / activation" classes="body" bounds="10 184 260 20"/>
+      <label id="gallery.diagnostics.flush" text="wake / ticks / active" classes="body" bounds="10 210 260 20"/>
+      <label id="gallery.diagnostics.present" text="present / worst" classes="body" bounds="10 236 260 20"/>
+      <label id="gallery.diagnostics.font"
+          text="Controls: Portsmouth Rapids 1.0; Fields: Carlito body specimen."
+          classes="note"
+          bounds="10 262 260 52"/>
+      <!-- The invalidation overlay (docs/user/debugging.md): outlines what
+         the window presents again, for 300 ms, by cause. -->
+      <check-box id="gallery.diagnostics.invalidation"
+          text="Show invalidation"
+          bounds="10 320 260 28"/>
+    </group-box>
+    <!-- Each page's viewport goes here, anchored to all four edges. -->
+    <panel id="gallery.content"
+        classes="shell-canvas"
+        bounds="238 34 1042 742"
+        dock="fill"/>
+  </panel>
+</form>

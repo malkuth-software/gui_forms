@@ -238,6 +238,11 @@ enum class DiagnosticCode : std::uint16_t {
     // layout_direction is written right-to-left): the detail names the
     // spelling to write and how its values map.
     form_property_renamed = 820,
+    // A form document that is not XML of GUI.Forms' bounded subset
+    // (form_xml.hpp): the detail names the reader's XmlError. Also an
+    // object element holding text, and a missing, wrong or extra namespace
+    // declaration (form_model.hpp).
+    form_xml_invalid = 821,
     // E999 is temporary: a form a later phase gives its meaning, refused
     // until then so that no interim meaning ships (PLAN.md P4: a custom
     // property with several definitions, until P12; P5: `!important`, the

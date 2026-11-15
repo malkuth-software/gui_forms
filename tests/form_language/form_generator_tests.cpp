@@ -8,10 +8,9 @@
 #include "../../src/core/form_language/form_generator/form_generator.hpp"
 #include "../../src/core/form_language/form_loader/form_loader.hpp"
 #include "../../src/core/form_language/form_model/form_model.hpp"
+#include "../../src/core/form_language/form_xml/form_xml.hpp"
 #include "../../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../src/core/theme_language/source_text/theme_source_text.hpp"
-#include "../../src/core/theme_language/syntax_tree/theme_syntax_tree.hpp"
-#include "../../src/core/theme_language/tokenizer/theme_tokenizer.hpp"
 #include "../../tools/form_compiler/form_catalog.hpp"
 
 #include "generated/sample_dialog_form.hpp"
@@ -75,16 +74,12 @@ using gui_forms::form_language::FormProperty;
 using gui_forms::form_language::FormSchema;
 using gui_forms::form_language::FormSchemaType;
 using gui_forms::form_language::FormSources;
+using gui_forms::form_language::FormSyntax;
 using gui_forms::form_language::LoadedForm;
 using gui_forms::theme_language::DiagnosticCode;
-using gui_forms::theme_language::LineStartTable;
-using gui_forms::theme_language::ParseOutcome;
 using gui_forms::theme_language::ThemeDiagnostic;
 using gui_forms::theme_language::ThemeDiagnosticList;
-using gui_forms::theme_language::ThemeSheetForm;
 using gui_forms::theme_language::ThemeSource;
-using gui_forms::theme_language::ThemeSyntaxTree;
-using gui_forms::theme_language::ThemeTokenBuffer;
 
 int failures = 0;
 
@@ -110,9 +105,7 @@ const std::string sample_header_path = std::string(GUI_FORMS_FORM_GENERATED_DIR)
 struct Workspace final {
     std::string text{};
     ThemeSource source{};
-    ThemeTokenBuffer tokens{};
-    LineStartTable lines{};
-    ThemeSyntaxTree tree{};
+    FormSyntax syntax{};
     FormModel model{};
     ThemeDiagnosticList diagnostics{};
 };
@@ -123,30 +116,21 @@ void print_diagnostics(const Workspace& workspace) {
     }
 }
 
-// Parses `text` and builds its model; returns whether both succeeded.
+// Reads `text` and builds its model; returns whether both succeeded.
 bool read_document(Workspace& workspace, std::string_view file, std::string_view text, const FormSchema& schema) {
     workspace.text = std::string(text);
     workspace.diagnostics.clear();
     workspace.source.file = file;
     workspace.source.text = workspace.text;
-    static_cast<void>(gui_forms::theme_language::tokenize_theme_sheet(workspace.source, workspace.tokens,
-                                                                      workspace.lines, workspace.diagnostics));
-    const ParseOutcome parsed =
-        gui_forms::theme_language::parse_theme_sheet(workspace.source, workspace.tokens, workspace.lines,
-                                                     workspace.tree, workspace.diagnostics,
-                                                     ThemeSheetForm::form_document);
-    if (parsed != ParseOutcome::tree_complete) return false;
-    const FormModelOutcome built = gui_forms::form_language::build_form_model(
-        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model,
-        workspace.diagnostics);
+    const FormModelOutcome built = gui_forms::form_language::read_form_model(workspace.source, workspace.syntax, schema,
+                                                                             workspace.model, workspace.diagnostics);
     return built == FormModelOutcome::model_built;
 }
 
 FormGenerateOutcome generate(Workspace& workspace, const FormSchema& schema, const FormGeneratorOptions& options,
                              std::string& generated) {
     const FormGenerateOutcome outcome = gui_forms::form_language::generate_form_cpp(
-        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, options,
-        generated, workspace.diagnostics);
+        workspace.source, schema, workspace.model, options, generated, workspace.diagnostics);
     return outcome;
 }
 
@@ -235,8 +219,7 @@ void test_generated_matches_loader() {
     const FormSources sources = sample_sources(owner);
     LoadedForm loaded{};
     const FormLoadOutcome outcome = gui_forms::form_language::load_form(
-        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, sources,
-        loaded, workspace.diagnostics);
+        workspace.source, schema, workspace.model, sources, loaded, workspace.diagnostics);
     require(outcome == FormLoadOutcome::loaded, "loader: the sample document loads");
     if (outcome != FormLoadOutcome::loaded) return;
 
@@ -385,12 +368,12 @@ FormSchema sample_schema(bool spelled) {
 // reported; the caller's text is unchanged.
 void test_refusals() {
     const FormSchema schema = sample_schema(true);
-    const std::string_view document = "user-control app.root {\n"
-                                      "  button app.ok { }\n"
-                                      "  button app-ok { }\n"
-                                      "  button 1st.button { }\n"
-                                      "  button delete { command: bind(class); }\n"
-                                      "}\n";
+    const std::string_view document = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <button id=\"app.ok\"/>\n"
+                                      "  <button id=\"app-ok\"/>\n"
+                                      "  <button id=\"1st.button\"/>\n"
+                                      "  <button id=\"delete\" command=\"bind(class)\"/>\n"
+                                      "</user-control>\n";
     Workspace workspace{};
     const bool read = read_document(workspace, "test.form", document, schema);
     if (!read) print_diagnostics(workspace);
@@ -411,7 +394,9 @@ void test_refusals() {
     // A type without a C++ spelling.
     const FormSchema unspelled = sample_schema(false);
     Workspace plain{};
-    require(read_document(plain, "test.form", "user-control app.root { }\n", unspelled), "refusals: plain model");
+    require(read_document(plain, "test.form", "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\"/>\n",
+                          unspelled),
+            "refusals: plain model");
     std::string plain_text{};
     require(generate(plain, unspelled, sample_options(), plain_text) == FormGenerateOutcome::refused &&
                 plain.diagnostics.records().size() == 1U &&
@@ -456,23 +441,23 @@ void test_fonts_and_items() {
     require(form.sample_heading != nullptr, "fonts: the heading, its font left to the theme");
 
     const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
-    const std::string_view document = "user-control app.root {\n"
-                                      "  typography-specimen app.a { font: control 12; }\n"
-                                      "  typography-specimen app.b { font: serif 12 400; }\n"
-                                      "  typography-specimen app.c { font: control 12 1001; }\n"
-                                      "  typography-specimen app.d { font: control 12 700 bold; }\n"
-                                      "  list-box app.e { items: \"one\" 2; }\n"
-                                      "}\n";
+    const std::string_view document = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <typography-specimen id=\"app.a\" font=\"control 12\"/>\n"
+                                      "  <typography-specimen id=\"app.b\" font=\"serif 12 400\"/>\n"
+                                      "  <typography-specimen id=\"app.c\" font=\"control 12 1001\"/>\n"
+                                      "  <typography-specimen id=\"app.d\" font=\"control 12 700 bold\"/>\n"
+                                      "  <list-box id=\"app.e\" items=\"one 'two\"/>\n"
+                                      "</user-control>\n";
     Workspace workspace{};
     require(!read_document(workspace, "test.form", document, schema), "values: refused");
     const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
     // Each refusal at the token it stopped at.
     const bool located = records.size() == 5U && records[0].code == DiagnosticCode::form_value_invalid &&
-                         records[0].position.line.value == 2U && records[0].position.column.value == 45U &&
-                         records[1].position.line.value == 3U && records[1].position.column.value == 37U &&
-                         records[2].position.line.value == 4U && records[2].position.column.value == 48U &&
-                         records[3].position.line.value == 5U && records[3].position.column.value == 52U &&
-                         records[4].position.line.value == 6U && records[4].position.column.value == 33U;
+                         records[0].position.line.value == 2U && records[0].position.column.value == 49U &&
+                         records[1].position.line.value == 3U && records[1].position.column.value == 41U &&
+                         records[2].position.line.value == 4U && records[2].position.column.value == 52U &&
+                         records[3].position.line.value == 5U && records[3].position.column.value == 56U &&
+                         records[4].position.line.value == 6U && records[4].position.column.value == 35U;
     if (!located) print_diagnostics(workspace);
     require(located, "values: each malformed font and item, located");
 }
@@ -483,17 +468,20 @@ void test_fonts_and_items() {
 // indicator style.
 void test_page_descriptors() {
     const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
-    const std::string_view document = "scaled-panel app.root {\n"
-                                      "  design-size: 200 100;\n"
-                                      "  scaled-group-box app.group {\n"
-                                      "    text: \"Group\";\n"
-                                      "    design-size: 50 50;\n"
-                                      "    bounds: 100 0 100 100;\n"
-                                      "    check-box app.check { indicator-style: toggle; bounds: 0 0 25 10; }\n"
-                                      "  }\n"
-                                      "  radio-button app.radio { indicator-style: modern; bounds: 0 50 100 50; }\n"
-                                      "  typography-specimen app.italic { font: content 13 400 italic spacing 0.5; }\n"
-                                      "}\n";
+    const std::string_view document = "<scaled-panel xmlns=\"urn:gui-forms:form:1\" id=\"app.root\"\n"
+                                      "    design-size=\"200 100\">\n"
+                                      "  <scaled-group-box id=\"app.group\"\n"
+                                      "      text=\"Group\"\n"
+                                      "      design-size=\"50 50\"\n"
+                                      "      bounds=\"100 0 100 100\">\n"
+                                      "    <check-box id=\"app.check\" indicator-style=\"toggle\"\n"
+                                      "        bounds=\"0 0 25 10\"/>\n"
+                                      "  </scaled-group-box>\n"
+                                      "  <radio-button id=\"app.radio\" indicator-style=\"modern\"\n"
+                                      "      bounds=\"0 50 100 50\"/>\n"
+                                      "  <typography-specimen id=\"app.italic\"\n"
+                                      "      font=\"content 13 400 italic spacing 0.5\"/>\n"
+                                      "</scaled-panel>\n";
     Workspace workspace{};
     const bool read = read_document(workspace, "page.form", document, schema);
     if (!read) print_diagnostics(workspace);
@@ -502,8 +490,7 @@ void test_page_descriptors() {
     const FormSources no_sources{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = gui_forms::form_language::load_form(
-        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, no_sources,
-        loaded, workspace.diagnostics);
+        workspace.source, schema, workspace.model, no_sources, loaded, workspace.diagnostics);
     require(outcome == FormLoadOutcome::loaded, "page descriptors: the document loads");
     if (outcome != FormLoadOutcome::loaded) return;
 
@@ -536,12 +523,12 @@ void test_page_descriptors() {
     require((*radio).pending_layout_bounds() == gui_forms::Rect{0.0, 100.0, 200.0, 100.0},
             "page descriptors: a second child, scaled");
 
-    const std::string_view refused = "user-control app.root {\n"
-                                     "  typography-specimen app.a { font: control 12 700 spacing; }\n"
-                                     "  typography-specimen app.b { font: control 12 700 spacing 13; }\n"
-                                     "  typography-specimen app.c { font: control 12 700 spacing 1 italic; }\n"
-                                     "  check-box app.d { indicator-style: round; }\n"
-                                     "}\n";
+    const std::string_view refused = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                     "  <typography-specimen id=\"app.a\" font=\"control 12 700 spacing\"/>\n"
+                                     "  <typography-specimen id=\"app.b\" font=\"control 12 700 spacing 13\"/>\n"
+                                     "  <typography-specimen id=\"app.c\" font=\"control 12 700 spacing 1 italic\"/>\n"
+                                     "  <check-box id=\"app.d\" indicator-style=\"round\"/>\n"
+                                     "</user-control>\n";
     Workspace refusing{};
     require(!read_document(refusing, "refused.form", refused, schema), "page descriptors: malformed values refused");
     const std::span<const ThemeDiagnostic> records = refusing.diagnostics.records();
@@ -555,11 +542,11 @@ void test_page_descriptors() {
 // specimen's font is content and stays.
 void test_presentation_fonts() {
     const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
-    const std::string_view document = "user-control app.root {\n"
-                                      "  label app.a { font: control 12; }\n"
-                                      "  group-box app.b { font: control 12 700; }\n"
-                                      "  typography-specimen app.c { font: content 20 400 italic; }\n"
-                                      "}\n";
+    const std::string_view document = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <label id=\"app.a\" font=\"control 12\"/>\n"
+                                      "  <group-box id=\"app.b\" font=\"control 12 700\"/>\n"
+                                      "  <typography-specimen id=\"app.c\" font=\"content 20 400 italic\"/>\n"
+                                      "</user-control>\n";
     Workspace workspace{};
     require(!read_document(workspace, "fonts.form", document, schema), "presentation fonts: refused");
     const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
@@ -594,12 +581,13 @@ void test_presentation_refused_registry_wide() {
             std::string property_name = property.name;
             std::replace(property_name.begin(), property_name.end(), '_', '-');
             const std::string_view value = colour ? "red" : "control 12";
-            std::string document = type_name;
-            document += " app.x { ";
+            std::string document = "<";
+            document += type_name;
+            document += " xmlns=\"urn:gui-forms:form:1\" id=\"app.x\" ";
             document += property_name;
-            document += ": ";
+            document += "=\"";
             document += value;
-            document += "; }\n";
+            document += "\"/>\n";
             const bool built = read_document(workspace, "presentation.form", document, schema);
             bool refused = false;
             for (const ThemeDiagnostic& record : workspace.diagnostics.records()) {
@@ -626,10 +614,10 @@ void test_presentation_refused_registry_wide() {
 // under a parent that does not provide it the model refuses it.
 void test_attached_properties() {
     const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
-    const std::string_view document = "flow-layout-panel-compat app.root {\n"
-                                      "  button app.a { text: \"A\"; flow-break: true; }\n"
-                                      "  button app.b { text: \"B\"; }\n"
-                                      "}\n";
+    const std::string_view document = "<flow-layout-panel-compat xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <button id=\"app.a\" text=\"A\" flow-break=\"true\"/>\n"
+                                      "  <button id=\"app.b\" text=\"B\"/>\n"
+                                      "</flow-layout-panel-compat>\n";
     Workspace workspace{};
     const bool read = read_document(workspace, "flow.form", document, schema);
     if (!read) print_diagnostics(workspace);
@@ -638,8 +626,7 @@ void test_attached_properties() {
     const FormSources no_sources{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = gui_forms::form_language::load_form(
-        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, no_sources,
-        loaded, workspace.diagnostics);
+        workspace.source, schema, workspace.model, no_sources, loaded, workspace.diagnostics);
     require(outcome == FormLoadOutcome::loaded, "attached: the document loads");
     if (outcome != FormLoadOutcome::loaded) return;
     const std::shared_ptr<gui_forms::FlowLayoutPanelCompat> flow =
@@ -662,9 +649,9 @@ void test_attached_properties() {
                 std::string::npos,
             "attached: assigned through the parent's child view, after the child is added");
 
-    const std::string_view stranger = "panel app.root {\n"
-                                      "  button app.a { flow-break: true; }\n"
-                                      "}\n";
+    const std::string_view stranger = "<panel xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <button id=\"app.a\" flow-break=\"true\"/>\n"
+                                      "</panel>\n";
     require(!read_document(workspace, "stranger.form", stranger, schema), "attached: a panel provides none");
     const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
     const bool refused = records.size() == 1U && records[0].code == DiagnosticCode::form_property_unknown &&
@@ -677,10 +664,10 @@ void test_attached_properties() {
 // placement.
 void test_spans() {
     const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
-    const std::string_view document = "grid-panel app.root {\n"
-                                      "  button app.a { text: \"A\"; cell: 0 2; }\n"
-                                      "  span side { anchor: 0 2; rows: 2; }\n"
-                                      "}\n";
+    const std::string_view document = "<grid-panel xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <button id=\"app.a\" text=\"A\" cell=\"0 2\"/>\n"
+                                      "  <span name=\"side\" anchor=\"0 2\" rows=\"2\"/>\n"
+                                      "</grid-panel>\n";
     Workspace workspace{};
     const bool read = read_document(workspace, "grid.form", document, schema);
     if (!read) print_diagnostics(workspace);
@@ -707,9 +694,9 @@ void test_spans() {
 // literal (a line feed as an octal escape, a quote escaped).
 void test_string_escapes() {
     const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
-    const std::string_view document = "panel app.root {\n"
-                                      "  label app.note { text: \"Two\\nlines \\\"quoted\\\" \\u{3A9}\"; }\n"
-                                      "}\n";
+    const std::string_view document = "<panel xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <label id=\"app.note\" text=\"Two&#10;lines &quot;quoted&quot; Ω\"/>\n"
+                                      "</panel>\n";
     Workspace workspace{};
     const bool read = read_document(workspace, "escapes.form", document, schema);
     if (!read) print_diagnostics(workspace);
@@ -718,8 +705,7 @@ void test_string_escapes() {
     const FormSources no_sources{};
     LoadedForm loaded{};
     const FormLoadOutcome outcome = gui_forms::form_language::load_form(
-        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, no_sources,
-        loaded, workspace.diagnostics);
+        workspace.source, schema, workspace.model, no_sources, loaded, workspace.diagnostics);
     require(outcome == FormLoadOutcome::loaded, "escapes: the document loads");
     if (outcome != FormLoadOutcome::loaded) return;
     const std::shared_ptr<gui_forms::Label> note =
@@ -741,10 +727,11 @@ void test_string_escapes() {
 // calls the generated code makes.
 void test_binding_spelling() {
     const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
-    const std::string_view document = "user-control app.root {\n"
-                                      "  text-box app.name { text: bind(records_, \"name\", update on-change); }\n"
-                                      "  check-box app.flag { checked: bind(flag_, one_way); }\n"
-                                      "}\n";
+    const std::string_view document = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <text-box id=\"app.name\"\n"
+                                      "      text=\"bind(records_, 'name', update on-change)\"/>\n"
+                                      "  <check-box id=\"app.flag\" checked=\"bind(flag_, one_way)\"/>\n"
+                                      "</user-control>\n";
     Workspace workspace{};
     const bool read = read_document(workspace, "bound.form", document, schema);
     if (!read) print_diagnostics(workspace);
@@ -773,11 +760,11 @@ void test_binding_spelling() {
 // is still written by name. The descriptors say which.
 void test_capability_assignment() {
     const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
-    const std::string_view document = "grid-panel app.root {\n"
-                                      "  check-box app.check { text: \"Wrap\"; tab-index: 2; area: \"side\"; }\n"
-                                      "  label app.note { text: \"Note\"; cell: 1 0; }\n"
-                                      "  span side { anchor: 0 0; }\n"
-                                      "}\n";
+    const std::string_view document = "<grid-panel xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                      "  <check-box id=\"app.check\" text=\"Wrap\" tab-index=\"2\" area=\"side\"/>\n"
+                                      "  <label id=\"app.note\" text=\"Note\" cell=\"1 0\"/>\n"
+                                      "  <span name=\"side\" anchor=\"0 0\"/>\n"
+                                      "</grid-panel>\n";
     Workspace workspace{};
     const bool read = read_document(workspace, "cells.form", document, schema);
     if (!read) print_diagnostics(workspace);
@@ -852,13 +839,13 @@ void test_panel_scroll_properties() {
     const std::string_view panel_types[] = {"flex-panel", "grid-panel", "block-panel", "flow-layout-panel-compat"};
     for (const std::string_view panel_type : panel_types) {
         const std::string what = "scroll properties on " + std::string(panel_type) + ": ";
-        const std::string document = std::string(panel_type) +
-                                     " app.root {\n"
-                                     "  auto-scroll: true;\n"
-                                     "  auto-scroll-margin: 4 8;\n"
-                                     "  auto-scroll-min-size: 200 300;\n"
-                                     "  button app.a { text: \"A\"; }\n"
-                                     "}\n";
+        const std::string document = "<" + std::string(panel_type) +
+                                     " xmlns=\"urn:gui-forms:form:1\" id=\"app.root\"\n"
+                                     "    auto-scroll=\"true\"\n"
+                                     "    auto-scroll-margin=\"4 8\"\n"
+                                     "    auto-scroll-min-size=\"200 300\">\n"
+                                     "  <button id=\"app.a\" text=\"A\"/>\n"
+                                     "</" + std::string(panel_type) + ">\n";
         Workspace workspace{};
         const bool read = read_document(workspace, "scroll.form", document, schema);
         if (!read) print_diagnostics(workspace);
@@ -867,8 +854,7 @@ void test_panel_scroll_properties() {
         const FormSources no_sources{};
         LoadedForm loaded{};
         const FormLoadOutcome outcome = gui_forms::form_language::load_form(
-            workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, no_sources,
-            loaded, workspace.diagnostics);
+            workspace.source, schema, workspace.model, no_sources, loaded, workspace.diagnostics);
         require(outcome == FormLoadOutcome::loaded, what + "the document loads");
         const std::shared_ptr<gui_forms::ScrollableControl> panel =
             std::dynamic_pointer_cast<gui_forms::ScrollableControl>(loaded.root);
@@ -894,10 +880,10 @@ void test_panel_scroll_properties() {
 // subclasses is still derived from.
 void test_composed_root() {
     const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
-    const std::string_view document = "flex-panel app.root {\n"
-                                      "  auto-scroll: true;\n"
-                                      "  button app.a { text: \"A\"; }\n"
-                                      "}\n";
+    const std::string_view document = "<flex-panel xmlns=\"urn:gui-forms:form:1\" id=\"app.root\"\n"
+                                      "    auto-scroll=\"true\">\n"
+                                      "  <button id=\"app.a\" text=\"A\"/>\n"
+                                      "</flex-panel>\n";
     Workspace workspace{};
     const bool read = read_document(workspace, "flex.form", document, schema);
     if (!read) print_diagnostics(workspace);
@@ -923,9 +909,9 @@ void test_composed_root() {
     require(generated.find("[[nodiscard]] static FlexForm make() {") != std::string::npos,
             "composed root: binding nothing, make() takes no model");
 
-    const std::string_view user = "user-control app.root {\n"
-                                  "  button app.a { text: \"A\"; }\n"
-                                  "}\n";
+    const std::string_view user = "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"app.root\">\n"
+                                  "  <button id=\"app.a\" text=\"A\"/>\n"
+                                  "</user-control>\n";
     const bool user_read = read_document(workspace, "user.form", user, schema);
     require(user_read, "derived root: the model builds");
     if (!user_read) return;
