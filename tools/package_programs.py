@@ -70,6 +70,32 @@ NOTICES_NAME: str = "THIRD_PARTY_NOTICES.md"
 # The title every GNU GPL, LGPL and AGPL text begins with; a package carries
 # none of them.
 GPL_TITLE: re.Pattern[str] = re.compile(r"GNU (LESSER |LIBRARY |AFFERO )?GENERAL PUBLIC LICENSE")
+# The LLVM runtime shared libraries a Linux program links (cmake/llvm22.cmake
+# builds against libc++ 22 and libc++abi; on musl also LLVM's libunwind).
+# Ubuntu's own archive has no libc++ 22, so a package bundles them beside the
+# program, as macOS bundles its runtime dylibs, instead of depending on
+# apt.llvm.org.
+LINUX_LLVM_RUNTIME: re.Pattern[str] = re.compile(r"(libc\+\+|libc\+\+abi|libunwind)\.so\.\d+")
+# One resolved line of ldd's output: "\tlibc++.so.1 => /usr/lib/llvm-22/lib/libc++.so.1 (0x...)".
+LDD_RESOLVED: re.Pattern[str] = re.compile(r"^\s*(\S+)\s+=>\s+(/\S+)\s+\(0x[0-9a-fA-F]+\)\s*$")
+
+
+def linux_runtime_sources(ldd_output: str) -> dict[str, Path]:
+    """The LLVM runtime libraries ldd resolved for a binary, by soname.
+
+    Only names LINUX_LLVM_RUNTIME matches are returned; unresolved lines
+    ("not found") and every other library are left out.
+    """
+    sources: dict[str, Path] = {}
+    line: str
+    for line in ldd_output.splitlines():
+        match = LDD_RESOLVED.match(line)
+        if match is None or LINUX_LLVM_RUNTIME.fullmatch(match.group(1)) is None:
+            continue
+        sources[match.group(1)] = Path(match.group(2))
+    return sources
+
+
 LINUX_FALLBACK_DEPENDS: str = "libc6, libx11-6, libxcursor1, libxfixes3, libxrender1, libatk1.0-0t64 | libatk1.0-0, libatk-bridge2.0-0t64 | libatk-bridge2.0-0"
 
 
@@ -984,7 +1010,9 @@ class Packager:
 
         First-party: libgui_forms_* from the build directory and
         libstxlib_state (STXLIB_STATE_LIBRARY_STEM) from the stx package the
-        build linked; the rest are the system's.
+        build linked. The LLVM runtime (LINUX_LLVM_RUNTIME: libc++ 22 and
+        libc++abi) is copied too, from where ldd resolves it for the binary
+        that needs it. The rest are the system's.
         """
         patchelf = self.tool("patchelf")
         binaries = [executable]
@@ -1001,6 +1029,14 @@ class Packager:
                     source = next(iter(sorted(self.build_dir.rglob(name))), None)
                     if source is None:
                         raise RuntimeError(f"{binary.name} needs {name}, which the build directory lacks")
+                elif LINUX_LLVM_RUNTIME.fullmatch(name) is not None:
+                    ldd = self.tool("ldd")
+                    if ldd is None:
+                        raise RuntimeError(f"{binary.name} needs {name}, and ldd is not on PATH to find it")
+                    resolved = linux_runtime_sources(self.run([ldd, str(binary)])).get(name)
+                    if resolved is None or not resolved.is_file():
+                        raise RuntimeError(f"{binary.name} needs {name}, which ldd does not resolve")
+                    source = resolved
                 elif name.startswith("lib" + STXLIB_STATE_LIBRARY_STEM + ".so"):
                     found = [directory / name for directory in stx_runtime_directories(self.build_dir)
                              if (directory / name).is_file()]
@@ -1033,7 +1069,7 @@ class Packager:
         bundle = stage / program.display_name
         self.log(f"  stage {plan.built} -> {bundle}")
         if self.dry_run:
-            for step in ("copy executable; follow libgui_forms_*.so and libstxlib_state.so imports (patchelf), rpath $ORIGIN, strip, ldd check",
+            for step in ("copy executable; follow libgui_forms_*.so, libstxlib_state.so and LLVM runtime (libc++, libc++abi) imports (patchelf), rpath $ORIGIN, strip, ldd check",
                          "font licences in fonts/ from assets/fonts (no face files); licenses/, README.txt, package-manifest.json",
                          f"tar.gz with top-level folder {program.display_name!r} -> {names['archive']}",
                          f"deb {deb_name} ({arch}) installing to {install_dir}, launcher /usr/bin/{deb_name}, .desktop entry, icon placeholder -> {names['installer']}"):

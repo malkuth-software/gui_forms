@@ -4,6 +4,7 @@
     "Paths are relative to the repository root unless prefixed with $GUI_FORMS_LLVM_RUNTIME (macOS runtime prefix), $MSYS_PREFIX (the CLANG64 tree on Windows) $STX (the stx checkout the build consumed, at stx.lock's commit; package_programs.py --stx-source names another) or $STXLIB (STXlib's licences as the stx package installed them, <package>/stx/share/licenses/stxlib; GUI_FORMS_STXLIB_LICENSES names another directory).",
     "optional=true entries are skipped with a log line when the file is absent (fetched dependencies, platform runtimes); the others fail the package.",
     "Windows binaries link the LLVM runtimes (libc++, libunwind, compiler-rt), winpthreads and the MinGW-w64 CRT statically; their licences are shipped although the LLVM exception does not require it for embedded runtime code.",
+    "Linux binaries link libc++ 22 and libc++abi as shared libraries, which tools/package_programs.py bundles beside the program (linux_closure); their licences are the checked-in packaging/licenses/llvm copies (SOURCE.txt).",
     "component names the row of THIRD_PARTY_NOTICES.md that covers the file; tools/package_programs.py checks every package against that file. One entry per line, so adding or removing a component is a one-line edit here and one row there."
   ],
   "notices": [
@@ -36,6 +37,8 @@
     {"name": "LLVM/libc++-LICENSE.TXT", "source": "$MSYS_PREFIX/share/licenses/libc++/LICENSE", "component": "LLVM libc++ and libc++abi", "platforms": ["windows-x64"]},
     {"name": "LLVM/libunwind-LICENSE.TXT", "source": "$MSYS_PREFIX/share/licenses/libunwind/LICENSE", "component": "LLVM libunwind", "platforms": ["windows-x64"]},
     {"name": "LLVM/compiler-rt-LICENSE.TXT", "source": "$MSYS_PREFIX/share/licenses/compiler-rt/LICENSE", "component": "LLVM compiler-rt builtins", "platforms": ["windows-x64"]},
+    {"name": "LLVM/libcxx-LICENSE.TXT", "source": "packaging/licenses/llvm/libcxx-LICENSE.TXT", "component": "LLVM libc++ and libc++abi", "platforms": ["linux-x64", "linux-arm64"]},
+    {"name": "LLVM/libcxxabi-LICENSE.TXT", "source": "packaging/licenses/llvm/libcxxabi-LICENSE.TXT", "component": "LLVM libc++ and libc++abi", "platforms": ["linux-x64", "linux-arm64"]},
     {"name": "winpthreads-COPYING.txt", "source": "$MSYS_PREFIX/share/licenses/winpthreads/COPYING", "component": "MinGW-w64 winpthreads", "platforms": ["windows-x64"]},
     {"name": "mingw-w64-runtime-COPYING.txt", "source": "$MSYS_PREFIX/share/licenses/crt/COPYING.MinGW-w64-runtime.txt", "component": "MinGW-w64 runtime (CRT startup, libmingwex, libuuid GUID data)", "platforms": ["windows-x64"]}
   ]

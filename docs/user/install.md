@@ -39,10 +39,17 @@ macOS
 
 Linux (Ubuntu 24.04)
 : Add the `llvm-toolchain-noble-22` repository from apt.llvm.org, then
-  install `clang-22 cmake ninja-build ccache generate-ninja pkg-config
-  libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev
-  libatk1.0-dev libatk-bridge2.0-dev`. Put `/usr/lib/llvm-22/bin` first on
-  `PATH`.
+  install `clang-22 libc++-22-dev libc++abi-22-dev cmake ninja-build ccache
+  generate-ninja pkg-config libx11-dev libxext-dev libxrandr-dev
+  libxcursor-dev libxfixes-dev libatk1.0-dev libatk-bridge2.0-dev`. Put
+  `/usr/lib/llvm-22/bin` first on `PATH`. GUI.Forms builds against LLVM's
+  libc++ 22 and libc++abi on Linux, as on macOS and Windows, never the
+  distribution's libstdc++: `cmake/llvm22.cmake` adds `-stdlib=libc++`, and
+  the configure fails when the tree would use another C++ library. A C++
+  program that uses the SDK builds with the same toolchain file. On musl
+  (Alpine 3.24) the packages are `clang22 libc++-dev libc++-static
+  llvm-libunwind-dev compiler-rt`, and the toolchain file also links LLVM's
+  unwinder and compiler-rt.
 
 Windows
 : Install MSYS2 and, in the CLANG64 environment, the packages listed in

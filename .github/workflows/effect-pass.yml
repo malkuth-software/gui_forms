@@ -65,7 +65,7 @@ jobs:
           key: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-${{ steps.linux-image.outputs.image }}
           restore-keys: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-
       - name: Install LLVM 22 with its development headers, and Ninja
-        run: sh template_harness/harness/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
+        run: sh gui_forms/tools/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
       # GUI_FORMS_LLVM_ROOT is the compiler's prefix by default
       # (cmake/LocalizablePlugin.cmake), /usr/lib/llvm-22 here.
       - name: Configure the tree

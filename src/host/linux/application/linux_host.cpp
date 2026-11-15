@@ -30,6 +30,7 @@
 #include <chrono>
 #include <cmath>
 #include <csignal>
+#include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>

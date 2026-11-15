@@ -10,6 +10,17 @@ All commands run from the repository root.
 First follow [Installation](../user/install.md#configure-build-install) to configure for
 your platform. Linux requires an enabled X11 host; the CPU renderer,
 `stx_skia` from the stx package (below), is linked on every platform.
+Every platform builds against LLVM's libc++ 22: the pinned macOS 14
+runtime, MSYS2 CLANG64's static libc++ on Windows, and apt.llvm.org's
+`libc++-22-dev` and `libc++abi-22-dev` on Linux (Alpine: `libc++-dev`,
+`libc++-static`, `llvm-libunwind-dev`, `compiler-rt`). On Linux
+`cmake/llvm22.cmake` adds `-stdlib=libc++`, and the configure refuses a tree
+whose C++ library is not libc++ 22. The Clang plugin
+(`GUI_FORMS_LOCALIZABLE_PLUGIN`) is the exception: it is built with the
+distribution's libstdc++, because the compiler it loads into links that.
+Linux program packages carry `libc++.so.1` and `libc++abi.so.1` beside the
+program (`tools/package_programs.py`), since Ubuntu's archive has no
+libc++ 22.
 Then:
 
 ```sh
@@ -157,7 +168,12 @@ first macOS attempt failed in `dock_site.cpp` with "'from_chars' is
 unavailable: introduced in macOS 26.0") and leaves the Objective-C++ host
 uninstrumented. CMake reads those variables only when it first configures a
 tree, so delete a macOS `gui-forms-sanitize` tree configured before this
-change.
+change. On Linux the sanitizer flags still arrive as `-DCMAKE_<LANG>_FLAGS`,
+which would drop the toolchain's `-stdlib=libc++` the same way; there
+`cmake/llvm22.cmake` appends the libc++ flags to such a value, so the
+sanitized tree builds against libc++ 22 like the plain one (LeakSanitizer
+then sees libc++'s allocations, as on macOS, and AddressSanitizer checks
+libc++'s container annotations).
 
 On macOS LeakSanitizer reports thousands of blocks that Apple's
 frameworks keep for the life of the process: caches, per-thread state,

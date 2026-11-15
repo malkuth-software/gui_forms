@@ -2,6 +2,7 @@
 #include "gui_forms/window.hpp"
 #include <X11/Xlib.h>
 #include <memory>
+#include <string>
 namespace gui_forms::host::linux_detail {
 // ATK/AT-SPI is a native accessibility service only; it owns no widgets,
 // rendering, event routing, or document state.

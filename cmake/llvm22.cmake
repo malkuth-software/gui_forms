@@ -22,4 +22,38 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
     set(CMAKE_EXE_LINKER_FLAGS_INIT "${_gf_link}")
     set(CMAKE_SHARED_LINKER_FLAGS_INIT "${_gf_link}")
     set(CMAKE_MODULE_LINKER_FLAGS_INIT "${_gf_link}")
+elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    # Linux builds against LLVM's libc++ 22 and libc++abi, as macOS and
+    # Windows do (owner decision, 2026-11-15; STXlib's Linux CI is the
+    # model). Ubuntu: apt.llvm.org's libc++-22-dev and libc++abi-22-dev,
+    # whose libc++.so names libc++abi itself. musl (Alpine 3.24: libc++-dev,
+    # libc++-static, llvm-libunwind-dev, compiler-rt): libc++ there is built
+    # over LLVM's unwinder and compiler-rt, so the link names both; musl is
+    # recognised by its dynamic loader.
+    set(_gf_cxx "-stdlib=libc++")
+    set(_gf_link "-stdlib=libc++")
+    file(GLOB _gf_musl_loader "/lib/ld-musl-*.so.1")
+    if(_gf_musl_loader)
+        string(APPEND _gf_link " -rtlib=compiler-rt -unwindlib=libunwind")
+    endif()
+    set(CMAKE_CXX_FLAGS_INIT "${_gf_cxx}")
+    set(CMAKE_EXE_LINKER_FLAGS_INIT "${_gf_link}")
+    set(CMAKE_SHARED_LINKER_FLAGS_INIT "${_gf_link}")
+    set(CMAKE_MODULE_LINKER_FLAGS_INIT "${_gf_link}")
+    # A -DCMAKE_<...>_FLAGS on the command line replaces the _INIT value
+    # (template_harness sanitizer_options passes the sanitizer flags that way
+    # on Linux), which would silently select libstdc++. Such a value gets the
+    # library flags appended once, at the configure that first sees it;
+    # CMakeLists.txt then refuses any tree whose C++ library is not libc++ 22.
+    foreach(_gf_variable CMAKE_CXX_FLAGS CMAKE_EXE_LINKER_FLAGS CMAKE_SHARED_LINKER_FLAGS
+            CMAKE_MODULE_LINKER_FLAGS)
+        if(DEFINED CACHE{${_gf_variable}} AND NOT "$CACHE{${_gf_variable}}" MATCHES "-stdlib=libc\\+\\+")
+            set(_gf_added "${_gf_link}")
+            if(_gf_variable STREQUAL "CMAKE_CXX_FLAGS")
+                set(_gf_added "${_gf_cxx}")
+            endif()
+            set(${_gf_variable} "$CACHE{${_gf_variable}} ${_gf_added}" CACHE STRING
+                "Flags with the Linux C++ library (cmake/llvm22.cmake)" FORCE)
+        endif()
+    endforeach()
 endif()

@@ -3,6 +3,7 @@
 #include "../src/core/text/prepared/prepared_storage.hpp"
 #include <X11/Xutil.h>
 
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 

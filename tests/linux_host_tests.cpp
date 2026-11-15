@@ -6,6 +6,7 @@
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <chrono>

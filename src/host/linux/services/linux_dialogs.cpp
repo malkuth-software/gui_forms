@@ -7,6 +7,7 @@
 #include "gui_forms/controls/text_box.hpp"
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <sstream>

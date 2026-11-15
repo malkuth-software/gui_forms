@@ -229,6 +229,9 @@ jobs:
   # run_sanitizers; one planned at 1.0). Pull requests, pushes, merge groups
   # and the schedule skip this job, and it is not a required check. The gate
   # is the local sanitized run of every test at checkpoint fold time.
+  # Like every Linux job it builds with Clang 22 against libc++ 22 and
+  # libc++abi (cmake/llvm22.cmake; tools/install_linux_ci_packages.sh
+  # installs them).
   sanitizers:
     name: Sanitizers (Linux, ASan + UBSan + LSan)
     needs: house-style
@@ -276,7 +279,7 @@ jobs:
           restore-keys: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-
       - name: Install Linux dependencies
         if: steps.receipt.outputs.reused != 'true'
-        run: sh template_harness/harness/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
+        run: sh gui_forms/tools/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
       - uses: actions/cache/save@v4
         if: github.event_name != 'pull_request' && github.event_name != 'merge_group' && steps.linux-packages.outputs.cache-hit != 'true' && steps.receipt.outputs.reused != 'true'
         with:

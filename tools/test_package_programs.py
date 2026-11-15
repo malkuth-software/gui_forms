@@ -165,6 +165,34 @@ class ManifestTests(unittest.TestCase):
         for name in ("libgui_forms_threading.dll", "gui_forms_abi1.dll", "stxlib_state.dll", "kernel32.dll"):
             self.assertIsNone(pp.WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name), name)
 
+    def test_linux_runtime_sources_are_read_from_ldd(self) -> None:
+        output = ("\tlinux-vdso.so.1 (0x00007ffd1c5f2000)\n"
+                  "\tlibgui_forms_threading.so => /build/libgui_forms_threading.so (0x00007f3a1c000000)\n"
+                  "\tlibc++.so.1 => /lib/x86_64-linux-gnu/libc++.so.1 (0x00007f3a1bc00000)\n"
+                  "\tlibc++abi.so.1 => /lib/x86_64-linux-gnu/libc++abi.so.1 (0x00007f3a1bb00000)\n"
+                  "\tlibunwind.so.1 => not found\n"
+                  "\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f3a1ba00000)\n"
+                  "\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f3a1b800000)\n")
+        self.assertEqual(pp.linux_runtime_sources(output),
+                         {"libc++.so.1": Path("/lib/x86_64-linux-gnu/libc++.so.1"),
+                          "libc++abi.so.1": Path("/lib/x86_64-linux-gnu/libc++abi.so.1")})
+        self.assertEqual(pp.linux_runtime_sources(""), {})
+        for name in ("libc++.so.1", "libc++abi.so.1", "libunwind.so.1"):
+            self.assertIsNotNone(pp.LINUX_LLVM_RUNTIME.fullmatch(name), name)
+        for name in ("libstdc++.so.6", "libc.so.6", "libgui_forms_threading.so", "libc++.so"):
+            self.assertIsNone(pp.LINUX_LLVM_RUNTIME.fullmatch(name), name)
+
+    def test_linux_packages_carry_the_libcxx_notices(self) -> None:
+        data = json.loads(pp.LICENSES_PATH.read_text(encoding="utf-8"))
+        for platform in ("linux-x64", "linux-arm64"):
+            names = [notice["name"] for notice in data["notices"]
+                     if platform in notice.get("platforms", []) and notice.get("component") == "LLVM libc++ and libc++abi"]
+            self.assertEqual(names, ["LLVM/libcxx-LICENSE.TXT", "LLVM/libcxxabi-LICENSE.TXT"], platform)
+        for name in ("libcxx-LICENSE.TXT", "libcxxabi-LICENSE.TXT"):
+            text = (pp.ROOT / "packaging/licenses/llvm" / name).read_text(encoding="utf-8")
+            self.assertIn("Apache License", text)
+            self.assertIsNone(pp.GPL_TITLE.search(text), name)
+
     def assert_rejected(self, mutate, pattern: str) -> None:
         data = manifest_data()
         mutate(data)

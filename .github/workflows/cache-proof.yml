@@ -25,7 +25,7 @@ jobs:
           sudo install -m 0644 "$RUNNER_TEMP/llvm-key.asc" /usr/share/keyrings/apt-llvm.asc
           echo 'deb [signed-by=/usr/share/keyrings/apt-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-22 main' | sudo tee /etc/apt/sources.list.d/llvm-22.list
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build ccache clang-22
+          sudo apt-get install -y cmake ninja-build ccache clang-22 libc++-22-dev libc++abi-22-dev
           echo /usr/lib/llvm-22/bin >> "$GITHUB_PATH"
       - name: Require the supported compiler
         run: python3 template_harness/harness/compiler_identity.py

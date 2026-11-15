@@ -12,6 +12,26 @@ if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
    NOT CMAKE_CXX_COMPILER_VERSION MATCHES "^22\\.1\\.")
     message(FATAL_ERROR "GUI.Forms requires LLVM 22.1.x; use cmake/llvm22.cmake")
 endif()
+# Linux builds against libc++ 22 (cmake/llvm22.cmake), like macOS and
+# Windows: a tree that would compile against libstdc++ is refused here
+# rather than at the first library difference (owner decision, 2026-11-15).
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    include(CheckCXXSourceCompiles)
+    check_cxx_source_compiles([=[
+#include <version>
+#if !defined(_LIBCPP_VERSION) || _LIBCPP_VERSION < 220000 || _LIBCPP_VERSION >= 230000
+#error "not libc++ 22"
+#endif
+int main() { return 0; }
+]=] GUI_FORMS_LINUX_LIBCXX_22)
+    if(NOT GUI_FORMS_LINUX_LIBCXX_22)
+        # Not cached as a failure: the next configure checks again.
+        unset(GUI_FORMS_LINUX_LIBCXX_22 CACHE)
+        message(FATAL_ERROR "GUI.Forms on Linux builds against libc++ 22 and libc++abi: use "
+                            "cmake/llvm22.cmake and install libc++-22-dev and libc++abi-22-dev "
+                            "(Alpine: libc++-dev, libc++-static, llvm-libunwind-dev, compiler-rt)")
+    endif()
+endif()
 if(APPLE)
     add_compile_options(-Werror=unguarded-availability -Werror=unguarded-availability-new)
 endif()

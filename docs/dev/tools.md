@@ -316,8 +316,8 @@ the change that needs it.
   `python3 gui_forms/tools/profile_hot_paths.py run --output hot-paths --jobs 4`
 
 `tools/linux_vm/`
-: A Lima definition for an Alpine aarch64 (musl) guest with Clang 22, Xvfb
-  and Weston, for building and graphically testing the Linux host. It covers
+: A Lima definition for an Alpine aarch64 (musl) guest with Clang 22 and
+  libc++ 22 (with LLVM's unwinder and compiler-rt), Xvfb and Weston, for building and graphically testing the Linux host. It covers
   aarch64 musl only; CI's Ubuntu jobs cover glibc and x86-64.
   `limactl create --name=gui-forms-linux tools/linux_vm/gui-forms-linux.yaml`
 

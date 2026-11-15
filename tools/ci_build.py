@@ -312,6 +312,10 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     if sanitize:
         sanitizer_cmake: list[str]
         sanitizer_environment: dict[str, str]
+        # On Linux these are -DCMAKE_<LANG>_FLAGS values, which replace the
+        # toolchain's _INIT flags; cmake/llvm22.cmake appends -stdlib=libc++
+        # to them, so the sanitized tree builds against libc++ 22 too, and
+        # the configure refuses a tree that would not.
         sanitizer_cmake, sanitizer_environment = sanitizer_options(
             host, ROOT / 'gui_forms/tools/sanitizer/lsan.supp', debug_info)
         options.extend(sanitizer_cmake)

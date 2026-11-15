@@ -94,7 +94,7 @@ jobs:
           restore-keys: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-
       - name: Install LLVM 22 and Ninja
         if: steps.scope.outputs.scope != 'none'
-        run: sh template_harness/harness/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
+        run: sh gui_forms/tools/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
       # Configure only: the checker runs the front end (-fsyntax-only) over the
       # tree's compile commands and builds just the generated headers.
       # The form-compiler test is off: its header is generated at build time,

@@ -6,6 +6,9 @@
 # flags, runtime or sanitizers reach a library the compiler loads), compiles
 # its own programs with it (gui_forms_compile_with_localizable_plugin), and
 # installs it for the package's consumers (cmake/GUIFormsConfig.cmake.in).
+# On Linux that keeps the plugin on the distribution's libstdc++, which the
+# compiler it loads into links (apt.llvm.org's clang-22), while the toolkit
+# itself builds against libc++ 22 (cmake/llvm22.cmake).
 #
 # The plugin needs only LLVM 22's and Clang 22's headers under
 # GUI_FORMS_LLVM_ROOT (about 400 files, listed by tools/localizable_plugin/

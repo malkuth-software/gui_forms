@@ -52,7 +52,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install the toolkit's Linux packages
-        run: sh template_harness/harness/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
+        run: sh gui_forms/tools/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
       # perf comes from the runner's own Ubuntu archive, built for its
       # kernel. Sampling needs the kernel to allow it for this user, and
       # kernel symbols need their addresses shown.

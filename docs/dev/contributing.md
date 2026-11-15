@@ -68,7 +68,8 @@ rvalue overload, and a function pointer obtained with `GetProcAddress` or
 `dlsym` must take its type from the function's declaration (`decltype`, or a
 `static_assert` against it). The `sanitizers` job builds and runs the whole
 suite on Linux under AddressSanitizer, UndefinedBehaviorSanitizer and
-LeakSanitizer (`python tools/ci_build.py --sanitize`); any report fails it.
+LeakSanitizer (`python tools/ci_build.py --sanitize`), with Clang 22 and
+libc++ 22 like every Linux build; any report fails it.
 It runs only when requested by hand (`workflow_dispatch` with
 `run_sanitizers`); the gate is the local sanitized run of every test when a
 checkpoint is folded. The same gate compiles every changed file against

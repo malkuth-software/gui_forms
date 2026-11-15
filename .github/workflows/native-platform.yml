@@ -146,9 +146,11 @@ jobs:
           path: ${{ runner.temp }}/apt-archives
           key: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-${{ steps.linux-image.outputs.image }}
           restore-keys: linux-debs-v1-toolkit-${{ runner.arch }}-${{ hashFiles('template_harness/harness/install_linux_ci_packages.sh', 'template_harness/projects/gui_forms.toml') }}-
+      # The toolkit profile, then libc++ 22 and libc++abi, which the Linux
+      # build compiles against (cmake/llvm22.cmake).
       - name: Install Linux dependencies
         if: steps.promotion.outputs.reused != 'true' && (runner.os == 'Linux')
-        run: sh template_harness/harness/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
+        run: sh gui_forms/tools/install_linux_ci_packages.sh toolkit "$RUNNER_TEMP/apt-archives"
       - uses: actions/cache/save@v4
         if: steps.promotion.outputs.reused != 'true' && (runner.os == 'Linux') && github.event_name != 'pull_request' && github.event_name != 'merge_group' && steps.linux-packages.outputs.cache-hit != 'true'
         with:
