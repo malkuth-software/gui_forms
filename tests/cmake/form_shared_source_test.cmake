@@ -70,5 +70,28 @@ function(build_and_read expected stage)
 endfunction()
 
 build_and_read("7" "first build")
+# The changed document must be strictly newer than the header the first
+# build generated, or the build tool may take it as unchanged: on a
+# filesystem with coarse timestamps (one second on HFS+, two on FAT) a fast
+# first build (cached objects) leaves the rewrite in the header's tick. So
+# the rewrite waits until the clock is two whole seconds past the header's
+# timestamp, the coarsest granularity a build tree may sit on, and checks
+# the document's timestamp before building.
+set(header "${build}/gui_forms_forms/sample_form.hpp")
+if(NOT EXISTS "${header}")
+    message(FATAL_ERROR "form shared source test: the first build generated no ${header}")
+endif()
+file(TIMESTAMP "${header}" header_seconds "%s" UTC)
+math(EXPR rewrite_after "${header_seconds} + 2")
+string(TIMESTAMP now_seconds "%s" UTC)
+while(now_seconds LESS_EQUAL rewrite_after)
+    execute_process(COMMAND "${CMAKE_COMMAND}" -E sleep 0.25)
+    string(TIMESTAMP now_seconds "%s" UTC)
+endwhile()
 file(WRITE "${project}/sample.form" "9\n")
+file(TIMESTAMP "${project}/sample.form" document_seconds "%s" UTC)
+if(NOT document_seconds GREATER header_seconds)
+    message(FATAL_ERROR "form shared source test: the rewritten document (${document_seconds}) is not newer "
+                        "than the generated header (${header_seconds}); the filesystem's clock is behind")
+endif()
 build_and_read("9" "after the document changed")
