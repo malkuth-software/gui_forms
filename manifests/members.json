@@ -3917,6 +3917,7 @@
       {"kind": "event", "winforms": null, "gui_forms": "command_clicked", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "dialog_launcher_clicked", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "drop_down_item_invoked", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "event", "winforms": null, "gui_forms": "help_button_clicked", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "minimized_changed", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "event", "winforms": null, "gui_forms": "recent_item_invoked", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "selected_tab_changed", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},

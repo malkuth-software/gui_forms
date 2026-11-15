@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2239 | 13 | 367 | 4115 | 2343 |
+| 2240 | 13 | 367 | 4115 | 2344 |
 
 ## GUI.Forms types
 
@@ -112,7 +112,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ToolStripPanel` | `ToolStripPanel` | 8 | 0 | 1 | 17 | 5 |
 | `ToolStripContainer` | `ToolStripContainer` | 16 | 0 | 0 | 25 | 16 |
 | `BindingNavigator` | `BindingNavigator` | 8 | 0 | 0 | 18 | 8 |
-| `Ribbon` | GUI.Forms-only | 44 | 0 | 0 | 6 | 50 |
+| `Ribbon` | GUI.Forms-only | 45 | 0 | 0 | 6 | 51 |
 | `ContextMenu` | `ContextMenuStrip` | 9 | 0 | 0 | 1 | 5 |
 | `DockWorkspace` | GUI.Forms-only | 41 | 0 | 0 | 15 | 56 |
 | `Command` | GUI.Forms-only | 15 | 0 | 0 | 4 | 19 |
