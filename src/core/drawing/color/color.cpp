@@ -279,8 +279,9 @@ OklchGamutMapping map_oklch_to_srgb_gamut(Oklch color) {
 }
 
 const SystemPalette& default_system_palette() noexcept {
-    static const SystemPalette palette{};
-    return palette;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const SystemPalette* const palette = new const SystemPalette{};
+    return *palette;
 }
 
 

@@ -970,9 +970,10 @@ void editable_init(gpointer raw, gpointer) noexcept {
 // Component), registered the first time it is asked for. Types are never
 // unregistered; the map holds one entry per flag combination used.
 GType object_type(unsigned flags) {
-    static std::map<unsigned, GType> types;
-    const std::map<unsigned, GType>::const_iterator found = types.find(flags);
-    if (found != types.end()) return (*found).second;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static std::map<unsigned, GType>* const types = new std::map<unsigned, GType>();
+    const std::map<unsigned, GType>::const_iterator found = (*types).find(flags);
+    if (found != (*types).end()) return (*found).second;
     const std::string name = "GUIFormsAccessible" + std::to_string(flags);
     const GType type = g_type_register_static_simple(ATK_TYPE_OBJECT, name.c_str(), sizeof(AtkObjectClass),
                                                      class_init, sizeof(NativeAccessible), instance_init,
@@ -995,7 +996,7 @@ GType object_type(unsigned flags) {
         const GInterfaceInfo editable_info{editable_init, nullptr, nullptr};
         g_type_add_interface_static(type, ATK_TYPE_EDITABLE_TEXT, &editable_info);
     }
-    types.emplace(flags, type);
+    (*types).emplace(flags, type);
     return type;
 }
 // A new object of the type for `flags`; the caller owns its one reference.

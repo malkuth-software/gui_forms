@@ -67,7 +67,11 @@ constexpr std::uint64_t ogg_file_limit = 64ULL * 1024 * 1024;
 constexpr std::size_t vorbis_arena_bytes = 16 * 1024 * 1024;
 // Upstream initializes a process-global CRC table on each open. Our decoder
 // uses sequential pull only (never seek/length/push, which read that table).
-std::mutex vorbis_open_mutex{};
+std::mutex& vorbis_open_mutex() {
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static std::mutex* const value = new std::mutex();
+    return *value;
+}
 std::atomic<std::uint64_t> clip_bytes{0};
 #ifdef GUI_FORMS_AUDIO_TESTING
 thread_local std::size_t test_arena_bytes = vorbis_arena_bytes;
@@ -355,7 +359,7 @@ AudioClipResult AudioClip::load_ogg_impl(const std::filesystem::path& path, cons
         const stb_vorbis_alloc allocation{reinterpret_cast<char*>(owner.arena.get()), static_cast<int>(arena_bytes)};
         int decoder_error = 0;
         {
-            std::lock_guard<std::mutex> lock(vorbis_open_mutex);
+            std::lock_guard<std::mutex> lock(vorbis_open_mutex());
             if (cancellation.requested()) { return {{}, AudioStatus::cancelled}; }
             owner.decoder = stb_vorbis_open_memory(owner.input.get(), static_cast<int>(file_bytes), &decoder_error, &allocation);
         }

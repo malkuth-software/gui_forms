@@ -149,8 +149,9 @@ ThemeRuleSheet make_built_in_rules() {
 } // namespace
 
 const ThemeRuleSheet& built_in_theme_rules() {
-    static const ThemeRuleSheet rules = make_built_in_rules();
-    return rules;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const ThemeRuleSheet* const rules = new const ThemeRuleSheet(make_built_in_rules());
+    return *rules;
 }
 
 } // namespace gui_forms

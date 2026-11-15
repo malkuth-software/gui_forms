@@ -10,18 +10,22 @@ A-gf-abi-01-F5). The stable registry shows the accepted form:
 
     static HandleRegistry* const instance = new HandleRegistry();
 
-The rule, over src/abi/: every object of static storage duration is
+The rule, over src/ (the C ABI first, A-gf-abi-03-F2; all of src/ since,
+as the rule holds everywhere): every object of static storage duration is
 either never destroyed (a `* const` pointer to an object made with `new`),
 or of a type the source shows is trivially destructible: a scalar, a
 `std::atomic`, a C record of the ABI (`gf_*`, `gd_*`), or a type named in a
 `static_assert(std::is_trivially_destructible_v<Type>)` in the same file.
+A Windows scalar or handle (`DWORD`, `LONG`, `HWND`, ...) and GLib's
+`GType` count as scalars. A `static` with a parenthesised list is read as
+a function declaration and skipped.
 Two forms are read: a function-local `static` (an indented declaration),
 and a namespace-scope object of a standard type that owns memory or a
 lock (an unindented declaration of `std::mutex`, `std::vector<...>`,
 `std::unordered_map<...>` and the like).
 
 Run by tools/check_lifetime_rules.py after the harness's rules (the shim
-there), on the same paths; files outside src/abi/ are skipped. A heuristic
+there), on the same paths; files outside src/ are skipped. A heuristic
 over source with comments and literals masked; review still required.
 """
 from __future__ import annotations
@@ -43,7 +47,8 @@ NAMESPACE_OBJECT: re.Pattern[str] = re.compile(
 TRIVIAL_TYPE: re.Pattern[str] = re.compile(
     r'^(?:const\s+)?(?:bool|char|signed char|unsigned char|short|unsigned short|int|unsigned|unsigned int|long|unsigned long'
     r'|long long|unsigned long long|float|double|std::size_t|std::ptrdiff_t|std::u?int(?:8|16|32|64)_t|std::uintptr_t'
-    r'|std::atomic\s*<[^;{}()]*>|std::atomic_\w+|std::thread::id|std::once_flag|(?:gf|gd)_\w+)$')
+    r'|std::atomic\s*<[^;{}()]*>|std::atomic_\w+|std::thread::id|std::once_flag|(?:gf|gd)_\w+'
+    r'|BOOL|BYTE|WORD|DWORD|UINT|LONG|ULONG|LONG_PTR|ULONG_PTR|H[A-Z]+|GType)$')
 ASSERTED: re.Pattern[str] = re.compile(
     r'static_assert\s*\(\s*std\s*::\s*is_trivially_destructible_v\s*<\s*(?P<type>[\w:]+)\s*>')
 CONSTEXPR: re.Pattern[str] = re.compile(r'^\s*static\s+(?:inline\s+)?(?:constexpr|constinit|thread_local)\b')
@@ -60,7 +65,7 @@ class Finding:
 def in_scope(path: Path) -> bool:
     parts: tuple[str, ...] = path.as_posix().split('/')
     for index in range(len(parts) - 1):
-        if parts[index] == 'src' and parts[index + 1] == 'abi':
+        if parts[index] == 'src':
             return True
     return False
 
@@ -80,7 +85,7 @@ def trivially_destructible(type_text: str, asserted: set[str]) -> bool:
     bare: str = re.sub(r'\s+', ' ', type_text.strip())
     if TRIVIAL_TYPE.match(bare) is not None:
         return True
-    if bare.endswith('*'):
+    if re.search(r'\*(?: ?const)?$', bare) is not None:
         # A pointer itself is trivially destructible; what it points to is
         # released only by an explicit delete, which this rule does not see.
         return True
@@ -104,6 +109,11 @@ def check_exit_statics(path: Path, text: str) -> list[Finding]:
             continue
         type_text: str = match.group('type')
         init: str = match.group('init') or ''
+        if init.startswith('('):
+            # A parenthesised list reads as a function declaration (a class's
+            # static member function, or a declaration in a body); the house
+            # style initializes objects with braces or `=`.
+            continue
         if never_destroyed(type_text, init) or trivially_destructible(type_text, asserted):
             continue
         findings.append(Finding(str(path), line_of(text, match.start('name')), RULE,

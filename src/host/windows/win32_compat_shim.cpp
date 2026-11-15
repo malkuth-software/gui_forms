@@ -8,12 +8,21 @@
 #include <cstddef>
 #include <cstring>
 #include <mutex>
+#include <type_traits>
 #include <unordered_set>
 
 namespace {
 
-std::mutex bitmap_orientation_mutex;
-std::unordered_set<HBITMAP> top_down_bitmaps;
+std::mutex& bitmap_orientation_mutex() {
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static std::mutex* const value = new std::mutex();
+    return *value;
+}
+std::unordered_set<HBITMAP>& top_down_bitmaps() {
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static std::unordered_set<HBITMAP>* const value = new std::unordered_set<HBITMAP>();
+    return *value;
+}
 // DC classifications are keyed by handle value, and GDI recycles DC values.
 // A DC destroyed outside the shim leaves its classification behind, so a
 // recycled value may be recorded as ordinary although it is now an endpoint
@@ -22,27 +31,39 @@ std::unordered_set<HBITMAP> top_down_bitmaps;
 // lasts for the bitmap's lifetime, asks the ABI instead of trusting an
 // ordinary record. Drawing calls trust the record: re-asking the ABI there
 // would construct an error message per call for every ordinary DC.
-std::mutex endpoint_dc_mutex;
-std::unordered_set<HDC> endpoint_dcs;
-std::unordered_set<HDC> ordinary_dcs;
+std::mutex& endpoint_dc_mutex() {
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static std::mutex* const value = new std::mutex();
+    return *value;
+}
+std::unordered_set<HDC>& endpoint_dcs() {
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static std::unordered_set<HDC>* const value = new std::unordered_set<HDC>();
+    return *value;
+}
+std::unordered_set<HDC>& ordinary_dcs() {
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static std::unordered_set<HDC>* const value = new std::unordered_set<HDC>();
+    return *value;
+}
 
 enum class DcKind : std::uint8_t { unknown, endpoint, ordinary };
 
 DcKind cached_dc_kind(HDC dc) noexcept {
     if (dc == nullptr) return DcKind::ordinary;
-    std::scoped_lock lock(endpoint_dc_mutex);
-    if (endpoint_dcs.contains(dc)) return DcKind::endpoint;
-    if (ordinary_dcs.contains(dc)) return DcKind::ordinary;
+    std::scoped_lock lock(endpoint_dc_mutex());
+    if (endpoint_dcs().contains(dc)) return DcKind::endpoint;
+    if (ordinary_dcs().contains(dc)) return DcKind::ordinary;
     return DcKind::unknown;
 }
 
 void remember_dc(HDC dc, DcKind kind) noexcept {
     if (dc == nullptr) return;
     try {
-        std::scoped_lock lock(endpoint_dc_mutex);
-        endpoint_dcs.erase(dc);
-        ordinary_dcs.erase(dc);
-        (kind == DcKind::endpoint ? endpoint_dcs : ordinary_dcs).insert(dc);
+        std::scoped_lock lock(endpoint_dc_mutex());
+        endpoint_dcs().erase(dc);
+        ordinary_dcs().erase(dc);
+        (kind == DcKind::endpoint ? endpoint_dcs() : ordinary_dcs()).insert(dc);
     } catch (...) {
         // Classification is a fast-path cache. The ABI lookup remains the
         // correctness fallback for an unclassified DC.
@@ -51,22 +72,22 @@ void remember_dc(HDC dc, DcKind kind) noexcept {
 
 void forget_dc(HDC dc) noexcept {
     if (dc == nullptr) return;
-    std::scoped_lock lock(endpoint_dc_mutex);
-    endpoint_dcs.erase(dc);
-    ordinary_dcs.erase(dc);
+    std::scoped_lock lock(endpoint_dc_mutex());
+    endpoint_dcs().erase(dc);
+    ordinary_dcs().erase(dc);
 }
 
 bool tracked_top_down(HBITMAP bitmap) noexcept {
     if (bitmap == nullptr) return false;
-    std::scoped_lock lock(bitmap_orientation_mutex);
-    return top_down_bitmaps.contains(bitmap);
+    std::scoped_lock lock(bitmap_orientation_mutex());
+    return top_down_bitmaps().contains(bitmap);
 }
 
 void remember_top_down(HBITMAP bitmap) noexcept {
     if (bitmap == nullptr) return;
     try {
-        std::scoped_lock lock(bitmap_orientation_mutex);
-        top_down_bitmaps.insert(bitmap);
+        std::scoped_lock lock(bitmap_orientation_mutex());
+        top_down_bitmaps().insert(bitmap);
     } catch (...) {
         // The optimization is optional. An untracked bitmap retains the
         // ordinary GDI fallback rather than weakening object lifetime.
@@ -75,8 +96,8 @@ void remember_top_down(HBITMAP bitmap) noexcept {
 
 void forget_bitmap(HGDIOBJ object) noexcept {
     if (object == nullptr) return;
-    std::scoped_lock lock(bitmap_orientation_mutex);
-    top_down_bitmaps.erase(reinterpret_cast<HBITMAP>(object));
+    std::scoped_lock lock(bitmap_orientation_mutex());
+    top_down_bitmaps().erase(reinterpret_cast<HBITMAP>(object));
 }
 
 // The paint endpoint table of the C ABI, negotiated once. The shim is part
@@ -90,6 +111,9 @@ struct StableEndpoints final {
     bool present{};
     gf_windows_paint_endpoint_table table{};
 };
+// Held in function-local statics, destroyed at exit with nothing to release
+// (rule 1, tools/check_exit_statics.py).
+static_assert(std::is_trivially_destructible_v<StableEndpoints>);
 
 StableEndpoints load_stable_endpoints() noexcept {
     StableEndpoints loaded{};

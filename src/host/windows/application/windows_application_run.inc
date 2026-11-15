@@ -113,6 +113,9 @@ std::vector<HostMonitor> device_monitors() {
 
 // dwmapi.dll's entry point, typed from its declaration (house style section 2).
 using DwmGetWindowAttributeFunction = decltype(&::DwmGetWindowAttribute);
+// Held in function-local statics, destroyed at exit with nothing to release
+// (rule 1, tools/check_exit_statics.py).
+static_assert(std::is_trivially_destructible_v<DwmGetWindowAttributeFunction>);
 
 // The visible window bounds without the invisible resize borders Windows 10
 // and later add around a sizable window (DWMWA_EXTENDED_FRAME_BOUNDS), read
@@ -126,6 +129,7 @@ DwmGetWindowAttributeFunction load_dwm_get_window_attribute() noexcept {
 }
 
 using DwmSetWindowAttributeFunction = decltype(&::DwmSetWindowAttribute);
+static_assert(std::is_trivially_destructible_v<DwmSetWindowAttributeFunction>);
 
 DwmSetWindowAttributeFunction load_dwm_set_window_attribute() noexcept {
     HMODULE library = LoadLibraryW(L"dwmapi.dll");

@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cstring>
 #include <optional>
+#include <type_traits>
 #include <cwchar>
 
 namespace gui_forms::host::detail {
@@ -25,6 +26,9 @@ struct DwmFunctions final {
     DwmSetWindowAttributeFunction set_attribute{};
     DwmGetWindowAttributeFunction get_attribute{};
 };
+// Held in function-local statics, destroyed at exit with nothing to release
+// (rule 1, tools/check_exit_statics.py).
+static_assert(std::is_trivially_destructible_v<DwmFunctions>);
 
 template <typename Function>
 Function dwm_function(HMODULE library, const char* name) noexcept {

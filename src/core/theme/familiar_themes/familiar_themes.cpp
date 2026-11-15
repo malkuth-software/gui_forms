@@ -2059,36 +2059,44 @@ ProfessionalFloor evaluate_professional_floor() {
 }
 
 const ProfessionalFloor& professional_floor() {
-    static const ProfessionalFloor evaluated = evaluate_professional_floor();
-    return evaluated;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const ProfessionalFloor* const evaluated = new const ProfessionalFloor(evaluate_professional_floor());
+    return *evaluated;
 }
 
 // Each theme's build, made on its first use. Function-local statics make
 // each initialization thread-safe; a build is never changed afterwards.
 const FamiliarThemeBuild& classic_build() {
-    static const FamiliarThemeBuild build = build_familiar_theme(descriptions[0]);
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FamiliarThemeBuild* const build = new const FamiliarThemeBuild(build_familiar_theme(descriptions[0]));
+    return *build;
 }
 const FamiliarThemeBuild& modern_flat_build() {
-    static const FamiliarThemeBuild build = build_familiar_theme(descriptions[1]);
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FamiliarThemeBuild* const build = new const FamiliarThemeBuild(build_familiar_theme(descriptions[1]));
+    return *build;
 }
 const FamiliarThemeBuild& xp_style_build() {
-    static const FamiliarThemeBuild build = build_familiar_theme(descriptions[2]);
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FamiliarThemeBuild* const build = new const FamiliarThemeBuild(build_familiar_theme(descriptions[2]));
+    return *build;
 }
 const FamiliarThemeBuild& windows7_style_build() {
-    static const FamiliarThemeBuild build = build_familiar_theme(descriptions[3]);
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FamiliarThemeBuild* const build = new const FamiliarThemeBuild(build_familiar_theme(descriptions[3]));
+    return *build;
 }
 const FamiliarThemeBuild& macos_style_build() {
-    static const FamiliarThemeBuild build = build_familiar_theme(descriptions[4]);
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FamiliarThemeBuild* const build = new const FamiliarThemeBuild(build_familiar_theme(descriptions[4]));
+    return *build;
 }
 const FamiliarThemeBuild& windows_professional_build() {
     const ProfessionalFloor& evaluated = professional_floor();
-    static const FamiliarThemeBuild build = build_from_floor(descriptions[5], evaluated.floor, evaluated.start);
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FamiliarThemeBuild* const build =
+        new const FamiliarThemeBuild(build_from_floor(descriptions[5], evaluated.floor, evaluated.start));
+    return *build;
 }
 
 } // namespace

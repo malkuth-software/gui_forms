@@ -26,8 +26,9 @@ struct FontFamilyStackTable final {
 };
 
 [[nodiscard]] FontFamilyStackTable& stack_table() noexcept {
-    static FontFamilyStackTable table{};
-    return table;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static FontFamilyStackTable* const table = new FontFamilyStackTable{};
+    return *table;
 }
 
 // Whether `families` is a list a stack may hold: one to maximum_font_stack_families drawable

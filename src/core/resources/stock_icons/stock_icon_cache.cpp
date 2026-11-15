@@ -120,8 +120,9 @@ private:
 
 StockIconCache& process_cache() {
     // A function-local static: made on first use, thread-safe.
-    static StockIconCache cache;
-    return cache;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static StockIconCache* const cache = new StockIconCache();
+    return *cache;
 }
 
 // The square as wide as the shorter side of `destination`, centred in it.

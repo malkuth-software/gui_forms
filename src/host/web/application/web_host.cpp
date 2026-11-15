@@ -34,8 +34,9 @@ WebPresentFrame present_record{};
 } // namespace
 
 surface_detail::SurfaceInputQueue& web_input_queue() noexcept {
-    static surface_detail::SurfaceInputQueue queue;
-    return queue;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static surface_detail::SurfaceInputQueue* const queue = new surface_detail::SurfaceInputQueue();
+    return *queue;
 }
 
 std::filesystem::path web_fonts_directory() {

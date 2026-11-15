@@ -695,14 +695,16 @@ namespace {
 // The PC convention, read by a window holding no table and joined to no
 // application. Made once; never changed.
 const KeyBindings& pc_key_bindings() {
-    static const KeyBindings convention{};
-    return convention;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const KeyBindings* const convention = new const KeyBindings{};
+    return *convention;
 }
 
 // The null table key_bindings() names for a window reading the convention.
 const std::shared_ptr<KeyBindings>& no_key_bindings() {
-    static const std::shared_ptr<KeyBindings> none{};
-    return none;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const std::shared_ptr<KeyBindings>* const none = new const std::shared_ptr<KeyBindings>{};
+    return *none;
 }
 
 } // namespace

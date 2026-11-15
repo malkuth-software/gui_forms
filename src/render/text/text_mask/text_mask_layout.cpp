@@ -199,7 +199,8 @@ public:
 };
 }
 MaskBackend& native_mask_backend() noexcept {
-    static NativeMaskBackend backend{};
-    return backend;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static NativeMaskBackend* const backend = new NativeMaskBackend{};
+    return *backend;
 }
 } // namespace gui_forms::detail

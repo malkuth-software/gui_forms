@@ -38,13 +38,15 @@ namespace {
 // The identity and the remark source: written and read on the UI thread
 // (the header's contract), so they need no lock.
 ProgramIdentity& identity_storage() noexcept {
-    static ProgramIdentity identity{};
-    return identity;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static ProgramIdentity* const identity = new ProgramIdentity{};
+    return *identity;
 }
 
 BusinessCardRemarkSource& remark_source_storage() noexcept {
-    static BusinessCardRemarkSource source{};
-    return source;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static BusinessCardRemarkSource* const source = new BusinessCardRemarkSource{};
+    return *source;
 }
 
 constexpr std::string_view https_prefix = "https://";
@@ -261,8 +263,9 @@ struct ShownCards final {
 };
 
 ShownCards& shown_cards() noexcept {
-    static ShownCards cards{};
-    return cards;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static ShownCards* const cards = new ShownCards{};
+    return *cards;
 }
 
 // The card handlers running on this thread (the card's own input and
@@ -789,8 +792,9 @@ FrameTime BusinessCard::card_now() const noexcept {
 }
 
 const std::string& BusinessCard::remark() const& noexcept {
-    static const std::string none{};
-    if (remarks_.empty()) return none;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const std::string* const none = new const std::string{};
+    if (remarks_.empty()) return *none;
     return remarks_.back().text;
 }
 

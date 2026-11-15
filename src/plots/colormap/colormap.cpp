@@ -33,8 +33,9 @@ SrgbTable make_srgb_table() noexcept {
 }
 
 const SrgbTable& srgb_table() noexcept {
-    static const SrgbTable table = make_srgb_table();
-    return table;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const SrgbTable* const table = new const SrgbTable(make_srgb_table());
+    return *table;
 }
 
 Color hex(std::uint32_t rgb) noexcept {
@@ -222,9 +223,10 @@ Color categorical_color(std::uint64_t key, const Colormap& map) noexcept {
 }
 
 const Colormap& built_in_colormap(BuiltInColormap which) noexcept {
-    static const BuiltInMaps built = make_built_in_maps();
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const BuiltInMaps* const built = new const BuiltInMaps(make_built_in_maps());
     const std::size_t index = static_cast<std::size_t>(which);
-    return built.maps[index < built.maps.size() ? index : built.maps.size() - 1U];
+    return (*built).maps[index < (*built).maps.size() ? index : (*built).maps.size() - 1U];
 }
 
 const Colormap* find_built_in_colormap(std::string_view name) noexcept {

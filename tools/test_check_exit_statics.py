@@ -1,4 +1,4 @@
-"""Unit tests for check_exit_statics.py (the termination rule for src/abi's static state)."""
+"""Unit tests for check_exit_statics.py (the termination rule for static state in src/)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -70,21 +70,41 @@ class ExitStaticsTests(unittest.TestCase):
         ])
         self.assertEqual(rules(text), [])
 
-    def test_outside_the_abi_is_skipped(self) -> None:
+    def test_outside_src_is_skipped(self) -> None:
         text: str = 'void f() {\n    static std::vector<int> values;\n}\nstd::mutex lock;\n'
-        self.assertEqual(rules(text, Path('src/core/example.cpp')), [])
+        self.assertEqual(rules(text, Path('tests/example_tests.cpp')), [])
+        self.assertEqual(rules(text, Path('src/core/example.cpp')), [2, 4])
         self.assertEqual(rules(text, Path('src/abi/drawing_c_api.cpp')), [2, 4])
 
-    def test_the_abi_sources_pass(self) -> None:
-        # The tree after the fixes: every static of src/abi is never destroyed or trivial.
+    def test_declarations_pointers_and_windows_scalars_pass(self) -> None:
+        # Found when the scope widened to src/: static member functions,
+        # a const pointer to a registered record, and Win32 scalars.
+        text: str = '\n'.join([
+            'struct Access {',
+            '    static void run_actions(Control& control, std::span<const Action> actions);',
+            '    static LRESULT answer_window_procedure(HWND window, UINT message, WPARAM w, LPARAM l);',
+            '};',
+            'const ControlAnatomy& anatomy() {',
+            '    static const ControlAnatomy* const registered = register_anatomy();',
+            '    return *registered;',
+            '}',
+            'void trace() {',
+            '    static LONG count{};',
+            '}',
+        ])
+        self.assertEqual(rules(text, Path('src/core/example.cpp')), [])
+
+    def test_the_sources_pass(self) -> None:
+        # The tree after the fixes: every static in src/ is never destroyed or trivial.
         root: Path = Path(__file__).resolve().parent.parent
-        sys.path.insert(0, str(root / 'tools'))
         findings: list[check_exit_statics.Finding] = []
-        for path in sorted((root / 'src' / 'abi').rglob('*.cpp')):
+        suffixes: tuple[str, ...] = ('.cpp', '.hpp', '.inc', '.mm', '.h')
+        for path in sorted((root / 'src').rglob('*')):
+            if path.suffix not in suffixes or not path.is_file():
+                continue
             relative: Path = path.relative_to(root)
             findings.extend(check_exit_statics.check_exit_statics(relative, path.read_text(encoding='utf-8')))
         self.assertEqual([f'{finding.path}:{finding.line}' for finding in findings], [])
-
 
 if __name__ == '__main__':
     unittest.main()

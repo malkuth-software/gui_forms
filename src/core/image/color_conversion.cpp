@@ -148,8 +148,9 @@ struct EncodeThresholds final {
     }
 };
 const EncodeThresholds& encode_thresholds() {
-    static const EncodeThresholds thresholds{};
-    return thresholds;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const EncodeThresholds* const thresholds = new const EncodeThresholds{};
+    return *thresholds;
 }
 
 std::uint16_t srgb_encode(const std::vector<double>& thresholds, double linear) noexcept {

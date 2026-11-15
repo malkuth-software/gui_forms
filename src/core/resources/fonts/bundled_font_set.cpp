@@ -55,9 +55,17 @@ struct SharedFontSet final {
     std::filesystem::path directory{};
     std::weak_ptr<BundledFontSet> set{};
 };
-SharedFontSet shared_font_set{};
+SharedFontSet& shared_font_set() {
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static SharedFontSet* const value = new SharedFontSet{};
+    return *value;
+}
 // Guards shared_font_set: the hosts ask on the UI thread, GUI.Drawing's executors on theirs.
-std::mutex shared_font_set_mutex;
+std::mutex& shared_font_set_mutex() {
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static std::mutex* const value = new std::mutex();
+    return *value;
+}
 
 // The process's font lookups (bundled_font_diagnostics). The refusal and notice texts are
 // guarded by font_refusal_mutex, as a host may read them from another thread.
@@ -67,18 +75,34 @@ std::atomic<std::uint8_t> last_font_source{static_cast<std::uint8_t>(BundledFont
 std::atomic<std::uint32_t> fallback_faces_found{0U};
 std::atomic<std::uint32_t> fallback_faces_expected{0U};
 std::atomic<std::uint64_t> font_pack_refusals{0U};
-std::mutex font_refusal_mutex;
-std::string font_refusal{};
-std::string font_notice{};
-std::string font_pack_refusal{};
+std::mutex& font_refusal_mutex() {
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static std::mutex* const value = new std::mutex();
+    return *value;
+}
+std::string& font_refusal() {
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static std::string* const value = new std::string();
+    return *value;
+}
+std::string& font_notice() {
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static std::string* const value = new std::string();
+    return *value;
+}
+std::string& font_pack_refusal() {
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static std::string* const value = new std::string();
+    return *value;
+}
 
 // Records a pack refusal (bundled_font_pack_refusal); the process's first is also written to
 // stderr.
 void record_pack_refusal(const std::string& text) {
     const std::uint64_t before = font_pack_refusals.fetch_add(1U, std::memory_order_relaxed);
     if (before == 0U) std::fprintf(stderr, "%s\n", text.c_str());
-    const std::lock_guard<std::mutex> lock(font_refusal_mutex);
-    font_pack_refusal = text;
+    const std::lock_guard<std::mutex> lock(font_refusal_mutex());
+    font_pack_refusal() = text;
 }
 
 // Appends `directory` to `text` as UTF-8.
@@ -368,13 +392,13 @@ std::filesystem::path development_source_font_directory() {
 
 std::shared_ptr<BundledFontSet> shared_bundled_font_set(const std::filesystem::path& directory,
                                                         const SealedPageFunctions& pages) {
-    const std::lock_guard<std::mutex> lock(shared_font_set_mutex);
-    std::shared_ptr<BundledFontSet> set = shared_font_set.set.lock();
-    if (set && !shared_font_set.embedded_pack && shared_font_set.directory == directory) return set;
+    const std::lock_guard<std::mutex> lock(shared_font_set_mutex());
+    std::shared_ptr<BundledFontSet> set = shared_font_set().set.lock();
+    if (set && !shared_font_set().embedded_pack && shared_font_set().directory == directory) return set;
     set = std::make_shared<BundledFontSet>(directory, pages);
-    shared_font_set.embedded_pack = false;
-    shared_font_set.directory = directory;
-    shared_font_set.set = set;
+    shared_font_set().embedded_pack = false;
+    shared_font_set().directory = directory;
+    shared_font_set().set = set;
     return set;
 }
 
@@ -386,13 +410,13 @@ std::shared_ptr<BundledFontSet> shared_bundled_font_set(const BundledFontLocatio
         set = shared_bundled_font_set(location.directory, pages);
         return set;
     }
-    const std::lock_guard<std::mutex> lock(shared_font_set_mutex);
-    set = shared_font_set.set.lock();
-    if (set && shared_font_set.embedded_pack) return set;
+    const std::lock_guard<std::mutex> lock(shared_font_set_mutex());
+    set = shared_font_set().set.lock();
+    if (set && shared_font_set().embedded_pack) return set;
     set = std::make_shared<BundledFontSet>(bundled_font_pack(), pages);
-    shared_font_set.embedded_pack = true;
-    shared_font_set.directory.clear();
-    shared_font_set.set = set;
+    shared_font_set().embedded_pack = true;
+    shared_font_set().directory.clear();
+    shared_font_set().set = set;
     return set;
 }
 
@@ -433,9 +457,9 @@ BundledFontLocation locate_bundled_fonts(const BundledFontLookup& lookup) {
         std::string notice{};
         if (lookup.directories_honoured) notice = development_notice_text(lookup.candidates);
         if (found != expected) notice = joined_notice(std::move(notice), packed_fallback_notice_text(found, expected, absent));
-        const std::lock_guard<std::mutex> lock(font_refusal_mutex);
-        font_refusal.clear();
-        font_notice = std::move(notice);
+        const std::lock_guard<std::mutex> lock(font_refusal_mutex());
+        font_refusal().clear();
+        font_notice() = std::move(notice);
         return location;
     }
     if (location.source != BundledFontSource::none) {
@@ -446,18 +470,18 @@ BundledFontLocation locate_bundled_fonts(const BundledFontLookup& lookup) {
         fallback_faces_found.store(found, std::memory_order_relaxed);
         std::string notice{};
         if (found != expected) notice = fallback_notice_text(location.directory, found, expected, absent);
-        const std::lock_guard<std::mutex> lock(font_refusal_mutex);
-        font_refusal.clear();
-        font_notice = std::move(notice);
+        const std::lock_guard<std::mutex> lock(font_refusal_mutex());
+        font_refusal().clear();
+        font_notice() = std::move(notice);
         return location;
     }
     fallback_faces_found.store(0U, std::memory_order_relaxed);
     const std::string refusal = refusal_text(lookup);
     const std::uint64_t before = font_lookups_without_source.fetch_add(1U, std::memory_order_relaxed);
     if (before == 0U) std::fprintf(stderr, "%s\n", refusal.c_str());
-    const std::lock_guard<std::mutex> lock(font_refusal_mutex);
-    font_refusal = refusal;
-    font_notice.clear();
+    const std::lock_guard<std::mutex> lock(font_refusal_mutex());
+    font_refusal() = refusal;
+    font_notice().clear();
     return location;
 }
 
@@ -773,20 +797,20 @@ BundledFontDiagnostics bundled_font_diagnostics() noexcept {
 }
 
 std::string bundled_font_refusal() {
-    const std::lock_guard<std::mutex> lock(detail::font_refusal_mutex);
-    std::string copy = detail::font_refusal;
+    const std::lock_guard<std::mutex> lock(detail::font_refusal_mutex());
+    std::string copy = detail::font_refusal();
     return copy;
 }
 
 std::string bundled_font_notice() {
-    const std::lock_guard<std::mutex> lock(detail::font_refusal_mutex);
-    std::string copy = detail::font_notice;
+    const std::lock_guard<std::mutex> lock(detail::font_refusal_mutex());
+    std::string copy = detail::font_notice();
     return copy;
 }
 
 std::string bundled_font_pack_refusal() {
-    const std::lock_guard<std::mutex> lock(detail::font_refusal_mutex);
-    std::string copy = detail::font_pack_refusal;
+    const std::lock_guard<std::mutex> lock(detail::font_refusal_mutex());
+    std::string copy = detail::font_pack_refusal();
     return copy;
 }
 

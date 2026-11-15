@@ -25,8 +25,9 @@ EffectRegistry make_built_in_effect_registry() {
 } // namespace
 
 const EffectRegistry& built_in_effect_registry() {
-    static const EffectRegistry registry = make_built_in_effect_registry();
-    return registry;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const EffectRegistry* const registry = new const EffectRegistry(make_built_in_effect_registry());
+    return *registry;
 }
 
 void install_built_in_effect_registry() {

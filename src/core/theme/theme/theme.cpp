@@ -1568,8 +1568,10 @@ std::shared_ptr<const Theme> Theme::create(const ThemeDefinition& definition) {
 }
 
 std::shared_ptr<const detail::ThemeSourceRecord> detail::empty_theme_source() {
-    static const std::shared_ptr<const ThemeSourceRecord> empty = std::make_shared<const ThemeSourceRecord>();
-    return empty;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const std::shared_ptr<const ThemeSourceRecord>* const empty =
+        new const std::shared_ptr<const ThemeSourceRecord>(std::make_shared<const ThemeSourceRecord>());
+    return *empty;
 }
 
 std::shared_ptr<const Theme> detail::ThemeAccess::create_holding(

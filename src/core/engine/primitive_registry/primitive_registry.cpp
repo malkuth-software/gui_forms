@@ -371,8 +371,9 @@ std::span<const EnginePrimitive* const> PrimitiveRegistry::primitives() const no
 }
 
 const PrimitiveRegistry& builtin_primitive_registry() {
-    static const PrimitiveRegistry registry = make_builtin_registry();
-    return registry;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const PrimitiveRegistry* const registry = new const PrimitiveRegistry(make_builtin_registry());
+    return *registry;
 }
 
 } // namespace gui_forms

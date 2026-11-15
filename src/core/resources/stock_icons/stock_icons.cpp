@@ -116,8 +116,9 @@ BuiltInSet read_built_in_set() {
 
 const BuiltInSet& built_in_set() {
     // A function-local static: read once, thread-safe, kept until exit.
-    static const BuiltInSet set = read_built_in_set();
-    return set;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const BuiltInSet* const set = new const BuiltInSet(read_built_in_set());
+    return *set;
 }
 
 bool valid_layer_paint(StockIconPaint paint) noexcept {

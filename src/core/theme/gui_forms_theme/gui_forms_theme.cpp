@@ -448,8 +448,9 @@ FloorEvaluation evaluate_floor() {
 const FloorEvaluation& floor_evaluation() {
     // Evaluated once, on the first call's thread; C++ makes the
     // initialization thread-safe, and it is never changed afterwards.
-    static const FloorEvaluation evaluation = evaluate_floor();
-    return evaluation;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const FloorEvaluation* const evaluation = new const FloorEvaluation(evaluate_floor());
+    return *evaluation;
 }
 
 // -- the light sheet ----------------------------------------------------------------
@@ -949,8 +950,9 @@ std::string_view gui_forms_light_sheet() noexcept { return light_sheet; }
 const GuiFormsThemeBuild& gui_forms_theme_build() {
     // Built once, on the first call's thread; C++ makes the initialization
     // thread-safe, and the build is never changed afterwards.
-    static const GuiFormsThemeBuild build = build_gui_forms_theme();
-    return build;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const GuiFormsThemeBuild* const build = new const GuiFormsThemeBuild(build_gui_forms_theme());
+    return *build;
 }
 
 std::shared_ptr<const Theme> gui_forms_theme() {

@@ -1696,20 +1696,22 @@ const Theme& Control::inherited_theme() const noexcept {
 
 const KeyMap& Control::effective_key_map() const noexcept {
     // Made once, on first use; never modified.
-    static const KeyMap detached_key_map = pc_key_map();
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const KeyMap* const detached_key_map = new const KeyMap(pc_key_map());
     if (surface_root_ != nullptr) return (*surface_root_).key_map();
-    return detached_key_map;
+    return *detached_key_map;
 }
 
 const HostLocale& Control::effective_locale() const noexcept {
     // Made once, on first use; never modified.
-    static const HostLocale detached_locale = portable_host_locale();
-    if (surface_root_ == nullptr) return detached_locale;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const HostLocale* const detached_locale = new const HostLocale(portable_host_locale());
+    if (surface_root_ == nullptr) return *detached_locale;
     const std::shared_ptr<ApplicationResources> shared = (*surface_root_).resources();
     // The window holds its resources for as long as the control is
     // attached to it, so the reference outlives this local pointer.
     if (shared) return (*shared).locale();
-    return detached_locale;
+    return *detached_locale;
 }
 
 std::uint64_t Control::effective_locale_generation() const noexcept {
@@ -2625,8 +2627,9 @@ void Control::adopt_property_link(std::unique_ptr<PropertyLink> link) {
 const ControlBindingsCollection& Control::data_bindings() const {
     require_mutable();
     if (data_bindings_) return *data_bindings_;
-    static const ControlBindingsCollection empty;
-    return empty;
+    // Never destroyed (rule 1: process termination releases none of our state).
+    static const ControlBindingsCollection* const empty = new const ControlBindingsCollection();
+    return *empty;
 }
 
 void Control::set_style(ControlStyles style, bool enabled) {
