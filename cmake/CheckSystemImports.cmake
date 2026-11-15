@@ -39,10 +39,24 @@ foreach(binary IN LISTS binaries)
         if(NOT listed EQUAL 0)
             message(FATAL_ERROR "CheckSystemImports: otool failed on ${binary}: ${listing_error}")
         endif()
+        # A dylib's `otool -L` listing starts with its own install name
+        # (LC_ID_DYLIB, @rpath/libgui_forms_abi.1.dylib), which is not an
+        # import; `otool -D` names it, and it is left out.
+        execute_process(COMMAND otool -D "${binary}"
+            OUTPUT_VARIABLE identity_listing ERROR_QUIET RESULT_VARIABLE identity_listed)
+        set(identity "")
+        if(identity_listed EQUAL 0)
+            string(REPLACE "\n" ";" identity_lines "${identity_listing}")
+            list(LENGTH identity_lines identity_count)
+            if(identity_count GREATER 1)
+                list(GET identity_lines 1 identity)
+                string(STRIP "${identity}" identity)
+            endif()
+        endif()
         string(REPLACE "\n" ";" lines "${listing}")
         foreach(line IN LISTS lines)
             # "\t/usr/lib/libSystem.B.dylib (compatibility version ...)".
-            if(line MATCHES "^[ \t]+([^ \t]+) \\(")
+            if(line MATCHES "^[ \t]+([^ \t]+) \\(" AND NOT CMAKE_MATCH_1 STREQUAL identity)
                 list(APPEND imports "${CMAKE_MATCH_1}")
             endif()
         endforeach()
