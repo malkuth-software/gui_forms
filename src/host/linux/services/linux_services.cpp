@@ -65,6 +65,10 @@ int ForeignWindowScope::handle(Display *display, XErrorEvent *error) noexcept {
       absorbed = (bad_window && names_window) ||
                  ((*error).error_code == BadMatch && (*error).request_code == X_SetInputFocus);
       break;
+    case ForeignWindowErrors::selection_reply:
+      absorbed = (bad_window && names_window) || (*error).error_code == BadAtom ||
+                 ((*error).error_code == BadMatch && (*error).request_code == X_ChangeProperty);
+      break;
     default:
       absorbed = false;
       break;
@@ -769,7 +773,7 @@ std::vector<std::byte> latin1_from_utf8(std::string_view text) {
 }
 } // namespace
 void Runtime::selection_request(const XSelectionRequestEvent &request) {
-  const ForeignWindowScope guard(display, request.requestor);
+  const ForeignWindowScope guard(display, request.requestor, ForeignWindowErrors::selection_reply);
   XEvent response{};
   response.xselection.type = SelectionNotify;
   response.xselection.display = display;

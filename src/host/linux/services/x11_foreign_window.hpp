@@ -15,6 +15,11 @@ enum class ForeignWindowErrors {
   // viewable (hidden, iconified, or unmapped since our state last heard),
   // or BadWindow naming the scope's window (A-gf-host-01-F1).
   input_focus,
+  // A reply to a foreign selection request: BadWindow naming the scope's
+  // window, or BadAtom or BadMatch, since the property and target atoms
+  // (and so the property's type and format) are the requestor's choice
+  // (A-gf-host-01-F3).
+  selection_reply,
 };
 
 // A foreign selection/drop client can disappear between an event and our reply.

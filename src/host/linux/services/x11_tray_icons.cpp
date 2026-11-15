@@ -1,4 +1,5 @@
 #include "x11_tray_icons.hpp"
+#include "x11_foreign_window.hpp"
 #include "../../../core/host/image/host_image_pixels.hpp"
 
 #include <X11/Xatom.h>
@@ -58,7 +59,9 @@ unsigned long channel(unsigned value, unsigned long mask) noexcept {
 X11TrayIcons::X11TrayIcons(Display* display, Sink sink) noexcept : display_(display), sink_(sink) {}
 
 X11TrayIcons::~X11TrayIcons() {
-    for (const Icon& icon : icons_) XDestroyWindow(display_, icon.window);
+    for (const Icon& icon : icons_) {
+        if (icon.window != None) XDestroyWindow(display_, icon.window);
+    }
     icons_.clear();
     XFlush(display_);
 }
@@ -91,7 +94,11 @@ HostServiceStatus X11TrayIcons::add(HostTrayIconId icon_id, const HostTrayIconRe
     dock.xclient.data.l[0] = CurrentTime;
     dock.xclient.data.l[1] = system_tray_request_dock;
     dock.xclient.data.l[2] = static_cast<long>(window);
-    XSendEvent(display_, tray, False, NoEventMask, &dock);
+    {
+        // The tray may exit between the owner query and the request.
+        const ForeignWindowScope guard(display_, tray);
+        XSendEvent(display_, tray, False, NoEventMask, &dock);
+    }
     XFlush(display_);
     Icon icon;
     icon.id = icon_id;
@@ -105,6 +112,8 @@ HostServiceStatus X11TrayIcons::add(HostTrayIconId icon_id, const HostTrayIconRe
 HostServiceStatus X11TrayIcons::update(HostTrayIconId icon_id, const HostTrayIconRequest& request) {
     for (Icon& icon : icons_) {
         if (icon.id != icon_id) continue;
+        // A tray that exited took the icon's window with it.
+        if (icon.window == None) return {HostServiceError::backend_failure};
         icon.images = request.images;
         XClearWindow(display_, icon.window);
         draw(icon);
@@ -117,8 +126,10 @@ HostServiceStatus X11TrayIcons::update(HostTrayIconId icon_id, const HostTrayIco
 void X11TrayIcons::remove(HostTrayIconId icon_id) noexcept {
     for (std::size_t index = 0; index < icons_.size(); ++index) {
         if (icons_[index].id != icon_id) continue;
-        XDestroyWindow(display_, icons_[index].window);
-        XFlush(display_);
+        if (icons_[index].window != None) {
+            XDestroyWindow(display_, icons_[index].window);
+            XFlush(display_);
+        }
         icons_.erase(icons_.begin() + static_cast<std::ptrdiff_t>(index));
         return;
     }
@@ -134,7 +145,12 @@ X11TrayIcons::Icon* X11TrayIcons::find_window(::Window window) noexcept {
 bool X11TrayIcons::handle_event(const XEvent& event) {
     Icon* const icon = find_window(event.xany.window);
     if (icon == nullptr) return false;
-    if (event.type == Expose && event.xexpose.count == 0) {
+    if (event.type == DestroyNotify && event.xdestroywindow.window == (*icon).window) {
+        // A tray that exits without a save-set destroys the docked window
+        // (A-gf-host-01-F3); the icon stays listed, so remove still finds
+        // it, but no request names the destroyed window again.
+        (*icon).window = None;
+    } else if (event.type == Expose && event.xexpose.count == 0) {
         draw(*icon);
     } else if (event.type == ConfigureNotify) {
         const int smaller = std::min(event.xconfigure.width, event.xconfigure.height);
