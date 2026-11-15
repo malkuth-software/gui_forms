@@ -103,6 +103,7 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/classes/generated/abi_class_registry.cpp
     src/abi/stable/tables/abi_splashscreen.cpp
     src/abi/stable/custom/abi_custom_control.cpp
+    src/abi/stable/custom/abi_composite.cpp
     src/abi/stable/windows/abi_windows_paint_endpoint.cpp
     src/abi/stable/tables/abi_dispatch.cpp
     src/abi/stable/tables/abi_events.cpp

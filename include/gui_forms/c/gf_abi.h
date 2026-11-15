@@ -74,7 +74,9 @@ extern "C" {
  * additions only; 1.5 adds the window outer band and shaping, the
  * window's pointer location, the list view table (GF_TABLE_LIST_VIEW), the
  * failure detail (gf_failure_detail, diagnostics.failure_detail), the
- * gate frame kind and fixed-size array event fields, additions only. */
+ * gate frame kind, fixed-size array event fields and the composite controls
+ * (gf_composite_spec and the custom controls table's load_composite,
+ * create_composite, perform_composite and composite_child), additions only. */
 #define GF_ABI_MAJOR 1u
 #define GF_ABI_MINOR 5u
 
@@ -2816,6 +2818,48 @@ typedef struct gf_custom_control_spec {
     const gf_custom_layout_callbacks* layout;
 } gf_custom_control_spec;
 
+/*
+ * Since 1.5. A composite control (a `.control` document): parts, states,
+ * properties, events and commands declared in the document, its children
+ * stock controls, the C form of a C++ CompositeControl. load_composite
+ * reads, checks and compiles the document once into a definition, an
+ * object the caller holds like any other (objects.release frees it; the
+ * controls made from it keep what they need). The children's element
+ * names are resolved among child_types, each a schema type id in any
+ * spelling (GF_TABLE_SCHEMA), at most GF_COMPOSITE_MAXIMUM_CHILD_TYPES;
+ * a type that is not a control made from its stable id alone is refused.
+ * file names the document in the diagnostics. Everything in the record is
+ * read during the call only; struct_size is at least the 1.5 size and
+ * reserved zero. A refused document gives GF_STATUS_INVALID_ARGUMENT with
+ * its diagnostics, one line each, as the failure's message as far as it
+ * holds them (runtime.error_detail), and no definition.
+ *
+ * create_composite makes a control from a definition with stable_id (the
+ * objects table's rule) and gives the caller one reference; its children
+ * have stable_id.<local> for each `@local` of the document. Its type id
+ * (objects.type_id) is the document's name in snake case, which the
+ * schema does not list; its own properties are reached through
+ * GF_TABLE_PROPERTIES under their registered names, and its declared
+ * events through events.subscribe under theirs, with the payload, when it
+ * has one, as the field "value". perform_composite runs one of its
+ * commands by name, as a part's activation does; performed receives 1
+ * when it ran, 0 when it is not enabled (it may be null), and a name the
+ * document does not declare gives GF_STATUS_NOT_FOUND. composite_child
+ * gives a new reference to the child of local ID local_id (`title` for
+ * `@title`), GF_STATUS_NOT_FOUND when there is none. Another control
+ * gives GF_STATUS_WRONG_HANDLE_KIND. UI thread only.
+ */
+#define GF_COMPOSITE_MAXIMUM_CHILD_TYPES 64u
+
+typedef struct gf_composite_spec {
+    uint32_t struct_size;
+    uint32_t reserved;
+    gf_utf8_view file;
+    gf_utf8_view document;
+    const gf_utf8_view* child_types;
+    uint64_t child_type_count;
+} gf_composite_spec;
+
 typedef struct gf_custom_controls_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -2829,6 +2873,12 @@ typedef struct gf_custom_controls_table {
      * declared without GF_CUSTOM_PROPERTY_CHANGE_NOTIFICATIONS gives
      * INVALID_ARGUMENT; another control gives WRONG_HANDLE_KIND. */
     gf_status (GF_CALL* notify_changed)(gf_object object, uint64_t index);
+    /* Since 1.5. Composite controls (load_composite to composite_child),
+     * below. */
+    gf_status (GF_CALL* load_composite)(const gf_composite_spec* spec, gf_object* definition);
+    gf_status (GF_CALL* create_composite)(gf_object definition, gf_utf8_view stable_id, gf_object* object);
+    gf_status (GF_CALL* perform_composite)(gf_object control, gf_utf8_view command, uint32_t* performed);
+    gf_status (GF_CALL* composite_child)(gf_object control, gf_utf8_view local_id, gf_object* child);
 } gf_custom_controls_table;
 
 /*

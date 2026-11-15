@@ -1,7 +1,7 @@
 // The C# interop against the built library: the generated layout against the
 // manifest, negotiation, an object handle's life, a refusal as an exception,
 // the callback thunks, and a native exception reflected as a NativeException
-// with its frames (C ABI 1.2). A handler that throws is caught by its thunk under
+// with its frames (C ABI 1.2), composite controls (C ABI 1.5). A handler that throws is caught by its thunk under
 // the library's frames, which it snapshots, and the thread's depth is as it
 // was once the call returns (the C kit checks the same balance for C
 // callbacks; tests/shadow_frames_tests.cpp for C++ unwinding).
@@ -389,6 +389,72 @@ internal static unsafe class Program
         ulong alive = 99u;
         Abi.check(table.close(&alive));
         expect(alive == 0u, "closing with no application counts no window");
+    }
+
+    // A composite control's document: a boolean a command toggles and a
+    // label child bound to a text property.
+    private const string card_document =
+        "<control xmlns=\"urn:gui-forms:control:1\" name=\"csharp-card\" version=\"1.0\" base=\"user-control\" family=\"card\">\n" +
+        "  <property name=\"title\" kind=\"text\" default=\"\" category=\"Appearance\"/>\n" +
+        "  <property name=\"checked\" kind=\"boolean\" default=\"false\" category=\"Behavior\"/>\n" +
+        "  <command name=\"toggle\" enabled=\"enabled(self)\" run=\"toggle(checked)\"/>\n" +
+        "  <part name=\"face\" role=\"face\" box=\"inset(region, 0)\"/>\n" +
+        "  <children>\n" +
+        "    <flex-panel id=\"@header\" dock=\"top\">\n" +
+        "      <label id=\"@title\" text=\"bind(self.title, one_way)\"/>\n" +
+        "    </flex-panel>\n" +
+        "  </children>\n" +
+        "  <focus target=\"none\"/>\n" +
+        "  <semantics role=\"group\" name=\"property(title)\" children=\"exposed\"/>\n" +
+        "</control>\n";
+
+    // Composite controls (C ABI 1.5): a refused document throws with its
+    // diagnostics, a loaded one makes a control whose command runs and
+    // whose child is found; the definition goes before the control.
+    private static void composites()
+    {
+        bool refused = false;
+        try
+        {
+            using CompositeDefinition wrong = CompositeDefinition.load("csharp-card.control", card_document, "label");
+        }
+        catch (GuiFormsException error)
+        {
+            refused = error.status == Constants.GF_STATUS_INVALID_ARGUMENT;
+        }
+        expect(refused, "a document naming a type not listed is refused");
+        ObjectHandle card;
+        using (CompositeDefinition definition =
+                   CompositeDefinition.load("csharp-card.control", card_document, "flex_panel", "label"))
+        {
+            card = definition.create("csharp.composite.card");
+        }
+        using (card)
+        {
+            expect(Composite.perform(card, "toggle"), "the composite's command runs");
+            gf_value got = default;
+            got.struct_size = (uint)sizeof(gf_value);
+            byte* text = stackalloc byte[64];
+            ulong required = 0;
+            fixed (byte* property = "checked"u8)
+            {
+                Abi.check(Abi.properties.get(card.value, Utf8.view(property, 7), &got, text, 64, &required));
+            }
+            expect(got.kind == Constants.GF_VALUE_KIND_BOOLEAN && got.boolean == 1u, "the command toggled the property");
+            using ObjectHandle? title = Composite.child(card, "title");
+            expect(title != null, "the title child is found");
+            expect(Composite.child(card, "nothing") == null, "an unknown local id is not found");
+            bool undeclared = false;
+            try
+            {
+                Composite.perform(card, "explode");
+            }
+            catch (GuiFormsException error)
+            {
+                undeclared = error.status == Constants.GF_STATUS_NOT_FOUND;
+            }
+            expect(undeclared, "an undeclared command throws not found");
+        }
     }
 
     private static int unhandled_raised;
@@ -982,6 +1048,7 @@ internal static unsafe class Program
         content();
         list_view_items();
         event_field_arrays();
+        composites();
         expect(unhandled_raised == 0, "no failure in these checks ran under an event loop");
         Console.WriteLine(failures == 0 ? "gui_forms_abi_csharp: all checks passed" :
                                           $"gui_forms_abi_csharp: {failures} checks failed");

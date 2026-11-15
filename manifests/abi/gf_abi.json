@@ -1777,6 +1777,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_COMPOSITE_MAXIMUM_CHILD_TYPES",
+      "value": 64,
+      "type": "uint32"
+    },
+    {
       "name": "GF_SOURCE_UPDATE_ON_VALIDATION",
       "value": 0,
       "type": "uint32"
@@ -10060,9 +10065,53 @@
       ]
     },
     {
+      "name": "gf_composite_spec",
+      "kind": "extensible",
+      "size": 56,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "file",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "document",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "child_types",
+          "type": "const gf_utf8_view*",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "child_type_count",
+          "type": "uint64_t",
+          "offset": 48,
+          "size": 8
+        }
+      ]
+    },
+    {
       "name": "gf_custom_controls_table",
       "kind": "table",
-      "size": 24,
+      "size": 56,
       "align": 8,
       "fields": [
         {
@@ -10120,6 +10169,98 @@
             ]
           },
           "since": "1.0"
+        },
+        {
+          "name": "load_composite",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "spec",
+                "type": "const gf_composite_spec*"
+              },
+              {
+                "name": "definition",
+                "type": "gf_object*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "create_composite",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "definition",
+                "type": "gf_object"
+              },
+              {
+                "name": "stable_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "object",
+                "type": "gf_object*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "perform_composite",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "control",
+                "type": "gf_object"
+              },
+              {
+                "name": "command",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "performed",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.5"
+        },
+        {
+          "name": "composite_child",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "control",
+                "type": "gf_object"
+              },
+              {
+                "name": "local_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "child",
+                "type": "gf_object*"
+              }
+            ]
+          },
+          "since": "1.5"
         }
       ]
     },

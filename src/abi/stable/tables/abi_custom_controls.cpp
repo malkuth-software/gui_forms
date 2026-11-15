@@ -4,12 +4,16 @@
 #include "abi_control_entry.hpp"
 #include "abi_tables.hpp"
 
+#include "../custom/abi_composite.hpp"
 #include "../custom/abi_custom_control.hpp"
 #include "../schema/abi_create_with.hpp"
 #include "../schema/abi_schema.hpp"
 #include "../values/abi_values.hpp"
 
+#include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/schema.hpp"
+
+#include "../../../core/control_language/composite_definition/composite_definition.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -26,6 +30,11 @@ namespace {
 
 constexpr SlotIdentity create_slot{GF_TABLE_CUSTOM_CONTROLS, 0U};
 constexpr SlotIdentity notify_changed_slot{GF_TABLE_CUSTOM_CONTROLS, 1U};
+// Since 1.5: composite controls.
+constexpr SlotIdentity load_composite_slot{GF_TABLE_CUSTOM_CONTROLS, 2U};
+constexpr SlotIdentity create_composite_slot{GF_TABLE_CUSTOM_CONTROLS, 3U};
+constexpr SlotIdentity perform_composite_slot{GF_TABLE_CUSTOM_CONTROLS, 4U};
+constexpr SlotIdentity composite_child_slot{GF_TABLE_CUSTOM_CONTROLS, 5U};
 
 constexpr std::uint32_t spec_size_1_0 = 80U;
 constexpr std::uint32_t callbacks_size_1_0 = 48U;
@@ -40,6 +49,12 @@ constexpr std::uint32_t layout_size_1_2 = 32U;
 static_assert(sizeof(gf_custom_layout_callbacks) == layout_size_1_2);
 static_assert(sizeof(gf_custom_property) == property_size_1_0);
 static_assert(sizeof(gf_paint_target) == paint_target_size_1_0);
+// The 1.5 composite record: two sizes, two views, the types and their count.
+constexpr std::uint32_t composite_spec_size_1_5 = 56U;
+static_assert(sizeof(gf_composite_spec) == composite_spec_size_1_5);
+// A document a composite is loaded from, at most (a `.control` file is a
+// few kilobytes; the generated header embeds at most 60,000 bytes).
+constexpr std::size_t maximum_composite_document_bytes = 1048576U;
 
 constexpr std::size_t maximum_text_bytes = 256U;
 // Descriptions are prose for the property grid; longer is not useful.
@@ -303,11 +318,233 @@ gf_status GF_CALL custom_controls_notify_changed(gf_object object, std::uint64_t
     return call_slot(notify_changed_slot, custom_controls_notify_changed_body, object, index);
 }
 
+// -- composite controls (since 1.5) ------------------------------------------
+
+// The caller's child type names, read whole before anything is made.
+gf_status read_child_type_names(const gf_composite_spec& spec, std::vector<std::string_view>& names) {
+    if (spec.child_type_count > GF_COMPOSITE_MAXIMUM_CHILD_TYPES ||
+        (spec.child_type_count != 0U && spec.child_types == nullptr)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, load_composite_slot,
+                    "at most 64 child types, and child_types when there are any");
+    }
+    names.reserve(static_cast<std::size_t>(spec.child_type_count));
+    for (std::uint64_t index = 0U; index < spec.child_type_count; ++index) {
+        std::string_view name;
+        const gf_status read = read_text(spec.child_types[index], load_composite_slot, name);
+        if (read != GF_STATUS_OK) {
+            return read;
+        }
+        if (name.empty() || name.size() > maximum_text_bytes) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, load_composite_slot, "a child type has 1 to 256 bytes");
+        }
+        names.push_back(name);
+    }
+    return GF_STATUS_OK;
+}
+
+// The refusal's diagnostics, one line each, as the failure's message.
+std::string joined_diagnostics(const std::vector<std::string>& diagnostics) {
+    std::string joined = "the document is refused";
+    for (const std::string& line : diagnostics) {
+        joined += '\n';
+        joined += line;
+    }
+    return joined;
+}
+
+gf_status load_definition(const gf_composite_spec& spec, gf_object& definition) {
+    if (spec.reserved != 0U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, load_composite_slot, "reserved is zero");
+    }
+    std::string_view file;
+    const gf_status read_file = read_text(spec.file, load_composite_slot, file);
+    if (read_file != GF_STATUS_OK) {
+        return read_file;
+    }
+    std::string_view document;
+    const gf_status read_document = read_text(spec.document, load_composite_slot, document);
+    if (read_document != GF_STATUS_OK) {
+        return read_document;
+    }
+    if (file.size() > maximum_text_bytes || document.empty() || document.size() > maximum_composite_document_bytes) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, load_composite_slot,
+                    "file has at most 256 bytes and the document 1 byte to 1 MiB");
+    }
+    std::vector<std::string_view> names;
+    const gf_status named = read_child_type_names(spec, names);
+    if (named != GF_STATUS_OK) {
+        return named;
+    }
+    const gf_status entered = registry().enter_ui(load_composite_slot, true);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    CompositeChildTypesRead types{};
+    read_composite_child_types(names, types);
+    if (types.refused) {
+        std::string refusal(types.refusal);
+        refusal += ": ";
+        refusal += names[types.refused_index];
+        return fail(GF_STATUS_INVALID_ARGUMENT, load_composite_slot, refusal);
+    }
+    const CompositeLoadResult loaded = load_composite_definition(file, document, types.types);
+    if (!loaded) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, load_composite_slot, joined_diagnostics(loaded.diagnostics));
+    }
+    const std::shared_ptr<CompositeDefinitionHandle> handle =
+        std::make_shared<CompositeDefinitionHandle>(loaded.definition);
+    definition = registry().add_reference(handle);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL custom_controls_load_composite(const gf_composite_spec* spec, gf_object* definition) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(load_composite_slot.table_id, load_composite_slot.slot_index);
+        if (spec == nullptr || definition == nullptr || (*spec).struct_size < composite_spec_size_1_5) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, load_composite_slot,
+                        "load_composite needs a gf_composite_spec of at least the 1.5 size and a definition output");
+        }
+        const gf_status loaded = load_definition(*spec, *definition);
+        return loaded;
+    } catch (...) {
+        const gf_status failed = fail_with_current_exception(load_composite_slot);
+        // As create: a throw after enter_ui leaves no binding.
+        try {
+            registry().unbind_if_idle();
+        } catch (...) {
+        }
+        return failed;
+    }
+}
+
+gf_status make_composite(gf_object definition, gf_utf8_view stable_id, gf_object& object) {
+    std::string_view id_text;
+    const gf_status read_id = read_text(stable_id, create_composite_slot, id_text);
+    if (read_id != GF_STATUS_OK) {
+        return read_id;
+    }
+    if (!valid_stable_id(id_text)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, create_composite_slot, stable_id_rule);
+    }
+    const gf_status entered = registry().enter_ui(create_composite_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Component::Ptr found;
+    const gf_status looked = registry().find_component(definition, create_composite_slot, found);
+    if (looked != GF_STATUS_OK) {
+        return looked;
+    }
+    const std::shared_ptr<CompositeDefinitionHandle> handle =
+        std::dynamic_pointer_cast<CompositeDefinitionHandle>(found);
+    if (!handle) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, create_composite_slot, "create_composite takes a definition");
+    }
+    if (!(*handle).is_alive() || (*handle).definition() == nullptr) {
+        return fail(GF_STATUS_DISPOSED, create_composite_slot, "the definition has been disposed");
+    }
+    const Control::Ptr made = make_control<CompositeControl>(StableId(std::string(id_text)), (*handle).definition());
+    object = registry().add_reference(made);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL custom_controls_create_composite(gf_object definition, gf_utf8_view stable_id,
+                                                   gf_object* object) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(create_composite_slot.table_id, create_composite_slot.slot_index);
+        if (object == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, create_composite_slot, "create_composite needs an object output");
+        }
+        const gf_status made = make_composite(definition, stable_id, *object);
+        return made;
+    } catch (...) {
+        return fail_with_current_exception(create_composite_slot);
+    }
+}
+
+// The composite `object` names, entered on the UI thread.
+gf_status enter_composite(gf_object object, SlotIdentity slot, std::shared_ptr<CompositeControl>& composite) {
+    const gf_status entered =
+        enter_typed_control<CompositeControl>(object, slot, "the control is not a composite control", composite);
+    return entered;
+}
+
+gf_status perform_command(gf_object control, gf_utf8_view command, std::uint32_t* performed) {
+    std::string_view name;
+    const gf_status read = read_text(command, perform_composite_slot, name);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    std::shared_ptr<CompositeControl> composite;
+    const gf_status entered = enter_composite(control, perform_composite_slot, composite);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    bool declared = false;
+    for (const control_language::CompositeCommandDefinition& listed : (*composite).definition().commands) {
+        if (listed.name == name) declared = true;
+    }
+    if (!declared) {
+        return fail(GF_STATUS_NOT_FOUND, perform_composite_slot, "the composite declares no command of that name");
+    }
+    const bool ran = (*composite).perform(name);
+    if (performed != nullptr) *performed = ran ? 1U : 0U;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL custom_controls_perform_composite(gf_object control, gf_utf8_view command,
+                                                    std::uint32_t* performed) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(perform_composite_slot.table_id, perform_composite_slot.slot_index);
+        const gf_status reported = perform_command(control, command, performed);
+        return reported;
+    } catch (...) {
+        return fail_with_current_exception(perform_composite_slot);
+    }
+}
+
+gf_status find_child(gf_object control, gf_utf8_view local_id, gf_object& child) {
+    std::string_view local;
+    const gf_status read = read_text(local_id, composite_child_slot, local);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    std::shared_ptr<CompositeControl> composite;
+    const gf_status entered = enter_composite(control, composite_child_slot, composite);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const Control::Ptr found = (*composite).child(local);
+    if (!found) {
+        return fail(GF_STATUS_NOT_FOUND, composite_child_slot, "the composite has no child of that local id");
+    }
+    child = registry().add_reference(found);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL custom_controls_composite_child(gf_object control, gf_utf8_view local_id,
+                                                  gf_object* child) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(composite_child_slot.table_id, composite_child_slot.slot_index);
+        if (child == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, composite_child_slot, "composite_child needs a child output");
+        }
+        const gf_status found = find_child(control, local_id, *child);
+        return found;
+    } catch (...) {
+        return fail_with_current_exception(composite_child_slot);
+    }
+}
+
 constexpr gf_custom_controls_table table{
     .struct_size = sizeof(gf_custom_controls_table),
     .abi_minor = GF_ABI_MINOR,
     .create = &custom_controls_create,
     .notify_changed = &custom_controls_notify_changed,
+    .load_composite = &custom_controls_load_composite,
+    .create_composite = &custom_controls_create_composite,
+    .perform_composite = &custom_controls_perform_composite,
+    .composite_child = &custom_controls_composite_child,
 };
 
 } // namespace

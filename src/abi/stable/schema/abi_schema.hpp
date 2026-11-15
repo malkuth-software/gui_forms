@@ -86,6 +86,12 @@ struct Schema final {
 [[nodiscard]] std::size_t find_catalog_type(std::string_view name);
 [[nodiscard]] std::string_view catalog_type_id(std::size_t index);
 [[nodiscard]] Component::Ptr create_catalog_type(std::size_t index, StableId stable_id);
+// The recipe create_catalog_type calls for the type at index, as a
+// function a composite's child type keeps (abi_composite.hpp); it makes
+// null for a type made neither from a stable id nor from nothing. Throws
+// std::out_of_range past the types.
+using CatalogCreator = Component::Ptr (*)(StableId stable_id);
+[[nodiscard]] CatalogCreator catalog_type_creator(std::size_t index);
 // The window type (windows.create's object, since 1.1): listed after the
 // registry's types, with Window's chrome properties and its interactions.
 // objects.create does not make it.

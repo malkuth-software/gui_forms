@@ -358,6 +358,7 @@ public static class Constants
     public const uint GF_CUSTOM_PROPERTY_COMBINABLE = 2u;
     public const uint GF_CUSTOM_PROPERTY_CHANGE_NOTIFICATIONS = 4u;
     public const uint GF_CUSTOM_MAXIMUM_PROPERTIES = 256u;
+    public const uint GF_COMPOSITE_MAXIMUM_CHILD_TYPES = 64u;
     public const uint GF_SOURCE_UPDATE_ON_VALIDATION = 0u;
     public const uint GF_SOURCE_UPDATE_ON_PROPERTY_CHANGED = 1u;
     public const uint GF_SOURCE_UPDATE_NEVER = 2u;

@@ -8,6 +8,7 @@
 
 #include "abi_tables.hpp"
 
+#include "../custom/abi_composite.hpp"
 #include "../events/abi_event_catalog.hpp"
 #include "../events/abi_interactions.hpp"
 #include "../registry/abi_registry.hpp"
@@ -79,7 +80,10 @@ SubscriptionToken connect_interaction(Component& source, std::string_view name,
             return token;
         }
     }
-    return SubscriptionToken{};
+    // A composite control's declared events (since 1.5) are its
+    // definition's, not a catalog type's.
+    SubscriptionToken declared = connect_composite_event(source, name, binding);
+    return declared;
 }
 
 namespace {

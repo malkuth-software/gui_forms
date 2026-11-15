@@ -120,6 +120,8 @@ Types
      -  
    * - :cpp:class:`gf_combo_box_hooks <gf_combo_box_hooks>`
      -  
+   * - :cpp:class:`gf_composite_spec <gf_composite_spec>`
+     -  
    * - :cpp:class:`gf_container_control_class <gf_container_control_class>`
      -  
    * - :cpp:class:`gf_content_caret_stop <gf_content_caret_stop>`
@@ -764,6 +766,14 @@ Types
    .. cpp:function:: gf_status create(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object) const noexcept
 
    .. cpp:function:: gf_status notify_changed(gf_object object, uint64_t index) const noexcept
+
+   .. cpp:function:: gf_status load_composite(const gf_composite_spec* spec, gf_object* definition) const noexcept
+
+   .. cpp:function:: gf_status create_composite(gf_object definition, gf_utf8_view stable_id, gf_object* object) const noexcept
+
+   .. cpp:function:: gf_status perform_composite(gf_object control, gf_utf8_view command, uint32_t* performed) const noexcept
+
+   .. cpp:function:: gf_status composite_child(gf_object control, gf_utf8_view local_id, gf_object* child) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -2043,6 +2053,24 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_composite_spec
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view file
+
+   .. cpp:member:: gf_utf8_view document
+
+   .. cpp:member:: const gf_utf8_view* child_types
+
+   .. cpp:member:: uint64_t child_type_count
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_container_control_class
 
    ``#include <gui_forms/c/gf_abi_classes.h>``
@@ -2536,6 +2564,14 @@ Types
    .. cpp:member:: gf_status (*create)(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object)
 
    .. cpp:member:: gf_status (*notify_changed)(gf_object object, uint64_t index)
+
+   .. cpp:member:: gf_status (*load_composite)(const gf_composite_spec* spec, gf_object* definition)
+
+   .. cpp:member:: gf_status (*create_composite)(gf_object definition, gf_utf8_view stable_id, gf_object* object)
+
+   .. cpp:member:: gf_status (*perform_composite)(gf_object control, gf_utf8_view command, uint32_t* performed)
+
+   .. cpp:member:: gf_status (*composite_child)(gf_object control, gf_utf8_view local_id, gf_object* child)
 
    .. cpp:member:: uint32_t struct_size
 

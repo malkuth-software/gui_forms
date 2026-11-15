@@ -1740,6 +1740,40 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status load_composite(const gf_composite_spec* spec, gf_object* definition) const noexcept {
+        if (table_.struct_size < 32u || table_.load_composite == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.load_composite(spec, definition);
+        return called;
+    }
+
+    [[nodiscard]] gf_status create_composite(gf_object definition, gf_utf8_view stable_id,
+                                             gf_object* object) const noexcept {
+        if (table_.struct_size < 40u || table_.create_composite == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.create_composite(definition, stable_id, object);
+        return called;
+    }
+
+    [[nodiscard]] gf_status perform_composite(gf_object control, gf_utf8_view command,
+                                              uint32_t* performed) const noexcept {
+        if (table_.struct_size < 48u || table_.perform_composite == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.perform_composite(control, command, performed);
+        return called;
+    }
+
+    [[nodiscard]] gf_status composite_child(gf_object control, gf_utf8_view local_id, gf_object* child) const noexcept {
+        if (table_.struct_size < 56u || table_.composite_child == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.composite_child(control, local_id, child);
+        return called;
+    }
+
 private:
     gf_custom_controls_table table_;
 };

@@ -980,7 +980,19 @@ public unsafe struct gf_custom_control_spec
     public gf_custom_layout_callbacks* layout;
 }
 
-/// <summary>gf_custom_controls_table (table, 24 bytes).</summary>
+/// <summary>gf_composite_spec (extensible, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_composite_spec
+{
+    public uint struct_size;
+    public uint reserved;
+    public gf_utf8_view file;
+    public gf_utf8_view document;
+    public gf_utf8_view* child_types;
+    public ulong child_type_count;
+}
+
+/// <summary>gf_custom_controls_table (table, 56 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_custom_controls_table
 {
@@ -988,6 +1000,10 @@ public unsafe struct gf_custom_controls_table
     public uint abi_minor;
     public delegate* unmanaged[Cdecl]<gf_custom_control_spec*, gf_utf8_view, gf_object*, gf_status> create;
     public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_status> notify_changed;
+    public delegate* unmanaged[Cdecl]<gf_composite_spec*, gf_object*, gf_status> load_composite;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_object*, gf_status> create_composite;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, uint*, gf_status> perform_composite;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_object*, gf_status> composite_child;
 }
 
 /// <summary>gf_binding_arguments (extensible, 96 bytes).</summary>

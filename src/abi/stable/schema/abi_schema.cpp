@@ -285,6 +285,11 @@ Component::Ptr create_catalog_type(std::size_t index, StableId stable_id) {
     return object;
 }
 
+CatalogCreator catalog_type_creator(std::size_t index) {
+    const CatalogCreator create = schema_catalog.at(index).create;
+    return create;
+}
+
 std::string_view catalog_type_id_of(const Component& object) {
     // A schema type is found by its exact type: one with no anatomy of its
     // own publishes its base's (a plot item the base "control", a wizard page

@@ -919,13 +919,28 @@ public static unsafe class Layout
             failures += expect(output, "gf_custom_control_spec.layout offset", (long)((byte*)&value.layout - start), 80);
         }
         {
+            gf_composite_spec value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_composite_spec size", sizeof(gf_composite_spec), 56);
+            failures += expect(output, "gf_composite_spec.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_composite_spec.reserved offset", (long)((byte*)&value.reserved - start), 4);
+            failures += expect(output, "gf_composite_spec.file offset", (long)((byte*)&value.file - start), 8);
+            failures += expect(output, "gf_composite_spec.document offset", (long)((byte*)&value.document - start), 24);
+            failures += expect(output, "gf_composite_spec.child_types offset", (long)((byte*)&value.child_types - start), 40);
+            failures += expect(output, "gf_composite_spec.child_type_count offset", (long)((byte*)&value.child_type_count - start), 48);
+        }
+        {
             gf_custom_controls_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_custom_controls_table size", sizeof(gf_custom_controls_table), 24);
+            failures += expect(output, "gf_custom_controls_table size", sizeof(gf_custom_controls_table), 56);
             failures += expect(output, "gf_custom_controls_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_custom_controls_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_custom_controls_table.create offset", (long)((byte*)&value.create - start), 8);
             failures += expect(output, "gf_custom_controls_table.notify_changed offset", (long)((byte*)&value.notify_changed - start), 16);
+            failures += expect(output, "gf_custom_controls_table.load_composite offset", (long)((byte*)&value.load_composite - start), 24);
+            failures += expect(output, "gf_custom_controls_table.create_composite offset", (long)((byte*)&value.create_composite - start), 32);
+            failures += expect(output, "gf_custom_controls_table.perform_composite offset", (long)((byte*)&value.perform_composite - start), 40);
+            failures += expect(output, "gf_custom_controls_table.composite_child offset", (long)((byte*)&value.composite_child - start), 48);
         }
         {
             gf_binding_arguments value = default;
