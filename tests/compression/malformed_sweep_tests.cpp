@@ -212,7 +212,12 @@ void sweep(const Seed& seed, Decoder& decoder, std::uint64_t& decodes) {
         const Outcome outcome = decode_whole(decoder, prefix, format, limit);
         ++decodes;
         check_bounded(outcome, limit, "truncated stream escaped its limits");
-        if (zlib) require(outcome.result.status != InflateStatus::stream_end, "truncated zlib stream accepted");
+        // No format may end on a strict prefix: a zlib stream lacks part of
+        // its trailer, and an encoder's raw stream lacks at least one bit of
+        // its final block (the last byte holds the end-of-block code or data
+        // before it), so stream_end there means the decoder read past its
+        // input (B-gf-tests-02-F2).
+        require(outcome.result.status != InflateStatus::stream_end, "truncated stream accepted");
     }
 
     // Every single-bit flip of the header and table region.
