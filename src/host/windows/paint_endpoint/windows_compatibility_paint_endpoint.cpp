@@ -316,8 +316,12 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         if (released || compatibility_handle == 0U) return false;
         if (width == next_width && height == next_height) return true;
         std::scoped_lock publish_lock(surface_publish_mutex);
-        if (!(*surface).reconfigure(opaque_description(next_width, next_height)) ||
-            !create_backing(next_width, next_height)) {
+        if (!(*surface).reconfigure(opaque_description(next_width, next_height))) return false;
+        if (!create_backing(next_width, next_height)) {
+            // The DIB stays at the old size, so the surface goes back to it:
+            // otherwise every later publish is refused for the mismatch
+            // (A-gf-host-03-F10).
+            static_cast<void>((*surface).reconfigure(opaque_description(width, height)));
             return false;
         }
         width = next_width;
