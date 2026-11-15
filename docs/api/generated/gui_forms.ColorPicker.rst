@@ -176,7 +176,7 @@ gui_forms::ColorPicker
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 3 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 4 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -189,11 +189,19 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 4 su
      - Status
    * - property
      - GUI.Forms-only
+     - ``alpha_enabled``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``dragged_part``
      - supported
    * - property
      - GUI.Forms-only
      - ``hsv``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``value``
      - supported
    * - event
      - GUI.Forms-only

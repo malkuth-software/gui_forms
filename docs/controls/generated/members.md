@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2238 | 13 | 367 | 4111 | 2338 |
+| 2239 | 13 | 367 | 4115 | 2343 |
 
 ## GUI.Forms types
 
@@ -62,7 +62,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ValueBar` | GUI.Forms-only | 18 | 0 | 0 | 19 | 37 |
 | `NumericUpDown` | `NumericUpDown` | 9 | 0 | 0 | 17 | 9 |
 | `DomainUpDown` | `DomainUpDown` | 3 | 0 | 0 | 13 | 5 |
-| `ColorPicker` | GUI.Forms-only | 4 | 0 | 0 | 3 | 7 |
+| `ColorPicker` | GUI.Forms-only | 5 | 0 | 0 | 4 | 9 |
 | `ColorValueEditor` | GUI.Forms-only | 7 | 0 | 0 | 3 | 10 |
 | `FlagsValueEditor` | GUI.Forms-only | 1 | 0 | 0 | 6 | 7 |
 | `PropertyGrid` | `PropertyGrid` | 19 | 0 | 2 | 72 | 19 |
@@ -90,7 +90,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `FlowLayoutPanelCompat` | `FlowLayoutPanel` | 3 | 0 | 0 | 9 | 7 |
 | `TableLayoutPanelCompat` | `TableLayoutPanel` | 13 | 0 | 0 | 26 | 13 |
 | `ResponsiveTrackPanel` | GUI.Forms-only | 6 | 0 | 0 | 5 | 11 |
-| `FormLayout` | GUI.Forms-only | 6 | 0 | 0 | 1 | 7 |
+| `FormLayout` | GUI.Forms-only | 6 | 0 | 0 | 5 | 11 |
 | `ScaledPanel` | GUI.Forms-only | 3 | 0 | 0 | 2 | 5 |
 | `SplitContainer` | `SplitContainer` | 12 | 0 | 0 | 37 | 14 |
 | `SplitterPanel` | `SplitterPanel` | 4 | 0 | 0 | 19 | 0 |
@@ -144,7 +144,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `NodeCanvas` | GUI.Forms-only | 55 | 0 | 0 | 14 | 69 |
 | `LiveSurface` | GUI.Forms-only | 10 | 0 | 0 | 0 | 10 |
 | `SubSurfaceHost` | GUI.Forms-only | 14 | 0 | 0 | 1 | 15 |
-| `ContentSurface` | GUI.Forms-only | 18 | 0 | 0 | 3 | 21 |
+| `ContentSurface` | GUI.Forms-only | 18 | 0 | 0 | 2 | 20 |
 | `ContentTextEditor` | GUI.Forms-only | 18 | 0 | 0 | 1 | 19 |
 | `MetricsView` | GUI.Forms-only | 1 | 0 | 0 | 0 | 1 |
 | `PlotLinkGroup` | GUI.Forms-only | 6 | 0 | 0 | 1 | 7 |
@@ -309,5 +309,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1611 |
-| `untested` | 924 |
+| `untested` | 928 |
 | `w-open` | 5 |

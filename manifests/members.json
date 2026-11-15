@@ -2139,8 +2139,8 @@
       {"kind": "event", "winforms": "RowHeightInfoPushed", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "event", "winforms": "RowLeave", "scope": "admitted", "gui_forms": "row_leave", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "event", "winforms": "RowMinimumHeightChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
-      {"kind": "event", "winforms": "RowPostPaint", "scope": "admitted", "gui_forms": "row_post_paint", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
-      {"kind": "event", "winforms": "RowPrePaint", "scope": "admitted", "gui_forms": "row_pre_paint", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
+      {"kind": "event", "winforms": "RowPostPaint", "scope": "admitted", "gui_forms": "row_post_paint", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_row_paint_raster_tests.cpp"},
+      {"kind": "event", "winforms": "RowPrePaint", "scope": "admitted", "gui_forms": "row_pre_paint", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_row_paint_raster_tests.cpp"},
       {"kind": "event", "winforms": "RowsAdded", "scope": "admitted", "gui_forms": "rows_added", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "event", "winforms": "RowsDefaultCellStyleChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "event", "winforms": "RowsRemoved", "scope": "admitted", "gui_forms": "rows_removed", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
@@ -2345,7 +2345,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "horizontal_scroll_offset", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "inherited_row_header_style", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "preferred_column_headers_height", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "realized_cells", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "realized_cells", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_row_paint_raster_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "realized_columns", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "realized_rows", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "row_order_mode", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_order_tests.cpp"},
@@ -2643,8 +2643,10 @@
       {"kind": "method", "winforms": null, "gui_forms": "written", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "ColorPicker", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/color_picker_raster_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "alpha_enabled", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "dragged_part", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/color_picker_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "hsv", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/color_picker_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "value", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/value-editors_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "value_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/color_picker_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "value_committed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/color_picker_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "color_of", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
@@ -3361,7 +3363,11 @@
       {"kind": "method", "winforms": null, "gui_forms": "track_revealed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/responsive-layouts_tests.cpp"}
     ]},
     {"type": "FormLayout", "winforms": null, "gui_forms_base": "Panel", "status": "supported", "basis": "test", "evidence": "tests/form_layout_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "caption_alignment", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "caption_width", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "column_spacing", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "row_count", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/form_layout_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "row_spacing", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "used_caption_width", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/form_layout_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "add_row", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/form_layout_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "caption_of", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/form_layout_tests.cpp"},
@@ -4471,7 +4477,6 @@
       {"kind": "method", "winforms": null, "gui_forms": "set_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_cells_tests.cpp"}
     ]},
     {"type": "ContentSurface", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/content_surface_raster_tests.cpp", "members": [
-      {"kind": "property", "winforms": null, "gui_forms": "close_on_escape", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "content_open", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "content_semantics", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_surface_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "failure", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_termination_tests.cpp"},
@@ -4517,14 +4522,14 @@
     {"type": "MetricsView", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "style", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"}
     ]},
-    {"type": "PlotLinkGroup", "winforms": null, "gui_forms_base": "Component", "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp", "members": [
+    {"type": "PlotLinkGroup", "winforms": null, "gui_forms_base": "Component", "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/schema_export_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "axes", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "echoes", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "member_count", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "propagations", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "x_link", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "y_link", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "add", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp"}
+      {"kind": "method", "winforms": null, "gui_forms": "add", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/schema_export_tests.cpp"}
     ]},
     {"type": "Timer", "winforms": "Timer", "gui_forms_base": "Component", "winforms_base": "Component", "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp", "members": [
       {"kind": "constructor", "winforms": "Timer", "scope": "admitted", "overloads": 2, "gui_forms": "Timer", "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp"},

@@ -131,7 +131,7 @@ gui_forms::FormLayout
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 1 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 5 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -144,8 +144,24 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 6 su
      - Status
    * - property
      - GUI.Forms-only
+     - ``caption_alignment``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``caption_width``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``column_spacing``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``row_count``
      - supported
+   * - property
+     - GUI.Forms-only
+     - ``row_spacing``
+     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``used_caption_width``

@@ -362,7 +362,7 @@ gui_forms::ContentSurface
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 3 unclassified; 21 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 2 unclassified; 20 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -373,10 +373,6 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 18 s
      - Windows Forms
      - GUI.Forms
      - Status
-   * - property
-     - GUI.Forms-only
-     - ``close_on_escape``
-     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``content_open``
