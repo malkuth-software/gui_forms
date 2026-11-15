@@ -907,7 +907,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::SetFocus() {
 HRESULT UiaElement::answer_get_FragmentRoot(IRawElementProviderFragmentRoot** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    if ((*source_).model == nullptr) return element_not_available;
+    if ((*source_).model.get() == nullptr) return element_not_available;
     UiaElement* root = new (std::nothrow) UiaElement(source_, SemanticElementId{});
     if (root == nullptr) return E_OUTOFMEMORY;
     *out = static_cast<IRawElementProviderFragmentRoot*>(root);
@@ -962,7 +962,8 @@ HRESULT UiaElement::answer_Invoke() {
     if (!has_semantic_state((*self.node).states, SemanticState::enabled)) {
         return element_not_enabled;
     }
-    Window* model = (*source_).model;
+    Window* const model = (*source_).model.get();
+    if (model == nullptr) return element_not_available;
     const DispatchOperation posted =
         (*model).begin_invoke(std::function<void()>(PostedInvoke{source_, id_}));
     if (posted.state() == DispatchOperationState::invalid) return invalid_operation;

@@ -784,7 +784,7 @@ WindowsAccessibility::~WindowsAccessibility() { detach(); }
 
 void WindowsAccessibility::attach(HWND hwnd, Window& model, double scale) {
     (*source_).hwnd = hwnd;
-    (*source_).model = &model;
+    (*source_).model = model.window_ref();
     (*source_).scale = scale;
 }
 
@@ -795,13 +795,13 @@ void WindowsAccessibility::detach() noexcept {
     if (source.automation_observed && source.hwnd != nullptr) {
         UiaReturnRawElementProvider(source.hwnd, 0, 0, nullptr);
     }
-    source.model = nullptr;
+    source.model.reset();
     source.hwnd = nullptr;
     source.release_trees();
 }
 
 LRESULT WindowsAccessibility::object(WPARAM parameter) noexcept {
-    if ((*source_).model == nullptr) return 0;
+    if ((*source_).model.get() == nullptr) return 0;
     (*source_).observed = true;
     MsaaElement* root = new (std::nothrow) MsaaElement(source_, SemanticElementId{});
     if (root == nullptr) return 0;
@@ -842,7 +842,7 @@ bool WindowsAccessibility::automation_request(LPARAM lparam) noexcept {
 
 LRESULT WindowsAccessibility::automation_object(WPARAM wparam, LPARAM lparam) {
     SemanticSource& source = *source_;
-    if (source.model == nullptr || source.hwnd == nullptr) return 0;
+    if (source.model.get() == nullptr || source.hwnd == nullptr) return 0;
     pin_automation_apartment();
     if (!source.automation_observed) {
         // The tree the first client sees is the one later changes are
@@ -860,8 +860,9 @@ LRESULT WindowsAccessibility::automation_object(WPARAM wparam, LPARAM lparam) {
 void WindowsAccessibility::notify(double scale) {
     SemanticSource& source = *source_;
     source.scale = scale;
-    if (source.model == nullptr || (!source.observed && !source.automation_observed)) return;
-    if ((*source.model).semantic_generation() == source.generation) return;
+    Window* const window = source.model.get();
+    if (window == nullptr || (!source.observed && !source.automation_observed)) return;
+    if ((*window).semantic_generation() == source.generation) return;
     // The tree is the source's current one, which the UI Automation
     // publication below reuses.
     SemanticTreeRef tree;

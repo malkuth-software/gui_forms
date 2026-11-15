@@ -56,7 +56,7 @@ HRESULT locate_text(SemanticSource& source, SemanticElementId id, TextRead& read
     if (!source.snapshot(read.client)) return element_not_available;
     if (!locate_semantic_element(*read.client, id, read.self)) return element_not_available;
     if (read.self.parent == nullptr || !text_pattern(*read.self.node)) return invalid_operation;
-    if (source.model == nullptr) return element_not_available;
+    if (source.model.get() == nullptr) return element_not_available;
     return S_OK;
 }
 
@@ -73,7 +73,9 @@ HRESULT lay_out_text(SemanticSource& source, TextRead& read) {
         return S_OK;
     }
     std::shared_ptr<SemanticTextLayout> built = std::make_shared<SemanticTextLayout>();
-    const SemanticTextResult result = (*source.model).semantic_text_layout(RuntimeId{control_id}, *built);
+    Window* const window = source.model.get();
+    if (window == nullptr) return element_not_available;
+    const SemanticTextResult result = (*window).semantic_text_layout(RuntimeId{control_id}, *built);
     if (result == SemanticTextResult::stale_identity) return element_not_available;
     if (result != SemanticTextResult::done) return invalid_operation;
     ++source.text_layouts_built;
@@ -795,7 +797,9 @@ HRESULT UiaTextRange::answer_Select() {
     if (FAILED(status)) return status;
     const RuntimeId control{(*text.self.node).runtime_id};
     const SemanticTextSelection selection{Utf8Offset{start_}, Utf8Offset{end_}};
-    const SemanticTextResult result = (*(*source_).model).set_semantic_text_selection(control, selection);
+    Window* const window = (*source_).model.get();
+    if (window == nullptr) return element_not_available;
+    const SemanticTextResult result = (*window).set_semantic_text_selection(control, selection);
     if (result == SemanticTextResult::stale_identity) return element_not_available;
     if (result != SemanticTextResult::done) return invalid_operation;
     return S_OK;

@@ -156,10 +156,13 @@ struct SemanticTreeKey final {
 // The publishers' link to one window. Shared by WindowsAccessibility and
 // every native object it hands out; `model` and `hwnd` are cleared when the
 // window goes, after which every object resolves to nothing and reports its
-// disconnected error. Objects observe the window and never extend its life.
+// disconnected error. Objects observe the window and never extend its life:
+// `model` is a WindowRef, null once the window is destroyed even when
+// detach has not run, so a client call that outlives the window touches
+// nothing.
 struct SemanticSource final {
     HWND hwnd{};
-    Window* model{};
+    WindowRef model;
     // Device pixels per logical unit.
     double scale{1.0};
     // The semantic generation last announced to clients.

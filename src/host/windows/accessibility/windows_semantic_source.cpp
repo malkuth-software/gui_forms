@@ -288,17 +288,18 @@ SemanticTreeKey read_tree_key(const Window& window, HWND hwnd, double scale) {
 
 bool SemanticSource::snapshot(SemanticTreeRef& client) {
     client.reset();
-    if (model == nullptr || hwnd == nullptr) return false;
-    const SemanticTreeKey before = read_tree_key(*model, hwnd, scale);
+    Window* const window = model.get();
+    if (window == nullptr || hwnd == nullptr) return false;
+    const SemanticTreeKey before = read_tree_key(*window, hwnd, scale);
     if (current && before == current_key) {
         ++trees_reused;
         client = current;
         return true;
     }
-    SemanticSnapshot tree = (*model).semantic_snapshot();
+    SemanticSnapshot tree = (*window).semantic_snapshot();
     // The key is read again after the build, which may lay the window
     // out first and so move its revisions.
-    SemanticTreeKey after = read_tree_key(*model, hwnd, scale);
+    SemanticTreeKey after = read_tree_key(*window, hwnd, scale);
     std::shared_ptr<SemanticNode> built = std::make_shared<SemanticNode>();
     SemanticNode& node = *built;
     node.runtime_id = 0U;
@@ -330,7 +331,8 @@ void SemanticSource::release_trees() noexcept {
 bool SemanticSource::perform(const SemanticLocation& location, SemanticAction action,
                              std::string_view value) {
     // The client node takes no action of its own.
-    if (model == nullptr || (*location.node).runtime_id == 0U) return false;
+    Window* const window = model.get();
+    if (window == nullptr || (*location.node).runtime_id == 0U) return false;
     if (action == SemanticAction::focus) SetFocus(hwnd);
     const SemanticNode& node = *location.node;
     bool handled = false;
@@ -338,14 +340,14 @@ bool SemanticSource::perform(const SemanticLocation& location, SemanticAction ac
         // A virtual child with no control-backed node above it: no
         // control names it, so the window looks for it by stable ID
         // under its root and overlays.
-        handled = (*model).perform_semantic_action(node.stable_id, action, value);
+        handled = (*window).perform_semantic_action(node.stable_id, action, value);
     } else {
         // The window refuses a scope whose control was disposed or
         // replaced since the snapshot (interview GF017).
         const RuntimeId scope{(*location.scope).runtime_id};
         std::string_view virtual_child;
         if (location.scope != location.node) virtual_child = node.stable_id;
-        handled = (*model).perform_semantic_action(scope, virtual_child, action, value);
+        handled = (*window).perform_semantic_action(scope, virtual_child, action, value);
     }
     if (handled) NotifyWinEvent(EVENT_OBJECT_VALUECHANGE, hwnd, OBJID_CLIENT, CHILDID_SELF);
     return handled;

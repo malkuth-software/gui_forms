@@ -9,7 +9,7 @@ public:
 
     ~WindowsHostServices() override { shutdown(); }
 
-    void bind_owner(HWND owner, Window& model) noexcept { owner_ = owner; cursor_model_ = &model; }
+    void bind_owner(HWND owner, Window& model) { owner_ = owner; cursor_model_ = model.window_ref(); }
     // WM_HELP at the owner window: a help request of the open message box,
     // if one is open. F1 held down tells the key from the Help button.
     bool publish_message_help() {
@@ -20,8 +20,9 @@ public:
         return publish_dialog_help(event);
     }
     bool maintain_hidden_cursor() noexcept {
-        if (!cursor_hidden() || cursor_model_ == nullptr) { return false; }
-        const CursorStatus authority = cursor_authority_impl(*cursor_model_, true);
+        Window* const model = cursor_model_.get();
+        if (!cursor_hidden() || model == nullptr) { return false; }
+        const CursorStatus authority = cursor_authority_impl(*model, true);
         if (!authority.accepted()) { revoke_cursor_interaction(); return false; }
         const CursorStatus hidden = hide_cursor_impl();
         if (!hidden.accepted()) { revoke_cursor_interaction(CursorError::native_failure); return false; }
@@ -31,7 +32,7 @@ public:
 protected:
     CursorCapabilities cursor_capabilities_impl() const noexcept override { return {true, true}; }
     CursorStatus cursor_authority_impl(const Window& window, bool require_pointer) const noexcept override {
-        if (cursor_model_ != &window) { return {CursorError::stale_window}; }
+        if (cursor_model_.get() != &window) { return {CursorError::stale_window}; }
         const CursorStatus result = windows_detail::cursor_authority(owner_, require_pointer);
         return result;
     }
@@ -46,7 +47,8 @@ protected:
     }
     CursorStatus restore_cursor_impl() noexcept override {
         try {
-            if (owner_ == nullptr || cursor_model_ == nullptr) { return {CursorError::stale_window}; }
+            Window* const bound = cursor_model_.get();
+            if (owner_ == nullptr || bound == nullptr) { return {CursorError::stale_window}; }
             // Outside this window's input scope, Windows owns the applicable cursor.
             // Do not overwrite another application's shape during focus departure.
             const HWND foreground = GetForegroundWindow();
@@ -59,7 +61,7 @@ protected:
             if (pointed_window != owner_ && capture != owner_) { return {}; }
             const BOOL converted = ScreenToClient(owner_, &point);
             if (!converted) { return {CursorError::native_failure}; }
-            Window& model = *cursor_model_;
+            Window& model = *bound;
             const double scale = model.scale();
             const Control::Ptr captured = model.captured_control();
             const Control::Ptr target = captured ? captured : model.hit_test({point.x / scale, point.y / scale});
@@ -75,11 +77,12 @@ protected:
         }
     }
     CursorStatus warp_cursor_impl(int client_x, int client_y) noexcept override {
-        if (cursor_model_ == nullptr) { return {CursorError::stale_window}; }
+        Window* const model = cursor_model_.get();
+        if (model == nullptr) { return {CursorError::stale_window}; }
         POINT target{};
         const CursorStatus prepared = windows_detail::cursor_screen_target(owner_, client_x, client_y, target);
         if (!prepared.accepted()) { return prepared; }
-        const CursorStatus authority = cursor_authority_impl(*cursor_model_, false);
+        const CursorStatus authority = cursor_authority_impl(*model, false);
         if (!authority.accepted()) { return authority; }
         const BOOL placed = SetCursorPos(target.x, target.y);
         const CursorStatus result{placed ? CursorError::none : CursorError::native_failure};
@@ -164,7 +167,7 @@ protected:
         cursors_.clear();
         release_chrome_icons();
         owner_ = nullptr;
-        cursor_model_ = nullptr;
+        cursor_model_.reset();
     }
 
     // The granted backdrop on the owner window (stage T5, C2).
@@ -646,7 +649,9 @@ private:
     }
 
     HWND owner_{};
-    Window* cursor_model_{};
+    // The owner window's model, observed: null once it is destroyed, and
+    // then every cursor call reports stale_window and touches nothing.
+    WindowRef cursor_model_;
     std::unique_ptr<gui_forms::host::detail::WindowsNotifyIcons> notify_icons_;
     std::array<COLORREF, 16> custom_colors_{};
     // The open message box's request identity; zero while none is open.
