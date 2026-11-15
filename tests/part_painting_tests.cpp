@@ -725,6 +725,29 @@ void dotted_focus() {
     const Operation& first = painter.operations.front();
     require(first.bounds.x == inset - 0.5 && first.bounds.y == inset - 0.5,
             "the first dot sits on the ring's top-left corner");
+
+    // A dotted outline far thinner than a device pixel, or a side holding
+    // more dots than the bound, is stroked solid: one operation, not
+    // millions of dots (A-gf-core-14-F1).
+    for (ControlRoleRecipes& role : definition.roles) {
+        for (ControlVisualRecipe& recipe_written : role.ordinary) recipe_written.focus_width = 0.00001;
+        for (ControlVisualRecipe& recipe_written : role.selected) recipe_written.focus_width = 0.00001;
+    }
+    (*control).set_theme_override(Theme::create(definition));
+    RecordingPainter hairline;
+    paint_part(hairline, *control, focus);
+    require(hairline.count("fill") == 0U && hairline.count("stroke_rounded") == 1U,
+            "a dotted ring thinner than half a unit is stroked solid");
+    for (ControlRoleRecipes& role : definition.roles) {
+        for (ControlVisualRecipe& recipe_written : role.ordinary) recipe_written.focus_width = 1.0;
+        for (ControlVisualRecipe& recipe_written : role.selected) recipe_written.focus_width = 1.0;
+    }
+    (*control).set_theme_override(Theme::create(definition));
+    focus.bounds = {0.0, 0.0, 100000.0, 20.0};
+    RecordingPainter long_side;
+    paint_part(long_side, *control, focus);
+    require(long_side.count("fill") == 0U && long_side.count("stroke_rounded") == 1U,
+            "a side of more than 4096 dots is stroked solid");
 }
 
 // The pointed face (the raised breadcrumb's shape): its nose narrows to a

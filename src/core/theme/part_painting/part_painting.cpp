@@ -175,20 +175,38 @@ void paint_dot_run(Painter& painter, Point start, Point step, std::size_t count,
     }
 }
 
+// The narrowest dotted ring drawn as dots, in units: half a unit is one
+// device pixel at twice the scale. A theme may author a far thinner outline
+// (only an upper bound is checked); its dots would number the ring's side
+// over twice the width, so it is stroked solid instead (A-gf-core-14-F1).
+constexpr double least_dotted_width = 0.5;
+// The most dots one side of a dotted ring holds; a longer side (a very
+// large focused part) is stroked solid instead, so a paint stays bounded.
+constexpr double maximum_dots_per_side = 4096.0;
+
 // A dotted ring whose stroke is centred on `ring`'s edges: square dots one
 // width across, one every two widths, clockwise from the top-left corner,
 // which always holds a dot. Each side holds the dots that start before the
-// next corner, so the corners join without doubling a dot.
-void paint_dotted_ring(Painter& painter, Rect ring, double width, Color colour) {
+// next corner, so the corners join without doubling a dot. Returns false,
+// drawing nothing, when the width is below least_dotted_width or a side
+// would hold more than maximum_dots_per_side dots (or a count is not a
+// number): the caller then strokes the ring solid.
+bool paint_dotted_ring(Painter& painter, Rect ring, double width, Color colour) {
     const double half = width * 0.5;
     // The span the dots' top-left corners run along on each axis: from the
     // stroke's outer corner to its far side less one width.
     const double across = ring.width;
     const double down = ring.height;
-    if (across <= 0.0 || down <= 0.0) return;
+    if (across <= 0.0 || down <= 0.0) return true;
+    if (!(width >= least_dotted_width)) return false;
     const double pitch = width * 2.0;
-    const std::size_t across_count = static_cast<std::size_t>(std::ceil(across / pitch));
-    const std::size_t down_count = static_cast<std::size_t>(std::ceil(down / pitch));
+    // Counted as doubles and compared before the conversion, so a count
+    // past the bound (or not finite) is never converted.
+    const double across_dots = std::ceil(across / pitch);
+    const double down_dots = std::ceil(down / pitch);
+    if (!(across_dots <= maximum_dots_per_side) || !(down_dots <= maximum_dots_per_side)) return false;
+    const std::size_t across_count = static_cast<std::size_t>(across_dots);
+    const std::size_t down_count = static_cast<std::size_t>(down_dots);
     const double left = ring.x - half;
     const double top = ring.y - half;
     const double right = left + across;
@@ -197,6 +215,7 @@ void paint_dotted_ring(Painter& painter, Rect ring, double width, Color colour) 
     paint_dot_run(painter, Point{right, top}, Point{0.0, 1.0}, down_count, width, colour);
     paint_dot_run(painter, Point{right, bottom}, Point{-1.0, 0.0}, across_count, width, colour);
     paint_dot_run(painter, Point{left, bottom}, Point{0.0, -1.0}, down_count, width, colour);
+    return true;
 }
 
 // The focus ring: the recipe's authored outline outside the bounds, or the
@@ -216,10 +235,7 @@ void paint_focus_ring(Painter& painter, Rect bounds, const ControlVisualRecipe& 
         radius = std::max(0.0, corner_radius - inset);
     }
     if (ring.empty()) return;
-    if (recipe.dotted_focus) {
-        paint_dotted_ring(painter, ring, recipe.focus_width, recipe.focus_ring);
-        return;
-    }
+    if (recipe.dotted_focus && paint_dotted_ring(painter, ring, recipe.focus_width, recipe.focus_ring)) return;
     painter.stroke_rounded_rect(ring, radius, recipe.focus_ring, recipe.focus_width);
 }
 
