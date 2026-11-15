@@ -208,6 +208,11 @@ bool environment_flag(const char* name) noexcept {
     return value != nullptr && std::strcmp(value, "1") == 0;
 }
 
+// Set once by accept_automation_environment and never cleared: the program's
+// own opt-in to the GUI_FORMS_WINDOWS_AUTOMATION hook. Atomic because a
+// program may opt in from a thread other than the one that later runs.
+std::atomic<bool> automation_environment_accepted{false};
+
 bool trace_win32_input() noexcept {
     static const bool enabled =
         environment_flag("GUI_FORMS_TRACE_WIN32_INPUT");
@@ -4166,6 +4171,10 @@ void run_windows_prepared_text_fixture(const std::span<const std::byte> fonts) {
 // accessibility: MSAA and UI Automation publication of the semantic tree,
 // including the TextPattern, verified by the MSAA and UI Automation client
 // tests over the Gallery (stage A).
+void accept_automation_environment() noexcept {
+    automation_environment_accepted.store(true, std::memory_order_release);
+}
+
 HostCapabilities windows_capabilities() {
     HostCapabilities capabilities{HostCapabilities::current_protocol_version,
             "win32-dib",
@@ -4385,10 +4394,17 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
                                                                          : development_scale_override();
     // Development hook (GUI_FORMS_WINDOWS_AUTOMATION=1): a program run
     // through Application::run, whose portable options cannot ask for it,
-    // answers the automation channel in every window (menu probes).
-    if (environment_flag("GUI_FORMS_WINDOWS_AUTOMATION")) {
+    // answers the automation channel in every window (menu probes). The
+    // variable counts only in a build configured with
+    // GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT, and only in a program that
+    // called accept_automation_environment first, so the environment alone
+    // opens no program (A-gf-host-03-F6).
+#if defined(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT)
+    const bool accepted = automation_environment_accepted.load(std::memory_order_acquire);
+    if (accepted && environment_flag("GUI_FORMS_WINDOWS_AUTOMATION")) {
         for (WindowsApplicationWindow& entry : windows) entry.options.automation_enabled = true;
     }
+#endif
 
     const HRESULT com_status = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     enable_best_dpi_awareness();

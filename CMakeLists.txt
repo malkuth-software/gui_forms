@@ -137,6 +137,12 @@ option(GUI_FORMS_ENABLE_MACOS_HOST "Build the native AppKit host" ${APPLE})
 option(GUI_FORMS_ENABLE_WINDOWS_HOST "Build the native Win32 host" ${WIN32})
 option(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB
        "Enable bounded transactional DIB frames in the Windows development host" OFF)
+# A-gf-host-03-F6: the GUI_FORMS_WINDOWS_AUTOMATION variable counts only in
+# a program that called host::accept_automation_environment, and only when
+# this is on. CI packages the tree it tested, so it stays on there; the
+# opt-in keeps a shipped program closed to the variable.
+option(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT
+       "Let a Windows program that opts in (host::accept_automation_environment) turn on automation from GUI_FORMS_WINDOWS_AUTOMATION=1" ON)
 option(GUI_FORMS_ENABLE_LINUX_HOST "Build the native X11 host with the private CPU renderer" OFF)
 # The browser host (owner decisions, 2026-11-15): Emscripten only, through
 # cmake/emscripten.cmake; WebGL2 is its present backend and nothing else.
@@ -2052,6 +2058,9 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     target_compile_definitions(gui_forms_host_windows PRIVATE
         ${GUI_FORMS_WINDOWS_DEFINITIONS}
     )
+    if(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT)
+        target_compile_definitions(gui_forms_host_windows PRIVATE GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT=1)
+    endif()
     if(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
         target_sources(gui_forms_host_windows PRIVATE
             $<TARGET_OBJECTS:gui_forms_dib_frame_store_objects>)
@@ -3306,6 +3315,11 @@ if(GUI_FORMS_BUILD_TESTS)
     if(TARGET gui_forms_application)
         add_executable(gui_forms_application_native_tests tests/application_native_tests.cpp)
         target_link_libraries(gui_forms_application_native_tests PRIVATE gui_forms_application)
+        if(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT)
+            # The test's accepted automation case runs only where the host honours the variable.
+            target_compile_definitions(gui_forms_application_native_tests PRIVATE
+                GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT=1)
+        endif()
         add_test(NAME gui_forms_application_native_tests COMMAND gui_forms_application_native_tests)
         set_tests_properties(gui_forms_application_native_tests PROPERTIES TIMEOUT 30)
         # One stxlib_state in a program that reaches STXlib through the
@@ -7183,7 +7197,7 @@ endforeach()
 # and tooltip window size and hit margin) and a short seeded smoke run of
 # tools/contention_fuzz.py, labelled timing and non_gating (a long run is
 # local and on demand; see the script).
-if(TARGET gui_forms_menu_probe_windows)
+if(TARGET gui_forms_menu_probe_windows AND GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT)
     find_package(Python3 COMPONENTS Interpreter QUIET)
     set(gui_forms_popup_launcher "${GUI_FORMS_FOREGROUND_LAUNCHER}")
     if(NOT gui_forms_popup_launcher)

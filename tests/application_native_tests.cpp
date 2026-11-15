@@ -820,7 +820,36 @@ struct AutomationReady final {
     }
 };
 
+// A-gf-host-03-F6: GUI_FORMS_WINDOWS_AUTOMATION alone, before the program
+// calls host::accept_automation_environment, leaves the channel closed: the
+// first command is refused and the run ends. Runs before any opt-in, which
+// is process-wide and never withdrawn.
+void check_automation_needs_opt_in() {
+    if (_putenv_s("GUI_FORMS_WINDOWS_AUTOMATION", "1") != 0) throw std::runtime_error("environment refused");
+    AutomationOrder order{};
+    const std::shared_ptr<Control> root = make_control<Control>(StableId("native.automation.root"));
+    const std::shared_ptr<AutomationTarget> first =
+        make_control<AutomationTarget>(StableId("native.automation.first"), order, true);
+    (*first).set_requested_bounds(Rect{10.0, 10.0, 60.0, 24.0});
+    (*root).add_child(first);
+    ApplicationWindowOptions options{};
+    options.title = "GUI.Forms automation interleaving fixture";
+    options.initial_size = {200, 120};
+    options.print_metrics_on_close = false;
+    options.ready = AutomationReady{&order};
+    const ApplicationResult result =
+        test_application().run(std::make_unique<Window>(root, Size{200.0, 120.0}), std::move(options));
+    static_cast<void>(_putenv_s("GUI_FORMS_WINDOWS_AUTOMATION", ""));
+    automation_order = nullptr;
+    if (result.callback_exception) std::rethrow_exception(result.callback_exception);
+    require(result.accepted(), "automation opt-in fixture failed");
+    require(order.events.size() == 1U && order.events[0] == "refused",
+            "the automation variable without the program's opt-in opens no channel");
+}
+
+#if defined(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT)
 void check_automation_interleaving() {
+    gui_forms::host::accept_automation_environment();
     if (_putenv_s("GUI_FORMS_WINDOWS_AUTOMATION", "1") != 0) throw std::runtime_error("environment refused");
     AutomationOrder order{};
     const std::shared_ptr<Control> root = make_control<Control>(StableId("native.automation.root"));
@@ -850,6 +879,7 @@ void check_automation_interleaving() {
             "an automation command sent inside model code runs after it, whole: " + seen);
     require(order.nested_result == TRUE, "the waiting command is accepted");
 }
+#endif
 #endif
 #if defined(__APPLE__)
 struct ForeignShutdown final {
@@ -916,7 +946,10 @@ void run_checks() {
             "dispatch exception escaped the portable application boundary");
     check_runtime_windows();
 #if defined(_WIN32)
+    check_automation_needs_opt_in();
+#if defined(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT)
     check_automation_interleaving();
+#endif
 #endif
     check_shutdown();
     std::cout << "portable application API: native attach, cancel/retry, close, expiry, recursion, exception containment, runtime windows and shutdown passed\n";

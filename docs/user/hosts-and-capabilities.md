@@ -323,9 +323,16 @@ Windows (Win32)
   automation channel, off unless the host options set `automation_enabled`
   (the gallery sets it from `--automation`), addresses controls by stable
   ID; it accepts commands of at most 4096 bytes with the prefix
-  `GUI.Forms.Automation/1`. A C ABI window turns it on only for the run flag
-  `GF_WINDOW_RUN_AUTOMATION` or `GUI_FORMS_AUTOMATION=1` in the process
-  environment, which the test harnesses set. Security note: while it is on,
+  `GUI.Forms.Automation/1`. A program run through the portable
+  `Application::run`, whose options cannot ask for it, turns it on only by
+  opting in: it calls `host::accept_automation_environment()`
+  (`gui_forms/platform/windows_host.hpp`) before running, and then
+  `GUI_FORMS_WINDOWS_AUTOMATION=1` in the process environment turns the
+  channel on in every window. Without that call the variable is ignored, so
+  the environment alone opens no program; a build configured with
+  `GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT=OFF` ignores it even after the
+  call. The menu probe and the application tests opt in; a shipped program
+  does not. Security note: while it is on,
   any process on the same desktop can drive the window and ask for a capture
   written to a path it names, so ship with it off. It is a test channel;
   automation is to move to an MCP integration rather than grow here.
