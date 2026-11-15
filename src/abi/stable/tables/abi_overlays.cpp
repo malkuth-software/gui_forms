@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -416,8 +417,16 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
         (*held.layer).set_content(content_control);
         // Window::open_overlay refuses a disabled or hidden anchor
         // (std::logic_error: GF_STATUS_INVALID_STATE).
-        held.token = (*window).open_overlay(anchor_control, held.layer);
+        // Opening the overlay and its focus scope run application handlers
+        // (attachment, focus), which may close or dispose the window: it is
+        // read through held.window after each (index-before-handler
+        // pattern, A-gf-abi-03-F3).
         held.window = (*window).window_ref();
+        held.token = (*window).open_overlay(anchor_control, held.layer);
+        Window* const opened_in = held.window.get();
+        if (opened_in == nullptr) {
+            throw std::logic_error("the anchor's window closed while the overlay opened");
+        }
         if (measures) {
             const Size measured = (*content_control).measure(client);
             AnchoredOverlayPlacement attached = placement;
@@ -426,7 +435,7 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
             (*held.layer).placement = attached;
         }
         if ((flags & GF_ANCHORED_OVERLAY_TAKE_FOCUS) != 0U) {
-            held.scope = (*window).begin_focus_scope(held.layer, content_control);
+            held.scope = (*opened_in).begin_focus_scope(held.layer, content_control);
         }
         held.dismiss = (*held.layer).dismiss_requested().subscribe(AnchoredDismissRequested{session});
         if (Event<>* closed = held.token.closed_event()) {
@@ -438,8 +447,9 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
         if (held.events) (*held.events).disarm();
         held.events.reset();
         held.closed = true;
-        if (held.scope && held.token.connected()) {
-            static_cast<void>((*window).end_focus_scope(held.scope));
+        Window* const still_open = held.window.get();
+        if (held.scope && held.token.connected() && still_open != nullptr) {
+            static_cast<void>((*still_open).end_focus_scope(held.scope));
         }
         held.dismiss.disconnect();
         held.revoked.disconnect();
