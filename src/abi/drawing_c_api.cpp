@@ -7,10 +7,8 @@
 #include "drawing_raster_service.h"
 #include "font_resolution_record.hpp"
 
-#include <stxlib/result.hpp>
-#include <stxlib/thread_records.hpp>
-
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <functional>
@@ -20,6 +18,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <type_traits>
 #include <utility>
@@ -27,65 +26,40 @@
 
 namespace {
 
-// The drawing library's per-thread state, one STXlib thread record
-// (stxlib/thread_records.hpp; the core and the raster module keep their
-// own, as each library loads separately): the calling thread's last error,
-// which gd_last_error reports. Created on the thread's first failure and
-// released on that thread by STXlib's exit hook or its end_thread_records.
-struct DrawingThreadRecord final {
-    gd_result last_error_code{GD_OK};
-    std::string last_error_message{};
+// The longest last-error message a thread keeps, in bytes. A longer one is
+// cut at the last whole UTF-8 sequence that fits.
+constexpr std::size_t last_error_capacity = 512U;
+
+// One thread's last error, which gd_last_error reports. Plain data (owner
+// rule 2: every thread_local trivially destructible), so recording a failure
+// never allocates and a thread's exit releases nothing. Each thread reads
+// and writes only its own; gd_last_error lends the message until the
+// thread's next failure.
+struct LastError final {
+    gd_result code{GD_OK};
+    std::size_t message_size{};
+    std::array<char, last_error_capacity> message{};
 };
 
-// The record type's callbacks, run by STXlib on the record's thread:
-// construction in zero-filled memory neither allocates nor throws; release
-// frees the message's memory only, so it is safe under the Windows loader
-// lock.
-void initialize_drawing_thread_record(DrawingThreadRecord* record) noexcept {
-    ::new (static_cast<void*>(record)) DrawingThreadRecord();
-}
+thread_local LastError last_error{};
 
-void release_drawing_thread_record(DrawingThreadRecord* record) noexcept {
-    (*record).~DrawingThreadRecord();
-}
-
-using DrawingThreadRecordType = stxlib::ThreadRecord<DrawingThreadRecord>;
-using DrawingThreadRecordRegistration = stxlib::Result<DrawingThreadRecordType>;
-
-// Registered once per process, by the first thread that fails; permanent,
-// as the library stays loaded for the process's life once registered.
-const DrawingThreadRecordRegistration& drawing_thread_record_registration() noexcept {
-    static const DrawingThreadRecordRegistration registration =
-        DrawingThreadRecordType::register_type<&initialize_drawing_thread_record,
-                                               &release_drawing_thread_record>();
-    return registration;
-}
-
-// The calling thread's record, created when `create`. Null when there is
-// none: never created, the thread's records ending or ended (STXlib's
-// disposed), allocation failed, or the type unregistered.
-DrawingThreadRecord* drawing_thread_record(bool create) noexcept {
-    const DrawingThreadRecordType* const type = drawing_thread_record_registration().value();
-    if (type == nullptr) return nullptr;
-    if (!create) return (*type).existing();
-    stxlib::Result<DrawingThreadRecord*> found = (*type).get();
-    if (found.failed()) return nullptr;
-    DrawingThreadRecord* const result = std::move(found).take_value();
-    return result;
-}
-
-// Records the failure as the thread's last error and returns it. A thread
-// without a record (see drawing_thread_record) still gets the result; only
-// gd_last_error's text is lost, quietly.
-gd_result fail(gd_result result, std::string message) noexcept {
-    DrawingThreadRecord* const record = drawing_thread_record(true);
-    if (record == nullptr) return result;
-    (*record).last_error_code = result;
-    try {
-        (*record).last_error_message = std::move(message);
-    } catch (...) {
-        (*record).last_error_message.clear();
+// The number of leading bytes of text that end on a whole UTF-8 sequence and
+// fit in capacity: a cut never lands on a continuation byte (10xxxxxx).
+std::size_t utf8_prefix_length(std::string_view text, std::size_t capacity) noexcept {
+    if (text.size() <= capacity) return text.size();
+    std::size_t length = capacity;
+    while (length > 0U && (static_cast<unsigned char>(text[length]) & 0xC0U) == 0x80U) {
+        --length;
     }
+    return length;
+}
+
+// Records the failure as the calling thread's last error and returns it.
+gd_result fail(gd_result result, std::string_view message) noexcept {
+    const std::size_t kept = utf8_prefix_length(message, last_error_capacity);
+    last_error.code = result;
+    if (kept != 0U) std::memcpy(last_error.message.data(), message.data(), kept);
+    last_error.message_size = kept;
     return result;
 }
 
@@ -1478,15 +1452,8 @@ gd_result release_bitmap_hdc(gui_drawing::Bitmap& bitmap,
 
 gd_result api_last_error(gd_error_view* error) {
     if (error == nullptr) return fail(GD_ERROR_INVALID_ARGUMENT, "last_error requires output");
-    // A thread that never failed (or whose record is gone) reports no error.
-    const DrawingThreadRecord* const record = drawing_thread_record(false);
-    if (record == nullptr) {
-        (*error).code = static_cast<std::uint32_t>(GD_OK);
-        (*error).message = {"", 0U};
-        return GD_OK;
-    }
-    (*error).code = static_cast<std::uint32_t>((*record).last_error_code);
-    (*error).message = {(*record).last_error_message.data(), (*record).last_error_message.size()};
+    (*error).code = static_cast<std::uint32_t>(last_error.code);
+    (*error).message = {last_error.message.data(), last_error.message_size};
     return GD_OK;
 }
 

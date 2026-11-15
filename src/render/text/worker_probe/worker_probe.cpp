@@ -1,5 +1,5 @@
 #include "worker_probe.hpp"
-#include "../../../core/thread_records/core_thread_record.hpp"
+#include "../../../core/thread_records/thread_records_end.hpp"
 
 #include <cmath>
 #include <limits>

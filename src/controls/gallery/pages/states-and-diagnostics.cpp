@@ -1,7 +1,7 @@
 #include "pages.hpp"
 
 #include "states-and-diagnostics_form.hpp"
-#include "../../../core/thread_records/core_thread_record.hpp"
+#include "../../../core/thread_records/thread_records_end.hpp"
 
 #include <array>
 #include <vector>

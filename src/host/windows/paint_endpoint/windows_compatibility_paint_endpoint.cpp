@@ -3,7 +3,7 @@
 #include "gui_forms/live_surface.hpp"
 
 #include "windows_compatibility_paint_endpoint_metrics.hpp"
-#include "../../../core/thread_records/core_thread_record.hpp"
+#include "../../../core/thread_records/thread_records_end.hpp"
 
 #include <windows.h>
 

@@ -1,5 +1,5 @@
 #include "prepared_window_session.hpp"
-#include "../../core/thread_records/core_thread_record.hpp"
+#include "../../core/thread_records/thread_records_end.hpp"
 
 #include <new>
 #include <system_error>

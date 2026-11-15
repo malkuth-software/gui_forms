@@ -2,6 +2,8 @@
 #include "gui_forms/c/gf_abi.h"
 #include "gui_forms/drawing_raster_c_api.h"
 
+#include <stxlib/thread_records.hpp>
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -10,6 +12,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string_view>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -420,6 +423,60 @@ void paint_target_draws_scaled_inside_damage(const gd_api_v0& api) {
     CHECK(api.recorder_paint_target(recorder, &target, &executed) == GD_ERROR_STALE_HANDLE);
 }
 
+// One thread's raster draw (owner rule 2, G4b): its executor and font
+// registrations are its raster record, released when it ends. Results are
+// checked on the test's thread after the join.
+struct ThreadDraw final {
+    const gd_api_v0* api{};
+    gd_result executed{GD_ERROR_INTERNAL};
+    std::uint32_t pixel{};
+    // After stxlib::end_thread_records: the raster call refused quietly.
+    bool end_records_first{};
+};
+
+struct ThreadDrawEntry final {
+    ThreadDraw* draw{};
+
+    void operator()() const {
+        const gd_api_v0& api = *(*draw).api;
+        gd_handle bitmap{};
+        gd_handle recorder{};
+        if (api.bitmap_create(4, 4, GD_PIXEL_BGRA32_PREMULTIPLIED, &bitmap) != GD_OK) return;
+        if (api.recorder_create(&recorder) == GD_OK &&
+            api.recorder_clear(recorder, gd_color{UINT32_C(0xff2266aa), 0}) == GD_OK) {
+            if ((*draw).end_records_first) stxlib::end_thread_records();
+            std::uint64_t executed{};
+            (*draw).executed = api.recorder_execute(recorder, bitmap, &executed);
+            gd_color pixel{};
+            if (api.bitmap_get_pixel(bitmap, 1, 1, &pixel) == GD_OK) (*draw).pixel = pixel.argb;
+        }
+        static_cast<void>(api.release(recorder));
+        static_cast<void>(api.release(bitmap));
+    }
+};
+
+// 64 threads started and joined one after another, each drawing once
+// through its own executor; then one thread whose records have ended, whose
+// draw is refused with GD_ERROR_NOT_AVAILABLE and nothing else. Leaks of
+// released records show in the sanitizer runs (LeakSanitizer).
+void thread_executors_end_with_their_threads(const gd_api_v0& api) {
+    constexpr std::size_t thread_count = 64U;
+    for (std::size_t index = 0U; index < thread_count; ++index) {
+        ThreadDraw draw{&api};
+        const ThreadDrawEntry entry{&draw};
+        std::thread thread(entry);
+        thread.join();
+        CHECK(draw.executed == GD_OK);
+        CHECK(draw.pixel == UINT32_C(0xff2266aa));
+    }
+    ThreadDraw ended{&api};
+    ended.end_records_first = true;
+    const ThreadDrawEntry entry{&ended};
+    std::thread thread(entry);
+    thread.join();
+    CHECK(ended.executed == GD_ERROR_NOT_AVAILABLE);
+}
+
 int main() {
     gd_api_v0 api{};
     api.struct_size = sizeof(api);
@@ -528,5 +585,6 @@ int main() {
     paint_target_draws_scaled_inside_damage(sealed);
     curved_paths_fill_and_stroke();
     rotated_strings_turn_their_ink();
+    thread_executors_end_with_their_threads(sealed);
     return 0;
 }

@@ -4,7 +4,7 @@
 #include "sub_surface_alerts.hpp"
 #include "sub_surface_channel.hpp"
 #include "sub_surface_tool_tips.hpp"
-#include "../../thread_records/core_thread_record.hpp"
+#include "../../thread_records/thread_records_end.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -312,7 +312,8 @@ void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
     std::string failure;
     // This thread's synchronous invokes can be revoked by the parent's stop
     // (SubSurfaceThread::stop), so they never hold its join.
-    detail::set_thread_revocable_invokes((*(*loop).channel_).revocable_invokes);
+    // The channel owns them; `channel` below keeps it past the clear.
+    detail::set_thread_revocable_invokes((*(*loop).channel_).revocable_invokes.get());
     try {
         (*loop).run_tree();
     } catch (const std::exception& error) {

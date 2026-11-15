@@ -36,6 +36,23 @@ static DWORD WINAPI refresh_on_thread(LPVOID argument) {
     return 0;
 }
 
+/* A whole capture on a thread of its own: capture, a refresh that makes the
+   staging, and the release that destroys it, all before the thread ends. */
+static DWORD WINAPI capture_on_thread(LPVOID argument) {
+    RefreshJob *job = (RefreshJob *)argument;
+    gd_handle captured = {0};
+    gd_rect bounds = {0};
+    (*job).result = (*(*job).api).native_surface_capture(
+        (uintptr_t)(*job).window, GD_NATIVE_SURFACE_HWND, &captured, &bounds);
+    if ((*job).result != GD_OK) return 0;
+    (*job).result = (*(*job).api).native_surface_refresh(
+        (uintptr_t)(*job).window, GD_NATIVE_SURFACE_HWND, captured, &(*job).bounds);
+    if ((*(*job).api).release(captured) != GD_OK && (*job).result == GD_OK) {
+        (*job).result = GD_ERROR_INTERNAL;
+    }
+    return 0;
+}
+
 static DWORD gdi_objects(void) {
     return GetGuiResources(GetCurrentProcess(), GR_GDIOBJECTS);
 }
@@ -181,6 +198,26 @@ int main(void) {
         CHECK(api.release(staged) == GD_OK);
         CHECK(gdi_objects() == baseline);
         puts("drawing-windows-refresh-staging=pass");
+    }
+
+    /* G4c: a capture made and released on another thread leaves no GDI
+       object behind once that thread has ended. */
+    {
+        RefreshJob job;
+        HANDLE thread = NULL;
+        DWORD before = gdi_objects();
+        CHECK(before != 0);
+        memset(&job, 0, sizeof(job));
+        job.api = &api;
+        job.window = window;
+        job.result = GD_ERROR_INTERNAL;
+        thread = CreateThread(NULL, 0, capture_on_thread, &job, 0, NULL);
+        CHECK(thread != NULL);
+        CHECK(WaitForSingleObject(thread, INFINITE) == WAIT_OBJECT_0);
+        CHECK(CloseHandle(thread) != 0);
+        CHECK(job.result == GD_OK);
+        CHECK(gdi_objects() == before);
+        puts("drawing-windows-thread-capture=pass");
     }
 
     CHECK(DestroyWindow(window) != 0);

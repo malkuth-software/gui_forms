@@ -1,12 +1,9 @@
-// The drawing library's per-thread last error as an STXlib thread record
-// (src/abi/drawing_c_api.cpp, DrawingThreadRecord): a thread's failures
-// set its own last error, a thread that never failed reports none, and a
-// thread whose records have ended still gets every result while
-// gd_last_error quietly reports no error.
+// The drawing library's per-thread last error (src/abi/drawing_c_api.cpp,
+// LastError): plain thread_local data (owner rule 2), so a thread's
+// failures set only its own last error, a thread that never failed reports
+// none, and a failure on one thread leaves another's error as it was.
 
 #include "gui_forms/drawing_c_api.h"
-
-#include <stxlib/thread_records.hpp>
 
 #include <cstdint>
 #include <iostream>
@@ -27,10 +24,6 @@ struct ThreadReport final {
     gd_result refused{GD_OK};
     std::uint32_t code{};
     std::uint64_t message_size{};
-    gd_result refused_after_end{GD_OK};
-    std::uint32_t code_after_end{};
-    std::uint64_t message_size_after_end{};
-    gd_result last_error_after_end{GD_ERROR_INTERNAL};
 };
 
 struct FailingThread final {
@@ -44,12 +37,6 @@ struct FailingThread final {
         static_cast<void>((*api).last_error(&error));
         (*report).code = error.code;
         (*report).message_size = error.message.size;
-        stxlib::end_thread_records();
-        (*report).refused_after_end = (*api).bitmap_create(2U, 1U, refused_format, &bitmap);
-        error = {};
-        (*report).last_error_after_end = (*api).last_error(&error);
-        (*report).code_after_end = error.code;
-        (*report).message_size_after_end = error.message.size;
     }
 };
 
@@ -74,19 +61,20 @@ int main() {
         api.struct_size = sizeof(api);
         require(gd_get_api_v0(GD_ABI_VERSION_0_1, &api) == GD_OK, "the drawing table loads");
 
+        // This thread's own failure, kept across the other threads' work.
+        gd_error_view own{};
+        require(api.last_error(nullptr) == GD_ERROR_INVALID_ARGUMENT, "last_error without output fails");
+        require(api.last_error(&own) == GD_OK, "last_error reads");
+        require(own.code == static_cast<std::uint32_t>(GD_ERROR_INVALID_ARGUMENT) && own.message.size != 0U,
+                "the failure is this thread's last error, with its text");
+
         ThreadReport report{};
         const FailingThread failing{&api, &report};
         std::thread failing_thread(failing);
         failing_thread.join();
         require(report.refused == GD_ERROR_INVALID_ARGUMENT, "the refused format fails");
         require(report.code == static_cast<std::uint32_t>(GD_ERROR_INVALID_ARGUMENT) && report.message_size != 0U,
-                "the failure is the thread's last error, with its text");
-        require(report.refused_after_end == GD_ERROR_INVALID_ARGUMENT,
-                "an ended thread still gets the result");
-        require(report.last_error_after_end == GD_OK &&
-                    report.code_after_end == static_cast<std::uint32_t>(GD_OK) &&
-                    report.message_size_after_end == 0U,
-                "an ended thread's last error is quietly none");
+                "the failure is the other thread's last error, with its text");
 
         std::uint32_t clean_code = UINT32_MAX;
         std::uint64_t clean_size = UINT64_MAX;
@@ -95,10 +83,15 @@ int main() {
         clean_thread.join();
         require(clean_code == static_cast<std::uint32_t>(GD_OK) && clean_size == 0U,
                 "a thread that never failed reports no error");
+
+        gd_error_view after{};
+        require(api.last_error(&after) == GD_OK, "last_error reads again");
+        require(after.code == own.code && after.message.size == own.message.size,
+                "other threads' failures leave this thread's last error");
     } catch (const std::exception& error) {
-        std::cerr << "drawing thread records test failed: " << error.what() << '\n';
+        std::cerr << "drawing last error test failed: " << error.what() << '\n';
         return 1;
     }
-    std::cout << "drawing thread records tests passed\n";
+    std::cout << "drawing last error tests passed\n";
     return 0;
 }

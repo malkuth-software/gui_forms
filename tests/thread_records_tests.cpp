@@ -1,138 +1,116 @@
-// The core's per-thread state as an STXlib thread record
-// (src/core/thread_records/core_thread_record.hpp): one record per thread,
-// created on first write and never by a read; released on its thread by
-// STXlib's exit hook or by ThreadRecordsEnd; and a thread whose records have
-// ended degrades quietly (no record, nothing kept, nothing thrown).
+// ThreadRecordsEnd (src/core/thread_records/thread_records_end.hpp): the
+// guard each thread entry GUI.Forms owns declares first. Closing it releases
+// the thread's STXlib records on the thread, once, after which a lookup on
+// that thread fails as disposed (the callers' quiet degradation); a thread
+// that returns without one has its records released by STXlib's exit hook.
 
-#include "../src/core/thread_records/core_thread_record.hpp"
-#include "../src/core/dispatcher/state/dispatcher_state.hpp"
+#include "../src/core/thread_records/thread_records_end.hpp"
 
+#include <stxlib/error.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/thread_records.hpp>
+
+#include <atomic>
 #include <cstdint>
 #include <iostream>
-#include <memory>
+#include <new>
 #include <stdexcept>
 #include <thread>
+#include <utility>
 
 namespace {
 
-using gui_forms::detail::CoreThreadRecord;
-using gui_forms::detail::RevocableInvokes;
 using gui_forms::detail::ThreadRecordsEnd;
-using gui_forms::detail::core_thread_record;
-using gui_forms::detail::existing_core_thread_record;
-using gui_forms::detail::set_thread_revocable_invokes;
 
 void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
 }
 
-// What one thread saw, read by the test's thread after the join.
-struct ThreadReport final {
-    bool existing_before_write{};
-    bool created{};
-    bool same_on_second_use{};
-    bool existing_after_write{};
-    bool invokes_kept{};
-    bool ended_without_record{};
-    bool existing_after_end{};
-    bool set_after_end_kept{};
+// Every release of a test record, on any thread.
+std::atomic<std::uint32_t> test_record_releases{0U};
+
+struct TestRecord final {
+    std::uint32_t value{};
 };
 
-// A thread that writes its record, ends its records and checks that it
-// then has none.
+void initialize_test_record(TestRecord* record) noexcept {
+    ::new (static_cast<void*>(record)) TestRecord();
+}
+
+void release_test_record(TestRecord* record) noexcept {
+    (*record).~TestRecord();
+    test_record_releases.fetch_add(1U, std::memory_order_acq_rel);
+}
+
+using TestRecordType = stxlib::ThreadRecord<TestRecord>;
+
+struct ThreadReport final {
+    bool created{};
+    std::uint32_t releases_inside{};
+    std::uint32_t releases_after_end{};
+    bool disposed_after_end{};
+    bool existing_after_end{};
+};
+
+// Creates its record inside a ThreadRecordsEnd scope, then looks again.
 struct EndingThread final {
+    const TestRecordType* type{};
     ThreadReport* report{};
-    std::shared_ptr<RevocableInvokes> invokes{};
 
     void operator()() const {
         {
             const ThreadRecordsEnd thread_records_end;
-            (*report).existing_before_write = existing_core_thread_record() != nullptr;
-            CoreThreadRecord* const record = core_thread_record();
-            (*report).created = record != nullptr;
-            (*report).same_on_second_use = core_thread_record() == record;
-            (*report).existing_after_write = existing_core_thread_record() == record;
-            set_thread_revocable_invokes(invokes);
-            (*report).invokes_kept = record != nullptr && (*record).revocable_invokes == invokes;
+            stxlib::Result<TestRecord*> found = (*type).get();
+            (*report).created = !found.failed();
+            (*report).releases_inside = test_record_releases.load(std::memory_order_acquire);
         }
-        // Ended: lookups fail (STXlib's disposed) and writes keep nothing.
-        (*report).ended_without_record = core_thread_record() == nullptr;
-        (*report).existing_after_end = existing_core_thread_record() != nullptr;
-        set_thread_revocable_invokes(invokes);
-        (*report).set_after_end_kept = existing_core_thread_record() != nullptr;
+        (*report).releases_after_end = test_record_releases.load(std::memory_order_acquire);
+        const stxlib::Result<TestRecord*> again = (*type).get();
+        (*report).disposed_after_end =
+            again.failed() && (*again.error()).kind() == stxlib::ErrorKind::disposed;
+        (*report).existing_after_end = (*type).existing() != nullptr;
     }
 };
 
-// A thread that writes its record and returns without ending it: STXlib's
-// exit hook releases it.
-// Compared on the thread, while both records are live.
+// Creates its record and returns without ending it.
 struct ExitingThread final {
-    std::shared_ptr<RevocableInvokes> invokes{};
-    const CoreThreadRecord* other{};
-    bool* separate{};
+    const TestRecordType* type{};
+    bool* created{};
 
     void operator()() const {
-        set_thread_revocable_invokes(invokes);
-        const CoreThreadRecord* const record = existing_core_thread_record();
-        *separate = record != nullptr && record != other;
+        const stxlib::Result<TestRecord*> found = (*type).get();
+        *created = !found.failed();
     }
 };
-
-void test_ended_thread_degrades() {
-    std::shared_ptr<RevocableInvokes> invokes = std::make_shared<RevocableInvokes>();
-    ThreadReport report{};
-    const EndingThread body{&report, invokes};
-    std::thread thread(body);
-    thread.join();
-    require(!report.existing_before_write, "a read creates no record");
-    require(report.created, "the first write creates the record");
-    require(report.same_on_second_use, "a thread keeps one record");
-    require(report.existing_after_write, "the record is found once it exists");
-    require(report.invokes_kept, "the record keeps the thread's revocable invokes");
-    require(report.ended_without_record, "an ended thread gets no record");
-    require(!report.existing_after_end, "an ended thread finds no record");
-    require(!report.set_after_end_kept, "a write on an ended thread keeps nothing");
-    // The release ran on the thread: the record's share of the invokes is
-    // gone, and the late write kept none.
-    require(invokes.use_count() == 1, "ending the records released the invokes");
-}
-
-void test_exit_releases_and_threads_are_separate() {
-    CoreThreadRecord* const mine = core_thread_record();
-    require(mine != nullptr, "the test's thread has a record");
-    std::shared_ptr<RevocableInvokes> invokes = std::make_shared<RevocableInvokes>();
-    bool separate = false;
-    const ExitingThread body{invokes, mine, &separate};
-    std::thread thread(body);
-    thread.join();
-    require(separate, "each thread has its own record");
-    require(invokes.use_count() == 1, "the exit hook released the exited thread's record");
-    require(core_thread_record() == mine, "another thread's exit leaves this thread's record");
-    require((*mine).revocable_invokes == nullptr, "this thread's record never saw the other's invokes");
-}
-
-void test_clearing_creates_nothing() {
-    struct ClearingThread final {
-        bool* created{};
-        void operator()() const {
-            set_thread_revocable_invokes(nullptr);
-            *created = existing_core_thread_record() != nullptr;
-        }
-    };
-    bool created = true;
-    const ClearingThread body{&created};
-    std::thread thread(body);
-    thread.join();
-    require(!created, "clearing the revocable invokes creates no record");
-}
 
 } // namespace
 
 int main() {
     try {
-        test_ended_thread_degrades();
-        test_exit_releases_and_threads_are_separate();
-        test_clearing_creates_nothing();
+        stxlib::Result<TestRecordType> registered =
+            TestRecordType::register_type<&initialize_test_record, &release_test_record>();
+        require(!registered.failed(), "the test record type registers");
+        const TestRecordType type = std::move(registered).take_value();
+
+        ThreadReport report{};
+        const EndingThread ending{&type, &report};
+        std::thread ending_thread(ending);
+        ending_thread.join();
+        require(report.created, "the thread's record is created");
+        require(report.releases_inside == 0U, "the record lives until the guard closes");
+        require(report.releases_after_end == 1U, "closing the guard releases the record once, on the thread");
+        require(report.disposed_after_end, "after the guard a lookup fails as disposed");
+        require(!report.existing_after_end, "after the guard no record is found");
+        require(test_record_releases.load(std::memory_order_acquire) == 1U,
+                "the thread's exit releases nothing more");
+
+        bool created = false;
+        const ExitingThread exiting{&type, &created};
+        std::thread exiting_thread(exiting);
+        exiting_thread.join();
+        require(created, "the second thread's record is created");
+        require(test_record_releases.load(std::memory_order_acquire) == 2U,
+                "a thread without the guard has its record released at exit");
     } catch (const std::exception& error) {
         std::cerr << "thread records test failed: " << error.what() << '\n';
         return 1;

@@ -1,6 +1,6 @@
 #include "../../core/text/prepared/prepared_storage.hpp"
 #include "harfbuzz/harfbuzz_font_engine.hpp"
-#include "../../core/thread_records/core_thread_record.hpp"
+#include "../../core/thread_records/thread_records_end.hpp"
 
 #include <algorithm>
 #include <cmath>

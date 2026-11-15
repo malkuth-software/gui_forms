@@ -18,7 +18,7 @@
 #endif
 
 #include "gui_forms/content/hosted/hosted_content.hpp"
-#include "../../../core/thread_records/core_thread_record.hpp"
+#include "../../../core/thread_records/thread_records_end.hpp"
 
 #include <fcntl.h>
 #include <poll.h>

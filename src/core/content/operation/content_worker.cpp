@@ -1,7 +1,7 @@
 #include "gui_forms/content/operation/content_operation.hpp"
 
 #include "../channel/content_channel.hpp"
-#include "../../thread_records/core_thread_record.hpp"
+#include "../../thread_records/thread_records_end.hpp"
 
 #include <algorithm>
 #include <atomic>

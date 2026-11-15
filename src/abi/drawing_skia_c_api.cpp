@@ -9,6 +9,7 @@
 #include "core_text_font_bytes.hpp"
 #endif
 
+#include <stxlib/error.hpp>
 #include <stxlib/result.hpp>
 #include <stxlib/thread_records.hpp>
 
@@ -97,23 +98,29 @@ const RasterThreadRecordRegistration& raster_thread_record_registration() noexce
     return registration;
 }
 
-// Thrown where a raster entry needs the thread's record and cannot have it:
-// the thread's records are ending or have ended (STXlib's disposed), the
-// allocation failed, or the type is unregistered. Each entry answers it
-// with GD_ERROR_NOT_AVAILABLE and nothing more: a quiet refusal.
+// Thrown where a raster entry needs the thread's record and cannot have it.
+// Each entry answers with `result` and nothing more, a quiet refusal:
+// GD_ERROR_OUT_OF_MEMORY when the record's allocation failed (a later call
+// tries again), else GD_ERROR_NOT_AVAILABLE (the thread's records are
+// ending or have ended, STXlib's disposed, or the type is unregistered).
 class RasterRecordUnavailable final : public std::exception {
 public:
+    explicit RasterRecordUnavailable(gd_result refusal) noexcept : result(refusal) {}
     const char* what() const noexcept override {
         return "the raster module has no record on this thread";
     }
+    gd_result result;
 };
 
 // The calling thread's record, created on first use.
 RasterThreadRecord& raster_thread_record() {
     const RasterThreadRecordType* const type = raster_thread_record_registration().value();
-    if (type == nullptr) throw RasterRecordUnavailable();
+    if (type == nullptr) throw RasterRecordUnavailable(GD_ERROR_NOT_AVAILABLE);
     stxlib::Result<RasterThreadRecord*> found = (*type).get();
-    if (found.failed()) throw RasterRecordUnavailable();
+    if (found.failed()) {
+        const bool out_of_memory = (*found.error()).kind() == stxlib::ErrorKind::out_of_memory;
+        throw RasterRecordUnavailable(out_of_memory ? GD_ERROR_OUT_OF_MEMORY : GD_ERROR_NOT_AVAILABLE);
+    }
     RasterThreadRecord* const record = std::move(found).take_value();
     return *record;
 }
@@ -486,8 +493,8 @@ gd_result execute(const void* recorder, void* bitmap,
             *static_cast<Bitmap*>(bitmap), static_cast<std::size_t>(first_command));
         *commands_executed = result.commands_executed;
         return translate_error(result.error);
-    } catch (const RasterRecordUnavailable&) {
-        return GD_ERROR_NOT_AVAILABLE;
+    } catch (const RasterRecordUnavailable& refusal) {
+        return refusal.result;
     } catch (...) {
         return GD_ERROR_INTERNAL;
     }
@@ -509,8 +516,8 @@ gd_result encode_png(const void* bitmap, void* buffer, std::uint64_t capacity,
         }
         if (!png.empty()) std::memcpy(buffer, png.data(), png.size());
         return GD_OK;
-    } catch (const RasterRecordUnavailable&) {
-        return GD_ERROR_NOT_AVAILABLE;
+    } catch (const RasterRecordUnavailable& refusal) {
+        return refusal.result;
     } catch (...) {
         return GD_ERROR_INTERNAL;
     }
@@ -528,8 +535,8 @@ gd_result decode_png(const void* data, std::uint64_t size, void** bitmap) {
         if (!result) return translate_error(result.error);
         *bitmap = result.bitmap.release();
         return GD_OK;
-    } catch (const RasterRecordUnavailable&) {
-        return GD_ERROR_NOT_AVAILABLE;
+    } catch (const RasterRecordUnavailable& refusal) {
+        return refusal.result;
     } catch (...) {
         return GD_ERROR_INTERNAL;
     }
@@ -559,8 +566,8 @@ gd_result measure_string(const void* font, const void* format,
         (*measured).width = size.width;
         (*measured).height = size.height;
         return GD_OK;
-    } catch (const RasterRecordUnavailable&) {
-        return GD_ERROR_NOT_AVAILABLE;
+    } catch (const RasterRecordUnavailable& refusal) {
+        return refusal.result;
     } catch (...) {
         return GD_ERROR_INTERNAL;
     }
@@ -575,8 +582,8 @@ gd_result resolve_font(const void* font, gd_font_resolution* resolution) {
         const FontRequest& request = ensure_font(snapshot.family, snapshot.style);
         gui_drawing::abi::fill_font_resolution(request.resolution, request.face_loaded, *resolution);
         return GD_OK;
-    } catch (const RasterRecordUnavailable&) {
-        return GD_ERROR_NOT_AVAILABLE;
+    } catch (const RasterRecordUnavailable& refusal) {
+        return refusal.result;
     } catch (...) {
         return GD_ERROR_INTERNAL;
     }

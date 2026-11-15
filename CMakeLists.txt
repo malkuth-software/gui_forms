@@ -710,7 +710,7 @@ add_library(gui_forms_core STATIC
     src/core/display/snapshot/splash_baker.cpp
     src/core/dispatcher/operation/dispatch_operation.cpp
     src/core/dispatcher/state/post_dispatch.cpp
-    src/core/thread_records/core_thread_record.cpp
+    src/core/thread_records/thread_records_end.cpp
     src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp
     src/core/scheduler/frame_request_token/frame_request_token.cpp
     src/core/scheduler/request/scheduled_frame_request.cpp
@@ -1048,9 +1048,7 @@ if(WIN32)
 else()
     target_sources(gui_drawing_c_api PRIVATE src/abi/drawing_platform_stub.cpp)
 endif()
-# The thread's last error is an STXlib thread record (stxlib::state's
-# registry; stxlib/thread_records.hpp).
-target_link_libraries(gui_drawing_c_api PRIVATE gui_drawing_core stxlib::boundary stxlib::state)
+target_link_libraries(gui_drawing_c_api PRIVATE gui_drawing_core)
 target_include_directories(gui_drawing_c_api PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
@@ -3715,10 +3713,10 @@ if(GUI_FORMS_BUILD_TESTS)
     endif()
 
 
-    # The drawing library's per-thread last error as an STXlib thread record.
-    add_executable(gui_drawing_thread_records_tests tests/drawing_thread_records_tests.cpp)
-    target_link_libraries(gui_drawing_thread_records_tests PRIVATE gui_drawing_c_api stxlib::boundary stxlib::state)
-    add_test(NAME gui_drawing_thread_records_tests COMMAND gui_drawing_thread_records_tests)
+    # The drawing library's per-thread last error (plain thread_local data).
+    add_executable(gui_drawing_last_error_tests tests/drawing_last_error_tests.cpp)
+    target_link_libraries(gui_drawing_last_error_tests PRIVATE gui_drawing_c_api)
+    add_test(NAME gui_drawing_last_error_tests COMMAND gui_drawing_last_error_tests)
 
     add_executable(gui_drawing_c_api_c11_tests tests/drawing_c_api_c11_tests.c)
     target_link_libraries(gui_drawing_c_api_c11_tests PRIVATE gui_drawing_c_api)
@@ -5583,9 +5581,9 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_program_options_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_program_options_tests COMMAND gui_forms_program_options_tests)
 
-    # The core's per-thread state as an STXlib thread record.
+    # ThreadRecordsEnd, the guard each GUI.Forms thread entry declares first.
     add_executable(gui_forms_thread_records_tests tests/thread_records_tests.cpp)
-    target_link_libraries(gui_forms_thread_records_tests PRIVATE gui_forms_core stxlib::boundary)
+    target_link_libraries(gui_forms_thread_records_tests PRIVATE gui_forms_core stxlib::boundary stxlib::state)
     add_test(NAME gui_forms_thread_records_tests COMMAND gui_forms_thread_records_tests)
 
     add_executable(gui_forms_shadow_frames_tests tests/shadow_frames_tests.cpp)
@@ -6537,6 +6535,8 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_drawing_raster_c_api_tests PRIVATE
             gui_drawing_c_api
             gui_drawing_raster_c_api
+            stxlib::boundary
+            stxlib::state
         )
         add_test(NAME gui_drawing_raster_c_api_tests
                  COMMAND gui_drawing_raster_c_api_tests)

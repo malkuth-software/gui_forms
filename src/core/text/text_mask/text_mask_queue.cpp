@@ -1,5 +1,5 @@
 #include "text_mask_state.hpp"
-#include "../../thread_records/core_thread_record.hpp"
+#include "../../thread_records/thread_records_end.hpp"
 #include <cstring>
 
 namespace gui_forms::detail {

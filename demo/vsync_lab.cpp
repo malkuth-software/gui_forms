@@ -4,7 +4,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/range_controls.hpp"
 #include "gui_forms/timer.hpp"
-#include "../src/core/thread_records/core_thread_record.hpp"
+#include "../src/core/thread_records/thread_records_end.hpp"
 
 #include <algorithm>
 #include <array>

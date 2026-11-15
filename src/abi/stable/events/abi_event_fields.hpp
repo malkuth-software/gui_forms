@@ -223,6 +223,10 @@ private:
     std::vector<gf_event_field> records_;
     std::vector<gf_object> lent_;
     const gf_event* event_ = nullptr;
+    // The frame published before this one on the same thread, while this
+    // one is published (the thread's frame stack, abi_event_fields.cpp):
+    // an observer, as every frame lives in its caller's scope.
+    EventFields* previous_frame_ = nullptr;
 
 #if GUI_FORMS_CHECKED_BORROWS
     // One region of lent scratch retired by the last release().
