@@ -313,6 +313,13 @@ public:
         if (reaped == process_) {
             process_ = 0;
             end = end_of(status);
+        } else if (reaped < 0 && errno == ECHILD) {
+            // Reaped by other code (a wait elsewhere, SIGCHLD ignored): the
+            // child has ended, without a status this process can read, and
+            // its number may already name another process, which must
+            // never be signalled (A-gf-host-02-F7).
+            process_ = 0;
+            end.reaped = true;
         }
         return end;
     }
@@ -332,6 +339,10 @@ public:
     // thread reaps it later.
     ProcessEnd kill_and_reap() noexcept {
         if (process_ <= 0) return ProcessEnd{};
+        // A child already ended, or reaped elsewhere, is not signalled: its
+        // number may have been reused (A-gf-host-02-F7).
+        const ProcessEnd ended = poll();
+        if (ended.reaped || process_ <= 0) return ended;
         static_cast<void>(kill(process_, SIGKILL));
         const ProcessEnd end = wait_for(hosted_reap_bound);
         if (end.reaped || process_ <= 0) return end;
