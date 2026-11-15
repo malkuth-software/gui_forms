@@ -2944,6 +2944,9 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
         // The theme in effect may have changed with the window or the parent
         // (P12b).
         for (const Control::Ptr& current : controls) (*current).refresh_inline_style();
+        // Composite looks are compiled for the theme in effect here, before
+        // anything resolves them.
+        for (const Control::Ptr& current : controls) (*current).prepare_composite_look();
         // Rules with ancestor compounds read the new ancestors (selector
         // step 4): a cached font is resolved again; the subtree's paint and
         // layout are marked below.

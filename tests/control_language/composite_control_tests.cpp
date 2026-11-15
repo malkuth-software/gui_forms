@@ -28,6 +28,7 @@
 
 #include "../../src/core/control_language/composite_definition/composite_definition.hpp"
 #include "../../src/core/theme_language/package/theme_manifest.hpp"
+#include "../support/clip_tracking_painter.hpp"
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/flex_panel.hpp"
 #include "gui_forms/controls/label.hpp"
@@ -532,9 +533,9 @@ constexpr Color first_brand = Color::rgba(0xaa, 0x00, 0x00);
 constexpr Color second_brand = Color::rgba(0x00, 0xaa, 0x00);
 
 // A look reading a theme's custom property follows a theme switch: it is
-// compiled once per theme on first use, shared by the instance and its
-// child, and switching back to the first theme reuses that theme's kept
-// compilation.
+// compiled once per theme when the theme is applied, shared by the
+// instance and its child, and switching back to the first theme reuses
+// that theme's kept compilation.
 void theme_bound_look_follows_switch() {
     const CompositeLoadResult loaded =
         load_composite_definition("branded-pair.control", branded_pair, example_child_types);
@@ -582,10 +583,47 @@ void theme_bound_look_follows_switch() {
     require(look.theme_reuses() > reuses && (*pair).statistics().look_theme_reuses == look.theme_reuses(),
             "the reuse is counted");
     require(look.theme_refusals() == 0U && (*pair).statistics().look_theme_refusals == 0U, "no theme refuses it");
+    require(look.missing() == 0U, "every resolution found a prepared compilation");
+}
+
+// Resolution never compiles a look: applying a theme compiles it, and the
+// style pass that follows (layout, paint, explicit resolutions) only reads
+// it; a theme never prepared is a counted defect that compiles nothing.
+void resolution_never_compiles() {
+    const CompositeLoadResult loaded =
+        load_composite_definition("branded-pair.control", branded_pair, example_child_types);
+    require(static_cast<bool>(loaded), "the branded pair loads for the style pass");
+    if (!loaded || (*loaded.definition).compiled_look == nullptr) return;
+    const detail::CompositeLook& look = *(*loaded.definition).compiled_look;
+    const std::shared_ptr<const Theme> theme = app_theme(":root { --brand: #aa0000; }\n");
+    const std::shared_ptr<const Theme> unprepared = app_theme(":root { --brand: #00aa00; }\n");
+    if (theme == nullptr || unprepared == nullptr) return;
+    const std::shared_ptr<CompositeControl> pair =
+        make_control<CompositeControl>(StableId(std::string("styled")), loaded.definition);
+    (*pair).set_requested_bounds({0.0, 0.0, 200.0, 80.0});
+    Window window(pair, {200.0, 80.0});
+    window.set_theme(theme);
+    const std::uint64_t prepared = look.theme_compiles();
+    require(prepared >= 1U, "applying the theme compiled the look before the style pass");
+    window.perform_layout();
+    test_support::ClipTrackingPainter painter{};
+    window.paint(painter);
+    for (std::size_t round = 0U; round < 10U; ++round) {
+        static_cast<void>(recipe_of(*pair, "face", ControlVisualContext{}));
+    }
+    require(look.theme_compiles() == prepared, "the style pass compiles no look");
+    require(look.missing() == 0U, "the style pass finds the prepared compilation");
+    // A theme no fixed point prepared (resolved directly, not applied):
+    // counted as missing, nothing drawn from the look, nothing compiled.
+    detail::CompositeLook& shared = *(*loaded.definition).compiled_look;
+    const CompiledThemeRules* const found = shared.rules_for(*unprepared);
+    require(found == nullptr && look.missing() == 1U && look.theme_compiles() == prepared,
+            "a missing compilation is a counted defect, not a compile");
+    require((*pair).statistics().look_missing == 1U, "the statistics report the defect");
 }
 
 // A hundred instances of a theme-bound look under one theme cause one
-// compilation for that theme.
+// compilation for that theme, made when the theme is applied.
 void theme_bound_hundred_one_compile() {
     const CompositeLoadResult loaded =
         load_composite_definition("branded-pair.control", branded_pair, example_child_types);
@@ -606,6 +644,7 @@ void theme_bound_hundred_one_compile() {
     Window window(host, {400.0, 400.0});
     const std::uint64_t before = look.theme_compiles();
     window.set_theme(theme);
+    require(look.theme_compiles() == before + 1U, "applying the theme compiles the look once, before any resolution");
     window.perform_layout();
     std::size_t following = 0U;
     for (const std::shared_ptr<CompositeControl>& instance : instances) {
@@ -633,6 +672,7 @@ int main() {
     hundred_instances_one_compile();
     theme_bound_look_follows_switch();
     theme_bound_hundred_one_compile();
+    resolution_never_compiles();
     if (failures != 0) {
         std::cerr << failures << " composite control check(s) failed\n";
         return 1;

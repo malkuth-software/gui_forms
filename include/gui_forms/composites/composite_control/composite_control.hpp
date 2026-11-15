@@ -26,8 +26,9 @@
 // (CompiledThemeRules::compile_look). A look reading only the engine
 // inputs and the built-in colour roles compiles once, with the definition;
 // one reading a theme's application roles or custom properties compiles
-// with the text of each theme in effect on its first use under it, once
-// per definition per theme. An error that no theme could resolve refuses
+// with the text of each theme, once per definition per theme, at fixed
+// points before resolution: when the instance is attached and when a
+// theme is applied (never inside the style pass). An error that no theme could resolve refuses
 // the definition; a look refused under one theme logs one line and draws
 // nothing there. Every instance shares the definition's look and sets it
 // on itself and on the controls its definition made
@@ -177,12 +178,15 @@ inline constexpr std::size_t maximum_composite_rule_depth = 8U;
 //     only the engine inputs and built-in roles compiles nothing more;
 //   look_theme_compiles / look_theme_refusals: compilations of a look
 //     that reads a theme's roles or custom properties with the text of a
-//     theme in effect (once per definition per theme serial, on first use
-//     under it), and those refused; the definition's counts, read when
-//     asked, so the same in every instance;
-//   look_theme_reuses: uses of a kept compilation after another theme's
-//     (switching back to a theme reuses its compilation while it is among
-//     the last maximum_composite_look_entries themes used).
+//     theme (once per definition per theme serial, at the first fixed
+//     point under it: attachment or a theme applied, never the style
+//     pass), and those refused; the definition's counts, read when asked,
+//     so the same in every instance;
+//   look_theme_reuses: preparations that reused a kept compilation after
+//     another theme's (switching back to a theme reuses its compilation
+//     while it is among the last maximum_composite_look_entries themes);
+//   look_missing: resolutions that found no prepared compilation, a defect
+//     (the look draws nothing there; nothing compiles).
 struct GUI_FORMS_API CompositeStatistics final {
     std::uint64_t rule_firings{};
     std::uint64_t refused_firings{};
@@ -196,6 +200,7 @@ struct GUI_FORMS_API CompositeStatistics final {
     std::uint64_t look_theme_compiles{};
     std::uint64_t look_theme_refusals{};
     std::uint64_t look_theme_reuses{};
+    std::uint64_t look_missing{};
 };
 
 class CompositeEvaluator;

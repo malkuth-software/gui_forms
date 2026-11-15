@@ -603,6 +603,12 @@ void SurfaceRoot::set_theme_override(std::shared_ptr<const Theme> theme) {
 void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
     if (theme_ == shown) return;
     theme_ = shown;
+    // Composite looks are compiled for the new theme here, before anything
+    // resolves them (detail::CompositeLook::prepare).
+    if (root_) (*root_).prepare_composite_looks();
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (const Control::Ptr overlay_root = (*overlay).overlay()) (*overlay_root).prepare_composite_looks();
+    }
     // Another theme draws parts differently: no cached part raster is
     // current.
     engine_parts_.invalidate_rasters();

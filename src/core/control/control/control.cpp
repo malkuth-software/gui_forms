@@ -1715,6 +1715,7 @@ void Control::set_theme_override(std::shared_ptr<const Theme> theme) {
     theme_override_ = std::move(theme);
     advance_inherited_generation();
     commit_inline_restyles(restyles);
+    prepare_composite_looks();
     invalidate_subtree(invalidation::conservative_subtree);
 }
 
@@ -1729,6 +1730,7 @@ void Control::clear_theme_override() {
     theme_override_.reset();
     advance_inherited_generation();
     commit_inline_restyles(restyles);
+    prepare_composite_looks();
     invalidate_subtree(invalidation::conservative_subtree);
 }
 
@@ -4026,7 +4028,24 @@ void Control::set_composite_look(std::shared_ptr<detail::CompositeLook> look) {
     require_mutable();
     if (composite_look_ == look) return;
     composite_look_ = std::move(look);
+    // Attached, the theme in effect is known now: prepared before any
+    // resolution reads the look. Detached, attachment prepares it.
+    if (surface_root_ != nullptr) prepare_composite_look();
     invalidate(Dirty::paint | refresh_text_font());
+}
+
+void Control::prepare_composite_look() {
+    if (composite_look_ == nullptr) return;
+    (*composite_look_).prepare(effective_theme());
+}
+
+void Control::prepare_composite_looks() {
+    // Pre-order, in fixed storage (the depth rule); preparing changes no
+    // child list.
+    detail::SubtreeWalk walk(*this);
+    for (Control* current = walk.next(); current != nullptr; current = walk.next()) {
+        (*current).prepare_composite_look();
+    }
 }
 
 void Control::set_custom_cursor(CursorImagesPtr images, CursorKind fallback) {

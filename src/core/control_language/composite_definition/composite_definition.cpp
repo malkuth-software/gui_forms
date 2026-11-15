@@ -800,7 +800,8 @@ void DefinitionCompiler::build_anatomy() {
 // - It reads a custom property it does not define, or is refused only for
 //   names a theme may supply (an unknown keyword, such as an application
 //   colour role, or an undefined custom property): it is theme-bound,
-//   compiled with each theme's text on first use (detail::CompositeLook).
+//   compiled with each theme's text before resolution
+//   (detail::CompositeLook).
 // - Any other error refuses the definition.
 void DefinitionCompiler::compile_look() {
     if (definition_.look.empty()) return;
@@ -992,8 +993,8 @@ CompositeLook::CompositeLook(std::string text, std::string file, std::vector<Con
 
 CompositeLook::~CompositeLook() = default;
 
-const CompiledThemeRules* CompositeLook::rules_for(const Theme& theme) noexcept {
-    if (!theme_bound_) return independent_.get();
+void CompositeLook::prepare(const Theme& theme) {
+    if (!theme_bound_) return;
     const std::uint64_t serial = theme.engine().rules().serial();
     use_clock_ = use_clock_ + 1U;
     for (ThemeEntry& entry : entries_) {
@@ -1001,10 +1002,9 @@ const CompiledThemeRules* CompositeLook::rules_for(const Theme& theme) noexcept 
         entry.used = use_clock_;
         if (last_serial_ != 0U && last_serial_ != serial) theme_reuses_ = theme_reuses_ + 1U;
         last_serial_ = serial;
-        return entry.rules.get();
+        return;
     }
-    // First use under this theme: compiled with its text, in place of the
-    // least recently used entry when all are taken.
+    // First preparation under this theme: compiled with its text.
     std::vector<ThemeCompileDiagnostic> diagnostics{};
     std::shared_ptr<const CompiledThemeRules> compiled = compile_theme_look(text_, file_, controls_, theme, diagnostics);
     theme_compiles_ = theme_compiles_ + 1U;
@@ -1023,18 +1023,28 @@ const CompiledThemeRules* CompositeLook::rules_for(const Theme& theme) noexcept 
     made.theme_serial = serial;
     made.rules = std::move(compiled);
     made.used = use_clock_;
+    last_serial_ = serial;
     if (entries_.size() < maximum_composite_look_entries) {
         entries_.push_back(std::move(made));
-        last_serial_ = serial;
-        return entries_.back().rules.get();
+        return;
     }
     std::size_t oldest = 0U;
     for (std::size_t index = 1U; index < entries_.size(); ++index) {
         if (entries_[index].used < entries_[oldest].used) oldest = index;
     }
     entries_[oldest] = std::move(made);
-    last_serial_ = serial;
-    return entries_[oldest].rules.get();
+}
+
+const CompiledThemeRules* CompositeLook::rules_for(const Theme& theme) noexcept {
+    if (!theme_bound_) return independent_.get();
+    const std::uint64_t serial = theme.engine().rules().serial();
+    for (const ThemeEntry& entry : entries_) {
+        if (entry.theme_serial == serial) return entry.rules.get();
+    }
+    // A defect: no fixed point prepared this theme. Nothing is compiled
+    // here; the look draws nothing for the part.
+    missing_ = missing_ + 1U;
+    return nullptr;
 }
 
 } // namespace gui_forms::detail

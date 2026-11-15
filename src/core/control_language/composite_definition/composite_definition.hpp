@@ -316,8 +316,8 @@ public:
     // The schema's interactions: the declared events, by name.
     std::vector<std::string> interaction_names{};
     // The <look>, compiled (detail::CompositeLook: once for every theme
-    // where it reads nothing of one, else once per theme on first use);
-    // null without a look. Every instance shares it: the composite and the
+    // where it reads nothing of one, else once per theme, prepared before
+    // resolution); null without a look. Every instance shares it: the composite and the
     // controls its definition made consult it beside the theme in effect
     // (Control::set_composite_look). `look_compiles` counts the look's
     // compilation alone, with the definition (one with a look, none

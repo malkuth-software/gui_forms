@@ -200,6 +200,7 @@ const CompositeStatistics& CompositeControl::statistics() const noexcept {
         statistics_.look_theme_compiles = (*look).theme_compiles();
         statistics_.look_theme_refusals = (*look).theme_refusals();
         statistics_.look_theme_reuses = (*look).theme_reuses();
+        statistics_.look_missing = (*look).missing();
     }
     return statistics_;
 }

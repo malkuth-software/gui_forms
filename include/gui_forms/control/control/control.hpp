@@ -813,9 +813,10 @@ public:
     // contrast reach the control as they reach any other, and the look's
     // rules stand over the theme's sheet rules only where they say
     // something. A look reading the theme's roles or custom properties is
-    // compiled for the theme in effect on its first use under it, once
-    // for all the controls it styles (detail::CompositeLook); the rules
-    // are borrowed until the next call under another theme.
+    // compiled for each theme before resolution, at attachment and when a
+    // theme is applied, once for all the controls it styles
+    // (detail::CompositeLook); this reads that compilation and compiles
+    // nothing. The rules are borrowed until a theme is applied.
     [[nodiscard]] const CompiledThemeRules* look_rules() const noexcept;
     // Sets or (null) clears that look (CompositeControl) and invalidates
     // the control's paint and text font. Shared: a control taken out of
@@ -1720,6 +1721,13 @@ private:
     // error: the theme's rules reading its names then keep the theme's
     // definitions (CompiledThemeRules::theme_serial differs).
     void refresh_inline_style();
+    // The fixed points of a composite look (detail::CompositeLook::
+    // prepare): prepares this control's look for the theme in effect, or,
+    // for the subtree form, every look of this subtree for each control's
+    // theme in effect. Called on attachment, when a window shows a theme
+    // and when a theme override changes; never from the cascade.
+    void prepare_composite_look();
+    void prepare_composite_looks();
     // Whether the theme sheet must compile now that the control is attached:
     // it waits, or was compiled into other resources.
     [[nodiscard]] bool theme_sheet_due() const noexcept;
