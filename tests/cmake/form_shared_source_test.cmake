@@ -7,7 +7,12 @@
 #   -DWORK_DIRECTORY=<scratch directory> -DSOURCE_DIRECTORY=<repository root>
 #   -DGENERATOR=<generator> and optionally -DMAKE_PROGRAM, -DCXX_COMPILER,
 #   -DCXX_FLAGS, -DLINKER_FLAGS, -DOSX_SYSROOT, -DOSX_ARCHITECTURES and
-#   -DEXECUTABLE_SUFFIX, the parent build's settings.
+#   -DEXECUTABLE_SUFFIX, the parent build's settings, and -DTOOLCHAIN_FILE,
+#   -DLLVM_RUNTIME and -DHARNESS_RUNTIME: the parent's toolchain file and
+#   the C++ runtime prefix it read from the environment at configure time.
+#   The nested project takes the same toolchain and runtime, so it links
+#   the same C++ runtime as the parent (on Linux the harness's static PIC
+#   libc++; the compiler and -stdlib=libc++ alone left libc++ unlinked).
 foreach(required IN ITEMS WORK_DIRECTORY SOURCE_DIRECTORY GENERATOR)
     if(NOT ${required})
         message(FATAL_ERROR "form shared source test: ${required} is not set")
@@ -38,6 +43,17 @@ set(configure_arguments -S "${project}" -B "${build}" -G "${GENERATOR}"
     -DCMAKE_BUILD_TYPE=Release)
 if(MAKE_PROGRAM)
     list(APPEND configure_arguments "-DCMAKE_MAKE_PROGRAM=${MAKE_PROGRAM}")
+endif()
+# The toolchain file reads the runtime prefix from the environment, which
+# ctest need not carry: the values the parent configured with are set here.
+if(TOOLCHAIN_FILE)
+    list(APPEND configure_arguments "-DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}")
+endif()
+if(LLVM_RUNTIME)
+    set(ENV{GUI_FORMS_LLVM_RUNTIME} "${LLVM_RUNTIME}")
+endif()
+if(HARNESS_RUNTIME)
+    set(ENV{HARNESS_LLVM_RUNTIME} "${HARNESS_RUNTIME}")
 endif()
 if(CXX_COMPILER)
     list(APPEND configure_arguments "-DCMAKE_CXX_COMPILER=${CXX_COMPILER}")

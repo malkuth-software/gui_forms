@@ -4313,6 +4313,9 @@ if(GUI_FORMS_BUILD_TESTS)
                              -DOSX_SYSROOT=${CMAKE_OSX_SYSROOT}
                              "-DOSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}"
                              -DEXECUTABLE_SUFFIX=${CMAKE_EXECUTABLE_SUFFIX}
+                             "-DTOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
+                             "-DLLVM_RUNTIME=$ENV{GUI_FORMS_LLVM_RUNTIME}"
+                             "-DHARNESS_RUNTIME=$ENV{HARNESS_LLVM_RUNTIME}"
                              -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/form_shared_source_test.cmake)
             # Stage B: the classes deriving from the root's type.
             add_executable(gui_forms_form_derived_class_tests tests/form_language/form_derived_class_tests.cpp)
