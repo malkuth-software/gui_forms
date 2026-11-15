@@ -3604,7 +3604,6 @@ Properties beyond every control's: none.
 | `content` | image |  |  |
 | `caret` | caret |  |  |
 | `selection` | selection |  |  |
-| `focus` | focus |  |  |
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`, `read_only`.
 

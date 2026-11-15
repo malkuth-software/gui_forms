@@ -12270,8 +12270,7 @@
         {"name": "focus", "role": "focus", "composed_from": null, "states": []},
         {"name": "content", "role": "image", "composed_from": null, "states": []},
         {"name": "caret", "role": "caret", "composed_from": null, "states": []},
-        {"name": "selection", "role": "selection", "composed_from": null, "states": []},
-        {"name": "focus", "role": "focus", "composed_from": null, "states": []}
+        {"name": "selection", "role": "selection", "composed_from": null, "states": []}
       ],
       "states": ["normal", "enabled", "disabled", "focused", "focus_visible", "read_only"],
       "custom_states": [],
