@@ -3976,3 +3976,39 @@ Properties beyond every control's: none.
 | `key_up` | `KeyEventArgs`, by reference |
 | `presentation_changed` | `PresentationSettings` |
 | `theme_changed` | `Theme` |
+
+## Composite controls
+
+Controls written as `.control` documents that the Gallery shows (cp34). A form names
+each by its document name; its children go into the slot, or are refused without one.
+
+### `card_with_action` (`card-with-action` 1.0)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `focus` | focus |  |  |
+| `face` | face |  |  |
+| `edge` | edge |  |  |
+| `header_divider` | divider |  |  |
+
+Slot: `content`.
+Declared properties: `title` (text), `action_text` (text).
+Events: `action-invoked`.
+Commands: none.
+
+### `toggle_pill` (`toggle-pill` 1.0)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `focus` | focus |  |  |
+| `track` | track |  | hot, pressed |
+| `hit_area` | region |  |  |
+| `thumb` | thumb |  | hot, pressed, captured |
+| `label` | label |  |  |
+
+Slot: none, children are refused.
+Declared properties: `checked` (boolean), `text` (text).
+Events: `checked-changed` (boolean).
+Commands: `toggle`.
