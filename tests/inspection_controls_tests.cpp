@@ -1313,7 +1313,7 @@ void test_edit_failed_handler_rebuilds_the_grid() {
         int failures = 0;
         SubscriptionToken failed = (*grid).edit_failed().subscribe(RefreshOnFailure{grid.get(), &failures});
         PropertyValueChange change;
-        change.row_id = "inspection.rebuild.grid.property.tab_index";
+        change.row_id = "inspection.rebuild.grid.property.tab-index";
         change.previous_value = "0";
         change.current_value = "not a number";
         change.committed = true;
