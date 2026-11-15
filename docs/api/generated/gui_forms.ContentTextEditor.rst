@@ -422,7 +422,7 @@ gui_forms::ContentTextEditor
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 26 supported, 0 deferred, 0 excluded, 1 unclassified; 27 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 26 supported, 0 deferred, 0 excluded, 2 unclassified; 28 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -513,6 +513,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 26 s
      - GUI.Forms-only
      - ``user_edit``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``content_text_editor_property_entries``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``delete_selection``

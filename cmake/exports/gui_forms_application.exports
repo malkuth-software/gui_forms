@@ -872,6 +872,7 @@ __ZGVZN9gui_forms18CommandRouteResult*
 __ZGVZN9gui_forms18CompiledThemeRules*
 __ZGVZN9gui_forms18ComponentContainer*
 __ZGVZN9gui_forms18CompositeChildType*
+__ZGVZN9gui_forms18CompositePaintHook*
 __ZGVZN9gui_forms18ContentTextCluster*
 __ZGVZN9gui_forms18ContextMenuRequest*
 __ZGVZN9gui_forms18ControlCanvasPaint*
@@ -2521,6 +2522,7 @@ __ZGVZNK9gui_forms18CommandRouteResult*
 __ZGVZNK9gui_forms18CompiledThemeRules*
 __ZGVZNK9gui_forms18ComponentContainer*
 __ZGVZNK9gui_forms18CompositeChildType*
+__ZGVZNK9gui_forms18CompositePaintHook*
 __ZGVZNK9gui_forms18ContentTextCluster*
 __ZGVZNK9gui_forms18ContextMenuRequest*
 __ZGVZNK9gui_forms18ControlCanvasPaint*
@@ -4560,6 +4562,7 @@ __ZN9gui_forms18CommandRouteResult*
 __ZN9gui_forms18CompiledThemeRules*
 __ZN9gui_forms18ComponentContainer*
 __ZN9gui_forms18CompositeChildType*
+__ZN9gui_forms18CompositePaintHook*
 __ZN9gui_forms18ContentTextCluster*
 __ZN9gui_forms18ContextMenuRequest*
 __ZN9gui_forms18ControlCanvasPaint*
@@ -7415,6 +7418,7 @@ __ZNK[RO]9gui_forms18CommandRouteResult*
 __ZNK[RO]9gui_forms18CompiledThemeRules*
 __ZNK[RO]9gui_forms18ComponentContainer*
 __ZNK[RO]9gui_forms18CompositeChildType*
+__ZNK[RO]9gui_forms18CompositePaintHook*
 __ZNK[RO]9gui_forms18ContentTextCluster*
 __ZNK[RO]9gui_forms18ContextMenuRequest*
 __ZNK[RO]9gui_forms18ControlCanvasPaint*
@@ -9064,6 +9068,7 @@ __ZN[KRO]9gui_forms18CommandRouteResult*
 __ZN[KRO]9gui_forms18CompiledThemeRules*
 __ZN[KRO]9gui_forms18ComponentContainer*
 __ZN[KRO]9gui_forms18CompositeChildType*
+__ZN[KRO]9gui_forms18CompositePaintHook*
 __ZN[KRO]9gui_forms18ContentTextCluster*
 __ZN[KRO]9gui_forms18ContextMenuRequest*
 __ZN[KRO]9gui_forms18ControlCanvasPaint*
@@ -10713,6 +10718,7 @@ __ZT[VIST]N9gui_forms18CommandRouteResult*E
 __ZT[VIST]N9gui_forms18CompiledThemeRules*E
 __ZT[VIST]N9gui_forms18ComponentContainer*E
 __ZT[VIST]N9gui_forms18CompositeChildType*E
+__ZT[VIST]N9gui_forms18CompositePaintHook*E
 __ZT[VIST]N9gui_forms18ContentTextCluster*E
 __ZT[VIST]N9gui_forms18ContextMenuRequest*E
 __ZT[VIST]N9gui_forms18ControlCanvasPaint*E
@@ -12362,6 +12368,7 @@ __ZT[hvc]*9gui_forms18CommandRouteResult*
 __ZT[hvc]*9gui_forms18CompiledThemeRules*
 __ZT[hvc]*9gui_forms18ComponentContainer*
 __ZT[hvc]*9gui_forms18CompositeChildType*
+__ZT[hvc]*9gui_forms18CompositePaintHook*
 __ZT[hvc]*9gui_forms18ContentTextCluster*
 __ZT[hvc]*9gui_forms18ContextMenuRequest*
 __ZT[hvc]*9gui_forms18ControlCanvasPaint*
@@ -14011,6 +14018,7 @@ __ZZN9gui_forms18CommandRouteResult*
 __ZZN9gui_forms18CompiledThemeRules*
 __ZZN9gui_forms18ComponentContainer*
 __ZZN9gui_forms18CompositeChildType*
+__ZZN9gui_forms18CompositePaintHook*
 __ZZN9gui_forms18ContentTextCluster*
 __ZZN9gui_forms18ContextMenuRequest*
 __ZZN9gui_forms18ControlCanvasPaint*
@@ -15660,6 +15668,7 @@ __ZZNK9gui_forms18CommandRouteResult*
 __ZZNK9gui_forms18CompiledThemeRules*
 __ZZNK9gui_forms18ComponentContainer*
 __ZZNK9gui_forms18CompositeChildType*
+__ZZNK9gui_forms18CompositePaintHook*
 __ZZNK9gui_forms18ContentTextCluster*
 __ZZNK9gui_forms18ContextMenuRequest*
 __ZZNK9gui_forms18ControlCanvasPaint*

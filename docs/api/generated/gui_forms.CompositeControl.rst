@@ -213,7 +213,7 @@ gui_forms::CompositeControl
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 3 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 3 unclassified; 13 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -260,6 +260,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 9 su
      - GUI.Forms-only
      - ``initialize_control_tree``
      - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``paint_hook``
+     - supported
    * - method
      - GUI.Forms-only
      - ``part_bounds``

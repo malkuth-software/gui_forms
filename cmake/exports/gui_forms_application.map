@@ -874,6 +874,7 @@
     _ZGVZN9gui_forms18CompiledThemeRules*;
     _ZGVZN9gui_forms18ComponentContainer*;
     _ZGVZN9gui_forms18CompositeChildType*;
+    _ZGVZN9gui_forms18CompositePaintHook*;
     _ZGVZN9gui_forms18ContentTextCluster*;
     _ZGVZN9gui_forms18ContextMenuRequest*;
     _ZGVZN9gui_forms18ControlCanvasPaint*;
@@ -2523,6 +2524,7 @@
     _ZGVZNK9gui_forms18CompiledThemeRules*;
     _ZGVZNK9gui_forms18ComponentContainer*;
     _ZGVZNK9gui_forms18CompositeChildType*;
+    _ZGVZNK9gui_forms18CompositePaintHook*;
     _ZGVZNK9gui_forms18ContentTextCluster*;
     _ZGVZNK9gui_forms18ContextMenuRequest*;
     _ZGVZNK9gui_forms18ControlCanvasPaint*;
@@ -4562,6 +4564,7 @@
     _ZN9gui_forms18CompiledThemeRules*;
     _ZN9gui_forms18ComponentContainer*;
     _ZN9gui_forms18CompositeChildType*;
+    _ZN9gui_forms18CompositePaintHook*;
     _ZN9gui_forms18ContentTextCluster*;
     _ZN9gui_forms18ContextMenuRequest*;
     _ZN9gui_forms18ControlCanvasPaint*;
@@ -7417,6 +7420,7 @@
     _ZNK[RO]9gui_forms18CompiledThemeRules*;
     _ZNK[RO]9gui_forms18ComponentContainer*;
     _ZNK[RO]9gui_forms18CompositeChildType*;
+    _ZNK[RO]9gui_forms18CompositePaintHook*;
     _ZNK[RO]9gui_forms18ContentTextCluster*;
     _ZNK[RO]9gui_forms18ContextMenuRequest*;
     _ZNK[RO]9gui_forms18ControlCanvasPaint*;
@@ -9066,6 +9070,7 @@
     _ZN[KRO]9gui_forms18CompiledThemeRules*;
     _ZN[KRO]9gui_forms18ComponentContainer*;
     _ZN[KRO]9gui_forms18CompositeChildType*;
+    _ZN[KRO]9gui_forms18CompositePaintHook*;
     _ZN[KRO]9gui_forms18ContentTextCluster*;
     _ZN[KRO]9gui_forms18ContextMenuRequest*;
     _ZN[KRO]9gui_forms18ControlCanvasPaint*;
@@ -10715,6 +10720,7 @@
     _ZT[VIST]N9gui_forms18CompiledThemeRules*E;
     _ZT[VIST]N9gui_forms18ComponentContainer*E;
     _ZT[VIST]N9gui_forms18CompositeChildType*E;
+    _ZT[VIST]N9gui_forms18CompositePaintHook*E;
     _ZT[VIST]N9gui_forms18ContentTextCluster*E;
     _ZT[VIST]N9gui_forms18ContextMenuRequest*E;
     _ZT[VIST]N9gui_forms18ControlCanvasPaint*E;
@@ -12364,6 +12370,7 @@
     _ZT[hvc]*9gui_forms18CompiledThemeRules*;
     _ZT[hvc]*9gui_forms18ComponentContainer*;
     _ZT[hvc]*9gui_forms18CompositeChildType*;
+    _ZT[hvc]*9gui_forms18CompositePaintHook*;
     _ZT[hvc]*9gui_forms18ContentTextCluster*;
     _ZT[hvc]*9gui_forms18ContextMenuRequest*;
     _ZT[hvc]*9gui_forms18ControlCanvasPaint*;
@@ -14013,6 +14020,7 @@
     _ZZN9gui_forms18CompiledThemeRules*;
     _ZZN9gui_forms18ComponentContainer*;
     _ZZN9gui_forms18CompositeChildType*;
+    _ZZN9gui_forms18CompositePaintHook*;
     _ZZN9gui_forms18ContentTextCluster*;
     _ZZN9gui_forms18ContextMenuRequest*;
     _ZZN9gui_forms18ControlCanvasPaint*;
@@ -15662,6 +15670,7 @@
     _ZZNK9gui_forms18CompiledThemeRules*;
     _ZZNK9gui_forms18ComponentContainer*;
     _ZZNK9gui_forms18CompositeChildType*;
+    _ZZNK9gui_forms18CompositePaintHook*;
     _ZZNK9gui_forms18ContentTextCluster*;
     _ZZNK9gui_forms18ContextMenuRequest*;
     _ZZNK9gui_forms18ControlCanvasPaint*;

@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2309 | 13 | 367 | 4499 | 2797 |
+| 2317 | 13 | 367 | 4501 | 2807 |
 
 ## GUI.Forms types
 
@@ -79,7 +79,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ExpandableSections` | GUI.Forms-only | 7 | 0 | 0 | 0 | 7 |
 | `ContainerControl` | `ContainerControl` | 9 | 0 | 0 | 11 | 4 |
 | `UserControl` | `UserControl` | 5 | 0 | 0 | 7 | 4 |
-| `CompositeControl` | GUI.Forms-only | 9 | 0 | 0 | 3 | 12 |
+| `CompositeControl` | GUI.Forms-only | 10 | 0 | 0 | 3 | 13 |
 | `TabControl` | `TabControl` | 16 | 1 | 2 | 38 | 12 |
 | `PageStrip` | GUI.Forms-only | 30 | 0 | 0 | 14 | 44 |
 | `PageView` | GUI.Forms-only | 8 | 0 | 0 | 8 | 16 |
@@ -148,7 +148,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `LiveSurface` | GUI.Forms-only | 10 | 0 | 0 | 0 | 10 |
 | `SubSurfaceHost` | GUI.Forms-only | 14 | 0 | 0 | 8 | 22 |
 | `ContentSurface` | GUI.Forms-only | 18 | 0 | 0 | 2 | 20 |
-| `ContentTextEditor` | GUI.Forms-only | 26 | 0 | 0 | 1 | 27 |
+| `ContentTextEditor` | GUI.Forms-only | 26 | 0 | 0 | 2 | 28 |
 | `MetricsView` | GUI.Forms-only | 1 | 0 | 0 | 7 | 8 |
 | `PlotLinkGroup` | GUI.Forms-only | 6 | 0 | 0 | 1 | 7 |
 | `Timer` | `Timer` | 6 | 0 | 0 | 3 | 1 |
@@ -169,7 +169,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TextBoxBase` | `TextBoxBase` | 11 | 0 | 0 | 40 | 4 |
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
-| `BusinessCard` | GUI.Forms-only | 9 | 0 | 0 | 1 | 10 |
+| `BusinessCard` | GUI.Forms-only | 16 | 0 | 0 | 2 | 18 |
 | `Window` | `Form` | 229 | 10 | 10 | 137 | 246 |
 
 ## Windows Forms types without a GUI.Forms type
@@ -313,5 +313,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1608 |
-| `untested` | 1315 |
+| `untested` | 1317 |
 | `w-open` | 5 |
