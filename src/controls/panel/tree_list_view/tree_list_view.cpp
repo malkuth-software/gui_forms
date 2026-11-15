@@ -1716,36 +1716,41 @@ void TreeListView::handle_pointer(PointerEvent& event) {
     if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
     if (!is_alive()) return;
     event.handled = true;
+    // The focus request runs handlers (validation, lost and got focus)
+    // that may replace the nodes or columns or collapse rows: the press is
+    // hit again against the view as they left it (A-gf-controls-10-F1).
+    const Layout settled = layout();
+    const Hit target = hit_test(settled, local);
     if (event.button == PointerButton::secondary) {
         // A secondary press selects the row under it (context menus are the
         // application's).
-        if (hit.zone == HitZone::row || hit.zone == HitZone::expander) choose_row(hit.index);
+        if (target.zone == HitZone::row || target.zone == HitZone::expander) choose_row(target.index);
         return;
     }
     // A press on no zone only takes focus.
-    if (hit.zone == HitZone::divider) {
-        resizing_column_ = hit.index;
+    if (target.zone == HitZone::divider) {
+        resizing_column_ = target.index;
         resize_start_x_ = local.x;
-        resize_start_width_ = columns_[hit.index].width;
+        resize_start_width_ = columns_[target.index].width;
         if (window() != nullptr) (*window()).capture_pointer(lifetime, event.pointer_id);
         invalidate(Dirty::paint | Dirty::semantics);
-    } else if (hit.zone == HitZone::header) {
-        pressed_column_ = hit.index;
+    } else if (target.zone == HitZone::header) {
+        pressed_column_ = target.index;
         dragging_column_ = false;
         press_x_ = local.x;
         if (window() != nullptr) (*window()).capture_pointer(lifetime, event.pointer_id);
         invalidate(Dirty::paint | Dirty::semantics);
-    } else if (hit.zone == HitZone::expander) {
+    } else if (target.zone == HitZone::expander) {
         // The expander toggles without selecting, as TreeView's does.
         TreeListNode scratch;
-        const bool expanded = row_node(hit.index, scratch).expanded;
-        toggle_row(hit.index, !expanded);
-    } else if (hit.zone == HitZone::row) {
+        const bool expanded = row_node(target.index, scratch).expanded;
+        toggle_row(target.index, !expanded);
+    } else if (target.zone == HitZone::row) {
         if (event.click_count >= 2U) {
-            choose_row(hit.index);
-            if (is_alive()) activate_row(hit.index);
+            choose_row(target.index);
+            if (is_alive()) activate_row(target.index);
         } else {
-            choose_row(hit.index);
+            choose_row(target.index);
         }
     }
 }
@@ -2149,14 +2154,18 @@ bool TreeListView::on_semantic_child_action(std::string_view id, SemanticAction 
     }
     if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
     if (!is_alive()) return true;
+    // The focus handlers may have changed the rows: the row is looked up
+    // again by its identity (A-gf-controls-10-F1).
+    const std::optional<std::size_t> current = row_of(id);
+    if (!current) return true;
     if (action == SemanticAction::focus) {
-        place_current(*row);
-        ensure_row_visible(*row);
+        place_current(*current);
+        ensure_row_visible(*current);
         invalidate(Dirty::paint | Dirty::semantics);
     } else if (action == SemanticAction::select) {
-        choose_row(*row);
+        choose_row(*current);
     } else {
-        activate_row(*row);
+        activate_row(*current);
     }
     return true;
 }

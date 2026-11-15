@@ -871,6 +871,40 @@ void virtual_million_rows() {
     static_cast<void>(expanded);
 }
 
+// Replaces the nodes with one collapsed root when the view takes focus,
+// as a handler that reloads the tree on focus does.
+struct ShrinkOnFocus final {
+    TreeListView* view{};
+    bool* shrunk{};
+    void operator()(bool focused) const {
+        if (!focused || *shrunk) return;
+        *shrunk = true;
+        std::vector<TreeListNode> nodes;
+        nodes.push_back(node("src", "Sources", 0U, "Folder", ""));
+        (*view).set_nodes(std::move(nodes));
+    }
+};
+
+// A-gf-controls-10-F1: a press on the last row's expander, or on its text,
+// whose focus request leaves one row acts on the tree as the handler left
+// it, never on the old row index.
+void focus_handler_shrinks_the_tree() {
+    for (const bool on_expander : {true, false}) {
+        std::shared_ptr<TreeListView> view = sample_view();
+        Window window(view, {420.0, 260.0});
+        window.perform_layout();
+        const std::vector<TreeListView::Row> rows = (*view).realized_rows();
+        const TreeListView::Row& docs = row_named(rows, "docs");
+        const Rect pressed = on_expander ? docs.parts.expander.bounds : docs.parts.text.bounds;
+        const Point target = to_window(*view, centre(pressed));
+        bool shrunk = false;
+        SubscriptionToken token = (*view).focus_observed().subscribe(ShrinkOnFocus{view.get(), &shrunk});
+        click(window, target);
+        require(shrunk && (*view).row_count() == 1U && row_ids(*view) == std::vector<std::string>({"src"}),
+                "the focus handler left one collapsed row and the press changed nothing of the old rows");
+    }
+}
+
 int main() {
     parts_states_and_paint();
     expansion_with_virtualization();
@@ -881,6 +915,7 @@ int main() {
     semantics();
     refusals();
     virtual_million_rows();
+    focus_handler_shrinks_the_tree();
     std::cout << "TreeListView: parts, expansion with virtualization, sorting within siblings, column layout, "
                  "keyboard, selection by ID, semantics and refusals passed\n";
     return 0;
