@@ -15,8 +15,8 @@
   <part name="header-divider" role="divider" box="below(@header, 0) height(1) inset-inline(region, 12)"/>
 
   <children>
-    <flex-panel id="@header" dock="top"
-                style="flex-direction: row; align-items: center; padding: 10px 12px; column-gap: 8px">
+    <flex-panel id="@header" dock="top" padding="10 12"
+                style="flex-direction: row; align-items: center; column-gap: 8px">
       <label id="@title" text="bind(self.title, one_way)" classes="heading" item-style="flex: 1 1 auto"/>
       <button id="@action" text="bind(self.action-text, one_way)" command="bind(self.action-command)"
               visible="not(equal(self.action-text, ''))"/>
