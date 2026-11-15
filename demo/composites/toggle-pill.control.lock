@@ -1,0 +1,11 @@
+control toggle-pill 1.0
+property checked boolean
+property text text
+property drag-position number
+event checked-changed boolean
+command toggle
+publish checked
+part track track
+part thumb thumb
+part label label
+part hit-area region

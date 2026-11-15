@@ -243,6 +243,87 @@ enum class DiagnosticCode : std::uint16_t {
     // object element holding text, and a missing, wrong or extra namespace
     // declaration (form_model.hpp).
     form_xml_invalid = 821,
+    // E9xx composite-control documents (cp34, the composite-control language,
+    // design note 5.3): the document is refused, every defect reported.
+    // A composite-control document (`.control`) that is not XML of the bounded subset: the detail
+    // names the reader's XmlError. Also text in an element other than <look>
+    // and <description>, and a missing, wrong or extra namespace declaration.
+    control_xml_invalid = 900,
+    // A root that is not one <control> with a kebab-case `name`, a
+    // `version` of the form <major>.<minor> and a known `base`, or a name a
+    // registered type already has.
+    control_root_invalid = 901,
+    // An element the composite namespace does not have, or one written where
+    // its parent does not admit it.
+    control_element_unknown = 902,
+    // An attribute the element does not have.
+    control_attribute_unknown = 903,
+    // An attribute the element requires, missing: a part's `name`, a drag's
+    // `mode`.
+    control_attribute_missing = 904,
+    // A word outside its closed vocabulary: a role, state, kind, family,
+    // mark, shape, semantic role or action, trigger, condition, action,
+    // function or key; the detail names the vocabulary.
+    control_vocabulary_unknown = 905,
+    // A name declared twice in its namespace: two parts, properties, events,
+    // commands or custom states of one name, or two children of one local ID.
+    control_name_repeated = 906,
+    // More than 32 parts or 16 custom states.
+    control_limit_exceeded = 907,
+    // A custom <state> named as a standard state.
+    control_state_shadows_standard = 908,
+    // A geometry or state program reading an engine input (the pointer, time
+    // or scale): layout is deterministic and the engine's.
+    control_geometry_engine_input = 909,
+    // Physical `left` or `right` in geometry: positions are logical, start
+    // and end, which mirror under right-to-left.
+    control_physical_direction = 910,
+    // An active part (one that takes the pointer) with nothing to activate:
+    // `press` without `activates` and without `drag`.
+    control_part_inactive = 911,
+    // A command no part, key, rule or semantic action runs.
+    control_command_unreachable = 912,
+    // A drag written wrong: a part pressing `drag` without a <drag>, a <drag>
+    // on a part that does not press `drag`, `preview` in live mode or writing
+    // a property that is not presentational, a `maps-to` of the wrong kind
+    // for the drag's `kind`, or a result the keyboard cannot reach.
+    control_drag_invalid = 913,
+    // An active or focusable composite without a semantic role, a name
+    // source or a visible focus cue.
+    control_semantics_missing = 914,
+    // A key on Tab, or on Enter or Escape without `claims="dialog-key"`.
+    control_key_not_admitted = 915,
+    // A colour or font property other than the admitted authored colours
+    // (authored-background, authored-foreground, content-color), declared or
+    // written on a child: the look belongs to the theme.
+    control_presentation_property = 916,
+    // Style outside <look>: an element named `style`.
+    control_style_outside_look = 917,
+    // A name that refers to nothing declared: a part, property, event,
+    // command, state or child the document does not have.
+    control_reference_unknown = 918,
+    // A cycle among aliases, ranges or derived states.
+    control_cycle = 919,
+    // A <look> rule whose selector names another type: a composite's look
+    // styles only itself and its parts.
+    control_look_foreign_type = 920,
+    // A child written wrong: a type the schema does not list, a property its
+    // type does not have, an ID that is not a local `@name`, a child inside a
+    // type that holds no children, or more than one <slot>.
+    control_child_invalid = 921,
+    // A declaration's value that is not one of the forms it admits: a flag
+    // that is not yes or no, a default not of the property's kind, a version
+    // or threshold that is not a number.
+    control_value_invalid = 922,
+    // Within one major version, a name or kind in the lock file
+    // (<name>.control.lock) that the document removed, renamed or changed.
+    control_lock_violation = 923,
+    // An expression that does not parse (control_expression.hpp): the detail
+    // says what was found.
+    control_expression_invalid = 924,
+    // An expression over its budget: more than 64 instructions or nested
+    // deeper than 16.
+    control_expression_over_budget = 925,
     // E999 is temporary: a form a later phase gives its meaning, refused
     // until then so that no interim meaning ships (PLAN.md P4: a custom
     // property with several definitions, until P12; P5: `!important`, the
@@ -335,6 +416,9 @@ enum class DiagnosticCode : std::uint16_t {
     // that hides it. Reported once per control; the file names the control
     // (`inline:<control>`).
     clear_control_paints_face = 1405,
+    // W95x composite-control documents (design note 5.3, 8.8): a custom
+    // state the document's <look> gives no rule (state completeness).
+    control_state_without_cue = 1950,
     // W5xx icons (user themes, USER_THEMES.md section 6): a user theme's
     // `icons/<identifier>.png` naming no program icon, or one the program
     // marks fixed, or an image the rules refuse (not decoding, over 1024 by

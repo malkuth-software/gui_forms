@@ -609,6 +609,9 @@ add_library(gui_forms_core STATIC
     src/core/theme_language/syntax_tree/theme_sheet_parser.cpp
     src/core/form_language/form_xml/form_xml.cpp
     src/core/form_language/form_model/form_model.cpp
+    src/core/control_language/control_expression/control_expression.cpp
+    src/core/control_language/control_model/control_model.cpp
+    src/core/control_language/control_lock/control_lock.cpp
     src/core/form_language/form_loader/form_loader.cpp
     src/core/form_language/form_loader/form_window_loader.cpp
     src/core/form_language/form_editor/form_editor.cpp
@@ -4138,6 +4141,16 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_form_model_tests tests/form_language/form_model_tests.cpp)
     target_link_libraries(gui_forms_form_model_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_form_model_tests COMMAND gui_forms_form_model_tests)
+    add_executable(gui_forms_control_expression_tests tests/control_language/control_expression_tests.cpp)
+    target_link_libraries(gui_forms_control_expression_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_control_expression_tests COMMAND gui_forms_control_expression_tests)
+    foreach(control_test control_model_tests control_lock_tests)
+        add_executable(gui_forms_${control_test} tests/control_language/${control_test}.cpp)
+        target_link_libraries(gui_forms_${control_test} PRIVATE gui_forms_controls)
+        target_compile_definitions(gui_forms_${control_test} PRIVATE
+            GUI_FORMS_COMPOSITES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/demo/composites")
+        add_test(NAME gui_forms_${control_test} COMMAND gui_forms_${control_test})
+    endforeach()
     add_executable(gui_forms_form_loader_tests tests/form_language/form_loader_tests.cpp)
     target_link_libraries(gui_forms_form_loader_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_form_loader_tests COMMAND gui_forms_form_loader_tests)

@@ -1,0 +1,8 @@
+control card-with-action 1.0
+property title text
+property action-text text
+property action-command command
+event action-invoked none
+part face face
+part edge edge
+part header-divider divider

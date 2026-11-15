@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- card-with-action.control: a card with a header action (design note
+     6.3). Its activity is a real stock button; a form fills its slot. -->
+<control xmlns="urn:gui-forms:control:1" name="card-with-action" version="1.0"
+         base="user-control" family="card">
+
+  <property name="title" kind="text" default="" category="Appearance" localizable="yes"/>
+  <property name="action-text" kind="text" default="" category="Appearance" localizable="yes"/>
+  <property name="action-command" kind="command" bindable="one-way" category="Behavior"/>
+
+  <event name="action-invoked"/>
+
+  <part name="face" role="face" shape="rounded-rectangle" corner-radius="6" box="inset(region, 0)"/>
+  <part name="edge" role="edge" shape="rounded-rectangle" corner-radius="6" box="inset(region, 0)"/>
+  <part name="header-divider" role="divider" box="below(@header, 0) height(1) inset-inline(region, 12)"/>
+
+  <children>
+    <flex-panel id="@header" dock="top"
+                style="flex-direction: row; align-items: center; padding: 10px 12px; column-gap: 8px">
+      <label id="@title" text="bind(self.title, one_way)" classes="heading" item-style="flex: 1 1 auto"/>
+      <button id="@action" text="bind(self.action-text, one_way)" command="bind(self.action-command)"
+              visible="not(equal(self.action-text, ''))"/>
+    </flex-panel>
+    <slot id="@content" dock="fill" padding="12"/>
+  </children>
+
+  <on trigger="activated(@action)"><raise event="action-invoked"/></on>
+
+  <!-- The card is no stop; its button and its content are. -->
+  <focus target="none"/>
+
+  <semantics role="group" name="property(accessible-name) or @title.text" children="exposed"/>
+
+  <look>
+    card-with-action &gt; flex-panel { background: transparent; }
+  </look>
+</control>
