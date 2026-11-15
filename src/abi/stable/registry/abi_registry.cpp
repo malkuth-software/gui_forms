@@ -36,6 +36,16 @@ std::uint32_t next_generation(std::uint32_t generation) noexcept {
     return next;
 }
 
+// A-gf-abi-02-F9: a slot whose generation has reached the last value is
+// retired instead of freed, so its generations never wrap and a stale
+// identity kept since generation 1 cannot name a later object. The free
+// list is a stack, so one busy slot can get there; retiring it costs one
+// slot per 2^32 reuses.
+bool retires_at(std::uint32_t generation) noexcept {
+    const bool retires = generation == std::numeric_limits<std::uint32_t>::max();
+    return retires;
+}
+
 } // namespace
 
 Identity decode_identity(std::uint64_t value) noexcept {
@@ -604,9 +614,11 @@ void HandleRegistry::drop_reference_locked(gf_object object, ObjectSlot& slot, C
     slot.object.reset();
     slot.occupied = false;
     slot.orphaned = false;
-    slot.generation = next_generation(slot.generation);
     // free_objects_ has capacity for every slot (add_reference reserves it).
-    free_objects_.push_back(identity.slot);
+    if (!retires_at(slot.generation)) {
+        slot.generation = next_generation(slot.generation);
+        free_objects_.push_back(identity.slot);
+    }
     --live_objects_;
 }
 
@@ -742,9 +754,11 @@ void HandleRegistry::free_subscription_locked(std::uint32_t index, SubscriptionT
     slot.source.reset();
     slot.source_key = nullptr;
     slot.occupied = false;
-    slot.generation = next_generation(slot.generation);
     // free_subscriptions_ has room for every slot (reserve_subscription).
-    free_subscriptions_.push_back(index);
+    if (!retires_at(slot.generation)) {
+        slot.generation = next_generation(slot.generation);
+        free_subscriptions_.push_back(index);
+    }
     --live_subscriptions_;
 }
 
