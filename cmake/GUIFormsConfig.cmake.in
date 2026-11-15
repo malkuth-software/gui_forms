@@ -45,6 +45,14 @@ if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsAudioTargets.cmake")
 endif()
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsTextMasksTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsTextMasksTargets.cmake")
+    # The text masks are inside the Application library (one module), so
+    # TextMasks is an interface on it. The link is made here, after both are
+    # imported, because the build's export cannot name GUIForms::Application
+    # (cmake/ApplicationText.cmake); a consumer linking only TextMasks still
+    # gets the headers and the library.
+    if(TARGET GUIForms::TextMasks AND TARGET GUIForms::Application)
+        set_property(TARGET GUIForms::TextMasks APPEND PROPERTY INTERFACE_LINK_LIBRARIES GUIForms::Application)
+    endif()
 endif()
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsTextStackTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsTextStackTargets.cmake")

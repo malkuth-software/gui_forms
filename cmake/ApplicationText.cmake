@@ -19,9 +19,9 @@ function(gui_forms_application_text consumer implementation public_name)
     # Application is not an exported target since one module (the SDK's
     # GUIForms::Application is an interface over the merged archives, and an
     # install interface naming it would resolve to the build tree's alias of
-    # the unexported library). The build tree links the library; an SDK
-    # consumer links GUIForms::Application itself, which already holds the
-    # text masks.
+    # the unexported library). The build tree links the library; the SDK's
+    # GUIFormsConfig.cmake links GUIForms::TextMasks to GUIForms::Application
+    # once both are imported.
     target_link_libraries(${consumer} INTERFACE $<BUILD_INTERFACE:gui_forms_application>)
 endfunction()
 
