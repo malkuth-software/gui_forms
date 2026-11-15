@@ -581,7 +581,11 @@ SemanticDescriptor SplitContainer::semantic_descriptor() const {
     descriptor.role = SemanticRole::split_pane;
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
-    descriptor.value = std::to_string(effective_distance_);
+    // "%f" in the C locale's form, which on_semantic_value parses back
+    // (A-gf-controls-12-F9).
+    std::string distance_text;
+    number_text::append_number_text(distance_text, effective_distance_, std::chars_format::fixed, 6);
+    descriptor.value = distance_text;
     descriptor.numeric_value = effective_distance_;
     const double total = axis_extent(committed_arranged_bounds());
     descriptor.minimum_value = constrained_distance(0.0, total);

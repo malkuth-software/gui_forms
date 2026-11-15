@@ -2,10 +2,10 @@
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "../basic/number_text.hpp"
 
 #include <array>
 #include <cmath>
-#include <sstream>
 #include <stdexcept>
 #include <unordered_set>
 #include <utility>
@@ -21,16 +21,15 @@ constexpr double maximum_field_width = 512.0;
 
 // A size as its list shows it: whole points without a fraction, others with
 // one decimal ("10.5").
+// Written in the C locale's form, as typed sizes are compared with it; a
+// default stream grouped and marked decimals by the global C++ locale
+// (A-gf-controls-12-F9).
 std::string size_text(double size) {
-    std::ostringstream text;
-    if (std::floor(size) == size) {
-        text << static_cast<long long>(size);
-    } else {
-        text.setf(std::ios::fixed);
-        text.precision(1);
-        text << size;
-    }
-    return text.str();
+    std::string text;
+    const bool whole = std::floor(size) == size;
+    const int decimals = whole ? 0 : 1;
+    number_text::append_number_text(text, size, std::chars_format::fixed, decimals);
+    return text;
 }
 
 // The size list's rows, one per size in `sizes`.
