@@ -755,8 +755,21 @@ bool TreeView::on_semantic_child_action(std::string_view id,
     }
     if (action != SemanticAction::focus && action != SemanticAction::select &&
         action != SemanticAction::press) return false;
-    if (window()) static_cast<void>((*window()).request_focus(shared_from_this()));
-    select_visible_row(static_cast<std::size_t>(std::distance(visible_.begin(), row)),
+    // The focus moves first: the losing control's focus handlers run inside
+    // request_focus and may replace the items or collapse rows, so the tree
+    // is held, the identity is copied (id may view storage those handlers
+    // release) and its visible row is found again afterwards
+    // (A-gf-controls-10-F6).
+    const std::string identity(id);
+    const Control::Ptr retained = shared_from_this();
+    if (window()) static_cast<void>((*window()).request_focus(retained));
+    if (!is_alive()) return false;
+    const std::optional<std::size_t> current = item_index(identity);
+    if (!current) return false;
+    const std::vector<std::size_t>::iterator current_row =
+        std::find(visible_.begin(), visible_.end(), *current);
+    if (current_row == visible_.end()) return false;
+    select_visible_row(static_cast<std::size_t>(std::distance(visible_.begin(), current_row)),
                        action == SemanticAction::press);
     return true;
 }

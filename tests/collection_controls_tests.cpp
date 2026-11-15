@@ -1889,8 +1889,8 @@ void test_details_cold_long_text_measurement_bound() {
     }
 }
 
-// Replaces an ObjectView's items when the control it watches loses the
-// focus, putting a new row first so every later index moves.
+// Replaces an ObjectView's or TreeView's items when the control it watches
+// loses the focus, putting a new row first so every later index moves.
 struct ShiftObjectsOnFocusLoss final {
     ObjectView* view{};
     void operator()(bool focused) const {
@@ -1900,17 +1900,31 @@ struct ShiftObjectsOnFocusLoss final {
                            {"shift.objects.b", "Beta"}});
     }
 };
-// A-gf-controls-09-F8: a semantic select moves the focus before it acts,
-// and the control losing the focus may replace the items in its handler.
-// The select finds its row again by identity.
+struct ShiftTreeOnFocusLoss final {
+    TreeView* tree{};
+    void operator()(bool focused) const {
+        if (focused) return;
+        (*tree).set_items({{"shift.tree.new", "New", 0},
+                           {"shift.tree.a", "Alpha", 0},
+                           {"shift.tree.b", "Beta", 0}});
+    }
+};
+
+// A-gf-controls-09-F8 and A-gf-controls-10-F6: a semantic select moves the
+// focus before it acts, and the control losing the focus may replace the
+// items in its handler. The select finds its row again by identity.
 void test_semantic_select_after_focus_handlers() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("shift.root"));
     std::shared_ptr<gui_forms::ObjectView> objects = make_control<ObjectView>(StableId("shift.objects"));
+    std::shared_ptr<gui_forms::TreeView> tree = make_control<TreeView>(StableId("shift.tree"));
     std::shared_ptr<gui_forms::Button> other = make_control<Button>(StableId("shift.other"), "Other");
     (*objects).set_requested_bounds({0.0, 0.0, 300.0, 120.0});
+    (*tree).set_requested_bounds({0.0, 130.0, 300.0, 120.0});
     (*other).set_requested_bounds({0.0, 260.0, 100.0, 28.0});
     (*objects).set_items({{"shift.objects.a", "Alpha"}, {"shift.objects.b", "Beta"}});
+    (*tree).set_items({{"shift.tree.a", "Alpha", 0}, {"shift.tree.b", "Beta", 0}});
     (*root).add_child(objects);
+    (*root).add_child(tree);
     (*root).add_child(other);
     Window window(root, {320.0, 300.0});
     window.perform_layout();
@@ -1921,6 +1935,13 @@ void test_semantic_select_after_focus_handlers() {
                 (*objects).selected_id.read() == "shift.objects.b" && window.focused_control() == objects,
             "ObjectView selects the named item after a focus handler moved it");
     shift_objects.disconnect();
+
+    require(window.request_focus(other), "the other control takes the focus back");
+    SubscriptionToken shift_tree = (*other).focus_observed().subscribe(ShiftTreeOnFocusLoss{tree.get()});
+    require((*tree).on_semantic_child_action("shift.tree.b", SemanticAction::select, {}) &&
+                (*tree).selected_id.read() == "shift.tree.b" && window.focused_control() == tree,
+            "TreeView selects the named row after a focus handler moved it");
+    shift_tree.disconnect();
 }
 
 } // namespace
