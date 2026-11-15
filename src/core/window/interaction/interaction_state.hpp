@@ -69,6 +69,8 @@ public:
     // leave, and before any pointer event).
     [[nodiscard]] Point pointer_position() const noexcept { return pointer_position_; }
     [[nodiscard]] bool pointer_inside() const noexcept { return pointer_inside_; }
+    // Whether a pointer event has been noted at all.
+    [[nodiscard]] bool pointer_seen() const noexcept { return pointer_seen_; }
 
     // Fills the input fields of `snapshot`.
     void fill_snapshot(InteractionSnapshot& snapshot) const;
@@ -80,6 +82,7 @@ private:
     Modifier modifiers_{Modifier::none};
     Point pointer_position_{};
     bool pointer_inside_{};
+    bool pointer_seen_{};
     bool primary_down_{};
     bool secondary_down_{};
     bool middle_down_{};

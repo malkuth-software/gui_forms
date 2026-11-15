@@ -2082,9 +2082,14 @@ MouseEventArgs SurfaceRoot::mouse_event_arguments(const Control& target, const P
     return arguments;
 }
 
+bool SurfaceRoot::pointer_seen() const noexcept {
+    const bool seen = interaction_ && (*interaction_).pointer_seen();
+    return seen;
+}
+
 PointerLocation SurfaceRoot::pointer_location() const noexcept {
     PointerLocation location{};
-    if (!interaction_) return location;
+    if (!pointer_seen()) return location;
     location.window_position = (*interaction_).pointer_position();
     location.location = location.window_position;
     location.inside = (*interaction_).pointer_inside();

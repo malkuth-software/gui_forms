@@ -5,7 +5,8 @@
 // and the settle and layout reads behind them; the eligibility, availability
 // and tooltip-text notices; the containing-block registrations; the opaque
 // cover note; the thread check and the lifecycle-notification guard; and the
-// focus moves a command activation makes.
+// focus moves a command activation makes; and whether the root has seen a
+// pointer event (Control::pointer_location).
 //
 // Holder: Control.
 //
@@ -27,6 +28,12 @@ public:
     SurfaceTreeAccess() = delete;
 
     // std::logic_error naming `operation` off the root's thread.
+    // Whether the root has dispatched a pointer event: before one, a
+    // control's pointer_location is all zero, as its window's is.
+    [[nodiscard]] static bool pointer_seen(const SurfaceRoot& root) noexcept {
+        const bool seen = root.pointer_seen();
+        return seen;
+    }
     static void require_root_thread(SurfaceRoot& root, std::string_view operation) {
         root.require_root_thread(operation);
     }

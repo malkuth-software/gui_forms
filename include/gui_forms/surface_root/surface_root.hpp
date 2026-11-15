@@ -1684,6 +1684,9 @@ private:
     // The input state, made on first use (a window that sees no input
     // allocates none).
     detail::InteractionState& interaction_state();
+    // Whether this window has dispatched a pointer event (pointer_location
+    // is all zero before one).
+    [[nodiscard]] bool pointer_seen() const noexcept;
     [[nodiscard]] FrameTime input_now() const noexcept;
     // Arms or disconnects the hover wake to match the state; the host's own
     // hover (PointerSettings::native_hover) keeps it off.

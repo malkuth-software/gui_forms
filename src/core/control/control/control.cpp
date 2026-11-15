@@ -3771,7 +3771,8 @@ MouseEventArgs Control::mouse_event_arguments(const PointerEvent& event) const {
 
 PointerLocation Control::pointer_location() const {
     PointerLocation location{};
-    if (surface_root_ == nullptr) return location;
+    // Detached, or in a window that has seen no pointer event: all zero.
+    if (surface_root_ == nullptr || !detail::SurfaceTreeAccess::pointer_seen(*surface_root_)) return location;
     location = (*surface_root_).pointer_location();
     const Rect bounds = absolute_bounds();
     location.location = Point{location.window_position.x - bounds.x, location.window_position.y - bounds.y};
