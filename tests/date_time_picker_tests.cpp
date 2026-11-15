@@ -386,6 +386,39 @@ void test_owner_cleanup_and_ui_thread_enforcement() {
 
 } // namespace
 
+// Opens the drop-down again when the field loses focus, once: the focus
+// move that opening the drop-down makes runs this inside the first open.
+struct ReopenOnBlur final {
+    DateTimePicker* picker{};
+    bool* reopened{};
+    void operator()(bool focused) const {
+        if (focused || *reopened) return;
+        *reopened = true;
+        (*picker).dropped_down = true;
+    }
+};
+
+// A-gf-controls-08-F3: a lost-focus handler that opens the drop-down again
+// inside the first open leaves one open drop-down, one open report, and no
+// focus scope behind once it closes.
+void test_focus_handler_reopens_the_drop_down() {
+    Fixture fixture;
+    std::vector<std::string> events;
+    SubscriptionToken overlay = (*fixture.picker).drop_down_changed().subscribe(RecordDropDownState(events));
+    bool reopened = false;
+    SubscriptionToken blurred = (*fixture.picker).focus_observed().subscribe(
+        ReopenOnBlur{fixture.picker.get(), &reopened});
+    (*fixture.picker).dropped_down = true;
+    require(reopened && (*fixture.picker).dropped_down.read() && events == std::vector<std::string>{"open"},
+            "the nested open is the only open, reported once");
+    blurred.disconnect();
+    (*fixture.picker).dropped_down = false;
+    require(!(*fixture.picker).dropped_down.read() && fixture.window.focus_scope_depth() == 0U &&
+                events == std::vector<std::string>({"open", "close"}),
+            "closing it leaves no focus scope of the abandoned open");
+    static_cast<void>(overlay);
+}
+
 int main() {
     try {
         test_civil_arithmetic_and_validation();
@@ -396,6 +429,7 @@ int main() {
         test_optional_semantic_toggle_and_value_activation();
         test_semantic_month_navigation_and_range_capability();
         test_owner_cleanup_and_ui_thread_enforcement();
+        test_focus_handler_reopens_the_drop_down();
         std::cout << "date time picker tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

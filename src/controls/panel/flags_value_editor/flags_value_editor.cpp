@@ -9,6 +9,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <optional>
@@ -336,7 +337,21 @@ void FlagsValueEditor::open_drop_down() {
                 weak, &FlagsValueEditor::on_popup_window_closed));
     }
     const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer) : Control::Ptr(list);
-    overlay_scope_ = (*window()).begin_focus_scope(layer, preferred_focus).value;
+    const Control::Ptr lifetime = shared_from_this();
+    const std::uint64_t scope = (*window()).begin_focus_scope(layer, preferred_focus).value;
+    // Beginning the scope moves focus into the drop-down and runs the
+    // field's lost-focus and validation handlers before it returns; one may
+    // close the drop-down (or close it and open another). The scope is kept
+    // only for this call's layer still open; otherwise it is ended and the
+    // control stays closed, having published nothing (A-gf-controls-08-F3).
+    if (!is_alive()) return;
+    if (overlay_layer_ != layer || overlay_scope_ != 0U) {
+        if (window() != nullptr && scope != 0U) {
+            static_cast<void>((*window()).end_focus_scope(FocusScopeId{scope}));
+        }
+        return;
+    }
+    overlay_scope_ = scope;
     dropped_down_ = true;
     synchronize_overlay();
     invalidate(Dirty::paint | Dirty::semantics);
