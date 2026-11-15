@@ -1,6 +1,7 @@
-#include "linux_accessibility.hpp"
-
+// Before any X11 header: Xlib defines Status as a macro, which STXlib's
+// stxlib::Status (through fail_fast.hpp) cannot follow.
 #include "../../../core/failure/fail_fast.hpp"
+#include "linux_accessibility.hpp"
 
 #include <atk/atk.h>
 #include <atk-bridge.h>

@@ -83,6 +83,8 @@ DEFERRED: dict[str, str] = {
     'DockDragOutcome': 'docking family (C5d)',
     'Theme': 'no field form; theme_changed is a notification',
     'ThemeCompileResult': 'no field form yet; theme_sheet_compiled is a notification (fold D, I7)',
+    'plots::Plot3DCamera': 'no field form yet (std::array members); camera_changed is a notification (cp33)',
+    'plots::Plot3DHit': 'no field form yet (std::array members); hovered and picked are notifications (cp33)',
 }
 
 # Declaring types that are not Components, reached through the ABI object

@@ -2635,9 +2635,17 @@ gd_result fill_recorder_band_from_c(gd_handle recorder, gd_handle brush, const g
 
 gd_result api_recorder_fill_band(gd_handle recorder, gd_handle brush, const gd_point* upper,
                                  const gd_point* lower, std::uint64_t count) {
-    if (!bounded_batch(upper, count, 2U) || !bounded_batch(lower, count, 2U) ||
-        count > gui_drawing::GraphicsRecorder::maximum_band_samples) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "band requires 2 through 500000 samples in both arrays");
+    const char* const band_refusal = "band requires 2 through 500000 samples in both arrays";
+    const gd_result upper_counted = check_batch(upper, count, 2U, band_refusal);
+    if (upper_counted != GD_OK) {
+        return upper_counted;
+    }
+    const gd_result lower_counted = check_batch(lower, count, 2U, band_refusal);
+    if (lower_counted != GD_OK) {
+        return lower_counted;
+    }
+    if (count > gui_drawing::GraphicsRecorder::maximum_band_samples) {
+        return fail(GD_ERROR_INVALID_ARGUMENT, band_refusal);
     }
     return translate(&fill_recorder_band_from_c, recorder, brush, upper, lower, count);
 }
@@ -2657,8 +2665,9 @@ gd_result draw_recorder_polyline_runs_from_c(gd_handle recorder, gd_handle pen, 
 
 gd_result api_recorder_draw_polyline_runs(gd_handle recorder, gd_handle pen, const gd_point* points,
                                           std::uint64_t count) {
-    if (!bounded_batch(points, count, 2U)) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "polyline runs require 2 or more bounded points");
+    const gd_result counted = check_batch(points, count, 2U, "polyline runs require 2 or more bounded points");
+    if (counted != GD_OK) {
+        return counted;
     }
     return translate(&draw_recorder_polyline_runs_from_c, recorder, pen, points, count);
 }
@@ -2686,8 +2695,14 @@ gd_result fill_recorder_rectangles_each_from_c(gd_handle recorder, const gd_rect
 
 gd_result api_recorder_fill_rectangles_each(gd_handle recorder, const gd_rect* rects, const gd_color* colors,
                                             std::uint64_t count) {
-    if (!bounded_batch(rects, count, 1U) || !bounded_batch(colors, count, 1U)) {
-        return fail(GD_ERROR_INVALID_ARGUMENT, "fill rectangles each requires 1 or more bounded rectangles and colours");
+    const char* const each_refusal = "fill rectangles each requires 1 or more bounded rectangles and colours";
+    const gd_result rects_counted = check_batch(rects, count, 1U, each_refusal);
+    if (rects_counted != GD_OK) {
+        return rects_counted;
+    }
+    const gd_result colors_counted = check_batch(colors, count, 1U, each_refusal);
+    if (colors_counted != GD_OK) {
+        return colors_counted;
     }
     return translate(&fill_recorder_rectangles_each_from_c, recorder, rects, colors, count);
 }

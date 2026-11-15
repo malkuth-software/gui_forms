@@ -67,6 +67,11 @@ class Theme;
 class ThemeCompileResult;
 } // namespace gui_forms
 
+namespace gui_forms::plots {
+struct Plot3DCamera;
+struct Plot3DHit;
+} // namespace gui_forms::plots
+
 namespace gui_forms::abi1 {
 
 // One choice of an enumeration a payload reaches, and the generated table
@@ -284,6 +289,11 @@ void append_field(EventFields& fields, std::string_view name, const Theme& value
 // theme_sheet_compiled is a notification; the catalog lists it as deferred):
 // nothing.
 void append_field(EventFields& fields, std::string_view name, const ThemeCompileResult& value);
+// A 3D plot's camera and hit (no field form yet: their std::array members;
+// camera_changed, hovered and picked are notifications; the catalog lists
+// them as deferred): nothing.
+void append_field(EventFields& fields, std::string_view name, const plots::Plot3DCamera& value);
+void append_field(EventFields& fields, std::string_view name, const plots::Plot3DHit& value);
 
 template <typename Number>
     requires(std::is_arithmetic_v<Number> && !std::is_same_v<Number, bool>)

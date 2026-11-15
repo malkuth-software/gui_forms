@@ -363,7 +363,7 @@ void subscribe(Plot3DView& plot, Recorder& recorder, std::vector<SubscriptionTok
 }
 
 std::shared_ptr<Plot3DView> make_plane_view(const char* id, const Grid& grid) {
-    const std::shared_ptr<Plot3DView> plot = make_control<Plot3DView>(StableId(id));
+    const std::shared_ptr<Plot3DView> plot = make_control<Plot3DView>(StableId(std::string_view(id)));
     static_cast<void>((*plot).add_surface(surface_of(grid, plots::Plot3DInterpolation::conv)));
     (*plot).set_axis_title(plots::Plot3DAxis::x, "x");
     (*plot).set_axis_title(plots::Plot3DAxis::y, "y");

@@ -5292,7 +5292,8 @@ if(GUI_FORMS_BUILD_TESTS)
     # The fail-fast boundary: each mode must end the process with its report
     # (site and exception text) and never print "survived".
     add_executable(gui_forms_fail_fast_tests tests/fail_fast_tests.cpp)
-    target_link_libraries(gui_forms_fail_fast_tests PRIVATE gui_forms_host_headless)
+    # It instantiates STXlib's gate templates itself (invoke_callback_classified).
+    target_link_libraries(gui_forms_fail_fast_tests PRIVATE gui_forms_host_headless stxlib::boundary)
     foreach(_gui_fail_fast_case IN ITEMS
             "direct|test.direct|injected direct failure"
             "ui_timer|scheduler.ui_timer|injected timer failure"

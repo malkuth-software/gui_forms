@@ -1,6 +1,8 @@
+// Before any X11 header: Xlib defines Status as a macro, which STXlib's
+// stxlib::Status (through fail_fast.hpp) cannot follow.
+#include "../../../core/failure/fail_fast.hpp"
 #include "linux_host_internal.hpp"
 #include "../../offscreen_font_lookup.hpp"
-#include "../../../core/failure/fail_fast.hpp"
 #if defined(GUI_FORMS_PREPARED_TEXT)
 #include "../../../core/text/prepared/prepared_storage.hpp"
 #endif
