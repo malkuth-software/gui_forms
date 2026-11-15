@@ -5,6 +5,7 @@
 
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 
+#include "composite_forms.hpp"
 #include "composite_internal.hpp"
 
 #include "../../core/control_language/control_model/control_model.hpp"
@@ -252,6 +253,15 @@ CompositeLoadResult load_composite_definition(const std::string_view file, const
         if (prototype == nullptr) throw std::invalid_argument("load_composite_definition: a creator made nothing");
         form_language::FormSchemaType described = form_language::describe_form_type(std::string(type.name), *prototype);
         described.create = type.create;
+        // A composite child (a generated class) takes the definition's
+        // children into its slot, as a form's composite does.
+        const CompositeControl* const nested = dynamic_cast<const CompositeControl*>(&*prototype);
+        if (nested != nullptr) {
+            const bool slotted = (*nested).slot() != nullptr;
+            described.child_placement =
+                slotted ? form_language::FormChildPlacement::slot : form_language::FormChildPlacement::refused;
+            described.find_slot = &find_composite_slot;
+        }
         if (type.bind_command != nullptr) {
             described.bind_command = type.bind_command;
             form_language::add_form_command_slot(described);

@@ -113,12 +113,18 @@ void FormLoader::make_object(std::size_t index, LoadedForm& scratch) {
     const FormSchemaType& type = schema_.types[object.schema_type];
     // A form root is the window, which the caller owns.
     if (index == 0U && form_root_) return;
-    if (type.create == nullptr) {
+    // A composite loaded at run time is made from its definition (cp34).
+    const bool from_definition = type.create_composite != nullptr && type.composite != nullptr;
+    if (type.create == nullptr && !from_definition) {
         report(DiagnosticCode::form_load_refused, object.position, object.stable_id, {}, type.name + " has no creator");
         return;
     }
     try {
-        scratch.objects[index] = (*type.create)(StableId(object.stable_id));
+        if (from_definition) {
+            scratch.objects[index] = (*type.create_composite)(type.composite, StableId(object.stable_id));
+        } else {
+            scratch.objects[index] = (*type.create)(StableId(object.stable_id));
+        }
     } catch (const std::exception& refusal) {
         report(DiagnosticCode::form_load_refused, object.position, object.stable_id, {}, refusal.what());
         return;
@@ -129,8 +135,19 @@ void FormLoader::make_object(std::size_t index, LoadedForm& scratch) {
     // A component is the form's, not its parent's: it stays in `objects`.
     // A parent that was refused has already been reported.
     if (!parent || !child) return;
+    // A composite parent takes its document children into its slot.
+    const FormSchemaType& parent_type = schema_.types[model_.objects[(*object.parent).value].schema_type];
+    Control::Ptr host = parent;
+    if (parent_type.child_placement == FormChildPlacement::slot && parent_type.find_slot != nullptr) {
+        host = (*parent_type.find_slot)(*parent);
+    }
+    if (!host) {
+        report(DiagnosticCode::form_load_refused, object.position, object.stable_id, {},
+               parent_type.name + " has no slot for children");
+        return;
+    }
     try {
-        (*parent).add_child(child);
+        (*host).add_child(child);
     } catch (const std::exception& refusal) {
         report(DiagnosticCode::form_load_refused, object.position, object.stable_id, {}, refusal.what());
     }

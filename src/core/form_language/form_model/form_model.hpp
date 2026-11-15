@@ -106,6 +106,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/layout/grid_span/grid_span.hpp"
 
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -115,6 +116,11 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+namespace gui_forms {
+// A composite control's compiled definition (control_language).
+class CompositeDefinition;
+} // namespace gui_forms
 
 namespace gui_forms::form_language {
 
@@ -130,6 +136,27 @@ using FormSpanDefiner = GridSpanOutcome (*)(Component& owner, const GridSpan& sp
 // bind(Command&)), for the loader: a named function per type, made from
 // the template below.
 using FormCommandBinder = void (*)(Component& owner, Command& command);
+
+// Makes a composite control from a definition loaded at run time (cp34):
+// one function for every such type, the definition its context.
+using FormCompositeCreator = Component::Ptr (*)(const std::shared_ptr<const CompositeDefinition>& definition,
+                                                StableId stable_id);
+
+// The control a document's child objects go into, for a type whose
+// children go into a slot (FormChildPlacement::slot); null when the object
+// has none.
+using FormSlotFinder = Control::Ptr (*)(Control& owner);
+
+// Where a document's child objects of an object go (cp34).
+enum class FormChildPlacement : std::uint8_t {
+    // Into the object itself (every control type but a composite's).
+    self,
+    // Into the control the type's find_slot gives: a composite control's
+    // slot, in document order.
+    slot,
+    // Nowhere: a composite without a slot refuses children (E809).
+    refused,
+};
 
 // The name of the slot a document binds a type's Command in (Bindings).
 inline constexpr std::string_view form_command_slot_name = "command";
@@ -168,6 +195,15 @@ struct FormSchemaType final {
     // How the loader makes one; none for a type a document may describe
     // but the loader cannot make.
     FormObjectCreator create{};
+    // A composite type loaded at run time (cp34) is made from its
+    // definition instead: by create_composite, when both are set.
+    std::shared_ptr<const CompositeDefinition> composite{};
+    FormCompositeCreator create_composite{};
+    // Where a document's children of an object of the type go, and, for
+    // a slot, how the loader and the generated code find it (the
+    // generator writes `slot()`).
+    FormChildPlacement child_placement{FormChildPlacement::self};
+    FormSlotFinder find_slot{};
     // For the generator (FD5): the C++ class, qualified from the global
     // namespace without a leading `::` (`gui_forms::CheckBox`, or an
     // application's `my_app::NoteCard`), and the header that declares it
@@ -229,6 +265,22 @@ inline constexpr bool form_takes_command = requires(ControlType& control, Comman
     control.bind(command);
 };
 
+// The slot finder of a type with a slot (a composite control's class).
+template <typename ControlType>
+[[nodiscard]] Control::Ptr find_form_slot(Control& owner) {
+    ControlType& control = static_cast<ControlType&>(owner);
+    Control::Ptr found = control.slot();
+    return found;
+}
+
+// Whether objects of a type have a slot a document's children go into:
+// they have `Control::Ptr slot() const` (a composite control's class,
+// generated or not). Whether one object has one is its own answer.
+template <typename ControlType>
+inline constexpr bool form_has_slot = requires(const ControlType& control) {
+    requires std::convertible_to<decltype(control.slot()), Control::Ptr>;
+};
+
 // Lists the `command` slot of a type that takes a Command, unless the type
 // already describes a property of that name.
 void add_form_command_slot(FormSchemaType& type);
@@ -249,6 +301,13 @@ template <typename ControlType>
     if constexpr (form_takes_command<ControlType>) {
         type.bind_command = &bind_form_command<ControlType>;
         add_form_command_slot(type);
+    }
+    // A composite's children go into its slot, or are refused without
+    // one; every object of the class has the same definition.
+    if constexpr (form_has_slot<ControlType>) {
+        const bool slotted = (*prototype).slot() != nullptr;
+        type.child_placement = slotted ? FormChildPlacement::slot : FormChildPlacement::refused;
+        type.find_slot = &find_form_slot<ControlType>;
     }
     return type;
 }

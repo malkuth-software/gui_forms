@@ -506,7 +506,8 @@ void ModelBuilder::read_object(const XmlElement& element, std::uint32_t& next_el
     }
     if (parent && scratch.objects[(*parent).value].schema_type < schema_.types.size()) {
         const FormSchemaType& parent_type = schema_.types[scratch.objects[(*parent).value].schema_type];
-        if (!parent_type.holds_children) {
+        // A composite without a slot holds children of its own only.
+        if (!parent_type.holds_children || parent_type.child_placement == FormChildPlacement::refused) {
             report(DiagnosticCode::form_children_not_admitted, start, stable_id, {}, parent_type.name);
         }
     }

@@ -172,6 +172,14 @@ runs it.
   value, and `root_control()` is the control to show or add to a parent.
 - **Application types.** `TYPES "note_card,my_app::NoteCard,user_control,my_app/note_card.hpp"`
   lets a document name your own control types.
+- **Composite controls.** `COMPOSITES "controls/card-with-action.control,my_app::CardWithAction,card_with_action_control.hpp"`
+  lets a document name a composite control that `gui_forms_add_control`
+  generates. The document names it by its `.control` name
+  (`<card-with-action title="Storage">`) and sets or binds its declared
+  properties like any control's. The element's children go into the
+  composite's slot, in document order. A composite without a slot refuses
+  children (E809). The composite's own children stay private: a form
+  cannot name or reach them.
 
 Without `MODEL` or `DERIVED`, `gui_forms_add_form` generates the earlier
 document class template over an owner, with `initialize_component(owner)`.

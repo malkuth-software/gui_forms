@@ -12,6 +12,7 @@
 // owner) are left out until a document can name that object.
 
 #include "../../src/core/form_language/form_model/form_model.hpp"
+#include "../../src/core/theme_language/diagnostics/theme_diagnostics.hpp"
 
 #include "gui_forms/component.hpp"
 #include "gui_forms/control.hpp"
@@ -86,5 +87,21 @@ void add_extension_types(form_language::FormSchema& schema);
 // malformed description, a name the schema already has, or an unknown base;
 // `schema` is then unchanged.
 void add_application_type(form_language::FormSchema& schema, std::string_view description);
+
+// Adds a composite control's type to `schema` (cp34), described by
+// "<document>,<C++ class>,<header>": the `.control` document is read and
+// compiled against `schema` as gui_forms_add_control compiles it, a form
+// names the type by the document's name (`card-with-action`), and the
+// generated code makes it as the qualified <C++ class> that
+// gui_forms_add_control generated into <header>. Its properties and
+// interactions are the definition's; its children go into its slot, or
+// are refused without one (E809). The document path may hold commas; the
+// last two separate the class and the header. Throws
+// std::invalid_argument for a malformed description, an unreadable
+// document or a name the schema already has, `schema` then unchanged;
+// returns false with the document's diagnostics in `diagnostics` when the
+// document is refused.
+[[nodiscard]] bool add_composite_type(form_language::FormSchema& schema, std::string_view description,
+                                      theme_language::ThemeDiagnosticList& diagnostics);
 
 } // namespace gui_forms::form_compiler

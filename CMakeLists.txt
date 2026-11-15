@@ -1212,6 +1212,7 @@ add_library(gui_forms_controls STATIC
     src/controls/composite_control/composite_evaluator.cpp
     src/controls/composite_control/composite_control.cpp
     src/controls/composite_control/composite_children.cpp
+    src/controls/composite_control/composite_forms.cpp
     src/controls/panel/scaled_panel/scaled_panel.cpp
     src/controls/panel/form_layout/form_layout.cpp
     src/controls/panel/group_box/scaled_group_box/scaled_group_box.cpp
@@ -4149,7 +4150,8 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_control_expression_tests tests/control_language/control_expression_tests.cpp)
     target_link_libraries(gui_forms_control_expression_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_control_expression_tests COMMAND gui_forms_control_expression_tests)
-    foreach(control_test control_model_tests control_lock_tests composite_control_tests control_generator_tests)
+    foreach(control_test control_model_tests control_lock_tests composite_control_tests control_generator_tests
+            composite_form_tests)
         add_executable(gui_forms_${control_test} tests/control_language/${control_test}.cpp)
         target_link_libraries(gui_forms_${control_test} PRIVATE gui_forms_controls)
         target_compile_definitions(gui_forms_${control_test} PRIVATE
@@ -4199,6 +4201,13 @@ if(GUI_FORMS_BUILD_TESTS)
                 CLASS TogglePill NAMESPACE composite_generated COMPILER gui_forms_form_compiler)
             gui_forms_add_control(gui_forms_composite_generated_tests demo/composites/card-with-action.control
                 CLASS CardWithAction NAMESPACE composite_generated COMPILER gui_forms_form_compiler)
+            # A form naming both (gui_forms_add_form COMPOSITES): the card's
+            # slot takes the form's children.
+            gui_forms_add_form(gui_forms_composite_generated_tests tests/control_language/composite_panel.form
+                CLASS CompositePanel NAMESPACE composite_generated DERIVED COMPILER gui_forms_form_compiler
+                COMPOSITES
+                    "demo/composites/toggle-pill.control,composite_generated::TogglePill,toggle_pill_control.hpp"
+                    "demo/composites/card-with-action.control,composite_generated::CardWithAction,card_with_action_control.hpp")
             add_test(NAME gui_forms_composite_generated_tests COMMAND gui_forms_composite_generated_tests)
             # gui_forms_add_form end to end: a header generated at build time,
             # naming an application type.

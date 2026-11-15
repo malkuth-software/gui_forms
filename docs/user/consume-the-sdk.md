@@ -51,6 +51,14 @@ gui_forms_add_control(my_forms controls/toggle-pill.control CLASS TogglePill NAM
 Include `toggle_pill_control.hpp` and make one with
 `gui_forms::make_control<greeter::TogglePill>(gui_forms::StableId("wifi"))`.
 
+A form document names it once `gui_forms_add_form` lists it, with the same
+class and header:
+
+```cmake
+gui_forms_add_form(my_forms forms/settings.form CLASS SettingsForm NAMESPACE greeter
+                   COMPOSITES "controls/toggle-pill.control,greeter::TogglePill,toggle_pill_control.hpp")
+```
+
 ## Components
 
 | Component | Target | Kind | Use it for |

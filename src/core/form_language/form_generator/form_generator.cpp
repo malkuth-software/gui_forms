@@ -538,6 +538,11 @@ void FormGenerator::write_objects(std::string& out, ObjectAccess access) const {
         // A component is the form's, not its parent's; a form root's
         // control is the window's.
         if (!type.holds_children || (parent == 0U && form_root_)) continue;
+        // A composite parent takes its document children into its slot.
+        if (type_of(parent).child_placement == FormChildPlacement::slot) {
+            out += "        (*" + object_reference(parent, access) + ".slot()).add_child(" + pointer + ");\n";
+            continue;
+        }
         out += "        " + object_reference(parent, access) + ".add_child(" + pointer + ");\n";
     }
     // Spans before any placement (study 10.9).

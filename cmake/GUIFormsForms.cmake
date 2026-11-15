@@ -17,6 +17,13 @@
 #   TYPES        application types the document may name, each
 #                "<name>,<C++ class>,<registry base type>,<header>" (see the
 #                compiler's --type).
+#   COMPOSITES   composite controls the document may name (cp34), each
+#                "<document.control>,<C++ class>,<header>": the document
+#                relative to the current source directory, and the class and
+#                header gui_forms_add_control generates from it (see the
+#                compiler's --composite). A form names one by the document's
+#                name and fills its slot with its children; one without a
+#                slot refuses them (E809). Later entries may name earlier ones.
 #   DERIVED      generate the class deriving from the root's type (stage B):
 #                a gui_forms::Window subclass for a form root, a subclass of
 #                the root control's type otherwise, instead of the document
@@ -31,15 +38,35 @@
 #                GUIForms::form_compiler. The GUI.Forms build passes
 #                gui_forms_form_compiler_lab for the Gallery's pages, which
 #                name the lab and demonstration controls (audit F9).
-# The header is regenerated when the document or the compiler changes; the
-# compiler writes it only when its bytes change.
+# The header is regenerated when the document, a composite's document or the
+# compiler changes; the compiler writes it only when its bytes change.
 
 if(COMMAND gui_forms_add_form)
     return()
 endif()
 
+# Appends --composite for each "<document>,<C++ class>,<header>" in the list
+# named by `composites` to the list named by `arguments`, the document made
+# absolute against the current source directory, and each document to the
+# list named by `documents`.
+function(gui_forms_composite_arguments composites arguments documents)
+    set(appended ${${arguments}})
+    set(read ${${documents}})
+    foreach(composite IN LISTS ${composites})
+        if(NOT composite MATCHES "^(.+),([^,]+),([^,]+)$")
+            message(FATAL_ERROR "gui_forms: COMPOSITES expects <document>,<C++ class>,<header>: ${composite}")
+        endif()
+        get_filename_component(composite_document "${CMAKE_MATCH_1}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+        list(APPEND appended --composite "${composite_document},${CMAKE_MATCH_2},${CMAKE_MATCH_3}")
+        list(APPEND read "${composite_document}")
+    endforeach()
+    set(${arguments} ${appended} PARENT_SCOPE)
+    set(${documents} ${read} PARENT_SCOPE)
+endfunction()
+
 function(gui_forms_add_form target document)
-    cmake_parse_arguments(PARSE_ARGV 2 FORM "DERIVED" "CLASS;NAMESPACE;OUTPUT;MODEL;MODEL_HEADER;COMPILER" "TYPES")
+    cmake_parse_arguments(PARSE_ARGV 2 FORM "DERIVED" "CLASS;NAMESPACE;OUTPUT;MODEL;MODEL_HEADER;COMPILER"
+                          "TYPES;COMPOSITES")
     if(FORM_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR "gui_forms_add_form: unknown arguments ${FORM_UNPARSED_ARGUMENTS}")
     endif()
@@ -79,11 +106,13 @@ function(gui_forms_add_form target document)
     foreach(type IN LISTS FORM_TYPES)
         list(APPEND arguments --type "${type}")
     endforeach()
+    set(documents "${source}")
+    gui_forms_composite_arguments(FORM_COMPOSITES arguments documents)
     add_custom_command(
         OUTPUT "${output}"
         COMMAND "${CMAKE_COMMAND}" -E make_directory "${output_directory}"
         COMMAND ${compiler} ${arguments}
-        DEPENDS "${source}" "$<TARGET_FILE:${compiler}>"
+        DEPENDS ${documents} "$<TARGET_FILE:${compiler}>"
         COMMENT "Generating ${stem}_form.hpp from ${document}"
         VERBATIM)
     target_sources(${target} PRIVATE "${output}")
@@ -101,15 +130,15 @@ endfunction()
 # Arguments are gui_forms_add_form's, without DERIVED, MODEL and
 # MODEL_HEADER: the target, the document, CLASS, NAMESPACE, OUTPUT (default
 # <binary dir>/gui_forms_controls/<stem>_control.hpp, a '-' in the stem
-# becoming '_'), TYPES (application types the children may name) and
-# COMPILER.
+# becoming '_'), TYPES (application types the children may name),
+# COMPOSITES (composite controls the children may name) and COMPILER.
 
 if(COMMAND gui_forms_add_control)
     return()
 endif()
 
 function(gui_forms_add_control target document)
-    cmake_parse_arguments(PARSE_ARGV 2 CONTROL "" "CLASS;NAMESPACE;OUTPUT;COMPILER" "TYPES")
+    cmake_parse_arguments(PARSE_ARGV 2 CONTROL "" "CLASS;NAMESPACE;OUTPUT;COMPILER" "TYPES;COMPOSITES")
     if(CONTROL_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR "gui_forms_add_control: unknown arguments ${CONTROL_UNPARSED_ARGUMENTS}")
     endif()
@@ -141,11 +170,13 @@ function(gui_forms_add_control target document)
     foreach(type IN LISTS CONTROL_TYPES)
         list(APPEND arguments --type "${type}")
     endforeach()
+    set(documents "${source}")
+    gui_forms_composite_arguments(CONTROL_COMPOSITES arguments documents)
     add_custom_command(
         OUTPUT "${output}"
         COMMAND "${CMAKE_COMMAND}" -E make_directory "${output_directory}"
         COMMAND ${compiler} ${arguments}
-        DEPENDS "${source}" "$<TARGET_FILE:${compiler}>"
+        DEPENDS ${documents} "$<TARGET_FILE:${compiler}>"
         COMMENT "Generating ${stem}_control.hpp from ${document}"
         VERBATIM)
     target_sources(${target} PRIVATE "${output}")

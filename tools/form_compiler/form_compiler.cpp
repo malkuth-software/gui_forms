@@ -3,7 +3,8 @@
 // checks the run-time loader uses. Shipped in the SDK.
 //
 //   gui_forms_form_compiler <document.form> --class <Name> --output <header>
-//                           [--namespace <a::b>] [--type <description>]... [--check]
+//                           [--namespace <a::b>] [--type <description>]...
+//                           [--composite <description>]... [--check]
 //   gui_forms_form_compiler <document.control> --control --class <Name> --output <header>
 //                           [--namespace <a::b>] [--type <description>]... [--check]
 //
@@ -15,6 +16,12 @@
 // "<name>,<C++ class>,<registry base type>,<header>" (add_application_type
 // in form_catalog.hpp), for example
 // "note_card,my_app::NoteCard,user_control,my_app/note_card.hpp".
+//
+// Each --composite adds a composite control's type (cp34):
+// "<document.control>,<C++ class>,<header>" (add_composite_type), the
+// class and header gui_forms_add_control generates from that document. A
+// form names it by the document's name and fills its slot with its
+// children; a composite document may name the composites before it.
 //
 // Writes the header only when its bytes change, so a build that runs the
 // compiler on every configure rebuilds nothing. With --check it writes
@@ -69,6 +76,10 @@ struct Arguments final {
     FormGeneratorOptions options{};
     // The --type descriptions, in command-line order.
     std::vector<std::string> types{};
+    // The --composite descriptions, in command-line order, after the
+    // application types: a composite's children may name those and the
+    // composites before it.
+    std::vector<std::string> composites{};
     bool check{};
     // A composite control document instead of a form.
     bool control{};
@@ -77,11 +88,12 @@ struct Arguments final {
 void print_usage() {
     std::cerr << "usage: gui_forms_form_compiler <document.form> --class <Name> --output <header>\n"
                  "                               [--namespace <a::b>] [--type <name>,<class>,<base>,<header>]...\n"
+                 "                               [--composite <document>,<class>,<header>]...\n"
                  "                               [--derived] [--model <a::Type>] [--model-header <header>]\n"
                  "                               [--check]\n"
                  "       gui_forms_form_compiler <document.control> --control --class <Name> --output <header>\n"
                  "                               [--namespace <a::b>] [--type <name>,<class>,<base>,<header>]...\n"
-                 "                               [--check]\n";
+                 "                               [--composite <document>,<class>,<header>]... [--check]\n";
 }
 
 // Reads the command line; none when it is malformed.
@@ -103,6 +115,9 @@ std::optional<Arguments> read_arguments(std::span<char* const> words) {
         } else if (word == "--type" && has_value) {
             ++index;
             arguments.types.emplace_back(words[index]);
+        } else if (word == "--composite" && has_value) {
+            ++index;
+            arguments.composites.emplace_back(words[index]);
         } else if (word == "--derived") {
             arguments.options.derived = true;
         } else if (word == "--model" && has_value) {
@@ -232,6 +247,14 @@ int compile(const Arguments& arguments) {
     source.text = *text;
     FormSchema schema = gui_forms::form_compiler::registry_form_schema();
     for (const std::string& type : arguments.types) gui_forms::form_compiler::add_application_type(schema, type);
+    for (const std::string& composite : arguments.composites) {
+        ThemeDiagnosticList refusals{};
+        const bool added = gui_forms::form_compiler::add_composite_type(schema, composite, refusals);
+        if (!added) {
+            print_diagnostics(refusals);
+            return exit_refused;
+        }
+    }
     std::string generated{};
     const bool made = arguments.control ? generate_control(arguments, source, std::move(schema), generated)
                                         : generate_form(arguments, source, schema, generated);
