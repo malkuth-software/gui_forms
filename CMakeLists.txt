@@ -612,6 +612,7 @@ add_library(gui_forms_core STATIC
     src/core/control_language/control_expression/control_expression.cpp
     src/core/control_language/control_model/control_model.cpp
     src/core/control_language/control_lock/control_lock.cpp
+    src/core/control_language/composite_definition/composite_definition.cpp
     src/core/form_language/form_loader/form_loader.cpp
     src/core/form_language/form_loader/form_window_loader.cpp
     src/core/form_language/form_editor/form_editor.cpp
@@ -1207,6 +1208,9 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/anchored_overlay_layer/anchored_overlay_layer.cpp
     src/controls/scrollable_control/container_control/container_control.cpp
     src/controls/scrollable_control/container_control/user_control/user_control.cpp
+    src/controls/composite_control/composite_evaluator.cpp
+    src/controls/composite_control/composite_control.cpp
+    src/controls/composite_control/composite_children.cpp
     src/controls/panel/scaled_panel/scaled_panel.cpp
     src/controls/panel/form_layout/form_layout.cpp
     src/controls/panel/group_box/scaled_group_box/scaled_group_box.cpp
@@ -4144,7 +4148,7 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_control_expression_tests tests/control_language/control_expression_tests.cpp)
     target_link_libraries(gui_forms_control_expression_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_control_expression_tests COMMAND gui_forms_control_expression_tests)
-    foreach(control_test control_model_tests control_lock_tests)
+    foreach(control_test control_model_tests control_lock_tests composite_control_tests)
         add_executable(gui_forms_${control_test} tests/control_language/${control_test}.cpp)
         target_link_libraries(gui_forms_${control_test} PRIVATE gui_forms_controls)
         target_compile_definitions(gui_forms_${control_test} PRIVATE

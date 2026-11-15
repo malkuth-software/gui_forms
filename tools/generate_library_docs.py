@@ -94,8 +94,9 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "with layout, docking, anchoring and validation vocabularies (layout "
           "constraints, intrinsic sizes and layout direction among them), and the "
           "anatomy each control publishes: named parts, part roles and states, "
-          "and the interactions each type raises.",
-          ("control", "component", "anatomy", "schema", "layout", "borrow")),
+          "and the interactions each type raises; composite controls, the "
+          "control types a `.control` document defines.",
+          ("control", "component", "anatomy", "schema", "layout", "borrow", "composites")),
     Group("events-values-and-commands", "Events, values and commands",
           "Retained events and owned handlers, application-owned `Value` state, "
           "command bindings, a window's rules (a trigger, conditions and "

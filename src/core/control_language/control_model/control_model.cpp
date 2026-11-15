@@ -1597,7 +1597,7 @@ void ModelBuilder::check_names(const ControlModel& scratch) {
     }
     if (scratch.parts.size() > maximum_control_parts) {
         report(DiagnosticCode::control_limit_exceeded, element_offset(scratch.parts[maximum_control_parts].source.element),
-               scratch.parts[maximum_control_parts].name, {}, "more than 32 parts");
+               scratch.parts[maximum_control_parts].name, {}, "more than 30 parts (with region and focus, the anatomy's 32)");
     }
     std::size_t custom = 0U;
     for (const ControlState& state : scratch.states) {

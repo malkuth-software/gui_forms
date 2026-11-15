@@ -418,6 +418,7 @@
     _ZGVZN9gui_forms14CollectionEdit*;
     _ZGVZN9gui_forms14ColorPickerHsv*;
     _ZGVZN9gui_forms14CommandBinding*;
+    _ZGVZN9gui_forms14CompositeEvent*;
     _ZGVZN9gui_forms14ContentContext*;
     _ZGVZN9gui_forms14ContentItemKey*;
     _ZGVZN9gui_forms14ContentProgram*;
@@ -640,6 +641,7 @@
     _ZGVZN9gui_forms16BindingPredicate*;
     _ZGVZN9gui_forms16CachedPartRaster*;
     _ZGVZN9gui_forms16ColorValueEditor*;
+    _ZGVZN9gui_forms16CompositeControl*;
     _ZGVZN9gui_forms16ContainerControl*;
     _ZGVZN9gui_forms16ContentCaretStop*;
     _ZGVZN9gui_forms16ContentFrameSink*;
@@ -862,6 +864,7 @@
     _ZGVZN9gui_forms18CommandRouteResult*;
     _ZGVZN9gui_forms18CompiledThemeRules*;
     _ZGVZN9gui_forms18ComponentContainer*;
+    _ZGVZN9gui_forms18CompositeChildType*;
     _ZGVZN9gui_forms18ContentTextCluster*;
     _ZGVZN9gui_forms18ContextMenuRequest*;
     _ZGVZN9gui_forms18ControlCanvasPaint*;
@@ -967,6 +970,8 @@
     _ZGVZN9gui_forms19BlockFlowItemLayout*;
     _ZGVZN9gui_forms19BlockFlowItemResult*;
     _ZGVZN9gui_forms19CanvasTextureLayers*;
+    _ZGVZN9gui_forms19CompositeLoadResult*;
+    _ZGVZN9gui_forms19CompositeStatistics*;
     _ZGVZN9gui_forms19ControlStateRecipes*;
     _ZGVZN9gui_forms19ControlVisualRecipe*;
     _ZGVZN9gui_forms19CursorLeaseSnapshot*;
@@ -2034,6 +2039,7 @@
     _ZGVZNK9gui_forms14CollectionEdit*;
     _ZGVZNK9gui_forms14ColorPickerHsv*;
     _ZGVZNK9gui_forms14CommandBinding*;
+    _ZGVZNK9gui_forms14CompositeEvent*;
     _ZGVZNK9gui_forms14ContentContext*;
     _ZGVZNK9gui_forms14ContentItemKey*;
     _ZGVZNK9gui_forms14ContentProgram*;
@@ -2256,6 +2262,7 @@
     _ZGVZNK9gui_forms16BindingPredicate*;
     _ZGVZNK9gui_forms16CachedPartRaster*;
     _ZGVZNK9gui_forms16ColorValueEditor*;
+    _ZGVZNK9gui_forms16CompositeControl*;
     _ZGVZNK9gui_forms16ContainerControl*;
     _ZGVZNK9gui_forms16ContentCaretStop*;
     _ZGVZNK9gui_forms16ContentFrameSink*;
@@ -2478,6 +2485,7 @@
     _ZGVZNK9gui_forms18CommandRouteResult*;
     _ZGVZNK9gui_forms18CompiledThemeRules*;
     _ZGVZNK9gui_forms18ComponentContainer*;
+    _ZGVZNK9gui_forms18CompositeChildType*;
     _ZGVZNK9gui_forms18ContentTextCluster*;
     _ZGVZNK9gui_forms18ContextMenuRequest*;
     _ZGVZNK9gui_forms18ControlCanvasPaint*;
@@ -2583,6 +2591,8 @@
     _ZGVZNK9gui_forms19BlockFlowItemLayout*;
     _ZGVZNK9gui_forms19BlockFlowItemResult*;
     _ZGVZNK9gui_forms19CanvasTextureLayers*;
+    _ZGVZNK9gui_forms19CompositeLoadResult*;
+    _ZGVZNK9gui_forms19CompositeStatistics*;
     _ZGVZNK9gui_forms19ControlStateRecipes*;
     _ZGVZNK9gui_forms19ControlVisualRecipe*;
     _ZGVZNK9gui_forms19CursorLeaseSnapshot*;
@@ -3790,6 +3800,7 @@
     _ZN9gui_forms14CollectionEdit*;
     _ZN9gui_forms14ColorPickerHsv*;
     _ZN9gui_forms14CommandBinding*;
+    _ZN9gui_forms14CompositeEvent*;
     _ZN9gui_forms14ContentContext*;
     _ZN9gui_forms14ContentItemKey*;
     _ZN9gui_forms14ContentProgram*;
@@ -4106,6 +4117,7 @@
     _ZN9gui_forms16BindingPredicate*;
     _ZN9gui_forms16CachedPartRaster*;
     _ZN9gui_forms16ColorValueEditor*;
+    _ZN9gui_forms16CompositeControl*;
     _ZN9gui_forms16ContainerControl*;
     _ZN9gui_forms16ContentCaretStop*;
     _ZN9gui_forms16ContentFrameSink*;
@@ -4478,6 +4490,7 @@
     _ZN9gui_forms18CommandRouteResult*;
     _ZN9gui_forms18CompiledThemeRules*;
     _ZN9gui_forms18ComponentContainer*;
+    _ZN9gui_forms18CompositeChildType*;
     _ZN9gui_forms18ContentTextCluster*;
     _ZN9gui_forms18ContextMenuRequest*;
     _ZN9gui_forms18ControlCanvasPaint*;
@@ -4689,6 +4702,8 @@
     _ZN9gui_forms19BlockFlowItemLayout*;
     _ZN9gui_forms19BlockFlowItemResult*;
     _ZN9gui_forms19CanvasTextureLayers*;
+    _ZN9gui_forms19CompositeLoadResult*;
+    _ZN9gui_forms19CompositeStatistics*;
     _ZN9gui_forms19ControlStateRecipes*;
     _ZN9gui_forms19ControlVisualRecipe*;
     _ZN9gui_forms19CursorLeaseSnapshot*;
@@ -4795,6 +4810,8 @@
     _ZN9gui_forms19bundled_font_noticeE*;
     _ZN9gui_forms19canvas_texture_fillB*;
     _ZN9gui_forms19canvas_texture_fillE*;
+    _ZN9gui_forms19composite_type_nameB*;
+    _ZN9gui_forms19composite_type_nameE*;
     _ZN9gui_forms19current_colours_fitB*;
     _ZN9gui_forms19current_colours_fitE*;
     _ZN9gui_forms19declares_item_stateB*;
@@ -5621,6 +5638,8 @@
     _ZN9gui_forms25image_resource_error_nameE*;
     _ZN9gui_forms25installed_effect_registryB*;
     _ZN9gui_forms25installed_effect_registryE*;
+    _ZN9gui_forms25load_composite_definitionB*;
+    _ZN9gui_forms25load_composite_definitionE*;
     _ZN9gui_forms25paint_canvas_link_previewB*;
     _ZN9gui_forms25paint_canvas_link_previewE*;
     _ZN9gui_forms25paint_data_grid_view_cellB*;
@@ -6822,6 +6841,7 @@
     _ZNK[RO]9gui_forms14CollectionEdit*;
     _ZNK[RO]9gui_forms14ColorPickerHsv*;
     _ZNK[RO]9gui_forms14CommandBinding*;
+    _ZNK[RO]9gui_forms14CompositeEvent*;
     _ZNK[RO]9gui_forms14ContentContext*;
     _ZNK[RO]9gui_forms14ContentItemKey*;
     _ZNK[RO]9gui_forms14ContentProgram*;
@@ -7044,6 +7064,7 @@
     _ZNK[RO]9gui_forms16BindingPredicate*;
     _ZNK[RO]9gui_forms16CachedPartRaster*;
     _ZNK[RO]9gui_forms16ColorValueEditor*;
+    _ZNK[RO]9gui_forms16CompositeControl*;
     _ZNK[RO]9gui_forms16ContainerControl*;
     _ZNK[RO]9gui_forms16ContentCaretStop*;
     _ZNK[RO]9gui_forms16ContentFrameSink*;
@@ -7266,6 +7287,7 @@
     _ZNK[RO]9gui_forms18CommandRouteResult*;
     _ZNK[RO]9gui_forms18CompiledThemeRules*;
     _ZNK[RO]9gui_forms18ComponentContainer*;
+    _ZNK[RO]9gui_forms18CompositeChildType*;
     _ZNK[RO]9gui_forms18ContentTextCluster*;
     _ZNK[RO]9gui_forms18ContextMenuRequest*;
     _ZNK[RO]9gui_forms18ControlCanvasPaint*;
@@ -7371,6 +7393,8 @@
     _ZNK[RO]9gui_forms19BlockFlowItemLayout*;
     _ZNK[RO]9gui_forms19BlockFlowItemResult*;
     _ZNK[RO]9gui_forms19CanvasTextureLayers*;
+    _ZNK[RO]9gui_forms19CompositeLoadResult*;
+    _ZNK[RO]9gui_forms19CompositeStatistics*;
     _ZNK[RO]9gui_forms19ControlStateRecipes*;
     _ZNK[RO]9gui_forms19ControlVisualRecipe*;
     _ZNK[RO]9gui_forms19CursorLeaseSnapshot*;
@@ -8438,6 +8462,7 @@
     _ZN[KRO]9gui_forms14CollectionEdit*;
     _ZN[KRO]9gui_forms14ColorPickerHsv*;
     _ZN[KRO]9gui_forms14CommandBinding*;
+    _ZN[KRO]9gui_forms14CompositeEvent*;
     _ZN[KRO]9gui_forms14ContentContext*;
     _ZN[KRO]9gui_forms14ContentItemKey*;
     _ZN[KRO]9gui_forms14ContentProgram*;
@@ -8660,6 +8685,7 @@
     _ZN[KRO]9gui_forms16BindingPredicate*;
     _ZN[KRO]9gui_forms16CachedPartRaster*;
     _ZN[KRO]9gui_forms16ColorValueEditor*;
+    _ZN[KRO]9gui_forms16CompositeControl*;
     _ZN[KRO]9gui_forms16ContainerControl*;
     _ZN[KRO]9gui_forms16ContentCaretStop*;
     _ZN[KRO]9gui_forms16ContentFrameSink*;
@@ -8882,6 +8908,7 @@
     _ZN[KRO]9gui_forms18CommandRouteResult*;
     _ZN[KRO]9gui_forms18CompiledThemeRules*;
     _ZN[KRO]9gui_forms18ComponentContainer*;
+    _ZN[KRO]9gui_forms18CompositeChildType*;
     _ZN[KRO]9gui_forms18ContentTextCluster*;
     _ZN[KRO]9gui_forms18ContextMenuRequest*;
     _ZN[KRO]9gui_forms18ControlCanvasPaint*;
@@ -8987,6 +9014,8 @@
     _ZN[KRO]9gui_forms19BlockFlowItemLayout*;
     _ZN[KRO]9gui_forms19BlockFlowItemResult*;
     _ZN[KRO]9gui_forms19CanvasTextureLayers*;
+    _ZN[KRO]9gui_forms19CompositeLoadResult*;
+    _ZN[KRO]9gui_forms19CompositeStatistics*;
     _ZN[KRO]9gui_forms19ControlStateRecipes*;
     _ZN[KRO]9gui_forms19ControlVisualRecipe*;
     _ZN[KRO]9gui_forms19CursorLeaseSnapshot*;
@@ -10054,6 +10083,7 @@
     _ZT[VIST]N9gui_forms14CollectionEdit*E;
     _ZT[VIST]N9gui_forms14ColorPickerHsv*E;
     _ZT[VIST]N9gui_forms14CommandBinding*E;
+    _ZT[VIST]N9gui_forms14CompositeEvent*E;
     _ZT[VIST]N9gui_forms14ContentContext*E;
     _ZT[VIST]N9gui_forms14ContentItemKey*E;
     _ZT[VIST]N9gui_forms14ContentProgram*E;
@@ -10276,6 +10306,7 @@
     _ZT[VIST]N9gui_forms16BindingPredicate*E;
     _ZT[VIST]N9gui_forms16CachedPartRaster*E;
     _ZT[VIST]N9gui_forms16ColorValueEditor*E;
+    _ZT[VIST]N9gui_forms16CompositeControl*E;
     _ZT[VIST]N9gui_forms16ContainerControl*E;
     _ZT[VIST]N9gui_forms16ContentCaretStop*E;
     _ZT[VIST]N9gui_forms16ContentFrameSink*E;
@@ -10498,6 +10529,7 @@
     _ZT[VIST]N9gui_forms18CommandRouteResult*E;
     _ZT[VIST]N9gui_forms18CompiledThemeRules*E;
     _ZT[VIST]N9gui_forms18ComponentContainer*E;
+    _ZT[VIST]N9gui_forms18CompositeChildType*E;
     _ZT[VIST]N9gui_forms18ContentTextCluster*E;
     _ZT[VIST]N9gui_forms18ContextMenuRequest*E;
     _ZT[VIST]N9gui_forms18ControlCanvasPaint*E;
@@ -10603,6 +10635,8 @@
     _ZT[VIST]N9gui_forms19BlockFlowItemLayout*E;
     _ZT[VIST]N9gui_forms19BlockFlowItemResult*E;
     _ZT[VIST]N9gui_forms19CanvasTextureLayers*E;
+    _ZT[VIST]N9gui_forms19CompositeLoadResult*E;
+    _ZT[VIST]N9gui_forms19CompositeStatistics*E;
     _ZT[VIST]N9gui_forms19ControlStateRecipes*E;
     _ZT[VIST]N9gui_forms19ControlVisualRecipe*E;
     _ZT[VIST]N9gui_forms19CursorLeaseSnapshot*E;
@@ -11670,6 +11704,7 @@
     _ZT[hvc]*9gui_forms14CollectionEdit*;
     _ZT[hvc]*9gui_forms14ColorPickerHsv*;
     _ZT[hvc]*9gui_forms14CommandBinding*;
+    _ZT[hvc]*9gui_forms14CompositeEvent*;
     _ZT[hvc]*9gui_forms14ContentContext*;
     _ZT[hvc]*9gui_forms14ContentItemKey*;
     _ZT[hvc]*9gui_forms14ContentProgram*;
@@ -11892,6 +11927,7 @@
     _ZT[hvc]*9gui_forms16BindingPredicate*;
     _ZT[hvc]*9gui_forms16CachedPartRaster*;
     _ZT[hvc]*9gui_forms16ColorValueEditor*;
+    _ZT[hvc]*9gui_forms16CompositeControl*;
     _ZT[hvc]*9gui_forms16ContainerControl*;
     _ZT[hvc]*9gui_forms16ContentCaretStop*;
     _ZT[hvc]*9gui_forms16ContentFrameSink*;
@@ -12114,6 +12150,7 @@
     _ZT[hvc]*9gui_forms18CommandRouteResult*;
     _ZT[hvc]*9gui_forms18CompiledThemeRules*;
     _ZT[hvc]*9gui_forms18ComponentContainer*;
+    _ZT[hvc]*9gui_forms18CompositeChildType*;
     _ZT[hvc]*9gui_forms18ContentTextCluster*;
     _ZT[hvc]*9gui_forms18ContextMenuRequest*;
     _ZT[hvc]*9gui_forms18ControlCanvasPaint*;
@@ -12219,6 +12256,8 @@
     _ZT[hvc]*9gui_forms19BlockFlowItemLayout*;
     _ZT[hvc]*9gui_forms19BlockFlowItemResult*;
     _ZT[hvc]*9gui_forms19CanvasTextureLayers*;
+    _ZT[hvc]*9gui_forms19CompositeLoadResult*;
+    _ZT[hvc]*9gui_forms19CompositeStatistics*;
     _ZT[hvc]*9gui_forms19ControlStateRecipes*;
     _ZT[hvc]*9gui_forms19ControlVisualRecipe*;
     _ZT[hvc]*9gui_forms19CursorLeaseSnapshot*;
@@ -13286,6 +13325,7 @@
     _ZZN9gui_forms14CollectionEdit*;
     _ZZN9gui_forms14ColorPickerHsv*;
     _ZZN9gui_forms14CommandBinding*;
+    _ZZN9gui_forms14CompositeEvent*;
     _ZZN9gui_forms14ContentContext*;
     _ZZN9gui_forms14ContentItemKey*;
     _ZZN9gui_forms14ContentProgram*;
@@ -13508,6 +13548,7 @@
     _ZZN9gui_forms16BindingPredicate*;
     _ZZN9gui_forms16CachedPartRaster*;
     _ZZN9gui_forms16ColorValueEditor*;
+    _ZZN9gui_forms16CompositeControl*;
     _ZZN9gui_forms16ContainerControl*;
     _ZZN9gui_forms16ContentCaretStop*;
     _ZZN9gui_forms16ContentFrameSink*;
@@ -13730,6 +13771,7 @@
     _ZZN9gui_forms18CommandRouteResult*;
     _ZZN9gui_forms18CompiledThemeRules*;
     _ZZN9gui_forms18ComponentContainer*;
+    _ZZN9gui_forms18CompositeChildType*;
     _ZZN9gui_forms18ContentTextCluster*;
     _ZZN9gui_forms18ContextMenuRequest*;
     _ZZN9gui_forms18ControlCanvasPaint*;
@@ -13835,6 +13877,8 @@
     _ZZN9gui_forms19BlockFlowItemLayout*;
     _ZZN9gui_forms19BlockFlowItemResult*;
     _ZZN9gui_forms19CanvasTextureLayers*;
+    _ZZN9gui_forms19CompositeLoadResult*;
+    _ZZN9gui_forms19CompositeStatistics*;
     _ZZN9gui_forms19ControlStateRecipes*;
     _ZZN9gui_forms19ControlVisualRecipe*;
     _ZZN9gui_forms19CursorLeaseSnapshot*;
@@ -14902,6 +14946,7 @@
     _ZZNK9gui_forms14CollectionEdit*;
     _ZZNK9gui_forms14ColorPickerHsv*;
     _ZZNK9gui_forms14CommandBinding*;
+    _ZZNK9gui_forms14CompositeEvent*;
     _ZZNK9gui_forms14ContentContext*;
     _ZZNK9gui_forms14ContentItemKey*;
     _ZZNK9gui_forms14ContentProgram*;
@@ -15124,6 +15169,7 @@
     _ZZNK9gui_forms16BindingPredicate*;
     _ZZNK9gui_forms16CachedPartRaster*;
     _ZZNK9gui_forms16ColorValueEditor*;
+    _ZZNK9gui_forms16CompositeControl*;
     _ZZNK9gui_forms16ContainerControl*;
     _ZZNK9gui_forms16ContentCaretStop*;
     _ZZNK9gui_forms16ContentFrameSink*;
@@ -15346,6 +15392,7 @@
     _ZZNK9gui_forms18CommandRouteResult*;
     _ZZNK9gui_forms18CompiledThemeRules*;
     _ZZNK9gui_forms18ComponentContainer*;
+    _ZZNK9gui_forms18CompositeChildType*;
     _ZZNK9gui_forms18ContentTextCluster*;
     _ZZNK9gui_forms18ContextMenuRequest*;
     _ZZNK9gui_forms18ControlCanvasPaint*;
@@ -15451,6 +15498,8 @@
     _ZZNK9gui_forms19BlockFlowItemLayout*;
     _ZZNK9gui_forms19BlockFlowItemResult*;
     _ZZNK9gui_forms19CanvasTextureLayers*;
+    _ZZNK9gui_forms19CompositeLoadResult*;
+    _ZZNK9gui_forms19CompositeStatistics*;
     _ZZNK9gui_forms19ControlStateRecipes*;
     _ZZNK9gui_forms19ControlVisualRecipe*;
     _ZZNK9gui_forms19CursorLeaseSnapshot*;

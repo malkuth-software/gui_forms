@@ -69,8 +69,11 @@ namespace gui_forms::control_language {
 // vocabulary inside <children>, unprefixed.
 inline constexpr std::string_view control_namespace = "urn:gui-forms:control:1";
 
-// Declaration bounds (design note 5.3).
-inline constexpr std::size_t maximum_control_parts = 32U;
+// Declaration bounds (design note 5.3). A composite's anatomy is every
+// control's region and focus parts followed by its own, within the
+// anatomy's 32 (gui_forms::maximum_control_parts), so a document declares
+// at most 30.
+inline constexpr std::size_t maximum_control_parts = gui_forms::maximum_control_parts - 2U;
 inline constexpr std::size_t maximum_custom_states = 16U;
 
 // One read document: the elements, where each was written, and the line

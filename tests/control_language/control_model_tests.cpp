@@ -322,10 +322,11 @@ void test_declaration_codes() {
     const FormSchema schema = composite_schema();
     // E907: the bounds.
     std::string parts{};
-    for (std::size_t index = 0U; index < 33U; ++index) {
+    for (std::size_t index = 0U; index < 31U; ++index) {
         parts += "<part name=\"p" + std::to_string(index) + "\" role=\"face\"/>";
     }
-    expect_refused(schema, document(parts), DiagnosticCode::control_limit_exceeded, "33 parts");
+    // 30 declared parts with region and focus fill the anatomy's 32.
+    expect_refused(schema, document(parts), DiagnosticCode::control_limit_exceeded, "31 parts");
     std::string states{"<property name=\"b\" kind=\"boolean\"/><look>"};
     for (std::size_t index = 0U; index < 17U; ++index) states += ":state(s" + std::to_string(index) + ") { }";
     states += "</look>";
