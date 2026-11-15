@@ -18,10 +18,11 @@
 // (with the windows they own) and appear as tabs along the surface's bottom
 // edge, above the window band and below the popups.
 //
-// Reserved: the owner's further window-manager feature, which the
-// coordinator is confirming, belongs to this desk. Its state goes with the
-// layer state below, its parts with SurfaceDeskPart, and its drawing with
-// scene() and tabs(); nothing here assumes it yet.
+// The window controls are the title bar's boxes or, by the theme's choice
+// (SurfaceFrameTheme::window_controls), the window capsule
+// (capsule/surface_capsule.hpp): the desk places the capsule's three
+// sections at the controls' end of the title bar and tiles windows to a
+// half of the surface for the capsule's move.
 
 #include "gui_forms/host/windowing/host_windowing.hpp"
 #include "gui_forms/types.hpp"
@@ -54,12 +55,25 @@ enum class SurfaceDeskPart : std::uint8_t {
     corner_bottom_right,
     // A minimised window's tab.
     minimized_tab,
+    // The window capsule's sections (SurfaceWindowControls::capsule).
+    capsule_left,
+    capsule_help,
+    capsule_right,
 };
 
 enum class SurfaceWindowState : std::uint8_t {
     normal,
     minimized,
     maximized,
+    // Filling the surface's left or right half within its frame (the
+    // capsule's snap targets).
+    tiled_left,
+    tiled_right,
+};
+
+enum class SurfaceTileSide : std::uint8_t {
+    left,
+    right,
 };
 
 // One layer as the manager adds it. `content` is the client area; a framed
@@ -99,12 +113,14 @@ struct SurfaceDeskQuad final {
     // Which title bar boxes the frame shows (SurfaceDesk::title_boxes).
     bool minimize_box{};
     bool maximize_box{};
+    // The title bar shows the window capsule instead of the boxes.
+    bool capsule{};
     SurfaceWindowState state{SurfaceWindowState::normal};
 
     friend bool operator==(const SurfaceDeskQuad& a, const SurfaceDeskQuad& b) noexcept {
         const bool equal = a.window == b.window && a.content == b.content && a.outer == b.outer &&
                            a.framed == b.framed && a.active == b.active && a.minimize_box == b.minimize_box &&
-                           a.maximize_box == b.maximize_box && a.state == b.state;
+                           a.maximize_box == b.maximize_box && a.capsule == b.capsule && a.state == b.state;
         return equal;
     }
 };
@@ -120,6 +136,13 @@ struct SurfaceDeskTab final {
 enum class SurfaceControlsSide : std::uint8_t {
     right,
     left,
+};
+
+// The title bar's window controls: the boxes (minimise, maximise, close),
+// or the window capsule.
+enum class SurfaceWindowControls : std::uint8_t {
+    boxes,
+    capsule,
 };
 
 // The window manager's own theme specification (owner, 2026-11-15): the
@@ -140,6 +163,26 @@ struct SurfaceFrameTheme final {
     // close outermost, then maximise, then minimise.
     double title_box_width{40.0};
     SurfaceControlsSide controls{SurfaceControlsSide::right};
+    // The boxes or the capsule. The boxes stay the default until the owner
+    // chooses (an open decision of 2026-11-15).
+    SurfaceWindowControls window_controls{SurfaceWindowControls::boxes};
+    // The capsule: its size, the question mark's middle section (at least
+    // the capsule's height, so the halves' rounded inner ends lie under
+    // it), and its gap from the controls' end of the title bar, centred
+    // in the title bar's height.
+    double capsule_width{76.0};
+    double capsule_height{20.0};
+    double capsule_help_width{20.0};
+    double capsule_margin{6.0};
+    // The capsule's gestures (SurfaceCapsuleMeasures): the click slop, the
+    // minimise drag, the snap zone at the surface's left and right edges
+    // and its release distance, the animation, and the keyboard's move.
+    double capsule_slop{4.0};
+    double capsule_minimize_distance{40.0};
+    double snap_edge{16.0};
+    double snap_release{48.0};
+    double capsule_animation_milliseconds{160.0};
+    double capsule_nudge{16.0};
     // Of a dragged window, at least this much of the frame's top stays
     // inside the surface horizontally, and its top never leaves it.
     double title_bar_kept{48.0};
@@ -157,6 +200,15 @@ struct SurfaceFrameTheme final {
     std::uint32_t title_active{0x2D2D30U};
     std::uint32_t title_inactive{0x3C3C40U};
     std::uint32_t title_text{0xF0F0F0U};
+    // The capsule's face and glyphs; the half that invites the close's
+    // second click (green) and the X (red); the snap target shown during a
+    // move, drawn over the scene with snap_preview_alpha (0 to 255).
+    std::uint32_t capsule_face{0x3F3F46U};
+    std::uint32_t capsule_glyph{0xF0F0F0U};
+    std::uint32_t capsule_ready{0x2EA043U};
+    std::uint32_t capsule_close{0xD1242FU};
+    std::uint32_t snap_preview{0x3F7FBFU};
+    std::uint32_t snap_preview_alpha{0x50U};
 };
 
 class SurfaceDesk final {
@@ -196,15 +248,18 @@ public:
     [[nodiscard]] std::optional<Rect> outer(HostWindowId window) const noexcept;
     [[nodiscard]] bool framed(HostWindowId window) const noexcept;
 
-    // Window states. minimize and maximize refuse (false, changing nothing)
+    // Window states. minimize, maximize and tile refuse (false, changing nothing)
     // an unframed or blocked layer, one whose kind does not allow it (not
     // minimizable; not resizable for maximize), or one already in that
     // state. Minimising moves the keyboard to the topmost window that takes
     // it; maximising remembers the normal rectangle, which restore puts
     // back. restore from minimised returns to the state the window was
-    // minimised from. Each returns whether the state changed.
+    // minimised from. Tiling gives the window the surface's left or right
+    // half and, from normal, remembers the normal rectangle as maximise
+    // does. Each returns whether the state changed.
     bool minimize(HostWindowId window);
     bool maximize(HostWindowId window);
+    bool tile(HostWindowId window, SurfaceTileSide side);
     bool restore(HostWindowId window);
     [[nodiscard]] SurfaceWindowState state(HostWindowId window) const noexcept;
 
@@ -222,9 +277,14 @@ public:
     // The topmost shown layer or tab at `point` that takes input, and the
     // part.
     [[nodiscard]] SurfaceDeskHit hit(Point point) const noexcept;
-    // The title bar boxes of `window`'s frame, in surface coordinates, empty
-    // where it shows none.
+    // The title bar boxes or capsule sections of `window`'s frame, in
+    // surface coordinates, empty where it shows none.
     [[nodiscard]] Rect box(HostWindowId window, SurfaceDeskPart part) const noexcept;
+    // The whole capsule of `window`'s frame, empty where it shows none.
+    [[nodiscard]] Rect capsule(HostWindowId window) const noexcept;
+    // The frame a window tiled to `side` would have: the capsule's snap
+    // preview.
+    [[nodiscard]] Rect tiled_outer(SurfaceTileSide side) const noexcept;
 
     // run_modal (HostWindowing::run_modal): every live layer that `modal`
     // does not own, at any depth, and that is not `modal` itself, refuses
@@ -256,6 +316,12 @@ public:
     // set_content does; nothing while no drag is under way.
     std::optional<Rect> frame_drag_to(Point point);
     void end_frame_drag() noexcept { dragging_ = false; }
+    // The capsule's move (a title bar drag) begun at `point`: a maximised or
+    // tiled window first becomes normal at its remembered size, placed so
+    // that the point stays at the same fraction of its title bar's width.
+    // False, changing nothing, where begin_frame_drag would refuse a normal
+    // window or the window is minimised.
+    bool begin_capsule_move(HostWindowId window, Point point);
     [[nodiscard]] bool frame_dragging() const noexcept { return dragging_; }
     [[nodiscard]] HostWindowId frame_drag_window() const noexcept { return drag_window_; }
 
@@ -279,9 +345,10 @@ private:
         bool title_bar{true};
         bool visible{};
         SurfaceWindowState state{SurfaceWindowState::normal};
-        // A minimised layer that was maximised returns to maximised.
-        bool minimized_from_maximized{};
-        // The normal client rectangle while maximised.
+        // The state a minimised layer returns to (normal, maximised or
+        // tiled).
+        SurfaceWindowState minimized_from{SurfaceWindowState::normal};
+        // The normal client rectangle while maximised or tiled.
         Rect restore_content{};
     };
     struct ModalScope final {
@@ -302,6 +369,12 @@ private:
     [[nodiscard]] bool is_shown(const Layer& entry) const noexcept;
     [[nodiscard]] Rect clamped(const Layer& entry, Rect content) const noexcept;
     [[nodiscard]] Rect maximized_content(const Layer& entry) const noexcept;
+    [[nodiscard]] Rect tiled_content(const Layer& entry, SurfaceTileSide side) const noexcept;
+    // The client rectangle a maximised or tiled state fixes, or `content`
+    // for the others.
+    [[nodiscard]] Rect state_content(const Layer& entry, Rect content) const noexcept;
+    [[nodiscard]] bool shows_capsule(const Layer& entry) const noexcept;
+    [[nodiscard]] Rect capsule_of(const Layer& entry) const noexcept;
     // Whether the layer's kind allows the state at all; shows_minimize and
     // shows_maximize add that its title bar holds the box.
     [[nodiscard]] static bool can_minimize(const Layer& entry) noexcept;

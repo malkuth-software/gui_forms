@@ -22,6 +22,7 @@
 // handlers it installs are called from other threads, and they only wake
 // the host's input queue.
 #include "surface_host.hpp"
+#include "../capsule/surface_capsule.hpp"
 #include "../desk/surface_desk.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
 #include "gui_forms/basic_controls.hpp"
@@ -132,11 +133,59 @@ private:
     NativeWindow& window_;
 };
 
-// The title strip of a framed window: its title and the window control
-// glyphs (minimise, maximise or restore, close), painted by GUI.Forms
-// controls into a raster of its own, in the desk theme's colours. The edge
-// is a solid layer. No input reaches it: the desk hit-tests the title bar
-// and its boxes.
+// The window capsule as a strip draws it (SurfaceCapsuleGesture's look for
+// the strip's window, or the resting look).
+struct CapsuleLook final {
+    SurfaceCapsuleArm arm{SurfaceCapsuleArm::idle};
+    double intent{};
+    double minimize_offset{};
+    SurfaceCapsuleSection hovered{SurfaceCapsuleSection::none};
+    SurfaceCapsuleSection pressed{SurfaceCapsuleSection::none};
+    SurfaceCapsuleSection focused{SurfaceCapsuleSection::none};
+
+    friend bool operator==(const CapsuleLook& a, const CapsuleLook& b) noexcept {
+        const bool equal = a.arm == b.arm && a.intent == b.intent && a.minimize_offset == b.minimize_offset &&
+                           a.hovered == b.hovered && a.pressed == b.pressed && a.focused == b.focused;
+        return equal;
+    }
+};
+
+// The capsule section a desk part is, or none.
+[[nodiscard]] SurfaceCapsuleSection capsule_section(SurfaceDeskPart part) noexcept;
+
+// The capsule's look for `window`: the gesture's while it concerns that
+// window, else the resting look.
+[[nodiscard]] CapsuleLook capsule_look(const SurfaceCapsuleGesture& gesture, HostWindowId window) noexcept;
+
+// The capsule drawn from theme parts (paint_part), composite style: one
+// face for the whole capsule, the halves' fills (the armed half's X half,
+// the other half's green invitation, the whole X in red), the question
+// mark, the halves' marks and the keyboard's focus ring. A private control
+// of the strip; it takes no input (the desk hit-tests the capsule).
+class CapsuleView final : public Control {
+public:
+    explicit CapsuleView(StableId stable_id);
+    // Paints again only when the look or a colour changed.
+    void set_look(const CapsuleLook& look, const SurfaceFrameTheme& theme);
+
+protected:
+    void on_paint(Painter& painter, Rect local_damage) override;
+
+private:
+    CapsuleLook look_{};
+    double help_width_{20.0};
+    double minimize_distance_{40.0};
+    std::uint32_t face_{0x3F3F46U};
+    std::uint32_t glyph_{0xF0F0F0U};
+    std::uint32_t ready_{0x2EA043U};
+    std::uint32_t close_{0xD1242FU};
+};
+
+// The title strip of a framed window: its title and the window controls
+// (the minimise, maximise or restore and close glyphs, or the window
+// capsule), painted by GUI.Forms controls into a raster of its own, in the
+// desk theme's colours. The edge is a solid layer. No input reaches it:
+// the desk hit-tests the title bar, its boxes and the capsule.
 class FrameChrome final {
 public:
     FrameChrome(Runtime& runtime, std::string_view title, double width, double scale);
@@ -148,6 +197,10 @@ public:
     // Which boxes the strip shows, and whether the maximise box shows the
     // restore glyph.
     void set_boxes(bool minimize, bool maximize, bool maximized);
+    // Whether the strip shows the capsule (then no boxes), its look, and
+    // whether the title shows (with the capsule, only while its question
+    // mark is hovered).
+    void set_capsule(bool shown, const CapsuleLook& look, bool title_shown);
     // The strip's logical width (the client width) and scale.
     void resize(double width, double scale);
     // Paints its damage into the raster, as NativeWindow::paint does, and
@@ -171,6 +224,7 @@ private:
     std::shared_ptr<Label> minimize_;
     std::shared_ptr<Label> maximize_;
     std::shared_ptr<Label> close_;
+    std::shared_ptr<CapsuleView> capsule_;
     std::unique_ptr<Window> model_;
     std::unique_ptr<HostSession> session_;
     DamageRegion damage_;
@@ -181,6 +235,9 @@ private:
     bool shows_minimize_{};
     bool shows_maximize_{};
     bool maximized_{};
+    bool capsule_shown_{};
+    bool title_shown_{true};
+    std::string title_text_;
     bool raster_resized_{true};
 };
 
@@ -323,8 +380,20 @@ public:
     bool minimize_window(HostWindowId window);
     bool maximize_window(HostWindowId window);
     bool restore_window(HostWindowId window);
-    // Maximises a normal window and restores a maximised one.
+    bool tile_window(HostWindowId window, SurfaceTileSide side);
+    // Maximises a normal or tiled window and restores a maximised one.
     bool toggle_maximized(HostWindowId window);
+    // Carries out one of the capsule's commands and shows its look.
+    void capsule_outcome(const SurfaceCapsuleOutcome& outcome);
+    // Pushes the capsule's look to the strip of its window, and the resting
+    // look to the strip that showed it before.
+    void show_capsule_look();
+    // The capsule's help (capsule_help, or the capsule's own help in a
+    // message box over the window).
+    void open_capsule_help(HostWindowId window);
+    // `window` closed, was minimised or lost the keyboard: its capsule
+    // forgets every gesture.
+    void forget_capsule(HostWindowId window);
     // A layer was moved, shown, hidden, restacked or changed state: the
     // next turn composes the difference.
     void scene_changed() noexcept { scene_dirty_ = true; }
@@ -367,12 +436,26 @@ public:
     // The window a press went to: it keeps the pointer until the release.
     HostWindowId pressed_window{};
     PressedPart pressed_part{};
+    // The window capsule's gestures (one at a time across the run), and
+    // the call point of its help (SurfaceCapsuleHelpTarget), empty until
+    // the business card and diagnostic overlay task attaches it.
+    SurfaceCapsuleGesture capsule;
+    SurfaceCapsuleHelpTarget capsule_help{};
     bool quitting{};
 
 private:
     void handle(SurfaceInputRecord& record);
     void handle_pointer(const SurfaceInputRecord& record);
     void handle_frame_press(const SurfaceInputRecord& record, const SurfaceDeskHit& hit);
+    // Pointer input while a capsule press lasts; returns whether it took
+    // the record.
+    bool handle_capsule_pointer(const SurfaceInputRecord& record);
+    // Moves the capsule's animation on by the time since the last turn.
+    void advance_capsule();
+    // Whether the capsule's window asks for reduced motion.
+    [[nodiscard]] bool capsule_reduced_motion() noexcept;
+    // The snap target a capsule move shows, or empty.
+    [[nodiscard]] Rect snap_preview_rect() const noexcept;
     void handle_wheel(const SurfaceInputRecord& record);
     void handle_key(const SurfaceInputRecord& record);
     void handle_text(const SurfaceInputRecord& record, bool composition);
@@ -414,6 +497,12 @@ private:
     CursorKind cursor_sprite_kind_{CursorKind::arrow};
     std::uint32_t cursor_sprite_factor_{};
     Rect cursor_composed_{};
+    // The capsule: the window whose strip shows its look, its animation's
+    // clock while it runs, and the snap preview last composed.
+    HostWindowId capsule_shown_window_{};
+    std::chrono::steady_clock::time_point capsule_clock_{};
+    bool capsule_ticking_{};
+    Rect snap_composed_{};
     std::uint64_t dialog_tickets_{};
     std::uint64_t drag_sessions_{};
     std::uint64_t private_windows_{};

@@ -4,7 +4,11 @@
 // the CPU Skia raster. Covers composing and damage limits, the drawn
 // cursor, resizing by a frame grip, minimising, maximising and restoring
 // by the title bar's boxes, the tab and a title bar double click, closing
-// by the close box, focus order, and modal blocking
+// by the close box, focus order, modal blocking, and the window capsule's
+// gestures as the manager carries them out: the three-click close, the
+// left half's double click and downward drag, the right half's live move
+// to a half of the surface and back to floating with its snap preview,
+// the help call point and the title on hover, and the keyboard paths
 // (src/host/surface/manager/surface_manager_internal.hpp).
 
 #include "../src/host/surface/manager/surface_manager_internal.hpp"
@@ -198,6 +202,23 @@ struct Harness final {
         record.time = time;
         static_cast<void>(host.queue.post(record));
     }
+    // The capsule instead of the title bar boxes, for windows opened after.
+    void use_capsule() {
+        SurfaceFrameTheme theme = (*runtime).desk.theme();
+        theme.window_controls = SurfaceWindowControls::capsule;
+        (*runtime).desk.set_theme(theme);
+    }
+    void post_key(std::uint32_t physical_key, Modifier modifiers) {
+        SurfaceInputRecord record;
+        record.kind = SurfaceInputKind::key;
+        record.physical_key = physical_key;
+        record.modifiers = modifiers;
+        record.down = true;
+        static_cast<void>(host.queue.post(record));
+        record.down = false;
+        static_cast<void>(host.queue.post(record));
+        settle();
+    }
     void click(Point position, double time = 0.0) {
         post_pointer(SurfacePointerAction::move, position, time);
         post_pointer(SurfacePointerAction::down, position, time);
@@ -324,6 +345,150 @@ void test_modal_blocking() {
     require(harness.primary.clicks == 1, "afterwards the primary window takes clicks again");
 }
 
+// With the capsule, the owned window's capsule lies at x 468 to 544, y
+// 176.5 to 196.5: its left half to 496, the question mark to 516, then its
+// right half.
+const Point capsule_left{480.0, 186.0};
+const Point capsule_help{506.0, 186.0};
+const Point capsule_right{530.0, 186.0};
+
+void test_capsule_three_click_close() {
+    Harness harness;
+    harness.use_capsule();
+    TestWindow owned;
+    const HostWindowId window = harness.open(owned, "owned");
+    require((*harness.runtime).desk.capsule(window) == (Rect{468.0, 176.5, 76.0, 20.0}),
+            "the capsule sits at the title bar's right end");
+    harness.click(capsule_left, 0.0);
+    require((*harness.runtime).capsule.arm() == SurfaceCapsuleArm::left, "the first click arms the left half");
+    harness.click(capsule_right, 100.0);
+    require((*harness.runtime).capsule.arm() == SurfaceCapsuleArm::close, "the second makes the X");
+    require(!owned.closed, "two clicks do not close");
+    harness.click(capsule_help, 200.0);
+    require(owned.closed && (*harness.runtime).window(window) == nullptr, "the third click closes the window");
+    require(!(*harness.runtime).capsule.window().valid(), "and the capsule forgets it");
+
+    TestWindow kept;
+    const HostWindowId second = harness.open(kept, "kept");
+    harness.click(capsule_left, 1000.0);
+    harness.post_pointer(SurfacePointerAction::move, Point{300.0, 300.0}, 1050.0);
+    harness.settle();
+    require((*harness.runtime).capsule.arm() == SurfaceCapsuleArm::idle, "leaving the capsule disarms it");
+    harness.click(capsule_right, 1100.0);
+    require((*harness.runtime).capsule.arm() == SurfaceCapsuleArm::right,
+            "so the next click arms one half again, not the X");
+    require(!kept.closed && (*harness.runtime).window(second) != nullptr, "and nothing closed");
+}
+
+void test_capsule_left_half() {
+    Harness harness;
+    harness.use_capsule();
+    TestWindow owned;
+    const HostWindowId window = harness.open(owned, "owned");
+    harness.click(capsule_left, 1000.0);
+    harness.click(capsule_left, 1100.0);
+    require((*harness.runtime).desk.state(window) == SurfaceWindowState::maximized,
+            "a double click on the left half maximises");
+    require((*harness.runtime).capsule.arm() == SurfaceCapsuleArm::idle, "and leaves nothing armed");
+    // Maximised, the frame is the surface: the capsule at x 717, y 4.5.
+    harness.click(Point{729.0, 14.0}, 2000.0);
+    harness.click(Point{729.0, 14.0}, 2100.0);
+    require((*harness.runtime).desk.state(window) == SurfaceWindowState::normal, "and another restores");
+    require(harness.content(window) == (Rect{250.0, 200.0, 300.0, 200.0}), "to the rectangle it had");
+    harness.post_pointer(SurfacePointerAction::move, capsule_left, 3000.0);
+    harness.post_pointer(SurfacePointerAction::down, capsule_left, 3000.0);
+    harness.post_pointer(SurfacePointerAction::move, Point{481.0, 200.0}, 3010.0);
+    harness.post_pointer(SurfacePointerAction::up, Point{481.0, 200.0}, 3020.0);
+    harness.settle();
+    require((*harness.runtime).desk.state(window) == SurfaceWindowState::normal,
+            "a short drag down does not minimise");
+    harness.post_pointer(SurfacePointerAction::move, capsule_left, 4000.0);
+    harness.post_pointer(SurfacePointerAction::down, capsule_left, 4000.0);
+    harness.post_pointer(SurfacePointerAction::move, Point{481.0, 240.0}, 4010.0);
+    harness.post_pointer(SurfacePointerAction::up, Point{481.0, 240.0}, 4020.0);
+    harness.settle();
+    require((*harness.runtime).desk.state(window) == SurfaceWindowState::minimized,
+            "dragged down far enough, the left half minimises");
+    require((*harness.runtime).desk.active() != window, "and the keyboard leaves the window");
+}
+
+void test_capsule_right_half_moves() {
+    Harness harness;
+    harness.use_capsule();
+    TestWindow owned;
+    const HostWindowId window = harness.open(owned, "owned");
+    const std::uint32_t before = harness.host.rgb(100U, 500U);
+    harness.post_pointer(SurfacePointerAction::move, capsule_right, 0.0);
+    harness.post_pointer(SurfacePointerAction::down, capsule_right, 0.0);
+    harness.post_pointer(SurfacePointerAction::move, Point{560.0, 200.0}, 10.0);
+    harness.settle();
+    require(harness.content(window) == (Rect{280.0, 214.0, 300.0, 200.0}), "the window moves with the pointer");
+    harness.post_pointer(SurfacePointerAction::move, Point{5.0, 300.0}, 20.0);
+    harness.settle();
+    require((*harness.runtime).capsule.snap() == SurfaceCapsuleSnap::left_half, "the left edge arms the left half");
+    require(harness.host.rgb(100U, 500U) != before, "and its snap preview is composed");
+    harness.post_pointer(SurfacePointerAction::up, Point{5.0, 300.0}, 30.0);
+    harness.settle();
+    require((*harness.runtime).desk.state(window) == SurfaceWindowState::tiled_left, "released, it tiles left");
+    require(harness.content(window) == (Rect{1.0, 28.0, 398.0, 571.0}), "filling the left half");
+    // Tiled, the frame is (0, 0, 400, 600): the right half at x 365 to 393.
+    harness.post_pointer(SurfacePointerAction::move, Point{380.0, 14.0}, 100.0);
+    harness.post_pointer(SurfacePointerAction::down, Point{380.0, 14.0}, 100.0);
+    harness.post_pointer(SurfacePointerAction::move, Point{400.0, 30.0}, 110.0);
+    harness.post_pointer(SurfacePointerAction::move, Point{420.0, 300.0}, 120.0);
+    harness.post_pointer(SurfacePointerAction::up, Point{420.0, 300.0}, 130.0);
+    harness.settle();
+    require((*harness.runtime).desk.state(window) == SurfaceWindowState::normal, "dragged to the middle, it floats");
+    require(harness.content(window).width == 300.0 && harness.content(window).height == 200.0,
+            "at its normal size");
+    require(harness.host.rgb(100U, 500U) == before, "and the preview is gone");
+}
+
+int help_calls = 0;
+HostWindowId help_window{};
+
+void count_help(void* context, HostWindowId window) {
+    int* calls = static_cast<int*>(context);
+    ++(*calls);
+    help_window = window;
+}
+
+void test_capsule_help_and_keyboard() {
+    Harness harness;
+    harness.use_capsule();
+    (*harness.runtime).capsule_help = SurfaceCapsuleHelpTarget{&help_calls, &count_help};
+    TestWindow owned;
+    const HostWindowId window = harness.open(owned, "owned");
+    harness.post_pointer(SurfacePointerAction::move, capsule_help, 0.0);
+    harness.settle();
+    require((*harness.runtime).capsule.title_shown(), "hovering the question mark shows the title");
+    harness.click(capsule_help, 10.0);
+    require(help_calls == 1 && help_window == window, "a click on it reaches the help call point");
+    harness.post_pointer(SurfacePointerAction::move, Point{300.0, 300.0}, 20.0);
+    harness.settle();
+
+    harness.post_key(PhysicalKey::space, Modifier::alt);
+    require((*harness.runtime).capsule.keyboard(), "Alt+Space gives the capsule the keyboard");
+    harness.post_key(PhysicalKey::right, Modifier::shift);
+    require((*harness.runtime).desk.state(window) == SurfaceWindowState::tiled_right, "Shift+Right tiles right");
+    harness.post_key(PhysicalKey::down, Modifier::shift);
+    require((*harness.runtime).desk.state(window) == SurfaceWindowState::normal, "Shift+Down floats it again");
+    harness.post_key(PhysicalKey::up, Modifier::none);
+    require((*harness.runtime).desk.state(window) == SurfaceWindowState::maximized, "Up maximises");
+    harness.post_key(PhysicalKey::up, Modifier::none);
+    const Rect normal = harness.content(window);
+    harness.post_key(PhysicalKey::right, Modifier::control);
+    require(harness.content(window).x == normal.x + 16.0, "Control+Right moves the window");
+    harness.post_key(PhysicalKey::f1, Modifier::none);
+    require(help_calls == 2, "F1 opens the help");
+    harness.post_key(PhysicalKey::enter, Modifier::none);
+    harness.post_key(PhysicalKey::enter, Modifier::none);
+    require(!owned.closed, "two Enters only arm the close");
+    harness.post_key(PhysicalKey::enter, Modifier::none);
+    require(owned.closed, "the third Enter closes, as the third click does");
+    (*harness.runtime).capsule_help = SurfaceCapsuleHelpTarget{};
+}
+
 } // namespace
 
 int main() {
@@ -334,6 +499,10 @@ int main() {
         test_close_box();
         test_focus_order();
         test_modal_blocking();
+        test_capsule_three_click_close();
+        test_capsule_left_half();
+        test_capsule_right_half_moves();
+        test_capsule_help_and_keyboard();
     } catch (const std::exception& error) {
         std::cerr << "surface window manager tests failed: " << error.what() << '\n';
         return EXIT_FAILURE;

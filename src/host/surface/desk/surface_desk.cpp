@@ -69,6 +69,12 @@ void SurfaceDesk::set_theme(const SurfaceFrameTheme& theme) {
     if (!(theme_.grip_outside >= 0.0)) theme_.grip_outside = 0.0;
     if (!(theme_.grip_inside >= 0.0)) theme_.grip_inside = 0.0;
     if (!(theme_.title_box_width >= 0.0)) theme_.title_box_width = 0.0;
+    if (!(theme_.capsule_width >= 0.0)) theme_.capsule_width = 0.0;
+    if (!(theme_.capsule_height >= 0.0)) theme_.capsule_height = 0.0;
+    if (!(theme_.capsule_margin >= 0.0)) theme_.capsule_margin = 0.0;
+    if (!(theme_.capsule_help_width >= theme_.capsule_height)) theme_.capsule_help_width = theme_.capsule_height;
+    if (theme_.capsule_help_width > theme_.capsule_width) theme_.capsule_help_width = theme_.capsule_width;
+    if (theme_.snap_preview_alpha > 255U) theme_.snap_preview_alpha = 255U;
     for (std::size_t index = 0U; index < layers_.size(); ++index) {
         Layer& entry = layers_[index];
         entry.content = clamped(entry, entry.content);
@@ -103,6 +109,71 @@ Rect SurfaceDesk::maximized_content(const Layer& entry) const noexcept {
     const Rect whole{theme_.border_width, top, std::max(1.0, extent_.width - 2.0 * theme_.border_width),
                      std::max(1.0, extent_.height - top - theme_.border_width)};
     return whole;
+}
+
+// Half the surface's width, the left half taking the odd unit; the frame
+// inside it.
+Rect SurfaceDesk::tiled_content(const Layer& entry, SurfaceTileSide side) const noexcept {
+    const double top = top_of(entry);
+    const double left_width = std::ceil(extent_.width * 0.5);
+    const double half_left = side == SurfaceTileSide::left ? 0.0 : left_width;
+    const double half_width = side == SurfaceTileSide::left ? left_width : extent_.width - left_width;
+    const Rect half{half_left + theme_.border_width, top, std::max(1.0, half_width - 2.0 * theme_.border_width),
+                    std::max(1.0, extent_.height - top - theme_.border_width)};
+    return half;
+}
+
+Rect SurfaceDesk::state_content(const Layer& entry, Rect content) const noexcept {
+    switch (entry.state) {
+    case SurfaceWindowState::maximized:
+        return maximized_content(entry);
+    case SurfaceWindowState::tiled_left:
+        return tiled_content(entry, SurfaceTileSide::left);
+    case SurfaceWindowState::tiled_right:
+        return tiled_content(entry, SurfaceTileSide::right);
+    case SurfaceWindowState::normal:
+    case SurfaceWindowState::minimized:
+    default:
+        return content;
+    }
+}
+
+bool SurfaceDesk::shows_capsule(const Layer& entry) const noexcept {
+    const bool shows = is_framed(entry) && entry.title_bar &&
+                       theme_.window_controls == SurfaceWindowControls::capsule && theme_.capsule_width > 0.0;
+    return shows;
+}
+
+// At the controls' end of the title bar, capsule_margin in from the edge,
+// centred in the title bar's height below the frame's top edge.
+Rect SurfaceDesk::capsule_of(const Layer& entry) const noexcept {
+    if (!shows_capsule(entry)) return Rect{};
+    const Rect outer = outer_of(entry);
+    const double bar_top = outer.y + theme_.border_width;
+    const double bar_height = theme_.title_bar_height - theme_.border_width;
+    const double height = std::min(theme_.capsule_height, bar_height);
+    const double width = theme_.capsule_width;
+    const double left = theme_.controls == SurfaceControlsSide::left
+                            ? outer.x + theme_.border_width + theme_.capsule_margin
+                            : outer.right() - theme_.border_width - theme_.capsule_margin - width;
+    const Rect result{left, bar_top + (bar_height - height) * 0.5, width, height};
+    return result;
+}
+
+Rect SurfaceDesk::capsule(HostWindowId window) const noexcept {
+    const Layer* entry = layer(window);
+    if (entry == nullptr) return Rect{};
+    const Rect result = capsule_of(*entry);
+    return result;
+}
+
+Rect SurfaceDesk::tiled_outer(SurfaceTileSide side) const noexcept {
+    Layer probe{};
+    probe.kind = HostWindowKind::standard;
+    const Rect content = tiled_content(probe, side);
+    probe.content = content;
+    const Rect result = outer_of(probe);
+    return result;
 }
 
 bool SurfaceDesk::can_minimize(const Layer& entry) noexcept {
@@ -144,7 +215,8 @@ Rect SurfaceDesk::clamped(const Layer& entry, Rect content) const noexcept {
     if (!std::isfinite(result.x)) result.x = 0.0;
     if (!std::isfinite(result.y)) result.y = 0.0;
     if (entry.kind == HostWindowKind::popup) return result;
-    if (entry.state == SurfaceWindowState::maximized) return maximized_content(entry);
+    if (entry.state != SurfaceWindowState::normal && entry.state != SurfaceWindowState::minimized)
+        return state_content(entry, result);
     // The frame inside the canvas: the size first, then the position.
     const double widest = std::max(1.0, extent_.width - 2.0 * theme_.border_width);
     const double frame_top = top_of(entry);
@@ -246,7 +318,7 @@ bool SurfaceDesk::minimize(HostWindowId window) {
     Layer* entry = layer(window);
     if (entry == nullptr || !can_minimize(*entry) || blocked(window)) return false;
     if ((*entry).state == SurfaceWindowState::minimized) return false;
-    (*entry).minimized_from_maximized = (*entry).state == SurfaceWindowState::maximized;
+    (*entry).minimized_from = (*entry).state;
     (*entry).state = SurfaceWindowState::minimized;
     if (dragging_ && (drag_window_ == window || owned_by(drag_window_, window))) dragging_ = false;
     keyboard_left(window);
@@ -258,11 +330,29 @@ bool SurfaceDesk::maximize(HostWindowId window) {
     if (entry == nullptr || !can_maximize(*entry) || blocked(window)) return false;
     if ((*entry).state == SurfaceWindowState::maximized) return false;
     const bool from_normal = (*entry).state == SurfaceWindowState::normal ||
-                             ((*entry).state == SurfaceWindowState::minimized && !(*entry).minimized_from_maximized);
+                             ((*entry).state == SurfaceWindowState::minimized &&
+                              (*entry).minimized_from == SurfaceWindowState::normal);
     if (from_normal) (*entry).restore_content = (*entry).content;
-    (*entry).minimized_from_maximized = false;
+    (*entry).minimized_from = SurfaceWindowState::normal;
     (*entry).state = SurfaceWindowState::maximized;
     (*entry).content = maximized_content(*entry);
+    if (dragging_ && drag_window_ == window) dragging_ = false;
+    return true;
+}
+
+bool SurfaceDesk::tile(HostWindowId window, SurfaceTileSide side) {
+    Layer* entry = layer(window);
+    if (entry == nullptr || !can_maximize(*entry) || blocked(window)) return false;
+    const SurfaceWindowState wanted =
+        side == SurfaceTileSide::left ? SurfaceWindowState::tiled_left : SurfaceWindowState::tiled_right;
+    if ((*entry).state == wanted) return false;
+    const bool from_normal = (*entry).state == SurfaceWindowState::normal ||
+                             ((*entry).state == SurfaceWindowState::minimized &&
+                              (*entry).minimized_from == SurfaceWindowState::normal);
+    if (from_normal) (*entry).restore_content = (*entry).content;
+    (*entry).minimized_from = SurfaceWindowState::normal;
+    (*entry).state = wanted;
+    (*entry).content = tiled_content(*entry, side);
     if (dragging_ && drag_window_ == window) dragging_ = false;
     return true;
 }
@@ -271,12 +361,12 @@ bool SurfaceDesk::restore(HostWindowId window) {
     Layer* entry = layer(window);
     if (entry == nullptr) return false;
     if ((*entry).state == SurfaceWindowState::minimized) {
-        (*entry).state = (*entry).minimized_from_maximized ? SurfaceWindowState::maximized : SurfaceWindowState::normal;
-        (*entry).minimized_from_maximized = false;
+        (*entry).state = (*entry).minimized_from;
+        (*entry).minimized_from = SurfaceWindowState::normal;
         (*entry).content = clamped(*entry, (*entry).content);
         return true;
     }
-    if ((*entry).state == SurfaceWindowState::maximized) {
+    if ((*entry).state != SurfaceWindowState::normal) {
         (*entry).state = SurfaceWindowState::normal;
         (*entry).content = clamped(*entry, (*entry).restore_content);
         return true;
@@ -304,7 +394,7 @@ bool SurfaceDesk::contains(HostWindowId window) const noexcept {
 std::optional<Rect> SurfaceDesk::set_content(HostWindowId window, Rect content) {
     Layer* entry = layer(window);
     if (entry == nullptr) return std::nullopt;
-    if ((*entry).state == SurfaceWindowState::maximized) (*entry).state = SurfaceWindowState::normal;
+    if ((*entry).state != SurfaceWindowState::minimized) (*entry).state = SurfaceWindowState::normal;
     (*entry).content = clamped(*entry, content);
     const std::optional<Rect> applied = (*entry).content;
     return applied;
@@ -381,7 +471,9 @@ void SurfaceDesk::scene(std::vector<SurfaceDeskQuad>& quads) const {
         quad.framed = is_framed(*entry);
         quad.active = (*entry).id == active_;
         quad.minimize_box = shows_minimize(*entry);
-        quad.maximize_box = shows_maximize(*entry);
+        quad.capsule = shows_capsule(*entry);
+        quad.minimize_box = shows_minimize(*entry) && !quad.capsule;
+        quad.maximize_box = shows_maximize(*entry) && !quad.capsule;
         quad.state = (*entry).state;
         quads.push_back(quad);
     }
@@ -404,6 +496,22 @@ void SurfaceDesk::tabs(std::vector<SurfaceDeskTab>& tabs) const {
 
 Rect SurfaceDesk::box_of(const Layer& entry, SurfaceDeskPart part) const noexcept {
     if (!is_framed(entry) || !entry.title_bar) return Rect{};
+    if (shows_capsule(entry)) {
+        // Left half, the question mark's middle, right half.
+        const Rect whole = capsule_of(entry);
+        const double help = theme_.capsule_help_width;
+        const double half = (whole.width - help) * 0.5;
+        switch (part) {
+        case SurfaceDeskPart::capsule_left:
+            return Rect{whole.x, whole.y, half, whole.height};
+        case SurfaceDeskPart::capsule_help:
+            return Rect{whole.x + half, whole.y, help, whole.height};
+        case SurfaceDeskPart::capsule_right:
+            return Rect{whole.x + half + help, whole.y, whole.right() - (whole.x + half + help), whole.height};
+        default:
+            return Rect{};
+        }
+    }
     const Rect outer = outer_of(entry);
     const double top = outer.y + theme_.border_width;
     const double height = theme_.title_bar_height - theme_.border_width;
@@ -438,7 +546,7 @@ Rect SurfaceDesk::box(HostWindowId window, SurfaceDeskPart part) const noexcept 
 
 SurfaceDeskPart SurfaceDesk::frame_part(const Layer& entry, Point point) const noexcept {
     const Rect outer = outer_of(entry);
-    const bool resizable = entry.resizable && entry.state != SurfaceWindowState::maximized;
+    const bool resizable = entry.resizable && entry.state == SurfaceWindowState::normal;
     const double grip = std::max(theme_.border_width, theme_.grip_inside);
     const bool left = point.x < outer.x + grip;
     const bool right = point.x >= outer.right() - grip;
@@ -455,6 +563,9 @@ SurfaceDeskPart SurfaceDesk::frame_part(const Layer& entry, Point point) const n
         if (bottom) return SurfaceDeskPart::edge_bottom;
     }
     if (point.y < entry.content.y) {
+        if (box_of(entry, SurfaceDeskPart::capsule_left).contains(point)) return SurfaceDeskPart::capsule_left;
+        if (box_of(entry, SurfaceDeskPart::capsule_help).contains(point)) return SurfaceDeskPart::capsule_help;
+        if (box_of(entry, SurfaceDeskPart::capsule_right).contains(point)) return SurfaceDeskPart::capsule_right;
         if (box_of(entry, SurfaceDeskPart::close_box).contains(point)) return SurfaceDeskPart::close_box;
         if (box_of(entry, SurfaceDeskPart::maximize_box).contains(point)) return SurfaceDeskPart::maximize_box;
         if (box_of(entry, SurfaceDeskPart::minimize_box).contains(point)) return SurfaceDeskPart::minimize_box;
@@ -616,6 +727,27 @@ bool SurfaceDesk::begin_frame_drag(HostWindowId window, SurfaceDeskPart part, Po
     drag_origin_ = point;
     drag_start_ = (*entry).content;
     return true;
+}
+
+bool SurfaceDesk::begin_capsule_move(HostWindowId window, Point point) {
+    Layer* entry = layer(window);
+    if (entry == nullptr || !is_framed(*entry) || blocked(window) || !finite_point(point)) return false;
+    if ((*entry).state == SurfaceWindowState::minimized) return false;
+    if ((*entry).state != SurfaceWindowState::normal) {
+        // The point keeps its fraction of the frame's width and its
+        // distance below the frame's top.
+        const Rect before = outer_of(*entry);
+        const double fraction = before.width > 0.0 ? std::clamp((point.x - before.x) / before.width, 0.0, 1.0) : 0.5;
+        const double below = point.y - before.y;
+        Rect normal = (*entry).restore_content;
+        (*entry).state = SurfaceWindowState::normal;
+        const double outer_width = normal.width + 2.0 * theme_.border_width;
+        normal.x = point.x - fraction * outer_width + theme_.border_width;
+        normal.y = point.y - below + top_of(*entry);
+        (*entry).content = clamped(*entry, normal);
+    }
+    const bool begun = begin_frame_drag(window, SurfaceDeskPart::title_bar, point);
+    return begun;
 }
 
 std::optional<Rect> SurfaceDesk::frame_drag_to(Point point) {

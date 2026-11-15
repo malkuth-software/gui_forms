@@ -1999,9 +1999,11 @@ if(GUI_FORMS_ENABLE_SKIA)
     # Portable C++ over the CPU Skia raster; the hosts supply a surface,
     # input records and a present call (src/host/surface/README.md).
     add_library(gui_forms_host_surface STATIC
+        src/host/surface/capsule/surface_capsule.cpp
         src/host/surface/compose/surface_compose.cpp
         src/host/surface/desk/surface_desk.cpp
         src/host/surface/input/surface_input.cpp
+        src/host/surface/manager/surface_capsule_wiring.cpp
         src/host/surface/manager/surface_manager.cpp
         src/host/surface/manager/surface_windowing.cpp
         src/host/surface/manager/surface_services.cpp
@@ -4873,6 +4875,13 @@ if(GUI_FORMS_BUILD_TESTS)
     target_include_directories(gui_forms_surface_desk_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
     target_link_libraries(gui_forms_surface_desk_tests PRIVATE gui_forms_core Threads::Threads)
     add_test(NAME gui_forms_surface_desk_tests COMMAND gui_forms_surface_desk_tests)
+    # The window capsule's gesture rules (no fonts, no raster).
+    add_executable(gui_forms_surface_capsule_tests
+        tests/surface_capsule_tests.cpp
+        src/host/surface/capsule/surface_capsule.cpp)
+    target_include_directories(gui_forms_surface_capsule_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    target_link_libraries(gui_forms_surface_capsule_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_surface_capsule_tests COMMAND gui_forms_surface_capsule_tests)
     add_executable(gui_forms_web_host_rules_tests
         tests/web_host_rules_tests.cpp
         src/host/web/application/web_dialog_rules.cpp

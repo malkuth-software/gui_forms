@@ -31,6 +31,26 @@ void fill_rows(const SurfaceTarget& target, SurfaceDeviceRect area, SurfacePixel
     }
 }
 
+// Source-over of one premultiplied colour: d = c + d * (255 - ca) / 255,
+// rounded to nearest.
+void tint_rows(const SurfaceTarget& target, SurfaceDeviceRect area, SurfacePixel color) noexcept {
+    const std::size_t columns = static_cast<std::size_t>(area.right - area.left);
+    const std::uint32_t inverse = 255U - static_cast<std::uint32_t>(color.alpha);
+    const std::array<std::uint32_t, 4> source{color.blue, color.green, color.red, color.alpha};
+    for (std::int32_t row = area.top; row < area.bottom; ++row) {
+        std::uint8_t* destination = target.pixels + static_cast<std::size_t>(row) * target.row_bytes +
+                                    static_cast<std::size_t>(area.left) * 4U;
+        for (std::size_t column = 0U; column < columns; ++column) {
+            for (std::size_t channel = 0U; channel < 4U; ++channel) {
+                const std::size_t at = column * 4U + channel;
+                const std::uint32_t kept = (static_cast<std::uint32_t>(destination[at]) * inverse + 127U) / 255U;
+                const std::uint32_t sum = std::min(255U, source[channel] + kept);
+                destination[at] = static_cast<std::uint8_t>(sum);
+            }
+        }
+    }
+}
+
 void copy_rows(const SurfaceTarget& target, SurfaceDeviceRect area, const SurfaceComposeLayer& layer) noexcept {
     const std::size_t bytes = static_cast<std::size_t>(area.right - area.left) * 4U;
     for (std::int32_t row = area.top; row < area.bottom; ++row) {
@@ -171,6 +191,16 @@ SurfacePixel surface_opaque_pixel(std::uint32_t rgb) noexcept {
     return pixel;
 }
 
+SurfacePixel surface_tint_pixel(std::uint32_t rgb, std::uint32_t alpha) noexcept {
+    const std::uint32_t a = std::min(alpha, 255U);
+    const std::uint32_t red = (((rgb >> 16U) & 0xFFU) * a + 127U) / 255U;
+    const std::uint32_t green = (((rgb >> 8U) & 0xFFU) * a + 127U) / 255U;
+    const std::uint32_t blue = ((rgb & 0xFFU) * a + 127U) / 255U;
+    const SurfacePixel pixel{static_cast<std::uint8_t>(blue), static_cast<std::uint8_t>(green),
+                             static_cast<std::uint8_t>(red), static_cast<std::uint8_t>(a)};
+    return pixel;
+}
+
 void surface_compose(const SurfaceTarget& target, SurfaceDeviceRect clip, SurfacePixel background,
                      std::span<const SurfaceComposeLayer> layers) noexcept {
     if (target.pixels == nullptr || target.row_bytes < static_cast<std::size_t>(target.width) * 4U) return;
@@ -198,6 +228,9 @@ void surface_compose(const SurfaceTarget& target, SurfaceDeviceRect clip, Surfac
             break;
         case SurfaceLayerKind::blended_image:
             blend_rows(target, drawn, layer);
+            break;
+        case SurfaceLayerKind::tint:
+            tint_rows(target, drawn, layer.color);
             break;
         case SurfaceLayerKind::solid:
         default:

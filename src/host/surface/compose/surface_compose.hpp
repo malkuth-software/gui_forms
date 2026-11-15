@@ -50,6 +50,9 @@ struct SurfacePixel final {
 
 // An opaque colour from 0xRRGGBB.
 [[nodiscard]] SurfacePixel surface_opaque_pixel(std::uint32_t rgb) noexcept;
+// 0xRRGGBB at `alpha` (0 to 255, larger values are 255), premultiplied and
+// rounded to nearest.
+[[nodiscard]] SurfacePixel surface_tint_pixel(std::uint32_t rgb, std::uint32_t alpha) noexcept;
 
 // The surface a compose writes: `pixels` (borrowed from the host) holds
 // `height` rows of `width` BGRA8 pixels, `row_bytes` apart (at least
@@ -69,6 +72,9 @@ enum class SurfaceLayerKind : std::uint8_t {
     // The image drawn source-over, premultiplied (a popup, a translucent
     // window, the cursor).
     blended_image,
+    // `color` (premultiplied) drawn source-over every pixel of `bounds`
+    // (the capsule's snap preview).
+    tint,
 };
 
 // One layer of the scene. An image layer's top-left pixel lands at

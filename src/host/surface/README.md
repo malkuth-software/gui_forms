@@ -27,7 +27,8 @@ GUI.Forms' own window manager for hosts with one surface (owner decision,
 - **Frames.** A title bar with minimise, maximise and close boxes, an edge,
   and invisible resize grips on the edges and corners. Windows move by
   dragging the title bar; a double click on it maximises or restores.
-- **States.** Normal, minimised and maximised. A minimised window, and the
+- **States.** Normal, minimised, maximised, and tiled to the surface's left
+  or right half. A minimised window, and the
   windows it owns, leave the drawing; it shows as a tab along the bottom
   edge, and a click on the tab restores it.
 - **Focus and stacking.** The active window, raising with owned windows,
@@ -55,8 +56,28 @@ GUI.Forms' own window manager for hosts with one surface (owner decision,
   Nothing is composed while nothing changed. Display frames are asked for
   only while a live surface animates.
 
-The window manager's further feature, the window capsule, is added on top
-of this desk (see the capsule's own files).
+## The window capsule
+
+The theme may show the window capsule in place of the boxes
+(`SurfaceFrameTheme::window_controls`). It is one control in three
+sections, worked by gestures (`capsule/surface_capsule.hpp`):
+- **Left half.** A double click maximises or restores. Dragged down far
+  enough, it minimises.
+- **Question mark.** A click opens the help; hovering it shows the window's
+  title. The help is a call point (`SurfaceCapsuleHelpTarget`) for the
+  unified business card and diagnostic overlay. Until that attaches, the
+  capsule's own help shows in a message box.
+- **Right half.** A drag moves the window live. Released at the left or
+  right edge, the window takes that half of the surface; released in the
+  middle, it floats. A tinted preview shows the half while armed.
+- **Close.** Three clicks: one half, then the other (the capsule becomes
+  one X, turning from green to red), then the X.
+
+Every action has a keyboard path: Alt+Space, then the arrows, Enter and
+Escape. The colours and the spring-back animate, and with reduced motion
+they change at once. The capsule is drawn from theme parts by a private
+control in the title strip (`CapsuleView`). The gestures are plain values,
+tested headless (`tests/surface_capsule_tests.cpp`).
 
 ## Tests
 

@@ -5,7 +5,9 @@
 // (src/host/surface/input/surface_input.hpp: order, bound, waits, click
 // counts, wheel deltas, context keys) and the compositing
 // (src/host/surface/compose/surface_compose.hpp: device rectangles, the
-// compose kernel, cursor sprites). Tested on every platform.
+// compose kernel and its tint, cursor sprites). The desk's capsule parts,
+// half-surface tiling and capsule moves are here too; the capsule's
+// gestures are tests/surface_capsule_tests.cpp. Tested on every platform.
 
 #include "../src/host/surface/compose/surface_compose.hpp"
 #include "../src/host/surface/desk/surface_desk.hpp"
@@ -13,6 +15,7 @@
 
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <thread>
 #include <iostream>
@@ -377,6 +380,99 @@ void test_frame_theme() {
     require((*desk.content(id(8U))).y == 0.0, "to the whole surface");
 }
 
+bool near(double a, double b) {
+    const bool close = std::abs(a - b) < 1e-9;
+    return close;
+}
+
+void test_capsule_parts() {
+    SurfaceDesk desk = three_windows();
+    SurfaceFrameTheme theme{};
+    theme.window_controls = SurfaceWindowControls::capsule;
+    desk.set_theme(theme);
+    // Window 2: client (100, 100, 300, 200), frame (99, 72, 302, 229); the
+    // capsule 6 in from the frame's right edge, centred in the 27 unit bar.
+    const Rect capsule = desk.capsule(id(2U));
+    require(capsule == (Rect{318.0, 76.5, 76.0, 20.0}), "the capsule at the controls' end of the title bar");
+    require(desk.box(id(2U), SurfaceDeskPart::capsule_left) == (Rect{318.0, 76.5, 28.0, 20.0}), "its left half");
+    require(desk.box(id(2U), SurfaceDeskPart::capsule_help) == (Rect{346.0, 76.5, 20.0, 20.0}),
+            "the question mark in the middle");
+    require(desk.box(id(2U), SurfaceDeskPart::capsule_right) == (Rect{366.0, 76.5, 28.0, 20.0}), "its right half");
+    require(desk.box(id(2U), SurfaceDeskPart::close_box).empty() &&
+                desk.box(id(2U), SurfaceDeskPart::maximize_box).empty(),
+            "no boxes with the capsule");
+    require(desk.hit(Point{330.0, 86.0}).part == SurfaceDeskPart::capsule_left, "the left half is hit");
+    require(desk.hit(Point{356.0, 86.0}).part == SurfaceDeskPart::capsule_help, "the question mark is hit");
+    require(desk.hit(Point{380.0, 86.0}).part == SurfaceDeskPart::capsule_right, "the right half is hit");
+    require(desk.hit(Point{200.0, 86.0}).part == SurfaceDeskPart::title_bar, "the rest is the title bar");
+    std::vector<SurfaceDeskQuad> quads;
+    desk.scene(quads);
+    require(quads.size() == 3U && quads[1].capsule && !quads[1].maximize_box && !quads[1].minimize_box,
+            "the scene reports the capsule instead of the boxes");
+    require(!quads[0].capsule, "the primary window has none");
+    theme.controls = SurfaceControlsSide::left;
+    desk.set_theme(theme);
+    require(desk.capsule(id(2U)).x == 106.0, "at the left end when the theme says so");
+    SurfaceDeskLayerInit bare = layer(8U, 1U, HostWindowKind::standard, Rect{600.0, 100.0, 200.0, 100.0});
+    bare.title_bar = false;
+    require(desk.add(bare), "a window without a title bar");
+    desk.set_visible(id(8U), true);
+    require(desk.capsule(id(8U)).empty(), "has no capsule (its program draws its own controls)");
+}
+
+void test_tiling_and_capsule_moves() {
+    SurfaceDesk desk = three_windows();
+    static_cast<void>(desk.activate(id(2U)));
+    const Rect normal = *desk.content(id(2U));
+    require(desk.tile(id(2U), SurfaceTileSide::left), "a resizable window tiles");
+    require(desk.state(id(2U)) == SurfaceWindowState::tiled_left, "to the left half");
+    require(*desk.content(id(2U)) == (Rect{1.0, 28.0, 498.0, 671.0}), "the left half inside its frame");
+    require(desk.tiled_outer(SurfaceTileSide::left) == (Rect{0.0, 0.0, 500.0, 700.0}), "the left snap preview");
+    require(desk.tiled_outer(SurfaceTileSide::right) == (Rect{500.0, 0.0, 500.0, 700.0}), "the right snap preview");
+    require(!desk.tile(id(2U), SurfaceTileSide::left), "tiling twice changes nothing");
+    require(desk.hit(Point{0.5, 300.0}).part != SurfaceDeskPart::edge_left, "a tiled window has no grips");
+    require(desk.tile(id(2U), SurfaceTileSide::right), "it tiles to the other half");
+    require(*desk.content(id(2U)) == (Rect{501.0, 28.0, 498.0, 671.0}), "the right half inside its frame");
+    desk.set_extent(Size{800.0, 600.0});
+    require(*desk.content(id(2U)) == (Rect{401.0, 28.0, 398.0, 571.0}), "it follows the surface");
+    desk.set_extent(Size{1000.0, 700.0});
+    require(desk.maximize(id(2U)), "a tiled window maximises");
+    require(desk.restore(id(2U)) && *desk.content(id(2U)) == normal, "and restores to its normal rectangle");
+    require(desk.tile(id(2U), SurfaceTileSide::left) && desk.minimize(id(2U)), "a tiled window minimises");
+    require(desk.restore(id(2U)) && desk.state(id(2U)) == SurfaceWindowState::tiled_left,
+            "and returns tiled");
+    // A capsule move from the tiled state: the window becomes normal at its
+    // remembered size, the point at the same fraction of its frame's width.
+    require(desk.begin_capsule_move(id(2U), Point{300.0, 10.0}), "a capsule move starts from the tiled state");
+    require(desk.state(id(2U)) == SurfaceWindowState::normal && desk.frame_dragging(), "as a normal window's drag");
+    const Rect floated = *desk.content(id(2U));
+    require(near(floated.x, 300.0 - 0.6 * 302.0 + 1.0) && floated.y == 28.0 && floated.width == normal.width &&
+                floated.height == normal.height,
+            "at its normal size under the point");
+    const std::optional<Rect> moved = desk.frame_drag_to(Point{350.0, 60.0});
+    require(moved.has_value() && near((*moved).x, floated.x + 50.0) && (*moved).y == 78.0, "and it follows");
+    desk.end_frame_drag();
+    require(!desk.tile(id(1U), SurfaceTileSide::left), "the primary window does not tile");
+    require(desk.minimize(id(2U)), "minimised");
+    require(!desk.begin_capsule_move(id(2U), Point{300.0, 10.0}), "a minimised window is not moved");
+}
+
+void test_tint_layer() {
+    const SurfacePixel tint = surface_tint_pixel(0x3F7FBFU, 0x50U);
+    require(tint.red == 20U && tint.green == 40U && tint.blue == 60U && tint.alpha == 80U,
+            "the tint is premultiplied, rounded to nearest");
+    std::vector<std::uint8_t> pixels(4U * 4U, 0U);
+    const SurfaceTarget target{pixels.data(), 4U * 4U, 4U, 1U};
+    std::array<SurfaceComposeLayer, 1> layers{};
+    layers[0].kind = SurfaceLayerKind::tint;
+    layers[0].bounds = SurfaceDeviceRect{1, 0, 4, 1};
+    layers[0].color = tint;
+    surface_compose(target, SurfaceDeviceRect{0, 0, 4, 1}, surface_opaque_pixel(0x000000U), layers);
+    require(pixels[0] == 0U && pixels[3] == 255U, "the background beside the tint");
+    require(pixels[4] == 60U && pixels[5] == 40U && pixels[6] == 20U && pixels[7] == 255U,
+            "the tint drawn source-over the background");
+}
+
 void test_compose_kernel() {
     std::vector<std::uint8_t> pixels(8U * 4U * 4U, 0U);
     const SurfaceTarget target{pixels.data(), 8U * 4U, 8U, 4U};
@@ -458,6 +554,9 @@ int main() {
         test_frame_theme();
         test_compose_kernel();
         test_cursor_sprites();
+        test_capsule_parts();
+        test_tiling_and_capsule_moves();
+        test_tint_layer();
     } catch (const std::exception& error) {
         std::cerr << "surface desk tests failed: " << error.what() << '\n';
         return EXIT_FAILURE;

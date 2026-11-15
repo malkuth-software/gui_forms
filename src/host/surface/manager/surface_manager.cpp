@@ -29,6 +29,9 @@ namespace {
 // Device rectangles one compose or one window's paint counts at most;
 // more are united into their bounds (surface_device_rects).
 constexpr std::size_t maximum_compose_rects = 32U;
+// The capsule animation's frame interval while it runs (about 60 per
+// second).
+constexpr std::chrono::milliseconds capsule_frame_interval{16};
 
 std::uint64_t now_ns() {
     const std::chrono::steady_clock::duration since = std::chrono::steady_clock::now().time_since_epoch();
@@ -282,6 +285,9 @@ FrameChrome::FrameChrome(Runtime& runtime, std::string_view title, double width,
     (*root_).add_child(minimize_);
     (*root_).add_child(maximize_);
     (*root_).add_child(close_);
+    capsule_ = make_control<CapsuleView>(StableId("host.frame.capsule"));
+    (*root_).add_child(capsule_);
+    title_text_ = std::string(title);
     register_fonts(raster_, runtime_.fonts);
     model_ = std::make_unique<Window>(root_, size_);
     (*model_).set_text_metrics_provider(&raster_);
@@ -305,7 +311,10 @@ HostDispatchResult FrameChrome::dispatch(HostEventPayload payload) {
     return result;
 }
 
-void FrameChrome::set_title(std::string_view title) { (*title_).text = std::string(title); }
+void FrameChrome::set_title(std::string_view title) {
+    title_text_ = std::string(title);
+    (*title_).text = title_shown_ ? title_text_ : std::string();
+}
 
 void FrameChrome::set_active(bool active) {
     if (active == active_) return;
@@ -326,9 +335,27 @@ void FrameChrome::set_boxes(bool minimize, bool maximize, bool maximized) {
 
 // The boxes in the desk's order (SurfaceDesk::box): close outermost at the
 // theme's controls end, then maximise, then minimise; the title fills the
-// rest.
+// rest. With the capsule, the capsule where the desk places it
+// (SurfaceDesk::capsule, in strip units: the strip starts at the client
+// area's left and below the frame's top edge) and the title beside it.
 void FrameChrome::layout() {
     const SurfaceFrameTheme& theme = runtime_.desk.theme();
+    if (capsule_shown_) {
+        (*minimize_).set_bounds({0.0, 0.0, 0.0, 0.0});
+        (*maximize_).set_bounds({0.0, 0.0, 0.0, 0.0});
+        (*close_).set_bounds({0.0, 0.0, 0.0, 0.0});
+        const double height = std::min(theme.capsule_height, size_.height);
+        const double width = std::min(theme.capsule_width, size_.width);
+        const double left = theme.controls == SurfaceControlsSide::left
+                                ? theme.capsule_margin
+                                : size_.width - theme.capsule_margin - width;
+        (*capsule_).set_bounds({left, (size_.height - height) * 0.5, width, height});
+        const double used = theme.capsule_margin + width;
+        const double title_left = theme.controls == SurfaceControlsSide::left ? used + 10.0 : 10.0;
+        (*title_).set_bounds({title_left, 0.0, std::max(0.0, size_.width - used - 20.0), size_.height});
+        return;
+    }
+    (*capsule_).set_bounds({0.0, 0.0, 0.0, 0.0});
     const double box_width = std::min(theme.title_box_width, size_.width);
     const std::array<Label*, 3> order{close_.get(), maximize_.get(), minimize_.get()};
     const std::array<bool, 3> shown{true, shows_maximize_, shows_minimize_};
@@ -515,6 +542,7 @@ void NativeWindow::close(HostCloseReason reason, bool force) {
     if (runtime.pressed_window == window_id) runtime.pressed_window = {};
     if (runtime.pointer_window == window_id) runtime.pointer_window = {};
     if (runtime.pressed_part.window == window_id) runtime.pressed_part = {};
+    runtime.forget_capsule(window_id);
     if (entry.options.print_metrics_on_close)
         std::cout << "{\"window\":" << (*entry.model).metrics_snapshot().to_json()
                   << ",\"host\":" << (*session).snapshot().to_json() << "}\n";
@@ -589,6 +617,9 @@ void NativeWindow::refresh_chrome() {
     const bool minimize = runtime.desk.box(window_id, SurfaceDeskPart::minimize_box).width > 0.0;
     const bool maximize = runtime.desk.box(window_id, SurfaceDeskPart::maximize_box).width > 0.0;
     (*chrome).set_boxes(minimize, maximize, state == SurfaceWindowState::maximized);
+    const bool capsule = runtime.desk.capsule(window_id).width > 0.0;
+    const bool title = runtime.capsule.window() == window_id && runtime.capsule.title_shown();
+    (*chrome).set_capsule(capsule, capsule_look(runtime.capsule, window_id), title);
 }
 
 void NativeWindow::update_cursor(Point position) {
@@ -911,6 +942,11 @@ void Runtime::activation_moved(HostWindowId before) {
     const HostWindowId after = desk.active();
     scene_dirty_ = true;
     if (before == after) return;
+    // A capsule the keyboard held, or one armed, belongs to the window that
+    // lost the keyboard.
+    const HostWindowId held = capsule.window();
+    if (held.valid() && held != after && (capsule.keyboard() || capsule.arm() != SurfaceCapsuleArm::idle))
+        forget_capsule(held);
     NativeWindow* lost = window(before);
     if (lost != nullptr) (*lost).set_active(false);
     NativeWindow* gained = window(after);
@@ -941,6 +977,7 @@ bool Runtime::minimize_window(HostWindowId target) {
     const HostWindowId before = desk.active();
     if (!desk.minimize(target)) return false;
     if (pressed_window.valid() && !desk.shown(pressed_window)) pressed_window = {};
+    forget_capsule(target);
     activation_moved(before);
     static_cast<void>((*found).dispatch(HostOcclusionEvent{true}));
     if (windowing && (*windowing).live(target)) (*windowing).report_minimized(target, true);
@@ -975,6 +1012,7 @@ bool Runtime::restore_window(HostWindowId target) {
 }
 
 bool Runtime::toggle_maximized(HostWindowId target) {
+    // A tiled window maximises; a maximised one restores.
     const SurfaceWindowState state = desk.state(target);
     const bool changed = state == SurfaceWindowState::maximized ? restore_window(target) : maximize_window(target);
     return changed;
@@ -1020,6 +1058,11 @@ std::optional<std::chrono::steady_clock::time_point> Runtime::next_deadline(bool
         if (!wake) continue;
         if (!deadline.has_value() || *wake < *deadline) deadline = *wake;
     }
+    // The capsule's animation, only while it runs.
+    if (capsule.animating()) {
+        const std::chrono::steady_clock::time_point frame = std::chrono::steady_clock::now() + capsule_frame_interval;
+        if (!deadline.has_value() || frame < *deadline) deadline = frame;
+    }
     return deadline;
 }
 
@@ -1063,6 +1106,7 @@ void Runtime::step() {
         gui_forms::detail::call_failing_fast("surface.input_record", &Runtime::handle, *this, taken[index]);
     taken.clear();
     if (records_.empty()) records_.swap(taken);
+    advance_capsule();
     const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
     bool wanted = false;
     for (std::size_t index = 0U; index < snapshot.size(); ++index) {
@@ -1151,6 +1195,12 @@ void Runtime::gather_damage() {
             candidate.chrome_resized = false;
         }
     }
+    // The capsule's snap preview.
+    const Rect snap = snap_preview_rect();
+    if (snap != snap_composed_) {
+        if (!snap_composed_.empty()) surface_damage_.add(snap_composed_);
+        if (!snap.empty()) surface_damage_.add(snap);
+    }
     // The drawn cursor: a new sprite when its kind or the scale changed.
     if (!host.draws_cursor()) {
         const std::uint32_t factor = static_cast<std::uint32_t>(std::max(1.0, std::round(scale)));
@@ -1211,6 +1261,14 @@ void Runtime::build_layers() {
             layers_.push_back(strip);
         }
     }
+    const Rect snap = snap_preview_rect();
+    if (!snap.empty()) {
+        SurfaceComposeLayer preview{};
+        preview.kind = SurfaceLayerKind::tint;
+        preview.bounds = device_rect(snap, scale);
+        preview.color = surface_tint_pixel(theme.snap_preview, theme.snap_preview_alpha);
+        layers_.push_back(preview);
+    }
     const Rect cursor = cursor_rect();
     if (!cursor.empty()) {
         SurfaceComposeLayer sprite{};
@@ -1236,6 +1294,7 @@ void Runtime::compose() {
     if (surface_damage_.empty()) {
         composed_quads_ = quads_;
         composed_tabs_ = tabs_;
+        snap_composed_ = snap_preview_rect();
         return;
     }
     const std::uint32_t width = device_extent(extent.width, scale);
@@ -1256,6 +1315,7 @@ void Runtime::compose() {
     composed_quads_ = quads_;
     composed_tabs_ = tabs_;
     cursor_composed_ = cursor_rect();
+    snap_composed_ = snap_preview_rect();
     if (count == 0U) {
         surface_damage_.clear();
         return;
@@ -1413,19 +1473,30 @@ void Runtime::leave_pointer_window(Point point) {
 }
 
 // A press on a frame: a box or tab is acted on at its release over the same
-// part; a double click on the title bar maximises or restores; the title
-// bar and the grips start a frame drag.
+// part; a capsule section goes to the capsule's gestures; a double click on
+// the title bar maximises or restores (the desk refuses a window that
+// cannot); the title bar and the grips start a frame drag.
 void Runtime::handle_frame_press(const SurfaceInputRecord& record, const SurfaceDeskHit& hit) {
     if (record.button != PointerButton::primary) return;
     if (frame_part_clicks(hit.part)) {
         pressed_part = PressedPart{hit.window, hit.part};
         return;
     }
+    const SurfaceCapsuleSection section = capsule_section(hit.part);
+    if (section != SurfaceCapsuleSection::none) {
+        const std::uint32_t clicks =
+            next_surface_click_count(title_clicks_, record.button, record.time, record.position,
+                                     default_double_click_milliseconds, default_double_click_distance);
+        const SurfaceCapsuleOutcome outcome = capsule.press(hit.window, section, record.position, clicks);
+        if (capsule.pressing()) host.pointer_capture(true);
+        capsule_outcome(outcome);
+        return;
+    }
     if (hit.part == SurfaceDeskPart::title_bar) {
         const std::uint32_t clicks =
             next_surface_click_count(title_clicks_, record.button, record.time, record.position,
                                      default_double_click_milliseconds, default_double_click_distance);
-        if (clicks == 2U && desk.box(hit.window, SurfaceDeskPart::maximize_box).width > 0.0) {
+        if (clicks == 2U) {
             static_cast<void>(toggle_maximized(hit.window));
             return;
         }
@@ -1441,6 +1512,9 @@ void Runtime::handle_pointer(const SurfaceInputRecord& record) {
         cursor_inside_ = action != SurfacePointerAction::leave;
         scene_dirty_ = true;
     }
+    // A capsule press owns the pointer until its release, a capsule move
+    // included (it is a frame drag the capsule steers).
+    if (handle_capsule_pointer(record)) return;
     // A frame drag owns the pointer until its release.
     if (desk.frame_dragging()) {
         if (action == SurfacePointerAction::move) {
@@ -1457,10 +1531,21 @@ void Runtime::handle_pointer(const SurfaceInputRecord& record) {
         return;
     }
     if (action == SurfacePointerAction::leave) {
+        if (capsule.hovered() != SurfaceCapsuleSection::none)
+            capsule_outcome(capsule.hover(HostWindowId{}, SurfaceCapsuleSection::none));
         leave_pointer_window(point);
         return;
     }
     const SurfaceDeskHit hit = pointer_target(point);
+    if (action == SurfacePointerAction::move || action == SurfacePointerAction::enter) {
+        // The capsule under the pointer, if any: hovering its question mark
+        // shows the title, and leaving it disarms it.
+        const SurfaceCapsuleSection hovered =
+            desk.blocked(hit.window) ? SurfaceCapsuleSection::none : capsule_section(hit.part);
+        const bool changed = hovered != capsule.hovered() ||
+                             (hovered != SurfaceCapsuleSection::none && hit.window != capsule.window());
+        if (changed) capsule_outcome(capsule.hover(hit.window, hovered));
+    }
     if (action == SurfacePointerAction::down) {
         if (!hit.window.valid()) return;
         if (hit.part == SurfaceDeskPart::minimized_tab) {
@@ -1577,6 +1662,24 @@ void Runtime::handle_wheel(const SurfaceInputRecord& record) {
 void Runtime::handle_key(const SurfaceInputRecord& record) {
     NativeWindow* target = keyboard_window();
     if (target == nullptr) return;
+    // The capsule's keyboard: Alt+Space focuses the active window's capsule;
+    // while it has the keyboard it takes each press it knows, and the
+    // releases.
+    if (capsule.keyboard() && capsule.window() == (*target).window_id) {
+        if (!record.down) return;
+        const SurfaceCapsuleOutcome outcome = capsule.key(record.physical_key, record.modifiers);
+        capsule_outcome(outcome);
+        if (outcome.handled) return;
+        target = keyboard_window();
+        if (target == nullptr) return;
+    }
+    const bool capsule_key = record.down && !record.repeat && record.physical_key == PhysicalKey::space &&
+                             record.modifiers == Modifier::alt &&
+                             desk.capsule((*target).window_id).width > 0.0;
+    if (capsule_key) {
+        capsule_outcome(capsule.focus((*target).window_id));
+        return;
+    }
     KeyEvent key;
     key.action = record.down ? KeyAction::down : KeyAction::up;
     key.physical_key = record.physical_key;
