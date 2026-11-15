@@ -1027,7 +1027,11 @@ void announce_children(AtkObject* parent, const std::vector<AtkObject*>& previou
 struct LinuxAccessibility::Impl {
     Display* display = nullptr;
     ::Window native{};
-    Window* model = nullptr;
+    // The window observed, not owned: null once it is destroyed (or after
+    // detach), and then nothing reads it. attached says whether detach has
+    // work left, whatever became of the window.
+    WindowRef model;
+    bool attached = false;
     // The window's device scale (LinuxAccessibility::set_scale): node bounds
     // and text boxes are logical, AT-SPI extents are X pixels.
     double scale = 1.0;
@@ -1134,10 +1138,11 @@ struct LinuxAccessibility::Impl {
         announce_children(object, previous, value.children);
     }
     void update() {
-        if (model == nullptr) return;
-        if ((*model).semantic_generation() == generation && published) return;
+        Window* const window = model.get();
+        if (window == nullptr) return;
+        if ((*window).semantic_generation() == generation && published) return;
         // Not const: sync moves each node's children out of it.
-        SemanticSnapshot snapshot = (*model).semantic_snapshot();
+        SemanticSnapshot snapshot = (*window).semantic_snapshot();
         if (generation == snapshot.generation && published) return;
         generation = snapshot.generation;
         published = true;
@@ -1150,7 +1155,7 @@ struct LinuxAccessibility::Impl {
         // The frame covers the content rectangle: the client less a declared
         // outer band, which hits nothing (owner, 2026-11-08). Logical units,
         // taken to X pixels when a client asks for extents (pixel_scale).
-        frame_data.node.bounds = (*model).content_rect();
+        frame_data.node.bounds = (*window).content_rect();
         frame_data.node.states = SemanticState::enabled | SemanticState::visible;
         for (std::size_t i = 0; i < snapshot.roots.size(); ++i) {
             sync(snapshot.roots[i], frame, static_cast<int>(i), 0U);
@@ -1202,12 +1207,14 @@ AtkObject* panel_object(const NodeData& value) {
 gboolean perform(gpointer object, SemanticAction action, const std::string& value) {
     AtkObject* const accessible = ATK_OBJECT(object);
     NodeData& node = data(accessible);
-    if (!node.live || node.owner == nullptr || (*node.owner).model == nullptr) return false;
+    if (!node.live || node.owner == nullptr || (*node.owner).model.get() == nullptr) return false;
     LinuxAccessibility::Impl& owner = *node.owner;
     g_object_ref(accessible);
     gboolean result = false;
     owner.update();
-    if (node.live && node.owner != nullptr && owner.model != nullptr) {
+    // Read again: the update may have run a nested loop.
+    Window* const window = owner.model.get();
+    if (node.live && node.owner != nullptr && window != nullptr) {
         if (action == SemanticAction::focus) {
             XSetInputFocus(owner.display, owner.native, RevertToParent, CurrentTime);
         }
@@ -1220,9 +1227,9 @@ gboolean perform(gpointer object, SemanticAction action, const std::string& valu
             // A virtual child at the top of the tree has no exposed
             // control above it; the window finds its publisher by stable
             // identity.
-            result = (*owner.model).perform_semantic_action(stable_id, action, value);
+            result = (*window).perform_semantic_action(stable_id, action, value);
         } else {
-            result = (*owner.model).perform_semantic_action(control, virtual_child, action, value);
+            result = (*window).perform_semantic_action(control, virtual_child, action, value);
         }
     }
     g_object_unref(accessible);
@@ -1296,12 +1303,13 @@ bool layout_fits(const SemanticTextLayout& layout, std::size_t size) {
 // published value.
 bool fetch_text_layout(AtkObject* accessible) {
     NodeData& node = data(accessible);
-    if (!node.live || node.owner == nullptr || (*node.owner).model == nullptr) return false;
+    if (!node.live || node.owner == nullptr || (*node.owner).model.get() == nullptr) return false;
     LinuxAccessibility::Impl& owner = *node.owner;
     owner.update();
-    if (!node.live || node.owner == nullptr) return false;
+    Window* const window = owner.model.get();
+    if (!node.live || node.owner == nullptr || window == nullptr) return false;
     const RuntimeId control{node.key.control};
-    const SemanticTextResult result = (*owner.model).semantic_text_layout(control, owner.text_layout);
+    const SemanticTextResult result = (*window).semantic_text_layout(control, owner.text_layout);
     if (result != SemanticTextResult::done) return false;
     const bool fits = layout_fits(owner.text_layout, node.node.value.size());
     return fits;
@@ -1313,16 +1321,17 @@ gboolean select_text(AtkText* object, gint anchor, gint caret) {
     g_object_ref(accessible);
     gboolean result = FALSE;
     NodeData& node = data(accessible);
-    if (node.live && node.owner != nullptr && (*node.owner).model != nullptr) {
+    if (node.live && node.owner != nullptr && (*node.owner).model.get() != nullptr) {
         LinuxAccessibility::Impl& owner = *node.owner;
         owner.update();
         const std::optional<std::size_t> anchor_byte = byte_offset(node, anchor);
         const std::optional<std::size_t> caret_byte = byte_offset(node, caret);
-        if (node.live && node.owner != nullptr && anchor_byte && caret_byte) {
+        Window* const window = owner.model.get();
+        if (node.live && node.owner != nullptr && window != nullptr && anchor_byte && caret_byte) {
             const RuntimeId control{node.key.control};
             const SemanticTextSelection selection{.anchor = Utf8Offset(*anchor_byte),
                                                   .caret = Utf8Offset(*caret_byte)};
-            const SemanticTextResult moved = (*owner.model).set_semantic_text_selection(control, selection);
+            const SemanticTextResult moved = (*window).set_semantic_text_selection(control, selection);
             result = moved == SemanticTextResult::done ? TRUE : FALSE;
             owner.update();
         }
@@ -1531,7 +1540,7 @@ void publish_on_query(AtkObject* object) {
     NodeData& value = data(object);
     if (!value.frame || value.owner == nullptr) return;
     LinuxAccessibility::Impl& owner = *value.owner;
-    if (owner.model == nullptr || owner.published) return;
+    if (owner.model.get() == nullptr || owner.published) return;
     owner.update();
 }
 } // namespace
@@ -1541,7 +1550,8 @@ LinuxAccessibility::LinuxAccessibility(Display* display, ::Window native, Window
     Impl& impl = *impl_;
     impl.display = display;
     impl.native = native;
-    impl.model = &model;
+    impl.model = model.window_ref();
+    impl.attached = true;
     if (!application_root) {
         // The first window starts the process-wide bridge and its root.
         application_root = make_object(0);
@@ -1584,7 +1594,7 @@ void LinuxAccessibility::set_scale(double scale) {
     (*impl_).scale = scale;
 }
 void LinuxAccessibility::set_title(const std::string& title) {
-    if (!(*impl_).model || !(*impl_).frame) return;
+    if ((*impl_).model.get() == nullptr || !(*impl_).frame) return;
     NodeData& frame = data((*impl_).frame);
     if (frame.node.name == title) return;
     frame.node.name = title;
@@ -1592,8 +1602,9 @@ void LinuxAccessibility::set_title(const std::string& title) {
 }
 void LinuxAccessibility::detach() {
     Impl& impl = *impl_;
-    if (!impl.model) return;
-    impl.model = nullptr;
+    if (!impl.attached) return;
+    impl.attached = false;
+    impl.model.reset();
     for (const std::pair<const NodeKey, AtkObject*>& entry : impl.objects) {
         Impl::retire_data(data(entry.second));
         impl.retired.push_back(entry.second);
