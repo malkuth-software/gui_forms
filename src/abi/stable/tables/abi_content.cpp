@@ -481,7 +481,7 @@ gf_status GF_CALL content_close_content(gf_object surface) noexcept {
 gf_status content_start_program_body(gf_object surface, const gf_content_program* program) {
     if (program == nullptr || (*program).struct_size < program_size_1_4 || (*program).opaque > 1U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, start_program_slot,
-                    "a gf_content_program needs struct_size of at least 48 and opaque 0 or 1");
+                    "a gf_content_program needs struct_size of at least 40 and opaque 0 or 1");
     }
     gf_callback run{};
     const gf_status read = read_callback(&(*program).run, start_program_slot, run);
