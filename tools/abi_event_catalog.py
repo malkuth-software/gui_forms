@@ -82,6 +82,7 @@ DEFERRED: dict[str, str] = {
     'MaterialColourFilter': 'surface material values (C5c)',
     'DockDragOutcome': 'docking family (C5d)',
     'Theme': 'no field form; theme_changed is a notification',
+    'ThemeCompileResult': 'no field form yet; theme_sheet_compiled is a notification (fold D, I7)',
 }
 
 # Declaring types that are not Components, reached through the ABI object

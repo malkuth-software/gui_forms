@@ -7246,8 +7246,9 @@ inline constexpr std::array<EventConnector, 371> event_connectors{{
 }};
 
 // Payload members no field carries yet, with the family that takes them.
-inline constexpr std::array<std::string_view, 6> deferred_event_members{{
+inline constexpr std::array<std::string_view, 7> deferred_event_members{{
     "BackgroundWorkerCompleted.error (std::exception_ptr): no portable form; the error message is a field",
+    "Control.theme_sheet_compiled (ThemeCompileResult): no field form yet; theme_sheet_compiled is a notification (fold D, I7)",
     "DockSite.drag_ended (DockDragOutcome): docking family (C5d)",
     "ItemContentPaint.painter (Painter&): owner-draw surfaces (C5d)",
     "ItemContentPaint.states (AnatomyStateSet): owner-draw surfaces (C5d)",

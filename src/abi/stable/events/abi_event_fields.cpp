@@ -634,6 +634,12 @@ void append_field(EventFields& fields, std::string_view name, const Theme& value
     static_cast<void>(value);
 }
 
+void append_field(EventFields& fields, std::string_view name, const ThemeCompileResult& value) {
+    static_cast<void>(fields);
+    static_cast<void>(name);
+    static_cast<void>(value);
+}
+
 // ---------------------------------------------------------------------------
 // Readers.
 
