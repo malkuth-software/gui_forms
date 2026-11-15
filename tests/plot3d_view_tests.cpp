@@ -534,6 +534,21 @@ void test_view_gestures_and_keys() {
     up.button = PointerButton::primary;
     static_cast<void>(window.dispatch_pointer(up));
     require(recorder.picks == 1, "a drag picks nothing");
+
+    // A-gf-controls-10-F8: a press whose capture is lost ends its drag, so later plain moves
+    // zoom nothing. (A secondary press, so no double click resets the view.)
+    PointerEvent zoom_down{};
+    zoom_down.action = PointerAction::down;
+    zoom_down.button = PointerButton::secondary;
+    zoom_down.position = centre;
+    static_cast<void>(window.dispatch_pointer(zoom_down));
+    window.release_pointer();
+    PointerEvent after_loss{};
+    after_loss.action = PointerAction::move;
+    after_loss.button = PointerButton::none;
+    after_loss.position = Point{centre.x, centre.y - 40.0};
+    static_cast<void>(window.dispatch_pointer(after_loss));
+    require(recorder.cameras == 1, "a move after the capture is lost moves no camera");
     paint(*plot, painter);
     const std::uint64_t rendered = (*plot).picture_renders();
 

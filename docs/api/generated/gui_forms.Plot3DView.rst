@@ -241,6 +241,10 @@ gui_forms::Plot3DView
 
       *Protected.*
 
+   .. cpp:function:: void on_mouse_capture_changed() override
+
+      *Protected.*
+
    .. cpp:function:: void on_key_down(KeyEventArgs& arguments) override
 
       *Protected.*

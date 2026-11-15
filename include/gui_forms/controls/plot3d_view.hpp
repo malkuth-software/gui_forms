@@ -144,6 +144,7 @@ protected:
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_wheel(MouseEventArgs& arguments) override;
     void on_mouse_leave() override;
+    void on_mouse_capture_changed() override;
     void on_key_down(KeyEventArgs& arguments) override;
     void on_focus_changed(bool focused) override;
 
@@ -157,6 +158,7 @@ private:
     // After a gesture or key moved the camera: repaints and raises
     // camera_changed.
     void camera_moved();
+    void end_drag();
     // The point under `plot_point` (from the plot's top left) becomes the
     // hover: raises hovered when it differs.
     void update_hover(Point plot_point);

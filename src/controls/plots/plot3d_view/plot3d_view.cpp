@@ -485,6 +485,9 @@ void Plot3DView::handle_pointer(PointerEvent& event) {
         return;
     }
     case PointerAction::move: {
+        // A drag lasts only while the press holds the capture: SurfaceRoot
+        // can end a press without a release (A-gf-controls-10-F8).
+        if (drag_ != Drag::none && !has_pointer_capture()) end_drag();
         if (drag_ == Drag::none) {
             update_hover(inside);
             return;
@@ -551,6 +554,20 @@ void Plot3DView::handle_pointer(PointerEvent& event) {
     default:
         return;
     }
+}
+
+// A drag whose capture is lost ends without a pick; the resting frame is
+// rendered again, as after a release.
+void Plot3DView::end_drag() {
+    if (drag_ == Drag::none) return;
+    drag_ = Drag::none;
+    dragged_ = false;
+    invalidate(Dirty::paint);
+}
+
+void Plot3DView::on_mouse_capture_changed() {
+    end_drag();
+    Control::on_mouse_capture_changed();
 }
 
 // The mouse raisers hand the target phase to handle_pointer, which reads
