@@ -76,6 +76,12 @@ gf_status ClassTableView::read(const gf_class_header* table, std::span<const gf_
     if ((*table).segment_count > chain.size()) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the class table has more segments than its class's chain");
     }
+    // The view stores at most max_class_segments segments; a chain longer
+    // than that (none is generated yet) is refused rather than written past
+    // segments_ (A-gf-abi-01-F7).
+    if ((*table).segment_count > max_class_segments) {
+        return fail(GF_STATUS_LIMIT_EXCEEDED, slot, "the class table has more segments than a class may have");
+    }
     ClassTableView read_view{};
     const unsigned char* pointers = reinterpret_cast<const unsigned char*>(table) + header_size;
     std::uint32_t index = 0U;

@@ -45,8 +45,8 @@ struct HookKey final {
     std::uint32_t entry = 0U;
 };
 
-// The most segments one class's chain has. The registry checks every chain
-// against it.
+// The most segments one class's chain has. ClassTableView::read refuses a
+// table with more (A-gf-abi-01-F7).
 inline constexpr std::size_t max_class_segments = 16U;
 
 // The bytes of a gf_segment_header, and of one entry.
