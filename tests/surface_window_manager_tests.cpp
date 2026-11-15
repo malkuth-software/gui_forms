@@ -593,8 +593,33 @@ void test_capsule_help_shows_business_card() {
 
 } // namespace
 
+// A-gf-host-02-F14: a full queue drops pointer motion, not the records
+// whose loss would leave state stuck.
+void test_full_queue_keeps_control_records() {
+    SurfaceInputQueue queue;
+    SurfaceInputRecord move{};
+    move.kind = SurfaceInputKind::pointer;
+    move.action = SurfacePointerAction::move;
+    for (std::size_t index = 0U; index < SurfaceInputQueue::maximum_records; ++index) {
+        require(queue.post(move), "moves are admitted up to the limit");
+    }
+    require(!queue.post(move), "a move past the limit is dropped");
+    SurfaceInputRecord wheel{};
+    wheel.kind = SurfaceInputKind::wheel;
+    require(!queue.post(wheel), "a wheel turn past the limit is dropped");
+    SurfaceInputRecord release{};
+    release.kind = SurfaceInputKind::pointer;
+    release.action = SurfacePointerAction::up;
+    require(queue.post(release), "a release is admitted past the motion limit");
+    SurfaceInputRecord presented{};
+    presented.kind = SurfaceInputKind::presented;
+    require(queue.post(presented), "presented is admitted past the motion limit");
+    require(queue.dropped() == 2U, "the dropped motion is counted");
+}
+
 int main() {
     try {
+        test_full_queue_keeps_control_records();
         test_compose_and_damage();
         test_resize_by_grip();
         test_minimize_maximize_restore();

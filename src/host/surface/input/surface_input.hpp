@@ -114,12 +114,17 @@ struct SurfaceInputRecord final {
 
 class SurfaceInputQueue final {
 public:
-    // Records beyond this many are dropped: a host that floods the queue
-    // loses input rather than memory.
+    // Pointer moves and wheel turns beyond this many are dropped: a host
+    // that floods the queue loses motion rather than memory.
     static constexpr std::size_t maximum_records = 4096U;
+    // Every other record (presses and releases, keys, presented, dialog
+    // answers, close, activation) is admitted up to this larger bound, so a
+    // busy manager thread does not lose a record whose loss would leave
+    // state stuck (A-gf-host-02-F14); the queue stays bounded.
+    static constexpr std::size_t maximum_control_records = 4U * maximum_records;
 
     // Appends `record` and wakes the manager's thread. Returns false, keeping
-    // nothing, when the queue is full.
+    // nothing, when the queue is full for its kind.
     bool post(SurfaceInputRecord record);
     // Wakes the manager's thread without a record (a model's wake handler).
     void wake() noexcept;

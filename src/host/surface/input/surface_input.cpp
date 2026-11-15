@@ -16,9 +16,12 @@ double finite_or_zero(double value) noexcept {
 } // namespace
 
 bool SurfaceInputQueue::post(SurfaceInputRecord record) {
+    const bool motion = record.kind == SurfaceInputKind::wheel ||
+                        (record.kind == SurfaceInputKind::pointer && record.action == SurfacePointerAction::move);
+    const std::size_t limit = motion ? maximum_records : maximum_control_records;
     {
         const std::lock_guard<std::mutex> guard(mutex_);
-        if (records_.size() >= maximum_records) {
+        if (records_.size() >= limit) {
             ++dropped_;
             return false;
         }
