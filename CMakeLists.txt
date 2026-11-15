@@ -737,6 +737,7 @@ add_library(gui_forms_core STATIC
     src/core/window/tool_tips/window_tool_tips.cpp
     src/core/window/interaction/interaction_state.cpp
     src/core/window/interaction/window_interaction.cpp
+    src/core/window/relative_pointer/window_relative_pointer.cpp
     src/core/window/accelerator/accelerator_token.cpp
     src/core/control/dispatcher/control_dispatcher.cpp
     src/core/component/component/component.cpp
@@ -1965,6 +1966,12 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xext)
         target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XSHM=1)
     endif()
+    # Relative pointer mode (cp34): XI 2 raw motion where libXi is present;
+    # without it the host reports no relative_pointer or raw_pointer_motion.
+    if(TARGET X11::Xi)
+        target_link_libraries(gui_forms_host_linux PUBLIC X11::Xi)
+        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XI2=1)
+    endif()
     add_library(gui_forms_application SHARED src/runtime/application_bundle.cpp src/runtime/application/application.cpp
         src/runtime/offscreen/offscreen_raster_create.cpp src/runtime/stxlib_state_probe.cpp)
     add_library(GUIForms::Application ALIAS gui_forms_application)
@@ -1985,6 +1992,9 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
     endif()
     if(TARGET X11::Xext)
         target_link_libraries(gui_forms_application PRIVATE X11::Xext)
+    endif()
+    if(TARGET X11::Xi)
+        target_link_libraries(gui_forms_application PRIVATE X11::Xi)
     endif()
     if(TARGET gui_forms_text_engine)
         target_link_libraries(gui_forms_application PRIVATE gui_forms_text_engine stx_text::freetype stx_text::harfbuzz)
@@ -5679,6 +5689,16 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_compositor_backdrop_tests tests/compositor_backdrop_tests.cpp)
     target_link_libraries(gui_forms_compositor_backdrop_tests PRIVATE gui_forms_host_headless)
     add_test(NAME gui_forms_compositor_backdrop_tests COMMAND gui_forms_compositor_backdrop_tests)
+    add_executable(gui_forms_relative_pointer_tests tests/relative_pointer_tests.cpp)
+    target_link_libraries(gui_forms_relative_pointer_tests PRIVATE gui_forms_host_headless)
+    add_test(NAME gui_forms_relative_pointer_tests COMMAND gui_forms_relative_pointer_tests)
+    # The relative pointer example (examples/relative_pointer), driven headless.
+    add_executable(gui_forms_relative_pointer_example_tests tests/relative_pointer_example_tests.cpp
+        examples/relative_pointer/orbit_toy.cpp)
+    target_include_directories(gui_forms_relative_pointer_example_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/relative_pointer)
+    target_link_libraries(gui_forms_relative_pointer_example_tests PRIVATE gui_forms_host_headless)
+    add_test(NAME gui_forms_relative_pointer_example_tests COMMAND gui_forms_relative_pointer_example_tests)
     add_executable(gui_forms_floating_windows_tests tests/floating_windows_tests.cpp)
     target_link_libraries(gui_forms_floating_windows_tests PRIVATE gui_forms_host_headless)
     add_test(NAME gui_forms_floating_windows_tests COMMAND gui_forms_floating_windows_tests)

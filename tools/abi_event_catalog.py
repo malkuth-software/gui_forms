@@ -685,7 +685,21 @@ ORDER_SEQUENCES: list[tuple[str, list[tuple[str, str]], str, str]] = [
                              ('Control.key_up', 'physical'), ('ButtonBase.clicked', 'activation')],
      'Control.key_down:suppress_key_press',
      'Space or Enter on a button: the activation follows key_up, with no mouse events'),
+    ('relative_pointer', [('Control.relative_pointer', 'repeated'), ('Control.relative_pointer_ended', 'deferred')],
+     '',
+     'one relative_pointer per host sample in the host order, never merged, each with its timestamp; in confined '
+     'and locked modes buttons and the wheel are samples and click, mouse_click, double_click and the activation do '
+     'not apply; in free mode the routed mouse events go on beside the samples; relative_pointer_ended once'),
 ]
+
+# Sequences whose ends differ from the routed sequences' (rule 5): a
+# relative pointer mode ends on each trigger relative_pointer.hpp lists.
+DROPPED_WHEN: dict[str, list[str]] = {
+    'relative_pointer': ['Escape', 'focus moved outside the owner', 'window deactivated', 'modal or focus scope opened',
+                         'control disposed, detached, hidden or disabled', 'until_release press released',
+                         'released or superseded'],
+}
+DEFAULT_DROPPED_WHEN: list[str] = ['control disposed', 'modal opened', 'capture lost']
 
 
 def render_order(catalog: Catalog) -> str:
@@ -700,7 +714,7 @@ def render_order(catalog: Catalog) -> str:
         missing: list[str] = [event for event, kind in steps if event not in declared]
         cancel_event: str = cancelled_by.partition(':')[0]
         cancel_field: str = cancelled_by.partition(':')[2]
-        if cancel_event not in declared:
+        if cancelled_by and cancel_event not in declared:
             missing.append(cancel_event)
         if missing:
             raise SystemExit(f'abi_event_catalog: the order of {name} names undeclared interactions: '
@@ -712,8 +726,13 @@ def render_order(catalog: Catalog) -> str:
         lines.extend(f'        {entry}{"," if position + 1 < len(rendered) else ""}'
                      for position, entry in enumerate(rendered))
         lines.append('      ],')
-        lines.append(f'      "cancelled_by": {{"event": "{cancel_event}", "field": "{cancel_field}"}},')
-        lines.append('      "dropped_when": ["control disposed", "modal opened", "capture lost"],')
+        if cancelled_by:
+            lines.append(f'      "cancelled_by": {{"event": "{cancel_event}", "field": "{cancel_field}"}},')
+        else:
+            lines.append('      "cancelled_by": null,')
+        dropped: list[str] = DROPPED_WHEN.get(name, DEFAULT_DROPPED_WHEN)
+        quoted: str = ', '.join(f'"{reason}"' for reason in dropped)
+        lines.append(f'      "dropped_when": [{quoted}],')
         lines.append(f'      "note": "{note}"')
         lines.append(f'    }}{separator}')
     lines.extend(['  }', '}', ''])

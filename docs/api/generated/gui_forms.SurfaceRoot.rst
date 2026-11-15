@@ -259,6 +259,15 @@ gui_forms::SurfaceRoot
       **captured_pointer_id** : ``std::uint64_t``, read-only
          Returns the captured pointer identity or zero.
 
+      **relative_pointer_owner** : ``Control::Ptr``, read-only
+
+      **relative_pointer_support** : ``RelativePointerSupport``, read-only
+         What this window's host can do; a window with no host derives deltas from positions and can do nothing else.
+
+      **pointer_release_regions** : ``std::span<const Rect>``
+
+      **relative_pointer_snapshot** : ``RelativePointerSnapshot``, read-only
+
       **tool_tips_shown_setting** : ``std::optional<bool>``, read-only
          Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the switch of the application the window joined decides (Application::tool_tips_shown), and with none they show. Turning tooltips off closes one that shows. UI thread.
 
@@ -557,6 +566,14 @@ gui_forms::SurfaceRoot
         - Routes pointer input to a control until :cpp:func:`release_pointer <gui_forms::SurfaceRoot::release_pointer>`, wherever the pointer goes.
       * - :cpp:func:`release_pointer <gui_forms::SurfaceRoot::release_pointer>`
         - Releases pointer capture.
+      * - :cpp:func:`begin_relative_pointer <gui_forms::SurfaceRoot::begin_relative_pointer>`
+        - Relative pointer mode (gui_forms/events/relative_pointer gives the modes, the release regions, the ends and the order).
+      * - :cpp:func:`end_relative_pointer <gui_forms::SurfaceRoot::end_relative_pointer>`
+        - Ends the mode for ``reason`` and raises the owner's relative_pointer_ended once (not for an owner already disposed); false, raising nothing, without a mode.
+      * - :cpp:func:`dispatch_relative_motion <gui_forms::SurfaceRoot::dispatch_relative_motion>`
+        - One host motion sample (HostRelativeMotionEvent, from HostSession or a test): raised on the owner as one relative_pointer, never merged.
+      * - :cpp:func:`warp_pointer <gui_forms::SurfaceRoot::warp_pointer>`
+        - Moves the pointer to ``position`` (window logical units) through the host where it can warp; a locked mode moves its virtual position.
       * - :cpp:func:`open_overlay <gui_forms::SurfaceRoot::open_overlay>`
         - Shows a detached control as an overlay owned by another control, such as a menu or a drop-down, and returns a :cpp:class:`OverlayToken <gui_forms::OverlayToken>` that closes it.
       * - :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>`
@@ -976,6 +993,20 @@ gui_forms::SurfaceRoot
       capture, pointer input goes to it wherever the pointer is.
 
    .. cpp:function:: std::uint64_t captured_pointer_id() const noexcept
+
+   .. cpp:function:: Control::Ptr relative_pointer_owner() const noexcept
+
+   .. cpp:function:: RelativePointerSupport relative_pointer_support() const
+
+      What this window's host can do; a window with no host derives deltas from positions and can do nothing else.
+
+   .. cpp:function:: std::span<const Rect> pointer_release_regions() const& noexcept
+
+   .. cpp:function:: bool set_pointer_release_regions(std::span<const Rect> regions)
+
+      The shell's release regions, window logical units (the capsule and its kin; at most maximum_pointer_release_regions, each finite and not empty, else false changing nothing). Over one, a confined or locked mode is suspended and the ordinary pointer reaches the region; see relative_pointer.hpp. The window keeps them across modes.
+
+   .. cpp:function:: RelativePointerSnapshot relative_pointer_snapshot() const noexcept
 
    .. cpp:function:: std::optional<bool> tool_tips_shown_setting() const noexcept
 
@@ -1517,6 +1548,22 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void release_pointer()
 
       Releases pointer capture.
+
+   .. cpp:function:: RelativePointerGrant begin_relative_pointer(const Control::Ptr& owner, RelativePointerRequest request)
+
+      Relative pointer mode (gui_forms/events/relative_pointer gives the modes, the release regions, the ends and the order). One owner at a time: a request from another control ends the current owner's mode (superseded) before it is granted. Refused, changing nothing: detached for an owner not attached here, hidden, disabled or disposed; not_active while the window is inactive or a focus scope that does not hold the owner is open; no_press for until_release without a button held on the owner. A granted confined or locked mode ends the pointer sequences in progress (no click derives across it). Root thread.
+
+   .. cpp:function:: bool end_relative_pointer(RelativePointerEnd reason = RelativePointerEnd::released)
+
+      Ends the mode for ``reason`` and raises the owner's relative_pointer_ended once (not for an owner already disposed); false, raising nothing, without a mode.
+
+   .. cpp:function:: bool dispatch_relative_motion(const HostRelativeMotionEvent& event)
+
+      One host motion sample (HostRelativeMotionEvent, from HostSession or a test): raised on the owner as one relative_pointer, never merged. False when no mode is in force or it is suspended (the sample is not raised: the pointer is ordinary then).
+
+   .. cpp:function:: bool warp_pointer(Point position)
+
+      Moves the pointer to ``position`` (window logical units) through the host where it can warp; a locked mode moves its virtual position. False without a mode, or where the host cannot.
 
    .. cpp:function:: OverlayToken open_overlay(const Control::Ptr& owner, const Control::Ptr& overlay, OverlayOptions options = {})
 

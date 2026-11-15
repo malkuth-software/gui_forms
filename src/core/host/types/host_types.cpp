@@ -30,6 +30,7 @@ struct HostEventNameVisitor final {
     const char* operator()(const HostContextRequestEvent&) const noexcept { return "context_request"; }
     const char* operator()(const HostHoverEvent&) const noexcept { return "hover"; }
     const char* operator()(const HostWindowStateEvent&) const noexcept { return "window_state"; }
+    const char* operator()(const HostRelativeMotionEvent&) const noexcept { return "relative_motion"; }
 };
 
 struct HostDialogKindVisitor final {

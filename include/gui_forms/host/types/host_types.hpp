@@ -648,6 +648,66 @@ struct GUI_FORMS_API HostWindowStateEvent final {
     bool full_screen{};
 };
 
+// One motion sample in relative pointer mode (capability relative_pointer;
+// host protocol version 14). A host sends one per native sample, never
+// merged: macOS each mouse moved or dragged event's deltaX and deltaY, X11
+// each XI2 raw motion. delta: logical units, sub-unit precision kept;
+// unaccelerated: delta is the device's raw counts scaled to logical units
+// (raw_pointer_motion), not the accelerated motion. position: the pointer
+// in window logical units where it moves (free and confined modes); empty
+// while locked. timestamp_nanoseconds: the sample's time (PointerEvent's
+// clock; zero: the HostEvent's). The window refuses a delta or position
+// that is not finite as invalid_payload. In confined and locked modes the
+// host sends no absolute pointer moves (buttons and the wheel still come
+// as PointerEvents); in free mode it sends both.
+struct GUI_FORMS_API HostRelativeMotionEvent final {
+    Point delta{};
+    bool unaccelerated{};
+    std::optional<Point> position{};
+    Modifier modifiers{Modifier::none};
+    std::uint64_t timestamp_nanoseconds{};
+};
+
+// What the window asks of the host for relative pointer mode
+// (HostServices::set_relative_pointer). active false returns the pointer to
+// normal (shown, free, absolute moves). confine: the rectangle (window
+// logical units) a confined pointer stays in. A host that cannot do the
+// mode reports the error, and the window falls back (RelativePointerGrant).
+struct GUI_FORMS_API HostRelativePointerRequest final {
+    bool active{};
+    RelativePointerMode mode{RelativePointerMode::free};
+    bool hide_cursor{};
+    bool raw_motion{};
+    Rect confine{};
+};
+
+// Maps a host's own event clock into FrameClock nanoseconds
+// (PointerEvent::timestamp_nanoseconds) for a host whose events carry a
+// time on another clock: X11's server milliseconds, Windows'
+// GetMessageTime. The offset is the smallest (receipt - event time) seen,
+// the estimate of least delay, so a mapped time never lies after its
+// receipt and differences between events keep the host's own spacing.
+// `host_nanoseconds` must not go backwards except by a wrap the caller
+// has already unwrapped. One per host connection, on its thread.
+class GUI_FORMS_API HostEventClock final {
+public:
+    [[nodiscard]] std::uint64_t map(std::uint64_t host_nanoseconds, std::uint64_t receipt_nanoseconds) noexcept {
+        const std::int64_t candidate =
+            static_cast<std::int64_t>(receipt_nanoseconds) - static_cast<std::int64_t>(host_nanoseconds);
+        if (!known_ || candidate < offset_) {
+            offset_ = candidate;
+            known_ = true;
+        }
+        const std::int64_t mapped = static_cast<std::int64_t>(host_nanoseconds) + offset_;
+        const std::uint64_t result = mapped < 0 ? 0U : static_cast<std::uint64_t>(mapped);
+        return result;
+    }
+
+private:
+    std::int64_t offset_{};
+    bool known_{};
+};
+
 using HostEventPayload = std::variant<
     HostAttachEvent,
     HostResizeEvent,
@@ -666,7 +726,8 @@ using HostEventPayload = std::variant<
     HostInputSettingsEvent,
     HostContextRequestEvent,
     HostHoverEvent,
-    HostWindowStateEvent>;
+    HostWindowStateEvent,
+    HostRelativeMotionEvent>;
 
 struct GUI_FORMS_API HostEvent final {
     std::uint64_t sequence{};

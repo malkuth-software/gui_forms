@@ -43,7 +43,15 @@ HostCapabilities headless_capabilities() {
                 // (HeadlessHostServices::set_corner_report).
                 HostCapability::window_corners |
                 // Tests dispatch HostWindowStateEvent themselves.
-                HostCapability::window_state_reports
+                HostCapability::window_state_reports |
+                // The reference host simulates relative pointer mode:
+                // tests dispatch HostRelativeMotionEvent and the services
+                // record each request and warp
+                // (HeadlessHostServices::relative_pointer_requests).
+                HostCapability::relative_pointer |
+                HostCapability::raw_pointer_motion |
+                HostCapability::pointer_confinement |
+                HostCapability::pointer_warp
 #if !defined(_WIN32)
                 // Hosted content is real where it exists (POSIX).
                 | HostCapability::hosted_content

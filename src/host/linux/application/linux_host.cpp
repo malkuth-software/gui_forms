@@ -24,6 +24,9 @@
 #if defined(GUI_FORMS_HAVE_XRANDR)
 #include <X11/extensions/Xrandr.h>
 #endif
+#if defined(GUI_FORMS_HAVE_XI2)
+#include <X11/extensions/XInput2.h>
+#endif
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -916,6 +919,18 @@ Runtime::Runtime() {
     XRRSelectInput(display, DefaultRootWindow(display), RRScreenChangeNotifyMask);
   }
 #endif
+#if defined(GUI_FORMS_HAVE_XI2)
+  // XI 2.0 raw motion, for relative pointer mode (Services).
+  int xi_event = 0;
+  int xi_error = 0;
+  int opcode = 0;
+  if (XQueryExtension(display, "XInputExtension", &opcode, &xi_event, &xi_error)) {
+    int major = 2;
+    int minor = 0;
+    if (XIQueryVersion(display, &major, &minor) == Success && major >= 2)
+      xi_opcode = opcode;
+  }
+#endif
   // The monitors, at the desktop's scale, before any window opens on one.
   HostMonitorResult monitors;
   query_x11_monitors(*this, monitors);
@@ -1486,6 +1501,9 @@ void NativeWindow::event(XEvent &event) {
     return;
   if (modal)
     return;
+  // A confined or locked relative pointer moves by raw motion only.
+  if (event.type == MotionNotify && services && (*services).relative_takes_motion())
+    return;
   if (event.type == MotionNotify || event.type == ButtonPress ||
       event.type == ButtonRelease || event.type == EnterNotify ||
       event.type == LeaveNotify) {
@@ -1497,16 +1515,19 @@ void NativeWindow::event(XEvent &event) {
       pointer.position = {static_cast<double>(event.xmotion.x) / scale,
                           static_cast<double>(event.xmotion.y) / scale};
       state = event.xmotion.state;
+      pointer.timestamp_nanoseconds = runtime.server_time_nanoseconds(event.xmotion.time);
     } else if (event.type == EnterNotify || event.type == LeaveNotify) {
       pointer.action = event.type == EnterNotify ? PointerAction::enter
                                                  : PointerAction::leave;
       pointer.position = {static_cast<double>(event.xcrossing.x) / scale,
                           static_cast<double>(event.xcrossing.y) / scale};
       state = event.xcrossing.state;
+      pointer.timestamp_nanoseconds = runtime.server_time_nanoseconds(event.xcrossing.time);
     } else {
       pointer.position = {static_cast<double>(event.xbutton.x) / scale,
                           static_cast<double>(event.xbutton.y) / scale};
       state = event.xbutton.state;
+      pointer.timestamp_nanoseconds = runtime.server_time_nanoseconds(event.xbutton.time);
       const unsigned button = event.xbutton.button;
       if (button >= 4 && button <= 7) {
         if (event.type == ButtonRelease)
@@ -1953,6 +1974,42 @@ void Runtime::dispatch(XEvent &event) {
       report_displays();
     return;
   }
+#if defined(GUI_FORMS_HAVE_XI2)
+  // XI 2 raw motion (selected on the root while a window's services hold
+  // relative pointer mode): valuators 0 and 1 are the motion's x and y.
+  if (event.type == GenericEvent && event.xcookie.extension == xi_opcode) {
+    if (XGetEventData(display, &event.xcookie)) {
+      if (event.xcookie.evtype == XI_RawMotion) {
+        const XIRawEvent &raw = *static_cast<const XIRawEvent *>(event.xcookie.data);
+        Point unaccelerated{};
+        Point accelerated{};
+        int value_index = 0;
+        const int axes = raw.valuators.mask_len * 8;
+        for (int axis = 0; axis < axes && axis < 2; ++axis) {
+          if (!XIMaskIsSet(raw.valuators.mask, axis))
+            continue;
+          const double raw_value = raw.raw_values[value_index];
+          const double value = raw.valuators.values[value_index];
+          if (axis == 0) {
+            unaccelerated.x = raw_value;
+            accelerated.x = value;
+          } else {
+            unaccelerated.y = raw_value;
+            accelerated.y = value;
+          }
+          value_index = value_index + 1;
+        }
+        const std::uint64_t timestamp = server_time_nanoseconds(raw.time);
+        const std::vector<std::shared_ptr<NativeWindow>> receiving = windows;
+        for (std::size_t i = 0; i < receiving.size(); ++i)
+          if ((*receiving[i]).services)
+            (*(*receiving[i]).services).relative_raw_motion(unaccelerated, accelerated, timestamp);
+      }
+      XFreeEventData(display, &event.xcookie);
+    }
+    return;
+  }
+#endif
   // Tray icon windows belong to a window's services, not to the window.
   for (std::size_t i = 0; i < windows.size(); ++i)
     if ((*windows[i]).services && (*(*windows[i]).services).tray_event(event))
@@ -1965,6 +2022,18 @@ void Runtime::dispatch(XEvent &event) {
       (*snapshot[i]).event(event);
       break;
     }
+}
+std::uint64_t Runtime::server_time_nanoseconds(Time time) noexcept {
+  const std::uint32_t milliseconds = static_cast<std::uint32_t>(time);
+  // The server's time wraps every 49.7 days; a value far below the last
+  // is the wrap, not a step back.
+  if (server_time_seen && milliseconds < last_server_time && last_server_time - milliseconds > 0x80000000U)
+    server_time_wraps = server_time_wraps + 1U;
+  server_time_seen = true;
+  last_server_time = milliseconds;
+  const std::uint64_t unwrapped = (server_time_wraps << 32U) | milliseconds;
+  const std::uint64_t mapped = server_clock.map(unwrapped * 1'000'000U, now_ns());
+  return mapped;
 }
 void Runtime::end_session() {
   // A copy: a closed callback may open a replacement window.
@@ -2246,7 +2315,15 @@ HostCapabilities linux_capabilities() {
               HostCapability::transient_surfaces |
               HostCapability::opaque_transient_surfaces |
               HostCapability::window_state_reports |
-              HostCapability::hosted_content,
+              HostCapability::hosted_content |
+              // Relative pointer mode (Services): confinement and warps
+              // are core X; the deltas need XI 2 raw motion, which
+              // Services drops from its report where the server lacks it.
+              HostCapability::pointer_confinement | HostCapability::pointer_warp
+#if defined(GUI_FORMS_HAVE_XI2)
+              | HostCapability::relative_pointer | HostCapability::raw_pointer_motion
+#endif
+              ,
           // X11 desktops follow the PC keyboard convention.
           pc_key_map()};
   // locale: the environment's POSIX locale (read_posix_locale); none for

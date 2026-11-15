@@ -657,6 +657,8 @@ void SurfaceRoot::set_active(bool active) {
     require_root_thread("activation mutation");
     if (active_ == active) return;
     if (!active && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
+    // Deactivation gives a relative pointer back first (relative_pointer.hpp).
+    if (!active) static_cast<void>(end_relative_pointer(RelativePointerEnd::deactivated));
     // Keys and buttons released while the window was inactive never reach
     // it: forget them, raising the held keys' releases (key_events.hpp).
     if (!active && interaction_) {

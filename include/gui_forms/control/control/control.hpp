@@ -883,6 +883,18 @@ public:
     // early.
     void set_pointer_capture(bool captured);
     [[nodiscard]] bool has_pointer_capture() const noexcept;
+    // Relative pointer mode (gui_forms/events/relative_pointer): asks this
+    // control's window for the pointer's motion as deltas, every sample
+    // (relative_pointer), until the mode ends (relative_pointer_ended).
+    // SurfaceRoot::begin_relative_pointer gives the rules; a detached
+    // control is refused with RelativePointerResult::detached. Release ends
+    // this control's mode only (false when it has none). warp_pointer moves
+    // the pointer to `position` in this control's coordinates where the host
+    // can (false where it cannot, or while this control has no mode).
+    RelativePointerGrant request_relative_pointer(RelativePointerRequest request = {});
+    bool release_relative_pointer();
+    [[nodiscard]] bool has_relative_pointer() const noexcept;
+    bool warp_pointer(Point position);
 
     // An attached control's flags are read after its surface root settles
     // the touches made since the last read (SurfaceRoot::settle_dirty): an
@@ -993,6 +1005,16 @@ public:
     [[nodiscard]] Event<KeyEventArgs&>& key_down() { return key_events().key_down; }
     [[nodiscard]] Event<KeyPressEventArgs&>& key_press() { return key_events().key_press; }
     [[nodiscard]] Event<KeyEventArgs&>& key_up() { return key_events().key_up; }
+    // The relative pointer events (request_relative_pointer): one
+    // relative_pointer per host sample while this control holds the mode,
+    // then relative_pointer_ended once. Kept in a record made by the first
+    // accessor called.
+    [[nodiscard]] Event<RelativePointerEventArgs&>& relative_pointer() {
+        return relative_pointer_events().relative_pointer;
+    }
+    [[nodiscard]] Event<const RelativePointerEnded&>& relative_pointer_ended() {
+        return relative_pointer_events().relative_pointer_ended;
+    }
     [[nodiscard]] ControlBindingsCollection& data_bindings();
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
     // Keeps `link`, a form binding's link of one of this control's
@@ -2238,6 +2260,14 @@ private:
     };
     KeyEvents& key_events();
     std::unique_ptr<KeyEvents> key_events_{};
+    // The relative pointer events, made on first access; null while nobody
+    // has asked for one.
+    struct RelativePointerEvents final {
+        Event<RelativePointerEventArgs&> relative_pointer;
+        Event<const RelativePointerEnded&> relative_pointer_ended;
+    };
+    RelativePointerEvents& relative_pointer_events();
+    std::unique_ptr<RelativePointerEvents> relative_pointer_events_{};
     Event<bool> focus_observed_;
     Event<Rect> arranged_bounds_changed_;
     Event<HelpRequestEvent&> help_requested_;

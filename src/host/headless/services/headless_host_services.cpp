@@ -36,6 +36,16 @@ HostServiceStatus HeadlessHostServices::set_pointer_capture_impl(
     return {};
 }
 
+HostServiceStatus HeadlessHostServices::set_relative_pointer_impl(const HostRelativePointerRequest& request) {
+    relative_pointer_request_ = request;
+    return {};
+}
+
+HostServiceStatus HeadlessHostServices::warp_pointer_impl(Point position) {
+    last_pointer_warp_ = position;
+    return {};
+}
+
 HostClipboardTextResult HeadlessHostServices::read_clipboard_text_impl() {
     return {{}, clipboard_text_, clipboard_generation_, clipboard_has_text_};
 }

@@ -68,6 +68,19 @@ public:
         double device_scale, CursorKind fallback = CursorKind::arrow);
     [[nodiscard]] HostServiceStatus set_pointer_capture(
         bool captured, std::uint64_t pointer_id = 1);
+    // Relative pointer mode (capability relative_pointer; the window calls
+    // it from SurfaceRoot::begin_relative_pointer and its ends). An active
+    // request puts the native pointer in `request.mode`; an inactive one
+    // gives the ordinary pointer back (shown, free, absolute moves) and is
+    // accepted whenever the pointer is in the mode. Refused, changing
+    // nothing: unsupported without relative_pointer, or for a confined or
+    // locked mode without pointer_confinement; invalid_argument for a mode
+    // outside the enumeration or a confine rectangle that is not finite and
+    // positive in a confined mode. Shutdown gives the pointer back.
+    [[nodiscard]] HostServiceStatus set_relative_pointer(const HostRelativePointerRequest& request);
+    // Moves the pointer to `position`, window logical units (capability
+    // pointer_warp). invalid_argument for a position that is not finite.
+    [[nodiscard]] HostServiceStatus warp_pointer(Point position);
     [[nodiscard]] HostClipboardTextResult read_clipboard_text();
     [[nodiscard]] HostServiceStatus write_clipboard_text(
         std::string_view text_utf8);
@@ -174,6 +187,11 @@ protected:
         const CursorImagesPtr& images, const CursorImage& image);
     [[nodiscard]] virtual HostServiceStatus set_pointer_capture_impl(
         bool captured, std::uint64_t pointer_id) = 0;
+    // Called with a validated request whose capabilities the host
+    // advertises. An inactive request must give the pointer back even when
+    // it reports a failure. The defaults refuse as unsupported.
+    [[nodiscard]] virtual HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest& request);
+    [[nodiscard]] virtual HostServiceStatus warp_pointer_impl(Point position);
     [[nodiscard]] virtual HostClipboardTextResult read_clipboard_text_impl() = 0;
     [[nodiscard]] virtual HostServiceStatus write_clipboard_text_impl(
         std::string_view text_utf8) = 0;

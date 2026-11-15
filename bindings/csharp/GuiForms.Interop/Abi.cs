@@ -27,6 +27,7 @@ public static unsafe class Abi
     public static ref readonly gf_bindings_table bindings => ref tables().bindings;
     public static ref readonly gf_classes_table classes => ref tables().classes;
     public static ref readonly gf_content_table content => ref tables().content;
+    public static ref readonly gf_controls_table controls => ref tables().controls;
 
     // Immutable once built: the published reference is the only writer's
     // hand-off, so readers need no lock.
@@ -42,11 +43,13 @@ public static unsafe class Abi
         public readonly gf_bindings_table bindings;
         public readonly gf_classes_table classes;
         public readonly gf_content_table content;
+        public readonly gf_controls_table controls;
 
         public Tables(gf_runtime_table runtime, gf_objects_table objects, gf_properties_table properties,
                       gf_events_table events, gf_dispatch_table dispatch, gf_diagnostics_table diagnostics,
                       gf_windows_table windows, gf_bindings_table bindings, gf_classes_table classes,
-                      gf_content_table content)
+                      gf_content_table content,
+                      gf_controls_table controls)
         {
             this.runtime = runtime;
             this.objects = objects;
@@ -58,6 +61,7 @@ public static unsafe class Abi
             this.bindings = bindings;
             this.classes = classes;
             this.content = content;
+            this.controls = controls;
         }
     }
 
@@ -95,8 +99,9 @@ public static unsafe class Abi
             negotiate(Exports.get_bindings_table(out gf_bindings_table bindings), "bindings");
             negotiate(Exports.get_classes_table(out gf_classes_table classes), "classes");
             negotiate(Exports.get_content_table(out gf_content_table content), "content");
+            negotiate(Exports.get_controls_table(out gf_controls_table controls), "controls");
             Tables made = new Tables(runtime, objects, properties, events, dispatch, diagnostics, windows, bindings,
-                                     classes, content);
+                                     classes, content, controls);
             negotiated = made;
             return made;
         }

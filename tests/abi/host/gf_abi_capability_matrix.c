@@ -61,6 +61,10 @@ static const capability_name capability_names[] = {
     {"window_corners", GF_HOST_CAPABILITY_WINDOW_CORNERS},
     {"window_state_reports", GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS},
     {"hosted_content", GF_HOST_CAPABILITY_HOSTED_CONTENT},
+    {"relative_pointer", GF_HOST_CAPABILITY_RELATIVE_POINTER},
+    {"raw_pointer_motion", GF_HOST_CAPABILITY_RAW_POINTER_MOTION},
+    {"pointer_confinement", GF_HOST_CAPABILITY_POINTER_CONFINEMENT},
+    {"pointer_warp", GF_HOST_CAPABILITY_POINTER_WARP},
 };
 
 enum { capability_name_count = (int)(sizeof(capability_names) / sizeof(capability_names[0])) };

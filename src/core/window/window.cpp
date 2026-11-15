@@ -501,6 +501,8 @@ void SurfaceRoot::DeferredInputVisitor::operator()(InputEvent&& event) const {
         static_cast<void>((*root).dispatch_text(std::move(event)));
     } else if constexpr (std::is_same_v<EventType, DragEvent>) {
         static_cast<void>((*root).dispatch_drag(std::move(event)));
+    } else if constexpr (std::is_same_v<EventType, HostRelativeMotionEvent>) {
+        static_cast<void>((*root).dispatch_relative_motion(event));
     } else if (event.owner.value != 0U) {
         static_cast<void>((*root).perform_semantic_action(
             event.owner, event.stable_id, event.action, event.value));
@@ -963,6 +965,9 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
         moved.stable_id = std::string((*current).stable_id().value());
     }
     if (tool_tips_) (*tool_tips_).focus_changed(current);
+    // Focus moving outside the relative pointer's owner gives the pointer
+    // back, before the change is announced.
+    end_relative_pointer_for_focus(current);
     focused_control_changed_.emit(moved);
     return true;
 }
@@ -1425,8 +1430,10 @@ FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
     focus_scopes_.push_back(state);
     ++semantic_generation_;
     // A modal layer or menu over the window ends the pointer sequences in
-    // progress (input order rule 5).
+    // progress (input order rule 5), and a relative pointer mode whose owner
+    // it does not hold.
     break_pointer_sequences();
+    end_relative_pointer_for_scope(root);
 
     const std::size_t depth = focus_scope_depth();
     metrics_.record_focus_scope_opened(depth);
@@ -1818,6 +1825,16 @@ bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
         return defer_input(DeferredInput{std::move(event)});
     }
     metrics_.record_input();
+    // An event nobody stamped carries its dispatch time
+    // (PointerEvent::timestamp_nanoseconds).
+    if (event.timestamp_nanoseconds == 0U) {
+        const FrameTime stamped = input_now();
+        event.timestamp_nanoseconds = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(stamped.time_since_epoch()).count());
+    }
+    // A confined or locked relative pointer takes buttons and the wheel as
+    // its samples (no routing, no derived clicks); free mode routes on.
+    if (relative_pointer_.active && relative_pointer_takes_pointer(event)) return true;
     // The input state sees the event before any control does.
     detail::InteractionState& interaction = interaction_state();
     interaction.note_pointer(event);
@@ -2236,6 +2253,8 @@ bool SurfaceRoot::dispatch_key_in_frame(KeyEvent event) {
     }
     // A lifted drop-down or picker's Popup window takes the key first.
     if (forward_to_popup(event)) return true;
+    // Escape ends a relative pointer mode, and the key goes no further.
+    if (relative_pointer_takes_key(event)) return true;
     // A running drag takes the keys it uses (Escape; the keyboard mode's
     // arrows, Tab and Enter) before the rules and the focused control.
     if (drag_engine_ && (*drag_engine_).key(event)) return true;
@@ -3136,6 +3155,7 @@ void SurfaceRoot::revoke_interaction_for_subtree(const Control::Ptr& control,
     if (contains_control(control, captured_.lock())) {
         change_pointer_capture({}, 0, true);
     }
+    end_relative_pointer_for_subtree(control);
     if (contains_control(control, pressed_.lock())) {
         pressed_.reset();
         metrics_.record_press_revocation();

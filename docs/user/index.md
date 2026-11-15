@@ -30,6 +30,7 @@ properties
 forms
 input-and-focus
 mouse-events
+relative-pointer
 styled-text
 values-commands-and-binding
 rules

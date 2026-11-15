@@ -5,6 +5,9 @@
 #include "macos_view.hpp"
 #include "../application/macos_values.hpp"
 #include "macos_scroll_phase.hpp"
+#include "../services/appkit_relative_pointer.hpp"
+
+#include <algorithm>
 
 static Modifier modifiers_for(NSEventModifierFlags flags) {
     Modifier result = Modifier::none;
@@ -305,7 +308,41 @@ static std::vector<DragDataItem> drag_items_for(NSPasteboard* pasteboard) {
     return GFPoint{point.x, point.y};
 }
 
+// Relative pointer mode (services/appkit_relative_pointer.hpp): one
+// HostRelativeMotionEvent per moved or dragged event. A confined pointer
+// outside its rectangle is warped back to the nearest point inside. YES
+// when the absolute move is not to be dispatched (confined and locked).
+- (BOOL)dispatchRelativeMotion:(NSEvent*)event {
+    if (_hostServices == nullptr) return NO;
+    const gui_forms::host::detail::MacRelativePointerState relative =
+        gui_forms::host::detail::macos_relative_pointer_state(*_hostServices);
+    if (!relative.active) return NO;
+    HostRelativeMotionEvent motion{};
+    motion.delta = GFPoint{event.deltaX, event.deltaY};
+    motion.unaccelerated = false;
+    motion.modifiers = modifiers_for(event.modifierFlags);
+    motion.timestamp_nanoseconds = host_event_nanoseconds(event);
+    if (relative.mode != gui_forms::RelativePointerMode::locked) {
+        const GFPoint at = [self modelPointForEvent:event];
+        GFPoint kept = at;
+        if (relative.mode == gui_forms::RelativePointerMode::confined) {
+            const gui_forms::Rect area = relative.confine;
+            kept.x = std::clamp(at.x, area.x, std::max(area.x, area.x + area.width - 1.0));
+            kept.y = std::clamp(at.y, area.y, std::max(area.y, area.y + area.height - 1.0));
+            if (kept.x != at.x || kept.y != at.y) {
+                static_cast<void>((*_hostServices).warp_pointer(kept));
+            }
+        }
+        motion.position = kept;
+    }
+    static_cast<void>([self dispatchHostPayload:std::move(motion)
+                               timestampNanoseconds:host_event_nanoseconds(event)]);
+    [self collectDamage];
+    return relative.mode != gui_forms::RelativePointerMode::free;
+}
+
 - (void)dispatchPointerEvent:(NSEvent*)event action:(PointerAction)action {
+    if (action == PointerAction::move && [self dispatchRelativeMotion:event]) return;
     PointerEvent input;
     input.action = action;
     input.button = button_for(event.buttonNumber);
@@ -314,6 +351,7 @@ static std::vector<DragDataItem> drag_items_for(NSPasteboard* pasteboard) {
     input.pointer_id = 1;
     input.click_count = static_cast<std::uint32_t>(
         std::max<NSInteger>(1, event.clickCount));
+    input.timestamp_nanoseconds = host_event_nanoseconds(event);
     const GFPoint position = input.position;
     static_cast<void>([self dispatchHostPayload:std::move(input)
                                timestampNanoseconds:host_event_nanoseconds(event)]);
@@ -444,6 +482,7 @@ static std::vector<DragDataItem> drag_items_for(NSPasteboard* pasteboard) {
     input.wheel_delta = GFPoint{event.scrollingDeltaX, event.scrollingDeltaY};
     input.wheel_unit = event.hasPreciseScrollingDeltas ? WheelDeltaUnit::pixels : WheelDeltaUnit::lines;
     input.wheel_phase = gui_forms::host::macos::wheel_phase_for(event.phase, event.momentumPhase);
+    input.timestamp_nanoseconds = host_event_nanoseconds(event);
     input.modifiers = modifiers_for(event.modifierFlags);
     input.pointer_id = 1;
     static_cast<void>([self dispatchHostPayload:std::move(input)

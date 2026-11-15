@@ -563,6 +563,81 @@ HostServiceStatus HostServices::set_pointer_capture(bool captured,
     return status;
 }
 
+HostServiceStatus HostServices::set_relative_pointer(const HostRelativePointerRequest& request) {
+    HostServiceStatus status = validate_request(HostCapability::relative_pointer);
+    if (!status.accepted()) {
+        return status;
+    }
+    if (!request.active) {
+        if (!snapshot_.relative_pointer_active) {
+            return status;
+        }
+        // Giving the pointer back cannot be refused: the state follows it
+        // whatever the adapter reports.
+        status = set_relative_pointer_impl(request);
+        snapshot_.relative_pointer_active = false;
+        ++snapshot_.relative_pointer_updates;
+        if (!status.accepted()) {
+            ++snapshot_.rejected_requests;
+        }
+        return status;
+    }
+    bool valid_mode = false;
+    switch (request.mode) {
+    case RelativePointerMode::free:
+    case RelativePointerMode::confined:
+    case RelativePointerMode::locked:
+        valid_mode = true;
+        break;
+    default:
+        valid_mode = false;
+        break;
+    }
+    const bool takes_pointer = request.mode != RelativePointerMode::free;
+    const bool confine_valid = std::isfinite(request.confine.x) && std::isfinite(request.confine.y) &&
+                               std::isfinite(request.confine.width) && std::isfinite(request.confine.height) &&
+                               request.confine.width > 0.0 && request.confine.height > 0.0;
+    if (!valid_mode || (request.mode == RelativePointerMode::confined && !confine_valid)) {
+        return reject(HostServiceError::invalid_argument);
+    }
+    if (takes_pointer && !snapshot_.capabilities.supports(HostCapability::pointer_confinement)) {
+        return reject(HostServiceError::unsupported);
+    }
+    status = set_relative_pointer_impl(request);
+    if (status.accepted()) {
+        snapshot_.relative_pointer_active = true;
+        ++snapshot_.relative_pointer_updates;
+    } else {
+        ++snapshot_.rejected_requests;
+    }
+    return status;
+}
+
+HostServiceStatus HostServices::warp_pointer(Point position) {
+    HostServiceStatus status = validate_request(HostCapability::pointer_warp);
+    if (!status.accepted()) {
+        return status;
+    }
+    if (!std::isfinite(position.x) || !std::isfinite(position.y)) {
+        return reject(HostServiceError::invalid_argument);
+    }
+    status = warp_pointer_impl(position);
+    if (status.accepted()) {
+        ++snapshot_.pointer_warps;
+    } else {
+        ++snapshot_.rejected_requests;
+    }
+    return status;
+}
+
+HostServiceStatus HostServices::set_relative_pointer_impl(const HostRelativePointerRequest&) {
+    return {HostServiceError::unsupported};
+}
+
+HostServiceStatus HostServices::warp_pointer_impl(Point) {
+    return {HostServiceError::unsupported};
+}
+
 HostClipboardTextResult HostServices::read_clipboard_text() {
     HostClipboardTextResult result;
     result.status = validate_request(HostCapability::clipboard);
@@ -1067,6 +1142,12 @@ void HostServices::shutdown() noexcept {
         return;
     }
     revoke_cursor_interaction(CursorError::closing);
+    // The pointer is given back before the services that took it end.
+    if (snapshot_.relative_pointer_active) {
+        HostRelativePointerRequest release{};
+        static_cast<void>(set_relative_pointer_impl(release));
+        snapshot_.relative_pointer_active = false;
+    }
     // No icon outlives the services that showed it.
     for (const HostTrayIconId icon_id : tray_icons_) remove_tray_icon_impl(icon_id);
     tray_icons_.clear();

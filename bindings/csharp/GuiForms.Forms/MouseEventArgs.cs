@@ -86,6 +86,9 @@ public sealed unsafe class MouseEventArgs : EventArgs
             case "pointer_id":
                 pointer_id = (uint)integer_of(value);
                 break;
+            case "timestamp_nanoseconds":
+                timestamp_nanoseconds = (ulong)integer_of(value);
+                break;
             case "phase":
                 phase = integer_of(value);
                 break;
@@ -145,6 +148,13 @@ public sealed unsafe class MouseEventArgs : EventArgs
 
     /// <summary>The pointer's identity, as the host reported it.</summary>
     public uint pointer_id { get; }
+
+    /// <summary>
+    /// The host's time for the event, in nanoseconds of the library's
+    /// monotonic clock (the same unit and clock on every host; differences
+    /// between events are their real spacing).
+    /// </summary>
+    public ulong timestamp_nanoseconds { get; }
 
     /// <summary>The route's phase (the C++ EventPhase's number): target for a raiser.</summary>
     public long phase { get; }

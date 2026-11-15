@@ -125,6 +125,20 @@ public:
   ~Services() override;
   // Offers an X event to the tray icons; true when one of them took it.
   bool tray_event(const XEvent &event);
+  // Relative pointer mode (gui_forms/events/relative_pointer): XI2 raw
+  // motion on the root window for the deltas (raw_values unaccelerated,
+  // valuators.values accelerated), a core pointer grab confined to an
+  // InputOnly child covering the confine rectangle (confined) or to the
+  // window with the pointer warped back after each sample (locked), and
+  // XFixes to hide the pointer. While confined or locked, the window
+  // dispatches no MotionNotify (relative_takes_motion).
+  [[nodiscard]] bool relative_takes_motion() const noexcept {
+    return relative_.active && relative_.mode != RelativePointerMode::free;
+  }
+  // One raw motion sample in device pixels, both forms, at `timestamp`
+  // (FrameClock nanoseconds): one HostRelativeMotionEvent while the mode
+  // is in force; nothing otherwise.
+  void relative_raw_motion(Point raw, Point accelerated, std::uint64_t timestamp);
 
 protected:
   HostMonitorResult query_monitors_impl() override;
@@ -148,6 +162,8 @@ protected:
   void shutdown_impl() noexcept override;
   HostServiceStatus set_pointer_capture_impl(bool captured,
                                              std::uint64_t) override;
+  HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest &request) override;
+  HostServiceStatus warp_pointer_impl(Point position) override;
   HostClipboardTextResult read_clipboard_text_impl() override;
   HostServiceStatus write_clipboard_text_impl(std::string_view text) override;
   HostClipboardImageResult read_clipboard_image_impl() override;
@@ -168,8 +184,19 @@ private:
     ::Cursor native;
   };
   void forward_tray_event(const HostTrayIconEvent &event) { publish_tray_icon_event(event); }
+  // Gives the pointer back: ungrabbed, shown, raw motion deselected, the
+  // confine window destroyed. Cannot fail in a way that keeps it.
+  void release_relative_pointer() noexcept;
   std::vector<CursorEntry> cursors_;
   NativeWindow &window_;
+  // The mode as applied (inactive when none), the InputOnly window a
+  // confined grab is confined to (0 when none), whether XFixes hid the
+  // pointer, and where a locked pointer is held (device pixels).
+  HostRelativePointerRequest relative_{};
+  ::Window confine_window_{};
+  bool relative_cursor_hidden_{};
+  int lock_x_{};
+  int lock_y_{};
   // Created with the first icon.
   std::unique_ptr<X11TrayIcons> tray_;
 };
@@ -455,6 +482,19 @@ public:
   // RandR's first event number, where the build has Xrandr and the server
   // offers it; -1 otherwise, and no screen change is reported.
   int randr_event_base{-1};
+  // XInput 2's major opcode where the build has libXi (GUI_FORMS_HAVE_XI2)
+  // and the server offers XI 2.0 or later; -1 otherwise, and relative
+  // pointer mode is not offered (Services drops relative_pointer and
+  // raw_pointer_motion).
+  int xi_opcode{-1};
+  // The server's 32-bit millisecond time of an event, unwrapped and mapped
+  // onto the steady clock (HostEventClock): PointerEvent and
+  // HostRelativeMotionEvent timestamps. UI thread.
+  [[nodiscard]] std::uint64_t server_time_nanoseconds(Time time) noexcept;
+  HostEventClock server_clock{};
+  std::uint32_t last_server_time{};
+  std::uint64_t server_time_wraps{};
+  bool server_time_seen{};
   Display *display{};
   std::array<std::uint32_t, 256> physical_keys{};
   XIM input_method{};

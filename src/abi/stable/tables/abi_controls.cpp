@@ -1,5 +1,5 @@
-// GF_TABLE_CONTROLS: layout transactions, window bounds, pointer capture and
-// scrolling. See gf_abi.h.
+// GF_TABLE_CONTROLS: layout transactions, window bounds, pointer capture,
+// scrolling, focus and relative pointer mode. See gf_abi.h.
 
 #include "abi_control_entry.hpp"
 #include "abi_records.hpp"
@@ -10,8 +10,10 @@
 #include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 
+#include <array>
 #include <cmath>
 #include <cstdint>
+#include <span>
 #include <memory>
 #include <optional>
 
@@ -43,12 +45,20 @@ constexpr SlotIdentity scroll_into_view_slot{GF_TABLE_CONTROLS, 9U};
 constexpr SlotIdentity invalidate_slot{GF_TABLE_CONTROLS, 10U};
 constexpr SlotIdentity focus_slot{GF_TABLE_CONTROLS, 11U};
 constexpr SlotIdentity focus_state_slot{GF_TABLE_CONTROLS, 12U};
+constexpr SlotIdentity request_relative_pointer_slot{GF_TABLE_CONTROLS, 13U};
+constexpr SlotIdentity release_relative_pointer_slot{GF_TABLE_CONTROLS, 14U};
+constexpr SlotIdentity relative_pointer_state_slot{GF_TABLE_CONTROLS, 15U};
+constexpr SlotIdentity warp_pointer_slot{GF_TABLE_CONTROLS, 16U};
+constexpr SlotIdentity set_pointer_release_regions_slot{GF_TABLE_CONTROLS, 17U};
 
 constexpr std::uint32_t layout_transaction_size_1_0 = 32U;
 constexpr std::uint32_t scroll_snapshot_size_1_0 = 248U;
 static_assert(sizeof(gf_layout_transaction) == layout_transaction_size_1_0);
 static_assert(sizeof(gf_scroll_axis) == 48U);
 static_assert(sizeof(gf_scroll_snapshot) == scroll_snapshot_size_1_0);
+static_assert(sizeof(gf_relative_pointer_request) == 24U);
+static_assert(sizeof(gf_relative_pointer_grant) == 24U);
+static_assert(sizeof(gf_relative_pointer_state) == 96U);
 
 constexpr const char* not_scrollable = "the control does not scroll";
 
@@ -400,6 +410,197 @@ gf_status GF_CALL controls_focus_state(gf_object object, std::uint32_t* focused,
     return call_slot(focus_state_slot, controls_focus_state_body, object, focused, contains_focus);
 }
 
+gf_relative_pointer_mode c_mode(RelativePointerMode mode) noexcept {
+    switch (mode) {
+    case RelativePointerMode::confined: return GF_RELATIVE_POINTER_MODE_CONFINED;
+    case RelativePointerMode::locked: return GF_RELATIVE_POINTER_MODE_LOCKED;
+    case RelativePointerMode::free:
+    default: return GF_RELATIVE_POINTER_MODE_FREE;
+    }
+}
+
+gf_relative_pointer_result c_result(RelativePointerResult result) noexcept {
+    switch (result) {
+    case RelativePointerResult::granted: return GF_RELATIVE_POINTER_RESULT_GRANTED;
+    case RelativePointerResult::degraded: return GF_RELATIVE_POINTER_RESULT_DEGRADED;
+    case RelativePointerResult::not_active: return GF_RELATIVE_POINTER_RESULT_NOT_ACTIVE;
+    case RelativePointerResult::no_press: return GF_RELATIVE_POINTER_RESULT_NO_PRESS;
+    case RelativePointerResult::invalid_request: return GF_RELATIVE_POINTER_RESULT_INVALID_REQUEST;
+    case RelativePointerResult::detached:
+    default: return GF_RELATIVE_POINTER_RESULT_DETACHED;
+    }
+}
+
+gf_relative_pointer_end c_end(RelativePointerEnd end) noexcept {
+    switch (end) {
+    case RelativePointerEnd::escape: return GF_RELATIVE_POINTER_END_ESCAPE;
+    case RelativePointerEnd::focus_lost: return GF_RELATIVE_POINTER_END_FOCUS_LOST;
+    case RelativePointerEnd::deactivated: return GF_RELATIVE_POINTER_END_DEACTIVATED;
+    case RelativePointerEnd::modal: return GF_RELATIVE_POINTER_END_MODAL;
+    case RelativePointerEnd::detached: return GF_RELATIVE_POINTER_END_DETACHED;
+    case RelativePointerEnd::press_released: return GF_RELATIVE_POINTER_END_PRESS_RELEASED;
+    case RelativePointerEnd::superseded: return GF_RELATIVE_POINTER_END_SUPERSEDED;
+    case RelativePointerEnd::released:
+    default: return GF_RELATIVE_POINTER_END_RELEASED;
+    }
+}
+
+gf_status GF_CALL controls_request_relative_pointer(gf_object object, const gf_relative_pointer_request* request,
+                                                    gf_relative_pointer_grant* grant) noexcept {
+    const SlotIdentity slot = request_relative_pointer_slot;
+    try {
+        const ShadowFrameScope shadow_frame(slot.table_id, slot.slot_index);
+        if (request == nullptr || (*request).struct_size < sizeof(gf_relative_pointer_request)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the request is null or smaller than its 1.5 size");
+        }
+        const gf_status checked = check_record(grant, slot);
+        if (checked != GF_STATUS_OK) {
+            return checked;
+        }
+        if ((*request).hide_cursor > 1U || (*request).raw_motion > 1U || (*request).until_release > 1U) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "hide_cursor, raw_motion and until_release are 0 or 1");
+        }
+        Control::Ptr control;
+        const gf_status entered = enter_live_control(object, slot, control);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        RelativePointerRequest asked{};
+        switch ((*request).mode) {
+        case GF_RELATIVE_POINTER_MODE_FREE: asked.mode = RelativePointerMode::free; break;
+        case GF_RELATIVE_POINTER_MODE_CONFINED: asked.mode = RelativePointerMode::confined; break;
+        case GF_RELATIVE_POINTER_MODE_LOCKED: asked.mode = RelativePointerMode::locked; break;
+        default: return fail(GF_STATUS_INVALID_ARGUMENT, slot, "mode is a gf_relative_pointer_mode");
+        }
+        asked.hide_cursor = (*request).hide_cursor == 1U;
+        asked.raw_motion = (*request).raw_motion == 1U;
+        asked.until_release = (*request).until_release == 1U;
+        const RelativePointerGrant granted = (*control).request_relative_pointer(asked);
+        gf_relative_pointer_grant complete{};
+        complete.result = c_result(granted.result);
+        complete.mode = c_mode(granted.mode);
+        complete.raw = granted.raw ? 1U : 0U;
+        complete.cursor_hidden = granted.cursor_hidden ? 1U : 0U;
+        complete.host_relative = granted.host_relative ? 1U : 0U;
+        write_record(complete, grant);
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(slot);
+    }
+}
+
+gf_status GF_CALL controls_release_relative_pointer(gf_object object, std::uint32_t* released) noexcept {
+    const SlotIdentity slot = release_relative_pointer_slot;
+    try {
+        const ShadowFrameScope shadow_frame(slot.table_id, slot.slot_index);
+        Control::Ptr control;
+        const gf_status entered = enter_live_control(object, slot, control);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        const bool ended = (*control).release_relative_pointer();
+        if (released != nullptr) *released = ended ? 1U : 0U;
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(slot);
+    }
+}
+
+gf_status GF_CALL controls_relative_pointer_state(gf_object object, gf_relative_pointer_state* state) noexcept {
+    const SlotIdentity slot = relative_pointer_state_slot;
+    try {
+        const ShadowFrameScope shadow_frame(slot.table_id, slot.slot_index);
+        const gf_status checked = check_record(state, slot);
+        if (checked != GF_STATUS_OK) {
+            return checked;
+        }
+        Control::Ptr control;
+        const gf_status entered = enter_live_control(object, slot, control);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        gf_relative_pointer_state complete{};
+        SurfaceRoot* const window = (*control).attached_surface_root();
+        if (window != nullptr) {
+            const RelativePointerSnapshot snapshot = (*window).relative_pointer_snapshot();
+            const RelativePointerSupport support = (*window).relative_pointer_support();
+            complete.owned = (*control).has_relative_pointer() ? 1U : 0U;
+            complete.active = snapshot.active ? 1U : 0U;
+            complete.suspended = snapshot.suspended ? 1U : 0U;
+            complete.mode = c_mode(snapshot.mode);
+            complete.raw = snapshot.raw ? 1U : 0U;
+            complete.host_relative = snapshot.host_relative ? 1U : 0U;
+            complete.last_end = c_end(snapshot.last_end);
+            complete.grants = snapshot.grants;
+            complete.samples = snapshot.samples;
+            complete.suspensions = snapshot.suspensions;
+            complete.resumptions = snapshot.resumptions;
+            complete.ends = snapshot.ends;
+            complete.support_relative_motion = support.relative_motion ? 1U : 0U;
+            complete.support_raw_motion = support.raw_motion ? 1U : 0U;
+            complete.support_lock = support.lock ? 1U : 0U;
+            complete.support_confine = support.confine ? 1U : 0U;
+            complete.support_warp = support.warp ? 1U : 0U;
+        }
+        write_record(complete, state);
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(slot);
+    }
+}
+
+gf_status GF_CALL controls_warp_pointer(gf_object object, gf_logical_point position, std::uint32_t* warped) noexcept {
+    const SlotIdentity slot = warp_pointer_slot;
+    try {
+        const ShadowFrameScope shadow_frame(slot.table_id, slot.slot_index);
+        if (!std::isfinite(position.x) || !std::isfinite(position.y)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the position is not finite");
+        }
+        Control::Ptr control;
+        const gf_status entered = enter_live_control(object, slot, control);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        const bool moved = (*control).warp_pointer(Point{position.x, position.y});
+        if (warped != nullptr) *warped = moved ? 1U : 0U;
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(slot);
+    }
+}
+
+gf_status GF_CALL controls_set_pointer_release_regions(gf_object object, const gf_logical_rect* regions,
+                                                       std::uint32_t count) noexcept {
+    const SlotIdentity slot = set_pointer_release_regions_slot;
+    try {
+        const ShadowFrameScope shadow_frame(slot.table_id, slot.slot_index);
+        if (count > maximum_pointer_release_regions || (count != 0U && regions == nullptr)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "at most 8 regions, and an array for any");
+        }
+        Control::Ptr control;
+        const gf_status entered = enter_live_control(object, slot, control);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        SurfaceRoot* const window = (*control).attached_surface_root();
+        if (window == nullptr) {
+            return fail(GF_STATUS_INVALID_STATE, slot, "the control is not in a window");
+        }
+        std::array<Rect, maximum_pointer_release_regions> copied{};
+        for (std::uint32_t index = 0; index < count; ++index) {
+            const gf_logical_rect region = regions[index];
+            copied[index] = Rect{region.x, region.y, region.width, region.height};
+        }
+        const bool set = (*window).set_pointer_release_regions(std::span<const Rect>(copied.data(), count));
+        if (!set) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a region is not finite or is empty");
+        }
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(slot);
+    }
+}
+
 constexpr gf_controls_table table{
     .struct_size = sizeof(gf_controls_table),
     .abi_minor = GF_ABI_MINOR,
@@ -416,6 +617,11 @@ constexpr gf_controls_table table{
     .invalidate = &controls_invalidate,
     .focus = &controls_focus,
     .focus_state = &controls_focus_state,
+    .request_relative_pointer = &controls_request_relative_pointer,
+    .release_relative_pointer = &controls_release_relative_pointer,
+    .relative_pointer_state = &controls_relative_pointer_state,
+    .warp_pointer = &controls_warp_pointer,
+    .set_pointer_release_regions = &controls_set_pointer_release_regions,
 };
 
 } // namespace

@@ -7,3 +7,4 @@
 #include "gui_forms/events/key_commands/key_commands.hpp"
 #include "gui_forms/events/key_events/key_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
+#include "gui_forms/events/relative_pointer/relative_pointer.hpp"

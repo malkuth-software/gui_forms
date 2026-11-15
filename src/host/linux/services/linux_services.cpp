@@ -6,10 +6,15 @@
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
+#include <X11/extensions/Xfixes.h>
+#if defined(GUI_FORMS_HAVE_XI2)
+#include <X11/extensions/XInput2.h>
+#endif
 #ifdef GUI_FORMS_HAS_XCURSOR
 #include "x11_cursor.hpp"
 #endif
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <limits>
@@ -54,6 +59,35 @@ HostCapabilities with_tray(HostCapabilities capabilities, Display *display) {
   return capabilities;
 }
 
+// Relative pointer mode needs the server's XI 2 raw motion: without it
+// (no libXi in the build, or a server without XI 2.0) the report drops
+// relative_pointer and raw_pointer_motion, and the window derives deltas
+// from positions.
+HostCapabilities with_raw_motion(HostCapabilities capabilities, const Runtime &runtime) {
+  if (runtime.xi_opcode < 0) {
+    const std::uint64_t dropped = static_cast<std::uint64_t>(HostCapability::relative_pointer) |
+                                  static_cast<std::uint64_t>(HostCapability::raw_pointer_motion);
+    capabilities.available =
+        static_cast<HostCapability>(static_cast<std::uint64_t>(capabilities.available) & ~dropped);
+  }
+  return capabilities;
+}
+
+#if defined(GUI_FORMS_HAVE_XI2)
+// Selects (or, with `on` false, deselects) XI_RawMotion from every master
+// device on the root window.
+void select_raw_motion(Display *display, bool on) {
+  std::array<unsigned char, XIMaskLen(XI_LASTEVENT)> bits{};
+  if (on)
+    XISetMask(bits.data(), XI_RawMotion);
+  XIEventMask mask{};
+  mask.deviceid = XIAllMasterDevices;
+  mask.mask_len = static_cast<int>(bits.size());
+  mask.mask = bits.data();
+  XISelectEvents(display, DefaultRootWindow(display), &mask, 1);
+}
+#endif
+
 // The X cursor-font shape for a cursor kind.
 unsigned font_cursor_shape(CursorKind cursor) noexcept {
   switch (cursor) {
@@ -85,7 +119,7 @@ unsigned font_cursor_shape(CursorKind cursor) noexcept {
 }
 } // namespace
 Services::Services(NativeWindow &window)
-    : HostServices(with_tray(linux_capabilities(), window.runtime.display)),
+    : HostServices(with_raw_motion(with_tray(linux_capabilities(), window.runtime.display), window.runtime)),
       window_(window) {}
 Services::~Services() { shutdown(); }
 bool Services::tray_event(const XEvent &event) {
@@ -446,6 +480,113 @@ HostServiceStatus Services::set_pointer_capture_impl(bool captured,
   return {status == GrabSuccess ? HostServiceError::none
                                 : HostServiceError::backend_failure};
 }
+HostServiceStatus Services::set_relative_pointer_impl(const HostRelativePointerRequest &request) {
+  if (relative_.active)
+    release_relative_pointer();
+  if (!request.active)
+    return {};
+#if defined(GUI_FORMS_HAVE_XI2)
+  Display *const display = window_.runtime.display;
+  if (window_.runtime.xi_opcode < 0)
+    return {HostServiceError::unsupported};
+  select_raw_motion(display, true);
+  relative_ = request;
+  if (request.mode == RelativePointerMode::free) {
+    XFlush(display);
+    return {};
+  }
+  const double scale = window_.scale;
+  ::Window confine_to = window_.xid;
+  if (request.mode == RelativePointerMode::confined) {
+    const int x = static_cast<int>(std::floor(request.confine.x * scale));
+    const int y = static_cast<int>(std::floor(request.confine.y * scale));
+    const unsigned width = device_extent(request.confine.width, scale);
+    const unsigned height = device_extent(request.confine.height, scale);
+    confine_window_ = XCreateWindow(display, window_.xid, x, y, width, height, 0, CopyFromParent, InputOnly,
+                                    CopyFromParent, 0, nullptr);
+    XMapWindow(display, confine_window_);
+    confine_to = confine_window_;
+  } else {
+    // Held where it is: each sample warps it back here.
+    ::Window root_return{};
+    ::Window child_return{};
+    int root_x = 0;
+    int root_y = 0;
+    unsigned mask_return = 0;
+    static_cast<void>(XQueryPointer(display, window_.xid, &root_return, &child_return, &root_x, &root_y,
+                                    &lock_x_, &lock_y_, &mask_return));
+  }
+  if (request.hide_cursor || request.mode == RelativePointerMode::locked) {
+    XFixesHideCursor(display, window_.xid);
+    relative_cursor_hidden_ = true;
+  }
+  const int grabbed = XGrabPointer(display, window_.xid, False,
+                                   ButtonPressMask | ButtonReleaseMask | PointerMotionMask, GrabModeAsync,
+                                   GrabModeAsync, confine_to, None, CurrentTime);
+  if (grabbed != GrabSuccess) {
+    release_relative_pointer();
+    return {HostServiceError::backend_failure};
+  }
+  XFlush(display);
+  return {};
+#else
+  return {HostServiceError::unsupported};
+#endif
+}
+
+void Services::release_relative_pointer() noexcept {
+  Display *const display = window_.runtime.display;
+  if (relative_.mode != RelativePointerMode::free)
+    XUngrabPointer(display, CurrentTime);
+  if (confine_window_ != 0) {
+    XDestroyWindow(display, confine_window_);
+    confine_window_ = 0;
+  }
+  if (relative_cursor_hidden_) {
+    XFixesShowCursor(display, window_.xid);
+    relative_cursor_hidden_ = false;
+  }
+#if defined(GUI_FORMS_HAVE_XI2)
+  if (window_.runtime.xi_opcode >= 0)
+    select_raw_motion(display, false);
+#endif
+  relative_ = {};
+  XFlush(display);
+}
+
+HostServiceStatus Services::warp_pointer_impl(Point position) {
+  Display *const display = window_.runtime.display;
+  const double scale = window_.scale;
+  const int x = static_cast<int>(std::lround(position.x * scale));
+  const int y = static_cast<int>(std::lround(position.y * scale));
+  XWarpPointer(display, None, window_.xid, 0, 0, 0, 0, x, y);
+  if (relative_.active && relative_.mode == RelativePointerMode::locked) {
+    lock_x_ = x;
+    lock_y_ = y;
+  }
+  XFlush(display);
+  return {};
+}
+
+void Services::relative_raw_motion(Point raw, Point accelerated, std::uint64_t timestamp) {
+  if (!relative_.active)
+    return;
+  const double scale = window_.scale;
+  const Point device = relative_.raw_motion ? raw : accelerated;
+  HostRelativeMotionEvent motion{};
+  motion.delta = Point{device.x / scale, device.y / scale};
+  motion.unaccelerated = relative_.raw_motion;
+  motion.timestamp_nanoseconds = timestamp;
+  // No position: the window keeps it from the last absolute one and the
+  // deltas (a query per sample would be a round trip).
+  const bool locked = relative_.mode == RelativePointerMode::locked;
+  static_cast<void>(window_.dispatch(motion));
+  // The dispatch may have ended the mode (a handler released it).
+  if (locked && relative_.active && relative_.mode == RelativePointerMode::locked) {
+    XWarpPointer(window_.runtime.display, None, window_.xid, 0, 0, 0, 0, lock_x_, lock_y_);
+  }
+}
+
 HostClipboardTextResult Services::read_clipboard_text_impl() {
   Runtime &runtime = window_.runtime;
   HostClipboardTextResult result;

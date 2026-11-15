@@ -4161,6 +4161,37 @@ bool Control::has_pointer_capture() const noexcept {
     return surface_root_ != nullptr && (*surface_root_).captured_control().get() == this;
 }
 
+RelativePointerGrant Control::request_relative_pointer(RelativePointerRequest request) {
+    require_mutable();
+    if (surface_root_ == nullptr) {
+        RelativePointerGrant refused{};
+        refused.result = RelativePointerResult::detached;
+        return refused;
+    }
+    const RelativePointerGrant grant = (*surface_root_).begin_relative_pointer(shared_from_this(), request);
+    return grant;
+}
+
+bool Control::release_relative_pointer() {
+    require_mutable();
+    if (!has_relative_pointer()) return false;
+    const bool ended = (*surface_root_).end_relative_pointer(RelativePointerEnd::released);
+    return ended;
+}
+
+bool Control::has_relative_pointer() const noexcept {
+    return surface_root_ != nullptr && (*surface_root_).relative_pointer_owner().get() == this;
+}
+
+bool Control::warp_pointer(Point position) {
+    require_mutable();
+    if (!has_relative_pointer()) return false;
+    const Rect bounds = absolute_bounds();
+    const Point in_window{position.x + bounds.x, position.y + bounds.y};
+    const bool warped = (*surface_root_).warp_pointer(in_window);
+    return warped;
+}
+
 void Control::set_paint_plane(PaintPlane plane) {
     require_mutable();
     if (!is_valid_paint_plane(plane)) {
@@ -5162,6 +5193,11 @@ Control::KeyEvents& Control::key_events() {
     return *key_events_;
 }
 
+Control::RelativePointerEvents& Control::relative_pointer_events() {
+    if (!relative_pointer_events_) relative_pointer_events_ = std::make_unique<RelativePointerEvents>();
+    return *relative_pointer_events_;
+}
+
 namespace {
 
 constexpr std::array<PartField<Control::Parts>, 2> control_part_fields{{
@@ -5549,12 +5585,16 @@ void Control::disconnect_control_events() noexcept {
         keys.key_press.disconnect_all();
         keys.key_up.disconnect_all();
     }
+    if (relative_pointer_events_) {
+        (*relative_pointer_events_).relative_pointer.disconnect_all();
+        (*relative_pointer_events_).relative_pointer_ended.disconnect_all();
+    }
 }
 
 namespace {
 
 // The events Control adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 33> control_interactions{{
+constexpr std::array<InteractionDeclaration, 35> control_interactions{{
     {.name = "name_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "visible_changed", .payload = "bool", .mutable_payload = false},
     {.name = "enabled_changed", .payload = "bool", .mutable_payload = false},
@@ -5588,6 +5628,8 @@ constexpr std::array<InteractionDeclaration, 33> control_interactions{{
     {.name = "key_down", .payload = "KeyEventArgs", .mutable_payload = true},
     {.name = "key_press", .payload = "KeyPressEventArgs", .mutable_payload = true},
     {.name = "key_up", .payload = "KeyEventArgs", .mutable_payload = true},
+    {.name = "relative_pointer", .payload = "RelativePointerEventArgs", .mutable_payload = true},
+    {.name = "relative_pointer_ended", .payload = "RelativePointerEnded", .mutable_payload = false},
 }};
 
 } // namespace

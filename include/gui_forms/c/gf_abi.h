@@ -80,7 +80,9 @@ extern "C" {
  * and the diagnostic overlay (owner decision 4a, 2026-11-15:
  * gf_program_identity, application.set_program_identity,
  * windows.show_business_card, diagnostics.set_diagnostic_overlay and
- * toggle_diagnostic_overlay), additions only. */
+ * toggle_diagnostic_overlay) and relative pointer mode (the gf_controls_table
+ * slots marked since 1.5 and the host capabilities RELATIVE_POINTER to
+ * POINTER_WARP), additions only. */
 #define GF_ABI_MAJOR 1u
 #define GF_ABI_MINOR 5u
 
@@ -1854,6 +1856,16 @@ typedef uint64_t gf_host_capability;
  * surface (GF_TABLE_CONTENT start_hosted). macOS and Linux; not yet
  * Windows. */
 #define GF_HOST_CAPABILITY_HOSTED_CONTENT 68719476736ull
+/* Since 1.5: relative pointer mode (gf_controls_table
+ * request_relative_pointer). RELATIVE_POINTER: the host delivers motion
+ * deltas itself (without it the window derives them from positions).
+ * RAW_POINTER_MOTION: the deltas can be unaccelerated. POINTER_CONFINEMENT:
+ * the host keeps the pointer inside a rectangle and can hold it still
+ * (locked). POINTER_WARP: the host can move the pointer. macOS and X11. */
+#define GF_HOST_CAPABILITY_RELATIVE_POINTER 137438953472ull
+#define GF_HOST_CAPABILITY_RAW_POINTER_MOTION 274877906944ull
+#define GF_HOST_CAPABILITY_POINTER_CONFINEMENT 549755813888ull
+#define GF_HOST_CAPABILITY_POINTER_WARP 1099511627776ull
 
 /* gf_window_corner_shape (since 1.1): the corner shapes a host may give a
  * window, one bit each. A window's corners at a given moment follow its
@@ -2380,6 +2392,91 @@ typedef struct gf_scroll_snapshot {
     double event_new_value;
 } gf_scroll_snapshot;
 
+/* gf_relative_pointer_mode (since 1.5; C++ RelativePointerMode): FREE keeps
+ * the ordinary pointer (shown, moving, clicking) and adds every motion
+ * sample as a delta; CONFINED keeps the pointer inside the control (and the
+ * window's release regions), its buttons and wheel samples with no clicks;
+ * LOCKED hides the pointer and holds it still, only deltas arriving. */
+typedef uint32_t gf_relative_pointer_mode;
+#define GF_RELATIVE_POINTER_MODE_FREE 0u
+#define GF_RELATIVE_POINTER_MODE_CONFINED 1u
+#define GF_RELATIVE_POINTER_MODE_LOCKED 2u
+
+/* gf_relative_pointer_result (since 1.5; C++ RelativePointerResult):
+ * GRANTED as asked; DEGRADED below what was asked (the grant says what);
+ * DETACHED, NOT_ACTIVE (the window inactive, or a dialog or menu open
+ * without the control), NO_PRESS (until_release without a held button) and
+ * INVALID_REQUEST (an unknown mode) refuse, changing nothing. */
+typedef uint32_t gf_relative_pointer_result;
+#define GF_RELATIVE_POINTER_RESULT_GRANTED 0u
+#define GF_RELATIVE_POINTER_RESULT_DEGRADED 1u
+#define GF_RELATIVE_POINTER_RESULT_DETACHED 2u
+#define GF_RELATIVE_POINTER_RESULT_NOT_ACTIVE 3u
+#define GF_RELATIVE_POINTER_RESULT_NO_PRESS 4u
+#define GF_RELATIVE_POINTER_RESULT_INVALID_REQUEST 5u
+
+/* gf_relative_pointer_end (since 1.5; C++ RelativePointerEnd): why a mode
+ * ended (the relative_pointer_ended event's reason, and last_end). */
+typedef uint32_t gf_relative_pointer_end;
+#define GF_RELATIVE_POINTER_END_RELEASED 0u
+#define GF_RELATIVE_POINTER_END_ESCAPE 1u
+#define GF_RELATIVE_POINTER_END_FOCUS_LOST 2u
+#define GF_RELATIVE_POINTER_END_DEACTIVATED 3u
+#define GF_RELATIVE_POINTER_END_MODAL 4u
+#define GF_RELATIVE_POINTER_END_DETACHED 5u
+#define GF_RELATIVE_POINTER_END_PRESS_RELEASED 6u
+#define GF_RELATIVE_POINTER_END_SUPERSEDED 7u
+
+/* A relative pointer request (since 1.5; C++ RelativePointerRequest). An
+ * input record: struct_size is sizeof(gf_relative_pointer_request) (24).
+ * hide_cursor, raw_motion and until_release are 0 or 1. */
+typedef struct gf_relative_pointer_request {
+    uint32_t struct_size;
+    gf_relative_pointer_mode mode;
+    uint32_t hide_cursor;
+    uint32_t raw_motion;
+    uint32_t until_release;
+    uint32_t reserved;
+} gf_relative_pointer_request;
+
+/* What a request got (since 1.5; C++ RelativePointerGrant). An output
+ * record, as gf_abi_version_info. host_relative: the host delivers deltas
+ * (0: the window derives them from positions). */
+typedef struct gf_relative_pointer_grant {
+    uint32_t struct_size;
+    gf_relative_pointer_result result;
+    gf_relative_pointer_mode mode;
+    uint32_t raw;
+    uint32_t cursor_hidden;
+    uint32_t host_relative;
+} gf_relative_pointer_grant;
+
+/* A window's relative pointer state as seen from one of its controls
+ * (since 1.5; C++ RelativePointerSnapshot and RelativePointerSupport). An
+ * output record, as gf_abi_version_info. owned: this control holds the
+ * mode. The support fields say what the window's host can do. */
+typedef struct gf_relative_pointer_state {
+    uint32_t struct_size;
+    uint32_t owned;
+    uint32_t active;
+    uint32_t suspended;
+    gf_relative_pointer_mode mode;
+    uint32_t raw;
+    uint32_t host_relative;
+    gf_relative_pointer_end last_end;
+    uint64_t grants;
+    uint64_t samples;
+    uint64_t suspensions;
+    uint64_t resumptions;
+    uint64_t ends;
+    uint32_t support_relative_motion;
+    uint32_t support_raw_motion;
+    uint32_t support_lock;
+    uint32_t support_confine;
+    uint32_t support_warp;
+    uint32_t reserved;
+} gf_relative_pointer_state;
+
 /*
  * GF_TABLE_CONTROLS: operations on a control that are not state: layout
  * transactions, window-relative bounds, pointer capture and scrolling. A
@@ -2437,6 +2534,34 @@ typedef struct gf_controls_table {
      * A control not in a window has neither. Either output may be null. UI
      * thread. */
     gf_status (GF_CALL* focus_state)(gf_object object, uint32_t* focused, uint32_t* contains_focus);
+    /* Relative pointer mode (since 1.5): the control asks its window for
+     * the pointer's motion as deltas, every sample, as the control's
+     * relative_pointer event (the interaction catalog's
+     * RelativePointerEventArgs), until relative_pointer_ended. Escape, focus
+     * leaving the control, the window's deactivation, a dialog or menu,
+     * and the control's disposal always end it; over a release region
+     * (set_pointer_release_regions) a confined or locked mode is suspended
+     * and the ordinary pointer reaches the region. grant receives the
+     * outcome (a refusal is GF_STATUS_OK with a refusing result).
+     * GF_STATUS_INVALID_ARGUMENT for a request flag that is not 0 or 1. UI
+     * thread. */
+    gf_status (GF_CALL* request_relative_pointer)(gf_object object, const gf_relative_pointer_request* request,
+                                                  gf_relative_pointer_grant* grant);
+    /* Ends the control's own mode; released receives 1, or 0 when it had
+     * none (may be null). */
+    gf_status (GF_CALL* release_relative_pointer)(gf_object object, uint32_t* released);
+    gf_status (GF_CALL* relative_pointer_state)(gf_object object, gf_relative_pointer_state* state);
+    /* Moves the pointer to position, in the control's logical units, where
+     * the host can (a locked mode moves its virtual position); warped
+     * receives 1 or 0 (may be null). Only while the control holds the mode.
+     * A position that is not finite gives INVALID_ARGUMENT. */
+    gf_status (GF_CALL* warp_pointer)(gf_object object, gf_logical_point position, uint32_t* warped);
+    /* Sets the release regions of the control's window, in window logical
+     * units: the shell's capsule and its kin (at most 8; count 0 clears).
+     * A region that is not finite or is empty, or more than 8, gives
+     * INVALID_ARGUMENT, changing nothing. */
+    gf_status (GF_CALL* set_pointer_release_regions)(gf_object object, const gf_logical_rect* regions,
+                                                     uint32_t count);
 } gf_controls_table;
 
 /* gf_text_ink_role: a theme ink for decorated text (C++ TextInkRole): the

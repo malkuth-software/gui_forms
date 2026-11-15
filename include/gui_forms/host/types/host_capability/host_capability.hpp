@@ -108,6 +108,17 @@ enum class HostCapability : std::uint64_t {
     // In the C ABI as GF_HOST_CAPABILITY_HOSTED_CONTENT (since 1.4).
     // Additive flag; no protocol version change.
     hosted_content = 1ULL << 37U,
+    // Relative pointer mode (cp34; host protocol version 15;
+    // events/relative_pointer). relative_pointer: the host sends motion
+    // deltas (HostRelativeMotionEvent) and hides and locks the pointer;
+    // raw_pointer_motion: unaccelerated deltas where asked;
+    // pointer_confinement: the pointer kept inside a rectangle;
+    // pointer_warp: the pointer moved by request (HostServices::
+    // warp_pointer). Each is reported only where the adapter implements it.
+    relative_pointer = 1ULL << 38U,
+    raw_pointer_motion = 1ULL << 39U,
+    pointer_confinement = 1ULL << 40U,
+    pointer_warp = 1ULL << 41U,
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,

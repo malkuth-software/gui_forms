@@ -6,6 +6,7 @@
 #include "macos_host.hpp"
 #include "appkit_clipboard_image.hpp"
 #include "appkit_status_items.hpp"
+#include "appkit_relative_pointer.hpp"
 #include "../compositor/macos_compositor.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../core/failure/fail_fast.hpp"
@@ -651,6 +652,54 @@ protected:
         return {};
     }
 
+    HostServiceStatus set_relative_pointer_impl(const gui_forms::HostRelativePointerRequest& request) override {
+        if (relative_.active) release_relative_pointer();
+        if (!request.active) {
+            return {};
+        }
+        coalescing_before_ = [NSEvent isMouseCoalescingEnabled];
+        [NSEvent setMouseCoalescingEnabled:NO];
+        if (request.mode == gui_forms::RelativePointerMode::locked) {
+            const CGError disassociated = CGAssociateMouseAndMouseCursorPosition(false);
+            if (disassociated != kCGErrorSuccess) {
+                [NSEvent setMouseCoalescingEnabled:coalescing_before_];
+                return {HostServiceError::backend_failure};
+            }
+        }
+        if (request.hide_cursor || request.mode == gui_forms::RelativePointerMode::locked) {
+            [NSCursor hide];
+            relative_cursor_hidden_ = true;
+        }
+        relative_.active = true;
+        relative_.mode = request.mode;
+        relative_.confine = request.confine;
+        return {};
+    }
+
+    HostServiceStatus warp_pointer_impl(gui_forms::Point position) override {
+        NSView* const view = backdrop_view_;
+        NSWindow* const window = view.window;
+        NSScreen* const primary = NSScreen.screens.firstObject;
+        if (view == nil || window == nil || primary == nil) {
+            return {HostServiceError::backend_failure};
+        }
+        // View (flipped, window logical units) to window, to screen (y up
+        // from the primary screen's bottom), to Quartz's global space (y
+        // down from the primary screen's top).
+        const NSPoint in_window = [view convertPoint:NSMakePoint(position.x, position.y) toView:nil];
+        const NSPoint on_screen = [window convertPointToScreen:in_window];
+        const CGPoint global = CGPointMake(on_screen.x, NSMaxY(primary.frame) - on_screen.y);
+        const CGError warped = CGWarpMouseCursorPosition(global);
+        // A warp suppresses local mouse events for a moment; associating
+        // again (or keeping a lock's disassociation) ends that at once.
+        const bool locked = relative_.active && relative_.mode == gui_forms::RelativePointerMode::locked;
+        static_cast<void>(CGAssociateMouseAndMouseCursorPosition(locked ? false : true));
+        if (warped != kCGErrorSuccess) {
+            return {HostServiceError::backend_failure};
+        }
+        return {};
+    }
+
     HostClipboardTextResult read_clipboard_text_impl() override {
         HostClipboardTextResult result;
         if (pasteboard_ == nil) {
@@ -1023,6 +1072,20 @@ protected:
 private:
     void forward_tray_event(const gui_forms::HostTrayIconEvent& event) { publish_tray_icon_event(event); }
 
+    // Gives the pointer back: associated with the mouse, shown, and
+    // AppKit's coalescing as it was. Cannot fail in a way that keeps it.
+    void release_relative_pointer() noexcept {
+        if (relative_.mode == gui_forms::RelativePointerMode::locked) {
+            static_cast<void>(CGAssociateMouseAndMouseCursorPosition(true));
+        }
+        if (relative_cursor_hidden_) {
+            [NSCursor unhide];
+            relative_cursor_hidden_ = false;
+        }
+        [NSEvent setMouseCoalescingEnabled:coalescing_before_];
+        relative_ = {};
+    }
+
     // Rewrites the style bits the named frame fields govern and keeps the
     // others: titled, resizable, closable (the control box) and
     // miniaturizable; the zoom button is enabled for the maximize box.
@@ -1092,11 +1155,18 @@ private:
     // The raster view of the window these services belong to; weak, so a
     // view that is gone applies nothing. Set once, by the view's init.
     __weak NSView* backdrop_view_{};
+    // Relative pointer mode as applied (appkit_relative_pointer.hpp), the
+    // NSCursor hide it balances, and AppKit's coalescing before it.
+    gui_forms::host::detail::MacRelativePointerState relative_{};
+    bool relative_cursor_hidden_{};
+    bool coalescing_before_{true};
     // The window's content minimum before MinimumSize was first written.
     NSSize opened_minimum_{};
     bool opened_minimum_known_{};
 
     friend void gui_forms::host::detail::bind_macos_backdrop_view(HostServices& services, NSView* raster);
+    friend gui_forms::host::detail::MacRelativePointerState
+    gui_forms::host::detail::macos_relative_pointer_state(const HostServices& services) noexcept;
 };
 
 } // namespace
@@ -1107,6 +1177,12 @@ void bind_macos_backdrop_view(HostServices& services, NSView* raster) {
     AppKitHostServices* const appkit = dynamic_cast<AppKitHostServices*>(&services);
     if (appkit == nullptr) return;
     (*appkit).backdrop_view_ = raster;
+}
+
+MacRelativePointerState macos_relative_pointer_state(const HostServices& services) noexcept {
+    const AppKitHostServices* const appkit = dynamic_cast<const AppKitHostServices*>(&services);
+    if (appkit == nullptr) return {};
+    return (*appkit).relative_;
 }
 
 } // namespace gui_forms::host::detail

@@ -33,7 +33,10 @@ namespace gui_forms {
 // leave reach no MouseEventArgs), the host's pointer identity (pointer_id;
 // one for the mouse), the route phase the raiser runs in (phase; target
 // for the raisers), what wheel_delta counts (wheel_unit) and the event's
-// place in a scroll gesture (wheel_phase). The hosts
+// place in a scroll gesture (wheel_phase). timestamp_nanoseconds is when
+// the host took the event (PointerEvent: FrameClock nanoseconds, monotonic,
+// the same clock on every host), so a fling's speed is measured between
+// events and not by when a handler runs. The hosts
 // report no touch or pen data yet, so the record carries none.
 struct GUI_FORMS_API MouseEventArgs final {
     PointerButton button{PointerButton::none};
@@ -49,6 +52,7 @@ struct GUI_FORMS_API MouseEventArgs final {
     bool handled{};
     bool suppress_click{};
     WheelPhase wheel_phase{WheelPhase::none};
+    std::uint64_t timestamp_nanoseconds{};
 };
 
 // The routed pointer event a MouseEventArgs carries, for code that takes
@@ -68,6 +72,7 @@ struct GUI_FORMS_API MouseEventArgs final {
     event.click_count = arguments.clicks;
     event.wheel_unit = arguments.wheel_unit;
     event.wheel_phase = arguments.wheel_phase;
+    event.timestamp_nanoseconds = arguments.timestamp_nanoseconds;
     return event;
 }
 
@@ -78,7 +83,7 @@ struct GUI_FORMS_API MouseEventArgs final {
 // clicks is `press_clicks` for a press or release (the window passes the
 // count the host reported for the press, which a release carries) and
 // zero otherwise; the button, wheel delta, modifiers, action, wheel unit,
-// wheel phase, pointer identity, phase and handled are the event's, and suppress_click
+// wheel phase, timestamp, pointer identity, phase and handled are the event's, and suppress_click
 // is false. The window builds its raisers' arguments with this, so the
 // routed and raiser forms cannot drift apart; Control::
 // mouse_event_arguments fills the origin and click count for a handler of
@@ -98,6 +103,7 @@ struct GUI_FORMS_API MouseEventArgs final {
     arguments.action = event.action;
     arguments.wheel_unit = event.wheel_unit;
     arguments.wheel_phase = event.wheel_phase;
+    arguments.timestamp_nanoseconds = event.timestamp_nanoseconds;
     arguments.pointer_id = event.pointer_id;
     arguments.phase = event.phase;
     arguments.handled = event.handled;

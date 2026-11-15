@@ -168,6 +168,12 @@ bool valid_pointer_report(const HostEventPayload& payload) noexcept {
     if (const HostHoverEvent* hover = std::get_if<HostHoverEvent>(&payload)) {
         return std::isfinite((*hover).position.x) && std::isfinite((*hover).position.y);
     }
+    if (const HostRelativeMotionEvent* motion = std::get_if<HostRelativeMotionEvent>(&payload)) {
+        const bool delta = std::isfinite((*motion).delta.x) && std::isfinite((*motion).delta.y);
+        const bool position = !(*motion).position.has_value() ||
+                              (std::isfinite((*(*motion).position).x) && std::isfinite((*(*motion).position).y));
+        return delta && position;
+    }
     return true;
 }
 
@@ -256,6 +262,8 @@ void HostSession::observe_modal_transition(
     ++snapshot_.modal_transitions;
     if (transition.entering && window_ != nullptr) {
         (*window_).release_pointer();
+        // A modal window or dialog gives the pointer back (relative_pointer.hpp).
+        static_cast<void>((*window_).end_relative_pointer(RelativePointerEnd::modal));
     }
 }
 
@@ -298,6 +306,9 @@ void HostSession::DispatchVisitor::operator()(
         (*result).input_deferred = drag.deferred;
         (*result).input_capacity_rejected = drag.capacity_rejected;
     } else if constexpr (std::is_same_v<Payload, PointerEvent>) {
+        // An event the host did not stamp itself carries the HostEvent's
+        // time (PointerEvent::timestamp_nanoseconds).
+        if (payload.timestamp_nanoseconds == 0U) payload.timestamp_nanoseconds = (*event).timestamp_nanoseconds;
         const DeferredInputSnapshot before =
             (*(*session).window_).deferred_input_snapshot();
         (*result).handled =
@@ -373,6 +384,10 @@ void HostSession::DispatchVisitor::operator()(
         (*result).handled = (*(*session).window_).dispatch_context_request(payload.origin, payload.position);
     } else if constexpr (std::is_same_v<Payload, HostHoverEvent>) {
         (*(*session).window_).dispatch_host_hover(payload.position);
+    } else if constexpr (std::is_same_v<Payload, HostRelativeMotionEvent>) {
+        if (payload.timestamp_nanoseconds == 0U) payload.timestamp_nanoseconds = (*event).timestamp_nanoseconds;
+        ++(*session).snapshot_.relative_motion_events;
+        (*result).handled = (*(*session).window_).dispatch_relative_motion(payload);
     } else if constexpr (std::is_same_v<Payload, HostWindowStateEvent>) {
         // Full screen first: a band that hides there gives up its
         // reservation before the corners' strips are damaged.
@@ -475,7 +490,8 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
          std::holds_alternative<TextInputEvent>(event.payload) ||
          std::holds_alternative<DragEvent>(event.payload) ||
          std::holds_alternative<HostContextRequestEvent>(event.payload) ||
-         std::holds_alternative<HostHoverEvent>(event.payload));
+         std::holds_alternative<HostHoverEvent>(event.payload) ||
+         std::holds_alternative<HostRelativeMotionEvent>(event.payload));
     if (modal_input) {
         ++snapshot_.modal_input_suppressions;
         observed_.emit(event, result);

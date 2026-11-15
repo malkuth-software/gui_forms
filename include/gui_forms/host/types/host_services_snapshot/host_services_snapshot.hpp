@@ -17,6 +17,11 @@ struct GUI_FORMS_API HostServicesSnapshot final {
     std::uint64_t monitor_queries{};
     std::uint64_t cursor_updates{};
     std::uint64_t pointer_capture_updates{};
+    // Relative pointer mode (set_relative_pointer): whether the native
+    // pointer is in it now, the accepted requests, and the pointer warps.
+    bool relative_pointer_active{};
+    std::uint64_t relative_pointer_updates{};
+    std::uint64_t pointer_warps{};
     std::uint64_t clipboard_reads{};
     std::uint64_t clipboard_writes{};
     std::uint64_t clipboard_generation{};

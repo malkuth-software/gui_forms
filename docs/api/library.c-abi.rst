@@ -306,6 +306,12 @@ Types
      -  
    * - :cpp:class:`gf_raster_canvas_class <gf_raster_canvas_class>`
      -  
+   * - :cpp:class:`gf_relative_pointer_grant <gf_relative_pointer_grant>`
+     -  
+   * - :cpp:class:`gf_relative_pointer_request <gf_relative_pointer_request>`
+     -  
+   * - :cpp:class:`gf_relative_pointer_state <gf_relative_pointer_state>`
+     -  
    * - :cpp:class:`gf_rule <gf_rule>`
      -  
    * - :cpp:class:`gf_rule_action <gf_rule_action>`
@@ -2473,6 +2479,16 @@ Types
 
    .. cpp:member:: gf_status (*focus_state)(gf_object object, uint32_t* focused, uint32_t* contains_focus)
 
+   .. cpp:member:: gf_status (*request_relative_pointer)(gf_object object, const gf_relative_pointer_request* request, gf_relative_pointer_grant* grant)
+
+   .. cpp:member:: gf_status (*release_relative_pointer)(gf_object object, uint32_t* released)
+
+   .. cpp:member:: gf_status (*relative_pointer_state)(gf_object object, gf_relative_pointer_state* state)
+
+   .. cpp:member:: gf_status (*warp_pointer)(gf_object object, gf_logical_point position, uint32_t* warped)
+
+   .. cpp:member:: gf_status (*set_pointer_release_regions)(gf_object object, const gf_logical_rect* regions, uint32_t count)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -4028,6 +4044,86 @@ Types
    .. cpp:member:: gf_class_header header
 
    .. cpp:member:: const gf_control_hooks* control
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_relative_pointer_grant
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_relative_pointer_result result
+
+   .. cpp:member:: gf_relative_pointer_mode mode
+
+   .. cpp:member:: uint32_t raw
+
+   .. cpp:member:: uint32_t cursor_hidden
+
+   .. cpp:member:: uint32_t host_relative
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_relative_pointer_request
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_relative_pointer_mode mode
+
+   .. cpp:member:: uint32_t hide_cursor
+
+   .. cpp:member:: uint32_t raw_motion
+
+   .. cpp:member:: uint32_t until_release
+
+   .. cpp:member:: uint32_t reserved
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_relative_pointer_state
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t owned
+
+   .. cpp:member:: uint32_t active
+
+   .. cpp:member:: uint32_t suspended
+
+   .. cpp:member:: gf_relative_pointer_mode mode
+
+   .. cpp:member:: uint32_t raw
+
+   .. cpp:member:: uint32_t host_relative
+
+   .. cpp:member:: gf_relative_pointer_end last_end
+
+   .. cpp:member:: uint64_t grants
+
+   .. cpp:member:: uint64_t samples
+
+   .. cpp:member:: uint64_t suspensions
+
+   .. cpp:member:: uint64_t resumptions
+
+   .. cpp:member:: uint64_t ends
+
+   .. cpp:member:: uint32_t support_relative_motion
+
+   .. cpp:member:: uint32_t support_raw_motion
+
+   .. cpp:member:: uint32_t support_lock
+
+   .. cpp:member:: uint32_t support_confine
+
+   .. cpp:member:: uint32_t support_warp
+
+   .. cpp:member:: uint32_t reserved
 
 .. cpp:namespace:: 0
 

@@ -1201,6 +1201,45 @@ public:
     [[nodiscard]] Event<const PointerCaptureChange&>& pointer_capture_changed() noexcept {
         return pointer_capture_changed_;
     }
+    // Relative pointer mode (gui_forms/events/relative_pointer gives the
+    // modes, the release regions, the ends and the order). One owner at a
+    // time: a request from another control ends the current owner's mode
+    // (superseded) before it is granted. Refused, changing nothing: detached
+    // for an owner not attached here, hidden, disabled or disposed;
+    // not_active while the window is inactive or a focus scope that does not
+    // hold the owner is open; no_press for until_release without a button
+    // held on the owner. A granted confined or locked mode ends the pointer
+    // sequences in progress (no click derives across it). Root thread.
+    [[nodiscard]] RelativePointerGrant begin_relative_pointer(const Control::Ptr& owner,
+                                                              RelativePointerRequest request);
+    // Ends the mode for `reason` and raises the owner's
+    // relative_pointer_ended once (not for an owner already disposed);
+    // false, raising nothing, without a mode.
+    bool end_relative_pointer(RelativePointerEnd reason = RelativePointerEnd::released);
+    [[nodiscard]] Control::Ptr relative_pointer_owner() const noexcept { return relative_pointer_.owner.lock(); }
+    // What this window's host can do; a window with no host derives deltas
+    // from positions and can do nothing else.
+    [[nodiscard]] RelativePointerSupport relative_pointer_support() const;
+    // The shell's release regions, window logical units (the capsule and
+    // its kin; at most maximum_pointer_release_regions, each finite and
+    // not empty, else false changing nothing). Over one, a confined or
+    // locked mode is suspended and the ordinary pointer reaches the region;
+    // see relative_pointer.hpp. The window keeps them across modes.
+    bool set_pointer_release_regions(std::span<const Rect> regions);
+    [[nodiscard]] std::span<const Rect> pointer_release_regions() const& noexcept {
+        return std::span<const Rect>(relative_pointer_.regions.data(), relative_pointer_.region_count);
+    }
+    std::span<const Rect> pointer_release_regions() const&& = delete;
+    // One host motion sample (HostRelativeMotionEvent, from HostSession or a
+    // test): raised on the owner as one relative_pointer, never merged.
+    // False when no mode is in force or it is suspended (the sample is not
+    // raised: the pointer is ordinary then).
+    bool dispatch_relative_motion(const HostRelativeMotionEvent& event);
+    // Moves the pointer to `position` (window logical units) through the
+    // host where it can warp; a locked mode moves its virtual position.
+    // False without a mode, or where the host cannot.
+    bool warp_pointer(Point position);
+    [[nodiscard]] RelativePointerSnapshot relative_pointer_snapshot() const noexcept;
     [[nodiscard]] Event<const ControlAvailabilityChange&>&
     control_availability_changed() noexcept {
         return control_availability_changed_;
@@ -2171,7 +2210,7 @@ private:
     void append_drag_announcements(SemanticSnapshot& snapshot) const;
     using DeferredInput = std::variant<
         PointerEvent, KeyEvent, TextInputEvent, DragEvent,
-        DeferredSemanticInput>;
+        DeferredSemanticInput, HostRelativeMotionEvent>;
     [[nodiscard]] bool defer_input(DeferredInput input);
     void schedule_deferred_input_drain() noexcept;
     void drain_deferred_input();
@@ -2187,6 +2226,28 @@ private:
     // entry opens its frame, calls its body and marks the frame returned.
     bool dispatch_pointer_in_frame(PointerEvent event);
     bool dispatch_key_in_frame(KeyEvent event);
+    // Relative pointer mode's part of the pointer and key paths
+    // (relative_pointer/window_relative_pointer.cpp): true when the mode
+    // took the event (a sample, or Escape), so routing stops.
+    bool relative_pointer_takes_pointer(const PointerEvent& event);
+    bool relative_pointer_takes_key(const KeyEvent& event);
+    // Ends the mode when `control`'s subtree holds its owner (detached), or
+    // when focus moved to `focused` outside the owner (focus_lost), or when
+    // a focus scope rooted at `scope_root` opens without the owner (modal).
+    void end_relative_pointer_for_subtree(const Control::Ptr& control);
+    void end_relative_pointer_for_focus(const Control::Ptr& focused);
+    void end_relative_pointer_for_scope(const Control::Ptr& scope_root);
+    void raise_relative_sample(const Control::Ptr& owner, RelativePointerEventArgs& arguments, Point window_position);
+    // Tells the host the mode (active) or gives the pointer back; false
+    // when the host refused an active request.
+    bool apply_relative_pointer_to_host(bool active);
+    [[nodiscard]] bool over_release_region(Point window_position) const noexcept;
+    // Where a confined pointer stays and a locked one's virtual position
+    // moves: the owner's bounds grown to cover every release region, within
+    // the window, so the shell's regions stay reachable.
+    [[nodiscard]] Rect relative_pointer_area(const Control& owner) const;
+    void suspend_relative_pointer(Point window_position);
+    void resume_relative_pointer();
     bool dispatch_text_in_frame(TextInputEvent event);
     DragDispatchResult dispatch_drag_in_frame(DragEvent event);
     void flush_layout_in_frame();
@@ -2509,6 +2570,34 @@ private:
     std::uint64_t next_focus_scope_id_{1U};
     Control::WeakPtr captured_;
     std::uint64_t captured_pointer_id_{};
+    // Relative pointer mode (begin_relative_pointer). owner: observed, the
+    // mode ends with it. virtual_position: a locked pointer's position in
+    // window units, moved by deltas and clamped to the window (the release
+    // regions read it). last_position: the last absolute pointer position,
+    // for deltas derived from positions (no host deltas). press_button: an
+    // until_release mode's button. escape_taken: the Escape that ended a
+    // mode, whose release is taken too. regions: the shell's release
+    // regions (shape maximum_pointer_release_regions; region_count live).
+    struct RelativePointerRecord final {
+        Control::WeakPtr owner{};
+        RelativePointerRequest request{};
+        RelativePointerGrant grant{};
+        bool active{};
+        bool suspended{};
+        bool escape_taken{};
+        Point virtual_position{};
+        std::optional<Point> last_position{};
+        PointerButton press_button{PointerButton::none};
+        std::array<Rect, maximum_pointer_release_regions> regions{};
+        std::size_t region_count{};
+        std::uint64_t grants{};
+        std::uint64_t samples{};
+        std::uint64_t suspensions{};
+        std::uint64_t resumptions{};
+        std::uint64_t ends{};
+        RelativePointerEnd last_end{RelativePointerEnd::released};
+    };
+    RelativePointerRecord relative_pointer_{};
     Event<const PointerCaptureChange&> pointer_capture_changed_;
     Event<const FocusedControlChange&> focused_control_changed_;
     Event<HelpRequestEvent&> help_requested_;

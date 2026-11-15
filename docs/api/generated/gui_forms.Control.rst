@@ -390,6 +390,8 @@ gui_forms::Control
          Whether the window currently routes pointer input to this control
          regardless of position. :cpp:func:`set_pointer_capture <gui_forms::Control::set_pointer_capture>` changes it.
 
+      **has_relative_pointer** : ``bool``, read-only
+
       **dirty** : ``Dirty``, read-only
          The invalidation flags pending on this control itself.
 
@@ -529,6 +531,11 @@ gui_forms::Control
 
       **key_up** : ``Event<KeyEventArgs&>``
 
+      **relative_pointer** : ``Event<RelativePointerEventArgs&>``
+         The relative pointer events (request_relative_pointer): one relative_pointer per host sample while this control holds the mode, then relative_pointer_ended once. Kept in a record made by the first accessor called.
+
+      **relative_pointer_ended** : ``Event<const RelativePointerEnded&>``
+
    :Inherited:
 
       It also has every member of :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
@@ -611,6 +618,12 @@ gui_forms::Control
         -  
       * - :cpp:func:`has_class <gui_forms::Control::has_class>`
         - Whether the control has the style class.
+      * - :cpp:func:`request_relative_pointer <gui_forms::Control::request_relative_pointer>`
+        - Relative pointer mode (gui_forms/events/relative_pointer): asks this control's window for the pointer's motion as deltas, every sample (relative_pointer), until the mode ends (relative_pointer_ended).
+      * - :cpp:func:`release_relative_pointer <gui_forms::Control::release_relative_pointer>`
+        -  
+      * - :cpp:func:`warp_pointer <gui_forms::Control::warp_pointer>`
+        -  
       * - :cpp:func:`invalidate <gui_forms::Control::invalidate>`
         - ``invalidate(Dirty)`` records what a change invalidated, for this control and the path to the root; the window acts on it at its next flush or paint.
       * - :cpp:func:`scroll_content <gui_forms::Control::scroll_content>`
@@ -1272,6 +1285,8 @@ gui_forms::Control
       Whether the window currently routes pointer input to this control
       regardless of position. :cpp:func:`set_pointer_capture <gui_forms::Control::set_pointer_capture>` changes it.
 
+   .. cpp:function:: bool has_relative_pointer() const noexcept
+
    .. cpp:function:: Dirty dirty() const
 
       The invalidation flags pending on this control itself.
@@ -1445,6 +1460,12 @@ gui_forms::Control
 
    .. cpp:function:: Event<KeyEventArgs&>& key_up()
 
+   .. cpp:function:: Event<RelativePointerEventArgs&>& relative_pointer()
+
+      The relative pointer events (request_relative_pointer): one relative_pointer per host sample while this control holds the mode, then relative_pointer_ended once. Kept in a record made by the first accessor called.
+
+   .. cpp:function:: Event<const RelativePointerEnded&>& relative_pointer_ended()
+
 
    .. rubric:: Methods
 
@@ -1603,6 +1624,14 @@ gui_forms::Control
    .. cpp:function:: bool has_class(std::string_view name) const noexcept
 
       Whether the control has the style class.
+
+   .. cpp:function:: RelativePointerGrant request_relative_pointer(RelativePointerRequest request = {})
+
+      Relative pointer mode (gui_forms/events/relative_pointer): asks this control's window for the pointer's motion as deltas, every sample (relative_pointer), until the mode ends (relative_pointer_ended). SurfaceRoot::begin_relative_pointer gives the rules; a detached control is refused with RelativePointerResult::detached. Release ends this control's mode only (false when it has none). warp_pointer moves the pointer to ``position`` in this control's coordinates where the host can (false where it cannot, or while this control has no mode).
+
+   .. cpp:function:: bool release_relative_pointer()
+
+   .. cpp:function:: bool warp_pointer(Point position)
 
    .. cpp:function:: void invalidate(Dirty dirty)
 

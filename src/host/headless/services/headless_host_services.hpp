@@ -71,12 +71,23 @@ public:
     void set_supported_chrome(WindowChromeFields supported) noexcept { supported_chrome_ = supported; }
     [[nodiscard]] const WindowChrome& native_chrome() const noexcept { return native_chrome_; }
     [[nodiscard]] std::uint64_t chrome_requests() const noexcept { return chrome_requests_; }
+    // The simulated pointer's relative mode: the last request
+    // set_relative_pointer applied (inactive until one), and where the last
+    // warp put the pointer (empty until one). Tests then dispatch the
+    // samples themselves (HostRelativeMotionEvent).
+    [[nodiscard]] const HostRelativePointerRequest& relative_pointer_request() const& noexcept {
+        return relative_pointer_request_;
+    }
+    const HostRelativePointerRequest& relative_pointer_request() const&& = delete;
+    [[nodiscard]] std::optional<Point> last_pointer_warp() const noexcept { return last_pointer_warp_; }
 
 protected:
     [[nodiscard]] HostMonitorResult query_monitors_impl() override;
     [[nodiscard]] HostServiceStatus set_cursor_impl(CursorKind cursor) override;
     [[nodiscard]] HostServiceStatus set_pointer_capture_impl(
         bool captured, std::uint64_t pointer_id) override;
+    [[nodiscard]] HostServiceStatus set_relative_pointer_impl(const HostRelativePointerRequest& request) override;
+    [[nodiscard]] HostServiceStatus warp_pointer_impl(Point position) override;
     [[nodiscard]] HostClipboardTextResult read_clipboard_text_impl() override;
     [[nodiscard]] HostServiceStatus write_clipboard_text_impl(
         std::string_view text_utf8) override;
@@ -107,6 +118,8 @@ private:
         HostTrayIconRequest request;
     };
     std::vector<HostMonitor> monitors_;
+    HostRelativePointerRequest relative_pointer_request_{};
+    std::optional<Point> last_pointer_warp_{};
     // The clipboard's image; absent while it holds none.
     std::optional<HostImage> clipboard_image_;
     std::string clipboard_text_;
