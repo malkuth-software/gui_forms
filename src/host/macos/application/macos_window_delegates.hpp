@@ -106,6 +106,7 @@ void finish_run(MacRunEnd& end);
 // targets below): each entry calls its answer through the fail-fast
 // boundary (call_failing_fast).
 - (void)answerWindowDidMove:(NSNotification*)notification;
+- (void)answerWindowWillClose:(NSNotification*)notification;
 - (void)answerWindowDidResize:(NSNotification*)notification;
 - (BOOL)answerWindowShouldClose:(NSWindow*)sender;
 - (void)answerWindowDidBecomeKey:(NSNotification*)notification;

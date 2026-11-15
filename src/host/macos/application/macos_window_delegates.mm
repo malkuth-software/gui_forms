@@ -103,6 +103,9 @@ namespace {
 void run_window_delegate_window_did_move(GUIFormsWindowDelegate* object, NSNotification* notification) {
     [object answerWindowDidMove:notification];
 }
+void run_window_delegate_window_will_close(GUIFormsWindowDelegate* object, NSNotification* notification) {
+    [object answerWindowWillClose:notification];
+}
 void run_window_delegate_window_did_resize(GUIFormsWindowDelegate* object, NSNotification* notification) {
     [object answerWindowDidResize:notification];
 }
@@ -199,7 +202,16 @@ void run_window_delegate_window_did_exit_full_screen(GUIFormsWindowDelegate* obj
 - (void)prepareForApplicationShutdown {
     _hideOnClose = NO;
 }
+// The whole entry runs inside the fail-fast boundary (A-gf-host-02-F10):
+// notifyClosedWithReason: dispatches HostClosedEvent to the window's
+// subscribers, which is program code too.
 - (void)windowWillClose:(NSNotification*)notification {
+    gui_forms::detail::call_failing_fast(
+        "macos.window_delegate.windowWillClose:", &run_window_delegate_window_will_close, self, notification);
+}
+
+- (void)answerWindowWillClose:(NSNotification*)notification {
+    static_cast<void>(notification);
     [_view notifyClosedWithReason:_closeReason];
     // Retired before the closed callback, so the callback may open a
     // replacement under the same stable id.
