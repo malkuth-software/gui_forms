@@ -897,26 +897,50 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         ? utf8_scalar(use_system_password_character.read() ? U'\u2022'
                                                      : password_character.read())
         : std::string{};
-    layout_positions_.clear();
-    layout_offsets_.clear();
-    layout_text_scale_ = effective_text_scale();
+    // The positions measure every grapheme prefix of the presentation, n
+    // measurements of up to n bytes. They depend only on the text revision,
+    // the presentation, the font, the metrics provider and the device scale
+    // (the painter measures through the window's provider), so a paint that
+    // changes none of them (a caret blink, a selection or scroll change)
+    // reuses them instead of measuring again (A-gf-controls-09-F4).
+    const Window* const painted_window = window();
+    const TextMetricsProvider* const provider =
+        painted_window == nullptr ? nullptr : (*painted_window).text_metrics_provider();
+    const double device_scale = painted_window == nullptr ? 1.0 : (*painted_window).scale();
+    const double text_scale = effective_text_scale();
     const std::size_t count = (*editing_).store().grapheme_count().value();
-    layout_positions_.reserve(count + 1U);
-    layout_offsets_.reserve(count + 1U);
-    const bool masked = password_protected();
-    const std::string_view presentation(presented);
-    // The last prefix is the whole presentation: its measurement serves the
-    // text parts, so the text is measured once.
-    Size presented_size{};
-    for (std::size_t index = 0U; index <= count; ++index) {
-        const Utf8Offset offset = (*editing_).store().utf8_offset(GraphemeIndex(index));
-        layout_offsets_.push_back(offset.value());
-        const std::size_t presentation_offset = masked
-            ? index * mask.size() : offset.value();
-        const std::string_view prefix = presentation.substr(0U, presentation_offset);
-        const Size prefix_size = painter.measure_text_utf8(prefix, content_font);
-        layout_positions_.push_back(prefix_size.width);
-        presented_size = prefix_size;
+    const std::uint64_t revision = (*editing_).store().revision();
+    const bool positions_current = !layout_positions_.empty() && layout_positions_.size() == count + 1U &&
+        layout_revision_ == revision &&
+        layout_offsets_.size() == count + 1U && layout_text_scale_ == text_scale && layout_font_ == content_font &&
+        layout_provider_ == provider && layout_device_scale_ == device_scale && layout_presented_ == presented;
+    Size presented_size = layout_presented_size_;
+    if (!positions_current) {
+        layout_positions_.clear();
+        layout_offsets_.clear();
+        layout_text_scale_ = text_scale;
+        layout_positions_.reserve(count + 1U);
+        layout_offsets_.reserve(count + 1U);
+        const bool masked = password_protected();
+        const std::string_view presentation(presented);
+        // The last prefix is the whole presentation: its measurement serves
+        // the text parts, so the text is measured once.
+        for (std::size_t index = 0U; index <= count; ++index) {
+            const Utf8Offset offset = (*editing_).store().utf8_offset(GraphemeIndex(index));
+            layout_offsets_.push_back(offset.value());
+            const std::size_t presentation_offset = masked
+                ? index * mask.size() : offset.value();
+            const std::string_view prefix = presentation.substr(0U, presentation_offset);
+            const Size prefix_size = painter.measure_text_utf8(prefix, content_font);
+            layout_positions_.push_back(prefix_size.width);
+            presented_size = prefix_size;
+        }
+        layout_revision_ = revision;
+        layout_presented_ = presented;
+        layout_font_ = content_font;
+        layout_provider_ = provider;
+        layout_device_scale_ = device_scale;
+        layout_presented_size_ = presented_size;
     }
     const double caret_content_x = boundary_x((*editing_).selection().caret);
     if (caret_content_x < horizontal_offset_) {

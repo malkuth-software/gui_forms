@@ -382,6 +382,17 @@ private:
     std::vector<double> layout_positions_{};
     std::vector<std::uint64_t> layout_offsets_{};
     double layout_text_scale_{};
+    // What the single-line positions above were measured for; a paint with
+    // the same text revision, presentation (a mask changes it), font,
+    // metrics provider and device scale reuses them (A-gf-controls-09-F4).
+    // Valid only while layout_positions_ is not empty: every path that
+    // clears the positions invalidates them.
+    std::uint64_t layout_revision_{};
+    std::string layout_presented_{};
+    FontSpec layout_font_{};
+    const TextMetricsProvider* layout_provider_{};
+    double layout_device_scale_{};
+    Size layout_presented_size_{};
     double horizontal_offset_{};
     bool reveal_pending_{true};
     // A paging key moved the caret: the next caret reveal scrolls smoothly

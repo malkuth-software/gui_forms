@@ -867,6 +867,53 @@ void selected_text_drawn_once() {
     require(unselected.count("hello world") == 1U, "without a selection the line is one draw");
 }
 
+// Counts text measurements; draws nothing.
+class MeasureCountingPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+    Size measure_text_utf8(const std::string_view text, const FontSpec font) override {
+        ++measurements;
+        const Size measured = Painter::measure_text_utf8(text, font);
+        return measured;
+    }
+    std::size_t measurements{0};
+};
+
+// A-gf-controls-09-F4: a single-line box measures its grapheme prefixes
+// once per text, font, provider and scale; a repaint for a caret blink or a
+// selection change reuses them, and a text change measures again.
+void single_line_positions_survive_repaints() {
+    std::shared_ptr<TextBox> line = make_control<TextBox>(StableId("positions"));
+    (*line).set_requested_bounds({0, 0, 200, 28});
+    (*line).text = "hello world";
+    Window window(line, {200.0, 28.0});
+    window.perform_layout();
+    require(window.request_focus(line), "the single-line box takes focus");
+    MeasureCountingPainter first{};
+    (*line).on_paint(first, {0, 0, 200, 28});
+    require(first.measurements >= 12U, "the first paint measures every grapheme prefix");
+    MeasureCountingPainter repaint{};
+    (*line).on_paint(repaint, {0, 0, 200, 28});
+    require(repaint.measurements < 12U, "a repaint of the same text reuses the prefix positions");
+    (*line).select(Utf8Offset(2U), Utf8Offset(7U));
+    MeasureCountingPainter selected{};
+    (*line).on_paint(selected, {0, 0, 200, 28});
+    require(selected.measurements < 12U, "a selection change reuses the prefix positions");
+    (*line).text = "hello there, world";
+    window.perform_layout();
+    MeasureCountingPainter changed{};
+    (*line).on_paint(changed, {0, 0, 200, 28});
+    require(changed.measurements >= 19U, "a text change measures the new prefixes");
+}
+
 // Types `text` as one text input event, as an input method or a key would.
 void type_text(Fixture& f, const char* text) {
     TextInputEvent input{};
@@ -978,6 +1025,7 @@ int main() {
         caret_geometry_fallbacks();
         paging_reveal_glides();
         selected_text_drawn_once();
+        single_line_positions_survive_repaints();
         bounded_workload();
         typing_undoes_a_word_at_a_time();
         deep_history_for_a_large_text();
