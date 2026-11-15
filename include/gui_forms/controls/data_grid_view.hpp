@@ -718,7 +718,10 @@ public:
     // of the source's schema that no column names, in schema order: a check
     // box column for a boolean field, else a text column, named from the
     // field (lowercase letters, digits and '-', made unique) and headed by
-    // the field's own name. A later schema change adds none. The current row
+    // the field's name as the schema spells it (canonical: trimmed, ASCII
+    // letters lowered). A column names a field when its data_property_name
+    // folds to the field's name ("Name" names "name"). A later schema change
+    // adds none. The current row
     // follows the source's position and moves it; a committed edit moves the
     // position to its row and sets the field. A null source returns to
     // unbound rows.

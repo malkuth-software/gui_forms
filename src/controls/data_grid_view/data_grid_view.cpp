@@ -8,6 +8,7 @@
 #include "gui_forms/binding/binding_schema/binding_schema.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
 #include "gui_forms/binding/number_format/number_format.hpp"
+#include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/text.hpp"
@@ -1731,10 +1732,20 @@ void DataGridView::write_view(const decltype(data_source)&, std::shared_ptr<Bind
 }
 
 void DataGridView::generate_columns(const BindingSchema& schema) {
+    // A schema's field names are canonical (canonical_binding_name: trimmed,
+    // ASCII letters lowered), and a source finds a field by any spelling that
+    // folds to it, so a column's data_property_name names a field when its
+    // canonical spelling is the field's ("Name" names the field "name").
+    std::vector<std::string> named_fields{};
+    named_fields.reserve(columns_.size());
+    for (const DataGridViewColumn& column : columns_) {
+        const bool blank = column.data_property_name.find_first_not_of(" \t\r\n") == std::string::npos;
+        if (!blank) named_fields.push_back(canonical_binding_name(column.data_property_name));
+    }
     for (const BindingColumn& field : schema.columns()) {
         bool named = false;
-        for (const DataGridViewColumn& column : columns_) {
-            if (column.data_property_name == field.name) named = true;
+        for (const std::string& name : named_fields) {
+            if (name == field.name) named = true;
         }
         if (named || !validate_utf8(field.name).valid()) continue;
         DataGridViewColumn generated{};

@@ -4241,8 +4241,11 @@ void auto_generated_columns() {
     (*grid).auto_generate_columns = true;
     (*grid).data_source = source;
     window.perform_layout();
+    // The schema spells its fields canonically ("Name" and "City" fold to
+    // "name" and "city"): the "name" column's "Name" names the first, and
+    // the generated column takes the schema's spelling.
     require((*grid).columns().size() == 2U && (*grid).columns()[1].name == "city" &&
-                (*grid).columns()[1].header_text == "City" && (*grid).columns()[1].data_property_name == "City",
+                (*grid).columns()[1].header_text == "city" && (*grid).columns()[1].data_property_name == "city",
             "binding adds a column for the field no column names");
     require((*grid).cell_text(row_at(1U), 1U) == "Arlington", "the generated column shows its field");
     (*grid).data_source = nullptr;
